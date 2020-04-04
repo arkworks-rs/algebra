@@ -4,7 +4,7 @@ use algebra_core::{
 };
 use rand::Rng;
 
-use crate::mnt6::*;
+use crate::mnt4_298::*;
 
 use crate::tests::{curves::*, groups::*};
 
@@ -64,20 +64,20 @@ fn test_bilinearity() {
     let sa = a.mul(s);
     let sb = b.mul(s);
 
-    let ans1 = MNT6::pairing(sa, b);
-    let ans2 = MNT6::pairing(a, sb);
-    let ans3 = MNT6::pairing(a, b).pow(s.into_repr());
+    let ans1 = MNT4_298::pairing(sa, b);
+    let ans2 = MNT4_298::pairing(a, sb);
+    let ans3 = MNT4_298::pairing(a, b).pow(s.into_repr());
 
     assert_eq!(ans1, ans2);
     assert_eq!(ans2, ans3);
 
-    assert_ne!(ans1, Fq6::one());
-    assert_ne!(ans2, Fq6::one());
-    assert_ne!(ans3, Fq6::one());
+    assert_ne!(ans1, Fq4::one());
+    assert_ne!(ans2, Fq4::one());
+    assert_ne!(ans3, Fq4::one());
 
-    assert_eq!(ans1.pow(Fr::characteristic()), Fq6::one());
-    assert_eq!(ans2.pow(Fr::characteristic()), Fq6::one());
-    assert_eq!(ans3.pow(Fr::characteristic()), Fq6::one());
+    assert_eq!(ans1.pow(Fr::characteristic()), Fq4::one());
+    assert_eq!(ans2.pow(Fr::characteristic()), Fq4::one());
+    assert_eq!(ans3.pow(Fr::characteristic()), Fq4::one());
 }
 
 #[test]
@@ -88,7 +88,7 @@ fn test_product_of_pairings() {
     let b = G2Projective::rand(rng).into_affine();
     let c = G1Projective::rand(rng).into_affine();
     let d = G2Projective::rand(rng).into_affine();
-    let ans1 = MNT6::pairing(a, b) * &MNT6::pairing(c, d);
-    let ans2 = MNT6::product_of_pairings(&[(a.into(), b.into()), (c.into(), d.into())]);
+    let ans1 = MNT4_298::pairing(a, b) * &MNT4_298::pairing(c, d);
+    let ans2 = MNT4_298::product_of_pairings(&[(a.into(), b.into()), (c.into(), d.into())]);
     assert_eq!(ans1, ans2);
 }
