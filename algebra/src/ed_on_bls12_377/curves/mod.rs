@@ -1,4 +1,4 @@
-use crate::edwards_on_bls12_377::{fq::Fq, fr::Fr};
+use crate::ed_on_bls12_377::{fq::Fq, fr::Fr};
 use algebra_core::{
     biginteger::BigInteger256,
     curves::{

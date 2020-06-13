@@ -7,7 +7,7 @@ use crate::{
     field_new,
 };
 
-use crate::edwards_on_cp6_782::{fq::Fq, fr::Fr};
+use crate::ed_on_cp6_782::{fq::Fq, fr::Fr};
 
 #[cfg(test)]
 mod tests;

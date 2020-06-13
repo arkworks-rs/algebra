@@ -1,5 +1,5 @@
 //! This module implements a twisted Edwards curve whose base field is the scalar field of the
-//! curve BW6_761.  *It is the same curve as that in `crate::edwards_on_cp6_782`.*
+//! curve BW6_761.  *It is the same curve as that in `crate::ed_on_cp6_782`.*
 //! This allows defining cryptographic primitives that use elliptic curves over the scalar field of
 //! the latter curve.  This curve was generated as part of the paper
 //! [[BCGMMW20, “Zexe”]](https://eprint.iacr.org/2018/962).
@@ -13,4 +13,4 @@
 //!    * a = -1
 //!    * d = 79743
 
-pub use crate::edwards_on_cp6_782::*;
+pub use crate::ed_on_cp6_782::*;

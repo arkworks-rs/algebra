@@ -2,7 +2,7 @@ use crate::tests::fields::{field_test, primefield_test};
 use algebra_core::test_rng;
 use rand::Rng;
 
-use crate::edwards_on_bls12_377::{Fq, Fr};
+use crate::ed_on_bls12_377::{Fq, Fr};
 
 #[test]
 fn test_fr() {

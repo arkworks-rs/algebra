@@ -1,4 +1,4 @@
-use crate::edwards_on_bls12_381::{Fq, Fr};
+use crate::ed_on_bls12_381::{Fq, Fr};
 use algebra_core::{
     biginteger::BigInteger256 as BigInteger,
     bytes::{FromBytes, ToBytes},
@@ -183,7 +183,7 @@ fn test_fq_double_in_place_thrice() {
 }
 
 #[test]
-fn test_fq_generate_random_edwards_on_bls12_381_point() {
+fn test_fq_generate_random_ed_on_bls12_381_point() {
     let d = Fq::from_str(
         "19257038036680949359750312669786877991949435402254120286184196891950884077233",
     )

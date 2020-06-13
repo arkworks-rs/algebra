@@ -4,7 +4,7 @@ use algebra_core::{
 };
 use rand::Rng;
 
-use crate::edwards_on_cp6_782::*;
+use crate::ed_on_cp6_782::*;
 
 use crate::tests::{curves::*, groups::*};
 

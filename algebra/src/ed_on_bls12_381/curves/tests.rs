@@ -6,7 +6,7 @@ use algebra_core::{
 use core::str::FromStr;
 use rand::Rng;
 
-use crate::edwards_on_bls12_381::*;
+use crate::ed_on_bls12_381::*;
 
 use crate::tests::{curves::*, groups::*};
 
