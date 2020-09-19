@@ -1,12 +1,21 @@
 [workspace]
 
 members = [
+    "ff-macros",
+    "ff",
+
+    "ec",
+
     "algebra-core",
     "algebra",
     "algebra-benches",
-    "ff-fft",
-    "ff-fft-benches",
-    "algebra-core/algebra-core-derive",
+    "bls12-377",
+    "bls12-381",
+    "bn254",
+    "mnt-298",
+    "mnt-753",
+    "poly",
+    "poly-benches",
 ]
 
 [profile.release]
