@@ -1,3 +1,94 @@
+macro_rules! impl_prime_field_serializer {
+    ($field: ident, $params: ident, $byte_size: expr) => {
+        impl<P: $params> ark_serialize::CanonicalSerializeWithFlags for $field<P> {
+            #[allow(unused_qualifications)]
+            fn serialize_with_flags<W: ark_std::io::Write, F: ark_serialize::Flags>(
+                &self,
+                mut writer: W,
+                flags: F,
+            ) -> Result<(), ark_serialize::SerializationError> {
+                const BYTE_SIZE: usize = $byte_size;
+
+                let (output_bit_size, output_byte_size) =
+                    ark_serialize::buffer_bit_byte_size($field::<P>::size_in_bits());
+                if F::len() > (output_bit_size - P::MODULUS_BITS as usize) {
+                    return Err(ark_serialize::SerializationError::NotEnoughSpace);
+                }
+
+                let mut bytes = [0u8; BYTE_SIZE];
+                self.write(&mut bytes[..])?;
+
+                bytes[output_byte_size - 1] |= flags.u8_bitmask();
+
+                writer.write_all(&bytes[..output_byte_size])?;
+                Ok(())
+            }
+        }
+
+        impl<P: $params> ark_serialize::ConstantSerializedSize for $field<P> {
+            const SERIALIZED_SIZE: usize = ark_serialize::buffer_byte_size(
+                <$field<P> as crate::PrimeField>::Params::MODULUS_BITS as usize,
+            );
+            const UNCOMPRESSED_SIZE: usize = Self::SERIALIZED_SIZE;
+        }
+
+        impl<P: $params> ark_serialize::CanonicalSerialize for $field<P> {
+            #[allow(unused_qualifications)]
+            #[inline]
+            fn serialize<W: ark_std::io::Write>(
+                &self,
+                writer: W,
+            ) -> Result<(), ark_serialize::SerializationError> {
+                use ark_serialize::*;
+                self.serialize_with_flags(writer, ark_serialize::EmptyFlags)
+            }
+
+            #[inline]
+            fn serialized_size(&self) -> usize {
+                use ark_serialize::*;
+                Self::SERIALIZED_SIZE
+            }
+        }
+
+        impl<P: $params> ark_serialize::CanonicalDeserializeWithFlags for $field<P> {
+            #[allow(unused_qualifications)]
+            fn deserialize_with_flags<R: ark_std::io::Read, F: ark_serialize::Flags>(
+                mut reader: R,
+            ) -> Result<(Self, F), ark_serialize::SerializationError> {
+                const BYTE_SIZE: usize = $byte_size;
+
+                let (output_bit_size, output_byte_size) =
+                    ark_serialize::buffer_bit_byte_size($field::<P>::size_in_bits());
+                if F::len() > (output_bit_size - P::MODULUS_BITS as usize) {
+                    return Err(ark_serialize::SerializationError::NotEnoughSpace);
+                }
+
+                let mut masked_bytes = [0; BYTE_SIZE];
+                reader.read_exact(&mut masked_bytes[..output_byte_size])?;
+
+                let flags = F::from_u8_remove_flags(&mut masked_bytes[output_byte_size - 1]);
+
+                Ok((Self::read(&masked_bytes[..])?, flags))
+            }
+        }
+
+        impl<P: $params> ark_serialize::CanonicalDeserialize for $field<P> {
+            #[allow(unused_qualifications)]
+            fn deserialize<R: ark_std::io::Read>(
+                mut reader: R,
+            ) -> Result<Self, ark_serialize::SerializationError> {
+                const BYTE_SIZE: usize = $byte_size;
+
+                let (_, output_byte_size) =
+                    ark_serialize::buffer_bit_byte_size($field::<P>::size_in_bits());
+
+                let mut masked_bytes = [0; BYTE_SIZE];
+                reader.read_exact(&mut masked_bytes[..output_byte_size])?;
+                Ok(Self::read(&masked_bytes[..])?)
+            }
+        }
+    };
+}
 macro_rules! impl_Fp {
     ($Fp:ident, $FpParameters:ident, $BigInteger:ident, $BigIntegerType:ty, $limbs:expr) => {
         pub trait $FpParameters: FpParameters<BigInt = $BigIntegerType> {}
@@ -90,6 +181,7 @@ macro_rules! impl_Fp {
 
             #[inline]
             fn from_random_bytes_with_flags(bytes: &[u8]) -> Option<(Self, u8)> {
+                use ark_serialize::*;
                 let mut result_bytes = [0u8; $limbs * 8];
                 for (result_byte, in_byte) in result_bytes.iter_mut().zip(bytes.iter()) {
                     *result_byte = *in_byte;
@@ -283,6 +375,8 @@ macro_rules! impl_Fp {
         impl_prime_field_from_int!($Fp, bool, $FpParameters);
 
         impl_prime_field_standard_sample!($Fp, $FpParameters);
+
+        impl_prime_field_serializer!($Fp, $FpParameters, $limbs * 8);
 
         impl<P: $FpParameters> ToBytes for $Fp<P> {
             #[inline]

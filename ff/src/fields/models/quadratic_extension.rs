@@ -1,16 +1,17 @@
-use crate::{
-    io::{Read, Result as IoResult, Write},
-    CanonicalDeserialize, CanonicalDeserializeWithFlags, CanonicalSerialize,
-    CanonicalSerializeWithFlags, ConstantSerializedSize, EmptyFlags, Flags, SerializationError,
-    UniformRand,
-};
-use core::{
+use ark_std::{
     cmp::{Ord, Ordering, PartialOrd},
     fmt,
     marker::PhantomData,
     ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign},
+    boxed::Box, vec::Vec, io::{Read, Result as IoResult, Write}
 };
+use ark_serialize::{
+    CanonicalDeserialize, CanonicalDeserializeWithFlags, CanonicalSerialize,
+    CanonicalSerializeWithFlags, ConstantSerializedSize, EmptyFlags, Flags, SerializationError
+};
+
 use num_traits::{One, Zero};
+
 use rand::{
     distributions::{Distribution, Standard},
     Rng,
@@ -19,7 +20,7 @@ use rand::{
 use crate::{
     bytes::{FromBytes, ToBytes},
     fields::{Field, LegendreSymbol, PrimeField, SquareRootField},
-    Box, ToConstraintField, Vec,
+    ToConstraintField,UniformRand,
 };
 
 pub trait QuadExtParameters: 'static + Send + Sync + Sized {
@@ -533,7 +534,7 @@ impl<P: QuadExtParameters> ToConstraintField<P::BasePrimeField> for QuadExtField
 where
     P::BaseField: ToConstraintField<P::BasePrimeField>,
 {
-    fn to_field_elements(&self) -> Result<Vec<P::BasePrimeField>, Box<dyn crate::Error>> {
+    fn to_field_elements(&self) -> Result<Vec<P::BasePrimeField>, Box<dyn ark_std::error::Error>> {
         let mut res = Vec::new();
         let mut c0_elems = self.c0.to_field_elements()?;
         let mut c1_elems = self.c1.to_field_elements()?;

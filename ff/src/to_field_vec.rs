@@ -1,10 +1,7 @@
-use crate::{
-    biginteger::BigInteger,
-    
-    Box, Field, FpParameters, PrimeField, Vec,
-};
+use ark_std::{boxed::Box, vec::Vec};
+use crate::{biginteger::BigInteger, Field, FpParameters, PrimeField};
 
-type Error = Box<dyn crate::Error>;
+type Error = Box<dyn ark_std::error::Error>;
 
 /// Types that can be converted to a vector of `F` elements. Useful for
 /// specifying how public inputs to a constraint system should be represented
@@ -48,7 +45,7 @@ impl<ConstraintF: PrimeField> ToConstraintField<ConstraintF> for [u8] {
                 ConstraintF::read(bigint.as_slice())
             })
             .collect::<Result<Vec<_>, _>>()
-            .map_err(crate::SerializationError::from)
+            .map_err(ark_serialize::SerializationError::from)
             .map_err(|e| Box::new(e))?;
         Ok(fes)
     }

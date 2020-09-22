@@ -1,5 +1,4 @@
-use crate::io;
-use core::fmt;
+use ark_std::{io, fmt};
 
 /// This is an error that could occur during serialization
 #[derive(Debug)]
@@ -15,11 +14,8 @@ pub enum SerializationError {
     IoError(io::Error),
 }
 
-#[cfg(feature = "std")]
-impl crate::Error for SerializationError {}
+impl ark_std::error::Error for SerializationError {}
 
-#[cfg(not(feature = "std"))]
-impl crate::Error for SerializationError {}
 
 impl From<io::Error> for SerializationError {
     fn from(e: io::Error) -> SerializationError {

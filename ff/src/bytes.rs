@@ -1,7 +1,7 @@
-use crate::{
-    error,
+use crate::error;
+use ark_std::{
     io::{Read, Result as IoResult, Write},
-    Vec,
+    vec::Vec,
 };
 
 pub trait ToBytes {

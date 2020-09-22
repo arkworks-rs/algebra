@@ -1,0 +1,30 @@
+[package]
+name = "ark-serialize"
+version = "0.1.0"
+authors = [
+    "Sean Bowe",
+    "Alessandro Chiesa",
+    "Matthew Green",
+    "Ian Miers",
+    "Pratyush Mishra",
+    "Howard Wu",
+    "arkworks contributors"
+]
+description = "A library for serializing types in the arkworks ecosystem"
+homepage = "https://arworks.rs"
+repository = "https://github.com/arkworks/algebra"
+documentation = "https://docs.rs/ark-serialize/"
+keywords = ["cryptography", "finite fields", "serialization" ]
+categories = ["cryptography"]
+include = ["Cargo.toml", "src", "README.md", "LICENSE-APACHE", "LICENSE-MIT"]
+license = "MIT/Apache-2.0"
+edition = "2018"
+
+[dependencies]
+ark-serialize-derive = { path = "../serialize-derive", optional = true }
+ark-std = { git = "https://github.com/arkworks-rs/utils", default-features = false }
+
+[features]
+default = [ "std" ]
+std = [ "ark-std/std" ]
+derive = [ "ark-serialize-derive" ]
