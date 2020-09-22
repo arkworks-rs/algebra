@@ -7,7 +7,7 @@
 macro_rules! impl_field_mul_assign {
     ($limbs:expr) => {
         #[inline]
-        #[unroll_for_loops]
+        #[ark_ff_asm::unroll_for_loops]
         fn mul_assign(&mut self, other: &Self) {
             // Checking the modulus at compile time
             let first_bit_set = P::MODULUS.0[$limbs - 1] >> 63 != 0;
@@ -23,7 +23,8 @@ macro_rules! impl_field_mul_assign {
                 #[allow(unsafe_code, unused_mut)]
                 {
                     if $limbs <= 6 {
-                        llvm_asm_mul!($limbs, (self.0).0, (other.0).0, P::MODULUS.0, P::INV);
+                        assert!($limbs <= 6);
+                        ark_ff_asm::x86_64_asm_mul!($limbs, (self.0).0, (other.0).0);
                         self.reduce();
                         return;
                     }
@@ -78,7 +79,7 @@ macro_rules! impl_field_mul_assign {
 macro_rules! impl_field_into_repr {
     ($limbs:expr, $BigIntegerType:ty) => {
         #[inline]
-        #[unroll_for_loops]
+        #[ark_ff_asm::unroll_for_loops]
         fn into_repr(&self) -> $BigIntegerType {
             let mut tmp = self.0;
             let mut r = tmp.0;
@@ -103,7 +104,7 @@ macro_rules! impl_field_into_repr {
 macro_rules! impl_field_square_in_place {
     ($limbs: expr) => {
         #[inline]
-        #[unroll_for_loops]
+        #[ark_ff_asm::unroll_for_loops]
         #[allow(unused_braces)]
         fn square_in_place(&mut self) -> &mut Self {
             // Checking the modulus at compile time
@@ -118,7 +119,8 @@ macro_rules! impl_field_square_in_place {
             #[allow(unsafe_code, unused_mut)]
             {
                 if $limbs <= 6 && _no_carry {
-                    llvm_asm_square!($limbs, (self.0).0, P::MODULUS.0, P::INV);
+                    assert!($limbs <= 6);
+                    ark_ff_asm::x86_64_asm_square!($limbs, (self.0).0);
                     self.reduce();
                     return self;
                 }

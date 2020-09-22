@@ -1,5 +1,5 @@
 [package]
-name = "algebra-core-derive"
+name = "ark-ff-derive"
 version = "0.1.1-alpha.0"
 authors = [
     "Sean Bowe",
@@ -7,9 +7,10 @@ authors = [
     "Matthew Green",
     "Ian Miers",
     "Pratyush Mishra",
-    "Howard Wu"
+    "Howard Wu",
+    "arkworks Contributors"
 ]
-description = "A library for deriving serialization traits"
+description = "A library for deriving serialization traits for the arkworks ecosystem"
 homepage = "https://libzexe.org"
 repository = "https://github.com/scipr/zexe"
 documentation = "https://docs.rs/algebra/"

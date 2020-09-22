@@ -66,12 +66,6 @@ pub use self::fields::*;
 pub mod biginteger;
 pub use self::biginteger::*;
 
-pub mod curves;
-pub use self::curves::*;
-
-pub mod groups;
-pub use self::groups::*;
-
 mod rand;
 pub use self::rand::*;
 
@@ -81,19 +75,12 @@ pub use self::error::*;
 mod to_field_vec;
 pub use to_field_vec::ToConstraintField;
 
-pub mod msm;
-pub use self::msm::*;
-
 pub use num_traits::{One, Zero};
 
 pub mod prelude {
     pub use crate::biginteger::BigInteger;
 
     pub use crate::fields::{Field, FpParameters, PrimeField, SquareRootField};
-
-    pub use crate::groups::Group;
-
-    pub use crate::curves::{AffineCurve, PairingEngine, ProjectiveCurve};
 
     pub use crate::rand::UniformRand;
 
@@ -111,7 +98,7 @@ pub use std::io;
 #[cfg(feature = "derive")]
 #[allow(unused_imports)]
 #[macro_use]
-extern crate algebra_core_derive;
+extern crate ff_macros;
 
 #[cfg(not(feature = "std"))]
 fn error(_msg: &'static str) -> io::Error {

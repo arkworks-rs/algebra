@@ -32,34 +32,20 @@ impl Context {
         self.ctx_string += other;
     }
 
-    pub fn get_string(&mut self) -> String {
+    pub fn get_string(&self) -> String {
         self.ctx_string.clone()
-    }
-
-    pub fn reset(&mut self) {
-        self.declarations.clear();
-        self.declaration_vec.clear();
-        self.clobbers.clear();
     }
 
     pub fn get(self, id: &str) -> String {
         self.declarations
-            .get(&id.to_string())
+            .get(id)
             .unwrap()
             .token
             .clone()
     }
 
     pub fn try_get(self, id: &str, fallback_id: &str) -> String {
-        match self.declarations.get(&id.to_string()) {
-            Some(dec) => dec.token.clone(),
-            None => self
-                .declarations
-                .get(&fallback_id.to_string())
-                .unwrap()
-                .token
-                .clone(),
-        }
+        self.declarations.get(id).map(|dec| dec.token.clone()).unwrap_or(self.get(fallback_id))
     }
 
     pub fn add_declaration(&mut self, id: &str, ty: &str, var: &str) {
@@ -80,18 +66,10 @@ impl Context {
         });
     }
 
-    pub fn add_limb(&mut self, limb: usize) {
-        self.append(&format!(
-            "
-                {} => {{",
-            limb
-        ))
-    }
-
     pub fn add_buffer(&mut self, extra_reg: usize) {
         self.append(&format!(
             "
-                    let mut spill_buffer = MaybeUninit::<[u64; {}]>::uninit();",
+                    let mut spill_buffer = core::mem::MaybeUninit::<[u64; {}]>::uninit();",
             extra_reg
         ));
     }
@@ -137,18 +115,8 @@ impl Context {
                             : {}
                         );
                     }}
-                }}",
+                ",
             clobbers
         ));
-    }
-
-    pub fn end(&mut self, num_limbs: usize) {
-        self.append(&format!("
-            x => panic!(\"llvm_asm_mul (no-carry): number of limbs supported is 2 up to {}. You had {{}}.\", x)
-        }};
-    }}
-}}
-",
-        num_limbs));
     }
 }
