@@ -1,0 +1,29 @@
+[package]
+name = "ark-ff-asm"
+version = "0.1.0"
+authors = [
+    "Jon Chuang",
+    "Sean Bowe",
+    "Alessandro Chiesa",
+    "Matthew Green",
+    "Ian Miers",
+    "Pratyush Mishra",
+    "Howard Wu",
+    "arkworks contributors"
+]
+description = "A library for generating x86-64 assembly for finite field multiplication"
+homepage = "https://arworks.rs"
+repository = "https://github.com/arkworks/algebra"
+documentation = "https://docs.rs/ark-ff-asm/"
+keywords = ["cryptography", "finite fields", "assembly" ]
+categories = ["cryptography"]
+include = ["Cargo.toml", "src", "README.md", "LICENSE-APACHE", "LICENSE-MIT"]
+license = "MIT/Apache-2.0"
+edition = "2018"
+
+[dependencies]
+quote = "1.0.0"
+syn = { version = "1.0.0", features = ["full", "parsing", "extra-traits"]}
+
+[lib]
+proc-macro = true

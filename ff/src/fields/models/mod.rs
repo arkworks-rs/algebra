@@ -6,7 +6,6 @@ use core::{
     str::FromStr,
 };
 use num_traits::{One, Zero};
-use unroll::unroll_for_loops;
 
 use crate::{
     biginteger::{
@@ -18,12 +17,6 @@ use crate::{
     io::{Read, Result as IoResult, Write},
     serialize::CanonicalDeserialize,
 };
-
-#[cfg(use_asm)]
-use std::mem::MaybeUninit;
-
-#[cfg(use_asm)]
-include!(concat!(env!("OUT_DIR"), "/field_assembly.rs"));
 
 impl_Fp!(Fp256, Fp256Parameters, BigInteger256, BigInteger256, 4);
 impl_Fp!(Fp320, Fp320Parameters, BigInteger320, BigInteger320, 5);

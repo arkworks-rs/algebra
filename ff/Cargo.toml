@@ -1,9 +1,43 @@
 [package]
-name = "ff"
+name = "ark-ff"
 version = "0.1.0"
-authors = ["Pratyush Mishra <pratyushmishra@berkeley.edu>"]
+authors = [
+    "Sean Bowe",
+    "Alessandro Chiesa",
+    "Matthew Green",
+    "Ian Miers",
+    "Pratyush Mishra",
+    "Howard Wu",
+    "arkworks contributors"
+]
+description = "A library for finite fields"
+homepage = "https://arworks.rs"
+repository = "https://github.com/arkworks/algebra"
+documentation = "https://docs.rs/ark-ff/"
+keywords = ["cryptography", "finite fields" ]
+categories = ["cryptography"]
+include = ["Cargo.toml", "src", "README.md", "LICENSE-APACHE", "LICENSE-MIT"]
+license = "MIT/Apache-2.0"
 edition = "2018"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+build = "build.rs"
 
 [dependencies]
+ark-ff-derive = { path = "../ff-derive", optional = true }
+ark-ff-asm = { path = "../ff-asm" }
+derivative = { version = "2", features = ["use_core"] }
+num-traits = { version = "0.2", default-features = false }
+rand = { version = "0.7", default-features = false }
+rayon = { version = "1", optional = true }
+
+[build-dependencies]
+rustc_version = "0.2"
+
+[dev-dependencies]
+rand_xorshift = "0.2"
+
+[features]
+default = [ "std" ]
+std = []
+parallel = [ "std", "rayon" ]
+derive = [ "ark-ff-derive" ]
+llvm_asm = []
