@@ -9,44 +9,8 @@
 #![cfg_attr(not(use_asm), forbid(unsafe_code))]
 #![cfg_attr(use_asm, deny(unsafe_code))]
 
-#[cfg(all(test, not(feature = "std")))]
 #[macro_use]
-extern crate std;
-
-/// This crate needs to be public, because we expose the `to_bytes!` macro.
-/// See the similar issue in [`smallvec#198`]
-///
-/// [`smallvec#198`]: https://github.com/servo/rust-smallvec/pull/198
-#[cfg(not(feature = "std"))]
-#[macro_use]
-#[doc(hidden)]
-pub extern crate alloc;
-
-#[cfg(not(feature = "std"))]
-#[allow(unused_imports)]
-#[doc(hidden)]
-pub use alloc::{
-    borrow::{Cow, ToOwned},
-    boxed::Box,
-    collections::btree_map::BTreeMap,
-    format,
-    string::String,
-    vec,
-    vec::Vec,
-};
-
-#[cfg(feature = "std")]
-#[allow(unused_imports)]
-#[doc(hidden)]
-pub use std::{
-    borrow::{Cow, ToOwned},
-    boxed::Box,
-    collections::btree_map::BTreeMap,
-    format,
-    string::String,
-    vec,
-    vec::Vec,
-};
+extern crate ark_std;
 
 #[macro_use]
 extern crate derivative;
@@ -54,10 +18,6 @@ extern crate derivative;
 #[cfg_attr(test, macro_use)]
 pub mod bytes;
 pub use self::bytes::*;
-
-#[macro_use]
-pub mod serialize;
-pub use self::serialize::*;
 
 #[macro_use]
 pub mod fields;
@@ -68,9 +28,6 @@ pub use self::biginteger::*;
 
 mod rand;
 pub use self::rand::*;
-
-mod error;
-pub use self::error::*;
 
 mod to_field_vec;
 pub use to_field_vec::ToConstraintField;
@@ -85,29 +42,16 @@ pub mod prelude {
     pub use crate::rand::UniformRand;
 
     pub use num_traits::{One, Zero};
-
-    pub use crate::error::*;
 }
 
 #[cfg(not(feature = "std"))]
-pub mod io;
-
-#[cfg(feature = "std")]
-pub use std::io;
-
-#[cfg(feature = "derive")]
-#[allow(unused_imports)]
-#[macro_use]
-extern crate ff_macros;
-
-#[cfg(not(feature = "std"))]
-fn error(_msg: &'static str) -> io::Error {
-    io::Error
+fn error(_msg: &'static str) -> ark_std::io::Error {
+    std::io::Error
 }
 
 #[cfg(feature = "std")]
-fn error(msg: &'static str) -> io::Error {
-    io::Error::new(io::ErrorKind::Other, msg)
+fn error(msg: &'static str) -> ark_std::io::Error {
+    std::io::Error::new(std::io::ErrorKind::Other, msg)
 }
 
 /// Returns the base-2 logarithm of `x`.

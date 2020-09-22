@@ -2,14 +2,17 @@ use crate::{
     biginteger::BigInteger,
     bytes::{FromBytes, ToBytes},
     fields::utils::k_adicity,
-    CanonicalDeserialize, CanonicalDeserializeWithFlags, CanonicalSerialize,
-    CanonicalSerializeWithFlags, ConstantSerializedSize, UniformRand, Vec,
+    UniformRand,
 };
-use core::{
+use ark_serialize::{
+    CanonicalDeserialize, CanonicalDeserializeWithFlags, CanonicalSerialize,
+    CanonicalSerializeWithFlags, ConstantSerializedSize, 
+};
+use ark_std::{
     fmt::{Debug, Display},
     hash::Hash,
     ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign},
-    str::FromStr,
+    str::FromStr, vec::Vec,
 };
 
 use num_traits::{One, Zero};
@@ -470,12 +473,6 @@ impl_field_bigint_conv!(Fp320, BigInteger320, Fp320Parameters);
 impl_field_bigint_conv!(Fp384, BigInteger384, Fp384Parameters);
 impl_field_bigint_conv!(Fp768, BigInteger768, Fp768Parameters);
 impl_field_bigint_conv!(Fp832, BigInteger832, Fp832Parameters);
-
-impl_prime_field_serializer!(Fp256, Fp256Parameters, 32);
-impl_prime_field_serializer!(Fp320, Fp320Parameters, 40);
-impl_prime_field_serializer!(Fp384, Fp384Parameters, 48);
-impl_prime_field_serializer!(Fp768, Fp768Parameters, 96);
-impl_prime_field_serializer!(Fp832, Fp832Parameters, 104);
 
 pub fn batch_inversion<F: Field>(v: &mut [F]) {
     // Montgomery’s Trick and Fast Implementation of Masked AES

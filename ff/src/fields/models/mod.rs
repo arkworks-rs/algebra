@@ -1,8 +1,9 @@
-use core::{
+use ark_std::{
     cmp::{Ord, Ordering, PartialOrd},
     fmt::{Display, Formatter, Result as FmtResult},
     marker::PhantomData,
     ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign},
+    io::{Read, Result as IoResult, Write},
     str::FromStr,
 };
 use num_traits::{One, Zero};
@@ -14,8 +15,6 @@ use crate::{
     },
     bytes::{FromBytes, ToBytes},
     fields::{FftField, Field, FpParameters, LegendreSymbol, PrimeField, SquareRootField},
-    io::{Read, Result as IoResult, Write},
-    serialize::CanonicalDeserialize,
 };
 
 impl_Fp!(Fp256, Fp256Parameters, BigInteger256, BigInteger256, 4);

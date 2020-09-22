@@ -2,8 +2,9 @@
 
 members = [
     "ff-asm",
-    "ff-derive",
     "ff",
+    "serialize",
+    "serialize-derive",
 
     # "ec",
 

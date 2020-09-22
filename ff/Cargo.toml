@@ -22,8 +22,9 @@ edition = "2018"
 build = "build.rs"
 
 [dependencies]
-ark-ff-derive = { path = "../ff-derive", optional = true }
 ark-ff-asm = { path = "../ff-asm" }
+ark-std = { git = "https://github.com/arkworks-rs/utils", default-features = false }
+ark-serialize = { path = "../serialize", default-features = false }
 derivative = { version = "2", features = ["use_core"] }
 num-traits = { version = "0.2", default-features = false }
 rand = { version = "0.7", default-features = false }
@@ -37,7 +38,6 @@ rand_xorshift = "0.2"
 
 [features]
 default = [ "std" ]
-std = []
-parallel = [ "std", "rayon" ]
-derive = [ "ark-ff-derive" ]
+std = [ "ark-std/std", "ark-serialize/std" ]
+parallel = [ "std", "rayon", "ark-std/parallel" ]
 llvm_asm = []

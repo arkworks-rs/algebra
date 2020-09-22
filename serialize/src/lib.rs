@@ -1,18 +1,16 @@
+#![cfg_attr(not(feature = "std"), no_std)]
 mod error;
 mod flags;
-pub use crate::{
-    bytes::{FromBytes, ToBytes},
-    io::{Read, Write},
-};
+
+pub use ark_std::io::{Read, Write};
+use ark_std::{collections::BTreeMap, borrow::{Cow, ToOwned}, vec::Vec, convert::TryFrom};
 pub use error::*;
 pub use flags::*;
 
 #[cfg(feature = "derive")]
 #[doc(hidden)]
-pub use algebra_core_derive::*;
+pub use ark_serialize_derive::*;
 
-use crate::{BTreeMap, Cow, ToOwned, Vec};
-use core::convert::TryFrom;
 
 /// Serializer in little endian format allowing to encode flags.
 pub trait CanonicalSerializeWithFlags: CanonicalSerialize {
@@ -300,95 +298,6 @@ pub const fn buffer_byte_size(modulus_bits: usize) -> usize {
     (modulus_bits + 7) / 8
 }
 
-macro_rules! impl_prime_field_serializer {
-    ($field: ident, $params: ident, $byte_size: expr) => {
-        impl<P: $params> CanonicalSerializeWithFlags for $field<P> {
-            #[allow(unused_qualifications)]
-            fn serialize_with_flags<W: crate::io::Write, F: crate::serialize::Flags>(
-                &self,
-                mut writer: W,
-                flags: F,
-            ) -> Result<(), crate::serialize::SerializationError> {
-                const BYTE_SIZE: usize = $byte_size;
-
-                let (output_bit_size, output_byte_size) =
-                    crate::serialize::buffer_bit_byte_size($field::<P>::size_in_bits());
-                if F::len() > (output_bit_size - P::MODULUS_BITS as usize) {
-                    return Err(crate::serialize::SerializationError::NotEnoughSpace);
-                }
-
-                let mut bytes = [0u8; BYTE_SIZE];
-                self.write(&mut bytes[..])?;
-
-                bytes[output_byte_size - 1] |= flags.u8_bitmask();
-
-                writer.write_all(&bytes[..output_byte_size])?;
-                Ok(())
-            }
-        }
-
-        impl<P: $params> ConstantSerializedSize for $field<P> {
-            const SERIALIZED_SIZE: usize = crate::serialize::buffer_byte_size(
-                <$field<P> as crate::PrimeField>::Params::MODULUS_BITS as usize,
-            );
-            const UNCOMPRESSED_SIZE: usize = Self::SERIALIZED_SIZE;
-        }
-
-        impl<P: $params> CanonicalSerialize for $field<P> {
-            #[allow(unused_qualifications)]
-            #[inline]
-            fn serialize<W: crate::io::Write>(
-                &self,
-                writer: W,
-            ) -> Result<(), crate::serialize::SerializationError> {
-                self.serialize_with_flags(writer, crate::serialize::EmptyFlags)
-            }
-
-            #[inline]
-            fn serialized_size(&self) -> usize {
-                Self::SERIALIZED_SIZE
-            }
-        }
-
-        impl<P: $params> CanonicalDeserializeWithFlags for $field<P> {
-            #[allow(unused_qualifications)]
-            fn deserialize_with_flags<R: crate::io::Read, F: crate::serialize::Flags>(
-                mut reader: R,
-            ) -> Result<(Self, F), crate::serialize::SerializationError> {
-                const BYTE_SIZE: usize = $byte_size;
-
-                let (output_bit_size, output_byte_size) =
-                    crate::serialize::buffer_bit_byte_size($field::<P>::size_in_bits());
-                if F::len() > (output_bit_size - P::MODULUS_BITS as usize) {
-                    return Err(crate::serialize::SerializationError::NotEnoughSpace);
-                }
-
-                let mut masked_bytes = [0; BYTE_SIZE];
-                reader.read_exact(&mut masked_bytes[..output_byte_size])?;
-
-                let flags = F::from_u8_remove_flags(&mut masked_bytes[output_byte_size - 1]);
-
-                Ok((Self::read(&masked_bytes[..])?, flags))
-            }
-        }
-
-        impl<P: $params> CanonicalDeserialize for $field<P> {
-            #[allow(unused_qualifications)]
-            fn deserialize<R: crate::io::Read>(
-                mut reader: R,
-            ) -> Result<Self, crate::serialize::SerializationError> {
-                const BYTE_SIZE: usize = $byte_size;
-
-                let (_, output_byte_size) =
-                    crate::serialize::buffer_bit_byte_size($field::<P>::size_in_bits());
-
-                let mut masked_bytes = [0; BYTE_SIZE];
-                reader.read_exact(&mut masked_bytes[..output_byte_size])?;
-                Ok(Self::read(&masked_bytes[..])?)
-            }
-        }
-    };
-}
 
 macro_rules! impl_sw_curve_serializer {
     ($params: ident) => {
@@ -777,7 +686,7 @@ impl<T: CanonicalDeserialize> CanonicalDeserialize for Option<T> {
 impl CanonicalSerialize for bool {
     #[inline]
     fn serialize<W: Write>(&self, writer: W) -> Result<(), SerializationError> {
-        Ok(self.write(writer)?)
+        Ok((*self as u8).serialize(writer)?)
     }
 
     #[inline]
@@ -789,7 +698,7 @@ impl CanonicalSerialize for bool {
 impl CanonicalDeserialize for bool {
     #[inline]
     fn deserialize<R: Read>(reader: R) -> Result<Self, SerializationError> {
-        Ok(bool::read(reader)?)
+        Ok(u8::deserialize(reader)? == 1)
     }
 }
 

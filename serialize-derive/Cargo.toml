@@ -1,5 +1,5 @@
 [package]
-name = "ark-ff-derive"
+name = "ark-serialize-derive"
 version = "0.1.1-alpha.0"
 authors = [
     "Sean Bowe",

@@ -1,11 +1,10 @@
 use crate::{
     bytes::{FromBytes, ToBytes},
     fields::BitIteratorBE,
-    io::{Read, Result as IoResult, Write},
-    CanonicalDeserialize, CanonicalSerialize, ConstantSerializedSize, SerializationError,
-    UniformRand, Vec,
+    UniformRand,
 };
-use core::fmt::{Debug, Display};
+use ark_std::{fmt::{Debug, Display}, vec::Vec, io::{Read, Result as IoResult, Write}};
+use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, ConstantSerializedSize, SerializationError};
 use rand::{
     distributions::{Distribution, Standard},
     Rng,
@@ -21,32 +20,6 @@ bigint_impl!(BigInteger320, 5);
 bigint_impl!(BigInteger384, 6);
 bigint_impl!(BigInteger768, 12);
 bigint_impl!(BigInteger832, 13);
-
-impl<T: BigInteger> CanonicalSerialize for T {
-    #[inline]
-    fn serialize<W: Write>(&self, writer: W) -> Result<(), SerializationError> {
-        self.write(writer)?;
-        Ok(())
-    }
-
-    #[inline]
-    fn serialized_size(&self) -> usize {
-        Self::SERIALIZED_SIZE
-    }
-}
-
-impl<T: BigInteger> ConstantSerializedSize for T {
-    const SERIALIZED_SIZE: usize = Self::NUM_LIMBS * 8;
-    const UNCOMPRESSED_SIZE: usize = Self::SERIALIZED_SIZE;
-}
-
-impl<T: BigInteger> CanonicalDeserialize for T {
-    #[inline]
-    fn deserialize<R: Read>(reader: R) -> Result<Self, SerializationError> {
-        let value = Self::read(reader)?;
-        Ok(value)
-    }
-}
 
 #[cfg(test)]
 mod tests;
@@ -140,7 +113,7 @@ pub trait BigInteger:
 }
 
 pub mod arithmetic {
-    use crate::Vec;
+    use ark_std::vec::Vec;
     pub fn find_wnaf(num: &[u64]) -> Vec<i64> {
         let is_zero = |num: &[u64]| num.iter().all(|x| *x == 0u64);
         let is_odd = |num: &[u64]| num[0] & 1 == 1;
