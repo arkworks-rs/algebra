@@ -1,12 +1,14 @@
-use crate::{
+use ark_ff::{
     bytes::ToBytes,
-    curves::{
-        bls12::{Bls12Parameters, TwistType},
-        models::SWModelParameters,
-        short_weierstrass_jacobian::{GroupAffine, GroupProjective},
-        AffineCurve,
-    },
     fields::{BitIteratorBE, Field, Fp2},
+};
+use crate::{
+    bls12::{Bls12Parameters, TwistType},
+    models::SWModelParameters,
+    short_weierstrass_jacobian::{GroupAffine, GroupProjective},
+    AffineCurve,
+};
+use ark_std::{
     io::{Result as IoResult, Write},
     Vec,
 };

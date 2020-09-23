@@ -1,15 +1,14 @@
 [workspace]
 
 members = [
-    "ff-asm",
-    "ff",
     "serialize",
     "serialize-derive",
 
-    # "ec",
+    "ff-asm",
+    "ff",
 
-    # "algebra-core",
-    # "algebra",
+    "ec",
+
     # "algebra-benches",
     # "bls12-377",
     # "bls12-381",
