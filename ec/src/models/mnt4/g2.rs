@@ -1,15 +1,13 @@
+use ark_ff::{bytes::ToBytes, fields::{Field, Fp2}};
 use crate::{
-    bytes::ToBytes,
-    curves::{
-        mnt4::MNT4Parameters,
-        models::mnt4::MNT4,
-        short_weierstrass_jacobian::{GroupAffine, GroupProjective},
-        AffineCurve,
-    },
-    fields::{Field, Fp2},
-    io::{Result as IoResult, Write},
-    One, Vec,
+    mnt4::MNT4Parameters,
+    models::mnt4::MNT4,
+    short_weierstrass_jacobian::{GroupAffine, GroupProjective},
+    AffineCurve,
 };
+use ark_std::{io::{Result as IoResult, Write}, vec::Vec};
+use num_traits::One;
+
 
 pub type G2Affine<P> = GroupAffine<<P as MNT4Parameters>::G2Parameters>;
 pub type G2Projective<P> = GroupProjective<<P as MNT4Parameters>::G2Parameters>;

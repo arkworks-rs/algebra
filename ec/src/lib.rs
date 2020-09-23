@@ -4,6 +4,9 @@
 #[macro_use]
 extern crate derivative;
 
+#[macro_use]
+extern crate ark_std;
+
 use ark_ff::{
     bytes::{FromBytes, ToBytes},
     fields::{Field, PrimeField, SquareRootField},
@@ -20,10 +23,11 @@ use ark_std::{
 use num_traits::Zero;
 
 pub mod models;
+pub use self::models::*;
 
 pub mod group;
 
-pub use self::models::*;
+pub mod msm;
 
 pub trait PairingEngine: Sized + 'static + Copy + Debug + Sync + Send + Eq + PartialEq {
     /// This is the scalar field of the G1/G2 groups.

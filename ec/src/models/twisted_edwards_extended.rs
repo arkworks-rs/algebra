@@ -1,13 +1,17 @@
+use ark_serialize::{EdwardsFlags, Flags, CanonicalDeserialize, CanonicalDeserializeWithFlags, CanonicalSerialize,
+    CanonicalSerializeWithFlags, ConstantSerializedSize, SerializationError};
 use crate::{
-    io::{Read, Result as IoResult, Write},
-    serialize::{EdwardsFlags, Flags},
-    CanonicalDeserialize, CanonicalDeserializeWithFlags, CanonicalSerialize,
-    CanonicalSerializeWithFlags, ConstantSerializedSize, UniformRand, Vec,
+    models::{
+        MontgomeryModelParameters as MontgomeryParameters, TEModelParameters as Parameters,
+    },
+    AffineCurve, ProjectiveCurve,
 };
-use core::{
+use ark_std::{
+    io::{Read, Result as IoResult, Write},
     fmt::{Display, Formatter, Result as FmtResult},
     marker::PhantomData,
     ops::{Add, AddAssign, MulAssign, Neg, Sub, SubAssign},
+    vec::Vec,
 };
 use num_traits::{One, Zero};
 use rand::{
@@ -15,16 +19,13 @@ use rand::{
     Rng,
 };
 
-use crate::{
+use ark_ff::{
+    UniformRand,
+    ToConstraintField,
     bytes::{FromBytes, ToBytes},
-    curves::{
-        models::{
-            MontgomeryModelParameters as MontgomeryParameters, TEModelParameters as Parameters,
-        },
-        AffineCurve, ProjectiveCurve,
-    },
     fields::{BitIteratorBE, Field, PrimeField, SquareRootField},
 };
+
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
 
@@ -172,7 +173,7 @@ impl<P: Parameters> Neg for GroupAffine<P> {
     }
 }
 
-crate::impl_additive_ops_from_ref!(GroupAffine, Parameters);
+ark_ff::impl_additive_ops_from_ref!(GroupAffine, Parameters);
 
 impl<'a, P: Parameters> Add<&'a Self> for GroupAffine<P> {
     type Output = Self;
@@ -261,7 +262,7 @@ impl<P: Parameters> Distribution<GroupAffine<P>> for Standard {
 
 mod group_impl {
     use super::*;
-    use crate::groups::Group;
+    use crate::group::Group;
 
     impl<P: Parameters> Group for GroupAffine<P> {
         type ScalarField = P::ScalarField;
@@ -511,7 +512,7 @@ impl<P: Parameters> Neg for GroupProjective<P> {
     }
 }
 
-crate::impl_additive_ops_from_ref!(GroupProjective, Parameters);
+ark_ff::impl_additive_ops_from_ref!(GroupProjective, Parameters);
 
 impl<'a, P: Parameters> Add<&'a Self> for GroupProjective<P> {
     type Output = Self;
@@ -682,4 +683,115 @@ impl<P: MontgomeryParameters> MontgomeryGroupAffine<P> {
     }
 }
 
-impl_edwards_curve_serializer!(Parameters);
+impl<P: Parameters> CanonicalSerialize for GroupAffine<P> {
+    #[allow(unused_qualifications)]
+    #[inline]
+    fn serialize<W: Write>(
+        &self,
+        writer: W,
+    ) -> Result<(), SerializationError> {
+        if self.is_zero() {
+            let flags = EdwardsFlags::default();
+            // Serialize 0.
+            P::BaseField::zero().serialize_with_flags(writer, flags)
+        } else {
+            let flags = EdwardsFlags::from_y_sign(self.y > -self.y);
+            self.x.serialize_with_flags(writer, flags)
+        }
+    }
+
+    #[inline]
+    fn serialized_size(&self) -> usize {
+        Self::SERIALIZED_SIZE
+    }
+
+    #[allow(unused_qualifications)]
+    #[inline]
+    fn serialize_uncompressed<W: Write>(
+        &self,
+        mut writer: W,
+    ) -> Result<(), SerializationError> {
+        self.x.serialize_uncompressed(&mut writer)?;
+        self.y.serialize_uncompressed(&mut writer)?;
+        Ok(())
+    }
+
+    #[inline]
+    fn uncompressed_size(&self) -> usize {
+        Self::UNCOMPRESSED_SIZE
+    }
+}
+
+impl<P: Parameters> ConstantSerializedSize for GroupAffine<P> {
+    const SERIALIZED_SIZE: usize =
+        <P::BaseField as ConstantSerializedSize>::SERIALIZED_SIZE;
+    const UNCOMPRESSED_SIZE: usize =
+        2 * <P::BaseField as ConstantSerializedSize>::SERIALIZED_SIZE;
+}
+
+impl<P: Parameters> CanonicalDeserialize for GroupAffine<P> {
+    #[allow(unused_qualifications)]
+    fn deserialize<R: Read>(
+        mut reader: R,
+    ) -> Result<Self, SerializationError> {
+        let (x, flags): (P::BaseField, EdwardsFlags) =
+            CanonicalDeserializeWithFlags::deserialize_with_flags(&mut reader)?;
+        if x == P::BaseField::zero() {
+            Ok(Self::zero())
+        } else {
+            let p = GroupAffine::<P>::get_point_from_x(x, flags.is_positive())
+                .ok_or(SerializationError::InvalidData)?;
+            if !p.is_in_correct_subgroup_assuming_on_curve() {
+                return Err(SerializationError::InvalidData);
+            }
+            Ok(p)
+        }
+    }
+
+    #[allow(unused_qualifications)]
+    fn deserialize_uncompressed<R: Read>(
+        reader: R,
+    ) -> Result<Self, SerializationError> {
+        let p = Self::deserialize_unchecked(reader)?;
+
+        if !p.is_in_correct_subgroup_assuming_on_curve() {
+            return Err(SerializationError::InvalidData);
+        }
+        Ok(p)
+    }
+
+    #[allow(unused_qualifications)]
+    fn deserialize_unchecked<R: Read>(
+        mut reader: R,
+    ) -> Result<Self, SerializationError> {
+        let x: P::BaseField = CanonicalDeserialize::deserialize(&mut reader)?;
+        let y: P::BaseField = CanonicalDeserialize::deserialize(&mut reader)?;
+
+        let p = GroupAffine::<P>::new(x, y);
+        Ok(p)
+    }
+}
+
+impl<M: Parameters, ConstraintF: Field> ToConstraintField<ConstraintF> for GroupAffine<M>
+where
+    M::BaseField: ToConstraintField<ConstraintF>,
+{
+    #[inline]
+    fn to_field_elements(&self) -> Option<Vec<ConstraintF>> {
+        let mut x_fe = self.x.to_field_elements()?;
+        let y_fe = self.y.to_field_elements()?;
+        x_fe.extend_from_slice(&y_fe);
+        Some(x_fe)
+    }
+}
+
+impl<M: Parameters, ConstraintF: Field> ToConstraintField<ConstraintF> for GroupProjective<M>
+where
+    M::BaseField: ToConstraintField<ConstraintF>,
+{
+    #[inline]
+    fn to_field_elements(&self) -> Option<Vec<ConstraintF>> {
+        GroupAffine::from(*self).to_field_elements()
+    }
+}
+

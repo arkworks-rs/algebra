@@ -1,17 +1,21 @@
-use crate::{
-    bytes::ToBytes,
-    curves::{
-        bw6::{BW6Parameters, TwistType},
-        models::SWModelParameters,
-        short_weierstrass_jacobian::{GroupAffine, GroupProjective},
-        AffineCurve,
-    },
-    fields::{BitIteratorBE, Field},
+use ark_std::{
     io::{Result as IoResult, Write},
-    Vec,
+    vec::Vec,
 };
-use core::ops::Neg;
+
+use ark_ff::{
+    bytes::ToBytes,
+    fields::{Field, BitIteratorBE},
+};
+
 use num_traits::{One, Zero};
+
+use crate::{
+    bw6::{BW6Parameters, TwistType},
+    models::SWModelParameters,
+    short_weierstrass_jacobian::{GroupAffine, GroupProjective},
+    AffineCurve,
+};
 
 pub type G2Affine<P> = GroupAffine<<P as BW6Parameters>::G2Parameters>;
 pub type G2Projective<P> = GroupProjective<<P as BW6Parameters>::G2Parameters>;
@@ -99,7 +103,7 @@ impl<P: BW6Parameters> From<G2Affine<P>> for G2Prepared<P> {
             z: P::Fp::one(),
         };
 
-        let negq = q.neg();
+        let negq = -q;
 
         for i in (1..P::ATE_LOOP_COUNT_2.len()).rev() {
             ell_coeffs_2.push(doubling_step::<P>(&mut r));

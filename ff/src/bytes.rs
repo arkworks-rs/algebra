@@ -311,7 +311,7 @@ impl<T: FromBytes> FromBytes for Option<T> {
 
 #[cfg(test)]
 mod test {
-    use crate::Vec;
+    use ark_std::vec::Vec;
     #[test]
     fn test_macro_empty() {
         let array: Vec<u8> = vec![];

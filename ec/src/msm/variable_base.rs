@@ -1,7 +1,8 @@
-use crate::{
-    prelude::{AffineCurve, BigInteger, FpParameters, One, PrimeField, ProjectiveCurve, Zero},
-    Vec,
-};
+use ark_std::vec::Vec;
+use ark_ff::prelude::*;
+
+use crate::{AffineCurve, ProjectiveCurve};
+
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
 
@@ -27,15 +28,10 @@ impl VariableBaseMSM {
         let zero = G::Projective::zero();
         let window_starts: Vec<_> = (0..num_bits).step_by(c).collect();
 
-        #[cfg(feature = "parallel")]
-        let window_starts_iter = window_starts.into_par_iter();
-        #[cfg(not(feature = "parallel"))]
-        let window_starts_iter = window_starts.into_iter();
-
         // Each window is of size `c`.
         // We divide up the bits 0..num_bits into windows of size `c`, and
         // in parallel process each such window.
-        let window_sums: Vec<_> = window_starts_iter
+        let window_sums: Vec<_> = ark_std::cfg_into_iter!(window_starts)
             .map(|w_start| {
                 let mut res = zero;
                 // We don't need the "zero" bucket, so we only have 2^c - 1 buckets

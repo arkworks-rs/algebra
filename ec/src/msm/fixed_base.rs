@@ -1,4 +1,7 @@
-use crate::{BigInteger, FpParameters, PrimeField, ProjectiveCurve, Vec};
+use ark_ff::{BigInteger, FpParameters, PrimeField};
+use ark_std::vec::Vec;
+use crate::ProjectiveCurve;
+
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
 
@@ -77,12 +80,7 @@ impl FixedBaseMSM {
         let outerc = (scalar_size + window - 1) / window;
         assert!(outerc <= table.len());
 
-        #[cfg(feature = "parallel")]
-        let v_iter = v.par_iter();
-        #[cfg(not(feature = "parallel"))]
-        let v_iter = v.iter();
-
-        v_iter
+        ark_std::cfg_iter!(v)
             .map(|e| Self::windowed_mul::<T>(outerc, window, table, e))
             .collect::<Vec<_>>()
     }

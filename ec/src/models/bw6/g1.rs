@@ -1,12 +1,10 @@
+use ark_ff::bytes::ToBytes;
 use crate::{
-    bytes::ToBytes,
-    curves::{
-        bw6::BW6Parameters,
-        short_weierstrass_jacobian::{GroupAffine, GroupProjective},
-        AffineCurve,
-    },
-    io::{Result as IoResult, Write},
+    bw6::BW6Parameters,
+    short_weierstrass_jacobian::{GroupAffine, GroupProjective},
+    AffineCurve,
 };
+use ark_std::io::{Result as IoResult, Write};
 use num_traits::Zero;
 
 pub type G1Affine<P> = GroupAffine<<P as BW6Parameters>::G1Parameters>;
