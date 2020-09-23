@@ -1,7 +1,5 @@
-use algebra_core::{
-    curves::{AffineCurve, ProjectiveCurve},
-    test_rng,
-};
+use ark_ff::test_rng;
+use ark_ec::{AffineCurve, ProjectiveCurve};
 use rand::Rng;
 
 use crate::ed_on_mnt4_298::*;
