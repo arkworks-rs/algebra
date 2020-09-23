@@ -1,12 +1,12 @@
-use algebra_core::{
+use ark_ff::{
     biginteger::{BigInteger, BigInteger384},
-    buffer_bit_byte_size,
     fields::{
         fp6_3over2::Fp6Parameters, FftField, FftParameters, Field, Fp2Parameters, FpParameters,
         PrimeField, SquareRootField,
     },
-    test_rng, CanonicalSerialize, One, UniformRand, Zero,
+    test_rng, One, UniformRand, Zero,
 };
+use ark_serialize::{CanonicalSerialize, buffer_bit_byte_size};
 use core::{
     cmp::Ordering,
     ops::{AddAssign, MulAssign, SubAssign},
@@ -382,7 +382,7 @@ fn test_fq_ordering() {
 
 #[test]
 fn test_fq_legendre() {
-    use crate::fields::LegendreSymbol::*;
+    use ark_ff::fields::LegendreSymbol::*;
 
     assert_eq!(QuadraticResidue, Fq::one().legendre());
     assert_eq!(Zero, Fq::zero().legendre());
@@ -427,7 +427,7 @@ fn test_fq2_basics() {
 
 #[test]
 fn test_fq2_legendre() {
-    use crate::fields::LegendreSymbol::*;
+    use ark_ff::fields::LegendreSymbol::*;
 
     assert_eq!(Zero, Fq2::zero().legendre());
     // i^2 = -1

@@ -1,1 +1,1 @@
-pub use crate::cp6_782::{Fr as Fq, FrParameters as FqParameters};
+pub use crate::bls12_377::{Fq as Fq, FqParameters as FqParameters};

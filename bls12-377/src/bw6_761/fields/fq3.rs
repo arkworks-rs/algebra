@@ -1,4 +1,4 @@
-use crate::{
+use ark_ff::{
     biginteger::BigInteger768 as BigInteger,
     field_new,
     fields::fp3::{Fp3, Fp3Parameters},

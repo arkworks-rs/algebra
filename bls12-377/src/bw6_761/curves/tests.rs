@@ -1,4 +1,5 @@
-use algebra_core::{test_rng, AffineCurve, Field, One, PairingEngine, PrimeField, ProjectiveCurve};
+use ark_ff::{test_rng, Field, PrimeField, One};
+use ark_ec::{AffineCurve, PairingEngine, ProjectiveCurve};
 use rand::Rng;
 
 use crate::bw6_761::*;

@@ -1,7 +1,5 @@
-use algebra_core::{
-    curves::{AffineCurve, ProjectiveCurve},
-    test_rng,
-};
+use ark_ff::test_rng;
+use ark_ec::{AffineCurve, ProjectiveCurve};
 use rand::Rng;
 
 use crate::ed_on_cp6_782::*;
@@ -48,7 +46,7 @@ fn test_conversion() {
     let a: EdwardsAffine = rng.gen();
     let b: EdwardsAffine = rng.gen();
     let a_b = {
-        use crate::groups::Group;
+        use ark_ec::group::Group;
         (a + &b).double().double()
     };
     let a_b2 = (a.into_projective() + &b.into_projective())
