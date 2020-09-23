@@ -1,4 +1,4 @@
-use algebra_core::curves::bls12::{Bls12, Bls12Parameters, TwistType};
+use ark_ec::bls12::{Bls12, Bls12Parameters, TwistType};
 
 use crate::bls12_381::{Fq, Fq12Parameters, Fq2Parameters, Fq6Parameters};
 

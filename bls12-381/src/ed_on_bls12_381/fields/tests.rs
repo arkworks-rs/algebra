@@ -1,5 +1,5 @@
 use crate::ed_on_bls12_381::{Fq, Fr};
-use algebra_core::{
+use ark_ff::{
     biginteger::BigInteger256 as BigInteger,
     bytes::{FromBytes, ToBytes},
     fields::{Field, LegendreSymbol::*, SquareRootField},

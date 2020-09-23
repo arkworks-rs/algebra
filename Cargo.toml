@@ -11,7 +11,7 @@ members = [
 
     # "algebra-benches",
     "bls12-377",
-    # "bls12-381",
+    "bls12-381",
     # "bn254",
     # "mnt-298",
     # "mnt-753",
