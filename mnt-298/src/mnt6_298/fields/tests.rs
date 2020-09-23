@@ -1,6 +1,10 @@
-use algebra_core::fields::models::fp6_2over3::*;
-use algebra_core::fields::quadratic_extension::QuadExtParameters;
-use algebra_core::{test_rng, Field};
+use ark_ff::{
+    fields::{
+        models::fp6_2over3::*,
+        quadratic_extension::QuadExtParameters,
+    },
+    test_rng, Field
+};
 use rand::Rng;
 
 use crate::mnt6_298::*;

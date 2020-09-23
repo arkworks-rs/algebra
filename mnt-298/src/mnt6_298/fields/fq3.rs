@@ -1,5 +1,5 @@
 use crate::mnt6_298::fq::Fq;
-use algebra_core::{
+use ark_ff::{
     biginteger::BigInteger320 as BigInteger,
     field_new,
     fields::fp3::{Fp3, Fp3Parameters},
