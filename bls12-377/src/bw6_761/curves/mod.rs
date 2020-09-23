@@ -1,8 +1,9 @@
-use crate::{biginteger::BigInteger768 as BigInteger, bw6_761::*};
-use algebra_core::curves::{
+use ark_ff::biginteger::BigInteger768 as BigInteger; 
+use ark_ec::{
     bw6,
     bw6::{BW6Parameters, TwistType, BW6},
 };
+use crate::{bw6_761::*};
 
 pub mod g1;
 pub mod g2;

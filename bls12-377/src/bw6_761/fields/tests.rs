@@ -1,4 +1,5 @@
-use algebra_core::{buffer_bit_byte_size, test_rng, CanonicalSerialize, Field, PrimeField};
+use ark_serialize::{buffer_bit_byte_size, CanonicalSerialize};
+use ark_ff::{test_rng, Field, PrimeField};
 use rand::Rng;
 
 use crate::bw6_761::*;

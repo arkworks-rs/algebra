@@ -1,11 +1,8 @@
 use crate::ed_on_bls12_377::{fq::Fq, fr::Fr};
-use algebra_core::{
-    biginteger::BigInteger256,
-    curves::{
-        models::{ModelParameters, MontgomeryModelParameters, TEModelParameters},
-        twisted_edwards_extended::{GroupAffine, GroupProjective},
-    },
-    field_new,
+use ark_ff::{biginteger::BigInteger256, field_new};
+use ark_ec::{
+    models::{ModelParameters, MontgomeryModelParameters, TEModelParameters},
+    twisted_edwards_extended::{GroupAffine, GroupProjective},
 };
 
 #[cfg(test)]

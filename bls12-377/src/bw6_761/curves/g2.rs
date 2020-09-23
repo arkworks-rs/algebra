@@ -1,12 +1,10 @@
-use crate::{
-    biginteger::{BigInteger384, BigInteger768},
-    bw6_761::{Fq, Fr},
-    curves::{
-        models::{ModelParameters, SWModelParameters},
-        short_weierstrass_jacobian::{GroupAffine, GroupProjective},
-    },
-    field_new,
+use ark_ff::{biginteger::{BigInteger384, BigInteger768}, field_new};
+use ark_ec::{
+    models::{ModelParameters, SWModelParameters},
+    short_weierstrass_jacobian::{GroupAffine, GroupProjective},
 };
+use crate::bw6_761::{Fq, Fr};
+
 
 pub type G2Affine = GroupAffine<Parameters>;
 pub type G2Projective = GroupProjective<Parameters>;
@@ -71,7 +69,7 @@ impl SWModelParameters for Parameters {
         (G2_GENERATOR_X, G2_GENERATOR_Y);
     #[inline(always)]
     fn mul_by_a(_elem: &Self::BaseField) -> Self::BaseField {
-        use crate::Zero;
+        use ark_ff::Zero;
         Self::BaseField::zero()
     }
 }

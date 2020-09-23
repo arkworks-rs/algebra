@@ -1,12 +1,10 @@
-use crate::{
-    biginteger::{BigInteger384, BigInteger832},
-    cp6_782::{Fq, Fq3, Fr, FQ_ZERO},
-    curves::{
-        models::{ModelParameters, SWModelParameters},
-        short_weierstrass_jacobian::{GroupAffine, GroupProjective},
-    },
-    field_new,
-};
+use ark_ff::{biginteger::{BigInteger384, BigInteger832}, field_new};
+use ark_ec::{
+    models::{ModelParameters, SWModelParameters},
+    short_weierstrass_jacobian::{GroupAffine, GroupProjective},
+};    
+
+use crate::cp6_782::{Fq, Fq3, Fr, FQ_ZERO};
 
 pub type G2Affine = GroupAffine<Parameters>;
 pub type G2Projective = GroupProjective<Parameters>;

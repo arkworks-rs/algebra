@@ -1,4 +1,4 @@
-use algebra_core::{
+use ark_ff::{
     biginteger::BigInteger832 as BigInteger,
     fields::{FftParameters, Fp832, Fp832Parameters, FpParameters},
 };

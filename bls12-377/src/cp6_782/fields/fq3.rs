@@ -1,9 +1,9 @@
-use crate::{
+use ark_ff::{
     biginteger::BigInteger832 as BigInteger,
     field_new,
+    Field,
     fields::fp3::{Fp3, Fp3Parameters},
 };
-
 use crate::cp6_782::Fq;
 
 pub type Fq3 = Fp3<Fq3Parameters>;
@@ -195,8 +195,6 @@ impl Fp3Parameters for Fq3Parameters {
 
     #[inline(always)]
     fn mul_fp_by_nonresidue(fe: &Self::Fp) -> Self::Fp {
-        use crate::fields::Field;
-
         let original = *fe;
         let mut four_fe = fe.double();
         four_fe.double_in_place();

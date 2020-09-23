@@ -1,5 +1,5 @@
 use crate::bls12_377::*;
-use algebra_core::curves::{
+use ark_ec::{
     bls12,
     bls12::{Bls12, Bls12Parameters, TwistType},
 };
