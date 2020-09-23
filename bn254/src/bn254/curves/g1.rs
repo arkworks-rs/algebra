@@ -1,8 +1,8 @@
-use algebra_core::{
+use ark_ff::{
     biginteger::BigInteger256,
-    curves::models::{ModelParameters, SWModelParameters},
     field_new, Zero,
 };
+use ark_ec::models::{ModelParameters, SWModelParameters};
 
 use crate::bn254::{Fq, Fr};
 

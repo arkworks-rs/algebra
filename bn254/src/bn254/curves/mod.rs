@@ -1,11 +1,8 @@
 use crate::bn254::*;
-use algebra_core::{
-    biginteger::BigInteger256,
-    curves::{
-        bn,
-        bn::{Bn, BnParameters, TwistType},
-    },
-    field_new,
+use ark_ff::{biginteger::BigInteger256, field_new};
+use ark_ec::{
+    bn,
+    bn::{Bn, BnParameters, TwistType},
 };
 pub mod g1;
 pub mod g2;

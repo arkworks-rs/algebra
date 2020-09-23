@@ -1,5 +1,5 @@
 use super::*;
-use algebra_core::{biginteger::BigInteger256, field_new, fields::*};
+use ark_ff::{biginteger::BigInteger256, field_new, fields::*};
 
 pub type Fq6 = Fp6<Fq6Parameters>;
 
