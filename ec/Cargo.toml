@@ -1,9 +1,38 @@
 [package]
-name = "ec"
+name = "ark-ec"
 version = "0.1.0"
-authors = ["Pratyush Mishra <pratyushmishra@berkeley.edu>"]
+authors = [
+    "Sean Bowe",
+    "Alessandro Chiesa",
+    "Matthew Green",
+    "Ian Miers",
+    "Pratyush Mishra",
+    "Howard Wu",
+    "arkworks contributors"
+]
+description = "A library for elliptic curves and pairings"
+homepage = "https://arworks.rs"
+repository = "https://github.com/arkworks/algebra"
+documentation = "https://docs.rs/ark-ec/"
+keywords = ["cryptography", "finite fields", "elliptic curves" ]
+categories = ["cryptography"]
+include = ["Cargo.toml", "src", "README.md", "LICENSE-APACHE", "LICENSE-MIT"]
+license = "MIT/Apache-2.0"
 edition = "2018"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
+ark-std = { git = "https://github.com/arkworks-rs/utils", default-features = false }
+ark-serialize = { path = "../serialize", default-features = false }
+ark-ff = { path = "../ff", default-features = false }
+derivative = { version = "2", features = ["use_core"] }
+num-traits = { version = "0.2", default-features = false }
+rand = { version = "0.7", default-features = false }
+rayon = { version = "1", optional = true }
+
+[dev-dependencies]
+rand_xorshift = "0.2"
+
+[features]
+default = [ "std" ]
+std = [ "ark-std/std", "ark-ff/std", "ark-serialize/std" ]
+parallel = [ "std", "rayon", "ark-std/parallel" ]
