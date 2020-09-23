@@ -1,13 +1,11 @@
-use crate::{
-    bytes::ToBytes,
-    curves::{
-        mnt6::MNT6Parameters,
-        short_weierstrass_jacobian::{GroupAffine, GroupProjective},
-        AffineCurve,
-    },
-    io::{Result as IoResult, Write},
-    Fp3,
+use ark_ff::{Fp3, bytes::ToBytes};
+use crate::{ 
+    mnt6::MNT6Parameters,
+    short_weierstrass_jacobian::{GroupAffine, GroupProjective},
+    AffineCurve,
 };
+use ark_std::io::{Result as IoResult, Write};
+
 
 pub type G1Affine<P> = GroupAffine<<P as MNT6Parameters>::G1Parameters>;
 pub type G1Projective<P> = GroupProjective<<P as MNT6Parameters>::G1Parameters>;

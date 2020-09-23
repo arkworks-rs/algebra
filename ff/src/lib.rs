@@ -30,6 +30,8 @@ pub use to_field_vec::ToConstraintField;
 
 pub use num_traits::{One, Zero};
 
+pub use ark_std::vec;
+
 pub mod prelude {
     pub use crate::biginteger::BigInteger;
 
@@ -42,12 +44,12 @@ pub mod prelude {
 
 #[cfg(not(feature = "std"))]
 fn error(_msg: &'static str) -> ark_std::io::Error {
-    std::io::Error
+    ark_std::io::Error
 }
 
 #[cfg(feature = "std")]
 fn error(msg: &'static str) -> ark_std::io::Error {
-    std::io::Error::new(std::io::ErrorKind::Other, msg)
+    ark_std::io::Error::new(ark_std::io::ErrorKind::Other, msg)
 }
 
 /// Returns the base-2 logarithm of `x`.

@@ -1,14 +1,14 @@
-use crate::{
-    curves::{
+use {
+    crate::{
         models::{ModelParameters, SWModelParameters},
         PairingEngine,
     },
-    fields::{
+    ark_ff::{
         fp2::{Fp2, Fp2Parameters},
         fp4::{Fp4, Fp4Parameters},
         BitIteratorBE, Field, PrimeField, SquareRootField,
     },
-    One, Zero,
+    num_traits::{One, Zero},
 };
 
 use core::marker::PhantomData;

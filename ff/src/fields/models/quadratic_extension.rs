@@ -3,7 +3,7 @@ use ark_std::{
     fmt,
     marker::PhantomData,
     ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign},
-    boxed::Box, vec::Vec, io::{Read, Result as IoResult, Write}
+    vec::Vec, io::{Read, Result as IoResult, Write}
 };
 use ark_serialize::{
     CanonicalDeserialize, CanonicalDeserializeWithFlags, CanonicalSerialize,
@@ -534,7 +534,7 @@ impl<P: QuadExtParameters> ToConstraintField<P::BasePrimeField> for QuadExtField
 where
     P::BaseField: ToConstraintField<P::BasePrimeField>,
 {
-    fn to_field_elements(&self) -> Result<Vec<P::BasePrimeField>, Box<dyn ark_std::error::Error>> {
+    fn to_field_elements(&self) -> Option<Vec<P::BasePrimeField>> {
         let mut res = Vec::new();
         let mut c0_elems = self.c0.to_field_elements()?;
         let mut c1_elems = self.c1.to_field_elements()?;
@@ -542,6 +542,6 @@ where
         res.append(&mut c0_elems);
         res.append(&mut c1_elems);
 
-        Ok(res)
+        Some(res)
     }
 }

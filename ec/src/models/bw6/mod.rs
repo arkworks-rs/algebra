@@ -1,13 +1,11 @@
 use crate::{
-    curves::{
-        models::{ModelParameters, SWModelParameters},
-        PairingEngine,
-    },
-    fields::{
-        fp3::Fp3Parameters,
-        fp6_2over3::{Fp6, Fp6Parameters},
-        BitIteratorBE, Field, PrimeField, SquareRootField,
-    },
+    models::{ModelParameters, SWModelParameters},
+    PairingEngine,
+};
+use ark_ff::fields::{
+    fp3::Fp3Parameters,
+    fp6_2over3::{Fp6, Fp6Parameters},
+    BitIteratorBE, Field, PrimeField, SquareRootField,
 };
 use num_traits::One;
 

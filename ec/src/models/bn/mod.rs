@@ -1,14 +1,12 @@
 use crate::{
-    curves::{
-        models::{ModelParameters, SWModelParameters},
-        PairingEngine,
-    },
-    fields::{
-        fp12_2over3over2::{Fp12, Fp12Parameters},
-        fp2::Fp2Parameters,
-        fp6_3over2::Fp6Parameters,
-        Field, Fp2, PrimeField, SquareRootField,
-    },
+    models::{ModelParameters, SWModelParameters},
+    PairingEngine,
+};
+use ark_ff::fields::{
+    fp12_2over3over2::{Fp12, Fp12Parameters},
+    fp2::Fp2Parameters,
+    fp6_3over2::Fp6Parameters,
+    Field, Fp2, PrimeField, SquareRootField,
 };
 use num_traits::One;
 
