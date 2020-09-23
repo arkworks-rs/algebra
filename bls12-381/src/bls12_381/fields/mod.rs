@@ -1,6 +1,6 @@
-#[cfg(any(feature = "bls12_381", feature = "ed_on_bls12_381"))]
+#[cfg(feature = "bls12_381_fr")]
 pub mod fr;
-#[cfg(any(feature = "bls12_381", feature = "ed_on_bls12_381"))]
+#[cfg(feature = "bls12_381_fr")]
 pub use self::fr::*;
 
 #[cfg(feature = "bls12_381")]

@@ -1,12 +1,14 @@
-use crate::{
+use ark_ff::{
     biginteger::{BigInteger256, BigInteger384},
+    field_new, Zero,
+};
+use ark_ec::{
+    bls12,
+    models::{ModelParameters, SWModelParameters},
+};
+use crate::{
     bls12_381,
     bls12_381::*,
-    curves::{
-        bls12,
-        models::{ModelParameters, SWModelParameters},
-    },
-    field_new, Zero,
 };
 
 pub type G2Affine = bls12::G2Affine<bls12_381::Parameters>;

@@ -1,4 +1,4 @@
-use algebra_core::{
+use ark_ff::{
     biginteger::{BigInteger, BigInteger384},
     fields::{
         FftField, FftParameters, Field, Fp12Parameters, Fp2Parameters, Fp6Parameters, FpParameters,
@@ -1683,7 +1683,7 @@ fn test_fq_ordering() {
 
 #[test]
 fn test_fq_legendre() {
-    use crate::fields::LegendreSymbol::*;
+    use ark_ff::fields::LegendreSymbol::*;
 
     assert_eq!(QuadraticResidue, Fq::one().legendre());
     assert_eq!(Zero, Fq::zero().legendre());
@@ -2229,7 +2229,7 @@ fn test_fq2_frobenius_map() {
 
 #[test]
 fn test_fq2_legendre() {
-    use crate::fields::LegendreSymbol::*;
+    use ark_ff::fields::LegendreSymbol::*;
 
     assert_eq!(Zero, Fq2::zero().legendre());
     // i^2 = -1

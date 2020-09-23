@@ -1,9 +1,10 @@
 #![allow(unused_imports)]
-use algebra_core::{
-    curves::{models::SWModelParameters, AffineCurve, PairingEngine, ProjectiveCurve},
+use ark_ff::{
     fields::{Field, FpParameters, PrimeField, SquareRootField},
-    test_rng, CanonicalSerialize, One, Zero,
+    test_rng, One, Zero,
 };
+use ark_serialize::CanonicalSerialize;
+use ark_ec::{models::SWModelParameters, AffineCurve, PairingEngine, ProjectiveCurve};
 use core::ops::{AddAssign, MulAssign};
 use rand::Rng;
 
