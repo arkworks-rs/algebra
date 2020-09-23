@@ -1,4 +1,4 @@
-use algebra_core::{biginteger::BigInteger256 as BigInteger, field_new, fields::*};
+use ark_ff::{biginteger::BigInteger256 as BigInteger, field_new, fields::*};
 
 pub type Fq = Fp256<FqParameters>;
 

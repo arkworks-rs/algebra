@@ -1,8 +1,8 @@
-use algebra_core::{
+use ark_ff::{
     bytes::FromBytes,
-    curves::{AffineCurve, ProjectiveCurve},
     test_rng, Zero,
 };
+use ark_ec::{AffineCurve, ProjectiveCurve};
 use core::str::FromStr;
 use rand::Rng;
 
@@ -50,7 +50,7 @@ fn test_conversion() {
     let a: EdwardsAffine = rng.gen();
     let b: EdwardsAffine = rng.gen();
     let a_b = {
-        use crate::groups::Group;
+        use ark_ec::group::Group;
         (a + &b).double().double()
     };
     let a_b2 = (a.into_projective() + &b.into_projective())
@@ -102,7 +102,7 @@ fn test_bytes() {
     )
     .unwrap();
 
-    let g_bytes = algebra_core::to_bytes![g_from_repr].unwrap();
+    let g_bytes = ark_ff::to_bytes![g_from_repr].unwrap();
     let g = EdwardsAffine::read(g_bytes.as_slice()).unwrap();
     assert_eq!(g_from_repr, g);
 }
