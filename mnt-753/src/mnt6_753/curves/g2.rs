@@ -1,13 +1,14 @@
-use crate::mnt6_753::{self, g1, Fq, Fq3, Fr, FQ_ZERO};
-use algebra_core::{
+use ark_ff::{
     biginteger::BigInteger768,
-    curves::{
-        mnt6,
-        mnt6::MNT6Parameters,
-        models::{ModelParameters, SWModelParameters},
-    },
     field_new,
 };
+use ark_ec::{
+    mnt6,
+    mnt6::MNT6Parameters,
+    models::{ModelParameters, SWModelParameters},
+};
+
+use crate::mnt6_753::{self, g1, Fq, Fq3, Fr, FQ_ZERO};
 
 pub type G2Affine = mnt6::G2Affine<mnt6_753::Parameters>;
 pub type G2Projective = mnt6::G2Projective<mnt6_753::Parameters>;

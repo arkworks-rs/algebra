@@ -1,12 +1,14 @@
-use crate::ed_on_mnt4_753::{fq::Fq, fr::Fr};
-use algebra_core::{
+use ark_ff::{
     biginteger::BigInteger768,
-    curves::{
-        models::{ModelParameters, MontgomeryModelParameters, TEModelParameters},
-        twisted_edwards_extended::{GroupAffine, GroupProjective},
-    },
     field_new,
+    
 };
+use ark_ec::{
+    models::{ModelParameters, MontgomeryModelParameters, TEModelParameters},
+    twisted_edwards_extended::{GroupAffine, GroupProjective},
+};
+
+use crate::ed_on_mnt4_753::{fq::Fq, fr::Fr};
 
 #[cfg(test)]
 mod tests;

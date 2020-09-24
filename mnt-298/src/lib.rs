@@ -7,5 +7,5 @@ pub mod mnt4_298;
 #[cfg(feature = "mnt6_298")]
 pub mod mnt6_298;
 
-#[cfg(feature = "ed_on_bn254")]
-pub mod ed_on_bn254;
+#[cfg(feature = "ed_on_mnt4_298")]
+pub mod ed_on_mnt4_298;

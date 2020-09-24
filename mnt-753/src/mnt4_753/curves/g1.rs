@@ -1,12 +1,13 @@
-use crate::mnt4_753::{self, Fq, Fr, FR_ONE};
-use algebra_core::{
+use ark_ff::{
     biginteger::BigInteger768,
-    curves::{
-        mnt4,
-        models::{ModelParameters, SWModelParameters},
-    },
     field_new,
 };
+use ark_ec::{
+    mnt4,
+    models::{ModelParameters, SWModelParameters},
+};
+
+use crate::mnt4_753::{self, Fq, Fr, FR_ONE};
 
 pub type G1Affine = mnt4::G1Affine<mnt4_753::Parameters>;
 pub type G1Projective = mnt4::G1Projective<mnt4_753::Parameters>;
