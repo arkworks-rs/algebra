@@ -14,11 +14,8 @@ use crate::domain::{
     utils::{best_fft, bitreverse},
     DomainCoeff, EvaluationDomain,
 };
-use crate::Vec;
-use algebra_core::{fields::utils::k_adicity, FftField, FftParameters};
-use core::cmp::min;
-use core::convert::TryFrom;
-use core::fmt;
+use ark_std::{vec::Vec, cmp::min, convert::TryFrom, fmt};
+use ark_ff::{fields::utils::k_adicity, FftField, FftParameters};
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
 
@@ -143,7 +140,7 @@ impl<F: FftField> EvaluationDomain<F> for MixedRadixEvaluationDomain<F> {
             self.log_size_of_group,
             serial_mixed_radix_fft::<T, F>,
         );
-        cfg_iter_mut!(evals).for_each(|val| *val *= self.size_inv);
+        ark_std::cfg_iter_mut!(evals).for_each(|val| *val *= self.size_inv);
     }
 
     #[inline]
@@ -169,7 +166,7 @@ impl<F: FftField> EvaluationDomain<F> for MixedRadixEvaluationDomain<F> {
             }
             u
         } else {
-            use algebra_core::fields::batch_inversion;
+            use ark_ff::fields::batch_inversion;
 
             let mut l = (t_size - &one) * &self.size_inv;
             let mut r = one;
@@ -184,7 +181,7 @@ impl<F: FftField> EvaluationDomain<F> for MixedRadixEvaluationDomain<F> {
 
             batch_inversion(u.as_mut_slice());
 
-            cfg_iter_mut!(u).zip(ls).for_each(|(tau_minus_r, l)| {
+            ark_std::cfg_iter_mut!(u).zip(ls).for_each(|(tau_minus_r, l)| {
                 *tau_minus_r = l * *tau_minus_r;
             });
 
@@ -392,8 +389,8 @@ pub(crate) fn serial_mixed_radix_fft<T: DomainCoeff<F>, F: FftField>(
 #[cfg(test)]
 mod tests {
     use crate::{EvaluationDomain, MixedRadixEvaluationDomain};
-    use algebra::mnt6_753::Fr;
-    use algebra_core::{test_rng, Field, Zero};
+    use ark_mnt_753::mnt4_753::Fr;
+    use ark_ff::{test_rng, Field, Zero};
     use rand::Rng;
 
     #[test]
@@ -449,30 +446,30 @@ mod tests {
     fn parallel_fft_consistency() {
         use super::serial_mixed_radix_fft;
         use crate::domain::utils::parallel_fft;
-        use crate::Vec;
-        use algebra::mnt6_753::MNT6_753;
-        use algebra_core::{test_rng, PairingEngine, UniformRand};
+        use ark_std::vec::Vec;
+        use ark_mnt_753::mnt4_753::Fr;
+        use ark_ff::{test_rng, PrimeField};
         use core::cmp::min;
 
-        fn test_consistency<E: PairingEngine, R: Rng>(rng: &mut R, max_coeffs: u32) {
+        fn test_consistency<F: PrimeField, R: Rng>(rng: &mut R, max_coeffs: u32) {
             for _ in 0..5 {
                 for log_d in 0..max_coeffs {
                     let d = 1 << log_d;
 
-                    let mut v1 = (0..d).map(|_| E::Fr::rand(rng)).collect::<Vec<_>>();
+                    let mut v1 = (0..d).map(|_| F::rand(rng)).collect::<Vec<_>>();
                     let mut v2 = v1.clone();
 
                     let domain = MixedRadixEvaluationDomain::new(v1.len()).unwrap();
 
                     for log_cpus in log_d..min(log_d + 1, 3) {
-                        parallel_fft::<E::Fr, E::Fr>(
+                        parallel_fft::<F, F>(
                             &mut v1,
                             domain.group_gen,
                             log_d,
                             log_cpus,
-                            serial_mixed_radix_fft::<E::Fr, E::Fr>,
+                            serial_mixed_radix_fft::<F, F>,
                         );
-                        serial_mixed_radix_fft::<E::Fr, E::Fr>(&mut v2, domain.group_gen, log_d);
+                        serial_mixed_radix_fft::<F, F>(&mut v2, domain.group_gen, log_d);
 
                         assert_eq!(v1, v2);
                     }
@@ -482,6 +479,6 @@ mod tests {
 
         let rng = &mut test_rng();
 
-        test_consistency::<MNT6_753, _>(rng, 16);
+        test_consistency::<Fr, _>(rng, 16);
     }
 }

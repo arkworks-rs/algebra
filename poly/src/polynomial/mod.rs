@@ -1,8 +1,8 @@
 //! Work with sparse and dense polynomials.
 
-use crate::{Cow, EvaluationDomain, Evaluations, Vec};
-use algebra_core::{FftField, Field};
-use core::convert::TryInto;
+use ark_std::{borrow::Cow, vec::Vec, convert::TryInto};
+use crate::{EvaluationDomain, Evaluations};
+use ark_ff::{FftField, Field};
 use DenseOrSparsePolynomial::*;
 
 mod dense;
@@ -13,7 +13,7 @@ pub use sparse::SparsePolynomial;
 
 /// Represents either a sparse polynomial or a dense one.
 #[derive(Clone)]
-pub enum DenseOrSparsePolynomial<'a, F: 'a + Field> {
+pub enum DenseOrSparsePolynomial<'a, F: Field> {
     /// Represents the case where `self` is a sparse polynomial
     SPolynomial(Cow<'a, SparsePolynomial<F>>),
     /// Represents the case where `self` is a dense polynomial

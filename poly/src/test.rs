@@ -1,9 +1,7 @@
 use crate::domain::*;
-use algebra::{
-    bls12_381::{Fr, G1Projective},
-    mnt6_753::{Fr as MNT6Fr, G1Projective as MNT6G1Projective},
-};
-use algebra_core::{test_rng, PrimeField, UniformRand};
+use ark_bls12_381::bls12_381::{Fr, G1Projective};
+use ark_mnt_753::mnt4_753::{Fr as MNT4Fr, G1Projective as MNT4G1Projective};
+use ark_ff::{test_rng, PrimeField, UniformRand};
 
 // Test multiplying various (low degree) polynomials together and
 // comparing with naive evaluations.
@@ -54,6 +52,6 @@ fn fft_composition() {
     test_fft_composition::<Fr, Fr, _, GeneralEvaluationDomain<Fr>>(rng, 10);
     test_fft_composition::<Fr, G1Projective, _, GeneralEvaluationDomain<Fr>>(rng, 10);
     // This will result in a mixed-radix domain being used.
-    test_fft_composition::<MNT6Fr, MNT6Fr, _, MixedRadixEvaluationDomain<MNT6Fr>>(rng, 17);
-    test_fft_composition::<MNT6Fr, MNT6G1Projective, _, MixedRadixEvaluationDomain<MNT6Fr>>(rng, 5);
+    test_fft_composition::<MNT4Fr, MNT4Fr, _, MixedRadixEvaluationDomain<MNT4Fr>>(rng, 17);
+    test_fft_composition::<MNT4Fr, MNT4G1Projective, _, MixedRadixEvaluationDomain<MNT4Fr>>(rng, 5);
 }

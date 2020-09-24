@@ -1,8 +1,8 @@
 //! A polynomial represented in evaluations form.
 
-use crate::{DensePolynomial, EvaluationDomain, GeneralEvaluationDomain, Vec};
-use algebra_core::FftField;
-use core::ops::{Add, AddAssign, Div, DivAssign, Index, Mul, MulAssign, Sub, SubAssign};
+use crate::{DensePolynomial, EvaluationDomain, GeneralEvaluationDomain};
+use ark_std::{vec::Vec, ops::{Add, AddAssign, Div, DivAssign, Index, Mul, MulAssign, Sub, SubAssign}};
+use ark_ff::FftField;
 
 /// Stores a polynomial in evaluation form.
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]

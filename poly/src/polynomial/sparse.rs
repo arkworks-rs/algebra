@@ -1,11 +1,9 @@
 //! A sparse polynomial represented in coefficient form.
 
-use core::fmt;
+use ark_std::{fmt, collections::BTreeMap, vec::Vec};
 
-use crate::{
-    BTreeMap, DenseOrSparsePolynomial, DensePolynomial, EvaluationDomain, Evaluations, Vec,
-};
-use algebra_core::{FftField, Field};
+use crate::{DenseOrSparsePolynomial, DensePolynomial, EvaluationDomain, Evaluations};
+use ark_ff::{FftField, Field};
 
 /// Stores a sparse polynomial in coefficient form.
 #[derive(Clone, PartialEq, Eq, Hash, Default)]
@@ -17,7 +15,7 @@ pub struct SparsePolynomial<F: Field> {
 }
 
 impl<F: Field> fmt::Debug for SparsePolynomial<F> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
         for (i, coeff) in self.coeffs.iter().filter(|(_, c)| !c.is_zero()) {
             if *i == 0 {
                 write!(f, "\n{:?}", coeff)?;
@@ -140,8 +138,8 @@ impl<F: Field> Into<DensePolynomial<F>> for SparsePolynomial<F> {
 #[cfg(test)]
 mod tests {
     use crate::{DensePolynomial, EvaluationDomain, GeneralEvaluationDomain, SparsePolynomial};
-    use algebra::bls12_381::fr::Fr;
-    use algebra_core::One;
+    use ark_bls12_381::bls12_381::Fr;
+    use ark_ff::One;
 
     #[test]
     fn evaluate_over_domain() {

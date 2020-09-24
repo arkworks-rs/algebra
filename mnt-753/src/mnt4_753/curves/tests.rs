@@ -1,6 +1,4 @@
-use ark_ff::{
-    test_rng, Field, One, PrimeField, UniformRand,
-};
+use ark_ff::{test_rng, Field, One, PrimeField, UniformRand};
 use ark_ec::{AffineCurve, PairingEngine, ProjectiveCurve};
 use rand::Rng;
 

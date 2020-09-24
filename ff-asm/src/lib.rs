@@ -1,7 +1,8 @@
+#![deny(warnings, unused, future_incompatible, nonstandard_style, rust_2018_idioms)]
+#![forbid(unsafe_code)]
 #![recursion_limit = "128"]
 
 extern crate std;
-extern crate proc_macro;
 
 use proc_macro::TokenStream;
 use syn::{Item, ItemFn, Expr, parse::{Parse, ParseStream}};
@@ -51,7 +52,7 @@ struct AsmMulInput {
 }
 
 impl Parse for AsmMulInput {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
+    fn parse(input: ParseStream<'_>) -> syn::Result<Self> {
         let input = input.parse_terminated::<_, syn::Token![,]>(Expr::parse)?.into_iter().collect::<Vec<_>>();
         let num_limbs = input[0].clone();
         let a = input[1].clone();
@@ -100,7 +101,7 @@ struct AsmSquareInput {
 }
 
 impl Parse for AsmSquareInput {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
+    fn parse(input: ParseStream<'_>) -> syn::Result<Self> {
         let input = input.parse_terminated::<_, syn::Token![,]>(Expr::parse)?.into_iter().collect::<Vec<_>>();
         let num_limbs = input[0].clone();
         let a = input[1].clone();
