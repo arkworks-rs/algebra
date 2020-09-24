@@ -3,9 +3,10 @@ use rand;
 #[macro_use]
 extern crate criterion;
 
-use algebra::{mnt4_753::Fr as MNT4Fr, mnt6_753::Fr as MNT6Fr, FftField, UniformRand};
+use ark_mnt_753::mnt4_753::{Fr as MNT4Fr, Fq as MNT6Fr};
+use ark_ff::{FftField, UniformRand};
 use criterion::Criterion;
-use ff_fft::{EvaluationDomain, MixedRadixEvaluationDomain, Radix2EvaluationDomain};
+use ark_poly::{EvaluationDomain, MixedRadixEvaluationDomain, Radix2EvaluationDomain};
 
 fn bench_groth16_ffts<F: FftField, D: EvaluationDomain<F>>(
     c: &mut Criterion,
