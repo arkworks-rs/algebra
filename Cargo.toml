@@ -16,7 +16,7 @@ members = [
     "mnt-298",
     "mnt-753",
     "poly",
-    # "poly-benches",
+    "poly-benches",
 ]
 
 [profile.release]
