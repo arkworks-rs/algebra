@@ -1,5 +1,5 @@
 use crate::domain::DomainCoeff;
-use algebra_core::FftField;
+use ark_ff::FftField;
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
 
@@ -66,7 +66,7 @@ pub(crate) fn parallel_fft<T: DomainCoeff<F>, F: FftField>(
 
     let mut tmp = vec![vec![T::zero(); m_div_num_chunks]; num_chunks];
     let new_omega = omega.pow(&[num_chunks as u64]);
-    let new_two_adicity = algebra_core::utils::k_adicity(2, m_div_num_chunks);
+    let new_two_adicity = ark_ff::utils::k_adicity(2, m_div_num_chunks);
 
     tmp.par_iter_mut().enumerate().for_each(|(j, tmp)| {
         // Shuffle into a sub-FFT

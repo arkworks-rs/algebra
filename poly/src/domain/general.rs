@@ -10,8 +10,8 @@ pub use crate::domain::utils::Elements;
 use crate::domain::{
     DomainCoeff, EvaluationDomain, MixedRadixEvaluationDomain, Radix2EvaluationDomain,
 };
-use crate::Vec;
-use algebra_core::{FftField, FftParameters};
+use ark_std::vec::Vec;
+use ark_ff::{FftField, FftParameters};
 
 /// Defines a domain over which finite field (I)FFTs can be performed.
 /// Generally tries to build a radix-2 domain and falls back to a mixed-radix
@@ -166,8 +166,9 @@ impl<F: FftField> Iterator for GeneralElements<F> {
 #[cfg(test)]
 mod tests {
     use crate::{EvaluationDomain, GeneralEvaluationDomain};
-    use algebra::{bls12_381::Fr, mnt6_753::Fr as MNT6Fr};
-    use algebra_core::{test_rng, Zero};
+    use ark_bls12_381::bls12_381::Fr;
+    use ark_mnt_753::mnt4_753::Fq as MNT6Fr;
+    use ark_ff::{test_rng, Zero};
     use rand::Rng;
 
     #[test]

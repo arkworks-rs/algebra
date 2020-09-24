@@ -1,13 +1,15 @@
 //! A polynomial represented in coefficient form.
 
-use crate::{GeneralEvaluationDomain, Vec};
-use core::{
+use crate::GeneralEvaluationDomain;
+use crate::{DenseOrSparsePolynomial, EvaluationDomain, Evaluations};
+
+use ark_std::{
     fmt,
     ops::{Add, AddAssign, Deref, DerefMut, Div, Mul, Neg, Sub, SubAssign},
+    vec::Vec,
 };
 
-use crate::{DenseOrSparsePolynomial, EvaluationDomain, Evaluations};
-use algebra_core::{FftField, Field};
+use ark_ff::{FftField, Field};
 use rand::Rng;
 
 #[cfg(feature = "parallel")]
@@ -21,7 +23,7 @@ pub struct DensePolynomial<F: Field> {
 }
 
 impl<F: Field> fmt::Debug for DensePolynomial<F> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
         for (i, coeff) in self.coeffs.iter().enumerate().filter(|(_, c)| !c.is_zero()) {
             if i == 0 {
                 write!(f, "\n{:?}", coeff)?;
@@ -105,7 +107,7 @@ impl<F: Field> DensePolynomial<F> {
             cur *= &point;
         }
         assert_eq!(powers_of_point.len(), self.coeffs.len());
-        cfg_into_iter!(powers_of_point)
+        ark_std::cfg_into_iter!(powers_of_point)
             .zip(&self.coeffs)
             .map(|(power, coeff)| power * coeff)
             .sum()
@@ -143,7 +145,7 @@ impl<F: FftField> DensePolynomial<F> {
     pub fn mul_by_vanishing_poly<D: EvaluationDomain<F>>(&self, domain: D) -> DensePolynomial<F> {
         let mut shifted = vec![F::zero(); domain.size()];
         shifted.extend_from_slice(&self.coeffs);
-        cfg_iter_mut!(shifted)
+        ark_std::cfg_iter_mut!(shifted)
             .zip(&self.coeffs)
             .for_each(|(s, c)| *s -= c);
         DensePolynomial::from_coefficients_vec(shifted)
@@ -155,8 +157,8 @@ impl<F: FftField> DensePolynomial<F> {
         &self,
         domain: D,
     ) -> Option<(DensePolynomial<F>, DensePolynomial<F>)> {
-        let self_poly: DenseOrSparsePolynomial<F> = self.into();
-        let vanishing_poly: DenseOrSparsePolynomial<F> = domain.vanishing_polynomial().into();
+        let self_poly = DenseOrSparsePolynomial::from(self);
+        let vanishing_poly = DenseOrSparsePolynomial::from(domain.vanishing_polynomial());
         self_poly.divide_with_q_and_r(&vanishing_poly)
     }
 }
@@ -321,8 +323,8 @@ impl<'a, 'b, F: Field> Div<&'a DensePolynomial<F>> for &'b DensePolynomial<F> {
 
     #[inline]
     fn div(self, divisor: &'a DensePolynomial<F>) -> DensePolynomial<F> {
-        let a: DenseOrSparsePolynomial<_> = self.into();
-        let b: DenseOrSparsePolynomial<_> = divisor.into();
+        let a = DenseOrSparsePolynomial::from(self);
+        let b = DenseOrSparsePolynomial::from(divisor);
         a.divide_with_q_and_r(&b).expect("division failed").0
     }
 }
@@ -350,8 +352,8 @@ impl<'a, 'b, F: FftField> Mul<&'a DensePolynomial<F>> for &'b DensePolynomial<F>
 mod tests {
     use crate::polynomial::*;
     use crate::{EvaluationDomain, GeneralEvaluationDomain};
-    use algebra::bls12_381::fr::Fr;
-    use algebra_core::{test_rng, Field, One, UniformRand, Zero};
+    use ark_bls12_381::bls12_381::Fr;
+    use ark_ff::{test_rng, Field, One, UniformRand, Zero};
 
     #[test]
     fn double_polynomials_random() {

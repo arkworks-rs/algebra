@@ -7,9 +7,8 @@
 //! These roots of unity comprise the domain over which
 //! polynomial arithmetic is performed.
 
-use crate::Vec;
-use algebra_core::FftField;
-use core::{fmt, hash};
+use ark_std::{vec::Vec, fmt, hash};
+use ark_ff::FftField;
 use rand::Rng;
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
@@ -143,7 +142,7 @@ pub trait EvaluationDomain<F: FftField>:
             .inverse()
             .unwrap();
 
-        cfg_iter_mut!(evals).for_each(|eval| *eval *= &i);
+        ark_std::cfg_iter_mut!(evals).for_each(|eval| *eval *= &i);
     }
 
     /// Given an index which assumes the first elements of this domain are the
@@ -184,7 +183,7 @@ pub trait EvaluationDomain<F: FftField>:
         assert_eq!(self_evals.len(), other_evals.len());
         let mut result = self_evals.to_vec();
 
-        cfg_iter_mut!(result)
+        ark_std::cfg_iter_mut!(result)
             .zip(other_evals)
             .for_each(|(a, b)| *a *= b);
 
@@ -199,7 +198,7 @@ pub trait DomainCoeff<F: FftField>:
     + Sync
     + core::ops::AddAssign
     + core::ops::SubAssign
-    + algebra_core::Zero
+    + ark_ff::Zero
     + core::ops::MulAssign<F>
 {
 }
@@ -212,7 +211,7 @@ where
         + Sync
         + core::ops::AddAssign
         + core::ops::SubAssign
-        + algebra_core::Zero
+        + ark_ff::Zero
         + core::ops::MulAssign<F>,
 {
 }

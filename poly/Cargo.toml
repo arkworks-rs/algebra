@@ -1,5 +1,5 @@
 [package]
-name = "ff-fft"
+name = "poly"
 version = "0.1.1-alpha.0"
 authors = [
     "Sean Bowe",
@@ -7,27 +7,30 @@ authors = [
     "Matthew Green",
     "Ian Miers",
     "Pratyush Mishra",
-    "Howard Wu"
+    "Howard Wu",
+    "arkworks contributors"
 ]
-description = "A library for evaluating FFTs over prime finite fields"
+description = "A library for efficient polynomial arithmetic via FFTs over finite fields"
 homepage = "https://libzexe.org"
-repository = "https://github.com/scipr/zexe"
-documentation = "https://docs.rs/ff-fft/"
-keywords = ["cryptography", "finite fields", "fft"]
+repository = "https://github.com/arkworks/algebra"
+documentation = "https://docs.rs/ark-poly/"
+keywords = ["cryptography", "finite fields", "fft", "polynomials"]
 categories = ["cryptography"]
 include = ["Cargo.toml", "src", "README.md", "LICENSE-APACHE", "LICENSE-MIT"]
 license = "MIT/Apache-2.0"
 edition = "2018"
 
 [dependencies]
-algebra-core = { path = "../algebra-core", default-features = false }
+ark-ff = { path = "../ff", default-features = false }
+ark-std = { git = "https://github.com/arkworks-rs/utils", default-features = false }
 rand = { version = "0.7", default-features = false }
 rayon = { version = "1", optional = true }
 
 [dev-dependencies]
-algebra = { path = "../algebra", default-features = false, features = [ "bls12_381", "mnt6_753", "mnt4_753" ] }
+ark-bls12-381 = { path = "../bls12-381", default-features = false, features = [ "bls12_381" ] }
+ark-mnt-753 = { path = "../mnt-753", default-features = false, features = [ "mnt4_753" ] }
 
 [features]
 default = [ "parallel" ]
-std = ["algebra-core/std"]
-parallel = ["std", "algebra-core/parallel", "rayon"]
+std = [ "ark-std/std", "ark-ff/std" ]
+parallel = [ "std", "ark-ff/parallel", "rayon", "ark-std/parallel" ]
