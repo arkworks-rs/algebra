@@ -1,8 +1,8 @@
-use crate::tests::fields::{field_test, primefield_test};
-use algebra_core::test_rng;
+use ark_ff::test_rng;
 use rand::Rng;
 
 use crate::ed_on_mnt4_753::{Fq, Fr};
+use crate::tests::fields::{field_test, primefield_test};
 
 #[test]
 fn test_fr() {

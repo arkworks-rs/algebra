@@ -1,5 +1,5 @@
 use crate::mnt4_753::{Fq, Fq2, Fq2Parameters, FQ_ONE, FQ_ZERO};
-use algebra_core::{
+use ark_ff::{
     biginteger::BigInteger768 as BigInteger,
     field_new,
     fields::fp4::{Fp4, Fp4Parameters},

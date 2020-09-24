@@ -17,8 +17,12 @@
 //!    * B = Fq2(0, b * NON_RESIDUE)
 //!    * NON_RESIDUE = 13 is the quadratic non-residue used to construct the extension field Fq2
 
+#[cfg(feature = "mnt4_753")]
 mod curves;
+#[cfg(any(feature = "mnt4_753_fr", feature = "mnt4_753_fq"))]
 mod fields;
 
+#[cfg(feature = "mnt4_753")]
 pub use curves::*;
+#[cfg(any(feature = "mnt4_753_fr", feature = "mnt4_753_fq"))]
 pub use fields::*;

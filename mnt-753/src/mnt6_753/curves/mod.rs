@@ -1,12 +1,13 @@
-use algebra_core::{
+use ark_ff::{
     biginteger::BigInteger768,
-    curves::models::{
-        mnt6::{MNT6Parameters, MNT6},
-        SWModelParameters,
-    },
     field_new,
     fields::FpParameters,
     Fp3,
+};
+
+use ark_ec::models::{
+    mnt6::{MNT6Parameters, MNT6},
+    SWModelParameters,
 };
 
 use crate::mnt6_753::{Fq, Fq3, Fq3Parameters, Fq6Parameters, FqParameters, Fr, FrParameters};

@@ -1,4 +1,4 @@
-use algebra_core::{test_rng, Field};
+use ark_ff::{test_rng, Field};
 use rand::Rng;
 
 use crate::mnt4_753::*;

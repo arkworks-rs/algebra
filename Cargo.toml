@@ -14,7 +14,7 @@ members = [
     "bls12-381",
     "bn254",
     "mnt-298",
-    # "mnt-753",
+    "mnt-753",
     # "poly",
     # "poly-benches",
 ]
