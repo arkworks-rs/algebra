@@ -84,7 +84,8 @@ macro_rules! ec_bench {
 
         #[bench]
         fn bench_g1_deser(b: &mut ::test::Bencher) {
-            use algebra::{CanonicalDeserialize, CanonicalSerialize, ProjectiveCurve};
+            use ark_ec::ProjectiveCurve;
+            use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
             const SAMPLES: usize = 1000;
 
             let mut rng = XorShiftRng::seed_from_u64(1231275789u64);
@@ -110,7 +111,8 @@ macro_rules! ec_bench {
 
         #[bench]
         fn bench_g1_ser(b: &mut ::test::Bencher) {
-            use algebra::{CanonicalSerialize, ProjectiveCurve};
+            use ark_ec::ProjectiveCurve;
+            use ark_serialize::CanonicalSerialize;
             const SAMPLES: usize = 1000;
 
             let mut rng = XorShiftRng::seed_from_u64(1231275789u64);
@@ -130,7 +132,8 @@ macro_rules! ec_bench {
 
         #[bench]
         fn bench_g1_deser_unchecked(b: &mut ::test::Bencher) {
-            use algebra::{CanonicalDeserialize, CanonicalSerialize, ProjectiveCurve};
+            use ark_ec::ProjectiveCurve;
+            use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
             const SAMPLES: usize = 1000;
 
             let mut rng = XorShiftRng::seed_from_u64(1231275789u64);
@@ -156,7 +159,7 @@ macro_rules! ec_bench {
 
         #[bench]
         fn bench_g1_ser_unchecked(b: &mut ::test::Bencher) {
-            use algebra::{CanonicalSerialize, ProjectiveCurve};
+            use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
             const SAMPLES: usize = 1000;
 
             let mut rng = XorShiftRng::seed_from_u64(1231275789u64);
@@ -258,7 +261,8 @@ macro_rules! ec_bench {
 
         #[bench]
         fn bench_g2_deser(b: &mut ::test::Bencher) {
-            use algebra::{CanonicalDeserialize, CanonicalSerialize, ProjectiveCurve};
+            use ark_ec::ProjectiveCurve;
+            use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
             const SAMPLES: usize = 1000;
 
             let mut rng = XorShiftRng::seed_from_u64(1231275789u64);
@@ -284,7 +288,7 @@ macro_rules! ec_bench {
 
         #[bench]
         fn bench_g2_ser(b: &mut ::test::Bencher) {
-            use algebra::{CanonicalSerialize, ProjectiveCurve};
+            use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
             const SAMPLES: usize = 1000;
 
             let mut rng = XorShiftRng::seed_from_u64(1231275789u64);
@@ -304,7 +308,8 @@ macro_rules! ec_bench {
 
         #[bench]
         fn bench_g2_deser_unchecked(b: &mut ::test::Bencher) {
-            use algebra::{CanonicalDeserialize, CanonicalSerialize, ProjectiveCurve};
+            use ark_ec::ProjectiveCurve;
+            use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
             const SAMPLES: usize = 1000;
 
             let mut rng = XorShiftRng::seed_from_u64(1231275789u64);
@@ -330,7 +335,8 @@ macro_rules! ec_bench {
 
         #[bench]
         fn bench_g2_ser_unchecked(b: &mut ::test::Bencher) {
-            use algebra::{CanonicalSerialize, ProjectiveCurve};
+            use ark_ec::ProjectiveCurve;
+            use ark_serialize::CanonicalSerialize;
             const SAMPLES: usize = 1000;
 
             let mut rng = XorShiftRng::seed_from_u64(1231275789u64);

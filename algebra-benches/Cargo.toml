@@ -26,6 +26,7 @@ build = "build.rs"
 [dependencies]
 ark-ff = { path = "../ff" }
 ark-ec = { path = "../ec" }
+ark-serialize = { path = "../serialize" }
 
 ark-mnt-298 = { path = "../mnt-298", default-features = false }
 ark-mnt-753 = { path = "../mnt-753", default-features = false }
