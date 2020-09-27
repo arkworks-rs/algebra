@@ -33,6 +33,11 @@ rand_xorshift = "0.2"
 
 [features]
 default = [ "std", "mnt4_298", "mnt6_298" ]
+full = [
+    "mnt4_298", 
+    "mnt6_298",
+    "ed_on_mnt4_298",
+]
 std = [ "ark-std/std", "ark-ff/std", "ark-ec/std" ]
 
 mnt4_298 = [ "mnt4_298_fr", "mnt4_298_fq" ]
