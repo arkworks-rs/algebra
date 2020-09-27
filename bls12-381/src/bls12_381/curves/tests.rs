@@ -12,11 +12,8 @@ use crate::{
     bls12_381::{
         g1, g2, Bls12_381, Fq, Fq12, Fq2, Fr, G1Affine, G1Projective, G2Affine, G2Projective,
     },
-    tests::{
-        curves::{curve_tests, sw_tests},
-        groups::group_test,
-    },
 };
+use ark_algebra_tests::{curves::*, groups::*};
 
 #[test]
 fn test_g1_projective_curve() {

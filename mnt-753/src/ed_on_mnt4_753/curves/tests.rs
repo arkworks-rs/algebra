@@ -4,7 +4,7 @@ use rand::Rng;
 
 use crate::ed_on_mnt4_753::*;
 
-use crate::tests::{curves::*, groups::*};
+use ark_algebra_tests::{curves::*, groups::*};
 
 #[test]
 fn test_projective_curve() {

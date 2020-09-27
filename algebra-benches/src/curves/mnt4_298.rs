@@ -2,14 +2,17 @@ use rand::SeedableRng;
 use rand_xorshift::XorShiftRng;
 use std::ops::{AddAssign, MulAssign, SubAssign};
 
-use algebra::{
-    biginteger::BigInteger320 as FqRepr,
+use ark_ff::{
+    biginteger::{BigInteger320 as FqRepr},
+    BigInteger, Field, PrimeField, SquareRootField, UniformRand,
+};
+use ark_ec::{
     mnt4::{G1Prepared, G2Prepared},
-    mnt4_298::{
-        fq::Fq, fq2::Fq2, fr::Fr, Fq4, G1Affine, G1Projective as G1, G2Affine, G2Projective as G2,
-        Parameters, MNT4_298,
-    },
-    BigInteger, Field, PairingEngine, PrimeField, ProjectiveCurve, SquareRootField, UniformRand,
+    PairingEngine, ProjectiveCurve, 
+};
+use ark_mnt_298::mnt4_298::{
+    fq::Fq, fq2::Fq2, fr::Fr, Fq4, G1Affine, G1Projective as G1, G2Affine, G2Projective as G2,
+    Parameters, MNT4_298,
 };
 
 ec_bench!();
