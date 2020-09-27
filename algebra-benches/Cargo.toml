@@ -1,5 +1,5 @@
 [package]
-name = "algebra-benches"
+name = "ark-algebra-benches"
 version = "0.1.1-alpha.0"
 authors = [
     "Sean Bowe",
@@ -23,25 +23,32 @@ build = "build.rs"
 
 ################################# Dependencies ################################
 
-[dev-dependencies]
-algebra = { path = "../algebra" }
+[dependencies]
+ark-ff = { path = "../ff" }
+ark-ec = { path = "../ec" }
+
+ark-mnt-298 = { path = "../mnt-298", default-features = false }
+ark-mnt-753 = { path = "../mnt-753", default-features = false }
+ark-bn254 = { path = "../bn254", default-features = false, features = [ "bn254" ], optional = true }
+ark-bls12-377 = { path = "../bls12-377", default-features = false }
+ark-bls12-381 = { path = "../bls12-381", default-features = false }
+
 blake2 = "0.8.1"
 rand = "0.7"
 rand_xorshift = { version = "0.2" }
 paste = "1.0"
 
 [features]
-asm = [ "algebra/asm"]
+asm = [ "ark-ff/llvm_asm"]
 n_fold = []
-mnt4_298 = [ "algebra/mnt4_298"]
-mnt6_298 = [ "algebra/mnt6_298"]
-mnt4_753 = [ "algebra/mnt4_753"]
-mnt6_753 = [ "algebra/mnt6_753"]
-bn254 = [ "algebra/bn254"]
-bls12_381 = [ "algebra/bls12_381"]
-bls12_377 = [ "algebra/bls12_377"]
-cp6_782 = [ "algebra/cp6_782" ]
-bw6_761 = [ "algebra/bw6_761" ]
+mnt4_298 = [ "ark-mnt-298/mnt4_298"]
+mnt6_298 = [ "ark-mnt-298/mnt6_298"]
+mnt4_753 = [ "ark-mnt-753/mnt4_753"]
+mnt6_753 = [ "ark-mnt-753/mnt6_753"]
+bls12_381 = [ "ark-bls12-381/bls12_381"]
+bls12_377 = [ "ark-bls12-377/bls12_377"]
+cp6_782 = [ "ark-bls12-377/cp6_782" ]
+bw6_761 = [ "ark-bls12-377/bw6_761" ]
 
 [build-dependencies]
 rustc_version = "0.2"

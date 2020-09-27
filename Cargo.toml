@@ -9,7 +9,8 @@ members = [
 
     "ec",
 
-    # "algebra-benches",
+    "algebra-benches",
+    "algebra-tests",
     "bls12-377",
     "bls12-381",
     "bn254",

@@ -9,14 +9,13 @@ use ark_ec::{models::SWModelParameters, AffineCurve, PairingEngine, ProjectiveCu
 use core::ops::{AddAssign, MulAssign};
 use rand::Rng;
 
-use crate::{
-    bls12_377::{
-        g1, g2, Bls12_377, Fq, Fq12, Fq2, Fr, G1Affine, G1Projective, G2Affine, G2Projective,
-    },
-    tests::{
-        curves::{curve_tests, sw_tests},
-        groups::group_test,
-    },
+use crate::bls12_377::{
+    g1, g2, Bls12_377, Fq, Fq12, Fq2, Fr, G1Affine, G1Projective, G2Affine, G2Projective,
+};
+
+use ark_algebra_tests::{
+    curves::{curve_tests, sw_tests},
+    groups::group_test,
 };
 
 #[test]
