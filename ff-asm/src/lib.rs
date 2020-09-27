@@ -325,9 +325,3 @@ fn generate_impl(num_limbs: usize, is_mul: bool) -> String {
     ctx.build();
     format!("{{ {} }}", ctx.get_string())
 }
-
-#[test]
-fn check_output() {
-    let impl_block = generate_impl(12, true);
-    println!("{}", impl_block);
-}
