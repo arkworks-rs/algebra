@@ -1,5 +1,5 @@
 #![cfg_attr(nightly, feature(test))]
-#![allow(unused_macros)]
+#![allow(unused_macros, unused_imports)]
 
 #[cfg(nightly)]
 extern crate test;

@@ -128,7 +128,7 @@ macro_rules! field_common {
 
             #[bench]
             fn [<bench_ $field_ident _deser>](b: &mut ::test::Bencher) {
-                use algebra::{CanonicalSerialize, CanonicalDeserialize};
+                use ark_serialize::{CanonicalSerialize, CanonicalDeserialize};
                 const SAMPLES: usize = 1000;
 
                 let mut rng = XorShiftRng::seed_from_u64(1231275789u64);
@@ -152,7 +152,7 @@ macro_rules! field_common {
 
             #[bench]
             fn [<bench_ $field_ident _ser>](b: &mut ::test::Bencher) {
-                use algebra::CanonicalSerialize;
+                use ark_serialize::CanonicalSerialize;
                 const SAMPLES: usize = 1000;
 
                 let mut rng = XorShiftRng::seed_from_u64(1231275789u64);
@@ -172,7 +172,7 @@ macro_rules! field_common {
 
             #[bench]
             fn [<bench_ $field_ident _deser_unchecked>](b: &mut ::test::Bencher) {
-                use algebra::{CanonicalSerialize, CanonicalDeserialize};
+                use ark_serialize::{CanonicalSerialize, CanonicalDeserialize};
                 const SAMPLES: usize = 1000;
 
                 let mut rng = XorShiftRng::seed_from_u64(1231275789u64);
@@ -196,7 +196,7 @@ macro_rules! field_common {
 
             #[bench]
             fn [<bench_ $field_ident _ser_unchecked>](b: &mut ::test::Bencher) {
-                use algebra::CanonicalSerialize;
+                use ark_serialize::CanonicalSerialize;
                 const SAMPLES: usize = 1000;
 
                 let mut rng = XorShiftRng::seed_from_u64(1231275789u64);
