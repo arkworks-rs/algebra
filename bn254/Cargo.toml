@@ -34,6 +34,10 @@ rand_xorshift = "0.2"
 [features]
 default = [ "std", "bn254" ]
 std = [ "ark-std/std", "ark-ff/std", "ark-ec/std" ]
+full = [
+    "bn254", 
+    "ed_on_bn254",
+]
 
 bn254 = [ "bn254_fr" ]
 bn254_fr = []

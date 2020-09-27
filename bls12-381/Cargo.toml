@@ -34,6 +34,10 @@ rand_xorshift = "0.2"
 [features]
 default = [ "std", "bls12_381" ]
 std = [ "ark-std/std", "ark-ff/std", "ark-ec/std" ]
+full = [
+    "bls12_381", 
+    "ed_on_bls12_381",
+]
 
 bls12_381 = [ "bls12_381_fr" ]
 bls12_381_fr = []

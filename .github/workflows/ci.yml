@@ -84,10 +84,8 @@ jobs:
             command: test
             args: "--all \
                    --all-features \
-                   --exclude cp-benches \
                    --exclude algebra-benches \
-                   --exclude ff-fft-benches \
-                   -- --skip dpc --skip integration_test"
+                   --exclude poly-benches"
 
   check_no_std:
     name: Check no_std
@@ -118,58 +116,65 @@ jobs:
             target
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
-      - name: algebra-core
+      - name: serialize
         run: |
-          cd algebra-core
-          cargo build -p algebra-core --no-default-features --target thumbv6m-none-eabi
-          cargo check --examples -p algebra-core --no-default-features --target thumbv6m-none-eabi
+          cd serialize
+          cargo build -p ark-serialize --no-default-features --target thumbv6m-none-eabi
+          cargo check --examples -p ark-serialize --no-default-features --target thumbv6m-none-eabi
           cd ..
 
-      - name: algebra
+      - name: ff
         run: |
-          cd algebra
-          cargo build -p algebra --no-default-features --target thumbv6m-none-eabi
-          cargo check --examples -p algebra --no-default-features --target thumbv6m-none-eabi
+          cd ff
+          cargo build -p ark-ff --no-default-features --target thumbv6m-none-eabi
+          cargo check --examples -p ark-ff --no-default-features --target thumbv6m-none-eabi
           cd ..
 
-      - name: r1cs-core
+      - name: ec
         run: |
-          cd r1cs-core
-          cargo build -p r1cs-core --no-default-features --target thumbv6m-none-eabi
-          cargo check --examples -p r1cs-core --no-default-features --target thumbv6m-none-eabi
+          cd ec
+          cargo build -p ark-ec --no-default-features --target thumbv6m-none-eabi
+          cargo check --examples -p ark-ec --no-default-features --target thumbv6m-none-eabi
           cd ..
 
-      - name: r1cs-std
+      - name: poly
         run: |
-          cd r1cs-std
-          cargo build -p r1cs-std --no-default-features --target aarch64-unknown-none
-          cargo check --examples -p r1cs-std --no-default-features --target aarch64-unknown-none
+          cd ec
+          cargo build -p ark-poly --no-default-features --target thumbv6m-none-eabi
+          cargo check --examples -p ark-poly --no-default-features --target thumbv6m-none-eabi
           cd ..
 
-      - name: ff-fft
+      - name: bls12_377
         run: |
-          cd ff-fft
-          cargo build -p ff-fft --no-default-features --target thumbv6m-none-eabi
-          cargo check --examples -p ff-fft --no-default-features --target thumbv6m-none-eabi
+          cd bls12-377
+          cargo build -p ark-bls12-377 --no-default-features --features full --target thumbv6m-none-eabi
+          cargo check --examples -p ark-bls12-377 --no-default-features --features full --target thumbv6m-none-eabi
           cd ..
 
-      - name: groth16
+      - name: bls12_381
         run: |
-          cd groth16
-          cargo build -p groth16 --no-default-features --target thumbv6m-none-eabi
-          cargo check --examples -p groth16 --no-default-features --target thumbv6m-none-eabi
+          cd bls12-381
+          cargo build -p ark-bls12-381 --no-default-features --features full --target thumbv6m-none-eabi
+          cargo check --examples -p ark-bls12-381 --no-default-features --features full --target thumbv6m-none-eabi
           cd ..
 
-      - name: gm17
+      - name: bn254
         run: |
-          cd gm17
-          cargo build -p gm17 --no-default-features --target thumbv6m-none-eabi
-          cargo check --examples -p gm17 --no-default-features --target thumbv6m-none-eabi
+          cd bn254
+          cargo build -p ark-bn254 --no-default-features --features full --target thumbv6m-none-eabi
+          cargo check --examples -p ark-bn254 --no-default-features --features full --target thumbv6m-none-eabi
           cd ..
 
-      - name: crypto-primitives
+      - name: mnt-298
         run: |
-          cd crypto-primitives
-          cargo build -p crypto-primitives --no-default-features --target aarch64-unknown-none
-          cargo check --examples -p crypto-primitives --no-default-features --target aarch64-unknown-none
+          cd bn254
+          cargo build -p ark-mnt-298 --no-default-features --features full --target thumbv6m-none-eabi
+          cargo check --examples -p ark-mnt-298 --no-default-features --features full --target thumbv6m-none-eabi
+          cd ..
+
+      - name: mnt-753
+        run: |
+          cd bn254
+          cargo build -p ark-mnt-753 --no-default-features --features full --target thumbv6m-none-eabi
+          cargo check --examples -p ark-mnt-753 --no-default-features --features full --target thumbv6m-none-eabi
           cd ..
