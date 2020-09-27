@@ -1,5 +1,5 @@
-use ark_std::vec::Vec;
 use crate::{biginteger::BigInteger, Field, FpParameters, PrimeField};
+use ark_std::vec::Vec;
 
 /// Types that can be converted to a vector of `F` elements. Useful for
 /// specifying how public inputs to a constraint system should be represented

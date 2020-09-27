@@ -1,5 +1,11 @@
 #![cfg_attr(not(feature = "std"), no_std)]
-#![deny(warnings, unused, future_incompatible, nonstandard_style, rust_2018_idioms)]
+#![deny(
+    warnings,
+    unused,
+    future_incompatible,
+    nonstandard_style,
+    rust_2018_idioms
+)]
 #![forbid(unsafe_code)]
 
 #[macro_use]
@@ -8,12 +14,12 @@ extern crate derivative;
 #[macro_use]
 extern crate ark_std;
 
+use crate::group::Group;
 use ark_ff::{
     bytes::{FromBytes, ToBytes},
     fields::{Field, PrimeField, SquareRootField},
     UniformRand,
 };
-use crate::group::Group;
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, ConstantSerializedSize};
 use ark_std::{
     fmt::{Debug, Display},

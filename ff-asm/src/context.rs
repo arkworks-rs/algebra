@@ -37,15 +37,14 @@ impl Context {
     }
 
     pub fn get(self, id: &str) -> String {
-        self.declarations
-            .get(id)
-            .unwrap()
-            .token
-            .clone()
+        self.declarations.get(id).unwrap().token.clone()
     }
 
     pub fn try_get(self, id: &str, fallback_id: &str) -> String {
-        self.declarations.get(id).map(|dec| dec.token.clone()).unwrap_or(self.get(fallback_id))
+        self.declarations
+            .get(id)
+            .map(|dec| dec.token.clone())
+            .unwrap_or(self.get(fallback_id))
     }
 
     pub fn add_declaration(&mut self, id: &str, ty: &str, var: &str) {

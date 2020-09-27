@@ -1,14 +1,14 @@
-use ark_serialize::{EdwardsFlags, Flags, CanonicalDeserialize, CanonicalDeserializeWithFlags, CanonicalSerialize,
-    CanonicalSerializeWithFlags, ConstantSerializedSize, SerializationError};
 use crate::{
-    models::{
-        MontgomeryModelParameters as MontgomeryParameters, TEModelParameters as Parameters,
-    },
+    models::{MontgomeryModelParameters as MontgomeryParameters, TEModelParameters as Parameters},
     AffineCurve, ProjectiveCurve,
 };
+use ark_serialize::{
+    CanonicalDeserialize, CanonicalDeserializeWithFlags, CanonicalSerialize,
+    CanonicalSerializeWithFlags, ConstantSerializedSize, EdwardsFlags, Flags, SerializationError,
+};
 use ark_std::{
-    io::{Read, Result as IoResult, Write},
     fmt::{Display, Formatter, Result as FmtResult},
+    io::{Read, Result as IoResult, Write},
     marker::PhantomData,
     ops::{Add, AddAssign, MulAssign, Neg, Sub, SubAssign},
     vec::Vec,
@@ -20,10 +20,9 @@ use rand::{
 };
 
 use ark_ff::{
-    UniformRand,
-    ToConstraintField,
     bytes::{FromBytes, ToBytes},
     fields::{BitIteratorBE, Field, PrimeField, SquareRootField},
+    ToConstraintField, UniformRand,
 };
 
 #[cfg(feature = "parallel")]
@@ -686,10 +685,7 @@ impl<P: MontgomeryParameters> MontgomeryGroupAffine<P> {
 impl<P: Parameters> CanonicalSerialize for GroupAffine<P> {
     #[allow(unused_qualifications)]
     #[inline]
-    fn serialize<W: Write>(
-        &self,
-        writer: W,
-    ) -> Result<(), SerializationError> {
+    fn serialize<W: Write>(&self, writer: W) -> Result<(), SerializationError> {
         if self.is_zero() {
             let flags = EdwardsFlags::default();
             // Serialize 0.
@@ -707,10 +703,7 @@ impl<P: Parameters> CanonicalSerialize for GroupAffine<P> {
 
     #[allow(unused_qualifications)]
     #[inline]
-    fn serialize_uncompressed<W: Write>(
-        &self,
-        mut writer: W,
-    ) -> Result<(), SerializationError> {
+    fn serialize_uncompressed<W: Write>(&self, mut writer: W) -> Result<(), SerializationError> {
         self.x.serialize_uncompressed(&mut writer)?;
         self.y.serialize_uncompressed(&mut writer)?;
         Ok(())
@@ -723,17 +716,13 @@ impl<P: Parameters> CanonicalSerialize for GroupAffine<P> {
 }
 
 impl<P: Parameters> ConstantSerializedSize for GroupAffine<P> {
-    const SERIALIZED_SIZE: usize =
-        <P::BaseField as ConstantSerializedSize>::SERIALIZED_SIZE;
-    const UNCOMPRESSED_SIZE: usize =
-        2 * <P::BaseField as ConstantSerializedSize>::SERIALIZED_SIZE;
+    const SERIALIZED_SIZE: usize = <P::BaseField as ConstantSerializedSize>::SERIALIZED_SIZE;
+    const UNCOMPRESSED_SIZE: usize = 2 * <P::BaseField as ConstantSerializedSize>::SERIALIZED_SIZE;
 }
 
 impl<P: Parameters> CanonicalDeserialize for GroupAffine<P> {
     #[allow(unused_qualifications)]
-    fn deserialize<R: Read>(
-        mut reader: R,
-    ) -> Result<Self, SerializationError> {
+    fn deserialize<R: Read>(mut reader: R) -> Result<Self, SerializationError> {
         let (x, flags): (P::BaseField, EdwardsFlags) =
             CanonicalDeserializeWithFlags::deserialize_with_flags(&mut reader)?;
         if x == P::BaseField::zero() {
@@ -749,9 +738,7 @@ impl<P: Parameters> CanonicalDeserialize for GroupAffine<P> {
     }
 
     #[allow(unused_qualifications)]
-    fn deserialize_uncompressed<R: Read>(
-        reader: R,
-    ) -> Result<Self, SerializationError> {
+    fn deserialize_uncompressed<R: Read>(reader: R) -> Result<Self, SerializationError> {
         let p = Self::deserialize_unchecked(reader)?;
 
         if !p.is_in_correct_subgroup_assuming_on_curve() {
@@ -761,9 +748,7 @@ impl<P: Parameters> CanonicalDeserialize for GroupAffine<P> {
     }
 
     #[allow(unused_qualifications)]
-    fn deserialize_unchecked<R: Read>(
-        mut reader: R,
-    ) -> Result<Self, SerializationError> {
+    fn deserialize_unchecked<R: Read>(mut reader: R) -> Result<Self, SerializationError> {
         let x: P::BaseField = CanonicalDeserialize::deserialize(&mut reader)?;
         let y: P::BaseField = CanonicalDeserialize::deserialize(&mut reader)?;
 
@@ -794,4 +779,3 @@ where
         GroupAffine::from(*self).to_field_elements()
     }
 }
-

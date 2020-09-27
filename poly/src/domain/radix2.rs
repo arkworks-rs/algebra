@@ -8,8 +8,8 @@ use crate::domain::{
     utils::{best_fft, bitreverse},
     DomainCoeff, EvaluationDomain,
 };
-use ark_std::{vec::Vec, convert::TryFrom, fmt};
 use ark_ff::{FftField, FftParameters};
+use ark_std::{convert::TryFrom, fmt, vec::Vec};
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
 
@@ -149,9 +149,11 @@ impl<F: FftField> EvaluationDomain<F> for Radix2EvaluationDomain<F> {
 
             batch_inversion(u.as_mut_slice());
 
-            ark_std::cfg_iter_mut!(u).zip(ls).for_each(|(tau_minus_r, l)| {
-                *tau_minus_r = l * *tau_minus_r;
-            });
+            ark_std::cfg_iter_mut!(u)
+                .zip(ls)
+                .for_each(|(tau_minus_r, l)| {
+                    *tau_minus_r = l * *tau_minus_r;
+                });
 
             u
         }
@@ -276,9 +278,9 @@ mod tests {
     fn parallel_fft_consistency() {
         use super::serial_radix2_fft;
         use crate::domain::utils::parallel_fft;
-        use ark_std::vec::Vec;
         use ark_bls12_381::bls12_381::Fr;
         use ark_ff::{test_rng, PrimeField};
+        use ark_std::vec::Vec;
         use core::cmp::min;
 
         fn test_consistency<F: PrimeField, R: Rng>(rng: &mut R, max_coeffs: u32) {

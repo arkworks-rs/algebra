@@ -1,8 +1,18 @@
 #![cfg_attr(not(feature = "std"), no_std)]
-#![deny(warnings, unused, future_incompatible, nonstandard_style, rust_2018_idioms)]
+#![deny(
+    warnings,
+    unused,
+    future_incompatible,
+    nonstandard_style,
+    rust_2018_idioms
+)]
 #![forbid(unsafe_code)]
 
-#[cfg(any(feature = "bls12_377", feature = "bls12_377_fr", feature = "bls12_377_fq"))]
+#[cfg(any(
+    feature = "bls12_377",
+    feature = "bls12_377_fr",
+    feature = "bls12_377_fq"
+))]
 pub mod bls12_377;
 
 #[cfg(feature = "ed_on_bls12_377")]

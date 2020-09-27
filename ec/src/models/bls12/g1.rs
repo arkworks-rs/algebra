@@ -1,9 +1,9 @@
-use ark_ff::{bytes::ToBytes};
 use crate::{
     bls12::Bls12Parameters,
     short_weierstrass_jacobian::{GroupAffine, GroupProjective},
     AffineCurve,
 };
+use ark_ff::bytes::ToBytes;
 use ark_std::io::{Result as IoResult, Write};
 use num_traits::Zero;
 

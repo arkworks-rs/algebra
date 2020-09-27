@@ -3,8 +3,14 @@ use crate::{
     fields::BitIteratorBE,
     UniformRand,
 };
-use ark_std::{fmt::{Debug, Display}, vec::Vec, io::{Read, Result as IoResult, Write}};
-use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, ConstantSerializedSize, SerializationError};
+use ark_serialize::{
+    CanonicalDeserialize, CanonicalSerialize, ConstantSerializedSize, SerializationError,
+};
+use ark_std::{
+    fmt::{Debug, Display},
+    io::{Read, Result as IoResult, Write},
+    vec::Vec,
+};
 use rand::{
     distributions::{Distribution, Standard},
     Rng,

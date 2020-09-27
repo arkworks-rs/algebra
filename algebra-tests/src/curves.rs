@@ -1,8 +1,10 @@
 #![allow(unused)]
-use ark_ec::{AffineCurve, MontgomeryModelParameters, ProjectiveCurve, SWModelParameters, TEModelParameters};
-use ark_std::{vec::Vec, io::Cursor};
+use ark_ec::{
+    AffineCurve, MontgomeryModelParameters, ProjectiveCurve, SWModelParameters, TEModelParameters,
+};
+use ark_ff::{Field, One, PrimeField, UniformRand, Zero};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, SWFlags, SerializationError};
-use ark_ff::{Field, PrimeField, One, UniformRand, Zero};
+use ark_std::{io::Cursor, vec::Vec};
 use rand::SeedableRng;
 use rand_xorshift::XorShiftRng;
 
@@ -401,7 +403,7 @@ pub fn sw_curve_serialization_test<P: SWModelParameters>() {
     }
 }
 
-pub(crate) fn montgomery_conversion_test<P>()
+pub fn montgomery_conversion_test<P>()
 where
     P: TEModelParameters,
 {

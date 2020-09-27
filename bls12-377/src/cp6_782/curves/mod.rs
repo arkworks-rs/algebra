@@ -1,10 +1,10 @@
+use ark_ec::{models::SWModelParameters, PairingEngine};
 use ark_ff::{
     biginteger::BigInteger832,
     field_new,
     fields::{BitIteratorBE, Field, FpParameters},
     One,
 };
-use ark_ec::{models::SWModelParameters, PairingEngine};
 
 use crate::cp6_782::{Fq, Fq3, Fq6, FqParameters, Fr};
 

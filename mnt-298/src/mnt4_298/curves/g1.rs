@@ -1,12 +1,9 @@
-use ark_ff::{
-    biginteger::BigInteger320,
-    field_new,
-};
+use crate::mnt4_298::{self, Fq, Fr, FR_ONE};
 use ark_ec::{
     mnt4,
     models::{ModelParameters, SWModelParameters},
 };
-use crate::mnt4_298::{self, Fq, Fr, FR_ONE};
+use ark_ff::{biginteger::BigInteger320, field_new};
 
 pub type G1Affine = mnt4::G1Affine<mnt4_298::Parameters>;
 pub type G1Projective = mnt4::G1Projective<mnt4_298::Parameters>;

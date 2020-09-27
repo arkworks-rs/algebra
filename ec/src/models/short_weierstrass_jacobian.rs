@@ -1,28 +1,22 @@
+use ark_serialize::{
+    CanonicalDeserialize, CanonicalDeserializeWithFlags, CanonicalSerialize,
+    CanonicalSerializeWithFlags, ConstantSerializedSize, Flags, SWFlags, SerializationError,
+};
 use ark_std::{
-    io::{Read, Result as IoResult, Write},
     fmt::{Display, Formatter, Result as FmtResult},
+    io::{Read, Result as IoResult, Write},
     marker::PhantomData,
     ops::{Add, AddAssign, MulAssign, Neg, Sub, SubAssign},
     vec::Vec,
 };
-use ark_serialize::{
-    Flags, SWFlags,
-    CanonicalDeserialize, CanonicalDeserializeWithFlags, CanonicalSerialize,
-    CanonicalSerializeWithFlags, ConstantSerializedSize, SerializationError,
-};
 
 use ark_ff::{
-    UniformRand,
-    ToConstraintField,
     bytes::{FromBytes, ToBytes},
     fields::{BitIteratorBE, Field, PrimeField, SquareRootField},
+    ToConstraintField, UniformRand,
 };
 
-
-use crate::{
-    AffineCurve, ProjectiveCurve,
-    models::SWModelParameters as Parameters,
-};
+use crate::{models::SWModelParameters as Parameters, AffineCurve, ProjectiveCurve};
 
 use num_traits::{One, Zero};
 
@@ -726,10 +720,7 @@ impl<P: Parameters> From<GroupProjective<P>> for GroupAffine<P> {
 impl<P: Parameters> CanonicalSerialize for GroupAffine<P> {
     #[allow(unused_qualifications)]
     #[inline]
-    fn serialize<W: Write>(
-        &self,
-        writer: W,
-    ) -> Result<(), SerializationError> {
+    fn serialize<W: Write>(&self, writer: W) -> Result<(), SerializationError> {
         if self.is_zero() {
             let flags = SWFlags::infinity();
             // Serialize 0.
@@ -747,10 +738,7 @@ impl<P: Parameters> CanonicalSerialize for GroupAffine<P> {
 
     #[allow(unused_qualifications)]
     #[inline]
-    fn serialize_uncompressed<W: Write>(
-        &self,
-        mut writer: W,
-    ) -> Result<(), SerializationError> {
+    fn serialize_uncompressed<W: Write>(&self, mut writer: W) -> Result<(), SerializationError> {
         let flags = if self.is_zero() {
             SWFlags::infinity()
         } else {
@@ -768,17 +756,13 @@ impl<P: Parameters> CanonicalSerialize for GroupAffine<P> {
 }
 
 impl<P: Parameters> ConstantSerializedSize for GroupAffine<P> {
-    const SERIALIZED_SIZE: usize =
-        <P::BaseField as ConstantSerializedSize>::SERIALIZED_SIZE;
-    const UNCOMPRESSED_SIZE: usize =
-        2 * <P::BaseField as ConstantSerializedSize>::SERIALIZED_SIZE;
+    const SERIALIZED_SIZE: usize = <P::BaseField as ConstantSerializedSize>::SERIALIZED_SIZE;
+    const UNCOMPRESSED_SIZE: usize = 2 * <P::BaseField as ConstantSerializedSize>::SERIALIZED_SIZE;
 }
 
 impl<P: Parameters> CanonicalDeserialize for GroupAffine<P> {
     #[allow(unused_qualifications)]
-    fn deserialize<R: Read>(
-        reader: R,
-    ) -> Result<Self, SerializationError> {
+    fn deserialize<R: Read>(reader: R) -> Result<Self, SerializationError> {
         let (x, flags): (P::BaseField, SWFlags) =
             CanonicalDeserializeWithFlags::deserialize_with_flags(reader)?;
         if flags.is_infinity() {
@@ -806,9 +790,7 @@ impl<P: Parameters> CanonicalDeserialize for GroupAffine<P> {
     }
 
     #[allow(unused_qualifications)]
-    fn deserialize_unchecked<R: Read>(
-        mut reader: R,
-    ) -> Result<Self, SerializationError> {
+    fn deserialize_unchecked<R: Read>(mut reader: R) -> Result<Self, SerializationError> {
         let x: P::BaseField = CanonicalDeserialize::deserialize(&mut reader)?;
         let (y, flags): (P::BaseField, SWFlags) =
             CanonicalDeserializeWithFlags::deserialize_with_flags(&mut reader)?;

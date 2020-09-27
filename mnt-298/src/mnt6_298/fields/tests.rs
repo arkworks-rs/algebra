@@ -1,9 +1,6 @@
 use ark_ff::{
-    fields::{
-        models::fp6_2over3::*,
-        quadratic_extension::QuadExtParameters,
-    },
-    test_rng, Field
+    fields::{models::fp6_2over3::*, quadratic_extension::QuadExtParameters},
+    test_rng, Field,
 };
 use rand::Rng;
 

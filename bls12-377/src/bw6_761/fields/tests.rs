@@ -1,5 +1,5 @@
-use ark_serialize::{buffer_bit_byte_size, CanonicalSerialize};
 use ark_ff::{test_rng, Field, PrimeField};
+use ark_serialize::{buffer_bit_byte_size, CanonicalSerialize};
 use rand::Rng;
 
 use crate::bw6_761::*;

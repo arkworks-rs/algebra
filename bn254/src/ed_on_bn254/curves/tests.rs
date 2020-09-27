@@ -1,8 +1,5 @@
-use ark_ff::{
-    bytes::FromBytes,
-    test_rng, Zero,
-};
 use ark_ec::{AffineCurve, ProjectiveCurve};
+use ark_ff::{bytes::FromBytes, test_rng, Zero};
 use core::str::FromStr;
 use rand::Rng;
 

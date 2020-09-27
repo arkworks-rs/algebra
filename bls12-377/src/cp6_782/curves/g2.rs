@@ -1,8 +1,11 @@
-use ark_ff::{biginteger::{BigInteger384, BigInteger832}, field_new};
 use ark_ec::{
     models::{ModelParameters, SWModelParameters},
     short_weierstrass_jacobian::{GroupAffine, GroupProjective},
-};    
+};
+use ark_ff::{
+    biginteger::{BigInteger384, BigInteger832},
+    field_new,
+};
 
 use crate::cp6_782::{Fq, Fq3, Fr, FQ_ZERO};
 

@@ -1,18 +1,29 @@
 #![cfg_attr(not(feature = "std"), no_std)]
-#![deny(warnings, unused, future_incompatible, nonstandard_style, unused, rust_2018_idioms)]
+#![deny(
+    warnings,
+    unused,
+    future_incompatible,
+    nonstandard_style,
+    unused,
+    rust_2018_idioms
+)]
 #![forbid(unsafe_code)]
 mod error;
 mod flags;
 
 pub use ark_std::io::{Read, Write};
-use ark_std::{collections::BTreeMap, borrow::{Cow, ToOwned}, vec::Vec, convert::TryFrom};
+use ark_std::{
+    borrow::{Cow, ToOwned},
+    collections::BTreeMap,
+    convert::TryFrom,
+    vec::Vec,
+};
 pub use error::*;
 pub use flags::*;
 
 #[cfg(feature = "derive")]
 #[doc(hidden)]
 pub use ark_serialize_derive::*;
-
 
 /// Serializer in little endian format allowing to encode flags.
 pub trait CanonicalSerializeWithFlags: CanonicalSerialize {
@@ -299,7 +310,6 @@ pub fn buffer_bit_byte_size(modulus_bits: usize) -> (usize, usize) {
 pub const fn buffer_byte_size(modulus_bits: usize) -> usize {
     (modulus_bits + 7) / 8
 }
-
 
 // Implement Serialization for tuples
 macro_rules! impl_tuple {

@@ -2,18 +2,15 @@ use rand::SeedableRng;
 use rand_xorshift::XorShiftRng;
 use std::ops::{AddAssign, MulAssign, SubAssign};
 
+use ark_bls12_377::cp6_782::{
+    fq::Fq, fq3::Fq3, fr::Fr, Fq6, G1Affine, G1Projective as G1, G2Affine, G2Projective as G2,
+    CP6_782,
+};
+use ark_ec::{PairingEngine, ProjectiveCurve};
 use ark_ff::{
     biginteger::{BigInteger384 as FrRepr, BigInteger832 as FqRepr},
     BigInteger, Field, PrimeField, SquareRootField, UniformRand,
 };
-use ark_ec::{
-    PairingEngine, ProjectiveCurve, 
-};
-use ark_bls12_377::cp6_782::{
-    fq::Fq, fq3::Fq3, fr::Fr, CP6_782, Fq6, G1Affine, G1Projective as G1, G2Affine,
-    G2Projective as G2,
-};
-
 
 ec_bench!();
 f_bench!(1, Fq3, Fq3, fq3);

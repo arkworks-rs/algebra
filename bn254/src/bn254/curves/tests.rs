@@ -1,14 +1,15 @@
 #![allow(unused_imports)]
-use ark_ff::{
-    fields::{Field, FpParameters, PrimeField, SquareRootField}, test_rng, One, Zero
-};
 use ark_ec::{models::SWModelParameters, AffineCurve, PairingEngine, ProjectiveCurve};
+use ark_ff::{
+    fields::{Field, FpParameters, PrimeField, SquareRootField},
+    test_rng, One, Zero,
+};
 use ark_serialize::CanonicalSerialize;
 use core::ops::{AddAssign, MulAssign};
 use rand::Rng;
 
-use crate::{
-    bn254::{g1, g2, Bn254, Fq, Fq12, Fq2, Fr, G1Affine, G1Projective, G2Affine, G2Projective},
+use crate::bn254::{
+    g1, g2, Bn254, Fq, Fq12, Fq2, Fr, G1Affine, G1Projective, G2Affine, G2Projective,
 };
 
 use ark_algebra_tests::{curves::*, groups::*};

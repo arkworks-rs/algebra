@@ -1,9 +1,9 @@
 use crate::bn254::*;
-use ark_ff::{biginteger::BigInteger256, field_new};
 use ark_ec::{
     bn,
     bn::{Bn, BnParameters, TwistType},
 };
+use ark_ff::{biginteger::BigInteger256, field_new};
 pub mod g1;
 pub mod g2;
 

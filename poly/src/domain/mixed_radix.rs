@@ -14,8 +14,8 @@ use crate::domain::{
     utils::{best_fft, bitreverse},
     DomainCoeff, EvaluationDomain,
 };
-use ark_std::{vec::Vec, cmp::min, convert::TryFrom, fmt};
 use ark_ff::{fields::utils::k_adicity, FftField, FftParameters};
+use ark_std::{cmp::min, convert::TryFrom, fmt, vec::Vec};
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
 
@@ -181,9 +181,11 @@ impl<F: FftField> EvaluationDomain<F> for MixedRadixEvaluationDomain<F> {
 
             batch_inversion(u.as_mut_slice());
 
-            ark_std::cfg_iter_mut!(u).zip(ls).for_each(|(tau_minus_r, l)| {
-                *tau_minus_r = l * *tau_minus_r;
-            });
+            ark_std::cfg_iter_mut!(u)
+                .zip(ls)
+                .for_each(|(tau_minus_r, l)| {
+                    *tau_minus_r = l * *tau_minus_r;
+                });
 
             u
         }
@@ -389,8 +391,8 @@ pub(crate) fn serial_mixed_radix_fft<T: DomainCoeff<F>, F: FftField>(
 #[cfg(test)]
 mod tests {
     use crate::{EvaluationDomain, MixedRadixEvaluationDomain};
-    use ark_mnt_753::mnt4_753::Fr;
     use ark_ff::{test_rng, Field, Zero};
+    use ark_mnt_753::mnt4_753::Fr;
     use rand::Rng;
 
     #[test]
@@ -446,9 +448,9 @@ mod tests {
     fn parallel_fft_consistency() {
         use super::serial_mixed_radix_fft;
         use crate::domain::utils::parallel_fft;
-        use ark_std::vec::Vec;
-        use ark_mnt_753::mnt4_753::Fr;
         use ark_ff::{test_rng, PrimeField};
+        use ark_mnt_753::mnt4_753::Fr;
+        use ark_std::vec::Vec;
         use core::cmp::min;
 
         fn test_consistency<F: PrimeField, R: Rng>(rng: &mut R, max_coeffs: u32) {

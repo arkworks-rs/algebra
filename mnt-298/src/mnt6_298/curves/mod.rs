@@ -1,9 +1,4 @@
-use ark_ff::{
-    biginteger::BigInteger320,
-    field_new,
-    fields::FpParameters,
-    Fp3,
-};
+use ark_ff::{biginteger::BigInteger320, field_new, fields::FpParameters, Fp3};
 
 use ark_ec::models::mnt6::{MNT6Parameters, MNT6};
 

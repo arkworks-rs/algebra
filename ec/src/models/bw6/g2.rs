@@ -5,7 +5,7 @@ use ark_std::{
 
 use ark_ff::{
     bytes::ToBytes,
-    fields::{Field, BitIteratorBE},
+    fields::{BitIteratorBE, Field},
 };
 
 use num_traits::{One, Zero};
