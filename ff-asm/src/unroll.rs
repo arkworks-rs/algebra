@@ -1,22 +1,22 @@
 //! An attribute-like procedural macro for unrolling for loops with integer literal bounds.
-//! 
+//!
 //! This crate provides the [`unroll_for_loops`] attribute-like macro that can be applied to
 //! functions containing for-loops with integer bounds. This macro looks for loops to unroll and
 //! unrolls them at compile time.
-//! 
+//!
 //!
 //! ## Usage
-//! 
+//!
 //! Just add `#[unroll_for_loops]` above the function whose for loops you would like to unroll.
 //! Currently all for loops with integer literal bounds will be unrolled, although this macro
 //! currently can't see inside complex code (e.g. for loops within closures).
-//! 
-//! 
+//!
+//!
 //! ## Example
-//! 
+//!
 //! The following function computes a matrix-vector product and returns the result as an array.
 //! Both of the inner for-loops are unrolled when `#[unroll_for_loops]` is applied.
-//! 
+//!
 //! ```rust
 //! use unroll::unroll_for_loops;
 //!
@@ -34,9 +34,11 @@
 //!
 //! This code was adapted from the [`unroll`](https://crates.io/crates/unroll) crate.
 
-use syn::{Block, Expr, ExprBlock, ExprForLoop, ExprLit, ExprRange, Lit, Pat,
-          PatIdent, RangeLimits, Stmt, ExprIf, ExprLet, parse_quote};
 use syn::token::Brace;
+use syn::{
+    parse_quote, Block, Expr, ExprBlock, ExprForLoop, ExprIf, ExprLet, ExprLit, ExprRange, Lit,
+    Pat, PatIdent, RangeLimits, Stmt,
+};
 
 /// Routine to unroll for loops within a block
 pub(crate) fn unroll_in_block(block: &Block) -> Block {
@@ -178,10 +180,7 @@ fn unroll(expr: &Expr) -> Expr {
             ..(*if_expr).clone()
         })
     } else if let &Expr::Let(ref let_expr) = expr {
-        let ExprLet {
-            ref expr,
-            ..
-        } = *let_expr;
+        let ExprLet { ref expr, .. } = *let_expr;
         Expr::Let(ExprLet {
             expr: Box::new(unroll(&**expr)),
             ..(*let_expr).clone()

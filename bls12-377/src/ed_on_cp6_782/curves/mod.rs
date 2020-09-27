@@ -1,8 +1,8 @@
-use ark_ff::{biginteger::BigInteger384 as BigInteger, field_new};
 use ark_ec::{
     models::{ModelParameters, MontgomeryModelParameters, TEModelParameters},
     twisted_edwards_extended::{GroupAffine, GroupProjective},
 };
+use ark_ff::{biginteger::BigInteger384 as BigInteger, field_new};
 
 use crate::ed_on_cp6_782::{fq::Fq, fr::Fr};
 

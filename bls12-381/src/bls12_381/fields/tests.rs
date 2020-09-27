@@ -13,10 +13,8 @@ use core::{
 use rand::SeedableRng;
 use rand_xorshift::XorShiftRng;
 
-use crate::{
-    bls12_381::{
-        Fq, Fq12, Fq12Parameters, Fq2, Fq2Parameters, Fq6, Fq6Parameters, FqParameters, Fr,
-    },
+use crate::bls12_381::{
+    Fq, Fq12, Fq12Parameters, Fq2, Fq2Parameters, Fq6, Fq6Parameters, FqParameters, Fr,
 };
 use ark_algebra_tests::fields::*;
 

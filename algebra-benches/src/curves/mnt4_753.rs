@@ -2,13 +2,13 @@ use rand::SeedableRng;
 use rand_xorshift::XorShiftRng;
 use std::ops::{AddAssign, MulAssign, SubAssign};
 
-use ark_ff::{
-    biginteger::{BigInteger768 as FqRepr},
-    BigInteger, Field, PrimeField, SquareRootField, UniformRand,
-};
 use ark_ec::{
     mnt4::{G1Prepared, G2Prepared},
-    PairingEngine, ProjectiveCurve, 
+    PairingEngine, ProjectiveCurve,
+};
+use ark_ff::{
+    biginteger::BigInteger768 as FqRepr, BigInteger, Field, PrimeField, SquareRootField,
+    UniformRand,
 };
 use ark_mnt_753::mnt4_753::{
     fq::Fq, fq2::Fq2, fr::Fr, Fq4, G1Affine, G1Projective as G1, G2Affine, G2Projective as G2,

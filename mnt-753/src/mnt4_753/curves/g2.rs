@@ -1,12 +1,9 @@
-use ark_ff::{
-    biginteger::BigInteger768,
-    field_new,
-};
 use ark_ec::{
     mnt4,
     mnt4::MNT4Parameters,
     models::{ModelParameters, SWModelParameters},
 };
+use ark_ff::{biginteger::BigInteger768, field_new};
 
 use crate::mnt4_753::{self, Fq, Fq2, Fr, FQ_ZERO, G1_COEFF_A_NON_RESIDUE};
 

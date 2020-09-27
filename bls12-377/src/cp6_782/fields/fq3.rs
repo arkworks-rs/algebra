@@ -1,10 +1,10 @@
+use crate::cp6_782::Fq;
 use ark_ff::{
     biginteger::BigInteger832 as BigInteger,
     field_new,
-    Field,
     fields::fp3::{Fp3, Fp3Parameters},
+    Field,
 };
-use crate::cp6_782::Fq;
 
 pub type Fq3 = Fp3<Fq3Parameters>;
 

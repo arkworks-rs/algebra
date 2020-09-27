@@ -1,7 +1,7 @@
 use crate::domain::*;
 use ark_bls12_381::bls12_381::{Fr, G1Projective};
-use ark_mnt_753::mnt4_753::{Fr as MNT4Fr, G1Projective as MNT4G1Projective};
 use ark_ff::{test_rng, PrimeField, UniformRand};
+use ark_mnt_753::mnt4_753::{Fr as MNT4Fr, G1Projective as MNT4G1Projective};
 
 // Test multiplying various (low degree) polynomials together and
 // comparing with naive evaluations.

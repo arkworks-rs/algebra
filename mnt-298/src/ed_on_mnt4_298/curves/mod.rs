@@ -1,11 +1,8 @@
-use ark_ff::{
-    biginteger::BigInteger320,
-    field_new,
-};
 use ark_ec::{
     models::{ModelParameters, MontgomeryModelParameters, TEModelParameters},
     twisted_edwards_extended::{GroupAffine, GroupProjective},
 };
+use ark_ff::{biginteger::BigInteger320, field_new};
 
 use crate::ed_on_mnt4_298::{fq::Fq, fr::Fr};
 

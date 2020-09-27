@@ -1,9 +1,9 @@
 use ark_std::{
     cmp::{Ord, Ordering, PartialOrd},
     fmt::{Display, Formatter, Result as FmtResult},
+    io::{Read, Result as IoResult, Write},
     marker::PhantomData,
     ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign},
-    io::{Read, Result as IoResult, Write},
     str::FromStr,
 };
 use num_traits::{One, Zero};

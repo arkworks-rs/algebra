@@ -1,6 +1,6 @@
 #![allow(unused)]
 use ark_ec::group::Group;
-use ark_ff::{UniformRand, One, Zero};
+use ark_ff::{One, UniformRand, Zero};
 use rand::SeedableRng;
 use rand_xorshift::XorShiftRng;
 

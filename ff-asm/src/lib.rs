@@ -1,9 +1,18 @@
-#![deny(warnings, unused, future_incompatible, nonstandard_style, rust_2018_idioms)]
+#![deny(
+    warnings,
+    unused,
+    future_incompatible,
+    nonstandard_style,
+    rust_2018_idioms
+)]
 #![forbid(unsafe_code)]
 #![recursion_limit = "128"]
 
 use proc_macro::TokenStream;
-use syn::{Item, ItemFn, Expr, parse::{Parse, ParseStream}};
+use syn::{
+    parse::{Parse, ParseStream},
+    Expr, Item, ItemFn,
+};
 
 #[macro_use]
 mod utils;
@@ -13,8 +22,6 @@ mod context;
 use context::*;
 
 mod unroll;
-
-
 
 use std::cell::RefCell;
 
@@ -51,12 +58,15 @@ struct AsmMulInput {
 
 impl Parse for AsmMulInput {
     fn parse(input: ParseStream<'_>) -> syn::Result<Self> {
-        let input = input.parse_terminated::<_, syn::Token![,]>(Expr::parse)?.into_iter().collect::<Vec<_>>();
+        let input = input
+            .parse_terminated::<_, syn::Token![,]>(Expr::parse)?
+            .into_iter()
+            .collect::<Vec<_>>();
         let num_limbs = input[0].clone();
         let a = input[1].clone();
         let b = input[2].clone();
 
-        let num_limbs = if let Expr::Group(syn::ExprGroup { expr, .. })  = num_limbs {
+        let num_limbs = if let Expr::Group(syn::ExprGroup { expr, .. }) = num_limbs {
             expr
         } else {
             Box::new(num_limbs)
@@ -66,15 +76,15 @@ impl Parse for AsmMulInput {
     }
 }
 
-
 #[proc_macro]
 pub fn x86_64_asm_mul(input: TokenStream) -> TokenStream {
-    let AsmMulInput { num_limbs, a, b, } = syn::parse_macro_input!(input);
+    let AsmMulInput { num_limbs, a, b } = syn::parse_macro_input!(input);
     let num_limbs = if let Expr::Lit(syn::ExprLit {
         lit: syn::Lit::Int(ref lit_int),
         ..
-    }) = &*num_limbs {
-        lit_int.base10_parse::<usize>().unwrap() 
+    }) = &*num_limbs
+    {
+        lit_int.base10_parse::<usize>().unwrap()
     } else {
         panic!("The number of limbs must be a literal");
     };
@@ -82,7 +92,7 @@ pub fn x86_64_asm_mul(input: TokenStream) -> TokenStream {
         let impl_block = generate_impl(num_limbs, true);
 
         let inner_ts: Expr = syn::parse_str(&impl_block).unwrap();
-        let ts = quote::quote!{
+        let ts = quote::quote! {
             let mut a = #a;
             let b = #b;
             #inner_ts
@@ -100,11 +110,14 @@ struct AsmSquareInput {
 
 impl Parse for AsmSquareInput {
     fn parse(input: ParseStream<'_>) -> syn::Result<Self> {
-        let input = input.parse_terminated::<_, syn::Token![,]>(Expr::parse)?.into_iter().collect::<Vec<_>>();
+        let input = input
+            .parse_terminated::<_, syn::Token![,]>(Expr::parse)?
+            .into_iter()
+            .collect::<Vec<_>>();
         let num_limbs = input[0].clone();
         let a = input[1].clone();
 
-        let num_limbs = if let Expr::Group(syn::ExprGroup { expr, .. })  = num_limbs {
+        let num_limbs = if let Expr::Group(syn::ExprGroup { expr, .. }) = num_limbs {
             expr
         } else {
             Box::new(num_limbs)
@@ -116,11 +129,12 @@ impl Parse for AsmSquareInput {
 
 #[proc_macro]
 pub fn x86_64_asm_square(input: TokenStream) -> TokenStream {
-    let AsmSquareInput { num_limbs, a, } = syn::parse_macro_input!(input);
+    let AsmSquareInput { num_limbs, a } = syn::parse_macro_input!(input);
     let num_limbs = if let Expr::Lit(syn::ExprLit {
         lit: syn::Lit::Int(ref lit_int),
         ..
-    }) = &*num_limbs {
+    }) = &*num_limbs
+    {
         lit_int.base10_parse::<usize>().unwrap()
     } else {
         panic!("The number of limbs must be a literal");
@@ -129,7 +143,7 @@ pub fn x86_64_asm_square(input: TokenStream) -> TokenStream {
         let impl_block = generate_impl(num_limbs, false);
 
         let inner_ts: Expr = syn::parse_str(&impl_block).unwrap();
-        let ts = quote::quote!{
+        let ts = quote::quote! {
             let mut a = #a;
             #inner_ts
         };
@@ -151,67 +165,88 @@ fn generate_llvm_asm_mul_string(
 
     let begin = || llvm_asm_string.borrow_mut().push_str("\"");
 
-    let end = || llvm_asm_string.borrow_mut().push_str("
-                                \"");
-
-    let _comment = | comment: &str | {
-        llvm_asm_string.borrow_mut().push_str(&format!("         // {}", comment));
+    let end = || {
+        llvm_asm_string.borrow_mut().push_str(
+            "
+                                \"",
+        )
     };
 
-    let mulxq = | a: &str, b: &str, c: &str | {
-        llvm_asm_string.borrow_mut().push_str(&format!("
-                                mulxq {}, {}, {}", a, b, c));
+    let _comment = |comment: &str| {
+        llvm_asm_string
+            .borrow_mut()
+            .push_str(&format!("         // {}", comment));
     };
 
-    let adcxq = | a: &str, b: &str| {
-        llvm_asm_string.borrow_mut().push_str(&format!("
-                                adcxq {}, {}", a, b));
+    let mulxq = |a: &str, b: &str, c: &str| {
+        llvm_asm_string.borrow_mut().push_str(&format!(
+            "
+                                mulxq {}, {}, {}",
+            a, b, c
+        ));
     };
 
-    let adoxq = | a: &str, b: &str | {
-        llvm_asm_string.borrow_mut().push_str(&format!("
-                                adoxq {}, {}", a, b));
+    let adcxq = |a: &str, b: &str| {
+        llvm_asm_string.borrow_mut().push_str(&format!(
+            "
+                                adcxq {}, {}",
+            a, b
+        ));
     };
 
-    let movq = | a: &str, b: &str | {
-        llvm_asm_string.borrow_mut().push_str(&format!("
-                                movq {}, {}", a, b));
+    let adoxq = |a: &str, b: &str| {
+        llvm_asm_string.borrow_mut().push_str(&format!(
+            "
+                                adoxq {}, {}",
+            a, b
+        ));
     };
 
-    let xorq = | a: &str, b: &str | {
-        llvm_asm_string.borrow_mut().push_str(&format!("
-                                xorq {}, {}", a, b));
+    let movq = |a: &str, b: &str| {
+        llvm_asm_string.borrow_mut().push_str(&format!(
+            "
+                                movq {}, {}",
+            a, b
+        ));
+    };
+
+    let xorq = |a: &str, b: &str| {
+        llvm_asm_string.borrow_mut().push_str(&format!(
+            "
+                                xorq {}, {}",
+            a, b
+        ));
     };
 
     macro_rules! mul_1 {
         ($a:expr, $b:ident, $zero:ident, $limbs:expr) => {
             movq($a, RDX);
             mulxq($b[0], R[0], R[1]);
-            for j in 1..$limbs-1 {
+            for j in 1..$limbs - 1 {
                 mulxq($b[j], RAX, R[((j + 1) % $limbs)]);
                 adcxq(RAX, R[j]);
             }
-            mulxq($b[$limbs-1], RAX, RCX);
+            mulxq($b[$limbs - 1], RAX, RCX);
             movq($zero, RBX);
-            adcxq(RAX, R[$limbs-1]);
+            adcxq(RAX, R[$limbs - 1]);
             adcxq(RBX, RCX);
-        }
+        };
     }
 
     macro_rules! mul_add_1 {
         ($a:ident, $b:ident, $zero:ident, $i:ident, $limbs:expr) => {
             movq($a[$i], RDX);
-            for j in 0..$limbs-1 {
+            for j in 0..$limbs - 1 {
                 mulxq($b[j], RAX, RBX);
-                adcxq(RAX, R[(j+$i) % $limbs]);
-                adoxq(RBX, R[(j+$i+1) % $limbs]);
+                adcxq(RAX, R[(j + $i) % $limbs]);
+                adoxq(RBX, R[(j + $i + 1) % $limbs]);
             }
-            mulxq($b[$limbs-1], RAX, RCX);
+            mulxq($b[$limbs - 1], RAX, RCX);
             movq($zero, RBX);
-            adcxq(RAX, R[($i+$limbs-1) % $limbs]);
+            adcxq(RAX, R[($i + $limbs - 1) % $limbs]);
             adoxq(RBX, RCX);
             adcxq(RBX, RCX);
-        }
+        };
     }
 
     macro_rules! mul_add_shift_1 {
@@ -220,18 +255,18 @@ fn generate_llvm_asm_mul_string(
             mulxq(R[$i], RDX, RAX);
             mulxq($a[0], RAX, RBX);
             adcxq(R[$i % $limbs], RAX);
-            adoxq(RBX, R[($i+1) % $limbs]);
-            for j in 1..$limbs-1 {
+            adoxq(RBX, R[($i + 1) % $limbs]);
+            for j in 1..$limbs - 1 {
                 mulxq($a[j], RAX, RBX);
-                adcxq(RAX, R[(j+$i) % $limbs]);
-                adoxq(RBX, R[(j+$i+1) % $limbs]);
+                adcxq(RAX, R[(j + $i) % $limbs]);
+                adoxq(RBX, R[(j + $i + 1) % $limbs]);
             }
-            mulxq($a[$limbs-1], RAX, R[$i % $limbs]);
+            mulxq($a[$limbs - 1], RAX, R[$i % $limbs]);
             movq($zero, RBX);
-            adcxq(RAX, R[($i+$limbs-1) % $limbs]);
+            adcxq(RAX, R[($i + $limbs - 1) % $limbs]);
             adoxq(RCX, R[$i % $limbs]);
             adcxq(RBX, R[$i % $limbs]);
-        }
+        };
     }
     begin();
     {
@@ -254,7 +289,7 @@ fn generate_llvm_asm_mul_string(
         }
     }
     end();
-    return llvm_asm_string.into_inner(); 
+    return llvm_asm_string.into_inner();
 }
 
 fn generate_impl(num_limbs: usize, is_mul: bool) -> String {

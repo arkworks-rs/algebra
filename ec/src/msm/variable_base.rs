@@ -1,5 +1,5 @@
-use ark_std::vec::Vec;
 use ark_ff::prelude::*;
+use ark_std::vec::Vec;
 
 use crate::{AffineCurve, ProjectiveCurve};
 

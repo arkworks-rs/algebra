@@ -2,13 +2,13 @@ use rand::SeedableRng;
 use rand_xorshift::XorShiftRng;
 use std::ops::{AddAssign, MulAssign, SubAssign};
 
+use ark_ec::{
+    bn::{G1Prepared, G2Prepared},
+    PairingEngine, ProjectiveCurve,
+};
 use ark_ef::{
     biginteger::{BigInteger256 as FrRepr, BigInteger256 as FqRepr},
     BigInteger, Field, PrimeField, SquareRootField, UniformRand,
-};
-use ark_ec::{
-    bn::{G1Prepared, G2Prepared},
-    PairingEngine, ProjectiveCurve, 
 };
 use ark_en254::bn254::{
     fq::Fq, fq2::Fq2, fr::Fr, Bls12_381, Fq12, G1Affine, G1Projective as G1, G2Affine,

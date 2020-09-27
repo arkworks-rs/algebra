@@ -1,5 +1,5 @@
-use ark_ff::{test_rng, Field, One, PrimeField};
 use ark_ec::{AffineCurve, PairingEngine, ProjectiveCurve};
+use ark_ff::{test_rng, Field, One, PrimeField};
 use rand::Rng;
 
 use crate::cp6_782::*;

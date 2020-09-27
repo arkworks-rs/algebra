@@ -1,4 +1,10 @@
-#![deny(warnings, unused, future_incompatible, nonstandard_style, rust_2018_idioms)]
+#![deny(
+    warnings,
+    unused,
+    future_incompatible,
+    nonstandard_style,
+    rust_2018_idioms
+)]
 #![forbid(unsafe_code)]
 
 use proc_macro2::TokenStream;

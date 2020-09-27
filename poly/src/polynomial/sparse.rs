@@ -1,6 +1,6 @@
 //! A sparse polynomial represented in coefficient form.
 
-use ark_std::{fmt, collections::BTreeMap, vec::Vec};
+use ark_std::{collections::BTreeMap, fmt, vec::Vec};
 
 use crate::{DenseOrSparsePolynomial, DensePolynomial, EvaluationDomain, Evaluations};
 use ark_ff::{FftField, Field};

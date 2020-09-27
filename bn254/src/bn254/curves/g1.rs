@@ -1,8 +1,5 @@
-use ark_ff::{
-    biginteger::BigInteger256,
-    field_new, Zero,
-};
 use ark_ec::models::{ModelParameters, SWModelParameters};
+use ark_ff::{biginteger::BigInteger256, field_new, Zero};
 
 use crate::bn254::{Fq, Fr};
 

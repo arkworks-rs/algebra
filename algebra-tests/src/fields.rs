@@ -1,7 +1,7 @@
 #![allow(unused)]
 use ark_ff::fields::{FftField, FftParameters, Field, LegendreSymbol, PrimeField, SquareRootField};
+use ark_serialize::{buffer_bit_byte_size, Flags, SWFlags};
 use ark_std::io::Cursor;
-use ark_serialize::{Flags, SWFlags, buffer_bit_byte_size};
 use rand::{Rng, SeedableRng};
 use rand_xorshift::XorShiftRng;
 

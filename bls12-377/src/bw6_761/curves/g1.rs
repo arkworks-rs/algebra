@@ -1,9 +1,12 @@
-use ark_ff::{biginteger::{BigInteger384, BigInteger768}, field_new};
+use crate::bw6_761::{Fq, Fr};
 use ark_ec::{
     models::{ModelParameters, SWModelParameters},
     short_weierstrass_jacobian::{GroupAffine, GroupProjective},
 };
-use crate::bw6_761::{Fq, Fr};
+use ark_ff::{
+    biginteger::{BigInteger384, BigInteger768},
+    field_new,
+};
 
 pub type G1Affine = GroupAffine<Parameters>;
 pub type G1Projective = GroupProjective<Parameters>;

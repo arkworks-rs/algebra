@@ -1,8 +1,7 @@
-use ark_ff::{PrimeField, UniformRand, Zero};
 use ark_ec::{msm::VariableBaseMSM, AffineCurve, ProjectiveCurve};
+use ark_ff::{PrimeField, UniformRand, Zero};
 use rand::SeedableRng;
 use rand_xorshift::XorShiftRng;
-
 
 fn naive_var_base_msm<G: AffineCurve>(
     bases: &[G],

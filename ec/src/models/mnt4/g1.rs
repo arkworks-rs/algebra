@@ -1,9 +1,9 @@
-use ark_ff::{Fp2, bytes::ToBytes};
-use crate::{ 
+use crate::{
     mnt4::MNT4Parameters,
     short_weierstrass_jacobian::{GroupAffine, GroupProjective},
     AffineCurve,
 };
+use ark_ff::{bytes::ToBytes, Fp2};
 use ark_std::io::{Result as IoResult, Write};
 
 pub type G1Affine<P> = GroupAffine<<P as MNT4Parameters>::G1Parameters>;

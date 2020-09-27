@@ -1,6 +1,6 @@
+use crate::ProjectiveCurve;
 use ark_ff::{BigInteger, FpParameters, PrimeField};
 use ark_std::vec::Vec;
-use crate::ProjectiveCurve;
 
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;

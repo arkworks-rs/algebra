@@ -1,9 +1,9 @@
+use crate::cp6_782::{Fq, Fq3, Fq3Parameters, FQ_ONE, FQ_ZERO};
 use ark_ff::{
     biginteger::BigInteger832 as BigInteger,
     field_new,
     fields::fp6_2over3::{Fp6, Fp6Parameters},
 };
-use crate::cp6_782::{Fq, Fq3, Fq3Parameters, FQ_ONE, FQ_ZERO};
 
 pub type Fq6 = Fp6<Fq6Parameters>;
 

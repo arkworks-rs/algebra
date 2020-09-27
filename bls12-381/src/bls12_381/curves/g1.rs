@@ -1,14 +1,11 @@
-use ark_ff::{
-    biginteger::{BigInteger256, BigInteger384},
-    field_new, Zero,
-};
+use crate::{bls12_381, bls12_381::*};
 use ark_ec::{
     bls12,
     models::{ModelParameters, SWModelParameters},
 };
-use crate::{
-    bls12_381,
-    bls12_381::*,
+use ark_ff::{
+    biginteger::{BigInteger256, BigInteger384},
+    field_new, Zero,
 };
 
 pub type G1Affine = bls12::G1Affine<bls12_381::Parameters>;

@@ -1,11 +1,8 @@
-use ark_ff::{
-    biginteger::BigInteger320,
-    field_new,
-};
 use ark_ec::{
     mnt6,
     models::{ModelParameters, SWModelParameters},
 };
+use ark_ff::{biginteger::BigInteger320, field_new};
 
 use crate::mnt6_298::{self, Fq, Fr};
 

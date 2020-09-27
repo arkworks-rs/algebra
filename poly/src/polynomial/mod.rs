@@ -1,8 +1,8 @@
 //! Work with sparse and dense polynomials.
 
-use ark_std::{borrow::Cow, vec::Vec, convert::TryInto};
 use crate::{EvaluationDomain, Evaluations};
 use ark_ff::{FftField, Field};
+use ark_std::{borrow::Cow, convert::TryInto, vec::Vec};
 use DenseOrSparsePolynomial::*;
 
 mod dense;

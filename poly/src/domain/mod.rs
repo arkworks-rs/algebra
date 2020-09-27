@@ -7,8 +7,8 @@
 //! These roots of unity comprise the domain over which
 //! polynomial arithmetic is performed.
 
-use ark_std::{vec::Vec, fmt, hash};
 use ark_ff::FftField;
+use ark_std::{fmt, hash, vec::Vec};
 use rand::Rng;
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;

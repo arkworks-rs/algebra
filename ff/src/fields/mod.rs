@@ -6,13 +6,14 @@ use crate::{
 };
 use ark_serialize::{
     CanonicalDeserialize, CanonicalDeserializeWithFlags, CanonicalSerialize,
-    CanonicalSerializeWithFlags, ConstantSerializedSize, 
+    CanonicalSerializeWithFlags, ConstantSerializedSize,
 };
 use ark_std::{
     fmt::{Debug, Display},
     hash::Hash,
     ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign},
-    str::FromStr, vec::Vec,
+    str::FromStr,
+    vec::Vec,
 };
 
 use num_traits::{One, Zero};

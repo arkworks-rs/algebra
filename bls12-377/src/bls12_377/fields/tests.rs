@@ -6,7 +6,7 @@ use ark_ff::{
     },
     test_rng, One, UniformRand, Zero,
 };
-use ark_serialize::{CanonicalSerialize, buffer_bit_byte_size};
+use ark_serialize::{buffer_bit_byte_size, CanonicalSerialize};
 use core::{
     cmp::Ordering,
     ops::{AddAssign, MulAssign, SubAssign},

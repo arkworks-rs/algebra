@@ -1,9 +1,9 @@
 use crate::ed_on_bls12_377::{fq::Fq, fr::Fr};
-use ark_ff::{biginteger::BigInteger256, field_new};
 use ark_ec::{
     models::{ModelParameters, MontgomeryModelParameters, TEModelParameters},
     twisted_edwards_extended::{GroupAffine, GroupProjective},
 };
+use ark_ff::{biginteger::BigInteger256, field_new};
 
 #[cfg(test)]
 mod tests;

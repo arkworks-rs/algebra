@@ -1,4 +1,4 @@
-use ark_std::{io, fmt};
+use ark_std::{fmt, io};
 
 /// This is an error that could occur during serialization
 #[derive(Debug)]
@@ -15,7 +15,6 @@ pub enum SerializationError {
 }
 
 impl ark_std::error::Error for SerializationError {}
-
 
 impl From<io::Error> for SerializationError {
     fn from(e: io::Error) -> SerializationError {

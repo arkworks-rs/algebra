@@ -3,7 +3,6 @@ pub mod fr;
 #[cfg(feature = "bls12_377_fr")]
 pub use self::fr::*;
 
-
 #[cfg(feature = "bls12_377_fq")]
 pub mod fq;
 #[cfg(feature = "bls12_377_fq")]

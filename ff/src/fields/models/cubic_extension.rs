@@ -1,13 +1,14 @@
+use ark_serialize::{
+    CanonicalDeserialize, CanonicalDeserializeWithFlags, CanonicalSerialize,
+    CanonicalSerializeWithFlags, ConstantSerializedSize, EmptyFlags, Flags, SerializationError,
+};
 use ark_std::{
     cmp::{Ord, Ordering, PartialOrd},
     fmt,
+    io::{Read, Result as IoResult, Write},
     marker::PhantomData,
     ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign},
-    vec::Vec, io::{Read, Result as IoResult, Write}
-};
-use ark_serialize::{
-    CanonicalDeserialize, CanonicalDeserializeWithFlags, CanonicalSerialize,
-    CanonicalSerializeWithFlags, ConstantSerializedSize, EmptyFlags, Flags, SerializationError
+    vec::Vec,
 };
 
 use num_traits::{One, Zero};
@@ -20,7 +21,7 @@ use rand::{
 use crate::{
     bytes::{FromBytes, ToBytes},
     fields::{Field, PrimeField},
-    ToConstraintField,UniformRand,
+    ToConstraintField, UniformRand,
 };
 
 pub trait CubicExtParameters: 'static + Send + Sync {

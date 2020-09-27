@@ -1,5 +1,5 @@
-use ark_ff::test_rng;
 use ark_ec::{AffineCurve, ProjectiveCurve};
+use ark_ff::test_rng;
 use rand::Rng;
 
 use crate::ed_on_cp6_782::*;
