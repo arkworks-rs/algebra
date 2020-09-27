@@ -6,7 +6,7 @@ use ark_ff::{
     test_rng, One, Zero,
 };
 
-use crate::tests::fields::{field_test, primefield_test};
+use ark_algebra_tests::fields::*;
 
 use core::str::FromStr;
 use rand::Rng;

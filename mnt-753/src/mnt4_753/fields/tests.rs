@@ -3,7 +3,7 @@ use rand::Rng;
 
 use crate::mnt4_753::*;
 
-use crate::tests::fields::{field_test, frobenius_test, primefield_test, sqrt_field_test};
+use ark_algebra_tests::fields::*;
 
 #[test]
 fn test_fr() {

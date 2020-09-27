@@ -4,9 +4,7 @@ use rand::Rng;
 
 use crate::bw6_761::*;
 
-use crate::tests::fields::{
-    field_serialization_test, field_test, frobenius_test, primefield_test, sqrt_field_test,
-};
+use ark_algebra_tests::fields::*;
 
 #[test]
 fn test_fr() {

@@ -17,8 +17,8 @@ use crate::{
     bls12_381::{
         Fq, Fq12, Fq12Parameters, Fq2, Fq2Parameters, Fq6, Fq6Parameters, FqParameters, Fr,
     },
-    tests::fields::{field_test, frobenius_test, primefield_test, sqrt_field_test},
 };
+use ark_algebra_tests::fields::*;
 
 pub(crate) const ITERATIONS: usize = 5;
 

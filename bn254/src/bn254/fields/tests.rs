@@ -14,12 +14,8 @@ use core::{
 use rand::{Rng, SeedableRng};
 use rand_xorshift::XorShiftRng;
 
-use crate::{
-    bn254::{Fq, Fq12, Fq2, Fq6, Fq6Parameters, FqParameters, Fr},
-    tests::fields::{
-        field_serialization_test, field_test, frobenius_test, primefield_test, sqrt_field_test,
-    },
-};
+use crate::{bn254::{Fq, Fq12, Fq2, Fq6, Fq6Parameters, FqParameters, Fr}};
+use ark_algebra_tests::fields::*;
 
 pub(crate) const ITERATIONS: usize = 5;
 
