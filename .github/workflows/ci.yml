@@ -139,7 +139,7 @@ jobs:
 
       - name: poly
         run: |
-          cd ec
+          cd poly
           cargo build -p ark-poly --no-default-features --target thumbv6m-none-eabi
           cargo check --examples -p ark-poly --no-default-features --target thumbv6m-none-eabi
           cd ..
@@ -167,14 +167,14 @@ jobs:
 
       - name: mnt-298
         run: |
-          cd bn254
+          cd mnt-298
           cargo build -p ark-mnt-298 --no-default-features --features full --target thumbv6m-none-eabi
           cargo check --examples -p ark-mnt-298 --no-default-features --features full --target thumbv6m-none-eabi
           cd ..
 
       - name: mnt-753
         run: |
-          cd bn254
+          cd mnt-753
           cargo build -p ark-mnt-753 --no-default-features --features full --target thumbv6m-none-eabi
           cargo check --examples -p ark-mnt-753 --no-default-features --features full --target thumbv6m-none-eabi
           cd ..
