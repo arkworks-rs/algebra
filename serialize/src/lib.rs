@@ -48,7 +48,7 @@ pub trait ConstantSerializedSize: CanonicalSerialize {
 /// # Example
 /// ```
 /// // The `derive` feature must be set for the derivation to work.
-/// use algebra_core::serialize::*;
+/// use ark_serialize::*;
 ///
 /// # #[cfg(feature = "derive")]
 /// #[derive(CanonicalSerialize)]
@@ -102,7 +102,7 @@ pub trait CanonicalDeserializeWithFlags: Sized {
 /// # Example
 /// ```
 /// // The `derive` feature must be set for the derivation to work.
-/// use algebra_core::serialize::*;
+/// use ark_serialize::*;
 ///
 /// # #[cfg(feature = "derive")]
 /// #[derive(CanonicalDeserialize)]

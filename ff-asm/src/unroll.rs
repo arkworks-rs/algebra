@@ -18,7 +18,7 @@
 //! Both of the inner for-loops are unrolled when `#[unroll_for_loops]` is applied.
 //!
 //! ```rust
-//! use unroll::unroll_for_loops;
+//! use ark_ff_asm::unroll_for_loops;
 //!
 //! #[unroll_for_loops]
 //! fn mtx_vec_mul(mtx: &[[f64; 5]; 5], vec: &[f64; 5]) -> [f64; 5] {
