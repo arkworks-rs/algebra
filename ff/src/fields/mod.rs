@@ -288,7 +288,7 @@ pub trait FftField: Field {
             use core::convert::TryFrom;
             // Compute the next power of 2.
             let size = n.next_power_of_two() as u64;
-            let log_size_of_group = crate::log2(usize::try_from(size).expect("too large"));
+            let log_size_of_group = ark_std::log2(usize::try_from(size).expect("too large"));
 
             if n != size as usize || log_size_of_group > Self::FftParams::TWO_ADICITY {
                 return None;
