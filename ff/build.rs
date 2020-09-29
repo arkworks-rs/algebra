@@ -7,7 +7,7 @@ fn main() {
     let is_nightly = version_meta().expect("nightly check failed").channel == Channel::Nightly;
 
     let should_use_asm = cfg!(all(
-        feature = "llvm_asm",
+        feature = "asm",
         target_feature = "bmi2",
         target_feature = "adx",
         target_arch = "x86_64"

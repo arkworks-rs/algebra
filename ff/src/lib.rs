@@ -6,7 +6,7 @@
     nonstandard_style,
     rust_2018_idioms
 )]
-#![cfg_attr(use_asm, feature(llvm_asm))]
+#![cfg_attr(use_asm, feature(asm))]
 #![cfg_attr(not(use_asm), forbid(unsafe_code))]
 #![cfg_attr(use_asm, deny(unsafe_code))]
 
