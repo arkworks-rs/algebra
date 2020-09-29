@@ -1,51 +1,35 @@
-<h1 align="center">ZEXE (Zero knowledge EXEcution)</h1>
+<h1 align="center">arkworks-algebra</h1>
 
 <p align="center">
-    <img src="https://github.com/scipr-lab/zexe/workflows/CI/badge.svg?branch=master">
-    <a href="https://github.com/scipr-lab/zexe/blob/master/AUTHORS"><img src="https://img.shields.io/badge/authors-SCIPR%20Lab-orange.svg"></a>
-    <a href="https://github.com/scipr-lab/zexe/blob/master/LICENSE-APACHE"><img src="https://img.shields.io/badge/license-APACHE-blue.svg"></a>
-    <a href="https://github.com/scipr-lab/zexe/blob/master/LICENSE-MIT"><img src="https://img.shields.io/badge/license-MIT-blue.svg"></a>
-    <a href="https://deps.rs/repo/github/scipr-lab/zexe"><img src="https://deps.rs/repo/github/scipr-lab/zexe/status.svg"></a>
+    <img src="https://github.com/arkworks-rs/algebra/workflows/CI/badge.svg?branch=master">
+    <a href="https://github.com/arkworks-rs/algebra/blob/master/AUTHORS"><img src="https://img.shields.io/badge/authors-arkworks%20contributors-orange.svg"></a>
+    <a href="https://github.com/arkworks-rs/algebra/blob/master/LICENSE-APACHE"><img src="https://img.shields.io/badge/license-APACHE-blue.svg"></a>
+    <a href="https://github.com/arkworks-rs/algebra/blob/master/LICENSE-MIT"><img src="https://img.shields.io/badge/license-MIT-blue.svg"></a>
+    <a href="https://deps.rs/repo/github/arkworks-rs/algebra"><img src="https://deps.rs/repo/github/arkworks-rs/algebra/status.svg"></a>
 </p>
 
-___ZEXE___ (pronounced */zeksē/*) is a Rust library for decentralized private computation.
-
+The arkworks ecosystem consist of Rust libraries for designing and working with __zero knowledge succinct non-interactive arguments (SNARKs)__. This repository contains efficient implementations some of the key algebraic concepts underlying zkSNARKs: finite fields, elliptic curves, and polynomials.
 
 This library was initially developed as part of the paper *"[ZEXE: Enabling Decentralized Private Computation][zexe]"*, and it is released under the MIT License and the Apache v2 License (see [License](#license)).
 
 **WARNING:** This is an academic proof-of-concept prototype, and in particular has not received careful code review. This implementation is NOT ready for production use.
 
-## Overview
-
-This library implements a ledger-based system that enables users to execute offline computations and subsequently produce publicly-verifiable transactions that attest to the correctness of these offline executions. The transactions contain *zero-knowledge succinct arguments* (zkSNARKs) attesting to the correctness of the offline computations, and provide strong notions of privacy and succinctness.
-
-- **Privacy** - transactions reveal no information about the offline computation.
-- **Succinctness** - transactions can be validated in time that is independent of the offline computation.
-- **Application isolation** - malicious applications cannot affect the execution of honest applications.
-- **Application interaction** -  applications can safely communicate with each other.
-
-Informally, the library provides the ability to create transactions that run arbitrary (Turing-complete) scripts on hidden data stored on the ledger. In more detail, the library implements a cryptographic primitive known as *decentralized private computation* (DPC) schemes, which are described in detail in the [ZEXE paper][zexe].
-
 ## Directory structure
 
-This repository contains several Rust crates that implement the different building blocks of ZEXE. The high-level structure of the repository is as follows.
+This repository contains several Rust crates for generic arithmetic over finite fields: 
 
-* [`algebra-core`](algebra-core): Rust crate that provides generic arithmetic for finite fields and elliptic curves
-* [`algebra`](algebra): Rust crate that provides concrete instantiations of some finite fields and elliptic curves
-* [`crypto-primitives`](crypto-primitives): Rust crate that implements some useful cryptographic primitives (and constraints for them)
-* [`dpc`](dpc): Rust crate that implements DPC schemes (the main cryptographic primitive in this repository)
-* [`ff-fft`](ff-fft): Rust crate that provides efficient finite field polynomial arithmetic based on finite field FFTs
-* [`r1cs-core`](r1cs-core): Rust crate that defines core interfaces for a Rank-1 Constraint System (R1CS)
-* [`r1cs-std`](r1cs-std): Rust crate that provides various gadgets used to construct R1CS
-* [`gm17`](gm17): Rust crate that implements the zkSNARK of [Groth and Maller][GM17]
-* [`groth16`](groth16): Rust crate that implements the zkSNARK of [Groth][Groth16]
+* [`ark-ff`](ff): Provides optimized and generic arithmetic for finite fields
+* [`ark-ec`](ec): Provides optimized and generic arithmetic for different kinds of elliptic curves and pairings over these
+* [`ark-poly`](poly): Provides optimized arithmetic for polynomials over finite fields via finite field FFTs
+* [`ark-serialize`](serialize): Provides efficient serialization and point compression for finite fields and elliptic curves
 
+In addition, the following directories contain implementations of popular elliptic curves:
 
-In addition, there is a  [`bench-utils`](bench-utils) crate which contains infrastructure for benchmarking. This crate includes macros for timing code segments and is used for profiling the building blocks of ZEXE.
-
-[GM17]: https://ia.cr/2017/540
-[Groth16]: https://ia.cr/2016/260
-
+* [`ark-bls12-377`](bls12-377): Implements the BLS12-377, CP6-782, and BW6-761 curves, as well as "embedded" Twisted Edwards curves over these
+* [`ark-bls12-381`](bls12-381): Implements the BLS12-381 and "Jubjub" curves
+* [`ark-bn254`](bn254): Implements the BN254 and "Baby Jubjub" curves
+* [`ark-mnt-298`](mnt-298): Implements the MNT-298 cycle of pairing-friendly elliptic curves, along with a Twisted Edwards curve "embedded" in MNT4-298
+* [`ark-mnt-753`](mnt-753): Implements the MNT-753 cycle of pairing-friendly elliptic curves, along with a Twisted Edwards curve "embedded" in MNT4-753
 
 ## Build guide
 
@@ -54,43 +38,48 @@ The library compiles on the `stable` toolchain of the Rust compiler. To install 
 rustup install stable
 ```
 
-After that, use `cargo`, the standard Rust build tool, to build the library:
+After that, use `cargo`, the standard Rust build tool, to build the libraries:
 ```bash
-git clone https://github.com/scipr-lab/zexe.git
-cd zexe/dpc
+git clone https://github.com/arkworks-rs/algebra.git
+cd algebra
 cargo build --release
 ```
 
-This library comes with unit tests for each of the provided crates. Run the tests with:
+## Tests
+This library comes with comprehensive unit and integration tests for each of the provided crates. Run the tests with:
 ```bash
-cargo test
+cargo test --all
 ```
 
-This library comes with benchmarks for the following crates:
+## Benchmarks
 
-- [`algebra`](algebra)
-- [`dpc`](dpc)
-
-These benchmarks require the nightly Rust toolchain; to install this, run `rustup install nightly`. Then, to run benchmarks, run the following command:
+To run the benchmarks, install the nightly Rust toolchain, via `rustup install nightly`, and then run the following command:
 ```bash
 cargo +nightly bench
 ```
 
-Compiling with `adcxq`, `adoxq` and `mulxq` instructions can lead to a 30-70% speedup. These are available on most `x86_64` platforms (Broadwell onwards for Intel and Ryzen onwards for AMD). Run the following command:
-```bash
-RUSTFLAGS="-C target-feature=+bmi2,+adx" cargo +nightly test/build/bench --features asm
-```
-Tip: If optimising for performance, your mileage may vary with passing `--emit=asm` to `RUSTFLAGS`.
-
-To bench `algebra-benches` with greater accuracy, especially for functions with execution times on the order of nanoseconds, use the `n_fold` feature to run selected functions 1000x per iteration. To run with multiple features, make sure to double quote the features.
+The standard benchmark framework is insufficiently accurate when benchmarking some finite field arithmetic methods which have execution times on the order of nanoseconds. To increase the accuracy of these benchmarks, one can use the `n_fold` feature to increase the number of iterations. To run with multiple features, make sure to double quote the features.
 ```bash
 cargo +nightly bench --features "n_fold bls12_381"
 ```
 
+## Assembly backend for field arithmetic
+
+The `ark-ff` crate contains (off-by-default) optimized assembly implementations of field arithmetic that rely on the `adcxq`, `adoxq` and `mulxq` instructions. These are available on most `x86_64` platforms (Broadwell onwards for Intel and Ryzen onwards for AMD). Using this backend can lead to a 30-70% speedup in finite field and elliptic curve arithmetic. To build with this backend enabled, run the following command:
+```bash
+RUSTFLAGS="-C target-feature=+bmi2,+adx" cargo +nightly test/build/bench --features asm
+```
+
+To enable this in the `Cargo.toml` of your own projects, enable the `asm` feature flag:
+```toml
+...
+ark-ff = { version = "0.1", features = [ "asm" ] }
+```
+Note that because inline assembly support in Rust is currently unstable, using this backend requires using the Nightly compiler at the moment.
 
 ## License
 
-ZEXE is licensed under either of the following licenses, at your discretion.
+The crates in this repo are licensed under either of the following licenses, at your discretion.
 
  * Apache License Version 2.0 ([LICENSE-APACHE](LICENSE-APACHE) or http://www.apache.org/licenses/LICENSE-2.0)
  * MIT license ([LICENSE-MIT](LICENSE-MIT) or http://opensource.org/licenses/MIT)
@@ -113,4 +102,4 @@ the National Science Foundation;
 the UC Berkeley Center for Long-Term Cybersecurity;
 and donations from the Ethereum Foundation, the Interchain Foundation, and Qtum.
 
-Some parts of the finite field arithmetic, elliptic curve arithmetic, FFTs, and multi-threading infrastructure in the `algebra` crate have been adapted from code in the [`ff`](https://github.com/zkcrypto/ff), [`pairing`](https://github.com/zkcrypto/pairing), and [`bellman`](https://github.com/zkcrypto/bellman) crates, developed by [Sean Bowe](https://www.github.com/ebfull) and others from Zcash.
+Some parts of the finite field arithmetic, elliptic curve arithmetic, FFTs, and multi-threading infrastructure have been adapted from code from a prior version of the [`ff`](https://github.com/zkcrypto/ff), [`pairing`](https://github.com/zkcrypto/pairing), and [`bellman`](https://github.com/zkcrypto/bellman) crates, developed by [Sean Bowe](https://www.github.com/ebfull) and others from Zcash.

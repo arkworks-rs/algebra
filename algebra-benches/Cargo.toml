@@ -40,7 +40,7 @@ rand_xorshift = { version = "0.2" }
 paste = "1.0"
 
 [features]
-asm = [ "ark-ff/llvm_asm"]
+asm = [ "ark-ff/asm"]
 n_fold = []
 mnt4_298 = [ "ark-mnt-298/mnt4_298"]
 mnt6_298 = [ "ark-mnt-298/mnt6_298"]
