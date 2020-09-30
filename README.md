@@ -1,8 +1,7 @@
-<h1 align="center">arkworks-algebra</h1>
+<h1 align="center">arkworks::algebra</h1>
 
 <p align="center">
     <img src="https://github.com/arkworks-rs/algebra/workflows/CI/badge.svg?branch=master">
-    <a href="https://github.com/arkworks-rs/algebra/blob/master/AUTHORS"><img src="https://img.shields.io/badge/authors-arkworks%20contributors-orange.svg"></a>
     <a href="https://github.com/arkworks-rs/algebra/blob/master/LICENSE-APACHE"><img src="https://img.shields.io/badge/license-APACHE-blue.svg"></a>
     <a href="https://github.com/arkworks-rs/algebra/blob/master/LICENSE-MIT"><img src="https://img.shields.io/badge/license-MIT-blue.svg"></a>
     <a href="https://deps.rs/repo/github/arkworks-rs/algebra"><img src="https://deps.rs/repo/github/arkworks-rs/algebra/status.svg"></a>
@@ -10,7 +9,7 @@
 
 The arkworks ecosystem consist of Rust libraries for designing and working with __zero knowledge succinct non-interactive arguments (SNARKs)__. This repository contains efficient implementations some of the key algebraic concepts underlying zkSNARKs: finite fields, elliptic curves, and polynomials.
 
-This library was initially developed as part of the paper *"[ZEXE: Enabling Decentralized Private Computation][zexe]"*, and it is released under the MIT License and the Apache v2 License (see [License](#license)).
+This library is released under the MIT License and the Apache v2 License (see [License](#license)).
 
 **WARNING:** This is an academic proof-of-concept prototype, and in particular has not received careful code review. This implementation is NOT ready for production use.
 
@@ -18,18 +17,13 @@ This library was initially developed as part of the paper *"[ZEXE: Enabling Dece
 
 This repository contains several Rust crates for generic arithmetic over finite fields: 
 
-* [`ark-ff`](ff): Provides optimized and generic arithmetic for finite fields
-* [`ark-ec`](ec): Provides optimized and generic arithmetic for different kinds of elliptic curves and pairings over these
-* [`ark-poly`](poly): Provides optimized arithmetic for polynomials over finite fields via finite field FFTs
+* [`ark-ff`](ff): Provides generic implementations of various finite fields
+* [`ark-ec`](ec): Provides generic implementations for different kinds of elliptic curves and pairings over these
+* [`ark-poly`](poly): Implements polynomials over finite fields and finite field FFTs
 * [`ark-serialize`](serialize): Provides efficient serialization and point compression for finite fields and elliptic curves
 
-In addition, the following directories contain implementations of popular elliptic curves:
+In addition, the [`curves`](curves) directory contains implementations of popular elliptic curves; see [here](curves/README.md) for details.
 
-* [`ark-bls12-377`](bls12-377): Implements the BLS12-377, CP6-782, and BW6-761 curves, as well as "embedded" Twisted Edwards curves over these
-* [`ark-bls12-381`](bls12-381): Implements the BLS12-381 and "Jubjub" curves
-* [`ark-bn254`](bn254): Implements the BN254 and "Baby Jubjub" curves
-* [`ark-mnt-298`](mnt-298): Implements the MNT-298 cycle of pairing-friendly elliptic curves, along with a Twisted Edwards curve "embedded" in MNT4-298
-* [`ark-mnt-753`](mnt-753): Implements the MNT-753 cycle of pairing-friendly elliptic curves, along with a Twisted Edwards curve "embedded" in MNT4-753
 
 ## Build guide
 
@@ -88,12 +82,6 @@ Unless you explicitly state otherwise, any contribution submitted for inclusion 
 
 [zexe]: https://ia.cr/2018/962
 
-## Reference paper
-
-[_ZEXE: Enabling Decentralized Private Computation_][zexe]    
-[Sean Bowe](https://www.github.com/ebfull), Alessandro Chiesa, Matthew Green, Ian Miers, [Pratyush Mishra](https://www.github.com/pratyush), [Howard Wu](https://www.github.com/howardwu)    
-*IEEE S&P 2020* (*IACR ePrint Report 2018/962*)
-
 ## Acknowledgements
 
 This work was supported by:
@@ -102,4 +90,4 @@ the National Science Foundation;
 the UC Berkeley Center for Long-Term Cybersecurity;
 and donations from the Ethereum Foundation, the Interchain Foundation, and Qtum.
 
-Some parts of the finite field arithmetic, elliptic curve arithmetic, FFTs, and multi-threading infrastructure have been adapted from code from a prior version of the [`ff`](https://github.com/zkcrypto/ff), [`pairing`](https://github.com/zkcrypto/pairing), and [`bellman`](https://github.com/zkcrypto/bellman) crates, developed by [Sean Bowe](https://www.github.com/ebfull) and others from Zcash.
+An earlier version of this library was developed as part of the *"[ZEXE: Enabling Decentralized Private Computation][zexe]"* paper.
