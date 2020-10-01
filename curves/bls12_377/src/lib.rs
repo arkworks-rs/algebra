@@ -8,7 +8,7 @@
 )]
 #![forbid(unsafe_code)]
 
-//! This module implements the BLS12_377 curve generated in [[BCGMMW20, “Zexe”]](https://eprint.iacr.org/2018/962).
+//! This library implements the BLS12_377 curve generated in [[BCGMMW20, “Zexe”]](https://eprint.iacr.org/2018/962).
 //! The name denotes that it is a Barreto--Lynn--Scott curve of embedding degree 12,
 //! defined over a 377-bit (prime) field. The main feature of this curve is that
 //! both the scalar field and the base field are highly 2-adic.

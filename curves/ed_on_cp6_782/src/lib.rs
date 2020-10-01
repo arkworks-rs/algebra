@@ -8,7 +8,7 @@
 )]
 #![forbid(unsafe_code)]
 
-//! This module implements a twisted Edwards curve whose base field is the scalar field of the curve CP6.
+//! This library implements a twisted Edwards curve whose base field is the scalar field of the curve CP6.
 //! This allows defining cryptographic primitives that use elliptic curves over the scalar field of the latter curve.
 //! This curve was generated as part of the paper [[BCGMMW20, “Zexe”]](https://eprint.iacr.org/2018/962).
 //!

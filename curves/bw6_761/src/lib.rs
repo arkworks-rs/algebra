@@ -8,7 +8,7 @@
 )]
 #![forbid(unsafe_code)]
 
-//! This module implements the BW6_761 curve generated in [[EG20]](https://eprint.iacr.org/2020/351).
+//! This library implements the BW6_761 curve generated in [[EG20]](https://eprint.iacr.org/2020/351).
 //! The name denotes that it is a curve generated using the Brezing--Weng method, and that
 //! its embedding degree is 6.
 //! The main feature of this curve is that the scalar field equals the base field of the BLS12_377 curve.

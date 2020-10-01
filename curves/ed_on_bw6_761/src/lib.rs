@@ -1,6 +1,6 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 #![forbid(unsafe_code)]
-//! This module implements a twisted Edwards curve whose base field is the scalar field of the
+//! This library implements a twisted Edwards curve whose base field is the scalar field of the
 //! curve BW6_761.  *It is the same curve as that in `ark-ed_on_cp6_782`.*
 //! This allows defining cryptographic primitives that use elliptic curves over the scalar field of
 //! the latter curve.  This curve was generated as part of the paper

@@ -8,7 +8,7 @@
 )]
 #![forbid(unsafe_code)]
 
-//! This module implements the CP6_782 curve generated in [[BCGMMW20, “Zexe”]](https://eprint.iacr.org/2018/962).
+//! This library implements the CP6_782 curve generated in [[BCGMMW20, “Zexe”]](https://eprint.iacr.org/2018/962).
 //! The name denotes that it was generated using the Cocks--Pinch method for the embedding degree 6.
 //! The main feature of this curve is that the scalar field equals the base field of the BLS12_377 curve.
 //!
