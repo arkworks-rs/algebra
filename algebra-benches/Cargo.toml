@@ -10,8 +10,8 @@ authors = [
     "Howard Wu"
 ]
 description = "A benchmark library for finite fields and elliptic curves"
-homepage = "https://libzexe.org"
-repository = "https://github.com/scipr/zexe"
+homepage = "https://arkworks.rs"
+repository = "https://github.com/arkworks-rs/algebra"
 documentation = "https://docs.rs/algebra/"
 keywords = ["cryptography", "finite fields", "elliptic curves", "pairing"]
 categories = ["cryptography"]
