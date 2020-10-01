@@ -38,7 +38,6 @@ ark-bls12-381 = { path = "../curves/bls12_381", optional = true }
 ark-bw6-761 = { path = "../curves/bw6_761", optional = true }
 ark-cp6-782 = { path = "../curves/cp6_782", optional = true }
 
-blake2 = "0.8.1"
 rand = "0.7"
 rand_xorshift = { version = "0.2" }
 paste = "1.0"
