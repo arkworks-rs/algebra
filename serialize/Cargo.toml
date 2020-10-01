@@ -25,6 +25,6 @@ ark-serialize-derive = { path = "../serialize-derive", optional = true }
 ark-std = { git = "https://github.com/arkworks-rs/utils", default-features = false }
 
 [features]
-default = [ "std" ]
+default = []
 std = [ "ark-std/std" ]
 derive = [ "ark-serialize-derive" ]

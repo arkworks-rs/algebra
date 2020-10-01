@@ -75,14 +75,14 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
             command: check
-            args: --all-features --examples --all --benches
+            args: --all-features --examples --workspace --benches
         if: matrix.rust == 'nightly'
 
       - name: Test
         uses: actions-rs/cargo@v1
         with:
             command: test
-            args: "--all \
+            args: "--workspace \
                    --all-features \
                    --exclude algebra-benches \
                    --exclude poly-benches"
@@ -116,65 +116,14 @@ jobs:
             target
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
-      - name: serialize
-        run: |
-          cd serialize
-          cargo build -p ark-serialize --no-default-features --target thumbv6m-none-eabi
-          cargo check --examples -p ark-serialize --no-default-features --target thumbv6m-none-eabi
-          cd ..
+      - name: check
+        uses: actions-rs/cargo@v1
+        with:
+            command: check
+            args: --examples --workspace --exclude ark-algebra-tests --exclude ark-poly-benches --exclude ark-algebra-benches --target thumbv6m-none-eabi
 
-      - name: ff
-        run: |
-          cd ff
-          cargo build -p ark-ff --no-default-features --target thumbv6m-none-eabi
-          cargo check --examples -p ark-ff --no-default-features --target thumbv6m-none-eabi
-          cd ..
-
-      - name: ec
-        run: |
-          cd ec
-          cargo build -p ark-ec --no-default-features --target thumbv6m-none-eabi
-          cargo check --examples -p ark-ec --no-default-features --target thumbv6m-none-eabi
-          cd ..
-
-      - name: poly
-        run: |
-          cd poly
-          cargo build -p ark-poly --no-default-features --target thumbv6m-none-eabi
-          cargo check --examples -p ark-poly --no-default-features --target thumbv6m-none-eabi
-          cd ..
-
-      - name: bls12_377
-        run: |
-          cd bls12-377
-          cargo build -p ark-bls12-377 --no-default-features --features full --target thumbv6m-none-eabi
-          cargo check --examples -p ark-bls12-377 --no-default-features --features full --target thumbv6m-none-eabi
-          cd ..
-
-      - name: bls12_381
-        run: |
-          cd bls12-381
-          cargo build -p ark-bls12-381 --no-default-features --features full --target thumbv6m-none-eabi
-          cargo check --examples -p ark-bls12-381 --no-default-features --features full --target thumbv6m-none-eabi
-          cd ..
-
-      - name: bn254
-        run: |
-          cd bn254
-          cargo build -p ark-bn254 --no-default-features --features full --target thumbv6m-none-eabi
-          cargo check --examples -p ark-bn254 --no-default-features --features full --target thumbv6m-none-eabi
-          cd ..
-
-      - name: mnt-298
-        run: |
-          cd mnt-298
-          cargo build -p ark-mnt-298 --no-default-features --features full --target thumbv6m-none-eabi
-          cargo check --examples -p ark-mnt-298 --no-default-features --features full --target thumbv6m-none-eabi
-          cd ..
-
-      - name: mnt-753
-        run: |
-          cd mnt-753
-          cargo build -p ark-mnt-753 --no-default-features --features full --target thumbv6m-none-eabi
-          cargo check --examples -p ark-mnt-753 --no-default-features --features full --target thumbv6m-none-eabi
-          cd ..
+      - name: build
+        uses: actions-rs/cargo@v1
+        with:
+            command: build
+            args: --workspace --exclude ark-algebra-tests --exclude ark-poly-benches --exclude ark-algebra-benches --target thumbv6m-none-eabi

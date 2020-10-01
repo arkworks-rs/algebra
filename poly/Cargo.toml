@@ -23,6 +23,6 @@ ark-bls12-381 = { path = "../curves/bls12_381", default-features = false, featur
 ark-mnt4-753 = { path = "../curves/mnt4_753", default-features = false, features = [ "curve" ] }
 
 [features]
-default = [ "parallel" ]
+default = []
 std = [ "ark-std/std", "ark-ff/std" ]
 parallel = [ "std", "ark-ff/parallel", "rayon", "ark-std/parallel" ]

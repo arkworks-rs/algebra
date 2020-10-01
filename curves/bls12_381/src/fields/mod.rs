@@ -23,5 +23,5 @@ pub mod fq12;
 #[cfg(feature = "curve")]
 pub use self::fq12::*;
 
-#[cfg(all(feature = "curve", test))]
+#[cfg(all(feature = "curve", feature = "std", test))]
 mod tests;

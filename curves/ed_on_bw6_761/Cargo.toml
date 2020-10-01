@@ -16,5 +16,5 @@ edition = "2018"
 ark-ed-on-cp6-782 = { path = "../ed_on_cp6_782", default-features = false }
 
 [features]
-default = [ "std" ]
+default = []
 std = [ "ark-ed-on-cp6-782/std" ]
