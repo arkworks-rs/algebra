@@ -8,7 +8,7 @@
 )]
 #![forbid(unsafe_code)]
 
-//! This module implements a twisted Edwards curve whose base field is the scalar field of the
+//! This library implements a twisted Edwards curve whose base field is the scalar field of the
 //! curve BN254. This allows defining cryptographic primitives that use elliptic curves over
 //! the scalar field of the latter curve. This curve is also known as [Baby-Jubjub](https://github.com/barryWhiteHat/baby_jubjub).
 //!

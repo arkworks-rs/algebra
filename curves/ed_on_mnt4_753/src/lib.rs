@@ -8,7 +8,7 @@
 )]
 #![forbid(unsafe_code)]
 
-//! This module implements a twisted Edwards curve whose base field is the scalar field of the
+//! This library implements a twisted Edwards curve whose base field is the scalar field of the
 //! curve MNT4-753. This allows defining cryptographic primitives that use elliptic curves over
 //! the scalar field of the latter curve.
 //!

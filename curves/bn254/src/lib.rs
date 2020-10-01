@@ -8,7 +8,7 @@
 )]
 #![forbid(unsafe_code)]
 
-//! This module implements the BN254 curve that was sampled as part of the [[BCTV14]][https://eprint.iacr.org/2013/879.pdf] paper .
+//! This library implements the BN254 curve that was sampled as part of the [[BCTV14]][https://eprint.iacr.org/2013/879.pdf] paper .
 //! The name denotes that it is a Barreto--Naehrig curve of embedding degree 12,
 //! defined over a 254-bit (prime) field. The scalar field is highly 2-adic.
 //!
