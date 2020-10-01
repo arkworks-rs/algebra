@@ -15,11 +15,11 @@ This library is released under the MIT License and the Apache v2 License (see [L
 
 ## Directory structure
 
-This repository contains several Rust crates for generic arithmetic over finite fields: 
+This repository contains several Rust crates: 
 
 * [`ark-ff`](ff): Provides generic implementations of various finite fields
-* [`ark-ec`](ec): Provides generic implementations for different kinds of elliptic curves and pairings over these
-* [`ark-poly`](poly): Implements polynomials over finite fields and finite field FFTs
+* [`ark-ec`](ec): Provides generic implementations for different kinds of elliptic curves, along with pairings over these
+* [`ark-poly`](poly): Implements polynomials and FFTs over finite fields
 * [`ark-serialize`](serialize): Provides efficient serialization and point compression for finite fields and elliptic curves
 
 In addition, the [`curves`](curves) directory contains implementations of popular elliptic curves; see [here](curves/README.md) for details.
