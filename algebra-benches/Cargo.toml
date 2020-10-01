@@ -28,11 +28,15 @@ ark-ff = { path = "../ff" }
 ark-ec = { path = "../ec" }
 ark-serialize = { path = "../serialize" }
 
-ark-mnt-298 = { path = "../mnt-298", default-features = false }
-ark-mnt-753 = { path = "../mnt-753", default-features = false }
-ark-bn254 = { path = "../bn254", default-features = false, features = [ "bn254" ], optional = true }
-ark-bls12-377 = { path = "../bls12-377", default-features = false }
-ark-bls12-381 = { path = "../bls12-381", default-features = false }
+ark-mnt4-298 = { path = "../curves/mnt4_298", optional = true }
+ark-mnt6-298 = { path = "../curves/mnt6_298", optional = true }
+ark-mnt4-753 = { path = "../curves/mnt4_753", optional = true }
+ark-mnt6-753 = { path = "../curves/mnt6_753", optional = true }
+ark-bn254 = { path = "../curves/bn254", default-features = false, optional = true }
+ark-bls12-377 = { path = "../curves/bls12_377", optional = true }
+ark-bls12-381 = { path = "../curves/bls12_381", optional = true }
+ark-bw6-761 = { path = "../curves/bw6_761", optional = true }
+ark-cp6-782 = { path = "../curves/cp6_782", optional = true }
 
 blake2 = "0.8.1"
 rand = "0.7"
@@ -42,14 +46,6 @@ paste = "1.0"
 [features]
 asm = [ "ark-ff/asm"]
 n_fold = []
-mnt4_298 = [ "ark-mnt-298/mnt4_298"]
-mnt6_298 = [ "ark-mnt-298/mnt6_298"]
-mnt4_753 = [ "ark-mnt-753/mnt4_753"]
-mnt6_753 = [ "ark-mnt-753/mnt6_753"]
-bls12_381 = [ "ark-bls12-381/bls12_381"]
-bls12_377 = [ "ark-bls12-377/bls12_377"]
-cp6_782 = [ "ark-bls12-377/cp6_782" ]
-bw6_761 = [ "ark-bls12-377/bw6_761" ]
 
 [build-dependencies]
 rustc_version = "0.2"

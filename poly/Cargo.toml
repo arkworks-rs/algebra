@@ -1,15 +1,7 @@
 [package]
 name = "ark-poly"
-version = "0.1.1-alpha.0"
-authors = [
-    "Sean Bowe",
-    "Alessandro Chiesa",
-    "Matthew Green",
-    "Ian Miers",
-    "Pratyush Mishra",
-    "Howard Wu",
-    "arkworks contributors"
-]
+version = "0.1.0"
+authors = [ "arkworks contributors" ]
 description = "A library for efficient polynomial arithmetic via FFTs over finite fields"
 homepage = "https://libzexe.org"
 repository = "https://github.com/arkworks/algebra"
@@ -27,8 +19,8 @@ rand = { version = "0.7", default-features = false }
 rayon = { version = "1", optional = true }
 
 [dev-dependencies]
-ark-bls12-381 = { path = "../bls12-381", default-features = false, features = [ "bls12_381" ] }
-ark-mnt-753 = { path = "../mnt-753", default-features = false, features = [ "mnt4_753" ] }
+ark-bls12-381 = { path = "../curves/bls12_381", default-features = false, features = [ "curve" ] }
+ark-mnt4-753 = { path = "../curves/mnt4_753", default-features = false, features = [ "curve" ] }
 
 [features]
 default = [ "parallel" ]

@@ -1,0 +1,29 @@
+[package]
+name = "ark-ed-on-mnt4-298"
+version = "0.1.0"
+authors = [ "arkworks contributors" ]
+description = "A Twisted Edwards curve defined over the scalar field of the MNT4-298 curve"
+homepage = "https://arworks.rs"
+repository = "https://github.com/arkworks/algebra"
+documentation = "https://docs.rs/ark-ed-on-mnt4-298/"
+keywords = ["cryptography", "finite fields", "elliptic curves" ]
+categories = ["cryptography"]
+include = ["Cargo.toml", "src", "README.md", "LICENSE-APACHE", "LICENSE-MIT"]
+license = "MIT/Apache-2.0"
+edition = "2018"
+
+[dependencies]
+ark-ff = { path = "../../ff", default-features = false }
+ark-ec = { path = "../../ec", default-features = false }
+ark-std = { git = "https://github.com/arkworks-rs/utils", default-features = false }
+ark-mnt4-298 = { path = "../mnt4_298", default-features = false, features = [ "scalar_field" ] }
+
+[dev-dependencies]
+ark-serialize = { path = "../../serialize", default-features = false }
+ark-algebra-tests = { path = "../../algebra-tests", default-features = false }
+rand = { version = "0.7", default-features = false }
+rand_xorshift = "0.2"
+
+[features]
+default = [ "std" ]
+std = [ "ark-std/std", "ark-ff/std", "ark-ec/std", "ark-mnt4-298/std" ]
