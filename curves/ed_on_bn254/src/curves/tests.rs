@@ -59,7 +59,6 @@ fn test_conversion() {
 
 #[test]
 fn test_scalar_multiplication() {
-    println!("Started getting field elements");
     let f1 = Fr::from_str(
         "4691331900926794624732159288782398864809513177368446695323460897088210774597",
     )
@@ -69,7 +68,6 @@ fn test_scalar_multiplication() {
     )
     .unwrap();
 
-    println!("Finished getting field elements");
     let g = EdwardsAffine::from_str(
         "(15863623088992515880085393097393553694825975317405843389771115419751650972659, \
          16950150798460657717958625567821834550301663161624707787222815936182638968203)",
@@ -80,8 +78,6 @@ fn test_scalar_multiplication() {
          19987327827845206670850937090314462639017692512983955920885166014935289314257)",
     )
     .unwrap();
-
-    println!("Finished getting group elements");
 
     assert!(!g.is_zero());
     assert!(!f1f2g.is_zero());

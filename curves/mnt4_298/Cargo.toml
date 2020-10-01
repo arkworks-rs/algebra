@@ -24,7 +24,7 @@ rand = { version = "0.7", default-features = false }
 rand_xorshift = "0.2"
 
 [features]
-default = [ "std", "curve" ]
+default = [ "curve" ]
 std = [ "ark-std/std", "ark-ff/std", "ark-ec/std" ]
 
 curve = [ "scalar_field", "base_field" ]

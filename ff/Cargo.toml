@@ -37,7 +37,7 @@ rustc_version = "0.2"
 rand_xorshift = "0.2"
 
 [features]
-default = [ "std" ]
+default = []
 std = [ "ark-std/std", "ark-serialize/std" ]
 parallel = [ "std", "rayon", "ark-std/parallel" ]
 asm = []
