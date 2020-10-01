@@ -7,7 +7,7 @@
     <a href="https://deps.rs/repo/github/arkworks-rs/algebra"><img src="https://deps.rs/repo/github/arkworks-rs/algebra/status.svg"></a>
 </p>
 
-The arkworks ecosystem consist of Rust libraries for designing and working with __zero knowledge succinct non-interactive arguments (SNARKs)__. This repository contains efficient implementations some of the key algebraic concepts underlying zkSNARKs: finite fields, elliptic curves, and polynomials.
+The arkworks ecosystem consist of Rust libraries for designing and working with __zero knowledge succinct non-interactive arguments (zkSNARKs)__. This repository contains efficient implementations some of the key algebraic components underlying zkSNARKs: finite fields, elliptic curves, and polynomials.
 
 This library is released under the MIT License and the Apache v2 License (see [License](#license)).
 
@@ -78,7 +78,7 @@ The crates in this repo are licensed under either of the following licenses, at 
  * Apache License Version 2.0 ([LICENSE-APACHE](LICENSE-APACHE) or http://www.apache.org/licenses/LICENSE-2.0)
  * MIT license ([LICENSE-MIT](LICENSE-MIT) or http://opensource.org/licenses/MIT)
 
-Unless you explicitly state otherwise, any contribution submitted for inclusion in ZEXE by you shall be dual licensed as above (as defined in the Apache v2 License), without any additional terms or conditions.
+Unless you explicitly state otherwise, any contribution submitted for inclusion in this library by you shall be dual licensed as above (as defined in the Apache v2 License), without any additional terms or conditions.
 
 [zexe]: https://ia.cr/2018/962
 
@@ -90,4 +90,4 @@ the National Science Foundation;
 the UC Berkeley Center for Long-Term Cybersecurity;
 and donations from the Ethereum Foundation, the Interchain Foundation, and Qtum.
 
-An earlier version of this library was developed as part of the *"[ZEXE: Enabling Decentralized Private Computation][zexe]"* paper.
+An earlier version of this library was developed as part of the paper *"[ZEXE: Enabling Decentralized Private Computation][zexe]"*.

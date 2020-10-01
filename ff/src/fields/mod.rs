@@ -507,7 +507,7 @@ pub fn batch_inversion<F: Field>(v: &mut [F]) {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "std"))]
 mod tests {
     use super::BitIteratorLE;
     #[test]

@@ -11,8 +11,8 @@ authors = [
     "arkworks Contributors"
 ]
 description = "A library for deriving serialization traits for the arkworks ecosystem"
-homepage = "https://libzexe.org"
-repository = "https://github.com/scipr/zexe"
+homepage = "https://arkworks.rs"
+repository = "https://github.com/arkworks-rs/algebra"
 documentation = "https://docs.rs/algebra/"
 keywords = ["cryptography", "finite fields", "elliptic curves", "pairing", "serialization"]
 categories = ["cryptography"]
