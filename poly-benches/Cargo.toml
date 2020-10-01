@@ -1,15 +1,7 @@
 [package]
 name = "ark-poly-benches"
 version = "0.1.1-alpha.0"
-authors = [
-    "Sean Bowe",
-    "Alessandro Chiesa",
-    "Matthew Green",
-    "Ian Miers",
-    "Pratyush Mishra",
-    "Howard Wu",
-    "arkworks contributors",
-]
+authors = [ "arkworks contributors" ]
 description = "A library for benchmarking finite-field FFTs"
 include = ["Cargo.toml", "src", "README.md", "LICENSE-APACHE", "LICENSE-MIT"]
 license = "MIT/Apache-2.0"
@@ -19,7 +11,7 @@ publish = false
 [dev-dependencies]
 ark-poly = { path = "../poly" }
 ark-ff = { path = "../ff" }
-ark-mnt-753 = { path = "../mnt-753", default-features = false, features = [ "mnt4_753_fr", "mnt4_753_fq" ] }
+ark-mnt4-753 = { path = "../curves/mnt4_753", default-features = false, features = [ "scalar_field", "base_field" ] }
 criterion = "0.3.1"
 rand = "0.7"
 

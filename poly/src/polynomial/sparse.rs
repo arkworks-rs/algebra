@@ -138,7 +138,7 @@ impl<F: Field> Into<DensePolynomial<F>> for SparsePolynomial<F> {
 #[cfg(test)]
 mod tests {
     use crate::{DensePolynomial, EvaluationDomain, GeneralEvaluationDomain, SparsePolynomial};
-    use ark_bls12_381::bls12_381::Fr;
+    use ark_bls12_381::Fr;
     use ark_ff::One;
 
     #[test]

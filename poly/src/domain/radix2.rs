@@ -221,7 +221,7 @@ pub(crate) fn serial_radix2_fft<T: DomainCoeff<F>, F: FftField>(a: &mut [T], ome
 #[cfg(test)]
 mod tests {
     use crate::{EvaluationDomain, Radix2EvaluationDomain};
-    use ark_bls12_381::bls12_381::Fr;
+    use ark_bls12_381::Fr;
     use ark_ff::{test_rng, Field, Zero};
     use rand::Rng;
 
@@ -278,7 +278,7 @@ mod tests {
     fn parallel_fft_consistency() {
         use super::serial_radix2_fft;
         use crate::domain::utils::parallel_fft;
-        use ark_bls12_381::bls12_381::Fr;
+        use ark_bls12_381::Fr;
         use ark_ff::{test_rng, PrimeField};
         use ark_std::vec::Vec;
         use core::cmp::min;

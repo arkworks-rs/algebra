@@ -352,7 +352,7 @@ impl<'a, 'b, F: FftField> Mul<&'a DensePolynomial<F>> for &'b DensePolynomial<F>
 mod tests {
     use crate::polynomial::*;
     use crate::{EvaluationDomain, GeneralEvaluationDomain};
-    use ark_bls12_381::bls12_381::Fr;
+    use ark_bls12_381::Fr;
     use ark_ff::{test_rng, Field, One, UniformRand, Zero};
 
     #[test]
