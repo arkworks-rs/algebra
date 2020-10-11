@@ -34,6 +34,7 @@ impl FpParameters for FrParameters {
 
     const REPR_SHAVE_BITS: u32 = 3;
 
+    /// R = 6014086494747379908336260804527802945383293308637734276299549080986809532403
     #[rustfmt::skip]
     const R: BigInteger = BigInteger([
         9015221291577245683u64,
@@ -52,7 +53,9 @@ impl FpParameters for FrParameters {
 
     const INV: u64 = 725501752471715839u64;
 
-    // GENERATOR = 11
+    /// GENERATOR = 11
+    /// Encoded in Montgomery form, so the value is
+    /// (11 * R) % q = 7043719196222586021957094278335006679584931048936630243748405699433040183146
     #[rustfmt::skip]
     const GENERATOR: BigInteger = BigInteger([
         1855201571499933546u64,
@@ -72,6 +75,7 @@ impl FpParameters for FrParameters {
     ]);
 
     // T and T_MINUS_ONE_DIV_TWO, where r - 1 = 2^s * t
+    // For T coprime to 2
 
     /// t = (r - 1) / 2^s =
     /// 60001509534603559531609739528203892656505753216962260608619555
