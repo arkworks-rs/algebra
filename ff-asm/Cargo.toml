@@ -1,16 +1,7 @@
 [package]
 name = "ark-ff-asm"
 version = "0.1.0"
-authors = [
-    "Jon Chuang",
-    "Sean Bowe",
-    "Alessandro Chiesa",
-    "Matthew Green",
-    "Ian Miers",
-    "Pratyush Mishra",
-    "Howard Wu",
-    "arkworks contributors"
-]
+authors = [ "arkworks contributors" ]
 description = "A library for generating x86-64 assembly for finite field multiplication"
 homepage = "https://arworks.rs"
 repository = "https://github.com/arkworks/algebra"

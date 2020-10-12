@@ -1,15 +1,7 @@
 [package]
 name = "ark-serialize"
 version = "0.1.0"
-authors = [
-    "Sean Bowe",
-    "Alessandro Chiesa",
-    "Matthew Green",
-    "Ian Miers",
-    "Pratyush Mishra",
-    "Howard Wu",
-    "arkworks contributors"
-]
+authors = [ "arkworks contributors" ]
 description = "A library for serializing types in the arkworks ecosystem"
 homepage = "https://arworks.rs"
 repository = "https://github.com/arkworks/algebra"
