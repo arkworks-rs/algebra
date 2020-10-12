@@ -11,6 +11,7 @@ members = [
 
     "poly",
     "poly-benches",
+    "poly-tests",
 
     "algebra-benches",
 
