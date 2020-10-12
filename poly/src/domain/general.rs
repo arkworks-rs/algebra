@@ -166,9 +166,9 @@ impl<F: FftField> Iterator for GeneralElements<F> {
 #[cfg(test)]
 mod tests {
     use crate::{EvaluationDomain, GeneralEvaluationDomain};
-    use ark_bls12_381::Fr;
     use ark_ff::{test_rng, Zero};
-    use ark_mnt4_753::Fq as MNT6Fr;
+    use ark_poly_tests::bls12_381::Fr;
+    use ark_poly_tests::mnt4_753::Fq as MNT6Fr;
     use rand::Rng;
 
     #[test]

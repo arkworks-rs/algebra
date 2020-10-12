@@ -1,0 +1,13 @@
+[package]
+name = "ark-poly-tests"
+version = "0.1.0"
+authors = [ "arkworks contributors" ]
+description = "A library for testing ark-poly"
+include = ["Cargo.toml", "src", "README.md", "LICENSE-APACHE", "LICENSE-MIT"]
+license = "MIT/Apache-2.0"
+edition = "2018"
+publish = false
+
+[dependencies]
+ark-ff = { path = "../ff", default-features = false }
+ark-ec = { path = "../ec", default-features = false }
