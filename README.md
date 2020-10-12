@@ -22,7 +22,7 @@ This repository contains several Rust crates:
 * [`ark-poly`](poly): Implements polynomials and FFTs over finite fields
 * [`ark-serialize`](serialize): Provides efficient serialization and point compression for finite fields and elliptic curves
 
-In addition, the [`curves`](curves) directory contains implementations of popular elliptic curves; see [here](curves/README.md) for details.
+In addition, the [`curves`](https://github.com/arkworks-rs/curves) repository contains implementations of popular elliptic curves; see [here](https://github.com/arkworks-rs/curves/README.md) for details.
 
 
 ## Build guide
@@ -50,11 +50,6 @@ cargo test --all
 To run the benchmarks, install the nightly Rust toolchain, via `rustup install nightly`, and then run the following command:
 ```bash
 cargo +nightly bench
-```
-
-The standard benchmark framework is insufficiently accurate when benchmarking some finite field arithmetic methods which have execution times on the order of nanoseconds. To increase the accuracy of these benchmarks, one can use the `n_fold` feature to increase the number of iterations. To run with multiple features, make sure to double quote the features.
-```bash
-cargo +nightly bench --features "n_fold bls12_381"
 ```
 
 ## Assembly backend for field arithmetic

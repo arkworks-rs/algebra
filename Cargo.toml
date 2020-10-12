@@ -12,33 +12,6 @@ members = [
     "poly",
     "poly-benches",
     "poly-tests",
-
-    "algebra-benches",
-
-    "algebra-tests",
-
-    "curves/bls12_377",
-    "curves/ed_on_bls12_377",
-
-    "curves/bw6_761",
-    "curves/ed_on_bw6_761",
-
-    "curves/cp6_782",
-    "curves/ed_on_cp6_782",
-
-    "curves/bls12_381",
-    "curves/ed_on_bls12_381",
-
-    "curves/bn254",
-    "curves/ed_on_bn254",
-
-    "curves/mnt4_298",
-    "curves/mnt6_298",
-    "curves/ed_on_mnt4_298",
-
-    "curves/mnt4_753",
-    "curves/mnt6_753",
-    "curves/ed_on_mnt4_298",
 ]
 
 [profile.release]
