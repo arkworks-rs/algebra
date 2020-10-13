@@ -5,7 +5,7 @@ extern crate criterion;
 
 use ark_ff::{FftField, UniformRand};
 use ark_poly::{EvaluationDomain, MixedRadixEvaluationDomain, Radix2EvaluationDomain};
-use ark_poly_tests::mnt4_753::{Fq as MNT6Fr, Fr as MNT4Fr};
+use ark_test_curves::mnt4_753::{Fq as MNT6Fr, Fr as MNT4Fr};
 use criterion::Criterion;
 
 fn bench_groth16_ffts<F: FftField, D: EvaluationDomain<F>>(

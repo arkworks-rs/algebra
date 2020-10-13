@@ -11,7 +11,7 @@ members = [
 
     "poly",
     "poly-benches",
-    "poly-tests",
+    "test-curves",
 ]
 
 [profile.release]

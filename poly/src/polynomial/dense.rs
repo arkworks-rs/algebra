@@ -353,7 +353,7 @@ mod tests {
     use crate::polynomial::*;
     use crate::{EvaluationDomain, GeneralEvaluationDomain};
     use ark_ff::{test_rng, Field, One, UniformRand, Zero};
-    use ark_poly_tests::bls12_381::Fr;
+    use ark_test_curves::bls12_381::Fr;
 
     #[test]
     fn double_polynomials_random() {

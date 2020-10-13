@@ -1,5 +1,5 @@
 [package]
-name = "ark-poly-tests"
+name = "ark-test-curves"
 version = "0.1.0"
 authors = [ "arkworks contributors" ]
 description = "A library for testing ark-poly"
@@ -11,3 +11,13 @@ publish = false
 [dependencies]
 ark-ff = { path = "../ff", default-features = false }
 ark-ec = { path = "../ec", default-features = false }
+
+[features]
+default = []
+
+bls12_381_scalar_field = []
+bls12_381_curve = [ "bls12_381_scalar_field" ]
+
+mnt4_753_scalar_field = []
+mnt4_753_base_field = []
+mnt4_753_curve = [ "mnt4_753_scalar_field", "mnt4_753_base_field" ]
