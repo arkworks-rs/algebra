@@ -222,7 +222,7 @@ pub(crate) fn serial_radix2_fft<T: DomainCoeff<F>, F: FftField>(a: &mut [T], ome
 mod tests {
     use crate::{EvaluationDomain, Radix2EvaluationDomain};
     use ark_ff::{test_rng, Field, Zero};
-    use ark_poly_tests::bls12_381::Fr;
+    use ark_test_curves::bls12_381::Fr;
     use rand::Rng;
 
     #[test]
@@ -279,8 +279,8 @@ mod tests {
         use super::serial_radix2_fft;
         use crate::domain::utils::parallel_fft;
         use ark_ff::{test_rng, PrimeField};
-        use ark_poly_tests::bls12_381::Fr;
         use ark_std::vec::Vec;
+        use ark_test_curves::bls12_381::Fr;
         use core::cmp::min;
 
         fn test_consistency<F: PrimeField, R: Rng>(rng: &mut R, max_coeffs: u32) {

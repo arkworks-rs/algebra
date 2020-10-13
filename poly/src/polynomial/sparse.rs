@@ -139,7 +139,7 @@ impl<F: Field> Into<DensePolynomial<F>> for SparsePolynomial<F> {
 mod tests {
     use crate::{DensePolynomial, EvaluationDomain, GeneralEvaluationDomain, SparsePolynomial};
     use ark_ff::One;
-    use ark_poly_tests::bls12_381::Fr;
+    use ark_test_curves::bls12_381::Fr;
 
     #[test]
     fn evaluate_over_domain() {

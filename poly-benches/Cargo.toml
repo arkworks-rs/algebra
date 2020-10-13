@@ -11,7 +11,7 @@ publish = false
 [dev-dependencies]
 ark-poly = { path = "../poly" }
 ark-ff = { path = "../ff" }
-ark-poly-tests = { path = "../poly-tests", default-features = false }
+ark-test-curves = { path = "../test-curves", default-features = false, features = [ "bls12_381_scalar_field" ] }
 criterion = "0.3.1"
 rand = "0.7"
 

@@ -392,7 +392,7 @@ pub(crate) fn serial_mixed_radix_fft<T: DomainCoeff<F>, F: FftField>(
 mod tests {
     use crate::{EvaluationDomain, MixedRadixEvaluationDomain};
     use ark_ff::{test_rng, Field, Zero};
-    use ark_poly_tests::mnt4_753::Fq as Fr;
+    use ark_test_curves::mnt4_753::Fq as Fr;
     use rand::Rng;
 
     #[test]
@@ -449,8 +449,8 @@ mod tests {
         use super::serial_mixed_radix_fft;
         use crate::domain::utils::parallel_fft;
         use ark_ff::{test_rng, PrimeField};
-        use ark_poly_tests::mnt4_753::Fq as Fr;
         use ark_std::vec::Vec;
+        use ark_test_curves::mnt4_753::Fq as Fr;
         use core::cmp::min;
 
         fn test_consistency<F: PrimeField, R: Rng>(rng: &mut R, max_coeffs: u32) {
