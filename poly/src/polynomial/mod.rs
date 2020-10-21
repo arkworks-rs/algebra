@@ -9,9 +9,6 @@ use ark_std::{
 };
 use rand::Rng;
 
-#[cfg(feature = "parallel")]
-use rayon::prelude::*;
-
 pub mod multivariate;
 pub mod univariate;
 
