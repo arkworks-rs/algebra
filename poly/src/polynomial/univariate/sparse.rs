@@ -1,9 +1,8 @@
 //! A sparse polynomial represented in coefficient form.
-
-use ark_std::{collections::BTreeMap, fmt, vec::Vec};
-
-use crate::{DenseOrSparsePolynomial, DensePolynomial, EvaluationDomain, Evaluations};
+use crate::univariate::{DenseOrSparsePolynomial, DensePolynomial};
+use crate::{EvaluationDomain, Evaluations, UVPolynomial};
 use ark_ff::{FftField, Field};
+use ark_std::{collections::BTreeMap, fmt, vec::Vec};
 
 /// Stores a sparse polynomial in coefficient form.
 #[derive(Clone, PartialEq, Eq, Hash, Default)]
@@ -137,7 +136,8 @@ impl<F: Field> Into<DensePolynomial<F>> for SparsePolynomial<F> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{DensePolynomial, EvaluationDomain, GeneralEvaluationDomain, SparsePolynomial};
+    use crate::univariate::{DensePolynomial, SparsePolynomial};
+    use crate::{EvaluationDomain, GeneralEvaluationDomain};
     use ark_ff::One;
     use ark_test_curves::bls12_381::Fr;
 

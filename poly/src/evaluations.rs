@@ -1,6 +1,7 @@
 //! A polynomial represented in evaluations form.
 
-use crate::{DensePolynomial, EvaluationDomain, GeneralEvaluationDomain};
+use crate::univariate::DensePolynomial;
+use crate::{EvaluationDomain, GeneralEvaluationDomain, UVPolynomial};
 use ark_ff::FftField;
 use ark_std::{
     ops::{Add, AddAssign, Div, DivAssign, Index, Mul, MulAssign, Sub, SubAssign},

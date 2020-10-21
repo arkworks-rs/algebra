@@ -1,164 +1,96 @@
-//! Work with sparse and dense polynomials.
+//! Modules for working with univariate or multivariate polynomials.
 
-use crate::{EvaluationDomain, Evaluations};
-use ark_ff::{FftField, Field};
-use ark_std::{borrow::Cow, convert::TryInto, vec::Vec};
-use DenseOrSparsePolynomial::*;
+use ark_ff::Field;
+use ark_std::{
+    fmt::Debug,
+    hash::Hash,
+    ops::{AddAssign, Index, SubAssign},
+    vec::Vec,
+};
+use rand::Rng;
 
-mod dense;
-mod sparse;
+#[cfg(feature = "parallel")]
+use rayon::prelude::*;
 
-pub use dense::DensePolynomial;
-pub use sparse::SparsePolynomial;
+pub mod multivariate;
+pub mod univariate;
 
-/// Represents either a sparse polynomial or a dense one.
-#[derive(Clone)]
-pub enum DenseOrSparsePolynomial<'a, F: Field> {
-    /// Represents the case where `self` is a sparse polynomial
-    SPolynomial(Cow<'a, SparsePolynomial<F>>),
-    /// Represents the case where `self` is a dense polynomial
-    DPolynomial(Cow<'a, DensePolynomial<F>>),
-}
+/// Describes the common interface for univariate and multivariate polynomials
+pub trait Polynomial<F: Field>:
+    Sized
+    + Clone
+    + Debug
+    + Default
+    + Hash
+    + PartialEq
+    + Eq
+    + Send
+    + Sync
+    + for<'a> AddAssign<&'a Self>
+    + for<'a> AddAssign<(F, &'a Self)>
+    + for<'a> SubAssign<&'a Self>
+{
+    /// The domain of the polynomial.
+    type Domain: Sized + Clone + Ord + Debug + Sync;
 
-impl<'a, F: 'a + Field> From<DensePolynomial<F>> for DenseOrSparsePolynomial<'a, F> {
-    fn from(other: DensePolynomial<F>) -> Self {
-        DPolynomial(Cow::Owned(other))
-    }
-}
+    /// Returns the zero polynomial.
+    fn zero() -> Self;
 
-impl<'a, F: 'a + Field> From<&'a DensePolynomial<F>> for DenseOrSparsePolynomial<'a, F> {
-    fn from(other: &'a DensePolynomial<F>) -> Self {
-        DPolynomial(Cow::Borrowed(other))
-    }
-}
-
-impl<'a, F: 'a + Field> From<SparsePolynomial<F>> for DenseOrSparsePolynomial<'a, F> {
-    fn from(other: SparsePolynomial<F>) -> Self {
-        SPolynomial(Cow::Owned(other))
-    }
-}
-
-impl<'a, F: Field> From<&'a SparsePolynomial<F>> for DenseOrSparsePolynomial<'a, F> {
-    fn from(other: &'a SparsePolynomial<F>) -> Self {
-        SPolynomial(Cow::Borrowed(other))
-    }
-}
-
-impl<'a, F: Field> Into<DensePolynomial<F>> for DenseOrSparsePolynomial<'a, F> {
-    fn into(self) -> DensePolynomial<F> {
-        match self {
-            DPolynomial(p) => p.into_owned(),
-            SPolynomial(p) => p.into_owned().into(),
-        }
-    }
-}
-
-impl<'a, F: 'a + Field> TryInto<SparsePolynomial<F>> for DenseOrSparsePolynomial<'a, F> {
-    type Error = ();
-
-    fn try_into(self) -> Result<SparsePolynomial<F>, ()> {
-        match self {
-            SPolynomial(p) => Ok(p.into_owned()),
-            _ => Err(()),
-        }
-    }
-}
-
-impl<'a, F: Field> DenseOrSparsePolynomial<'a, F> {
     /// Checks if the given polynomial is zero.
-    pub fn is_zero(&self) -> bool {
-        match self {
-            SPolynomial(s) => s.is_zero(),
-            DPolynomial(d) => d.is_zero(),
-        }
-    }
+    fn is_zero(&self) -> bool;
 
-    /// Return the degree of `self.
-    pub fn degree(&self) -> usize {
-        match self {
-            SPolynomial(s) => s.degree(),
-            DPolynomial(d) => d.degree(),
-        }
-    }
+    /// Returns the total degree of the polynomial
+    fn degree(&self) -> usize;
 
-    #[inline]
-    fn leading_coefficient(&self) -> Option<&F> {
-        match self {
-            SPolynomial(p) => p.last().map(|(_, c)| c),
-            DPolynomial(p) => p.last(),
-        }
-    }
+    /// Evaluates `self` at the given `point` in `Self::Domain`.
+    fn evaluate(&self, point: &Self::Domain) -> F;
 
-    #[inline]
-    fn iter_with_index(&self) -> Vec<(usize, F)> {
-        match self {
-            SPolynomial(p) => p.to_vec(),
-            DPolynomial(p) => p.iter().cloned().enumerate().collect(),
-        }
-    }
+    /// If `num_vars` is `None`, outputs a polynomial a univariate polynomial
+    /// of degree `d` where each coefficient is sampled uniformly at random.
+    ///
+    /// If `num_vars` is `Some(l)`, outputs an `l`-variate polynomial which
+    /// is the sum of `l` `d`-degree univariate polynomials where each coefficient
+    /// is sampled uniformly at random.
+    fn rand<R: Rng>(d: usize, num_vars: Option<usize>, rng: &mut R) -> Self;
 
-    /// Divide self by another (sparse or dense) polynomial, and returns the
-    /// quotient and remainder.
-    pub fn divide_with_q_and_r(
-        &self,
-        divisor: &Self,
-    ) -> Option<(DensePolynomial<F>, DensePolynomial<F>)> {
-        if self.is_zero() {
-            Some((DensePolynomial::zero(), DensePolynomial::zero()))
-        } else if divisor.is_zero() {
-            panic!("Dividing by zero polynomial")
-        } else if self.degree() < divisor.degree() {
-            Some((DensePolynomial::zero(), self.clone().into()))
-        } else {
-            // Now we know that self.degree() >= divisor.degree();
-            let mut quotient = vec![F::zero(); self.degree() - divisor.degree() + 1];
-            let mut remainder: DensePolynomial<F> = self.clone().into();
-            // Can unwrap here because we know self is not zero.
-            let divisor_leading_inv = divisor.leading_coefficient().unwrap().inverse().unwrap();
-            while !remainder.is_zero() && remainder.degree() >= divisor.degree() {
-                let cur_q_coeff = *remainder.coeffs.last().unwrap() * &divisor_leading_inv;
-                let cur_q_degree = remainder.degree() - divisor.degree();
-                quotient[cur_q_degree] = cur_q_coeff;
-
-                for (i, div_coeff) in divisor.iter_with_index() {
-                    remainder[cur_q_degree + i] -= &(cur_q_coeff * &div_coeff);
-                }
-                while let Some(true) = remainder.coeffs.last().map(|c| c.is_zero()) {
-                    remainder.coeffs.pop();
-                }
-            }
-            Some((DensePolynomial::from_coefficients_vec(quotient), remainder))
-        }
-    }
+    /// Sample a random point from `Self::Domain`.  
+    fn rand_domain_point<R: Rng>(domain_size: Option<usize>, rng: &mut R) -> Self::Domain;
 }
-impl<'a, F: 'a + FftField> DenseOrSparsePolynomial<'a, F> {
-    /// Construct `Evaluations` by evaluating a polynomial over the domain
-    /// `domain`.
-    pub fn evaluate_over_domain<D: EvaluationDomain<F>>(
-        poly: impl Into<Self>,
-        domain: D,
-    ) -> Evaluations<F, D> {
-        let poly = poly.into();
-        poly.eval_over_domain_helper(domain)
+
+/// Describes the interface for univariate polynomials
+pub trait UVPolynomial<F: Field>: Polynomial<F> {
+    /// Constructs a new polynomial from a list of coefficients.
+    fn from_coefficients_slice(coeffs: &[F]) -> Self;
+
+    /// Constructs a new polynomial from a list of coefficients.
+    fn from_coefficients_vec(coeffs: Vec<F>) -> Self;
+
+    /// Returns the coefficients of `self`
+    fn coeffs(&self) -> &[F];
+}
+
+/// Describes the interface for univariate polynomials
+pub trait MVPolynomial<F: Field>: Polynomial<F> {
+    /// The type of the terms of `self`
+    type Term: multivariate::Term;
+
+    /// Constructs a new polynomial from a list of tuples of the form `(Self::Term, coeff)`
+    fn from_coefficients_slice(num_vars: usize, terms: &[(Self::Term, F)]) -> Self {
+        Self::from_coefficients_vec(num_vars, terms.to_vec())
     }
 
-    fn eval_over_domain_helper<D: EvaluationDomain<F>>(self, domain: D) -> Evaluations<F, D> {
-        match self {
-            SPolynomial(Cow::Borrowed(s)) => {
-                let evals = domain.elements().map(|elem| s.evaluate(elem)).collect();
-                Evaluations::from_vec_and_domain(evals, domain)
-            }
-            SPolynomial(Cow::Owned(s)) => {
-                let evals = domain.elements().map(|elem| s.evaluate(elem)).collect();
-                Evaluations::from_vec_and_domain(evals, domain)
-            }
-            DPolynomial(Cow::Borrowed(d)) => {
-                Evaluations::from_vec_and_domain(domain.fft(&d.coeffs), domain)
-            }
-            DPolynomial(Cow::Owned(mut d)) => {
-                domain.fft_in_place(&mut d.coeffs);
-                Evaluations::from_vec_and_domain(d.coeffs, domain)
-            }
-        }
-    }
+    /// Constructs a new polynomial from a list of tuples of the form `(Self::Term, coeff)`
+    fn from_coefficients_vec(num_vars: usize, terms: Vec<(Self::Term, F)>) -> Self;
+
+    /// Returns the terms of a `self` as a list of tuples of the form `(Self::Term, coeff)`
+    fn terms(&self) -> &[(Self::Term, F)];
+
+    /// Given some point `z`, compute the quotients `w_i(X)` s.t
+    ///
+    /// `p(X) - p(z) = (X_1-z_1)*w_1(X) + (X_2-z_2)*w_2(X) + ... + (X_l-z_l)*w_l(X)`
+    ///
+    /// These quotients can always be found with no remainder.
+    fn divide_at_point(&self, point: &Self::Domain) -> Vec<Self>
+    where
+        Self::Domain: Index<usize, Output = F>;
 }
