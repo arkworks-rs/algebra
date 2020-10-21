@@ -17,7 +17,7 @@ ark-ff = { path = "../ff", default-features = false }
 ark-std = { git = "https://github.com/arkworks-rs/utils", default-features = false }
 rand = { version = "0.7", default-features = false }
 rayon = { version = "1", optional = true }
-derivative = { version = "2", default-features = false }
+derivative = { version = "2", default-features = false, features = [ "use_core" ] }
 
 [dev-dependencies]
 ark-test-curves = { path = "../test-curves", default-features = false, features = [ "bls12_381_curve", "mnt4_753_curve"] }
