@@ -33,7 +33,7 @@ impl<F: Field, T: Term> SparsePolynomial<F, T> {
 }
 
 impl<F: Field> Polynomial<F> for SparsePolynomial<F, SparseTerm> {
-    type Domain = Vec<F>;
+    type Point = Vec<F>;
 
     /// Returns the zero polynomial.
     fn zero() -> Self {
@@ -57,7 +57,7 @@ impl<F: Field> Polynomial<F> for SparsePolynomial<F, SparseTerm> {
             .unwrap_or(0)
     }
 
-    /// Evaluates `self` at the given `point` in `Self::Domain`.
+    /// Evaluates `self` at the given `point` in `Self::Point`.
     fn evaluate(&self, point: &Vec<F>) -> F {
         assert!(point.len() >= self.num_vars, "Invalid evaluation domain");
         if self.is_zero() {
@@ -66,29 +66,6 @@ impl<F: Field> Polynomial<F> for SparsePolynomial<F, SparseTerm> {
         cfg_into_iter!(&self.terms)
             .map(|(term, coeff)| *coeff * term.evaluate(point))
             .sum()
-    }
-
-    /// Outputs an `l`-variate polynomial which is the sum of `l` `d`-degree
-    /// univariate polynomials where each coefficient is sampled uniformly at random.
-    fn rand<R: Rng>(d: usize, l: Option<usize>, rng: &mut R) -> Self {
-        let l = l.unwrap();
-        let mut random_terms = Vec::new();
-        random_terms.push((SparseTerm::new(vec![]), F::rand(rng)));
-        for var in 0..l {
-            for deg in 1..=d {
-                random_terms.push((SparseTerm::new(vec![(var, deg)]), F::rand(rng)));
-            }
-        }
-        Self::from_coefficients_vec(l, random_terms)
-    }
-
-    /// Sample a random point from `Self::Domain`.  
-    fn rand_domain_point<R: Rng>(domain_size: Option<usize>, rng: &mut R) -> Vec<F> {
-        let mut point = Vec::with_capacity(domain_size.unwrap());
-        for _ in 0..domain_size.unwrap() {
-            point.push(F::rand(rng))
-        }
-        point
     }
 }
 
@@ -132,58 +109,17 @@ impl<F: Field> MVPolynomial<F> for SparsePolynomial<F, SparseTerm> {
         self.terms.as_slice()
     }
 
-    /// Given some point `z`, compute the quotients `w_i(X)` s.t
-    ///
-    /// `p(X) - p(z) = (X_1-z_1)*w_1(X) + (X_2-z_2)*w_2(X) + ... + (X_l-z_l)*w_l(X)`
-    ///
-    /// These quotients can always be found with no remainder.
-    fn divide_at_point(&self, point: &Self::Domain) -> Vec<Self> {
-        if self.is_zero() {
-            return vec![SparsePolynomial::zero(); self.num_vars];
-        }
-        assert_eq!(point.len(), self.num_vars, "Invalid evaluation point");
-        let mut quotients = Vec::with_capacity(self.num_vars);
-        // `cur` represents the current dividend
-        let mut cur = self.clone();
-        // Divide `cur` by `X_i - z_i`
-        for i in 0..self.num_vars {
-            let mut quotient_terms = Vec::new();
-            let mut remainder_terms = Vec::new();
-            for (mut term, mut coeff) in cur.terms {
-                // Since the final remainder is guaranteed to be 0, all the constant terms
-                // cancel out so we don't need to keep track of them
-                if term.is_constant() {
-                    continue;
-                }
-                // If the current term contains `X_i` then divide appropiately,
-                // otherwise add it to the remainder
-                match term.binary_search_by(|(var, _)| var.cmp(&i)) {
-                    Ok(idx) => {
-                        // Repeatedly divide the term by `X_i - z_i` until the remainder
-                        // doesn't contain any `X_i`s
-                        while term[idx].1 > 1 {
-                            // First divide by `X_i` and add the term to the quotient
-                            term.0[idx] = (i, term[idx].1 - 1);
-                            quotient_terms.push((term.clone(), coeff));
-                            // Then compute the remainder term in-place
-                            coeff *= &point[i];
-                        }
-                        // Since `X_i` is power 1, we can remove it entirely
-                        term.0.remove(idx);
-                        quotient_terms.push((term.clone(), coeff));
-                        remainder_terms.push((term, point[i] * coeff));
-                    }
-                    Err(_) => remainder_terms.push((term, coeff)),
-                }
+    /// Outputs an `l`-variate polynomial which is the sum of `l` `d`-degree
+    /// univariate polynomials where each coefficient is sampled uniformly at random.
+    fn rand<R: Rng>(d: usize, l: usize, rng: &mut R) -> Self {
+        let mut random_terms = Vec::new();
+        random_terms.push((SparseTerm::new(vec![]), F::rand(rng)));
+        for var in 0..l {
+            for deg in 1..=d {
+                random_terms.push((SparseTerm::new(vec![(var, deg)]), F::rand(rng)));
             }
-            quotients.push(SparsePolynomial::from_coefficients_vec(
-                self.num_vars,
-                quotient_terms,
-            ));
-            // Set the current dividend to be the remainder of this division
-            cur = SparsePolynomial::from_coefficients_vec(self.num_vars, remainder_terms);
         }
-        quotients
+        Self::from_coefficients_vec(l, random_terms)
     }
 }
 
@@ -293,7 +229,7 @@ impl<F: Field, T: Term> fmt::Debug for SparsePolynomial<F, T> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ark_ff::{test_rng, Field, One, UniformRand, Zero};
+    use ark_ff::{test_rng, Field, UniformRand, Zero};
     use ark_test_curves::bls12_381::Fr;
 
     // TODO: Make tests generic over term type
@@ -463,86 +399,5 @@ mod tests {
             ],
         );
         assert_eq!(expected, result);
-    }
-
-    #[test]
-    fn divide_at_point_fixed() {
-        let dividend = SparsePolynomial::<Fr, _>::from_coefficients_slice(
-            3,
-            &[
-                (SparseTerm(vec![]), "4".parse().unwrap()),
-                (SparseTerm(vec![(0, 1)]), "1".parse().unwrap()),
-                (SparseTerm(vec![(0, 1), (1, 1)]), "3".parse().unwrap()),
-                (
-                    SparseTerm(vec![(0, 2), (1, 2), (2, 3)]),
-                    "5".parse().unwrap(),
-                ),
-            ],
-        );
-        let point = vec![
-            "4".parse().unwrap(),
-            "2".parse().unwrap(),
-            "1".parse().unwrap(),
-        ];
-        let result = dividend.divide_at_point(&point);
-        let expected_result = vec![
-            SparsePolynomial::from_coefficients_slice(
-                3,
-                &[
-                    (SparseTerm(vec![]), "1".parse().unwrap()),
-                    (SparseTerm(vec![(1, 1)]), "3".parse().unwrap()),
-                    (SparseTerm(vec![(1, 2), (2, 3)]), "20".parse().unwrap()),
-                    (
-                        SparseTerm(vec![(0, 1), (1, 2), (2, 3)]),
-                        "5".parse().unwrap(),
-                    ),
-                ],
-            ),
-            SparsePolynomial::from_coefficients_slice(
-                3,
-                &[
-                    (SparseTerm(vec![]), "12".parse().unwrap()),
-                    (SparseTerm(vec![(2, 3)]), "160".parse().unwrap()),
-                    (SparseTerm(vec![(1, 1), (2, 3)]), "80".parse().unwrap()),
-                ],
-            ),
-            SparsePolynomial::from_coefficients_slice(
-                3,
-                &[
-                    (SparseTerm(vec![]), "320".parse().unwrap()),
-                    (SparseTerm(vec![(2, 1)]), "320".parse().unwrap()),
-                    (SparseTerm(vec![(2, 2)]), "320".parse().unwrap()),
-                ],
-            ),
-        ];
-        assert_eq!(expected_result, result);
-    }
-
-    #[test]
-    fn divide_at_point_random() {
-        let rng = &mut test_rng();
-        let max_degree = 10;
-        for var_count in 0..20 {
-            let dividend = SparsePolynomial::rand(max_degree, Some(var_count), rng);
-            let mut point = Vec::new();
-            for _ in 0..var_count {
-                point.push(Fr::rand(rng));
-            }
-            let dividend_eval = SparsePolynomial::from_coefficients_slice(
-                0,
-                &vec![(SparseTerm(vec![]), dividend.evaluate(&point))],
-            );
-            let quotients = dividend.divide_at_point(&point);
-            let mut result = SparsePolynomial::zero();
-            for (i, q) in quotients.iter().enumerate() {
-                let test_terms = vec![
-                    (SparseTerm(vec![(i, 1)]), Fr::one()),
-                    (SparseTerm(vec![]), -point[i]),
-                ];
-                let test = SparsePolynomial::from_coefficients_slice(var_count, &test_terms);
-                result += &naive_mul(q, &test);
-            }
-            assert_eq!(&dividend - &dividend_eval, result);
-        }
     }
 }

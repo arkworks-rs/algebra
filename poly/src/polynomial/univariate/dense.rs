@@ -23,7 +23,7 @@ pub struct DensePolynomial<F: Field> {
 }
 
 impl<F: Field> Polynomial<F> for DensePolynomial<F> {
-    type Domain = F;
+    type Point = F;
 
     /// Returns the zero polynomial.
     fn zero() -> Self {
@@ -45,7 +45,7 @@ impl<F: Field> Polynomial<F> for DensePolynomial<F> {
         }
     }
 
-    /// Evaluates `self` at the given `point` in `Self::Domain`.
+    /// Evaluates `self` at the given `point` in `Self::Point`.
     fn evaluate(&self, point: &F) -> F {
         if self.is_zero() {
             return F::zero();
@@ -61,21 +61,6 @@ impl<F: Field> Polynomial<F> for DensePolynomial<F> {
             .zip(&self.coeffs)
             .map(|(power, coeff)| power * coeff)
             .sum()
-    }
-
-    /// Outputs a polynomial a univariate polynomial of degree `d` where
-    /// each coefficient is sampled uniformly at random.
-    fn rand<R: Rng>(d: usize, _: Option<usize>, rng: &mut R) -> Self {
-        let mut random_coeffs = Vec::new();
-        for _ in 0..=d {
-            random_coeffs.push(F::rand(rng));
-        }
-        Self::from_coefficients_vec(random_coeffs)
-    }
-
-    /// Sample a random point from `Self::Domain`.  
-    fn rand_domain_point<R: Rng>(_: Option<usize>, rng: &mut R) -> F {
-        F::rand(rng)
     }
 }
 
@@ -99,6 +84,16 @@ impl<F: Field> UVPolynomial<F> for DensePolynomial<F> {
     /// Returns the coefficients of `self`
     fn coeffs(&self) -> &[F] {
         &self.coeffs
+    }
+
+    /// Outputs a univariate polynomial of degree `d` where
+    /// each coefficient is sampled uniformly at random.
+    fn rand<R: Rng>(d: usize, rng: &mut R) -> Self {
+        let mut random_coeffs = Vec::new();
+        for _ in 0..=d {
+            random_coeffs.push(F::rand(rng));
+        }
+        Self::from_coefficients_vec(random_coeffs)
     }
 }
 
@@ -374,7 +369,7 @@ mod tests {
     fn double_polynomials_random() {
         let rng = &mut test_rng();
         for degree in 0..70 {
-            let p = DensePolynomial::<Fr>::rand(degree, None, rng);
+            let p = DensePolynomial::<Fr>::rand(degree, rng);
             let p_double = &p + &p;
             let p_quad = &p_double + &p_double;
             assert_eq!(&(&(&p + &p) + &p) + &p, p_quad);
@@ -386,8 +381,8 @@ mod tests {
         let rng = &mut test_rng();
         for a_degree in 0..70 {
             for b_degree in 0..70 {
-                let p1 = DensePolynomial::<Fr>::rand(a_degree, None, rng);
-                let p2 = DensePolynomial::<Fr>::rand(b_degree, None, rng);
+                let p1 = DensePolynomial::<Fr>::rand(a_degree, rng);
+                let p2 = DensePolynomial::<Fr>::rand(b_degree, rng);
                 let res1 = &p1 + &p2;
                 let res2 = &p2 + &p1;
                 assert_eq!(res1, res2);
@@ -400,8 +395,8 @@ mod tests {
         let rng = &mut test_rng();
         for a_degree in 0..70 {
             for b_degree in 0..70 {
-                let mut p1 = DensePolynomial::rand(a_degree, None, rng);
-                let p2 = DensePolynomial::rand(b_degree, None, rng);
+                let mut p1 = DensePolynomial::rand(a_degree, rng);
+                let p2 = DensePolynomial::rand(b_degree, rng);
                 let f = Fr::rand(rng);
                 let f_p2 = DensePolynomial::from_coefficients_vec(
                     p2.coeffs.iter().map(|c| f * c).collect(),
@@ -417,8 +412,8 @@ mod tests {
     #[test]
     fn sub_polynomials() {
         let rng = &mut test_rng();
-        let p1 = DensePolynomial::<Fr>::rand(5, None, rng);
-        let p2 = DensePolynomial::<Fr>::rand(3, None, rng);
+        let p1 = DensePolynomial::<Fr>::rand(5, rng);
+        let p2 = DensePolynomial::<Fr>::rand(3, rng);
         let res1 = &p1 - &p2;
         let res2 = &p2 - &p1;
         assert_eq!(
@@ -453,8 +448,8 @@ mod tests {
 
         for a_degree in 0..70 {
             for b_degree in 0..70 {
-                let dividend = DensePolynomial::<Fr>::rand(a_degree, None, rng);
-                let divisor = DensePolynomial::<Fr>::rand(b_degree, None, rng);
+                let dividend = DensePolynomial::<Fr>::rand(a_degree, rng);
+                let divisor = DensePolynomial::<Fr>::rand(b_degree, rng);
                 if let Some((quotient, remainder)) = DenseOrSparsePolynomial::divide_with_q_and_r(
                     &(&dividend).into(),
                     &(&divisor).into(),
@@ -469,7 +464,7 @@ mod tests {
     fn evaluate_polynomials() {
         let rng = &mut test_rng();
         for a_degree in 0..70 {
-            let p = DensePolynomial::rand(a_degree, None, rng);
+            let p = DensePolynomial::rand(a_degree, rng);
             let point: Fr = Fr::from(10u64);
             let mut total = Fr::zero();
             for (i, coeff) in p.coeffs.iter().enumerate() {
@@ -484,8 +479,8 @@ mod tests {
         let rng = &mut test_rng();
         for a_degree in 0..70 {
             for b_degree in 0..70 {
-                let a = DensePolynomial::<Fr>::rand(a_degree, None, rng);
-                let b = DensePolynomial::<Fr>::rand(b_degree, None, rng);
+                let a = DensePolynomial::<Fr>::rand(a_degree, rng);
+                let b = DensePolynomial::<Fr>::rand(b_degree, rng);
                 assert_eq!(&a * &b, a.naive_mul(&b))
             }
         }
@@ -497,7 +492,7 @@ mod tests {
         for size in 1..10 {
             let domain = GeneralEvaluationDomain::new(1 << size).unwrap();
             for degree in 0..70 {
-                let p = DensePolynomial::<Fr>::rand(degree, None, rng);
+                let p = DensePolynomial::<Fr>::rand(degree, rng);
                 let ans1 = p.mul_by_vanishing_poly(domain);
                 let ans2 = &p * &domain.vanishing_polynomial().into();
                 assert_eq!(ans1, ans2);
@@ -508,7 +503,7 @@ mod tests {
     #[test]
     fn test_leading_zero() {
         let n = 10;
-        let rand_poly = DensePolynomial::rand(n, None, &mut test_rng());
+        let rand_poly = DensePolynomial::rand(n, &mut test_rng());
         let coefficients = rand_poly.coeffs.clone();
         let leading_coefficient: Fr = coefficients[n];
 

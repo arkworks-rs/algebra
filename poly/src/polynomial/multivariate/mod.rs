@@ -27,6 +27,9 @@ pub trait Term:
     /// Returns a list of variables in `self`
     fn vars(&self) -> Vec<usize>;
 
+    /// Returns a list of variable powers in `self`
+    fn powers(&self) -> Vec<usize>;
+
     /// Returns whether `self` is a constant
     fn is_constant(&self) -> bool;
 
@@ -81,6 +84,11 @@ impl Term for SparseTerm {
     /// Returns a list of variables in `self`
     fn vars(&self) -> Vec<usize> {
         self.iter().map(|(v, _)| *v).collect()
+    }
+
+    /// Returns a list of variable powers in `self`
+    fn powers(&self) -> Vec<usize> {
+        self.iter().map(|(_, p)| *p).collect()
     }
 
     /// Returns whether `self` is a constant

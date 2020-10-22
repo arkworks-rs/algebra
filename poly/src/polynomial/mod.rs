@@ -4,7 +4,7 @@ use ark_ff::Field;
 use ark_std::{
     fmt::Debug,
     hash::Hash,
-    ops::{AddAssign, Index, SubAssign},
+    ops::{AddAssign, SubAssign},
     vec::Vec,
 };
 use rand::Rng;
@@ -28,7 +28,7 @@ pub trait Polynomial<F: Field>:
     + for<'a> SubAssign<&'a Self>
 {
     /// The domain of the polynomial.
-    type Domain: Sized + Clone + Ord + Debug + Sync;
+    type Point: Sized + Clone + Ord + Debug + Sync;
 
     /// Returns the zero polynomial.
     fn zero() -> Self;
@@ -39,19 +39,8 @@ pub trait Polynomial<F: Field>:
     /// Returns the total degree of the polynomial
     fn degree(&self) -> usize;
 
-    /// Evaluates `self` at the given `point` in `Self::Domain`.
-    fn evaluate(&self, point: &Self::Domain) -> F;
-
-    /// If `num_vars` is `None`, outputs a polynomial a univariate polynomial
-    /// of degree `d` where each coefficient is sampled uniformly at random.
-    ///
-    /// If `num_vars` is `Some(l)`, outputs an `l`-variate polynomial which
-    /// is the sum of `l` `d`-degree univariate polynomials where each coefficient
-    /// is sampled uniformly at random.
-    fn rand<R: Rng>(d: usize, num_vars: Option<usize>, rng: &mut R) -> Self;
-
-    /// Sample a random point from `Self::Domain`.  
-    fn rand_domain_point<R: Rng>(domain_size: Option<usize>, rng: &mut R) -> Self::Domain;
+    /// Evaluates `self` at the given `point` in `Self::Point`.
+    fn evaluate(&self, point: &Self::Point) -> F;
 }
 
 /// Describes the interface for univariate polynomials
@@ -64,6 +53,10 @@ pub trait UVPolynomial<F: Field>: Polynomial<F> {
 
     /// Returns the coefficients of `self`
     fn coeffs(&self) -> &[F];
+
+    /// Returns a univariate polynomial of degree `d` where each
+    /// coefficient is sampled uniformly at random.
+    fn rand<R: Rng>(d: usize, rng: &mut R) -> Self;
 }
 
 /// Describes the interface for univariate polynomials
@@ -82,12 +75,7 @@ pub trait MVPolynomial<F: Field>: Polynomial<F> {
     /// Returns the terms of a `self` as a list of tuples of the form `(Self::Term, coeff)`
     fn terms(&self) -> &[(Self::Term, F)];
 
-    /// Given some point `z`, compute the quotients `w_i(X)` s.t
-    ///
-    /// `p(X) - p(z) = (X_1-z_1)*w_1(X) + (X_2-z_2)*w_2(X) + ... + (X_l-z_l)*w_l(X)`
-    ///
-    /// These quotients can always be found with no remainder.
-    fn divide_at_point(&self, point: &Self::Domain) -> Vec<Self>
-    where
-        Self::Domain: Index<usize, Output = F>;
+    /// Outputs an `l`-variate polynomial which is the sum of `l` `d`-degree univariate
+    /// polynomials where each coefficient is sampled uniformly at random.
+    fn rand<R: Rng>(d: usize, num_vars: usize, rng: &mut R) -> Self;
 }
