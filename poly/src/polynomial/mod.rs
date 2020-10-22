@@ -27,7 +27,7 @@ pub trait Polynomial<F: Field>:
     + for<'a> AddAssign<(F, &'a Self)>
     + for<'a> SubAssign<&'a Self>
 {
-    /// The domain of the polynomial.
+    /// The type of evaluation points for this polynomial.
     type Point: Sized + Clone + Ord + Debug + Sync;
 
     /// Returns the zero polynomial.
@@ -65,15 +65,15 @@ pub trait MVPolynomial<F: Field>: Polynomial<F> {
     type Term: multivariate::Term;
 
     /// Constructs a new polynomial from a list of tuples of the form `(Self::Term, coeff)`
-    fn from_coefficients_slice(num_vars: usize, terms: &[(Self::Term, F)]) -> Self {
+    fn from_coefficients_slice(num_vars: usize, terms: &[(F, Self::Term)]) -> Self {
         Self::from_coefficients_vec(num_vars, terms.to_vec())
     }
 
     /// Constructs a new polynomial from a list of tuples of the form `(Self::Term, coeff)`
-    fn from_coefficients_vec(num_vars: usize, terms: Vec<(Self::Term, F)>) -> Self;
+    fn from_coefficients_vec(num_vars: usize, terms: Vec<(F, Self::Term)>) -> Self;
 
     /// Returns the terms of a `self` as a list of tuples of the form `(Self::Term, coeff)`
-    fn terms(&self) -> &[(Self::Term, F)];
+    fn terms(&self) -> &[(F, Self::Term)];
 
     /// Outputs an `l`-variate polynomial which is the sum of `l` `d`-degree univariate
     /// polynomials where each coefficient is sampled uniformly at random.

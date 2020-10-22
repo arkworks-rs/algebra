@@ -22,13 +22,13 @@ pub struct SparsePolynomial<F: Field, T: Term> {
     /// The number of variables the polynomial supports
     #[derivative(PartialEq = "ignore")]
     pub num_vars: usize,
-    /// List of every term along with its coefficient
-    pub terms: Vec<(T, F)>,
+    /// List of each term along with its coefficient
+    pub terms: Vec<(F, T)>,
 }
 
 impl<F: Field, T: Term> SparsePolynomial<F, T> {
     fn remove_zeros(&mut self) {
-        self.terms.retain(|(_, c)| !c.is_zero());
+        self.terms.retain(|(c, _)| !c.is_zero());
     }
 }
 
@@ -45,14 +45,14 @@ impl<F: Field> Polynomial<F> for SparsePolynomial<F, SparseTerm> {
 
     /// Checks if the given polynomial is zero.
     fn is_zero(&self) -> bool {
-        self.terms.is_empty() || self.terms.iter().all(|(_, c)| c.is_zero())
+        self.terms.is_empty() || self.terms.iter().all(|(c, _)| c.is_zero())
     }
 
     /// Returns the total degree of the polynomial
     fn degree(&self) -> usize {
         self.terms
             .iter()
-            .map(|(term, _)| (*term).degree())
+            .map(|(_, term)| (*term).degree())
             .max()
             .unwrap_or(0)
     }
@@ -64,7 +64,7 @@ impl<F: Field> Polynomial<F> for SparsePolynomial<F, SparseTerm> {
             return F::zero();
         }
         cfg_into_iter!(&self.terms)
-            .map(|(term, coeff)| *coeff * term.evaluate(point))
+            .map(|(coeff, term)| *coeff * term.evaluate(point))
             .sum()
     }
 }
@@ -72,17 +72,17 @@ impl<F: Field> Polynomial<F> for SparsePolynomial<F, SparseTerm> {
 impl<F: Field> MVPolynomial<F> for SparsePolynomial<F, SparseTerm> {
     type Term = SparseTerm;
 
-    /// Constructs a new polynomial from a list of tuples of the form `(Self::Term, coeff)`
-    fn from_coefficients_vec(num_vars: usize, mut terms: Vec<(SparseTerm, F)>) -> Self {
+    /// Constructs a new polynomial from a list of tuples of the form `(coeff, Self::Term)`
+    fn from_coefficients_vec(num_vars: usize, mut terms: Vec<(F, SparseTerm)>) -> Self {
         // Ensure that terms are in ascending order.
-        terms.sort_by(|(c1, _), (c2, _)| c1.cmp(c2));
+        terms.sort_by(|(_, t1), (_, t2)| t1.cmp(t2));
         // If any terms are duplicated, add them together
-        let mut terms_dedup: Vec<(SparseTerm, F)> = Vec::new();
+        let mut terms_dedup: Vec<(F, SparseTerm)> = Vec::new();
         for term in terms {
             match terms_dedup.last_mut() {
                 Some(prev) => {
-                    if prev.0 == term.0 {
-                        *prev = (prev.0.clone(), prev.1 + term.1);
+                    if prev.1 == term.1 {
+                        *prev = (prev.0 + term.0, prev.1.clone());
                         continue;
                     }
                 }
@@ -90,7 +90,7 @@ impl<F: Field> MVPolynomial<F> for SparsePolynomial<F, SparseTerm> {
             };
             // Assert correct number of indeterminates
             assert!(
-                term.0.iter().all(|(var, _)| *var < num_vars),
+                term.1.iter().all(|(var, _)| *var < num_vars),
                 "Invalid number of indeterminates"
             );
             terms_dedup.push(term);
@@ -104,8 +104,8 @@ impl<F: Field> MVPolynomial<F> for SparsePolynomial<F, SparseTerm> {
         result
     }
 
-    /// Returns the terms of a `self` as a list of tuples of the form `(Self::Term, coeff)`
-    fn terms(&self) -> &[(Self::Term, F)] {
+    /// Returns the terms of a `self` as a list of tuples of the form `(coeff, Self::Term)`
+    fn terms(&self) -> &[(F, Self::Term)] {
         self.terms.as_slice()
     }
 
@@ -113,10 +113,10 @@ impl<F: Field> MVPolynomial<F> for SparsePolynomial<F, SparseTerm> {
     /// univariate polynomials where each coefficient is sampled uniformly at random.
     fn rand<R: Rng>(d: usize, l: usize, rng: &mut R) -> Self {
         let mut random_terms = Vec::new();
-        random_terms.push((SparseTerm::new(vec![]), F::rand(rng)));
+        random_terms.push((F::rand(rng), SparseTerm::new(vec![])));
         for var in 0..l {
             for deg in 1..=d {
-                random_terms.push((SparseTerm::new(vec![(var, deg)]), F::rand(rng)));
+                random_terms.push((F::rand(rng), SparseTerm::new(vec![(var, deg)])));
             }
         }
         Self::from_coefficients_vec(l, random_terms)
@@ -135,7 +135,7 @@ impl<'a, 'b, F: Field, T: Term> Add<&'a SparsePolynomial<F, T>> for &'b SparsePo
         loop {
             // Peek at iterators to decide which to take from
             let which = match (cur_iter.peek(), other_iter.peek()) {
-                (Some(cur), Some(other)) => Some((cur.0).cmp(&other.0)),
+                (Some(cur), Some(other)) => Some((cur.1).cmp(&other.1)),
                 (Some(_), None) => Some(Ordering::Less),
                 (None, Some(_)) => Some(Ordering::Greater),
                 (None, None) => None,
@@ -146,14 +146,14 @@ impl<'a, 'b, F: Field, T: Term> Add<&'a SparsePolynomial<F, T>> for &'b SparsePo
                 Some(Ordering::Equal) => {
                     let other = other_iter.next().unwrap();
                     let cur = cur_iter.next().unwrap();
-                    (cur.0.clone(), cur.1 + other.1)
+                    (cur.0 + other.0, cur.1.clone())
                 }
                 Some(Ordering::Greater) => other_iter.next().unwrap().clone(),
                 None => break,
             });
         }
         // Remove any zero terms
-        result.retain(|(_, c)| !c.is_zero());
+        result.retain(|(c, _)| !c.is_zero());
         SparsePolynomial {
             num_vars: core::cmp::max(self.num_vars, other.num_vars),
             terms: result,
@@ -176,7 +176,7 @@ impl<'a, 'b, F: Field, T: Term> AddAssign<(F, &'a SparsePolynomial<F, T>)>
             terms: other
                 .terms
                 .iter()
-                .map(|(term, coeff)| (term.clone(), *coeff * &f))
+                .map(|(coeff, term)| (*coeff * &f, term.clone()))
                 .collect(),
         };
         *self = &*self + &other;
@@ -190,7 +190,7 @@ impl<F: Field, T: Term> Neg for SparsePolynomial<F, T> {
     #[inline]
     fn neg(mut self) -> SparsePolynomial<F, T> {
         for coeff in &mut self.terms {
-            (*coeff).1 = -coeff.1;
+            (*coeff).0 = -coeff.0;
         }
         self
     }
@@ -215,7 +215,7 @@ impl<'a, 'b, F: Field, T: Term> SubAssign<&'a SparsePolynomial<F, T>> for Sparse
 
 impl<F: Field, T: Term> fmt::Debug for SparsePolynomial<F, T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
-        for (term, coeff) in self.terms.iter().filter(|(_, c)| !c.is_zero()) {
+        for (coeff, term) in self.terms.iter().filter(|(c, _)| !c.is_zero()) {
             if term.is_constant() {
                 write!(f, "\n{:?}", coeff)?;
             } else {
@@ -240,7 +240,7 @@ mod tests {
         let num_terms = rng.gen_range(1, 1000);
         // For each term, randomly select up to `l` variables with degree
         // in [1,d] and random coefficient
-        random_terms.push((SparseTerm::new(vec![]), Fr::rand(rng)));
+        random_terms.push((Fr::rand(rng), SparseTerm::new(vec![])));
         for _ in 1..num_terms {
             let term = (0..l)
                 .map(|i| {
@@ -254,7 +254,7 @@ mod tests {
                 .map(|t| t.unwrap())
                 .collect();
             let coeff = Fr::rand(rng);
-            random_terms.push((SparseTerm::new(term), coeff));
+            random_terms.push((coeff, SparseTerm::new(term)));
         }
         SparsePolynomial::from_coefficients_slice(l, &random_terms)
     }
@@ -268,11 +268,11 @@ mod tests {
             SparsePolynomial::zero()
         } else {
             let mut result_terms = Vec::new();
-            for (cur_term, cur_coeff) in cur.terms.iter() {
-                for (other_term, other_coeff) in other.terms.iter() {
+            for (cur_coeff, cur_term) in cur.terms.iter() {
+                for (other_coeff, other_term) in other.terms.iter() {
                     let mut term = cur_term.0.clone();
                     term.extend(other_term.0.clone());
-                    result_terms.push((SparseTerm::new(term), *cur_coeff * *other_coeff));
+                    result_terms.push((*cur_coeff * *other_coeff, SparseTerm::new(term)));
                 }
             }
             SparsePolynomial::from_coefficients_slice(cur.num_vars, result_terms.as_slice())
@@ -321,7 +321,7 @@ mod tests {
                 point.push(Fr::rand(rng));
             }
             let mut total = Fr::zero();
-            for (term, coeff) in p.terms.iter() {
+            for (coeff, term) in p.terms.iter() {
                 let mut summand = *coeff;
                 for var in term.iter() {
                     let eval = point.get(var.0).unwrap();
@@ -363,39 +363,39 @@ mod tests {
         let a = SparsePolynomial::from_coefficients_slice(
             4,
             &[
-                (SparseTerm(vec![]), "2".parse().unwrap()),
-                (SparseTerm(vec![(0, 1), (1, 2)]), "4".parse().unwrap()),
-                (SparseTerm(vec![(0, 1), (0, 1)]), "8".parse().unwrap()),
-                (SparseTerm(vec![(3, 0)]), "1".parse().unwrap()),
+                ("2".parse().unwrap(), SparseTerm(vec![])),
+                ("4".parse().unwrap(), SparseTerm(vec![(0, 1), (1, 2)])),
+                ("8".parse().unwrap(), SparseTerm(vec![(0, 1), (0, 1)])),
+                ("1".parse().unwrap(), SparseTerm(vec![(3, 0)])),
             ],
         );
         let b = SparsePolynomial::from_coefficients_slice(
             4,
             &[
-                (SparseTerm(vec![(0, 1), (1, 2)]), "1".parse().unwrap()),
-                (SparseTerm(vec![(2, 1)]), "2".parse().unwrap()),
-                (SparseTerm(vec![(3, 1)]), "1".parse().unwrap()),
+                ("1".parse().unwrap(), SparseTerm(vec![(0, 1), (1, 2)])),
+                ("2".parse().unwrap(), SparseTerm(vec![(2, 1)])),
+                ("1".parse().unwrap(), SparseTerm(vec![(3, 1)])),
             ],
         );
         let result = naive_mul(&a, &b);
         let expected = SparsePolynomial::from_coefficients_slice(
             4,
             &[
-                (SparseTerm(vec![(0, 1), (1, 2)]), "3".parse().unwrap()),
-                (SparseTerm(vec![(2, 1)]), "6".parse().unwrap()),
-                (SparseTerm(vec![(3, 1)]), "3".parse().unwrap()),
-                (SparseTerm(vec![(0, 2), (1, 4)]), "4".parse().unwrap()),
+                ("3".parse().unwrap(), SparseTerm(vec![(0, 1), (1, 2)])),
+                ("6".parse().unwrap(), SparseTerm(vec![(2, 1)])),
+                ("3".parse().unwrap(), SparseTerm(vec![(3, 1)])),
+                ("4".parse().unwrap(), SparseTerm(vec![(0, 2), (1, 4)])),
                 (
-                    SparseTerm(vec![(0, 1), (1, 2), (2, 1)]),
                     "8".parse().unwrap(),
+                    SparseTerm(vec![(0, 1), (1, 2), (2, 1)]),
                 ),
                 (
-                    SparseTerm(vec![(0, 1), (1, 2), (3, 1)]),
                     "4".parse().unwrap(),
+                    SparseTerm(vec![(0, 1), (1, 2), (3, 1)]),
                 ),
-                (SparseTerm(vec![(0, 3), (1, 2)]), "8".parse().unwrap()),
-                (SparseTerm(vec![(0, 2), (2, 1)]), "16".parse().unwrap()),
-                (SparseTerm(vec![(0, 2), (3, 1)]), "8".parse().unwrap()),
+                ("8".parse().unwrap(), SparseTerm(vec![(0, 3), (1, 2)])),
+                ("16".parse().unwrap(), SparseTerm(vec![(0, 2), (2, 1)])),
+                ("8".parse().unwrap(), SparseTerm(vec![(0, 2), (3, 1)])),
             ],
         );
         assert_eq!(expected, result);

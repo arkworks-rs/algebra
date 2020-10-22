@@ -14,31 +14,31 @@ use rayon::prelude::*;
 mod sparse;
 pub use sparse::SparsePolynomial;
 
-/// Describes the interface for a term of a multivariate polynomial.
+/// Describes the interface for a term (monomial) of a multivariate polynomial.
 pub trait Term:
     Clone + PartialOrd + Ord + PartialEq + Eq + Hash + Default + Debug + Deref + Send + Sync
 {
-    /// Create a new Term from a list of tuples of the form `(variable, power)`
+    /// Create a new `Term` from a list of tuples of the form `(variable, power)`
     fn new(term: Vec<(usize, usize)>) -> Self;
 
-    /// Returns the sum of all variable powers in `self`
+    /// Returns the total degree of `self`. This is the sum of all variable powers in `self`
     fn degree(&self) -> usize;
 
     /// Returns a list of variables in `self`
     fn vars(&self) -> Vec<usize>;
 
-    /// Returns a list of variable powers in `self`
+    /// Returns a list of the powers of each variable in `self`
     fn powers(&self) -> Vec<usize>;
 
     /// Returns whether `self` is a constant
     fn is_constant(&self) -> bool;
 
-    /// Evaluates `self` at the given `point` in the field.
-    fn evaluate<F: Field>(&self, point: &[F]) -> F;
+    /// Evaluates `self` at the point `p`.
+    fn evaluate<F: Field>(&self, p: &[F]) -> F;
 }
 
-/// Stores a single term in a multivariate polynomial. Each element
-/// is of the form `(variable, power)`.  
+/// Stores a term (monomial) in a multivariate polynomial.
+/// Each element is of the form `(variable, power)`.  
 #[derive(Clone, PartialOrd, PartialEq, Eq, Hash, Default)]
 pub struct SparseTerm(Vec<(usize, usize)>);
 
@@ -63,7 +63,7 @@ impl SparseTerm {
 }
 
 impl Term for SparseTerm {
-    /// Create a new Term from a list of tuples of the form `(variable, power)`
+    /// Create a new `Term` from a list of tuples of the form `(variable, power)`
     fn new(mut term: Vec<(usize, usize)>) -> Self {
         // Remove any terms with power 0
         term.retain(|(_, pow)| *pow != 0);
