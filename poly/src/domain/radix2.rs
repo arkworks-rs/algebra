@@ -125,9 +125,9 @@ impl<F: FftField> EvaluationDomain<F> for Radix2EvaluationDomain<F> {
         if t_size.is_one() {
             let mut u = vec![F::zero(); size];
             let mut omega_i = one;
-            for i in 0..size {
+            for u_i in u.iter_mut().take(size) {
                 if omega_i == tau {
-                    u[i] = one;
+                    *u_i = one;
                     break;
                 }
                 omega_i *= &self.group_gen;
@@ -136,12 +136,12 @@ impl<F: FftField> EvaluationDomain<F> for Radix2EvaluationDomain<F> {
         } else {
             use ark_ff::fields::batch_inversion;
 
-            let mut l = (t_size - &one) * &self.size_inv;
+            let mut l = (t_size - one) * self.size_inv;
             let mut r = one;
             let mut u = vec![F::zero(); size];
             let mut ls = vec![F::zero(); size];
             for i in 0..size {
-                u[i] = tau - &r;
+                u[i] = tau - r;
                 ls[i] = l;
                 l *= &self.group_gen;
                 r *= &self.group_gen;
@@ -168,7 +168,7 @@ impl<F: FftField> EvaluationDomain<F> for Radix2EvaluationDomain<F> {
     /// For multiplicative subgroups, this polynomial is `z(X) = X^self.size -
     /// 1`.
     fn evaluate_vanishing_polynomial(&self, tau: F) -> F {
-        tau.pow(&[self.size]) - &F::one()
+        tau.pow(&[self.size]) - F::one()
     }
 
     /// Return an iterator over the elements of the domain.
