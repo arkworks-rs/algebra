@@ -109,6 +109,11 @@ impl<F: Field> MVPolynomial<F> for SparsePolynomial<F, SparseTerm> {
         self.terms.as_slice()
     }
 
+    /// Returns the number of variables in `self`
+    fn num_vars(&self) -> usize {
+        self.num_vars
+    }
+
     /// Outputs an `l`-variate polynomial which is the sum of `l` `d`-degree
     /// univariate polynomials where each coefficient is sampled uniformly at random.
     fn rand<R: Rng>(d: usize, l: usize, rng: &mut R) -> Self {

@@ -16,7 +16,17 @@ pub use sparse::SparsePolynomial;
 
 /// Describes the interface for a term (monomial) of a multivariate polynomial.
 pub trait Term:
-    Clone + PartialOrd + Ord + PartialEq + Eq + Hash + Default + Debug + Deref + Send + Sync
+    Clone
+    + PartialOrd
+    + Ord
+    + PartialEq
+    + Eq
+    + Hash
+    + Default
+    + Debug
+    + Deref<Target = [(usize, usize)]>
+    + Send
+    + Sync
 {
     /// Create a new `Term` from a list of tuples of the form `(variable, power)`
     fn new(term: Vec<(usize, usize)>) -> Self;

@@ -75,6 +75,9 @@ pub trait MVPolynomial<F: Field>: Polynomial<F> {
     /// Returns the terms of a `self` as a list of tuples of the form `(Self::Term, coeff)`
     fn terms(&self) -> &[(F, Self::Term)];
 
+    /// Returns the number of variables in `self`
+    fn num_vars(&self) -> usize;
+
     /// Outputs an `l`-variate polynomial which is the sum of `l` `d`-degree univariate
     /// polynomials where each coefficient is sampled uniformly at random.
     fn rand<R: Rng>(d: usize, num_vars: usize, rng: &mut R) -> Self;
