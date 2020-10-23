@@ -163,7 +163,7 @@ impl<P: QuadExtParameters> Field for QuadExtField<P> {
     type BasePrimeField = P::BasePrimeField;
 
     fn double(&self) -> Self {
-        let mut result = self.clone();
+        let mut result = *self;
         result.double_in_place();
         result
     }
@@ -374,10 +374,7 @@ impl<P: QuadExtParameters> Neg for QuadExtField<P> {
     #[inline]
     #[must_use]
     fn neg(self) -> Self {
-        let mut res = self.clone();
-        res.c0 = res.c0.neg();
-        res.c1 = res.c1.neg();
-        res
+        Self::new(-self.c0, -self.c1)
     }
 }
 

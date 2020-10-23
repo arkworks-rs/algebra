@@ -105,13 +105,13 @@ macro_rules! impl_field_square_in_place {
     ($limbs: expr) => {
         #[inline]
         #[ark_ff_asm::unroll_for_loops]
-        #[allow(unused_braces)]
+        #[allow(unused_braces, clippy::absurd_extreme_comparisons)]
         fn square_in_place(&mut self) -> &mut Self {
             // Checking the modulus at compile time
             let first_bit_set = P::MODULUS.0[$limbs - 1] >> 63 != 0;
             let mut all_bits_set = P::MODULUS.0[$limbs - 1] == !0 - (1 << 63);
             for i in 1..$limbs {
-                all_bits_set &= P::MODULUS.0[$limbs - i - 1] == !0u64;
+                all_bits_set &= P::MODULUS.0[$limbs - i - 1] == core::u64::MAX;
             }
             let _no_carry: bool = !(first_bit_set || all_bits_set);
 
@@ -131,7 +131,7 @@ macro_rules! impl_field_square_in_place {
             for i in 0..$limbs {
                 if i < $limbs - 1 {
                     for j in 0..$limbs {
-                        if j >= i + 1 {
+                        if j > i {
                             r[i + j] = fa::mac_with_carry(
                                 r[i + j],
                                 (self.0).0[i],
@@ -152,7 +152,7 @@ macro_rules! impl_field_square_in_place {
             for i in 3..$limbs {
                 r[$limbs + 1 - i] = (r[$limbs + 1 - i] << 1) | (r[$limbs - i] >> 63);
             }
-            r[1] = r[1] << 1;
+            r[1] <<= 1;
 
             for i in 0..$limbs {
                 r[2 * i] = fa::mac_with_carry(r[2 * i], (self.0).0[i], (self.0).0[i], &mut carry);
