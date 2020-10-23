@@ -6,6 +6,7 @@
     nonstandard_style,
     rust_2018_idioms
 )]
+#![allow(clippy::op_ref, clippy::suspicious_op_assign_impl)]
 #![cfg_attr(use_asm, feature(asm))]
 #![cfg_attr(not(use_asm), forbid(unsafe_code))]
 #![cfg_attr(use_asm, deny(unsafe_code))]

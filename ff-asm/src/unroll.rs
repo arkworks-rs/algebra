@@ -48,16 +48,16 @@ pub(crate) fn unroll_in_block(block: &Block) -> Block {
     } = block;
     let mut new_stmts = Vec::new();
     for stmt in stmts.iter() {
-        if let &Stmt::Expr(ref expr) = stmt {
+        if let Stmt::Expr(expr) = stmt {
             new_stmts.push(Stmt::Expr(unroll(expr)));
-        } else if let &Stmt::Semi(ref expr, semi) = stmt {
-            new_stmts.push(Stmt::Semi(unroll(expr), semi));
+        } else if let Stmt::Semi(expr, semi) = stmt {
+            new_stmts.push(Stmt::Semi(unroll(expr), *semi));
         } else {
             new_stmts.push((*stmt).clone());
         }
     }
     Block {
-        brace_token: brace_token.clone(),
+        brace_token: *brace_token,
         stmts: new_stmts,
     }
 }
@@ -66,7 +66,7 @@ pub(crate) fn unroll_in_block(block: &Block) -> Block {
 /// loop.
 fn unroll(expr: &Expr) -> Expr {
     // impose a scope that we can break out of so we can return stmt without copying it.
-    if let &Expr::ForLoop(ref for_loop) = expr {
+    if let Expr::ForLoop(for_loop) = expr {
         let ExprForLoop {
             ref attrs,
             ref label,
@@ -135,7 +135,7 @@ fn unroll(expr: &Expr) -> Expr {
                 } else {
                     // we need to know where the limit is to know how much to unroll by.
                     return forloop_with_body(new_body);
-                } + if let &RangeLimits::Closed(_) = limits {
+                } + if let RangeLimits::Closed(_) = limits {
                     1
                 } else {
                     0
@@ -155,18 +155,18 @@ fn unroll(expr: &Expr) -> Expr {
                     brace_token: Brace::default(),
                     stmts,
                 };
-                return Expr::Block(ExprBlock {
+                Expr::Block(ExprBlock {
                     attrs: attrs.clone(),
                     label: label.clone(),
                     block,
-                });
+                })
             } else {
                 forloop_with_body(new_body)
             }
         } else {
             forloop_with_body(new_body)
         }
-    } else if let &Expr::If(ref if_expr) = expr {
+    } else if let Expr::If(if_expr) = expr {
         let ExprIf {
             ref cond,
             ref then_branch,
@@ -179,13 +179,13 @@ fn unroll(expr: &Expr) -> Expr {
             else_branch: else_branch.as_ref().map(|x| (x.0, Box::new(unroll(&*x.1)))),
             ..(*if_expr).clone()
         })
-    } else if let &Expr::Let(ref let_expr) = expr {
+    } else if let Expr::Let(let_expr) = expr {
         let ExprLet { ref expr, .. } = *let_expr;
         Expr::Let(ExprLet {
             expr: Box::new(unroll(&**expr)),
             ..(*let_expr).clone()
         })
-    } else if let &Expr::Block(ref expr_block) = expr {
+    } else if let Expr::Block(expr_block) = expr {
         let ExprBlock { ref block, .. } = *expr_block;
         Expr::Block(ExprBlock {
             block: unroll_in_block(&*block),

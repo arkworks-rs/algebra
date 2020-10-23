@@ -289,7 +289,7 @@ fn generate_llvm_asm_mul_string(
         }
     }
     end();
-    return llvm_asm_string.into_inner();
+    llvm_asm_string.into_inner()
 }
 
 fn generate_impl(num_limbs: usize, is_mul: bool) -> String {
@@ -318,8 +318,8 @@ fn generate_impl(num_limbs: usize, is_mul: bool) -> String {
 
     ctx.add_llvm_asm(llvm_asm_string);
     ctx.add_clobber_from_vec(vec!["rcx", "rbx", "rdx", "rax"]);
-    for j in 0..std::cmp::min(num_limbs, 8) {
-        ctx.add_clobber(REG_CLOBBER[j]);
+    for clobber in REG_CLOBBER.iter().take(std::cmp::min(num_limbs, 8)) {
+        ctx.add_clobber(clobber);
     }
     ctx.add_clobber_from_vec(vec!["cc", "memory"]);
     ctx.build();

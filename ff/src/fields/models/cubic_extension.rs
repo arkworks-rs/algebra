@@ -140,7 +140,7 @@ impl<P: CubicExtParameters> Field for CubicExtField<P> {
     type BasePrimeField = P::BasePrimeField;
 
     fn double(&self) -> Self {
-        let mut result = self.clone();
+        let mut result = *self;
         result.double_in_place();
         result
     }
@@ -173,7 +173,7 @@ impl<P: CubicExtParameters> Field for CubicExtField<P> {
     }
 
     fn square(&self) -> Self {
-        let mut result = self.clone();
+        let mut result = *self;
         result.square_in_place();
         result
     }
@@ -182,9 +182,9 @@ impl<P: CubicExtParameters> Field for CubicExtField<P> {
         // Devegili OhEig Scott Dahab --- Multiplication and Squaring on
         // AbstractPairing-Friendly
         // Fields.pdf; Section 4 (CH-SQR2)
-        let a = self.c0.clone();
-        let b = self.c1.clone();
-        let c = self.c2.clone();
+        let a = self.c0;
+        let b = self.c1;
+        let c = self.c2;
 
         let s0 = a.square();
         let ab = a * &b;
@@ -210,39 +210,24 @@ impl<P: CubicExtParameters> Field for CubicExtField<P> {
             let t0 = self.c0.square();
             let t1 = self.c1.square();
             let t2 = self.c2.square();
-            let mut t3 = self.c0.clone();
-            t3.mul_assign(&self.c1);
-            let mut t4 = self.c0.clone();
-            t4.mul_assign(&self.c2);
-            let mut t5 = self.c1.clone();
-            t5.mul_assign(&self.c2);
+            let t3 = self.c0 * &self.c1;
+            let t4 = self.c0 * &self.c2;
+            let t5 = self.c1 * &self.c2;
             let n5 = P::mul_base_field_by_nonresidue(&t5);
 
-            let mut s0 = t0.clone();
-            s0.sub_assign(&n5);
-            let mut s1 = P::mul_base_field_by_nonresidue(&t2);
-            s1.sub_assign(&t3);
-            let mut s2 = t1.clone();
-            s2.sub_assign(&t4); // typo in paper referenced above. should be "-" as per Scott, but is "*"
+            let s0 = t0 - &n5;
+            let s1 = P::mul_base_field_by_nonresidue(&t2) - &t3;
+            let s2 = t1 - &t4; // typo in paper referenced above. should be "-" as per Scott, but is "*"
 
-            let mut a1 = self.c2.clone();
-            a1.mul_assign(&s1);
-            let mut a2 = self.c1.clone();
-            a2.mul_assign(&s2);
-            let mut a3 = a1.clone();
-            a3.add_assign(&a2);
+            let a1 = self.c2 * &s1;
+            let a2 = self.c1 * &s2;
+            let mut a3 = a1 + &a2;
             a3 = P::mul_base_field_by_nonresidue(&a3);
-            let mut t6 = self.c0.clone();
-            t6.mul_assign(&s0);
-            t6.add_assign(&a3);
-            t6.inverse_in_place();
+            let t6 = (self.c0 * &s0 + &a3).inverse().unwrap();
 
-            let mut c0 = t6.clone();
-            c0.mul_assign(&s0);
-            let mut c1 = t6.clone();
-            c1.mul_assign(&s1);
-            let mut c2 = t6.clone();
-            c2.mul_assign(&s2);
+            let c0 = t6 * &s0;
+            let c1 = t6 * &s1;
+            let c2 = t6 * &s2;
 
             Some(Self::new(c0, c1, c2))
         }
@@ -360,11 +345,7 @@ impl<P: CubicExtParameters> Neg for CubicExtField<P> {
     type Output = Self;
     #[inline]
     fn neg(self) -> Self {
-        let mut res = self.clone();
-        res.c0 = res.c0.neg();
-        res.c1 = res.c1.neg();
-        res.c2 = res.c2.neg();
-        res
+        Self::new(self.c0.neg(), self.c1.neg(), self.c2.neg())
     }
 }
 
@@ -445,6 +426,7 @@ impl<'a, P: CubicExtParameters> SubAssign<&'a Self> for CubicExtField<P> {
 
 impl<'a, P: CubicExtParameters> MulAssign<&'a Self> for CubicExtField<P> {
     #[inline]
+    #[allow(clippy::many_single_char_names)]
     fn mul_assign(&mut self, other: &Self) {
         // Devegili OhEig Scott Dahab --- Multiplication and Squaring on
         // AbstractPairing-Friendly
