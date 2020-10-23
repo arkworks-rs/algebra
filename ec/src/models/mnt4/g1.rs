@@ -26,10 +26,10 @@ pub struct G1Prepared<P: MNT4Parameters> {
 
 impl<P: MNT4Parameters> From<G1Affine<P>> for G1Prepared<P> {
     fn from(g1: G1Affine<P>) -> Self {
-        let mut x_twist = P::TWIST.clone();
+        let mut x_twist = P::TWIST;
         x_twist.mul_assign_by_fp(&g1.x);
 
-        let mut y_twist = P::TWIST.clone();
+        let mut y_twist = P::TWIST;
         y_twist.mul_assign_by_fp(&g1.y);
 
         Self {

@@ -46,11 +46,7 @@ pub struct Bls12<P: Bls12Parameters>(PhantomData<fn() -> P>);
 
 impl<P: Bls12Parameters> Bls12<P> {
     // Evaluate the line function at point p.
-    fn ell(
-        f: &mut Fp12<P::Fp12Params>,
-        coeffs: &(Fp2<P::Fp2Params>, Fp2<P::Fp2Params>, Fp2<P::Fp2Params>),
-        p: &G1Affine<P>,
-    ) {
+    fn ell(f: &mut Fp12<P::Fp12Params>, coeffs: &g2::EllCoeff<Fp2<P::Fp2Params>>, p: &G1Affine<P>) {
         let mut c0 = coeffs.0;
         let mut c1 = coeffs.1;
         let mut c2 = coeffs.2;
@@ -135,51 +131,49 @@ impl<P: Bls12Parameters> PairingEngine for Bls12<P> {
         let mut f1 = *f;
         f1.conjugate();
 
-        f.inverse().and_then(|mut f2| {
-            {
-                // f2 = f^(-1);
-                // r = f^(p^6 - 1)
-                let mut r = f1 * &f2;
+        f.inverse().map(|mut f2| {
+            // f2 = f^(-1);
+            // r = f^(p^6 - 1)
+            let mut r = f1 * &f2;
 
-                // f2 = f^(p^6 - 1)
-                f2 = r;
-                // r = f^((p^6 - 1)(p^2))
-                r.frobenius_map(2);
+            // f2 = f^(p^6 - 1)
+            f2 = r;
+            // r = f^((p^6 - 1)(p^2))
+            r.frobenius_map(2);
 
-                // r = f^((p^6 - 1)(p^2) + (p^6 - 1))
-                // r = f^((p^6 - 1)(p^2 + 1))
-                r *= &f2;
+            // r = f^((p^6 - 1)(p^2) + (p^6 - 1))
+            // r = f^((p^6 - 1)(p^2 + 1))
+            r *= &f2;
 
-                // Hard part of the final exponentation is below:
-                // From https://eprint.iacr.org/2016/130.pdf, Table 1
-                let mut y0 = r.cyclotomic_square();
-                y0.conjugate();
+            // Hard part of the final exponentation is below:
+            // From https://eprint.iacr.org/2016/130.pdf, Table 1
+            let mut y0 = r.cyclotomic_square();
+            y0.conjugate();
 
-                let mut y5 = Self::exp_by_x(r);
+            let mut y5 = Self::exp_by_x(r);
 
-                let mut y1 = y5.cyclotomic_square();
-                let mut y3 = y0 * &y5;
-                y0 = Self::exp_by_x(y3);
-                let y2 = Self::exp_by_x(y0);
-                let mut y4 = Self::exp_by_x(y2);
-                y4 *= &y1;
-                y1 = Self::exp_by_x(y4);
-                y3.conjugate();
-                y1 *= &y3;
-                y1 *= &r;
-                y3 = r;
-                y3.conjugate();
-                y0 *= &r;
-                y0.frobenius_map(3);
-                y4 *= &y3;
-                y4.frobenius_map(1);
-                y5 *= &y2;
-                y5.frobenius_map(2);
-                y5 *= &y0;
-                y5 *= &y4;
-                y5 *= &y1;
-                Some(y5)
-            }
+            let mut y1 = y5.cyclotomic_square();
+            let mut y3 = y0 * &y5;
+            y0 = Self::exp_by_x(y3);
+            let y2 = Self::exp_by_x(y0);
+            let mut y4 = Self::exp_by_x(y2);
+            y4 *= &y1;
+            y1 = Self::exp_by_x(y4);
+            y3.conjugate();
+            y1 *= &y3;
+            y1 *= &r;
+            y3 = r;
+            y3.conjugate();
+            y0 *= &r;
+            y0.frobenius_map(3);
+            y4 *= &y3;
+            y4.frobenius_map(1);
+            y5 *= &y2;
+            y5.frobenius_map(2);
+            y5 *= &y0;
+            y5 *= &y4;
+            y5 *= &y1;
+            y5
         })
     }
 }
