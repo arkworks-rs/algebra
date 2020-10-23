@@ -7,6 +7,11 @@
     rust_2018_idioms
 )]
 #![forbid(unsafe_code)]
+#![allow(
+    clippy::op_ref,
+    clippy::suspicious_op_assign_impl,
+    clippy::many_single_char_names
+)]
 
 #[macro_use]
 extern crate derivative;

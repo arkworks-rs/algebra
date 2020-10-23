@@ -50,11 +50,7 @@ pub struct Bn<P: BnParameters>(PhantomData<fn() -> P>);
 
 impl<P: BnParameters> Bn<P> {
     // Evaluate the line function at point p.
-    fn ell(
-        f: &mut Fp12<P::Fp12Params>,
-        coeffs: &(Fp2<P::Fp2Params>, Fp2<P::Fp2Params>, Fp2<P::Fp2Params>),
-        p: &G1Affine<P>,
-    ) {
+    fn ell(f: &mut Fp12<P::Fp12Params>, coeffs: &g2::EllCoeff<Fp2<P::Fp2Params>>, p: &G1Affine<P>) {
         let mut c0 = coeffs.0;
         let mut c1 = coeffs.1;
         let mut c2 = coeffs.2;
@@ -75,7 +71,7 @@ impl<P: BnParameters> Bn<P> {
 
     fn exp_by_neg_x(mut f: Fp12<P::Fp12Params>) -> Fp12<P::Fp12Params> {
         f = f.cyclotomic_exp(&P::X);
-        if !!!P::X_IS_NEGATIVE {
+        if !P::X_IS_NEGATIVE {
             f.conjugate();
         }
         f
@@ -147,6 +143,7 @@ impl<P: BnParameters> PairingEngine for Bn<P> {
         f
     }
 
+    #[allow(clippy::let_and_return)]
     fn final_exponentiation(f: &Self::Fqk) -> Option<Self::Fqk> {
         // Easy part: result = elt^((q^6-1)*(q^2+1)).
         // Follows, e.g., Beuchat et al page 9, by computing result as follows:
@@ -156,58 +153,56 @@ impl<P: BnParameters> PairingEngine for Bn<P> {
         let mut f1 = *f;
         f1.conjugate();
 
-        f.inverse().and_then(|mut f2| {
-            {
-                // f2 = f^(-1);
-                // r = f^(p^6 - 1)
-                let mut r = f1 * &f2;
+        f.inverse().map(|mut f2| {
+            // f2 = f^(-1);
+            // r = f^(p^6 - 1)
+            let mut r = f1 * &f2;
 
-                // f2 = f^(p^6 - 1)
-                f2 = r;
-                // r = f^((p^6 - 1)(p^2))
-                r.frobenius_map(2);
+            // f2 = f^(p^6 - 1)
+            f2 = r;
+            // r = f^((p^6 - 1)(p^2))
+            r.frobenius_map(2);
 
-                // r = f^((p^6 - 1)(p^2) + (p^6 - 1))
-                // r = f^((p^6 - 1)(p^2 + 1))
-                r *= &f2;
+            // r = f^((p^6 - 1)(p^2) + (p^6 - 1))
+            // r = f^((p^6 - 1)(p^2 + 1))
+            r *= &f2;
 
-                // Hard part follows Laura Fuentes-Castaneda et al. "Faster hashing to G2"
-                // by computing:
-                //
-                // result = elt^(q^3 * (12*z^3 + 6z^2 + 4z - 1) +
-                //               q^2 * (12*z^3 + 6z^2 + 6z) +
-                //               q   * (12*z^3 + 6z^2 + 4z) +
-                //               1   * (12*z^3 + 12z^2 + 6z + 1))
-                // which equals
-                //
-                // result = elt^( 2z * ( 6z^2 + 3z + 1 ) * (q^4 - q^2 + 1)/r ).
+            // Hard part follows Laura Fuentes-Castaneda et al. "Faster hashing to G2"
+            // by computing:
+            //
+            // result = elt^(q^3 * (12*z^3 + 6z^2 + 4z - 1) +
+            //               q^2 * (12*z^3 + 6z^2 + 6z) +
+            //               q   * (12*z^3 + 6z^2 + 4z) +
+            //               1   * (12*z^3 + 12z^2 + 6z + 1))
+            // which equals
+            //
+            // result = elt^( 2z * ( 6z^2 + 3z + 1 ) * (q^4 - q^2 + 1)/r ).
 
-                let y0 = Self::exp_by_neg_x(r);
-                let y1 = y0.cyclotomic_square();
-                let y2 = y1.cyclotomic_square();
-                let mut y3 = y2 * &y1;
-                let y4 = Self::exp_by_neg_x(y3);
-                let y5 = y4.cyclotomic_square();
-                let mut y6 = Self::exp_by_neg_x(y5);
-                y3.conjugate();
-                y6.conjugate();
-                let y7 = y6 * &y4;
-                let mut y8 = y7 * &y3;
-                let y9 = y8 * &y1;
-                let y10 = y8 * &y4;
-                let y11 = y10 * &r;
-                let mut y12 = y9;
-                y12.frobenius_map(1);
-                let y13 = y12 * &y11;
-                y8.frobenius_map(2);
-                let y14 = y8 * &y13;
-                r.conjugate();
-                let mut y15 = r * &y9;
-                y15.frobenius_map(3);
-                let y16 = y15 * &y14;
+            let y0 = Self::exp_by_neg_x(r);
+            let y1 = y0.cyclotomic_square();
+            let y2 = y1.cyclotomic_square();
+            let mut y3 = y2 * &y1;
+            let y4 = Self::exp_by_neg_x(y3);
+            let y5 = y4.cyclotomic_square();
+            let mut y6 = Self::exp_by_neg_x(y5);
+            y3.conjugate();
+            y6.conjugate();
+            let y7 = y6 * &y4;
+            let mut y8 = y7 * &y3;
+            let y9 = y8 * &y1;
+            let y10 = y8 * &y4;
+            let y11 = y10 * &r;
+            let mut y12 = y9;
+            y12.frobenius_map(1);
+            let y13 = y12 * &y11;
+            y8.frobenius_map(2);
+            let y14 = y8 * &y13;
+            r.conjugate();
+            let mut y15 = r * &y9;
+            y15.frobenius_map(3);
+            let y16 = y15 * &y14;
 
-                Some(y16)
-            }
+            y16
         })
     }
 }

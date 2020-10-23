@@ -110,15 +110,14 @@ impl<P: MNT6Parameters> MNT6<P> {
 
         let mut f = <Fp6<P::Fp6Params>>::one();
 
-        let mut dbl_idx: usize = 0;
         let mut add_idx: usize = 0;
 
         // code below gets executed for all bits (EXCEPT the MSB itself) of
         // mnt6_param_p (skipping leading zeros) in MSB to LSB order
-        for bit in BitIteratorBE::without_leading_zeros(P::ATE_LOOP_COUNT).skip(1) {
-            let dc = &q.double_coefficients[dbl_idx];
-            dbl_idx += 1;
-
+        for (bit, dc) in BitIteratorBE::without_leading_zeros(P::ATE_LOOP_COUNT)
+            .skip(1)
+            .zip(&q.double_coefficients)
+        {
             let g_rr_at_p = Fp6::new(
                 dc.c_l - &dc.c_4c - &(dc.c_j * &p.x_twist),
                 dc.c_h * &p.y_twist,
@@ -165,12 +164,12 @@ impl<P: MNT6Parameters> MNT6<P> {
         // (q^3-1)*(q+1)
 
         // elt_q3 = elt^(q^3)
-        let mut elt_q3 = elt.clone();
+        let mut elt_q3 = *elt;
         elt_q3.conjugate();
         // elt_q3_over_elt = elt^(q^3-1)
         let elt_q3_over_elt = elt_q3 * elt_inv;
         // alpha = elt^((q^3-1) * q)
-        let mut alpha = elt_q3_over_elt.clone();
+        let mut alpha = elt_q3_over_elt;
         alpha.frobenius_map(1);
         // beta = elt^((q^3-1)*(q+1)
         alpha * &elt_q3_over_elt
@@ -180,10 +179,10 @@ impl<P: MNT6Parameters> MNT6<P> {
         elt: &Fp6<P::Fp6Params>,
         elt_inv: &Fp6<P::Fp6Params>,
     ) -> Fp6<P::Fp6Params> {
-        let elt_clone = elt.clone();
-        let elt_inv_clone = elt_inv.clone();
+        let elt_clone = *elt;
+        let elt_inv_clone = *elt_inv;
 
-        let mut elt_q = elt.clone();
+        let mut elt_q = *elt;
         elt_q.frobenius_map(1);
 
         let w1_part = elt_q.cyclotomic_exp(&P::FINAL_EXPONENT_LAST_CHUNK_1);

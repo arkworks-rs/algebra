@@ -267,7 +267,6 @@ mod group_impl {
         type ScalarField = P::ScalarField;
 
         #[inline]
-        #[must_use]
         fn double(&self) -> Self {
             let mut tmp = *self;
             tmp += self;
