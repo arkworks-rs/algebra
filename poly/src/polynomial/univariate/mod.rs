@@ -116,12 +116,12 @@ impl<'a, F: Field> DenseOrSparsePolynomial<'a, F> {
             // Can unwrap here because we know self is not zero.
             let divisor_leading_inv = divisor.leading_coefficient().unwrap().inverse().unwrap();
             while !remainder.is_zero() && remainder.degree() >= divisor.degree() {
-                let cur_q_coeff = *remainder.coeffs.last().unwrap() * &divisor_leading_inv;
+                let cur_q_coeff = *remainder.coeffs.last().unwrap() * divisor_leading_inv;
                 let cur_q_degree = remainder.degree() - divisor.degree();
                 quotient[cur_q_degree] = cur_q_coeff;
 
                 for (i, div_coeff) in divisor.iter_with_index() {
-                    remainder[cur_q_degree + i] -= &(cur_q_coeff * &div_coeff);
+                    remainder[cur_q_degree + i] -= &(cur_q_coeff * div_coeff);
                 }
                 while let Some(true) = remainder.coeffs.last().map(|c| c.is_zero()) {
                     remainder.coeffs.pop();

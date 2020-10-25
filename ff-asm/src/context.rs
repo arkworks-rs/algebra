@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-pub const REG_CLOBBER: [&'static str; 8] = ["r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15"];
+pub const REG_CLOBBER: [&str; 8] = ["r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15"];
 
 #[derive(Clone)]
 pub struct Context {
@@ -44,7 +44,7 @@ impl Context {
         self.declarations
             .get(id)
             .map(|dec| dec.token.clone())
-            .unwrap_or(self.get(fallback_id))
+            .unwrap_or_else(|| self.get(fallback_id))
     }
 
     pub fn add_declaration(&mut self, id: &str, ty: &str, var: &str) {

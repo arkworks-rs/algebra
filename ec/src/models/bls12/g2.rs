@@ -30,9 +30,11 @@ pub type G2Projective<P> = GroupProjective<<P as Bls12Parameters>::G2Parameters>
 pub struct G2Prepared<P: Bls12Parameters> {
     // Stores the coefficients of the line evaluations as calculated in
     // https://eprint.iacr.org/2013/722.pdf
-    pub ell_coeffs: Vec<(Fp2<P::Fp2Params>, Fp2<P::Fp2Params>, Fp2<P::Fp2Params>)>,
+    pub ell_coeffs: Vec<EllCoeff<Fp2<P::Fp2Params>>>,
     pub infinity: bool,
 }
+
+pub(crate) type EllCoeff<F> = (F, F, F);
 
 #[derive(Derivative)]
 #[derivative(
@@ -103,7 +105,7 @@ impl<P: Bls12Parameters> G2Prepared<P> {
 fn doubling_step<B: Bls12Parameters>(
     r: &mut G2HomProjective<B>,
     two_inv: &B::Fp,
-) -> (Fp2<B::Fp2Params>, Fp2<B::Fp2Params>, Fp2<B::Fp2Params>) {
+) -> EllCoeff<Fp2<B::Fp2Params>> {
     // Formula for line function when working with
     // homogeneous projective coordinates.
 
@@ -132,7 +134,7 @@ fn doubling_step<B: Bls12Parameters>(
 fn addition_step<B: Bls12Parameters>(
     r: &mut G2HomProjective<B>,
     q: &G2Affine<B>,
-) -> (Fp2<B::Fp2Params>, Fp2<B::Fp2Params>, Fp2<B::Fp2Params>) {
+) -> EllCoeff<Fp2<B::Fp2Params>> {
     // Formula for line function when working with
     // homogeneous projective coordinates.
     let theta = r.y - &(q.y * &r.z);

@@ -108,15 +108,15 @@ impl<P: MNT4Parameters> MNT4<P> {
 
         let mut f = <Fp4<P::Fp4Params>>::one();
 
-        let mut dbl_idx: usize = 0;
         let mut add_idx: usize = 0;
 
         // code below gets executed for all bits (EXCEPT the MSB itself) of
         // mnt6_param_p (skipping leading zeros) in MSB to LSB order
-        for bit in BitIteratorBE::without_leading_zeros(P::ATE_LOOP_COUNT).skip(1) {
-            let dc = &q.double_coefficients[dbl_idx];
-            dbl_idx += 1;
 
+        for (bit, dc) in BitIteratorBE::without_leading_zeros(P::ATE_LOOP_COUNT)
+            .skip(1)
+            .zip(&q.double_coefficients)
+        {
             let g_rr_at_p = Fp4::new(
                 -dc.c_4c - &(dc.c_j * &p.x_twist) + &dc.c_l,
                 dc.c_h * &p.y_twist,
@@ -163,7 +163,7 @@ impl<P: MNT4Parameters> MNT4<P> {
         // (q^2-1)
 
         // elt_q2 = elt^(q^2)
-        let mut elt_q2 = elt.clone();
+        let mut elt_q2 = *elt;
         elt_q2.conjugate();
         // elt_q2_over_elt = elt^(q^2-1)
         elt_q2 * elt_inv
@@ -173,10 +173,10 @@ impl<P: MNT4Parameters> MNT4<P> {
         elt: &Fp4<P::Fp4Params>,
         elt_inv: &Fp4<P::Fp4Params>,
     ) -> Fp4<P::Fp4Params> {
-        let elt_clone = elt.clone();
-        let elt_inv_clone = elt_inv.clone();
+        let elt_clone = *elt;
+        let elt_inv_clone = *elt_inv;
 
-        let mut elt_q = elt.clone();
+        let mut elt_q = *elt;
         elt_q.frobenius_map(1);
 
         let w1_part = elt_q.cyclotomic_exp(&P::FINAL_EXPONENT_LAST_CHUNK_1);

@@ -84,12 +84,13 @@ impl<F: Field> SparsePolynomial<F> {
         }
         let mut total = F::zero();
         for (i, c) in &self.coeffs {
-            total += &(*c * &point.pow(&[*i as u64]));
+            total += &(*c * point.pow(&[*i as u64]));
         }
         total
     }
 
     /// Perform a naive n^2 multiplicatoin of `self` by `other`.
+    #[allow(clippy::or_fun_call)]
     pub fn mul(&self, other: &Self) -> Self {
         if self.is_zero() || other.is_zero() {
             SparsePolynomial::zero()
