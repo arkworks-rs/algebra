@@ -24,6 +24,15 @@ pub enum GeneralEvaluationDomain<F: FftField> {
     MixedRadix(MixedRadixEvaluationDomain<F>),
 }
 
+macro_rules! map {
+    ($self:expr, $f1:ident $(, $x:expr)*) => {
+        match $self {
+            Self::Radix2(domain) => EvaluationDomain::$f1(domain, $($x)*),
+            Self::MixedRadix(domain) => EvaluationDomain::$f1(domain, $($x)*),
+        }
+    }
+}
+
 impl<F: FftField> EvaluationDomain<F> for GeneralEvaluationDomain<F> {
     type Elements = GeneralElements<F>;
 
@@ -65,101 +74,59 @@ impl<F: FftField> EvaluationDomain<F> for GeneralEvaluationDomain<F> {
 
     #[inline]
     fn size(&self) -> usize {
-        match self {
-            GeneralEvaluationDomain::Radix2(domain) => domain.size(),
-            GeneralEvaluationDomain::MixedRadix(domain) => domain.size(),
-        }
+        map!(self, size)
     }
 
     #[inline]
     fn fft_in_place<T: DomainCoeff<F>>(&self, coeffs: &mut Vec<T>) {
-        match self {
-            GeneralEvaluationDomain::Radix2(domain) => domain.fft_in_place(coeffs),
-            GeneralEvaluationDomain::MixedRadix(domain) => domain.fft_in_place(coeffs),
-        }
+        map!(self, fft_in_place, coeffs)
     }
 
     #[inline]
     fn ifft_in_place<T: DomainCoeff<F>>(&self, evals: &mut Vec<T>) {
-        match self {
-            GeneralEvaluationDomain::Radix2(domain) => domain.ifft_in_place(evals),
-            GeneralEvaluationDomain::MixedRadix(domain) => domain.ifft_in_place(evals),
-        }
+        map!(self, ifft_in_place, evals)
     }
 
     #[inline]
     fn coset_fft_in_place<T: DomainCoeff<F>>(&self, coeffs: &mut Vec<T>) {
-        match self {
-            GeneralEvaluationDomain::Radix2(domain) => domain.coset_fft_in_place(coeffs),
-            GeneralEvaluationDomain::MixedRadix(domain) => domain.coset_fft_in_place(coeffs),
-        }
+        map!(self, coset_fft_in_place, coeffs)
     }
 
     #[inline]
     fn coset_ifft_in_place<T: DomainCoeff<F>>(&self, evals: &mut Vec<T>) {
-        match self {
-            GeneralEvaluationDomain::Radix2(domain) => domain.coset_ifft_in_place(evals),
-            GeneralEvaluationDomain::MixedRadix(domain) => domain.coset_ifft_in_place(evals),
-        }
+        map!(self, coset_ifft_in_place, evals)
     }
 
     #[inline]
     fn evaluate_all_lagrange_coefficients(&self, tau: F) -> Vec<F> {
-        match self {
-            GeneralEvaluationDomain::Radix2(domain) => {
-                domain.evaluate_all_lagrange_coefficients(tau)
-            }
-            GeneralEvaluationDomain::MixedRadix(domain) => {
-                domain.evaluate_all_lagrange_coefficients(tau)
-            }
-        }
+        map!(self, evaluate_all_lagrange_coefficients, tau)
     }
 
     #[inline]
     fn vanishing_polynomial(&self) -> crate::univariate::SparsePolynomial<F> {
-        match self {
-            GeneralEvaluationDomain::Radix2(domain) => domain.vanishing_polynomial(),
-            GeneralEvaluationDomain::MixedRadix(domain) => domain.vanishing_polynomial(),
-        }
+        map!(self, vanishing_polynomial)
     }
 
     #[inline]
     fn evaluate_vanishing_polynomial(&self, tau: F) -> F {
-        match self {
-            GeneralEvaluationDomain::Radix2(domain) => domain.evaluate_vanishing_polynomial(tau),
-            GeneralEvaluationDomain::MixedRadix(domain) => {
-                domain.evaluate_vanishing_polynomial(tau)
-            }
-        }
+        map!(self, evaluate_vanishing_polynomial, tau)
     }
 
     /// Return an iterator over the elements of the domain.
     fn elements(&self) -> GeneralElements<F> {
-        match self {
-            GeneralEvaluationDomain::Radix2(domain) => {
-                GeneralElements::BasicElements(domain.elements())
-            }
-            GeneralEvaluationDomain::MixedRadix(domain) => {
-                GeneralElements::BasicElements(domain.elements())
-            }
-        }
+        GeneralElements(map!(self, elements))
     }
 }
 
 /// A generalized version of an iterator over the elements of a domain.
-pub enum GeneralElements<F: FftField> {
-    /// A basic iterator over the elements of a domain (currently, the only one in use).
-    BasicElements(Elements<F>),
-}
+pub struct GeneralElements<F: FftField>(Elements<F>);
 
 impl<F: FftField> Iterator for GeneralElements<F> {
     type Item = F;
 
     #[inline]
     fn next(&mut self) -> Option<F> {
-        match self {
-            GeneralElements::BasicElements(it) => it.next(),
-        }
+        self.0.next()
     }
 }
 
