@@ -52,7 +52,7 @@ impl<F: Field> Polynomial<F> for SparsePolynomial<F, SparseTerm> {
     fn degree(&self) -> usize {
         self.terms
             .iter()
-            .map(|(_, term)| (*term).degree())
+            .map(|(_, term)| term.degree())
             .max()
             .unwrap_or(0)
     }
@@ -79,14 +79,11 @@ impl<F: Field> MVPolynomial<F> for SparsePolynomial<F, SparseTerm> {
         // If any terms are duplicated, add them together
         let mut terms_dedup: Vec<(F, SparseTerm)> = Vec::new();
         for term in terms {
-            match terms_dedup.last_mut() {
-                Some(prev) => {
-                    if prev.1 == term.1 {
-                        *prev = (prev.0 + term.0, prev.1.clone());
-                        continue;
-                    }
+            if let Some(prev) = terms_dedup.last_mut() {
+                if prev.1 == term.1 {
+                    *prev = (prev.0 + term.0, prev.1.clone());
+                    continue;
                 }
-                _ => {}
             };
             // Assert correct number of indeterminates
             assert!(
@@ -146,7 +143,7 @@ impl<'a, 'b, F: Field, T: Term> Add<&'a SparsePolynomial<F, T>> for &'b SparsePo
                 (None, None) => None,
             };
             // Push the smallest element to the `result` coefficient vec
-            result.push(match which {
+            let smallest = match which {
                 Some(Ordering::Less) => cur_iter.next().unwrap().clone(),
                 Some(Ordering::Equal) => {
                     let other = other_iter.next().unwrap();
@@ -155,7 +152,8 @@ impl<'a, 'b, F: Field, T: Term> Add<&'a SparsePolynomial<F, T>> for &'b SparsePo
                 }
                 Some(Ordering::Greater) => other_iter.next().unwrap().clone(),
                 None => break,
-            });
+            };
+            result.push(smallest);
         }
         // Remove any zero terms
         result.retain(|(c, _)| !c.is_zero());
@@ -185,7 +183,6 @@ impl<'a, 'b, F: Field, T: Term> AddAssign<(F, &'a SparsePolynomial<F, T>)>
                 .collect(),
         };
         *self = &*self + &other;
-        self.remove_zeros()
     }
 }
 
