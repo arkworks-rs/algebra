@@ -17,6 +17,7 @@ pub trait Polynomial<F: Field>:
     Sized
     + Clone
     + Debug
+    + Default
     + Hash
     + PartialEq
     + Eq
