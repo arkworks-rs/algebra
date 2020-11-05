@@ -43,7 +43,7 @@ pub trait Polynomial<F: Field>:
 }
 
 /// Describes the interface for univariate polynomials
-pub trait UVPolynomial<F: Field>: Polynomial<F> {
+pub trait UVPolynomial<F: Field>: Polynomial<F, Point = F> {
     /// Constructs a new polynomial from a list of coefficients.
     fn from_coefficients_slice(coeffs: &[F]) -> Self;
 
