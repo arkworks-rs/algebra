@@ -182,6 +182,7 @@ impl<'a, 'b, F: Field, T: Term> AddAssign<(F, &'a SparsePolynomial<F, T>)>
                 .map(|(coeff, term)| (*coeff * &f, term.clone()))
                 .collect(),
         };
+        // Note the call to `Add` will remove also any duplicates
         *self = &*self + &other;
     }
 }
