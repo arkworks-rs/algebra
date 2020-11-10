@@ -21,8 +21,6 @@ pub trait Polynomial<F: Field>:
     + Hash
     + PartialEq
     + Eq
-    + Send
-    + Sync
     + for<'a> AddAssign<&'a Self>
     + for<'a> AddAssign<(F, &'a Self)>
     + for<'a> SubAssign<&'a Self>
