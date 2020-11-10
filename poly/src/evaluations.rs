@@ -34,6 +34,11 @@ impl<F: FftField, D: EvaluationDomain<F>> Evaluations<F, D> {
         domain.ifft_in_place(&mut evals);
         DensePolynomial::from_coefficients_vec(evals)
     }
+
+    /// Return the domain `self` is defined over
+    pub fn domain(&self) -> D {
+        self.domain
+    }
 }
 
 impl<F: FftField, D: EvaluationDomain<F>> Index<usize> for Evaluations<F, D> {
