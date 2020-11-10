@@ -472,18 +472,52 @@ impl<P: Parameters> ProjectiveCurve for GroupProjective<P> {
     }
 
     fn double_in_place(&mut self) -> &mut Self {
-        let tmp = *self;
-        *self += &tmp;
+        // See "Twisted Edwards Curves Revisited"
+        // Huseyin Hisil, Kenneth Koon-Ho Wong, Gary Carter, and Ed Dawson
+        // 3.3 Doubling in E^e
+        // Source: https://www.hyperelliptic.org/EFD/g1p/data/twisted/extended/doubling/dbl-2008-hwcd
+
+        // A = X1^2
+        let a = self.x.square();
+        // B = Y1^2
+        let b = self.y.square();
+        // C = 2 * Z1^2
+        let c = self.z.square().double();
+        // D = a * A
+        let d = P::mul_by_a(&a);
+        // E = (X1 + Y1)^2 - A - B
+        let e = (self.x + &self.y).square() - &a - &b;
+        // G = D + B
+        let g = d + &b;
+        // F = G - C
+        let f = g - &c;
+        // H = D - B
+        let h = d - &b;
+        // X3 = E * F
+        self.x = e * &f;
+        // Y3 = G * H
+        self.y = g * &h;
+        // T3 = E * H
+        self.t = e * &h;
+        // Z3 = F * G
+        self.z = f * &g;
+
         self
     }
 
     fn add_assign_mixed(&mut self, other: &GroupAffine<P>) {
+        // See "Twisted Edwards Curves Revisited"
+        // Huseyin Hisil, Kenneth Koon-Ho Wong, Gary Carter, and Ed Dawson
+        // 3.1 Unified Addition in E^e
+        // Source: https://www.hyperelliptic.org/EFD/g1p/data/twisted/extended/addition/madd-2008-hwcd
+
         // A = X1*X2
         let a = self.x * &other.x;
         // B = Y1*Y2
         let b = self.y * &other.y;
         // C = T1*d*T2
         let c = P::COEFF_D * &self.t * &other.x * &other.y;
+
         // D = Z1
         let d = self.z;
         // E = (X1+Y1)*(X2+Y2)-A-B
