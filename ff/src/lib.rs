@@ -48,12 +48,6 @@ pub mod prelude {
     pub use num_traits::{One, Zero};
 }
 
-#[cfg(not(feature = "std"))]
-fn error(_msg: &'static str) -> ark_std::io::Error {
-    ark_std::io::Error
-}
-
-#[cfg(feature = "std")]
 fn error(msg: &'static str) -> ark_std::io::Error {
     ark_std::io::Error::new(ark_std::io::ErrorKind::Other, msg)
 }
