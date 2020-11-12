@@ -25,7 +25,7 @@ pub trait Polynomial<F: Field>:
     + for<'a> SubAssign<&'a Self>
 {
     /// The type of evaluation points for this polynomial.
-    type Point: Sized + Clone + Ord + Debug + Sync;
+    type Point: Sized + Clone + Ord + Debug + Sync + Hash;
 
     /// Returns the zero polynomial.
     fn zero() -> Self;
