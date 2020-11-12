@@ -807,7 +807,9 @@ where
     fn to_field_elements(&self) -> Option<Vec<ConstraintF>> {
         let mut x_fe = self.x.to_field_elements()?;
         let y_fe = self.y.to_field_elements()?;
+        let infinity_fe = self.infinity.to_field_elements()?;
         x_fe.extend_from_slice(&y_fe);
+        x_fe.extend_from_slice(&infinity_fe);
         Some(x_fe)
     }
 }
