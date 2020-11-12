@@ -103,7 +103,7 @@ impl<F: FftField> EvaluationDomain<F> for GeneralEvaluationDomain<F> {
     }
 
     #[inline]
-    fn vanishing_polynomial(&self) -> crate::SparsePolynomial<F> {
+    fn vanishing_polynomial(&self) -> crate::univariate::SparsePolynomial<F> {
         map!(self, vanishing_polynomial)
     }
 

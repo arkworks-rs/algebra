@@ -16,6 +16,9 @@
 )]
 
 #[macro_use]
+extern crate derivative;
+
+#[macro_use]
 extern crate ark_std;
 
 pub mod domain;
@@ -27,7 +30,7 @@ pub use domain::{
     EvaluationDomain, GeneralEvaluationDomain, MixedRadixEvaluationDomain, Radix2EvaluationDomain,
 };
 pub use evaluations::Evaluations;
-pub use polynomial::{DenseOrSparsePolynomial, DensePolynomial, SparsePolynomial};
+pub use polynomial::{multivariate, univariate, MVPolynomial, Polynomial, UVPolynomial};
 
 #[cfg(test)]
 mod test;

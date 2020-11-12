@@ -1,7 +1,7 @@
-//! A polynomial represented in coefficient form.
-
-use crate::GeneralEvaluationDomain;
-use crate::{DenseOrSparsePolynomial, EvaluationDomain, Evaluations};
+//! A dense univariate polynomial represented in coefficient form.
+use crate::univariate::DenseOrSparsePolynomial;
+use crate::{EvaluationDomain, Evaluations, GeneralEvaluationDomain};
+use crate::{Polynomial, UVPolynomial};
 
 use ark_std::{
     fmt,
@@ -22,65 +22,21 @@ pub struct DensePolynomial<F: Field> {
     pub coeffs: Vec<F>,
 }
 
-impl<F: Field> fmt::Debug for DensePolynomial<F> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
-        for (i, coeff) in self.coeffs.iter().enumerate().filter(|(_, c)| !c.is_zero()) {
-            if i == 0 {
-                write!(f, "\n{:?}", coeff)?;
-            } else if i == 1 {
-                write!(f, " + \n{:?} * x", coeff)?;
-            } else {
-                write!(f, " + \n{:?} * x^{}", coeff, i)?;
-            }
-        }
-        Ok(())
-    }
-}
+impl<F: Field> Polynomial<F> for DensePolynomial<F> {
+    type Point = F;
 
-impl<F: Field> Deref for DensePolynomial<F> {
-    type Target = [F];
-
-    fn deref(&self) -> &[F] {
-        &self.coeffs
-    }
-}
-
-impl<F: Field> DerefMut for DensePolynomial<F> {
-    fn deref_mut(&mut self) -> &mut [F] {
-        &mut self.coeffs
-    }
-}
-
-impl<F: Field> DensePolynomial<F> {
     /// Returns the zero polynomial.
-    pub fn zero() -> Self {
+    fn zero() -> Self {
         Self { coeffs: Vec::new() }
     }
 
     /// Checks if the given polynomial is zero.
-    pub fn is_zero(&self) -> bool {
+    fn is_zero(&self) -> bool {
         self.coeffs.is_empty() || self.coeffs.iter().all(|coeff| coeff.is_zero())
     }
 
-    /// Constructs a new polynomial from a list of coefficients.
-    pub fn from_coefficients_slice(coeffs: &[F]) -> Self {
-        Self::from_coefficients_vec(coeffs.to_vec())
-    }
-
-    /// Constructs a new polynomial from a list of coefficients.
-    pub fn from_coefficients_vec(coeffs: Vec<F>) -> Self {
-        let mut result = Self { coeffs };
-        // While there are zeros at the end of the coefficient vector, pop them off.
-        result.truncate_leading_zeros();
-        // Check that either the coefficients vec is empty or that the last coeff is
-        // non-zero.
-        assert!(result.coeffs.last().map_or(true, |coeff| !coeff.is_zero()));
-
-        result
-    }
-
-    /// Returns the degree of the polynomial.
-    pub fn degree(&self) -> usize {
+    /// Returns the total degree of the polynomial
+    fn degree(&self) -> usize {
         if self.is_zero() {
             0
         } else {
@@ -89,22 +45,16 @@ impl<F: Field> DensePolynomial<F> {
         }
     }
 
-    fn truncate_leading_zeros(&mut self) {
-        while self.coeffs.last().map_or(false, |c| c.is_zero()) {
-            self.coeffs.pop();
-        }
-    }
-
-    /// Evaluates `self` at the given `point` in the field.
-    pub fn evaluate(&self, point: F) -> F {
+    /// Evaluates `self` at the given `point` in `Self::Point`.
+    fn evaluate(&self, point: &F) -> F {
         if self.is_zero() {
             return F::zero();
         }
         let mut powers_of_point = vec![F::one()];
-        let mut cur = point;
+        let mut cur = *point;
         for _ in 0..self.degree() {
             powers_of_point.push(cur);
-            cur *= &point;
+            cur *= point;
         }
         assert_eq!(powers_of_point.len(), self.coeffs.len());
         ark_std::cfg_into_iter!(powers_of_point)
@@ -112,25 +62,33 @@ impl<F: Field> DensePolynomial<F> {
             .map(|(power, coeff)| power * coeff)
             .sum()
     }
+}
 
-    /// Perform a naive n^2 multiplication of `self` by `other`.
-    pub fn naive_mul(&self, other: &Self) -> Self {
-        if self.is_zero() || other.is_zero() {
-            DensePolynomial::zero()
-        } else {
-            let mut result = vec![F::zero(); self.degree() + other.degree() + 1];
-            for (i, self_coeff) in self.coeffs.iter().enumerate() {
-                for (j, other_coeff) in other.coeffs.iter().enumerate() {
-                    result[i + j] += &(*self_coeff * other_coeff);
-                }
-            }
-            DensePolynomial::from_coefficients_vec(result)
-        }
+impl<F: Field> UVPolynomial<F> for DensePolynomial<F> {
+    /// Constructs a new polynomial from a list of coefficients.
+    fn from_coefficients_slice(coeffs: &[F]) -> Self {
+        Self::from_coefficients_vec(coeffs.to_vec())
     }
 
-    /// Outputs a polynomial of degree `d` where each coefficient is sampled
-    /// uniformly at random from the field `F`.
-    pub fn rand<R: Rng>(d: usize, rng: &mut R) -> Self {
+    /// Constructs a new polynomial from a list of coefficients.
+    fn from_coefficients_vec(coeffs: Vec<F>) -> Self {
+        let mut result = Self { coeffs };
+        // While there are zeros at the end of the coefficient vector, pop them off.
+        result.truncate_leading_zeros();
+        // Check that either the coefficients vec is empty or that the last coeff is
+        // non-zero.
+        assert!(result.coeffs.last().map_or(true, |coeff| !coeff.is_zero()));
+        result
+    }
+
+    /// Returns the coefficients of `self`
+    fn coeffs(&self) -> &[F] {
+        &self.coeffs
+    }
+
+    /// Outputs a univariate polynomial of degree `d` where
+    /// each coefficient is sampled uniformly at random.
+    fn rand<R: Rng>(d: usize, rng: &mut R) -> Self {
         let mut random_coeffs = Vec::new();
         for _ in 0..=d {
             random_coeffs.push(F::rand(rng));
@@ -160,6 +118,58 @@ impl<F: FftField> DensePolynomial<F> {
         let self_poly = DenseOrSparsePolynomial::from(self);
         let vanishing_poly = DenseOrSparsePolynomial::from(domain.vanishing_polynomial());
         self_poly.divide_with_q_and_r(&vanishing_poly)
+    }
+}
+
+impl<F: Field> DensePolynomial<F> {
+    fn truncate_leading_zeros(&mut self) {
+        while self.coeffs.last().map_or(false, |c| c.is_zero()) {
+            self.coeffs.pop();
+        }
+    }
+
+    /// Perform a naive n^2 multiplication of `self` by `other`.
+    pub fn naive_mul(&self, other: &Self) -> Self {
+        if self.is_zero() || other.is_zero() {
+            DensePolynomial::zero()
+        } else {
+            let mut result = vec![F::zero(); self.degree() + other.degree() + 1];
+            for (i, self_coeff) in self.coeffs.iter().enumerate() {
+                for (j, other_coeff) in other.coeffs.iter().enumerate() {
+                    result[i + j] += &(*self_coeff * other_coeff);
+                }
+            }
+            DensePolynomial::from_coefficients_vec(result)
+        }
+    }
+}
+
+impl<F: Field> fmt::Debug for DensePolynomial<F> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
+        for (i, coeff) in self.coeffs.iter().enumerate().filter(|(_, c)| !c.is_zero()) {
+            if i == 0 {
+                write!(f, "\n{:?}", coeff)?;
+            } else if i == 1 {
+                write!(f, " + \n{:?} * x", coeff)?;
+            } else {
+                write!(f, " + \n{:?} * x^{}", coeff, i)?;
+            }
+        }
+        Ok(())
+    }
+}
+
+impl<F: Field> Deref for DensePolynomial<F> {
+    type Target = [F];
+
+    fn deref(&self) -> &[F] {
+        &self.coeffs
+    }
+}
+
+impl<F: Field> DerefMut for DensePolynomial<F> {
+    fn deref_mut(&mut self) -> &mut [F] {
+        &mut self.coeffs
     }
 }
 
@@ -350,7 +360,7 @@ impl<'a, 'b, F: FftField> Mul<&'a DensePolynomial<F>> for &'b DensePolynomial<F>
 
 #[cfg(test)]
 mod tests {
-    use crate::polynomial::*;
+    use crate::polynomial::univariate::*;
     use crate::{EvaluationDomain, GeneralEvaluationDomain};
     use ark_ff::{test_rng, Field, One, UniformRand, Zero};
     use ark_test_curves::bls12_381::Fr;
@@ -460,7 +470,7 @@ mod tests {
             for (i, coeff) in p.coeffs.iter().enumerate() {
                 total += &(point.pow(&[i as u64]) * coeff);
             }
-            assert_eq!(p.evaluate(point), total);
+            assert_eq!(p.evaluate(&point), total);
         }
     }
 
