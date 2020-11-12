@@ -8,6 +8,16 @@ pub trait ToConstraintField<F: Field> {
     fn to_field_elements(&self) -> Option<Vec<F>>;
 }
 
+impl<F: Field> ToConstraintField<F> for bool {
+    fn to_field_elements(&self) -> Option<Vec<F>> {
+        if *self {
+            Some(vec![F::one()])
+        } else {
+            Some(vec![F::zero()])
+        }
+    }
+}
+
 impl<F: PrimeField> ToConstraintField<F> for F {
     fn to_field_elements(&self) -> Option<Vec<F>> {
         Some(vec![*self])

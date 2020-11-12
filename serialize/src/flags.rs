@@ -57,10 +57,7 @@ impl SWFlags {
 
     #[inline]
     pub fn is_infinity(&self) -> bool {
-        match self {
-            SWFlags::Infinity => true,
-            _ => false,
-        }
+        matches!(self, SWFlags::Infinity)
     }
 
     #[inline]
