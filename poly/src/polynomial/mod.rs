@@ -4,7 +4,7 @@ use ark_ff::Field;
 use ark_std::{
     fmt::Debug,
     hash::Hash,
-    ops::{AddAssign, SubAssign},
+    ops::{Add, AddAssign, Neg, SubAssign},
     vec::Vec,
 };
 use rand::Rng;
@@ -20,6 +20,8 @@ pub trait Polynomial<F: Field>:
     + Hash
     + PartialEq
     + Eq
+    + Add
+    + Neg
     + for<'a> AddAssign<&'a Self>
     + for<'a> AddAssign<(F, &'a Self)>
     + for<'a> SubAssign<&'a Self>

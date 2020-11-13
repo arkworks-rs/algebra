@@ -125,6 +125,14 @@ impl<F: Field> MVPolynomial<F> for SparsePolynomial<F, SparseTerm> {
     }
 }
 
+impl<F: Field, T: Term> Add for SparsePolynomial<F, T> {
+    type Output = SparsePolynomial<F, T>;
+
+    fn add(self, other: SparsePolynomial<F, T>) -> Self {
+        &self + &other
+    }
+}
+
 impl<'a, 'b, F: Field, T: Term> Add<&'a SparsePolynomial<F, T>> for &'b SparsePolynomial<F, T> {
     type Output = SparsePolynomial<F, T>;
 

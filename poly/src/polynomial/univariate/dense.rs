@@ -144,6 +144,23 @@ impl<F: Field> DensePolynomial<F> {
     }
 }
 
+impl<F: FftField> DensePolynomial<F> {
+    /// Evaluate `self` over `domain`.
+    pub fn evaluate_over_domain_by_ref<D: EvaluationDomain<F>>(
+        &self,
+        domain: D,
+    ) -> Evaluations<F, D> {
+        let poly: DenseOrSparsePolynomial<'_, F> = self.into();
+        DenseOrSparsePolynomial::<F>::evaluate_over_domain(poly, domain)
+    }
+
+    /// Evaluate `self` over `domain`.
+    pub fn evaluate_over_domain<D: EvaluationDomain<F>>(self, domain: D) -> Evaluations<F, D> {
+        let poly: DenseOrSparsePolynomial<'_, F> = self.into();
+        DenseOrSparsePolynomial::<F>::evaluate_over_domain(poly, domain)
+    }
+}
+
 impl<F: Field> fmt::Debug for DensePolynomial<F> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
         for (i, coeff) in self.coeffs.iter().enumerate().filter(|(_, c)| !c.is_zero()) {
@@ -170,6 +187,14 @@ impl<F: Field> Deref for DensePolynomial<F> {
 impl<F: Field> DerefMut for DensePolynomial<F> {
     fn deref_mut(&mut self) -> &mut [F] {
         &mut self.coeffs
+    }
+}
+
+impl<F: Field> Add for DensePolynomial<F> {
+    type Output = DensePolynomial<F>;
+
+    fn add(self, other: DensePolynomial<F>) -> Self {
+        &self + &other
     }
 }
 
@@ -239,23 +264,6 @@ impl<'a, 'b, F: Field> AddAssign<(F, &'a DensePolynomial<F>)> for DensePolynomia
             }
             self.truncate_leading_zeros();
         }
-    }
-}
-
-impl<F: FftField> DensePolynomial<F> {
-    /// Evaluate `self` over `domain`.
-    pub fn evaluate_over_domain_by_ref<D: EvaluationDomain<F>>(
-        &self,
-        domain: D,
-    ) -> Evaluations<F, D> {
-        let poly: DenseOrSparsePolynomial<'_, F> = self.into();
-        DenseOrSparsePolynomial::<F>::evaluate_over_domain(poly, domain)
-    }
-
-    /// Evaluate `self` over `domain`.
-    pub fn evaluate_over_domain<D: EvaluationDomain<F>>(self, domain: D) -> Evaluations<F, D> {
-        let poly: DenseOrSparsePolynomial<'_, F> = self.into();
-        DenseOrSparsePolynomial::<F>::evaluate_over_domain(poly, domain)
     }
 }
 
