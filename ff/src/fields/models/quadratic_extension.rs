@@ -24,6 +24,7 @@ use crate::{
     ToConstraintField, UniformRand,
 };
 
+/// Defines a Quadratic extension field from a quadratic non-residue.
 pub trait QuadExtParameters: 'static + Send + Sync + Sized {
     /// The prime field that this quadratic extension is eventually an extension of.
     type BasePrimeField: PrimeField;
@@ -82,6 +83,8 @@ pub trait QuadExtParameters: 'static + Send + Sync + Sized {
     }
 }
 
+/// An element of a quadratic extension field F_p[X]/(X^2 - P::NONRESIDUE) is
+/// represented as c0 + c1 * X, for c0, c1 in `P::BaseField`.
 #[derive(Derivative)]
 #[derivative(
     Default(bound = "P: QuadExtParameters"),
@@ -124,7 +127,9 @@ impl<P: QuadExtParameters> QuadExtField<P> {
         P::cyclotomic_exp(self, exponent)
     }
 
-    /// Norm of QuadExtField over P::BaseField: Norm(a) = a.x^2 - P::NON_RESIDUE * a.y^2
+    /// Norm of QuadExtField over `P::BaseField`:`Norm(a) = a * a.conjugate()`.
+    /// This simplifies to: `Norm(a) = a.x^2 - P::NON_RESIDUE * a.y^2`.
+    /// This is alternatively expressed as `Norm(a) = a^(1 + p)`.
     pub fn norm(&self) -> P::BaseField {
         let t0 = self.c0.square();
         let mut t1 = self.c1.square();
@@ -256,26 +261,39 @@ where
     P::BaseField: SquareRootField,
 {
     fn legendre(&self) -> LegendreSymbol {
+        // The LegendreSymbol in a field of order q for an element x can be
+        // computed as x^((q-1)/2).
+        // Since we are in a quadratic extension of a field F_p,
+        // we have that q = p^2.
+        // Notice then that (q-1)/2 = ((p-1)/2) * (1 + p).
+        // This implies that we can compute the symbol as (x^(1+p))^((p-1)/2).
+        // Recall that computing x^(1 + p) is equivalent to taking the norm of x,
+        // and it will output an element in the base field F_p.
+        // Then exponentiating by (p-1)/2 in the base field is equivalent to computing
+        // the legendre symbol in the base field.
         self.norm().legendre()
     }
 
     fn sqrt(&self) -> Option<Self> {
+        // Square root based on the complex method. See
+        // https://eprint.iacr.org/2012/685.pdf (page 15, algorithm 8)
         use crate::LegendreSymbol::*;
         if self.c1.is_zero() {
             return self.c0.sqrt().map(|c0| Self::new(c0, P::BaseField::zero()));
         }
-        match self.legendre() {
-            // Square root based on the complex method. See
-            // https://eprint.iacr.org/2012/685.pdf (page 15, algorithm 8)
+        let alpha = self.norm();
+        // This is equivalent to self.legendre, see the comment on legendre above.
+        let legendre_symbol = alpha.legendre();
+        match legendre_symbol {
             Zero => Some(*self),
             QuadraticNonResidue => None,
             QuadraticResidue => {
+                // TODO: Precompute this
                 let two_inv = P::BaseField::one()
                     .double()
                     .inverse()
                     .expect("Two should always have an inverse");
-                let alpha = self
-                    .norm()
+                let alpha = alpha
                     .sqrt()
                     .expect("We are in the QR case, the norm should have a square root");
                 let mut delta = (alpha + &self.c0) * &two_inv;
