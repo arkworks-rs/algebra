@@ -83,8 +83,8 @@ pub trait QuadExtParameters: 'static + Send + Sync + Sized {
     }
 }
 
-/// An element of a quadratic extension field F_p[X]/(X^2 - NONRESIDUE) is
-/// represented as c0 + c1 * X, for c0, c1 in the base field.
+/// An element of a quadratic extension field F_p[X]/(X^2 - P::NONRESIDUE) is
+/// represented as c0 + c1 * X, for c0, c1 in `P::BaseField`.
 #[derive(Derivative)]
 #[derivative(
     Default(bound = "P: QuadExtParameters"),
@@ -127,9 +127,9 @@ impl<P: QuadExtParameters> QuadExtField<P> {
         P::cyclotomic_exp(self, exponent)
     }
 
-    /// Norm of QuadExtField over P::BaseField: Norm(a) = a * a.conjugate()
-    /// This simplifies to: Norm(a) = a.x^2 - P::NON_RESIDUE * a.y^2
-    /// This is alternatively expressed as Norm(a) = a^(1 + p)
+    /// Norm of QuadExtField over `P::BaseField`:`Norm(a) = a * a.conjugate()`.
+    /// This simplifies to: `Norm(a) = a.x^2 - P::NON_RESIDUE * a.y^2`.
+    /// This is alternatively expressed as `Norm(a) = a^(1 + p)`.
     pub fn norm(&self) -> P::BaseField {
         let t0 = self.c0.square();
         let mut t1 = self.c1.square();
@@ -260,10 +260,6 @@ impl<'a, P: QuadExtParameters> SquareRootField for QuadExtField<P>
 where
     P::BaseField: SquareRootField,
 {
-    /// Outputs a LegendreSymbol, which indicates whether this field element is
-    ///  1 : a quadratic residue
-    ///  0 : equal to 0
-    /// -1 : a quadratic non-residue
     fn legendre(&self) -> LegendreSymbol {
         // The LegendreSymbol in a field of order q for an element x can be
         // computed as x^((q-1)/2).
