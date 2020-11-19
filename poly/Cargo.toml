@@ -14,6 +14,7 @@ edition = "2018"
 
 [dependencies]
 ark-ff = { path = "../ff", default-features = false }
+ark-serialize = { path = "../serialize", default-features = false, features = ["derive"] }
 ark-std = { git = "https://github.com/arkworks-rs/utils", default-features = false }
 rand = { version = "0.7", default-features = false }
 rayon = { version = "1", optional = true }

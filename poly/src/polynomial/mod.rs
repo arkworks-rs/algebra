@@ -1,6 +1,7 @@
 //! Modules for working with univariate or multivariate polynomials.
 
 use ark_ff::Field;
+use ark_serialize::*;
 use ark_std::{
     fmt::Debug,
     hash::Hash,
@@ -43,7 +44,9 @@ pub trait Polynomial<F: Field>:
 }
 
 /// Describes the interface for univariate polynomials
-pub trait UVPolynomial<F: Field>: Polynomial<F, Point = F> {
+pub trait UVPolynomial<F: Field>:
+    Polynomial<F, Point = F> + CanonicalSerialize + CanonicalDeserialize
+{
     /// Constructs a new polynomial from a list of coefficients.
     fn from_coefficients_slice(coeffs: &[F]) -> Self;
 
