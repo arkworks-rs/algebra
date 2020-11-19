@@ -8,6 +8,7 @@
 - #36 (ark-ec) In Short-Weierstrass curves, include an infinity bit in `ToConstraintField`.
 - #37 (ark-poly) In the `Polynomial` trait, add `Hash` trait bound to `Point`.
 - #38 (ark-poly) Add `Add` and `Neg` trait bounds to `Polynomial`.
+- #53 (ark-poly) Add `Zero` trait bound to `Polynomial`.
 
 ### Features
 - #20 (ark-poly) Add structs/traits for multivariate polynomials
