@@ -59,7 +59,8 @@ pub trait QuadExtParameters: 'static + Send + Sync + Sized {
     /// *only* when `fe` is known to be in the cyclotommic subgroup.
     fn cyclotomic_exp(fe: &QuadExtField<Self>, exponent: impl AsRef<[u64]>) -> QuadExtField<Self> {
         let mut res = QuadExtField::one();
-        let self_inverse = fe.unitary_inverse();
+        let mut self_inverse = fe.clone();
+        self_inverse.conjugate();
 
         let mut found_nonzero = false;
         let naf = crate::biginteger::arithmetic::find_wnaf(exponent.as_ref());
@@ -115,11 +116,6 @@ impl<P: QuadExtParameters> QuadExtField<P> {
     /// This is only to be used when the element is *known* to be in the cyclotomic subgroup.
     pub fn conjugate(&mut self) {
         self.c1 = -self.c1;
-    }
-
-    /// This is only to be used when the element is *known* to be in the cyclotomic subgroup.
-    pub fn unitary_inverse(&self) -> Self {
-        Self::new(self.c0, -self.c1)
     }
 
     /// This is only to be used when the element is *known* to be in the cyclotomic subgroup.

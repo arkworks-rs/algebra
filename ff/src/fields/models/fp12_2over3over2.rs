@@ -53,7 +53,8 @@ impl<P: Fp12Parameters> QuadExtParameters for Fp12ParamsWrapper<P> {
 
     fn cyclotomic_exp(fe: &Fp12<P>, exponent: impl AsRef<[u64]>) -> Fp12<P> {
         let mut res = QuadExtField::one();
-        let self_inverse = fe.unitary_inverse();
+        let mut self_inverse = fe.clone();
+        self_inverse.conjugate();
 
         let mut found_nonzero = false;
         let naf = crate::biginteger::arithmetic::find_wnaf(exponent.as_ref());
