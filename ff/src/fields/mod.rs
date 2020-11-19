@@ -108,7 +108,7 @@ pub trait Field:
     type BasePrimeField: PrimeField;
 
     /// Returns the characteristic of the field,
-    /// in big-endian representation.
+    /// in little-endian representation.
     fn characteristic<'a>() -> &'a [u64] {
         Self::BasePrimeField::characteristic()
     }
