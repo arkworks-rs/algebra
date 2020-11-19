@@ -3,7 +3,7 @@ use crate::{
     multivariate::{SparseTerm, Term},
     MVPolynomial, Polynomial,
 };
-use ark_ff::Field;
+use ark_ff::{Field, Zero};
 use ark_std::{
     cmp::Ordering,
     fmt,
@@ -34,19 +34,6 @@ impl<F: Field, T: Term> SparsePolynomial<F, T> {
 
 impl<F: Field> Polynomial<F> for SparsePolynomial<F, SparseTerm> {
     type Point = Vec<F>;
-
-    /// Returns the zero polynomial.
-    fn zero() -> Self {
-        Self {
-            num_vars: 0,
-            terms: Vec::new(),
-        }
-    }
-
-    /// Checks if the given polynomial is zero.
-    fn is_zero(&self) -> bool {
-        self.terms.is_empty() || self.terms.iter().all(|(c, _)| c.is_zero())
-    }
 
     /// Returns the total degree of the polynomial
     fn degree(&self) -> usize {
@@ -234,6 +221,21 @@ impl<F: Field, T: Term> fmt::Debug for SparsePolynomial<F, T> {
             }
         }
         Ok(())
+    }
+}
+
+impl<F: Field, T: Term> Zero for SparsePolynomial<F, T> {
+    /// Returns the zero polynomial.
+    fn zero() -> Self {
+        Self {
+            num_vars: 0,
+            terms: Vec::new(),
+        }
+    }
+
+    /// Checks if the given polynomial is zero.
+    fn is_zero(&self) -> bool {
+        self.terms.is_empty() || self.terms.iter().all(|(c, _)| c.is_zero())
     }
 }
 
