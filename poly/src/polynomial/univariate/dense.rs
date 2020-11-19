@@ -9,7 +9,7 @@ use ark_std::{
     vec::Vec,
 };
 
-use ark_ff::{FftField, Field};
+use ark_ff::{FftField, Field, Zero};
 use rand::Rng;
 
 #[cfg(feature = "parallel")]
@@ -24,16 +24,6 @@ pub struct DensePolynomial<F: Field> {
 
 impl<F: Field> Polynomial<F> for DensePolynomial<F> {
     type Point = F;
-
-    /// Returns the zero polynomial.
-    fn zero() -> Self {
-        Self { coeffs: Vec::new() }
-    }
-
-    /// Checks if the given polynomial is zero.
-    fn is_zero(&self) -> bool {
-        self.coeffs.is_empty() || self.coeffs.iter().all(|coeff| coeff.is_zero())
-    }
 
     /// Returns the total degree of the polynomial
     fn degree(&self) -> usize {
@@ -363,6 +353,18 @@ impl<'a, 'b, F: FftField> Mul<&'a DensePolynomial<F>> for &'b DensePolynomial<F>
             self_evals *= &other_evals;
             self_evals.interpolate()
         }
+    }
+}
+
+impl<F: Field> Zero for DensePolynomial<F> {
+    /// Returns the zero polynomial.
+    fn zero() -> Self {
+        Self { coeffs: Vec::new() }
+    }
+
+    /// Checks if the given polynomial is zero.
+    fn is_zero(&self) -> bool {
+        self.coeffs.is_empty() || self.coeffs.iter().all(|coeff| coeff.is_zero())
     }
 }
 
