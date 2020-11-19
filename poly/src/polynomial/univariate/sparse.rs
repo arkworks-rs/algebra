@@ -2,11 +2,10 @@
 use crate::univariate::{DenseOrSparsePolynomial, DensePolynomial};
 use crate::{EvaluationDomain, Evaluations, UVPolynomial};
 use ark_ff::{FftField, Field};
-use ark_serialize::*;
 use ark_std::{collections::BTreeMap, fmt, vec::Vec};
 
 /// Stores a sparse polynomial in coefficient form.
-#[derive(Clone, PartialEq, Eq, Hash, Default, CanonicalSerialize, CanonicalDeserialize)]
+#[derive(Clone, PartialEq, Eq, Hash, Default)]
 pub struct SparsePolynomial<F: Field> {
     /// The coefficient a_i of `x^i` is stored as (i, a_i) in `self.coeffs`.
     /// the entries in `self.coeffs` *must*  be sorted in increasing order of
