@@ -2,7 +2,7 @@
 use crate::univariate::DenseOrSparsePolynomial;
 use crate::{EvaluationDomain, Evaluations, GeneralEvaluationDomain};
 use crate::{Polynomial, UVPolynomial};
-
+use ark_serialize::*;
 use ark_std::{
     fmt,
     ops::{Add, AddAssign, Deref, DerefMut, Div, Mul, Neg, Sub, SubAssign},
@@ -16,7 +16,7 @@ use rand::Rng;
 use rayon::prelude::*;
 
 /// Stores a polynomial in coefficient form.
-#[derive(Clone, PartialEq, Eq, Hash, Default)]
+#[derive(Clone, PartialEq, Eq, Hash, Default, CanonicalSerialize, CanonicalDeserialize)]
 pub struct DensePolynomial<F: Field> {
     /// The coefficient of `x^i` is stored at location `i` in `self.coeffs`.
     pub coeffs: Vec<F>,
