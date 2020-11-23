@@ -8,7 +8,6 @@
 )]
 #![allow(clippy::op_ref, clippy::suspicious_op_assign_impl)]
 #![cfg_attr(not(use_asm), forbid(unsafe_code))]
-
 #![cfg_attr(use_asm, feature(llvm_asm))]
 #![cfg_attr(use_asm, deny(unsafe_code))]
 
