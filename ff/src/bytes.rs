@@ -100,6 +100,29 @@ macro_rules! array_bytes {
                 Ok(res)
             }
         }
+
+        impl ToBytes for [u128; $N] {
+            #[inline]
+            fn write<W: Write>(&self, mut writer: W) -> IoResult<()> {
+                for num in self {
+                    writer.write_all(&num.to_le_bytes())?;
+                }
+                Ok(())
+            }
+        }
+
+        impl FromBytes for [u128; $N] {
+            #[inline]
+            fn read<R: Read>(mut reader: R) -> IoResult<Self> {
+                let mut res = [0u128; $N];
+                for num in res.iter_mut() {
+                    let mut bytes = [0u8; 16];
+                    reader.read_exact(&mut bytes)?;
+                    *num = u128::from_le_bytes(bytes);
+                }
+                Ok(res)
+            }
+        }
     };
 }
 
@@ -222,6 +245,22 @@ impl FromBytes for u64 {
         let mut bytes = [0u8; 8];
         reader.read_exact(&mut bytes)?;
         Ok(u64::from_le_bytes(bytes))
+    }
+}
+
+impl ToBytes for u128 {
+    #[inline]
+    fn write<W: Write>(&self, mut writer: W) -> IoResult<()> {
+        writer.write_all(&self.to_le_bytes())
+    }
+}
+
+impl FromBytes for u128 {
+    #[inline]
+    fn read<R: Read>(mut reader: R) -> IoResult<Self> {
+        let mut bytes = [0u8; 16];
+        reader.read_exact(&mut bytes)?;
+        Ok(u128::from_le_bytes(bytes))
     }
 }
 
