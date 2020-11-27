@@ -121,9 +121,9 @@ pub trait EvaluationDomain<F: FftField>:
     }
 
     /// Evaluate all the lagrange polynomials defined by this domain at the
-    /// point `tau`. This is computed in time O(|domain|). 
+    /// point `tau`. This is computed in time O(|domain|).
     /// Then given the evaluations of a degree d polynomial P over this domain,
-    /// where d < |domain|, `P(tau)` can be computed as 
+    /// where d < |domain|, `P(tau)` can be computed as
     /// `P(tau) = sum_{i in [|Domain|]} L_{i, Domain}(tau) * P(g^i)`.
     /// `L_{i, Domain}` is the value of the i-th lagrange coefficient
     /// in the returned vector.

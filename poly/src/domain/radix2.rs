@@ -127,8 +127,8 @@ impl<F: FftField> EvaluationDomain<F> for Radix2EvaluationDomain<F> {
         //
         // We then compute L_{i,H}(tau) as `L_{i,H}(tau) = Z_H(tau) * v_i / (tau - h g^i)`
         //
-        // However notice that if tau in H, 
-        // both the numerator and denominator equal 0 when i corresponds to the value tau equals, and 0 everywhere else
+        // However, if tau in H, both the numerator and denominator equal 0
+        // when i corresponds to the value tau equals, and the coefficient is 0 everywhere else.
         // We handle this case separately, and we can easily detect by checking if the vanishing poly is 0.
         let size = self.size();
         // TODO: Make this use the vanishing polynomial
@@ -155,7 +155,7 @@ impl<F: FftField> EvaluationDomain<F> for Radix2EvaluationDomain<F> {
             // We actually compute this by computing (Z_H(tau) * v_i)^{-1} * (tau - h g^i)
             // and then batch inverting to get the correct lagrange coefficients.
             // We let `l_i = (Z_H(tau) * v_i)^-1` and `r_i = tau - h g^i`
-            // Notice that since Z_H(tau) is i-independent, 
+            // Notice that since Z_H(tau) is i-independent,
             // and v_i = g * v_{i-1}, it follows that
             // l_i = g^-1 * l_{i-1}
             // TODO: consider caching the computation of l_i to save N multiplications
@@ -242,8 +242,9 @@ pub(crate) fn serial_radix2_fft<T: DomainCoeff<F>, F: FftField>(a: &mut [T], ome
 
 #[cfg(test)]
 mod tests {
+    use crate::domain::Vec;
     use crate::{EvaluationDomain, Radix2EvaluationDomain};
-    use ark_ff::{UniformRand, test_rng, Field, Zero};
+    use ark_ff::{test_rng, Field, One, UniformRand, Zero};
     use ark_test_curves::bls12_381::Fr;
     use rand::Rng;
 
@@ -295,12 +296,12 @@ mod tests {
         }
     }
 
+    /// Test that lagrange interpolation for a random polynomial at a random point works.
     #[test]
     fn non_systematic_lagrange_coefficients_test() {
-        use crate::polynomial::UVPolynomial;
         use crate::polynomial::univariate::*;
         use crate::polynomial::Polynomial;
-        // Test that lagrange interpolation for a random polynomial at a random point works.
+        use crate::polynomial::UVPolynomial;
         for domain_dim in 1..10 {
             let domain_size = 1 << domain_dim;
             let domain = Radix2EvaluationDomain::<Fr>::new(domain_size).unwrap();
@@ -319,6 +320,30 @@ mod tests {
                 interpolated_eval += lagrange_coeffs[i] * poly_evals[i];
             }
             assert_eq!(actual_eval, interpolated_eval);
+        }
+    }
+
+    /// Test that lagrange coefficients for a point in the domain is correct
+    #[test]
+    fn systematic_lagrange_coefficients_test() {
+        // This runs in time O(N^2) in the domain size, so keep the domain dimension low.
+        // We generate lagrange coefficients for each element in the domain.
+        for domain_dim in 1..5 {
+            let domain_size = 1 << domain_dim;
+            let domain = Radix2EvaluationDomain::<Fr>::new(domain_size).unwrap();
+            let all_domain_elements: Vec<Fr> = domain.elements().collect();
+            for i in 0..domain_size {
+                let lagrange_coeffs =
+                    domain.evaluate_all_lagrange_coefficients(all_domain_elements[i]);
+                for j in 0..domain_size {
+                    // Lagrange coefficient for the evaluation point, which should be 1
+                    if i == j {
+                        assert_eq!(lagrange_coeffs[j], Fr::one());
+                    } else {
+                        assert_eq!(lagrange_coeffs[j], Fr::zero());
+                    }
+                }
+            }
         }
     }
 
