@@ -18,6 +18,8 @@
 - #35 (ark-ff) Implement `ToConstraintField` for `bool`
 - #48 (ark-ff) Speedup `sqrt` on `QuadExtField`
 - #94 (ark-ff) Implement `ToBytes` and `FromBytes` for `u128`
+- #99 (ark-poly) Speedup `evaluate_all_lagrange_coefficients`
+
 
 ### Bug fixes
 - #36 (ark-ec) In Short-Weierstrass curves, include an infinity bit in `ToConstraintField`.
