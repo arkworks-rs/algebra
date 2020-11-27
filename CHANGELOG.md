@@ -16,6 +16,7 @@
 - #110 (ark-ec) Change the trait bound on the scalar for `mul`, from (essentially) `Into<BigInt>` to `AsRef<[u64]>`
 - #117 (ark-poly) Make the univariate `SparsePolynomial` implement `Polynomial`. Make this change
     by replacing `sparse_poly.evaluate(pt)` to `sparse_poly.evaluate(&pt)`.
+- #96 (ark-ff) Make the `field_new` macro accept values in integer form, without requiring decomposition into limbs, and without requiring encoding in Montgomery form.
 
 ### Features
 - #20 (ark-poly) Add structs/traits for multivariate polynomials

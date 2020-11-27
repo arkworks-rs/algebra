@@ -18,6 +18,8 @@ use rand::{
 use zeroize::Zeroize;
 
 #[macro_use]
+pub mod arithmetic;
+#[macro_use]
 mod macros;
 
 bigint_impl!(BigInteger64, 1);
@@ -117,110 +119,5 @@ pub trait BigInteger:
     fn read_le<R: Read>(&mut self, reader: &mut R) -> IoResult<()> {
         *self = Self::read(reader)?;
         Ok(())
-    }
-}
-
-pub mod arithmetic {
-    use ark_std::vec::Vec;
-    pub fn find_wnaf(num: &[u64]) -> Vec<i64> {
-        let is_zero = |num: &[u64]| num.iter().all(|x| *x == 0u64);
-        let is_odd = |num: &[u64]| num[0] & 1 == 1;
-        let sub_noborrow = |num: &mut [u64], z: u64| {
-            let mut other = vec![0u64; num.len()];
-            other[0] = z;
-            let mut borrow = 0;
-
-            for (a, b) in num.iter_mut().zip(other) {
-                *a = sbb(*a, b, &mut borrow);
-            }
-        };
-        let add_nocarry = |num: &mut [u64], z: u64| {
-            let mut other = vec![0u64; num.len()];
-            other[0] = z;
-            let mut carry = 0;
-
-            for (a, b) in num.iter_mut().zip(other) {
-                *a = adc(*a, b, &mut carry);
-            }
-        };
-        let div2 = |num: &mut [u64]| {
-            let mut t = 0;
-            for i in num.iter_mut().rev() {
-                let t2 = *i << 63;
-                *i >>= 1;
-                *i |= t;
-                t = t2;
-            }
-        };
-
-        let mut num = num.to_vec();
-        let mut res = vec![];
-
-        while !is_zero(&num) {
-            let z: i64;
-            if is_odd(&num) {
-                z = 2 - (num[0] % 4) as i64;
-                if z >= 0 {
-                    sub_noborrow(&mut num, z as u64)
-                } else {
-                    add_nocarry(&mut num, (-z) as u64)
-                }
-            } else {
-                z = 0;
-            }
-            res.push(z);
-            div2(&mut num);
-        }
-
-        res
-    }
-
-    /// Calculate a + b + carry, returning the sum and modifying the
-    /// carry value.
-    #[inline(always)]
-    pub(crate) fn adc(a: u64, b: u64, carry: &mut u64) -> u64 {
-        let tmp = u128::from(a) + u128::from(b) + u128::from(*carry);
-
-        *carry = (tmp >> 64) as u64;
-
-        tmp as u64
-    }
-
-    /// Calculate a - b - borrow, returning the result and modifying
-    /// the borrow value.
-    #[inline(always)]
-    pub(crate) fn sbb(a: u64, b: u64, borrow: &mut u64) -> u64 {
-        let tmp = (1u128 << 64) + u128::from(a) - u128::from(b) - u128::from(*borrow);
-
-        *borrow = if tmp >> 64 == 0 { 1 } else { 0 };
-
-        tmp as u64
-    }
-
-    /// Calculate a + (b * c) + carry, returning the least significant digit
-    /// and setting carry to the most significant digit.
-    #[inline(always)]
-    pub(crate) fn mac_with_carry(a: u64, b: u64, c: u64, carry: &mut u64) -> u64 {
-        let tmp = (u128::from(a)) + u128::from(b) * u128::from(c) + u128::from(*carry);
-
-        *carry = (tmp >> 64) as u64;
-
-        tmp as u64
-    }
-
-    #[inline(always)]
-    pub(crate) fn mac(a: u64, b: u64, c: u64, carry: &mut u64) -> u64 {
-        let tmp = (u128::from(a)) + u128::from(b) * u128::from(c);
-
-        *carry = (tmp >> 64) as u64;
-
-        tmp as u64
-    }
-
-    #[inline(always)]
-    pub(crate) fn mac_discard(a: u64, b: u64, c: u64, carry: &mut u64) {
-        let tmp = (u128::from(a)) + u128::from(b) * u128::from(c);
-
-        *carry = (tmp >> 64) as u64;
     }
 }

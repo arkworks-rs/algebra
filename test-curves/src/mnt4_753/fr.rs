@@ -7,7 +7,7 @@ pub type Fr = Fp768<FrParameters>;
 
 pub struct FrParameters;
 
-pub const FR_ONE: Fr = ark_ff::field_new!(Fr, FrParameters::R);
+pub const FR_ONE: Fr = ark_ff::field_new!(Fr, "1");
 
 impl Fp768Parameters for FrParameters {}
 impl FftParameters for FrParameters {

@@ -89,6 +89,7 @@ macro_rules! impl_prime_field_serializer {
         }
     };
 }
+
 macro_rules! impl_Fp {
     ($Fp:ident, $FpParameters:ident, $BigInteger:ident, $BigIntegerType:ty, $limbs:expr) => {
         pub trait $FpParameters: FpParameters<BigInt = $BigIntegerType> {}
@@ -114,6 +115,124 @@ macro_rules! impl_Fp {
             #[inline]
             pub const fn new(element: $BigIntegerType) -> Self {
                 Self(element, PhantomData)
+            }
+
+            #[ark_ff_asm::unroll_for_loops]
+            const fn const_is_zero(&self) -> bool {
+                let mut is_zero = true;
+                for i in 0..$limbs {
+                    is_zero &= (self.0).0[i] == 0;
+                }
+                is_zero
+            }
+
+            const fn const_neg(self, modulus: $BigIntegerType) -> Self {
+                if !self.const_is_zero() {
+                    Self::new(Self::sub_noborrow(&modulus, &self.0))
+                } else {
+                    self
+                }
+            }
+
+            /// Interpret a string of decimal numbers as a prime field element.
+            /// Does not accept unnecessary leading zeroes or a blank string.
+            /// For *internal* use only; please use the `field_new` macro instead
+            /// of this method
+            #[doc(hidden)]
+            pub const fn const_from_str(limbs: &[u64], is_positive: bool, r2: $BigIntegerType, modulus: $BigIntegerType, inv: u64) -> Self {
+                let mut repr = $BigInteger([0; $limbs]);
+                let mut i = 0;
+                while i < limbs.len() {
+                    repr.0[i] = limbs[i];
+                    i += 1;
+                }
+                let res = Self::const_from_repr(repr, r2, modulus, inv);
+                if is_positive {
+                    res
+                } else {
+                    res.const_neg(modulus)
+                }
+            }
+
+            #[inline]
+            pub(crate) const fn const_from_repr(repr: $BigIntegerType, r2: $BigIntegerType, modulus: $BigIntegerType, inv: u64) -> Self {
+                let mut r = Self::new(repr);
+                if r.const_is_zero() {
+                    r
+                } else {
+                    r = r.const_mul(&$Fp(r2, PhantomData), modulus, inv);
+                    r
+                }
+            }
+
+            #[ark_ff_asm::unroll_for_loops]
+            const fn mul_without_reduce(mut self, other: &Self, modulus: $BigIntegerType, inv: u64) -> Self {
+                let mut r = [0u64; $limbs * 2];
+
+                for i in 0..$limbs {
+                    let mut carry = 0;
+                    for j in 0..$limbs {
+                        r[j + i] = mac_with_carry!(r[j + i], (self.0).0[i], (other.0).0[j], &mut carry);
+                    }
+                    r[$limbs + i] = carry;
+                }
+                // Montgomery reduction
+                let mut _carry2 = 0;
+                for i in 0..$limbs {
+                    let k = r[i].wrapping_mul(inv);
+                    let mut carry = 0;
+                    mac_with_carry!(r[i], k, modulus.0[0], &mut carry);
+                    for j in 1..$limbs {
+                        r[j + i] = mac_with_carry!(r[j + i], k, modulus.0[j], &mut carry);
+                    }
+                    r[$limbs + i] = adc!(r[$limbs + i], _carry2, &mut carry);
+                    _carry2 = carry;
+                }
+
+                for i in 0..$limbs {
+                    (self.0).0[i] = r[$limbs + i];
+                }
+                self
+            }
+
+            #[ark_ff_asm::unroll_for_loops]
+            const fn const_mul(mut self, other: &Self, modulus: $BigIntegerType, inv: u64) -> Self {
+                self = self.mul_without_reduce(other, modulus, inv);
+                self.const_reduce(modulus)
+            }
+
+
+            #[ark_ff_asm::unroll_for_loops]
+            const fn const_is_valid(&self, modulus: $BigIntegerType) -> bool {
+                for i in 0..$limbs {
+                    if (self.0).0[($limbs - i - 1)] < modulus.0[($limbs - i - 1)] {
+                        return true
+                    } else if (self.0).0[($limbs - i - 1)] > modulus.0[($limbs - i - 1)] {
+                        return false
+                    }
+                }
+                false
+            }
+
+            #[inline]
+            const fn const_reduce(mut self, modulus: $BigIntegerType) -> Self {
+                if !self.const_is_valid(modulus) {
+                    self.0 = Self::sub_noborrow(&self.0, &modulus);
+                }
+                self
+            }
+
+            #[ark_ff_asm::unroll_for_loops]
+            // need unused assignment because the last iteration of the loop produces an assignment
+            // to `borrow` that is unused.
+            #[allow(unused_assignments)]
+            const fn sub_noborrow(a: &$BigIntegerType, b: &$BigIntegerType) -> $BigInteger {
+                let mut a = *a;
+                let mut borrow = 0;
+                for i in 0..$limbs {
+                    a.0[i] = sbb!(a.0[i], b.0[i], &mut borrow);
+                }
+                a
             }
         }
 
