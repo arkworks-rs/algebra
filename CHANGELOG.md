@@ -19,7 +19,7 @@
 - #48 (ark-ff) Speedup `sqrt` on `QuadExtField`
 - #94 (ark-ff) Implement `ToBytes` and `FromBytes` for `u128`
 - #99 (ark-poly) Speedup `evaluate_all_lagrange_coefficients`
-
+- #100 (ark-ff) Implement `Batch_inverse_and_mul`
 
 ### Bug fixes
 - #36 (ark-ec) In Short-Weierstrass curves, include an infinity bit in `ToConstraintField`.
