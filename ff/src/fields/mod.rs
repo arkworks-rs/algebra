@@ -224,7 +224,7 @@ pub trait FpParameters: FftParameters {
     /// (Should equal `SELF::MODULUS_BITS - 1`)
     const CAPACITY: u32;
 
-    /// t for 2^s * t = MODULUS - 1
+    /// t for 2^s * t = MODULUS - 1, and t coprime to 2.
     const T: Self::BigInt;
 
     /// (t - 1) / 2
@@ -323,7 +323,8 @@ pub trait PrimeField:
     /// Returns the underlying representation of the prime field element.
     fn into_repr(&self) -> Self::BigInt;
 
-    /// Return the a QNR^T
+    /// Return the QNR^t, for t defined by
+    /// `2^s * t = MODULUS - 1`, and t coprime to 2.
     fn qnr_to_t() -> Self {
         Self::two_adic_root_of_unity()
     }
@@ -479,10 +480,17 @@ impl_field_bigint_conv!(Fp384, BigInteger384, Fp384Parameters);
 impl_field_bigint_conv!(Fp768, BigInteger768, Fp768Parameters);
 impl_field_bigint_conv!(Fp832, BigInteger832, Fp832Parameters);
 
+// Given a vector of field elements {v_i}, compute the vector {v_i^(-1)}
 pub fn batch_inversion<F: Field>(v: &mut [F]) {
+    batch_inversion_and_mul(v, &F::one());
+}
+
+// Given a vector of field elements {v_i}, compute the vector {coeff * v_i^(-1)}
+pub fn batch_inversion_and_mul<F: Field>(v: &mut [F], coeff: &F) {
     // Montgomery’s Trick and Fast Implementation of Masked AES
     // Genelle, Prouff and Quisquater
     // Section 3.2
+    // but with an optimization to multiply every element in the returned vector by coeff
 
     // First pass: compute [a, ab, abc, ...]
     let mut prod = Vec::with_capacity(v.len());
@@ -494,6 +502,9 @@ pub fn batch_inversion<F: Field>(v: &mut [F]) {
 
     // Invert `tmp`.
     tmp = tmp.inverse().unwrap(); // Guaranteed to be nonzero.
+
+    // Multiply product by coeff, so all inverses will be scaled by coeff
+    tmp = tmp * coeff;
 
     // Second pass: iterate backwards to compute inverses
     for (f, s) in v.iter_mut()
@@ -512,7 +523,7 @@ pub fn batch_inversion<F: Field>(v: &mut [F]) {
 }
 
 #[cfg(all(test, feature = "std"))]
-mod tests {
+mod std_tests {
     use super::BitIteratorLE;
     #[test]
     fn bit_iterator_le() {
@@ -525,6 +536,38 @@ mod tests {
             } else {
                 assert!(bit)
             }
+        }
+    }
+}
+
+#[cfg(test)]
+mod no_std_tests {
+    use super::*;
+    use crate::test_field::Fr;
+    use crate::test_rng;
+
+    #[test]
+    fn test_batch_inversion() {
+        let mut random_coeffs = Vec::<Fr>::new();
+        let vec_size = 1000;
+
+        for _ in 0..=vec_size {
+            random_coeffs.push(Fr::rand(&mut test_rng()));
+        }
+
+        let mut random_coeffs_inv = random_coeffs.clone();
+        batch_inversion::<Fr>(&mut random_coeffs_inv);
+        for i in 0..=vec_size {
+            assert_eq!(random_coeffs_inv[i] * random_coeffs[i], Fr::one());
+        }
+        let rand_multiplier = Fr::rand(&mut test_rng());
+        let mut random_coeffs_inv_shifted = random_coeffs.clone();
+        batch_inversion_and_mul(&mut random_coeffs_inv_shifted, &rand_multiplier);
+        for i in 0..=vec_size {
+            assert_eq!(
+                random_coeffs_inv_shifted[i] * random_coeffs[i],
+                rand_multiplier
+            );
         }
     }
 }

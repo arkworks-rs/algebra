@@ -27,6 +27,7 @@ rustc_version = "0.3"
 
 [dev-dependencies]
 rand_xorshift = "0.2"
+ark-test-curves = { path = "../test-curves", default-features = false, features = [ "bls12_381_curve"] }
 
 [features]
 default = []
