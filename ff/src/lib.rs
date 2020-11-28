@@ -25,6 +25,9 @@ pub use self::bytes::*;
 pub mod fields;
 pub use self::fields::*;
 
+// This is only used for testing.
+mod test_field;
+
 pub mod biginteger;
 pub use self::biginteger::*;
 

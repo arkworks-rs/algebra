@@ -543,7 +543,7 @@ mod std_tests {
 #[cfg(test)]
 mod no_std_tests {
     use super::*;
-    use ark_test_curves::bls12_381::Fr;
+    use crate::test_field::Fr;
     use crate::test_rng;
 
     #[test]
@@ -564,7 +564,10 @@ mod no_std_tests {
         let mut random_coeffs_inv_shifted = random_coeffs.clone();
         batch_inversion_and_mul(&mut random_coeffs_inv_shifted, &rand_multiplier);
         for i in 0..=vec_size {
-            assert_eq!(random_coeffs_inv[i] * random_coeffs[i], rand_multiplier);
+            assert_eq!(
+                random_coeffs_inv_shifted[i] * random_coeffs[i],
+                rand_multiplier
+            );
         }
     }
 }
