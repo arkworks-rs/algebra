@@ -26,6 +26,7 @@ pub mod fields;
 pub use self::fields::*;
 
 // This is only used for testing.
+#[cfg(test)]
 mod test_field;
 
 pub mod biginteger;
