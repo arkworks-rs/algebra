@@ -198,7 +198,7 @@ impl<F: FftField> EvaluationDomain<F> for Radix2EvaluationDomain<F> {
     /// e.g. the ith element is g^i
     fn get_element(&self, i: usize) -> F {
         // TODO: Consider precomputed exponentiation tables if we need this to be faster.
-        self.group_gen.pow(&[i as u64]);
+        self.group_gen.pow(&[i as u64])
     }
 
     /// Return an iterator over the elements of the domain.
