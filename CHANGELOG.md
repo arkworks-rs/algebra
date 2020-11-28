@@ -8,6 +8,8 @@
 - #36 (ark-ec) In Short-Weierstrass curves, include an infinity bit in `ToConstraintField`.
 - #37 (ark-poly) In the `Polynomial` trait, add `Hash` trait bound to `Point`.
 - #38 (ark-poly) Add `Add` and `Neg` trait bounds to `Polynomial`.
+- #51 (ark-ff) Removed `unitary_inverse` from `QuadExtField`. Make this change by
+    replacing `x.unitary_inverse()` with `let mut tmp = x.clone(); tmp.conjugate()`
 - #53 (ark-poly) Add `Zero` trait bound to `Polynomial`.
 
 ### Features
