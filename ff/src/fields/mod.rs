@@ -542,7 +542,7 @@ mod tests {
     }
 
     #[test]
-    fn batch_inversion() {
+    fn test_batch_inversion() {
         use ark_test_curves::bls12_381::Fr;
         let mut random_coeffs = Vec::new();
         let vec_size = 1000;
@@ -552,13 +552,13 @@ mod tests {
         }
 
         let mut random_coeffs_inv = random_coeffs.clone();
-        batch_inversion(random_coeffs_inv);
+        batch_inversion(&mut random_coeffs_inv);
         for i in 0..=vec_size {
             assert_eq!(random_coeffs_inv[i] * random_coeffs[i], Fr::one());
         }
         let rand_multiplier = Fr::rand(&mut test_rng());
         let mut random_coeffs_inv_shifted = random_coeffs.clone();
-        batch_inversion_and_mul(random_coeffs_inv_shifted, rand_multiplier);
+        batch_inversion_and_mul(&mut random_coeffs_inv_shifted, &rand_multiplier);
         for i in 0..=vec_size {
             assert_eq!(random_coeffs_inv[i] * random_coeffs[i], rand_multiplier);
         }
