@@ -135,6 +135,9 @@ pub trait EvaluationDomain<F: FftField>:
     /// This evaluates the vanishing polynomial for this domain at tau.
     fn evaluate_vanishing_polynomial(&self, tau: F) -> F;
 
+    /// Returns the ith element of the domain.
+    fn get_element(&self, i: usize) -> F;
+
     /// Return an iterator over the elements of the domain.
     fn elements(&self) -> Self::Elements;
 
