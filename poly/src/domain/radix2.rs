@@ -193,6 +193,14 @@ impl<F: FftField> EvaluationDomain<F> for Radix2EvaluationDomain<F> {
         tau.pow(&[self.size]) - F::one()
     }
 
+    /// Returns the `i`-th element of the domain, where elements are ordered by
+    /// their power of the generator which they correspond to.
+    /// e.g. the `i`-th element is g^i
+    fn element(&self, i: usize) -> F {
+        // TODO: Consider precomputed exponentiation tables if we need this to be faster.
+        self.group_gen.pow(&[i as u64])
+    }
+
     /// Return an iterator over the elements of the domain.
     fn elements(&self) -> Elements<F> {
         Elements {

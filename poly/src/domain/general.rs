@@ -112,6 +112,11 @@ impl<F: FftField> EvaluationDomain<F> for GeneralEvaluationDomain<F> {
         map!(self, evaluate_vanishing_polynomial, tau)
     }
 
+    /// Returns the `i`-th element of the domain.
+    fn element(&self, i: usize) -> F {
+        map!(self, element, i)
+    }
+
     /// Return an iterator over the elements of the domain.
     fn elements(&self) -> GeneralElements<F> {
         GeneralElements(map!(self, elements))
