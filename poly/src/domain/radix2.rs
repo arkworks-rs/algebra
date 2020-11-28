@@ -193,7 +193,7 @@ impl<F: FftField> EvaluationDomain<F> for Radix2EvaluationDomain<F> {
         tau.pow(&[self.size]) - F::one()
     }
 
-    /// Returns the ith element of the domain, where elements are ordered by 
+    /// Returns the ith element of the domain, where elements are ordered by
     /// their power of the generator which they correspond to.
     /// e.g. the ith element is g^i
     fn get_element(&self, i: usize) -> F {
