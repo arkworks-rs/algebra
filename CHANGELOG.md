@@ -21,6 +21,7 @@
 - #48 (ark-ff) Speedup `sqrt` on `QuadExtField`
 - #94 (ark-ff) Implement `ToBytes` and `FromBytes` for `u128`
 - #99 (ark-poly) Speedup `evaluate_all_lagrange_coefficients`
+- #101 (ark-ff) Add `element(i: usize)` on the `Domain` Trait.
 
 
 ### Bug fixes
