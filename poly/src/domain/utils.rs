@@ -62,7 +62,7 @@ pub(crate) fn parallel_fft<T: DomainCoeff<F>, F: FftField>(
     // as though `a` is a polynomial that we are trying to evaluate.
 
     // Partition `a` equally into the number of threads.
-    // each partition is then of size m_div_num_threads
+    // each partition is then of size m / num_threads.
     let m = a.len();
     let num_threads = 1 << (log_cpus as usize);
     let num_cosets = num_threads;
@@ -101,9 +101,7 @@ pub(crate) fn parallel_fft<T: DomainCoeff<F>, F: FftField>(
             // `P(x) = sum_{c in |coset|} a[i + c |coset|] * x^c`
             // onto this coset.
             // However this is being evaluated in time O(N) instead of time O(|coset|log(|coset|)).
-            // If this understanding is the case, its doing standard Cooley-Tukey,
-            // but not taking the efficient decomposition on the inner sum,
-            // yielding the current bad time complexity.
+            // If this understanding is the case, its not doing standard Cooley-Tukey.
             // At the moment, this has time complexity of at least 2*N field mul's per thread,
             // so we will be getting pretty bad parallelism.
             // Exact complexity per thread atm is `2N + (N/num threads)log(N/num threads)` field muls
