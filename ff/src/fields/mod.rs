@@ -523,10 +523,8 @@ pub fn batch_inversion_and_mul<F: Field>(v: &mut [F], coeff: &F) {
 }
 
 #[cfg(all(test, feature = "std"))]
-mod tests {
+mod std_tests {
     use super::BitIteratorLE;
-    use super::*;
-    use crate::test_rng;
     #[test]
     fn bit_iterator_le() {
         let bits = BitIteratorLE::new(&[0, 1 << 10]).collect::<Vec<_>>();
@@ -540,11 +538,17 @@ mod tests {
             }
         }
     }
+}
+
+#[cfg(test)]
+mod no_std_tests {
+    use super::*;
+    use ark_test_curves::bls12_381::Fr;
+    use crate::test_rng;
 
     #[test]
     fn test_batch_inversion() {
-        use ark_test_curves::bls12_381::Fr;
-        let mut random_coeffs = Vec::new();
+        let mut random_coeffs = Vec::<Fr>::new();
         let vec_size = 1000;
 
         for _ in 0..=vec_size {
@@ -552,7 +556,7 @@ mod tests {
         }
 
         let mut random_coeffs_inv = random_coeffs.clone();
-        batch_inversion(&mut random_coeffs_inv);
+        batch_inversion::<Fr>(&mut random_coeffs_inv);
         for i in 0..=vec_size {
             assert_eq!(random_coeffs_inv[i] * random_coeffs[i], Fr::one());
         }
