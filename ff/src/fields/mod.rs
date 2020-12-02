@@ -17,6 +17,7 @@ use ark_std::{
 };
 
 use num_traits::{One, Zero};
+use zeroize::Zeroize;
 
 #[macro_use]
 pub mod macros;
@@ -66,11 +67,12 @@ pub trait Field:
     + Send
     + Sync
     + Eq
+    + Zero
     + One
     + Ord
     + Neg<Output = Self>
     + UniformRand
-    + Zero
+    + Zeroize
     + Sized
     + Hash
     + CanonicalSerialize
