@@ -33,6 +33,7 @@ use ark_std::{
     vec::Vec,
 };
 use num_traits::Zero;
+use zeroize::Zeroize;
 
 pub mod models;
 pub use self::models::*;
@@ -133,6 +134,7 @@ pub trait ProjectiveCurve:
     + Debug
     + Display
     + UniformRand
+    + Zeroize
     + Zero
     + Neg<Output = Self>
     + Add<Self, Output = Self>
@@ -239,6 +241,7 @@ pub trait AffineCurve:
     + Display
     + Zero
     + Neg<Output = Self>
+    + Zeroize
     + From<<Self as AffineCurve>::Projective>
 {
     const COFACTOR: &'static [u64];
