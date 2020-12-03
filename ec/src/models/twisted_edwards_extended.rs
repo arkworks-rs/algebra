@@ -14,11 +14,11 @@ use ark_std::{
     vec::Vec,
 };
 use num_traits::{One, Zero};
-use zeroize::Zeroize;
 use rand::{
     distributions::{Distribution, Standard},
     Rng,
 };
+use zeroize::Zeroize;
 
 use ark_ff::{
     bytes::{FromBytes, ToBytes},
