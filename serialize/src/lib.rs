@@ -14,9 +14,10 @@ mod flags;
 pub use ark_std::io::{Read, Write};
 use ark_std::{
     borrow::{Cow, ToOwned},
-    collections::BTreeMap,
+    collections::{BTreeMap, BTreeSet},
     convert::TryFrom,
     vec::Vec,
+    string::String,
 };
 pub use error::*;
 pub use flags::*;
@@ -560,6 +561,55 @@ where
         Ok(map)
     }
 }
+
+impl<T: CanonicalSerialize> CanonicalSerialize for BTreeSet<T> {
+    fn serialize<W: Write>(&self, mut writer: W) -> Result<(), SerializationError> {
+        let len = self.len() as u64;
+        len.serialize(&mut writer)?;
+        for elem in self.iter() {
+            elem.serialize(&mut writer)?;
+        }
+        Ok(())
+    }
+
+    fn serialized_size(&self) -> usize {
+        8 + self
+            .iter()
+            .map(|elem| elem.serialized_size())
+            .sum::<usize>()
+    }
+}
+
+impl<T: CanonicalDeserialize + Ord> CanonicalDeserialize for BTreeSet<T> {
+    fn deserialize<R: Read>(mut reader: R) -> Result<Self, SerializationError> {
+        let len = u64::deserialize(&mut reader)?;
+        let mut set = BTreeSet::new();
+        for _ in 0..len {
+            set.insert(T::deserialize(&mut reader)?);
+        }
+        Ok(set)
+    }
+}
+
+// TODO: Remove
+impl CanonicalSerialize for String {
+    fn serialize<W: Write>(&self, mut writer: W) -> Result<(), SerializationError> {
+        self.as_bytes().serialize(&mut writer)?;
+        Ok(())
+    }
+
+    fn serialized_size(&self) -> usize {
+        self.as_bytes().serialized_size()
+    }
+}
+
+impl CanonicalDeserialize for String {
+    fn deserialize<R: Read>(mut reader: R) -> Result<Self, SerializationError> {
+        let byte_string = Vec::<u8>::deserialize(&mut reader)?;
+        Ok(String::from_utf8(byte_string).unwrap())
+    }
+}
+
 
 #[cfg(all(test, feature = "std"))]
 mod test {

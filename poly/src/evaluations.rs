@@ -8,8 +8,11 @@ use ark_std::{
     vec::Vec,
 };
 
+// TODO:
+use ark_serialize::*;
+
 /// Stores a polynomial in evaluation form.
-#[derive(Clone, PartialEq, Eq, Hash, Debug)]
+#[derive(Clone, PartialEq, Eq, Hash, Debug, CanonicalSerialize, CanonicalDeserialize)]
 pub struct Evaluations<F: FftField, D: EvaluationDomain<F> = GeneralEvaluationDomain<F>> {
     /// The evaluations of a polynomial over the domain `D`
     pub evals: Vec<F>,

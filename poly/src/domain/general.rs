@@ -13,6 +13,9 @@ use crate::domain::{
 use ark_ff::{FftField, FftParameters};
 use ark_std::vec::Vec;
 
+// TODO
+use ark_serialize::*;
+
 /// Defines a domain over which finite field (I)FFTs can be performed.
 /// Generally tries to build a radix-2 domain and falls back to a mixed-radix
 /// domain if the radix-2 multiplicative subgroup is too small.
@@ -22,6 +25,44 @@ pub enum GeneralEvaluationDomain<F: FftField> {
     Radix2(Radix2EvaluationDomain<F>),
     /// Mixed-radix domain
     MixedRadix(MixedRadixEvaluationDomain<F>),
+}
+
+// TODO
+impl<F: FftField> CanonicalSerialize for GeneralEvaluationDomain<F> {
+    #[inline]
+    fn serialize<W: Write>(&self, mut writer: W) -> Result<(), SerializationError> {
+        match self {
+            GeneralEvaluationDomain::Radix2(domain) => {
+                0u8.serialize(&mut writer)?;
+                domain.serialize(&mut writer)?;
+            },
+            GeneralEvaluationDomain::MixedRadix(domain) => {
+                1u8.serialize(&mut writer)?;
+                domain.serialize(&mut writer)?;
+            }
+        }
+        Ok(())
+    }
+
+    #[inline]
+    fn serialized_size(&self) -> usize {
+        match self {
+            GeneralEvaluationDomain::Radix2(domain) => domain.serialized_size() + 1,
+            GeneralEvaluationDomain::MixedRadix(domain) => domain.serialized_size() + 1,
+        }
+    }
+}
+
+impl<F: FftField> CanonicalDeserialize for GeneralEvaluationDomain<F> {
+    #[inline]
+    fn deserialize<R: Read>(mut reader: R) -> Result<Self, SerializationError> {
+        let domain_type = u8::deserialize(&mut reader)?;
+        match domain_type {
+            0 => Ok(Self::Radix2(Radix2EvaluationDomain::deserialize(&mut reader)?)),
+            1 => Ok(Self::MixedRadix(MixedRadixEvaluationDomain::deserialize(&mut reader)?)),
+            _ => unreachable!(),
+        }
+    }
 }
 
 macro_rules! map {
