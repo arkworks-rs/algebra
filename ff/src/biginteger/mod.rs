@@ -15,6 +15,7 @@ use rand::{
     distributions::{Distribution, Standard},
     Rng,
 };
+use zeroize::Zeroize;
 
 #[macro_use]
 mod macros;
@@ -50,6 +51,7 @@ pub trait BigInteger:
     + Sync
     + 'static
     + UniformRand
+    + Zeroize
     + AsMut<[u64]>
     + AsRef<[u64]>
     + From<u64>

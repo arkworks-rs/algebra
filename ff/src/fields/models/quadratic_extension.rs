@@ -12,6 +12,7 @@ use ark_std::{
 };
 
 use num_traits::{One, Zero};
+use zeroize::Zeroize;
 
 use rand::{
     distributions::{Distribution, Standard},
@@ -327,6 +328,15 @@ impl<P: QuadExtParameters> PartialOrd for QuadExtField<P> {
     #[inline(always)]
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
+    }
+}
+
+impl<P: QuadExtParameters> Zeroize for QuadExtField<P> {
+    // The phantom data does not contain element-specific data
+    // and thus does not need to be zeroized.
+    fn zeroize(&mut self) {
+        self.c0.zeroize();
+        self.c1.zeroize();
     }
 }
 

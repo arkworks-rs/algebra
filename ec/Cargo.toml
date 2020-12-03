@@ -20,6 +20,7 @@ derivative = { version = "2", features = ["use_core"] }
 num-traits = { version = "0.2", default-features = false }
 rand = { version = "0.7", default-features = false }
 rayon = { version = "1", optional = true }
+zeroize = { version = "1", default-features = false, features = ["zeroize_derive"] }
 
 [dev-dependencies]
 rand_xorshift = "0.2"

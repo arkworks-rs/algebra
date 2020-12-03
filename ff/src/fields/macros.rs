@@ -544,5 +544,13 @@ macro_rules! impl_Fp {
                 self.mul_assign(&other.inverse().unwrap());
             }
         }
+
+        impl<P: $FpParameters> zeroize::Zeroize for $Fp<P> {
+            // The phantom data does not contain element-specific data
+            // and thus does not need to be zeroized.
+            fn zeroize(&mut self) {
+                self.0.zeroize();
+            }
+        }
     }
 }
