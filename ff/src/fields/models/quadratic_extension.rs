@@ -164,6 +164,10 @@ impl<P: QuadExtParameters> One for QuadExtField<P> {
 impl<P: QuadExtParameters> Field for QuadExtField<P> {
     type BasePrimeField = P::BasePrimeField;
 
+    fn extension_degree() -> u64 {
+        2 * P::BaseField::extension_degree()
+    }
+
     fn double(&self) -> Self {
         let mut result = *self;
         result.double_in_place();

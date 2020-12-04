@@ -115,6 +115,9 @@ pub trait Field:
         Self::BasePrimeField::characteristic()
     }
 
+    /// Returns the extension degree of the field
+    fn extension_degree() -> u64;
+
     /// Returns `self + self`.
     #[must_use]
     fn double(&self) -> Self;
