@@ -206,9 +206,9 @@ pub trait ProjectiveCurve:
     fn add_assign_mixed(&mut self, other: &Self::Affine);
 
     /// Performs scalar multiplication of this element.
-    fn mul<S: Into<<Self::ScalarField as PrimeField>::BigInt>>(mut self, other: S) -> Self {
+    fn mul<S: AsRef<[u64]>>(mut self, other: S) -> Self {
         let mut res = Self::zero();
-        for b in ark_ff::BitIteratorBE::without_leading_zeros(other.into()) {
+        for b in ark_ff::BitIteratorBE::without_leading_zeros(other) {
             res.double_in_place();
             if b {
                 res += self;
