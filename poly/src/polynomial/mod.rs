@@ -26,6 +26,8 @@ pub trait Polynomial<F: Field>:
     + for<'a> AddAssign<&'a Self>
     + for<'a> AddAssign<(F, &'a Self)>
     + for<'a> SubAssign<&'a Self>
+    + Sync
+    + Send
 {
     /// The type of evaluation points for this polynomial.
     type Point: Sized + Clone + Ord + Debug + Sync + Hash;
