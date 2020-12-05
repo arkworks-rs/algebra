@@ -12,6 +12,7 @@
     replacing `x.unitary_inverse()` with `let mut tmp = x.clone(); tmp.conjugate()`
 - #53 (ark-poly) Add `Zero` trait bound to `Polynomial`.
 - #106 (ark-ff, ark-ec) Add `Zeroize` trait bound to `Field, ProjectiveGroup, AffineGroup` traits.
+- #108 (ark-ff) Add `extension_degree()` method to `Field`.
 
 ### Features
 - #20 (ark-poly) Add structs/traits for multivariate polynomials
