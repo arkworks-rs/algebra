@@ -26,6 +26,7 @@
 - #100 (ark-ff) Implement `batch_inverse_and_mul`
 - #101 (ark-ff) Add `element(i: usize)` on the `Domain` trait.
 - #107 (ark-serialize) Add an impl of `CanonicalSerialize/Deserialize` for `BTreeSet`.
+- #114 (ark-poly) Significantly speedup and reduce memory usage of `DensePolynomial.evaluate`.
 
 ### Bug fixes
 - #36 (ark-ec) In Short-Weierstrass curves, include an infinity bit in `ToConstraintField`.
