@@ -140,6 +140,10 @@ impl<P: CubicExtParameters> One for CubicExtField<P> {
 impl<P: CubicExtParameters> Field for CubicExtField<P> {
     type BasePrimeField = P::BasePrimeField;
 
+    fn extension_degree() -> u64 {
+        3 * P::BaseField::extension_degree()
+    }
+
     fn double(&self) -> Self {
         let mut result = *self;
         result.double_in_place();
