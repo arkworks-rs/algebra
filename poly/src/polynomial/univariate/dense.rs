@@ -41,7 +41,8 @@ impl<F: Field> Polynomial<F> for DensePolynomial<F> {
         }
         // Horners method
         let mut result = F::zero();
-        for i in (0..self.degree()).rev() {
+        let num_coeffs = self.degree() + 1;
+        for i in (0..num_coeffs).rev() {
             result *= point;
             result += self.coeffs[i];
         }
