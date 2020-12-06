@@ -13,7 +13,6 @@
 - #53 (ark-poly) Add `Zero` trait bound to `Polynomial`.
 - #106 (ark-ff, ark-ec) Add `Zeroize` trait bound to `Field, ProjectiveGroup, AffineGroup` traits.
 - #108 (ark-ff) Add `extension_degree()` method to `Field`.
-- #112 (ark-serialize) Make `bool`s checked serialization methods non-malleable.
 
 ### Features
 - #20 (ark-poly) Add structs/traits for multivariate polynomials
@@ -31,6 +30,7 @@
 ### Bug fixes
 - #36 (ark-ec) In Short-Weierstrass curves, include an infinity bit in `ToConstraintField`.
 - #107 (ark-serialize) Fix handling of `(de)serialize_uncompressed/unchecked` in various impls of `CanonicalSerialize/Deserialize`.
+- #112 (ark-serialize) Make `bool`s checked serialization methods non-malleable.
 
 
 ## v0.1.0 (Initial release of arkworks/algebra)

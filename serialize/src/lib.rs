@@ -737,7 +737,9 @@ impl<T: CanonicalDeserialize + Ord> CanonicalDeserialize for BTreeSet<T> {
 #[cfg(test)]
 mod test {
     use super::*;
+    use ark_ff::test_rng;
     use ark_std::vec;
+    use rand::RngCore;
 
     #[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Debug)]
     struct Dummy;
@@ -818,6 +820,36 @@ mod test {
         assert_eq!(data, de);
     }
 
+    // Serialize T, randomly mutate the data, and deserialize it.
+    // Ensure it fails.
+    // Up to the caller to provide a valid mutation criterion
+    // to ensure that this test always fails.
+    // This method requires a concrete instance of the data to be provided,
+    // to get the serialized size.
+    fn ensure_non_malleable_encoding<
+        T: PartialEq + core::fmt::Debug + CanonicalSerialize + CanonicalDeserialize,
+    >(
+        data: T,
+        valid_mutation: fn(&[u8]) -> bool,
+    ) {
+        let mut r = test_rng();
+        let mut serialized = vec![0; data.serialized_size()];
+        r.fill_bytes(&mut serialized);
+        while !valid_mutation(&serialized) {
+            r.fill_bytes(&mut serialized);
+        }
+        let de = T::deserialize(&serialized[..]);
+        assert!(de.is_err());
+
+        let mut serialized = vec![0; data.uncompressed_size()];
+        r.fill_bytes(&mut serialized);
+        while !valid_mutation(&serialized) {
+            r.fill_bytes(&mut serialized);
+        }
+        let de = T::deserialize_uncompressed(&serialized[..]);
+        assert!(de.is_err());
+    }
+
     #[test]
     fn test_vec() {
         test_serialize(vec![1u64, 2, 3, 4, 5]);
@@ -865,6 +897,14 @@ mod test {
     fn test_bool() {
         test_serialize(true);
         test_serialize(false);
+
+        let valid_mutation = |data: &[u8]| -> bool {
+            return data.len() == 1 && data[0] > 1;
+        };
+        for _ in 0..10 {
+            ensure_non_malleable_encoding(true, valid_mutation);
+            ensure_non_malleable_encoding(false, valid_mutation);
+        }
     }
 
     #[test]
