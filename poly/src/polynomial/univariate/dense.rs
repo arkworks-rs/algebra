@@ -12,9 +12,6 @@ use ark_std::{
 use ark_ff::{FftField, Field, Zero};
 use rand::Rng;
 
-#[cfg(feature = "parallel")]
-use rayon::prelude::*;
-
 /// Stores a polynomial in coefficient form.
 #[derive(Clone, PartialEq, Eq, Hash, Default, CanonicalSerialize, CanonicalDeserialize)]
 pub struct DensePolynomial<F: Field> {
@@ -39,18 +36,16 @@ impl<F: Field> Polynomial<F> for DensePolynomial<F> {
     fn evaluate(&self, point: &F) -> F {
         if self.is_zero() {
             return F::zero();
+        } else if point.is_zero() {
+            return self.coeffs[0];
         }
-        let mut powers_of_point = vec![F::one()];
-        let mut cur = *point;
-        for _ in 0..self.degree() {
-            powers_of_point.push(cur);
-            cur *= point;
+        // Horners method
+        let mut result = F::zero();
+        for i in (0..self.degree()).rev() {
+            result *= point;
+            result += self.coeffs[i];
         }
-        assert_eq!(powers_of_point.len(), self.coeffs.len());
-        ark_std::cfg_into_iter!(powers_of_point)
-            .zip(&self.coeffs)
-            .map(|(power, coeff)| power * coeff)
-            .sum()
+        result
     }
 }
 
