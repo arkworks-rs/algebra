@@ -557,6 +557,18 @@ impl CanonicalSerialize for bool {
 impl CanonicalDeserialize for bool {
     #[inline]
     fn deserialize<R: Read>(reader: R) -> Result<Self, SerializationError> {
+        let val = u8::deserialize(reader)?;
+        if val == 0 {
+            return Ok(false);
+        } else if val == 1 {
+            return Ok(true);
+        }
+
+        Err(SerializationError::InvalidData)
+    }
+
+    #[inline]
+    fn deserialize_unchecked<R: Read>(reader: R) -> Result<Self, SerializationError> {
         Ok(u8::deserialize(reader)? == 1)
     }
 }

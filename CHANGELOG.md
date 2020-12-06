@@ -13,6 +13,7 @@
 - #53 (ark-poly) Add `Zero` trait bound to `Polynomial`.
 - #106 (ark-ff, ark-ec) Add `Zeroize` trait bound to `Field, ProjectiveGroup, AffineGroup` traits.
 - #108 (ark-ff) Add `extension_degree()` method to `Field`.
+- #112 (ark-serialize) Make `bool`s checked serialization methods non-malleable.
 
 ### Features
 - #20 (ark-poly) Add structs/traits for multivariate polynomials
