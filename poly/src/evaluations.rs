@@ -68,8 +68,7 @@ impl<'a, F: FftField, D: EvaluationDomain<F>> MulAssign<&'a Evaluations<F, D>>
     #[inline]
     fn mul_assign(&mut self, other: &'a Evaluations<F, D>) {
         assert_eq!(self.domain, other.domain, "domains are unequal");
-        self.evals
-            .iter_mut()
+        ark_std::cfg_iter_mut!(self.evals)
             .zip(&other.evals)
             .for_each(|(a, b)| *a *= b);
     }
@@ -94,8 +93,7 @@ impl<'a, F: FftField, D: EvaluationDomain<F>> AddAssign<&'a Evaluations<F, D>>
     #[inline]
     fn add_assign(&mut self, other: &'a Evaluations<F, D>) {
         assert_eq!(self.domain, other.domain, "domains are unequal");
-        self.evals
-            .iter_mut()
+        ark_std::cfg_iter_mut!(self.evals)
             .zip(&other.evals)
             .for_each(|(a, b)| *a += b);
     }
@@ -120,8 +118,7 @@ impl<'a, F: FftField, D: EvaluationDomain<F>> SubAssign<&'a Evaluations<F, D>>
     #[inline]
     fn sub_assign(&mut self, other: &'a Evaluations<F, D>) {
         assert_eq!(self.domain, other.domain, "domains are unequal");
-        self.evals
-            .iter_mut()
+        ark_std::cfg_iter_mut!(self.evals)
             .zip(&other.evals)
             .for_each(|(a, b)| *a -= b);
     }
@@ -146,8 +143,7 @@ impl<'a, F: FftField, D: EvaluationDomain<F>> DivAssign<&'a Evaluations<F, D>>
     #[inline]
     fn div_assign(&mut self, other: &'a Evaluations<F, D>) {
         assert_eq!(self.domain, other.domain, "domains are unequal");
-        self.evals
-            .iter_mut()
+        ark_std::cfg_iter_mut!(self.evals)
             .zip(&other.evals)
             .for_each(|(a, b)| *a /= b);
     }
