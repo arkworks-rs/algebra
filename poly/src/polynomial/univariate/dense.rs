@@ -13,7 +13,7 @@ use ark_ff::{FftField, Field, Zero};
 use rand::Rng;
 
 #[cfg(feature = "parallel")]
-use ark_std::cmp::{max, min};
+use ark_std::cmp::max;
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
 
@@ -73,30 +73,21 @@ impl<F: Field> DensePolynomial<F> {
         let num_cpus_available = rayon::current_num_threads();
         let num_coeffs = self.coeffs.len();
         let num_elem_per_thread = max(num_coeffs / num_cpus_available, MIN_ELEMENTS_PER_THREAD);
-        // compute num_cpus_used as ceil(num_coeffs / num_elem_per_thread)
-        let num_cpus_used = (num_coeffs + num_elem_per_thread - 1) / num_elem_per_thread;
 
         // run Horners method on each thread as follows:
         // 1) Split up the coefficients across each thread evenly.
         // 2) Do polynomial evaluation via horner's method for the thread's coefficeints
         // 3) Scale the result point^{thread coefficient start index}
         // Then obtain the final polynomial evaluation by summing each threads result.
-        let mut per_thread_res = vec![F::zero(); num_cpus_used];
-        let result = per_thread_res
-            .par_iter_mut()
-            .enumerate()
-            .map(|(i, _)| {
-                let mut thread_result = F::zero();
-                let iter_start_index = i * num_elem_per_thread;
-                let iter_end_index = min((i + 1) * num_elem_per_thread, num_coeffs);
-                for i in (iter_start_index..iter_end_index).rev() {
-                    thread_result *= point;
-                    thread_result += self.coeffs[i];
-                }
-                thread_result *= point.pow(&[iter_start_index as u64]);
-                thread_result
-            })
-            .sum();
+        let result = self.coeffs.par_chunks(num_elem_per_thread).enumerate().map(|(i, chunk)| {
+            let mut thread_result = F::zero();
+            for j in (0..chunk.len()).rev() {
+                thread_result *= point;
+                thread_result += chunk[j];
+            }
+            thread_result *= point.pow(&[(i * num_elem_per_thread) as u64]);
+            thread_result
+        }).sum();
         result
     }
 }
