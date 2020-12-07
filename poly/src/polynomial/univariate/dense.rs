@@ -4,7 +4,6 @@ use crate::{EvaluationDomain, Evaluations, GeneralEvaluationDomain};
 use crate::{Polynomial, UVPolynomial};
 use ark_serialize::*;
 use ark_std::{
-    cmp::{max, min},
     fmt,
     ops::{Add, AddAssign, Deref, DerefMut, Div, Mul, Neg, Sub, SubAssign},
     vec::Vec,
@@ -13,6 +12,8 @@ use ark_std::{
 use ark_ff::{FftField, Field, Zero};
 use rand::Rng;
 
+#[cfg(feature = "parallel")]
+use ark_std::cmp::{max, min};
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
 
