@@ -212,11 +212,14 @@ impl<F: FftField> EvaluationDomain<F> for Radix2EvaluationDomain<F> {
     }
 }
 
+// This implements the Cooley-Turkey FFT, derived from libfqfft
+// The libfqfft implementation uses pseudocode from [CLRS 2n Ed, pp. 864].
 pub(crate) fn serial_radix2_fft<T: DomainCoeff<F>, F: FftField>(a: &mut [T], omega: F, log_n: u32) {
     let n =
         u32::try_from(a.len()).expect("cannot perform FFTs larger on vectors of len > (1 << 32)");
     assert_eq!(n, 1 << log_n);
 
+    // swap coefficients in place
     for k in 0..n {
         let rk = bitreverse(k, log_n);
         if k < rk {
@@ -225,11 +228,13 @@ pub(crate) fn serial_radix2_fft<T: DomainCoeff<F>, F: FftField>(a: &mut [T], ome
     }
 
     let mut m = 1;
-    for _ in 0..log_n {
+    for _i in 1..=log_n {
+        // w_m is 2^i-th root of unity
         let w_m = omega.pow(&[(n / (2 * m)) as u64]);
 
         let mut k = 0;
         while k < n {
+            // w = w_m^j at the start of every loop iteration
             let mut w = F::one();
             for j in 0..m {
                 let mut t = a[(k + j + m) as usize];
@@ -251,6 +256,7 @@ pub(crate) fn serial_radix2_fft<T: DomainCoeff<F>, F: FftField>(a: &mut [T], ome
 #[cfg(test)]
 mod tests {
     use crate::domain::Vec;
+    use crate::polynomial::Polynomial;
     use crate::{EvaluationDomain, Radix2EvaluationDomain};
     use ark_ff::{test_rng, Field, One, UniformRand, Zero};
     use ark_test_curves::bls12_381::Fr;
@@ -263,9 +269,9 @@ mod tests {
             let domain = Radix2EvaluationDomain::<Fr>::new(coeffs).unwrap();
             let z = domain.vanishing_polynomial();
             for _ in 0..100 {
-                let point = rng.gen();
+                let point: Fr = rng.gen();
                 assert_eq!(
-                    z.evaluate(point),
+                    z.evaluate(&point),
                     domain.evaluate_vanishing_polynomial(point)
                 )
             }
@@ -278,7 +284,7 @@ mod tests {
             let domain = Radix2EvaluationDomain::<Fr>::new(coeffs).unwrap();
             let z = domain.vanishing_polynomial();
             for point in domain.elements() {
-                assert!(z.evaluate(point).is_zero())
+                assert!(z.evaluate(&point).is_zero())
             }
         }
     }
