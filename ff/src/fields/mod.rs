@@ -29,6 +29,11 @@ pub mod arithmetic;
 pub mod models;
 pub use self::models::*;
 
+#[cfg(feature = "parallel")]
+use ark_std::cmp::max;
+#[cfg(feature = "parallel")]
+use rayon::prelude::*;
+
 #[macro_export]
 macro_rules! field_new {
     ($name:ident, $c0:expr) => {
@@ -491,8 +496,29 @@ pub fn batch_inversion<F: Field>(v: &mut [F]) {
     batch_inversion_and_mul(v, &F::one());
 }
 
+#[cfg(not(feature = "parallel"))]
 // Given a vector of field elements {v_i}, compute the vector {coeff * v_i^(-1)}
 pub fn batch_inversion_and_mul<F: Field>(v: &mut [F], coeff: &F) {
+    serial_batch_inversion_and_mul(v, coeff);
+}
+
+#[cfg(feature = "parallel")]
+// Given a vector of field elements {v_i}, compute the vector {coeff * v_i^(-1)}
+pub fn batch_inversion_and_mul<F: Field>(v: &mut [F], coeff: &F) {
+    // Divide the vector v evenly between all available cores
+    let min_elements_per_thread = 1;
+    let num_cpus_available = rayon::current_num_threads();
+    let num_elems = v.len();
+    let num_elem_per_thread = max(num_elems / num_cpus_available, min_elements_per_thread);
+
+    // Batch invert in parallel, without copying the vector
+    v.par_chunks_mut(num_elem_per_thread).for_each(|mut chunk| {
+        serial_batch_inversion_and_mul(&mut chunk, coeff);
+    });
+}
+
+// Given a vector of field elements {v_i}, compute the vector {coeff * v_i^(-1)}
+fn serial_batch_inversion_and_mul<F: Field>(v: &mut [F], coeff: &F) {
     // Montgomery’s Trick and Fast Implementation of Masked AES
     // Genelle, Prouff and Quisquater
     // Section 3.2
