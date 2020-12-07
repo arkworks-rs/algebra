@@ -13,6 +13,8 @@
 - #53 (ark-poly) Add `Zero` trait bound to `Polynomial`.
 - #106 (ark-ff, ark-ec) Add `Zeroize` trait bound to `Field, ProjectiveGroup, AffineGroup` traits.
 - #108 (ark-ff) Add `extension_degree()` method to `Field`.
+- #117 (ark-poly) Make the univariate `SparsePolynomial` implement `Polynomial`. Make this change
+    by replacing `sparse_poly.evaluate(pt)` to `sparse_poly.evaluate(&pt)`.
 
 ### Features
 - #20 (ark-poly) Add structs/traits for multivariate polynomials
@@ -26,6 +28,7 @@
 - #100 (ark-ff) Implement `batch_inverse_and_mul`
 - #101 (ark-ff) Add `element(i: usize)` on the `Domain` trait.
 - #107 (ark-serialize) Add an impl of `CanonicalSerialize/Deserialize` for `BTreeSet`.
+- #117 (ark-poly) Add parallel implementation of `sparse_polynomial.evaluate(pt)`.
 
 ### Bug fixes
 - #36 (ark-ec) In Short-Weierstrass curves, include an infinity bit in `ToConstraintField`.
