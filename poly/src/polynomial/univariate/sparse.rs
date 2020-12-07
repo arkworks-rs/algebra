@@ -162,7 +162,7 @@ impl<'a, 'b, F: Field> SubAssign<&'a SparsePolynomial<F>> for SparsePolynomial<F
     // TODO: Reduce number of clones
     #[inline]
     fn sub_assign(&mut self, other: &'a SparsePolynomial<F>) {
-        let self_copy = self.clone().neg();
+        let self_copy = -self.clone();
         self.coeffs = (self_copy + other.clone()).coeffs;
     }
 }
@@ -274,7 +274,7 @@ mod tests {
     use crate::polynomial::Polynomial;
     use crate::univariate::{DensePolynomial, SparsePolynomial};
     use crate::{EvaluationDomain, GeneralEvaluationDomain};
-    use ark_ff::{test_rng, UniformRand};
+    use ark_ff::{test_rng, UniformRand, Zero};
     use ark_std::cmp::max;
     use ark_std::ops::Mul;
     use ark_test_curves::bls12_381::Fr;
@@ -343,6 +343,24 @@ mod tests {
                     degree_a, degree_b
                 );
             }
+        }
+    }
+
+    #[test]
+    fn polynomial_additive_identity() {
+        // Test adding polynomials with its negative equals 0
+        let mut rng = test_rng();
+        for degree in 0..70 {
+            // Test with Neg trait
+            let sparse_poly = rand_sparse_poly(degree, &mut rng);
+            let neg = -sparse_poly.clone();
+            assert!((sparse_poly + neg).is_zero());
+
+            // Test with SubAssign trait
+            let sparse_poly = rand_sparse_poly(degree, &mut rng);
+            let mut result = sparse_poly.clone();
+            result -= &sparse_poly;
+            assert!(result.is_zero());
         }
     }
 
