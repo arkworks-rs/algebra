@@ -54,16 +54,21 @@ impl<F: Field> Polynomial<F> for DensePolynomial<F> {
 const MIN_ELEMENTS_PER_THREAD: usize = 16;
 
 impl<F: Field> DensePolynomial<F> {
-    #[cfg(not(feature = "parallel"))]
-    fn internal_evaluate(&self, point: &F) -> F {
-        // Horners method - serial method
+    #[inline]
+    // Horner's method for polynomial evaluation
+    fn horner_evaluate(poly_coeffs: &[F], point: &F) -> F {
         let mut result = F::zero();
-        let num_coeffs = self.coeffs.len();
+        let num_coeffs = poly_coeffs.len();
         for i in (0..num_coeffs).rev() {
             result *= point;
-            result += self.coeffs[i];
+            result += poly_coeffs[i];
         }
         result
+    }
+
+    #[cfg(not(feature = "parallel"))]
+    fn internal_evaluate(&self, point: &F) -> F {
+        Self::horner_evaluate(&self.coeffs, point)
     }
 
     #[cfg(feature = "parallel")]
@@ -84,11 +89,7 @@ impl<F: Field> DensePolynomial<F> {
             .par_chunks(num_elem_per_thread)
             .enumerate()
             .map(|(i, chunk)| {
-                let mut thread_result = F::zero();
-                for j in (0..chunk.len()).rev() {
-                    thread_result *= point;
-                    thread_result += chunk[j];
-                }
+                let mut thread_result = Self::horner_evaluate(&chunk, point);
                 thread_result *= point.pow(&[(i * num_elem_per_thread) as u64]);
                 thread_result
             })
