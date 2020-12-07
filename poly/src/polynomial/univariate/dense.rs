@@ -242,15 +242,19 @@ impl<'a, 'b, F: Field> Add<&'a DensePolynomial<F>> for &'b DensePolynomial<F> {
             self.clone()
         } else if self.degree() >= other.degree() {
             let mut result = self.clone();
-            cfg_iter_mut!(result.coeffs).zip(&other.coeffs).for_each(|(a, b)| {
-                *a += b;
-            });
+            cfg_iter_mut!(result.coeffs)
+                .zip(&other.coeffs)
+                .for_each(|(a, b)| {
+                    *a += b;
+                });
             result
         } else {
             let mut result = other.clone();
-            cfg_iter_mut!(result.coeffs).zip(&self.coeffs).for_each(|(a, b)| {
-                *a += b;
-            });
+            cfg_iter_mut!(result.coeffs)
+                .zip(&self.coeffs)
+                .for_each(|(a, b)| {
+                    *a += b;
+                });
             result
         };
         result.truncate_leading_zeros();
@@ -265,15 +269,19 @@ impl<'a, 'b, F: Field> AddAssign<&'a DensePolynomial<F>> for DensePolynomial<F> 
             self.coeffs.extend_from_slice(&other.coeffs);
         } else if other.is_zero() {
         } else if self.degree() >= other.degree() {
-            cfg_iter_mut!(self.coeffs).zip(&other.coeffs).for_each(|(a, b)| {
-                *a += b;
-            });
+            cfg_iter_mut!(self.coeffs)
+                .zip(&other.coeffs)
+                .for_each(|(a, b)| {
+                    *a += b;
+                });
         } else {
             // Add the necessary number of zero coefficients.
             self.coeffs.resize(other.coeffs.len(), F::zero());
-            cfg_iter_mut!(self.coeffs).zip(&other.coeffs).for_each(|(a, b)| {
-                *a += b;
-            });
+            cfg_iter_mut!(self.coeffs)
+                .zip(&other.coeffs)
+                .for_each(|(a, b)| {
+                    *a += b;
+                });
             self.truncate_leading_zeros();
         }
     }
@@ -293,9 +301,11 @@ impl<'a, 'b, F: Field> AddAssign<(F, &'a DensePolynomial<F>)> for DensePolynomia
             // Add the necessary number of zero coefficients.
             self.coeffs.resize(other.coeffs.len(), F::zero());
         }
-        cfg_iter_mut!(self.coeffs).zip(&other.coeffs).for_each(|(a, b)| {
-            *a += &(f * b);
-        });
+        cfg_iter_mut!(self.coeffs)
+            .zip(&other.coeffs)
+            .for_each(|(a, b)| {
+                *a += &(f * b);
+            });
         // If the leading coefficient ends up being zero, pop it off.
         // This can happen if they were the same degree, or if a
         // polynomial's coefficients were constructed with leading zeros.
@@ -308,9 +318,9 @@ impl<F: Field> Neg for DensePolynomial<F> {
 
     #[inline]
     fn neg(mut self) -> DensePolynomial<F> {
-        for coeff in &mut self.coeffs {
+        cfg_iter_mut!(self.coeffs).for_each(|coeff| {
             *coeff = -*coeff;
-        }
+        });
         self
     }
 }
@@ -328,16 +338,16 @@ impl<'a, 'b, F: Field> Sub<&'a DensePolynomial<F>> for &'b DensePolynomial<F> {
             self.clone()
         } else if self.degree() >= other.degree() {
             let mut result = self.clone();
-            cfg_iter_mut!(result.coeffs).zip(&other.coeffs).for_each(|(a, b)| {
-                *a -= b
-            });
+            cfg_iter_mut!(result.coeffs)
+                .zip(&other.coeffs)
+                .for_each(|(a, b)| *a -= b);
             result
         } else {
             let mut result = self.clone();
             result.coeffs.resize(other.coeffs.len(), F::zero());
-            cfg_iter_mut!(result.coeffs).zip(&other.coeffs).for_each(|(a, b)| {
-                *a -= b
-            });
+            cfg_iter_mut!(result.coeffs)
+                .zip(&other.coeffs)
+                .for_each(|(a, b)| *a -= b);
             result
         };
         result.truncate_leading_zeros();
@@ -357,9 +367,11 @@ impl<'a, 'b, F: Field> SubAssign<&'a DensePolynomial<F>> for DensePolynomial<F> 
             // Add the necessary number of zero coefficients.
             self.coeffs.resize(other.coeffs.len(), F::zero());
         }
-        cfg_iter_mut!(self.coeffs).zip(&other.coeffs).for_each(|(a, b)| {
-            *a -= b;
-        });
+        cfg_iter_mut!(self.coeffs)
+            .zip(&other.coeffs)
+            .for_each(|(a, b)| {
+                *a -= b;
+            });
         // If the leading coefficient ends up being zero, pop it off.
         // This can happen if they were the same degree, or if other's
         // coefficients were constructed with leading zeros.
