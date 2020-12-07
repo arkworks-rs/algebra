@@ -13,6 +13,8 @@ use ark_ff::{FftField, Field, Zero};
 use rand::Rng;
 
 #[cfg(feature = "parallel")]
+use ark_std::cmp::max;
+#[cfg(feature = "parallel")]
 use rayon::prelude::*;
 
 /// Stores a polynomial in coefficient form.
@@ -39,18 +41,60 @@ impl<F: Field> Polynomial<F> for DensePolynomial<F> {
     fn evaluate(&self, point: &F) -> F {
         if self.is_zero() {
             return F::zero();
+        } else if point.is_zero() {
+            return self.coeffs[0];
         }
-        let mut powers_of_point = vec![F::one()];
-        let mut cur = *point;
-        for _ in 0..self.degree() {
-            powers_of_point.push(cur);
-            cur *= point;
+        self.internal_evaluate(point)
+    }
+}
+
+#[cfg(feature = "parallel")]
+// Set some minimum number of field elements to be worked on per thread
+// to avoid per-thread costs dominating parallel execution time.
+const MIN_ELEMENTS_PER_THREAD: usize = 16;
+
+impl<F: Field> DensePolynomial<F> {
+    #[inline]
+    // Horner's method for polynomial evaluation
+    fn horner_evaluate(poly_coeffs: &[F], point: &F) -> F {
+        let mut result = F::zero();
+        let num_coeffs = poly_coeffs.len();
+        for i in (0..num_coeffs).rev() {
+            result *= point;
+            result += poly_coeffs[i];
         }
-        assert_eq!(powers_of_point.len(), self.coeffs.len());
-        ark_std::cfg_into_iter!(powers_of_point)
-            .zip(&self.coeffs)
-            .map(|(power, coeff)| power * coeff)
-            .sum()
+        result
+    }
+
+    #[cfg(not(feature = "parallel"))]
+    fn internal_evaluate(&self, point: &F) -> F {
+        Self::horner_evaluate(&self.coeffs, point)
+    }
+
+    #[cfg(feature = "parallel")]
+    fn internal_evaluate(&self, point: &F) -> F {
+        // Horners method - parallel method
+        // compute the number of threads we will be using.
+        let num_cpus_available = rayon::current_num_threads();
+        let num_coeffs = self.coeffs.len();
+        let num_elem_per_thread = max(num_coeffs / num_cpus_available, MIN_ELEMENTS_PER_THREAD);
+
+        // run Horners method on each thread as follows:
+        // 1) Split up the coefficients across each thread evenly.
+        // 2) Do polynomial evaluation via horner's method for the thread's coefficeints
+        // 3) Scale the result point^{thread coefficient start index}
+        // Then obtain the final polynomial evaluation by summing each threads result.
+        let result = self
+            .coeffs
+            .par_chunks(num_elem_per_thread)
+            .enumerate()
+            .map(|(i, chunk)| {
+                let mut thread_result = Self::horner_evaluate(&chunk, point);
+                thread_result *= point.pow(&[(i * num_elem_per_thread) as u64]);
+                thread_result
+            })
+            .sum();
+        result
     }
 }
 
