@@ -4,6 +4,7 @@ use crate::{EvaluationDomain, Evaluations, GeneralEvaluationDomain};
 use crate::{Polynomial, UVPolynomial};
 use ark_serialize::*;
 use ark_std::{
+    cmp::{max, min},
     fmt,
     ops::{Add, AddAssign, Deref, DerefMut, Div, Mul, Neg, Sub, SubAssign},
     vec::Vec,
@@ -11,6 +12,9 @@ use ark_std::{
 
 use ark_ff::{FftField, Field, Zero};
 use rand::Rng;
+
+#[cfg(feature = "parallel")]
+use rayon::prelude::*;
 
 /// Stores a polynomial in coefficient form.
 #[derive(Clone, PartialEq, Eq, Hash, Default, CanonicalSerialize, CanonicalDeserialize)]
@@ -39,13 +43,56 @@ impl<F: Field> Polynomial<F> for DensePolynomial<F> {
         } else if point.is_zero() {
             return self.coeffs[0];
         }
-        // Horners method
+        self.internal_evaluate(point)
+    }
+}
+
+#[cfg(feature = "parallel")]
+// Set some minimum number of field elements to be worked on per thread
+// to avoid per-thread costs dominating parallel execution time.
+const MIN_ELEMENTS_PER_THREAD: usize = 16;
+
+impl<F: Field> DensePolynomial<F> {
+    #[cfg(not(feature = "parallel"))]
+    fn internal_evaluate(&self, point: &F) -> F
+    {
+        // Horners method - serial method
         let mut result = F::zero();
-        let num_coeffs = self.degree() + 1;
+        let num_coeffs = self.coeffs.len();
         for i in (0..num_coeffs).rev() {
             result *= point;
             result += self.coeffs[i];
         }
+        result
+    }
+
+    #[cfg(feature = "parallel")]
+    fn internal_evaluate(&self, point: &F) -> F
+    {
+        // Horners method - parallel method
+        // compute the number of threads we will be using.
+        let num_cpus_available = rayon::current_num_threads();
+        let num_coeffs = self.coeffs.len();
+        let num_elem_per_thread = max(num_coeffs / num_cpus_available, MIN_ELEMENTS_PER_THREAD);
+        // compute num_cpus_used as ceil(num_coeffs / num_elem_per_thread)
+        let num_cpus_used = (num_coeffs + num_elem_per_thread - 1) / num_elem_per_thread;
+
+        // run Horners method on each thread
+        let mut per_thread_res = vec![F::zero(); num_cpus_used];
+        let result = per_thread_res.par_iter_mut()
+            .enumerate()
+            .map(|(i, _)| 
+        {
+            let mut thread_result = F::zero();
+            let iter_start_index = i * num_elem_per_thread;
+            let iter_end_index = min((i+1) * num_elem_per_thread, num_coeffs);
+            for i in (iter_start_index..iter_end_index).rev() {
+                thread_result *= point;
+                thread_result += self.coeffs[i];
+            }
+            thread_result *= point.pow(&[iter_start_index as u64]);
+            thread_result
+        }).sum();
         result
     }
 }
