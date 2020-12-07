@@ -8,6 +8,9 @@ use ark_std::{
     vec::Vec,
 };
 
+#[cfg(feature = "parallel")]
+use rayon::prelude::*;
+
 /// Stores a polynomial in evaluation form.
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
 pub struct Evaluations<F: FftField, D: EvaluationDomain<F> = GeneralEvaluationDomain<F>> {
