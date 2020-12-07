@@ -54,8 +54,7 @@ const MIN_ELEMENTS_PER_THREAD: usize = 16;
 
 impl<F: Field> DensePolynomial<F> {
     #[cfg(not(feature = "parallel"))]
-    fn internal_evaluate(&self, point: &F) -> F
-    {
+    fn internal_evaluate(&self, point: &F) -> F {
         // Horners method - serial method
         let mut result = F::zero();
         let num_coeffs = self.coeffs.len();
@@ -67,8 +66,7 @@ impl<F: Field> DensePolynomial<F> {
     }
 
     #[cfg(feature = "parallel")]
-    fn internal_evaluate(&self, point: &F) -> F
-    {
+    fn internal_evaluate(&self, point: &F) -> F {
         // Horners method - parallel method
         // compute the number of threads we will be using.
         let num_cpus_available = rayon::current_num_threads();
@@ -77,22 +75,27 @@ impl<F: Field> DensePolynomial<F> {
         // compute num_cpus_used as ceil(num_coeffs / num_elem_per_thread)
         let num_cpus_used = (num_coeffs + num_elem_per_thread - 1) / num_elem_per_thread;
 
-        // run Horners method on each thread
+        // run Horners method on each thread as follows:
+        // 1) Split up the coefficients across each thread evenly.
+        // 2) Do polynomial evaluation via horner's method for the thread's coefficeints
+        // 3) Scale the result point^{thread coefficient start index}
+        // Then obtain the final polynomial evaluation by summing each threads result.
         let mut per_thread_res = vec![F::zero(); num_cpus_used];
-        let result = per_thread_res.par_iter_mut()
+        let result = per_thread_res
+            .par_iter_mut()
             .enumerate()
-            .map(|(i, _)| 
-        {
-            let mut thread_result = F::zero();
-            let iter_start_index = i * num_elem_per_thread;
-            let iter_end_index = min((i+1) * num_elem_per_thread, num_coeffs);
-            for i in (iter_start_index..iter_end_index).rev() {
-                thread_result *= point;
-                thread_result += self.coeffs[i];
-            }
-            thread_result *= point.pow(&[iter_start_index as u64]);
-            thread_result
-        }).sum();
+            .map(|(i, _)| {
+                let mut thread_result = F::zero();
+                let iter_start_index = i * num_elem_per_thread;
+                let iter_end_index = min((i + 1) * num_elem_per_thread, num_coeffs);
+                for i in (iter_start_index..iter_end_index).rev() {
+                    thread_result *= point;
+                    thread_result += self.coeffs[i];
+                }
+                thread_result *= point.pow(&[iter_start_index as u64]);
+                thread_result
+            })
+            .sum();
         result
     }
 }
