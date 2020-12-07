@@ -79,15 +79,20 @@ impl<F: Field> DensePolynomial<F> {
         // 2) Do polynomial evaluation via horner's method for the thread's coefficeints
         // 3) Scale the result point^{thread coefficient start index}
         // Then obtain the final polynomial evaluation by summing each threads result.
-        let result = self.coeffs.par_chunks(num_elem_per_thread).enumerate().map(|(i, chunk)| {
-            let mut thread_result = F::zero();
-            for j in (0..chunk.len()).rev() {
-                thread_result *= point;
-                thread_result += chunk[j];
-            }
-            thread_result *= point.pow(&[(i * num_elem_per_thread) as u64]);
-            thread_result
-        }).sum();
+        let result = self
+            .coeffs
+            .par_chunks(num_elem_per_thread)
+            .enumerate()
+            .map(|(i, chunk)| {
+                let mut thread_result = F::zero();
+                for j in (0..chunk.len()).rev() {
+                    thread_result *= point;
+                    thread_result += chunk[j];
+                }
+                thread_result *= point.pow(&[(i * num_elem_per_thread) as u64]);
+                thread_result
+            })
+            .sum();
         result
     }
 }
