@@ -317,7 +317,8 @@ mod tests {
                 let sparse_poly_b = rand_sparse_poly(degree_b, &mut rng);
                 let dense_poly_b: DensePolynomial<Fr> = sparse_poly_b.clone().into();
 
-                let sparse_sum = sparse_poly_a.clone() + sparse_poly_b;
+                // Test Add trait
+                let sparse_sum = sparse_poly_a.clone() + sparse_poly_b.clone();
                 assert_eq!(
                     sparse_sum.degree(),
                     max(degree_a, degree_b),
@@ -329,6 +330,15 @@ mod tests {
                 let expected_dense_sum = dense_poly_a.clone() + dense_poly_b;
                 assert_eq!(
                     actual_dense_sum, expected_dense_sum,
+                    "degree_a = {}, degree_b = {}",
+                    degree_a, degree_b
+                );
+                // Test AddAssign Trait
+                let mut sparse_add_assign_sum = sparse_poly_a.clone();
+                sparse_add_assign_sum += &sparse_poly_b;
+                let actual_add_assign_dense_sum: DensePolynomial<Fr> = sparse_add_assign_sum.into();
+                assert_eq!(
+                    actual_add_assign_dense_sum, expected_dense_sum,
                     "degree_a = {}, degree_b = {}",
                     degree_a, degree_b
                 );
