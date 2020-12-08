@@ -28,6 +28,7 @@
 - #101 (ark-ff) Add `element(i: usize)` on the `Domain` trait.
 - #107 (ark-serialize) Add an impl of `CanonicalSerialize/Deserialize` for `BTreeSet`.
 - #114 (ark-poly) Significantly speedup and reduce memory usage of `DensePolynomial.evaluate`.
+- #114, #119 (ark-poly) Add infrastructure for benchmarking `DensePolynomial` operations.
 - #115 (ark-poly) Add parallel implementation to operations on `Evaluations`.
 - #115 (ark-ff) Add parallel implementation of `batch_inversion`.
 - #119 (ark-poly) Add parallel implementations of all addition and subtraction to `DensePolynomial`.

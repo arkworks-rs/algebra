@@ -9,8 +9,9 @@ edition = "2018"
 publish = false
 
 [dependencies]
-ark-poly = { path = "../poly" }
 ark-ff = { path = "../ff" }
+ark-poly = { path = "../poly" }
+ark-std = {  git = "https://github.com/arkworks-rs/utils", default-features = false }
 ark-test-curves = { path = "../test-curves", default-features = false, features = [ "bls12_381_scalar_field", "mnt4_753_curve" ] }
 criterion = "0.3.1"
 rand = "0.7"
@@ -18,7 +19,7 @@ rayon = { version = "1", optional = true }
 
 [features]
 default = []
-parallel = ["ark-ff/parallel", "rayon", "ark-poly/parallel" ]
+parallel = ["ark-ff/parallel", "rayon", "ark-poly/parallel", "ark-std/parallel" ]
 
 [[bench]]
 name = "groth16_fft"
