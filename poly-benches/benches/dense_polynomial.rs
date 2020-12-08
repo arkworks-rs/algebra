@@ -4,43 +4,104 @@ extern crate criterion;
 
 use ark_ff::Field;
 use ark_poly::{polynomial::univariate::DensePolynomial, Polynomial, UVPolynomial};
+use ark_std::cmp::min;
 use ark_test_curves::bls12_381::Fr as bls12_381_fr;
 use criterion::BenchmarkId;
-use criterion::Criterion;
-use criterion::{criterion_group, criterion_main};
+use criterion::{criterion_group, criterion_main, Bencher, Criterion};
 
-const POLY_LOG_MIN_SIZE: usize = 15;
-const POLY_EVALUATE_MAX_DEGREE: usize = 1 << 17;
+const BENCHMARK_MIN_DEGREE: usize = 1 << 15;
+const BENCHMARK_MAX_DEGREE: usize = 1 << 17;
+const BENCHMARK_LOG_INTERVAL_DEGREE: usize = 1;
 
-// returns vec![2^{POLY_LOG_MIN_SIZE}, ... 2^n], where n = ceil(log_2(max_degree))
-fn size_range(max_degree: usize) -> Vec<usize> {
-    let mut to_ret = vec![1 << POLY_LOG_MIN_SIZE];
+const ENABLE_ADD_BENCH: bool = true;
+const ENABLE_ADD_ASSIGN_BENCH: bool = true;
+const ENABLE_EVALUATE_BENCH: bool = true;
+
+// returns vec![2^{min}, 2^{min + interval}, ..., 2^{max}], where:
+// interval = BENCHMARK_LOG_INTERVAL_DEGREE
+// min      = ceil(log_2(BENCHMARK_MIN_DEGREE))
+// max      = ceil(log_2(BENCHMARK_MAX_DEGREE))
+fn default_size_range() -> Vec<usize> {
+    size_range(
+        BENCHMARK_LOG_INTERVAL_DEGREE,
+        BENCHMARK_MIN_DEGREE,
+        BENCHMARK_MAX_DEGREE,
+    )
+}
+
+// returns vec![2^{min}, 2^{min + interval}, ..., 2^{max}], where:
+// interval = log_interval
+// min      = ceil(log_2(min_degree))
+// max      = ceil(log_2(max_degree))
+fn size_range(log_interval: usize, min_degree: usize, max_degree: usize) -> Vec<usize> {
+    let mut to_ret = vec![min_degree.next_power_of_two()];
+    let interval = 1 << log_interval;
     while *to_ret.last().unwrap() < max_degree {
-        to_ret.push(to_ret.last().unwrap() * 2);
+        let next_elem = min(max_degree, interval * to_ret.last().unwrap());
+        to_ret.push(next_elem);
     }
     to_ret
 }
 
-fn bench_poly_evaluate<F: Field>(c: &mut Criterion, name: &'static str) {
-    let mut group = c.benchmark_group(format!("{:?} - evaluate_polynomial", name));
-    for degree in size_range(POLY_EVALUATE_MAX_DEGREE).iter() {
-        group.bench_with_input(BenchmarkId::from_parameter(degree), degree, |b, &degree| {
-            // Per benchmark setup
-            let mut rng = &mut rand::thread_rng();
-            let poly = DensePolynomial::<F>::rand(degree, &mut rng);
-            b.iter(|| {
-                // Per benchmark iteration
-                let pt = F::rand(&mut rng);
-                poly.evaluate(&pt);
-            });
-        });
+fn setup_bench<F: Field>(c: &mut Criterion, name: &str, bench_fn: fn(&mut Bencher, &usize)) {
+    let mut group = c.benchmark_group(name);
+    for degree in default_size_range().iter() {
+        group.bench_with_input(BenchmarkId::from_parameter(degree), degree, bench_fn);
     }
     group.finish();
 }
 
+fn bench_poly_evaluate<F: Field>(b: &mut Bencher, degree: &usize) {
+    // Per benchmark setup
+    let mut rng = &mut rand::thread_rng();
+    let poly = DensePolynomial::<F>::rand(*degree, &mut rng);
+    b.iter(|| {
+        // Per benchmark iteration
+        let pt = F::rand(&mut rng);
+        poly.evaluate(&pt);
+    });
+}
+
+fn bench_poly_add<F: Field>(b: &mut Bencher, degree: &usize) {
+    // Per benchmark setup
+    let mut rng = &mut rand::thread_rng();
+    let poly_one = DensePolynomial::<F>::rand(*degree, &mut rng);
+    let poly_two = DensePolynomial::<F>::rand(*degree, &mut rng);
+    b.iter(|| {
+        // Per benchmark iteration
+        let _poly_three = &poly_one + &poly_two;
+    });
+}
+
+fn bench_poly_add_assign<F: Field>(b: &mut Bencher, degree: &usize) {
+    // Per benchmark setup
+    let mut rng = &mut rand::thread_rng();
+    let mut poly_one = DensePolynomial::<F>::rand(*degree, &mut rng);
+    let poly_two = DensePolynomial::<F>::rand(*degree, &mut rng);
+    b.iter(|| {
+        // Per benchmark iteration
+        poly_one += &poly_two;
+    });
+}
+
+fn poly_benches<F: Field>(c: &mut Criterion, name: &'static str) {
+    if ENABLE_ADD_BENCH {
+        let cur_name = format!("{:?} - add_polynomial", name.clone());
+        setup_bench::<F>(c, &cur_name, bench_poly_add::<F>);
+    }
+    if ENABLE_ADD_ASSIGN_BENCH {
+        let cur_name = format!("{:?} - add_assign_polynomial", name.clone());
+        setup_bench::<F>(c, &cur_name, bench_poly_add_assign::<F>);
+    }
+    if ENABLE_EVALUATE_BENCH {
+        let cur_name = format!("{:?} - evaluate_polynomial", name.clone());
+        setup_bench::<F>(c, &cur_name, bench_poly_evaluate::<F>);
+    }
+}
+
 fn bench_bls12_381(c: &mut Criterion) {
     let name = "bls12_381";
-    bench_poly_evaluate::<bls12_381_fr>(c, name);
+    poly_benches::<bls12_381_fr>(c, name);
 }
 
 criterion_group!(benches, bench_bls12_381);
