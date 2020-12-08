@@ -7,8 +7,7 @@ use ark_poly::{polynomial::univariate::DensePolynomial, Polynomial, UVPolynomial
 use ark_std::cmp::min;
 use ark_test_curves::bls12_381::Fr as bls12_381_fr;
 use criterion::BenchmarkId;
-use criterion::{Bencher, Criterion};
-use criterion::{criterion_group, criterion_main};
+use criterion::{criterion_group, criterion_main, Bencher, Criterion};
 
 const BENCHMARK_MIN_DEGREE: usize = 1 << 15;
 const BENCHMARK_MAX_DEGREE: usize = 1 << 17;
@@ -23,7 +22,11 @@ const ENABLE_EVALUATE_BENCH: bool = true;
 // min      = ceil(log_2(BENCHMARK_MIN_DEGREE))
 // max      = ceil(log_2(BENCHMARK_MAX_DEGREE))
 fn default_size_range() -> Vec<usize> {
-    size_range(BENCHMARK_LOG_INTERVAL_DEGREE, BENCHMARK_MIN_DEGREE, BENCHMARK_MAX_DEGREE)
+    size_range(
+        BENCHMARK_LOG_INTERVAL_DEGREE,
+        BENCHMARK_MIN_DEGREE,
+        BENCHMARK_MAX_DEGREE,
+    )
 }
 
 // returns vec![2^{min}, 2^{min + interval}, ..., 2^{max}], where:
@@ -81,8 +84,7 @@ fn bench_poly_add_assign<F: Field>(b: &mut Bencher, degree: &usize) {
     });
 }
 
-fn poly_benches<F: Field>(c: &mut Criterion, name: &'static str)
-{
+fn poly_benches<F: Field>(c: &mut Criterion, name: &'static str) {
     if ENABLE_ADD_BENCH {
         let cur_name = format!("{:?} - add_polynomial", name.clone());
         setup_bench::<F>(c, &cur_name, bench_poly_add::<F>);

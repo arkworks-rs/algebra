@@ -137,7 +137,7 @@ impl<F: FftField> DensePolynomial<F> {
     pub fn mul_by_vanishing_poly<D: EvaluationDomain<F>>(&self, domain: D) -> DensePolynomial<F> {
         let mut shifted = vec![F::zero(); domain.size()];
         shifted.extend_from_slice(&self.coeffs);
-        ark_std::cfg_iter_mut!(shifted)
+        cfg_iter_mut!(shifted)
             .zip(&self.coeffs)
             .for_each(|(s, c)| *s -= c);
         DensePolynomial::from_coefficients_vec(shifted)
