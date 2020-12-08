@@ -242,8 +242,9 @@ impl<'a, 'b, F: Field> Add<&'a DensePolynomial<F>> for &'b DensePolynomial<F> {
             self.clone()
         } else if self.degree() >= other.degree() {
             let mut result = self.clone();
-            cfg_iter_mut!(result.coeffs)
-                .with_min_len(4096)
+            result
+                .coeffs
+                .iter_mut()
                 .zip(&other.coeffs)
                 .for_each(|(a, b)| {
                     *a += b;
@@ -251,8 +252,9 @@ impl<'a, 'b, F: Field> Add<&'a DensePolynomial<F>> for &'b DensePolynomial<F> {
             result
         } else {
             let mut result = other.clone();
-            cfg_iter_mut!(result.coeffs)
-                .with_min_len(4096)
+            result
+                .coeffs
+                .iter_mut()
                 .zip(&self.coeffs)
                 .for_each(|(a, b)| {
                     *a += b;
@@ -271,8 +273,8 @@ impl<'a, 'b, F: Field> AddAssign<&'a DensePolynomial<F>> for DensePolynomial<F> 
             self.coeffs.extend_from_slice(&other.coeffs);
         } else if other.is_zero() {
         } else if self.degree() >= other.degree() {
-            cfg_iter_mut!(self.coeffs)
-                .with_min_len(4096)
+            self.coeffs
+                .iter_mut()
                 .zip(&other.coeffs)
                 .for_each(|(a, b)| {
                     *a += b;
@@ -280,8 +282,8 @@ impl<'a, 'b, F: Field> AddAssign<&'a DensePolynomial<F>> for DensePolynomial<F> 
         } else {
             // Add the necessary number of zero coefficients.
             self.coeffs.resize(other.coeffs.len(), F::zero());
-            cfg_iter_mut!(self.coeffs)
-                .with_min_len(4096)
+            self.coeffs
+                .iter_mut()
                 .zip(&other.coeffs)
                 .for_each(|(a, b)| {
                     *a += b;
@@ -296,8 +298,7 @@ impl<'a, 'b, F: Field> AddAssign<(F, &'a DensePolynomial<F>)> for DensePolynomia
         if self.is_zero() {
             self.coeffs.truncate(0);
             self.coeffs.extend_from_slice(&other.coeffs);
-            cfg_iter_mut!(self.coeffs)
-                .with_min_len(4096).for_each(|c| *c *= &f);
+            self.coeffs.iter_mut().for_each(|c| *c *= &f);
             return;
         } else if other.is_zero() {
             return;
@@ -306,8 +307,8 @@ impl<'a, 'b, F: Field> AddAssign<(F, &'a DensePolynomial<F>)> for DensePolynomia
             // Add the necessary number of zero coefficients.
             self.coeffs.resize(other.coeffs.len(), F::zero());
         }
-        cfg_iter_mut!(self.coeffs)
-            .with_min_len(4096)
+        self.coeffs
+            .iter_mut()
             .zip(&other.coeffs)
             .for_each(|(a, b)| {
                 *a += &(f * b);
@@ -324,7 +325,7 @@ impl<F: Field> Neg for DensePolynomial<F> {
 
     #[inline]
     fn neg(mut self) -> DensePolynomial<F> {
-        cfg_iter_mut!(self.coeffs).for_each(|coeff| {
+        self.coeffs.iter_mut().for_each(|coeff| {
             *coeff = -*coeff;
         });
         self
@@ -338,23 +339,24 @@ impl<'a, 'b, F: Field> Sub<&'a DensePolynomial<F>> for &'b DensePolynomial<F> {
     fn sub(self, other: &'a DensePolynomial<F>) -> DensePolynomial<F> {
         let mut result = if self.is_zero() {
             let mut result = other.clone();
-            cfg_iter_mut!(result.coeffs)
-                .with_min_len(4096)
-                .for_each(|c| *c = -(*c));
+            result.coeffs.iter_mut().for_each(|c| *c = -(*c));
             result
         } else if other.is_zero() {
             self.clone()
         } else if self.degree() >= other.degree() {
             let mut result = self.clone();
-            cfg_iter_mut!(result.coeffs)
-                .with_min_len(4096)
+            result
+                .coeffs
+                .iter_mut()
                 .zip(&other.coeffs)
                 .for_each(|(a, b)| *a -= b);
             result
         } else {
             let mut result = self.clone();
             result.coeffs.resize(other.coeffs.len(), F::zero());
-            cfg_iter_mut!(result.coeffs)
+            result
+                .coeffs
+                .iter_mut()
                 .zip(&other.coeffs)
                 .for_each(|(a, b)| *a -= b);
             result
@@ -376,7 +378,8 @@ impl<'a, 'b, F: Field> SubAssign<&'a DensePolynomial<F>> for DensePolynomial<F> 
             // Add the necessary number of zero coefficients.
             self.coeffs.resize(other.coeffs.len(), F::zero());
         }
-        cfg_iter_mut!(self.coeffs)
+        self.coeffs
+            .iter_mut()
             .zip(&other.coeffs)
             .for_each(|(a, b)| {
                 *a -= b;
@@ -426,7 +429,7 @@ impl<F: Field> Zero for DensePolynomial<F> {
 
     /// Checks if the given polynomial is zero.
     fn is_zero(&self) -> bool {
-        self.coeffs.is_empty() || cfg_iter!(self.coeffs).all(|coeff| coeff.is_zero())
+        self.coeffs.is_empty() || self.coeffs.iter().all(|coeff| coeff.is_zero())
     }
 }
 

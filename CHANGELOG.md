@@ -31,7 +31,6 @@
 - #114, #119 (ark-poly) Add infrastructure for benchmarking `DensePolynomial` operations.
 - #115 (ark-poly) Add parallel implementation to operations on `Evaluations`.
 - #115 (ark-ff) Add parallel implementation of `batch_inversion`.
-- #119 (ark-poly) Add parallel implementations of all addition and subtraction to `DensePolynomial`.
 
 ### Bug fixes
 - #36 (ark-ec) In Short-Weierstrass curves, include an infinity bit in `ToConstraintField`.
