@@ -64,7 +64,9 @@ impl<F: Field> Polynomial<F> for SparsePolynomial<F> {
             return F::zero();
         }
         // compute all coeff * point^{i} and then sum the results
-        let total = cfg_iter!(&self.coeffs)
+        let total = self
+            .coeffs
+            .iter()
             .map(|(i, c)| (*c * point.pow(&[*i as u64])))
             .sum();
         total
