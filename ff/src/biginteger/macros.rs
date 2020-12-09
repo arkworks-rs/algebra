@@ -10,7 +10,9 @@ macro_rules! bigint_impl {
         }
 
         impl ShlAssign<u32> for $name {
-            fn shl_assign(&mut self, rhs: u32) {
+            /// This left shift *does not* panic on overflows; instead, it just
+            /// returns zero.
+            fn shl_assign(&mut self, mut n: u32) {
                 if n >= 64 * $num_limbs {
                     *self = Self::from(0);
                     return;
@@ -38,6 +40,9 @@ macro_rules! bigint_impl {
 
         impl Shl<u32> for $name {
             type Output = Self;
+
+            /// This left shift *does not* panic on overflows; instead, it just
+            /// returns zero.
             fn shl(self, rhs: u32) -> Self {
                 let mut result = self;
                 result <<= rhs;
@@ -46,7 +51,7 @@ macro_rules! bigint_impl {
         }
 
         impl ShrAssign<u32> for $name {
-            fn shr_assign(&mut self, rhs: u32) {
+            fn shr_assign(&mut self, mut n: u32) {
                 if n >= 64 * $num_limbs {
                     *self = Self::from(0);
                     return;
