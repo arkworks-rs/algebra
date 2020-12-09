@@ -10,6 +10,9 @@
 use ark_ff::FftField;
 use ark_std::{fmt, hash, vec::Vec};
 use rand::Rng;
+
+#[cfg(feature = "parallel")]
+use ark_std::cmp::max;
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
 
@@ -80,12 +83,35 @@ pub trait EvaluationDomain<F: FftField>:
     fn ifft_in_place<T: DomainCoeff<F>>(&self, evals: &mut Vec<T>);
 
     /// Multiply the `i`-th element of `coeffs` with the `i`-th power of `g`.
+    #[cfg(not(feature = "parallel"))]
     fn distribute_powers<T: DomainCoeff<F>>(coeffs: &mut [T], g: F) {
         let mut pow = F::one();
         coeffs.iter_mut().for_each(|c| {
             *c *= pow;
             pow *= &g
         })
+    }
+
+    /// Multiply the `i`-th element of `coeffs` with the `i`-th power of `g`.
+    #[cfg(feature = "parallel")]
+    fn distribute_powers<T: DomainCoeff<F>>(coeffs: &mut [T], g: F) {
+        // compute the number of threads we will be using.
+        let num_cpus_available = rayon::current_num_threads();
+        let min_elements_per_thread = 256;
+        let num_elem_per_thread = max(coeffs.len() / num_cpus_available, min_elements_per_thread);
+
+        // Split up the coeffs to coset-shift across each thread evenly,
+        // and then apply coset shift.
+        coeffs
+            .par_chunks_mut(num_elem_per_thread)
+            .enumerate()
+            .for_each(|(i, chunk)| {
+                let mut pow = g.pow(&[(i * num_elem_per_thread) as u64]);
+                chunk.iter_mut().for_each(|c| {
+                    *c *= pow;
+                    pow *= &g
+                });
+            });
     }
 
     /// Compute a FFT over a coset of the domain.

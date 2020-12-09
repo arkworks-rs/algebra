@@ -49,7 +49,7 @@ fn setup_bench(c: &mut Criterion, name: &str, bench_fn: fn(&mut Bencher, &usize)
 fn fft_common_setup<F: FftField, D: EvaluationDomain<F>>(degree: usize) -> (D, Vec<F>) {
     let mut rng = &mut rand::thread_rng();
     let domain = D::new(degree).unwrap();
-    let a = DensePolynomial::<F>::rand(degree, &mut rng)
+    let a = DensePolynomial::<F>::rand(degree - 1, &mut rng)
         .coeffs()
         .to_vec();
     (domain, a)

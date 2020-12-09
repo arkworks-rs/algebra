@@ -506,13 +506,16 @@ mod tests {
         for degree in 0..70 {
             let poly = DensePolynomial::<Fr>::rand(degree, &mut rng);
             let neg = -poly.clone();
-            assert!((poly + neg).is_zero());
+            let result = poly + neg;
+            assert!(result.is_zero());
+            assert_eq!(result.degree(), 0);
 
             // Test with SubAssign trait
             let poly = DensePolynomial::<Fr>::rand(degree, &mut rng);
             let mut result = poly.clone();
             result -= &poly;
             assert!(result.is_zero());
+            assert_eq!(result.degree(), 0);
         }
     }
 
