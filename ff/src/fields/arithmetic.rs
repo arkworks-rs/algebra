@@ -38,8 +38,8 @@ macro_rules! impl_field_mul_assign {
                     let k = r[0].wrapping_mul(P::INV);
                     fa::mac_discard(r[0], k, P::MODULUS.0[0], &mut carry2);
                     for j in 1..$limbs {
-                        r[j] = fa::mac_with_carry(r[j], (self.0).0[j], (other.0).0[i], &mut carry1);
-                        r[j - 1] = fa::mac_with_carry(r[j], k, P::MODULUS.0[j], &mut carry2);
+                        r[j] = mac_with_carry!(r[j], (self.0).0[j], (other.0).0[i], &mut carry1);
+                        r[j - 1] = mac_with_carry!(r[j], k, P::MODULUS.0[j], &mut carry2);
                     }
                     r[$limbs - 1] = carry1 + carry2;
                 }
@@ -47,29 +47,7 @@ macro_rules! impl_field_mul_assign {
                 self.reduce();
             // Alternative implementation
             } else {
-                let mut r = [0u64; $limbs * 2];
-
-                for i in 0..$limbs {
-                    let mut carry = 0;
-                    for j in 0..$limbs {
-                        r[j + i] =
-                            fa::mac_with_carry(r[j + i], (self.0).0[i], (other.0).0[j], &mut carry);
-                    }
-                    r[$limbs + i] = carry;
-                }
-                // Montgomery reduction
-                let mut _carry2 = 0;
-                for i in 0..$limbs {
-                    let k = r[i].wrapping_mul(P::INV);
-                    let mut carry = 0;
-                    fa::mac_with_carry(r[i], k, P::MODULUS.0[0], &mut carry);
-                    for j in 1..$limbs {
-                        r[j + i] = fa::mac_with_carry(r[j + i], k, P::MODULUS.0[j], &mut carry);
-                    }
-                    r[$limbs + i] = fa::adc(r[$limbs + i], _carry2, &mut carry);
-                    _carry2 = carry;
-                }
-                (self.0).0.copy_from_slice(&r[$limbs..]);
+                *self = self.mul_without_reduce(other, P::MODULUS, P::INV);
                 self.reduce();
             }
         }
@@ -88,10 +66,10 @@ macro_rules! impl_field_into_repr {
                 let k = r[i].wrapping_mul(P::INV);
                 let mut carry = 0;
 
-                fa::mac_with_carry(r[i], k, P::MODULUS.0[0], &mut carry);
+                mac_with_carry!(r[i], k, P::MODULUS.0[0], &mut carry);
                 for j in 1..$limbs {
                     r[(j + i) % $limbs] =
-                        fa::mac_with_carry(r[(j + i) % $limbs], k, P::MODULUS.0[j], &mut carry);
+                        mac_with_carry!(r[(j + i) % $limbs], k, P::MODULUS.0[j], &mut carry);
                 }
                 r[i % $limbs] = carry;
             }
@@ -132,12 +110,8 @@ macro_rules! impl_field_square_in_place {
                 if i < $limbs - 1 {
                     for j in 0..$limbs {
                         if j > i {
-                            r[i + j] = fa::mac_with_carry(
-                                r[i + j],
-                                (self.0).0[i],
-                                (self.0).0[j],
-                                &mut carry,
-                            );
+                            r[i + j] =
+                                mac_with_carry!(r[i + j], (self.0).0[i], (self.0).0[j], &mut carry);
                         }
                     }
                     r[$limbs + i] = carry;
@@ -155,19 +129,24 @@ macro_rules! impl_field_square_in_place {
             r[1] <<= 1;
 
             for i in 0..$limbs {
-                r[2 * i] = fa::mac_with_carry(r[2 * i], (self.0).0[i], (self.0).0[i], &mut carry);
-                r[2 * i + 1] = fa::adc(r[2 * i + 1], 0, &mut carry);
+                r[2 * i] = mac_with_carry!(r[2 * i], (self.0).0[i], (self.0).0[i], &mut carry);
+                // need unused assignment because the last iteration of the loop produces an assignment
+                // to `carry` that is unused.
+                #[allow(unused_assignments)]
+                {
+                    r[2 * i + 1] = adc!(r[2 * i + 1], 0, &mut carry);
+                }
             }
             // Montgomery reduction
             let mut _carry2 = 0;
             for i in 0..$limbs {
                 let k = r[i].wrapping_mul(P::INV);
                 let mut carry = 0;
-                fa::mac_with_carry(r[i], k, P::MODULUS.0[0], &mut carry);
+                mac_with_carry!(r[i], k, P::MODULUS.0[0], &mut carry);
                 for j in 1..$limbs {
-                    r[j + i] = fa::mac_with_carry(r[j + i], k, P::MODULUS.0[j], &mut carry);
+                    r[j + i] = mac_with_carry!(r[j + i], k, P::MODULUS.0[j], &mut carry);
                 }
-                r[$limbs + i] = fa::adc(r[$limbs + i], _carry2, &mut carry);
+                r[$limbs + i] = adc!(r[$limbs + i], _carry2, &mut carry);
                 _carry2 = carry;
             }
             (self.0).0.copy_from_slice(&r[$limbs..]);

@@ -17,7 +17,7 @@ macro_rules! bigint_impl {
                 let mut carry = 0;
 
                 for (a, b) in self.0.iter_mut().zip(other.0.iter()) {
-                    *a = arithmetic::adc(*a, *b, &mut carry);
+                    *a = adc!(*a, *b, &mut carry);
                 }
 
                 carry != 0
@@ -28,7 +28,7 @@ macro_rules! bigint_impl {
                 let mut borrow = 0;
 
                 for (a, b) in self.0.iter_mut().zip(other.0.iter()) {
-                    *a = arithmetic::sbb(*a, *b, &mut borrow);
+                    *a = sbb!(*a, *b, &mut borrow);
                 }
 
                 borrow != 0
