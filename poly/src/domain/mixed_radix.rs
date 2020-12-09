@@ -398,6 +398,7 @@ pub(crate) fn serial_mixed_radix_fft<T: DomainCoeff<F>, F: FftField>(
 
 #[cfg(test)]
 mod tests {
+    use crate::polynomial::Polynomial;
     use crate::{EvaluationDomain, MixedRadixEvaluationDomain};
     use ark_ff::{test_rng, Field, Zero};
     use ark_test_curves::mnt4_753::Fq as Fr;
@@ -410,9 +411,9 @@ mod tests {
             let domain = MixedRadixEvaluationDomain::<Fr>::new(coeffs).unwrap();
             let z = domain.vanishing_polynomial();
             for _ in 0..100 {
-                let point = rng.gen();
+                let point: Fr = rng.gen();
                 assert_eq!(
-                    z.evaluate(point),
+                    z.evaluate(&point),
                     domain.evaluate_vanishing_polynomial(point)
                 )
             }
@@ -425,7 +426,7 @@ mod tests {
             let domain = MixedRadixEvaluationDomain::<Fr>::new(coeffs).unwrap();
             let z = domain.vanishing_polynomial();
             for point in domain.elements() {
-                assert!(z.evaluate(point).is_zero())
+                assert!(z.evaluate(&point).is_zero())
             }
         }
     }

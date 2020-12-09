@@ -137,6 +137,7 @@ impl<F: FftField> Iterator for GeneralElements<F> {
 
 #[cfg(test)]
 mod tests {
+    use crate::polynomial::Polynomial;
     use crate::{EvaluationDomain, GeneralEvaluationDomain};
     use ark_ff::{test_rng, Zero};
     use ark_test_curves::bls12_381::Fr;
@@ -152,7 +153,7 @@ mod tests {
             for _ in 0..100 {
                 let point = rng.gen();
                 assert_eq!(
-                    z.evaluate(point),
+                    z.evaluate(&point),
                     domain.evaluate_vanishing_polynomial(point)
                 )
             }
@@ -164,7 +165,7 @@ mod tests {
             for _ in 0..100 {
                 let point = rng.gen();
                 assert_eq!(
-                    z.evaluate(point),
+                    z.evaluate(&point),
                     domain.evaluate_vanishing_polynomial(point)
                 )
             }
@@ -177,7 +178,7 @@ mod tests {
             let domain = GeneralEvaluationDomain::<Fr>::new(coeffs).unwrap();
             let z = domain.vanishing_polynomial();
             for point in domain.elements() {
-                assert!(z.evaluate(point).is_zero())
+                assert!(z.evaluate(&point).is_zero())
             }
         }
     }

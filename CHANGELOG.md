@@ -14,6 +14,8 @@
 - #106 (ark-ff, ark-ec) Add `Zeroize` trait bound to `Field, ProjectiveGroup, AffineGroup` traits.
 - #108 (ark-ff) Add `extension_degree()` method to `Field`.
 - #110 (ark-ec) Change the trait bound on the scalar for `mul`, from (essentially) `Into<BigInt>` to `AsRef<[u64]>`
+- #117 (ark-poly) Make the univariate `SparsePolynomial` implement `Polynomial`. Make this change
+    by replacing `sparse_poly.evaluate(pt)` to `sparse_poly.evaluate(&pt)`.
 
 ### Features
 - #20 (ark-poly) Add structs/traits for multivariate polynomials
@@ -32,6 +34,7 @@
 - #115 (ark-poly) Add parallel implementation to operations on `Evaluations`.
 - #115 (ark-ff) Add parallel implementation of `batch_inversion`.
 - #122 (ark-poly) Add infrastructure for benchmarking `FFT`s.
+
 ### Bug fixes
 - #36 (ark-ec) In Short-Weierstrass curves, include an infinity bit in `ToConstraintField`.
 - #107 (ark-serialize) Fix handling of `(de)serialize_uncompressed/unchecked` in various impls of `CanonicalSerialize/Deserialize`.

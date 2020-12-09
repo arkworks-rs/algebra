@@ -500,6 +500,23 @@ mod tests {
     }
 
     #[test]
+    fn polynomial_additive_identity() {
+        // Test adding polynomials with its negative equals 0
+        let mut rng = test_rng();
+        for degree in 0..70 {
+            let poly = DensePolynomial::<Fr>::rand(degree, &mut rng);
+            let neg = -poly.clone();
+            assert!((poly + neg).is_zero());
+
+            // Test with SubAssign trait
+            let poly = DensePolynomial::<Fr>::rand(degree, &mut rng);
+            let mut result = poly.clone();
+            result -= &poly;
+            assert!(result.is_zero());
+        }
+    }
+
+    #[test]
     fn divide_polynomials_fixed() {
         let dividend = DensePolynomial::from_coefficients_slice(&[
             "4".parse().unwrap(),
