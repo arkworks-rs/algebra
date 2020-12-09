@@ -9,44 +9,8 @@ macro_rules! bigint_impl {
             }
         }
 
-        impl BigInteger for $name {
-            const NUM_LIMBS: usize = $num_limbs;
-
-            #[inline]
-            fn add_nocarry(&mut self, other: &Self) -> bool {
-                let mut carry = 0;
-
-                for (a, b) in self.0.iter_mut().zip(other.0.iter()) {
-                    *a = adc!(*a, *b, &mut carry);
-                }
-
-                carry != 0
-            }
-
-            #[inline]
-            fn sub_noborrow(&mut self, other: &Self) -> bool {
-                let mut borrow = 0;
-
-                for (a, b) in self.0.iter_mut().zip(other.0.iter()) {
-                    *a = sbb!(*a, *b, &mut borrow);
-                }
-
-                borrow != 0
-            }
-
-            #[inline]
-            fn mul2(&mut self) {
-                let mut last = 0;
-                for i in &mut self.0 {
-                    let tmp = *i >> 63;
-                    *i <<= 1;
-                    *i |= last;
-                    last = tmp;
-                }
-            }
-
-            #[inline]
-            fn muln(&mut self, mut n: u32) {
+        impl ShlAssign<u32> for $name {
+            fn shl_assign(&mut self, rhs: u32) {
                 if n >= 64 * $num_limbs {
                     *self = Self::from(0);
                     return;
@@ -70,20 +34,19 @@ macro_rules! bigint_impl {
                     }
                 }
             }
+        }
 
-            #[inline]
-            fn div2(&mut self) {
-                let mut t = 0;
-                for i in self.0.iter_mut().rev() {
-                    let t2 = *i << 63;
-                    *i >>= 1;
-                    *i |= t;
-                    t = t2;
-                }
+        impl Shl<u32> for $name {
+            type Output = Self;
+            fn shl(self, rhs: u32) -> Self {
+                let mut result = self;
+                result <<= rhs;
+                result
             }
+        }
 
-            #[inline]
-            fn divn(&mut self, mut n: u32) {
+        impl ShrAssign<u32> for $name {
+            fn shr_assign(&mut self, rhs: u32) {
                 if n >= 64 * $num_limbs {
                     *self = Self::from(0);
                     return;
@@ -106,6 +69,41 @@ macro_rules! bigint_impl {
                         t = t2;
                     }
                 }
+            }
+        }
+
+        impl Shr<u32> for $name {
+            type Output = Self;
+            fn shr(self, rhs: u32) -> Self {
+                let mut result = self;
+                result >>= rhs;
+                result
+            }
+        }
+
+        impl BigInteger for $name {
+            const NUM_LIMBS: usize = $num_limbs;
+
+            #[inline]
+            fn add_nocarry(&mut self, other: &Self) -> bool {
+                let mut carry = 0;
+
+                for (a, b) in self.0.iter_mut().zip(other.0.iter()) {
+                    *a = adc!(*a, *b, &mut carry);
+                }
+
+                carry != 0
+            }
+
+            #[inline]
+            fn sub_noborrow(&mut self, other: &Self) -> bool {
+                let mut borrow = 0;
+
+                for (a, b) in self.0.iter_mut().zip(other.0.iter()) {
+                    *a = sbb!(*a, *b, &mut borrow);
+                }
+
+                borrow != 0
             }
 
             #[inline]
@@ -193,7 +191,7 @@ macro_rules! bigint_impl {
                         z = 0;
                     }
                     res.push(z);
-                    e.div2();
+                    e >>= 1;
                 }
 
                 res

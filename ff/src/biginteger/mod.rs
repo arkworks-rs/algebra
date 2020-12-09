@@ -9,6 +9,7 @@ use ark_serialize::{
 use ark_std::{
     fmt::{Debug, Display},
     io::{Read, Result as IoResult, Write},
+    ops::{Shl, ShlAssign, Shr, ShrAssign},
     vec::Vec,
 };
 use rand::{
@@ -57,6 +58,10 @@ pub trait BigInteger:
     + AsMut<[u64]>
     + AsRef<[u64]>
     + From<u64>
+    + Shl<u32, Output = Self>
+    + ShlAssign<u32>
+    + Shr<u32, Output = Self>
+    + ShrAssign<u32>
 {
     /// Number of limbs.
     const NUM_LIMBS: usize;
@@ -66,20 +71,6 @@ pub trait BigInteger:
 
     /// Subtract another representation from this one, returning the borrow bit.
     fn sub_noborrow(&mut self, other: &Self) -> bool;
-
-    /// Performs a leftwise bitshift of this number, effectively multiplying
-    /// it by 2. Overflow is ignored.
-    fn mul2(&mut self);
-
-    /// Performs a leftwise bitshift of this number by some amount.
-    fn muln(&mut self, amt: u32);
-
-    /// Performs a rightwise bitshift of this number, effectively dividing
-    /// it by 2.
-    fn div2(&mut self);
-
-    /// Performs a rightwise bitshift of this number by some amount.
-    fn divn(&mut self, amt: u32);
 
     /// Returns true iff this number is odd.
     fn is_odd(&self) -> bool;

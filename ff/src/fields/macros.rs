@@ -291,7 +291,7 @@ macro_rules! impl_Fp {
             #[inline]
             fn double_in_place(&mut self) -> &mut Self {
                 // This cannot exceed the backing capacity.
-                self.0.mul2();
+                self.0 <<= 1;
                 // However, it may need to be reduced.
                 self.reduce();
                 self
@@ -350,38 +350,34 @@ macro_rules! impl_Fp {
 
                     let mut u = self.0;
                     let mut v = P::MODULUS;
-                    let mut b = $Fp::<P>(P::R2, PhantomData); // Avoids unnecessary reduction step.
+                    let mut b = Self::new(P::R2); // Avoids unnecessary reduction step.
                     let mut c = Self::zero();
 
                     while u != one && v != one {
                         while u.is_even() {
-                            u.div2();
+                            u >>= 1;
 
-                            if b.0.is_even() {
-                                b.0.div2();
-                            } else {
+                            if b.0.is_odd() {
                                 b.0.add_nocarry(&P::MODULUS);
-                                b.0.div2();
                             }
+                            b.0 >>= 1;
                         }
 
                         while v.is_even() {
-                            v.div2();
+                            v >>= 1;
 
-                            if c.0.is_even() {
-                                c.0.div2();
-                            } else {
+                            if c.0.is_odd() {
                                 c.0.add_nocarry(&P::MODULUS);
-                                c.0.div2();
                             }
+                            c.0 >>= 1;
                         }
 
                         if v < u {
                             u.sub_noborrow(&v);
-                            b.sub_assign(&c);
+                            b -= &c;
                         } else {
                             v.sub_noborrow(&u);
-                            c.sub_assign(&b);
+                            c -= &b;
                         }
                     }
 

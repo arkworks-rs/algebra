@@ -39,7 +39,7 @@ fn biginteger_bits_test<B: BigInteger>() {
     let mut one = B::from(1u64);
     assert!(one.get_bit(0));
     assert!(!one.get_bit(1));
-    one.muln(5);
+    one <<= 5;
     let thirty_two = one;
     assert!(!thirty_two.get_bit(0));
     assert!(!thirty_two.get_bit(1));
