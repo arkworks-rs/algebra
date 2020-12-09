@@ -2,7 +2,7 @@ use rand;
 
 extern crate criterion;
 
-use ark_ff::{FftField, Field};
+use ark_ff::FftField;
 use ark_poly::{polynomial::univariate::DensePolynomial, polynomial::UVPolynomial};
 use ark_poly::{EvaluationDomain, MixedRadixEvaluationDomain, Radix2EvaluationDomain};
 use ark_poly_benches::size_range;
@@ -38,7 +38,7 @@ fn default_size_range() -> Vec<usize> {
     )
 }
 
-fn setup_bench<F: Field>(c: &mut Criterion, name: &str, bench_fn: fn(&mut Bencher, &usize)) {
+fn setup_bench(c: &mut Criterion, name: &str, bench_fn: fn(&mut Bencher, &usize)) {
     let mut group = c.benchmark_group(name);
     for degree in default_size_range().iter() {
         group.bench_with_input(BenchmarkId::from_parameter(degree), degree, bench_fn);
@@ -46,8 +46,7 @@ fn setup_bench<F: Field>(c: &mut Criterion, name: &str, bench_fn: fn(&mut Benche
     group.finish();
 }
 
-fn fft_common_setup<F: FftField, D: EvaluationDomain<F>>(degree: usize) -> (D, Vec<F>)
-{
+fn fft_common_setup<F: FftField, D: EvaluationDomain<F>>(degree: usize) -> (D, Vec<F>) {
     let mut rng = &mut rand::thread_rng();
     let domain = D::new(degree).unwrap();
     let a = DensePolynomial::<F>::rand(degree, &mut rng)
@@ -95,19 +94,19 @@ fn bench_coset_ifft_in_place<F: FftField, D: EvaluationDomain<F>>(b: &mut Benche
 fn fft_benches<F: FftField, D: EvaluationDomain<F>>(c: &mut Criterion, name: &'static str) {
     if ENABLE_SUBGROUP_FFT_BENCH {
         let cur_name = format!("{:?} - subgroup_fft_in_place", name.clone());
-        setup_bench::<F>(c, &cur_name, bench_fft_in_place::<F, D>);
+        setup_bench(c, &cur_name, bench_fft_in_place::<F, D>);
     }
     if ENABLE_SUBGROUP_IFFT_BENCH {
         let cur_name = format!("{:?} - subgroup_ifft_in_place", name.clone());
-        setup_bench::<F>(c, &cur_name, bench_ifft_in_place::<F, D>);
+        setup_bench(c, &cur_name, bench_ifft_in_place::<F, D>);
     }
     if ENABLE_COSET_FFT_BENCH {
         let cur_name = format!("{:?} - coset_fft_in_place", name.clone());
-        setup_bench::<F>(c, &cur_name, bench_coset_fft_in_place::<F, D>);
+        setup_bench(c, &cur_name, bench_coset_fft_in_place::<F, D>);
     }
     if ENABLE_COSET_IFFT_BENCH {
         let cur_name = format!("{:?} - coset_ifft_in_place", name.clone());
-        setup_bench::<F>(c, &cur_name, bench_coset_ifft_in_place::<F, D>);
+        setup_bench(c, &cur_name, bench_coset_ifft_in_place::<F, D>);
     }
 }
 
