@@ -10,9 +10,6 @@ use ark_std::{
     vec::Vec,
 };
 
-#[cfg(feature = "parallel")]
-use rayon::prelude::*;
-
 /// Stores a sparse polynomial in coefficient form.
 #[derive(Clone, PartialEq, Eq, Hash, Default)]
 pub struct SparsePolynomial<F: Field> {
