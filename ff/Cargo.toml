@@ -15,6 +15,7 @@ build = "build.rs"
 
 [dependencies]
 ark-ff-asm = { path = "../ff-asm" }
+ark-ff-macros = { path = "../ff-macros" }
 ark-std = { git = "https://github.com/arkworks-rs/utils", default-features = false }
 ark-serialize = { path = "../serialize", default-features = false }
 derivative = { version = "2", features = ["use_core"] }
@@ -28,7 +29,6 @@ rustc_version = "0.3"
 
 [dev-dependencies]
 rand_xorshift = "0.2"
-ark-test-curves = { path = "../test-curves", default-features = false, features = [ "bls12_381_curve"] }
 
 [features]
 default = []

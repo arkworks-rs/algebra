@@ -16,6 +16,7 @@ use ark_std::{
     vec::Vec,
 };
 
+pub use ark_ff_macros;
 use num_traits::{One, Zero};
 use zeroize::Zeroize;
 
@@ -36,12 +37,18 @@ use rayon::prelude::*;
 
 #[macro_export]
 macro_rules! field_new {
-    ($name:ident, $c0:expr) => {
-        $name {
-            0: $c0,
-            1: core::marker::PhantomData,
-        }
-    };
+    ($name:ident, $c0:expr) => {{
+        use $crate::FpParameters;
+        type Params = <$name as $crate::PrimeField>::Params;
+        let (is_positive, limbs) = $crate::ark_ff_macros::to_sign_and_limbs!($c0);
+        $name::const_from_str(
+            &limbs,
+            is_positive,
+            Params::R2,
+            Params::MODULUS,
+            Params::INV,
+        )
+    }};
     ($name:ident, $c0:expr, $c1:expr $(,)?) => {
         $name {
             c0: $c0,
