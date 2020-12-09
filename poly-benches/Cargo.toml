@@ -22,8 +22,8 @@ default = []
 parallel = ["ark-ff/parallel", "rayon", "ark-poly/parallel", "ark-std/parallel" ]
 
 [[bench]]
-name = "groth16_fft"
-path = "benches/groth16_fft.rs"
+name = "fft"
+path = "benches/fft.rs"
 harness = false
 
 [[bench]]
