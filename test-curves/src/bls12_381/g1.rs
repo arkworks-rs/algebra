@@ -51,3 +51,28 @@ pub const G1_GENERATOR_X: Fq = field_new!(Fq, "368541675371338701678108831518307
 /// 1339506544944476473020471379941921221584933875938349620426543736416511423956333506472724655353366534992391756441569
 #[rustfmt::skip]
 pub const G1_GENERATOR_Y: Fq = field_new!(Fq, "1339506544944476473020471379941921221584933875938349620426543736416511423956333506472724655353366534992391756441569");
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use ark_ec::ProjectiveCurve;
+    use ark_ff::UniformRand;
+
+    #[test]
+    fn batch_normalization() {
+        let mut rng = ark_ff::test_rng();
+
+        let mut g_s = [G1Projective::zero(); 100];
+        for i in 0..100 {
+            g_s[i] = G1Projective::rand(&mut rng);
+        }
+
+        let mut g_s_affine_naive = [G1Affine::zero(); 100];
+        for (i, g) in g_s.iter().enumerate() {
+            g_s_affine_naive[i] = g.into_affine();
+        }
+
+        let g_s_affine_fast = G1Projective::batch_normalization_into_affine(&g_s);
+        assert_eq!(g_s_affine_naive.as_ref(), g_s_affine_fast.as_slice());
+    }
+}
