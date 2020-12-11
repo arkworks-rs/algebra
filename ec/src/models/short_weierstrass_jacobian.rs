@@ -399,22 +399,13 @@ impl<P: Parameters> ProjectiveCurve for GroupProjective<P> {
 
     #[inline]
     fn batch_normalization(v: &mut [Self]) {
-        let mut z_s = v
-            .iter()
-            .filter(|g| !g.is_normalized())
-            .map(|g| g.z)
-            .collect::<Vec<_>>();
+        let mut z_s = v.iter().map(|g| g.z).collect::<Vec<_>>();
         ark_ff::batch_inversion(&mut z_s);
 
-        #[cfg(not(feature = "parallel"))]
-        let v_iter = v.iter_mut();
-        #[cfg(feature = "parallel")]
-        let v_iter = v.par_iter_mut();
-
         // Perform affine transformations
-        v_iter
-            .filter(|g| !g.is_normalized())
+        ark_std::cfg_iter_mut!(v)
             .zip(z_s)
+            .filter(|(g, _)| !g.is_normalized())
             .for_each(|(g, z)| {
                 let z2 = z.square(); // 1/z
                 g.x *= &z2; // x/z^2
