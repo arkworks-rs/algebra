@@ -7,28 +7,21 @@ This crate implements traits and implementations for polynomials, smooth cosets 
 Provides the following traits:
 
 - [`Polynomial`](https://github.com/arkworks-rs/algebra/blob/master/poly/src/polynomial/mod.rs#L16):
-Polynomial trait, ensuring that all implementers have basic arithmetic operations implemented.
-(`Add`, `Sub`, `Zero`, evaluation at a point, degree, etc.)
-- [`UVPolynomial`](https://github.com/arkworks-rs/algebra/blob/master/poly/src/polynomial/mod.rs#L41):
-Univariate Polynomial trait.
-Essentially it defines ways to serialize to/from a polynomial, given that it is univariate.
+Requires implementors to support common operations on polynomials, such as `Add`, `Sub`, `Zero`, evaluation at a point, degree, etc.
+- [`UVPolynomial`](https://github.com/arkworks-rs/algebra/blob/master/poly/src/polynomial/mod.rs#L41): Specifies that a `Polynomial` is actually a *univariate* polynomial, and defines methods to serialize to and from the coefficient representation of the polynomial.
 - [`MVPolynomial`](https://github.com/arkworks-rs/algebra/blob/master/poly/src/polynomial/mod.rs#L59):
-Multivariate Polynomial trait.
+Specifies that a `Polynomial` is actually a *multivariate* polynomial.
 
-There are also three different implementations of polynomials in this crate.
+The crate also provides data structures that implement these traits:
 
 - [`univariate/DensePolynomial`](https://github.com/arkworks-rs/algebra/blob/master/poly/src/polynomial/univariate/dense.rs#L22):
-Dense univariate polynomials, where a degree `d` polynomial is represented by `d + 1` coefficients.
-Implements [`UVPolynomial`](https://github.com/arkworks-rs/algebra/blob/master/poly/src/polynomial/mod.rs#L41)
-- [`univariate/SparsePolynomial`](https://github.com/arkworks-rs/algebra/blob/master/poly/src/polynomial/univariate/sparse.rs#L15): Sparse univariate polynomials.
-A polynomial is represented by a list representing all the non-zero terms in the polynomial.
-Should only be used when most coefficients of the polynomial are zero.
-Implements [`Polynomial`](https://github.com/arkworks-rs/algebra/blob/master/poly/src/polynomial/mod.rs#L16).
+Represents degree `d` univariate polynomials via a list of `d + 1` coefficients. This struct implements the [`UVPolynomial`](https://github.com/arkworks-rs/algebra/blob/master/poly/src/polynomial/mod.rs#L41) trait.
+- [`univariate/SparsePolynomial`](https://github.com/arkworks-rs/algebra/blob/master/poly/src/polynomial/univariate/sparse.rs#L15): Represents degree `d` univariate polynomials via a list containing all non-zero monomials. This should only be used when most coefficients of the polynomial are zero. This struct
+implements the [`Polynomial`](https://github.com/arkworks-rs/algebra/blob/master/poly/src/polynomial/mod.rs#L16) trait (but *not* the `UVPolynomial` trait.
 - [`multivariate/SparsePolynomial`](https://github.com/arkworks-rs/algebra/blob/master/poly/src/polynomial/multivariate/sparse.rs#L21):
-Sparse multivariate polynomials.
-The polynomial is represented by its non-zero terms.
+Represents multivariate polynomials via a list containing all non-zero monomials.
 
-This crate allows provides the [`univariate/DenseOrSparsePolynomial`](https://github.com/arkworks-rs/algebra/blob/master/poly/src/polynomial/univariate/mod.rs#L16) enum, which allows the user to abstract over the type of underlying univariate polynomial (dense or sparse).
+This crate also provides the [`univariate/DenseOrSparsePolynomial`](https://github.com/arkworks-rs/algebra/blob/master/poly/src/polynomial/univariate/mod.rs#L16) enum, which allows the user to abstract over the type of underlying univariate polynomial (dense or sparse).
 
 ### Domains
 
