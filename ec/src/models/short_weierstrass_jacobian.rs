@@ -399,51 +399,19 @@ impl<P: Parameters> ProjectiveCurve for GroupProjective<P> {
 
     #[inline]
     fn batch_normalization(v: &mut [Self]) {
-        // Montgomery’s Trick and Fast Implementation of Masked AES
-        // Genelle, Prouff and Quisquater
-        // Section 3.2
-
-        // First pass: compute [a, ab, abc, ...]
-        let mut prod = Vec::with_capacity(v.len());
-        let mut tmp = P::BaseField::one();
-        for g in v.iter_mut()
-            // Ignore normalized elements
-            .filter(|g| !g.is_normalized())
-        {
-            tmp *= &g.z;
-            prod.push(tmp);
-        }
-
-        // Invert `tmp`.
-        tmp = tmp.inverse().unwrap(); // Guaranteed to be nonzero.
-
-        // Second pass: iterate backwards to compute inverses
-        for (g, s) in v.iter_mut()
-            // Backwards
-            .rev()
-            // Ignore normalized elements
-            .filter(|g| !g.is_normalized())
-            // Backwards, skip last element, fill in one for last term.
-            .zip(prod.into_iter().rev().skip(1).chain(Some(P::BaseField::one())))
-        {
-            // tmp := tmp * g.z; g.z := tmp * s = 1/z
-            let newtmp = tmp * &g.z;
-            g.z = tmp * &s;
-            tmp = newtmp;
-        }
-
-        #[cfg(not(feature = "parallel"))]
-        let v_iter = v.iter_mut();
-        #[cfg(feature = "parallel")]
-        let v_iter = v.par_iter_mut();
+        let mut z_s = v.iter().map(|g| g.z).collect::<Vec<_>>();
+        ark_ff::batch_inversion(&mut z_s);
 
         // Perform affine transformations
-        v_iter.filter(|g| !g.is_normalized()).for_each(|g| {
-            let z2 = g.z.square(); // 1/z
-            g.x *= &z2; // x/z^2
-            g.y *= &(z2 * &g.z); // y/z^3
-            g.z = P::BaseField::one(); // z = 1
-        });
+        ark_std::cfg_iter_mut!(v)
+            .zip(z_s)
+            .filter(|(g, _)| !g.is_normalized())
+            .for_each(|(g, z)| {
+                let z2 = z.square(); // 1/z
+                g.x *= &z2; // x/z^2
+                g.y *= &(z2 * &z); // y/z^3
+                g.z = P::BaseField::one(); // z = 1
+            });
     }
 
     fn double_in_place(&mut self) -> &mut Self {
