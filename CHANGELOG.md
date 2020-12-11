@@ -36,6 +36,7 @@
 - #115 (ark-ff) Add parallel implementation of `batch_inversion`.
 - #122 (ark-poly) Add infrastructure for benchmarking `FFT`s.
 - #125 (ark-poly) Add parallelization to applying coset shifts within `coset_fft`.
+- #126 (ark-ec) Use `ark_ff::batch_inversion` for point normalization
 
 ### Bug fixes
 - #36 (ark-ec) In Short-Weierstrass curves, include an infinity bit in `ToConstraintField`.
