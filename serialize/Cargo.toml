@@ -17,7 +17,6 @@ ark-serialize-derive = { path = "../serialize-derive", optional = true }
 ark-std = { git = "https://github.com/arkworks-rs/utils", default-features = false }
 
 [dev-dependencies]
-ark-ff = { path = "../ff" }
 rand = { version = "0.7", default-features = false }
 
 [features]
