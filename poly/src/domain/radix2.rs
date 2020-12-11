@@ -10,6 +10,7 @@ use crate::domain::{
 };
 use ark_ff::{FftField, FftParameters};
 use ark_std::{convert::TryFrom, fmt, vec::Vec};
+
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
 
@@ -212,11 +213,14 @@ impl<F: FftField> EvaluationDomain<F> for Radix2EvaluationDomain<F> {
     }
 }
 
+// This implements the Cooley-Turkey FFT, derived from libfqfft
+// The libfqfft implementation uses pseudocode from [CLRS 2n Ed, pp. 864].
 pub(crate) fn serial_radix2_fft<T: DomainCoeff<F>, F: FftField>(a: &mut [T], omega: F, log_n: u32) {
     let n =
         u32::try_from(a.len()).expect("cannot perform FFTs larger on vectors of len > (1 << 32)");
     assert_eq!(n, 1 << log_n);
 
+    // swap coefficients in place
     for k in 0..n {
         let rk = bitreverse(k, log_n);
         if k < rk {
@@ -225,11 +229,13 @@ pub(crate) fn serial_radix2_fft<T: DomainCoeff<F>, F: FftField>(a: &mut [T], ome
     }
 
     let mut m = 1;
-    for _ in 0..log_n {
+    for _i in 1..=log_n {
+        // w_m is 2^i-th root of unity
         let w_m = omega.pow(&[(n / (2 * m)) as u64]);
 
         let mut k = 0;
         while k < n {
+            // w = w_m^j at the start of every loop iteration
             let mut w = F::one();
             for j in 0..m {
                 let mut t = a[(k + j + m) as usize];
@@ -251,8 +257,9 @@ pub(crate) fn serial_radix2_fft<T: DomainCoeff<F>, F: FftField>(a: &mut [T], ome
 #[cfg(test)]
 mod tests {
     use crate::domain::Vec;
+    use crate::polynomial::{univariate::*, Polynomial, UVPolynomial};
     use crate::{EvaluationDomain, Radix2EvaluationDomain};
-    use ark_ff::{test_rng, Field, One, UniformRand, Zero};
+    use ark_ff::{test_rng, FftField, Field, One, UniformRand, Zero};
     use ark_test_curves::bls12_381::Fr;
     use rand::Rng;
 
@@ -263,9 +270,9 @@ mod tests {
             let domain = Radix2EvaluationDomain::<Fr>::new(coeffs).unwrap();
             let z = domain.vanishing_polynomial();
             for _ in 0..100 {
-                let point = rng.gen();
+                let point: Fr = rng.gen();
                 assert_eq!(
-                    z.evaluate(point),
+                    z.evaluate(&point),
                     domain.evaluate_vanishing_polynomial(point)
                 )
             }
@@ -278,7 +285,7 @@ mod tests {
             let domain = Radix2EvaluationDomain::<Fr>::new(coeffs).unwrap();
             let z = domain.vanishing_polynomial();
             for point in domain.elements() {
-                assert!(z.evaluate(point).is_zero())
+                assert!(z.evaluate(&point).is_zero())
             }
         }
     }
@@ -307,9 +314,6 @@ mod tests {
     /// Test that lagrange interpolation for a random polynomial at a random point works.
     #[test]
     fn non_systematic_lagrange_coefficients_test() {
-        use crate::polynomial::univariate::*;
-        use crate::polynomial::Polynomial;
-        use crate::polynomial::UVPolynomial;
         for domain_dim in 1..10 {
             let domain_size = 1 << domain_dim;
             let domain = Radix2EvaluationDomain::<Fr>::new(domain_size).unwrap();
@@ -352,6 +356,48 @@ mod tests {
                     }
                 }
             }
+        }
+    }
+
+    #[test]
+    fn test_fft_correctness() {
+        // Tests that the ffts output the correct result.
+        // This assumes a correct polynomial evaluation at point procedure.
+        // It tests consistency of FFT/IFFT, and coset_fft/coset_ifft,
+        // along with testing that each individual evaluation is correct.
+
+        // Runs in time O(degree^2)
+        let log_degree = 5;
+        let degree = 1 << log_degree;
+        let rand_poly = DensePolynomial::<Fr>::rand(degree - 1, &mut test_rng());
+
+        for log_domain_size in log_degree..(log_degree + 2) {
+            let domain_size = 1 << log_domain_size;
+            let domain = Radix2EvaluationDomain::<Fr>::new(domain_size).unwrap();
+            let poly_evals = domain.fft(&rand_poly.coeffs);
+            let poly_coset_evals = domain.coset_fft(&rand_poly.coeffs);
+            for (i, x) in domain.elements().enumerate() {
+                let coset_x = Fr::multiplicative_generator() * x;
+
+                assert_eq!(poly_evals[i], rand_poly.evaluate(&x));
+                assert_eq!(poly_coset_evals[i], rand_poly.evaluate(&coset_x));
+            }
+
+            let rand_poly_from_subgroup =
+                DensePolynomial::from_coefficients_vec(domain.ifft(&poly_evals));
+            let rand_poly_from_coset =
+                DensePolynomial::from_coefficients_vec(domain.coset_ifft(&poly_coset_evals));
+
+            assert_eq!(
+                rand_poly, rand_poly_from_subgroup,
+                "degree = {}, domain size = {}",
+                degree, domain_size
+            );
+            assert_eq!(
+                rand_poly, rand_poly_from_coset,
+                "degree = {}, domain size = {}",
+                degree, domain_size
+            );
         }
     }
 

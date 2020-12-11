@@ -1,79 +1,128 @@
 use rand;
 
-#[macro_use]
 extern crate criterion;
 
-use ark_ff::{FftField, UniformRand};
+use ark_ff::FftField;
+use ark_poly::{polynomial::univariate::DensePolynomial, polynomial::UVPolynomial};
 use ark_poly::{EvaluationDomain, MixedRadixEvaluationDomain, Radix2EvaluationDomain};
-use ark_test_curves::mnt4_753::{Fq as MNT6Fr, Fr as MNT4Fr};
-use criterion::Criterion;
+use ark_poly_benches::size_range;
+use ark_test_curves::bls12_381::Fr as bls12_381_fr;
+use ark_test_curves::mnt4_753::Fq as mnt6_753_fr;
+use criterion::BenchmarkId;
+use criterion::{criterion_group, criterion_main, Bencher, Criterion};
 
-fn bench_groth16_ffts<F: FftField, D: EvaluationDomain<F>>(
-    c: &mut Criterion,
-    num_coeffs: usize,
-    name: &'static str,
-) {
+// degree bounds to benchmark on
+// e.g. degree bound of 2^{15}, means we do an FFT for a degree (2^{15} - 1) polynomial
+const BENCHMARK_MIN_DEGREE: usize = 1 << 15;
+const BENCHMARK_MAX_DEGREE: usize = 1 << 17;
+const BENCHMARK_LOG_INTERVAL_DEGREE: usize = 1;
+
+const ENABLE_RADIX2_BENCHES: bool = true;
+const ENABLE_MIXED_RADIX_BENCHES: bool = true;
+
+const ENABLE_SUBGROUP_FFT_BENCH: bool = true;
+const ENABLE_COSET_FFT_BENCH: bool = true;
+
+const ENABLE_SUBGROUP_IFFT_BENCH: bool = false;
+const ENABLE_COSET_IFFT_BENCH: bool = false;
+
+// returns vec![2^{min}, 2^{min + interval}, ..., 2^{max}], where:
+// interval = BENCHMARK_LOG_INTERVAL_DEGREE
+// min      = ceil(log_2(BENCHMARK_MIN_DEGREE))
+// max      = ceil(log_2(BENCHMARK_MAX_DEGREE))
+fn default_size_range() -> Vec<usize> {
+    size_range(
+        BENCHMARK_LOG_INTERVAL_DEGREE,
+        BENCHMARK_MIN_DEGREE,
+        BENCHMARK_MAX_DEGREE,
+    )
+}
+
+fn setup_bench(c: &mut Criterion, name: &str, bench_fn: fn(&mut Bencher, &usize)) {
+    let mut group = c.benchmark_group(name);
+    for degree in default_size_range().iter() {
+        group.bench_with_input(BenchmarkId::from_parameter(degree), degree, bench_fn);
+    }
+    group.finish();
+}
+
+fn fft_common_setup<F: FftField, D: EvaluationDomain<F>>(degree: usize) -> (D, Vec<F>) {
+    let mut rng = &mut rand::thread_rng();
+    let domain = D::new(degree).unwrap();
+    let a = DensePolynomial::<F>::rand(degree - 1, &mut rng)
+        .coeffs()
+        .to_vec();
+    (domain, a)
+}
+
+fn bench_fft_in_place<F: FftField, D: EvaluationDomain<F>>(b: &mut Bencher, degree: &usize) {
     // Per benchmark setup
-    let rng = &mut rand::thread_rng();
-
-    // We expect the num_coeffs input to be a compatible size for the domain.
-    let domain = D::new(num_coeffs).unwrap();
-    let domain_size = domain.size();
-    assert_eq!(num_coeffs, domain_size);
-
-    c.bench_function(name, move |bencher| {
-        // Per sample setup
-        let mut a = Vec::<F>::with_capacity(num_coeffs);
-        let mut b = Vec::<F>::with_capacity(num_coeffs);
-        let mut c = Vec::<F>::with_capacity(num_coeffs);
-        for _ in 0..num_coeffs {
-            a.push(UniformRand::rand(rng));
-            b.push(UniformRand::rand(rng));
-            c.push(UniformRand::rand(rng));
-        }
-
-        bencher.iter(|| {
-            // Emulate the FFT operations Groth16 performs in a call to `witness_map`.
-            domain.ifft_in_place(&mut a);
-            domain.ifft_in_place(&mut b);
-
-            domain.coset_fft_in_place(&mut a);
-            domain.coset_fft_in_place(&mut b);
-
-            let mut ab = domain.mul_polynomials_in_evaluation_domain(&a, &b);
-
-            domain.ifft_in_place(&mut c);
-            domain.coset_fft_in_place(&mut c);
-
-            domain.divide_by_vanishing_poly_on_coset_in_place(&mut ab);
-
-            domain.coset_ifft_in_place(&mut ab);
-        })
+    let (domain, mut a) = fft_common_setup::<F, D>(*degree);
+    b.iter(|| {
+        // Per benchmark iteration
+        domain.fft_in_place(&mut a);
     });
 }
 
-fn bench_groth16_ffts_radix2(c: &mut Criterion) {
-    // Choose 2^16 = 65,536 coefficients for the radix-2 FFT.
-    // This comes closest to the 51,200 coefficients chosen in the mixed-radix FFT.
-    bench_groth16_ffts::<MNT4Fr, Radix2EvaluationDomain<MNT4Fr>>(c, 1 << 16, "radix-2 FFT");
+fn bench_ifft_in_place<F: FftField, D: EvaluationDomain<F>>(b: &mut Bencher, degree: &usize) {
+    // Per benchmark setup
+    let (domain, mut a) = fft_common_setup::<F, D>(*degree);
+    b.iter(|| {
+        // Per benchmark iteration
+        domain.ifft_in_place(&mut a);
+    });
 }
 
-fn bench_groth16_ffts_mixed_radix(c: &mut Criterion) {
-    // Choose 2^11*5^2 = 51,200 coefficients for the mixed-radix FFT.
-    // This is above the maximum of 32,768 coefficients for the radix-2 FFT.
-    bench_groth16_ffts::<MNT6Fr, MixedRadixEvaluationDomain<MNT6Fr>>(c, 51200, "mixed-radix FFT");
+fn bench_coset_fft_in_place<F: FftField, D: EvaluationDomain<F>>(b: &mut Bencher, degree: &usize) {
+    // Per benchmark setup
+    let (domain, mut a) = fft_common_setup::<F, D>(*degree);
+    b.iter(|| {
+        // Per benchmark iteration
+        domain.coset_fft_in_place(&mut a);
+    });
 }
 
-criterion_group! {
-    name = radix_2;
-    config = Criterion::default().sample_size(10);
-    targets = bench_groth16_ffts_radix2
+fn bench_coset_ifft_in_place<F: FftField, D: EvaluationDomain<F>>(b: &mut Bencher, degree: &usize) {
+    // Per benchmark setup
+    let (domain, mut a) = fft_common_setup::<F, D>(*degree);
+    b.iter(|| {
+        // Per benchmark iteration
+        domain.coset_ifft_in_place(&mut a);
+    });
 }
 
-criterion_group! {
-    name = mixed_radix;
-    config = Criterion::default().sample_size(10);
-    targets = bench_groth16_ffts_mixed_radix
+fn fft_benches<F: FftField, D: EvaluationDomain<F>>(c: &mut Criterion, name: &'static str) {
+    if ENABLE_SUBGROUP_FFT_BENCH {
+        let cur_name = format!("{:?} - subgroup_fft_in_place", name.clone());
+        setup_bench(c, &cur_name, bench_fft_in_place::<F, D>);
+    }
+    if ENABLE_SUBGROUP_IFFT_BENCH {
+        let cur_name = format!("{:?} - subgroup_ifft_in_place", name.clone());
+        setup_bench(c, &cur_name, bench_ifft_in_place::<F, D>);
+    }
+    if ENABLE_COSET_FFT_BENCH {
+        let cur_name = format!("{:?} - coset_fft_in_place", name.clone());
+        setup_bench(c, &cur_name, bench_coset_fft_in_place::<F, D>);
+    }
+    if ENABLE_COSET_IFFT_BENCH {
+        let cur_name = format!("{:?} - coset_ifft_in_place", name.clone());
+        setup_bench(c, &cur_name, bench_coset_ifft_in_place::<F, D>);
+    }
 }
 
-criterion_main!(radix_2, mixed_radix);
+fn bench_bls12_381(c: &mut Criterion) {
+    let name = "bls12_381 - radix2";
+    if ENABLE_RADIX2_BENCHES {
+        fft_benches::<bls12_381_fr, Radix2EvaluationDomain<bls12_381_fr>>(c, name);
+    }
+}
+
+fn bench_mnt6_753(c: &mut Criterion) {
+    let name = "mnt6_753 - mixed radix";
+    if ENABLE_MIXED_RADIX_BENCHES {
+        fft_benches::<mnt6_753_fr, MixedRadixEvaluationDomain<mnt6_753_fr>>(c, name);
+    }
+}
+
+criterion_group!(benches, bench_bls12_381, bench_mnt6_753);
+criterion_main!(benches);

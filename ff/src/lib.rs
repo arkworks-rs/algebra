@@ -22,15 +22,16 @@ pub mod bytes;
 pub use self::bytes::*;
 
 #[macro_use]
+pub mod biginteger;
+pub use self::biginteger::*;
+
+#[macro_use]
 pub mod fields;
 pub use self::fields::*;
 
 // This is only used for testing.
 #[cfg(test)]
 mod test_field;
-
-pub mod biginteger;
-pub use self::biginteger::*;
 
 mod rand;
 pub use self::rand::*;
