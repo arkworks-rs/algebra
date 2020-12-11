@@ -41,6 +41,7 @@
 ### Bug fixes
 - #36 (ark-ec) In Short-Weierstrass curves, include an infinity bit in `ToConstraintField`.
 - #107 (ark-serialize) Fix handling of `(de)serialize_uncompressed/unchecked` in various impls of `CanonicalSerialize/Deserialize`.
+- #112 (ark-serialize) Make `bool`s checked serialization methods non-malleable.
 - #119 (ark-poly) Fix bugs in degree calculation if adding/subtracting same degree polynomials
      whose leading coefficients cancel.
 
