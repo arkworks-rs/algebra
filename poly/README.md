@@ -8,7 +8,7 @@ Provides the following traits:
 
 - [`Polynomial`](https://github.com/arkworks-rs/algebra/blob/master/poly/src/polynomial/mod.rs#L16):
 Polynomial trait, ensuring that all implementers have basic arithmetic operations implemented.
-(`Add, Sub, Zero`, evaluation at a point, degree, etc.)
+(`Add`, `Sub`, `Zero`, evaluation at a point, degree, etc.)
 - [`UVPolynomial`](https://github.com/arkworks-rs/algebra/blob/master/poly/src/polynomial/mod.rs#L41):
 Univariate Polynomial trait.
 Essentially it defines ways to serialize to/from a polynomial, given that it is univariate.
@@ -22,14 +22,13 @@ Dense univariate polynomials, where a degree `d` polynomial is represented by `d
 Implements [`UVPolynomial`](https://github.com/arkworks-rs/algebra/blob/master/poly/src/polynomial/mod.rs#L41)
 - [`univariate/SparsePolynomial`](https://github.com/arkworks-rs/algebra/blob/master/poly/src/polynomial/univariate/sparse.rs#L15): Sparse univariate polynomials.
 A polynomial is represented by a list representing all the non-zero terms in the polynomial.
-Should only be used when a polynomial is mostly non-zero.
+Should only be used when most coefficients of the polynomial are zero.
 Implements [`Polynomial`](https://github.com/arkworks-rs/algebra/blob/master/poly/src/polynomial/mod.rs#L16).
 - [`multivariate/SparsePolynomial`](https://github.com/arkworks-rs/algebra/blob/master/poly/src/polynomial/multivariate/sparse.rs#L21):
 Sparse multivariate polynomials.
 The polynomial is represented by its non-zero terms.
 
-A struct [`univariate/DenseOrSparsePolynomial`](https://github.com/arkworks-rs/algebra/blob/master/poly/src/polynomial/univariate/mod.rs#L16) is available,
-that allows the user to abstract over the type of univariate polynomial underlying it is.
+This crate allows provides the [`univariate/DenseOrSparsePolynomial`](https://github.com/arkworks-rs/algebra/blob/master/poly/src/polynomial/univariate/mod.rs#L16) enum, which allows the user to abstract over the type of underlying univariate polynomial (dense or sparse).
 
 ### Domains
 
