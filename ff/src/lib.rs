@@ -7,8 +7,8 @@
     rust_2018_idioms
 )]
 #![allow(clippy::op_ref, clippy::suspicious_op_assign_impl)]
-#![cfg_attr(use_asm, feature(asm))]
 #![cfg_attr(not(use_asm), forbid(unsafe_code))]
+#![cfg_attr(use_asm, feature(llvm_asm))]
 #![cfg_attr(use_asm, deny(unsafe_code))]
 
 #[macro_use]
@@ -22,11 +22,16 @@ pub mod bytes;
 pub use self::bytes::*;
 
 #[macro_use]
+pub mod biginteger;
+pub use self::biginteger::*;
+
+#[macro_use]
 pub mod fields;
 pub use self::fields::*;
 
-pub mod biginteger;
-pub use self::biginteger::*;
+// This is only used for testing.
+#[cfg(test)]
+mod test_field;
 
 mod rand;
 pub use self::rand::*;

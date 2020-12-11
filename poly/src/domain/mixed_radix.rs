@@ -206,6 +206,14 @@ impl<F: FftField> EvaluationDomain<F> for MixedRadixEvaluationDomain<F> {
         tau.pow(&[self.size]) - F::one()
     }
 
+    /// Returns the `i`-th element of the domain, where elements are ordered by
+    /// their power of the generator which they correspond to.
+    /// e.g. the `i`-th element is g^i
+    fn element(&self, i: usize) -> F {
+        // TODO: Consider precomputed exponentiation tables if we need this to be faster.
+        self.group_gen.pow(&[i as u64])
+    }
+
     /// Return an iterator over the elements of the domain.
     fn elements(&self) -> Elements<F> {
         Elements {
@@ -393,6 +401,7 @@ pub(crate) fn serial_mixed_radix_fft<T: DomainCoeff<F>, F: FftField>(
 
 #[cfg(test)]
 mod tests {
+    use crate::polynomial::Polynomial;
     use crate::{EvaluationDomain, MixedRadixEvaluationDomain};
     use ark_ff::{test_rng, Field, Zero};
     use ark_test_curves::mnt4_753::Fq as Fr;
@@ -405,9 +414,9 @@ mod tests {
             let domain = MixedRadixEvaluationDomain::<Fr>::new(coeffs).unwrap();
             let z = domain.vanishing_polynomial();
             for _ in 0..100 {
-                let point = rng.gen();
+                let point: Fr = rng.gen();
                 assert_eq!(
-                    z.evaluate(point),
+                    z.evaluate(&point),
                     domain.evaluate_vanishing_polynomial(point)
                 )
             }
@@ -420,7 +429,7 @@ mod tests {
             let domain = MixedRadixEvaluationDomain::<Fr>::new(coeffs).unwrap();
             let z = domain.vanishing_polynomial();
             for point in domain.elements() {
-                assert!(z.evaluate(point).is_zero())
+                assert!(z.evaluate(&point).is_zero())
             }
         }
     }

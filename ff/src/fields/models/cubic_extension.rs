@@ -12,6 +12,7 @@ use ark_std::{
 };
 
 use num_traits::{One, Zero};
+use zeroize::Zeroize;
 
 use rand::{
     distributions::{Distribution, Standard},
@@ -138,6 +139,10 @@ impl<P: CubicExtParameters> One for CubicExtField<P> {
 
 impl<P: CubicExtParameters> Field for CubicExtField<P> {
     type BasePrimeField = P::BasePrimeField;
+
+    fn extension_degree() -> u64 {
+        3 * P::BaseField::extension_degree()
+    }
 
     fn double(&self) -> Self {
         let mut result = *self;
@@ -274,6 +279,16 @@ impl<P: CubicExtParameters> PartialOrd for CubicExtField<P> {
     #[inline(always)]
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
+    }
+}
+
+impl<P: CubicExtParameters> Zeroize for CubicExtField<P> {
+    // The phantom data does not contain element-specific data
+    // and thus does not need to be zeroized.
+    fn zeroize(&mut self) {
+        self.c0.zeroize();
+        self.c1.zeroize();
+        self.c2.zeroize();
     }
 }
 

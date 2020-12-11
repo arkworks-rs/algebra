@@ -10,6 +10,7 @@ use crate::domain::{
 };
 use ark_ff::{FftField, FftParameters};
 use ark_std::{convert::TryFrom, fmt, vec::Vec};
+
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
 
@@ -121,44 +122,66 @@ impl<F: FftField> EvaluationDomain<F> for Radix2EvaluationDomain<F> {
     }
 
     fn evaluate_all_lagrange_coefficients(&self, tau: F) -> Vec<F> {
-        // Evaluate all Lagrange polynomials
+        // Evaluate all Lagrange polynomials at tau to get the lagrange coefficients.
+        // Define the following as
+        // - H: The coset we are in, with generator g and offset h
+        // - m: The size of the coset H
+        // - Z_H: The vanishing polynomial for H. Z_H(x) = prod_{i in m} (x - hg^i) = x^m - h^m
+        // - v_i: A sequence of values, where v_0 = 1/(m * h^(m-1)), and v_{i + 1} = g * v_i
+        //
+        // We then compute L_{i,H}(tau) as `L_{i,H}(tau) = Z_H(tau) * v_i / (tau - h g^i)`
+        //
+        // However, if tau in H, both the numerator and denominator equal 0
+        // when i corresponds to the value tau equals, and the coefficient is 0 everywhere else.
+        // We handle this case separately, and we can easily detect by checking if the vanishing poly is 0.
         let size = self.size();
-        let t_size = tau.pow(&[self.size]);
-        let one = F::one();
-        if t_size.is_one() {
+        // TODO: Make this use the vanishing polynomial
+        let z_h_at_tau = tau.pow(&[self.size]) - F::one();
+        let domain_offset = F::one();
+        if z_h_at_tau.is_zero() {
+            // In this case, we know that tau = hg^i, for some value i.
+            // Then i-th lagrange coefficient in this case is then simply 1,
+            // and all other lagrange coefficients are 0.
+            // Thus we find i by brute force.
             let mut u = vec![F::zero(); size];
-            let mut omega_i = one;
+            let mut omega_i = domain_offset;
             for u_i in u.iter_mut().take(size) {
                 if omega_i == tau {
-                    *u_i = one;
+                    *u_i = F::one();
                     break;
                 }
                 omega_i *= &self.group_gen;
             }
             u
         } else {
+            // In this case we have to compute `Z_H(tau) * v_i / (tau - h g^i)`
+            // for i in 0..size
+            // We actually compute this by computing (Z_H(tau) * v_i)^{-1} * (tau - h g^i)
+            // and then batch inverting to get the correct lagrange coefficients.
+            // We let `l_i = (Z_H(tau) * v_i)^-1` and `r_i = tau - h g^i`
+            // Notice that since Z_H(tau) is i-independent,
+            // and v_i = g * v_{i-1}, it follows that
+            // l_i = g^-1 * l_{i-1}
+            // TODO: consider caching the computation of l_i to save N multiplications
             use ark_ff::fields::batch_inversion;
 
-            let mut l = (t_size - one) * self.size_inv;
-            let mut r = one;
-            let mut u = vec![F::zero(); size];
-            let mut ls = vec![F::zero(); size];
+            // v_0_inv = m * h^(m-1)
+            let v_0_inv = F::from(self.size) * domain_offset.pow(&[self.size - 1]);
+            let mut l_i = z_h_at_tau.inverse().unwrap() * v_0_inv;
+            let mut negative_cur_elem = -domain_offset;
+            let mut lagrange_coefficients_inverse = vec![F::zero(); size];
             for i in 0..size {
-                u[i] = tau - r;
-                ls[i] = l;
-                l *= &self.group_gen;
-                r *= &self.group_gen;
+                let r_i = tau + negative_cur_elem;
+                lagrange_coefficients_inverse[i] = l_i * r_i;
+                // Increment l_i and negative_cur_elem
+                l_i *= &self.group_gen_inv;
+                negative_cur_elem *= &self.group_gen;
             }
 
-            batch_inversion(u.as_mut_slice());
-
-            ark_std::cfg_iter_mut!(u)
-                .zip(ls)
-                .for_each(|(tau_minus_r, l)| {
-                    *tau_minus_r = l * *tau_minus_r;
-                });
-
-            u
+            // Invert the lagrange coefficients inverse, to get the actual coefficients,
+            // and return these
+            batch_inversion(lagrange_coefficients_inverse.as_mut_slice());
+            lagrange_coefficients_inverse
         }
     }
 
@@ -174,6 +197,14 @@ impl<F: FftField> EvaluationDomain<F> for Radix2EvaluationDomain<F> {
         tau.pow(&[self.size]) - F::one()
     }
 
+    /// Returns the `i`-th element of the domain, where elements are ordered by
+    /// their power of the generator which they correspond to.
+    /// e.g. the `i`-th element is g^i
+    fn element(&self, i: usize) -> F {
+        // TODO: Consider precomputed exponentiation tables if we need this to be faster.
+        self.group_gen.pow(&[i as u64])
+    }
+
     /// Return an iterator over the elements of the domain.
     fn elements(&self) -> Elements<F> {
         Elements {
@@ -185,11 +216,14 @@ impl<F: FftField> EvaluationDomain<F> for Radix2EvaluationDomain<F> {
     }
 }
 
+// This implements the Cooley-Turkey FFT, derived from libfqfft
+// The libfqfft implementation uses pseudocode from [CLRS 2n Ed, pp. 864].
 pub(crate) fn serial_radix2_fft<T: DomainCoeff<F>, F: FftField>(a: &mut [T], omega: F, log_n: u32) {
     let n =
         u32::try_from(a.len()).expect("cannot perform FFTs larger on vectors of len > (1 << 32)");
     assert_eq!(n, 1 << log_n);
 
+    // swap coefficients in place
     for k in 0..n {
         let rk = bitreverse(k, log_n);
         if k < rk {
@@ -198,11 +232,13 @@ pub(crate) fn serial_radix2_fft<T: DomainCoeff<F>, F: FftField>(a: &mut [T], ome
     }
 
     let mut m = 1;
-    for _ in 0..log_n {
+    for _i in 1..=log_n {
+        // w_m is 2^i-th root of unity
         let w_m = omega.pow(&[(n / (2 * m)) as u64]);
 
         let mut k = 0;
         while k < n {
+            // w = w_m^j at the start of every loop iteration
             let mut w = F::one();
             for j in 0..m {
                 let mut t = a[(k + j + m) as usize];
@@ -223,8 +259,10 @@ pub(crate) fn serial_radix2_fft<T: DomainCoeff<F>, F: FftField>(a: &mut [T], ome
 
 #[cfg(test)]
 mod tests {
+    use crate::domain::Vec;
+    use crate::polynomial::{univariate::*, Polynomial, UVPolynomial};
     use crate::{EvaluationDomain, Radix2EvaluationDomain};
-    use ark_ff::{test_rng, Field, Zero};
+    use ark_ff::{test_rng, FftField, Field, One, UniformRand, Zero};
     use ark_test_curves::bls12_381::Fr;
     use rand::Rng;
 
@@ -235,9 +273,9 @@ mod tests {
             let domain = Radix2EvaluationDomain::<Fr>::new(coeffs).unwrap();
             let z = domain.vanishing_polynomial();
             for _ in 0..100 {
-                let point = rng.gen();
+                let point: Fr = rng.gen();
                 assert_eq!(
-                    z.evaluate(point),
+                    z.evaluate(&point),
                     domain.evaluate_vanishing_polynomial(point)
                 )
             }
@@ -250,7 +288,7 @@ mod tests {
             let domain = Radix2EvaluationDomain::<Fr>::new(coeffs).unwrap();
             let z = domain.vanishing_polynomial();
             for point in domain.elements() {
-                assert!(z.evaluate(point).is_zero())
+                assert!(z.evaluate(&point).is_zero())
             }
         }
     }
@@ -273,6 +311,96 @@ mod tests {
             for (i, element) in domain.elements().enumerate() {
                 assert_eq!(element, domain.group_gen.pow([i as u64]));
             }
+        }
+    }
+
+    /// Test that lagrange interpolation for a random polynomial at a random point works.
+    #[test]
+    fn non_systematic_lagrange_coefficients_test() {
+        for domain_dim in 1..10 {
+            let domain_size = 1 << domain_dim;
+            let domain = Radix2EvaluationDomain::<Fr>::new(domain_size).unwrap();
+            // Get random pt + lagrange coefficients
+            let rand_pt = Fr::rand(&mut test_rng());
+            let lagrange_coeffs = domain.evaluate_all_lagrange_coefficients(rand_pt);
+
+            // Sample the random polynomial, evaluate it over the domain and the random point.
+            let rand_poly = DensePolynomial::<Fr>::rand(domain_size - 1, &mut test_rng());
+            let poly_evals = domain.fft(rand_poly.coeffs());
+            let actual_eval = rand_poly.evaluate(&rand_pt);
+
+            // Do lagrange interpolation, and compare against the actual evaluation
+            let mut interpolated_eval = Fr::zero();
+            for i in 0..domain_size {
+                interpolated_eval += lagrange_coeffs[i] * poly_evals[i];
+            }
+            assert_eq!(actual_eval, interpolated_eval);
+        }
+    }
+
+    /// Test that lagrange coefficients for a point in the domain is correct
+    #[test]
+    fn systematic_lagrange_coefficients_test() {
+        // This runs in time O(N^2) in the domain size, so keep the domain dimension low.
+        // We generate lagrange coefficients for each element in the domain.
+        for domain_dim in 1..5 {
+            let domain_size = 1 << domain_dim;
+            let domain = Radix2EvaluationDomain::<Fr>::new(domain_size).unwrap();
+            let all_domain_elements: Vec<Fr> = domain.elements().collect();
+            for i in 0..domain_size {
+                let lagrange_coeffs =
+                    domain.evaluate_all_lagrange_coefficients(all_domain_elements[i]);
+                for j in 0..domain_size {
+                    // Lagrange coefficient for the evaluation point, which should be 1
+                    if i == j {
+                        assert_eq!(lagrange_coeffs[j], Fr::one());
+                    } else {
+                        assert_eq!(lagrange_coeffs[j], Fr::zero());
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn test_fft_correctness() {
+        // Tests that the ffts output the correct result.
+        // This assumes a correct polynomial evaluation at point procedure.
+        // It tests consistency of FFT/IFFT, and coset_fft/coset_ifft,
+        // along with testing that each individual evaluation is correct.
+
+        // Runs in time O(degree^2)
+        let log_degree = 5;
+        let degree = 1 << log_degree;
+        let rand_poly = DensePolynomial::<Fr>::rand(degree - 1, &mut test_rng());
+
+        for log_domain_size in log_degree..(log_degree + 2) {
+            let domain_size = 1 << log_domain_size;
+            let domain = Radix2EvaluationDomain::<Fr>::new(domain_size).unwrap();
+            let poly_evals = domain.fft(&rand_poly.coeffs);
+            let poly_coset_evals = domain.coset_fft(&rand_poly.coeffs);
+            for (i, x) in domain.elements().enumerate() {
+                let coset_x = Fr::multiplicative_generator() * x;
+
+                assert_eq!(poly_evals[i], rand_poly.evaluate(&x));
+                assert_eq!(poly_coset_evals[i], rand_poly.evaluate(&coset_x));
+            }
+
+            let rand_poly_from_subgroup =
+                DensePolynomial::from_coefficients_vec(domain.ifft(&poly_evals));
+            let rand_poly_from_coset =
+                DensePolynomial::from_coefficients_vec(domain.coset_ifft(&poly_coset_evals));
+
+            assert_eq!(
+                rand_poly, rand_poly_from_subgroup,
+                "degree = {}, domain size = {}",
+                degree, domain_size
+            );
+            assert_eq!(
+                rand_poly, rand_poly_from_coset,
+                "degree = {}, domain size = {}",
+                degree, domain_size
+            );
         }
     }
 

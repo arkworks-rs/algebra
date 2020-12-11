@@ -2,14 +2,17 @@
 
 use crate::univariate::DensePolynomial;
 use crate::{EvaluationDomain, GeneralEvaluationDomain, UVPolynomial};
-use ark_ff::FftField;
+use ark_ff::{batch_inversion, FftField};
 use ark_std::{
     ops::{Add, AddAssign, Div, DivAssign, Index, Mul, MulAssign, Sub, SubAssign},
     vec::Vec,
 };
 
-// TODO:
+// TODO
 use ark_serialize::*;
+
+#[cfg(feature = "parallel")]
+use rayon::prelude::*;
 
 /// Stores a polynomial in evaluation form.
 #[derive(Clone, PartialEq, Eq, Hash, Debug, CanonicalSerialize, CanonicalDeserialize)]
@@ -71,8 +74,7 @@ impl<'a, F: FftField, D: EvaluationDomain<F>> MulAssign<&'a Evaluations<F, D>>
     #[inline]
     fn mul_assign(&mut self, other: &'a Evaluations<F, D>) {
         assert_eq!(self.domain, other.domain, "domains are unequal");
-        self.evals
-            .iter_mut()
+        ark_std::cfg_iter_mut!(self.evals)
             .zip(&other.evals)
             .for_each(|(a, b)| *a *= b);
     }
@@ -97,8 +99,7 @@ impl<'a, F: FftField, D: EvaluationDomain<F>> AddAssign<&'a Evaluations<F, D>>
     #[inline]
     fn add_assign(&mut self, other: &'a Evaluations<F, D>) {
         assert_eq!(self.domain, other.domain, "domains are unequal");
-        self.evals
-            .iter_mut()
+        ark_std::cfg_iter_mut!(self.evals)
             .zip(&other.evals)
             .for_each(|(a, b)| *a += b);
     }
@@ -123,8 +124,7 @@ impl<'a, F: FftField, D: EvaluationDomain<F>> SubAssign<&'a Evaluations<F, D>>
     #[inline]
     fn sub_assign(&mut self, other: &'a Evaluations<F, D>) {
         assert_eq!(self.domain, other.domain, "domains are unequal");
-        self.evals
-            .iter_mut()
+        ark_std::cfg_iter_mut!(self.evals)
             .zip(&other.evals)
             .for_each(|(a, b)| *a -= b);
     }
@@ -149,9 +149,10 @@ impl<'a, F: FftField, D: EvaluationDomain<F>> DivAssign<&'a Evaluations<F, D>>
     #[inline]
     fn div_assign(&mut self, other: &'a Evaluations<F, D>) {
         assert_eq!(self.domain, other.domain, "domains are unequal");
-        self.evals
-            .iter_mut()
-            .zip(&other.evals)
-            .for_each(|(a, b)| *a /= b);
+        let mut other_copy = other.clone();
+        batch_inversion(other_copy.evals.as_mut_slice());
+        ark_std::cfg_iter_mut!(self.evals)
+            .zip(&other_copy.evals)
+            .for_each(|(a, b)| *a *= b);
     }
 }

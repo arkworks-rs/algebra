@@ -16,7 +16,9 @@ use ark_std::{
     vec::Vec,
 };
 
+pub use ark_ff_macros;
 use num_traits::{One, Zero};
+use zeroize::Zeroize;
 
 #[macro_use]
 pub mod macros;
@@ -28,14 +30,25 @@ pub mod arithmetic;
 pub mod models;
 pub use self::models::*;
 
+#[cfg(feature = "parallel")]
+use ark_std::cmp::max;
+#[cfg(feature = "parallel")]
+use rayon::prelude::*;
+
 #[macro_export]
 macro_rules! field_new {
-    ($name:ident, $c0:expr) => {
-        $name {
-            0: $c0,
-            1: core::marker::PhantomData,
-        }
-    };
+    ($name:ident, $c0:expr) => {{
+        use $crate::FpParameters;
+        type Params = <$name as $crate::PrimeField>::Params;
+        let (is_positive, limbs) = $crate::ark_ff_macros::to_sign_and_limbs!($c0);
+        $name::const_from_str(
+            &limbs,
+            is_positive,
+            Params::R2,
+            Params::MODULUS,
+            Params::INV,
+        )
+    }};
     ($name:ident, $c0:expr, $c1:expr $(,)?) => {
         $name {
             c0: $c0,
@@ -66,11 +79,12 @@ pub trait Field:
     + Send
     + Sync
     + Eq
+    + Zero
     + One
     + Ord
     + Neg<Output = Self>
     + UniformRand
-    + Zero
+    + Zeroize
     + Sized
     + Hash
     + CanonicalSerialize
@@ -112,6 +126,10 @@ pub trait Field:
     fn characteristic<'a>() -> &'a [u64] {
         Self::BasePrimeField::characteristic()
     }
+
+    /// Returns the extension degree of this field with respect
+    /// to `Self::BasePrimeField`.
+    fn extension_degree() -> u64;
 
     /// Returns `self + self`.
     #[must_use]
@@ -224,7 +242,7 @@ pub trait FpParameters: FftParameters {
     /// (Should equal `SELF::MODULUS_BITS - 1`)
     const CAPACITY: u32;
 
-    /// t for 2^s * t = MODULUS - 1
+    /// t for 2^s * t = MODULUS - 1, and t coprime to 2.
     const T: Self::BigInt;
 
     /// (t - 1) / 2
@@ -323,7 +341,8 @@ pub trait PrimeField:
     /// Returns the underlying representation of the prime field element.
     fn into_repr(&self) -> Self::BigInt;
 
-    /// Return the a QNR^T
+    /// Return the QNR^t, for t defined by
+    /// `2^s * t = MODULUS - 1`, and t coprime to 2.
     fn qnr_to_t() -> Self {
         Self::two_adic_root_of_unity()
     }
@@ -479,10 +498,38 @@ impl_field_bigint_conv!(Fp384, BigInteger384, Fp384Parameters);
 impl_field_bigint_conv!(Fp768, BigInteger768, Fp768Parameters);
 impl_field_bigint_conv!(Fp832, BigInteger832, Fp832Parameters);
 
+// Given a vector of field elements {v_i}, compute the vector {v_i^(-1)}
 pub fn batch_inversion<F: Field>(v: &mut [F]) {
+    batch_inversion_and_mul(v, &F::one());
+}
+
+#[cfg(not(feature = "parallel"))]
+// Given a vector of field elements {v_i}, compute the vector {coeff * v_i^(-1)}
+pub fn batch_inversion_and_mul<F: Field>(v: &mut [F], coeff: &F) {
+    serial_batch_inversion_and_mul(v, coeff);
+}
+
+#[cfg(feature = "parallel")]
+// Given a vector of field elements {v_i}, compute the vector {coeff * v_i^(-1)}
+pub fn batch_inversion_and_mul<F: Field>(v: &mut [F], coeff: &F) {
+    // Divide the vector v evenly between all available cores
+    let min_elements_per_thread = 1;
+    let num_cpus_available = rayon::current_num_threads();
+    let num_elems = v.len();
+    let num_elem_per_thread = max(num_elems / num_cpus_available, min_elements_per_thread);
+
+    // Batch invert in parallel, without copying the vector
+    v.par_chunks_mut(num_elem_per_thread).for_each(|mut chunk| {
+        serial_batch_inversion_and_mul(&mut chunk, coeff);
+    });
+}
+
+// Given a vector of field elements {v_i}, compute the vector {coeff * v_i^(-1)}
+fn serial_batch_inversion_and_mul<F: Field>(v: &mut [F], coeff: &F) {
     // Montgomery’s Trick and Fast Implementation of Masked AES
     // Genelle, Prouff and Quisquater
     // Section 3.2
+    // but with an optimization to multiply every element in the returned vector by coeff
 
     // First pass: compute [a, ab, abc, ...]
     let mut prod = Vec::with_capacity(v.len());
@@ -494,6 +541,9 @@ pub fn batch_inversion<F: Field>(v: &mut [F]) {
 
     // Invert `tmp`.
     tmp = tmp.inverse().unwrap(); // Guaranteed to be nonzero.
+
+    // Multiply product by coeff, so all inverses will be scaled by coeff
+    tmp = tmp * coeff;
 
     // Second pass: iterate backwards to compute inverses
     for (f, s) in v.iter_mut()
@@ -512,7 +562,7 @@ pub fn batch_inversion<F: Field>(v: &mut [F]) {
 }
 
 #[cfg(all(test, feature = "std"))]
-mod tests {
+mod std_tests {
     use super::BitIteratorLE;
     #[test]
     fn bit_iterator_le() {
@@ -525,6 +575,38 @@ mod tests {
             } else {
                 assert!(bit)
             }
+        }
+    }
+}
+
+#[cfg(test)]
+mod no_std_tests {
+    use super::*;
+    use crate::test_field::Fr;
+    use crate::test_rng;
+
+    #[test]
+    fn test_batch_inversion() {
+        let mut random_coeffs = Vec::<Fr>::new();
+        let vec_size = 1000;
+
+        for _ in 0..=vec_size {
+            random_coeffs.push(Fr::rand(&mut test_rng()));
+        }
+
+        let mut random_coeffs_inv = random_coeffs.clone();
+        batch_inversion::<Fr>(&mut random_coeffs_inv);
+        for i in 0..=vec_size {
+            assert_eq!(random_coeffs_inv[i] * random_coeffs[i], Fr::one());
+        }
+        let rand_multiplier = Fr::rand(&mut test_rng());
+        let mut random_coeffs_inv_shifted = random_coeffs.clone();
+        batch_inversion_and_mul(&mut random_coeffs_inv_shifted, &rand_multiplier);
+        for i in 0..=vec_size {
+            assert_eq!(
+                random_coeffs_inv_shifted[i] * random_coeffs[i],
+                rand_multiplier
+            );
         }
     }
 }

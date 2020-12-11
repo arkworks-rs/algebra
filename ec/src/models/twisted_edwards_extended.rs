@@ -18,6 +18,7 @@ use rand::{
     distributions::{Distribution, Standard},
     Rng,
 };
+use zeroize::Zeroize;
 
 use ark_ff::{
     bytes::{FromBytes, ToBytes},
@@ -161,6 +162,15 @@ impl<P: Parameters> AffineCurve for GroupAffine<P> {
 
     fn mul_by_cofactor_inv(&self) -> Self {
         self.mul(P::COFACTOR_INV).into()
+    }
+}
+
+impl<P: Parameters> Zeroize for GroupAffine<P> {
+    // The phantom data does not contain element-specific data
+    // and thus does not need to be zeroized.
+    fn zeroize(&mut self) {
+        self.x.zeroize();
+        self.y.zeroize();
     }
 }
 
@@ -391,6 +401,16 @@ impl<P: Parameters> GroupProjective<P> {
             z,
             _params: PhantomData,
         }
+    }
+}
+impl<P: Parameters> Zeroize for GroupProjective<P> {
+    // The phantom data does not contain element-specific data
+    // and thus does not need to be zeroized.
+    fn zeroize(&mut self) {
+        self.x.zeroize();
+        self.y.zeroize();
+        self.t.zeroize();
+        self.z.zeroize();
     }
 }
 

@@ -8,14 +8,25 @@ license = "MIT/Apache-2.0"
 edition = "2018"
 publish = false
 
-[dev-dependencies]
-ark-poly = { path = "../poly" }
+[dependencies]
 ark-ff = { path = "../ff" }
-ark-test-curves = { path = "../test-curves", default-features = false, features = [ "bls12_381_scalar_field" ] }
+ark-poly = { path = "../poly" }
+ark-std = {  git = "https://github.com/arkworks-rs/utils", default-features = false }
+ark-test-curves = { path = "../test-curves", default-features = false, features = [ "bls12_381_scalar_field", "mnt4_753_curve" ] }
 criterion = "0.3.1"
 rand = "0.7"
+rayon = { version = "1", optional = true }
+
+[features]
+default = []
+parallel = ["ark-ff/parallel", "rayon", "ark-poly/parallel", "ark-std/parallel" ]
 
 [[bench]]
 name = "fft"
 path = "benches/fft.rs"
+harness = false
+
+[[bench]]
+name = "dense_polynomial"
+path = "benches/dense_polynomial.rs"
 harness = false

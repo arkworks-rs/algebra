@@ -19,6 +19,7 @@ use ark_ff::{
 use crate::{models::SWModelParameters as Parameters, AffineCurve, ProjectiveCurve};
 
 use num_traits::{One, Zero};
+use zeroize::Zeroize;
 
 use rand::{
     distributions::{Distribution, Standard},
@@ -129,6 +130,16 @@ impl<P: Parameters> GroupAffine<P> {
     pub fn is_in_correct_subgroup_assuming_on_curve(&self) -> bool {
         self.mul_bits(BitIteratorBE::new(P::ScalarField::characteristic()))
             .is_zero()
+    }
+}
+
+impl<P: Parameters> Zeroize for GroupAffine<P> {
+    // The phantom data does not contain element-specific data
+    // and thus does not need to be zeroized.
+    fn zeroize(&mut self) {
+        self.x.zeroize();
+        self.y.zeroize();
+        self.infinity.zeroize();
     }
 }
 
@@ -337,6 +348,16 @@ impl<P: Parameters> GroupProjective<P> {
             z,
             _params: PhantomData,
         }
+    }
+}
+
+impl<P: Parameters> Zeroize for GroupProjective<P> {
+    // The phantom data does not contain element-specific data
+    // and thus does not need to be zeroized.
+    fn zeroize(&mut self) {
+        self.x.zeroize();
+        self.y.zeroize();
+        self.z.zeroize();
     }
 }
 

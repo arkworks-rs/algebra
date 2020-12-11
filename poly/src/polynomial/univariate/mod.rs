@@ -145,11 +145,11 @@ impl<'a, F: 'a + FftField> DenseOrSparsePolynomial<'a, F> {
     fn eval_over_domain_helper<D: EvaluationDomain<F>>(self, domain: D) -> Evaluations<F, D> {
         match self {
             SPolynomial(Cow::Borrowed(s)) => {
-                let evals = domain.elements().map(|elem| s.evaluate(elem)).collect();
+                let evals = domain.elements().map(|elem| s.evaluate(&elem)).collect();
                 Evaluations::from_vec_and_domain(evals, domain)
             }
             SPolynomial(Cow::Owned(s)) => {
-                let evals = domain.elements().map(|elem| s.evaluate(elem)).collect();
+                let evals = domain.elements().map(|elem| s.evaluate(&elem)).collect();
                 Evaluations::from_vec_and_domain(evals, domain)
             }
             DPolynomial(Cow::Borrowed(d)) => {

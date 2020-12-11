@@ -33,6 +33,7 @@ use ark_std::{
     vec::Vec,
 };
 use num_traits::Zero;
+use zeroize::Zeroize;
 
 pub mod models;
 pub use self::models::*;
@@ -133,6 +134,7 @@ pub trait ProjectiveCurve:
     + Debug
     + Display
     + UniformRand
+    + Zeroize
     + Zero
     + Neg<Output = Self>
     + Add<Self, Output = Self>
@@ -204,9 +206,9 @@ pub trait ProjectiveCurve:
     fn add_assign_mixed(&mut self, other: &Self::Affine);
 
     /// Performs scalar multiplication of this element.
-    fn mul<S: Into<<Self::ScalarField as PrimeField>::BigInt>>(mut self, other: S) -> Self {
+    fn mul<S: AsRef<[u64]>>(mut self, other: S) -> Self {
         let mut res = Self::zero();
-        for b in ark_ff::BitIteratorBE::without_leading_zeros(other.into()) {
+        for b in ark_ff::BitIteratorBE::without_leading_zeros(other) {
             res.double_in_place();
             if b {
                 res += self;
@@ -239,6 +241,7 @@ pub trait AffineCurve:
     + Display
     + Zero
     + Neg<Output = Self>
+    + Zeroize
     + From<<Self as AffineCurve>::Projective>
 {
     const COFACTOR: &'static [u64];
