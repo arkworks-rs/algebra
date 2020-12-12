@@ -458,8 +458,8 @@ mod tests {
     fn parallel_fft_consistency() {
         use super::serial_mixed_radix_fft;
         use crate::domain::utils::parallel_fft;
-        use ark_ff::{test_rng, PrimeField};
-        use ark_std::vec::Vec;
+        use ark_ff::PrimeField;
+        use ark_std::{test_rng, vec::Vec};
         use ark_test_curves::mnt4_753::Fq as Fr;
         use core::cmp::min;
 
