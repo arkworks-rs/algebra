@@ -17,8 +17,8 @@
 - #110 (ark-ec) Change the trait bound on the scalar for `mul`, from (essentially) `Into<BigInt>` to `AsRef<[u64]>`
 - #117 (ark-poly) Make the univariate `SparsePolynomial` implement `Polynomial`. Make this change
     by replacing `sparse_poly.evaluate(pt)` to `sparse_poly.evaluate(&pt)`.
-- #129 (ark-ff) Move `ark-ff::{UniformRand, test_rng}` to `ark-std::{UniformRand, test_rng}`.
-    Importing these from `ark-ff` is still possible, but deprecated and will be removed in the following release.
+- #129 (ark-ff) Move `ark_ff::{UniformRand, test_rng}` to `ark_std::{UniformRand, test_rng}`.
+    Importing these from `ark-ff` is still possible, but is deprecated and will be removed in the following release.
 
 ### Features
 - #20 (ark-poly) Add structs/traits for multivariate polynomials
