@@ -1,10 +1,10 @@
 ## ark-poly
 
-This crate implements traits and implementations for polynomials, FFT-friendly subsets of a fields (dubbed "domains"), and FFTs for these domains.
+This crate implements traits and implementations for polynomials, FFT-friendly subsets of a field (dubbed "domains"), and FFTs for these domains.
 
 ### Polynomials
 
-The polynomial module provides the following traits for defining polynomials:
+The `polynomial` module provides the following traits for defining polynomials:
 
 - [`Polynomial`](https://github.com/arkworks-rs/algebra/blob/master/poly/src/polynomial/mod.rs#L16):
 Requires implementors to support common operations on polynomials,
@@ -33,4 +33,3 @@ This crate also provides the [`univariate/DenseOrSparsePolynomial`](https://gith
 ### Domains
 
 TODO
-
