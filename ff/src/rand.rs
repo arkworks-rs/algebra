@@ -1,5 +1,3 @@
-use rand::Rng;
-
 #[deprecated(
     since = "0.2.0",
     note = "please use `ark_std::{UniformRand, test_rng}` instead of ark_ff::{UniformRand, test_rng}"
