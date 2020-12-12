@@ -60,7 +60,7 @@ mod test {
 
     #[test]
     fn batch_normalization() {
-        let mut rng = ark_ff::test_rng();
+        let mut rng = ark_std::test_rng();
 
         let mut g_s = [G1Projective::zero(); 100];
         for i in 0..100 {

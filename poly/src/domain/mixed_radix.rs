@@ -400,7 +400,8 @@ pub(crate) fn serial_mixed_radix_fft<T: DomainCoeff<F>, F: FftField>(
 mod tests {
     use crate::polynomial::Polynomial;
     use crate::{EvaluationDomain, MixedRadixEvaluationDomain};
-    use ark_ff::{test_rng, Field, Zero};
+    use ark_ff::{Field, Zero};
+    use ark_std::test_rng;
     use ark_test_curves::mnt4_753::Fq as Fr;
     use rand::Rng;
 
