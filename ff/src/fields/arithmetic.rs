@@ -224,7 +224,6 @@ macro_rules! impl_prime_field_from_int {
 
 macro_rules! sqrt_impl {
     ($Self:ident, $P:tt, $self:expr) => {{
-        use crate::fields::LegendreSymbol::*;
         // https://eprint.iacr.org/2012/685.pdf (page 12, algorithm 5)
         // Actually this is just normal Tonelli-Shanks; since `P::Generator`
         // is a quadratic non-residue, `P::ROOT_OF_UNITY = P::GENERATOR ^ t`
@@ -275,13 +274,14 @@ macro_rules! sqrt_impl {
             v = k;
         }
         // Is x the square root? If so, return it.
-        if (x * x == *$self) {
+        if (x.square() == *$self) {
             return Some(x);
         }
         // Consistency check that if no square root is found,
         // it is because none exists.
         #[cfg(debug_assertions)]
         {
+            use crate::fields::LegendreSymbol::*;
             if ($self.legendre() != QuadraticNonResidue) {
                 panic!("Input has a square root per its legendre symbol, but it was not found")
             }

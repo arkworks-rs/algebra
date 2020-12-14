@@ -1,6 +1,6 @@
 //! An attribute-like procedural macro for unrolling for loops with integer literal bounds.
 //!
-//! This crate provides the [`unroll_for_loops`] attribute-like macro that can be applied to
+//! This crate provides the [`unroll_for_loops`](../attr.unroll_for_loops.html) attribute-like macro that can be applied to
 //! functions containing for-loops with integer bounds. This macro looks for loops to unroll and
 //! unrolls them at compile time.
 //!
