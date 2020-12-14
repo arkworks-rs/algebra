@@ -85,7 +85,7 @@ pub trait QuadExtParameters: 'static + Send + Sync + Sized {
     }
 }
 
-/// An element of a quadratic extension field F_p[X]/(X^2 - P::NONRESIDUE) is
+/// An element of a quadratic extension field F_p\[X\]/(X^2 - P::NONRESIDUE) is
 /// represented as c0 + c1 * X, for c0, c1 in `P::BaseField`.
 #[derive(Derivative)]
 #[derivative(
