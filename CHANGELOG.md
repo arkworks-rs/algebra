@@ -36,10 +36,13 @@
 - #115 (ark-ff) Add parallel implementation of `batch_inversion`.
 - #122 (ark-poly) Add infrastructure for benchmarking `FFT`s.
 - #125 (ark-poly) Add parallelization to applying coset shifts within `coset_fft`.
+- #126 (ark-ec) Use `ark_ff::batch_inversion` for point normalization
+- #131 (ark-ff) Speedup `sqrt` on `PrimeField` when a square root exists. (And slows it down when doesn't exist)
 
 ### Bug fixes
 - #36 (ark-ec) In Short-Weierstrass curves, include an infinity bit in `ToConstraintField`.
 - #107 (ark-serialize) Fix handling of `(de)serialize_uncompressed/unchecked` in various impls of `CanonicalSerialize/Deserialize`.
+- #112 (ark-serialize) Make `bool`s checked serialization methods non-malleable.
 - #119 (ark-poly) Fix bugs in degree calculation if adding/subtracting same degree polynomials
      whose leading coefficients cancel.
 
