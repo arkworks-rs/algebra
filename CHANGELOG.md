@@ -37,7 +37,7 @@
 - #122 (ark-poly) Add infrastructure for benchmarking `FFT`s.
 - #125 (ark-poly) Add parallelization to applying coset shifts within `coset_fft`.
 - #126 (ark-ec) Use `ark_ff::batch_inversion` for point normalization
-- #131 (ark-ff) Speedup `sqrt` on `PrimeField` when a square root exists. (And slows it down when doesn't exist)
+- #131, #137 (ark-ff) Speedup `sqrt` on fields when a square root exists. (And slows it down when doesn't exist)
 
 ### Bug fixes
 - #36 (ark-ec) In Short-Weierstrass curves, include an infinity bit in `ToConstraintField`.
