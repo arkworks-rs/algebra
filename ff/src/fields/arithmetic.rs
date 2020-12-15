@@ -240,17 +240,6 @@ macro_rules! sqrt_impl {
         let mut b = x * &w;
 
         let mut v = $P::TWO_ADICITY as usize;
-        // t = self^t
-        #[cfg(debug_assertions)]
-        {
-            let mut check = b;
-            for _ in 0..(v - 1) {
-                check.square_in_place();
-            }
-            if !check.is_one() {
-                panic!("Input is not a square root, but it passed the QR test")
-            }
-        }
 
         while !b.is_one() {
             let mut k = 0usize;

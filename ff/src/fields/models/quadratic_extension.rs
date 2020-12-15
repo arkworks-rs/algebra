@@ -281,6 +281,8 @@ where
         if self.c1.is_zero() {
             return self.c0.sqrt().map(|c0| Self::new(c0, P::BaseField::zero()));
         }
+        // Try computing the square root
+        // Check at the end of the algorithm if it was a square root
         let alpha = self.norm();
         // TODO: Precompute this
         let two_inv = P::BaseField::one()
@@ -301,6 +303,13 @@ where
         // if not, there exists no square root.
         if sqrt_cand.square() == *self {
             return Some(sqrt_cand);
+        }
+        #[cfg(debug_assertions)]
+        {
+            use crate::fields::LegendreSymbol::*;
+            if (self.legendre() != QuadraticNonResidue) {
+                panic!("Input has a square root per its legendre symbol, but it was not found")
+            }
         }
         None
     }
