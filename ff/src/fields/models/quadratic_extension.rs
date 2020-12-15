@@ -307,7 +307,7 @@ where
         #[cfg(debug_assertions)]
         {
             use crate::fields::LegendreSymbol::*;
-            if (self.legendre() != QuadraticNonResidue) {
+            if self.legendre() != QuadraticNonResidue {
                 panic!("Input has a square root per its legendre symbol, but it was not found")
             }
         }
