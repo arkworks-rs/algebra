@@ -1,7 +1,5 @@
 #![cfg_attr(not(feature = "std"), no_std)]
-#![deny(
-    warnings,
-    unused,
+#![warn(
     future_incompatible,
     nonstandard_style,
     rust_2018_idioms
