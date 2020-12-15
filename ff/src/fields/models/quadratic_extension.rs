@@ -278,34 +278,40 @@ where
     fn sqrt(&self) -> Option<Self> {
         // Square root based on the complex method. See
         // https://eprint.iacr.org/2012/685.pdf (page 15, algorithm 8)
-        use crate::LegendreSymbol::*;
         if self.c1.is_zero() {
             return self.c0.sqrt().map(|c0| Self::new(c0, P::BaseField::zero()));
         }
+        // Try computing the square root
+        // Check at the end of the algorithm if it was a square root
         let alpha = self.norm();
-        // This is equivalent to self.legendre, see the comment on legendre above.
-        let legendre_symbol = alpha.legendre();
-        match legendre_symbol {
-            Zero => Some(*self),
-            QuadraticNonResidue => None,
-            QuadraticResidue => {
-                // TODO: Precompute this
-                let two_inv = P::BaseField::one()
-                    .double()
-                    .inverse()
-                    .expect("Two should always have an inverse");
-                let alpha = alpha
-                    .sqrt()
-                    .expect("We are in the QR case, the norm should have a square root");
-                let mut delta = (alpha + &self.c0) * &two_inv;
-                if delta.legendre().is_qnr() {
-                    delta -= &alpha;
-                }
-                let c0 = delta.sqrt().expect("Delta must have a square root");
-                let c0_inv = c0.inverse().expect("c0 must have an inverse");
-                Some(Self::new(c0, self.c1 * &two_inv * &c0_inv))
+        // TODO: Precompute this
+        let two_inv = P::BaseField::one()
+            .double()
+            .inverse()
+            .expect("Two should always have an inverse");
+        let alpha = alpha
+            .sqrt()
+            .expect("We are in the QR case, the norm should have a square root");
+        let mut delta = (alpha + &self.c0) * &two_inv;
+        if delta.legendre().is_qnr() {
+            delta -= &alpha;
+        }
+        let c0 = delta.sqrt().expect("Delta must have a square root");
+        let c0_inv = c0.inverse().expect("c0 must have an inverse");
+        let sqrt_cand = Self::new(c0, self.c1 * &two_inv * &c0_inv);
+        // Check if sqrt_cand is actually the square root
+        // if not, there exists no square root.
+        if sqrt_cand.square() == *self {
+            return Some(sqrt_cand);
+        }
+        #[cfg(debug_assertions)]
+        {
+            use crate::fields::LegendreSymbol::*;
+            if self.legendre() != QuadraticNonResidue {
+                panic!("Input has a square root per its legendre symbol, but it was not found")
             }
         }
+        None
     }
 
     fn sqrt_in_place(&mut self) -> Option<&mut Self> {
