@@ -11,6 +11,8 @@ macro_rules! impl_field_mul_assign {
         fn mul_assign(&mut self, other: &Self) {
             // Checking the modulus at compile time
             let first_bit_set = P::MODULUS.0[$limbs - 1] >> 63 != 0;
+            // $limbs can be 1, hence we can run into a case with an unused mut.
+            #[allow(unused_mut)]
             let mut all_bits_set = P::MODULUS.0[$limbs - 1] == !0 - (1 << 63);
             for i in 1..$limbs {
                 all_bits_set &= P::MODULUS.0[$limbs - i - 1] == !0u64;
@@ -22,7 +24,8 @@ macro_rules! impl_field_mul_assign {
                 #[cfg(use_asm)]
                 #[allow(unsafe_code, unused_mut)]
                 {
-                    if $limbs <= 6 {
+                    // Tentatively avoid using assembly for `$limbs == 1`.
+                    if $limbs <= 6 && $limbs > 1 {
                         assert!($limbs <= 6);
                         ark_ff_asm::x86_64_asm_mul!($limbs, (self.0).0, (other.0).0);
                         self.reduce();
@@ -85,17 +88,21 @@ macro_rules! impl_field_square_in_place {
         #[ark_ff_asm::unroll_for_loops]
         #[allow(unused_braces, clippy::absurd_extreme_comparisons)]
         fn square_in_place(&mut self) -> &mut Self {
-            // Checking the modulus at compile time
-            let first_bit_set = P::MODULUS.0[$limbs - 1] >> 63 != 0;
-            let mut all_bits_set = P::MODULUS.0[$limbs - 1] == !0 - (1 << 63);
-            for i in 1..$limbs {
-                all_bits_set &= P::MODULUS.0[$limbs - i - 1] == core::u64::MAX;
+            if $limbs == 1 {
+                *self = *self * *self;
+                return self;
             }
-            let _no_carry: bool = !(first_bit_set || all_bits_set);
-
             #[cfg(use_asm)]
             #[allow(unsafe_code, unused_mut)]
             {
+                // Checking the modulus at compile time
+                let first_bit_set = P::MODULUS.0[$limbs - 1] >> 63 != 0;
+                let mut all_bits_set = P::MODULUS.0[$limbs - 1] == !0 - (1 << 63);
+                for i in 1..$limbs {
+                    all_bits_set &= P::MODULUS.0[$limbs - i - 1] == core::u64::MAX;
+                }
+                let _no_carry: bool = !(first_bit_set || all_bits_set);
+
                 if $limbs <= 6 && _no_carry {
                     assert!($limbs <= 6);
                     ark_ff_asm::x86_64_asm_square!($limbs, (self.0).0);
@@ -120,8 +127,15 @@ macro_rules! impl_field_square_in_place {
             }
             r[$limbs * 2 - 1] = r[$limbs * 2 - 2] >> 63;
             for i in 0..$limbs {
-                r[$limbs * 2 - 2 - i] =
-                    (r[$limbs * 2 - 2 - i] << 1) | (r[$limbs * 2 - 3 - i] >> 63);
+                // This computes `r[2 * ($limbs - 1) - (i + 1)]`, but additionally
+                // handles the case where the index underflows.
+                // Note that we should never hit this case because it only occurs
+                // when `$limbs == 1`, but we handle that separately above.
+                let subtractor = (2 * ($limbs - 1usize))
+                    .checked_sub(i + 1)
+                    .map(|index| r[index])
+                    .unwrap_or(0);
+                r[2 * ($limbs - 1) - i] = (r[2 * ($limbs - 1) - i] << 1) | (subtractor >> 63);
             }
             for i in 3..$limbs {
                 r[$limbs + 1 - i] = (r[$limbs + 1 - i] << 1) | (r[$limbs - i] >> 63);
@@ -130,8 +144,8 @@ macro_rules! impl_field_square_in_place {
 
             for i in 0..$limbs {
                 r[2 * i] = mac_with_carry!(r[2 * i], (self.0).0[i], (self.0).0[i], &mut carry);
-                // need unused assignment because the last iteration of the loop produces an assignment
-                // to `carry` that is unused.
+                // need unused assignment because the last iteration of the loop produces an
+                // assignment to `carry` that is unused.
                 #[allow(unused_assignments)]
                 {
                     r[2 * i + 1] = adc!(r[2 * i + 1], 0, &mut carry);
@@ -201,22 +215,35 @@ macro_rules! impl_prime_field_standard_sample {
 }
 
 macro_rules! impl_prime_field_from_int {
-    ($field: ident, u128, $params: ident) => {
+    ($field: ident, u128, $params: ident, $limbs:expr) => {
         impl<P: $params> From<u128> for $field<P> {
             fn from(other: u128) -> Self {
-                let upper = (other >> 64) as u64;
-                let lower = ((other << 64) >> 64) as u64;
                 let mut default_int = P::BigInt::default();
-                default_int.0[0] = lower;
-                default_int.0[1] = upper;
+                if $limbs == 1 {
+                    default_int.0[0] = (other % u128::from(P::MODULUS.0[0])) as u64;
+                } else {
+                    let upper = (other >> 64) as u64;
+                    let lower = ((other << 64) >> 64) as u64;
+                    // This is equivalent to the following, but satisfying the compiler:
+                    // default_int.0[0] = lower;
+                    // default_int.0[1] = upper;
+                    let limbs = [lower, upper];
+                    for (cur, other) in default_int.0.iter_mut().zip(&limbs) {
+                        *cur = *other;
+                    }
+                }
                 Self::from_repr(default_int).unwrap()
             }
         }
     };
-    ($field: ident, $int: ident, $params: ident) => {
+    ($field: ident, $int: ident, $params: ident, $limbs:expr) => {
         impl<P: $params> From<$int> for $field<P> {
             fn from(other: $int) -> Self {
-                Self::from_repr(P::BigInt::from(u64::from(other))).unwrap()
+                if $limbs == 1 {
+                    Self::from_repr(P::BigInt::from(u64::from(other) % P::MODULUS.0[0])).unwrap()
+                } else {
+                    Self::from_repr(P::BigInt::from(u64::from(other))).unwrap()
+                }
             }
         }
     };

@@ -56,11 +56,11 @@ pub const G1_GENERATOR_Y: Fq = field_new!(Fq, "133950654494447647302047137994192
 mod test {
     use super::*;
     use ark_ec::ProjectiveCurve;
-    use ark_ff::UniformRand;
+    use ark_std::UniformRand;
 
     #[test]
     fn batch_normalization() {
-        let mut rng = ark_ff::test_rng();
+        let mut rng = ark_std::test_rng();
 
         let mut g_s = [G1Projective::zero(); 100];
         for i in 0..100 {

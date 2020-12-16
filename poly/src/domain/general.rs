@@ -139,7 +139,8 @@ impl<F: FftField> Iterator for GeneralElements<F> {
 mod tests {
     use crate::polynomial::Polynomial;
     use crate::{EvaluationDomain, GeneralEvaluationDomain};
-    use ark_ff::{test_rng, Zero};
+    use ark_ff::Zero;
+    use ark_std::test_rng;
     use ark_test_curves::bls12_381::Fr;
     use ark_test_curves::mnt4_753::Fq as MNT6Fr;
     use rand::Rng;

@@ -437,7 +437,8 @@ impl<F: Field> Zero for DensePolynomial<F> {
 mod tests {
     use crate::polynomial::univariate::*;
     use crate::{EvaluationDomain, GeneralEvaluationDomain};
-    use ark_ff::{test_rng, Field, One, UniformRand, Zero};
+    use ark_ff::{Field, One, UniformRand, Zero};
+    use ark_std::test_rng;
     use ark_test_curves::bls12_381::Fr;
 
     #[test]
