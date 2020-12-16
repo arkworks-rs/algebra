@@ -236,10 +236,14 @@ macro_rules! impl_prime_field_from_int {
             }
         }
     };
-    ($field: ident, $int: ident, $params: ident) => {
+    ($field: ident, $int: ident, $params: ident, $limbs:expr) => {
         impl<P: $params> From<$int> for $field<P> {
             fn from(other: $int) -> Self {
-                Self::from_repr(P::BigInt::from(u64::from(other))).unwrap()
+                if $limbs == 1 {
+                    Self::from_repr(P::BigInt::from(u64::from(other) % P::MODULUS.0[0])).unwrap()
+                } else {
+                    Self::from_repr(P::BigInt::from(u64::from(other))).unwrap()
+                }
             }
         }
     };
