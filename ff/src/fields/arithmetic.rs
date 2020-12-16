@@ -9,12 +9,6 @@ macro_rules! impl_field_mul_assign {
         #[inline]
         #[ark_ff_asm::unroll_for_loops]
         fn mul_assign(&mut self, other: &Self) {
-            if $limbs == 1 {
-                *self = self.mul_without_reduce(other, P::MODULUS, P::INV);
-                self.reduce();
-                return;
-            }
-
             // Checking the modulus at compile time
             let first_bit_set = P::MODULUS.0[$limbs - 1] >> 63 != 0;
             #[allow(unused_mut)]
@@ -29,7 +23,8 @@ macro_rules! impl_field_mul_assign {
                 #[cfg(use_asm)]
                 #[allow(unsafe_code, unused_mut)]
                 {
-                    if $limbs <= 6 {
+                    // Tentatively avoid using assembly for this.
+                    if $limbs <= 6 && $limbs > 1 {
                         assert!($limbs <= 6);
                         ark_ff_asm::x86_64_asm_mul!($limbs, (self.0).0, (other.0).0);
                         self.reduce();
