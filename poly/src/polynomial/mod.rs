@@ -57,6 +57,16 @@ pub trait UVPolynomial<F: Field>:
 
 /// Describes the interface for univariate polynomials
 pub trait MVPolynomial<F: Field>: Polynomial<F> {
+    /// Returns the number of variables in `self`
+    fn num_vars(&self) -> usize;
+
+    /// Outputs an `l`-variate polynomial which is the sum of `l` `d`-degree univariate
+    /// polynomials where each coefficient is sampled uniformly at random.
+    fn rand<R: Rng>(d: usize, num_vars: usize, rng: &mut R) -> Self;
+}
+
+/// Describes interface for multivariate polynomials in coefficient form
+pub trait MVPolynomialCoefficientForm<F: Field>: MVPolynomial<F> {
     /// The type of the terms of `self`
     type Term: multivariate::Term;
 
@@ -70,11 +80,22 @@ pub trait MVPolynomial<F: Field>: Polynomial<F> {
 
     /// Returns the terms of a `self` as a list of tuples of the form `(Self::Term, coeff)`
     fn terms(&self) -> &[(F, Self::Term)];
+}
 
-    /// Returns the number of variables in `self`
-    fn num_vars(&self) -> usize;
+/// Describes interface for multilinear polynomials in evaluation form
+pub trait MultilinearPolynomialEvaluationForm<F: Field>: MVPolynomial<F> {
+    /// Construct a new polynomial from a list of evaluations where the index represent a point.
+    ///
+    /// Index represents a point in {0,1}^`num_vars` in little endian form. For example, `0b1011` represents `P(1,1,0,1)`
+    fn from_evaluations_slice(num_vars: usize, evaluations: &[F]) -> Self {
+        Self::from_evaluations_vec(num_vars, evaluations.to_vec())
+    }
 
-    /// Outputs an `l`-variate polynomial which is the sum of `l` `d`-degree univariate
-    /// polynomials where each coefficient is sampled uniformly at random.
-    fn rand<R: Rng>(d: usize, num_vars: usize, rng: &mut R) -> Self;
+    /// Construct a new polynomial from a list of evaluations where the index represent a point.
+    ///
+    /// Index represents a point in {0,1}^`num_vars` in little endian form. For example, `0b1011` represents `P(1,1,0,1)`
+    fn from_evaluations_vec(num_vars: usize, evaluations: Vec<F>) -> Self;
+
+    /// Returns the the values of of all evaluations over boolean hypercube.
+    fn evaluations(&self) -> &[F];
 }
