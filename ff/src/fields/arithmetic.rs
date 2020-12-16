@@ -5,19 +5,6 @@
 /// `P::MODULUS` has (a) a non-zero MSB, and (b) at least one
 /// zero bit in the rest of the modulus.
 macro_rules! impl_field_mul_assign {
-    (1) => {
-        fn mul_assign(&mut self, other: &Self) {
-            #[inline(always)]
-            fn mont_reduce(&mut self, mul_result: u128) {
-                let m = (mul_result as u64).wrapping_mul(P::INV) as u128;
-                (self.0).0 = ((mul_result + m * u128::from(P::MODULUS.0)) >> 64) as u64;
-                self.reduce();
-            }
-
-            let prod = (self.0)[0] as u128 * (other.0)[0] as u128;
-            self.mont_reduce(prod);
-        }
-    };
     ($limbs:expr) => {
         #[inline]
         #[ark_ff_asm::unroll_for_loops]
@@ -36,7 +23,7 @@ macro_rules! impl_field_mul_assign {
                 #[cfg(use_asm)]
                 #[allow(unsafe_code, unused_mut)]
                 {
-                    if $limbs <= 6 {
+                    if $limbs <= 6 && $limbs > 1 {
                         assert!($limbs <= 6);
                         ark_ff_asm::x86_64_asm_mul!($limbs, (self.0).0, (other.0).0);
                         self.reduce();
@@ -94,12 +81,6 @@ macro_rules! impl_field_into_repr {
 }
 
 macro_rules! impl_field_square_in_place {
-    (1) => {
-        fn square_in_place(&mut self) -> &mut Self {
-            *self = *self * &self;
-            self
-        }
-    };
     ($limbs: expr) => {
         #[inline]
         #[ark_ff_asm::unroll_for_loops]
@@ -140,8 +121,11 @@ macro_rules! impl_field_square_in_place {
             }
             r[$limbs * 2 - 1] = r[$limbs * 2 - 2] >> 63;
             for i in 0..$limbs {
-                r[$limbs * 2 - 2 - i] =
-                    (r[$limbs * 2 - 2 - i] << 1) | (r[$limbs * 2 - 3 - i] >> 63);
+                let subtractor = (2 * ($limbs - 1usize))
+                    .checked_sub(i + 1)
+                    .map(|index| r[index])
+                    .unwrap_or(0);
+                r[2 * ($limbs - 1) - i] = (r[2 * ($limbs - 1) - i] << 1) | (subtractor >> 63);
             }
             for i in 3..$limbs {
                 r[$limbs + 1 - i] = (r[$limbs + 1 - i] << 1) | (r[$limbs - i] >> 63);
@@ -150,8 +134,8 @@ macro_rules! impl_field_square_in_place {
 
             for i in 0..$limbs {
                 r[2 * i] = mac_with_carry!(r[2 * i], (self.0).0[i], (self.0).0[i], &mut carry);
-                // need unused assignment because the last iteration of the loop produces an assignment
-                // to `carry` that is unused.
+                // need unused assignment because the last iteration of the loop produces an
+                // assignment to `carry` that is unused.
                 #[allow(unused_assignments)]
                 {
                     r[2 * i + 1] = adc!(r[2 * i + 1], 0, &mut carry);
@@ -221,24 +205,20 @@ macro_rules! impl_prime_field_standard_sample {
 }
 
 macro_rules! impl_prime_field_from_int {
-    ($field: ident, u128, $params: ident, 1) => {
-        impl<P: $params> From<u128> for $field<P> {
-            fn from(other: u128) -> Self {
-                let mut default_int = P::BigInt::default();
-                default_int.0[0] = (other % u128::from(P::MODULUS.0[0])) as u64;
-                Self::from_repr(default_int).unwrap()
-            }
-        }
-    };
     ($field: ident, u128, $params: ident, $limbs:expr) => {
         impl<P: $params> From<u128> for $field<P> {
             fn from(other: u128) -> Self {
                 let mut default_int = P::BigInt::default();
-                let upper = (other >> 64) as u64;
-                let lower = ((other << 64) >> 64) as u64;
-
-                default_int.0[0] = lower;
-                default_int.0[1] = upper;
+                if $limbs == 1 {
+                    default_int.0[0] = (other % u128::from(P::MODULUS.0[0])) as u64;
+                } else {
+                    let upper = (other >> 64) as u64;
+                    let lower = ((other << 64) >> 64) as u64;
+                    let limbs = [lower, upper];
+                    for (cur, other) in default_int.0.iter_mut().zip(&limbs) {
+                        *cur = *other;
+                    }
+                }
                 Self::from_repr(default_int).unwrap()
             }
         }
