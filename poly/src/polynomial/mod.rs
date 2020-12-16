@@ -84,33 +84,20 @@ pub trait MVPolynomialCoefficientForm<F: Field>: MVPolynomial<F> {
 
 /// Describes interface for multilinear polynomials in evaluation form
 pub trait MultilinearPolynomialEvaluationForm<F: Field>: MVPolynomial<F> {
-    /// The type of partial evaluation points for this polynomial.
+    /// The type of partial evaluation point vectors for this polynomial.
     type PartialPoint: Sized + Clone + Ord + Debug + Sync + Hash;
 
     /// Returns the evaluation of the polynomial at a point represented by index.
     ///
-    /// Index represents a point in {0,1}^`num_vars` in little endian form. For example, `0b1011` represents `P(1,1,0,1)`
+    /// Index represents a vector in {0,1}^`num_vars` in little endian form. For example, `0b1011` represents `P(1,1,0,1)`
     fn lookup_evaluation(&self, index: usize) -> F;
 
-    /// Relabel the point by switching the position of one or multiple arguments.
+    /// Relabel the point by switching `k` scalars from position `a` to position `b`, and from position `b` to position `a` in vector.
     ///
-    /// This function turns `P(x_1,...,x_a,...,x_{a+num_vars - 1},...,x_b,...,x_{b+num_vars - 1},...,x_n)`
-    /// to `P(x_1,...,x_b,...,x_{b+num_vars - 1},...,x_a,...,x_{a+num_vars - 1},...,x_n)`
-    fn relabel(&self, a: usize, b: usize, num_vars: usize) -> Self;
-
-    /// Relabel the point inplace by switching the position of one or multiple arguments.
-    ///
-    /// This function turns `P(x_1,...,x_a,...,x_{a+num_vars - 1},...,x_b,...,x_{b+num_vars - 1},...,x_n)`
-    /// to `P(x_1,...,x_b,...,x_{b+num_vars - 1},...,x_a,...,x_{a+num_vars - 1},...,x_n)`
-    fn relabel_inplace(&mut self, a: usize, b: usize, num_vars: usize) {
-        *self = self.relabel(a, b, num_vars);
-    }
+    /// This function turns `P(x_1,...,x_a,...,x_{a+k - 1},...,x_b,...,x_{b+k - 1},...,x_n)`
+    /// to `P(x_1,...,x_b,...,x_{b+k - 1},...,x_a,...,x_{a+k - 1},...,x_n)`
+    fn relabel(&self, a: usize, b: usize, k: usize) -> Self;
 
     /// Reduce the number of variables of the `self` by evaluating the first `partial_point.len()` argument at `partial_point`.
     fn partial_evaluate(&self, partial_point: &Self::PartialPoint) -> Self;
-
-    /// Reduce the number of variables inplace of the `self` by evaluating the first `partial_point.len()` argument at `partial_point`.
-    fn partial_evaluate_inplace(&mut self, partial_point: &Self::PartialPoint) {
-        *self = self.partial_evaluate(partial_point);
-    }
 }
