@@ -236,15 +236,14 @@ macro_rules! impl_prime_field_from_int {
                 let mut default_int = P::BigInt::default();
                 let upper = (other >> 64) as u64;
                 let lower = ((other << 64) >> 64) as u64;
-                let limbs = [lower, upper];
-                for (cur, other) in default_int.0.iter_mut().zip(limbs.iter()) {
-                    *cur = *other;
-                }
+
+                default_int.0[0] = lower;
+                default_int.0[1] = upper;
                 Self::from_repr(default_int).unwrap()
             }
         }
     };
-    ($field: ident, $int: ident, $params: ident, $limbs:expr) => {
+    ($field: ident, $int: ident, $params: ident) => {
         impl<P: $params> From<$int> for $field<P> {
             fn from(other: $int) -> Self {
                 Self::from_repr(P::BigInt::from(u64::from(other))).unwrap()
