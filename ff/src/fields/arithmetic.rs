@@ -5,12 +5,26 @@
 /// `P::MODULUS` has (a) a non-zero MSB, and (b) at least one
 /// zero bit in the rest of the modulus.
 macro_rules! impl_field_mul_assign {
+    (1) => {
+        fn mul_assign(&mut self, other: &Self) {
+            #[inline(always)]
+            fn mont_reduce(&mut self, mul_result: u128) {
+                let m = (mul_result as u64).wrapping_mul(P::INV) as u128;
+                (self.0).0 = ((mul_result + m * u128::from(P::MODULUS.0)) >> 64) as u64;
+                self.reduce();
+            }
+
+            let prod = (self.0)[0] as u128 * (other.0)[0] as u128;
+            self.mont_reduce(prod);
+        }
+    };
     ($limbs:expr) => {
         #[inline]
         #[ark_ff_asm::unroll_for_loops]
         fn mul_assign(&mut self, other: &Self) {
             // Checking the modulus at compile time
             let first_bit_set = P::MODULUS.0[$limbs - 1] >> 63 != 0;
+            #[allow(unused_mut)]
             let mut all_bits_set = P::MODULUS.0[$limbs - 1] == !0 - (1 << 63);
             for i in 1..$limbs {
                 all_bits_set &= P::MODULUS.0[$limbs - i - 1] == !0u64;
@@ -80,22 +94,28 @@ macro_rules! impl_field_into_repr {
 }
 
 macro_rules! impl_field_square_in_place {
+    (1) => {
+        fn square_in_place(&mut self) -> &mut Self {
+            *self = *self * &self;
+            self
+        }
+    };
     ($limbs: expr) => {
         #[inline]
         #[ark_ff_asm::unroll_for_loops]
         #[allow(unused_braces, clippy::absurd_extreme_comparisons)]
         fn square_in_place(&mut self) -> &mut Self {
-            // Checking the modulus at compile time
-            let first_bit_set = P::MODULUS.0[$limbs - 1] >> 63 != 0;
-            let mut all_bits_set = P::MODULUS.0[$limbs - 1] == !0 - (1 << 63);
-            for i in 1..$limbs {
-                all_bits_set &= P::MODULUS.0[$limbs - i - 1] == core::u64::MAX;
-            }
-            let _no_carry: bool = !(first_bit_set || all_bits_set);
-
             #[cfg(use_asm)]
             #[allow(unsafe_code, unused_mut)]
             {
+                // Checking the modulus at compile time
+                let first_bit_set = P::MODULUS.0[$limbs - 1] >> 63 != 0;
+                let mut all_bits_set = P::MODULUS.0[$limbs - 1] == !0 - (1 << 63);
+                for i in 1..$limbs {
+                    all_bits_set &= P::MODULUS.0[$limbs - i - 1] == core::u64::MAX;
+                }
+                let _no_carry: bool = !(first_bit_set || all_bits_set);
+
                 if $limbs <= 6 && _no_carry {
                     assert!($limbs <= 6);
                     ark_ff_asm::x86_64_asm_square!($limbs, (self.0).0);

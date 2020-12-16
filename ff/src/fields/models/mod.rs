@@ -11,12 +11,13 @@ use num_traits::{One, Zero};
 use crate::{
     biginteger::{
         arithmetic as fa, BigInteger as _BigInteger, BigInteger256, BigInteger320, BigInteger384,
-        BigInteger768, BigInteger832,
+        BigInteger64, BigInteger768, BigInteger832,
     },
     bytes::{FromBytes, ToBytes},
     fields::{FftField, Field, FpParameters, LegendreSymbol, PrimeField, SquareRootField},
 };
 
+impl_Fp!(Fp64, Fp64Parameters, BigInteger64, BigInteger64, 1);
 impl_Fp!(Fp256, Fp256Parameters, BigInteger256, BigInteger256, 4);
 impl_Fp!(Fp320, Fp320Parameters, BigInteger320, BigInteger320, 5);
 impl_Fp!(Fp384, Fp384Parameters, BigInteger384, BigInteger384, 6);
