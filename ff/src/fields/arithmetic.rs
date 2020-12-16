@@ -254,7 +254,7 @@ macro_rules! sqrt_impl {
             if k == ($P::TWO_ADICITY as usize) {
                 // We are in the case where self^(T * 2^k) = x^(P::MODULUS - 1) = 1,
                 // which means that no square root exists.
-                return None
+                return None;
             }
             let j = v - k;
             w = z;
