@@ -236,9 +236,10 @@ macro_rules! impl_prime_field_from_int {
                 let mut default_int = P::BigInt::default();
                 let upper = (other >> 64) as u64;
                 let lower = ((other << 64) >> 64) as u64;
-
-                default_int.0[0] = lower;
-                default_int.0[1] = upper;
+                let limbs = [lower, upper];
+                for (cur, other) in default_int.0.iter_mut().zip(limbs.iter()) {
+                    *cur = *other;
+                }
                 Self::from_repr(default_int).unwrap()
             }
         }
