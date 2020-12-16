@@ -251,9 +251,14 @@ macro_rules! sqrt_impl {
                 k += 1;
             }
 
-            let j = v - k - 1;
+            if k == ($P::TWO_ADICITY as usize) {
+                // We are in the case where self^(T * 2^k) = x^(P::MODULUS - 1) = 1,
+                // which means that no square root exists.
+                return None;
+            }
+            let j = v - k;
             w = z;
-            for _ in 0..j {
+            for _ in 1..j {
                 w.square_in_place();
             }
 
@@ -265,17 +270,18 @@ macro_rules! sqrt_impl {
         // Is x the square root? If so, return it.
         if (x.square() == *$self) {
             return Some(x);
-        }
-        // Consistency check that if no square root is found,
-        // it is because none exists.
-        #[cfg(debug_assertions)]
-        {
-            use crate::fields::LegendreSymbol::*;
-            if ($self.legendre() != QuadraticNonResidue) {
-                panic!("Input has a square root per its legendre symbol, but it was not found")
+        } else {
+            // Consistency check that if no square root is found,
+            // it is because none exists.
+            #[cfg(debug_assertions)]
+            {
+                use crate::fields::LegendreSymbol::*;
+                if ($self.legendre() != QuadraticNonResidue) {
+                    panic!("Input has a square root per its legendre symbol, but it was not found")
+                }
             }
+            None
         }
-        None
     }};
 }
 

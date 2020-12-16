@@ -289,29 +289,31 @@ where
             .double()
             .inverse()
             .expect("Two should always have an inverse");
-        let alpha = alpha
-            .sqrt()
-            .expect("We are in the QR case, the norm should have a square root");
-        let mut delta = (alpha + &self.c0) * &two_inv;
-        if delta.legendre().is_qnr() {
-            delta -= &alpha;
-        }
-        let c0 = delta.sqrt().expect("Delta must have a square root");
-        let c0_inv = c0.inverse().expect("c0 must have an inverse");
-        let sqrt_cand = Self::new(c0, self.c1 * &two_inv * &c0_inv);
-        // Check if sqrt_cand is actually the square root
-        // if not, there exists no square root.
-        if sqrt_cand.square() == *self {
-            return Some(sqrt_cand);
-        }
-        #[cfg(debug_assertions)]
-        {
-            use crate::fields::LegendreSymbol::*;
-            if self.legendre() != QuadraticNonResidue {
-                panic!("Input has a square root per its legendre symbol, but it was not found")
+        alpha.sqrt().and_then(|alpha| {
+            let mut delta = (alpha + &self.c0) * &two_inv;
+            if delta.legendre().is_qnr() {
+                delta -= &alpha;
             }
-        }
-        None
+            let c0 = delta.sqrt().expect("Delta must have a square root");
+            let c0_inv = c0.inverse().expect("c0 must have an inverse");
+            let sqrt_cand = Self::new(c0, self.c1 * &two_inv * &c0_inv);
+            // Check if sqrt_cand is actually the square root
+            // if not, there exists no square root.
+            if sqrt_cand.square() == *self {
+                Some(sqrt_cand)
+            } else {
+                #[cfg(debug_assertions)]
+                {
+                    use crate::fields::LegendreSymbol::*;
+                    if self.legendre() != QuadraticNonResidue {
+                        panic!(
+                            "Input has a square root per its legendre symbol, but it was not found"
+                        )
+                    }
+                }
+                None
+            }
+        })
     }
 
     fn sqrt_in_place(&mut self) -> Option<&mut Self> {
