@@ -8,13 +8,13 @@ use ark_std::fmt::Formatter;
 use ark_std::ops::{Add, AddAssign, Neg, Sub, SubAssign};
 use ark_std::vec::Vec;
 use rand::Rng;
-// #[cfg(feature = "parallel")]
-// use rayon::prelude::*; // todo: enable this
+#[cfg(feature = "parallel")]
+use rayon::prelude::*;
 /// Stores a multilinear polynomial in dense evaluation form.
 #[derive(Clone, PartialEq, Eq, Hash, Default)]
 pub struct DenseMultilinearPolynomial<F: Field> {
     /// The evaluation over {0,1}^n
-    pub backing_array: Vec<F>,
+    pub evaluations: Vec<F>,
     /// Number of variables
     pub num_vars: usize,
 }
@@ -30,20 +30,33 @@ impl<F: Field> DenseMultilinearPolynomial<F> {
     /// Construct a new polynomial from a list of evaluations where the index represent a point.
     ///
     /// Index represents a point in {0,1}^`num_vars` in little endian form. For example, `0b1011` represents `P(1,1,0,1)`
-    pub fn from_evaluations_vec(_num_vars: usize, _evaluations: Vec<F>) -> Self {
-        todo!()
+    pub fn from_evaluations_vec(num_vars: usize, evaluations: Vec<F>) -> Self {
+        // assert the number of variables match size of evaluations
+        assert_eq!(
+            evaluations.len(),
+            1 << num_vars,
+            "The size of evaluations should be 2 ^ num_vars."
+        );
+
+        Self {
+            num_vars,
+            evaluations,
+        }
     }
 }
 
 impl<F: Field> Polynomial<F> for DenseMultilinearPolynomial<F> {
     type Point = Vec<F>;
 
-    /// return the total degree of the polynomial
+    /// return the total degree of the polynomial, which is number of variables according to
+    /// multilinear extension formula
     fn degree(&self) -> usize {
-        todo!()
+        self.num_vars
     }
 
-    fn evaluate(&self, _point: &Self::Point) -> F {
+    fn evaluate(&self, point: &Self::Point) -> F {
+        assert_eq!(point.len(), self.num_vars, "Invalid point size");
+
         todo!()
     }
 }
@@ -60,6 +73,14 @@ impl<F: Field> MVPolynomial<F> for DenseMultilinearPolynomial<F> {
 
 impl<F: Field> MultilinearPolynomialEvaluationForm<F> for DenseMultilinearPolynomial<F> {
     fn lookup_evaluation(&self, _index: usize) -> F {
+        todo!()
+    }
+
+    fn relabel(&self, _a: usize, _b: usize, _num_vars: usize) -> Self {
+        todo!()
+    }
+
+    fn relabel_inplace(&mut self, _a: usize, _b: usize, _num_vars: usize) {
         todo!()
     }
 }
