@@ -8,8 +8,8 @@ use ark_std::fmt::Formatter;
 use ark_std::ops::{Add, AddAssign, Neg, Sub, SubAssign};
 use ark_std::vec::Vec;
 use rand::Rng;
-#[cfg(feature = "parallel")]
-use rayon::prelude::*;
+// #[cfg(feature = "parallel")]
+// use rayon::prelude::*; // todo: enable this
 /// Stores a multilinear polynomial in dense evaluation form.
 #[derive(Clone, PartialEq, Eq, Hash, Default)]
 pub struct DenseMultilinearPolynomial<F: Field> {
