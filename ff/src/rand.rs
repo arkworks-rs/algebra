@@ -1,22 +1,7 @@
-use rand::{
-    distributions::{Distribution, Standard},
-    Rng,
-};
-
-pub trait UniformRand: Sized {
-    fn rand<R: Rng + ?Sized>(rng: &mut R) -> Self;
-}
-
-impl<T> UniformRand for T
-where
-    Standard: Distribution<T>,
-{
-    #[inline]
-    fn rand<R: Rng + ?Sized>(rng: &mut R) -> Self {
-        rng.sample(Standard)
-    }
-}
-
+#[deprecated(
+    since = "0.2.0",
+    note = "please use `ark_std::{UniformRand, test_rng}` instead of ark_ff::{UniformRand, test_rng}"
+)]
 /// Should be used only for tests, not for any real world usage.
 pub fn test_rng() -> rand::rngs::StdRng {
     use rand::SeedableRng;

@@ -9,13 +9,14 @@ edition = "2018"
 publish = false
 
 [dependencies]
+ark-std = { git = "https://github.com/arkworks-rs/utils", default-features = false }
 ark-ff = { path = "../ff", default-features = false }
 ark-ec = { path = "../ec", default-features = false }
 
 [features]
 default = []
 
-parallel = [ "ark-ff/parallel", "ark-ec/parallel" ]
+parallel = [ "ark-ff/parallel", "ark-ec/parallel", "ark-std/parallel" ]
 
 bls12_381_scalar_field = []
 bls12_381_curve = [ "bls12_381_scalar_field" ]

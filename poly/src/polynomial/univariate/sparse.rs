@@ -273,9 +273,10 @@ mod tests {
     use crate::polynomial::Polynomial;
     use crate::univariate::{DensePolynomial, SparsePolynomial};
     use crate::{EvaluationDomain, GeneralEvaluationDomain};
-    use ark_ff::{test_rng, UniformRand, Zero};
+    use ark_ff::{UniformRand, Zero};
     use ark_std::cmp::max;
     use ark_std::ops::Mul;
+    use ark_std::test_rng;
     use ark_test_curves::bls12_381::Fr;
     use rand::Rng;
 
