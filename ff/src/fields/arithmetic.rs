@@ -88,6 +88,10 @@ macro_rules! impl_field_square_in_place {
         #[ark_ff_asm::unroll_for_loops]
         #[allow(unused_braces, clippy::absurd_extreme_comparisons)]
         fn square_in_place(&mut self) -> &mut Self {
+            if $limbs == 1 {
+                *self = *self * *self;
+                return self;
+            }
             #[cfg(use_asm)]
             #[allow(unsafe_code, unused_mut)]
             {
@@ -123,6 +127,10 @@ macro_rules! impl_field_square_in_place {
             }
             r[$limbs * 2 - 1] = r[$limbs * 2 - 2] >> 63;
             for i in 0..$limbs {
+                // This computes `r[2 * ($limbs - 1) - (i + 1)]`, but additionally
+                // handles the case where the index underflows.
+                // Note that we should never hit this case because it only occurs
+                // when `$limbs == 1`, but we handle that separately above.
                 let subtractor = (2 * ($limbs - 1usize))
                     .checked_sub(i + 1)
                     .map(|index| r[index])
