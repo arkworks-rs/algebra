@@ -11,6 +11,7 @@ macro_rules! impl_field_mul_assign {
         fn mul_assign(&mut self, other: &Self) {
             // Checking the modulus at compile time
             let first_bit_set = P::MODULUS.0[$limbs - 1] >> 63 != 0;
+            // $limbs can be 1, hence we can run into a case with an unused mut.
             #[allow(unused_mut)]
             let mut all_bits_set = P::MODULUS.0[$limbs - 1] == !0 - (1 << 63);
             for i in 1..$limbs {
@@ -215,6 +216,9 @@ macro_rules! impl_prime_field_from_int {
                 } else {
                     let upper = (other >> 64) as u64;
                     let lower = ((other << 64) >> 64) as u64;
+                    // This is equivalent to the following, but satisfying the compiler:
+                    // default_int.0[0] = lower;
+                    // default_int.0[1] = upper;
                     let limbs = [lower, upper];
                     for (cur, other) in default_int.0.iter_mut().zip(&limbs) {
                         *cur = *other;
