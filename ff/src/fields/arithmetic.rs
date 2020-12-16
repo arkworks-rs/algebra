@@ -24,7 +24,7 @@ macro_rules! impl_field_mul_assign {
                 #[cfg(use_asm)]
                 #[allow(unsafe_code, unused_mut)]
                 {
-                    // Tentatively avoid using assembly for this.
+                    // Tentatively avoid using assembly for `$limbs == 1`.
                     if $limbs <= 6 && $limbs > 1 {
                         assert!($limbs <= 6);
                         ark_ff_asm::x86_64_asm_mul!($limbs, (self.0).0, (other.0).0);
