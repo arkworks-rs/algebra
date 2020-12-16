@@ -583,7 +583,7 @@ mod std_tests {
 mod no_std_tests {
     use super::*;
     use crate::test_field::Fr;
-    use crate::test_rng;
+    use ark_std::test_rng;
 
     #[test]
     fn test_batch_inversion() {

@@ -27,8 +27,11 @@ pub use self::fields::*;
 #[cfg(test)]
 mod test_field;
 
+pub use ark_std::UniformRand;
+
 mod rand;
-pub use self::rand::*;
+#[allow(deprecated)]
+pub use self::rand::test_rng;
 
 mod to_field_vec;
 pub use to_field_vec::ToConstraintField;
@@ -42,7 +45,7 @@ pub mod prelude {
 
     pub use crate::fields::{Field, FpParameters, PrimeField, SquareRootField};
 
-    pub use crate::rand::UniformRand;
+    pub use ark_std::UniformRand;
 
     pub use num_traits::{One, Zero};
 }
