@@ -41,6 +41,7 @@
 - #126 (ark-ec) Use `ark_ff::batch_inversion` for point normalization
 - #131, #137 (ark-ff) Speedup `sqrt` on fields when a square root exists. (And slows it down when doesn't exist)
 - #141 (ark-ff) Add `Fp64`
+- #144 (ark-poly) Add serialization for polynomials and evaluations
 
 ### Bug fixes
 - #36 (ark-ec) In Short-Weierstrass curves, include an infinity bit in `ToConstraintField`.
