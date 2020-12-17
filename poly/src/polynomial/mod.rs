@@ -23,6 +23,8 @@ pub trait Polynomial<F: Field>:
     + Add
     + Neg
     + Zero
+    + CanonicalSerialize
+    + CanonicalDeserialize
     + for<'a> AddAssign<&'a Self>
     + for<'a> AddAssign<(F, &'a Self)>
     + for<'a> SubAssign<&'a Self>
@@ -38,9 +40,7 @@ pub trait Polynomial<F: Field>:
 }
 
 /// Describes the interface for univariate polynomials
-pub trait UVPolynomial<F: Field>:
-    Polynomial<F, Point = F> + CanonicalSerialize + CanonicalDeserialize
-{
+pub trait UVPolynomial<F: Field>: Polynomial<F, Point = F> {
     /// Constructs a new polynomial from a list of coefficients.
     fn from_coefficients_slice(coeffs: &[F]) -> Self;
 

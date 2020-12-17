@@ -1,9 +1,11 @@
 //! Work with sparse multivariate polynomials.
 use ark_ff::Field;
+use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, SerializationError};
 use ark_std::{
     cmp::Ordering,
     fmt::{Debug, Error, Formatter},
     hash::Hash,
+    io::{Read, Write},
     ops::Deref,
     vec::Vec,
 };
@@ -29,6 +31,8 @@ pub trait Term:
     + Deref<Target = [(usize, usize)]>
     + Send
     + Sync
+    + CanonicalSerialize
+    + CanonicalDeserialize
 {
     /// Create a new `Term` from a list of tuples of the form `(variable, power)`
     fn new(term: Vec<(usize, usize)>) -> Self;
@@ -51,7 +55,9 @@ pub trait Term:
 
 /// Stores a term (monomial) in a multivariate polynomial.
 /// Each element is of the form `(variable, power)`.  
-#[derive(Clone, PartialOrd, PartialEq, Eq, Hash, Default)]
+#[derive(
+    Clone, PartialOrd, PartialEq, Eq, Hash, Default, CanonicalSerialize, CanonicalDeserialize,
+)]
 pub struct SparseTerm(Vec<(usize, usize)>);
 
 impl SparseTerm {
