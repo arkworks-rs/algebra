@@ -11,7 +11,11 @@ use crate::domain::{
     DomainCoeff, EvaluationDomain, MixedRadixEvaluationDomain, Radix2EvaluationDomain,
 };
 use ark_ff::{FftField, FftParameters};
-use ark_std::vec::Vec;
+use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, SerializationError};
+use ark_std::{
+    io::{Read, Write},
+    vec::Vec,
+};
 
 /// Defines a domain over which finite field (I)FFTs can be performed.
 /// Generally tries to build a radix-2 domain and falls back to a mixed-radix
@@ -29,6 +33,123 @@ macro_rules! map {
         match $self {
             Self::Radix2(domain) => EvaluationDomain::$f1(domain, $($x)*),
             Self::MixedRadix(domain) => EvaluationDomain::$f1(domain, $($x)*),
+        }
+    }
+}
+
+impl<F: FftField> CanonicalSerialize for GeneralEvaluationDomain<F> {
+    fn serialize<W: Write>(&self, mut writer: W) -> Result<(), SerializationError> {
+        let type_id = match self {
+            GeneralEvaluationDomain::Radix2(_) => 0u8,
+            GeneralEvaluationDomain::MixedRadix(_) => 1u8,
+        };
+        type_id.serialize(&mut writer)?;
+
+        match self {
+            GeneralEvaluationDomain::Radix2(d) => d.serialize(&mut writer),
+            GeneralEvaluationDomain::MixedRadix(d) => d.serialize(&mut writer),
+        }
+    }
+
+    fn serialized_size(&self) -> usize {
+        let type_id = match self {
+            GeneralEvaluationDomain::Radix2(_) => 0u8,
+            GeneralEvaluationDomain::MixedRadix(_) => 1u8,
+        };
+
+        type_id.serialized_size()
+            + match self {
+                GeneralEvaluationDomain::Radix2(d) => d.serialized_size(),
+                GeneralEvaluationDomain::MixedRadix(d) => d.serialized_size(),
+            }
+    }
+
+    fn serialize_uncompressed<W: Write>(&self, mut writer: W) -> Result<(), SerializationError> {
+        let type_id = match self {
+            GeneralEvaluationDomain::Radix2(_) => 0u8,
+            GeneralEvaluationDomain::MixedRadix(_) => 1u8,
+        };
+        type_id.serialize_uncompressed(&mut writer)?;
+
+        match self {
+            GeneralEvaluationDomain::Radix2(d) => d.serialize_uncompressed(&mut writer),
+            GeneralEvaluationDomain::MixedRadix(d) => d.serialize_uncompressed(&mut writer),
+        }
+    }
+
+    fn serialize_unchecked<W: Write>(&self, mut writer: W) -> Result<(), SerializationError> {
+        let type_id = match self {
+            GeneralEvaluationDomain::Radix2(_) => 0u8,
+            GeneralEvaluationDomain::MixedRadix(_) => 1u8,
+        };
+        type_id.serialize_unchecked(&mut writer)?;
+
+        match self {
+            GeneralEvaluationDomain::Radix2(d) => d.serialize_unchecked(&mut writer),
+            GeneralEvaluationDomain::MixedRadix(d) => d.serialize_unchecked(&mut writer),
+        }
+    }
+
+    fn uncompressed_size(&self) -> usize {
+        let type_id = match self {
+            GeneralEvaluationDomain::Radix2(_) => 0u8,
+            GeneralEvaluationDomain::MixedRadix(_) => 1u8,
+        };
+
+        type_id.uncompressed_size()
+            + match self {
+                GeneralEvaluationDomain::Radix2(d) => d.uncompressed_size(),
+                GeneralEvaluationDomain::MixedRadix(d) => d.uncompressed_size(),
+            }
+    }
+}
+
+impl<F: FftField> CanonicalDeserialize for GeneralEvaluationDomain<F> {
+    fn deserialize<R: Read>(mut reader: R) -> Result<Self, SerializationError> {
+        let type_id = u8::deserialize(&mut reader)?;
+
+        if type_id == 0u8 {
+            Ok(Self::Radix2(Radix2EvaluationDomain::<F>::deserialize(
+                &mut reader,
+            )?))
+        } else if type_id == 1u8 {
+            Ok(Self::MixedRadix(
+                MixedRadixEvaluationDomain::<F>::deserialize(&mut reader)?,
+            ))
+        } else {
+            Err(SerializationError::InvalidData)
+        }
+    }
+
+    fn deserialize_uncompressed<R: Read>(mut reader: R) -> Result<Self, SerializationError> {
+        let type_id = u8::deserialize_uncompressed(&mut reader)?;
+
+        if type_id == 0u8 {
+            Ok(Self::Radix2(
+                Radix2EvaluationDomain::<F>::deserialize_uncompressed(&mut reader)?,
+            ))
+        } else if type_id == 1u8 {
+            Ok(Self::MixedRadix(
+                MixedRadixEvaluationDomain::<F>::deserialize_uncompressed(&mut reader)?,
+            ))
+        } else {
+            Err(SerializationError::InvalidData)
+        }
+    }
+
+    fn deserialize_unchecked<R: Read>(mut reader: R) -> Result<Self, SerializationError> {
+        let type_id = u8::deserialize_unchecked(&mut reader)?;
+
+        if type_id == 0u8 {
+            Ok(Self::Radix2(
+                Radix2EvaluationDomain::<F>::deserialize_unchecked(&mut reader)?,
+            ))
+        } else if type_id == 1u8 {
+            Ok(Self::MixedRadix(
+                MixedRadixEvaluationDomain::<F>::deserialize_unchecked(&mut reader)?,
+            ))
+        } else {
+            Err(SerializationError::InvalidData)
         }
     }
 }

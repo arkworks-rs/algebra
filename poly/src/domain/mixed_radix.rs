@@ -15,14 +15,21 @@ use crate::domain::{
     DomainCoeff, EvaluationDomain,
 };
 use ark_ff::{fields::utils::k_adicity, FftField, FftParameters};
-use ark_std::{cmp::min, convert::TryFrom, fmt, vec::Vec};
+use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, SerializationError};
+use ark_std::{
+    cmp::min,
+    convert::TryFrom,
+    fmt,
+    io::{Read, Write},
+    vec::Vec,
+};
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
 
 /// Defines a domain over which finite field (I)FFTs can be performed. Works
 /// only for fields that have a multiplicative subgroup of size that is
 /// a power-of-2 and another small subgroup over a different base defined.
-#[derive(Copy, Clone, Hash, Eq, PartialEq)]
+#[derive(Copy, Clone, Hash, Eq, PartialEq, CanonicalSerialize, CanonicalDeserialize)]
 pub struct MixedRadixEvaluationDomain<F: FftField> {
     /// The size of the domain.
     pub size: u64,

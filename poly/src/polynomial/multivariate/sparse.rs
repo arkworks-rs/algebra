@@ -4,9 +4,11 @@ use crate::{
     MVPolynomial, Polynomial,
 };
 use ark_ff::{Field, Zero};
+use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, SerializationError};
 use ark_std::{
     cmp::Ordering,
     fmt,
+    io::{Read, Write},
     ops::{Add, AddAssign, Neg, Sub, SubAssign},
     vec::Vec,
 };
@@ -16,7 +18,7 @@ use rand::Rng;
 use rayon::prelude::*;
 
 /// Stores a sparse multivariate polynomial in coefficient form.
-#[derive(Derivative)]
+#[derive(Derivative, CanonicalSerialize, CanonicalDeserialize)]
 #[derivative(Clone, PartialEq, Eq, Hash, Default)]
 pub struct SparsePolynomial<F: Field, T: Term> {
     /// The number of variables the polynomial supports
