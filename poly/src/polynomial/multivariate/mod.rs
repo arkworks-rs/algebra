@@ -14,9 +14,9 @@ use ark_std::{
 use rayon::prelude::*;
 
 mod dense_multilinear;
-mod sparse_coeff;
+mod sparse;
 
-pub use sparse_coeff::SparsePolynomial;
+pub use sparse::SparsePolynomial;
 
 /// Describes the interface for a term (monomial) of a multivariate polynomial.
 pub trait Term:
