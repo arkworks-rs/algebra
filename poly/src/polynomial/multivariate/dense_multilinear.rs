@@ -149,8 +149,18 @@ impl<'a, 'b, F: Field> Add<&'a DenseMultilinearPolynomial<F>>
 {
     type Output = DenseMultilinearPolynomial<F>;
 
-    fn add(self, _rhs: &'a DenseMultilinearPolynomial<F>) -> Self::Output {
-        todo!()
+    fn add(self, rhs: &'a DenseMultilinearPolynomial<F>) -> Self::Output {
+        // handle constant zero case
+        if rhs.is_zero() {
+            return self.clone();
+        }
+        assert_eq!(self.num_vars, rhs.num_vars);
+        let result: Vec<F> = cfg_iter!(self.evaluations)
+            .zip(cfg_iter!(rhs.evaluations))
+            .map(|(a, b)| *a + *b)
+            .collect();
+
+        Self::Output::from_evaluations_vec(self.num_vars, result)
     }
 }
 
@@ -171,17 +181,23 @@ impl<'a, 'b, F: Field> AddAssign<&'a DenseMultilinearPolynomial<F>>
 impl<'a, 'b, F: Field> AddAssign<(F, &'a DenseMultilinearPolynomial<F>)>
     for DenseMultilinearPolynomial<F>
 {
-    fn add_assign(&mut self, (_f, _other): (F, &'a DenseMultilinearPolynomial<F>)) {
-        let _other = todo!();
-        // *self = &*self + &other;
+    fn add_assign(&mut self, (f, other): (F, &'a DenseMultilinearPolynomial<F>)) {
+        let other = Self {
+            num_vars: self.num_vars,
+            evaluations: cfg_iter!(other.evaluations).map(|x| f * x).collect(),
+        };
+        *self = &*self + &other;
     }
 }
 
 impl<F: Field> Neg for DenseMultilinearPolynomial<F> {
-    type Output = ();
+    type Output = DenseMultilinearPolynomial<F>;
 
     fn neg(self) -> Self::Output {
-        todo!()
+        Self::Output {
+            num_vars: self.num_vars,
+            evaluations: cfg_iter!(self.evaluations).map(|x| -*x).collect(),
+        }
     }
 }
 
@@ -198,8 +214,8 @@ impl<'a, 'b, F: Field> Sub<&'a DenseMultilinearPolynomial<F>>
 {
     type Output = DenseMultilinearPolynomial<F>;
 
-    fn sub(self, _rhs: &'a DenseMultilinearPolynomial<F>) -> Self::Output {
-        todo!()
+    fn sub(self, rhs: &'a DenseMultilinearPolynomial<F>) -> Self::Output {
+        self + &rhs.clone().neg()
     }
 }
 
@@ -218,18 +234,26 @@ impl<'a, 'b, F: Field> SubAssign<&'a DenseMultilinearPolynomial<F>>
 }
 
 impl<F: Field> fmt::Debug for DenseMultilinearPolynomial<F> {
-    fn fmt(&self, _f: &mut Formatter<'_>) -> Result<(), fmt::Error> {
-        todo!()
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), fmt::Error> {
+        write!(f, "DenseML(nv = {}, evaluations = [", self.num_vars)?;
+        for i in 0..ark_std::cmp::min(8, self.evaluations.len()) {
+            write!(f, "{:?} ", self.evaluations[i])?;
+        }
+        write!(f, "])")?;
+        Ok(())
     }
 }
 
 impl<F: Field> Zero for DenseMultilinearPolynomial<F> {
     fn zero() -> Self {
-        todo!()
+        Self {
+            num_vars: 0,
+            evaluations: vec![F::zero()],
+        }
     }
 
     fn is_zero(&self) -> bool {
-        todo!()
+        self.num_vars == 0 && self.evaluations[0].is_zero()
     }
 }
 
@@ -272,7 +296,7 @@ mod tests {
         let mut rng = test_rng();
         let poly = DenseMultilinearPolynomial::rand(10, 10, &mut rng);
         for _ in 0..10 {
-            let point: Vec<_> = (0..15).map(|_| Fr::rand(&mut rng)).collect();
+            let point: Vec<_> = (0..10).map(|_| Fr::rand(&mut rng)).collect();
             assert_eq!(
                 evaluate_data_array(&poly.evaluations, &point),
                 poly.evaluate(&point)
