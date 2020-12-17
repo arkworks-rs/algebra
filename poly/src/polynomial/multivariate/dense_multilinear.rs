@@ -3,6 +3,7 @@
 use crate::polynomial::MultilinearPolynomialEvaluationForm;
 use crate::{MVPolynomial, Polynomial};
 use ark_ff::{Field, Zero};
+use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, Read, SerializationError, Write};
 use ark_std::fmt;
 use ark_std::fmt::Formatter;
 use ark_std::ops::{Add, AddAssign, Neg, Sub, SubAssign};
@@ -11,7 +12,7 @@ use rand::Rng;
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
 /// Stores a multilinear polynomial in dense evaluation form.
-#[derive(Clone, PartialEq, Eq, Hash, Default)]
+#[derive(Clone, PartialEq, Eq, Hash, Default, CanonicalSerialize, CanonicalDeserialize)]
 pub struct DenseMultilinearPolynomial<F: Field> {
     /// The evaluation over {0,1}^n
     pub evaluations: Vec<F>,
