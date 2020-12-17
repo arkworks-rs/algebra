@@ -154,6 +154,9 @@ impl<'a, 'b, F: Field> Add<&'a DenseMultilinearPolynomial<F>>
         if rhs.is_zero() {
             return self.clone();
         }
+        if self.is_zero() {
+            return rhs.clone();
+        }
         assert_eq!(self.num_vars, rhs.num_vars);
         let result: Vec<F> = cfg_iter!(self.evaluations)
             .zip(cfg_iter!(rhs.evaluations))
@@ -183,7 +186,7 @@ impl<'a, 'b, F: Field> AddAssign<(F, &'a DenseMultilinearPolynomial<F>)>
 {
     fn add_assign(&mut self, (f, other): (F, &'a DenseMultilinearPolynomial<F>)) {
         let other = Self {
-            num_vars: self.num_vars,
+            num_vars: other.num_vars,
             evaluations: cfg_iter!(other.evaluations).map(|x| f * x).collect(),
         };
         *self = &*self + &other;
@@ -229,7 +232,7 @@ impl<'a, 'b, F: Field> SubAssign<&'a DenseMultilinearPolynomial<F>>
     for DenseMultilinearPolynomial<F>
 {
     fn sub_assign(&mut self, other: &'a DenseMultilinearPolynomial<F>) {
-        *self = &*self + other;
+        *self = &*self - other;
     }
 }
 
@@ -270,10 +273,12 @@ fn swap_bits(x: usize, a: usize, b: usize, n: usize) -> usize {
 mod tests {
     use crate::polynomial::multivariate::dense_multilinear::DenseMultilinearPolynomial;
     use crate::{MVPolynomial, Polynomial};
-    use ark_ff::Field;
+    use ark_ff::{Field, Zero};
+    use ark_std::ops::Neg;
     use ark_std::vec::Vec;
     use ark_std::{test_rng, UniformRand};
     use ark_test_curves::bls12_381::Fr;
+
     /// utility: evaluate multilinear extension (in form of data array) at a random point
     fn evaluate_data_array<F: Field>(data: &[F], point: &[F]) -> F {
         if data.len() != (1 << point.len()) {
@@ -335,6 +340,58 @@ mod tests {
             point.swap(0, 7);
             point.swap(1, 8);
             assert_eq!(expected, poly.evaluate(&point));
+        }
+    }
+
+    #[test]
+    fn arithmetic() {
+        const NV: usize = 10;
+        let mut rng = test_rng();
+        for _ in 0..20 {
+            let point = (0..NV).map(|_| Fr::rand(&mut rng)).collect();
+            let poly1 = DenseMultilinearPolynomial::rand(NV, NV, &mut rng);
+            let poly2 = DenseMultilinearPolynomial::rand(NV, NV, &mut rng);
+            let v1 = poly1.evaluate(&point);
+            let v2 = poly2.evaluate(&point);
+            // test add
+            assert_eq!((&poly1 + &poly2).evaluate(&point), v1 + v2);
+            // test sub
+            assert_eq!((&poly1 - &poly2).evaluate(&point), v1 - v2);
+            // test negate
+            assert_eq!(poly1.clone().neg().evaluate(&point), -v1);
+            // test add assign
+            {
+                let mut poly1 = poly1.clone();
+                poly1 += &poly2;
+                assert_eq!(poly1.evaluate(&point), v1 + v2)
+            }
+            // test sub assign
+            {
+                let mut poly1 = poly1.clone();
+                poly1 -= &poly2;
+                assert_eq!(poly1.evaluate(&point), v1 - v2)
+            }
+            // test add assign with scalar
+            {
+                let mut poly1 = poly1.clone();
+                let scalar = Fr::rand(&mut rng);
+                poly1 += (scalar, &poly2);
+                assert_eq!(poly1.evaluate(&point), v1 + scalar * v2)
+            }
+            // test additive identity
+            {
+                assert_eq!(&poly1 + &DenseMultilinearPolynomial::zero(), poly1);
+                assert_eq!(&DenseMultilinearPolynomial::zero() + &poly1, poly1);
+                {
+                    let mut poly1_cloned = poly1.clone();
+                    poly1_cloned += &DenseMultilinearPolynomial::zero();
+                    assert_eq!(&poly1_cloned, &poly1);
+                    let mut zero = DenseMultilinearPolynomial::zero();
+                    let scalar = Fr::rand(&mut rng);
+                    zero += (scalar, &poly1);
+                    assert_eq!(zero.evaluate(&point), scalar * v1);
+                }
+            }
         }
     }
 }
