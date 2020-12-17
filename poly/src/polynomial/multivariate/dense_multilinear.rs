@@ -270,8 +270,9 @@ fn swap_bits(x: usize, a: usize, b: usize, n: usize) -> usize {
 mod tests {
     use crate::polynomial::multivariate::dense_multilinear::DenseMultilinearPolynomial;
     use crate::{MVPolynomial, Polynomial};
-    use ark_ff::{test_rng, Field, UniformRand};
+    use ark_ff::Field;
     use ark_std::vec::Vec;
+    use ark_std::{test_rng, UniformRand};
     use ark_test_curves::bls12_381::Fr;
     /// utility: evaluate multilinear extension (in form of data array) at a random point
     fn evaluate_data_array<F: Field>(data: &[F], point: &[F]) -> F {
