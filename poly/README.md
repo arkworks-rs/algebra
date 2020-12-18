@@ -8,10 +8,10 @@ The `polynomial` module provides the following traits for defining polynomials:
 
 - [`Polynomial`](https://github.com/arkworks-rs/algebra/blob/master/poly/src/polynomial/mod.rs#L16):
 Requires implementors to support common operations on polynomials,
-such as `Add`, `Sub`, `Zero`, evaluation at a point, degree, etc.
-- [`UVPolynomial`](https://github.com/arkworks-rs/algebra/blob/master/poly/src/polynomial/mod.rs#L41):
-Specifies that a `Polynomial` is actually a *univariate* polynomial,
+such as `Add`, `Sub`, `Zero`, evaluation at a point, degree, etc,
 and defines methods to serialize to and from the coefficient representation of the polynomial.
+- [`UVPolynomial`](https://github.com/arkworks-rs/algebra/blob/master/poly/src/polynomial/mod.rs#L41):
+Specifies that a `Polynomial` is actually a *univariate* polynomial.
 - [`MVPolynomial`](https://github.com/arkworks-rs/algebra/blob/master/poly/src/polynomial/mod.rs#L59):
 Specifies that a `Polynomial` is actually a *multivariate* polynomial.
 
