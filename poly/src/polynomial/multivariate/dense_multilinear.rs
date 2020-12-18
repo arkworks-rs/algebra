@@ -1,4 +1,4 @@
-//! multilinear polynomial represented in evaluation form
+//! multilinear polynomial represented in dense evaluation form
 
 use crate::polynomial::MultilinearPolynomialEvaluationForm;
 use crate::{MVPolynomial, Polynomial};
@@ -209,7 +209,7 @@ impl<F: Field> Sub for DenseMultilinearPolynomial<F> {
     type Output = DenseMultilinearPolynomial<F>;
 
     fn sub(self, other: DenseMultilinearPolynomial<F>) -> Self {
-        &self + &other
+        &self - &other
     }
 }
 

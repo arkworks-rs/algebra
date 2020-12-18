@@ -15,9 +15,10 @@ use rayon::prelude::*;
 
 mod dense_multilinear;
 mod sparse;
+mod sparse_multilinear;
 
+pub use dense_multilinear::DenseMultilinearPolynomial;
 pub use sparse::SparsePolynomial;
-
 /// Describes the interface for a term (monomial) of a multivariate polynomial.
 pub trait Term:
     Clone
