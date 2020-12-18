@@ -27,6 +27,7 @@ The main features of this release are:
     by replacing `sparse_poly.evaluate(pt)` to `sparse_poly.evaluate(&pt)`.
 - #129 (ark-ff) Move `ark_ff::{UniformRand, test_rng}` to `ark_std::{UniformRand, test_rng}`.
     Importing these from `ark-ff` is still possible, but is deprecated and will be removed in the following release.
+- #144 (ark-poly) Add `CanonicalSerialize` and `CanonicalDeserialize` trait bounds for `Polynomial`.
 
 ### Features
 - #20 (ark-poly) Add structs/traits for multivariate polynomials
@@ -54,6 +55,8 @@ The main features of this release are:
 - #125 (ark-poly) Add parallelization to applying coset shifts within `coset_fft`.
 - #126 (ark-ec) Use `ark_ff::batch_inversion` for point normalization
 - #131, #137 (ark-ff) Speedup `sqrt` on fields when a square root exists. (And slows it down when doesn't exist)
+- #141 (ark-ff) Add `Fp64`
+- #144 (ark-poly) Add serialization for polynomials and evaluations
 
 ### Bug fixes
 - #36 (ark-ec) In Short-Weierstrass curves, include an infinity bit in `ToConstraintField`.

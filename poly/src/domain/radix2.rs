@@ -9,7 +9,13 @@ use crate::domain::{
     DomainCoeff, EvaluationDomain,
 };
 use ark_ff::{FftField, FftParameters};
-use ark_std::{convert::TryFrom, fmt, vec::Vec};
+use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, SerializationError};
+use ark_std::{
+    convert::TryFrom,
+    fmt,
+    io::{Read, Write},
+    vec::Vec,
+};
 
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
@@ -17,7 +23,7 @@ use rayon::prelude::*;
 /// Defines a domain over which finite field (I)FFTs can be performed. Works
 /// only for fields that have a large multiplicative subgroup of size that is
 /// a power-of-2.
-#[derive(Copy, Clone, Hash, Eq, PartialEq)]
+#[derive(Copy, Clone, Hash, Eq, PartialEq, CanonicalSerialize, CanonicalDeserialize)]
 pub struct Radix2EvaluationDomain<F: FftField> {
     /// The size of the domain.
     pub size: u64,

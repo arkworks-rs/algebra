@@ -3,7 +3,9 @@
 use crate::univariate::DensePolynomial;
 use crate::{EvaluationDomain, GeneralEvaluationDomain, UVPolynomial};
 use ark_ff::{batch_inversion, FftField};
+use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, SerializationError};
 use ark_std::{
+    io::{Read, Write},
     ops::{Add, AddAssign, Div, DivAssign, Index, Mul, MulAssign, Sub, SubAssign},
     vec::Vec,
 };
@@ -12,7 +14,7 @@ use ark_std::{
 use rayon::prelude::*;
 
 /// Stores a polynomial in evaluation form.
-#[derive(Clone, PartialEq, Eq, Hash, Debug)]
+#[derive(Clone, PartialEq, Eq, Hash, Debug, CanonicalSerialize, CanonicalDeserialize)]
 pub struct Evaluations<F: FftField, D: EvaluationDomain<F> = GeneralEvaluationDomain<F>> {
     /// The evaluations of a polynomial over the domain `D`
     pub evals: Vec<F>,
