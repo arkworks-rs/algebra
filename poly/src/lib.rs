@@ -1,13 +1,7 @@
 //! This crate implements functions for manipulating polynomials over finite
 //! fields, including FFTs.
 #![cfg_attr(not(feature = "std"), no_std)]
-#![deny(
-    warnings,
-    unused,
-    future_incompatible,
-    nonstandard_style,
-    rust_2018_idioms
-)]
+#![warn(unused, future_incompatible, nonstandard_style, rust_2018_idioms)]
 #![forbid(unsafe_code)]
 #![allow(
     clippy::many_single_char_names,

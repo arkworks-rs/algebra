@@ -30,3 +30,6 @@ harness = false
 name = "dense_polynomial"
 path = "benches/dense_polynomial.rs"
 harness = false
+
+[lib]
+bench = false

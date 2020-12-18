@@ -4,9 +4,11 @@ use crate::{
     MVPolynomial, Polynomial,
 };
 use ark_ff::{Field, Zero};
+use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, SerializationError};
 use ark_std::{
     cmp::Ordering,
     fmt,
+    io::{Read, Write},
     ops::{Add, AddAssign, Neg, Sub, SubAssign},
     vec::Vec,
 };
@@ -16,7 +18,7 @@ use rand::Rng;
 use rayon::prelude::*;
 
 /// Stores a sparse multivariate polynomial in coefficient form.
-#[derive(Derivative)]
+#[derive(Derivative, CanonicalSerialize, CanonicalDeserialize)]
 #[derivative(Clone, PartialEq, Eq, Hash, Default)]
 pub struct SparsePolynomial<F: Field, T: Term> {
     /// The number of variables the polynomial supports
@@ -242,7 +244,8 @@ impl<F: Field, T: Term> Zero for SparsePolynomial<F, T> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ark_ff::{test_rng, Field, UniformRand, Zero};
+    use ark_ff::{Field, UniformRand, Zero};
+    use ark_std::test_rng;
     use ark_test_curves::bls12_381::Fr;
 
     // TODO: Make tests generic over term type

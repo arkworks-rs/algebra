@@ -3,7 +3,9 @@
 use crate::univariate::DensePolynomial;
 use crate::{EvaluationDomain, GeneralEvaluationDomain, UVPolynomial};
 use ark_ff::{batch_inversion, FftField};
+use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, SerializationError};
 use ark_std::{
+    io::{Read, Write},
     ops::{Add, AddAssign, Div, DivAssign, Index, Mul, MulAssign, Sub, SubAssign},
     vec::Vec,
 };

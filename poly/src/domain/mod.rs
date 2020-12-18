@@ -8,6 +8,7 @@
 //! polynomial arithmetic is performed.
 
 use ark_ff::FftField;
+use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use ark_std::{fmt, hash, vec::Vec};
 use rand::Rng;
 

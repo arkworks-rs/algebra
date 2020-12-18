@@ -3,15 +3,17 @@ use crate::polynomial::Polynomial;
 use crate::univariate::{DenseOrSparsePolynomial, DensePolynomial};
 use crate::{EvaluationDomain, Evaluations, UVPolynomial};
 use ark_ff::{FftField, Field, Zero};
+use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, SerializationError};
 use ark_std::{
     collections::BTreeMap,
     fmt,
+    io::{Read, Write},
     ops::{Add, AddAssign, Neg, SubAssign},
     vec::Vec,
 };
 
 /// Stores a sparse polynomial in coefficient form.
-#[derive(Clone, PartialEq, Eq, Hash, Default)]
+#[derive(Clone, PartialEq, Eq, Hash, Default, CanonicalSerialize, CanonicalDeserialize)]
 pub struct SparsePolynomial<F: Field> {
     /// The coefficient a_i of `x^i` is stored as (i, a_i) in `self.coeffs`.
     /// the entries in `self.coeffs` *must*  be sorted in increasing order of
@@ -273,9 +275,10 @@ mod tests {
     use crate::polynomial::Polynomial;
     use crate::univariate::{DensePolynomial, SparsePolynomial};
     use crate::{EvaluationDomain, GeneralEvaluationDomain};
-    use ark_ff::{test_rng, UniformRand, Zero};
+    use ark_ff::{UniformRand, Zero};
     use ark_std::cmp::max;
     use ark_std::ops::Mul;
+    use ark_std::test_rng;
     use ark_test_curves::bls12_381::Fr;
     use rand::Rng;
 

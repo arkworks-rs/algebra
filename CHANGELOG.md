@@ -1,6 +1,14 @@
 
 ## Pending
 
+The main features of this release are:
+
+- Adding the ability to define fields with integer parameters
+- Multi-variate polynomial support
+- Many speedups to operations involving polynomials
+- Some speedups to `sqrt`
+- Speedup to fixed-base `MSM`s
+
 ### Breaking changes
 - #20 (ark-poly) Move univariate DensePolynomial and SparsePolynomial into a 
     univariate sub-crate. Make this change by:
@@ -11,15 +19,24 @@
 - #51 (ark-ff) Removed `unitary_inverse` from `QuadExtField`. Make this change by
     replacing `x.unitary_inverse()` with `let mut tmp = x.clone(); tmp.conjugate()`
 - #53 (ark-poly) Add `Zero` trait bound to `Polynomial`.
+- #96 (ark-ff) Make the `field_new` macro accept values in integer form, without requiring decomposition into limbs, and without requiring encoding in Montgomery form.
 - #106 (ark-ff, ark-ec) Add `Zeroize` trait bound to `Field, ProjectiveGroup, AffineGroup` traits.
 - #108 (ark-ff) Add `extension_degree()` method to `Field`.
 - #110 (ark-ec) Change the trait bound on the scalar for `mul`, from (essentially) `Into<BigInt>` to `AsRef<[u64]>`
 - #117 (ark-poly) Make the univariate `SparsePolynomial` implement `Polynomial`. Make this change
     by replacing `sparse_poly.evaluate(pt)` to `sparse_poly.evaluate(&pt)`.
-- #96 (ark-ff) Make the `field_new` macro accept values in integer form, without requiring decomposition into limbs, and without requiring encoding in Montgomery form.
+- #129 (ark-ff) Move `ark_ff::{UniformRand, test_rng}` to `ark_std::{UniformRand, test_rng}`.
+    Importing these from `ark-ff` is still possible, but is deprecated and will be removed in the following release.
+- #144 (ark-poly) Add `CanonicalSerialize` and `CanonicalDeserialize` trait bounds for `Polynomial`.
 
 ### Features
 - #20 (ark-poly) Add structs/traits for multivariate polynomials
+- #96 (ark-ff) Make the `field_new` macro accept values in integer form, without requiring decomposition into limbs, and without requiring encoding in Montgomery form.
+- #106 (ark-ff, ark-ec) Add `Zeroize` trait bound to `Field, ProjectiveGroup, AffineGroup` traits.
+- #117 (ark-poly) Add operations to `SparsePolynomial`, so it implements `Polynomial`
+
+
+### Improvements
 - #22 (ark-ec) Speedup fixed-base MSMs
 - #28 (ark-poly) Add `domain()` method on the `evaluations` struct
 - #31 (ark-ec) Speedup point doubling on twisted edwards curves
@@ -37,7 +54,9 @@
 - #122 (ark-poly) Add infrastructure for benchmarking `FFT`s.
 - #125 (ark-poly) Add parallelization to applying coset shifts within `coset_fft`.
 - #126 (ark-ec) Use `ark_ff::batch_inversion` for point normalization
-- #131 (ark-ff) Speedup `sqrt` on `PrimeField` when a square root exists. (And slows it down when doesn't exist)
+- #131, #137 (ark-ff) Speedup `sqrt` on fields when a square root exists. (And slows it down when doesn't exist)
+- #141 (ark-ff) Add `Fp64`
+- #144 (ark-poly) Add serialization for polynomials and evaluations
 
 ### Bug fixes
 - #36 (ark-ec) In Short-Weierstrass curves, include an infinity bit in `ToConstraintField`.
