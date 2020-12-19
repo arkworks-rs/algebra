@@ -167,3 +167,12 @@ impl Ord for SparseTerm {
         }
     }
 }
+
+/// multilinear utility: swap bits
+pub(crate) fn swap_bits(x: usize, a: usize, b: usize, n: usize) -> usize {
+    let a_bits = (x >> a) & ((1usize << n) - 1);
+    let b_bits = (x >> b) & ((1usize << n) - 1);
+    let local_xor_mask = a_bits ^ b_bits;
+    let global_xor_mask = (local_xor_mask << a) | (local_xor_mask << b);
+    x ^ global_xor_mask
+}

@@ -5,7 +5,7 @@ use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, Read, Serializatio
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
 
-use crate::polynomial::multivariate::DenseMultilinearPolynomial;
+use crate::polynomial::multivariate::{swap_bits, DenseMultilinearPolynomial};
 use crate::polynomial::MultilinearPolynomialEvaluationForm;
 use crate::{MVPolynomial, Polynomial};
 use ark_std::fmt::{Debug, Formatter};
@@ -128,14 +128,34 @@ impl<F: Field> MultilinearPolynomialEvaluationForm<F> for SparseMultilinearPolyn
     /// For Sparse multilinear polynomial, Lookup_evaluation takes linear time to the size of polynomial.
     fn lookup_evaluation(&self, index: usize) -> F {
         cfg_iter!(self.evaluations)
-            .filter(|(i, v)| *i == index)
-            .map(|(i, v)| *v)
+            .filter(|(i, _)| *i == index)
+            .map(|(_, v)| *v)
             .next()
             .unwrap_or(F::zero())
     }
 
-    fn relabel(&self, a: usize, b: usize, k: usize) -> Self {
-        todo!()
+    fn relabel(&self, mut a: usize, mut b: usize, k: usize) -> Self {
+        if a > b {
+            // swap
+            let t = a;
+            a = b;
+            b = t;
+        }
+        // sanity check
+        assert!(
+            a + k < self.num_vars && b + k < self.num_vars,
+            "invalid relabel argument"
+        );
+        if a == b || k == 0 {
+            return self.clone();
+        }
+        assert!(a + k <= b, "overlapped swap window is not allowed");
+        Self {
+            num_vars: self.num_vars,
+            evaluations: cfg_iter!(self.evaluations)
+                .map(|&(i, v)| (swap_bits(i, a, b, k), v))
+                .collect(),
+        }
     }
 
     fn partial_evaluate(&self, partial_point: &Self::PartialPoint) -> Self {
@@ -311,7 +331,19 @@ impl<F: Field> Zero for SparseMultilinearPolynomial<F> {
 
 impl<F: Field> Debug for SparseMultilinearPolynomial<F> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), fmt::Error> {
-        todo!()
+        write!(
+            f,
+            "SparseMultilinearPolynomial(num_vars = {}, evaluations = [",
+            self.num_vars
+        )?;
+        for i in 0..ark_std::cmp::min(8, self.evaluations.len()) {
+            write!(f, "{:?}", self.evaluations[i])?;
+        }
+        if self.evaluations.len() > 8 {
+            write!(f, "...")?;
+        }
+        write!(f, "])")?;
+        Ok(())
     }
 }
 
@@ -344,7 +376,7 @@ fn tuples_to_map<F: Field>(tuples: &[(usize, F)]) -> HashMap<usize, F> {
 fn map_to_tuples<F: Field>(map: &HashMap<usize, F>) -> Vec<(usize, F)> {
     cfg_iter!(map)
         .map(|(i, v)| (*i, *v))
-        .filter(|&(i, v)| !v.is_zero())
+        .filter(|&(_, v)| !v.is_zero())
         .collect()
 }
 
@@ -450,6 +482,39 @@ mod tests {
                     assert_eq!(zero.evaluate(&point), scalar * v1);
                 }
             }
+        }
+    }
+
+    #[test]
+    fn relabel() {
+        let mut rng = test_rng();
+        for _ in 0..20 {
+            let mut poly = SparseMultilinearPolynomial::rand(10, 10, &mut rng);
+            let mut point: Vec<_> = (0..10).map(|_| Fr::rand(&mut rng)).collect();
+
+            let expected = poly.evaluate(&point);
+
+            poly = poly.relabel(2, 2, 1); // should have no effect
+            assert_eq!(expected, poly.evaluate(&point));
+
+            poly = poly.relabel(3, 4, 1); // should switch 3 and 4
+            point.swap(3, 4);
+            assert_eq!(expected, poly.evaluate(&point));
+
+            poly = poly.relabel(7, 5, 1);
+            point.swap(7, 5);
+            assert_eq!(expected, poly.evaluate(&point));
+
+            poly = poly.relabel(2, 5, 3);
+            point.swap(2, 5);
+            point.swap(3, 6);
+            point.swap(4, 7);
+            assert_eq!(expected, poly.evaluate(&point));
+
+            poly = poly.relabel(7, 0, 2);
+            point.swap(0, 7);
+            point.swap(1, 8);
+            assert_eq!(expected, poly.evaluate(&point));
         }
     }
 }

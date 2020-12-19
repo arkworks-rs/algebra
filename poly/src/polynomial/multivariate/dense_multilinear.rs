@@ -1,5 +1,6 @@
 //! multilinear polynomial represented in dense evaluation form
 
+use crate::polynomial::multivariate::swap_bits;
 use crate::polynomial::MultilinearPolynomialEvaluationForm;
 use crate::{MVPolynomial, Polynomial};
 use ark_ff::{Field, Zero};
@@ -11,6 +12,7 @@ use ark_std::vec::Vec;
 use rand::Rng;
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
+
 /// Stores a multilinear polynomial in dense evaluation form.
 #[derive(Clone, PartialEq, Eq, Hash, Default, CanonicalSerialize, CanonicalDeserialize)]
 pub struct DenseMultilinearPolynomial<F: Field> {
@@ -51,7 +53,9 @@ impl<F: Field> DenseMultilinearPolynomial<F> {
     pub fn relabel_inplace(&mut self, mut a: usize, mut b: usize, k: usize) {
         // enforce order of a and b
         if a > b {
-            ark_std::mem::swap(&mut a, &mut b);
+            let t = a;
+            a = b;
+            b = t;
         }
         assert!(
             a + k < self.num_vars && b + k < self.num_vars,
@@ -259,15 +263,6 @@ impl<F: Field> Zero for DenseMultilinearPolynomial<F> {
     fn is_zero(&self) -> bool {
         self.num_vars == 0 && self.evaluations[0].is_zero()
     }
-}
-
-// swap n bits of x at position a and b
-fn swap_bits(x: usize, a: usize, b: usize, n: usize) -> usize {
-    let a_bits = (x >> a) & ((1usize << n) - 1);
-    let b_bits = (x >> b) & ((1usize << n) - 1);
-    let local_xor_mask = a_bits ^ b_bits;
-    let global_xor_mask = (local_xor_mask << a) | (local_xor_mask << b);
-    x ^ global_xor_mask
 }
 
 #[cfg(test)]
