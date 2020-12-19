@@ -31,7 +31,7 @@ impl<F: Field> SparseMultilinearPolynomial<F> {
     ) -> Self {
         let bit_mask = 1 << num_vars;
         // check
-        let evaluations = cfg_into_iter!(evaluations);
+        let evaluations = evaluations.into_iter();
         let evaluations: Vec<_> = evaluations
             .map(|(i, v): &(usize, F)| {
                 assert!(*i < bit_mask, "index out of range");
@@ -127,11 +127,11 @@ impl<F: Field> MultilinearPolynomialEvaluationForm<F> for SparseMultilinearPolyn
     ///
     /// For Sparse multilinear polynomial, Lookup_evaluation takes linear time to the size of polynomial.
     fn lookup_evaluation(&self, index: usize) -> F {
-        cfg_iter!(self.evaluations)
+        let result: Vec<_> = cfg_iter!(self.evaluations)
             .filter(|(i, _)| *i == index)
             .map(|(_, v)| *v)
-            .next()
-            .unwrap_or(F::zero())
+            .collect();
+        *(result.get(0).unwrap_or(&F::zero()))
     }
 
     fn relabel(&self, mut a: usize, mut b: usize, k: usize) -> Self {
@@ -226,7 +226,8 @@ impl<'a, 'b, F: Field> Add<&'a SparseMultilinearPolynomial<F>>
         for &(i, v) in self.evaluations.iter().chain(rhs.evaluations.iter()) {
             *(evaluations.entry(i).or_insert(F::zero())) += v;
         }
-        let evaluations: Vec<_> = cfg_into_iter!(evaluations)
+        let evaluations: Vec<_> = evaluations
+            .into_iter()
             .filter(|(_, v)| !v.is_zero())
             .collect();
 
@@ -374,7 +375,7 @@ fn tuples_to_map<F: Field>(tuples: &[(usize, F)]) -> HashMap<usize, F> {
 }
 
 fn map_to_tuples<F: Field>(map: &HashMap<usize, F>) -> Vec<(usize, F)> {
-    cfg_iter!(map)
+    map.iter()
         .map(|(i, v)| (*i, *v))
         .filter(|&(_, v)| !v.is_zero())
         .collect()
