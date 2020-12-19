@@ -1,5 +1,7 @@
 
 ## Pending
+- Breaking Change: #140 (ark-poly) Move methods `from_coefficients_slice`, `from_coefficients_vec`, `terms` from `MVPolynomial` to `MVPolynomialCoefficientForm`
+- Feature: #140 (ark-poly) Add support for multilinear polynomial in dense and sparse evaluation form.
 
 The main features of this release are:
 
