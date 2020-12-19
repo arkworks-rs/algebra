@@ -1,6 +1,6 @@
 use crate::AffineCurve;
 use ark_ff::Field;
-use ark_std::{marker::PhantomData, string::String};
+use ark_std::{marker::PhantomData, string::String, vec::Vec};
 use core::fmt;
 use digest::{Update, VariableOutput};
 
@@ -15,8 +15,7 @@ pub trait HashToCurve<T: AffineCurve>: Sized {
     fn hash(&self, message: &[u8]) -> Result<T, HashToCurveError>;
 }
 
-/// This is an error that could occur during circuit synthesis contexts,
-/// such as CRS generation, proving or verification.
+/// This is an error that could occur during the hash to curve process
 #[derive(Clone, Debug)]
 pub enum HashToCurveError {
     /// Curve choice is unsupported by the given HashToCurve method.
@@ -59,7 +58,7 @@ pub trait MapToCurve<T: AffineCurve>: Sized {
 pub trait HashToField<F: Field, H: VariableOutput + Update>: Sized {
     fn new_hash_to_field(domain: &[u8]) -> Result<Self, HashToCurveError>;
 
-    fn hash_to_field(&self, msg: &[u8]) -> Result<F, HashToCurveError>;
+    fn hash_to_field(&self, msg: &[u8], count: usize) -> Result<Vec<F>, HashToCurveError>;
 }
 
 pub struct MapToCurveBasedHasher<T, CRH, H2F, M2C>
@@ -107,16 +106,11 @@ where
         // 4. R = Q0 + Q1              # Point addition
         // 5. P = clear_cofactor(R)
         // 6. return P
-        let mut msg_0 = vec![0u8];
-        let mut msg_1 = vec![1u8];
-        msg_0.extend_from_slice(msg);
-        msg_1.extend_from_slice(msg);
 
-        let rand_field_elem_0 = self.field_hasher.hash_to_field(&msg_0)?;
-        let rand_field_elem_1 = self.field_hasher.hash_to_field(&msg_1)?;
+        let rand_field_elems = self.field_hasher.hash_to_field(msg, 2)?;
 
-        let rand_curve_elem_0 = self.curve_mapper.map_to_curve(rand_field_elem_0)?;
-        let rand_curve_elem_1 = self.curve_mapper.map_to_curve(rand_field_elem_1)?;
+        let rand_curve_elem_0 = self.curve_mapper.map_to_curve(rand_field_elems[0])?;
+        let rand_curve_elem_1 = self.curve_mapper.map_to_curve(rand_field_elems[1])?;
 
         let rand_curve_elem = rand_curve_elem_0 + rand_curve_elem_1;
         let rand_subgroup_elem = rand_curve_elem.mul_by_cofactor();
