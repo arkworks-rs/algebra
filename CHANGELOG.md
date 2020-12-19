@@ -5,6 +5,7 @@ The main features of this release are:
 
 - Adding the ability to define fields with integer parameters
 - Multi-variate polynomial support
+- Multilinear polynomial support
 - Many speedups to operations involving polynomials
 - Some speedups to `sqrt`
 - Speedup to fixed-base `MSM`s
@@ -28,6 +29,7 @@ The main features of this release are:
 - #129 (ark-ff) Move `ark_ff::{UniformRand, test_rng}` to `ark_std::{UniformRand, test_rng}`.
     Importing these from `ark-ff` is still possible, but is deprecated and will be removed in the following release.
 - #144 (ark-poly) Add `CanonicalSerialize` and `CanonicalDeserialize` trait bounds for `Polynomial`.
+- #140 (ark-poly) Move methods `from_coefficients_slice`, `from_coefficients_vec`, `terms` from `MVPolynomial` to `MVPolynomialCoefficientForm`
 
 ### Features
 - #20 (ark-poly) Add structs/traits for multivariate polynomials
@@ -57,6 +59,7 @@ The main features of this release are:
 - #131, #137 (ark-ff) Speedup `sqrt` on fields when a square root exists. (And slows it down when doesn't exist)
 - #141 (ark-ff) Add `Fp64`
 - #144 (ark-poly) Add serialization for polynomials and evaluations
+- #140 (ark-poly) Add support for multilinear polynomial in dense and sparse evaluation form.
 
 ### Bug fixes
 - #36 (ark-ec) In Short-Weierstrass curves, include an infinity bit in `ToConstraintField`.
