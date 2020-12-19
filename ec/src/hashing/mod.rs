@@ -1,21 +1,18 @@
 use crate::AffineCurve;
-use ark_ff::{Field, PrimeField};
-use ark_std::{marker::PhantomData, string::{String, ToString}};
+use ark_ff::Field;
+use ark_std::{marker::PhantomData, string::String};
 use core::fmt;
 use digest::{Update, VariableOutput};
 
 /// Trait for hashing arbitrary data to a group element on an elliptic curve
-pub trait HashToCurve<T: AffineCurve> : Sized {
+pub trait HashToCurve<T: AffineCurve>: Sized {
     /// Create a new hash to curve instance, with a given domain.
     fn new(domain: &[u8]) -> Result<Self, HashToCurveError>;
 
     /// Produce a hash of the message, which also depends on the domain.
     /// The output of the hash is a curve point in the prime order subgroup
     /// of the given elliptic curve.
-    fn hash(
-        &self,
-        message: &[u8],
-    ) -> Result<T, HashToCurveError>;
+    fn hash(&self, message: &[u8]) -> Result<T, HashToCurveError>;
 }
 
 /// This is an error that could occur during circuit synthesis contexts,
@@ -53,52 +50,56 @@ impl fmt::Display for HashToCurveError {
 }
 
 /// Trait for mapping a random field element to a random curve point.
-pub trait MapToCurve<T: AffineCurve> : Sized {
+pub trait MapToCurve<T: AffineCurve>: Sized {
     fn new_map_to_curve(domain: &[u8]) -> Result<Self, HashToCurveError>;
     /// Map random field point to a random curve point
     fn map_to_curve(&self, point: T::BaseField) -> Result<T, HashToCurveError>;
 }
 
-pub trait HashToField<F: Field, H: VariableOutput + Update> : Sized {
+pub trait HashToField<F: Field, H: VariableOutput + Update>: Sized {
     fn new_hash_to_field(domain: &[u8]) -> Result<Self, HashToCurveError>;
 
     fn hash_to_field(&self, msg: &[u8]) -> Result<F, HashToCurveError>;
 }
 
-pub struct MapToCurveBasedHasher<T, CRH, H2F, M2C> where 
-    T: AffineCurve, 
+pub struct MapToCurveBasedHasher<T, CRH, H2F, M2C>
+where
+    T: AffineCurve,
     CRH: VariableOutput + Update,
     H2F: HashToField<T::BaseField, CRH>,
-    M2C: MapToCurve<T>, {
+    M2C: MapToCurve<T>,
+{
     field_hasher: H2F,
     curve_mapper: M2C,
     _params_t: PhantomData<T>,
     _params_crh: PhantomData<CRH>,
 }
 
-impl<T, CRH, H2F, M2C> HashToCurve<T> for MapToCurveBasedHasher<T, CRH, H2F, M2C> where 
-    T: AffineCurve, 
+impl<T, CRH, H2F, M2C> HashToCurve<T> for MapToCurveBasedHasher<T, CRH, H2F, M2C>
+where
+    T: AffineCurve,
     CRH: VariableOutput + Update,
     H2F: HashToField<T::BaseField, CRH>,
-    M2C: MapToCurve<T> 
-    {
+    M2C: MapToCurve<T>,
+{
     fn new(domain: &[u8]) -> Result<Self, HashToCurveError> {
         let field_hasher = H2F::new_hash_to_field(domain)?;
         let curve_mapper = M2C::new_map_to_curve(domain)?;
         let _params_t = PhantomData;
         let _params_crh = PhantomData;
-        Ok(MapToCurveBasedHasher{field_hasher, curve_mapper, _params_t, _params_crh})
+        Ok(MapToCurveBasedHasher {
+            field_hasher,
+            curve_mapper,
+            _params_t,
+            _params_crh,
+        })
     }
 
-        // Produce a hash of the message, using the hash to field and map to curve traits.
-    // This uses the IETF hash to curve's specification for Random oracle encoding (hash_to_curve) 
+    // Produce a hash of the message, using the hash to field and map to curve traits.
+    // This uses the IETF hash to curve's specification for Random oracle encoding (hash_to_curve)
     // defined by combining these components.
     // See https://tools.ietf.org/html/draft-irtf-cfrg-hash-to-curve-09#section-3
-    fn hash(
-        &self,
-        msg: &[u8],
-    ) -> Result<T, HashToCurveError>
-    {
+    fn hash(&self, msg: &[u8]) -> Result<T, HashToCurveError> {
         // IETF spec of hash_to_curve, from hash_to_field and map_to_curve sub-components
         // 1. u = hash_to_field(msg, 2)
         // 2. Q0 = map_to_curve(u[0])
