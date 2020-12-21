@@ -9,11 +9,19 @@ edition = "2018"
 publish = false
 
 [dependencies]
+paste = "0.1"
 ark-ff = { path = "../ff", default-features = false }
 ark-ec = { path = "../ec", default-features = false }
+ark-std = { git = "https://github.com/arkworks-rs/utils", default-features = false }
+
+
+lazy_static = { version = "1.4.0", optional = true }
+accel = { git = "https://github.com/jon-chuang/accel", package = "accel", optional = true }
 
 [features]
 default = []
+
+cuda = [ "ark-ec/cuda",  "accel", "lazy_static", "ark-ec/std" ]
 
 bls12_381_scalar_field = []
 bls12_381_curve = [ "bls12_381_scalar_field" ]

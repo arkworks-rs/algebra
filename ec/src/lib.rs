@@ -34,10 +34,27 @@ use ark_std::{
 };
 use num_traits::Zero;
 
+pub mod batch_verify;
+pub use self::batch_verify::*;
+
+pub mod batch_arith;
+pub use self::batch_arith::*;
+
+pub mod bucketed_add;
+pub use self::bucketed_add::*;
+
+#[macro_use]
+pub mod glv;
+pub use self::glv::*;
+
 pub mod models;
 pub use self::models::*;
 
 pub mod group;
+
+#[macro_use]
+pub mod cuda;
+pub use cuda::*;
 
 pub mod msm;
 
@@ -49,6 +66,7 @@ pub trait PairingEngine: Sized + 'static + Copy + Debug + Sync + Send + Eq + Par
     type G1Projective: ProjectiveCurve<BaseField = Self::Fq, ScalarField = Self::Fr, Affine = Self::G1Affine>
         + From<Self::G1Affine>
         + Into<Self::G1Affine>
+        + GPUScalarMul<Self::G1Affine>
         + MulAssign<Self::Fr>; // needed due to https://github.com/rust-lang/rust/issues/69640
 
     /// The affine representation of an element in G1.
@@ -64,6 +82,7 @@ pub trait PairingEngine: Sized + 'static + Copy + Debug + Sync + Send + Eq + Par
     type G2Projective: ProjectiveCurve<BaseField = Self::Fqe, ScalarField = Self::Fr, Affine = Self::G2Affine>
         + From<Self::G2Affine>
         + Into<Self::G2Affine>
+        + GPUScalarMul<Self::G2Affine>
         + MulAssign<Self::Fr>; // needed due to https://github.com/rust-lang/rust/issues/69640
 
     /// The affine representation of an element in G2.
@@ -147,6 +166,7 @@ pub trait ProjectiveCurve:
     + core::iter::Sum<Self>
     + for<'a> core::iter::Sum<&'a Self>
     + From<<Self as ProjectiveCurve>::Affine>
+    + GPUScalarMul<<Self as ProjectiveCurve>::Affine>
 {
     const COFACTOR: &'static [u64];
     type ScalarField: PrimeField + SquareRootField;
@@ -216,6 +236,8 @@ pub trait ProjectiveCurve:
         self = res;
         self
     }
+
+    fn get_x(&mut self) -> &mut Self::BaseField;
 }
 
 /// Affine representation of an elliptic curve point guaranteed to be
@@ -240,6 +262,7 @@ pub trait AffineCurve:
     + Zero
     + Neg<Output = Self>
     + From<<Self as AffineCurve>::Projective>
+    + BatchGroupArithmetic<BaseFieldForBatch = <Self as AffineCurve>::BaseField>
 {
     const COFACTOR: &'static [u64];
     type ScalarField: PrimeField + SquareRootField + Into<<Self::ScalarField as PrimeField>::BigInt>;
@@ -247,6 +270,7 @@ pub trait AffineCurve:
     type Projective: ProjectiveCurve<Affine = Self, ScalarField = Self::ScalarField, BaseField = Self::BaseField>
         + From<Self>
         + Into<Self>
+        + GPUScalarMul<Self>
         + MulAssign<Self::ScalarField>; // needed due to https://github.com/rust-lang/rust/issues/69640
 
     /// Returns a fixed generator of unknown exponent.

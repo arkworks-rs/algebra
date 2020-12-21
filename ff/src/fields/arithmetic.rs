@@ -1,20 +1,60 @@
+/// All of these methods store intermediate results on the stack, and so
+/// they support overlap of input and output parameters.
+#[cfg(use_bw6_asm)]
+extern "C" {
+    pub fn modmul768(x: *const u64, y: *const u64, m: *const u64, z: *mut u64);
+    pub fn modadd768(x: *const u64, y: *const u64, m: *const u64, z: *mut u64);
+    pub fn modsub768(x: *const u64, y: *const u64, m: *const u64, z: *mut u64);
+}
 /// This modular multiplication algorithm uses Montgomery
 /// reduction for efficient implementation. It also additionally
 /// uses the "no-carry optimization" outlined
 /// [here](https://hackmd.io/@zkteam/modular_multiplication) if
-/// `P::MODULUS` has (a) a non-zero MSB, and (b) at least one
+/// `P::MODULUS` has BOTH (a) a zero MSB, AND (b) at least one
 /// zero bit in the rest of the modulus.
+
 macro_rules! impl_field_mul_assign {
     ($limbs:expr) => {
         #[inline]
         #[ark_ff_asm::unroll_for_loops]
         fn mul_assign(&mut self, other: &Self) {
+            #[cfg(use_bw6_asm)]
+            #[allow(unsafe_code, unused_mut, unconditional_panic)]
+            {
+                if $limbs == 12 {
+                    unsafe {
+                        let modulus_with_inv = [
+                            P::MODULUS.0[0],
+                            P::MODULUS.0[1],
+                            P::MODULUS.0[2],
+                            P::MODULUS.0[3],
+                            P::MODULUS.0[4],
+                            P::MODULUS.0[5],
+                            P::MODULUS.0[6],
+                            P::MODULUS.0[7],
+                            P::MODULUS.0[8],
+                            P::MODULUS.0[9],
+                            P::MODULUS.0[10],
+                            P::MODULUS.0[11],
+                            P::INV,
+                        ];
+                        crate::fields::arithmetic::modmul768(
+                            ((self.0).0).as_ptr(),
+                            ((other.0).0).as_ptr(),
+                            modulus_with_inv.as_ptr(),
+                            ((self.0).0).as_mut_ptr(),
+                        );
+                        return;
+                    }
+                }
+            }
             // Checking the modulus at compile time
             let first_bit_set = P::MODULUS.0[$limbs - 1] >> 63 != 0;
             let mut all_bits_set = P::MODULUS.0[$limbs - 1] == !0 - (1 << 63);
             for i in 1..$limbs {
                 all_bits_set &= P::MODULUS.0[$limbs - i - 1] == !0u64;
             }
+
             let _no_carry: bool = !(first_bit_set || all_bits_set);
 
             // No-carry optimisation applied to CIOS
@@ -76,6 +116,93 @@ macro_rules! impl_field_mul_assign {
     };
 }
 
+macro_rules! impl_field_add_assign {
+    ($limbs:expr) => {
+        #[inline]
+        #[ark_ff_asm::unroll_for_loops]
+        fn add_assign(&mut self, other: &Self) {
+            #[cfg(use_bw6_asm)]
+            #[allow(unsafe_code, unused_mut, unconditional_panic)]
+            {
+                if $limbs == 12 {
+                    unsafe {
+                        let modulus_with_inv = [
+                            P::MODULUS.0[0],
+                            P::MODULUS.0[1],
+                            P::MODULUS.0[2],
+                            P::MODULUS.0[3],
+                            P::MODULUS.0[4],
+                            P::MODULUS.0[5],
+                            P::MODULUS.0[6],
+                            P::MODULUS.0[7],
+                            P::MODULUS.0[8],
+                            P::MODULUS.0[9],
+                            P::MODULUS.0[10],
+                            P::MODULUS.0[11],
+                            P::INV,
+                        ];
+                        crate::fields::arithmetic::modadd768(
+                            ((self.0).0).as_ptr(),
+                            ((other.0).0).as_ptr(),
+                            modulus_with_inv.as_ptr(),
+                            ((self.0).0).as_mut_ptr(),
+                        );
+                        return;
+                    }
+                }
+            }
+            // This cannot exceed the backing capacity.
+            self.0.add_nocarry(&other.0);
+            // However, it may need to be reduced
+            self.reduce();
+        }
+    };
+}
+
+macro_rules! impl_field_sub_assign {
+    ($limbs:expr) => {
+        #[inline]
+        #[ark_ff_asm::unroll_for_loops]
+        fn sub_assign(&mut self, other: &Self) {
+            #[cfg(use_bw6_asm)]
+            #[allow(unsafe_code, unused_mut, unconditional_panic)]
+            {
+                if $limbs == 12 {
+                    unsafe {
+                        let modulus_with_inv = [
+                            P::MODULUS.0[0],
+                            P::MODULUS.0[1],
+                            P::MODULUS.0[2],
+                            P::MODULUS.0[3],
+                            P::MODULUS.0[4],
+                            P::MODULUS.0[5],
+                            P::MODULUS.0[6],
+                            P::MODULUS.0[7],
+                            P::MODULUS.0[8],
+                            P::MODULUS.0[9],
+                            P::MODULUS.0[10],
+                            P::MODULUS.0[11],
+                            P::INV,
+                        ];
+                        crate::fields::arithmetic::modsub768(
+                            ((self.0).0).as_ptr(),
+                            ((other.0).0).as_ptr(),
+                            modulus_with_inv.as_ptr(),
+                            ((self.0).0).as_mut_ptr(),
+                        );
+                        return;
+                    }
+                }
+            }
+            // If `other` is larger than `self`, add the modulus to self first.
+            if other.0 > self.0 {
+                self.0.add_nocarry(&P::MODULUS);
+            }
+            self.0.sub_noborrow(&other.0);
+        }
+    };
+}
+
 macro_rules! impl_field_into_repr {
     ($limbs:expr, $BigIntegerType:ty) => {
         #[inline]
@@ -107,11 +234,42 @@ macro_rules! impl_field_square_in_place {
         #[ark_ff_asm::unroll_for_loops]
         #[allow(unused_braces, clippy::absurd_extreme_comparisons)]
         fn square_in_place(&mut self) -> &mut Self {
+            #[cfg(use_bw6_asm)]
+            #[allow(unsafe_code, unused_mut, unconditional_panic)]
+            {
+                if $limbs == 12 {
+                    unsafe {
+                        let modulus_with_inv = [
+                            P::MODULUS.0[0],
+                            P::MODULUS.0[1],
+                            P::MODULUS.0[2],
+                            P::MODULUS.0[3],
+                            P::MODULUS.0[4],
+                            P::MODULUS.0[5],
+                            P::MODULUS.0[6],
+                            P::MODULUS.0[7],
+                            P::MODULUS.0[8],
+                            P::MODULUS.0[9],
+                            P::MODULUS.0[10],
+                            P::MODULUS.0[11],
+                            P::INV,
+                        ];
+                        crate::fields::arithmetic::modmul768(
+                            ((self.0).0).as_ptr(),
+                            ((self.0).0).as_ptr(),
+                            modulus_with_inv.as_ptr(),
+                            ((self.0).0).as_mut_ptr(),
+                        );
+                        return self;
+                    }
+                }
+            }
+
             // Checking the modulus at compile time
             let first_bit_set = P::MODULUS.0[$limbs - 1] >> 63 != 0;
             let mut all_bits_set = P::MODULUS.0[$limbs - 1] == !0 - (1 << 63);
             for i in 1..$limbs {
-                all_bits_set &= P::MODULUS.0[$limbs - i - 1] == core::u64::MAX;
+                all_bits_set &= P::MODULUS.0[$limbs - i - 1] == !0u64;
             }
             let _no_carry: bool = !(first_bit_set || all_bits_set);
 

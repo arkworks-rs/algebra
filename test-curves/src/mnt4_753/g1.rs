@@ -1,4 +1,5 @@
 use ark_ec::{
+    impl_scalar_mul_kernel, impl_scalar_mul_parameters,
     models::{ModelParameters, SWModelParameters},
     short_weierstrass_jacobian::*,
 };
@@ -16,6 +17,8 @@ impl ModelParameters for Parameters {
     type BaseField = Fq;
     type ScalarField = Fr;
 }
+
+impl_scalar_mul_kernel!(mnt4_753, "ark-mnt4-753", g1, G1Projective);
 
 impl SWModelParameters for Parameters {
     /// COEFF_A = 2
@@ -63,6 +66,8 @@ impl SWModelParameters for Parameters {
     /// AFFINE_GENERATOR_COEFFS = (G1_GENERATOR_X, G1_GENERATOR_Y)
     const AFFINE_GENERATOR_COEFFS: (Self::BaseField, Self::BaseField) =
         (G1_GENERATOR_X, G1_GENERATOR_Y);
+
+    impl_scalar_mul_parameters!(G1Projective);
 }
 
 // Generator of G1

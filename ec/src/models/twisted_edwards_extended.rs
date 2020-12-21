@@ -1,6 +1,10 @@
+#[cfg(not(feature = "cuda"))]
+use crate::accel_dummy::*;
 use crate::{
-    models::{MontgomeryModelParameters as MontgomeryParameters, TEModelParameters as Parameters},
-    AffineCurve, ProjectiveCurve,
+    batch_arith::{decode_endo_from_u32, BatchGroupArithmetic},
+    cuda::scalar_mul::{internal::GPUScalarMulInternal, ScalarMulProfiler},
+    impl_gpu_cpu_run_kernel, impl_gpu_te_projective, impl_run_kernel, AffineCurve, ModelParameters,
+    ProjectiveCurve,
 };
 use ark_serialize::{
     CanonicalDeserialize, CanonicalDeserializeWithFlags, CanonicalSerialize,
@@ -11,6 +15,7 @@ use ark_std::{
     io::{Read, Result as IoResult, Write},
     marker::PhantomData,
     ops::{Add, AddAssign, MulAssign, Neg, Sub, SubAssign},
+    string::String,
     vec::Vec,
 };
 use num_traits::{One, Zero};
@@ -18,15 +23,61 @@ use rand::{
     distributions::{Distribution, Standard},
     Rng,
 };
+#[cfg(feature = "cuda")]
+use {
+    crate::BatchGroupArithmeticSlice, accel::*, closure::closure, log::debug, peekmore::PeekMore,
+    std::sync::Mutex,
+};
 
 use ark_ff::{
+    biginteger::BigInteger,
     bytes::{FromBytes, ToBytes},
-    fields::{BitIteratorBE, Field, PrimeField, SquareRootField},
-    ToConstraintField, UniformRand,
+    fields::{BitIteratorBE, Field, FpParameters, PrimeField, SquareRootField},
+    impl_additive_ops_from_ref, ToConstraintField, UniformRand,
 };
 
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
+
+pub trait MontgomeryModelParameters: ModelParameters {
+    const COEFF_A: Self::BaseField;
+    const COEFF_B: Self::BaseField;
+
+    type TEModelParameters: TEModelParameters<BaseField = Self::BaseField>;
+}
+
+pub trait TEModelParameters: ModelParameters + Sized {
+    const COEFF_A: Self::BaseField;
+    const COEFF_D: Self::BaseField;
+    const COFACTOR: &'static [u64];
+    const COFACTOR_INV: Self::ScalarField;
+    const AFFINE_GENERATOR_COEFFS: (Self::BaseField, Self::BaseField);
+
+    type MontgomeryModelParameters: MontgomeryModelParameters<BaseField = Self::BaseField>;
+
+    #[inline(always)]
+    fn mul_by_a(elem: &Self::BaseField) -> Self::BaseField {
+        let mut copy = *elem;
+        copy *= &Self::COEFF_A;
+        copy
+    }
+
+    fn scalar_mul_kernel(
+        ctx: &Context,
+        grid: usize,
+        block: usize,
+        table: *const GroupProjective<Self>,
+        exps: *const u8,
+        out: *mut GroupProjective<Self>,
+        n: isize,
+    ) -> error::Result<()>;
+
+    fn scalar_mul_static_profiler() -> ScalarMulProfiler;
+
+    fn namespace() -> &'static str;
+}
+
+use {MontgomeryModelParameters as MontgomeryParameters, TEModelParameters as Parameters};
 
 #[derive(Derivative)]
 #[derivative(
@@ -172,7 +223,7 @@ impl<P: Parameters> Neg for GroupAffine<P> {
     }
 }
 
-ark_ff::impl_additive_ops_from_ref!(GroupAffine, Parameters);
+impl_additive_ops_from_ref!(GroupAffine, Parameters);
 
 impl<'a, P: Parameters> Add<&'a Self> for GroupAffine<P> {
     type Output = Self;
@@ -280,6 +331,208 @@ mod group_impl {
             *self = tmp;
             self
         }
+    }
+}
+
+macro_rules! batch_add_loop_1 {
+    ($a: ident, $b: ident, $inversion_tmp: ident) => {
+        if $a.is_zero() || $b.is_zero() {
+            continue;
+        } else {
+            let y1y2 = $a.y * &$b.y;
+            let x1x2 = $a.x * &$b.x;
+
+            $a.x = ($a.x + &$a.y) * &($b.x + &$b.y) - &y1y2 - &x1x2;
+            $a.y = y1y2;
+            if !P::COEFF_A.is_zero() {
+                $a.y -= &P::mul_by_a(&x1x2);
+            }
+
+            let dx1x2y1y2 = P::COEFF_D * &y1y2 * &x1x2;
+
+            let inversion_mul_d = $inversion_tmp * &dx1x2y1y2;
+
+            $a.x *= &($inversion_tmp - &inversion_mul_d);
+            $a.y *= &($inversion_tmp + &inversion_mul_d);
+
+            $b.x = P::BaseField::one() - &dx1x2y1y2.square();
+
+            $inversion_tmp *= &$b.x;
+        }
+    };
+}
+
+macro_rules! batch_add_loop_2 {
+    ($a: ident, $b: ident, $inversion_tmp: ident) => {
+        if $a.is_zero() {
+            *$a = $b;
+        } else if !$b.is_zero() {
+            $a.x *= &$inversion_tmp;
+            $a.y *= &$inversion_tmp;
+
+            $inversion_tmp *= &$b.x;
+        }
+    };
+}
+
+impl<P: Parameters> BatchGroupArithmetic for GroupAffine<P> {
+    type BaseFieldForBatch = P::BaseField;
+
+    fn batch_double_in_place(
+        bases: &mut [Self],
+        index: &[u32],
+        _scratch_space: Option<&mut Vec<Self::BaseFieldForBatch>>,
+    ) {
+        Self::batch_add_in_place(
+            bases,
+            &mut bases.to_vec()[..],
+            &index.iter().map(|&x| (x, x)).collect::<Vec<_>>()[..],
+        );
+    }
+
+    // Total cost: 12 mul. Projective formulas: 11 mul.
+    fn batch_add_in_place_same_slice(bases: &mut [Self], index: &[(u32, u32)]) {
+        let mut inversion_tmp = P::BaseField::one();
+        // We run two loops over the data separated by an inversion
+        for (idx, idy) in index.iter() {
+            let (mut a, mut b) = if idx < idy {
+                let (x, y) = bases.split_at_mut(*idy as usize);
+                (&mut x[*idx as usize], &mut y[0])
+            } else {
+                let (x, y) = bases.split_at_mut(*idx as usize);
+                (&mut y[0], &mut x[*idy as usize])
+            };
+            batch_add_loop_1!(a, b, inversion_tmp);
+        }
+
+        inversion_tmp = inversion_tmp.inverse().unwrap(); // this is always in Fp*
+
+        for (idx, idy) in index.iter().rev() {
+            let (a, b) = if idx < idy {
+                let (x, y) = bases.split_at_mut(*idy as usize);
+                (&mut x[*idx as usize], y[0])
+            } else {
+                let (x, y) = bases.split_at_mut(*idx as usize);
+                (&mut y[0], x[*idy as usize])
+            };
+            batch_add_loop_2!(a, b, inversion_tmp);
+        }
+    }
+
+    // Total cost: 12 mul. Projective formulas: 11 mul.
+    fn batch_add_in_place(bases: &mut [Self], other: &mut [Self], index: &[(u32, u32)]) {
+        let mut inversion_tmp = P::BaseField::one();
+        // We run two loops over the data separated by an inversion
+        for (idx, idy) in index.iter() {
+            let (mut a, mut b) = (&mut bases[*idx as usize], &mut other[*idy as usize]);
+            batch_add_loop_1!(a, b, inversion_tmp);
+        }
+
+        inversion_tmp = inversion_tmp.inverse().unwrap(); // this is always in Fp*
+
+        for (idx, idy) in index.iter().rev() {
+            let (a, b) = (&mut bases[*idx as usize], other[*idy as usize]);
+            batch_add_loop_2!(a, b, inversion_tmp);
+        }
+    }
+
+    #[inline]
+    fn batch_add_in_place_read_only(
+        bases: &mut [Self],
+        other: &[Self],
+        index: &[(u32, u32)],
+        scratch_space: &mut Vec<Self>,
+    ) {
+        let mut inversion_tmp = P::BaseField::one();
+        // We run two loops over the data separated by an inversion
+        for (idx, idy) in index.iter() {
+            let (idy, endomorphism) = decode_endo_from_u32(*idy);
+            let mut a = &mut bases[*idx as usize];
+            // Apply endomorphisms according to encoding
+            let mut b = if endomorphism % 2 == 1 {
+                other[idy].neg()
+            } else {
+                other[idy]
+            };
+
+            batch_add_loop_1!(a, b, inversion_tmp);
+            scratch_space.push(b);
+        }
+
+        inversion_tmp = inversion_tmp.inverse().unwrap(); // this is always in Fp*
+
+        for (idx, _) in index.iter().rev() {
+            let (a, b) = (&mut bases[*idx as usize], scratch_space.pop().unwrap());
+            batch_add_loop_2!(a, b, inversion_tmp);
+        }
+    }
+
+    fn batch_add_write(
+        lookup: &[Self],
+        index: &[(u32, u32)],
+        new_elems: &mut Vec<Self>,
+        scratch_space: &mut Vec<Option<Self>>,
+    ) {
+        let mut inversion_tmp = P::BaseField::one();
+
+        for (idx, idy) in index.iter() {
+            if *idy == !0u32 {
+                new_elems.push(lookup[*idx as usize]);
+                scratch_space.push(None);
+            } else {
+                let (mut a, mut b) = (lookup[*idx as usize], lookup[*idy as usize]);
+                batch_add_loop_1!(a, b, inversion_tmp);
+                new_elems.push(a);
+                scratch_space.push(Some(b));
+            }
+        }
+
+        inversion_tmp = inversion_tmp.inverse().unwrap(); // this is always in Fp*
+
+        for (a, op_b) in new_elems.iter_mut().rev().zip(scratch_space.iter().rev()) {
+            match op_b {
+                Some(b) => {
+                    let b_ = *b;
+                    batch_add_loop_2!(a, b_, inversion_tmp);
+                }
+                None => (),
+            };
+        }
+        scratch_space.clear();
+    }
+
+    fn batch_add_write_read_self(
+        lookup: &[Self],
+        index: &[(u32, u32)],
+        new_elems: &mut Vec<Self>,
+        scratch_space: &mut Vec<Option<Self>>,
+    ) {
+        let mut inversion_tmp = P::BaseField::one();
+
+        for (idx, idy) in index.iter() {
+            if *idy == !0u32 {
+                new_elems.push(lookup[*idx as usize]);
+                scratch_space.push(None);
+            } else {
+                let (mut a, mut b) = (new_elems[*idx as usize], lookup[*idy as usize]);
+                batch_add_loop_1!(a, b, inversion_tmp);
+                new_elems.push(a);
+                scratch_space.push(Some(b));
+            }
+        }
+
+        inversion_tmp = inversion_tmp.inverse().unwrap(); // this is always in Fp*
+
+        for (a, op_b) in new_elems.iter_mut().rev().zip(scratch_space.iter().rev()) {
+            match op_b {
+                Some(b) => {
+                    let b_ = *b;
+                    batch_add_loop_2!(a, b_, inversion_tmp);
+                }
+                None => (),
+            };
+        }
+        scratch_space.clear();
     }
 }
 
@@ -409,11 +662,18 @@ impl<P: Parameters> Zero for GroupProjective<P> {
     }
 }
 
+impl_gpu_te_projective!(Parameters);
+
 impl<P: Parameters> ProjectiveCurve for GroupProjective<P> {
     const COFACTOR: &'static [u64] = P::COFACTOR;
     type BaseField = P::BaseField;
     type ScalarField = P::ScalarField;
     type Affine = GroupAffine<P>;
+
+    #[inline(always)]
+    fn get_x(&mut self) -> &mut Self::BaseField {
+        &mut self.x
+    }
 
     fn prime_subgroup_generator() -> Self {
         GroupAffine::prime_subgroup_generator().into()
@@ -718,7 +978,6 @@ impl<P: MontgomeryParameters> MontgomeryGroupAffine<P> {
         }
     }
 }
-
 impl<P: Parameters> CanonicalSerialize for GroupAffine<P> {
     #[allow(unused_qualifications)]
     #[inline]
@@ -759,7 +1018,15 @@ impl<P: Parameters> ConstantSerializedSize for GroupAffine<P> {
 
 impl<P: Parameters> CanonicalDeserialize for GroupAffine<P> {
     #[allow(unused_qualifications)]
-    fn deserialize<R: Read>(mut reader: R) -> Result<Self, SerializationError> {
+    fn deserialize<R: Read>(reader: R) -> Result<Self, SerializationError> {
+        let p = Self::deserialize_unchecked(reader)?;
+        if !p.is_in_correct_subgroup_assuming_on_curve() {
+            return Err(SerializationError::InvalidData);
+        }
+        Ok(p)
+    }
+    #[allow(unused_qualifications)]
+    fn deserialize_unchecked<R: Read>(mut reader: R) -> Result<Self, SerializationError> {
         let (x, flags): (P::BaseField, EdwardsFlags) =
             CanonicalDeserializeWithFlags::deserialize_with_flags(&mut reader)?;
         if x == P::BaseField::zero() {
@@ -767,16 +1034,13 @@ impl<P: Parameters> CanonicalDeserialize for GroupAffine<P> {
         } else {
             let p = GroupAffine::<P>::get_point_from_x(x, flags.is_positive())
                 .ok_or(SerializationError::InvalidData)?;
-            if !p.is_in_correct_subgroup_assuming_on_curve() {
-                return Err(SerializationError::InvalidData);
-            }
             Ok(p)
         }
     }
 
     #[allow(unused_qualifications)]
     fn deserialize_uncompressed<R: Read>(reader: R) -> Result<Self, SerializationError> {
-        let p = Self::deserialize_unchecked(reader)?;
+        let p = Self::deserialize_uncompressed_unchecked(reader)?;
 
         if !p.is_in_correct_subgroup_assuming_on_curve() {
             return Err(SerializationError::InvalidData);
@@ -785,7 +1049,9 @@ impl<P: Parameters> CanonicalDeserialize for GroupAffine<P> {
     }
 
     #[allow(unused_qualifications)]
-    fn deserialize_unchecked<R: Read>(mut reader: R) -> Result<Self, SerializationError> {
+    fn deserialize_uncompressed_unchecked<R: Read>(
+        mut reader: R,
+    ) -> Result<Self, SerializationError> {
         let x: P::BaseField = CanonicalDeserialize::deserialize(&mut reader)?;
         let y: P::BaseField = CanonicalDeserialize::deserialize(&mut reader)?;
 

@@ -24,6 +24,7 @@ bigint_impl!(BigInteger128, 2);
 bigint_impl!(BigInteger256, 4);
 bigint_impl!(BigInteger320, 5);
 bigint_impl!(BigInteger384, 6);
+bigint_impl!(BigInteger512, 6);
 bigint_impl!(BigInteger768, 12);
 bigint_impl!(BigInteger832, 13);
 
@@ -116,6 +117,20 @@ pub trait BigInteger:
         *self = Self::read(reader)?;
         Ok(())
     }
+
+    /// Takes two slices of u64 representing big integers and returns a bigger
+    /// BigInteger of type Self representing their product. Preferably used
+    /// only for even NUM_LIMBS. We require the invariant that this.len() ==
+    /// other.len() == NUM_LIMBS / 2
+    fn mul_no_reduce(this: &[u64], other: &[u64]) -> Self;
+
+    /// Similar to `mul_no_reduce` but accepts slices of len == NUM_LIMBS and
+    /// only returns lower half of the result
+    fn mul_no_reduce_lo(this: &[u64], other: &[u64]) -> Self;
+
+    /// Copies data from a slice to Self in a len agnostic way,
+    // based on whichever of the two is shorter.
+    fn from_slice(slice: &[u64]) -> Self;
 }
 
 pub mod arithmetic {

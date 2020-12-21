@@ -9,6 +9,7 @@
 #![recursion_limit = "128"]
 
 use proc_macro::TokenStream;
+use quote::quote;
 use syn::{
     parse::{Parse, ParseStream},
     Expr, Item, ItemFn,
@@ -44,9 +45,9 @@ pub fn unroll_for_loops(_meta: TokenStream, input: TokenStream) -> TokenStream {
             block: Box::new(new_block),
             ..item_fn
         });
-        quote::quote! ( #new_item ).into()
+        quote! ( #new_item ).into()
     } else {
-        quote::quote! ( #item ).into()
+        quote! ( #item ).into()
     }
 }
 
