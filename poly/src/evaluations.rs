@@ -1,4 +1,4 @@
-//! A polynomial represented in evaluations form.
+//! A univariate dense polynomial represented in evaluations form.
 
 use crate::univariate::DensePolynomial;
 use crate::{EvaluationDomain, GeneralEvaluationDomain, UVPolynomial};
