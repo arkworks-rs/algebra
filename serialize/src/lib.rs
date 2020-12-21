@@ -9,6 +9,7 @@ use ark_std::{
     borrow::{Cow, ToOwned},
     collections::{BTreeMap, BTreeSet},
     convert::TryFrom,
+    string::String,
     vec::Vec,
 };
 pub use error::*;
@@ -201,6 +202,27 @@ impl CanonicalDeserialize for usize {
         let mut bytes = [0u8; Self::SERIALIZED_SIZE];
         reader.read_exact(&mut bytes)?;
         usize::try_from(u64::from_le_bytes(bytes)).map_err(|_| SerializationError::InvalidData)
+    }
+}
+
+// Implement Serialization for `String`
+impl CanonicalSerialize for String {
+    #[inline]
+    fn serialize<W: Write>(&self, mut writer: W) -> Result<(), SerializationError> {
+        self.clone().into_bytes().serialize(&mut writer)
+    }
+
+    #[inline]
+    fn serialized_size(&self) -> usize {
+        self.clone().into_bytes().serialized_size()
+    }
+}
+
+impl CanonicalDeserialize for String {
+    #[inline]
+    fn deserialize<R: Read>(mut reader: R) -> Result<Self, SerializationError> {
+        String::from_utf8(Vec::<u8>::deserialize(&mut reader)?)
+            .map_err(|_| SerializationError::InvalidData)
     }
 }
 
@@ -887,6 +909,11 @@ mod test {
         test_serialize(192830918u32);
         test_serialize(22313u16);
         test_serialize(123u8);
+    }
+
+    #[test]
+    fn test_string() {
+        test_serialize(String::from("arkworks"));
     }
 
     #[test]

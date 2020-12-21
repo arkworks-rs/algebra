@@ -57,6 +57,7 @@ The main features of this release are:
 - #131, #137 (ark-ff) Speedup `sqrt` on fields when a square root exists. (And slows it down when doesn't exist)
 - #141 (ark-ff) Add `Fp64`
 - #144 (ark-poly) Add serialization for polynomials and evaluations
+- #149 (ark-serialize) Add an impl of `CanonicalSerialize/Deserialize` for `String`.
 
 ### Bug fixes
 - #36 (ark-ec) In Short-Weierstrass curves, include an infinity bit in `ToConstraintField`.
