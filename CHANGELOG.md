@@ -1,6 +1,14 @@
 
 ## Pending
 
+The main features of this release are:
+
+- Adding the ability to define fields with integer parameters
+- Multi-variate polynomial support
+- Many speedups to operations involving polynomials
+- Some speedups to `sqrt`
+- Speedup to fixed-base `MSM`s
+
 ### Breaking changes
 - #20 (ark-poly) Move univariate DensePolynomial and SparsePolynomial into a 
     univariate sub-crate. Make this change by:
@@ -19,9 +27,16 @@
     by replacing `sparse_poly.evaluate(pt)` to `sparse_poly.evaluate(&pt)`.
 - #129 (ark-ff) Move `ark_ff::{UniformRand, test_rng}` to `ark_std::{UniformRand, test_rng}`.
     Importing these from `ark-ff` is still possible, but is deprecated and will be removed in the following release.
+- #144 (ark-poly) Add `CanonicalSerialize` and `CanonicalDeserialize` trait bounds for `Polynomial`.
 
 ### Features
 - #20 (ark-poly) Add structs/traits for multivariate polynomials
+- #96 (ark-ff) Make the `field_new` macro accept values in integer form, without requiring decomposition into limbs, and without requiring encoding in Montgomery form.
+- #106 (ark-ff, ark-ec) Add `Zeroize` trait bound to `Field, ProjectiveGroup, AffineGroup` traits.
+- #117 (ark-poly) Add operations to `SparsePolynomial`, so it implements `Polynomial`
+
+
+### Improvements
 - #22 (ark-ec) Speedup fixed-base MSMs
 - #28 (ark-poly) Add `domain()` method on the `evaluations` struct
 - #31 (ark-ec) Speedup point doubling on twisted edwards curves

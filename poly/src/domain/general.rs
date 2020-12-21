@@ -46,8 +46,8 @@ impl<F: FftField> CanonicalSerialize for GeneralEvaluationDomain<F> {
         type_id.serialize(&mut writer)?;
 
         match self {
-            GeneralEvaluationDomain::Radix2(d) => d.serialize(&mut writer),
-            GeneralEvaluationDomain::MixedRadix(d) => d.serialize(&mut writer),
+            GeneralEvaluationDomain::Radix2(domain) => domain.serialize(&mut writer),
+            GeneralEvaluationDomain::MixedRadix(domain) => domain.serialize(&mut writer),
         }
     }
 
@@ -59,8 +59,8 @@ impl<F: FftField> CanonicalSerialize for GeneralEvaluationDomain<F> {
 
         type_id.serialized_size()
             + match self {
-                GeneralEvaluationDomain::Radix2(d) => d.serialized_size(),
-                GeneralEvaluationDomain::MixedRadix(d) => d.serialized_size(),
+                GeneralEvaluationDomain::Radix2(domain) => domain.serialized_size(),
+                GeneralEvaluationDomain::MixedRadix(domain) => domain.serialized_size(),
             }
     }
 
@@ -72,8 +72,10 @@ impl<F: FftField> CanonicalSerialize for GeneralEvaluationDomain<F> {
         type_id.serialize_uncompressed(&mut writer)?;
 
         match self {
-            GeneralEvaluationDomain::Radix2(d) => d.serialize_uncompressed(&mut writer),
-            GeneralEvaluationDomain::MixedRadix(d) => d.serialize_uncompressed(&mut writer),
+            GeneralEvaluationDomain::Radix2(domain) => domain.serialize_uncompressed(&mut writer),
+            GeneralEvaluationDomain::MixedRadix(domain) => {
+                domain.serialize_uncompressed(&mut writer)
+            }
         }
     }
 
@@ -85,8 +87,8 @@ impl<F: FftField> CanonicalSerialize for GeneralEvaluationDomain<F> {
         type_id.serialize_unchecked(&mut writer)?;
 
         match self {
-            GeneralEvaluationDomain::Radix2(d) => d.serialize_unchecked(&mut writer),
-            GeneralEvaluationDomain::MixedRadix(d) => d.serialize_unchecked(&mut writer),
+            GeneralEvaluationDomain::Radix2(domain) => domain.serialize_unchecked(&mut writer),
+            GeneralEvaluationDomain::MixedRadix(domain) => domain.serialize_unchecked(&mut writer),
         }
     }
 
@@ -98,8 +100,8 @@ impl<F: FftField> CanonicalSerialize for GeneralEvaluationDomain<F> {
 
         type_id.uncompressed_size()
             + match self {
-                GeneralEvaluationDomain::Radix2(d) => d.uncompressed_size(),
-                GeneralEvaluationDomain::MixedRadix(d) => d.uncompressed_size(),
+                GeneralEvaluationDomain::Radix2(domain) => domain.uncompressed_size(),
+                GeneralEvaluationDomain::MixedRadix(domain) => domain.uncompressed_size(),
             }
     }
 }
