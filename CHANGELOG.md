@@ -58,6 +58,7 @@ The main features of this release are:
 - #141 (ark-ff) Add `Fp64`
 - #144 (ark-poly) Add serialization for polynomials and evaluations
 - #149 (ark-serialize) Add an impl of `CanonicalSerialize/Deserialize` for `String`.
+- #153 (ark-serialize) Add an impl of `CanonicalSerialize/Deserialize` for `Rc<T>`.
 
 ### Bug fixes
 - #36 (ark-ec) In Short-Weierstrass curves, include an infinity bit in `ToConstraintField`.
