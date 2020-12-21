@@ -9,6 +9,7 @@ use ark_std::{
     borrow::{Cow, ToOwned},
     collections::{BTreeMap, BTreeSet},
     convert::TryFrom,
+    rc::Rc,
     string::String,
     vec::Vec,
 };
@@ -580,6 +581,51 @@ impl<T: CanonicalDeserialize> CanonicalDeserialize for Option<T> {
     }
 }
 
+// Implement Serialization for `Rc<T>`
+impl<T: CanonicalSerialize> CanonicalSerialize for Rc<T> {
+    #[inline]
+    fn serialize<W: Write>(&self, mut writer: W) -> Result<(), SerializationError> {
+        self.as_ref().serialize(&mut writer)
+    }
+
+    #[inline]
+    fn serialized_size(&self) -> usize {
+        self.as_ref().serialized_size()
+    }
+
+    #[inline]
+    fn serialize_uncompressed<W: Write>(&self, mut writer: W) -> Result<(), SerializationError> {
+        self.as_ref().serialize_uncompressed(&mut writer)
+    }
+
+    #[inline]
+    fn uncompressed_size(&self) -> usize {
+        self.as_ref().uncompressed_size()
+    }
+
+    #[inline]
+    fn serialize_unchecked<W: Write>(&self, mut writer: W) -> Result<(), SerializationError> {
+        self.as_ref().serialize_unchecked(&mut writer)
+    }
+}
+
+impl<T: CanonicalDeserialize> CanonicalDeserialize for Rc<T> {
+    #[inline]
+    fn deserialize<R: Read>(mut reader: R) -> Result<Self, SerializationError> {
+        Ok(Rc::new(T::deserialize(&mut reader)?))
+    }
+
+    #[inline]
+    fn deserialize_uncompressed<R: Read>(mut reader: R) -> Result<Self, SerializationError> {
+        Ok(Rc::new(T::deserialize_uncompressed(&mut reader)?))
+    }
+
+    #[inline]
+    fn deserialize_unchecked<R: Read>(mut reader: R) -> Result<Self, SerializationError> {
+        Ok(Rc::new(T::deserialize_unchecked(&mut reader)?))
+    }
+}
+
 // Serialize boolean with a full byte
 impl CanonicalSerialize for bool {
     #[inline]
@@ -800,7 +846,7 @@ mod test {
             &self,
             mut writer: W,
         ) -> Result<(), SerializationError> {
-            (&[100u8, 200u8]).serialize(&mut writer)
+            (&[100u8, 200u8]).serialize_uncompressed(&mut writer)
         }
 
         #[inline]
@@ -810,7 +856,7 @@ mod test {
 
         #[inline]
         fn serialize_unchecked<W: Write>(&self, mut writer: W) -> Result<(), SerializationError> {
-            (&[100u8, 200u8]).serialize(&mut writer)
+            (&[100u8, 200u8]).serialize_unchecked(&mut writer)
         }
     }
 
@@ -942,6 +988,11 @@ mod test {
 
         test_serialize(Some(10u64));
         test_serialize(None::<u64>);
+    }
+
+    #[test]
+    fn test_rc() {
+        test_serialize(Rc::new(Dummy));
     }
 
     #[test]
