@@ -1,6 +1,7 @@
 //! Modules for working with univariate or multivariate polynomials.
 use ark_ff::{Field, Zero};
 use ark_serialize::*;
+use ark_std::ops::Index;
 use ark_std::{
     fmt::Debug,
     hash::Hash,
@@ -82,15 +83,12 @@ pub trait MVPolynomialCoefficientForm<F: Field>: MVPolynomial<F> {
     fn terms(&self) -> &[(F, Self::Term)];
 }
 
-/// Describes interface for multilinear polynomials in evaluation form
-pub trait MultilinearPolynomialEvaluationForm<F: Field>: MVPolynomial<F> {
+/// Describes interface for multilinear polynomials in evaluation form.
+///
+/// Index represents a point, which is a vector in {0,1}^`num_vars` in little endian form. For example, `0b1011` represents `P(1,1,0,1)`
+pub trait MultilinearPolynomialEvaluationForm<F: Field>: MVPolynomial<F> + Index<usize> {
     /// The type of partial evaluation point vectors for this polynomial.
     type PartialPoint: Sized + Clone + Ord + Debug + Sync + Hash;
-
-    /// Returns the evaluation of the polynomial at a point represented by index.
-    ///
-    /// Index represents a vector in {0,1}^`num_vars` in little endian form. For example, `0b1011` represents `P(1,1,0,1)`
-    fn lookup_evaluation(&self, index: usize) -> F;
 
     /// Relabel the point by switching `k` scalars from position `a` to position `b`, and from position `b` to position `a` in vector.
     ///

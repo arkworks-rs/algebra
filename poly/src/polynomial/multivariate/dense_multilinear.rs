@@ -1,4 +1,4 @@
-//! multilinear polynomial represented in dense evaluation form
+//! multilinear polynomial represented in dense evaluation form.
 
 use crate::polynomial::multivariate::swap_bits;
 use crate::polynomial::MultilinearPolynomialEvaluationForm;
@@ -7,7 +7,7 @@ use ark_ff::{Field, Zero};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, Read, SerializationError, Write};
 use ark_std::fmt;
 use ark_std::fmt::Formatter;
-use ark_std::ops::{Add, AddAssign, Neg, Sub, SubAssign};
+use ark_std::ops::{Add, AddAssign, Index, Neg, Sub, SubAssign};
 use ark_std::vec::Vec;
 use rand::Rng;
 #[cfg(feature = "parallel")]
@@ -86,7 +86,7 @@ impl<F: Field> Polynomial<F> for DenseMultilinearPolynomial<F> {
     fn evaluate(&self, point: &Self::Point) -> F {
         assert_eq!(point.len(), self.num_vars, "Invalid point size");
 
-        self.partial_evaluate(point).evaluations[0]
+        self.partial_evaluate(point)[0]
     }
 }
 
@@ -110,12 +110,6 @@ impl<F: Field> MVPolynomial<F> for DenseMultilinearPolynomial<F> {
 impl<F: Field> MultilinearPolynomialEvaluationForm<F> for DenseMultilinearPolynomial<F> {
     type PartialPoint = Vec<F>;
 
-    #[inline]
-    fn lookup_evaluation(&self, index: usize) -> F {
-        assert!(index < (1 << self.num_vars), "index out of range");
-        self.evaluations[index]
-    }
-
     fn relabel(&self, a: usize, b: usize, k: usize) -> Self {
         let mut copied = self.clone();
         copied.relabel_inplace(a, b, k);
@@ -138,6 +132,20 @@ impl<F: Field> MultilinearPolynomialEvaluationForm<F> for DenseMultilinearPolyno
             }
         }
         Self::from_evaluations_slice(nv - dim, &poly[..(1 << (nv - dim))])
+    }
+}
+
+impl<F: Field> Index<usize> for DenseMultilinearPolynomial<F> {
+    type Output = F;
+
+    /// Returns the evaluation of the polynomial at a point represented by index.
+    ///
+    /// Index represents a vector in {0,1}^`num_vars` in little endian form. For example, `0b1011` represents `P(1,1,0,1)`
+    ///
+    /// For dense multilinear polynomial, Lookup_evaluation takes constant time.
+    fn index(&self, index: usize) -> &Self::Output {
+        assert!(index < (1 << self.num_vars), "index out of range");
+        &self.evaluations[index]
     }
 }
 
@@ -244,10 +252,14 @@ impl<'a, 'b, F: Field> SubAssign<&'a DenseMultilinearPolynomial<F>>
 impl<F: Field> fmt::Debug for DenseMultilinearPolynomial<F> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), fmt::Error> {
         write!(f, "DenseML(nv = {}, evaluations = [", self.num_vars)?;
-        for i in 0..ark_std::cmp::min(8, self.evaluations.len()) {
+        for i in 0..ark_std::cmp::min(4, self.evaluations.len()) {
             write!(f, "{:?} ", self.evaluations[i])?;
         }
-        write!(f, "])")?;
+        if self.evaluations.len() < 4 {
+            write!(f, "])")?;
+        } else {
+            write!(f, "...])")?;
+        }
         Ok(())
     }
 }
