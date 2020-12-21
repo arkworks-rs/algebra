@@ -912,6 +912,11 @@ mod test {
     }
 
     #[test]
+    fn test_string() {
+        test_serialize(String::from("arkworks"));
+    }
+
+    #[test]
     fn test_tuple() {
         test_serialize((123u64, 234u32, Dummy));
     }
