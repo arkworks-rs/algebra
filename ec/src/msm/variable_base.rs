@@ -1,5 +1,5 @@
 use ark_ff::prelude::*;
-use ark_std::vec::Vec;
+use ark_std::{cfg_into_iter, cfg_iter, vec::Vec};
 
 use crate::{AffineCurve, ProjectiveCurve};
 
@@ -31,7 +31,7 @@ impl VariableBaseMSM {
         // Each window is of size `c`.
         // We divide up the bits 0..num_bits into windows of size `c`, and
         // in parallel process each such window.
-        let window_sums: Vec<_> = ark_std::cfg_into_iter!(window_starts)
+        let window_sums: Vec<_> = cfg_into_iter!(window_starts)
             .map(|w_start| {
                 let mut res = zero;
                 // We don't need the "zero" bucket, so we only have 2^c - 1 buckets
@@ -81,8 +81,7 @@ impl VariableBaseMSM {
 
         // We're traversing windows from high to low.
         lowest
-            + window_sums[1..]
-                .iter()
+            + cfg_iter!(window_sums[1..])
                 .rev()
                 .fold(zero, |mut total, sum_i| {
                     total += sum_i;
