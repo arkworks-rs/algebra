@@ -1,5 +1,5 @@
 use ark_ff::prelude::*;
-use ark_std::{cfg_into_iter, cfg_iter, vec::Vec};
+use ark_std::{cfg_into_iter, vec::Vec};
 
 use crate::{AffineCurve, ProjectiveCurve};
 
@@ -9,6 +9,55 @@ use rayon::prelude::*;
 pub struct VariableBaseMSM;
 
 impl VariableBaseMSM {
+    // Helper function for msm_inner
+    #[cfg(feature = "parallel")]
+    fn combine_window_sums<G: AffineCurve>(
+        mut window_sums: Vec<G::Projective>,
+        window_size: usize,
+    ) -> G::Projective {
+        let zero = G::Projective::zero();
+
+        // We store the sum for the lowest window.
+        let rest = window_sums.split_off(1);
+        let lowest = window_sums[0];
+
+        // We're traversing windows from high to low.
+        lowest
+            + &rest.into_par_iter().reduce(
+                || zero,
+                |mut total, sum_i| {
+                    total += &sum_i;
+                    for _ in 0..window_size {
+                        total.double_in_place();
+                    }
+                    total
+                },
+            )
+    }
+
+    // Helper function for msm_inner
+    #[cfg(not(feature = "parallel"))]
+    fn combine_window_sums<G: AffineCurve>(
+        mut window_sums: Vec<G::Projective>,
+        window_size: usize,
+    ) -> G::Projective {
+        let zero = G::Projective::zero();
+
+        // We store the sum for the lowest window.
+        let rest = window_sums.split_off(1);
+        let lowest = window_sums[0];
+
+        // We're traversing windows from high to low.
+        lowest
+            + &rest.into_iter().rev().fold(zero, |mut total, sum_i| {
+                total += &sum_i;
+                for _ in 0..window_size {
+                    total.double_in_place();
+                }
+                total
+            })
+    }
+
     fn msm_inner<G: AffineCurve>(
         bases: &[G],
         scalars: &[<G::ScalarField as PrimeField>::BigInt],
@@ -76,20 +125,7 @@ impl VariableBaseMSM {
             })
             .collect();
 
-        // We store the sum for the lowest window.
-        let lowest = *window_sums.first().unwrap();
-
-        // We're traversing windows from high to low.
-        lowest
-            + cfg_iter!(window_sums[1..])
-                .rev()
-                .fold(zero, |mut total, sum_i| {
-                    total += sum_i;
-                    for _ in 0..c {
-                        total.double_in_place();
-                    }
-                    total
-                })
+        Self::combine_window_sums::<G>(window_sums, c)
     }
 
     pub fn multi_scalar_mul<G: AffineCurve>(
