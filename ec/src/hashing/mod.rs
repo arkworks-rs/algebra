@@ -1,6 +1,6 @@
 use crate::AffineCurve;
-use ark_ff::Field;
-use ark_std::{marker::PhantomData, string::String, vec::Vec};
+use ark_ff::{Field, PrimeField};
+use ark_std::{marker::PhantomData, string::{ToString, String}, vec::Vec};
 use core::fmt;
 use digest::{Update, VariableOutput};
 
@@ -55,42 +55,86 @@ pub trait MapToCurve<T: AffineCurve>: Sized {
     fn map_to_curve(&self, point: T::BaseField) -> Result<T, HashToCurveError>;
 }
 
-pub trait HashToField<F: Field, H: VariableOutput + Update>: Sized {
+pub trait HashToField<F: Field>: Sized {
     fn new_hash_to_field(domain: &[u8]) -> Result<Self, HashToCurveError>;
 
     fn hash_to_field(&self, msg: &[u8], count: usize) -> Result<Vec<F>, HashToCurveError>;
 }
 
-pub struct MapToCurveBasedHasher<T, CRH, H2F, M2C>
+fn hash_len_in_bytes<F: Field>(security_parameter: usize, count: usize) -> usize {
+    // ceil(log(p))
+    let base_field_size_in_bits = F::BasePrimeField::size_in_bits();
+    // ceil(log(p)) + security_parameter
+    let base_field_size_with_security_padding_in_bits = 
+        base_field_size_in_bits + security_parameter;
+    // ceil( (ceil(log(p)) + security_parameter) / 8)
+    let bytes_per_base_field_elem = ((base_field_size_with_security_padding_in_bits + 7) / 8) as u64;
+    let len_in_bytes = F::extension_degree() * (count as u64) * bytes_per_base_field_elem;
+    len_in_bytes as usize
+}
+
+pub struct FieldHasher<H: VariableOutput + Update + Sized + Clone>
+{
+    // This hasher should already have the domain applied to it.
+    hasher: H,
+}
+
+// Implement HashToField from F and a variable output hash
+impl<F: Field, H: VariableOutput + Update + Sized + Clone> HashToField<F> for FieldHasher<H> {
+    fn new_hash_to_field(domain: &[u8]) -> Result<Self, HashToCurveError>
+    {
+        // Hardcode security parameter
+        let security_parameter = 128;
+        // Hardcode count (TODO: Should we undo this?)
+        let count = 2;
+        let bytes_per_base_field_elem = hash_len_in_bytes::<F>(security_parameter, count);
+        let hasher = H::new(bytes_per_base_field_elem);
+        let mut unwrapped_hasher = match hasher {
+            Ok(hasher) => hasher,
+            Err(err) => return Err(HashToCurveError::DomainError(err.to_string())),
+        };
+        // TODO: Handle unwrapped_hasher.update(&domain) 
+        // decide on what domain format do we want. (Pre-hash and prefix, or length prefix and then include it?)
+        // I currently prefer pre-hashing it.
+        // if domain.len() > 255 {
+
+        // }
+        // if domain.len() != 0 {
+            
+        // }
+        Ok(FieldHasher{hasher: unwrapped_hasher})
+    }
+
+    fn hash_to_field(&self, msg: &[u8], count: usize) -> Result<Vec<F>, HashToCurveError> {
+        Err(HashToCurveError::HashingError("unimplemented".to_string()))
+    }
+}
+
+pub struct MapToCurveBasedHasher<T, H2F, M2C>
 where
     T: AffineCurve,
-    CRH: VariableOutput + Update,
-    H2F: HashToField<T::BaseField, CRH>,
+    H2F: HashToField<T::BaseField>,
     M2C: MapToCurve<T>,
 {
     field_hasher: H2F,
     curve_mapper: M2C,
-    _params_t: PhantomData<T>,
-    _params_crh: PhantomData<CRH>,
+    _params_t: PhantomData<T>
 }
 
-impl<T, CRH, H2F, M2C> HashToCurve<T> for MapToCurveBasedHasher<T, CRH, H2F, M2C>
+impl<T, H2F, M2C> HashToCurve<T> for MapToCurveBasedHasher<T, H2F, M2C>
 where
     T: AffineCurve,
-    CRH: VariableOutput + Update,
-    H2F: HashToField<T::BaseField, CRH>,
+    H2F: HashToField<T::BaseField>,
     M2C: MapToCurve<T>,
 {
     fn new(domain: &[u8]) -> Result<Self, HashToCurveError> {
         let field_hasher = H2F::new_hash_to_field(domain)?;
         let curve_mapper = M2C::new_map_to_curve(domain)?;
         let _params_t = PhantomData;
-        let _params_crh = PhantomData;
         Ok(MapToCurveBasedHasher {
             field_hasher,
             curve_mapper,
             _params_t,
-            _params_crh,
         })
     }
 

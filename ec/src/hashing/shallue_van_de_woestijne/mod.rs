@@ -1,7 +1,7 @@
 use ark_ff::{Field, PrimeField, SquareRootField};
 use crate::models::SWModelParameters;
 
-pub trait shallue_van_de_woestijne_params : SWModelParameters {
+pub trait ShallueVanDeWoestijneParams : SWModelParameters {
     // a non-zero element of F meeting the below criteria.
     // Let g(x) be the value of y^2, e.g. g(x) = x^3 + Ax + B
     // 1.  g(Z) != 0 in F.
