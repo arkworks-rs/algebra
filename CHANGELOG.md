@@ -1,7 +1,5 @@
 
 ## Pending
-- Breaking Change: #140 (ark-poly) Move methods `from_coefficients_slice`, `from_coefficients_vec`, `terms` from `MVPolynomial` to `MVPolynomialCoefficientForm`
-- Feature: #140 (ark-poly) Add support for multilinear polynomial in dense and sparse evaluation form.
 
 The main features of this release are:
 
@@ -30,8 +28,8 @@ The main features of this release are:
     by replacing `sparse_poly.evaluate(pt)` to `sparse_poly.evaluate(&pt)`.
 - #129 (ark-ff) Move `ark_ff::{UniformRand, test_rng}` to `ark_std::{UniformRand, test_rng}`.
     Importing these from `ark-ff` is still possible, but is deprecated and will be removed in the following release.
-- #144 (ark-poly) Add `CanonicalSerialize` and `CanonicalDeserialize` trait bounds for `Polynomial`.
 - #140 (ark-poly) Move methods `from_coefficients_slice`, `from_coefficients_vec`, `terms` from `MVPolynomial` to `MVPolynomialCoefficientForm`
+- #144 (ark-poly) Add `CanonicalSerialize` and `CanonicalDeserialize` trait bounds for `Polynomial`.
 
 ### Features
 - #20 (ark-poly) Add structs/traits for multivariate polynomials
