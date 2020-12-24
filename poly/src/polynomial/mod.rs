@@ -92,7 +92,8 @@ pub trait MultilinearPolynomialEvaluationForm<F: Field>:
     /// The type of partial evaluation point vectors for this polynomial.
     type PartialPoint: Sized + Clone + Ord + Debug + Sync + Hash;
 
-    /// Relabel the point by switching `k` scalars from position `a` to position `b`, and from position `b` to position `a` in vector.
+    /// Relabel the point by swapping `k` scalars from positions `a..a+k` to positions `b..b+k`,
+    /// and from position `b..b+k` to position `a..a+k` in vector.
     ///
     /// This function turns `P(x_1,...,x_a,...,x_{a+k - 1},...,x_b,...,x_{b+k - 1},...,x_n)`
     /// to `P(x_1,...,x_b,...,x_{b+k - 1},...,x_a,...,x_{a+k - 1},...,x_n)`

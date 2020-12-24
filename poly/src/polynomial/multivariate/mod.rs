@@ -169,7 +169,7 @@ impl Ord for SparseTerm {
     }
 }
 
-/// multilinear utility: swap bits
+/// swap the bits of `x` from position `a..a+n` to `b..b+n` and from `b..b+n` to `a..a+n` in little endian order
 pub(crate) fn swap_bits(x: usize, a: usize, b: usize, n: usize) -> usize {
     let a_bits = (x >> a) & ((1usize << n) - 1);
     let b_bits = (x >> b) & ((1usize << n) - 1);
