@@ -27,8 +27,18 @@ path = "benches/fft.rs"
 harness = false
 
 [[bench]]
-name = "dense_polynomial"
-path = "benches/dense_polynomial.rs"
+name = "dense_uv_polynomial"
+path = "benches/dense_uv_polynomial.rs"
+harness = false
+
+[[bench]]
+name = "dense_multilinear"
+path = "benches/dense_multilinear.rs"
+harness = false
+
+[[bench]]
+name = "sparse_multilinear"
+path = "benches/sparse_multilinear.rs"
 harness = false
 
 [lib]
