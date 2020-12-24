@@ -8,6 +8,7 @@ use rayon::prelude::*;
 use crate::polynomial::multivariate::{swap_bits, DenseMultilinearPolynomial};
 use crate::polynomial::MultilinearPolynomialEvaluationForm;
 use crate::{MVPolynomial, Polynomial};
+use ark_std::collections::btree_map::IntoIter;
 use ark_std::collections::BTreeMap;
 use ark_std::fmt::{Debug, Formatter};
 use ark_std::iter::FromIterator;
@@ -395,6 +396,15 @@ fn treemap_to_hashmap<F: Field>(map: &BTreeMap<usize, F>) -> HashMap<usize, F> {
 
 fn hashmap_to_treemap<F: Field>(map: &HashMap<usize, F>) -> BTreeMap<usize, F> {
     BTreeMap::from_iter(map.iter().map(|(i, v)| (*i, *v)))
+}
+
+impl<F: Field> IntoIterator for SparseMultilinearPolynomial<F> {
+    type Item = (usize, F);
+    type IntoIter = IntoIter<usize, F>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.evaluations.into_iter()
+    }
 }
 
 #[cfg(test)]

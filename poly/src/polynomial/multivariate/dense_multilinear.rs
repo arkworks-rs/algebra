@@ -7,8 +7,9 @@ use ark_ff::{Field, Zero};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, Read, SerializationError, Write};
 use ark_std::fmt;
 use ark_std::fmt::Formatter;
+use ark_std::iter::Enumerate;
 use ark_std::ops::{Add, AddAssign, Index, Neg, Sub, SubAssign};
-use ark_std::vec::Vec;
+use ark_std::vec::{IntoIter, Vec};
 use rand::Rng;
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
@@ -274,6 +275,15 @@ impl<F: Field> Zero for DenseMultilinearPolynomial<F> {
 
     fn is_zero(&self) -> bool {
         self.num_vars == 0 && self.evaluations[0].is_zero()
+    }
+}
+
+impl<F: Field> IntoIterator for DenseMultilinearPolynomial<F> {
+    type Item = (usize, F);
+    type IntoIter = Enumerate<IntoIter<F>>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.evaluations.into_iter().enumerate()
     }
 }
 

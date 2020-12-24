@@ -86,7 +86,9 @@ pub trait MVPolynomialCoefficientForm<F: Field>: MVPolynomial<F> {
 /// Describes interface for multilinear polynomials in evaluation form.
 ///
 /// Index represents a point, which is a vector in {0,1}^`num_vars` in little endian form. For example, `0b1011` represents `P(1,1,0,1)`
-pub trait MultilinearPolynomialEvaluationForm<F: Field>: MVPolynomial<F> + Index<usize> {
+pub trait MultilinearPolynomialEvaluationForm<F: Field>:
+    MVPolynomial<F> + Index<usize> + IntoIterator<Item = (usize, F)>
+{
     /// The type of partial evaluation point vectors for this polynomial.
     type PartialPoint: Sized + Clone + Ord + Debug + Sync + Hash;
 
