@@ -14,6 +14,10 @@ and defines methods to serialize to and from the coefficient representation of t
 Specifies that a `Polynomial` is actually a *univariate* polynomial.
 - [`MVPolynomial`](https://github.com/arkworks-rs/algebra/blob/master/poly/src/polynomial/mod.rs#L59):
 Specifies that a `Polynomial` is actually a *multivariate* polynomial.
+- [`MVPolynomialCoefficientForm`](https://github.com/arkworks-rs/algebra/blob/master/poly/src/polynomial/mod.rs#L70): 
+Specifies that a `MVPolynomial` is represented in coefficient form.
+- [`MultilinearPolynomialEvaluationForm`](https://github.com/arkworks-rs/algebra/blob/master/poly/src/polynomial/mod.rs#L70):
+Specfifies that a [`MVPolynomial`] is multilinear, and represented by evaluation form. 
 
 This crate also provides the following data structures that implement these traits:
 
@@ -27,6 +31,10 @@ This struct implements the [`Polynomial`](https://github.com/arkworks-rs/algebra
 (but *not* the `UVPolynomial` trait).
 - [`multivariate/SparsePolynomial`](https://github.com/arkworks-rs/algebra/blob/master/poly/src/polynomial/multivariate/sparse.rs#L21):
 Represents multivariate polynomials via a list containing all non-zero monomials.
+- [`multivariate/DenseMultilinearPolynomial`](https://github.com/arkworks-rs/algebra/blob/master/poly/src/polynomial/multivariate/dense_multilinear.rs#L19):
+Represents multilinear polynomial via a list containing evaluations on boolean hypercubes.
+- [`multivariate/SparseMultilinearPolynomial`](https://github.com/arkworks-rs/algebra/blob/master/poly/src/polynomial/multivariate/sparse_multilinear.rs#L23):
+  Represents multilinear polynomial via a sparse list containing evaluations on boolean hypercubes where the evaluation is non-zero.
 
 This crate also provides the [`univariate/DenseOrSparsePolynomial`](https://github.com/arkworks-rs/algebra/blob/master/poly/src/polynomial/univariate/mod.rs#L16) enum, which allows the user to abstract over the type of underlying univariate polynomial (dense or sparse).
 
