@@ -207,6 +207,9 @@ impl CanonicalDeserialize for usize {
 }
 
 // Implement Serialization for `String`
+// It is serialized by obtaining its byte representation as a Vec<u8> and
+// serializing that. This yields an end serialization of
+// `string.len() || string_bytes`.
 impl CanonicalSerialize for String {
     #[inline]
     fn serialize<W: Write>(&self, mut writer: W) -> Result<(), SerializationError> {
