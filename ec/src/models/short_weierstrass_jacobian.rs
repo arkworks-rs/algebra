@@ -744,9 +744,12 @@ impl<P: Parameters> CanonicalSerialize for GroupAffine<P> {
     }
 }
 
-impl<P: Parameters> ConstantSerializedSize for GroupAffine<P> {
-    const SERIALIZED_SIZE: usize = <P::BaseField as ConstantSerializedSize>::SERIALIZED_SIZE;
-    const UNCOMPRESSED_SIZE: usize = 2 * <P::BaseField as ConstantSerializedSize>::SERIALIZED_SIZE;
+impl<P: Parameters> ConstantSerializedSize<SWFlags> for GroupAffine<P> {
+    const SERIALIZED_SIZE: usize =
+        <P::BaseField as ConstantSerializedSize<SWFlags>>::SERIALIZED_SIZE;
+    const UNCOMPRESSED_SIZE: usize =
+        <P::BaseField as ConstantSerializedSize<SWFlags>>::SERIALIZED_SIZE
+            + <P::BaseField as ConstantSerializedSize<EmptyFlags>>::SERIALIZED_SIZE;
 }
 
 impl<P: Parameters> CanonicalDeserialize for GroupAffine<P> {

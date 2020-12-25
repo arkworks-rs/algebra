@@ -1,8 +1,9 @@
 pub trait Flags: Default + Clone + Copy + Sized {
+    /// The number of bits required to encode `Self`.
+    const BIT_SIZE: usize;
     fn u8_bitmask(&self) -> u8;
     fn from_u8(value: u8) -> Self;
     fn from_u8_remove_flags(value: &mut u8) -> Self;
-    fn len() -> usize;
 }
 
 /// Flags to be encoded into the serialization.
@@ -10,6 +11,8 @@ pub trait Flags: Default + Clone + Copy + Sized {
 pub struct EmptyFlags;
 
 impl Flags for EmptyFlags {
+    const BIT_SIZE: usize = 0;
+
     #[inline]
     fn u8_bitmask(&self) -> u8 {
         0
@@ -23,11 +26,6 @@ impl Flags for EmptyFlags {
     #[inline]
     fn from_u8_remove_flags(_value: &mut u8) -> Self {
         EmptyFlags
-    }
-
-    #[inline]
-    fn len() -> usize {
-        0
     }
 }
 
@@ -79,6 +77,8 @@ impl Default for SWFlags {
 }
 
 impl Flags for SWFlags {
+    const BIT_SIZE: usize = 2;
+
     #[inline]
     fn u8_bitmask(&self) -> u8 {
         let mut mask = 0;
@@ -106,12 +106,6 @@ impl Flags for SWFlags {
         let flags = Self::from_u8(*value);
         *value &= 0x3F;
         flags
-    }
-
-    /// Number of bits required for these flags.
-    #[inline]
-    fn len() -> usize {
-        2
     }
 }
 
@@ -151,6 +145,8 @@ impl Default for EdwardsFlags {
 }
 
 impl Flags for EdwardsFlags {
+    const BIT_SIZE: usize = 1;
+
     #[inline]
     fn u8_bitmask(&self) -> u8 {
         let mut mask = 0;
@@ -176,11 +172,5 @@ impl Flags for EdwardsFlags {
         let flags = Self::from_u8(*value);
         *value &= 0x7F;
         flags
-    }
-
-    /// Number of bits required for these flags.
-    #[inline]
-    fn len() -> usize {
-        1
     }
 }

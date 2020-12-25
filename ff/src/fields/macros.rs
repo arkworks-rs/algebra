@@ -1,18 +1,17 @@
 macro_rules! impl_prime_field_serializer {
     ($field: ident, $params: ident, $byte_size: expr) => {
-        impl<P: $params> ark_serialize::CanonicalSerializeWithFlags for $field<P> {
-            #[allow(unused_qualifications)]
-            fn serialize_with_flags<W: ark_std::io::Write, F: ark_serialize::Flags>(
+        impl<P: $params> CanonicalSerializeWithFlags for $field<P> {
+            fn serialize_with_flags<W: ark_std::io::Write, F: Flags>(
                 &self,
                 mut writer: W,
                 flags: F,
-            ) -> Result<(), ark_serialize::SerializationError> {
+            ) -> Result<(), SerializationError> {
                 const BYTE_SIZE: usize = $byte_size;
 
                 let (output_bit_size, output_byte_size) =
-                    ark_serialize::buffer_bit_byte_size($field::<P>::size_in_bits());
-                if F::len() > (output_bit_size - P::MODULUS_BITS as usize) {
-                    return Err(ark_serialize::SerializationError::NotEnoughSpace);
+                    buffer_bit_byte_size($field::<P>::size_in_bits());
+                if F::BIT_SIZE > (output_bit_size - P::MODULUS_BITS as usize) {
+                    return Err(SerializationError::NotEnoughSpace);
                 }
 
                 let mut bytes = [0u8; BYTE_SIZE];
@@ -25,42 +24,38 @@ macro_rules! impl_prime_field_serializer {
             }
         }
 
-        impl<P: $params> ark_serialize::ConstantSerializedSize for $field<P> {
-            const SERIALIZED_SIZE: usize = ark_serialize::buffer_byte_size(
-                <$field<P> as crate::PrimeField>::Params::MODULUS_BITS as usize,
+        impl<P: $params, F: Flags> ConstantSerializedSize<F> for $field<P> {
+            const SERIALIZED_SIZE: usize = buffer_byte_size(
+                <$field<P> as crate::PrimeField>::Params::MODULUS_BITS as usize + F::BIT_SIZE,
             );
-            const UNCOMPRESSED_SIZE: usize = Self::SERIALIZED_SIZE;
+            const UNCOMPRESSED_SIZE: usize = <Self as ConstantSerializedSize>::SERIALIZED_SIZE;
         }
 
-        impl<P: $params> ark_serialize::CanonicalSerialize for $field<P> {
-            #[allow(unused_qualifications)]
+        impl<P: $params> CanonicalSerialize for $field<P> {
             #[inline]
             fn serialize<W: ark_std::io::Write>(
                 &self,
                 writer: W,
-            ) -> Result<(), ark_serialize::SerializationError> {
-                use ark_serialize::*;
-                self.serialize_with_flags(writer, ark_serialize::EmptyFlags)
+            ) -> Result<(), SerializationError> {
+                self.serialize_with_flags(writer, EmptyFlags)
             }
 
             #[inline]
             fn serialized_size(&self) -> usize {
-                use ark_serialize::*;
-                Self::SERIALIZED_SIZE
+                <Self as ConstantSerializedSize>::SERIALIZED_SIZE
             }
         }
 
-        impl<P: $params> ark_serialize::CanonicalDeserializeWithFlags for $field<P> {
-            #[allow(unused_qualifications)]
-            fn deserialize_with_flags<R: ark_std::io::Read, F: ark_serialize::Flags>(
+        impl<P: $params> CanonicalDeserializeWithFlags for $field<P> {
+            fn deserialize_with_flags<R: ark_std::io::Read, F: Flags>(
                 mut reader: R,
-            ) -> Result<(Self, F), ark_serialize::SerializationError> {
+            ) -> Result<(Self, F), SerializationError> {
                 const BYTE_SIZE: usize = $byte_size;
 
                 let (output_bit_size, output_byte_size) =
-                    ark_serialize::buffer_bit_byte_size($field::<P>::size_in_bits());
-                if F::len() > (output_bit_size - P::MODULUS_BITS as usize) {
-                    return Err(ark_serialize::SerializationError::NotEnoughSpace);
+                    buffer_bit_byte_size($field::<P>::size_in_bits());
+                if F::BIT_SIZE > (output_bit_size - P::MODULUS_BITS as usize) {
+                    return Err(SerializationError::NotEnoughSpace);
                 }
 
                 let mut masked_bytes = [0; BYTE_SIZE];
@@ -72,15 +67,13 @@ macro_rules! impl_prime_field_serializer {
             }
         }
 
-        impl<P: $params> ark_serialize::CanonicalDeserialize for $field<P> {
-            #[allow(unused_qualifications)]
+        impl<P: $params> CanonicalDeserialize for $field<P> {
             fn deserialize<R: ark_std::io::Read>(
                 mut reader: R,
-            ) -> Result<Self, ark_serialize::SerializationError> {
+            ) -> Result<Self, SerializationError> {
                 const BYTE_SIZE: usize = $byte_size;
 
-                let (_, output_byte_size) =
-                    ark_serialize::buffer_bit_byte_size($field::<P>::size_in_bits());
+                let (_, output_byte_size) = buffer_bit_byte_size($field::<P>::size_in_bits());
 
                 let mut masked_bytes = [0; BYTE_SIZE];
                 reader.read_exact(&mut masked_bytes[..output_byte_size])?;
@@ -304,7 +297,6 @@ macro_rules! impl_Fp {
 
             #[inline]
             fn from_random_bytes_with_flags(bytes: &[u8]) -> Option<(Self, u8)> {
-                use ark_serialize::*;
                 let mut result_bytes = [0u8; $limbs * 8];
                 for (result_byte, in_byte) in result_bytes.iter_mut().zip(bytes.iter()) {
                     *result_byte = *in_byte;

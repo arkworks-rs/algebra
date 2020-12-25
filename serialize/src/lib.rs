@@ -31,7 +31,7 @@ pub trait CanonicalSerializeWithFlags: CanonicalSerialize {
 }
 
 /// Helper trait to get serialized size for constant sized structs.
-pub trait ConstantSerializedSize: CanonicalSerialize {
+pub trait ConstantSerializedSize<F: Flags = flags::EmptyFlags>: CanonicalSerialize {
     const SERIALIZED_SIZE: usize;
     const UNCOMPRESSED_SIZE: usize;
 }
@@ -154,19 +154,19 @@ macro_rules! impl_uint {
 
             #[inline]
             fn serialized_size(&self) -> usize {
-                Self::SERIALIZED_SIZE
+                <Self as ConstantSerializedSize>::SERIALIZED_SIZE
             }
         }
 
-        impl ConstantSerializedSize for $ty {
+        impl<F: Flags> ConstantSerializedSize<F> for $ty {
             const SERIALIZED_SIZE: usize = core::mem::size_of::<$ty>();
-            const UNCOMPRESSED_SIZE: usize = Self::SERIALIZED_SIZE;
+            const UNCOMPRESSED_SIZE: usize = <Self as ConstantSerializedSize>::SERIALIZED_SIZE;
         }
 
         impl CanonicalDeserialize for $ty {
             #[inline]
             fn deserialize<R: Read>(mut reader: R) -> Result<Self, SerializationError> {
-                let mut bytes = [0u8; Self::SERIALIZED_SIZE];
+                let mut bytes = [0u8; <Self as ConstantSerializedSize>::SERIALIZED_SIZE];
                 reader.read_exact(&mut bytes)?;
                 Ok($ty::from_le_bytes(bytes))
             }
@@ -188,19 +188,19 @@ impl CanonicalSerialize for usize {
 
     #[inline]
     fn serialized_size(&self) -> usize {
-        Self::SERIALIZED_SIZE
+        <Self as ConstantSerializedSize>::SERIALIZED_SIZE
     }
 }
 
-impl ConstantSerializedSize for usize {
+impl<F: Flags> ConstantSerializedSize<F> for usize {
     const SERIALIZED_SIZE: usize = core::mem::size_of::<u64>();
-    const UNCOMPRESSED_SIZE: usize = Self::SERIALIZED_SIZE;
+    const UNCOMPRESSED_SIZE: usize = <Self as ConstantSerializedSize>::SERIALIZED_SIZE;
 }
 
 impl CanonicalDeserialize for usize {
     #[inline]
     fn deserialize<R: Read>(mut reader: R) -> Result<Self, SerializationError> {
-        let mut bytes = [0u8; Self::SERIALIZED_SIZE];
+        let mut bytes = [0u8; <Self as ConstantSerializedSize>::SERIALIZED_SIZE];
         reader.read_exact(&mut bytes)?;
         usize::try_from(u64::from_le_bytes(bytes)).map_err(|_| SerializationError::InvalidData)
     }
