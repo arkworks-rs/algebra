@@ -5,6 +5,8 @@ use core::fmt;
 use digest::{Update, VariableOutput};
 
 pub mod map_to_curve_hasher;
+pub mod field_hashers;
+// pub mod curve_maps;
 
 /// Trait for hashing arbitrary data to a group element on an elliptic curve
 pub trait HashToCurve<T: AffineCurve>: Sized {
