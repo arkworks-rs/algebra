@@ -1,7 +1,11 @@
-use crate::AffineCurve;
 use crate::hashing::*;
+use crate::AffineCurve;
 use ark_ff::{Field, PrimeField};
-use ark_std::{marker::PhantomData, string::{ToString, String}, vec::Vec};
+use ark_std::{
+    marker::PhantomData,
+    string::{String, ToString},
+    vec::Vec,
+};
 use core::fmt;
 use digest::{Update, VariableOutput};
 
@@ -27,7 +31,7 @@ where
 {
     field_hasher: H2F,
     curve_mapper: M2C,
-    _params_t: PhantomData<T>
+    _params_t: PhantomData<T>,
 }
 
 impl<T, H2F, M2C> HashToCurve<T> for MapToCurveBasedHasher<T, H2F, M2C>
