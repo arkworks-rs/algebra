@@ -87,7 +87,7 @@ impl<F: Field> Polynomial<F> for DenseMultilinearPolynomial<F> {
     fn evaluate(&self, point: &Self::Point) -> F {
         assert_eq!(point.len(), self.num_vars, "Invalid point size");
 
-        self.partial_evaluate(point)[0]
+        self.fix_variables(point)[0]
     }
 }
 
@@ -117,7 +117,7 @@ impl<F: Field> MultilinearPolynomialEvaluationForm<F> for DenseMultilinearPolyno
         copied
     }
 
-    fn partial_evaluate(&self, partial_point: &Self::PartialPoint) -> Self {
+    fn fix_variables(&self, partial_point: &Self::PartialPoint) -> Self {
         assert!(
             partial_point.len() <= self.num_vars,
             "invalid size of partial point"

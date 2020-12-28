@@ -103,7 +103,7 @@ impl<F: Field> Polynomial<F> for SparseMultilinearPolynomial<F> {
 
     fn evaluate(&self, point: &Self::Point) -> F {
         assert_eq!(point.len(), self.num_vars, "invalid point");
-        self.partial_evaluate(&point)[0]
+        self.fix_variables(&point)[0]
     }
 }
 
@@ -153,7 +153,7 @@ impl<F: Field> MultilinearPolynomialEvaluationForm<F> for SparseMultilinearPolyn
         }
     }
 
-    fn partial_evaluate(&self, partial_point: &Self::PartialPoint) -> Self {
+    fn fix_variables(&self, partial_point: &Self::PartialPoint) -> Self {
         let dim = partial_point.len();
         assert!(dim <= self.num_vars, "invalid partial point dimension");
 
@@ -450,8 +450,8 @@ mod tests {
             let dense = sparse.to_dense_multilinear_poly();
             let point: Vec<_> = (0..NV).map(|_| Fr::rand(&mut rng)).collect();
             assert_eq!(sparse.evaluate(&point), dense.evaluate(&point));
-            let sparse_partial = sparse.partial_evaluate(&point[..3].to_vec());
-            let dense_partial = dense.partial_evaluate(&point[..3].to_vec());
+            let sparse_partial = sparse.fix_variables(&point[..3].to_vec());
+            let dense_partial = dense.fix_variables(&point[..3].to_vec());
             let point2 = (0..(NV - 3)).map(|_| Fr::rand(&mut rng)).collect();
             assert_eq!(
                 sparse_partial.evaluate(&point2),

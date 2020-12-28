@@ -99,6 +99,6 @@ pub trait MultilinearPolynomialEvaluationForm<F: Field>:
     /// to `P(x_1,...,x_b,...,x_{b+k - 1},...,x_a,...,x_{a+k - 1},...,x_n)`
     fn relabel(&self, a: usize, b: usize, k: usize) -> Self;
 
-    /// Reduce the number of variables of the `self` by evaluating the first `partial_point.len()` arguments at `partial_point`.
-    fn partial_evaluate(&self, partial_point: &Self::PartialPoint) -> Self;
+    /// Reduce the number of variables of the `self` by fixing the `partial_point.len()` variables at `partial_point`.
+    fn fix_variables(&self, partial_point: &Self::PartialPoint) -> Self;
 }
