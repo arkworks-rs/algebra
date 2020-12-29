@@ -2,8 +2,7 @@
 extern crate criterion;
 
 use ark_ff::Field;
-use ark_poly::polynomial::multivariate::SparseMultilinearPolynomial;
-use ark_poly::Polynomial;
+use ark_poly::{SparseMultilinearExtension, MultilinearExtension};
 use ark_std::ops::Range;
 use ark_std::test_rng;
 use ark_test_curves::bls12_381;
@@ -21,12 +20,12 @@ fn arithmetic_op_bench<F: Field>(c: &mut Criterion) {
             BenchmarkId::new("add", num_nonzero_entries),
             &num_nonzero_entries,
             |b, &num_nonzero_entries| {
-                let poly1 = SparseMultilinearPolynomial::<F>::rand_with_config(
+                let poly1 = SparseMultilinearExtension::<F>::rand_with_config(
                     nv,
                     num_nonzero_entries,
                     &mut rng,
                 );
-                let poly2 = SparseMultilinearPolynomial::<F>::rand_with_config(
+                let poly2 = SparseMultilinearExtension::<F>::rand_with_config(
                     nv,
                     num_nonzero_entries,
                     &mut rng,
@@ -44,12 +43,12 @@ fn arithmetic_op_bench<F: Field>(c: &mut Criterion) {
             BenchmarkId::new("sub", num_nonzero_entries),
             &num_nonzero_entries,
             |b, &num_nonzero_entries| {
-                let poly1 = SparseMultilinearPolynomial::<F>::rand_with_config(
+                let poly1 = SparseMultilinearExtension::<F>::rand_with_config(
                     nv,
                     num_nonzero_entries,
                     &mut rng,
                 );
-                let poly2 = SparseMultilinearPolynomial::<F>::rand_with_config(
+                let poly2 = SparseMultilinearExtension::<F>::rand_with_config(
                     nv,
                     num_nonzero_entries,
                     &mut rng,
@@ -70,12 +69,12 @@ fn evaluation_op_bench<F: Field>(c: &mut Criterion) {
             BenchmarkId::new("evaluate", num_nonzero_entries),
             &num_nonzero_entries,
             |b, &num_nonzero_entries| {
-                let poly = SparseMultilinearPolynomial::<F>::rand_with_config(
+                let poly = SparseMultilinearExtension::<F>::rand_with_config(
                     nv,
                     num_nonzero_entries,
                     &mut rng,
                 );
-                let point = (0..nv).map(|_| F::rand(&mut rng)).collect();
+                let point: Vec<_> = (0..nv).map(|_| F::rand(&mut rng)).collect();
                 b.iter(|| black_box(poly.evaluate(&point)))
             },
         );

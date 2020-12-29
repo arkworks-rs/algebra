@@ -8,13 +8,12 @@ use ark_std::collections::BTreeMap;
 use rand::Rng;
 use ark_std::iter::FromIterator;
 use hashbrown::HashMap;
-use crate::evaluations::{DenseMultilinearExtension, MultilinearExtension};
+use crate::{DenseMultilinearExtension, MultilinearExtension};
 use ark_std::{UniformRand, fmt};
 use crate::evaluations::multivariate::multilinear::swap_bits;
 use ark_std::ops::{Index, Add, AddAssign, Neg, Sub, SubAssign};
 use ark_std::fmt::{Debug, Formatter};
-use crate::MultilinearExtension;
-
+use ark_std::vec::Vec;
 
 /// Stores a multilinear polynomial in sparse evaluation form.
 #[derive(Clone, PartialEq, Eq, Hash, Default, CanonicalSerialize, CanonicalDeserialize)]
@@ -392,7 +391,7 @@ mod tests {
     use crate::evaluations::multivariate::multilinear::MultilinearExtension;
     use ark_std::ops::Neg;
     use ark_serialize::{CanonicalSerialize, CanonicalDeserialize};
-
+    use ark_std::vec::Vec;
     /// Some sanity test to ensure random sparse polynomial make sense.
     #[test]
     fn random_poly() {

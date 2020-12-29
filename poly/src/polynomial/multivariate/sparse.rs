@@ -14,7 +14,6 @@ use ark_std::{
 };
 use rand::Rng;
 
-use crate::polynomial::MVPolynomialCoefficientForm;
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
 
@@ -77,9 +76,7 @@ impl<F: Field> MVPolynomial<F> for SparsePolynomial<F, SparseTerm> {
         }
         Self::from_coefficients_vec(l, random_terms)
     }
-}
 
-impl<F: Field> MVPolynomialCoefficientForm<F> for SparsePolynomial<F, SparseTerm> {
     type Term = SparseTerm;
 
     /// Constructs a new polynomial from a list of tuples of the form `(coeff, Self::Term)`

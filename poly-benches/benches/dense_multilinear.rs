@@ -2,8 +2,7 @@
 extern crate criterion;
 
 use ark_ff::Field;
-use ark_poly::polynomial::multivariate::DenseMultilinearPolynomial;
-use ark_poly::{MVPolynomial, Polynomial};
+use ark_poly::{DenseMultilinearExtension, MultilinearExtension};
 use ark_std::ops::Range;
 use ark_std::test_rng;
 use ark_test_curves::bls12_381;
@@ -17,8 +16,8 @@ fn arithmetic_op_bench<F: Field>(c: &mut Criterion) {
     let mut group = c.benchmark_group("Add");
     for nv in NUM_VARIABLES_RANGE {
         group.bench_with_input(BenchmarkId::new("Add", nv), &nv, |b, &nv| {
-            let poly1 = DenseMultilinearPolynomial::<F>::rand(nv, nv, &mut rng);
-            let poly2 = DenseMultilinearPolynomial::<F>::rand(nv, nv, &mut rng);
+            let poly1 = DenseMultilinearExtension::<F>::rand(nv, nv, &mut rng);
+            let poly2 = DenseMultilinearExtension::<F>::rand(nv, nv, &mut rng);
             b.iter(|| black_box(&poly1 + &poly2))
         });
     }
@@ -27,8 +26,8 @@ fn arithmetic_op_bench<F: Field>(c: &mut Criterion) {
     let mut group = c.benchmark_group("Sub");
     for nv in NUM_VARIABLES_RANGE {
         group.bench_with_input(BenchmarkId::new("Sub", nv), &nv, |b, &nv| {
-            let poly1 = DenseMultilinearPolynomial::<F>::rand(nv, nv, &mut rng);
-            let poly2 = DenseMultilinearPolynomial::<F>::rand(nv, nv, &mut rng);
+            let poly1 = DenseMultilinearExtension::<F>::rand(nv, nv, &mut rng);
+            let poly2 = DenseMultilinearExtension::<F>::rand(nv, nv, &mut rng);
             b.iter(|| black_box(&poly1 - &poly2))
         });
     }
@@ -40,8 +39,8 @@ fn evaluation_op_bench<F: Field>(c: &mut Criterion) {
     let mut group = c.benchmark_group("Evaluate");
     for nv in NUM_VARIABLES_RANGE {
         group.bench_with_input(BenchmarkId::new("evaluate", nv), &nv, |b, &nv| {
-            let poly = DenseMultilinearPolynomial::<F>::rand(nv, nv, &mut rng);
-            let point = (0..nv).map(|_| F::rand(&mut rng)).collect();
+            let poly = DenseMultilinearExtension::<F>::rand(nv, nv, &mut rng);
+            let point: Vec<_> = (0..nv).map(|_| F::rand(&mut rng)).collect();
             b.iter(|| black_box(poly.evaluate(&point)))
         });
     }
