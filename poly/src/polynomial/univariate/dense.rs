@@ -1,6 +1,6 @@
 //! A dense univariate polynomial represented in coefficient form.
 use crate::univariate::DenseOrSparsePolynomial;
-use crate::{EvaluationDomain, Evaluations, GeneralEvaluationDomain};
+use crate::{EvaluationDomain, UVEvaluations, GeneralEvaluationDomain};
 use crate::{Polynomial, UVPolynomial};
 use ark_serialize::*;
 use ark_std::{
@@ -183,13 +183,13 @@ impl<F: FftField> DensePolynomial<F> {
     pub fn evaluate_over_domain_by_ref<D: EvaluationDomain<F>>(
         &self,
         domain: D,
-    ) -> Evaluations<F, D> {
+    ) -> UVEvaluations<F, D> {
         let poly: DenseOrSparsePolynomial<'_, F> = self.into();
         DenseOrSparsePolynomial::<F>::evaluate_over_domain(poly, domain)
     }
 
     /// Evaluate `self` over `domain`.
-    pub fn evaluate_over_domain<D: EvaluationDomain<F>>(self, domain: D) -> Evaluations<F, D> {
+    pub fn evaluate_over_domain<D: EvaluationDomain<F>>(self, domain: D) -> UVEvaluations<F, D> {
         let poly: DenseOrSparsePolynomial<'_, F> = self.into();
         DenseOrSparsePolynomial::<F>::evaluate_over_domain(poly, domain)
     }

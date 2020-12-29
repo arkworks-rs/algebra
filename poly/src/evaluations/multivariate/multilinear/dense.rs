@@ -1,29 +1,27 @@
 //! multilinear polynomial represented in dense evaluation form.
 
-use crate::polynomial::multivariate::swap_bits;
-use crate::polynomial::MultilinearPolynomialEvaluationForm;
-use crate::{MVPolynomial, Polynomial};
 use ark_ff::{Field, Zero};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, Read, SerializationError, Write};
 use ark_std::fmt;
 use ark_std::fmt::Formatter;
-use ark_std::iter::Enumerate;
 use ark_std::ops::{Add, AddAssign, Index, Neg, Sub, SubAssign};
-use ark_std::vec::{IntoIter, Vec};
+use ark_std::vec::Vec;
 use rand::Rng;
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
+use crate::evaluations::multivariate::multilinear::{MultilinearExtension, swap_bits};
+use ark_std::slice::{Iter, IterMut};
 
 /// Stores a multilinear polynomial in dense evaluation form.
 #[derive(Clone, PartialEq, Eq, Hash, Default, CanonicalSerialize, CanonicalDeserialize)]
-pub struct DenseMultilinearPolynomial<F: Field> {
+pub struct DenseMultilinearExtension<F: Field> {
     /// The evaluation over {0,1}^n
     pub evaluations: Vec<F>,
     /// Number of variables
     pub num_vars: usize,
 }
 
-impl<F: Field> DenseMultilinearPolynomial<F> {
+impl<F: Field> DenseMultilinearExtension<F> {
     /// Construct a new polynomial from a list of evaluations where the index represent a point.
     ///
     /// Index represents a point in {0,1}^`num_vars` in little endian form. For example, `0b1011` represents `P(1,1,0,1)`
@@ -73,27 +71,27 @@ impl<F: Field> DenseMultilinearPolynomial<F> {
             }
         }
     }
+
+    /// returns an iterator that iterates over the evaluations over {0,1}^`num_vars`
+    pub fn iter(&self) -> Iter<'_, F> {
+        self.evaluations.iter()
+    }
+
+    /// returns a mutable iterator that iterates over the evaluations over {0,1}^`num_vars`
+    pub fn iter_mut(&mut self) -> IterMut<'_, F> {
+        self.evaluations.iter_mut()
+    }
 }
 
-impl<F: Field> Polynomial<F> for DenseMultilinearPolynomial<F> {
-    type Point = Vec<F>;
-
-    /// return the total degree of the polynomial, which is number of variables according to
-    /// multilinear extension formula
-    fn degree(&self) -> usize {
+impl<F: Field> MultilinearExtension<F> for DenseMultilinearExtension<F> {
+    fn num_vars(&self) -> usize {
         self.num_vars
     }
 
-    fn evaluate(&self, point: &Self::Point) -> F {
+    fn evaluate(&self, point: &[F]) -> F {
         assert_eq!(point.len(), self.num_vars, "Invalid point size");
 
         self.fix_variables(point)[0]
-    }
-}
-
-impl<F: Field> MVPolynomial<F> for DenseMultilinearPolynomial<F> {
-    fn num_vars(&self) -> usize {
-        self.num_vars
     }
 
     fn rand<R: Rng>(d: usize, num_vars: usize, rng: &mut R) -> Self {
@@ -106,10 +104,6 @@ impl<F: Field> MVPolynomial<F> for DenseMultilinearPolynomial<F> {
             (0..(1 << num_vars)).map(|_| F::rand(rng)).collect(),
         )
     }
-}
-
-impl<F: Field> MultilinearPolynomialEvaluationForm<F> for DenseMultilinearPolynomial<F> {
-    type PartialPoint = Vec<F>;
 
     fn relabel(&self, a: usize, b: usize, k: usize) -> Self {
         let mut copied = self.clone();
@@ -117,7 +111,7 @@ impl<F: Field> MultilinearPolynomialEvaluationForm<F> for DenseMultilinearPolyno
         copied
     }
 
-    fn fix_variables(&self, partial_point: &Self::PartialPoint) -> Self {
+    fn fix_variables(&self, partial_point: &[F]) -> Self {
         assert!(
             partial_point.len() <= self.num_vars,
             "invalid size of partial point"
@@ -136,7 +130,7 @@ impl<F: Field> MultilinearPolynomialEvaluationForm<F> for DenseMultilinearPolyno
     }
 }
 
-impl<F: Field> Index<usize> for DenseMultilinearPolynomial<F> {
+impl<F: Field> Index<usize> for DenseMultilinearExtension<F> {
     type Output = F;
 
     /// Returns the evaluation of the polynomial at a point represented by index.
@@ -150,20 +144,20 @@ impl<F: Field> Index<usize> for DenseMultilinearPolynomial<F> {
     }
 }
 
-impl<F: Field> Add for DenseMultilinearPolynomial<F> {
-    type Output = DenseMultilinearPolynomial<F>;
+impl<F: Field> Add for DenseMultilinearExtension<F> {
+    type Output = DenseMultilinearExtension<F>;
 
-    fn add(self, other: DenseMultilinearPolynomial<F>) -> Self {
+    fn add(self, other: DenseMultilinearExtension<F>) -> Self {
         &self + &other
     }
 }
 
-impl<'a, 'b, F: Field> Add<&'a DenseMultilinearPolynomial<F>>
-    for &'b DenseMultilinearPolynomial<F>
+impl<'a, 'b, F: Field> Add<&'a DenseMultilinearExtension<F>>
+for &'b DenseMultilinearExtension<F>
 {
-    type Output = DenseMultilinearPolynomial<F>;
+    type Output = DenseMultilinearExtension<F>;
 
-    fn add(self, rhs: &'a DenseMultilinearPolynomial<F>) -> Self::Output {
+    fn add(self, rhs: &'a DenseMultilinearExtension<F>) -> Self::Output {
         // handle constant zero case
         if rhs.is_zero() {
             return self.clone();
@@ -181,24 +175,24 @@ impl<'a, 'b, F: Field> Add<&'a DenseMultilinearPolynomial<F>>
     }
 }
 
-impl<F: Field> AddAssign for DenseMultilinearPolynomial<F> {
+impl<F: Field> AddAssign for DenseMultilinearExtension<F> {
     fn add_assign(&mut self, other: Self) {
         *self = &*self + &other;
     }
 }
 
-impl<'a, 'b, F: Field> AddAssign<&'a DenseMultilinearPolynomial<F>>
-    for DenseMultilinearPolynomial<F>
+impl<'a, 'b, F: Field> AddAssign<&'a DenseMultilinearExtension<F>>
+for DenseMultilinearExtension<F>
 {
-    fn add_assign(&mut self, other: &'a DenseMultilinearPolynomial<F>) {
+    fn add_assign(&mut self, other: &'a DenseMultilinearExtension<F>) {
         *self = &*self + other;
     }
 }
 
-impl<'a, 'b, F: Field> AddAssign<(F, &'a DenseMultilinearPolynomial<F>)>
-    for DenseMultilinearPolynomial<F>
+impl<'a, 'b, F: Field> AddAssign<(F, &'a DenseMultilinearExtension<F>)>
+for DenseMultilinearExtension<F>
 {
-    fn add_assign(&mut self, (f, other): (F, &'a DenseMultilinearPolynomial<F>)) {
+    fn add_assign(&mut self, (f, other): (F, &'a DenseMultilinearExtension<F>)) {
         let other = Self {
             num_vars: other.num_vars,
             evaluations: cfg_iter!(other.evaluations).map(|x| f * x).collect(),
@@ -207,8 +201,8 @@ impl<'a, 'b, F: Field> AddAssign<(F, &'a DenseMultilinearPolynomial<F>)>
     }
 }
 
-impl<F: Field> Neg for DenseMultilinearPolynomial<F> {
-    type Output = DenseMultilinearPolynomial<F>;
+impl<F: Field> Neg for DenseMultilinearExtension<F> {
+    type Output = DenseMultilinearExtension<F>;
 
     fn neg(self) -> Self::Output {
         Self::Output {
@@ -218,39 +212,39 @@ impl<F: Field> Neg for DenseMultilinearPolynomial<F> {
     }
 }
 
-impl<F: Field> Sub for DenseMultilinearPolynomial<F> {
-    type Output = DenseMultilinearPolynomial<F>;
+impl<F: Field> Sub for DenseMultilinearExtension<F> {
+    type Output = DenseMultilinearExtension<F>;
 
-    fn sub(self, other: DenseMultilinearPolynomial<F>) -> Self {
+    fn sub(self, other: DenseMultilinearExtension<F>) -> Self {
         &self - &other
     }
 }
 
-impl<'a, 'b, F: Field> Sub<&'a DenseMultilinearPolynomial<F>>
-    for &'b DenseMultilinearPolynomial<F>
+impl<'a, 'b, F: Field> Sub<&'a DenseMultilinearExtension<F>>
+for &'b DenseMultilinearExtension<F>
 {
-    type Output = DenseMultilinearPolynomial<F>;
+    type Output = DenseMultilinearExtension<F>;
 
-    fn sub(self, rhs: &'a DenseMultilinearPolynomial<F>) -> Self::Output {
+    fn sub(self, rhs: &'a DenseMultilinearExtension<F>) -> Self::Output {
         self + &rhs.clone().neg()
     }
 }
 
-impl<F: Field> SubAssign for DenseMultilinearPolynomial<F> {
+impl<F: Field> SubAssign for DenseMultilinearExtension<F> {
     fn sub_assign(&mut self, other: Self) {
         *self = &*self - &other;
     }
 }
 
-impl<'a, 'b, F: Field> SubAssign<&'a DenseMultilinearPolynomial<F>>
-    for DenseMultilinearPolynomial<F>
+impl<'a, 'b, F: Field> SubAssign<&'a DenseMultilinearExtension<F>>
+for DenseMultilinearExtension<F>
 {
-    fn sub_assign(&mut self, other: &'a DenseMultilinearPolynomial<F>) {
+    fn sub_assign(&mut self, other: &'a DenseMultilinearExtension<F>) {
         *self = &*self - other;
     }
 }
 
-impl<F: Field> fmt::Debug for DenseMultilinearPolynomial<F> {
+impl<F: Field> fmt::Debug for DenseMultilinearExtension<F> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), fmt::Error> {
         write!(f, "DenseML(nv = {}, evaluations = [", self.num_vars)?;
         for i in 0..ark_std::cmp::min(4, self.evaluations.len()) {
@@ -265,7 +259,7 @@ impl<F: Field> fmt::Debug for DenseMultilinearPolynomial<F> {
     }
 }
 
-impl<F: Field> Zero for DenseMultilinearPolynomial<F> {
+impl<F: Field> Zero for DenseMultilinearExtension<F> {
     fn zero() -> Self {
         Self {
             num_vars: 0,
@@ -278,24 +272,15 @@ impl<F: Field> Zero for DenseMultilinearPolynomial<F> {
     }
 }
 
-impl<F: Field> IntoIterator for DenseMultilinearPolynomial<F> {
-    type Item = (usize, F);
-    type IntoIter = Enumerate<IntoIter<F>>;
-
-    fn into_iter(self) -> Self::IntoIter {
-        self.evaluations.into_iter().enumerate()
-    }
-}
-
 #[cfg(test)]
 mod tests {
-    use crate::polynomial::multivariate::dense_multilinear::DenseMultilinearPolynomial;
-    use crate::{MVPolynomial, Polynomial};
+    use crate::DenseMultilinearExtension;
     use ark_ff::{Field, Zero};
-    use ark_std::ops::Neg;
     use ark_std::vec::Vec;
     use ark_std::{test_rng, UniformRand};
     use ark_test_curves::bls12_381::Fr;
+    use crate::MultilinearExtension;
+    use ark_std::ops::Neg;
 
     /// utility: evaluate multilinear extension (in form of data array) at a random point
     fn evaluate_data_array<F: Field>(data: &[F], point: &[F]) -> F {
@@ -318,7 +303,7 @@ mod tests {
     #[test]
     fn evaluate_at_a_point() {
         let mut rng = test_rng();
-        let poly = DenseMultilinearPolynomial::rand(10, 10, &mut rng);
+        let poly = DenseMultilinearExtension::rand(10, 10, &mut rng);
         for _ in 0..10 {
             let point: Vec<_> = (0..10).map(|_| Fr::rand(&mut rng)).collect();
             assert_eq!(
@@ -332,7 +317,7 @@ mod tests {
     fn relabel_polynomial() {
         let mut rng = test_rng();
         for _ in 0..20 {
-            let mut poly = DenseMultilinearPolynomial::rand(10, 10, &mut rng);
+            let mut poly = DenseMultilinearExtension::rand(10, 10, &mut rng);
             let mut point: Vec<_> = (0..10).map(|_| Fr::rand(&mut rng)).collect();
 
             let expected = poly.evaluate(&point);
@@ -366,9 +351,9 @@ mod tests {
         const NV: usize = 10;
         let mut rng = test_rng();
         for _ in 0..20 {
-            let point = (0..NV).map(|_| Fr::rand(&mut rng)).collect();
-            let poly1 = DenseMultilinearPolynomial::rand(NV, NV, &mut rng);
-            let poly2 = DenseMultilinearPolynomial::rand(NV, NV, &mut rng);
+            let point: Vec<_> = (0..NV).map(|_| Fr::rand(&mut rng)).collect();
+            let poly1 = DenseMultilinearExtension::rand(NV, NV, &mut rng);
+            let poly2 = DenseMultilinearExtension::rand(NV, NV, &mut rng);
             let v1 = poly1.evaluate(&point);
             let v2 = poly2.evaluate(&point);
             // test add
@@ -398,13 +383,13 @@ mod tests {
             }
             // test additive identity
             {
-                assert_eq!(&poly1 + &DenseMultilinearPolynomial::zero(), poly1);
-                assert_eq!(&DenseMultilinearPolynomial::zero() + &poly1, poly1);
+                assert_eq!(&poly1 + &DenseMultilinearExtension::zero(), poly1);
+                assert_eq!(&DenseMultilinearExtension::zero() + &poly1, poly1);
                 {
                     let mut poly1_cloned = poly1.clone();
-                    poly1_cloned += &DenseMultilinearPolynomial::zero();
+                    poly1_cloned += &DenseMultilinearExtension::zero();
                     assert_eq!(&poly1_cloned, &poly1);
-                    let mut zero = DenseMultilinearPolynomial::zero();
+                    let mut zero = DenseMultilinearExtension::zero();
                     let scalar = Fr::rand(&mut rng);
                     zero += (scalar, &poly1);
                     assert_eq!(zero.evaluate(&point), scalar * v1);

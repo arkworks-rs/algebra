@@ -4,23 +4,21 @@ use ark_ff::{Field, Zero};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, Read, SerializationError, Write};
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
-
-use crate::polynomial::multivariate::{swap_bits, DenseMultilinearPolynomial};
-use crate::polynomial::MultilinearPolynomialEvaluationForm;
-use crate::{MVPolynomial, Polynomial};
-use ark_std::collections::btree_map::IntoIter;
 use ark_std::collections::BTreeMap;
-use ark_std::fmt::{Debug, Formatter};
-use ark_std::iter::FromIterator;
-use ark_std::ops::{Add, AddAssign, Index, Neg, Sub, SubAssign};
-use ark_std::vec::Vec;
-use ark_std::{fmt, UniformRand};
-use hashbrown::HashMap;
 use rand::Rng;
+use ark_std::iter::FromIterator;
+use hashbrown::HashMap;
+use crate::evaluations::{DenseMultilinearExtension, MultilinearExtension};
+use ark_std::{UniformRand, fmt};
+use crate::evaluations::multivariate::multilinear::swap_bits;
+use ark_std::ops::{Index, Add, AddAssign, Neg, Sub, SubAssign};
+use ark_std::fmt::{Debug, Formatter};
+use crate::MultilinearExtension;
+
 
 /// Stores a multilinear polynomial in sparse evaluation form.
 #[derive(Clone, PartialEq, Eq, Hash, Default, CanonicalSerialize, CanonicalDeserialize)]
-pub struct SparseMultilinearPolynomial<F: Field> {
+pub struct SparseMultilinearExtension<F: Field> {
     /// tuples of index and value
     pub evaluations: BTreeMap<usize, F>,
     /// number of variables
@@ -28,7 +26,7 @@ pub struct SparseMultilinearPolynomial<F: Field> {
     zero: F,
 }
 
-impl<F: Field> SparseMultilinearPolynomial<F> {
+impl<F: Field> SparseMultilinearExtension<F> {
     pub fn from_evaluations<'a>(
         num_vars: usize,
         evaluations: impl IntoIterator<Item = &'a (usize, F)>,
@@ -84,37 +82,44 @@ impl<F: Field> SparseMultilinearPolynomial<F> {
     }
 
     /// Convert the sparse multilinear polynomial to dense form.
-    pub fn to_dense_multilinear_poly(&self) -> DenseMultilinearPolynomial<F> {
+    pub fn to_dense_multilinear_extension(&self) -> DenseMultilinearExtension<F> {
         let mut evaluations: Vec<_> = (0..(1 << self.num_vars)).map(|_| F::zero()).collect();
         for (&i, &v) in self.evaluations.iter() {
             evaluations[i] = v;
         }
-        DenseMultilinearPolynomial::from_evaluations_vec(self.num_vars, evaluations)
+        DenseMultilinearExtension::from_evaluations_vec(self.num_vars, evaluations)
     }
 }
 
-impl<F: Field> Polynomial<F> for SparseMultilinearPolynomial<F> {
-    /// Point is a vector of field element whose dimension is number of variables.
-    type Point = Vec<F>;
 
-    fn degree(&self) -> usize {
-        self.num_vars
-    }
 
-    fn evaluate(&self, point: &Self::Point) -> F {
-        assert_eq!(point.len(), self.num_vars, "invalid point");
-        self.fix_variables(&point)[0]
+/// utility: precompute f(x) = eq(g,x)
+fn precompute_eq<F: Field>(g: &[F]) -> Vec<F> {
+    let dim = g.len();
+    let mut dp = Vec::with_capacity(1 << dim);
+    dp.resize(1 << dim, F::zero());
+    dp[0] = F::one() - g[0];
+    dp[1] = g[0];
+    for i in 1..dim {
+        let dp_prev = (&dp[0..(1 << i)]).to_vec();
+        for b in 0..(1 << i) {
+            dp[b] = dp_prev[b] * (F::one() - g[i]);
+            dp[b + (1 << i)] = dp_prev[b] * g[i];
+        }
     }
+    dp
 }
 
-impl<F: Field> MVPolynomial<F> for SparseMultilinearPolynomial<F> {
+impl<F: Field> MultilinearExtension<F> for SparseMultilinearExtension<F> {
     fn num_vars(&self) -> usize {
         self.num_vars
     }
 
-    /// Outputs an `l`-variate multilinear polynomial.
-    ///
-    /// For sparse polynomial, the number of non-zero entries is the square root of 2^`num_vars`.
+    fn evaluate(&self, point: &[F]) -> F {
+        assert_eq!(point.len(), self.num_vars, "invalid point");
+        self.fix_variables(&point)[0]
+    }
+
     fn rand<R: Rng>(d: usize, num_vars: usize, rng: &mut R) -> Self {
         assert_eq!(
             d, num_vars,
@@ -122,10 +127,6 @@ impl<F: Field> MVPolynomial<F> for SparseMultilinearPolynomial<F> {
         );
         Self::rand_with_config(num_vars, 1 << (num_vars / 2), rng)
     }
-}
-
-impl<F: Field> MultilinearPolynomialEvaluationForm<F> for SparseMultilinearPolynomial<F> {
-    type PartialPoint = Vec<F>;
 
     fn relabel(&self, mut a: usize, mut b: usize, k: usize) -> Self {
         if a > b {
@@ -153,12 +154,12 @@ impl<F: Field> MultilinearPolynomialEvaluationForm<F> for SparseMultilinearPolyn
         }
     }
 
-    fn fix_variables(&self, partial_point: &Self::PartialPoint) -> Self {
+    fn fix_variables(&self, partial_point: &[F]) -> Self {
         let dim = partial_point.len();
         assert!(dim <= self.num_vars, "invalid partial point dimension");
 
         let window = ark_std::log2(self.evaluations.len()) as usize;
-        let mut point = partial_point.as_slice();
+        let mut point = partial_point;
         let mut last = treemap_to_hashmap(&self.evaluations);
 
         // batch evaluation
@@ -191,7 +192,7 @@ impl<F: Field> MultilinearPolynomialEvaluationForm<F> for SparseMultilinearPolyn
     }
 }
 
-impl<F: Field> Index<usize> for SparseMultilinearPolynomial<F> {
+impl<F: Field> Index<usize> for SparseMultilinearExtension<F> {
     type Output = F;
 
     /// Returns the evaluation of the polynomial at a point represented by index.
@@ -208,20 +209,20 @@ impl<F: Field> Index<usize> for SparseMultilinearPolynomial<F> {
     }
 }
 
-impl<F: Field> Add for SparseMultilinearPolynomial<F> {
-    type Output = SparseMultilinearPolynomial<F>;
+impl<F: Field> Add for SparseMultilinearExtension<F> {
+    type Output = SparseMultilinearExtension<F>;
 
-    fn add(self, other: SparseMultilinearPolynomial<F>) -> Self {
+    fn add(self, other: SparseMultilinearExtension<F>) -> Self {
         &self + &other
     }
 }
 
-impl<'a, 'b, F: Field> Add<&'a SparseMultilinearPolynomial<F>>
-    for &'b SparseMultilinearPolynomial<F>
+impl<'a, 'b, F: Field> Add<&'a SparseMultilinearExtension<F>>
+for &'b SparseMultilinearExtension<F>
 {
-    type Output = SparseMultilinearPolynomial<F>;
+    type Output = SparseMultilinearExtension<F>;
 
-    fn add(self, rhs: &'a SparseMultilinearPolynomial<F>) -> Self::Output {
+    fn add(self, rhs: &'a SparseMultilinearExtension<F>) -> Self::Output {
         // handle zero case
         if self.is_zero() {
             return rhs.clone();
@@ -252,24 +253,24 @@ impl<'a, 'b, F: Field> Add<&'a SparseMultilinearPolynomial<F>>
     }
 }
 
-impl<F: Field> AddAssign for SparseMultilinearPolynomial<F> {
+impl<F: Field> AddAssign for SparseMultilinearExtension<F> {
     fn add_assign(&mut self, other: Self) {
         *self = &*self + &other;
     }
 }
 
-impl<'a, 'b, F: Field> AddAssign<&'a SparseMultilinearPolynomial<F>>
-    for SparseMultilinearPolynomial<F>
+impl<'a, 'b, F: Field> AddAssign<&'a SparseMultilinearExtension<F>>
+for SparseMultilinearExtension<F>
 {
-    fn add_assign(&mut self, other: &'a SparseMultilinearPolynomial<F>) {
+    fn add_assign(&mut self, other: &'a SparseMultilinearExtension<F>) {
         *self = &*self + other;
     }
 }
 
-impl<'a, 'b, F: Field> AddAssign<(F, &'a SparseMultilinearPolynomial<F>)>
-    for SparseMultilinearPolynomial<F>
+impl<'a, 'b, F: Field> AddAssign<(F, &'a SparseMultilinearExtension<F>)>
+for SparseMultilinearExtension<F>
 {
-    fn add_assign(&mut self, (f, other): (F, &'a SparseMultilinearPolynomial<F>)) {
+    fn add_assign(&mut self, (f, other): (F, &'a SparseMultilinearExtension<F>)) {
         if !self.is_zero() && !other.is_zero() {
             assert_eq!(
                 other.num_vars, self.num_vars,
@@ -288,8 +289,8 @@ impl<'a, 'b, F: Field> AddAssign<(F, &'a SparseMultilinearPolynomial<F>)>
     }
 }
 
-impl<F: Field> Neg for SparseMultilinearPolynomial<F> {
-    type Output = SparseMultilinearPolynomial<F>;
+impl<F: Field> Neg for SparseMultilinearExtension<F> {
+    type Output = SparseMultilinearExtension<F>;
 
     fn neg(self) -> Self::Output {
         let ev: Vec<_> = cfg_iter!(self.evaluations)
@@ -303,39 +304,39 @@ impl<F: Field> Neg for SparseMultilinearPolynomial<F> {
     }
 }
 
-impl<F: Field> Sub for SparseMultilinearPolynomial<F> {
-    type Output = SparseMultilinearPolynomial<F>;
+impl<F: Field> Sub for SparseMultilinearExtension<F> {
+    type Output = SparseMultilinearExtension<F>;
 
-    fn sub(self, other: SparseMultilinearPolynomial<F>) -> Self {
+    fn sub(self, other: SparseMultilinearExtension<F>) -> Self {
         &self - &other
     }
 }
 
-impl<'a, 'b, F: Field> Sub<&'a SparseMultilinearPolynomial<F>>
-    for &'b SparseMultilinearPolynomial<F>
+impl<'a, 'b, F: Field> Sub<&'a SparseMultilinearExtension<F>>
+for &'b SparseMultilinearExtension<F>
 {
-    type Output = SparseMultilinearPolynomial<F>;
+    type Output = SparseMultilinearExtension<F>;
 
-    fn sub(self, rhs: &'a SparseMultilinearPolynomial<F>) -> Self::Output {
+    fn sub(self, rhs: &'a SparseMultilinearExtension<F>) -> Self::Output {
         self + &rhs.clone().neg()
     }
 }
 
-impl<F: Field> SubAssign for SparseMultilinearPolynomial<F> {
+impl<F: Field> SubAssign for SparseMultilinearExtension<F> {
     fn sub_assign(&mut self, other: Self) {
         *self = &*self - &other;
     }
 }
 
-impl<'a, 'b, F: Field> SubAssign<&'a SparseMultilinearPolynomial<F>>
-    for SparseMultilinearPolynomial<F>
+impl<'a, 'b, F: Field> SubAssign<&'a SparseMultilinearExtension<F>>
+for SparseMultilinearExtension<F>
 {
-    fn sub_assign(&mut self, other: &'a SparseMultilinearPolynomial<F>) {
+    fn sub_assign(&mut self, other: &'a SparseMultilinearExtension<F>) {
         *self = &*self - other;
     }
 }
 
-impl<F: Field> Zero for SparseMultilinearPolynomial<F> {
+impl<F: Field> Zero for SparseMultilinearExtension<F> {
     fn zero() -> Self {
         Self {
             num_vars: 0,
@@ -349,7 +350,7 @@ impl<F: Field> Zero for SparseMultilinearPolynomial<F> {
     }
 }
 
-impl<F: Field> Debug for SparseMultilinearPolynomial<F> {
+impl<F: Field> Debug for SparseMultilinearExtension<F> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), fmt::Error> {
         write!(
             f,
@@ -368,22 +369,6 @@ impl<F: Field> Debug for SparseMultilinearPolynomial<F> {
     }
 }
 
-/// utility: precompute f(x) = eq(g,x)
-fn precompute_eq<F: Field>(g: &[F]) -> Vec<F> {
-    let dim = g.len();
-    let mut dp = Vec::with_capacity(1 << dim);
-    dp.resize(1 << dim, F::zero());
-    dp[0] = F::one() - g[0];
-    dp[1] = g[0];
-    for i in 1..dim {
-        let dp_prev = (&dp[0..(1 << i)]).to_vec();
-        for b in 0..(1 << i) {
-            dp[b] = dp_prev[b] * (F::one() - g[i]);
-            dp[b + (1 << i)] = dp_prev[b] * g[i];
-        }
-    }
-    dp
-}
 
 /// Utility: Convert tuples to hashmap.
 fn tuples_to_treemap<F: Field>(tuples: &[(usize, F)]) -> BTreeMap<usize, F> {
@@ -398,26 +383,16 @@ fn hashmap_to_treemap<F: Field>(map: &HashMap<usize, F>) -> BTreeMap<usize, F> {
     BTreeMap::from_iter(map.iter().map(|(i, v)| (*i, *v)))
 }
 
-impl<F: Field> IntoIterator for SparseMultilinearPolynomial<F> {
-    type Item = (usize, F);
-    type IntoIter = IntoIter<usize, F>;
-
-    fn into_iter(self) -> Self::IntoIter {
-        self.evaluations.into_iter()
-    }
-}
-
 #[cfg(test)]
 mod tests {
-    use crate::polynomial::multivariate::sparse_multilinear::SparseMultilinearPolynomial;
-    use crate::polynomial::MultilinearPolynomialEvaluationForm;
-    use crate::{MVPolynomial, Polynomial};
-    use ark_ff::Zero;
-    use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
-    use ark_std::ops::Neg;
-    use ark_std::vec::Vec;
     use ark_std::{test_rng, UniformRand};
     use ark_test_curves::bls12_381::Fr;
+    use crate::SparseMultilinearExtension;
+    use ark_ff::Zero;
+    use crate::evaluations::multivariate::multilinear::MultilinearExtension;
+    use ark_std::ops::Neg;
+    use ark_serialize::{CanonicalSerialize, CanonicalDeserialize};
+
     /// Some sanity test to ensure random sparse polynomial make sense.
     #[test]
     fn random_poly() {
@@ -425,8 +400,8 @@ mod tests {
 
         let mut rng = test_rng();
         // two random poly should be different
-        let poly1 = SparseMultilinearPolynomial::<Fr>::rand(NV, NV, &mut rng);
-        let poly2 = SparseMultilinearPolynomial::<Fr>::rand(NV, NV, &mut rng);
+        let poly1 = SparseMultilinearExtension::<Fr>::rand(NV, NV, &mut rng);
+        let poly2 = SparseMultilinearExtension::<Fr>::rand(NV, NV, &mut rng);
         assert_ne!(poly1, poly2);
         // test sparsity
         assert!(
@@ -446,13 +421,13 @@ mod tests {
         const NV: usize = 12;
         let mut rng = test_rng();
         for _ in 0..20 {
-            let sparse = SparseMultilinearPolynomial::<Fr>::rand(NV, NV, &mut rng);
-            let dense = sparse.to_dense_multilinear_poly();
+            let sparse = SparseMultilinearExtension::<Fr>::rand(NV, NV, &mut rng);
+            let dense = sparse.to_dense_multilinear_extension();
             let point: Vec<_> = (0..NV).map(|_| Fr::rand(&mut rng)).collect();
             assert_eq!(sparse.evaluate(&point), dense.evaluate(&point));
             let sparse_partial = sparse.fix_variables(&point[..3].to_vec());
             let dense_partial = dense.fix_variables(&point[..3].to_vec());
-            let point2 = (0..(NV - 3)).map(|_| Fr::rand(&mut rng)).collect();
+            let point2: Vec<_> = (0..(NV - 3)).map(|_| Fr::rand(&mut rng)).collect();
             assert_eq!(
                 sparse_partial.evaluate(&point2),
                 dense_partial.evaluate(&point2)
@@ -469,7 +444,7 @@ mod tests {
             (213, Fr::rand(&mut rng)),
             (255, Fr::rand(&mut rng)),
         ];
-        let poly = SparseMultilinearPolynomial::from_evaluations(8, &points);
+        let poly = SparseMultilinearExtension::from_evaluations(8, &points);
         points
             .into_iter()
             .map(|(i, v)| assert_eq!(poly[i], v))
@@ -483,9 +458,9 @@ mod tests {
         const NV: usize = 18;
         let mut rng = test_rng();
         for _ in 0..20 {
-            let point = (0..NV).map(|_| Fr::rand(&mut rng)).collect();
-            let poly1 = SparseMultilinearPolynomial::rand(NV, NV, &mut rng);
-            let poly2 = SparseMultilinearPolynomial::rand(NV, NV, &mut rng);
+            let point: Vec<_> = (0..NV).map(|_| Fr::rand(&mut rng)).collect();
+            let poly1 = SparseMultilinearExtension::rand(NV, NV, &mut rng);
+            let poly2 = SparseMultilinearExtension::rand(NV, NV, &mut rng);
             let v1 = poly1.evaluate(&point);
             let v2 = poly2.evaluate(&point);
             // test add
@@ -515,13 +490,13 @@ mod tests {
             }
             // test additive identity
             {
-                assert_eq!(&poly1 + &SparseMultilinearPolynomial::zero(), poly1);
-                assert_eq!(&SparseMultilinearPolynomial::zero() + &poly1, poly1);
+                assert_eq!(&poly1 + &SparseMultilinearExtension::zero(), poly1);
+                assert_eq!(&SparseMultilinearExtension::zero() + &poly1, poly1);
                 {
                     let mut poly1_cloned = poly1.clone();
-                    poly1_cloned += &SparseMultilinearPolynomial::zero();
+                    poly1_cloned += &SparseMultilinearExtension::zero();
                     assert_eq!(&poly1_cloned, &poly1);
-                    let mut zero = SparseMultilinearPolynomial::zero();
+                    let mut zero = SparseMultilinearExtension::zero();
                     let scalar = Fr::rand(&mut rng);
                     zero += (scalar, &poly1);
                     assert_eq!(zero.evaluate(&point), scalar * v1);
@@ -534,7 +509,7 @@ mod tests {
     fn relabel() {
         let mut rng = test_rng();
         for _ in 0..20 {
-            let mut poly = SparseMultilinearPolynomial::rand(10, 10, &mut rng);
+            let mut poly = SparseMultilinearExtension::rand(10, 10, &mut rng);
             let mut point: Vec<_> = (0..10).map(|_| Fr::rand(&mut rng)).collect();
 
             let expected = poly.evaluate(&point);
@@ -568,15 +543,16 @@ mod tests {
         let mut rng = test_rng();
         for _ in 0..20 {
             let mut buf = Vec::new();
-            let poly = SparseMultilinearPolynomial::<Fr>::rand(10, 10, &mut rng);
+            let poly = SparseMultilinearExtension::<Fr>::rand(10, 10, &mut rng);
             let point: Vec<_> = (0..10).map(|_| Fr::rand(&mut rng)).collect();
             let expected = poly.evaluate(&point);
 
             poly.serialize(&mut buf).unwrap();
 
-            let poly2: SparseMultilinearPolynomial<Fr> =
-                SparseMultilinearPolynomial::deserialize(&buf[..]).unwrap();
+            let poly2: SparseMultilinearExtension<Fr> =
+                SparseMultilinearExtension::deserialize(&buf[..]).unwrap();
             assert_eq!(poly2.evaluate(&point), expected);
         }
     }
 }
+

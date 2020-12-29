@@ -1,6 +1,6 @@
 //! Work with sparse and dense polynomials.
 
-use crate::{EvaluationDomain, Evaluations, Polynomial, UVPolynomial};
+use crate::{EvaluationDomain, UVEvaluations, Polynomial, UVPolynomial};
 use ark_ff::{FftField, Field, Zero};
 use ark_std::{borrow::Cow, convert::TryInto, vec::Vec};
 use DenseOrSparsePolynomial::*;
@@ -137,27 +137,27 @@ impl<'a, F: 'a + FftField> DenseOrSparsePolynomial<'a, F> {
     pub fn evaluate_over_domain<D: EvaluationDomain<F>>(
         poly: impl Into<Self>,
         domain: D,
-    ) -> Evaluations<F, D> {
+    ) -> UVEvaluations<F, D> {
         let poly = poly.into();
         poly.eval_over_domain_helper(domain)
     }
 
-    fn eval_over_domain_helper<D: EvaluationDomain<F>>(self, domain: D) -> Evaluations<F, D> {
+    fn eval_over_domain_helper<D: EvaluationDomain<F>>(self, domain: D) -> UVEvaluations<F, D> {
         match self {
             SPolynomial(Cow::Borrowed(s)) => {
                 let evals = domain.elements().map(|elem| s.evaluate(&elem)).collect();
-                Evaluations::from_vec_and_domain(evals, domain)
+                UVEvaluations::from_vec_and_domain(evals, domain)
             }
             SPolynomial(Cow::Owned(s)) => {
                 let evals = domain.elements().map(|elem| s.evaluate(&elem)).collect();
-                Evaluations::from_vec_and_domain(evals, domain)
+                UVEvaluations::from_vec_and_domain(evals, domain)
             }
             DPolynomial(Cow::Borrowed(d)) => {
-                Evaluations::from_vec_and_domain(domain.fft(&d.coeffs), domain)
+                UVEvaluations::from_vec_and_domain(domain.fft(&d.coeffs), domain)
             }
             DPolynomial(Cow::Owned(mut d)) => {
                 domain.fft_in_place(&mut d.coeffs);
-                Evaluations::from_vec_and_domain(d.coeffs, domain)
+                UVEvaluations::from_vec_and_domain(d.coeffs, domain)
             }
         }
     }

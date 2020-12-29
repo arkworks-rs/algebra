@@ -13,13 +13,9 @@ use ark_std::{
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
 
-mod dense_multilinear;
 mod sparse;
-mod sparse_multilinear;
-
-pub use dense_multilinear::DenseMultilinearPolynomial;
 pub use sparse::SparsePolynomial;
-pub use sparse_multilinear::SparseMultilinearPolynomial;
+
 /// Describes the interface for a term (monomial) of a multivariate polynomial.
 pub trait Term:
     Clone
@@ -167,13 +163,4 @@ impl Ord for SparseTerm {
             Ordering::Equal
         }
     }
-}
-
-/// swap the bits of `x` from position `a..a+n` to `b..b+n` and from `b..b+n` to `a..a+n` in little endian order
-pub(crate) fn swap_bits(x: usize, a: usize, b: usize, n: usize) -> usize {
-    let a_bits = (x >> a) & ((1usize << n) - 1);
-    let b_bits = (x >> b) & ((1usize << n) - 1);
-    let local_xor_mask = a_bits ^ b_bits;
-    let global_xor_mask = (local_xor_mask << a) | (local_xor_mask << b);
-    x ^ global_xor_mask
 }
