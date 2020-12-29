@@ -23,10 +23,11 @@ pub mod polynomial;
 pub use domain::{
     EvaluationDomain, GeneralEvaluationDomain, MixedRadixEvaluationDomain, Radix2EvaluationDomain,
 };
+pub use evaluations::multivariate::multilinear::{
+    DenseMultilinearExtension, MultilinearExtension, SparseMultilinearExtension,
+};
 pub use evaluations::univariate::UVEvaluations;
-pub use evaluations::multivariate::multilinear::{MultilinearExtension, DenseMultilinearExtension, SparseMultilinearExtension};
 pub use polynomial::{multivariate, univariate, MVPolynomial, Polynomial, UVPolynomial};
 
 #[cfg(test)]
 mod test;
-

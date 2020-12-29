@@ -1,19 +1,19 @@
 //! multilinear polynomial represented in sparse evaluation form.
 
+use crate::evaluations::multivariate::multilinear::swap_bits;
+use crate::{DenseMultilinearExtension, MultilinearExtension};
 use ark_ff::{Field, Zero};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, Read, SerializationError, Write};
+use ark_std::collections::BTreeMap;
+use ark_std::fmt::{Debug, Formatter};
+use ark_std::iter::FromIterator;
+use ark_std::ops::{Add, AddAssign, Index, Neg, Sub, SubAssign};
+use ark_std::vec::Vec;
+use ark_std::{fmt, UniformRand};
+use hashbrown::HashMap;
+use rand::Rng;
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
-use ark_std::collections::BTreeMap;
-use rand::Rng;
-use ark_std::iter::FromIterator;
-use hashbrown::HashMap;
-use crate::{DenseMultilinearExtension, MultilinearExtension};
-use ark_std::{UniformRand, fmt};
-use crate::evaluations::multivariate::multilinear::swap_bits;
-use ark_std::ops::{Index, Add, AddAssign, Neg, Sub, SubAssign};
-use ark_std::fmt::{Debug, Formatter};
-use ark_std::vec::Vec;
 
 /// Stores a multilinear polynomial in sparse evaluation form.
 #[derive(Clone, PartialEq, Eq, Hash, Default, CanonicalSerialize, CanonicalDeserialize)]
@@ -89,8 +89,6 @@ impl<F: Field> SparseMultilinearExtension<F> {
         DenseMultilinearExtension::from_evaluations_vec(self.num_vars, evaluations)
     }
 }
-
-
 
 /// utility: precompute f(x) = eq(g,x)
 fn precompute_eq<F: Field>(g: &[F]) -> Vec<F> {
@@ -217,7 +215,7 @@ impl<F: Field> Add for SparseMultilinearExtension<F> {
 }
 
 impl<'a, 'b, F: Field> Add<&'a SparseMultilinearExtension<F>>
-for &'b SparseMultilinearExtension<F>
+    for &'b SparseMultilinearExtension<F>
 {
     type Output = SparseMultilinearExtension<F>;
 
@@ -259,7 +257,7 @@ impl<F: Field> AddAssign for SparseMultilinearExtension<F> {
 }
 
 impl<'a, 'b, F: Field> AddAssign<&'a SparseMultilinearExtension<F>>
-for SparseMultilinearExtension<F>
+    for SparseMultilinearExtension<F>
 {
     fn add_assign(&mut self, other: &'a SparseMultilinearExtension<F>) {
         *self = &*self + other;
@@ -267,7 +265,7 @@ for SparseMultilinearExtension<F>
 }
 
 impl<'a, 'b, F: Field> AddAssign<(F, &'a SparseMultilinearExtension<F>)>
-for SparseMultilinearExtension<F>
+    for SparseMultilinearExtension<F>
 {
     fn add_assign(&mut self, (f, other): (F, &'a SparseMultilinearExtension<F>)) {
         if !self.is_zero() && !other.is_zero() {
@@ -312,7 +310,7 @@ impl<F: Field> Sub for SparseMultilinearExtension<F> {
 }
 
 impl<'a, 'b, F: Field> Sub<&'a SparseMultilinearExtension<F>>
-for &'b SparseMultilinearExtension<F>
+    for &'b SparseMultilinearExtension<F>
 {
     type Output = SparseMultilinearExtension<F>;
 
@@ -328,7 +326,7 @@ impl<F: Field> SubAssign for SparseMultilinearExtension<F> {
 }
 
 impl<'a, 'b, F: Field> SubAssign<&'a SparseMultilinearExtension<F>>
-for SparseMultilinearExtension<F>
+    for SparseMultilinearExtension<F>
 {
     fn sub_assign(&mut self, other: &'a SparseMultilinearExtension<F>) {
         *self = &*self - other;
@@ -368,7 +366,6 @@ impl<F: Field> Debug for SparseMultilinearExtension<F> {
     }
 }
 
-
 /// Utility: Convert tuples to hashmap.
 fn tuples_to_treemap<F: Field>(tuples: &[(usize, F)]) -> BTreeMap<usize, F> {
     BTreeMap::from_iter(tuples.iter().map(|(i, v)| (*i, *v)))
@@ -384,14 +381,14 @@ fn hashmap_to_treemap<F: Field>(map: &HashMap<usize, F>) -> BTreeMap<usize, F> {
 
 #[cfg(test)]
 mod tests {
-    use ark_std::{test_rng, UniformRand};
-    use ark_test_curves::bls12_381::Fr;
+    use crate::evaluations::multivariate::multilinear::MultilinearExtension;
     use crate::SparseMultilinearExtension;
     use ark_ff::Zero;
-    use crate::evaluations::multivariate::multilinear::MultilinearExtension;
+    use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
     use ark_std::ops::Neg;
-    use ark_serialize::{CanonicalSerialize, CanonicalDeserialize};
     use ark_std::vec::Vec;
+    use ark_std::{test_rng, UniformRand};
+    use ark_test_curves::bls12_381::Fr;
     /// Some sanity test to ensure random sparse polynomial make sense.
     #[test]
     fn random_poly() {
@@ -554,4 +551,3 @@ mod tests {
         }
     }
 }
-

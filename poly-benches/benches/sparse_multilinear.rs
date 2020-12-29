@@ -2,7 +2,7 @@
 extern crate criterion;
 
 use ark_ff::Field;
-use ark_poly::{SparseMultilinearExtension, MultilinearExtension};
+use ark_poly::{MultilinearExtension, SparseMultilinearExtension};
 use ark_std::ops::Range;
 use ark_std::test_rng;
 use ark_test_curves::bls12_381;

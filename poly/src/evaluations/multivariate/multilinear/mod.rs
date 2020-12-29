@@ -1,37 +1,38 @@
-mod sparse;
 mod dense;
+mod sparse;
 
-pub use sparse::SparseMultilinearExtension;
 pub use dense::DenseMultilinearExtension;
+pub use sparse::SparseMultilinearExtension;
 
 use ark_std::fmt::Debug;
 use ark_std::hash::Hash;
-use ark_std::ops::{Index, Add, Neg, AddAssign, SubAssign};
+use ark_std::ops::{Add, AddAssign, Index, Neg, SubAssign};
 
 use ark_ff::{Field, Zero};
 
-use ark_serialize::{CanonicalSerialize, CanonicalDeserialize};
+use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use rand::Rng;
 
 /// Describes interface for multilinear extension of an array,
 /// which is multilinear polynomial in evaluation form, over domain {0,1}^`num_vars` (i.e. the boolean hypercube).
 ///
 /// Index represents a point, which is a vector in {0,1}^`num_vars` in little endian form. For example, `0b1011` represents `P(1,1,0,1)`
-pub trait MultilinearExtension<F: Field>: Sized
-+ Clone
-+ Debug
-+ Hash
-+ PartialEq
-+ Eq
-+ Add
-+ Neg
-+ Zero
-+ CanonicalSerialize
-+ CanonicalDeserialize
-+ for<'a> AddAssign<&'a Self>
-+ for<'a> AddAssign<(F, &'a Self)>
-+ for<'a> SubAssign<&'a Self>
-+ Index<usize>
+pub trait MultilinearExtension<F: Field>:
+    Sized
+    + Clone
+    + Debug
+    + Hash
+    + PartialEq
+    + Eq
+    + Add
+    + Neg
+    + Zero
+    + CanonicalSerialize
+    + CanonicalDeserialize
+    + for<'a> AddAssign<&'a Self>
+    + for<'a> AddAssign<(F, &'a Self)>
+    + for<'a> SubAssign<&'a Self>
+    + Index<usize>
 {
     /// Returns the number of variables in `self`
     fn num_vars(&self) -> usize;

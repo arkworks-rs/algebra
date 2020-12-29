@@ -55,7 +55,7 @@ impl<F: FftField, D: EvaluationDomain<F>> Index<usize> for UVEvaluations<F, D> {
 }
 
 impl<'a, 'b, F: FftField, D: EvaluationDomain<F>> Mul<&'a UVEvaluations<F, D>>
-for &'b UVEvaluations<F, D>
+    for &'b UVEvaluations<F, D>
 {
     type Output = UVEvaluations<F, D>;
 
@@ -68,7 +68,7 @@ for &'b UVEvaluations<F, D>
 }
 
 impl<'a, F: FftField, D: EvaluationDomain<F>> MulAssign<&'a UVEvaluations<F, D>>
-for UVEvaluations<F, D>
+    for UVEvaluations<F, D>
 {
     #[inline]
     fn mul_assign(&mut self, other: &'a UVEvaluations<F, D>) {
@@ -80,7 +80,7 @@ for UVEvaluations<F, D>
 }
 
 impl<'a, 'b, F: FftField, D: EvaluationDomain<F>> Add<&'a UVEvaluations<F, D>>
-for &'b UVEvaluations<F, D>
+    for &'b UVEvaluations<F, D>
 {
     type Output = UVEvaluations<F, D>;
 
@@ -93,7 +93,7 @@ for &'b UVEvaluations<F, D>
 }
 
 impl<'a, F: FftField, D: EvaluationDomain<F>> AddAssign<&'a UVEvaluations<F, D>>
-for UVEvaluations<F, D>
+    for UVEvaluations<F, D>
 {
     #[inline]
     fn add_assign(&mut self, other: &'a UVEvaluations<F, D>) {
@@ -105,7 +105,7 @@ for UVEvaluations<F, D>
 }
 
 impl<'a, 'b, F: FftField, D: EvaluationDomain<F>> Sub<&'a UVEvaluations<F, D>>
-for &'b UVEvaluations<F, D>
+    for &'b UVEvaluations<F, D>
 {
     type Output = UVEvaluations<F, D>;
 
@@ -118,7 +118,7 @@ for &'b UVEvaluations<F, D>
 }
 
 impl<'a, F: FftField, D: EvaluationDomain<F>> SubAssign<&'a UVEvaluations<F, D>>
-for UVEvaluations<F, D>
+    for UVEvaluations<F, D>
 {
     #[inline]
     fn sub_assign(&mut self, other: &'a UVEvaluations<F, D>) {
@@ -130,7 +130,7 @@ for UVEvaluations<F, D>
 }
 
 impl<'a, 'b, F: FftField, D: EvaluationDomain<F>> Div<&'a UVEvaluations<F, D>>
-for &'b UVEvaluations<F, D>
+    for &'b UVEvaluations<F, D>
 {
     type Output = UVEvaluations<F, D>;
 
@@ -143,7 +143,7 @@ for &'b UVEvaluations<F, D>
 }
 
 impl<'a, F: FftField, D: EvaluationDomain<F>> DivAssign<&'a UVEvaluations<F, D>>
-for UVEvaluations<F, D>
+    for UVEvaluations<F, D>
 {
     #[inline]
     fn div_assign(&mut self, other: &'a UVEvaluations<F, D>) {

@@ -1,16 +1,16 @@
 //! multilinear polynomial represented in dense evaluation form.
 
+use crate::evaluations::multivariate::multilinear::{swap_bits, MultilinearExtension};
 use ark_ff::{Field, Zero};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, Read, SerializationError, Write};
 use ark_std::fmt;
 use ark_std::fmt::Formatter;
 use ark_std::ops::{Add, AddAssign, Index, Neg, Sub, SubAssign};
+use ark_std::slice::{Iter, IterMut};
 use ark_std::vec::Vec;
 use rand::Rng;
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
-use crate::evaluations::multivariate::multilinear::{MultilinearExtension, swap_bits};
-use ark_std::slice::{Iter, IterMut};
 
 /// Stores a multilinear polynomial in dense evaluation form.
 #[derive(Clone, PartialEq, Eq, Hash, Default, CanonicalSerialize, CanonicalDeserialize)]
@@ -152,9 +152,7 @@ impl<F: Field> Add for DenseMultilinearExtension<F> {
     }
 }
 
-impl<'a, 'b, F: Field> Add<&'a DenseMultilinearExtension<F>>
-for &'b DenseMultilinearExtension<F>
-{
+impl<'a, 'b, F: Field> Add<&'a DenseMultilinearExtension<F>> for &'b DenseMultilinearExtension<F> {
     type Output = DenseMultilinearExtension<F>;
 
     fn add(self, rhs: &'a DenseMultilinearExtension<F>) -> Self::Output {
@@ -182,7 +180,7 @@ impl<F: Field> AddAssign for DenseMultilinearExtension<F> {
 }
 
 impl<'a, 'b, F: Field> AddAssign<&'a DenseMultilinearExtension<F>>
-for DenseMultilinearExtension<F>
+    for DenseMultilinearExtension<F>
 {
     fn add_assign(&mut self, other: &'a DenseMultilinearExtension<F>) {
         *self = &*self + other;
@@ -190,7 +188,7 @@ for DenseMultilinearExtension<F>
 }
 
 impl<'a, 'b, F: Field> AddAssign<(F, &'a DenseMultilinearExtension<F>)>
-for DenseMultilinearExtension<F>
+    for DenseMultilinearExtension<F>
 {
     fn add_assign(&mut self, (f, other): (F, &'a DenseMultilinearExtension<F>)) {
         let other = Self {
@@ -220,9 +218,7 @@ impl<F: Field> Sub for DenseMultilinearExtension<F> {
     }
 }
 
-impl<'a, 'b, F: Field> Sub<&'a DenseMultilinearExtension<F>>
-for &'b DenseMultilinearExtension<F>
-{
+impl<'a, 'b, F: Field> Sub<&'a DenseMultilinearExtension<F>> for &'b DenseMultilinearExtension<F> {
     type Output = DenseMultilinearExtension<F>;
 
     fn sub(self, rhs: &'a DenseMultilinearExtension<F>) -> Self::Output {
@@ -237,7 +233,7 @@ impl<F: Field> SubAssign for DenseMultilinearExtension<F> {
 }
 
 impl<'a, 'b, F: Field> SubAssign<&'a DenseMultilinearExtension<F>>
-for DenseMultilinearExtension<F>
+    for DenseMultilinearExtension<F>
 {
     fn sub_assign(&mut self, other: &'a DenseMultilinearExtension<F>) {
         *self = &*self - other;
@@ -275,12 +271,12 @@ impl<F: Field> Zero for DenseMultilinearExtension<F> {
 #[cfg(test)]
 mod tests {
     use crate::DenseMultilinearExtension;
+    use crate::MultilinearExtension;
     use ark_ff::{Field, Zero};
+    use ark_std::ops::Neg;
     use ark_std::vec::Vec;
     use ark_std::{test_rng, UniformRand};
     use ark_test_curves::bls12_381::Fr;
-    use crate::MultilinearExtension;
-    use ark_std::ops::Neg;
 
     /// utility: evaluate multilinear extension (in form of data array) at a random point
     fn evaluate_data_array<F: Field>(data: &[F], point: &[F]) -> F {
