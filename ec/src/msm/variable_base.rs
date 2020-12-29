@@ -63,6 +63,9 @@ impl VariableBaseMSM {
                     }
                 });
 
+                // We could first normalize `buckets` and then use mixed-addition
+                // here, but that's slower for the kinds of groups we care about
+                // (Short Weierstrass curves and Twisted Edwards curves).
                 let mut running_sum = G::Projective::zero();
                 buckets.into_iter().rev().for_each(|b| {
                     running_sum += &b;
