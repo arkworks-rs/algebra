@@ -319,13 +319,12 @@ macro_rules! impl_Fp {
                     // Location of the flag is the last byte of the serialized
                     // form of the field element.
                     let flag_location = output_byte_size - 1;
-                    // At which byte is the flag located in the last limb
-                    // (+ 1 additional byte, if `P::MODULUS_BITS + F::BIT_SIZE`
-                    // is large enough)?
-                    let flag_location_in_last_limb = flag_location % 8;
+
+                    // At which byte is the flag located in the last limb?
+                    let flag_location_in_last_limb = flag_location - (8 * ($limbs - 1));
 
                     // Take all but the last 9 bytes.
-                    let last_bytes = &mut result_bytes[($limbs - 1) * 8..];
+                    let last_bytes = &mut result_bytes[8 * ($limbs - 1)..];
 
                     // The mask only has the last `F::BIT_SIZE` bits set
                     let flags_mask = u8::MAX << (8 - F::BIT_SIZE);
