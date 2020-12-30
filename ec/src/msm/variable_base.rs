@@ -66,9 +66,19 @@ impl VariableBaseMSM {
                 });
 
                 // Compute sum_{i in 0..num_buckets} (sum_{j in i..num_buckets} bucket[j])
+                // This is computed below for b buckets, using 2b curve additions.
+                //
                 // We could first normalize `buckets` and then use mixed-addition
                 // here, but that's slower for the kinds of groups we care about
                 // (Short Weierstrass curves and Twisted Edwards curves).
+                // In the case of Short Weierstrass curves,
+                // mixed addition saves ~4 field multiplications per addition.
+                // However normalization (with the inversion batched) takes ~6
+                // field multiplications per element,
+                // hence batch normalization is a slowdown.
+
+                // `running_sum` = sum_{j in i..num_buckets} bucket[j],
+                // where we iterate backwords from i = num_buckets to 0
                 let mut running_sum = G::Projective::zero();
                 buckets.into_iter().rev().for_each(|b| {
                     running_sum += &b;

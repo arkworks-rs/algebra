@@ -293,13 +293,13 @@ impl<P: Parameters> PartialEq for GroupProjective<P> {
         // The points (X, Y, Z) and (X', Y', Z')
         // are equal when (X * Z^2) = (X' * Z'^2)
         // and (Y * Z^3) = (Y' * Z'^3).
-        let z1 = self.z.square();
-        let z2 = other.z.square();
+        let z1z1 = self.z.square();
+        let z2z2 = other.z.square();
 
-        if self.x * &z2 != other.x * &z1 {
+        if self.x * &z2z2 != other.x * &z1z1 {
             false
         } else {
-            self.y * &(z2 * &other.z) == other.y * &(z1 * &self.z)
+            self.y * &(z2z2 * &other.z) == other.y * &(z1z1 * &self.z)
         }
     }
 }
@@ -399,6 +399,12 @@ impl<P: Parameters> ProjectiveCurve for GroupProjective<P> {
 
     #[inline]
     fn batch_normalization(v: &mut [Self]) {
+        // A projective curve element (x, y, z) is normalized
+        // to its affine representation, by the conversion
+        // (x, y, z) -> (x / z^2, y / z^3, 1)
+        // Batch normalizing N short-weierstrass curve elements costs:
+        //     1 inversion + 6N field multiplications + N field squarings    (Field ops)
+        // (batch inversion requires 3N multiplications + 1 inversion)
         let mut z_s = v.iter().map(|g| g.z).collect::<Vec<_>>();
         ark_ff::batch_inversion(&mut z_s);
 

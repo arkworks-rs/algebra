@@ -444,6 +444,12 @@ impl<P: Parameters> ProjectiveCurve for GroupProjective<P> {
     }
 
     fn batch_normalization(v: &mut [Self]) {
+        // A projective curve element (x, y, t, z) is normalized
+        // to its affine representation, by the conversion
+        // (x, y, t, z) -> (x/z, y/z, t/z, 1)
+        // Batch normalizing N twisted edwards curve elements costs:
+        //     1 inversion + 6N field multiplications
+        // (batch inversion requires 3N multiplications + 1 inversion)
         let mut z_s = v.iter().map(|g| g.z).collect::<Vec<_>>();
         ark_ff::batch_inversion(&mut z_s);
 
