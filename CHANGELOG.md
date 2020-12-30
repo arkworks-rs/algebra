@@ -58,6 +58,7 @@ The main features of this release are:
 - #144 (ark-poly) Add serialization for polynomials and evaluations
 - #149 (ark-serialize) Add an impl of `CanonicalSerialize/Deserialize` for `String`.
 - #153 (ark-serialize) Add an impl of `CanonicalSerialize/Deserialize` for `Rc<T>`.
+- #157 (ark-ec) Speed up `variable_base_msm` by not relying on unnecessary normalization.
 - #158 (ark-serialize) Add an impl of `CanonicalSerialize/Deserialize` for `()`.
 
 ### Bug fixes
