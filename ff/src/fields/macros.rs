@@ -308,10 +308,11 @@ macro_rules! impl_Fp {
                     result_bytes.iter_mut().zip(bytes).for_each(|(result, input)| {
                         *result = *input;
                     });
-                    // This mask retains everything that is below P::MODULUS_BITS
-                    let field_element_mask = (u64::MAX >> P::REPR_SHAVE_BITS).to_le_bytes();
+                    // This mask retains everything in the last limb
+                    // that is below `P::MODULUS_BITS`.
+                    let last_limb_mask = (u64::MAX >> P::REPR_SHAVE_BITS).to_le_bytes();
                     let mut last_bytes_mask = [0u8; 9];
-                    last_bytes_mask[..8].copy_from_slice(&field_element_mask);
+                    last_bytes_mask[..8].copy_from_slice(&last_limb_mask);
 
 
                     // Length of the buffer containing the field element and the flag.

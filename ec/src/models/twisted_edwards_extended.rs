@@ -143,8 +143,8 @@ impl<P: Parameters> AffineCurve for GroupAffine<P> {
 
     fn from_random_bytes(bytes: &[u8]) -> Option<Self> {
         P::BaseField::from_random_bytes_with_flags::<EdwardsFlags>(bytes).and_then(|(x, flags)| {
-            // if x is valid and is zero and only the infinity flag is set, then parse this
-            // point as infinity. For all other choices, get the original point.
+            // if x is valid and is zero, then parse this
+            // point as infinity.
             if x.is_zero() {
                 Some(Self::zero())
             } else {

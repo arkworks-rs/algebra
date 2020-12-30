@@ -5,7 +5,7 @@ pub trait Flags: Default + Clone + Copy + Sized {
 
     // Returns a bit mask corresponding to `self`.
     // For example, if `Self` contains two variants, there are just two possible
-    // bit masks: `0` and `1 << 8`.
+    // bit masks: `0` and `1 << 7`.
     fn u8_bitmask(&self) -> u8;
 
     // Tries to read `Self` from `value`. Should return `None` if the `Self::BIT_SIZE`
