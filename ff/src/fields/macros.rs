@@ -328,7 +328,7 @@ macro_rules! impl_Fp {
                     let last_bytes = &mut result_bytes[8 * ($limbs - 1)..];
 
                     // The mask only has the last `F::BIT_SIZE` bits set
-                    let flags_mask = u8::MAX << (8 - F::BIT_SIZE);
+                    let flags_mask = u8::MAX.checked_shl(8 - (F::BIT_SIZE as u32)).unwrap_or(0);
 
                     // Mask away the remaining bytes, and try to reconstruct the
                     // flag
