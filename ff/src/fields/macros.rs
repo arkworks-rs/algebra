@@ -6,6 +6,12 @@ macro_rules! impl_prime_field_serializer {
                 mut writer: W,
                 flags: F,
             ) -> Result<(), SerializationError> {
+                // All reasonable `Flags` should be less than 8 bits in size
+                // (256 values are enough for anyone!)
+                if F::BIT_SIZE > 8 {
+                    return Err(SerializationError::NotEnoughSpace);
+                }
+
                 // Calculate the number of bytes required to represent a field element
                 // serialized with `flags`. If `F::BIT_SIZE < 8`,
                 // this is at most `$byte_size + 1`
@@ -13,7 +19,7 @@ macro_rules! impl_prime_field_serializer {
 
                 // Write out `self` to a temporary buffer.
                 // The size of the buffer is $byte_size + 1 because `F::BIT_SIZE`
-                // is at most 8 bits (one hopes...)
+                // is at most 8 bits.
                 let mut bytes = [0u8; $byte_size + 1];
                 self.write(&mut bytes[..$byte_size])?;
 
@@ -52,6 +58,11 @@ macro_rules! impl_prime_field_serializer {
             fn deserialize_with_flags<R: ark_std::io::Read, F: Flags>(
                 mut reader: R,
             ) -> Result<(Self, F), SerializationError> {
+                // All reasonable `Flags` should be less than 8 bits in size
+                // (256 values are enough for anyone!)
+                if F::BIT_SIZE > 8 {
+                    return Err(SerializationError::NotEnoughSpace);
+                }
                 // Calculate the number of bytes required to represent a field element
                 // serialized with `flags`. If `F::BIT_SIZE < 8`,
                 // this is at most `$byte_size + 1`
