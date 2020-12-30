@@ -745,10 +745,7 @@ impl<P: Parameters> CanonicalSerialize for GroupAffine<P> {
 
     #[inline]
     fn uncompressed_size(&self) -> usize {
-        // x
-        P::BaseField::zero().serialized_size()
-            // y
-            + P::BaseField::zero().serialized_size_with_flags::<SWFlags>()
+        self.x.serialized_size() + self.y.serialized_size_with_flags::<SWFlags>()
     }
 }
 
