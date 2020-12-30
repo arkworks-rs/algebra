@@ -1,6 +1,6 @@
 use ark_serialize::{
     CanonicalDeserialize, CanonicalDeserializeWithFlags, CanonicalSerialize,
-    CanonicalSerializeWithFlags, ConstantSerializedSize, EmptyFlags, Flags, SerializationError,
+    CanonicalSerializeWithFlags, EmptyFlags, Flags, SerializationError,
 };
 use ark_std::{
     cmp::{Ord, Ordering, PartialOrd},
@@ -494,6 +494,13 @@ impl<P: CubicExtParameters> CanonicalSerializeWithFlags for CubicExtField<P> {
         self.c2.serialize_with_flags(&mut writer, flags)?;
         Ok(())
     }
+
+    #[inline]
+    fn serialized_size_with_flags<F: Flags>(&self) -> usize {
+        self.c0.serialized_size()
+            + self.c1.serialized_size()
+            + self.c2.serialized_size_with_flags::<F>()
+    }
 }
 
 impl<P: CubicExtParameters> CanonicalSerialize for CubicExtField<P> {
@@ -504,13 +511,8 @@ impl<P: CubicExtParameters> CanonicalSerialize for CubicExtField<P> {
 
     #[inline]
     fn serialized_size(&self) -> usize {
-        Self::SERIALIZED_SIZE
+        self.serialized_size_with_flags::<EmptyFlags>()
     }
-}
-
-impl<P: CubicExtParameters> ConstantSerializedSize for CubicExtField<P> {
-    const SERIALIZED_SIZE: usize = 3 * <P::BaseField as ConstantSerializedSize>::SERIALIZED_SIZE;
-    const UNCOMPRESSED_SIZE: usize = Self::SERIALIZED_SIZE;
 }
 
 impl<P: CubicExtParameters> CanonicalDeserializeWithFlags for CubicExtField<P> {
@@ -518,10 +520,9 @@ impl<P: CubicExtParameters> CanonicalDeserializeWithFlags for CubicExtField<P> {
     fn deserialize_with_flags<R: Read, F: Flags>(
         mut reader: R,
     ) -> Result<(Self, F), SerializationError> {
-        let c0: P::BaseField = CanonicalDeserialize::deserialize(&mut reader)?;
-        let c1: P::BaseField = CanonicalDeserialize::deserialize(&mut reader)?;
-        let (c2, flags): (P::BaseField, _) =
-            CanonicalDeserializeWithFlags::deserialize_with_flags(&mut reader)?;
+        let c0 = CanonicalDeserialize::deserialize(&mut reader)?;
+        let c1 = CanonicalDeserialize::deserialize(&mut reader)?;
+        let (c2, flags) = CanonicalDeserializeWithFlags::deserialize_with_flags(&mut reader)?;
         Ok((CubicExtField::new(c0, c1, c2), flags))
     }
 }

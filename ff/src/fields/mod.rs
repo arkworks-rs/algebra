@@ -6,7 +6,7 @@ use crate::{
 };
 use ark_serialize::{
     CanonicalDeserialize, CanonicalDeserializeWithFlags, CanonicalSerialize,
-    CanonicalSerializeWithFlags, ConstantSerializedSize,
+    CanonicalSerializeWithFlags,
 };
 use ark_std::{
     fmt::{Debug, Display},
@@ -88,7 +88,6 @@ pub trait Field:
     + Sized
     + Hash
     + CanonicalSerialize
-    + ConstantSerializedSize
     + CanonicalSerializeWithFlags
     + CanonicalDeserialize
     + CanonicalDeserializeWithFlags

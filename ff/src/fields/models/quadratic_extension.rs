@@ -1,6 +1,6 @@
 use ark_serialize::{
     CanonicalDeserialize, CanonicalDeserializeWithFlags, CanonicalSerialize,
-    CanonicalSerializeWithFlags, ConstantSerializedSize, EmptyFlags, Flags, SerializationError,
+    CanonicalSerializeWithFlags, EmptyFlags, Flags, SerializationError,
 };
 use ark_std::{
     cmp::{Ord, Ordering, PartialOrd},
@@ -524,6 +524,11 @@ impl<P: QuadExtParameters> CanonicalSerializeWithFlags for QuadExtField<P> {
         self.c1.serialize_with_flags(&mut writer, flags)?;
         Ok(())
     }
+
+    #[inline]
+    fn serialized_size_with_flags<F: Flags>(&self) -> usize {
+        self.c0.serialized_size() + self.c1.serialized_size_with_flags::<F>()
+    }
 }
 
 impl<P: QuadExtParameters> CanonicalSerialize for QuadExtField<P> {
@@ -534,13 +539,8 @@ impl<P: QuadExtParameters> CanonicalSerialize for QuadExtField<P> {
 
     #[inline]
     fn serialized_size(&self) -> usize {
-        Self::SERIALIZED_SIZE
+        self.serialized_size_with_flags::<EmptyFlags>()
     }
-}
-
-impl<P: QuadExtParameters> ConstantSerializedSize for QuadExtField<P> {
-    const SERIALIZED_SIZE: usize = 2 * <P::BaseField as ConstantSerializedSize>::SERIALIZED_SIZE;
-    const UNCOMPRESSED_SIZE: usize = Self::SERIALIZED_SIZE;
 }
 
 impl<P: QuadExtParameters> CanonicalDeserializeWithFlags for QuadExtField<P> {

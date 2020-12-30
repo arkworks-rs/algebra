@@ -4,7 +4,7 @@ use crate::{
 };
 use ark_serialize::{
     CanonicalDeserialize, CanonicalDeserializeWithFlags, CanonicalSerialize,
-    CanonicalSerializeWithFlags, ConstantSerializedSize, EdwardsFlags, Flags, SerializationError,
+    CanonicalSerializeWithFlags, EdwardsFlags, Flags, SerializationError,
 };
 use ark_std::{
     fmt::{Display, Formatter, Result as FmtResult},
@@ -723,7 +723,7 @@ impl<P: Parameters> CanonicalSerialize for GroupAffine<P> {
 
     #[inline]
     fn serialized_size(&self) -> usize {
-        Self::SERIALIZED_SIZE
+        P::BaseField::zero().serialized_size_with_flags::<EdwardsFlags>()
     }
 
     #[allow(unused_qualifications)]
@@ -736,16 +736,9 @@ impl<P: Parameters> CanonicalSerialize for GroupAffine<P> {
 
     #[inline]
     fn uncompressed_size(&self) -> usize {
-        Self::UNCOMPRESSED_SIZE
+        // x  + y
+        P::BaseField::zero().serialized_size() + P::BaseField::zero().serialized_size()
     }
-}
-
-impl<P: Parameters> ConstantSerializedSize<EdwardsFlags> for GroupAffine<P> {
-    const SERIALIZED_SIZE: usize =
-        <P::BaseField as ConstantSerializedSize<EdwardsFlags>>::SERIALIZED_SIZE;
-    const UNCOMPRESSED_SIZE: usize =
-        <P::BaseField as ConstantSerializedSize<EdwardsFlags>>::SERIALIZED_SIZE
-            + <P::BaseField as ConstantSerializedSize<EmptyFlags>>::SERIALIZED_SIZE;
 }
 
 impl<P: Parameters> CanonicalDeserialize for GroupAffine<P> {
