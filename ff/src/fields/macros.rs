@@ -1,90 +1,86 @@
 macro_rules! impl_prime_field_serializer {
     ($field: ident, $params: ident, $byte_size: expr) => {
-        impl<P: $params> ark_serialize::CanonicalSerializeWithFlags for $field<P> {
-            #[allow(unused_qualifications)]
-            fn serialize_with_flags<W: ark_std::io::Write, F: ark_serialize::Flags>(
+        impl<P: $params> CanonicalSerializeWithFlags for $field<P> {
+            fn serialize_with_flags<W: ark_std::io::Write, F: Flags>(
                 &self,
                 mut writer: W,
                 flags: F,
-            ) -> Result<(), ark_serialize::SerializationError> {
-                const BYTE_SIZE: usize = $byte_size;
-
-                let (output_bit_size, output_byte_size) =
-                    ark_serialize::buffer_bit_byte_size($field::<P>::size_in_bits());
-                if F::len() > (output_bit_size - P::MODULUS_BITS as usize) {
-                    return Err(ark_serialize::SerializationError::NotEnoughSpace);
+            ) -> Result<(), SerializationError> {
+                // All reasonable `Flags` should be less than 8 bits in size
+                // (256 values are enough for anyone!)
+                if F::BIT_SIZE > 8 {
+                    return Err(SerializationError::NotEnoughSpace);
                 }
 
-                let mut bytes = [0u8; BYTE_SIZE];
-                self.write(&mut bytes[..])?;
+                // Calculate the number of bytes required to represent a field element
+                // serialized with `flags`. If `F::BIT_SIZE < 8`,
+                // this is at most `$byte_size + 1`
+                let output_byte_size = buffer_byte_size(P::MODULUS_BITS as usize + F::BIT_SIZE);
 
+                // Write out `self` to a temporary buffer.
+                // The size of the buffer is $byte_size + 1 because `F::BIT_SIZE`
+                // is at most 8 bits.
+                let mut bytes = [0u8; $byte_size + 1];
+                self.write(&mut bytes[..$byte_size])?;
+
+                // Mask out the bits of the last byte that correspond to the flag.
                 bytes[output_byte_size - 1] |= flags.u8_bitmask();
 
                 writer.write_all(&bytes[..output_byte_size])?;
                 Ok(())
             }
+
+            // Let `m = 8 * n` for some `n` be the smallest multiple of 8 greater
+            // than `P::MODULUS_BITS`.
+            // If `(m - P::MODULUS_BITS) >= F::BIT_SIZE` , then this method returns `n`;
+            // otherwise, it returns `n + 1`.
+            fn serialized_size_with_flags<F: Flags>(&self) -> usize {
+                buffer_byte_size(P::MODULUS_BITS as usize + F::BIT_SIZE)
+            }
         }
 
-        impl<P: $params> ark_serialize::ConstantSerializedSize for $field<P> {
-            const SERIALIZED_SIZE: usize = ark_serialize::buffer_byte_size(
-                <$field<P> as crate::PrimeField>::Params::MODULUS_BITS as usize,
-            );
-            const UNCOMPRESSED_SIZE: usize = Self::SERIALIZED_SIZE;
-        }
-
-        impl<P: $params> ark_serialize::CanonicalSerialize for $field<P> {
-            #[allow(unused_qualifications)]
+        impl<P: $params> CanonicalSerialize for $field<P> {
             #[inline]
             fn serialize<W: ark_std::io::Write>(
                 &self,
                 writer: W,
-            ) -> Result<(), ark_serialize::SerializationError> {
-                use ark_serialize::*;
-                self.serialize_with_flags(writer, ark_serialize::EmptyFlags)
+            ) -> Result<(), SerializationError> {
+                self.serialize_with_flags(writer, EmptyFlags)
             }
 
             #[inline]
             fn serialized_size(&self) -> usize {
-                use ark_serialize::*;
-                Self::SERIALIZED_SIZE
+                self.serialized_size_with_flags::<EmptyFlags>()
             }
         }
 
-        impl<P: $params> ark_serialize::CanonicalDeserializeWithFlags for $field<P> {
-            #[allow(unused_qualifications)]
-            fn deserialize_with_flags<R: ark_std::io::Read, F: ark_serialize::Flags>(
+        impl<P: $params> CanonicalDeserializeWithFlags for $field<P> {
+            fn deserialize_with_flags<R: ark_std::io::Read, F: Flags>(
                 mut reader: R,
-            ) -> Result<(Self, F), ark_serialize::SerializationError> {
-                const BYTE_SIZE: usize = $byte_size;
-
-                let (output_bit_size, output_byte_size) =
-                    ark_serialize::buffer_bit_byte_size($field::<P>::size_in_bits());
-                if F::len() > (output_bit_size - P::MODULUS_BITS as usize) {
-                    return Err(ark_serialize::SerializationError::NotEnoughSpace);
+            ) -> Result<(Self, F), SerializationError> {
+                // All reasonable `Flags` should be less than 8 bits in size
+                // (256 values are enough for anyone!)
+                if F::BIT_SIZE > 8 {
+                    return Err(SerializationError::NotEnoughSpace);
                 }
+                // Calculate the number of bytes required to represent a field element
+                // serialized with `flags`. If `F::BIT_SIZE < 8`,
+                // this is at most `$byte_size + 1`
+                let output_byte_size = buffer_byte_size(P::MODULUS_BITS as usize + F::BIT_SIZE);
 
-                let mut masked_bytes = [0; BYTE_SIZE];
+                let mut masked_bytes = [0; $byte_size + 1];
                 reader.read_exact(&mut masked_bytes[..output_byte_size])?;
 
-                let flags = F::from_u8_remove_flags(&mut masked_bytes[output_byte_size - 1]);
+                let flags = F::from_u8_remove_flags(&mut masked_bytes[output_byte_size - 1])
+                    .ok_or(SerializationError::UnexpectedFlags)?;
 
                 Ok((Self::read(&masked_bytes[..])?, flags))
             }
         }
 
-        impl<P: $params> ark_serialize::CanonicalDeserialize for $field<P> {
-            #[allow(unused_qualifications)]
-            fn deserialize<R: ark_std::io::Read>(
-                mut reader: R,
-            ) -> Result<Self, ark_serialize::SerializationError> {
-                const BYTE_SIZE: usize = $byte_size;
-
-                let (_, output_byte_size) =
-                    ark_serialize::buffer_bit_byte_size($field::<P>::size_in_bits());
-
-                let mut masked_bytes = [0; BYTE_SIZE];
-                reader.read_exact(&mut masked_bytes[..output_byte_size])?;
-                Ok(Self::read(&masked_bytes[..])?)
+        impl<P: $params> CanonicalDeserialize for $field<P> {
+            fn deserialize<R: ark_std::io::Read>(reader: R) -> Result<Self, SerializationError> {
+                Self::deserialize_with_flags::<R, EmptyFlags>(reader).map(|(r, _)| r)
             }
         }
     };
@@ -303,28 +299,50 @@ macro_rules! impl_Fp {
             }
 
             #[inline]
-            fn from_random_bytes_with_flags(bytes: &[u8]) -> Option<(Self, u8)> {
-                use ark_serialize::*;
-                let mut result_bytes = [0u8; $limbs * 8];
-                for (result_byte, in_byte) in result_bytes.iter_mut().zip(bytes.iter()) {
-                    *result_byte = *in_byte;
-                }
+            fn from_random_bytes_with_flags<F: Flags>(bytes: &[u8]) -> Option<(Self, F)> {
+                if F::BIT_SIZE > 8 {
+                    return None
+                } else {
+                    let mut result_bytes = [0u8; $limbs * 8 + 1];
+                    // Copy the input into a temporary buffer.
+                    result_bytes.iter_mut().zip(bytes).for_each(|(result, input)| {
+                        *result = *input;
+                    });
+                    // This mask retains everything in the last limb
+                    // that is below `P::MODULUS_BITS`.
+                    let last_limb_mask = (u64::MAX >> P::REPR_SHAVE_BITS).to_le_bytes();
+                    let mut last_bytes_mask = [0u8; 9];
+                    last_bytes_mask[..8].copy_from_slice(&last_limb_mask);
 
-                let mask: u64 = 0xffffffffffffffff >> P::REPR_SHAVE_BITS;
-                // the flags will be at the same byte with the lowest shaven bits or the one after
-                let flags_byte_position: usize = 7 - P::REPR_SHAVE_BITS as usize / 8;
-                let flags_mask: u8 = ((1 << P::REPR_SHAVE_BITS % 8) - 1) << (8 - P::REPR_SHAVE_BITS % 8);
-                // take the last 8 bytes and pass the mask
-                let last_bytes = &mut result_bytes[($limbs - 1) * 8..];
-                let mut flags: u8 = 0;
-                for (i, (b, m)) in last_bytes.iter_mut().zip(&mask.to_le_bytes()).enumerate() {
-                    if i == flags_byte_position {
-                        flags = *b & flags_mask
+
+                    // Length of the buffer containing the field element and the flag.
+                    let output_byte_size = buffer_byte_size(P::MODULUS_BITS as usize + F::BIT_SIZE);
+                    // Location of the flag is the last byte of the serialized
+                    // form of the field element.
+                    let flag_location = output_byte_size - 1;
+
+                    // At which byte is the flag located in the last limb?
+                    let flag_location_in_last_limb = flag_location - (8 * ($limbs - 1));
+
+                    // Take all but the last 9 bytes.
+                    let last_bytes = &mut result_bytes[8 * ($limbs - 1)..];
+
+                    // The mask only has the last `F::BIT_SIZE` bits set
+                    let flags_mask = u8::MAX << (8 - F::BIT_SIZE);
+
+                    // Mask away the remaining bytes, and try to reconstruct the
+                    // flag
+                    let mut flags: u8 = 0;
+                    for (i, (b, m)) in last_bytes.iter_mut().zip(&last_bytes_mask).enumerate() {
+                        if i == flag_location_in_last_limb {
+                            flags = *b & flags_mask
+                        }
+                        *b &= m;
                     }
-                    *b &= m;
+                    Self::deserialize(&result_bytes[..($limbs * 8)])
+                        .ok()
+                        .and_then(|f| F::from_u8(flags).map(|flag| (f, flag)))
                 }
-
-                Self::deserialize(&mut &result_bytes[..]).ok().map(|f| (f, flags))
             }
 
             #[inline]

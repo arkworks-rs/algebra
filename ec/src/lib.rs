@@ -19,7 +19,7 @@ use ark_ff::{
     fields::{Field, PrimeField, SquareRootField},
     UniformRand,
 };
-use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, ConstantSerializedSize};
+use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use ark_std::{
     fmt::{Debug, Display},
     hash::Hash,
@@ -223,7 +223,6 @@ pub trait AffineCurve:
     + ToBytes
     + FromBytes
     + CanonicalSerialize
-    + ConstantSerializedSize
     + CanonicalDeserialize
     + Copy
     + Clone

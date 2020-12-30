@@ -1,6 +1,6 @@
 use ark_serialize::{
     CanonicalDeserialize, CanonicalDeserializeWithFlags, CanonicalSerialize,
-    CanonicalSerializeWithFlags, ConstantSerializedSize, Flags, SWFlags, SerializationError,
+    CanonicalSerializeWithFlags, SWFlags, SerializationError,
 };
 use ark_std::{
     fmt::{Display, Formatter, Result as FmtResult},
@@ -188,16 +188,15 @@ impl<P: Parameters> AffineCurve for GroupAffine<P> {
     }
 
     fn from_random_bytes(bytes: &[u8]) -> Option<Self> {
-        P::BaseField::from_random_bytes_with_flags(bytes).and_then(|(x, flags)| {
-            let infinity_flag_mask = SWFlags::Infinity.u8_bitmask();
-            let positive_flag_mask = SWFlags::PositiveY.u8_bitmask();
+        P::BaseField::from_random_bytes_with_flags::<SWFlags>(bytes).and_then(|(x, flags)| {
             // if x is valid and is zero and only the infinity flag is set, then parse this
             // point as infinity. For all other choices, get the original point.
-            if x.is_zero() && flags == infinity_flag_mask {
+            if x.is_zero() && flags.is_infinity() {
                 Some(Self::zero())
+            } else if let Some(y_is_positve) = flags.is_positive() {
+                Self::get_point_from_x(x, y_is_positve) // Unwrap is safe because it's not zero.
             } else {
-                let is_positive = flags & positive_flag_mask != 0;
-                Self::get_point_from_x(x, is_positive)
+                None
             }
         })
     }
@@ -728,7 +727,7 @@ impl<P: Parameters> CanonicalSerialize for GroupAffine<P> {
 
     #[inline]
     fn serialized_size(&self) -> usize {
-        Self::SERIALIZED_SIZE
+        P::BaseField::zero().serialized_size_with_flags::<SWFlags>()
     }
 
     #[allow(unused_qualifications)]
@@ -746,13 +745,8 @@ impl<P: Parameters> CanonicalSerialize for GroupAffine<P> {
 
     #[inline]
     fn uncompressed_size(&self) -> usize {
-        Self::UNCOMPRESSED_SIZE
+        self.x.serialized_size() + self.y.serialized_size_with_flags::<SWFlags>()
     }
-}
-
-impl<P: Parameters> ConstantSerializedSize for GroupAffine<P> {
-    const SERIALIZED_SIZE: usize = <P::BaseField as ConstantSerializedSize>::SERIALIZED_SIZE;
-    const UNCOMPRESSED_SIZE: usize = 2 * <P::BaseField as ConstantSerializedSize>::SERIALIZED_SIZE;
 }
 
 impl<P: Parameters> CanonicalDeserialize for GroupAffine<P> {

@@ -209,13 +209,8 @@ macro_rules! bigint_impl {
 
             #[inline]
             fn serialized_size(&self) -> usize {
-                Self::SERIALIZED_SIZE
+                Self::NUM_LIMBS * 8
             }
-        }
-
-        impl ConstantSerializedSize for $name {
-            const SERIALIZED_SIZE: usize = Self::NUM_LIMBS * 8;
-            const UNCOMPRESSED_SIZE: usize = Self::SERIALIZED_SIZE;
         }
 
         impl CanonicalDeserialize for $name {

@@ -28,12 +28,9 @@ pub trait CanonicalSerializeWithFlags: CanonicalSerialize {
         writer: W,
         flags: F,
     ) -> Result<(), SerializationError>;
-}
 
-/// Helper trait to get serialized size for constant sized structs.
-pub trait ConstantSerializedSize: CanonicalSerialize {
-    const SERIALIZED_SIZE: usize;
-    const UNCOMPRESSED_SIZE: usize;
+    /// Serializes `self` and `flags` into `writer`.
+    fn serialized_size_with_flags<F: Flags>(&self) -> usize;
 }
 
 /// Serializer in little endian format.
@@ -154,19 +151,14 @@ macro_rules! impl_uint {
 
             #[inline]
             fn serialized_size(&self) -> usize {
-                Self::SERIALIZED_SIZE
+                core::mem::size_of::<$ty>()
             }
-        }
-
-        impl ConstantSerializedSize for $ty {
-            const SERIALIZED_SIZE: usize = core::mem::size_of::<$ty>();
-            const UNCOMPRESSED_SIZE: usize = Self::SERIALIZED_SIZE;
         }
 
         impl CanonicalDeserialize for $ty {
             #[inline]
             fn deserialize<R: Read>(mut reader: R) -> Result<Self, SerializationError> {
-                let mut bytes = [0u8; Self::SERIALIZED_SIZE];
+                let mut bytes = [0u8; core::mem::size_of::<$ty>()];
                 reader.read_exact(&mut bytes)?;
                 Ok($ty::from_le_bytes(bytes))
             }
@@ -188,19 +180,14 @@ impl CanonicalSerialize for usize {
 
     #[inline]
     fn serialized_size(&self) -> usize {
-        Self::SERIALIZED_SIZE
+        core::mem::size_of::<u64>()
     }
-}
-
-impl ConstantSerializedSize for usize {
-    const SERIALIZED_SIZE: usize = core::mem::size_of::<u64>();
-    const UNCOMPRESSED_SIZE: usize = Self::SERIALIZED_SIZE;
 }
 
 impl CanonicalDeserialize for usize {
     #[inline]
     fn deserialize<R: Read>(mut reader: R) -> Result<Self, SerializationError> {
-        let mut bytes = [0u8; Self::SERIALIZED_SIZE];
+        let mut bytes = [0u8; core::mem::size_of::<u64>()];
         reader.read_exact(&mut bytes)?;
         usize::try_from(u64::from_le_bytes(bytes)).map_err(|_| SerializationError::InvalidData)
     }
