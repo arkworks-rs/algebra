@@ -27,6 +27,7 @@ The main features of this release are:
 - #129 (ark-ff) Move `ark_ff::{UniformRand, test_rng}` to `ark_std::{UniformRand, test_rng}`.
     Importing these from `ark-ff` is still possible, but is deprecated and will be removed in the following release.
 - #144 (ark-poly) Add `CanonicalSerialize` and `CanonicalDeserialize` trait bounds for `Polynomial`.
+- #160 (ark-serialize, ark-ff, ark-ec) Remove `ConstantSerializedSize`, and add `serialized_size_with_flags` method to `CanonicalSerializeWithFlags`. Downstream users should not see breakage unless they rely on these methods explicitly.
 
 ### Features
 - #20 (ark-poly) Add structs/traits for multivariate polynomials
@@ -67,6 +68,7 @@ The main features of this release are:
 - #112 (ark-serialize) Make `bool`s checked serialization methods non-malleable.
 - #119 (ark-poly) Fix bugs in degree calculation if adding/subtracting same degree polynomials
      whose leading coefficients cancel.
+- #160 (ark-serialize, ark-ff, ark-ec) Support serializing when `MODULUS_BITS + FLAG_BITS` is greater than a multiple of 8.
 
 
 ## v0.1.0 (Initial release of arkworks/algebra)
