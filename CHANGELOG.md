@@ -76,7 +76,7 @@ The main features of this release are:
 - #112 (ark-serialize) Make `bool`s checked serialization methods non-malleable.
 - #119 (ark-poly) Fix bugs in degree calculation if adding/subtracting same degree polynomials
      whose leading coefficients cancel.
-- #160 (ark-serialize, ark-ff, ark-ec) Support serializing when `MODULUS_BITS + FLAG_BITS` is greater than a multiple of 8 (fixes #47).
+- #160 (ark-serialize, ark-ff, ark-ec) Support serializing when `MODULUS_BITS + FLAG_BITS` is greater than the multiple of 8 just greater than `MODULUS_BITS`, which is the case for the Pasta curves (fixes #47).
 
 
 ## v0.1.0 (Initial release of arkworks/algebra)

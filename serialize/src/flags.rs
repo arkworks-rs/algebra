@@ -1,3 +1,12 @@
+/// Represents metadata to be appended to an object's serialization. For
+/// example, when serializing elliptic curve points, one can
+/// use a `Flag` to represent whether the serialization is the point
+/// at infinity, or whether the `y` coordinate is positive or not.
+/// These bits will be appended to the end of the point's serialization,
+/// or included in a new byte, depending on space available.
+///
+/// This is meant to be provided to `CanonicalSerializeWithFlags` and
+/// `CanonicalDeserializeWithFlags`
 pub trait Flags: Default + Clone + Copy + Sized {
     /// The number of bits required to encode `Self`.
     /// This should be at most 8.
@@ -117,6 +126,8 @@ impl Flags for SWFlags {
         let x_sign = (value >> 7) & 1 == 1;
         let is_infinity = (value >> 6) & 1 == 1;
         match (x_sign, is_infinity) {
+            // This is invalid because we only want *one* way to serialize
+            // the point at infinity.
             (true, true) => None,
             (false, true) => Some(SWFlags::Infinity),
             (true, false) => Some(SWFlags::PositiveY),
