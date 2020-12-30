@@ -71,7 +71,8 @@ macro_rules! impl_prime_field_serializer {
                 let mut masked_bytes = [0; $byte_size + 1];
                 reader.read_exact(&mut masked_bytes[..output_byte_size])?;
 
-                let flags = F::from_u8_remove_flags(&mut masked_bytes[output_byte_size - 1]);
+                let flags = F::from_u8_remove_flags(&mut masked_bytes[output_byte_size - 1])
+                    .ok_or(SerializationError::UnexpectedFlags)?;
 
                 Ok((Self::read(&masked_bytes[..])?, flags))
             }
@@ -298,27 +299,50 @@ macro_rules! impl_Fp {
             }
 
             #[inline]
-            fn from_random_bytes_with_flags(bytes: &[u8]) -> Option<(Self, u8)> {
-                let mut result_bytes = [0u8; $limbs * 8];
-                for (result_byte, in_byte) in result_bytes.iter_mut().zip(bytes.iter()) {
-                    *result_byte = *in_byte;
-                }
+            fn from_random_bytes_with_flags<F: Flags>(bytes: &[u8]) -> Option<(Self, F)> {
+                if F::BIT_SIZE > 8 {
+                    return None
+                } else {
+                    let mut result_bytes = [0u8; $limbs * 8 + 1];
+                    // Copy the input into a temporary buffer.
+                    result_bytes.iter_mut().zip(bytes).for_each(|(result, input)| {
+                        *result = *input;
+                    });
+                    // This mask retains everything that is below P::MODULUS_BITS
+                    let field_element_mask = (u64::MAX >> P::REPR_SHAVE_BITS).to_le_bytes();
+                    let mut last_bytes_mask = [0u8; 9];
+                    last_bytes_mask[..8].copy_from_slice(&field_element_mask);
 
-                let mask: u64 = 0xffffffffffffffff >> P::REPR_SHAVE_BITS;
-                // the flags will be at the same byte with the lowest shaven bits or the one after
-                let flags_byte_position: usize = 7 - P::REPR_SHAVE_BITS as usize / 8;
-                let flags_mask: u8 = ((1 << P::REPR_SHAVE_BITS % 8) - 1) << (8 - P::REPR_SHAVE_BITS % 8);
-                // take the last 8 bytes and pass the mask
-                let last_bytes = &mut result_bytes[($limbs - 1) * 8..];
-                let mut flags: u8 = 0;
-                for (i, (b, m)) in last_bytes.iter_mut().zip(&mask.to_le_bytes()).enumerate() {
-                    if i == flags_byte_position {
-                        flags = *b & flags_mask
+
+                    // Length of the buffer containing the field element and the flag.
+                    let output_byte_size = buffer_byte_size(P::MODULUS_BITS as usize + F::BIT_SIZE);
+                    // Location of the flag is the last byte of the serialized
+                    // form of the field element.
+                    let flag_location = output_byte_size - 1;
+                    // At which byte is the flag located in the last limb
+                    // (+ 1 additional byte, if `P::MODULUS_BITS + F::BIT_SIZE`
+                    // is large enough)?
+                    let flag_location_in_last_limb = flag_location % 8;
+
+                    // Take all but the last 9 bytes.
+                    let last_bytes = &mut result_bytes[($limbs - 1) * 8..];
+
+                    // The mask only has the last `F::BIT_SIZE` bits set
+                    let flags_mask = u8::MAX << (8 - F::BIT_SIZE);
+
+                    // Mask away the remaining bytes, and try to reconstruct the
+                    // flag
+                    let mut flags: u8 = 0;
+                    for (i, (b, m)) in last_bytes.iter_mut().zip(&last_bytes_mask).enumerate() {
+                        if i == flag_location_in_last_limb {
+                            flags = *b & flags_mask
+                        }
+                        *b &= m;
                     }
-                    *b &= m;
+                    Self::deserialize(&result_bytes[..($limbs * 8)])
+                        .ok()
+                        .and_then(|f| F::from_u8(flags).map(|flag| (f, flag)))
                 }
-
-                Self::deserialize(&mut &result_bytes[..]).ok().map(|f| (f, flags))
             }
 
             #[inline]

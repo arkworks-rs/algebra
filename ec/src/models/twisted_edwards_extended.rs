@@ -4,7 +4,7 @@ use crate::{
 };
 use ark_serialize::{
     CanonicalDeserialize, CanonicalDeserializeWithFlags, CanonicalSerialize,
-    CanonicalSerializeWithFlags, EdwardsFlags, Flags, SerializationError,
+    CanonicalSerializeWithFlags, EdwardsFlags, SerializationError,
 };
 use ark_std::{
     fmt::{Display, Formatter, Result as FmtResult},
@@ -142,17 +142,15 @@ impl<P: Parameters> AffineCurve for GroupAffine<P> {
     }
 
     fn from_random_bytes(bytes: &[u8]) -> Option<Self> {
-        let x = P::BaseField::from_random_bytes_with_flags(bytes);
-        if let Some((x, flags)) = x {
-            let parsed_flags = EdwardsFlags::from_u8(flags);
+        P::BaseField::from_random_bytes_with_flags::<EdwardsFlags>(bytes).and_then(|(x, flags)| {
+            // if x is valid and is zero and only the infinity flag is set, then parse this
+            // point as infinity. For all other choices, get the original point.
             if x.is_zero() {
                 Some(Self::zero())
             } else {
-                Self::get_point_from_x(x, parsed_flags.is_positive())
+                Self::get_point_from_x(x, flags.is_positive())
             }
-        } else {
-            None
-        }
+        })
     }
 
     #[inline]

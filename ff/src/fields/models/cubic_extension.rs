@@ -158,7 +158,7 @@ impl<P: CubicExtParameters> Field for CubicExtField<P> {
     }
 
     #[inline]
-    fn from_random_bytes_with_flags(bytes: &[u8]) -> Option<(Self, u8)> {
+    fn from_random_bytes_with_flags<F: Flags>(bytes: &[u8]) -> Option<(Self, F)> {
         let split_at = bytes.len() / 3;
         if let Some(c0) = P::BaseField::from_random_bytes(&bytes[..split_at]) {
             if let Some(c1) = P::BaseField::from_random_bytes(&bytes[split_at..2 * split_at]) {
@@ -174,7 +174,7 @@ impl<P: CubicExtParameters> Field for CubicExtField<P> {
 
     #[inline]
     fn from_random_bytes(bytes: &[u8]) -> Option<Self> {
-        Self::from_random_bytes_with_flags(bytes).map(|f| f.0)
+        Self::from_random_bytes_with_flags::<EmptyFlags>(bytes).map(|f| f.0)
     }
 
     fn square(&self) -> Self {
