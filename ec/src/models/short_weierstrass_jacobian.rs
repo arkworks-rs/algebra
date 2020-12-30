@@ -403,8 +403,8 @@ impl<P: Parameters> ProjectiveCurve for GroupProjective<P> {
         // to its affine representation, by the conversion
         // (x, y, z) -> (x / z^2, y / z^3, 1)
         // Batch normalizing N short-weierstrass curve elements costs:
-        //     1 inversion + 6N multiplications + N squarings    (Field ops)
-        // With the batch inversion taking 3N of the multiplications
+        //     1 inversion + 6N field multiplications + N field squarings    (Field ops)
+        // (batch inversion requires 3N multiplications + 1 inversion)
         let mut z_s = v.iter().map(|g| g.z).collect::<Vec<_>>();
         ark_ff::batch_inversion(&mut z_s);
 

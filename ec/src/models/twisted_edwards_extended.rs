@@ -448,8 +448,8 @@ impl<P: Parameters> ProjectiveCurve for GroupProjective<P> {
         // to its affine representation, by the conversion
         // (x, y, t, z) -> (x/z, y/z, t/z, 1)
         // Batch normalizing N twisted edwards curve elements costs:
-        //     1 inversion + 6N multiplications    (Field ops)
-        // With the batch inversion taking 3N of the multiplications
+        //     1 inversion + 6N field multiplications
+        // (batch inversion requires 3N multiplications + 1 inversion)
         let mut z_s = v.iter().map(|g| g.z).collect::<Vec<_>>();
         ark_ff::batch_inversion(&mut z_s);
 
