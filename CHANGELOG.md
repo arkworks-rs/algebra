@@ -36,6 +36,7 @@ The main features of this release are:
     if the top bits of the `u8` value do *not* correspond to one of the possible outputs of `Flags::u8_bitmask`, then these methods output `None`, whereas before they output
     a default value.
   Downstream users other than `ark-curves` should not see breakage unless they rely on these methods/traits explicitly.
+- #164 (ark-ff) Add a method `from_bytes_mod_order` to the `PrimeField` trait. Only users who implement prime fields without using the macros in ark-ff will see breakage.
 
 ### Features
 - #20 (ark-poly) Add structs/traits for multivariate polynomials
