@@ -128,6 +128,10 @@ impl<F: Field> MultilinearExtension<F> for DenseMultilinearExtension<F> {
         }
         Self::from_evaluations_slice(nv - dim, &poly[..(1 << (nv - dim))])
     }
+
+    fn to_evaluations(&self) -> Vec<F> {
+        self.evaluations.to_vec()
+    }
 }
 
 impl<F: Field> Index<usize> for DenseMultilinearExtension<F> {

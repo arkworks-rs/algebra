@@ -187,6 +187,15 @@ impl<F: Field> MultilinearExtension<F> for SparseMultilinearExtension<F> {
             zero: F::zero(),
         }
     }
+
+    fn to_evaluations(&self) -> Vec<F> {
+        let mut evaluations = Vec::with_capacity(1 << self.num_vars);
+        self.evaluations
+            .iter()
+            .map(|(&i, &v)| evaluations[i] = v)
+            .last();
+        evaluations
+    }
 }
 
 impl<F: Field> Index<usize> for SparseMultilinearExtension<F> {

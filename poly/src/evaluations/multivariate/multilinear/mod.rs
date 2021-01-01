@@ -7,6 +7,7 @@ pub use sparse::SparseMultilinearExtension;
 use ark_std::fmt::Debug;
 use ark_std::hash::Hash;
 use ark_std::ops::{Add, AddAssign, Index, Neg, SubAssign};
+use ark_std::vec::Vec;
 
 use ark_ff::{Field, Zero};
 
@@ -53,6 +54,9 @@ pub trait MultilinearExtension<F: Field>:
 
     /// Reduce the number of variables of the `self` by fixing the `partial_point.len()` variables at `partial_point`.
     fn fix_variables(&self, partial_point: &[F]) -> Self;
+
+    /// Returns a list of evaluations over the domain, which is the boolean hypercube.
+    fn to_evaluations(&self) -> Vec<F>;
 }
 
 /// swap the bits of `x` from position `a..a+n` to `b..b+n` and from `b..b+n` to `a..a+n` in little endian order
