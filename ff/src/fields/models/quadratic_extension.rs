@@ -30,7 +30,7 @@ pub trait QuadExtParameters: 'static + Send + Sync + Sized {
     /// The prime field that this quadratic extension is eventually an extension of.
     type BasePrimeField: PrimeField;
     /// The base field that this field is a quadratic extension of.
-    type BaseField: Field;
+    type BaseField: Field<BasePrimeField = Self::BasePrimeField>;
     /// The type of the coefficients for an efficient implemntation of the
     /// Frobenius endomorphism.
     type FrobCoeff: Field;
@@ -166,6 +166,17 @@ impl<P: QuadExtParameters> Field for QuadExtField<P> {
 
     fn extension_degree() -> u64 {
         2 * P::BaseField::extension_degree()
+    }
+
+    fn from_base_prime_field_elems(elems: &[Self::BasePrimeField]) -> Option<Self> {
+        if elems.len() != (Self::extension_degree() as usize) {
+            return None;
+        }
+        let base_ext_deg = P::BaseField::extension_degree() as usize;
+        Some(Self::new(
+            P::BaseField::from_base_prime_field_elems(&elems[0..base_ext_deg]).unwrap(),
+            P::BaseField::from_base_prime_field_elems(&elems[base_ext_deg..]).unwrap(),
+        ))
     }
 
     fn double(&self) -> Self {
@@ -577,5 +588,42 @@ where
         res.append(&mut c1_elems);
 
         Some(res)
+    }
+}
+
+#[cfg(test)]
+mod quad_ext_tests {
+    use super::*;
+    use crate::test_field::{Fq, Fq2};
+    use ark_std::test_rng;
+
+    #[test]
+    fn test_from_base_prime_field_elements() {
+        let ext_degree = Fq2::extension_degree() as usize;
+        // Test on slice lengths that aren't equal to the extension degree
+        let max_num_elems_to_test = 4;
+        for d in 0..max_num_elems_to_test {
+            if d == ext_degree {
+                continue;
+            }
+            let mut random_coeffs = Vec::<Fq>::new();
+            for _ in 0..d {
+                random_coeffs.push(Fq::rand(&mut test_rng()));
+            }
+            let res = Fq2::from_base_prime_field_elems(&random_coeffs);
+            assert_eq!(res, None);
+        }
+        // Test on slice lengths that are equal to the extension degree
+        // We test consistency against Fq2::new
+        let number_of_tests = 10;
+        for _ in 0..number_of_tests {
+            let mut random_coeffs = Vec::<Fq>::new();
+            for _ in 0..ext_degree {
+                random_coeffs.push(Fq::rand(&mut test_rng()));
+            }
+            let actual = Fq2::from_base_prime_field_elems(&random_coeffs).unwrap();
+            let expected = Fq2::new(random_coeffs[0], random_coeffs[1]);
+            assert_eq!(actual, expected);
+        }
     }
 }

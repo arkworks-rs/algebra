@@ -130,6 +130,10 @@ pub trait Field:
     /// to `Self::BasePrimeField`.
     fn extension_degree() -> u64;
 
+    /// Convert a slice of base prime field elements into a field element.
+    /// If the slice length != Self::extension_degree(), must return None.
+    fn from_base_prime_field_elems(elems: &[Self::BasePrimeField]) -> Option<Self>;
+
     /// Returns `self + self`.
     #[must_use]
     fn double(&self) -> Self;
@@ -524,7 +528,8 @@ pub fn batch_inversion_and_mul<F: Field>(v: &mut [F], coeff: &F) {
     });
 }
 
-// Given a vector of field elements {v_i}, compute the vector {coeff * v_i^(-1)}
+/// Given a vector of field elements {v_i}, compute the vector {coeff * v_i^(-1)}
+/// This method is explicitly single core.
 fn serial_batch_inversion_and_mul<F: Field>(v: &mut [F], coeff: &F) {
     // Montgomery’s Trick and Fast Implementation of Masked AES
     // Genelle, Prouff and Quisquater
