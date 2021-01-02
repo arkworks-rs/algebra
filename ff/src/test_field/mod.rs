@@ -302,6 +302,7 @@ pub(crate) mod fq2 {
 }
 
 pub(crate) mod fq6 {
+    // Copy of BLS12-377's Fq6
     use super::{fq::*, fq2::*};
     use crate::{field_new, fields::*};
 

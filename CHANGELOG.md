@@ -6,7 +6,7 @@ The main features of this release are:
 - Multi-variate polynomial support
 - Many speedups to operations involving polynomials
 - Some speedups to `sqrt`
-- Speedup to fixed-base `MSM`s
+- Small speedups to `MSM`s
 
 ### Breaking changes
 - #20 (ark-poly) Move univariate DensePolynomial and SparsePolynomial into a 
@@ -36,13 +36,13 @@ The main features of this release are:
     if the top bits of the `u8` value do *not* correspond to one of the possible outputs of `Flags::u8_bitmask`, then these methods output `None`, whereas before they output
     a default value.
   Downstream users other than `ark-curves` should not see breakage unless they rely on these methods/traits explicitly.
+- #165 (ark-ff) Add `from_base_field_elements` as a method to the `Field` trait.
 
 ### Features
 - #20 (ark-poly) Add structs/traits for multivariate polynomials
 - #96 (ark-ff) Make the `field_new` macro accept values in integer form, without requiring decomposition into limbs, and without requiring encoding in Montgomery form.
 - #106 (ark-ff, ark-ec) Add `Zeroize` trait bound to `Field, ProjectiveGroup, AffineGroup` traits.
 - #117 (ark-poly) Add operations to `SparsePolynomial`, so it implements `Polynomial`
-
 
 ### Improvements
 - #22 (ark-ec) Speedup fixed-base MSMs
@@ -77,6 +77,6 @@ The main features of this release are:
 - #119 (ark-poly) Fix bugs in degree calculation if adding/subtracting same degree polynomials
      whose leading coefficients cancel.
 - #160 (ark-serialize, ark-ff, ark-ec) Support serializing when `MODULUS_BITS + FLAG_BITS` is greater than the multiple of 8 just greater than `MODULUS_BITS`, which is the case for the Pasta curves (fixes #47).
-
+- #165 (ark-ff) Enforce in the type system that an extension fields `BaseField` extends from the correct `BasePrimeField`.
 
 ## v0.1.0 (Initial release of arkworks/algebra)
