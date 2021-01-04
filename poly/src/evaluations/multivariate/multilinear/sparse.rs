@@ -161,7 +161,7 @@ impl<F: Field> MultilinearExtension<F> for SparseMultilinearExtension<F> {
 
         // batch evaluation
         while !point.is_empty() {
-            let focus_length = if point.len() > window {
+            let focus_length = if window > 0 && point.len() > window {
                 window
             } else {
                 point.len()
@@ -392,7 +392,7 @@ fn hashmap_to_treemap<F: Field>(map: &HashMap<usize, F>) -> BTreeMap<usize, F> {
 mod tests {
     use crate::evaluations::multivariate::multilinear::MultilinearExtension;
     use crate::SparseMultilinearExtension;
-    use ark_ff::Zero;
+    use ark_ff::{One, Zero};
     use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
     use ark_std::ops::Neg;
     use ark_std::vec::Vec;
@@ -438,6 +438,33 @@ mod tests {
                 dense_partial.evaluate(&point2)
             );
         }
+    }
+
+    #[test]
+    fn evaluate_edge_cases() {
+        // test constant polynomial
+        let mut rng = test_rng();
+        let ev1 = Fr::rand(&mut rng);
+        let poly1 = SparseMultilinearExtension::from_evaluations(0, &vec![(0, ev1)]);
+        assert_eq!(poly1.evaluate(&vec![]), ev1);
+
+        // test single-variate polynomial
+        let ev2 = vec![Fr::rand(&mut rng), Fr::rand(&mut rng)];
+        let poly2 =
+            SparseMultilinearExtension::from_evaluations(1, &vec![(0, ev2[0]), (1, ev2[1])]);
+
+        let x = Fr::rand(&mut rng);
+        assert_eq!(
+            poly2.evaluate(&vec![x]),
+            x * ev2[1] + (Fr::one() - x) * ev2[0]
+        );
+
+        // test single-variate polynomial with one entry missing
+        let ev3 = Fr::rand(&mut rng);
+        let poly2 = SparseMultilinearExtension::from_evaluations(1, &vec![(1, ev3)]);
+
+        let x = Fr::rand(&mut rng);
+        assert_eq!(poly2.evaluate(&vec![x]), x * ev3);
     }
 
     #[test]
