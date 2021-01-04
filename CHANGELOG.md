@@ -1,4 +1,3 @@
-
 ## Pending
 
 The main features of this release are:
@@ -7,7 +6,7 @@ The main features of this release are:
 - Multi-variate polynomial support
 - Many speedups to operations involving polynomials
 - Some speedups to `sqrt`
-- Speedup to fixed-base `MSM`s
+- Small speedups to `MSM`s
 
 ### Breaking changes
 - #20 (ark-poly) Move univariate DensePolynomial and SparsePolynomial into a 
@@ -28,13 +27,22 @@ The main features of this release are:
 - #129 (ark-ff) Move `ark_ff::{UniformRand, test_rng}` to `ark_std::{UniformRand, test_rng}`.
     Importing these from `ark-ff` is still possible, but is deprecated and will be removed in the following release.
 - #144 (ark-poly) Add `CanonicalSerialize` and `CanonicalDeserialize` trait bounds for `Polynomial`.
+- #160 (ark-serialize, ark-ff, ark-ec) 
+  - Remove `ConstantSerializedSize`; users should use `serialized_size*` (see next).
+  - Add `serialized_size_with_flags` method to `CanonicalSerializeWithFlags`. 
+  - Change `from_random_bytes_with_flags` to output `ark_serialize::Flags`.
+  - Change signatures of `Flags::from_u8*` to output `Option`.
+  - Change `Flags::from_u8*` to be more strict about the inputs they accept: 
+    if the top bits of the `u8` value do *not* correspond to one of the possible outputs of `Flags::u8_bitmask`, then these methods output `None`, whereas before they output
+    a default value.
+  Downstream users other than `ark-curves` should not see breakage unless they rely on these methods/traits explicitly.
+- #165 (ark-ff) Add `from_base_field_elements` as a method to the `Field` trait.
 
 ### Features
 - #20 (ark-poly) Add structs/traits for multivariate polynomials
 - #96 (ark-ff) Make the `field_new` macro accept values in integer form, without requiring decomposition into limbs, and without requiring encoding in Montgomery form.
 - #106 (ark-ff, ark-ec) Add `Zeroize` trait bound to `Field, ProjectiveGroup, AffineGroup` traits.
 - #117 (ark-poly) Add operations to `SparsePolynomial`, so it implements `Polynomial`
-
 
 ### Improvements
 - #22 (ark-ec) Speedup fixed-base MSMs
@@ -57,6 +65,10 @@ The main features of this release are:
 - #131, #137 (ark-ff) Speedup `sqrt` on fields when a square root exists. (And slows it down when doesn't exist)
 - #141 (ark-ff) Add `Fp64`
 - #144 (ark-poly) Add serialization for polynomials and evaluations
+- #149 (ark-serialize) Add an impl of `CanonicalSerialize/Deserialize` for `String`.
+- #153 (ark-serialize) Add an impl of `CanonicalSerialize/Deserialize` for `Rc<T>`.
+- #157 (ark-ec) Speed up `variable_base_msm` by not relying on unnecessary normalization.
+- #158 (ark-serialize) Add an impl of `CanonicalSerialize/Deserialize` for `()`.
 
 ### Bug fixes
 - #36 (ark-ec) In Short-Weierstrass curves, include an infinity bit in `ToConstraintField`.
@@ -64,6 +76,7 @@ The main features of this release are:
 - #112 (ark-serialize) Make `bool`s checked serialization methods non-malleable.
 - #119 (ark-poly) Fix bugs in degree calculation if adding/subtracting same degree polynomials
      whose leading coefficients cancel.
-
+- #160 (ark-serialize, ark-ff, ark-ec) Support serializing when `MODULUS_BITS + FLAG_BITS` is greater than the multiple of 8 just greater than `MODULUS_BITS`, which is the case for the Pasta curves (fixes #47).
+- #165 (ark-ff) Enforce in the type system that an extension fields `BaseField` extends from the correct `BasePrimeField`.
 
 ## v0.1.0 (Initial release of arkworks/algebra)

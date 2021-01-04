@@ -3,9 +3,7 @@ use crate::{
     fields::BitIteratorBE,
     UniformRand,
 };
-use ark_serialize::{
-    CanonicalDeserialize, CanonicalSerialize, ConstantSerializedSize, SerializationError,
-};
+use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, SerializationError};
 use ark_std::{
     fmt::{Debug, Display},
     io::{Read, Result as IoResult, Write},
@@ -39,7 +37,6 @@ pub trait BigInteger:
     ToBytes
     + FromBytes
     + CanonicalSerialize
-    + ConstantSerializedSize
     + CanonicalDeserialize
     + Copy
     + Clone

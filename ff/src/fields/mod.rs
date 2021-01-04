@@ -6,7 +6,7 @@ use crate::{
 };
 use ark_serialize::{
     CanonicalDeserialize, CanonicalDeserializeWithFlags, CanonicalSerialize,
-    CanonicalSerializeWithFlags, ConstantSerializedSize,
+    CanonicalSerializeWithFlags, EmptyFlags, Flags,
 };
 use ark_std::{
     fmt::{Debug, Display},
@@ -88,7 +88,6 @@ pub trait Field:
     + Sized
     + Hash
     + CanonicalSerialize
-    + ConstantSerializedSize
     + CanonicalSerializeWithFlags
     + CanonicalDeserialize
     + CanonicalDeserializeWithFlags
@@ -131,6 +130,10 @@ pub trait Field:
     /// to `Self::BasePrimeField`.
     fn extension_degree() -> u64;
 
+    /// Convert a slice of base prime field elements into a field element.
+    /// If the slice length != Self::extension_degree(), must return None.
+    fn from_base_prime_field_elems(elems: &[Self::BasePrimeField]) -> Option<Self>;
+
     /// Returns `self + self`.
     #[must_use]
     fn double(&self) -> Self;
@@ -142,14 +145,14 @@ pub trait Field:
     /// otherwise returns None. This function is primarily intended for sampling
     /// random field elements from a hash-function or RNG output.
     fn from_random_bytes(bytes: &[u8]) -> Option<Self> {
-        Self::from_random_bytes_with_flags(bytes).map(|f| f.0)
+        Self::from_random_bytes_with_flags::<EmptyFlags>(bytes).map(|f| f.0)
     }
 
     /// Returns a field element with an extra sign bit used for group parsing if
     /// the set of bytes forms a valid field element, otherwise returns
     /// None. This function is primarily intended for sampling
     /// random field elements from a hash-function or RNG output.
-    fn from_random_bytes_with_flags(bytes: &[u8]) -> Option<(Self, u8)>;
+    fn from_random_bytes_with_flags<F: Flags>(bytes: &[u8]) -> Option<(Self, F)>;
 
     /// Returns `self * self`.
     #[must_use]
@@ -525,7 +528,8 @@ pub fn batch_inversion_and_mul<F: Field>(v: &mut [F], coeff: &F) {
     });
 }
 
-// Given a vector of field elements {v_i}, compute the vector {coeff * v_i^(-1)}
+/// Given a vector of field elements {v_i}, compute the vector {coeff * v_i^(-1)}
+/// This method is explicitly single core.
 fn serial_batch_inversion_and_mul<F: Field>(v: &mut [F], coeff: &F) {
     // Montgomery’s Trick and Fast Implementation of Masked AES
     // Genelle, Prouff and Quisquater

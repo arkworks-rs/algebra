@@ -1,6 +1,6 @@
 use ark_serialize::{
     CanonicalDeserialize, CanonicalDeserializeWithFlags, CanonicalSerialize,
-    CanonicalSerializeWithFlags, ConstantSerializedSize, EmptyFlags, Flags, SerializationError,
+    CanonicalSerializeWithFlags, EmptyFlags, Flags, SerializationError,
 };
 use ark_std::{
     cmp::{Ord, Ordering, PartialOrd},
@@ -26,10 +26,10 @@ use crate::{
 };
 
 pub trait CubicExtParameters: 'static + Send + Sync {
-    /// The prime field that this quadratic extension is eventually an extension of.
+    /// The prime field that this cubic extension is eventually an extension of.
     type BasePrimeField: PrimeField;
-    /// The base field that this field is a quadratic extension of.
-    type BaseField: Field;
+    /// The base field that this field is a cubic extension of.
+    type BaseField: Field<BasePrimeField = Self::BasePrimeField>;
     /// The type of the coefficients for an efficient implemntation of the
     /// Frobenius endomorphism.
     type FrobCoeff: Field;
@@ -144,6 +144,19 @@ impl<P: CubicExtParameters> Field for CubicExtField<P> {
         3 * P::BaseField::extension_degree()
     }
 
+    fn from_base_prime_field_elems(elems: &[Self::BasePrimeField]) -> Option<Self> {
+        if elems.len() != (Self::extension_degree() as usize) {
+            return None;
+        }
+        let base_ext_deg = P::BaseField::extension_degree() as usize;
+        Some(Self::new(
+            P::BaseField::from_base_prime_field_elems(&elems[0..base_ext_deg]).unwrap(),
+            P::BaseField::from_base_prime_field_elems(&elems[base_ext_deg..2 * base_ext_deg])
+                .unwrap(),
+            P::BaseField::from_base_prime_field_elems(&elems[2 * base_ext_deg..]).unwrap(),
+        ))
+    }
+
     fn double(&self) -> Self {
         let mut result = *self;
         result.double_in_place();
@@ -158,7 +171,7 @@ impl<P: CubicExtParameters> Field for CubicExtField<P> {
     }
 
     #[inline]
-    fn from_random_bytes_with_flags(bytes: &[u8]) -> Option<(Self, u8)> {
+    fn from_random_bytes_with_flags<F: Flags>(bytes: &[u8]) -> Option<(Self, F)> {
         let split_at = bytes.len() / 3;
         if let Some(c0) = P::BaseField::from_random_bytes(&bytes[..split_at]) {
             if let Some(c1) = P::BaseField::from_random_bytes(&bytes[split_at..2 * split_at]) {
@@ -174,7 +187,7 @@ impl<P: CubicExtParameters> Field for CubicExtField<P> {
 
     #[inline]
     fn from_random_bytes(bytes: &[u8]) -> Option<Self> {
-        Self::from_random_bytes_with_flags(bytes).map(|f| f.0)
+        Self::from_random_bytes_with_flags::<EmptyFlags>(bytes).map(|f| f.0)
     }
 
     fn square(&self) -> Self {
@@ -494,6 +507,13 @@ impl<P: CubicExtParameters> CanonicalSerializeWithFlags for CubicExtField<P> {
         self.c2.serialize_with_flags(&mut writer, flags)?;
         Ok(())
     }
+
+    #[inline]
+    fn serialized_size_with_flags<F: Flags>(&self) -> usize {
+        self.c0.serialized_size()
+            + self.c1.serialized_size()
+            + self.c2.serialized_size_with_flags::<F>()
+    }
 }
 
 impl<P: CubicExtParameters> CanonicalSerialize for CubicExtField<P> {
@@ -504,13 +524,8 @@ impl<P: CubicExtParameters> CanonicalSerialize for CubicExtField<P> {
 
     #[inline]
     fn serialized_size(&self) -> usize {
-        Self::SERIALIZED_SIZE
+        self.serialized_size_with_flags::<EmptyFlags>()
     }
-}
-
-impl<P: CubicExtParameters> ConstantSerializedSize for CubicExtField<P> {
-    const SERIALIZED_SIZE: usize = 3 * <P::BaseField as ConstantSerializedSize>::SERIALIZED_SIZE;
-    const UNCOMPRESSED_SIZE: usize = Self::SERIALIZED_SIZE;
 }
 
 impl<P: CubicExtParameters> CanonicalDeserializeWithFlags for CubicExtField<P> {
@@ -518,10 +533,9 @@ impl<P: CubicExtParameters> CanonicalDeserializeWithFlags for CubicExtField<P> {
     fn deserialize_with_flags<R: Read, F: Flags>(
         mut reader: R,
     ) -> Result<(Self, F), SerializationError> {
-        let c0: P::BaseField = CanonicalDeserialize::deserialize(&mut reader)?;
-        let c1: P::BaseField = CanonicalDeserialize::deserialize(&mut reader)?;
-        let (c2, flags): (P::BaseField, _) =
-            CanonicalDeserializeWithFlags::deserialize_with_flags(&mut reader)?;
+        let c0 = CanonicalDeserialize::deserialize(&mut reader)?;
+        let c1 = CanonicalDeserialize::deserialize(&mut reader)?;
+        let (c2, flags) = CanonicalDeserializeWithFlags::deserialize_with_flags(&mut reader)?;
         Ok((CubicExtField::new(c0, c1, c2), flags))
     }
 }
@@ -551,5 +565,46 @@ where
         res.append(&mut c2_elems);
 
         Some(res)
+    }
+}
+
+#[cfg(test)]
+mod cube_ext_tests {
+    use super::*;
+    use crate::test_field::{Fq, Fq2, Fq6};
+    use ark_std::test_rng;
+
+    #[test]
+    fn test_from_base_prime_field_elements() {
+        let ext_degree = Fq6::extension_degree() as usize;
+        // Test on slice lengths that aren't equal to the extension degree
+        let max_num_elems_to_test = 10;
+        for d in 0..max_num_elems_to_test {
+            if d == ext_degree {
+                continue;
+            }
+            let mut random_coeffs = Vec::<Fq>::new();
+            for _ in 0..d {
+                random_coeffs.push(Fq::rand(&mut test_rng()));
+            }
+            let res = Fq6::from_base_prime_field_elems(&random_coeffs);
+            assert_eq!(res, None);
+        }
+        // Test on slice lengths that are equal to the extension degree
+        // We test consistency against Fq2::new
+        let number_of_tests = 10;
+        for _ in 0..number_of_tests {
+            let mut random_coeffs = Vec::<Fq>::new();
+            for _ in 0..ext_degree {
+                random_coeffs.push(Fq::rand(&mut test_rng()));
+            }
+            let actual = Fq6::from_base_prime_field_elems(&random_coeffs).unwrap();
+
+            let expected_0 = Fq2::new(random_coeffs[0], random_coeffs[1]);
+            let expected_1 = Fq2::new(random_coeffs[2], random_coeffs[3]);
+            let expected_2 = Fq2::new(random_coeffs[3], random_coeffs[4]);
+            let expected = Fq6::new(expected_0, expected_1, expected_2);
+            assert_eq!(actual, expected);
+        }
     }
 }

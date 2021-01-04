@@ -9,6 +9,8 @@ use ark_std::{
     borrow::{Cow, ToOwned},
     collections::{BTreeMap, BTreeSet},
     convert::TryFrom,
+    rc::Rc,
+    string::String,
     vec::Vec,
     string::String,
 };
@@ -27,12 +29,9 @@ pub trait CanonicalSerializeWithFlags: CanonicalSerialize {
         writer: W,
         flags: F,
     ) -> Result<(), SerializationError>;
-}
 
-/// Helper trait to get serialized size for constant sized structs.
-pub trait ConstantSerializedSize: CanonicalSerialize {
-    const SERIALIZED_SIZE: usize;
-    const UNCOMPRESSED_SIZE: usize;
+    /// Serializes `self` and `flags` into `writer`.
+    fn serialized_size_with_flags<F: Flags>(&self) -> usize;
 }
 
 /// Serializer in little endian format.
@@ -153,19 +152,14 @@ macro_rules! impl_uint {
 
             #[inline]
             fn serialized_size(&self) -> usize {
-                Self::SERIALIZED_SIZE
+                core::mem::size_of::<$ty>()
             }
-        }
-
-        impl ConstantSerializedSize for $ty {
-            const SERIALIZED_SIZE: usize = core::mem::size_of::<$ty>();
-            const UNCOMPRESSED_SIZE: usize = Self::SERIALIZED_SIZE;
         }
 
         impl CanonicalDeserialize for $ty {
             #[inline]
             fn deserialize<R: Read>(mut reader: R) -> Result<Self, SerializationError> {
-                let mut bytes = [0u8; Self::SERIALIZED_SIZE];
+                let mut bytes = [0u8; core::mem::size_of::<$ty>()];
                 reader.read_exact(&mut bytes)?;
                 Ok($ty::from_le_bytes(bytes))
             }
@@ -187,21 +181,40 @@ impl CanonicalSerialize for usize {
 
     #[inline]
     fn serialized_size(&self) -> usize {
-        Self::SERIALIZED_SIZE
+        core::mem::size_of::<u64>()
     }
-}
-
-impl ConstantSerializedSize for usize {
-    const SERIALIZED_SIZE: usize = core::mem::size_of::<u64>();
-    const UNCOMPRESSED_SIZE: usize = Self::SERIALIZED_SIZE;
 }
 
 impl CanonicalDeserialize for usize {
     #[inline]
     fn deserialize<R: Read>(mut reader: R) -> Result<Self, SerializationError> {
-        let mut bytes = [0u8; Self::SERIALIZED_SIZE];
+        let mut bytes = [0u8; core::mem::size_of::<u64>()];
         reader.read_exact(&mut bytes)?;
         usize::try_from(u64::from_le_bytes(bytes)).map_err(|_| SerializationError::InvalidData)
+    }
+}
+
+// Implement Serialization for `String`
+// It is serialized by obtaining its byte representation as a Vec<u8> and
+// serializing that. This yields an end serialization of
+// `string.len() || string_bytes`.
+impl CanonicalSerialize for String {
+    #[inline]
+    fn serialize<W: Write>(&self, mut writer: W) -> Result<(), SerializationError> {
+        self.clone().into_bytes().serialize(&mut writer)
+    }
+
+    #[inline]
+    fn serialized_size(&self) -> usize {
+        self.clone().into_bytes().serialized_size()
+    }
+}
+
+impl CanonicalDeserialize for String {
+    #[inline]
+    fn deserialize<R: Read>(mut reader: R) -> Result<Self, SerializationError> {
+        String::from_utf8(Vec::<u8>::deserialize(&mut reader)?)
+            .map_err(|_| SerializationError::InvalidData)
     }
 }
 
@@ -327,13 +340,13 @@ pub const fn buffer_byte_size(modulus_bits: usize) -> usize {
 
 // Implement Serialization for tuples
 macro_rules! impl_tuple {
-    ($( $ty: ident : $no: tt, )+) => {
-        impl<$($ty, )+> CanonicalSerialize for ($($ty,)+) where
-            $($ty: CanonicalSerialize,)+
+    ($( $ty: ident : $no: tt, )*) => {
+        impl<$($ty, )*> CanonicalSerialize for ($($ty,)*) where
+            $($ty: CanonicalSerialize,)*
         {
             #[inline]
-            fn serialize<W: Write>(&self, mut writer: W) -> Result<(), SerializationError> {
-                $(self.$no.serialize(&mut writer)?;)*
+            fn serialize<W: Write>(&self, mut _writer: W) -> Result<(), SerializationError> {
+                $(self.$no.serialize(&mut _writer)?;)*
                 Ok(())
             }
 
@@ -345,14 +358,14 @@ macro_rules! impl_tuple {
             }
 
             #[inline]
-            fn serialize_uncompressed<W: Write>(&self, mut writer: W) -> Result<(), SerializationError> {
-                $(self.$no.serialize_uncompressed(&mut writer)?;)*
+            fn serialize_uncompressed<W: Write>(&self, mut _writer: W) -> Result<(), SerializationError> {
+                $(self.$no.serialize_uncompressed(&mut _writer)?;)*
                 Ok(())
             }
 
             #[inline]
-            fn serialize_unchecked<W: Write>(&self, mut writer: W) -> Result<(), SerializationError> {
-                $(self.$no.serialize_unchecked(&mut writer)?;)*
+            fn serialize_unchecked<W: Write>(&self, mut _writer: W) -> Result<(), SerializationError> {
+                $(self.$no.serialize_unchecked(&mut _writer)?;)*
                 Ok(())
             }
 
@@ -364,33 +377,34 @@ macro_rules! impl_tuple {
             }
         }
 
-        impl<$($ty, )+> CanonicalDeserialize for ($($ty,)+) where
-            $($ty: CanonicalDeserialize,)+
+        impl<$($ty, )*> CanonicalDeserialize for ($($ty,)*) where
+            $($ty: CanonicalDeserialize,)*
         {
             #[inline]
-            fn deserialize<R: Read>(mut reader: R) -> Result<Self, SerializationError> {
+            fn deserialize<R: Read>(mut _reader: R) -> Result<Self, SerializationError> {
                 Ok(($(
-                    $ty::deserialize(&mut reader)?,
-                )+))
+                    $ty::deserialize(&mut _reader)?,
+                )*))
             }
 
             #[inline]
-            fn deserialize_uncompressed<R: Read>(mut reader: R) -> Result<Self, SerializationError> {
+            fn deserialize_uncompressed<R: Read>(mut _reader: R) -> Result<Self, SerializationError> {
                 Ok(($(
-                    $ty::deserialize_uncompressed(&mut reader)?,
-                )+))
+                    $ty::deserialize_uncompressed(&mut _reader)?,
+                )*))
             }
 
             #[inline]
-            fn deserialize_unchecked<R: Read>(mut reader: R) -> Result<Self, SerializationError> {
+            fn deserialize_unchecked<R: Read>(mut _reader: R) -> Result<Self, SerializationError> {
                 Ok(($(
-                    $ty::deserialize_unchecked(&mut reader)?,
-                )+))
+                    $ty::deserialize_unchecked(&mut _reader)?,
+                )*))
             }
         }
     }
 }
 
+impl_tuple!();
 impl_tuple!(A:0, B:1,);
 impl_tuple!(A:0, B:1, C:2,);
 impl_tuple!(A:0, B:1, C:2, D:3,);
@@ -556,6 +570,51 @@ impl<T: CanonicalDeserialize> CanonicalDeserialize for Option<T> {
         };
 
         Ok(data)
+    }
+}
+
+// Implement Serialization for `Rc<T>`
+impl<T: CanonicalSerialize> CanonicalSerialize for Rc<T> {
+    #[inline]
+    fn serialize<W: Write>(&self, mut writer: W) -> Result<(), SerializationError> {
+        self.as_ref().serialize(&mut writer)
+    }
+
+    #[inline]
+    fn serialized_size(&self) -> usize {
+        self.as_ref().serialized_size()
+    }
+
+    #[inline]
+    fn serialize_uncompressed<W: Write>(&self, mut writer: W) -> Result<(), SerializationError> {
+        self.as_ref().serialize_uncompressed(&mut writer)
+    }
+
+    #[inline]
+    fn uncompressed_size(&self) -> usize {
+        self.as_ref().uncompressed_size()
+    }
+
+    #[inline]
+    fn serialize_unchecked<W: Write>(&self, mut writer: W) -> Result<(), SerializationError> {
+        self.as_ref().serialize_unchecked(&mut writer)
+    }
+}
+
+impl<T: CanonicalDeserialize> CanonicalDeserialize for Rc<T> {
+    #[inline]
+    fn deserialize<R: Read>(mut reader: R) -> Result<Self, SerializationError> {
+        Ok(Rc::new(T::deserialize(&mut reader)?))
+    }
+
+    #[inline]
+    fn deserialize_uncompressed<R: Read>(mut reader: R) -> Result<Self, SerializationError> {
+        Ok(Rc::new(T::deserialize_uncompressed(&mut reader)?))
+    }
+
+    #[inline]
+    fn deserialize_unchecked<R: Read>(mut reader: R) -> Result<Self, SerializationError> {
+        Ok(Rc::new(T::deserialize_unchecked(&mut reader)?))
     }
 }
 
@@ -799,7 +858,7 @@ mod test {
             &self,
             mut writer: W,
         ) -> Result<(), SerializationError> {
-            (&[100u8, 200u8]).serialize(&mut writer)
+            (&[100u8, 200u8]).serialize_uncompressed(&mut writer)
         }
 
         #[inline]
@@ -809,7 +868,7 @@ mod test {
 
         #[inline]
         fn serialize_unchecked<W: Write>(&self, mut writer: W) -> Result<(), SerializationError> {
-            (&[100u8, 200u8]).serialize(&mut writer)
+            (&[100u8, 200u8]).serialize_unchecked(&mut writer)
         }
     }
 
@@ -911,7 +970,14 @@ mod test {
     }
 
     #[test]
+    fn test_string() {
+        test_serialize(String::from("arkworks"));
+    }
+
+    #[test]
     fn test_tuple() {
+        test_serialize(());
+        test_serialize((123u64, Dummy));
         test_serialize((123u64, 234u32, Dummy));
     }
 
@@ -936,6 +1002,11 @@ mod test {
 
         test_serialize(Some(10u64));
         test_serialize(None::<u64>);
+    }
+
+    #[test]
+    fn test_rc() {
+        test_serialize(Rc::new(Dummy));
     }
 
     #[test]

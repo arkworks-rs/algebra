@@ -1,6 +1,6 @@
 use ark_serialize::{
     CanonicalDeserialize, CanonicalDeserializeWithFlags, CanonicalSerialize,
-    CanonicalSerializeWithFlags, ConstantSerializedSize, Flags, SWFlags, SerializationError,
+    CanonicalSerializeWithFlags, SWFlags, SerializationError,
 };
 use ark_std::{
     fmt::{Display, Formatter, Result as FmtResult},
@@ -188,16 +188,15 @@ impl<P: Parameters> AffineCurve for GroupAffine<P> {
     }
 
     fn from_random_bytes(bytes: &[u8]) -> Option<Self> {
-        P::BaseField::from_random_bytes_with_flags(bytes).and_then(|(x, flags)| {
-            let infinity_flag_mask = SWFlags::Infinity.u8_bitmask();
-            let positive_flag_mask = SWFlags::PositiveY.u8_bitmask();
+        P::BaseField::from_random_bytes_with_flags::<SWFlags>(bytes).and_then(|(x, flags)| {
             // if x is valid and is zero and only the infinity flag is set, then parse this
             // point as infinity. For all other choices, get the original point.
-            if x.is_zero() && flags == infinity_flag_mask {
+            if x.is_zero() && flags.is_infinity() {
                 Some(Self::zero())
+            } else if let Some(y_is_positve) = flags.is_positive() {
+                Self::get_point_from_x(x, y_is_positve) // Unwrap is safe because it's not zero.
             } else {
-                let is_positive = flags & positive_flag_mask != 0;
-                Self::get_point_from_x(x, is_positive)
+                None
             }
         })
     }
@@ -293,13 +292,13 @@ impl<P: Parameters> PartialEq for GroupProjective<P> {
         // The points (X, Y, Z) and (X', Y', Z')
         // are equal when (X * Z^2) = (X' * Z'^2)
         // and (Y * Z^3) = (Y' * Z'^3).
-        let z1 = self.z.square();
-        let z2 = other.z.square();
+        let z1z1 = self.z.square();
+        let z2z2 = other.z.square();
 
-        if self.x * &z2 != other.x * &z1 {
+        if self.x * &z2z2 != other.x * &z1z1 {
             false
         } else {
-            self.y * &(z2 * &other.z) == other.y * &(z1 * &self.z)
+            self.y * &(z2z2 * &other.z) == other.y * &(z1z1 * &self.z)
         }
     }
 }
@@ -399,6 +398,12 @@ impl<P: Parameters> ProjectiveCurve for GroupProjective<P> {
 
     #[inline]
     fn batch_normalization(v: &mut [Self]) {
+        // A projective curve element (x, y, z) is normalized
+        // to its affine representation, by the conversion
+        // (x, y, z) -> (x / z^2, y / z^3, 1)
+        // Batch normalizing N short-weierstrass curve elements costs:
+        //     1 inversion + 6N field multiplications + N field squarings    (Field ops)
+        // (batch inversion requires 3N multiplications + 1 inversion)
         let mut z_s = v.iter().map(|g| g.z).collect::<Vec<_>>();
         ark_ff::batch_inversion(&mut z_s);
 
@@ -722,7 +727,7 @@ impl<P: Parameters> CanonicalSerialize for GroupAffine<P> {
 
     #[inline]
     fn serialized_size(&self) -> usize {
-        Self::SERIALIZED_SIZE
+        P::BaseField::zero().serialized_size_with_flags::<SWFlags>()
     }
 
     #[allow(unused_qualifications)]
@@ -740,13 +745,8 @@ impl<P: Parameters> CanonicalSerialize for GroupAffine<P> {
 
     #[inline]
     fn uncompressed_size(&self) -> usize {
-        Self::UNCOMPRESSED_SIZE
+        self.x.serialized_size() + self.y.serialized_size_with_flags::<SWFlags>()
     }
-}
-
-impl<P: Parameters> ConstantSerializedSize for GroupAffine<P> {
-    const SERIALIZED_SIZE: usize = <P::BaseField as ConstantSerializedSize>::SERIALIZED_SIZE;
-    const UNCOMPRESSED_SIZE: usize = 2 * <P::BaseField as ConstantSerializedSize>::SERIALIZED_SIZE;
 }
 
 impl<P: Parameters> CanonicalDeserialize for GroupAffine<P> {
