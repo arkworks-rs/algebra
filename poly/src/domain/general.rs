@@ -17,9 +17,6 @@ use ark_std::{
     vec::Vec,
 };
 
-// TODO
-use ark_serialize::*;
-
 /// Defines a domain over which finite field (I)FFTs can be performed.
 /// Generally tries to build a radix-2 domain and falls back to a mixed-radix
 /// domain if the radix-2 multiplicative subgroup is too small.

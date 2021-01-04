@@ -10,9 +10,6 @@ use ark_std::{
     vec::Vec,
 };
 
-// TODO
-use ark_serialize::*;
-
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
 

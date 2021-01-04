@@ -26,9 +26,6 @@ pub use general::GeneralEvaluationDomain;
 pub use mixed_radix::MixedRadixEvaluationDomain;
 pub use radix2::Radix2EvaluationDomain;
 
-// TODO
-use ark_serialize::*;
-
 /// Defines a domain over which finite field (I)FFTs can be performed. The
 /// size of the supported FFT depends on the size of the multiplicative
 /// subgroup. For efficiency, we recommend that the field has at least one large

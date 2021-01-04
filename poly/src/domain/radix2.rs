@@ -20,9 +20,6 @@ use ark_std::{
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
 
-// TODO
-use ark_serialize::*;
-
 /// Defines a domain over which finite field (I)FFTs can be performed. Works
 /// only for fields that have a large multiplicative subgroup of size that is
 /// a power-of-2.
