@@ -1,5 +1,9 @@
 #[allow(unused)]
 pub(crate) use fq::*;
+#[allow(unused)]
+pub(crate) use fq2::*;
+#[allow(unused)]
+pub(crate) use fq6::*;
 pub(crate) use fr::*;
 
 pub(crate) mod fr {
@@ -226,6 +230,11 @@ pub(crate) mod fq {
         ]);
     }
 
+    #[allow(dead_code)]
+    pub const FQ_ONE: Fq = Fq::new(FqParameters::R);
+    #[allow(dead_code)]
+    pub const FQ_ZERO: Fq = Fq::new(BigInteger([0, 0, 0, 0, 0, 0]));
+
     #[test]
     fn test_const_from_repr() {
         use crate::fields::PrimeField;
@@ -245,5 +254,132 @@ pub(crate) mod fq {
             Fq::from_repr(int).unwrap(),
             Fq::const_from_repr(int, r2, modulus, inv)
         );
+    }
+}
+
+pub(crate) mod fq2 {
+    // Copy of BLS12-377's Fq2
+    use super::fq::*;
+    use crate::{field_new, fields::*};
+
+    pub type Fq2 = Fp2<Fq2Parameters>;
+
+    pub struct Fq2Parameters;
+
+    impl Fp2Parameters for Fq2Parameters {
+        type Fp = Fq;
+
+        /// NONRESIDUE = -5
+        #[rustfmt::skip]
+        const NONRESIDUE: Fq = field_new!(Fq, "-5");
+
+        /// QUADRATIC_NONRESIDUE = U
+        #[rustfmt::skip]
+        const QUADRATIC_NONRESIDUE: (Fq, Fq) = (FQ_ZERO, FQ_ONE);
+
+        /// Coefficients for the Frobenius automorphism.
+        #[rustfmt::skip]
+        const FROBENIUS_COEFF_FP2_C1: &'static [Fq] = &[
+            // NONRESIDUE**(((q^0) - 1) / 2)
+            FQ_ONE,
+            // NONRESIDUE**(((q^1) - 1) / 2)
+            field_new!(Fq, "-1"),
+        ];
+
+        #[inline(always)]
+        fn mul_fp_by_nonresidue(fe: &Self::Fp) -> Self::Fp {
+            let original = fe;
+            let mut fe = -fe.double();
+            fe.double_in_place();
+            fe - original
+        }
+    }
+
+    #[allow(dead_code)]
+    pub const FQ2_ZERO: Fq2 = field_new!(Fq2, FQ_ZERO, FQ_ZERO);
+    #[allow(dead_code)]
+    pub const FQ2_ONE: Fq2 = field_new!(Fq2, FQ_ONE, FQ_ZERO);
+}
+
+pub(crate) mod fq6 {
+    // Copy of BLS12-377's Fq6
+    use super::{fq::*, fq2::*};
+    use crate::{field_new, fields::*};
+
+    #[allow(dead_code)]
+    pub type Fq6 = Fp6<Fq6Parameters>;
+
+    #[derive(Clone, Copy)]
+    pub struct Fq6Parameters;
+
+    impl Fp6Parameters for Fq6Parameters {
+        type Fp2Params = Fq2Parameters;
+
+        /// NONRESIDUE = U
+        #[rustfmt::skip]
+        const NONRESIDUE: Fq2 = field_new!(Fq2, FQ_ZERO, FQ_ONE);
+
+        #[rustfmt::skip]
+        const FROBENIUS_COEFF_FP6_C1: &'static [Fq2] = &[
+            // Fp2::NONRESIDUE^(((q^0) - 1) / 3)
+            field_new!(Fq2, FQ_ONE, FQ_ZERO),
+            // Fp2::NONRESIDUE^(((q^1) - 1) / 3)
+            field_new!(Fq2,
+                field_new!(Fq, "80949648264912719408558363140637477264845294720710499478137287262712535938301461879813459410946"),
+                FQ_ZERO,
+            ),
+            // Fp2::NONRESIDUE^(((q^2) - 1) / 3)
+            field_new!(Fq2,
+                field_new!(Fq, "80949648264912719408558363140637477264845294720710499478137287262712535938301461879813459410945"),
+                FQ_ZERO,
+            ),
+            // Fp2::NONRESIDUE^(((q^3) - 1) / 3)
+            field_new!(Fq2, field_new!(Fq, "-1"), FQ_ZERO),
+            // Fp2::NONRESIDUE^(((q^4) - 1) / 3)
+            field_new!(Fq2,
+                field_new!(Fq, "258664426012969093929703085429980814127835149614277183275038967946009968870203535512256352201271898244626862047231"),
+                FQ_ZERO,
+            ),
+            // Fp2::NONRESIDUE^(((q^5) - 1) / 3)
+            field_new!(Fq2,
+                field_new!(Fq, "258664426012969093929703085429980814127835149614277183275038967946009968870203535512256352201271898244626862047232"),
+                FQ_ZERO,
+            ),
+        ];
+        #[rustfmt::skip]
+        const FROBENIUS_COEFF_FP6_C2: &'static [Fq2] = &[
+            // Fp2::NONRESIDUE^((2*(q^0) - 2) / 3)
+            field_new!(Fq2, FQ_ONE, FQ_ZERO),
+            // Fp2::NONRESIDUE^((2*(q^1) - 2) / 3)
+            field_new!(Fq2,
+                field_new!(Fq, "80949648264912719408558363140637477264845294720710499478137287262712535938301461879813459410945"),
+                FQ_ZERO
+            ),
+            // Fp2::NONRESIDUE^((2*(q^2) - 2) / 3)
+            field_new!(Fq2,
+                field_new!(Fq, "258664426012969093929703085429980814127835149614277183275038967946009968870203535512256352201271898244626862047231"),
+                FQ_ZERO,
+            ),
+            // Fp2::NONRESIDUE^((2*(q^3) - 2) / 3)
+            field_new!(Fq2, FQ_ONE, FQ_ZERO),
+            // Fp2::NONRESIDUE^((2*(q^4) - 2) / 3)
+            field_new!(Fq2,
+                field_new!(Fq, "80949648264912719408558363140637477264845294720710499478137287262712535938301461879813459410945"),
+                FQ_ZERO,
+            ),
+            // Fp2::NONRESIDUE^((2*(q^5) - 2) / 3)
+            field_new!(Fq2,
+                field_new!(Fq, "258664426012969093929703085429980814127835149614277183275038967946009968870203535512256352201271898244626862047231"),
+                FQ_ZERO,
+            ),
+        ];
+
+        #[inline(always)]
+        fn mul_fp2_by_nonresidue(fe: &Fq2) -> Fq2 {
+            // Karatsuba multiplication with constant other = u.
+            let c0 = Fq2Parameters::mul_fp_by_nonresidue(&fe.c1);
+            let c1 = fe.c0;
+            field_new!(Fq2, c0, c1)
+        }
     }
 }

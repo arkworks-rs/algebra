@@ -277,6 +277,13 @@ macro_rules! impl_Fp {
                 1
             }
 
+            fn from_base_prime_field_elems(elems: &[Self::BasePrimeField]) -> Option<Self> {
+                if elems.len() != (Self::extension_degree() as usize) {
+                    return None;
+                }
+                Some(elems[0])
+            }
+
             #[inline]
             fn double(&self) -> Self {
                 let mut temp = *self;
