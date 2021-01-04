@@ -12,7 +12,6 @@ use ark_std::{
     rc::Rc,
     string::String,
     vec::Vec,
-    string::String,
 };
 pub use error::*;
 pub use flags::*;
@@ -812,26 +811,6 @@ impl<T: CanonicalDeserialize + Ord> CanonicalDeserialize for BTreeSet<T> {
         Ok(set)
     }
 }
-
-// TODO: Remove
-impl CanonicalSerialize for String {
-    fn serialize<W: Write>(&self, mut writer: W) -> Result<(), SerializationError> {
-        self.as_bytes().serialize(&mut writer)?;
-        Ok(())
-    }
-
-    fn serialized_size(&self) -> usize {
-        self.as_bytes().serialized_size()
-    }
-}
-
-impl CanonicalDeserialize for String {
-    fn deserialize<R: Read>(mut reader: R) -> Result<Self, SerializationError> {
-        let byte_string = Vec::<u8>::deserialize(&mut reader)?;
-        Ok(String::from_utf8(byte_string).unwrap())
-    }
-}
-
 
 #[cfg(test)]
 mod test {
