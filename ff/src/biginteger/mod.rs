@@ -98,12 +98,12 @@ pub trait BigInteger:
     /// array.
     fn from_bits(bits: &[bool]) -> Self;
 
-    /// Returns the bit representation in a big endian boolean array, without
-    /// leading zeros.
+    /// Returns the bit representation in a big endian boolean array,
+    /// with leading zeroes.
     fn to_bits(&self) -> Vec<bool>;
 
-    /// Returns the byte representation in a big endian byte array, without
-    /// leading zeros.
+    /// Returns the byte representation in a big endian byte array,
+    /// with leading zeros.
     fn to_bytes(&self) -> Vec<u8>;
 
     /// Returns a vector for wnaf.
