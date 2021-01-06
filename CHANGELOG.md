@@ -69,6 +69,7 @@ The main features of this release are:
 - #153 (ark-serialize) Add an impl of `CanonicalSerialize/Deserialize` for `Rc<T>`.
 - #157 (ark-ec) Speed up `variable_base_msm` by not relying on unnecessary normalization.
 - #158 (ark-serialize) Add an impl of `CanonicalSerialize/Deserialize` for `()`.
+- #166 (ark-ff) Add a `to_bytes()` method to `BigInt`.
 
 ### Bug fixes
 - #36 (ark-ec) In Short-Weierstrass curves, include an infinity bit in `ToConstraintField`.

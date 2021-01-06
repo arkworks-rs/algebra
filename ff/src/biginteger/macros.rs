@@ -183,7 +183,7 @@ macro_rules! bigint_impl {
                 for b in BitIteratorBE::new(self.0) {
                     cur_byte = (cur_byte * 2) + (b as u8);
                     bit_num_mod_8 = (bit_num_mod_8 + 1) % 8;
-                    if bit_num_mod_8 == 0 { 
+                    if bit_num_mod_8 == 0 {
                         res.push(cur_byte);
                         cur_byte = 0u8;
                     }
