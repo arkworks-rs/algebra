@@ -102,6 +102,10 @@ pub trait BigInteger:
     /// leading zeros.
     fn to_bits(&self) -> Vec<bool>;
 
+    /// Returns the byte representation in a big endian byte array, without
+    /// leading zeros.
+    fn to_bytes(&self) -> Vec<u8>;
+
     /// Returns a vector for wnaf.
     fn find_wnaf(&self) -> Vec<i64>;
 

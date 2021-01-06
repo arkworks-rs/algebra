@@ -168,9 +168,28 @@ macro_rules! bigint_impl {
 
             #[inline]
             fn to_bits(&self) -> Vec<bool> {
-                let mut res = Vec::with_capacity(256);
+                let mut res = Vec::with_capacity($num_limbs * 64);
                 for b in BitIteratorBE::new(self.0) {
                     res.push(b);
+                }
+                res
+            }
+
+            #[inline]
+            fn to_bytes(&self) -> Vec<u8> {
+                let mut res = Vec::with_capacity($num_limbs * 8);
+                let mut cur_byte = 0u8;
+                let mut bit_num_mod_8 = 0;
+                for b in BitIteratorBE::new(self.0) {
+                    cur_byte = (cur_byte * 2) + (b as u8);
+                    bit_num_mod_8 = (bit_num_mod_8 + 1) % 8;
+                    if bit_num_mod_8 == 0 { 
+                        res.push(cur_byte);
+                        cur_byte = 0u8;
+                    }
+                }
+                if bit_num_mod_8 != 0 {
+                    res.push(cur_byte);
                 }
                 res
             }
