@@ -618,8 +618,9 @@ mod std_tests {
         // and its tested by parsing it with from_bytes_mod_order, and the num-bigint library.
         // The bytes are currently generated from scripts/test_vectors.py.
         // TODO: Eventually generate all the test vector bytes via computation with the modulus
-
         use num_bigint::BigUint;
+        use super::*;
+        use crate::test_field::Fr;
         let ref_modulus =
             BigUint::from_bytes_be(&<Fr as PrimeField>::Params::MODULUS.to_bytes_be());
 
