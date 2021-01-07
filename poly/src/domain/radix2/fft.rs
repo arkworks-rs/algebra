@@ -19,28 +19,23 @@ enum FFTOrder {
 const LOG_PARALLEL_SIZE: u32 = 7;
 
 impl<F: FftField> Radix2EvaluationDomain<F> {
-    pub(crate) fn in_order_fft_in_place<T: DomainCoeff<F>>(&self, x_s: &mut [T], root_of_unity: F) {
-        self.fft_helper_in_place(x_s, root_of_unity, FFTOrder::II)
+    pub(crate) fn in_order_fft_in_place<T: DomainCoeff<F>>(&self, x_s: &mut [T]) {
+        self.fft_helper_in_place(x_s, FFTOrder::II)
     }
 
-    pub(crate) fn in_order_ifft_in_place<T: DomainCoeff<F>>(&self, x_s: &mut [T], root_of_unity: F) {
-        self.ifft_helper_in_place(x_s, root_of_unity, FFTOrder::II)
+    pub(crate) fn in_order_ifft_in_place<T: DomainCoeff<F>>(&self, x_s: &mut [T]) {
+        self.ifft_helper_in_place(x_s, FFTOrder::II)
     }
 
-    fn fft_helper_in_place<T: DomainCoeff<F>>(
-        &self,
-        x_s: &mut [T],
-        root_of_unity: F,
-        ord: FFTOrder,
-    ) {
+    fn fft_helper_in_place<T: DomainCoeff<F>>(&self, x_s: &mut [T], ord: FFTOrder) {
         use FFTOrder::*;
 
         let log_len = ark_std::log2(x_s.len());
 
         if ord == OI {
-            self.oi_helper(x_s, root_of_unity);
+            self.oi_helper(x_s, self.group_gen);
         } else {
-            self.io_helper(x_s, root_of_unity);
+            self.io_helper(x_s, self.group_gen);
         }
 
         if ord == II {
@@ -48,12 +43,7 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
         }
     }
 
-    fn ifft_helper_in_place<T: DomainCoeff<F>>(
-        &self,
-        x_s: &mut [T],
-        root_of_unity: F,
-        ord: FFTOrder,
-    ) {
+    fn ifft_helper_in_place<T: DomainCoeff<F>>(&self, x_s: &mut [T], ord: FFTOrder) {
         use FFTOrder::*;
 
         let log_len = ark_std::log2(x_s.len());
@@ -63,14 +53,14 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
         }
 
         if ord == IO {
-            self.io_helper(x_s, root_of_unity);
+            self.io_helper(x_s, self.group_gen_inv);
         } else {
-            self.oi_helper(x_s, root_of_unity);
+            self.oi_helper(x_s, self.group_gen_inv);
         }
+        ark_std::cfg_iter_mut!(x_s).for_each(|val| *val *= self.size_inv);
     }
 
-    #[cfg(not(feature = "parallel"))]
-    fn roots_of_unity(&self, root: F) -> Vec<F> {
+    fn roots_of_unity_serial(&self, root: F) -> Vec<F> {
         let mut value = F::one();
         (0..self.size)
             .map(|_| {
@@ -81,20 +71,18 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
             .collect()
     }
 
+    #[cfg(not(feature = "parallel"))]
+    fn roots_of_unity(&self, root: F) -> Vec<F> {
+        self.roots_of_unity_serial(root)
+    }
+
     #[cfg(feature = "parallel")]
     fn roots_of_unity(&self, root: F) -> Vec<F> {
         let log_size = self.log_size_of_group;
-        let group_gen = self.group_gen;
+        let group_gen = root;
         // early exit for short inputs
         if log_size <= LOG_PARALLEL_SIZE {
-            let mut value = F::one();
-            (0..self.size)
-                .map(|_| {
-                    let old_value = value;
-                    value *= root;
-                    old_value
-                })
-                .collect()
+            self.roots_of_unity_serial(root)
         } else {
             let mut value = group_gen;
             // w, w^2, w^4, w^8, ..., w^(2^(log_size - 1))
@@ -133,15 +121,15 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
         let mut scr_hi = vec![F::default(); 1 << lr_hi.len()];
         // 2. compute each half individually
         rayon::join(
-            || Self::roots_of_unity_recursive(scr_lo.as_mut(), lr_lo),
-            || Self::roots_of_unity_recursive(scr_hi.as_mut(), lr_hi),
+            || Self::roots_of_unity_recursive(&mut scr_lo, lr_lo),
+            || Self::roots_of_unity_recursive(&mut scr_hi, lr_hi),
         );
         // 3. recombine halves
         out.par_chunks_mut(scr_lo.len())
-            .enumerate()
-            .for_each(|(idx, rt)| {
-                for jdx in 0..rt.len() {
-                    rt[jdx] = scr_hi[idx] * scr_lo[jdx];
+            .zip(&scr_hi)
+            .for_each(|(rt, scr_hi)| {
+                for (rt, scr_lo) in rt.iter_mut().zip(&scr_lo) {
+                    *rt = *scr_hi * scr_lo;
                 }
             });
     }

@@ -53,7 +53,11 @@ impl<F: FftField> EvaluationDomain<F> for Radix2EvaluationDomain<F> {
     /// having `num_coeffs` coefficients.
     fn new(num_coeffs: usize) -> Option<Self> {
         // Compute the size of our evaluation domain
-        let size = num_coeffs.next_power_of_two() as u64;
+        let size = if num_coeffs.is_power_of_two() {
+            num_coeffs as u64
+        } else {
+            num_coeffs.next_power_of_two() as u64
+        };
         let log_size_of_group = size.trailing_zeros();
 
         // libfqfft uses > https://github.com/scipr-lab/libfqfft/blob/e0183b2cef7d4c5deb21a6eaf3fe3b586d738fe0/libfqfft/evaluation_domain/domains/basic_radix2_domain.tcc#L33
@@ -97,14 +101,13 @@ impl<F: FftField> EvaluationDomain<F> for Radix2EvaluationDomain<F> {
     #[inline]
     fn fft_in_place<T: DomainCoeff<F>>(&self, coeffs: &mut Vec<T>) {
         coeffs.resize(self.size(), T::zero());
-        self.in_order_fft_in_place(&mut *coeffs, self.group_gen)
+        self.in_order_fft_in_place(&mut *coeffs)
     }
 
     #[inline]
     fn ifft_in_place<T: DomainCoeff<F>>(&self, evals: &mut Vec<T>) {
         evals.resize(self.size(), T::zero());
-        self.in_order_ifft_in_place(&mut *evals, self.group_gen_inv);
-        ark_std::cfg_iter_mut!(evals).for_each(|val| *val *= self.size_inv);
+        self.in_order_ifft_in_place(&mut *evals);
     }
 
     #[inline]
