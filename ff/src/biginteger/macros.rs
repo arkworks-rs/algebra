@@ -183,16 +183,6 @@ macro_rules! bigint_impl {
             }
 
             #[inline]
-            fn to_bits_be(&self) -> Vec<bool> {
-                BitIteratorBE::new(self.0).collect::<Vec<_>>()
-            }
-
-            #[inline]
-            fn to_bits_le(&self) -> Vec<bool> {
-                BitIteratorLE::new(self.0).collect::<Vec<_>>()
-            }
-
-            #[inline]
             fn to_bytes_be(&self) -> Vec<u8> {
                 let mut le_bytes = self.to_bytes_le();
                 le_bytes.reverse();

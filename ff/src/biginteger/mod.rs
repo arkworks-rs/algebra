@@ -104,11 +104,15 @@ pub trait BigInteger:
 
     /// Returns the bit representation in a big endian boolean array,
     /// with leading zeroes.
-    fn to_bits_be(&self) -> Vec<bool>;
+    fn to_bits_be(&self) -> Vec<bool> {
+        BitIteratorBE::new(self).collect::<Vec<_>>()
+    }
 
     /// Returns the bit representation in a little endian boolean array,
     /// with trailing zeroes.
-    fn to_bits_le(&self) -> Vec<bool>;
+    fn to_bits_le(&self) -> Vec<bool> {
+        BitIteratorLE::new(self).collect::<Vec<_>>()
+    }
 
     /// Returns the byte representation in a big endian byte array,
     /// with leading zeros.
