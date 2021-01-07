@@ -4,7 +4,7 @@
 //! FFTs of size at most `2^F::TWO_ADICITY`.
 
 pub use crate::domain::utils::Elements;
-use crate::domain::{utils::bitreverse, DomainCoeff, EvaluationDomain};
+use crate::domain::{DomainCoeff, EvaluationDomain};
 use ark_ff::{FftField, FftParameters};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, SerializationError};
 use ark_std::{
@@ -13,9 +13,6 @@ use ark_std::{
     io::{Read, Write},
     vec::Vec,
 };
-
-#[cfg(feature = "parallel")]
-use rayon::prelude::*;
 
 mod fft;
 
@@ -211,47 +208,6 @@ impl<F: FftField> EvaluationDomain<F> for Radix2EvaluationDomain<F> {
     }
 }
 
-// This implements the Cooley-Turkey FFT, derived from libfqfft
-// The libfqfft implementation uses pseudocode from [CLRS 2n Ed, pp. 864].
-pub(crate) fn serial_radix2_fft<T: DomainCoeff<F>, F: FftField>(a: &mut [T], omega: F, log_n: u32) {
-    let n =
-        u32::try_from(a.len()).expect("cannot perform FFTs larger on vectors of len > (1 << 32)");
-    assert_eq!(n, 1 << log_n);
-
-    // swap coefficients in place
-    for k in 0..n {
-        let rk = bitreverse(k, log_n);
-        if k < rk {
-            a.swap(rk as usize, k as usize);
-        }
-    }
-
-    let mut m = 1;
-    for _i in 1..=log_n {
-        // w_m is 2^i-th root of unity
-        let w_m = omega.pow(&[(n / (2 * m)) as u64]);
-
-        let mut k = 0;
-        while k < n {
-            // w = w_m^j at the start of every loop iteration
-            let mut w = F::one();
-            for j in 0..m {
-                let mut t = a[(k + j + m) as usize];
-                t *= w;
-                let mut tmp = a[(k + j) as usize];
-                tmp -= t;
-                a[(k + j + m) as usize] = tmp;
-                a[(k + j) as usize] += t;
-                w.mul_assign(&w_m);
-            }
-
-            k += 2 * m;
-        }
-
-        m *= 2;
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use crate::domain::Vec;
@@ -403,41 +359,71 @@ mod tests {
     #[test]
     #[cfg(feature = "parallel")]
     fn parallel_fft_consistency() {
-        use super::serial_radix2_fft;
-        use crate::domain::utils::parallel_fft;
-        use ark_ff::PrimeField;
         use ark_std::{test_rng, vec::Vec};
         use ark_test_curves::bls12_381::Fr;
-        use core::cmp::min;
 
-        fn test_consistency<F: PrimeField, R: Rng>(rng: &mut R, max_coeffs: u32) {
+        // This implements the Cooley-Turkey FFT, derived from libfqfft
+        // The libfqfft implementation uses pseudocode from [CLRS 2n Ed, pp. 864].
+        fn serial_radix2_fft(a: &mut [Fr], omega: Fr, log_n: u32) {
+            use ark_std::convert::TryFrom;
+            let n = u32::try_from(a.len())
+                .expect("cannot perform FFTs larger on vectors of len > (1 << 32)");
+            assert_eq!(n, 1 << log_n);
+
+            // swap coefficients in place
+            for k in 0..n {
+                let rk = crate::domain::utils::bitreverse(k, log_n);
+                if k < rk {
+                    a.swap(rk as usize, k as usize);
+                }
+            }
+
+            let mut m = 1;
+            for _i in 1..=log_n {
+                // w_m is 2^i-th root of unity
+                let w_m = omega.pow(&[(n / (2 * m)) as u64]);
+
+                let mut k = 0;
+                while k < n {
+                    // w = w_m^j at the start of every loop iteration
+                    let mut w = Fr::one();
+                    for j in 0..m {
+                        let mut t = a[(k + j + m) as usize];
+                        t *= w;
+                        let mut tmp = a[(k + j) as usize];
+                        tmp -= t;
+                        a[(k + j + m) as usize] = tmp;
+                        a[(k + j) as usize] += t;
+                        w *= &w_m;
+                    }
+
+                    k += 2 * m;
+                }
+
+                m *= 2;
+            }
+        }
+
+        fn test_consistency<R: Rng>(rng: &mut R, max_coeffs: u32) {
             for _ in 0..5 {
                 for log_d in 0..max_coeffs {
                     let d = 1 << log_d;
 
-                    let mut v1 = (0..d).map(|_| F::rand(rng)).collect::<Vec<_>>();
+                    let mut v1 = (0..d).map(|_| Fr::rand(rng)).collect::<Vec<_>>();
                     let mut v2 = v1.clone();
 
                     let domain = Radix2EvaluationDomain::new(v1.len()).unwrap();
 
-                    for log_cpus in log_d..min(log_d + 1, 3) {
-                        parallel_fft::<F, F>(
-                            &mut v1,
-                            domain.group_gen,
-                            log_d,
-                            log_cpus,
-                            serial_radix2_fft::<F, F>,
-                        );
-                        serial_radix2_fft::<F, F>(&mut v2, domain.group_gen, log_d);
+                    domain.fft_in_place(&mut v1);
+                    serial_radix2_fft(&mut v2, domain.group_gen, log_d);
 
-                        assert_eq!(v1, v2);
-                    }
+                    assert_eq!(v1, v2);
                 }
             }
         }
 
         let rng = &mut test_rng();
 
-        test_consistency::<Fr, _>(rng, 10);
+        test_consistency(rng, 10);
     }
 }
