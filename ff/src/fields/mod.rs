@@ -729,7 +729,8 @@ mod no_std_tests {
         for i in test_vectors {
             let mut expected_biguint = BigUint::from_bytes_be(&i);
             // Reduce expected_biguint using modpow API
-            expected_biguint = expected_biguint.modpow(&BigUint::from_bytes_be(&[1u8]), &ref_modulus);
+            expected_biguint =
+                expected_biguint.modpow(&BigUint::from_bytes_be(&[1u8]), &ref_modulus);
             let expected_string = expected_biguint.to_string();
             let expected = Fr::from_str(&expected_string).unwrap();
             let actual = Fr::from_bytes_mod_order(&i);
