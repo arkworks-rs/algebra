@@ -1,6 +1,8 @@
 use crate::domain::{radix2::*, DomainCoeff};
 use ark_ff::FftField;
 use ark_std::vec::Vec;
+#[cfg(feature = "parallel")]
+use rayon::prelude::*;
 
 #[derive(PartialEq, Eq, Debug)]
 enum FFTOrder {
@@ -169,7 +171,6 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
     }
 
     fn oi_helper<T: DomainCoeff<F>>(&self, xi: &mut [T], root: F) {
-        // needed roots of unity
         let roots = self.roots_of_unity(root);
 
         let mut gap = 1;
