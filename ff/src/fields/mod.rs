@@ -596,6 +596,8 @@ fn serial_batch_inversion_and_mul<F: Field>(v: &mut [F], coeff: &F) {
 #[cfg(all(test, feature = "std"))]
 mod std_tests {
     use super::BitIteratorLE;
+    use ark_std::string::ToString;
+
     #[test]
     fn bit_iterator_le() {
         let bits = BitIteratorLE::new(&[0, 1 << 10]).collect::<Vec<_>>();
@@ -607,39 +609,6 @@ mod std_tests {
             } else {
                 assert!(bit)
             }
-        }
-    }
-}
-
-#[cfg(test)]
-mod no_std_tests {
-    use super::*;
-    use crate::test_field::Fr;
-    use ark_std::string::ToString;
-    use ark_std::test_rng;
-
-    #[test]
-    fn test_batch_inversion() {
-        let mut random_coeffs = Vec::<Fr>::new();
-        let vec_size = 1000;
-
-        for _ in 0..=vec_size {
-            random_coeffs.push(Fr::rand(&mut test_rng()));
-        }
-
-        let mut random_coeffs_inv = random_coeffs.clone();
-        batch_inversion::<Fr>(&mut random_coeffs_inv);
-        for i in 0..=vec_size {
-            assert_eq!(random_coeffs_inv[i] * random_coeffs[i], Fr::one());
-        }
-        let rand_multiplier = Fr::rand(&mut test_rng());
-        let mut random_coeffs_inv_shifted = random_coeffs.clone();
-        batch_inversion_and_mul(&mut random_coeffs_inv_shifted, &rand_multiplier);
-        for i in 0..=vec_size {
-            assert_eq!(
-                random_coeffs_inv_shifted[i] * random_coeffs[i],
-                rand_multiplier
-            );
         }
     }
 
@@ -735,6 +704,38 @@ mod no_std_tests {
             let expected = Fr::from_str(&expected_string).unwrap();
             let actual = Fr::from_bytes_mod_order(&i);
             assert_eq!(expected, actual, "failed on test {:?}", i);
+        }
+    }
+}
+
+#[cfg(test)]
+mod no_std_tests {
+    use super::*;
+    use crate::test_field::Fr;
+    use ark_std::test_rng;
+
+    #[test]
+    fn test_batch_inversion() {
+        let mut random_coeffs = Vec::<Fr>::new();
+        let vec_size = 1000;
+
+        for _ in 0..=vec_size {
+            random_coeffs.push(Fr::rand(&mut test_rng()));
+        }
+
+        let mut random_coeffs_inv = random_coeffs.clone();
+        batch_inversion::<Fr>(&mut random_coeffs_inv);
+        for i in 0..=vec_size {
+            assert_eq!(random_coeffs_inv[i] * random_coeffs[i], Fr::one());
+        }
+        let rand_multiplier = Fr::rand(&mut test_rng());
+        let mut random_coeffs_inv_shifted = random_coeffs.clone();
+        batch_inversion_and_mul(&mut random_coeffs_inv_shifted, &rand_multiplier);
+        for i in 0..=vec_size {
+            assert_eq!(
+                random_coeffs_inv_shifted[i] * random_coeffs[i],
+                rand_multiplier
+            );
         }
     }
 }
