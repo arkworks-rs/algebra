@@ -192,7 +192,7 @@ macro_rules! bigint_impl {
             #[inline]
             fn to_bytes_le(&self) -> Vec<u8> {
                 let array_map = self.0.iter().map(|limb| limb.to_le_bytes());
-                let mut res = Vec::<u8>::new();
+                let mut res = Vec::<u8>::with_capacity($num_limbs * 8);
                 for limb in array_map {
                     res.extend_from_slice(&limb);
                 }
