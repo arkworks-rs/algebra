@@ -22,6 +22,7 @@ derivative = { version = "2", default-features = false, features = [ "use_core" 
 
 [dev-dependencies]
 ark-test-curves = { path = "../test-curves", default-features = false, features = [ "bls12_381_curve", "mnt4_753_curve"] }
+ark-ec = { path = "../ec", default-features = false, features = [ "parallel" ] }
 
 [features]
 default = []

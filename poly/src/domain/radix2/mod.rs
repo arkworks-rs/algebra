@@ -103,7 +103,7 @@ impl<F: FftField> EvaluationDomain<F> for Radix2EvaluationDomain<F> {
     #[inline]
     fn ifft_in_place<T: DomainCoeff<F>>(&self, evals: &mut Vec<T>) {
         evals.resize(self.size(), T::zero());
-        self.in_order_fft_in_place(&mut *evals, self.group_gen_inv);
+        self.in_order_ifft_in_place(&mut *evals, self.group_gen_inv);
         ark_std::cfg_iter_mut!(evals).for_each(|val| *val *= self.size_inv);
     }
 
