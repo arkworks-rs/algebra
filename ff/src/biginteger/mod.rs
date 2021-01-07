@@ -118,8 +118,8 @@ pub trait BigInteger:
     /// with leading zeros.
     fn to_bytes_be(&self) -> Vec<u8>;
 
-    /// Returns the byte representation in a big endian byte array,
-    /// with leading zeros.
+    /// Returns the byte representation in a little endian byte array,
+    /// with trailing zeros.
     fn to_bytes_le(&self) -> Vec<u8>;
 
     /// Returns a vector for wnaf.
