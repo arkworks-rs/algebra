@@ -37,6 +37,7 @@ The main features of this release are:
     a default value.
   Downstream users other than `ark-curves` should not see breakage unless they rely on these methods/traits explicitly.
 - #165 (ark-ff) Add `from_base_field_elements` as a method to the `Field` trait.
+- #166 (ark-ff) Change `BigInt::{from_bytes, to_bits}` to `from_bytes_le, from_bytes_be, to_bits_le, to_bits_be`.
 
 ### Features
 - #20 (ark-poly) Add structs/traits for multivariate polynomials
@@ -69,6 +70,7 @@ The main features of this release are:
 - #153 (ark-serialize) Add an impl of `CanonicalSerialize/Deserialize` for `Rc<T>`.
 - #157 (ark-ec) Speed up `variable_base_msm` by not relying on unnecessary normalization.
 - #158 (ark-serialize) Add an impl of `CanonicalSerialize/Deserialize` for `()`.
+- #166 (ark-ff) Add a `to_bytes_be()` and `to_bytes_le` methods to `BigInt`.
 
 ### Bug fixes
 - #36 (ark-ec) In Short-Weierstrass curves, include an infinity bit in `ToConstraintField`.

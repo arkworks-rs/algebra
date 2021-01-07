@@ -65,8 +65,7 @@ impl FixedBaseMSM {
         scalar: &T::ScalarField,
     ) -> T {
         let modulus_size = <T::ScalarField as PrimeField>::Params::MODULUS_BITS as usize;
-        let mut scalar_val = scalar.into_repr().to_bits();
-        scalar_val.reverse();
+        let scalar_val = scalar.into_repr().to_bits_le();
 
         let mut res = multiples_of_g[0][0].into_projective();
         for outer in 0..outerc {

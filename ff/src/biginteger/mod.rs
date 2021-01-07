@@ -1,6 +1,6 @@
 use crate::{
     bytes::{FromBytes, ToBytes},
-    fields::BitIteratorBE,
+    fields::{BitIteratorBE, BitIteratorLE},
     UniformRand,
 };
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, SerializationError};
@@ -96,11 +96,31 @@ pub trait BigInteger:
 
     /// Returns the big integer representation of a given big endian boolean
     /// array.
-    fn from_bits(bits: &[bool]) -> Self;
+    fn from_bits_be(bits: &[bool]) -> Self;
 
-    /// Returns the bit representation in a big endian boolean array, without
-    /// leading zeros.
-    fn to_bits(&self) -> Vec<bool>;
+    /// Returns the big integer representation of a given little endian boolean
+    /// array.
+    fn from_bits_le(bits: &[bool]) -> Self;
+
+    /// Returns the bit representation in a big endian boolean array,
+    /// with leading zeroes.
+    fn to_bits_be(&self) -> Vec<bool> {
+        BitIteratorBE::new(self).collect::<Vec<_>>()
+    }
+
+    /// Returns the bit representation in a little endian boolean array,
+    /// with trailing zeroes.
+    fn to_bits_le(&self) -> Vec<bool> {
+        BitIteratorLE::new(self).collect::<Vec<_>>()
+    }
+
+    /// Returns the byte representation in a big endian byte array,
+    /// with leading zeros.
+    fn to_bytes_be(&self) -> Vec<u8>;
+
+    /// Returns the byte representation in a little endian byte array,
+    /// with trailing zeros.
+    fn to_bytes_le(&self) -> Vec<u8>;
 
     /// Returns a vector for wnaf.
     fn find_wnaf(&self) -> Vec<i64>;
