@@ -26,7 +26,7 @@ pub use domain::{
 pub use evaluations::multivariate::multilinear::{
     DenseMultilinearExtension, MultilinearExtension, SparseMultilinearExtension,
 };
-pub use evaluations::univariate::UVEvaluations;
+pub use evaluations::univariate::Evaluations;
 pub use polynomial::{multivariate, univariate, MVPolynomial, Polynomial, UVPolynomial};
 
 #[cfg(test)]

@@ -1,7 +1,7 @@
 //! A sparse polynomial represented in coefficient form.
 use crate::polynomial::Polynomial;
 use crate::univariate::{DenseOrSparsePolynomial, DensePolynomial};
-use crate::{EvaluationDomain, UVEvaluations, UVPolynomial};
+use crate::{EvaluationDomain, Evaluations, UVPolynomial};
 use ark_ff::{FftField, Field, Zero};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, SerializationError};
 use ark_std::{
@@ -235,13 +235,13 @@ impl<F: FftField> SparsePolynomial<F> {
     pub fn evaluate_over_domain_by_ref<D: EvaluationDomain<F>>(
         &self,
         domain: D,
-    ) -> UVEvaluations<F, D> {
+    ) -> Evaluations<F, D> {
         let poly: DenseOrSparsePolynomial<'_, F> = self.into();
         DenseOrSparsePolynomial::<F>::evaluate_over_domain(poly, domain)
     }
 
     /// Evaluate `self` over `domain`.
-    pub fn evaluate_over_domain<D: EvaluationDomain<F>>(self, domain: D) -> UVEvaluations<F, D> {
+    pub fn evaluate_over_domain<D: EvaluationDomain<F>>(self, domain: D) -> Evaluations<F, D> {
         let poly: DenseOrSparsePolynomial<'_, F> = self.into();
         DenseOrSparsePolynomial::<F>::evaluate_over_domain(poly, domain)
     }
