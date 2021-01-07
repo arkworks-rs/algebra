@@ -231,6 +231,8 @@ pub trait DomainCoeff<F: FftField>:
     Copy
     + Send
     + Sync
+    + core::ops::Add<Output = Self>
+    + core::ops::Sub<Output = Self>
     + core::ops::AddAssign
     + core::ops::SubAssign
     + ark_ff::Zero
@@ -244,6 +246,8 @@ where
     T: Copy
         + Send
         + Sync
+        + core::ops::Add<Output = Self>
+        + core::ops::Sub<Output = Self>
         + core::ops::AddAssign
         + core::ops::SubAssign
         + ark_ff::Zero

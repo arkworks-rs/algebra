@@ -4,10 +4,7 @@
 //! FFTs of size at most `2^F::TWO_ADICITY`.
 
 pub use crate::domain::utils::Elements;
-use crate::domain::{
-    utils::{best_fft, bitreverse},
-    DomainCoeff, EvaluationDomain,
-};
+use crate::domain::{utils::bitreverse, DomainCoeff, EvaluationDomain};
 use ark_ff::{FftField, FftParameters};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, SerializationError};
 use ark_std::{
@@ -19,6 +16,8 @@ use ark_std::{
 
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
+
+mod fft;
 
 /// Defines a domain over which finite field (I)FFTs can be performed. Works
 /// only for fields that have a large multiplicative subgroup of size that is
@@ -98,23 +97,13 @@ impl<F: FftField> EvaluationDomain<F> for Radix2EvaluationDomain<F> {
     #[inline]
     fn fft_in_place<T: DomainCoeff<F>>(&self, coeffs: &mut Vec<T>) {
         coeffs.resize(self.size(), T::zero());
-        best_fft(
-            coeffs,
-            self.group_gen,
-            self.log_size_of_group,
-            serial_radix2_fft::<T, F>,
-        )
+        self.in_order_fft_in_place(&mut *coeffs, self.group_gen)
     }
 
     #[inline]
     fn ifft_in_place<T: DomainCoeff<F>>(&self, evals: &mut Vec<T>) {
         evals.resize(self.size(), T::zero());
-        best_fft(
-            evals,
-            self.group_gen_inv,
-            self.log_size_of_group,
-            serial_radix2_fft::<T, F>,
-        );
+        self.in_order_fft_in_place(&mut *evals, self.group_gen_inv);
         ark_std::cfg_iter_mut!(evals).for_each(|val| *val *= self.size_inv);
     }
 
