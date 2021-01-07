@@ -149,7 +149,7 @@ macro_rules! bigint_impl {
             }
 
             #[inline]
-            fn from_bits(bits: &[bool]) -> Self {
+            fn from_bits_be(bits: &[bool]) -> Self {
                 let mut res = Self::default();
                 let mut acc: u64 = 0;
 
@@ -166,26 +166,45 @@ macro_rules! bigint_impl {
                 res
             }
 
-            #[inline]
-            fn to_bits(&self) -> Vec<bool> {
-                BigIteratorBE::new(self.0).collect::<Vec<_>>()
+            fn from_bits_le(bits: &[bool]) -> Self {
+                let mut res = Self::default();
+                let mut acc: u64 = 0;
+
+                let mut bits = bits.to_vec();
+                for (i, bits64) in bits.chunks(64).enumerate() {
+                    for bit in bits64.iter().rev() {
+                        acc <<= 1;
+                        acc += *bit as u64;
+                    }
+                    res.0[i] = acc;
+                    acc = 0;
+                }
+                res
             }
 
             #[inline]
-            fn to_bytes(&self) -> Vec<u8> {
-                let mut res = Vec::with_capacity($num_limbs * 8);
-                let mut cur_byte = 0u8;
-                let mut bit_num_mod_8 = 0;
-                for b in BitIteratorBE::new(self.0) {
-                    cur_byte = (cur_byte * 2) + (b as u8);
-                    bit_num_mod_8 = (bit_num_mod_8 + 1) % 8;
-                    if bit_num_mod_8 == 0 {
-                        res.push(cur_byte);
-                        cur_byte = 0u8;
-                    }
-                }
-                if bit_num_mod_8 != 0 {
-                    res.push(cur_byte);
+            fn to_bits_be(&self) -> Vec<bool> {
+                BitIteratorBE::new(self.0).collect::<Vec<_>>()
+            }
+
+            #[inline]
+            fn to_bits_le(&self) -> Vec<bool> {
+                BitIteratorLE::new(self.0).collect::<Vec<_>>()
+            }
+
+            #[inline]
+            fn to_bytes_be(&self) -> Vec<u8> {
+                let mut le_bytes = self.to_bytes_le();
+                le_bytes.reverse();
+                le_bytes
+            }
+
+            #[inline]
+            fn to_bytes_le(&self) -> Vec<u8> {
+                let array_map = self.0.iter().map(|limb| limb.to_le_bytes());
+                let mut res = Vec::<u8>::new();
+                for limb in array_map {
+                    res.extend_from_slice(&limb);
                 }
                 res
             }
