@@ -10,7 +10,7 @@ enum FFTOrder {
     II,
     /// The input of the FFT must be in-order, but the output does not have to be.
     IO,
-    /// The input of the FFT can be out of order, but the input must be in-order.
+    /// The input of the FFT can be out of order, but the output must be in-order.
     OI,
 }
 
