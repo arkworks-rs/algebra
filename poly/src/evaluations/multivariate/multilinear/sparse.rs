@@ -47,9 +47,10 @@ impl<F: Field> SparseMultilinearExtension<F> {
         }
     }
 
-    /// Outputs a random `l`-variate sparse multilinear polynomial.
+    /// Outputs an `l`-variate multilinear extension where value of evaluations are sampled uniformly at random.
+    /// The number of nonzero entries is `num_nonzero_entries` and indices of those nonzero entries are distributed uniformly at random.
     ///
-    /// Note that as number of nonzero entries approach `2 ^ num_vars`,
+    /// Note that this function uses rejection sampling. As number of nonzero entries approach `2 ^ num_vars`,
     /// sampling will be very slow due to large number of collisions.
     pub fn rand_with_config<R: Rng>(
         num_vars: usize,
@@ -112,16 +113,17 @@ impl<F: Field> MultilinearExtension<F> for SparseMultilinearExtension<F> {
         self.num_vars
     }
 
-    fn evaluate(&self, point: &[F]) -> F {
-        assert_eq!(point.len(), self.num_vars, "invalid point");
-        self.fix_variables(&point)[0]
+    fn evaluate(&self, point: &[F]) -> Option<F> {
+        if point.len() == self.num_vars {
+            Some(self.fix_variables(&point)[0])
+        } else {
+            None
+        }
     }
 
-    fn rand<R: Rng>(d: usize, num_vars: usize, rng: &mut R) -> Self {
-        assert_eq!(
-            d, num_vars,
-            "total degree of multilinear polynomial should equal to number of variables"
-        );
+    /// Outputs an `l`-variate multilinear extension where value of evaluations are sampled uniformly at random.
+    /// The number of nonzero entries is `sqrt(2^num_vars)` and indices of those nonzero entries are distributed uniformly at random.
+    fn rand<R: Rng>(num_vars: usize, rng: &mut R) -> Self {
         Self::rand_with_config(num_vars, 1 << (num_vars / 2), rng)
     }
 
@@ -405,17 +407,17 @@ mod tests {
 
         let mut rng = test_rng();
         // two random poly should be different
-        let poly1 = SparseMultilinearExtension::<Fr>::rand(NV, NV, &mut rng);
-        let poly2 = SparseMultilinearExtension::<Fr>::rand(NV, NV, &mut rng);
+        let poly1 = SparseMultilinearExtension::<Fr>::rand(NV, &mut rng);
+        let poly2 = SparseMultilinearExtension::<Fr>::rand(NV, &mut rng);
         assert_ne!(poly1, poly2);
         // test sparsity
         assert!(
             ((1 << (NV / 2)) >> 1) <= poly1.evaluations.len()
                 && poly1.evaluations.len() <= ((1 << (NV / 2)) << 1),
-            "{},{},{}",
+            "polynomial size out of range: expected: [{},{}] ,actual: {}",
             ((1 << (NV / 2)) >> 1),
-            poly1.evaluations.len(),
-            ((1 << (NV / 2)) << 1)
+            ((1 << (NV / 2)) << 1),
+            poly1.evaluations.len()
         );
     }
 
@@ -426,7 +428,7 @@ mod tests {
         const NV: usize = 12;
         let mut rng = test_rng();
         for _ in 0..20 {
-            let sparse = SparseMultilinearExtension::<Fr>::rand(NV, NV, &mut rng);
+            let sparse = SparseMultilinearExtension::<Fr>::rand(NV, &mut rng);
             let dense = sparse.to_dense_multilinear_extension();
             let point: Vec<_> = (0..NV).map(|_| Fr::rand(&mut rng)).collect();
             assert_eq!(sparse.evaluate(&point), dense.evaluate(&point));
@@ -446,7 +448,7 @@ mod tests {
         let mut rng = test_rng();
         let ev1 = Fr::rand(&mut rng);
         let poly1 = SparseMultilinearExtension::from_evaluations(0, &vec![(0, ev1)]);
-        assert_eq!(poly1.evaluate(&vec![]), ev1);
+        assert_eq!(poly1.evaluate(&vec![]).unwrap(), ev1);
 
         // test single-variate polynomial
         let ev2 = vec![Fr::rand(&mut rng), Fr::rand(&mut rng)];
@@ -455,7 +457,7 @@ mod tests {
 
         let x = Fr::rand(&mut rng);
         assert_eq!(
-            poly2.evaluate(&vec![x]),
+            poly2.evaluate(&vec![x]).unwrap(),
             x * ev2[1] + (Fr::one() - x) * ev2[0]
         );
 
@@ -464,7 +466,7 @@ mod tests {
         let poly2 = SparseMultilinearExtension::from_evaluations(1, &vec![(1, ev3)]);
 
         let x = Fr::rand(&mut rng);
-        assert_eq!(poly2.evaluate(&vec![x]), x * ev3);
+        assert_eq!(poly2.evaluate(&vec![x]).unwrap(), x * ev3);
     }
 
     #[test]
@@ -491,34 +493,34 @@ mod tests {
         let mut rng = test_rng();
         for _ in 0..20 {
             let point: Vec<_> = (0..NV).map(|_| Fr::rand(&mut rng)).collect();
-            let poly1 = SparseMultilinearExtension::rand(NV, NV, &mut rng);
-            let poly2 = SparseMultilinearExtension::rand(NV, NV, &mut rng);
-            let v1 = poly1.evaluate(&point);
-            let v2 = poly2.evaluate(&point);
+            let poly1 = SparseMultilinearExtension::rand(NV, &mut rng);
+            let poly2 = SparseMultilinearExtension::rand(NV, &mut rng);
+            let v1 = poly1.evaluate(&point).unwrap();
+            let v2 = poly2.evaluate(&point).unwrap();
             // test add
-            assert_eq!((&poly1 + &poly2).evaluate(&point), v1 + v2);
+            assert_eq!((&poly1 + &poly2).evaluate(&point).unwrap(), v1 + v2);
             // test sub
-            assert_eq!((&poly1 - &poly2).evaluate(&point), v1 - v2);
+            assert_eq!((&poly1 - &poly2).evaluate(&point).unwrap(), v1 - v2);
             // test negate
-            assert_eq!(poly1.clone().neg().evaluate(&point), -v1);
+            assert_eq!(poly1.clone().neg().evaluate(&point).unwrap(), -v1);
             // test add assign
             {
                 let mut poly1 = poly1.clone();
                 poly1 += &poly2;
-                assert_eq!(poly1.evaluate(&point), v1 + v2)
+                assert_eq!(poly1.evaluate(&point).unwrap(), v1 + v2)
             }
             // test sub assign
             {
                 let mut poly1 = poly1.clone();
                 poly1 -= &poly2;
-                assert_eq!(poly1.evaluate(&point), v1 - v2)
+                assert_eq!(poly1.evaluate(&point).unwrap(), v1 - v2)
             }
             // test add assign with scalar
             {
                 let mut poly1 = poly1.clone();
                 let scalar = Fr::rand(&mut rng);
                 poly1 += (scalar, &poly2);
-                assert_eq!(poly1.evaluate(&point), v1 + scalar * v2)
+                assert_eq!(poly1.evaluate(&point).unwrap(), v1 + scalar * v2)
             }
             // test additive identity
             {
@@ -531,7 +533,7 @@ mod tests {
                     let mut zero = SparseMultilinearExtension::zero();
                     let scalar = Fr::rand(&mut rng);
                     zero += (scalar, &poly1);
-                    assert_eq!(zero.evaluate(&point), scalar * v1);
+                    assert_eq!(zero.evaluate(&point).unwrap(), scalar * v1);
                 }
             }
         }
@@ -541,32 +543,32 @@ mod tests {
     fn relabel() {
         let mut rng = test_rng();
         for _ in 0..20 {
-            let mut poly = SparseMultilinearExtension::rand(10, 10, &mut rng);
+            let mut poly = SparseMultilinearExtension::rand(10, &mut rng);
             let mut point: Vec<_> = (0..10).map(|_| Fr::rand(&mut rng)).collect();
 
-            let expected = poly.evaluate(&point);
+            let expected = poly.evaluate(&point).unwrap();
 
             poly = poly.relabel(2, 2, 1); // should have no effect
-            assert_eq!(expected, poly.evaluate(&point));
+            assert_eq!(expected, poly.evaluate(&point).unwrap());
 
             poly = poly.relabel(3, 4, 1); // should switch 3 and 4
             point.swap(3, 4);
-            assert_eq!(expected, poly.evaluate(&point));
+            assert_eq!(expected, poly.evaluate(&point).unwrap());
 
             poly = poly.relabel(7, 5, 1);
             point.swap(7, 5);
-            assert_eq!(expected, poly.evaluate(&point));
+            assert_eq!(expected, poly.evaluate(&point).unwrap());
 
             poly = poly.relabel(2, 5, 3);
             point.swap(2, 5);
             point.swap(3, 6);
             point.swap(4, 7);
-            assert_eq!(expected, poly.evaluate(&point));
+            assert_eq!(expected, poly.evaluate(&point).unwrap());
 
             poly = poly.relabel(7, 0, 2);
             point.swap(0, 7);
             point.swap(1, 8);
-            assert_eq!(expected, poly.evaluate(&point));
+            assert_eq!(expected, poly.evaluate(&point).unwrap());
         }
     }
 
@@ -575,7 +577,7 @@ mod tests {
         let mut rng = test_rng();
         for _ in 0..20 {
             let mut buf = Vec::new();
-            let poly = SparseMultilinearExtension::<Fr>::rand(10, 10, &mut rng);
+            let poly = SparseMultilinearExtension::<Fr>::rand(10, &mut rng);
             let point: Vec<_> = (0..10).map(|_| Fr::rand(&mut rng)).collect();
             let expected = poly.evaluate(&point);
 

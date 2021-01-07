@@ -39,11 +39,11 @@ pub trait MultilinearExtension<F: Field>:
     fn num_vars(&self) -> usize;
 
     /// Evaluates `self` at the given the vector `point` in slice.
-    fn evaluate(&self, point: &[F]) -> F;
+    /// If the number of variables does not match, return `None`.
+    fn evaluate(&self, point: &[F]) -> Option<F>;
 
-    /// Outputs an `l`-variate polynomial which is the sum of `l` `d`-degree univariate
-    /// polynomials where each coefficient is sampled uniformly at random.
-    fn rand<R: Rng>(d: usize, num_vars: usize, rng: &mut R) -> Self;
+    /// Outputs an `l`-variate multilinear extension where value of evaluations are sampled uniformly at random.
+    fn rand<R: Rng>(num_vars: usize, rng: &mut R) -> Self;
 
     /// Relabel the point by swapping `k` scalars from positions `a..a+k` to positions `b..b+k`,
     /// and from position `b..b+k` to position `a..a+k` in vector.
@@ -52,7 +52,7 @@ pub trait MultilinearExtension<F: Field>:
     /// to `P(x_1,...,x_b,...,x_{b+k - 1},...,x_a,...,x_{a+k - 1},...,x_n)`
     fn relabel(&self, a: usize, b: usize, k: usize) -> Self;
 
-    /// Reduce the number of variables of the `self` by fixing the `partial_point.len()` variables at `partial_point`.
+    /// Reduce the number of variables of `self` by fixing the `partial_point.len()` variables at `partial_point`.
     fn fix_variables(&self, partial_point: &[F]) -> Self;
 
     /// Returns a list of evaluations over the domain, which is the boolean hypercube.

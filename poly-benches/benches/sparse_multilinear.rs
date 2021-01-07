@@ -75,7 +75,7 @@ fn evaluation_op_bench<F: Field>(c: &mut Criterion) {
                     &mut rng,
                 );
                 let point: Vec<_> = (0..nv).map(|_| F::rand(&mut rng)).collect();
-                b.iter(|| black_box(poly.evaluate(&point)))
+                b.iter(|| black_box(poly.evaluate(&point).unwrap()))
             },
         );
     }

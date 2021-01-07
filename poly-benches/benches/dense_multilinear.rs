@@ -39,9 +39,9 @@ fn evaluation_op_bench<F: Field>(c: &mut Criterion) {
     let mut group = c.benchmark_group("Evaluate");
     for nv in NUM_VARIABLES_RANGE {
         group.bench_with_input(BenchmarkId::new("evaluate", nv), &nv, |b, &nv| {
-            let poly = DenseMultilinearExtension::<F>::rand(nv, nv, &mut rng);
+            let poly = DenseMultilinearExtension::<F>::rand(nv, &mut rng);
             let point: Vec<_> = (0..nv).map(|_| F::rand(&mut rng)).collect();
-            b.iter(|| black_box(poly.evaluate(&point)))
+            b.iter(|| black_box(poly.evaluate(&point).unwrap()))
         });
     }
     group.finish();
