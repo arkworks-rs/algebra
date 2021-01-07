@@ -2,8 +2,9 @@
 def generate_from_bytes_mod_order_test_vector(modulus):
     def gen_vector(number):
         byte_arr = convert_int_to_byte_vec(number)
-        s = str(number % modulus)
-        return "(" + byte_arr + ", \"" + s + "\"),"
+        # s = str(number % modulus)
+        # return "(" + byte_arr + ", \"" + s + "\"),"
+        return byte_arr + ","
     data = ["vec!["]
     
     small_values_to_test = [0, 1, 255, 256, 256*256 + 255]
