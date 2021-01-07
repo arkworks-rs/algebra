@@ -170,7 +170,7 @@ macro_rules! bigint_impl {
                 let mut res = Self::default();
                 let mut acc: u64 = 0;
 
-                let mut bits = bits.to_vec();
+                let bits = bits.to_vec();
                 for (i, bits64) in bits.chunks(64).enumerate() {
                     for bit in bits64.iter().rev() {
                         acc <<= 1;
