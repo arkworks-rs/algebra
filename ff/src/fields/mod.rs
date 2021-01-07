@@ -611,6 +611,38 @@ mod std_tests {
             }
         }
     }
+}
+
+#[cfg(test)]
+mod no_std_tests {
+    use super::*;
+    use crate::test_field::Fr;
+    use ark_std::test_rng;
+
+    #[test]
+    fn test_batch_inversion() {
+        let mut random_coeffs = Vec::<Fr>::new();
+        let vec_size = 1000;
+
+        for _ in 0..=vec_size {
+            random_coeffs.push(Fr::rand(&mut test_rng()));
+        }
+
+        let mut random_coeffs_inv = random_coeffs.clone();
+        batch_inversion::<Fr>(&mut random_coeffs_inv);
+        for i in 0..=vec_size {
+            assert_eq!(random_coeffs_inv[i] * random_coeffs[i], Fr::one());
+        }
+        let rand_multiplier = Fr::rand(&mut test_rng());
+        let mut random_coeffs_inv_shifted = random_coeffs.clone();
+        batch_inversion_and_mul(&mut random_coeffs_inv_shifted, &rand_multiplier);
+        for i in 0..=vec_size {
+            assert_eq!(
+                random_coeffs_inv_shifted[i] * random_coeffs[i],
+                rand_multiplier
+            );
+        }
+    }
 
     #[test]
     fn test_from_bytes_mod_order() {
@@ -618,9 +650,9 @@ mod std_tests {
         // and its tested by parsing it with from_bytes_mod_order, and the num-bigint library.
         // The bytes are currently generated from scripts/test_vectors.py.
         // TODO: Eventually generate all the test vector bytes via computation with the modulus
+        use ark_std::string::ToString;
         use num_bigint::BigUint;
-        use super::*;
-        use crate::test_field::Fr;
+
         let ref_modulus =
             BigUint::from_bytes_be(&<Fr as PrimeField>::Params::MODULUS.to_bytes_be());
 
@@ -705,38 +737,6 @@ mod std_tests {
             let expected = Fr::from_str(&expected_string).unwrap();
             let actual = Fr::from_bytes_mod_order(&i);
             assert_eq!(expected, actual, "failed on test {:?}", i);
-        }
-    }
-}
-
-#[cfg(test)]
-mod no_std_tests {
-    use super::*;
-    use crate::test_field::Fr;
-    use ark_std::test_rng;
-
-    #[test]
-    fn test_batch_inversion() {
-        let mut random_coeffs = Vec::<Fr>::new();
-        let vec_size = 1000;
-
-        for _ in 0..=vec_size {
-            random_coeffs.push(Fr::rand(&mut test_rng()));
-        }
-
-        let mut random_coeffs_inv = random_coeffs.clone();
-        batch_inversion::<Fr>(&mut random_coeffs_inv);
-        for i in 0..=vec_size {
-            assert_eq!(random_coeffs_inv[i] * random_coeffs[i], Fr::one());
-        }
-        let rand_multiplier = Fr::rand(&mut test_rng());
-        let mut random_coeffs_inv_shifted = random_coeffs.clone();
-        batch_inversion_and_mul(&mut random_coeffs_inv_shifted, &rand_multiplier);
-        for i in 0..=vec_size {
-            assert_eq!(
-                random_coeffs_inv_shifted[i] * random_coeffs[i],
-                rand_multiplier
-            );
         }
     }
 }
