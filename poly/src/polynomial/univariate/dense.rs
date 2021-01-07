@@ -1,6 +1,6 @@
 //! A dense univariate polynomial represented in coefficient form.
 use crate::univariate::DenseOrSparsePolynomial;
-use crate::{EvaluationDomain, GeneralEvaluationDomain, Evaluations};
+use crate::{EvaluationDomain, Evaluations, GeneralEvaluationDomain};
 use crate::{Polynomial, UVPolynomial};
 use ark_serialize::*;
 use ark_std::{
