@@ -596,7 +596,6 @@ fn serial_batch_inversion_and_mul<F: Field>(v: &mut [F], coeff: &F) {
 #[cfg(all(test, feature = "std"))]
 mod std_tests {
     use super::BitIteratorLE;
-    use ark_std::string::ToString;
 
     #[test]
     fn bit_iterator_le() {
