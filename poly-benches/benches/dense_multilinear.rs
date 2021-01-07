@@ -16,8 +16,8 @@ fn arithmetic_op_bench<F: Field>(c: &mut Criterion) {
     let mut group = c.benchmark_group("Add");
     for nv in NUM_VARIABLES_RANGE {
         group.bench_with_input(BenchmarkId::new("Add", nv), &nv, |b, &nv| {
-            let poly1 = DenseMultilinearExtension::<F>::rand(nv, nv, &mut rng);
-            let poly2 = DenseMultilinearExtension::<F>::rand(nv, nv, &mut rng);
+            let poly1 = DenseMultilinearExtension::<F>::rand(nv, &mut rng);
+            let poly2 = DenseMultilinearExtension::<F>::rand(nv, &mut rng);
             b.iter(|| black_box(&poly1 + &poly2))
         });
     }
@@ -26,8 +26,8 @@ fn arithmetic_op_bench<F: Field>(c: &mut Criterion) {
     let mut group = c.benchmark_group("Sub");
     for nv in NUM_VARIABLES_RANGE {
         group.bench_with_input(BenchmarkId::new("Sub", nv), &nv, |b, &nv| {
-            let poly1 = DenseMultilinearExtension::<F>::rand(nv, nv, &mut rng);
-            let poly2 = DenseMultilinearExtension::<F>::rand(nv, nv, &mut rng);
+            let poly1 = DenseMultilinearExtension::<F>::rand(nv, &mut rng);
+            let poly2 = DenseMultilinearExtension::<F>::rand(nv, &mut rng);
             b.iter(|| black_box(&poly1 - &poly2))
         });
     }
