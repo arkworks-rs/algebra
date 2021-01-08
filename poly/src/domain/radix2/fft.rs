@@ -1,4 +1,4 @@
-// The code below is a port of the excellent library of https://github.com/kwantam/fffft
+// The code below is a port of the excellent library of https://github.com/kwantam/fffft by Riad Wahby
 // to the arkworks APIs
 
 use crate::domain::{radix2::*, DomainCoeff};
