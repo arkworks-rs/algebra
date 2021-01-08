@@ -1,7 +1,12 @@
 use crate::domain::DomainCoeff;
-use ark_ff::FftField;
+use ark_ff::{FftField, Field};
+use ark_std::vec::Vec;
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
+
+// minimum size at which to parallelize.
+#[cfg(feature = "parallel")]
+const LOG_PARALLEL_SIZE: u32 = 7;
 
 #[inline]
 pub(crate) fn bitreverse(mut n: u32, l: u32) -> u32 {
@@ -11,6 +16,73 @@ pub(crate) fn bitreverse(mut n: u32, l: u32) -> u32 {
         n >>= 1;
     }
     r
+}
+
+pub(crate) fn compute_powers_serial<F: Field>(size: usize, root: F) -> Vec<F> {
+    let mut value = F::one();
+    (0..size)
+        .map(|_| {
+            let old_value = value;
+            value *= root;
+            old_value
+        })
+        .collect()
+}
+
+#[cfg(feature = "parallel")]
+pub(crate) fn compute_powers<F: Field>(size: usize, value: F) -> Vec<F> {
+    let log_size = ark_std::log2(size);
+    // early exit for short inputs
+    if log_size <= LOG_PARALLEL_SIZE {
+        compute_powers_serial(size, value)
+    } else {
+        let mut temp = value;
+        // w, w^2, w^4, w^8, ..., w^(2^(log_size - 1))
+        let log_powers: Vec<F> = (0..(log_size - 1))
+            .map(|_| {
+                let old_value = temp;
+                temp.square_in_place();
+                old_value
+            })
+            .collect();
+
+        // allocate the return array and start the recursion
+        let mut powers = vec![F::zero(); 1 << (log_size - 1)];
+        compute_powers_recursive(&mut powers, &log_powers);
+        powers
+    }
+}
+
+#[cfg(feature = "parallel")]
+fn compute_powers_recursive<F: Field>(out: &mut [F], log_powers: &[F]) {
+    assert_eq!(out.len(), 1 << log_powers.len());
+    // base case: just compute the powers sequentially
+    if log_powers.len() <= LOG_PARALLEL_SIZE as usize {
+        out[0] = F::one();
+        for idx in 1..out.len() {
+            out[idx] = out[idx - 1] * log_powers[0];
+        }
+        return;
+    }
+
+    // recursive case:
+    // 1. split log_powers in half
+    let (lr_lo, lr_hi) = log_powers.split_at((1 + log_powers.len()) / 2);
+    let mut scr_lo = vec![F::default(); 1 << lr_lo.len()];
+    let mut scr_hi = vec![F::default(); 1 << lr_hi.len()];
+    // 2. compute each half individually
+    rayon::join(
+        || compute_powers_recursive(&mut scr_lo, lr_lo),
+        || compute_powers_recursive(&mut scr_hi, lr_hi),
+    );
+    // 3. recombine halves
+    out.par_chunks_mut(scr_lo.len())
+        .zip(&scr_hi)
+        .for_each(|(rt, scr_hi)| {
+            for (rt, scr_lo) in rt.iter_mut().zip(&scr_lo) {
+                *rt = *scr_hi * scr_lo;
+            }
+        });
 }
 
 #[cfg(feature = "parallel")]

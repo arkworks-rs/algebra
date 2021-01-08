@@ -20,12 +20,6 @@ const BENCHMARK_LOG_INTERVAL_DEGREE: usize = 1;
 const ENABLE_RADIX2_BENCHES: bool = true;
 const ENABLE_MIXED_RADIX_BENCHES: bool = true;
 
-const ENABLE_SUBGROUP_FFT_BENCH: bool = true;
-const ENABLE_COSET_FFT_BENCH: bool = true;
-
-const ENABLE_SUBGROUP_IFFT_BENCH: bool = false;
-const ENABLE_COSET_IFFT_BENCH: bool = false;
-
 // returns vec![2^{min}, 2^{min + interval}, ..., 2^{max}], where:
 // interval = BENCHMARK_LOG_INTERVAL_DEGREE
 // min      = ceil(log_2(BENCHMARK_MIN_DEGREE))
@@ -92,22 +86,14 @@ fn bench_coset_ifft_in_place<F: FftField, D: EvaluationDomain<F>>(b: &mut Benche
 }
 
 fn fft_benches<F: FftField, D: EvaluationDomain<F>>(c: &mut Criterion, name: &'static str) {
-    if ENABLE_SUBGROUP_FFT_BENCH {
-        let cur_name = format!("{:?} - subgroup_fft_in_place", name.clone());
-        setup_bench(c, &cur_name, bench_fft_in_place::<F, D>);
-    }
-    if ENABLE_SUBGROUP_IFFT_BENCH {
-        let cur_name = format!("{:?} - subgroup_ifft_in_place", name.clone());
-        setup_bench(c, &cur_name, bench_ifft_in_place::<F, D>);
-    }
-    if ENABLE_COSET_FFT_BENCH {
-        let cur_name = format!("{:?} - coset_fft_in_place", name.clone());
-        setup_bench(c, &cur_name, bench_coset_fft_in_place::<F, D>);
-    }
-    if ENABLE_COSET_IFFT_BENCH {
-        let cur_name = format!("{:?} - coset_ifft_in_place", name.clone());
-        setup_bench(c, &cur_name, bench_coset_ifft_in_place::<F, D>);
-    }
+    let cur_name = format!("{:?} - subgroup_fft_in_place", name.clone());
+    setup_bench(c, &cur_name, bench_fft_in_place::<F, D>);
+    let cur_name = format!("{:?} - subgroup_ifft_in_place", name.clone());
+    setup_bench(c, &cur_name, bench_ifft_in_place::<F, D>);
+    let cur_name = format!("{:?} - coset_fft_in_place", name.clone());
+    setup_bench(c, &cur_name, bench_coset_fft_in_place::<F, D>);
+    let cur_name = format!("{:?} - coset_ifft_in_place", name.clone());
+    setup_bench(c, &cur_name, bench_coset_ifft_in_place::<F, D>);
 }
 
 fn bench_bls12_381(c: &mut Criterion) {
