@@ -13,8 +13,6 @@ use ark_std::{fmt, hash, vec::Vec};
 use rand::Rng;
 
 #[cfg(feature = "parallel")]
-use ark_std::cmp::max;
-#[cfg(feature = "parallel")]
 use rayon::prelude::*;
 
 pub mod general;
@@ -96,7 +94,7 @@ pub trait EvaluationDomain<F: FftField>:
     /// Multiply the `i`-th element of `coeffs` with the `i`-th power of `g`.
     #[cfg(feature = "parallel")]
     fn distribute_powers<T: DomainCoeff<F>>(coeffs: &mut [T], g: F) {
-        let powers_of_g = Self::compute_powers(coeffs.len(), g);
+        let powers_of_g = crate::domain::utils::compute_powers(coeffs.len(), g);
         coeffs
             .par_iter_mut()
             .zip(powers_of_g)

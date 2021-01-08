@@ -17,10 +17,6 @@ enum FFTOrder {
     OI,
 }
 
-// minimum size at which to parallelize.
-#[cfg(feature = "parallel")]
-const LOG_PARALLEL_SIZE: u32 = 7;
-
 impl<F: FftField> Radix2EvaluationDomain<F> {
     pub(crate) fn in_order_fft_in_place<T: DomainCoeff<F>>(&self, x_s: &mut [T]) {
         self.fft_helper_in_place(x_s, FFTOrder::II)

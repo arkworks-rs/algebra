@@ -4,6 +4,10 @@ use ark_std::vec::Vec;
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
 
+// minimum size at which to parallelize.
+#[cfg(feature = "parallel")]
+const LOG_PARALLEL_SIZE: u32 = 7;
+
 #[inline]
 pub(crate) fn bitreverse(mut n: u32, l: u32) -> u32 {
     let mut r = 0;
@@ -30,7 +34,7 @@ pub(crate) fn compute_powers<F: Field>(size: usize, value: F) -> Vec<F> {
     let log_size = ark_std::log2(size);
     // early exit for short inputs
     if log_size <= LOG_PARALLEL_SIZE {
-        Self::compute_powers_serial(size, value)
+        compute_powers_serial(size, value)
     } else {
         let mut temp = value;
         // w, w^2, w^4, w^8, ..., w^(2^(log_size - 1))
@@ -44,7 +48,7 @@ pub(crate) fn compute_powers<F: Field>(size: usize, value: F) -> Vec<F> {
 
         // allocate the return array and start the recursion
         let mut powers = vec![F::zero(); 1 << (log_size - 1)];
-        Self::compute_powers_recursive(&mut powers, &log_powers);
+        compute_powers_recursive(&mut powers, &log_powers);
         powers
     }
 }
@@ -68,8 +72,8 @@ fn compute_powers_recursive<F: Field>(out: &mut [F], log_powers: &[F]) {
     let mut scr_hi = vec![F::default(); 1 << lr_hi.len()];
     // 2. compute each half individually
     rayon::join(
-        || Self::compute_powers_recursive(&mut scr_lo, lr_lo),
-        || Self::compute_powers_recursive(&mut scr_hi, lr_hi),
+        || compute_powers_recursive(&mut scr_lo, lr_lo),
+        || compute_powers_recursive(&mut scr_hi, lr_hi),
     );
     // 3. recombine halves
     out.par_chunks_mut(scr_lo.len())
