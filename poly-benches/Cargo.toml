@@ -10,7 +10,6 @@ publish = false
 
 [dependencies]
 ark-ff = { path = "../ff" }
-ark-ec = { path = "../ec" }
 ark-poly = { path = "../poly" }
 ark-std = {  git = "https://github.com/arkworks-rs/utils", default-features = false }
 ark-test-curves = { path = "../test-curves", default-features = false, features = [ "bls12_381_scalar_field", "mnt4_753_curve" ] }
@@ -20,7 +19,7 @@ rayon = { version = "1", optional = true }
 
 [features]
 default = []
-parallel = ["ark-ff/parallel", "rayon", "ark-poly/parallel", "ark-std/parallel", "ark-ec/parallel" ]
+parallel = ["ark-ff/parallel", "rayon", "ark-poly/parallel", "ark-std/parallel" ]
 
 [[bench]]
 name = "fft"
