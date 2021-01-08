@@ -20,7 +20,7 @@ rayon = { version = "1", optional = true }
 
 [features]
 default = []
-parallel = ["ark-ff/parallel", "rayon", "ark-poly/parallel", "ark-std/parallel", "ark-ec/parallel" ]
+parallel = ["ark-ff/parallel", "rayon", "ark-poly/parallel", "ark-std/parallel" ]
 
 [[bench]]
 name = "fft"

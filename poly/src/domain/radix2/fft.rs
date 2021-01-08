@@ -1,3 +1,6 @@
+// The code below is a port of the excellent library of https://github.com/kwantam/fffft
+// to the arkworks APIs
+
 use crate::domain::{radix2::*, DomainCoeff};
 use ark_ff::FftField;
 use ark_std::vec::Vec;
