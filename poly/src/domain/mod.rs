@@ -97,7 +97,10 @@ pub trait EvaluationDomain<F: FftField>:
     #[cfg(feature = "parallel")]
     fn distribute_powers<T: DomainCoeff<F>>(coeffs: &mut [T], g: F) {
         let powers_of_g = Self::compute_powers(coeffs.len(), g);
-        coeffs.par_iter_mut().zip(powers_of_g).for_each(|(coeff, power)| *coeff *= power);
+        coeffs
+            .par_iter_mut()
+            .zip(powers_of_g)
+            .for_each(|(coeff, power)| *coeff *= power);
     }
 
     /// Compute a FFT over a coset of the domain.
