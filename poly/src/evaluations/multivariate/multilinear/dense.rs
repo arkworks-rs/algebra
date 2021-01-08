@@ -135,9 +135,8 @@ impl<F: Field> Index<usize> for DenseMultilinearExtension<F> {
     ///
     /// Index represents a vector in {0,1}^`num_vars` in little endian form. For example, `0b1011` represents `P(1,1,0,1)`
     ///
-    /// For dense multilinear polynomial, Lookup_evaluation takes constant time.
+    /// For dense multilinear polynomial, `index` takes constant time.
     fn index(&self, index: usize) -> &Self::Output {
-        assert!(index < (1 << self.num_vars), "index out of range");
         &self.evaluations[index]
     }
 }
