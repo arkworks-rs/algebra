@@ -13,6 +13,8 @@ use ark_std::{
     io::{Read, Write},
     vec::Vec,
 };
+#[cfg(feature = "parallel")]
+use rayon::prelude::*;
 
 mod fft;
 
