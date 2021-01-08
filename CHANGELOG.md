@@ -72,7 +72,7 @@ The main features of this release are:
 - #157 (ark-ec) Speed up `variable_base_msm` by not relying on unnecessary normalization.
 - #158 (ark-serialize) Add an impl of `CanonicalSerialize/Deserialize` for `()`.
 - #166 (ark-ff) Add a `to_bytes_be()` and `to_bytes_le` methods to `BigInt`.
-- #169 (ark-poly) Improve radix-2 FFTs by moving to a faster algorithm by Riad Wahby.
+- #169 (ark-poly) Improve radix-2 FFTs by moving to a faster algorithm by Riad S. Wahby.
 
 ### Bug fixes
 - #36 (ark-ec) In Short-Weierstrass curves, include an infinity bit in `ToConstraintField`.
