@@ -347,7 +347,7 @@ pub trait PrimeField:
 
     /// Reads bytes in big-endian, and converts them to a field element.
     /// If the bytes are larger than the modulus, it will reduce them.
-    fn from_bytes_mod_order(bytes: &[u8]) -> Self {
+    fn from_be_bytes_mod_order(bytes: &[u8]) -> Self {
         let num_modulus_bytes = ((Self::Params::MODULUS_BITS + 7) / 8) as usize;
         let num_bytes_to_directly_convert = min(num_modulus_bytes - 1, bytes.len());
         // Copy the leading big-endian bytes directly into a field element.
@@ -369,6 +369,14 @@ pub trait PrimeField:
             res += Self::from(bytes[i]);
         }
         res
+    }
+
+    /// Reads bytes in little-endian, and converts them to a field element.
+    /// If the bytes are larger than the modulus, it will reduce them.
+    fn from_le_bytes_mod_order(bytes: &[u8]) -> Self {
+        let mut bytes_copy = bytes.to_vec();
+        bytes_copy.reverse();
+        Self::from_be_bytes_mod_order(&bytes_copy)
     }
 
     /// Return the QNR^t, for t defined by
@@ -644,7 +652,7 @@ mod no_std_tests {
     }
 
     #[test]
-    fn test_from_bytes_mod_order() {
+    fn test_from_be_bytes_mod_order() {
         // Each test vector is a byte array,
         // and its tested by parsing it with from_bytes_mod_order, and the num-bigint library.
         // The bytes are currently generated from scripts/test_vectors.py.
@@ -734,7 +742,7 @@ mod no_std_tests {
                 expected_biguint.modpow(&BigUint::from_bytes_be(&[1u8]), &ref_modulus);
             let expected_string = expected_biguint.to_string();
             let expected = Fr::from_str(&expected_string).unwrap();
-            let actual = Fr::from_bytes_mod_order(&i);
+            let actual = Fr::from_be_bytes_mod_order(&i);
             assert_eq!(expected, actual, "failed on test {:?}", i);
         }
     }

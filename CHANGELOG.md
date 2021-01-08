@@ -36,7 +36,6 @@ The main features of this release are:
     if the top bits of the `u8` value do *not* correspond to one of the possible outputs of `Flags::u8_bitmask`, then these methods output `None`, whereas before they output
     a default value.
   Downstream users other than `ark-curves` should not see breakage unless they rely on these methods/traits explicitly.
-- #164 (ark-ff) Add a method `from_bytes_mod_order` to the `PrimeField` trait. Only users who implement prime fields without using the macros in ark-ff will see breakage.
 - #165 (ark-ff) Add `from_base_field_elements` as a method to the `Field` trait.
 - #166 (ark-ff) Change `BigInt::{from_bytes, to_bits}` to `from_bytes_le, from_bytes_be, to_bits_le, to_bits_be`.
 
@@ -45,6 +44,7 @@ The main features of this release are:
 - #96 (ark-ff) Make the `field_new` macro accept values in integer form, without requiring decomposition into limbs, and without requiring encoding in Montgomery form.
 - #106 (ark-ff, ark-ec) Add `Zeroize` trait bound to `Field, ProjectiveGroup, AffineGroup` traits.
 - #117 (ark-poly) Add operations to `SparsePolynomial`, so it implements `Polynomial`
+- #164 (ark-ff) Add methods `from_{be, le}_bytes_mod_order` to the `PrimeField` trait.
 
 ### Improvements
 - #22 (ark-ec) Speedup fixed-base MSMs
