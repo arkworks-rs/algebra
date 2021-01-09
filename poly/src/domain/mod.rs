@@ -13,8 +13,6 @@ use ark_std::{fmt, hash, vec::Vec};
 use rand::Rng;
 
 #[cfg(feature = "parallel")]
-use ark_std::cmp::max;
-#[cfg(feature = "parallel")]
 use rayon::prelude::*;
 
 pub mod general;
@@ -96,23 +94,11 @@ pub trait EvaluationDomain<F: FftField>:
     /// Multiply the `i`-th element of `coeffs` with the `i`-th power of `g`.
     #[cfg(feature = "parallel")]
     fn distribute_powers<T: DomainCoeff<F>>(coeffs: &mut [T], g: F) {
-        // compute the number of threads we will be using.
-        let num_cpus_available = rayon::current_num_threads();
-        let min_elements_per_thread = 256;
-        let num_elem_per_thread = max(coeffs.len() / num_cpus_available, min_elements_per_thread);
-
-        // Split up the coeffs to coset-shift across each thread evenly,
-        // and then apply coset shift.
+        let powers_of_g = crate::domain::utils::compute_powers(coeffs.len(), g);
         coeffs
-            .par_chunks_mut(num_elem_per_thread)
-            .enumerate()
-            .for_each(|(i, chunk)| {
-                let mut pow = g.pow(&[(i * num_elem_per_thread) as u64]);
-                chunk.iter_mut().for_each(|c| {
-                    *c *= pow;
-                    pow *= &g
-                });
-            });
+            .par_iter_mut()
+            .zip(powers_of_g)
+            .for_each(|(coeff, power)| *coeff *= power);
     }
 
     /// Compute a FFT over a coset of the domain.
@@ -231,6 +217,8 @@ pub trait DomainCoeff<F: FftField>:
     Copy
     + Send
     + Sync
+    + core::ops::Add<Output = Self>
+    + core::ops::Sub<Output = Self>
     + core::ops::AddAssign
     + core::ops::SubAssign
     + ark_ff::Zero
@@ -244,6 +232,8 @@ where
     T: Copy
         + Send
         + Sync
+        + core::ops::Add<Output = Self>
+        + core::ops::Sub<Output = Self>
         + core::ops::AddAssign
         + core::ops::SubAssign
         + ark_ff::Zero
