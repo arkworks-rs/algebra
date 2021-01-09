@@ -29,6 +29,7 @@ rustc_version = "0.3"
 
 [dev-dependencies]
 rand_xorshift = "0.2"
+num-bigint = { version = "0.3.0", default-features = false }
 
 [features]
 default = []

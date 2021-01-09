@@ -45,6 +45,7 @@ The main features of this release are:
 - #96 (ark-ff) Make the `field_new` macro accept values in integer form, without requiring decomposition into limbs, and without requiring encoding in Montgomery form.
 - #106 (ark-ff, ark-ec) Add `Zeroize` trait bound to `Field, ProjectiveGroup, AffineGroup` traits.
 - #117 (ark-poly) Add operations to `SparsePolynomial`, so it implements `Polynomial`
+- #164 (ark-ff) Add methods `from_{be, le}_bytes_mod_order` to the `PrimeField` trait.
 
 ### Improvements
 - #22 (ark-ec) Speedup fixed-base MSMs

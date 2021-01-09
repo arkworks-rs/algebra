@@ -9,6 +9,7 @@ use ark_serialize::{
     CanonicalSerializeWithFlags, EmptyFlags, Flags,
 };
 use ark_std::{
+    cmp::min,
     fmt::{Debug, Display},
     hash::Hash,
     ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign},
@@ -344,6 +345,40 @@ pub trait PrimeField:
     /// Returns the underlying representation of the prime field element.
     fn into_repr(&self) -> Self::BigInt;
 
+    /// Reads bytes in big-endian, and converts them to a field element.
+    /// If the bytes are larger than the modulus, it will reduce them.
+    fn from_be_bytes_mod_order(bytes: &[u8]) -> Self {
+        let num_modulus_bytes = ((Self::Params::MODULUS_BITS + 7) / 8) as usize;
+        let num_bytes_to_directly_convert = min(num_modulus_bytes - 1, bytes.len());
+        // Copy the leading big-endian bytes directly into a field element.
+        // The number of bytes directly converted must be less than the
+        // number of bytes needed to represent the modulus, as we must begin
+        // modular reduction once the data is of the same number of bytes as the modulus.
+        let mut bytes_to_directly_convert = Vec::new();
+        bytes_to_directly_convert.extend(bytes[..num_bytes_to_directly_convert].iter().rev());
+        // Guaranteed to not be None, as the input is less than the modulus size.
+        let mut res = Self::from_random_bytes(&bytes_to_directly_convert).unwrap();
+
+        // Update the result, byte by byte.
+        // We go through existing field arithmetic, which handles the reduction.
+        // TODO: If we need higher speeds, parse more bytes at once, or implement
+        // modular multiplication by a u64
+        let window_size = Self::from(256u64);
+        for byte in bytes[num_bytes_to_directly_convert..].iter() {
+            res *= window_size;
+            res += Self::from(*byte);
+        }
+        res
+    }
+
+    /// Reads bytes in little-endian, and converts them to a field element.
+    /// If the bytes are larger than the modulus, it will reduce them.
+    fn from_le_bytes_mod_order(bytes: &[u8]) -> Self {
+        let mut bytes_copy = bytes.to_vec();
+        bytes_copy.reverse();
+        Self::from_be_bytes_mod_order(&bytes_copy)
+    }
+
     /// Return the QNR^t, for t defined by
     /// `2^s * t = MODULUS - 1`, and t coprime to 2.
     fn qnr_to_t() -> Self {
@@ -569,6 +604,7 @@ fn serial_batch_inversion_and_mul<F: Field>(v: &mut [F], coeff: &F) {
 #[cfg(all(test, feature = "std"))]
 mod std_tests {
     use super::BitIteratorLE;
+
     #[test]
     fn bit_iterator_le() {
         let bits = BitIteratorLE::new(&[0, 1 << 10]).collect::<Vec<_>>();
@@ -612,6 +648,109 @@ mod no_std_tests {
                 random_coeffs_inv_shifted[i] * random_coeffs[i],
                 rand_multiplier
             );
+        }
+    }
+
+    #[test]
+    fn test_from_be_bytes_mod_order() {
+        // Each test vector is a byte array,
+        // and its tested by parsing it with from_bytes_mod_order, and the num-bigint library.
+        // The bytes are currently generated from scripts/test_vectors.py.
+        // TODO: Eventually generate all the test vector bytes via computation with the modulus
+        use ark_std::string::ToString;
+        use num_bigint::BigUint;
+        use rand::Rng;
+
+        let ref_modulus =
+            BigUint::from_bytes_be(&<Fr as PrimeField>::Params::MODULUS.to_bytes_be());
+
+        let mut test_vectors = vec![
+            // 0
+            vec![0u8],
+            // 1
+            vec![1u8],
+            // 255
+            vec![255u8],
+            // 256
+            vec![1u8, 0u8],
+            // 65791
+            vec![1u8, 0u8, 255u8],
+            // 204827637402836681560342736360101429053478720705186085244545541796635082752
+            vec![
+                115u8, 237u8, 167u8, 83u8, 41u8, 157u8, 125u8, 72u8, 51u8, 57u8, 216u8, 8u8, 9u8,
+                161u8, 216u8, 5u8, 83u8, 189u8, 164u8, 2u8, 255u8, 254u8, 91u8, 254u8, 255u8,
+                255u8, 255u8, 255u8, 0u8, 0u8, 0u8,
+            ],
+            // 204827637402836681560342736360101429053478720705186085244545541796635082753
+            vec![
+                115u8, 237u8, 167u8, 83u8, 41u8, 157u8, 125u8, 72u8, 51u8, 57u8, 216u8, 8u8, 9u8,
+                161u8, 216u8, 5u8, 83u8, 189u8, 164u8, 2u8, 255u8, 254u8, 91u8, 254u8, 255u8,
+                255u8, 255u8, 255u8, 0u8, 0u8, 1u8,
+            ],
+            // 52435875175126190479447740508185965837690552500527637822603658699938581184512
+            vec![
+                115u8, 237u8, 167u8, 83u8, 41u8, 157u8, 125u8, 72u8, 51u8, 57u8, 216u8, 8u8, 9u8,
+                161u8, 216u8, 5u8, 83u8, 189u8, 164u8, 2u8, 255u8, 254u8, 91u8, 254u8, 255u8,
+                255u8, 255u8, 255u8, 0u8, 0u8, 0u8, 0u8,
+            ],
+            // 52435875175126190479447740508185965837690552500527637822603658699938581184513
+            vec![
+                115u8, 237u8, 167u8, 83u8, 41u8, 157u8, 125u8, 72u8, 51u8, 57u8, 216u8, 8u8, 9u8,
+                161u8, 216u8, 5u8, 83u8, 189u8, 164u8, 2u8, 255u8, 254u8, 91u8, 254u8, 255u8,
+                255u8, 255u8, 255u8, 0u8, 0u8, 0u8, 1u8,
+            ],
+            // 52435875175126190479447740508185965837690552500527637822603658699938581184514
+            vec![
+                115u8, 237u8, 167u8, 83u8, 41u8, 157u8, 125u8, 72u8, 51u8, 57u8, 216u8, 8u8, 9u8,
+                161u8, 216u8, 5u8, 83u8, 189u8, 164u8, 2u8, 255u8, 254u8, 91u8, 254u8, 255u8,
+                255u8, 255u8, 255u8, 0u8, 0u8, 0u8, 2u8,
+            ],
+            // 104871750350252380958895481016371931675381105001055275645207317399877162369026
+            vec![
+                231u8, 219u8, 78u8, 166u8, 83u8, 58u8, 250u8, 144u8, 102u8, 115u8, 176u8, 16u8,
+                19u8, 67u8, 176u8, 10u8, 167u8, 123u8, 72u8, 5u8, 255u8, 252u8, 183u8, 253u8,
+                255u8, 255u8, 255u8, 254u8, 0u8, 0u8, 0u8, 2u8,
+            ],
+            // 13423584044832304762738621570095607254448781440135075282586536627184276783235328
+            vec![
+                115u8, 237u8, 167u8, 83u8, 41u8, 157u8, 125u8, 72u8, 51u8, 57u8, 216u8, 8u8, 9u8,
+                161u8, 216u8, 5u8, 83u8, 189u8, 164u8, 2u8, 255u8, 254u8, 91u8, 254u8, 255u8,
+                255u8, 255u8, 255u8, 0u8, 0u8, 0u8, 1u8, 0u8,
+            ],
+            // 115792089237316195423570985008687907853269984665640564039457584007913129639953
+            vec![
+                1u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8,
+                0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8,
+                17u8,
+            ],
+            // 168227964412442385903018725516873873690960537166168201862061242707851710824468
+            vec![
+                1u8, 115u8, 237u8, 167u8, 83u8, 41u8, 157u8, 125u8, 72u8, 51u8, 57u8, 216u8, 8u8,
+                9u8, 161u8, 216u8, 5u8, 83u8, 189u8, 164u8, 2u8, 255u8, 254u8, 91u8, 254u8, 255u8,
+                255u8, 255u8, 255u8, 0u8, 0u8, 0u8, 20u8,
+            ],
+            // 29695210719928072218913619902732290376274806626904512031923745164725699769008210
+            vec![
+                1u8, 0u8, 115u8, 237u8, 167u8, 83u8, 41u8, 157u8, 125u8, 72u8, 51u8, 57u8, 216u8,
+                8u8, 9u8, 161u8, 216u8, 5u8, 83u8, 189u8, 164u8, 2u8, 255u8, 254u8, 91u8, 254u8,
+                255u8, 255u8, 255u8, 255u8, 0u8, 0u8, 0u8, 82u8,
+            ],
+        ];
+        // Add random bytestrings to the test vector list
+        for i in 1..512 {
+            let mut rng = test_rng();
+            let data: Vec<u8> = (0..i).map(|_| rng.gen()).collect();
+            test_vectors.push(data);
+        }
+        for i in test_vectors {
+            let mut expected_biguint = BigUint::from_bytes_be(&i);
+            // Reduce expected_biguint using modpow API
+            expected_biguint =
+                expected_biguint.modpow(&BigUint::from_bytes_be(&[1u8]), &ref_modulus);
+            let expected_string = expected_biguint.to_string();
+            let expected = Fr::from_str(&expected_string).unwrap();
+            let actual = Fr::from_be_bytes_mod_order(&i);
+            assert_eq!(expected, actual, "failed on test {:?}", i);
         }
     }
 }
