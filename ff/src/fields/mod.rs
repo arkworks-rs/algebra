@@ -364,9 +364,9 @@ pub trait PrimeField:
         // TODO: If we need higher speeds, parse more bytes at once, or implement
         // modular multiplication by a u64
         let window_size = Self::from(256u64);
-        for i in num_bytes_to_directly_convert..bytes.len() {
+        for byte in bytes[num_bytes_to_directly_convert..].iter() {
             res *= window_size;
-            res += Self::from(bytes[i]);
+            res += Self::from(*byte);
         }
         res
     }
@@ -658,12 +658,13 @@ mod no_std_tests {
         // The bytes are currently generated from scripts/test_vectors.py.
         // TODO: Eventually generate all the test vector bytes via computation with the modulus
         use ark_std::string::ToString;
+        use rand::Rng;
         use num_bigint::BigUint;
 
         let ref_modulus =
             BigUint::from_bytes_be(&<Fr as PrimeField>::Params::MODULUS.to_bytes_be());
 
-        let test_vectors = vec![
+        let mut test_vectors = vec![
             // 0
             vec![0u8],
             // 1
@@ -735,6 +736,12 @@ mod no_std_tests {
                 255u8, 255u8, 255u8, 255u8, 0u8, 0u8, 0u8, 82u8,
             ],
         ];
+        // Add random bytestrings to the test vector list
+        for i in 1..512 {
+            let mut rng = test_rng();
+            let mut data: Vec<u8> = (0..i).map(|_| rng.gen()).collect();
+            test_vectors.push(data);
+        }
         for i in test_vectors {
             let mut expected_biguint = BigUint::from_bytes_be(&i);
             // Reduce expected_biguint using modpow API
