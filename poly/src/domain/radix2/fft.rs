@@ -78,7 +78,7 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
             let nchunks = xi.len() / (2 * gap);
             ark_std::cfg_chunks_mut!(xi, 2 * gap).for_each(|cxi| {
                 let (lo, hi) = cxi.split_at_mut(gap);
-                ark_std::cfg_iter_mut!(lo)
+                ark_std::cfg_iter_mut!(lo, 1000) // threshold of 1000 was determined empirically
                     .zip(hi)
                     .enumerate()
                     .for_each(|(idx, (lo, hi))| {
@@ -102,7 +102,7 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
 
             ark_std::cfg_chunks_mut!(xi, 2 * gap).for_each(|cxi| {
                 let (lo, hi) = cxi.split_at_mut(gap);
-                ark_std::cfg_iter_mut!(lo)
+                ark_std::cfg_iter_mut!(lo, 1000) // threshold of 1000 was determined empirically
                     .zip(hi)
                     .enumerate()
                     .for_each(|(idx, (lo, hi))| {
