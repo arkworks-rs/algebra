@@ -75,7 +75,7 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
         let mut gap = xi.len() / 2;
         while gap > 0 {
             // each butterfly cluster uses 2*gap positions
-            let chunk_size = 2*gap;
+            let chunk_size = 2 * gap;
             let nchunks = xi.len() / chunk_size;
 
             let inner_fn = |(idx, (lo, hi)): (usize, (&mut T, &mut T))| {
@@ -106,7 +106,7 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
 
         let mut gap = 1;
         while gap < xi.len() {
-            let chunk_size = 2*gap;
+            let chunk_size = 2 * gap;
             let nchunks = xi.len() / chunk_size;
 
             let inner_fn = |(idx, (lo, hi)): (usize, (&mut T, &mut T))| {
