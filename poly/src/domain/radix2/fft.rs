@@ -73,43 +73,32 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
         let roots = self.roots_of_unity(root);
 
         let mut gap = xi.len() / 2;
-        // This value was chosen empirically.
-        let min_gap_size_for_intra_gap_parallelization = 1024;
         while gap > 0 {
             // each butterfly cluster uses 2*gap positions
             let nchunks = xi.len() / (2 * gap);
+
+            let inner_fn = |(idx, (lo, hi)): (usize, (&mut T, &mut T))| {
+                let neg = *lo - *hi;
+                *lo += *hi;
+
+                *hi = neg;
+                *hi *= roots[nchunks * idx];
+            };
+
             // If the gap is sufficiently big that parallelism helps,
             // we parallelize computation of values in the gap.
             // Notice that the core loops are the same in both cases
-            if gap > min_gap_size_for_intra_gap_parallelization {
-                ark_std::cfg_chunks_mut!(xi, 2 * gap).for_each(|cxi| {
-                    let (lo, hi) = cxi.split_at_mut(gap);
+            ark_std::cfg_chunks_mut!(xi, 2 * gap).for_each(|cxi| {
+                let (lo, hi) = cxi.split_at_mut(gap);
+                if gap > MIN_GAP_SIZE_FOR_PARALLELIZATION {
                     ark_std::cfg_iter_mut!(lo)
                         .zip(hi)
                         .enumerate()
-                        .for_each(|(idx, (lo, hi))| {
-                            let neg = *lo - *hi;
-                            *lo += *hi;
-
-                            *hi = neg;
-                            *hi *= roots[nchunks * idx];
-                        });
-                });
-            } else {
-                ark_std::cfg_chunks_mut!(xi, 2 * gap).for_each(|cxi| {
-                    let (lo, hi) = cxi.split_at_mut(gap);
-                    lo.iter_mut()
-                        .zip(hi)
-                        .enumerate()
-                        .for_each(|(idx, (lo, hi))| {
-                            let neg = *lo - *hi;
-                            *lo += *hi;
-
-                            *hi = neg;
-                            *hi *= roots[nchunks * idx];
-                        });
-                });
-            }
+                        .for_each(inner_fn);
+                } else {
+                    lo.iter_mut().zip(hi).enumerate().for_each(inner_fn);
+                }
+            });
             gap /= 2;
         }
     }
@@ -118,45 +107,37 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
         let roots = self.roots_of_unity(root);
 
         let mut gap = 1;
-        // This value was chosen empirically.
-        let min_gap_size_for_intra_gap_parallelization = 1024;
         while gap < xi.len() {
             let nchunks = xi.len() / (2 * gap);
+
+            let inner_fn = |(idx, (lo, hi)): (usize, (&mut T, &mut T))| {
+                *hi *= roots[nchunks * idx];
+                let neg = *lo - *hi;
+                *lo += *hi;
+                *hi = neg;
+            };
 
             // If the gap is sufficiently big that parallelism helps,
             // we parallelize computation of values in the gap.
             // Notice that the core loops are the same in both cases
-            if gap > min_gap_size_for_intra_gap_parallelization {
-                ark_std::cfg_chunks_mut!(xi, 2 * gap).for_each(|cxi| {
-                    let (lo, hi) = cxi.split_at_mut(gap);
+            ark_std::cfg_chunks_mut!(xi, 2 * gap).for_each(|cxi| {
+                let (lo, hi) = cxi.split_at_mut(gap);
+                if gap > MIN_GAP_SIZE_FOR_PARALLELIZATION {
                     ark_std::cfg_iter_mut!(lo)
                         .zip(hi)
                         .enumerate()
-                        .for_each(|(idx, (lo, hi))| {
-                            *hi *= roots[nchunks * idx];
-                            let neg = *lo - *hi;
-                            *lo += *hi;
-                            *hi = neg;
-                        });
-                });
-            } else {
-                ark_std::cfg_chunks_mut!(xi, 2 * gap).for_each(|cxi| {
-                    let (lo, hi) = cxi.split_at_mut(gap);
-                    lo.iter_mut()
-                        .zip(hi)
-                        .enumerate()
-                        .for_each(|(idx, (lo, hi))| {
-                            *hi *= roots[nchunks * idx];
-                            let neg = *lo - *hi;
-                            *lo += *hi;
-                            *hi = neg;
-                        });
-                });
-            }
+                        .for_each(inner_fn);
+                } else {
+                    lo.iter_mut().zip(hi).enumerate().for_each(inner_fn);
+                }
+            });
             gap *= 2;
         }
     }
 }
+
+// This value was chosen empirically.
+const MIN_GAP_SIZE_FOR_PARALLELIZATION: usize = 1024;
 
 #[inline]
 fn bitrev(a: u64, log_len: u32) -> u64 {
