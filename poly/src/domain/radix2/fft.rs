@@ -78,7 +78,7 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
             let chunk_size = 2 * gap;
             let nchunks = xi.len() / chunk_size;
 
-            let inner_fn = |(idx, (lo, hi)): (usize, (&mut T, &mut T))| {
+            let butterfly_fn = |(idx, (lo, hi)): (usize, (&mut T, &mut T))| {
                 let neg = *lo - *hi;
                 *lo += *hi;
 
@@ -92,9 +92,9 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
             ark_std::cfg_chunks_mut!(xi, chunk_size).for_each(|cxi| {
                 let (lo, hi) = cxi.split_at_mut(gap);
                 if chunk_size > MIN_CHUNK_SIZE_FOR_PARALLELIZATION {
-                    cfg_iter_mut!(lo).zip(hi).enumerate().for_each(inner_fn);
+                    cfg_iter_mut!(lo).zip(hi).enumerate().for_each(butterfly_fn);
                 } else {
-                    lo.iter_mut().zip(hi).enumerate().for_each(inner_fn);
+                    lo.iter_mut().zip(hi).enumerate().for_each(butterfly_fn);
                 }
             });
             gap /= 2;
@@ -109,7 +109,7 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
             let chunk_size = 2 * gap;
             let nchunks = xi.len() / chunk_size;
 
-            let inner_fn = |(idx, (lo, hi)): (usize, (&mut T, &mut T))| {
+            let butterfly_fn = |(idx, (lo, hi)): (usize, (&mut T, &mut T))| {
                 *hi *= roots[nchunks * idx];
                 let neg = *lo - *hi;
                 *lo += *hi;
@@ -122,9 +122,9 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
             ark_std::cfg_chunks_mut!(xi, chunk_size).for_each(|cxi| {
                 let (lo, hi) = cxi.split_at_mut(gap);
                 if chunk_size > MIN_CHUNK_SIZE_FOR_PARALLELIZATION {
-                    cfg_iter_mut!(lo).zip(hi).enumerate().for_each(inner_fn);
+                    cfg_iter_mut!(lo).zip(hi).enumerate().for_each(butterfly_fn);
                 } else {
-                    lo.iter_mut().zip(hi).enumerate().for_each(inner_fn);
+                    lo.iter_mut().zip(hi).enumerate().for_each(butterfly_fn);
                 }
             });
             gap *= 2;
