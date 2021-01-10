@@ -56,7 +56,8 @@ pub(crate) fn compute_powers<F: Field>(size: usize, value: F) -> Vec<F> {
 #[cfg(feature = "parallel")]
 fn compute_powers_recursive<F: Field>(out: &mut [F], log_powers: &[F]) {
     assert_eq!(out.len(), 1 << log_powers.len());
-    // base case: just compute the powers sequentially
+    // base case: just compute the powers sequentially,
+    // g = log_powers[0], out = [1, g, g^2, ...]
     if log_powers.len() <= LOG_PARALLEL_SIZE as usize {
         out[0] = F::one();
         for idx in 1..out.len() {

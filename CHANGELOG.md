@@ -74,6 +74,7 @@ The main features of this release are:
 - #158 (ark-serialize) Add an impl of `CanonicalSerialize/Deserialize` for `()`.
 - #166 (ark-ff) Add a `to_bytes_be()` and `to_bytes_le` methods to `BigInt`.
 - #169 (ark-poly) Improve radix-2 FFTs by moving to a faster algorithm by Riad S. Wahby.
+- #171, #173 (ark-poly) Apply further speedups to the new radix-2 FFT.
 
 ### Bug fixes
 - #36 (ark-ec) In Short-Weierstrass curves, include an infinity bit in `ToConstraintField`.

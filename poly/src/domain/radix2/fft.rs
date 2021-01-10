@@ -3,7 +3,7 @@
 
 use crate::domain::{radix2::*, DomainCoeff};
 use ark_ff::FftField;
-use ark_std::vec::Vec;
+use ark_std::{cfg_iter_mut, vec::Vec};
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
 
@@ -75,19 +75,28 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
         let mut gap = xi.len() / 2;
         while gap > 0 {
             // each butterfly cluster uses 2*gap positions
-            let nchunks = xi.len() / (2 * gap);
-            ark_std::cfg_chunks_mut!(xi, 2 * gap).for_each(|cxi| {
-                let (lo, hi) = cxi.split_at_mut(gap);
-                ark_std::cfg_iter_mut!(lo, 1000) // threshold of 1000 was determined empirically
-                    .zip(hi)
-                    .enumerate()
-                    .for_each(|(idx, (lo, hi))| {
-                        let neg = *lo - *hi;
-                        *lo += *hi;
+            let chunk_size = 2 * gap;
+            let nchunks = xi.len() / chunk_size;
 
-                        *hi = neg;
-                        *hi *= roots[nchunks * idx];
-                    });
+            let butterfly_fn = |(idx, (lo, hi)): (usize, (&mut T, &mut T))| {
+                let neg = *lo - *hi;
+                *lo += *hi;
+
+                *hi = neg;
+                *hi *= roots[nchunks * idx];
+            };
+
+            ark_std::cfg_chunks_mut!(xi, chunk_size).for_each(|cxi| {
+                let (lo, hi) = cxi.split_at_mut(gap);
+                // If the chunk is sufficiently big that parallelism helps,
+                // we parallelize the butterfly operation within the chunk.
+                //
+                // if chunk_size > MIN_CHUNK_SIZE_FOR_PARALLELIZATION
+                if gap > MIN_CHUNK_SIZE_FOR_PARALLELIZATION / 2 {
+                    cfg_iter_mut!(lo).zip(hi).enumerate().for_each(butterfly_fn);
+                } else {
+                    lo.iter_mut().zip(hi).enumerate().for_each(butterfly_fn);
+                }
             });
             gap /= 2;
         }
@@ -98,24 +107,39 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
 
         let mut gap = 1;
         while gap < xi.len() {
-            let nchunks = xi.len() / (2 * gap);
+            let chunk_size = 2 * gap;
+            let nchunks = xi.len() / chunk_size;
 
-            ark_std::cfg_chunks_mut!(xi, 2 * gap).for_each(|cxi| {
+            let butterfly_fn = |(idx, (lo, hi)): (usize, (&mut T, &mut T))| {
+                *hi *= roots[nchunks * idx];
+                let neg = *lo - *hi;
+                *lo += *hi;
+                *hi = neg;
+            };
+
+            ark_std::cfg_chunks_mut!(xi, chunk_size).for_each(|cxi| {
                 let (lo, hi) = cxi.split_at_mut(gap);
-                ark_std::cfg_iter_mut!(lo, 1000) // threshold of 1000 was determined empirically
-                    .zip(hi)
-                    .enumerate()
-                    .for_each(|(idx, (lo, hi))| {
-                        *hi *= roots[nchunks * idx];
-                        let neg = *lo - *hi;
-                        *lo += *hi;
-                        *hi = neg;
-                    });
+                // If the chunk is sufficiently big that parallelism helps,
+                // we parallelize the butterfly operation within the chunk.
+                //
+                // if chunk_size > MIN_CHUNK_SIZE_FOR_PARALLELIZATION
+                if gap > MIN_CHUNK_SIZE_FOR_PARALLELIZATION / 2 {
+                    cfg_iter_mut!(lo).zip(hi).enumerate().for_each(butterfly_fn);
+                } else {
+                    lo.iter_mut().zip(hi).enumerate().for_each(butterfly_fn);
+                }
             });
             gap *= 2;
         }
     }
 }
+
+// This value controls that when doing a butterfly on a chunk of size c,
+// do you parallelize operations on the chunk.
+// If c > MIN_CHUNK_SIZE_FOR_PARALLELIZATION,
+// then parallelize, else be sequential.
+// This value was chosen empirically.
+const MIN_CHUNK_SIZE_FOR_PARALLELIZATION: usize = 2048;
 
 #[inline]
 fn bitrev(a: u64, log_len: u32) -> u64 {

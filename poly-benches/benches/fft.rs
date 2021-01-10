@@ -14,7 +14,7 @@ use criterion::{criterion_group, criterion_main, Bencher, Criterion};
 // degree bounds to benchmark on
 // e.g. degree bound of 2^{15}, means we do an FFT for a degree (2^{15} - 1) polynomial
 const BENCHMARK_MIN_DEGREE: usize = 1 << 15;
-const BENCHMARK_MAX_DEGREE: usize = 1 << 17;
+const BENCHMARK_MAX_DEGREE: usize = 1 << 22;
 const BENCHMARK_LOG_INTERVAL_DEGREE: usize = 1;
 
 const ENABLE_RADIX2_BENCHES: bool = true;
