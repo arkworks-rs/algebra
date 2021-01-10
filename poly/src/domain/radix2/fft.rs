@@ -86,11 +86,12 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
                 *hi *= roots[nchunks * idx];
             };
 
-            // If the gap is sufficiently big that parallelism helps,
-            // we parallelize computation of values in the gap.
-            // Notice that the core loops are the same in both cases
             ark_std::cfg_chunks_mut!(xi, chunk_size).for_each(|cxi| {
                 let (lo, hi) = cxi.split_at_mut(gap);
+                // If the chunk is sufficiently big that parallelism helps,
+                // we parallelize the butterfly operation within the chunk.
+                // 
+                // if chunk_size > MIN_CHUNK_SIZE_FOR_PARALLELIZATION
                 if gap > MIN_CHUNK_SIZE_FOR_PARALLELIZATION / 2 {
                     cfg_iter_mut!(lo).zip(hi).enumerate().for_each(butterfly_fn);
                 } else {
@@ -116,11 +117,12 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
                 *hi = neg;
             };
 
-            // If the gap is sufficiently big that parallelism helps,
-            // we parallelize computation of values in the gap.
-            // Notice that the core loops are the same in both cases
             ark_std::cfg_chunks_mut!(xi, chunk_size).for_each(|cxi| {
                 let (lo, hi) = cxi.split_at_mut(gap);
+                // If the chunk is sufficiently big that parallelism helps,
+                // we parallelize the butterfly operation within the chunk.
+                // 
+                // if chunk_size > MIN_CHUNK_SIZE_FOR_PARALLELIZATION
                 if gap > MIN_CHUNK_SIZE_FOR_PARALLELIZATION / 2 {
                     cfg_iter_mut!(lo).zip(hi).enumerate().for_each(butterfly_fn);
                 } else {
