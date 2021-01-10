@@ -73,10 +73,15 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
         let roots = self.roots_of_unity(root);
 
         let mut gap = xi.len() / 2;
+        // This value was chosen empirically.
+        let min_gap_size_for_intra_gap_parallelization = 1024;
         while gap > 0 {
             // each butterfly cluster uses 2*gap positions
             let nchunks = xi.len() / (2 * gap);
-            if gap > 1024 {
+            // If the gap is sufficiently big that parallelism helps,
+            // we parallelize computation of values in the gap.
+            // Notice that the core loops are the same in both cases
+            if gap > min_gap_size_for_intra_gap_parallelization {
                 ark_std::cfg_chunks_mut!(xi, 2 * gap).for_each(|cxi| {
                     let (lo, hi) = cxi.split_at_mut(gap);
                     ark_std::cfg_iter_mut!(lo)
