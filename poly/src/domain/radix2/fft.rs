@@ -90,7 +90,7 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
                         .for_each(|(idx, (lo, hi))| {
                             let neg = *lo - *hi;
                             *lo += *hi;
-    
+
                             *hi = neg;
                             *hi *= roots[nchunks * idx];
                         });
@@ -104,7 +104,7 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
                         .for_each(|(idx, (lo, hi))| {
                             let neg = *lo - *hi;
                             *lo += *hi;
-    
+
                             *hi = neg;
                             *hi *= roots[nchunks * idx];
                         });
@@ -139,8 +139,7 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
                             *hi = neg;
                         });
                 });
-            }
-            else {
+            } else {
                 ark_std::cfg_chunks_mut!(xi, 2 * gap).for_each(|cxi| {
                     let (lo, hi) = cxi.split_at_mut(gap);
                     lo.iter_mut()
