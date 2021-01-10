@@ -90,7 +90,7 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
                 let (lo, hi) = cxi.split_at_mut(gap);
                 // If the chunk is sufficiently big that parallelism helps,
                 // we parallelize the butterfly operation within the chunk.
-                // 
+                //
                 // if chunk_size > MIN_CHUNK_SIZE_FOR_PARALLELIZATION
                 if gap > MIN_CHUNK_SIZE_FOR_PARALLELIZATION / 2 {
                     cfg_iter_mut!(lo).zip(hi).enumerate().for_each(butterfly_fn);
@@ -121,7 +121,7 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
                 let (lo, hi) = cxi.split_at_mut(gap);
                 // If the chunk is sufficiently big that parallelism helps,
                 // we parallelize the butterfly operation within the chunk.
-                // 
+                //
                 // if chunk_size > MIN_CHUNK_SIZE_FOR_PARALLELIZATION
                 if gap > MIN_CHUNK_SIZE_FOR_PARALLELIZATION / 2 {
                     cfg_iter_mut!(lo).zip(hi).enumerate().for_each(butterfly_fn);
@@ -136,7 +136,7 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
 
 // This value controls that when doing a butterfly on a chunk of size c,
 // do you parallelize operations on the chunk.
-// If c > MIN_GAP_SIZE_FOR_PARALLELIZATION,
+// If c > MIN_CHUNK_SIZE_FOR_PARALLELIZATION,
 // then parallelize, else be sequential.
 // This value was chosen empirically.
 const MIN_CHUNK_SIZE_FOR_PARALLELIZATION: usize = 2048;
