@@ -91,7 +91,7 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
             // Notice that the core loops are the same in both cases
             ark_std::cfg_chunks_mut!(xi, chunk_size).for_each(|cxi| {
                 let (lo, hi) = cxi.split_at_mut(gap);
-                if chunk_size > MIN_CHUNK_SIZE_FOR_PARALLELIZATION {
+                if gap > MIN_CHUNK_SIZE_FOR_PARALLELIZATION / 2 {
                     cfg_iter_mut!(lo).zip(hi).enumerate().for_each(butterfly_fn);
                 } else {
                     lo.iter_mut().zip(hi).enumerate().for_each(butterfly_fn);
@@ -121,7 +121,7 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
             // Notice that the core loops are the same in both cases
             ark_std::cfg_chunks_mut!(xi, chunk_size).for_each(|cxi| {
                 let (lo, hi) = cxi.split_at_mut(gap);
-                if chunk_size > MIN_CHUNK_SIZE_FOR_PARALLELIZATION {
+                if gap > MIN_CHUNK_SIZE_FOR_PARALLELIZATION / 2 {
                     cfg_iter_mut!(lo).zip(hi).enumerate().for_each(butterfly_fn);
                 } else {
                     lo.iter_mut().zip(hi).enumerate().for_each(butterfly_fn);
