@@ -76,19 +76,35 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
         while gap > 0 {
             // each butterfly cluster uses 2*gap positions
             let nchunks = xi.len() / (2 * gap);
-            ark_std::cfg_chunks_mut!(xi, 2 * gap).for_each(|cxi| {
-                let (lo, hi) = cxi.split_at_mut(gap);
-                ark_std::cfg_iter_mut!(lo, 1000) // threshold of 1000 was determined empirically
-                    .zip(hi)
-                    .enumerate()
-                    .for_each(|(idx, (lo, hi))| {
-                        let neg = *lo - *hi;
-                        *lo += *hi;
-
-                        *hi = neg;
-                        *hi *= roots[nchunks * idx];
-                    });
-            });
+            if gap > 1024 {
+                ark_std::cfg_chunks_mut!(xi, 2 * gap).for_each(|cxi| {
+                    let (lo, hi) = cxi.split_at_mut(gap);
+                    ark_std::cfg_iter_mut!(lo)
+                        .zip(hi)
+                        .enumerate()
+                        .for_each(|(idx, (lo, hi))| {
+                            let neg = *lo - *hi;
+                            *lo += *hi;
+    
+                            *hi = neg;
+                            *hi *= roots[nchunks * idx];
+                        });
+                });
+            } else {
+                ark_std::cfg_chunks_mut!(xi, 2 * gap).for_each(|cxi| {
+                    let (lo, hi) = cxi.split_at_mut(gap);
+                    lo.iter_mut()
+                        .zip(hi)
+                        .enumerate()
+                        .for_each(|(idx, (lo, hi))| {
+                            let neg = *lo - *hi;
+                            *lo += *hi;
+    
+                            *hi = neg;
+                            *hi *= roots[nchunks * idx];
+                        });
+                });
+            }
             gap /= 2;
         }
     }
