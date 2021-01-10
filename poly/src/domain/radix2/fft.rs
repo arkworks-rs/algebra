@@ -3,7 +3,7 @@
 
 use crate::domain::{radix2::*, DomainCoeff};
 use ark_ff::FftField;
-use ark_std::vec::Vec;
+use ark_std::{cfg_iter_mut, vec::Vec};
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
 
@@ -91,10 +91,7 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
             ark_std::cfg_chunks_mut!(xi, 2 * gap).for_each(|cxi| {
                 let (lo, hi) = cxi.split_at_mut(gap);
                 if gap > MIN_GAP_SIZE_FOR_PARALLELIZATION {
-                    ark_std::cfg_iter_mut!(lo)
-                        .zip(hi)
-                        .enumerate()
-                        .for_each(inner_fn);
+                    cfg_iter_mut!(lo).zip(hi).enumerate().for_each(inner_fn);
                 } else {
                     lo.iter_mut().zip(hi).enumerate().for_each(inner_fn);
                 }
@@ -123,10 +120,7 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
             ark_std::cfg_chunks_mut!(xi, 2 * gap).for_each(|cxi| {
                 let (lo, hi) = cxi.split_at_mut(gap);
                 if gap > MIN_GAP_SIZE_FOR_PARALLELIZATION {
-                    ark_std::cfg_iter_mut!(lo)
-                        .zip(hi)
-                        .enumerate()
-                        .for_each(inner_fn);
+                    cfg_iter_mut!(lo).zip(hi).enumerate().for_each(inner_fn);
                 } else {
                     lo.iter_mut().zip(hi).enumerate().for_each(inner_fn);
                 }
