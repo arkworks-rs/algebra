@@ -19,14 +19,20 @@ pub(crate) fn bitreverse(mut n: u32, l: u32) -> u32 {
 }
 
 pub(crate) fn compute_powers_serial<F: Field>(size: usize, root: F) -> Vec<F> {
-    let mut value = F::one();
-    (0..size)
-        .map(|_| {
-            let old_value = value;
-            value *= root;
-            old_value
-        })
-        .collect()
+    // To reduce data dependency in multiplications, we compute even and odd powers in each loop
+    let mut even_power = F::one();
+    let mut odd_power = root;
+    let root_sqr = root.square();
+    let mut powers = Vec::with_capacity(size);
+    powers.push(even_power);
+    powers.push(odd_power);
+    for _ in 1..(size / 2) {
+        even_power *= root_sqr;
+        odd_power *= root_sqr;
+        powers.push(even_power);
+        powers.push(odd_power);
+    }
+    powers
 }
 
 #[cfg(feature = "parallel")]
