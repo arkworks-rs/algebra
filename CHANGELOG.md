@@ -7,7 +7,8 @@ The main features of this release are:
 - Multilinear polynomial support
 - Many speedups to operations involving polynomials
 - Some speedups to `sqrt`
-- Small speedups to `MSM`s
+- Small speedups to MSMs
+- Big speedups to radix-2 FFTs
 
 ### Breaking changes
 - #20 (ark-poly) Move univariate DensePolynomial and SparsePolynomial into a 
@@ -46,6 +47,7 @@ The main features of this release are:
 - #106 (ark-ff, ark-ec) Add `Zeroize` trait bound to `Field, ProjectiveGroup, AffineGroup` traits.
 - #117 (ark-poly) Add operations to `SparsePolynomial`, so it implements `Polynomial`
 - #140 (ark-poly) Add support for multilinear extensions in dense and sparse evaluation form.
+- #164 (ark-ff) Add methods `from_{be, le}_bytes_mod_order` to the `PrimeField` trait.
 
 ### Improvements
 - #22 (ark-ec) Speedup fixed-base MSMs
@@ -73,6 +75,8 @@ The main features of this release are:
 - #157 (ark-ec) Speed up `variable_base_msm` by not relying on unnecessary normalization.
 - #158 (ark-serialize) Add an impl of `CanonicalSerialize/Deserialize` for `()`.
 - #166 (ark-ff) Add a `to_bytes_be()` and `to_bytes_le` methods to `BigInt`.
+- #169 (ark-poly) Improve radix-2 FFTs by moving to a faster algorithm by Riad S. Wahby.
+- #171, #173 (ark-poly) Apply further speedups to the new radix-2 FFT.
 
 ### Bug fixes
 - #36 (ark-ec) In Short-Weierstrass curves, include an infinity bit in `ToConstraintField`.
