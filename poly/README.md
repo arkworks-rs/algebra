@@ -39,7 +39,7 @@ Represents a univariate polynomial in evaluation form, which can be used for FFT
 
 The `evaluations` module also provides the following traits for defining multivariate polynomials in lagrange form:
 
-- [`multivariate/multilinear/MultilinearExtension`](./src/evaluations/multivariate/multilinear/mod.rs#L21)
+- [`multivariate/multilinear/MultilinearExtension`](./src/evaluations/multivariate/multilinear/mod.rs#L23)
 Specifies a multilinear polynomial evaluated over boolean hypercube.
   
 This crate provides some data structures to implement these traits.
