@@ -14,8 +14,10 @@ use ark_ff::{Field, Zero};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use rand::Rng;
 
-/// Describes interface for multilinear extension of an array,
-/// which is multilinear polynomial in evaluation form, over domain {0,1}^`num_vars` (i.e. the boolean hypercube).
+/// This trait describes an interface for the multilinear extension
+/// of an array.
+/// The latter is a multilinear polynomial represented in terms of its evaluations over
+/// the domain {0,1}^`num_vars` (i.e. the Boolean hypercube).
 ///
 /// Index represents a point, which is a vector in {0,1}^`num_vars` in little endian form. For example, `0b1011` represents `P(1,1,0,1)`
 pub trait MultilinearExtension<F: Field>:

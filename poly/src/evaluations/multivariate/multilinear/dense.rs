@@ -68,12 +68,12 @@ impl<F: Field> DenseMultilinearExtension<F> {
         }
     }
 
-    /// returns an iterator that iterates over the evaluations over {0,1}^`num_vars`
+    /// Returns an iterator that iterates over the evaluations over {0,1}^`num_vars`
     pub fn iter(&self) -> Iter<'_, F> {
         self.evaluations.iter()
     }
 
-    /// returns a mutable iterator that iterates over the evaluations over {0,1}^`num_vars`
+    /// Returns a mutable iterator that iterates over the evaluations over {0,1}^`num_vars`
     pub fn iter_mut(&mut self) -> IterMut<'_, F> {
         self.evaluations.iter_mut()
     }
