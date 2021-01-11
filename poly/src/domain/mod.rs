@@ -81,7 +81,7 @@ pub trait EvaluationDomain<F: FftField>:
     /// Compute a IFFT, modifying the vector in place.
     fn ifft_in_place<T: DomainCoeff<F>>(&self, evals: &mut Vec<T>);
 
-    /// Multiply the `i`-th element of `coeffs` with the `i`-th power of `g`.
+    /// Multiply the `i`-th element of `coeffs` with `g^i`.
     #[cfg(not(feature = "parallel"))]
     fn distribute_powers<T: DomainCoeff<F>>(coeffs: &mut [T], g: F) {
         let mut pow = F::one();
@@ -91,7 +91,7 @@ pub trait EvaluationDomain<F: FftField>:
         })
     }
 
-    /// Multiply the `i`-th element of `coeffs` with the `i`-th power of `g`.
+    /// Multiply the `i`-th element of `coeffs` with `g^i`.
     #[cfg(feature = "parallel")]
     fn distribute_powers<T: DomainCoeff<F>>(coeffs: &mut [T], g: F) {
         let powers_of_g = crate::domain::utils::compute_powers(coeffs.len(), g);

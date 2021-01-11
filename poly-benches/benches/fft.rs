@@ -85,6 +85,17 @@ fn bench_coset_ifft_in_place<F: FftField, D: EvaluationDomain<F>>(b: &mut Benche
     });
 }
 
+fn bench_coset_distribute_powers<F: FftField, D: EvaluationDomain<F>>(b: &mut Bencher, degree: &usize) {
+    // Per benchmark setup
+    let (_domain, mut a) = fft_common_setup::<F, D>(*degree);
+    let multiplicative_const = F::multiplicative_generator();
+    b.iter(|| {
+        // Per benchmark iteration
+        D::distribute_powers(&mut a, F::multiplicative_generator());
+        ark_std::cfg_iter_mut!(a).for_each(|val| *val *= multiplicative_const);
+    });
+}
+
 fn fft_benches<F: FftField, D: EvaluationDomain<F>>(c: &mut Criterion, name: &'static str) {
     let cur_name = format!("{:?} - subgroup_fft_in_place", name.clone());
     setup_bench(c, &cur_name, bench_fft_in_place::<F, D>);
@@ -94,6 +105,8 @@ fn fft_benches<F: FftField, D: EvaluationDomain<F>>(c: &mut Criterion, name: &'s
     setup_bench(c, &cur_name, bench_coset_fft_in_place::<F, D>);
     let cur_name = format!("{:?} - coset_ifft_in_place", name.clone());
     setup_bench(c, &cur_name, bench_coset_ifft_in_place::<F, D>);
+    let cur_name = format!("{:?} - coset_distribute_powers", name.clone());
+    setup_bench(c, &cur_name, bench_coset_distribute_powers::<F, D>);
 }
 
 fn bench_bls12_381(c: &mut Criterion) {
