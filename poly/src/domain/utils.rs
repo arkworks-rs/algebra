@@ -37,6 +37,7 @@ pub(crate) fn compute_powers_and_mul_by_const_serial<F: Field>(
         .collect()
 }
 
+#[allow(unused)]
 #[cfg(feature = "parallel")]
 pub(crate) fn compute_powers<F: Field>(size: usize, g: F) -> Vec<F> {
     if size < MIN_PARALLEL_CHUNK_SIZE {
