@@ -357,7 +357,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore]
     fn test_roots_of_unity() {
         // Tests that the roots of unity result is the same as domain.elements()
         let max_degree = 10;
@@ -365,11 +364,14 @@ mod tests {
             let domain_size = 1 << log_domain_size;
             let domain = Radix2EvaluationDomain::<Fr>::new(domain_size).unwrap();
             let actual_roots = domain.roots_of_unity(domain.group_gen);
-            assert_eq!(actual_roots.len(), domain_size);
-            let expected_roots_elements = domain.elements();
-            for (i, elem) in expected_roots_elements.enumerate() {
-                assert_eq!(elem, actual_roots[i]);
+            for &value in &actual_roots {
+                assert!(domain.evaluate_vanishing_polynomial(value).is_zero());
             }
+            let expected_roots_elements = domain.elements();
+            for (expected, &actual) in expected_roots_elements.zip(&actual_roots) {
+                assert_eq!(expected, actual);
+            }
+            assert_eq!(actual_roots.len(), domain_size / 2);
         }
     }
 
