@@ -82,13 +82,6 @@ pub trait EvaluationDomain<F: FftField>:
     fn ifft_in_place<T: DomainCoeff<F>>(&self, evals: &mut Vec<T>);
 
     /// Multiply the `i`-th element of `coeffs` with `g^i`.
-    #[cfg(not(feature = "parallel"))]
-    fn distribute_powers<T: DomainCoeff<F>>(coeffs: &mut [T], g: F) {
-        Self::distribute_powers_and_mul_by_const(coeffs, g, F::one());
-    }
-
-    /// Multiply the `i`-th element of `coeffs` with `g^i`.
-    #[cfg(feature = "parallel")]
     fn distribute_powers<T: DomainCoeff<F>>(coeffs: &mut [T], g: F) {
         Self::distribute_powers_and_mul_by_const(coeffs, g, F::one());
     }
