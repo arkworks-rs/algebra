@@ -240,7 +240,13 @@ const MAX_ROOT_STRIDE: usize = 2;
 
 // Once the size of the cache aligned roots is below this number, stop re-aligning it.
 // TODO: Figure out how we can make this depend on field size & system cache size.
+#[cfg(not(feature = "parallel"))]
 const ROOT_STOP_RESIZING: usize = 1 << 12;
+
+// Once the size of the cache aligned roots is below this number, stop re-aligning it.
+// TODO: Figure out how we can make this depend on field size & system cache size.
+#[cfg(feature = "parallel")]
+const ROOT_STOP_RESIZING: usize = 1 << 15;
 
 #[inline]
 fn bitrev(a: u64, log_len: u32) -> u64 {
