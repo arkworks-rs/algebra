@@ -47,13 +47,13 @@ pub(crate) fn compute_powers<F: Field>(size: usize, g: F) -> Vec<F> {
     // compute the number of threads we will be using.
     use ark_std::cmp::{max, min};
     let num_cpus_available = rayon::current_num_threads();
-    let num_elem_per_thread =
+    let mut num_elem_per_thread =
         max(size / num_cpus_available, MIN_PARALLEL_CHUNK_SIZE);
-    let mut num_cpus_used = size / num_elem_per_thread;
+    let num_cpus_used = size / num_elem_per_thread;
     if num_cpus_used * num_elem_per_thread < size {
-        num_cpus_used += 1;
+        num_elem_per_thread += 1;
     }
-
+    
     // Split up the powers to compute across each thread evenly.
     let res: Vec<F> = (0..num_cpus_used)
         .into_par_iter()
