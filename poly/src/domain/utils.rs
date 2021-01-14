@@ -52,7 +52,7 @@ pub(crate) fn compute_powers<F: Field>(size: usize, g: F) -> Vec<F> {
     let res: Vec<F> = (0..num_cpus_used)
         .into_par_iter()
         .flat_map(|i| {
-            let mut offset = g.pow(&[(i * num_elem_per_thread) as u64]);
+            let offset = g.pow(&[(i * num_elem_per_thread) as u64]);
             let res = compute_powers_and_mul_by_const_serial(num_elem_per_thread, g, offset);
             assert_eq!(res.len(), num_elem_per_thread);
             res
