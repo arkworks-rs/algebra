@@ -357,7 +357,6 @@ mod tests {
     }
 
     #[test]
-    // #[ignore]
     fn test_roots_of_unity() {
         // Tests that the roots of unity result is the same as domain.elements()
         let max_degree = 10;
