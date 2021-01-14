@@ -359,7 +359,7 @@ mod tests {
     #[test]
     fn test_roots_of_unity() {
         // Tests that the roots of unity result is the same as domain.elements()
-        let max_degree = 10;
+        let max_degree = 15;
         for log_domain_size in 0..max_degree {
             let domain_size = 1 << log_domain_size;
             let domain = Radix2EvaluationDomain::<Fr>::new(domain_size).unwrap();

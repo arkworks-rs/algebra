@@ -79,7 +79,7 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
 
     /// Computes the first `self.size / 2` roots of unity for the entire domain.
     /// e.g. for the domain [1, g, g^2, ..., g^{n - 1}], it computes
-    // [1, g, g^2, ..., g^{(n/2) - 1}]    
+    // [1, g, g^2, ..., g^{(n/2) - 1}]
     #[cfg(feature = "parallel")]
     pub(super) fn roots_of_unity(&self, root: F) -> Vec<F> {
         use crate::domain::utils::compute_powers;
