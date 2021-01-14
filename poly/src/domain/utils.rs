@@ -7,7 +7,7 @@ use rayon::prelude::*;
 // minimum size of a parallelized chunk
 #[allow(unused)]
 #[cfg(feature = "parallel")]
-const MIN_PARALLEL_CHUNK_SIZE: usize = 1 << 7;
+const MIN_PARALLEL_CHUNK_SIZE: usize = 1 << 9;
 
 #[inline]
 pub(crate) fn bitreverse(mut n: u32, l: u32) -> u32 {
