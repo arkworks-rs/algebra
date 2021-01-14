@@ -1,6 +1,7 @@
 // The code below is a port of the excellent library of https://github.com/kwantam/fffft by Riad S. Wahby
 // to the arkworks APIs
 
+use crate::domain::utils::compute_powers_serial;
 use crate::domain::{radix2::*, DomainCoeff};
 use ark_ff::FftField;
 use ark_std::{cfg_iter_mut, vec::Vec};
@@ -61,12 +62,69 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
 
     #[cfg(not(feature = "parallel"))]
     fn roots_of_unity(&self, root: F) -> Vec<F> {
-        crate::domain::utils::compute_powers_serial(self.size as usize, root)
+        compute_powers_serial(self.size as usize, root)
     }
 
     #[cfg(feature = "parallel")]
-    fn roots_of_unity(&self, root: F) -> Vec<F> {
-        crate::domain::utils::compute_powers(self.size as usize, root)
+    pub(crate) fn roots_of_unity(&self, root: F) -> Vec<F> {
+        // TODO: Understand why this functions output isn't domain.elements(),
+        // but it still works.
+        // See if it can be altered to be in normal order, or to replace
+        // parallel compute powers.
+        let log_size = ark_std::log2(self.size as usize);
+        // early exit for short inputs
+        if log_size <= LOG_ROOTS_OF_UNITY_PARALLEL_SIZE {
+            compute_powers_serial(self.size as usize, root)
+        } else {
+            let mut temp = root;
+            // w, w^2, w^4, w^8, ..., w^(2^(log_size - 1))
+            let log_powers: Vec<F> = (0..(log_size - 1))
+                .map(|_| {
+                    let old_value = temp;
+                    temp.square_in_place();
+                    old_value
+                })
+                .collect();
+
+            // allocate the return array and start the recursion
+            let mut powers = vec![F::zero(); 1 << (log_size - 1)];
+            Self::roots_of_unity_recursive(&mut powers, &log_powers);
+            powers
+        }
+    }
+
+    #[cfg(feature = "parallel")]
+    fn roots_of_unity_recursive(out: &mut [F], log_powers: &[F]) {
+        assert_eq!(out.len(), 1 << log_powers.len());
+        // base case: just compute the powers sequentially,
+        // g = log_powers[0], out = [1, g, g^2, ...]
+        if log_powers.len() <= LOG_ROOTS_OF_UNITY_PARALLEL_SIZE as usize {
+            out[0] = F::one();
+            for idx in 1..out.len() {
+                out[idx] = out[idx - 1] * log_powers[0];
+            }
+            return;
+        }
+
+        // recursive case:
+        // 1. split log_powers in half
+        let (lr_lo, lr_hi) = log_powers.split_at((1 + log_powers.len()) / 2);
+        let mut scr_lo = vec![F::default(); 1 << lr_lo.len()];
+        let mut scr_hi = vec![F::default(); 1 << lr_hi.len()];
+        // 2. compute each half individually
+        rayon::join(
+            || Self::roots_of_unity_recursive(&mut scr_lo, lr_lo),
+            || Self::roots_of_unity_recursive(&mut scr_hi, lr_hi),
+        );
+        // 3. recombine halves
+        // At this point, out is a blank slice.
+        out.par_chunks_mut(scr_lo.len())
+            .zip(&scr_hi)
+            .for_each(|(out_chunk, scr_hi)| {
+                for (out_elem, scr_lo) in out_chunk.iter_mut().zip(&scr_lo) {
+                    *out_elem = *scr_hi * scr_lo;
+                }
+            });
     }
 
     fn io_helper<T: DomainCoeff<F>>(&self, xi: &mut [T], root: F) {
@@ -140,6 +198,10 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
 // then parallelize, else be sequential.
 // This value was chosen empirically.
 const MIN_CHUNK_SIZE_FOR_PARALLELIZATION: usize = 2048;
+
+// minimum size at which to parallelize.
+#[cfg(feature = "parallel")]
+const LOG_ROOTS_OF_UNITY_PARALLEL_SIZE: u32 = 7;
 
 #[inline]
 fn bitrev(a: u64, log_len: u32) -> u64 {

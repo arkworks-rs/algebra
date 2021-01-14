@@ -357,6 +357,23 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
+    fn test_roots_of_unity() {
+        // Tests that the roots of unity result is the same as domain.elements()
+        let max_degree = 10;
+        for log_domain_size in 0..max_degree {
+            let domain_size = 1 << log_domain_size;
+            let domain = Radix2EvaluationDomain::<Fr>::new(domain_size).unwrap();
+            let actual_roots = domain.roots_of_unity(domain.group_gen);
+            assert_eq!(actual_roots.len(), domain_size);
+            let expected_roots_elements = domain.elements();
+            for (i, elem) in expected_roots_elements.enumerate() {
+                assert_eq!(elem, actual_roots[i]);
+            }
+        }
+    }
+
+    #[test]
     #[cfg(feature = "parallel")]
     fn parallel_fft_consistency() {
         use ark_std::{test_rng, vec::Vec};
@@ -404,20 +421,61 @@ mod tests {
             }
         }
 
+        fn serial_radix2_ifft(a: &mut [Fr], omega: Fr, log_n: u32) {
+            serial_radix2_fft(a, omega.inverse().unwrap(), log_n);
+            let domain_size_inv = Fr::from(a.len() as u64).inverse().unwrap();
+            for coeff in a.iter_mut() {
+                *coeff *= Fr::from(domain_size_inv);
+            }
+        }
+
+        fn serial_radix2_coset_fft(a: &mut [Fr], omega: Fr, log_n: u32) {
+            let coset_shift = Fr::multiplicative_generator();
+            let mut cur_pow = Fr::one();
+            for coeff in a.iter_mut() {
+                *coeff *= cur_pow;
+                cur_pow *= coset_shift;
+            }
+            serial_radix2_fft(a, omega, log_n);
+        }
+
+        fn serial_radix2_coset_ifft(a: &mut [Fr], omega: Fr, log_n: u32) {
+            serial_radix2_ifft(a, omega, log_n);
+            let coset_shift = Fr::multiplicative_generator().inverse().unwrap();
+            let mut cur_pow = Fr::one();
+            for coeff in a.iter_mut() {
+                *coeff *= cur_pow;
+                cur_pow *= coset_shift;
+            }
+        }
+
         fn test_consistency<R: Rng>(rng: &mut R, max_coeffs: u32) {
             for _ in 0..5 {
                 for log_d in 0..max_coeffs {
                     let d = 1 << log_d;
 
-                    let mut v1 = (0..d).map(|_| Fr::rand(rng)).collect::<Vec<_>>();
-                    let mut v2 = v1.clone();
+                    let expected_poly = (0..d).map(|_| Fr::rand(rng)).collect::<Vec<_>>();
+                    let mut expected_vec = expected_poly.clone();
+                    let mut actual_vec = expected_vec.clone();
 
-                    let domain = Radix2EvaluationDomain::new(v1.len()).unwrap();
+                    let domain = Radix2EvaluationDomain::new(d).unwrap();
 
-                    domain.fft_in_place(&mut v1);
-                    serial_radix2_fft(&mut v2, domain.group_gen, log_d);
+                    serial_radix2_fft(&mut expected_vec, domain.group_gen, log_d);
+                    domain.fft_in_place(&mut actual_vec);
+                    assert_eq!(expected_vec, actual_vec);
 
-                    assert_eq!(v1, v2);
+                    serial_radix2_ifft(&mut expected_vec, domain.group_gen, log_d);
+                    domain.ifft_in_place(&mut actual_vec);
+                    assert_eq!(expected_vec, actual_vec);
+                    assert_eq!(expected_vec, expected_poly);
+
+                    serial_radix2_coset_fft(&mut expected_vec, domain.group_gen, log_d);
+                    domain.coset_fft_in_place(&mut actual_vec);
+                    assert_eq!(expected_vec, actual_vec);
+
+                    serial_radix2_coset_ifft(&mut expected_vec, domain.group_gen, log_d);
+                    domain.coset_ifft_in_place(&mut actual_vec);
+                    assert_eq!(expected_vec, actual_vec);
                 }
             }
         }
