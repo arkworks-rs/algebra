@@ -61,12 +61,12 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
     }
 
     #[cfg(not(feature = "parallel"))]
-    fn roots_of_unity(&self, root: F) -> Vec<F> {
-        compute_powers_serial(self.size as usize, root)
+    pub(in super) fn roots_of_unity(&self, root: F) -> Vec<F> {
+        compute_powers_serial((self.size as usize) / 2, root)
     }
 
     #[cfg(feature = "parallel")]
-    pub(crate) fn roots_of_unity(&self, root: F) -> Vec<F> {
+    pub(in super) fn roots_of_unity(&self, root: F) -> Vec<F> {
         // TODO: Understand why this functions output isn't domain.elements(),
         // but it still works.
         // See if it can be altered to be in normal order, or to replace
@@ -74,7 +74,7 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
         let log_size = ark_std::log2(self.size as usize);
         // early exit for short inputs
         if log_size <= LOG_ROOTS_OF_UNITY_PARALLEL_SIZE {
-            compute_powers_serial(self.size as usize, root)
+            compute_powers_serial((self.size as usize) / 2, root)
         } else {
             let mut temp = root;
             // w, w^2, w^4, w^8, ..., w^(2^(log_size - 1))
