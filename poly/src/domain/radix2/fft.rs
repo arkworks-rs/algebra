@@ -138,20 +138,29 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
     }
 
     fn io_helper<T: DomainCoeff<F>>(&self, xi: &mut [T], root: F) {
-        let roots = self.roots_of_unity(root);
+        // Take the roots of unity, and we will adjust this vector
+        // as we do rounds of the fft, in order to keep the roots cache aligned.
+        let mut cache_aligned_roots = self.roots_of_unity(root);
+        let mut root_stride = 1;
 
         let mut gap = xi.len() / 2;
         while gap > 0 {
             // each butterfly cluster uses 2*gap positions
             let chunk_size = 2 * gap;
-            let nchunks = xi.len() / chunk_size;
+            let root_len = cache_aligned_roots.len();
+            if root_stride > MAX_ROOT_STRIDE && root_len > ROOT_STOP_RESIZING {
+                for i in 0..(root_len / root_stride) {
+                    cache_aligned_roots[i] = cache_aligned_roots[i * root_stride];
+                }
+                root_stride = 1;
+            }
 
-            let butterfly_fn = |(idx, (lo, hi)): (usize, (&mut T, &mut T))| {
+            let butterfly_fn = |(chunk_index, (lo, hi)): (usize, (&mut T, &mut T))| {
                 let neg = *lo - *hi;
                 *lo += *hi;
 
                 *hi = neg;
-                *hi *= roots[nchunks * idx];
+                *hi *= cache_aligned_roots[root_stride * chunk_index];
             };
 
             ark_std::cfg_chunks_mut!(xi, chunk_size).for_each(|cxi| {
@@ -167,6 +176,7 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
                 }
             });
             gap /= 2;
+            root_stride *= 2;
         }
     }
 
@@ -212,6 +222,14 @@ const MIN_CHUNK_SIZE_FOR_PARALLELIZATION: usize = 2048;
 // minimum size at which to parallelize.
 #[cfg(feature = "parallel")]
 const LOG_ROOTS_OF_UNITY_PARALLEL_SIZE: u32 = 7;
+
+// Maximum stride allowed for the root vector, before re-cache aligning it.
+// This won't cache align if we've reached the ROOT_STOP_RESIZING threshold
+const MAX_ROOT_STRIDE: usize = 4;
+
+// Once the size of the cache aligned roots is below this number, stop re-aligning it.
+// TODO: Figure out how we can make this depend on field size & system cache size.
+const ROOT_STOP_RESIZING: usize = 1 << 12;
 
 #[inline]
 fn bitrev(a: u64, log_len: u32) -> u64 {
