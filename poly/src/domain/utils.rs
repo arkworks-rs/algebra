@@ -22,7 +22,11 @@ pub(crate) fn compute_powers_serial<F: Field>(size: usize, root: F) -> Vec<F> {
     compute_powers_and_mul_by_const_serial(size, root, F::one())
 }
 
-pub(crate) fn compute_powers_and_mul_by_const_serial<F: Field>(size: usize, root: F, c: F) -> Vec<F> {
+pub(crate) fn compute_powers_and_mul_by_const_serial<F: Field>(
+    size: usize,
+    root: F,
+    c: F,
+) -> Vec<F> {
     let mut value = c;
     (0..size)
         .map(|_| {
