@@ -437,7 +437,7 @@ mod tests {
                 for log_d in 0..max_coeffs {
                     let d = 1 << log_d;
 
-                    let mut expected_poly = (0..d).map(|_| Fr::rand(rng)).collect::<Vec<_>>();
+                    let expected_poly = (0..d).map(|_| Fr::rand(rng)).collect::<Vec<_>>();
                     let mut expected_vec = expected_poly.clone();
                     let mut actual_vec = expected_vec.clone();
 
