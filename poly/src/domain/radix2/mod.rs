@@ -356,7 +356,6 @@ mod tests {
         }
     }
 
-
     #[test]
     #[ignore]
     fn test_roots_of_unity() {
@@ -381,7 +380,7 @@ mod tests {
         use ark_test_curves::bls12_381::Fr;
 
         // This implements the Cooley-Turkey FFT, derived from libfqfft
-         // The libfqfft implementation uses pseudocode from [CLRS 2n Ed, pp. 864].
+        // The libfqfft implementation uses pseudocode from [CLRS 2n Ed, pp. 864].
         fn serial_radix2_fft(a: &mut [Fr], omega: Fr, log_n: u32) {
             use ark_std::convert::TryFrom;
             let n = u32::try_from(a.len())
