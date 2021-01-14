@@ -9,7 +9,7 @@ use ark_test_curves::mnt4_753::Fq as MNT6Fr;
 #[test]
 fn fft_composition() {
     fn test_fft_composition<
-F: PrimeField,
+        F: PrimeField,
         T: DomainCoeff<F> + UniformRand + core::fmt::Debug + Eq,
         R: rand::Rng,
         D: EvaluationDomain<F>,
@@ -53,5 +53,5 @@ F: PrimeField,
     test_fft_composition::<Fr, Fr, _, GeneralEvaluationDomain<Fr>>(rng, 10);
     test_fft_composition::<Fr, G1Projective, _, GeneralEvaluationDomain<Fr>>(rng, 10);
     // This will result in a mixed-radix domain being used.
-    test_fft_composition::<MNT6Fr,MNT6Fr,  _, MixedRadixEvaluationDomain<_>>(rng, 17);
+    test_fft_composition::<MNT6Fr, MNT6Fr, _, MixedRadixEvaluationDomain<_>>(rng, 17);
 }

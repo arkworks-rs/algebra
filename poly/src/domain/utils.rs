@@ -43,7 +43,7 @@ pub(crate) fn compute_powers<F: Field>(size: usize, g: F) -> Vec<F> {
         return compute_powers_serial(size, g);
     }
     // compute the number of threads we will be using.
-    use ark_std::cmp::{min, max};
+    use ark_std::cmp::{max, min};
     let num_cpus_available = rayon::current_num_threads();
     let num_elem_per_thread = max(size / num_cpus_available, MIN_PARALLEL_CHUNK_SIZE);
     let num_cpus_used = size / num_elem_per_thread;

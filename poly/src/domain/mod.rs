@@ -93,11 +93,10 @@ pub trait EvaluationDomain<F: FftField>:
         Self::distribute_powers_and_mul_by_const(coeffs, g, F::one());
     }
 
-
     /// Multiply the `i`-th element of `coeffs` with `c*g^i`.
     #[cfg(not(feature = "parallel"))]
     fn distribute_powers_and_mul_by_const<T: DomainCoeff<F>>(coeffs: &mut [T], g: F, c: F) {
-        // invariant: pow = c*g^i at the ith iteration of the loop  
+        // invariant: pow = c*g^i at the ith iteration of the loop
         let mut pow = c;
         coeffs.iter_mut().for_each(|coeff| {
             *coeff *= pow;
@@ -262,6 +261,6 @@ where
         + core::ops::AddAssign
         + core::ops::SubAssign
         + ark_ff::Zero
-        + core::ops::MulAssign<F>
+        + core::ops::MulAssign<F>,
 {
 }
