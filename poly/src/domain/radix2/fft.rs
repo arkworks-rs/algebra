@@ -60,7 +60,9 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
         ark_std::cfg_iter_mut!(x_s).for_each(|val| *val *= self.size_inv);
     }
 
-    /// Computes the first `self.size / 2` roots of unity.
+    /// Computes the first `self.size / 2` roots of unity for the entire domain.
+    /// e.g. for the domain [1, g, g^2, ..., g^{n - 1}], it computes
+    // [1, g, g^2, ..., g^{(n/2) - 1}]
     #[cfg(not(feature = "parallel"))]
     pub(super) fn roots_of_unity(&self, root: F) -> Vec<F> {
         compute_powers_serial((self.size as usize) / 2, root)
