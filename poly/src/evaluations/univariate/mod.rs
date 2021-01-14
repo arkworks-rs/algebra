@@ -1,4 +1,4 @@
-//! A polynomial represented in evaluations form.
+//! A univariate polynomial represented in evaluations form.
 
 use crate::univariate::DensePolynomial;
 use crate::{EvaluationDomain, GeneralEvaluationDomain, UVPolynomial};
@@ -13,7 +13,7 @@ use ark_std::{
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
 
-/// Stores a polynomial in evaluation form.
+/// Stores a UV polynomial in evaluation form.
 #[derive(Clone, PartialEq, Eq, Hash, Debug, CanonicalSerialize, CanonicalDeserialize)]
 pub struct Evaluations<F: FftField, D: EvaluationDomain<F> = GeneralEvaluationDomain<F>> {
     /// The evaluations of a polynomial over the domain `D`
