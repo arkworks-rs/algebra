@@ -116,7 +116,7 @@ pub trait EvaluationDomain<F: FftField>:
 
         ark_std::cfg_chunks_mut!(coeffs, num_elem_per_thread)
             .enumerate()
-            .map(|(i, chunk)| {
+            .for_each(|(i, chunk)| {
                 let offset = c * g.pow([(i * num_elem_per_thread) as u64]);
                 let mut pow = offset;
                 chunk.iter_mut().for_each(|coeff| {
@@ -248,7 +248,6 @@ pub trait DomainCoeff<F: FftField>:
     + core::ops::SubAssign
     + ark_ff::Zero
     + core::ops::MulAssign<F>
-    + ark_std::cmp::PartialEq
 {
 }
 
@@ -264,6 +263,5 @@ where
         + core::ops::SubAssign
         + ark_ff::Zero
         + core::ops::MulAssign<F>
-        + ark_std::cmp::PartialEq
 {
 }

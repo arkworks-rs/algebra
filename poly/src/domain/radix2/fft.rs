@@ -32,9 +32,6 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
         self.ifft_helper_in_place(x_s, FFTOrder::II);
         let coset_shift = self.generator_inv;
         Self::distribute_powers_and_mul_by_const(x_s, coset_shift, self.size_inv);
-
-        // Self::distribute_powers(x_s, coset_shift);
-        // ark_std::cfg_iter_mut!(x_s).for_each(|val| *val *= self.size_inv);
     }
 
     fn fft_helper_in_place<T: DomainCoeff<F>>(&self, x_s: &mut [T], ord: FFTOrder) {
