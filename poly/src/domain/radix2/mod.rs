@@ -109,8 +109,8 @@ impl<F: FftField> EvaluationDomain<F> for Radix2EvaluationDomain<F> {
 
     #[inline]
     fn coset_ifft_in_place<T: DomainCoeff<F>>(&self, evals: &mut Vec<T>) {
-        self.ifft_in_place(evals);
-        Self::distribute_powers(evals, self.generator_inv);
+        evals.resize(self.size(), T::zero());
+        self.in_order_coset_ifft_in_place(&mut *evals);
     }
 
     fn evaluate_all_lagrange_coefficients(&self, tau: F) -> Vec<F> {
@@ -416,7 +416,6 @@ mod tests {
 
                     domain.fft_in_place(&mut v1);
                     serial_radix2_fft(&mut v2, domain.group_gen, log_d);
-
                     assert_eq!(v1, v2);
                 }
             }

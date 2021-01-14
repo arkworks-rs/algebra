@@ -4,9 +4,12 @@ use ark_std::vec::Vec;
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
 
-// minimum size at which to parallelize.
+// minimum size at which to parallelize compute_powers
 #[cfg(feature = "parallel")]
 const LOG_PARALLEL_SIZE: u32 = 7;
+// minimum size of a parallel chunk for compute_powers_and_mul_by_const
+#[cfg(feature = "parallel")]
+const MIN_PARALLEL_CHUNK_SIZE: usize = 1;
 
 #[inline]
 pub(crate) fn bitreverse(mut n: u32, l: u32) -> u32 {
@@ -18,8 +21,8 @@ pub(crate) fn bitreverse(mut n: u32, l: u32) -> u32 {
     r
 }
 
-pub(crate) fn compute_powers_serial<F: Field>(size: usize, root: F) -> Vec<F> {
-    let mut value = F::one();
+fn compute_powers_serial_and_mul_by_const<F: Field>(size: usize, root: F, c: F) -> Vec<F> {
+    let mut value = c;
     (0..size)
         .map(|_| {
             let old_value = value;
@@ -27,6 +30,10 @@ pub(crate) fn compute_powers_serial<F: Field>(size: usize, root: F) -> Vec<F> {
             old_value
         })
         .collect()
+}
+
+pub(crate) fn compute_powers_serial<F: Field>(size: usize, root: F) -> Vec<F> {
+    compute_powers_serial_and_mul_by_const(size, root, F::one())
 }
 
 #[cfg(feature = "parallel")]
@@ -50,6 +57,40 @@ pub(crate) fn compute_powers<F: Field>(size: usize, value: F) -> Vec<F> {
         let mut powers = vec![F::zero(); 1 << (log_size - 1)];
         compute_powers_recursive(&mut powers, &log_powers);
         powers
+    }
+}
+
+#[cfg(feature = "parallel")]
+pub(crate) fn compute_powers_and_mul_by_const<F: Field>(size: usize, value: F, c: F) -> Vec<F> {
+    // work serially for short inputs
+    // if size <= MIN_PARALLEL_CHUNK_SIZE {
+    //     compute_powers_serial_and_mul_by_const(size, value, c)
+    // } else 
+    {
+        // compute the number of threads we will be using.
+        use ark_std::cmp::max;
+        let num_cpus_available = rayon::current_num_threads();
+        let num_elem_per_thread = max(size / num_cpus_available, MIN_PARALLEL_CHUNK_SIZE);
+        let num_cpus_used = size / num_elem_per_thread;
+
+        let result : Vec<F> = (0..num_cpus_used)
+            .into_par_iter()
+            // (0..n).into_par_iter().collect() doesn't preserver order, so we use enumerate
+            .enumerate()
+            .flat_map(|(i, z)| {
+                println!("i, z, {:?}. {:?}", i, z);
+                let offset = c * value.pow([(i * num_elem_per_thread) as u64]);
+                let res = compute_powers_serial_and_mul_by_const(num_elem_per_thread, value, offset);
+                for (j, v) in res.iter().enumerate() {
+                    assert_eq!(*v, c * value.pow([(i*num_elem_per_thread + j) as u64]));
+                }
+                res
+            })
+            .collect();
+        for (j, v) in result.iter().enumerate() {
+            assert_eq!(*v, c * value.pow([j as u64]), "{:?}", j);
+        }
+        result
     }
 }
 
