@@ -356,6 +356,24 @@ mod tests {
         }
     }
 
+
+    #[test]
+    #[ignore]
+    fn test_roots_of_unity() {
+        // Tests that the roots of unity result is the same as domain.elements()
+        let max_degree = 10;
+        for log_domain_size in 0..max_degree {
+            let domain_size = 1 << log_domain_size;
+            let domain = Radix2EvaluationDomain::<Fr>::new(domain_size).unwrap();
+            let actual_roots = domain.roots_of_unity(domain.group_gen);
+            assert_eq!(actual_roots.len(), domain_size);
+            let expected_roots_elements = domain.elements();
+            for (i, elem) in expected_roots_elements.enumerate() {
+                assert_eq!(elem, actual_roots[i]);
+            }
+        }
+    }
+
     #[test]
     #[cfg(feature = "parallel")]
     fn parallel_fft_consistency() {
@@ -363,7 +381,7 @@ mod tests {
         use ark_test_curves::bls12_381::Fr;
 
         // This implements the Cooley-Turkey FFT, derived from libfqfft
-        // The libfqfft implementation uses pseudocode from [CLRS 2n Ed, pp. 864].
+         // The libfqfft implementation uses pseudocode from [CLRS 2n Ed, pp. 864].
         fn serial_radix2_fft(a: &mut [Fr], omega: Fr, log_n: u32) {
             use ark_std::convert::TryFrom;
             let n = u32::try_from(a.len())

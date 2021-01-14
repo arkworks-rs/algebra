@@ -66,7 +66,7 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
     }
 
     #[cfg(feature = "parallel")]
-    fn roots_of_unity(&self, root: F) -> Vec<F> {
+    pub(crate) fn roots_of_unity(&self, root: F) -> Vec<F> {
         // TODO: Understand why this functions output isn't domain.elements(),
         // but it still works.
         // See if it can be altered to be in normal order, or to replace
@@ -117,11 +117,12 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
             || Self::roots_of_unity_recursive(&mut scr_hi, lr_hi),
         );
         // 3. recombine halves
+        // At this point, out is a blank slice.
         out.par_chunks_mut(scr_lo.len())
             .zip(&scr_hi)
-            .for_each(|(rt, scr_hi)| {
-                for (rt, scr_lo) in rt.iter_mut().zip(&scr_lo) {
-                    *rt = *scr_hi * scr_lo;
+            .for_each(|(out_chunk, scr_hi)| {
+                for (out_elem, scr_lo) in out_chunk.iter_mut().zip(&scr_lo) {
+                    *out_elem = *scr_hi * scr_lo;
                 }
             });
     }
