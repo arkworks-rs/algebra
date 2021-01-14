@@ -149,8 +149,17 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
             let chunk_size = 2 * gap;
             let root_len = cache_aligned_roots.len();
             if root_stride > MAX_ROOT_STRIDE && root_len > ROOT_STOP_RESIZING {
-                for i in 0..(root_len / root_stride) {
-                    cache_aligned_roots[i] = cache_aligned_roots[i * root_stride];
+                #[cfg(feature = "parallel")]
+                {
+                    cache_aligned_roots = (0..(root_len / root_stride)).into_par_iter()
+                        .map(|i| cache_aligned_roots[i * root_stride])
+                        .collect();
+                }
+                #[cfg(not(feature = "parallel"))]
+                {
+                    for i in 0..(root_len / root_stride) {
+                        cache_aligned_roots[i] = cache_aligned_roots[i * root_stride];
+                    }
                 }
                 root_stride = 1;
             }
@@ -224,8 +233,10 @@ const MIN_CHUNK_SIZE_FOR_PARALLELIZATION: usize = 2048;
 const LOG_ROOTS_OF_UNITY_PARALLEL_SIZE: u32 = 7;
 
 // Maximum stride allowed for the root vector, before re-cache aligning it.
-// This won't cache align if we've reached the ROOT_STOP_RESIZING threshold
-const MAX_ROOT_STRIDE: usize = 4;
+// This won't cache align if we've reached the ROOT_STOP_RESIZING threshold.
+// TODO: Better understand how this should be optimized
+// (according to cache lines, and hardware prefetchers)
+const MAX_ROOT_STRIDE: usize = 2;
 
 // Once the size of the cache aligned roots is below this number, stop re-aligning it.
 // TODO: Figure out how we can make this depend on field size & system cache size.
