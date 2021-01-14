@@ -111,7 +111,6 @@ pub trait EvaluationDomain<F: FftField>:
         let min_parallel_chunk_size = 1024;
         let num_cpus_available = rayon::current_num_threads();
         let num_elem_per_thread = max(coeffs.len() / num_cpus_available, min_parallel_chunk_size);
-        let num_cpus_used = coeffs.len() / num_elem_per_thread;
 
         ark_std::cfg_chunks_mut!(coeffs, num_elem_per_thread)
             .enumerate()
