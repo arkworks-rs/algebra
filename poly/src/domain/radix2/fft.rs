@@ -148,22 +148,20 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
         while gap > 0 {
             // each butterfly cluster uses 2*gap positions
             let chunk_size = 2 * gap;
-            if root_stride > MAX_ROOT_STRIDE && root_len > ROOT_STOP_RESIZING {
-                #[cfg(feature = "parallel")]
-                {
-                    cache_aligned_roots = (0..(root_len / root_stride)).into_par_iter()
-                        .map(|i| cache_aligned_roots[i * root_stride])
-                        .collect();
-                }
-                #[cfg(not(feature = "parallel"))]
-                {
-                    for i in 1..(root_len / root_stride) {
-                        cache_aligned_roots[i] = cache_aligned_roots[i * root_stride];
-                    }
-                }
-                root_len /= root_stride;
-                root_stride = 1;
+            #[cfg(feature = "parallel")]
+            {
+                cache_aligned_roots = (0..(root_len / root_stride)).into_par_iter()
+                    .map(|i| cache_aligned_roots[i * root_stride])
+                    .collect();
             }
+            #[cfg(not(feature = "parallel"))]
+            {
+                for i in 1..(root_len / root_stride) {
+                    cache_aligned_roots[i] = cache_aligned_roots[i * root_stride];
+                }
+            }
+            root_len /= root_stride;
+            root_stride = 1;
 
             let butterfly_fn = |(chunk_index, (lo, hi)): (usize, (&mut T, &mut T))| {
                 let neg = *lo - *hi;
@@ -232,22 +230,6 @@ const MIN_CHUNK_SIZE_FOR_PARALLELIZATION: usize = 2048;
 // minimum size at which to parallelize.
 #[cfg(feature = "parallel")]
 const LOG_ROOTS_OF_UNITY_PARALLEL_SIZE: u32 = 7;
-
-// Maximum stride allowed for the root vector, before re-cache aligning it.
-// This won't cache align if we've reached the ROOT_STOP_RESIZING threshold.
-// TODO: Better understand how this should be optimized
-// (according to cache lines, and hardware prefetchers)
-const MAX_ROOT_STRIDE: usize = 1;
-
-// Once the size of the cache aligned roots is below this number, stop re-aligning it.
-// TODO: Figure out how we can make this depend on field size & system cache size.
-#[cfg(not(feature = "parallel"))]
-const ROOT_STOP_RESIZING: usize = 1 << 12;
-
-// Once the size of the cache aligned roots is below this number, stop re-aligning it.
-// TODO: Figure out how we can make this depend on field size & system cache size.
-#[cfg(feature = "parallel")]
-const ROOT_STOP_RESIZING: usize = 1 << 10;
 
 #[inline]
 fn bitrev(a: u64, log_len: u32) -> u64 {
