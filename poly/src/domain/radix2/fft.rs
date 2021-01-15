@@ -150,9 +150,16 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
             let chunk_size = 2 * gap;
             #[cfg(feature = "parallel")]
             {
-                cache_aligned_roots = (0..(root_len / root_stride)).into_par_iter()
+                if root_len > MIN_CHUNK_SIZE_FOR_PARALLELIZATION {
+                    cache_aligned_roots = (0..(root_len / root_stride)).into_par_iter()
                     .map(|i| cache_aligned_roots[i * root_stride])
                     .collect();
+                }
+                else {
+                    for i in 1..(root_len / root_stride) {
+                        cache_aligned_roots[i] = cache_aligned_roots[i * root_stride];
+                    }
+                }
             }
             #[cfg(not(feature = "parallel"))]
             {
