@@ -161,6 +161,7 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
                         cache_aligned_roots[i] = cache_aligned_roots[i * root_stride];
                     }
                 }
+                root_len /= root_stride;
                 root_stride = 1;
             }
 
@@ -186,7 +187,6 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
             });
             gap /= 2;
             root_stride *= 2;
-            root_len /= 2;
         }
     }
 
