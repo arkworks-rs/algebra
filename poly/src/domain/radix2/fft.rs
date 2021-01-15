@@ -141,13 +141,14 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
         // Take the roots of unity, and we will adjust this vector
         // as we do rounds of the fft, in order to keep the roots cache aligned.
         let mut cache_aligned_roots = self.roots_of_unity(root);
+        let mut root_len = cache_aligned_roots.len();
         let mut root_stride = 1;
+        let mut has_started_resizing = false;
 
         let mut gap = xi.len() / 2;
         while gap > 0 {
             // each butterfly cluster uses 2*gap positions
             let chunk_size = 2 * gap;
-            let root_len = cache_aligned_roots.len();
             if root_stride > MAX_ROOT_STRIDE && root_len > ROOT_STOP_RESIZING {
                 #[cfg(feature = "parallel")]
                 {
@@ -157,11 +158,11 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
                 }
                 #[cfg(not(feature = "parallel"))]
                 {
-                    for i in 0..(root_len / root_stride) {
+                    for i in 1..(root_len / root_stride) {
                         cache_aligned_roots[i] = cache_aligned_roots[i * root_stride];
                     }
+                    root_stride = 1;
                 }
-                root_stride = 1;
             }
 
             let butterfly_fn = |(chunk_index, (lo, hi)): (usize, (&mut T, &mut T))| {
@@ -186,6 +187,7 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
             });
             gap /= 2;
             root_stride *= 2;
+            root_len /= 2;
         }
     }
 
@@ -236,7 +238,9 @@ const LOG_ROOTS_OF_UNITY_PARALLEL_SIZE: u32 = 7;
 // This won't cache align if we've reached the ROOT_STOP_RESIZING threshold.
 // TODO: Better understand how this should be optimized
 // (according to cache lines, and hardware prefetchers)
-const MAX_ROOT_STRIDE: usize = 2;
+// const MAX_ROOT_STRIDE: usize = 2;
+
+const ROOT_START_RESIZING: usize = 1 << 2;
 
 // Once the size of the cache aligned roots is below this number, stop re-aligning it.
 // TODO: Figure out how we can make this depend on field size & system cache size.
