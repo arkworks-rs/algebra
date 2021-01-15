@@ -160,8 +160,8 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
                     for i in 1..(root_len / root_stride) {
                         cache_aligned_roots[i] = cache_aligned_roots[i * root_stride];
                     }
-                    root_stride = 1;
                 }
+                root_stride = 1;
             }
 
             let butterfly_fn = |(chunk_index, (lo, hi)): (usize, (&mut T, &mut T))| {
