@@ -143,7 +143,6 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
         let mut cache_aligned_roots = self.roots_of_unity(root);
         let mut root_len = cache_aligned_roots.len();
         let mut root_stride = 1;
-        let mut has_started_resizing = false;
 
         let mut gap = xi.len() / 2;
         while gap > 0 {
@@ -238,9 +237,7 @@ const LOG_ROOTS_OF_UNITY_PARALLEL_SIZE: u32 = 7;
 // This won't cache align if we've reached the ROOT_STOP_RESIZING threshold.
 // TODO: Better understand how this should be optimized
 // (according to cache lines, and hardware prefetchers)
-// const MAX_ROOT_STRIDE: usize = 2;
-
-const ROOT_START_RESIZING: usize = 1 << 2;
+const MAX_ROOT_STRIDE: usize = 2;
 
 // Once the size of the cache aligned roots is below this number, stop re-aligning it.
 // TODO: Figure out how we can make this depend on field size & system cache size.
@@ -250,7 +247,7 @@ const ROOT_STOP_RESIZING: usize = 1 << 12;
 // Once the size of the cache aligned roots is below this number, stop re-aligning it.
 // TODO: Figure out how we can make this depend on field size & system cache size.
 #[cfg(feature = "parallel")]
-const ROOT_STOP_RESIZING: usize = 1 << 15;
+const ROOT_STOP_RESIZING: usize = 1 << 10;
 
 #[inline]
 fn bitrev(a: u64, log_len: u32) -> u64 {
