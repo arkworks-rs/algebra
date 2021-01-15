@@ -170,7 +170,7 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
                 *lo += *hi;
 
                 *hi = neg;
-                *hi *= cache_aligned_roots[root_stride * chunk_index];
+                *hi *= cache_aligned_roots[chunk_index];
             };
 
             ark_std::cfg_chunks_mut!(xi, chunk_size).for_each(|cxi| {
@@ -237,7 +237,7 @@ const LOG_ROOTS_OF_UNITY_PARALLEL_SIZE: u32 = 7;
 // This won't cache align if we've reached the ROOT_STOP_RESIZING threshold.
 // TODO: Better understand how this should be optimized
 // (according to cache lines, and hardware prefetchers)
-const MAX_ROOT_STRIDE: usize = 2;
+const MAX_ROOT_STRIDE: usize = 1;
 
 // Once the size of the cache aligned roots is below this number, stop re-aligning it.
 // TODO: Figure out how we can make this depend on field size & system cache size.
