@@ -1,29 +1,37 @@
-use ark_std::{
-    cmp::{Ord, Ordering, PartialOrd},
-    fmt::{Display, Formatter, Result as FmtResult},
-    io::{Read, Result as IoResult, Write},
-    marker::PhantomData,
-    ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign},
-    str::FromStr,
-};
-use num_traits::{One, Zero};
+#[macro_export]
+macro_rules! match_const {
+    ($macro_name:ident, $N:expr, $($args:tt)*) => {
+        match $N {
+            1 => $macro_name!(1, $($args)*),
+            2 => $macro_name!(2, $($args)*),
+            3 => $macro_name!(3, $($args)*),
+            4 => $macro_name!(4, $($args)*),
+            5 => $macro_name(5, $($args)*),
+            6 => $macro_name(6, $($args)*),
+            7 => $macro_name(7, $($args)*),
+            8 => $macro_name(8, $($args)*),
+            9 => $macro_name(9, $($args)*),
+            10 => $macro_name(10, $($args)*),
+            11 => $macro_name(11, $($args)*),
+            12 => $macro_name(12, $($args)*),
+            13 => $macro_name(13, $($args)*),
+            14 => $macro_name(14, $($args)*),
+            15 => $macro_name(15, $($args)*),
+            16 => $macro_name(16, $($args)*),
+            _ => $macro_name!($N, $($args)*),
+        }
+    };
+}
 
-use crate::{
-    biginteger::{
-        arithmetic as fa, BigInteger as _BigInteger, BigInteger256, BigInteger320, BigInteger384,
-        BigInteger64, BigInteger768, BigInteger832,
-    },
-    bytes::{FromBytes, ToBytes},
-    fields::{FftField, Field, FpParameters, LegendreSymbol, PrimeField, SquareRootField},
-};
-use ark_serialize::*;
+pub mod fp;
+pub use self::fp::*;
 
-impl_Fp!(Fp64, Fp64Parameters, BigInteger64, BigInteger64, 1);
-impl_Fp!(Fp256, Fp256Parameters, BigInteger256, BigInteger256, 4);
-impl_Fp!(Fp320, Fp320Parameters, BigInteger320, BigInteger320, 5);
-impl_Fp!(Fp384, Fp384Parameters, BigInteger384, BigInteger384, 6);
-impl_Fp!(Fp768, Fp768Parameters, BigInteger768, BigInteger768, 12);
-impl_Fp!(Fp832, Fp832Parameters, BigInteger832, BigInteger832, 13);
+pub type Fp64<P> = Fp<P, 1>;
+pub type Fp256<P> = Fp<P, 4>;
+pub type Fp320<P> = Fp<P, 5>;
+pub type Fp384<P> = Fp<P, 6>;
+pub type Fp768<P> = Fp<P, 12>;
+pub type Fp832<P> = Fp<P, 13>;
 
 pub mod fp2;
 pub use self::fp2::*;

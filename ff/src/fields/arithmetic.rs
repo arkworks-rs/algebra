@@ -58,10 +58,10 @@ macro_rules! impl_field_mul_assign {
 }
 
 macro_rules! impl_field_into_repr {
-    ($limbs:expr, $BigIntegerType:ty) => {
+    ($limbs:expr) => {
         #[inline]
-        #[ark_ff_asm::unroll_for_loops]
-        fn into_repr(&self) -> $BigIntegerType {
+        // #[ark_ff_asm::unroll_for_loops]
+        fn into_repr(&self) -> BigInt<$limbs> {
             let mut tmp = self.0;
             let mut r = tmp.0;
             // Montgomery Reduction
@@ -85,7 +85,7 @@ macro_rules! impl_field_into_repr {
 macro_rules! impl_field_square_in_place {
     ($limbs: expr) => {
         #[inline]
-        #[ark_ff_asm::unroll_for_loops]
+        // #[ark_ff_asm::unroll_for_loops]
         #[allow(unused_braces, clippy::absurd_extreme_comparisons)]
         fn square_in_place(&mut self) -> &mut Self {
             if $limbs == 1 {
@@ -110,7 +110,7 @@ macro_rules! impl_field_square_in_place {
                     return self;
                 }
             }
-            let mut r = [0u64; $limbs * 2];
+            let mut r = [[0u64; $limbs]; 2].concat();
 
             let mut carry = 0;
             for i in 0..$limbs {
@@ -170,76 +170,11 @@ macro_rules! impl_field_square_in_place {
     };
 }
 
-macro_rules! impl_field_bigint_conv {
-    ($field: ident, $bigint: ident, $params: ident) => {
-        impl<P: $params> Into<$bigint> for $field<P> {
-            fn into(self) -> $bigint {
-                self.into_repr()
-            }
-        }
-
-        impl<P: $params> From<$bigint> for $field<P> {
-            /// Converts `Self::BigInteger` into `Self`
-            ///
-            /// # Panics
-            /// This method panics if `int` is larger than `P::MODULUS`.
-            fn from(int: $bigint) -> Self {
-                Self::from_repr(int).unwrap()
-            }
-        }
-    };
-}
-
-macro_rules! impl_prime_field_standard_sample {
-    ($field: ident, $params: ident) => {
-        impl<P: $params> rand::distributions::Distribution<$field<P>>
-            for rand::distributions::Standard
-        {
-            #[inline]
-            fn sample<R: rand::Rng + ?Sized>(&self, rng: &mut R) -> $field<P> {
-                loop {
-                    let mut tmp = $field(rng.sample(rand::distributions::Standard), PhantomData);
-                    // Mask away the unused bits at the beginning.
-                    tmp.0
-                        .as_mut()
-                        .last_mut()
-                        .map(|val| *val &= core::u64::MAX >> P::REPR_SHAVE_BITS);
-
-                    if tmp.is_valid() {
-                        return tmp;
-                    }
-                }
-            }
-        }
-    };
-}
-
 macro_rules! impl_prime_field_from_int {
-    ($field: ident, u128, $params: ident, $limbs:expr) => {
-        impl<P: $params> From<u128> for $field<P> {
-            fn from(other: u128) -> Self {
-                let mut default_int = P::BigInt::default();
-                if $limbs == 1 {
-                    default_int.0[0] = (other % u128::from(P::MODULUS.0[0])) as u64;
-                } else {
-                    let upper = (other >> 64) as u64;
-                    let lower = ((other << 64) >> 64) as u64;
-                    // This is equivalent to the following, but satisfying the compiler:
-                    // default_int.0[0] = lower;
-                    // default_int.0[1] = upper;
-                    let limbs = [lower, upper];
-                    for (cur, other) in default_int.0.iter_mut().zip(&limbs) {
-                        *cur = *other;
-                    }
-                }
-                Self::from_repr(default_int).unwrap()
-            }
-        }
-    };
-    ($field: ident, $int: ident, $params: ident, $limbs:expr) => {
-        impl<P: $params> From<$int> for $field<P> {
+    ($int: ident) => {
+        impl<P: FpParams<N>, const N: usize> From<$int> for Fp<P, N> {
             fn from(other: $int) -> Self {
-                if $limbs == 1 {
+                if N == 1 {
                     Self::from_repr(P::BigInt::from(u64::from(other) % P::MODULUS.0[0])).unwrap()
                 } else {
                     Self::from_repr(P::BigInt::from(u64::from(other))).unwrap()

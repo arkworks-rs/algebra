@@ -9,23 +9,25 @@ pub(crate) use fr::*;
 pub(crate) mod fr {
     /// Copy of BLS12-381's Fr
     use crate::{
-        biginteger::BigInteger256 as BigInteger,
-        fields::{FftParameters, Fp256, Fp256Parameters, FpParameters},
+        biginteger::BigInt,
+        fields::{FftParameters, Fp256, FpParameters, FpParams},
     };
+
+    type BigInteger = BigInt<4>;
 
     #[allow(unused)]
     pub type Fr = Fp256<FrParameters>;
 
     pub struct FrParameters;
 
-    impl Fp256Parameters for FrParameters {}
+    impl FpParams<4> for FrParameters {}
     impl FftParameters for FrParameters {
-        type BigInt = BigInteger;
+        type BigInt = BigInt<4>;
 
         const TWO_ADICITY: u32 = 32;
 
         #[rustfmt::skip]
-        const TWO_ADIC_ROOT_OF_UNITY: BigInteger = BigInteger([
+        const TWO_ADIC_ROOT_OF_UNITY: BigInteger = BigInt::<4>([
             0xb9b58d8c5f0e466a,
             0x5b1b4c801819d7ec,
             0xaf53ae352a31e64,
@@ -35,7 +37,7 @@ pub(crate) mod fr {
     impl FpParameters for FrParameters {
         /// MODULUS = 52435875175126190479447740508185965837690552500527637822603658699938581184513
         #[rustfmt::skip]
-        const MODULUS: BigInteger = BigInteger([
+        const MODULUS: BigInteger =  BigInt::<4>([
             0xffffffff00000001,
             0x53bda402fffe5bfe,
             0x3339d80809a1d805,
@@ -50,7 +52,7 @@ pub(crate) mod fr {
 
         /// R = 10920338887063814464675503992315976177888879664585288394250266608035967270910
         #[rustfmt::skip]
-        const R: BigInteger = BigInteger([
+        const R: BigInteger =  BigInt::<4>([
             0x1fffffffe,
             0x5884b7fa00034802,
             0x998c4fefecbc4ff5,
@@ -58,7 +60,7 @@ pub(crate) mod fr {
         ]);
 
         #[rustfmt::skip]
-        const R2: BigInteger = BigInteger([
+        const R2: BigInteger =  BigInt::<4>([
             0xc999e990f3f29c6d,
             0x2b6cedcb87925c23,
             0x5d314967254398f,
@@ -71,7 +73,7 @@ pub(crate) mod fr {
         /// Encoded in Montgomery form, so the value here is
         /// 7 * R % q = 24006497034320510773280787438025867407531605151569380937148207556313189711857
         #[rustfmt::skip]
-        const GENERATOR: BigInteger = BigInteger([
+        const GENERATOR: BigInteger =  BigInt::<4>([
             0xefffffff1,
             0x17e363d300189c0f,
             0xff9c57876f8457b0,
@@ -79,7 +81,7 @@ pub(crate) mod fr {
         ]);
 
         #[rustfmt::skip]
-        const MODULUS_MINUS_ONE_DIV_TWO: BigInteger = BigInteger([
+        const MODULUS_MINUS_ONE_DIV_TWO: BigInteger =  BigInt::<4>([
             0x7fffffff80000000,
             0xa9ded2017fff2dff,
             0x199cec0404d0ec02,
@@ -92,7 +94,7 @@ pub(crate) mod fr {
         // T = (MODULUS - 1) / 2^S =
         // 12208678567578594777604504606729831043093128246378069236549469339647
         #[rustfmt::skip]
-        const T: BigInteger = BigInteger([
+        const T: BigInteger =  BigInt::<4>([
             0xfffe5bfeffffffff,
             0x9a1d80553bda402,
             0x299d7d483339d808,
@@ -102,7 +104,7 @@ pub(crate) mod fr {
         // (T - 1) / 2 =
         // 6104339283789297388802252303364915521546564123189034618274734669823
         #[rustfmt::skip]
-        const T_MINUS_ONE_DIV_TWO: BigInteger = BigInteger([
+        const T_MINUS_ONE_DIV_TWO: BigInteger =  BigInt::<4>([
             0x7fff2dff7fffffff,
             0x4d0ec02a9ded201,
             0x94cebea4199cec04,
@@ -114,22 +116,25 @@ pub(crate) mod fr {
 pub(crate) mod fq {
     /// Copy of BLS12-377's Fq
     use crate::{
-        biginteger::BigInteger384 as BigInteger,
-        fields::{FftParameters, Fp384, Fp384Parameters, FpParameters},
+        biginteger::BigInt,
+        fields::{FftParameters, Fp384, FpParameters, FpParams},
     };
 
     pub type Fq = Fp384<FqParameters>;
 
+    type BigInteger = BigInt<6>;
+
     pub struct FqParameters;
 
-    impl Fp384Parameters for FqParameters {}
+    impl FpParams<6> for FqParameters {}
+
     impl FftParameters for FqParameters {
         type BigInt = BigInteger;
 
         const TWO_ADICITY: u32 = 46u32;
 
         #[rustfmt::skip]
-        const TWO_ADIC_ROOT_OF_UNITY: BigInteger = BigInteger([
+        const TWO_ADIC_ROOT_OF_UNITY: BigInteger =  BigInt::<6>([
             2022196864061697551u64,
             17419102863309525423u64,
             8564289679875062096u64,
@@ -141,7 +146,7 @@ pub(crate) mod fq {
     impl FpParameters for FqParameters {
         /// MODULUS = 258664426012969094010652733694893533536393512754914660539884262666720468348340822774968888139573360124440321458177
         #[rustfmt::skip]
-        const MODULUS: BigInteger = BigInteger([
+        const MODULUS: BigInteger =  BigInt::<6>([
             0x8508c00000000001,
             0x170b5d4430000000,
             0x1ef3622fba094800,
@@ -158,7 +163,7 @@ pub(crate) mod fq {
 
         /// R = 85013442423176922659824578519796707547925331718418265885885478904210582549405549618995257669764901891699128663912
         #[rustfmt::skip]
-        const R: BigInteger = BigInteger([
+        const R: BigInteger =  BigInt::<6>([
             202099033278250856u64,
             5854854902718660529u64,
             11492539364873682930u64,
@@ -168,7 +173,7 @@ pub(crate) mod fq {
         ]);
 
         #[rustfmt::skip]
-        const R2: BigInteger = BigInteger([
+        const R2: BigInteger =  BigInt::<6>([
             0xb786686c9400cd22,
             0x329fcaab00431b1,
             0x22a5f11162d6b46d,
@@ -183,7 +188,7 @@ pub(crate) mod fq {
         /// Encoded in Montgomery form, so the value here is
         /// (-5 * R) % q = 92261639910053574722182574790803529333160366917737991650341130812388023949653897454961487930322210790384999596794
         #[rustfmt::skip]
-        const GENERATOR: BigInteger = BigInteger([
+        const GENERATOR: BigInteger =  BigInt::<6>([
             0xfc0b8000000002fa,
             0x97d39cf6e000018b,
             0x2072420fbfa05044,
@@ -193,7 +198,7 @@ pub(crate) mod fq {
         ]);
 
         #[rustfmt::skip]
-        const MODULUS_MINUS_ONE_DIV_TWO: BigInteger = BigInteger([
+        const MODULUS_MINUS_ONE_DIV_TWO: BigInteger =  BigInt::<6>([
             0x4284600000000000,
             0xb85aea218000000,
             0x8f79b117dd04a400,
@@ -208,7 +213,7 @@ pub(crate) mod fq {
         // T = (MODULUS - 1) // 2^S =
         // 3675842578061421676390135839012792950148785745837396071634149488243117337281387659330802195819009059
         #[rustfmt::skip]
-        const T: BigInteger = BigInteger([
+        const T: BigInteger =  BigInt::<6>([
             0x7510c00000021423,
             0x88bee82520005c2d,
             0x67cc03d44e3c7bcd,
@@ -220,7 +225,7 @@ pub(crate) mod fq {
         // (T - 1) // 2 =
         // 1837921289030710838195067919506396475074392872918698035817074744121558668640693829665401097909504529
         #[rustfmt::skip]
-        const T_MINUS_ONE_DIV_TWO: BigInteger = BigInteger([
+        const T_MINUS_ONE_DIV_TWO: BigInteger =  BigInt::<6>([
             0xba88600000010a11,
             0xc45f741290002e16,
             0xb3e601ea271e3de6,
@@ -233,12 +238,12 @@ pub(crate) mod fq {
     #[allow(dead_code)]
     pub const FQ_ONE: Fq = Fq::new(FqParameters::R);
     #[allow(dead_code)]
-    pub const FQ_ZERO: Fq = Fq::new(BigInteger([0, 0, 0, 0, 0, 0]));
+    pub const FQ_ZERO: Fq = Fq::new(BigInt::<6>([0, 0, 0, 0, 0, 0]));
 
     #[test]
     fn test_const_from_repr() {
         use crate::fields::PrimeField;
-        let int = BigInteger([
+        let int = BigInt::<6>([
             9586122913090633730,
             4981570305181876224,
             14262076793150106624,
