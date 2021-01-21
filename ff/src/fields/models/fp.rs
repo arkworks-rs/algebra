@@ -775,8 +775,7 @@ impl<'a, P: FpParams<N>, const N: usize> Div<&'a Fp<P, N>> for Fp<P, N> {
         result
     }
 }
-impl_additive_ops_from_ref!(Fp, [P, FpParams, {N}], [N, usize, const]);
-impl_multiplicative_ops_from_ref!(Fp, [P, FpParams, {N}], [N, usize, const]);
+impl_ops_from_ref!(Fp, [P, FpParams<N>], [N, usize, const]);
 
 impl<'a, P: FpParams<N>, const N: usize> AddAssign<&'a Self> for Fp<P, N> {
     #[inline]

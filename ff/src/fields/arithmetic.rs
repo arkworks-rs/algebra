@@ -204,194 +204,119 @@ macro_rules! sqrt_impl {
     }};
 }
 
-// Implements AddAssign on Self by deferring to an implementation on &Self
-#[macro_export]
-macro_rules! impl_additive_ops_from_ref {
-    ($type: ident, $([$type_params:ident, $bounds:ident$(, $keyword:ident)?$(, {$const:ident})?]),*) => {
-        #[allow(unused_qualifications)]
-        impl<$($($keyword)? $type_params: $bounds$(<$const>)?),*> core::ops::Add<Self> for $type<$($type_params),*> {
-            type Output = Self;
-
-            #[inline]
-            fn add(self, other: Self) -> Self {
-                let mut result = self;
-                result.add_assign(&other);
-                result
-            }
+macro_rules! result_body {
+    ($name:ident, $self:ident, $other:ident, $($deref:tt)?) => {
+        paste::paste! {
+            let mut result = $self;
+            result.[<$name _assign>](&$($deref)?$other);
+            result
         }
-
-        #[allow(unused_qualifications)]
-        impl<'a, $($($keyword)? $type_params: $bounds$(<$const>)?),*> core::ops::Add<&'a mut Self> for $type<$($type_params),*> {
-            type Output = Self;
-
-            #[inline]
-            fn add(self, other: &'a mut Self) -> Self {
-                let mut result = self;
-                result.add_assign(&*other);
-                result
-            }
-        }
-
-        #[allow(unused_qualifications)]
-        impl<$($($keyword)? $type_params: $bounds$(<$const>)?),*> core::ops::Sub<Self> for $type<$($type_params),*> {
-            type Output = Self;
-
-            #[inline]
-            fn sub(self, other: Self) -> Self {
-                let mut result = self;
-                result.sub_assign(&other);
-                result
-            }
-        }
-
-        #[allow(unused_qualifications)]
-        impl<'a, $($($keyword)? $type_params: $bounds$(<$const>)?),*> core::ops::Sub<&'a mut Self> for $type<$($type_params),*> {
-            type Output = Self;
-
-            #[inline]
-            fn sub(self, other: &'a mut Self) -> Self {
-                let mut result = self;
-                result.sub_assign(&*other);
-                result
-            }
-        }
-
-        #[allow(unused_qualifications)]
-        impl<$($($keyword)? $type_params: $bounds$(<$const>)?),*> core::iter::Sum<Self> for $type<$($type_params),*> {
-            fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
-                iter.fold(Self::zero(), core::ops::Add::add)
-            }
-        }
-
-        #[allow(unused_qualifications)]
-        impl<'a, $($($keyword)? $type_params: $bounds$(<$const>)?),*> core::iter::Sum<&'a Self> for $type<$($type_params),*> {
-            fn sum<I: Iterator<Item = &'a Self>>(iter: I) -> Self {
-                iter.fold(Self::zero(), core::ops::Add::add)
-            }
-        }
-
-        #[allow(unused_qualifications)]
-        impl<$($($keyword)? $type_params: $bounds$(<$const>)?),*> core::ops::AddAssign<Self> for $type<$($type_params),*> {
-            fn add_assign(&mut self, other: Self) {
-                self.add_assign(&other)
-            }
-        }
-
-        #[allow(unused_qualifications)]
-        impl<$($($keyword)? $type_params: $bounds$(<$const>)?),*> core::ops::SubAssign<Self> for $type<$($type_params),*> {
-            fn sub_assign(&mut self, other: Self) {
-                self.sub_assign(&other)
-            }
-        }
-
-        #[allow(unused_qualifications)]
-        impl<'a, $($($keyword)? $type_params: $bounds$(<$const>)?),*> core::ops::AddAssign<&'a mut Self> for $type<$($type_params),*> {
-            fn add_assign(&mut self, other: &'a mut Self) {
-                self.add_assign(&*other)
-            }
-        }
-
-        #[allow(unused_qualifications)]
-        impl<'a, $($($keyword)? $type_params: $bounds$(<$const>)?),*> core::ops::SubAssign<&'a mut Self> for $type<$($type_params),*> {
-            fn sub_assign(&mut self, other: &'a mut Self) {
-                self.sub_assign(&*other)
-            }
-        }
-    };
+    }
 }
 
-// Implements AddAssign on Self by deferring to an implementation on &Self
+macro_rules! assign_body {
+    ($name:ident, $self:ident, $other:ident, $($deref:tt)?) => {
+        paste::paste! {
+            $self.[<$name _assign>](&$($deref)?$other);
+        }
+    }
+}
+
 #[macro_export]
-macro_rules! impl_multiplicative_ops_from_ref {
-    ($type: ident, $([$type_params:ident, $bounds:ident$(, $keyword:ident)?$(, {$const:ident})?]),*) => {
-        #[allow(unused_qualifications)]
-        impl<$($($keyword)? $type_params: $bounds$(<$const>)?),*> core::ops::Mul<Self> for $type<$($type_params),*> {
-            type Output = Self;
+macro_rules! impl_ops_from_ref {
+    ($type: ident,
+        $([
+            $type_params:ident,
+            $bounds:ident$(<$($bound_params:tt),*>)?
+            $(, $keyword:ident)?
+        ]),*
+    ) => {
+        macro_rules! instantiate {
+            ($d:tt) => {
+                macro_rules! ops {
+                    (
+                        $name:ident,
+                        $body:ident
+                        $d(, {$d output:ident})?
+                        $d(, <$d lifetime:tt $d mut:tt $d deref:tt>)?
+                    ) => {
+                        paste::paste! {
+                            #[allow(unused_qualifications)]
+                            impl<
+                                $d($d lifetime, )?
+                                $(
+                                    $($keyword)?
+                                    $type_params:
+                                    $bounds$(<$($bound_params)*>)?
+                                ),*
+                            > [<$name:camel>]<$d(&$d lifetime )?$d($d mut )?Self> for $type<$($type_params),*>
+                            {
+                                $d(type $d output = Self;)?
 
-            #[inline]
-            fn mul(self, other: Self) -> Self {
-                let mut result = self;
-                result.mul_assign(&other);
-                result
+                                #[inline]
+                                fn $name(self, other: Self) -> Self {
+                                    $body!($name, self, other, $d($d deref)?);
+                                }
+                            }
+                        }
+                    }
+                }
+
+                macro_rules! iter {
+                    (
+                        $name:ident,
+                        $ident:ident,
+                        $op:ident
+                        $d(, <$d lifetime:tt>)?
+                    ) => {
+                        paste::paste! {
+                            #[allow(unused_qualifications)]
+                            impl<
+                                $d($d lifetime, )?
+                                $(
+                                    $($keyword)?
+                                    $type_params:
+                                    $bounds$(<$($bound_params)*>)?
+                                ),*
+                            > [<$name:camel>]<$d(&$d lifetime )?Self> for $type<$($type_params),*>
+                            {
+                                fn $name<I: Iterator<Item = $d(&$d lifetime )?Self>>(iter: I) -> Self {
+                                    iter.fold(Self::$ident(), [<$op:camel>]::$op)
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
 
-        #[allow(unused_qualifications)]
-        impl<$($($keyword)? $type_params: $bounds$(<$const>)?),*> core::ops::Div<Self> for $type<$($type_params),*> {
-            type Output = Self;
+        instantiate!($);
 
-            #[inline]
-            fn div(self, other: Self) -> Self {
-                let mut result = self;
-                result.div_assign(&other);
-                result
-            }
-        }
+        ops!(add, result_body, {Output});
+        ops!(add, result_body, {Output}, <'a mut *>);
+        ops!(sub, result_body, {Output});
+        ops!(sub, result_body, {Output}, <'a mut *>);
 
-        #[allow(unused_qualifications)]
-        impl<'a, $($($keyword)? $type_params: $bounds$(<$const>)?),*> core::ops::Mul<&'a mut Self> for $type<$($type_params),*> {
-            type Output = Self;
+        ops!(mul, result_body, {Output});
+        ops!(mul, result_body, {Output}, <'a mut *>);
+        ops!(div, result_body, {Output});
+        ops!(div, result_body, {Output}, <'a mut *>);
 
-            #[inline]
-            fn mul(self, other: &'a mut Self) -> Self {
-                let mut result = self;
-                result.mul_assign(&*other);
-                result
-            }
-        }
+        ops!(add_assign, assign_body);
+        ops!(add_assign, assign_body, <'a mut *>);
+        ops!(sub_assign, assign_body);
+        ops!(sub_assign, assign_body, <'a mut *>);
 
-        #[allow(unused_qualifications)]
-        impl<'a, $($($keyword)? $type_params: $bounds$(<$const>)?),*> core::ops::Div<&'a mut Self> for $type<$($type_params),*> {
-            type Output = Self;
+        ops!(mul_assign, assign_body);
+        ops!(mul_assign, assign_body, <'a mut *>);
+        ops!(div_assign, assign_body);
+        ops!(div_assign, assign_body, <'a mut *>);
 
-            #[inline]
-            fn div(self, other: &'a mut Self) -> Self {
-                let mut result = self;
-                result.div_assign(&*other);
-                result
-            }
-        }
+        use core::iter::{Sum, Product};
 
-        #[allow(unused_qualifications)]
-        impl<$($($keyword)? $type_params: $bounds$(<$const>)?),*> core::iter::Product<Self> for $type<$($type_params),*> {
-            fn product<I: Iterator<Item = Self>>(iter: I) -> Self {
-                iter.fold(Self::one(), core::ops::Mul::mul)
-            }
-        }
-
-        #[allow(unused_qualifications)]
-        impl<'a, $($($keyword)? $type_params: $bounds$(<$const>)?),*> core::iter::Product<&'a Self> for $type<$($type_params),*> {
-            fn product<I: Iterator<Item = &'a Self>>(iter: I) -> Self {
-                iter.fold(Self::one(), Mul::mul)
-            }
-        }
-
-        #[allow(unused_qualifications)]
-        impl<$($($keyword)? $type_params: $bounds$(<$const>)?),*> core::ops::MulAssign<Self> for $type<$($type_params),*> {
-            fn mul_assign(&mut self, other: Self) {
-                self.mul_assign(&other)
-            }
-        }
-
-        #[allow(unused_qualifications)]
-        impl<'a, $($($keyword)? $type_params: $bounds$(<$const>)?),*> core::ops::DivAssign<&'a mut Self> for $type<$($type_params),*> {
-            fn div_assign(&mut self, other: &'a mut Self) {
-                self.div_assign(&*other)
-            }
-        }
-
-        #[allow(unused_qualifications)]
-        impl<'a, $($($keyword)? $type_params: $bounds$(<$const>)?),*> core::ops::MulAssign<&'a mut Self> for $type<$($type_params),*> {
-            fn mul_assign(&mut self, other: &'a mut Self) {
-                self.mul_assign(&*other)
-            }
-        }
-
-        #[allow(unused_qualifications)]
-        impl<$($($keyword)? $type_params: $bounds$(<$const>)?),*> core::ops::DivAssign<Self> for $type<$($type_params),*> {
-            fn div_assign(&mut self, other: Self) {
-                self.div_assign(&other)
-            }
-        }
+        iter!(sum, zero, add);
+        iter!(sum, zero, add, <'a>);
+        iter!(product, one, mul);
+        iter!(product, one, mul, <'a>);
     };
 }
