@@ -209,16 +209,14 @@ macro_rules! result_body {
         paste::paste! {
             let mut result = $self;
             result.[<$name _assign>](&$($deref)?$other);
-            result
+            return result;
         }
     }
 }
 
 macro_rules! assign_body {
     ($name:ident, $self:ident, $other:ident, $($deref:tt)?) => {
-        paste::paste! {
-            $self.[<$name _assign>](&$($deref)?$other);
-        }
+        $self.$name(&$($deref)?$other)
     }
 }
 
@@ -237,7 +235,8 @@ macro_rules! impl_ops_from_ref {
                     (
                         $name:ident,
                         $body:ident
-                        $d(, {$d output:ident})?
+                        $d(, {$d output:ident $d ReturnType:ident})?
+                        $d(, [$d self_mut:tt])?
                         $d(, <$d lifetime:tt $d mut:tt $d deref:tt>)?
                     ) => {
                         paste::paste! {
@@ -249,15 +248,31 @@ macro_rules! impl_ops_from_ref {
                                     $type_params:
                                     $bounds$(<$($bound_params)*>)?
                                 ),*
-                            > [<$name:camel>]<$d(&$d lifetime )?$d($d mut )?Self> for $type<$($type_params),*>
+                            > [<$name:camel>]<$d(&$d lifetime $d mut )?Self> for $type<$($type_params),*>
                             {
                                 $d(type $d output = Self;)?
 
                                 #[inline]
-                                fn $name(self, other: Self) -> Self {
+                                fn $name(
+                                    $d(&$d self_mut)?self,
+                                    other: $d(&$d lifetime )?$d($d mut )?Self
+                                ) $d(-> $d ReturnType)? {
                                     $body!($name, self, other, $d($d deref)?);
                                 }
                             }
+                        }
+                    }
+                }
+
+                macro_rules! instantiate_ops {
+                    ($d($d op:ident),*) => {
+                        paste::paste! {
+                            $d(
+                                ops!($d op, result_body, {Output Self});
+                                ops!($d op, result_body, {Output Self}, <'a mut *>);
+                                ops!([<$d op _assign>], assign_body, [mut]);
+                                ops!([<$d op _assign>], assign_body, [mut], <'a mut *>);
+                            )*
                         }
                     }
                 }
@@ -291,26 +306,7 @@ macro_rules! impl_ops_from_ref {
         }
 
         instantiate!($);
-
-        ops!(add, result_body, {Output});
-        ops!(add, result_body, {Output}, <'a mut *>);
-        ops!(sub, result_body, {Output});
-        ops!(sub, result_body, {Output}, <'a mut *>);
-
-        ops!(mul, result_body, {Output});
-        ops!(mul, result_body, {Output}, <'a mut *>);
-        ops!(div, result_body, {Output});
-        ops!(div, result_body, {Output}, <'a mut *>);
-
-        ops!(add_assign, assign_body);
-        ops!(add_assign, assign_body, <'a mut *>);
-        ops!(sub_assign, assign_body);
-        ops!(sub_assign, assign_body, <'a mut *>);
-
-        ops!(mul_assign, assign_body);
-        ops!(mul_assign, assign_body, <'a mut *>);
-        ops!(div_assign, assign_body);
-        ops!(div_assign, assign_body, <'a mut *>);
+        instantiate_ops!(add, sub, mul, div);
 
         use core::iter::{Sum, Product};
 

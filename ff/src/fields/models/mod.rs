@@ -37,6 +37,13 @@ pub type Fp384<P> = Fp<P, 6>;
 pub type Fp768<P> = Fp<P, 12>;
 pub type Fp832<P> = Fp<P, 13>;
 
+pub type Fp64Parameters = dyn FpParams<1>;
+pub type Fp256Parameters = dyn FpParams<4>;
+pub type Fp320Parameters = dyn FpParams<5>;
+pub type Fp384Parameters = dyn FpParams<6>;
+pub type Fp768Parameters = dyn FpParams<12>;
+pub type Fp832Parameters = dyn FpParams<13>;
+
 pub mod fp2;
 pub use self::fp2::*;
 
