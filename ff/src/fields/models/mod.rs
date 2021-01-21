@@ -30,19 +30,26 @@ limb_instantiation!(1, 4, 5, 6, 12, 13);
 pub mod fp;
 pub use self::fp::*;
 
-pub type Fp64<P> = Fp<P, 1>;
-pub type Fp256<P> = Fp<P, 4>;
-pub type Fp320<P> = Fp<P, 5>;
-pub type Fp384<P> = Fp<P, 6>;
-pub type Fp768<P> = Fp<P, 12>;
-pub type Fp832<P> = Fp<P, 13>;
+macro_rules! impl_fp_types {
+    ($({$limbs:expr, $bits:expr}),*) => {
+        paste::paste! {
+            $(
+                pub type [<Fp $bits>]<P> = Fp<P, $limbs>;
+                pub trait [<Fp $bits Parameters>] {}
+                impl<T> FpParams<$limbs> for T where T: [<Fp $bits Parameters>] + FpParameters<BigInt = BigInt<$limbs>> {}
+            )*
+        }
+    }
+}
 
-pub type Fp64Parameters = dyn FpParams<1>;
-pub type Fp256Parameters = dyn FpParams<4>;
-pub type Fp320Parameters = dyn FpParams<5>;
-pub type Fp384Parameters = dyn FpParams<6>;
-pub type Fp768Parameters = dyn FpParams<12>;
-pub type Fp832Parameters = dyn FpParams<13>;
+impl_fp_types!(
+    {1, 64},
+    {4, 256},
+    {5, 320},
+    {6, 384},
+    {12, 768},
+    {13, 832}
+);
 
 pub mod fp2;
 pub use self::fp2::*;
@@ -66,3 +73,4 @@ pub use quadratic_extension::*;
 
 pub mod cubic_extension;
 pub use cubic_extension::*;
+use crate::{BigInt, FpParameters};

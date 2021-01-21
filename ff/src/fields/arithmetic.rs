@@ -204,115 +204,122 @@ macro_rules! sqrt_impl {
     }};
 }
 
-macro_rules! result_body {
-    ($name:ident, $self:ident, $other:ident, $($deref:tt)?) => {
-        paste::paste! {
-            let mut result = $self;
-            result.[<$name _assign>](&$($deref)?$other);
-            return result;
-        }
-    }
-}
-
-macro_rules! assign_body {
-    ($name:ident, $self:ident, $other:ident, $($deref:tt)?) => {
-        $self.$name(&$($deref)?$other)
-    }
-}
-
 #[macro_export]
 macro_rules! impl_ops_from_ref {
-    ($type: ident,
+    (
+        $mod_name:ident,
+        {<$($ops:ident),*>, $([$($iter_args:tt),*]),*}
+        $type: ident,
         $([
             $type_params:ident,
             $bounds:ident$(<$($bound_params:tt),*>)?
             $(, $keyword:ident)?
         ]),*
     ) => {
-        macro_rules! instantiate {
-            ($d:tt) => {
-                macro_rules! ops {
-                    (
-                        $name:ident,
-                        $body:ident
-                        $d(, {$d output:ident $d ReturnType:ident})?
-                        $d(, [$d self_mut:tt])?
-                        $d(, <$d lifetime:tt $d mut:tt $d deref:tt>)?
-                    ) => {
-                        paste::paste! {
-                            #[allow(unused_qualifications)]
-                            impl<
-                                $d($d lifetime, )?
-                                $(
-                                    $($keyword)?
-                                    $type_params:
-                                    $bounds$(<$($bound_params)*>)?
-                                ),*
-                            > [<$name:camel>]<$d(&$d lifetime $d mut )?Self> for $type<$($type_params),*>
-                            {
-                                $d(type $d output = Self;)?
+        mod $mod_name {
+            use super::*;
+            macro_rules! instantiate {
+                ($d:tt) => {
+                    macro_rules! result_body {
+                        ($name:ident, $self:ident, $other:ident, $d ($d deref:tt)?) => {
+                            paste::paste! {
+                                let mut result = $self;
+                                result.[<$name:snake _assign>](&$d($d deref)?$other);
+                                return result;
+                            }
+                        }
+                    }
 
-                                #[inline]
-                                fn $name(
-                                    $d(&$d self_mut)?self,
-                                    other: $d(&$d lifetime )?$d($d mut )?Self
-                                ) $d(-> $d ReturnType)? {
-                                    $body!($name, self, other, $d($d deref)?);
+                    macro_rules! assign_body {
+                        ($name:ident, $self:ident, $other:ident, $d ($d deref:tt)?) => {
+                            $self.$name(&$d($d deref)?$other)
+                        }
+                    }
+
+                    macro_rules! ops {
+                        (
+                            $name:ident,
+                            $body:ident
+                            $d(, {$d output:ident $d ReturnType:ident})?
+                            $d(, [$d self_mut:tt])?
+                            $d(, <$d lifetime:tt $d mut:tt $d deref:tt>)?
+                        ) => {
+                            paste::paste! {
+                                #[allow(unused_qualifications)]
+                                impl<
+                                    $d($d lifetime, )?
+                                    $(
+                                        $($keyword)?
+                                        $type_params:
+                                        $bounds$(<$($bound_params)*>)?
+                                    ),*
+                                > [<$name:camel>]<$d(&$d lifetime $d mut )?Self> for $type<$($type_params),*>
+                                {
+                                    $d(type $d output = Self;)?
+
+                                    #[inline]
+                                    fn $name(
+                                        $d(&$d self_mut)?self,
+                                        other: $d(&$d lifetime )?$d($d mut )?Self
+                                    ) $d(-> $d ReturnType)? {
+                                        $body!($name, self, other, $d($d deref)?);
+                                    }
                                 }
                             }
                         }
                     }
-                }
 
-                macro_rules! instantiate_ops {
-                    ($d($d op:ident),*) => {
-                        paste::paste! {
-                            $d(
-                                ops!($d op, result_body, {Output Self});
-                                ops!($d op, result_body, {Output Self}, <'a mut *>);
-                                ops!([<$d op _assign>], assign_body, [mut]);
-                                ops!([<$d op _assign>], assign_body, [mut], <'a mut *>);
-                            )*
+                    macro_rules! instantiate_ops {
+                        ($d($d op:ident),*) => {
+                            paste::paste! {
+                                $d(
+                                    ops!($d op, result_body, {Output Self});
+                                    ops!($d op, result_body, {Output Self}, <'a mut *>);
+                                    ops!([<$d op _assign>], assign_body, [mut]);
+                                    ops!([<$d op _assign>], assign_body, [mut], <'a mut *>);
+                                )*
+                            }
                         }
                     }
-                }
 
-                macro_rules! iter {
-                    (
-                        $name:ident,
-                        $ident:ident,
-                        $op:ident
-                        $d(, <$d lifetime:tt>)?
-                    ) => {
-                        paste::paste! {
-                            #[allow(unused_qualifications)]
-                            impl<
-                                $d($d lifetime, )?
-                                $(
-                                    $($keyword)?
-                                    $type_params:
-                                    $bounds$(<$($bound_params)*>)?
-                                ),*
-                            > [<$name:camel>]<$d(&$d lifetime )?Self> for $type<$($type_params),*>
-                            {
-                                fn $name<I: Iterator<Item = $d(&$d lifetime )?Self>>(iter: I) -> Self {
-                                    iter.fold(Self::$ident(), [<$op:camel>]::$op)
+                    macro_rules! iter {
+                        (
+                            $name:ident,
+                            $ident:ident,
+                            $op:ident
+                            $d(, <$d lifetime:tt>)?
+                        ) => {
+                            paste::paste! {
+                                #[allow(unused_qualifications)]
+                                impl<
+                                    $d($d lifetime, )?
+                                    $(
+                                        $($keyword)?
+                                        $type_params:
+                                        $bounds$(<$($bound_params)*>)?
+                                    ),*
+                                > core::iter::[<$name:camel>]<$d(&$d lifetime )?Self> for $type<$($type_params),*>
+                                {
+                                    fn $name<I: Iterator<Item = $d(&$d lifetime )?Self>>(iter: I) -> Self {
+                                        iter.fold(Self::$ident(), [<$op:camel>]::$op)
+                                    }
                                 }
                             }
                         }
                     }
                 }
             }
+            instantiate!($);
+            instantiate_ops!($($ops),*);
+            $(
+                iter!($($iter_args),*);
+                iter!($($iter_args),*, <'a>);
+            )*
         }
 
-        instantiate!($);
-        instantiate_ops!(add, sub, mul, div);
-
-        use core::iter::{Sum, Product};
-
-        iter!(sum, zero, add);
-        iter!(sum, zero, add, <'a>);
-        iter!(product, one, mul);
-        iter!(product, one, mul, <'a>);
+        pub use $mod_name::*;
+    };
+    ($($args:tt)*) => {
+        impl_ops_from_ref!(default_ops_mod, $($args)*);
     };
 }
