@@ -432,8 +432,8 @@ impl<'a, P: CubicExtParameters> Div<&'a CubicExtField<P>> for CubicExtField<P> {
     }
 }
 
-impl_additive_ops_from_ref!(CubicExtField, CubicExtParameters);
-impl_multiplicative_ops_from_ref!(CubicExtField, CubicExtParameters);
+impl_additive_ops_from_ref!(CubicExtField, [P, CubicExtParameters]);
+impl_multiplicative_ops_from_ref!(CubicExtField, [P, CubicExtParameters]);
 impl<'a, P: CubicExtParameters> AddAssign<&'a Self> for CubicExtField<P> {
     #[inline]
     fn add_assign(&mut self, other: &Self) {

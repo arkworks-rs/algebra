@@ -207,9 +207,9 @@ macro_rules! sqrt_impl {
 // Implements AddAssign on Self by deferring to an implementation on &Self
 #[macro_export]
 macro_rules! impl_additive_ops_from_ref {
-    ($type: ident, $params: ident) => {
+    ($type: ident, $([$type_params:ident, $bounds:ident$(, $keyword:ident)?$(, {$const:ident})?]),*) => {
         #[allow(unused_qualifications)]
-        impl<P: $params> core::ops::Add<Self> for $type<P> {
+        impl<$($($keyword)? $type_params: $bounds$(<$const>)?),*> core::ops::Add<Self> for $type<$($type_params),*> {
             type Output = Self;
 
             #[inline]
@@ -221,7 +221,7 @@ macro_rules! impl_additive_ops_from_ref {
         }
 
         #[allow(unused_qualifications)]
-        impl<'a, P: $params> core::ops::Add<&'a mut Self> for $type<P> {
+        impl<'a, $($($keyword)? $type_params: $bounds$(<$const>)?),*> core::ops::Add<&'a mut Self> for $type<$($type_params),*> {
             type Output = Self;
 
             #[inline]
@@ -233,7 +233,7 @@ macro_rules! impl_additive_ops_from_ref {
         }
 
         #[allow(unused_qualifications)]
-        impl<P: $params> core::ops::Sub<Self> for $type<P> {
+        impl<$($($keyword)? $type_params: $bounds$(<$const>)?),*> core::ops::Sub<Self> for $type<$($type_params),*> {
             type Output = Self;
 
             #[inline]
@@ -245,7 +245,7 @@ macro_rules! impl_additive_ops_from_ref {
         }
 
         #[allow(unused_qualifications)]
-        impl<'a, P: $params> core::ops::Sub<&'a mut Self> for $type<P> {
+        impl<'a, $($($keyword)? $type_params: $bounds$(<$const>)?),*> core::ops::Sub<&'a mut Self> for $type<$($type_params),*> {
             type Output = Self;
 
             #[inline]
@@ -257,42 +257,42 @@ macro_rules! impl_additive_ops_from_ref {
         }
 
         #[allow(unused_qualifications)]
-        impl<P: $params> core::iter::Sum<Self> for $type<P> {
+        impl<$($($keyword)? $type_params: $bounds$(<$const>)?),*> core::iter::Sum<Self> for $type<$($type_params),*> {
             fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
                 iter.fold(Self::zero(), core::ops::Add::add)
             }
         }
 
         #[allow(unused_qualifications)]
-        impl<'a, P: $params> core::iter::Sum<&'a Self> for $type<P> {
+        impl<'a, $($($keyword)? $type_params: $bounds$(<$const>)?),*> core::iter::Sum<&'a Self> for $type<$($type_params),*> {
             fn sum<I: Iterator<Item = &'a Self>>(iter: I) -> Self {
                 iter.fold(Self::zero(), core::ops::Add::add)
             }
         }
 
         #[allow(unused_qualifications)]
-        impl<P: $params> core::ops::AddAssign<Self> for $type<P> {
+        impl<$($($keyword)? $type_params: $bounds$(<$const>)?),*> core::ops::AddAssign<Self> for $type<$($type_params),*> {
             fn add_assign(&mut self, other: Self) {
                 self.add_assign(&other)
             }
         }
 
         #[allow(unused_qualifications)]
-        impl<P: $params> core::ops::SubAssign<Self> for $type<P> {
+        impl<$($($keyword)? $type_params: $bounds$(<$const>)?),*> core::ops::SubAssign<Self> for $type<$($type_params),*> {
             fn sub_assign(&mut self, other: Self) {
                 self.sub_assign(&other)
             }
         }
 
         #[allow(unused_qualifications)]
-        impl<'a, P: $params> core::ops::AddAssign<&'a mut Self> for $type<P> {
+        impl<'a, $($($keyword)? $type_params: $bounds$(<$const>)?),*> core::ops::AddAssign<&'a mut Self> for $type<$($type_params),*> {
             fn add_assign(&mut self, other: &'a mut Self) {
                 self.add_assign(&*other)
             }
         }
 
         #[allow(unused_qualifications)]
-        impl<'a, P: $params> core::ops::SubAssign<&'a mut Self> for $type<P> {
+        impl<'a, $($($keyword)? $type_params: $bounds$(<$const>)?),*> core::ops::SubAssign<&'a mut Self> for $type<$($type_params),*> {
             fn sub_assign(&mut self, other: &'a mut Self) {
                 self.sub_assign(&*other)
             }
@@ -303,9 +303,9 @@ macro_rules! impl_additive_ops_from_ref {
 // Implements AddAssign on Self by deferring to an implementation on &Self
 #[macro_export]
 macro_rules! impl_multiplicative_ops_from_ref {
-    ($type: ident, $params: ident) => {
+    ($type: ident, $([$type_params:ident, $bounds:ident$(, $keyword:ident)?$(, {$const:ident})?]),*) => {
         #[allow(unused_qualifications)]
-        impl<P: $params> core::ops::Mul<Self> for $type<P> {
+        impl<$($($keyword)? $type_params: $bounds$(<$const>)?),*> core::ops::Mul<Self> for $type<$($type_params),*> {
             type Output = Self;
 
             #[inline]
@@ -317,7 +317,7 @@ macro_rules! impl_multiplicative_ops_from_ref {
         }
 
         #[allow(unused_qualifications)]
-        impl<P: $params> core::ops::Div<Self> for $type<P> {
+        impl<$($($keyword)? $type_params: $bounds$(<$const>)?),*> core::ops::Div<Self> for $type<$($type_params),*> {
             type Output = Self;
 
             #[inline]
@@ -329,7 +329,7 @@ macro_rules! impl_multiplicative_ops_from_ref {
         }
 
         #[allow(unused_qualifications)]
-        impl<'a, P: $params> core::ops::Mul<&'a mut Self> for $type<P> {
+        impl<'a, $($($keyword)? $type_params: $bounds$(<$const>)?),*> core::ops::Mul<&'a mut Self> for $type<$($type_params),*> {
             type Output = Self;
 
             #[inline]
@@ -341,7 +341,7 @@ macro_rules! impl_multiplicative_ops_from_ref {
         }
 
         #[allow(unused_qualifications)]
-        impl<'a, P: $params> core::ops::Div<&'a mut Self> for $type<P> {
+        impl<'a, $($($keyword)? $type_params: $bounds$(<$const>)?),*> core::ops::Div<&'a mut Self> for $type<$($type_params),*> {
             type Output = Self;
 
             #[inline]
@@ -353,42 +353,42 @@ macro_rules! impl_multiplicative_ops_from_ref {
         }
 
         #[allow(unused_qualifications)]
-        impl<P: $params> core::iter::Product<Self> for $type<P> {
+        impl<$($($keyword)? $type_params: $bounds$(<$const>)?),*> core::iter::Product<Self> for $type<$($type_params),*> {
             fn product<I: Iterator<Item = Self>>(iter: I) -> Self {
                 iter.fold(Self::one(), core::ops::Mul::mul)
             }
         }
 
         #[allow(unused_qualifications)]
-        impl<'a, P: $params> core::iter::Product<&'a Self> for $type<P> {
+        impl<'a, $($($keyword)? $type_params: $bounds$(<$const>)?),*> core::iter::Product<&'a Self> for $type<$($type_params),*> {
             fn product<I: Iterator<Item = &'a Self>>(iter: I) -> Self {
                 iter.fold(Self::one(), Mul::mul)
             }
         }
 
         #[allow(unused_qualifications)]
-        impl<P: $params> core::ops::MulAssign<Self> for $type<P> {
+        impl<$($($keyword)? $type_params: $bounds$(<$const>)?),*> core::ops::MulAssign<Self> for $type<$($type_params),*> {
             fn mul_assign(&mut self, other: Self) {
                 self.mul_assign(&other)
             }
         }
 
         #[allow(unused_qualifications)]
-        impl<'a, P: $params> core::ops::DivAssign<&'a mut Self> for $type<P> {
+        impl<'a, $($($keyword)? $type_params: $bounds$(<$const>)?),*> core::ops::DivAssign<&'a mut Self> for $type<$($type_params),*> {
             fn div_assign(&mut self, other: &'a mut Self) {
                 self.div_assign(&*other)
             }
         }
 
         #[allow(unused_qualifications)]
-        impl<'a, P: $params> core::ops::MulAssign<&'a mut Self> for $type<P> {
+        impl<'a, $($($keyword)? $type_params: $bounds$(<$const>)?),*> core::ops::MulAssign<&'a mut Self> for $type<$($type_params),*> {
             fn mul_assign(&mut self, other: &'a mut Self) {
                 self.mul_assign(&*other)
             }
         }
 
         #[allow(unused_qualifications)]
-        impl<P: $params> core::ops::DivAssign<Self> for $type<P> {
+        impl<$($($keyword)? $type_params: $bounds$(<$const>)?),*> core::ops::DivAssign<Self> for $type<$($type_params),*> {
             fn div_assign(&mut self, other: Self) {
                 self.div_assign(&other)
             }
