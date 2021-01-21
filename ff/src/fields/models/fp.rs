@@ -15,7 +15,24 @@ use crate::{
 };
 use ark_serialize::*;
 
-pub trait FpParams<const N: usize>: FpParameters<BigInt = BigInt<N>> {}
+invoke_16!(impl_field_square_in_place);
+invoke_16!(impl_field_mul_assign);
+
+pub trait FpParams<const N: usize>: FpParameters<N, BigInt = BigInt<N>> {
+    // Checking the modulus at compile time
+    const NO_CARRY: bool = {
+        let first_bit_set = Self::MODULUS.0[N - 1] >> 63 != 0;
+        // $limbs can be 1, hence we can run into a case with an unused mut.
+        #[allow(unused_mut)]
+        let mut all_bits_set = Self::MODULUS.0[N - 1] == !0 - (1 << 63);
+        let mut i = 1;
+        while i < N {
+            all_bits_set &= Self::MODULUS.0[N - i - 1] == !0u64;
+            i += 1;
+        }
+        !(first_bit_set || all_bits_set)
+    };
+}
 
 #[derive(Derivative)]
 #[derivative(
@@ -70,7 +87,7 @@ impl<P, const N: usize> Fp<P, N> {
         modulus: BigInt<N>,
         inv: u64,
     ) -> Self {
-        let mut repr = BigInt::<N>([0; N]);
+        let mut repr = P::BigInt([0; N]);
         let mut i = 0;
         while i < limbs.len() {
             repr.0[i] = limbs[i];
@@ -319,7 +336,29 @@ impl<P: FpParams<N>, const N: usize> Field for Fp<P, N> {
         temp
     }
 
-    impl_field_square_in_place!(N);
+    #[inline]
+    #[ark_ff_asm::unroll_for_loops]
+    #[allow(unused_braces, clippy::absurd_extreme_comparisons)]
+    fn square_in_place(&mut self) -> &mut Self {
+        if N == 1 {
+            *self = *self * *self;
+            return self;
+        }
+        #[cfg(use_asm)]
+        #[allow(unsafe_code, unused_mut)]
+        {
+            if N <= 6 && P::NO_CARRY {
+                ark_ff_asm::x86_64_asm_square!($limbs, (self.0).0);
+                self.reduce();
+                return self;
+            }
+        }
+
+        let input = &mut (self.0).0;
+        match_const!(square_in_place, N, input);
+        self.reduce();
+        self
+    }
 
     #[inline]
     fn inverse(&self) -> Option<Self> {
@@ -611,7 +650,7 @@ impl<P: FpParams<N>, const N: usize> ToBytes for Fp<P, N> {
 impl<P: FpParams<N>, const N: usize> FromBytes for Fp<P, N> {
     #[inline]
     fn read<R: Read>(reader: R) -> IoResult<Self> {
-        BigInt::<N>::read(reader).and_then(|b| match Fp::<P, N>::from_repr(b) {
+        P::BigInt::read(reader).and_then(|b| match Fp::<P, N>::from_repr(b) {
             Some(f) => Ok(f),
             None => Err(crate::error("FromBytes::read failed")),
         })
@@ -932,7 +971,30 @@ impl<'a, P: FpParams<N>, const N: usize> SubAssign<&'a Self> for Fp<P, N> {
 }
 
 impl<'a, P: FpParams<N>, const N: usize> MulAssign<&'a Self> for Fp<P, N> {
-    impl_field_mul_assign!(N);
+    #[inline]
+    #[ark_ff_asm::unroll_for_loops]
+    fn mul_assign(&mut self, other: &Self) {
+        // No-carry optimisation applied to CIOS
+        if P::NO_CARRY {
+            #[cfg(use_asm)]
+            #[allow(unsafe_code, unused_mut)]
+            {
+                // Tentatively avoid using assembly for `$limbs == 1`.
+                if N <= 6 && N > 1 {
+                    ark_ff_asm::x86_64_asm_mul!($limbs, input, other);
+                    self.reduce();
+                    return;
+                }
+            }
+            let input = &mut (self.0).0;
+            let other_ = (other.0).0;
+            match_const!(mul_assign, N, input, other_);
+            self.reduce();
+        } else {
+            *self = self.mul_without_reduce(other, P::MODULUS, P::INV);
+            self.reduce();
+        }
+    }
 }
 
 impl<'a, P: FpParams<N>, const N: usize> DivAssign<&'a Self> for Fp<P, N> {

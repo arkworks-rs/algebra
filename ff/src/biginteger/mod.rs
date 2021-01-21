@@ -23,13 +23,13 @@ pub struct BigInt<const N: usize>(pub [u64; N]);
 
 impl<const N: usize> Default for BigInt<N> {
     fn default() -> Self {
-        BigInt::<N>([0u64; N])
+        Self([0u64; N])
     }
 }
 
 impl<const N: usize> BigInt<N> {
     pub const fn new(value: [u64; N]) -> Self {
-        BigInt::<N>(value)
+        Self(value)
     }
 }
 
