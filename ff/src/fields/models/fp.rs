@@ -17,6 +17,7 @@ use ark_serialize::*;
 
 invoke_n!(impl_field_square_in_place);
 invoke_n!(impl_field_mul_assign);
+invoke_n!(impl_field_into_repr);
 
 pub trait FpParams<const N: usize>: FpParameters<BigInt = BigInt<N>> {
     // Checking the modulus at compile time
@@ -449,7 +450,11 @@ impl<P: FpParams<N>, const N: usize> PrimeField for Fp<P, N> {
         }
     }
 
-    impl_field_into_repr!({ N });
+    fn into_repr(&self) -> Self::BigInt {
+        let input = (self.0).0;
+        let r = match_const!(into_repr, N, input);
+        r
+    }
 }
 
 impl<P: FpParams<N>, const N: usize> FftField for Fp<P, N> {

@@ -7,7 +7,7 @@
 macro_rules! impl_field_mul_assign {
     ($limbs:expr) => {
         paste::paste! {
-            #[inline]
+            #[inline(always)]
             #[ark_ff_asm::unroll_for_loops]
             fn [<mul_assign _id $limbs>]<P: FpParams<N>, const N: usize>(
                 input: &mut [u64; N],
@@ -35,25 +35,27 @@ macro_rules! impl_field_mul_assign {
 
 macro_rules! impl_field_into_repr {
     ($limbs:expr) => {
-        #[inline]
-        // #[ark_ff_asm::unroll_for_loops]
-        fn into_repr(&self) -> BigInt<$limbs> {
-            let mut tmp = self.0;
-            let mut r = tmp.0;
-            // Montgomery Reduction
-            for i in 0..$limbs {
-                let k = r[i].wrapping_mul(P::INV);
-                let mut carry = 0;
+        paste::paste! {
+            #[inline]
+            #[ark_ff_asm::unroll_for_loops]
+            fn [<into_repr _id $limbs>]<P: FpParams<N>, const N: usize>(
+                input: [u64; N]
+            ) -> BigInt<N> {
+                let mut r = input;
+                // Montgomery Reduction
+                for i in 0..$limbs {
+                    let k = r[i].wrapping_mul(P::INV);
+                    let mut carry = 0;
 
-                mac_with_carry!(r[i], k, P::MODULUS.0[0], &mut carry);
-                for j in 1..$limbs {
-                    r[(j + i) % $limbs] =
-                        mac_with_carry!(r[(j + i) % $limbs], k, P::MODULUS.0[j], &mut carry);
+                    mac_with_carry!(r[i], k, P::MODULUS.0[0], &mut carry);
+                    for j in 1..$limbs {
+                        r[(j + i) % $limbs] =
+                            mac_with_carry!(r[(j + i) % $limbs], k, P::MODULUS.0[j], &mut carry);
+                    }
+                    r[i % $limbs] = carry;
                 }
-                r[i % $limbs] = carry;
+                BigInt::<N>(r)
             }
-            tmp.0 = r;
-            tmp
         }
     };
 }

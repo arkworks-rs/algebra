@@ -8,7 +8,7 @@ macro_rules! limb_instantiation {
                             match $N {
                                 $($n_limbs => [<$fn_name _ id$n_limbs>]::<P, N>($d($d args),*),)*
                                 _ => unreachable!(),
-                            };
+                            }
                         }
                     };
                 }
