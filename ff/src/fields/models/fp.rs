@@ -15,10 +15,10 @@ use crate::{
 };
 use ark_serialize::*;
 
-invoke_16!(impl_field_square_in_place);
-invoke_16!(impl_field_mul_assign);
+invoke_n!(impl_field_square_in_place);
+invoke_n!(impl_field_mul_assign);
 
-pub trait FpParams<const N: usize>: FpParameters<N, BigInt = BigInt<N>> {
+pub trait FpParams<const N: usize>: FpParameters<BigInt = BigInt<N>> {
     // Checking the modulus at compile time
     const NO_CARRY: bool = {
         let first_bit_set = Self::MODULUS.0[N - 1] >> 63 != 0;
@@ -87,7 +87,7 @@ impl<P, const N: usize> Fp<P, N> {
         modulus: BigInt<N>,
         inv: u64,
     ) -> Self {
-        let mut repr = P::BigInt([0; N]);
+        let mut repr = BigInt::<N>([0; N]);
         let mut i = 0;
         while i < limbs.len() {
             repr.0[i] = limbs[i];
