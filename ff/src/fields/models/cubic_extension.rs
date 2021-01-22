@@ -432,10 +432,7 @@ impl<'a, P: CubicExtParameters> Div<&'a CubicExtField<P>> for CubicExtField<P> {
     }
 }
 
-impl_ops_from_ref!(
-    {<add, sub, mul, div>, [sum, zero, add], [product, one, mul]}
-    CubicExtField, [P, CubicExtParameters]
-);
+impl_ops_from_ref!(CubicExtField, [P, CubicExtParameters]);
 
 impl<'a, P: CubicExtParameters> AddAssign<&'a Self> for CubicExtField<P> {
     #[inline]
