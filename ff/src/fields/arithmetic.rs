@@ -59,6 +59,65 @@ macro_rules! impl_field_into_repr {
         }
     };
 }
+// macro_rules! impl_deserialize_flags {
+macro_rules! impl_serialize_flags {
+    ($limbs: expr) => {
+        paste::paste! {
+            #[inline(always)]
+            fn [<serialize _id $limbs>]<P: FpParams<N>, W: ark_std::io::Write, F: Flags, const N: usize>(
+                input: &Fp<P, N>,
+                mut writer: W,
+                flags: F,
+            ) -> Result<(), SerializationError> {
+                // Calculate the number of bytes required to represent a field element
+                // serialized with `flags`. If `F::BIT_SIZE < 8`,
+                // this is at most `$byte_size + 1`
+                let output_byte_size = buffer_byte_size(P::MODULUS_BITS as usize + F::BIT_SIZE);
+
+                // Write out `self` to a temporary buffer.
+                // The size of the buffer is $byte_size + 1 because `F::BIT_SIZE`
+                // is at most 8 bits.
+                let mut bytes = [0u8; $limbs * 8 + 1];
+                input.write(&mut bytes[..$limbs * 8])?;
+
+                // Mask out the bits of the last byte that correspond to the flag.
+                bytes[output_byte_size - 1] |= flags.u8_bitmask();
+
+                writer.write_all(&bytes[..output_byte_size])?;
+                Ok(())
+            }
+        }
+    }
+}
+
+// macro_rules! impl_deserialize_flags {
+macro_rules! impl_deserialize_flags {
+    ($limbs: expr) => {
+        paste::paste! {
+            fn [<deserialize _id $limbs>]<P: FpParams<N>, R: ark_std::io::Read, F: Flags, const N: usize>(
+                mut reader: R,
+            ) -> Result<(Fp<P, N>, F), SerializationError> {
+                // All reasonable `Flags` should be less than 8 bits in size
+                // (256 values are enough for anyone!)
+                if F::BIT_SIZE > 8 {
+                    return Err(SerializationError::NotEnoughSpace);
+                }
+                // Calculate the number of bytes required to represent a field element
+                // serialized with `flags`. If `F::BIT_SIZE < 8`,
+                // this is at most `$byte_size + 1`
+                let output_byte_size = buffer_byte_size(P::MODULUS_BITS as usize + F::BIT_SIZE);
+
+                let mut masked_bytes = [0u8; $limbs * 8 + 1];
+                reader.read_exact(&mut masked_bytes[..output_byte_size])?;
+
+                let flags = F::from_u8_remove_flags(&mut masked_bytes[output_byte_size - 1])
+                    .ok_or(SerializationError::UnexpectedFlags)?;
+
+                Ok((<Fp<P, N>>::read(&masked_bytes[..])?, flags))
+            }
+        }
+    }
+}
 
 macro_rules! impl_field_square_in_place {
     ($limbs: expr) => {
@@ -204,115 +263,136 @@ macro_rules! sqrt_impl {
     }};
 }
 
-macro_rules! result_body {
-    ($name:ident, $self:ident, $other:ident, $($deref:tt)?) => {
-        paste::paste! {
-            let mut result = $self;
-            result.[<$name _assign>](&$($deref)?$other);
-            return result;
-        }
-    }
-}
-
-macro_rules! assign_body {
-    ($name:ident, $self:ident, $other:ident, $($deref:tt)?) => {
-        $self.$name(&$($deref)?$other)
-    }
-}
-
 #[macro_export]
 macro_rules! impl_ops_from_ref {
-    ($type: ident,
+    (
+        $mod_name:ident,
+        {<$($ops:ident),*>, $([$($iter_args:tt),*]),*}
+        $type: ident,
         $([
             $type_params:ident,
             $bounds:ident$(<$($bound_params:tt),*>)?
             $(, $keyword:ident)?
         ]),*
     ) => {
-        macro_rules! instantiate {
-            ($d:tt) => {
-                macro_rules! ops {
-                    (
-                        $name:ident,
-                        $body:ident
-                        $d(, {$d output:ident $d ReturnType:ident})?
-                        $d(, [$d self_mut:tt])?
-                        $d(, <$d lifetime:tt $d mut:tt $d deref:tt>)?
-                    ) => {
-                        paste::paste! {
-                            #[allow(unused_qualifications)]
-                            impl<
-                                $d($d lifetime, )?
-                                $(
-                                    $($keyword)?
-                                    $type_params:
-                                    $bounds$(<$($bound_params)*>)?
-                                ),*
-                            > [<$name:camel>]<$d(&$d lifetime $d mut )?Self> for $type<$($type_params),*>
-                            {
-                                $d(type $d output = Self;)?
+        // We define a module, which we have the option to name, to hide the macros to prevent ambiguity
+        mod $mod_name {
+            use super::*;
+            macro_rules! instantiate {
+                ($d:tt) => {
+                    macro_rules! result_body {
+                        ($name:ident, $self:ident, $other:ident, $d ($d deref:tt)?) => {
+                            paste::paste! {
+                                let mut result = $self;
+                                result.[<$name:snake _assign>](&$d($d deref)?$other);
+                                return result;
+                            }
+                        }
+                    }
 
-                                #[inline]
-                                fn $name(
-                                    $d(&$d self_mut)?self,
-                                    other: $d(&$d lifetime )?$d($d mut )?Self
-                                ) $d(-> $d ReturnType)? {
-                                    $body!($name, self, other, $d($d deref)?);
+                    macro_rules! assign_body {
+                        ($name:ident, $self:ident, $other:ident, $d ($d deref:tt)?) => {
+                            $self.$name(&$d($d deref)?$other)
+                        }
+                    }
+
+                    macro_rules! ops {
+                        (
+                            $name:ident,
+                            $body:ident
+                            $d(, {$d output:ident $d ReturnType:ident})?
+                            $d(, [$d self_mut:tt])?
+                            $d(, <$d lifetime:tt $d mut:tt $d deref:tt>)?
+                        ) => {
+                            paste::paste! {
+                                #[allow(unused_qualifications)]
+                                impl<
+                                    $d($d lifetime, )?
+                                    $(
+                                        $($keyword)?
+                                        $type_params:
+                                        $bounds$(<$($bound_params)*>)?
+                                    ),*
+                                > [<$name:camel>]<$d(&$d lifetime $d mut )?Self> for $type<$($type_params),*>
+                                {
+                                    $d(type $d output = Self;)?
+
+                                    #[inline]
+                                    fn $name(
+                                        $d(&$d self_mut)?self,
+                                        other: $d(&$d lifetime )?$d($d mut )?Self
+                                    ) $d(-> $d ReturnType)? {
+                                        $body!($name, self, other, $d($d deref)?);
+                                    }
                                 }
                             }
                         }
                     }
-                }
 
-                macro_rules! instantiate_ops {
-                    ($d($d op:ident),*) => {
-                        paste::paste! {
-                            $d(
-                                ops!($d op, result_body, {Output Self});
-                                ops!($d op, result_body, {Output Self}, <'a mut *>);
-                                ops!([<$d op _assign>], assign_body, [mut]);
-                                ops!([<$d op _assign>], assign_body, [mut], <'a mut *>);
-                            )*
+                    macro_rules! instantiate_ops {
+                        ($d($d op:ident),*) => {
+                            paste::paste! {
+                                $d(
+                                    ops!($d op, result_body, {Output Self});
+                                    ops!($d op, result_body, {Output Self}, <'a mut *>);
+                                    ops!([<$d op _assign>], assign_body, [mut]);
+                                    ops!([<$d op _assign>], assign_body, [mut], <'a mut *>);
+                                )*
+                            }
                         }
                     }
-                }
 
-                macro_rules! iter {
-                    (
-                        $name:ident,
-                        $ident:ident,
-                        $op:ident
-                        $d(, <$d lifetime:tt>)?
-                    ) => {
-                        paste::paste! {
-                            #[allow(unused_qualifications)]
-                            impl<
-                                $d($d lifetime, )?
-                                $(
-                                    $($keyword)?
-                                    $type_params:
-                                    $bounds$(<$($bound_params)*>)?
-                                ),*
-                            > [<$name:camel>]<$d(&$d lifetime )?Self> for $type<$($type_params),*>
-                            {
-                                fn $name<I: Iterator<Item = $d(&$d lifetime )?Self>>(iter: I) -> Self {
-                                    iter.fold(Self::$ident(), [<$op:camel>]::$op)
+                    macro_rules! iter {
+                        (
+                            $name:ident,
+                            $ident:ident,
+                            $op:ident
+                            $d(, <$d lifetime:tt>)?
+                        ) => {
+                            paste::paste! {
+                                #[allow(unused_qualifications)]
+                                impl<
+                                    $d($d lifetime, )?
+                                    $(
+                                        $($keyword)?
+                                        $type_params:
+                                        $bounds$(<$($bound_params)*>)?
+                                    ),*
+                                > core::iter::[<$name:camel>]<$d(&$d lifetime )?Self> for $type<$($type_params),*>
+                                {
+                                    fn $name<I: Iterator<Item = $d(&$d lifetime )?Self>>(iter: I) -> Self {
+                                        iter.fold(Self::$ident(), [<$op:camel>]::$op)
+                                    }
                                 }
                             }
                         }
                     }
                 }
             }
+            instantiate!($);
+            instantiate_ops!($($ops),*);
+            $(
+                iter!($($iter_args),*);
+                iter!($($iter_args),*, <'a>);
+            )*
         }
 
-        instantiate!($);
-        instantiate_ops!(add, sub, mul, div);
-
-        use core::iter::{Sum, Product};
-
-        iter!(sum, zero, add);
-        iter!(sum, zero, add, <'a>);
-        iter!(product, one, mul);
-        iter!(product, one, mul, <'a>);
+        pub use $mod_name::*;
+    };
+    // We instantiate default module name
+    ({$($args0:tt)*}$($args:tt)*) => {
+        impl_ops_from_ref!(default_ops_mod, {$($args0)*}$($args)*);
+    };
+    // Also, default ops
+    ($($args:tt)*) => {
+        impl_ops_from_ref!(
+            default_ops_mod,
+            {
+                <add, sub, mul, div>,
+                [sum, zero, add],
+                [product, one, mul]
+            }
+            $($args)*
+        );
     };
 }
