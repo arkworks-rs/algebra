@@ -59,6 +59,65 @@ macro_rules! impl_field_into_repr {
         }
     };
 }
+// macro_rules! impl_deserialize_flags {
+macro_rules! impl_serialize_flags {
+    ($limbs: expr) => {
+        paste::paste! {
+            #[inline(always)]
+            fn [<serialize _id $limbs>]<P: FpParams<N>, W: ark_std::io::Write, F: Flags, const N: usize>(
+                input: &Fp<P, N>,
+                mut writer: W,
+                flags: F,
+            ) -> Result<(), SerializationError> {
+                // Calculate the number of bytes required to represent a field element
+                // serialized with `flags`. If `F::BIT_SIZE < 8`,
+                // this is at most `$byte_size + 1`
+                let output_byte_size = buffer_byte_size(P::MODULUS_BITS as usize + F::BIT_SIZE);
+
+                // Write out `self` to a temporary buffer.
+                // The size of the buffer is $byte_size + 1 because `F::BIT_SIZE`
+                // is at most 8 bits.
+                let mut bytes = [0u8; $limbs * 8 + 1];
+                input.write(&mut bytes[..$limbs * 8])?;
+
+                // Mask out the bits of the last byte that correspond to the flag.
+                bytes[output_byte_size - 1] |= flags.u8_bitmask();
+
+                writer.write_all(&bytes[..output_byte_size])?;
+                Ok(())
+            }
+        }
+    }
+}
+
+// macro_rules! impl_deserialize_flags {
+macro_rules! impl_deserialize_flags {
+    ($limbs: expr) => {
+        paste::paste! {
+            fn [<deserialize _id $limbs>]<P: FpParams<N>, R: ark_std::io::Read, F: Flags, const N: usize>(
+                mut reader: R,
+            ) -> Result<(Fp<P, N>, F), SerializationError> {
+                // All reasonable `Flags` should be less than 8 bits in size
+                // (256 values are enough for anyone!)
+                if F::BIT_SIZE > 8 {
+                    return Err(SerializationError::NotEnoughSpace);
+                }
+                // Calculate the number of bytes required to represent a field element
+                // serialized with `flags`. If `F::BIT_SIZE < 8`,
+                // this is at most `$byte_size + 1`
+                let output_byte_size = buffer_byte_size(P::MODULUS_BITS as usize + F::BIT_SIZE);
+
+                let mut masked_bytes = [0u8; $limbs * 8 + 1];
+                reader.read_exact(&mut masked_bytes[..output_byte_size])?;
+
+                let flags = F::from_u8_remove_flags(&mut masked_bytes[output_byte_size - 1])
+                    .ok_or(SerializationError::UnexpectedFlags)?;
+
+                Ok((<Fp<P, N>>::read(&masked_bytes[..])?, flags))
+            }
+        }
+    }
+}
 
 macro_rules! impl_field_square_in_place {
     ($limbs: expr) => {
@@ -207,12 +266,19 @@ macro_rules! sqrt_impl {
 #[macro_export]
 macro_rules! impl_ops_from_ref {
     (
+        // We define a module, which we have the option to name,
+        // to hide the macros to prevent ambiguity
         $mod_name:ident,
+        // We have arguments for the various ops and iter instantiations
         {<$($ops:ident),*>, $([$($iter_args:tt),*]),*}
+        // The type we are implementing the ops for
         $type: ident,
         $([
+            // These are the type parameters the type generic over
             $type_params:ident,
+            // These are their trait/const generic bounds
             $bounds:ident$(<$($bound_params:tt),*>)?
+            // keyword, specifically, const
             $(, $keyword:ident)?
         ]),*
     ) => {
@@ -236,6 +302,7 @@ macro_rules! impl_ops_from_ref {
                         }
                     }
 
+                    // Template for instantiating ops related traits
                     macro_rules! ops {
                         (
                             $name:ident,
@@ -282,6 +349,7 @@ macro_rules! impl_ops_from_ref {
                         }
                     }
 
+                    // Template for instantiating iter related traits
                     macro_rules! iter {
                         (
                             $name:ident,
@@ -319,7 +387,20 @@ macro_rules! impl_ops_from_ref {
 
         pub use $mod_name::*;
     };
+    // We instantiate default module name
+    ({$($args0:tt)*}$($args:tt)*) => {
+        impl_ops_from_ref!(default_ops_mod, {$($args0)*}$($args)*);
+    };
+    // We instantiate default ops
     ($($args:tt)*) => {
-        impl_ops_from_ref!(default_ops_mod, $($args)*);
+        impl_ops_from_ref!(
+            default_ops_mod,
+            {
+                <add, sub, mul, div>,
+                [sum, zero, add],
+                [product, one, mul]
+            }
+            $($args)*
+        );
     };
 }

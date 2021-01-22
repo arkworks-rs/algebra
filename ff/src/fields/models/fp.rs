@@ -18,6 +18,8 @@ use ark_serialize::*;
 invoke_n!(impl_field_square_in_place);
 invoke_n!(impl_field_mul_assign);
 invoke_n!(impl_field_into_repr);
+invoke_n!(impl_serialize_flags);
+invoke_n!(impl_deserialize_flags);
 
 pub trait FpParams<const N: usize>: FpParameters<BigInt = BigInt<N>> {
     // Checking the modulus at compile time
@@ -567,6 +569,7 @@ impl<P: FpParams<N>, const N: usize> rand::distributions::Distribution<Fp<P, N>>
 impl<P: FpParams<N>, const N: usize> CanonicalSerializeWithFlags for Fp<P, N> {
     fn serialize_with_flags<W: ark_std::io::Write, F: Flags>(
         &self,
+        #[allow(unused_mut)]
         mut writer: W,
         flags: F,
     ) -> Result<(), SerializationError> {
@@ -576,21 +579,8 @@ impl<P: FpParams<N>, const N: usize> CanonicalSerializeWithFlags for Fp<P, N> {
             return Err(SerializationError::NotEnoughSpace);
         }
 
-        // Calculate the number of bytes required to represent a field element
-        // serialized with `flags`. If `F::BIT_SIZE < 8`,
-        // this is at most `$byte_size + 1`
-        let output_byte_size = buffer_byte_size(P::MODULUS_BITS as usize + F::BIT_SIZE);
+        match_const!(<?>, [W], [F], serialize, N, self, writer, flags);
 
-        // Write out `self` to a temporary buffer.
-        // The size of the buffer is $byte_size + 1 because `F::BIT_SIZE`
-        // is at most 8 bits.
-        let mut bytes = vec![0u8; N * 8 + 1];
-        self.write(&mut bytes[..N * 8])?;
-
-        // Mask out the bits of the last byte that correspond to the flag.
-        bytes[output_byte_size - 1] |= flags.u8_bitmask();
-
-        writer.write_all(&bytes[..output_byte_size])?;
         Ok(())
     }
 
@@ -617,25 +607,10 @@ impl<P: FpParams<N>, const N: usize> CanonicalSerialize for Fp<P, N> {
 
 impl<P: FpParams<N>, const N: usize> CanonicalDeserializeWithFlags for Fp<P, N> {
     fn deserialize_with_flags<R: ark_std::io::Read, F: Flags>(
+        #[allow(unused_mut)]
         mut reader: R,
     ) -> Result<(Self, F), SerializationError> {
-        // All reasonable `Flags` should be less than 8 bits in size
-        // (256 values are enough for anyone!)
-        if F::BIT_SIZE > 8 {
-            return Err(SerializationError::NotEnoughSpace);
-        }
-        // Calculate the number of bytes required to represent a field element
-        // serialized with `flags`. If `F::BIT_SIZE < 8`,
-        // this is at most `$byte_size + 1`
-        let output_byte_size = buffer_byte_size(P::MODULUS_BITS as usize + F::BIT_SIZE);
-
-        let mut masked_bytes = vec![0; N * 8 + 1];
-        reader.read_exact(&mut masked_bytes[..output_byte_size])?;
-
-        let flags = F::from_u8_remove_flags(&mut masked_bytes[output_byte_size - 1])
-            .ok_or(SerializationError::UnexpectedFlags)?;
-
-        Ok((Self::read(&masked_bytes[..])?, flags))
+        match_const!([R], [F], deserialize, N, reader)
     }
 }
 
@@ -776,10 +751,7 @@ impl<'a, P: FpParams<N>, const N: usize> Div<&'a Fp<P, N>> for Fp<P, N> {
     }
 }
 
-impl_ops_from_ref!(
-    {<add, sub, mul, div>, [sum, zero, add], [product, one, mul]}
-    Fp, [P, FpParams<N>], [N, usize, const]
-);
+impl_ops_from_ref!(Fp, [P, FpParams<N>], [N, usize, const]);
 
 impl<'a, P: FpParams<N>, const N: usize> AddAssign<&'a Self> for Fp<P, N> {
     #[inline]
