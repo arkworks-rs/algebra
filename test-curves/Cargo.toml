@@ -24,3 +24,5 @@ bls12_381_curve = [ "bls12_381_scalar_field" ]
 mnt4_753_scalar_field = []
 mnt4_753_base_field = []
 mnt4_753_curve = [ "mnt4_753_scalar_field", "mnt4_753_base_field" ]
+
+mnt4_753_base_field_small = []

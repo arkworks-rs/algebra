@@ -409,7 +409,7 @@ mod tests {
     use crate::{EvaluationDomain, MixedRadixEvaluationDomain};
     use ark_ff::{Field, Zero};
     use ark_std::test_rng;
-    use ark_test_curves::mnt4_753::Fq as Fr;
+    use ark_test_curves::mnt4_753::Fq_small as Fr;
     use rand::Rng;
 
     #[test]
