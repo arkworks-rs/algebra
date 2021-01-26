@@ -1,4 +1,3 @@
-
 use ark_ff::{
     biginteger::BigInteger768 as BigInteger,
     fields::{FftParameters, Fp768, Fp768Parameters, FpParameters},
