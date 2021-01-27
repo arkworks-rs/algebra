@@ -306,10 +306,14 @@ impl<P: Parameters> PartialEq for GroupProjective<P> {
 impl<P: Parameters> Distribution<GroupProjective<P>> for Standard {
     #[inline]
     fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> GroupProjective<P> {
-        let mut res = GroupProjective::prime_subgroup_generator();
-        res.mul_assign(P::ScalarField::rand(rng));
-        debug_assert!(GroupAffine::from(res).is_in_correct_subgroup_assuming_on_curve());
-        res
+        loop {
+            let x = P::BaseField::rand(rng);
+            let greatest = rng.gen();
+
+            if let Some(p) = GroupAffine::get_point_from_x(x, greatest) {
+                return p.scale_by_cofactor().into();
+            }
+        }
     }
 }
 
