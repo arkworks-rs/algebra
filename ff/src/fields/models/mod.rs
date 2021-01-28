@@ -75,5 +75,5 @@ pub mod quadratic_extension;
 pub use quadratic_extension::*;
 
 pub mod cubic_extension;
-pub use cubic_extension::*;
 use crate::{BigInt, FpParameters};
+pub use cubic_extension::*;

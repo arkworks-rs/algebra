@@ -569,8 +569,7 @@ impl<P: FpParams<N>, const N: usize> rand::distributions::Distribution<Fp<P, N>>
 impl<P: FpParams<N>, const N: usize> CanonicalSerializeWithFlags for Fp<P, N> {
     fn serialize_with_flags<W: ark_std::io::Write, F: Flags>(
         &self,
-        #[allow(unused_mut)]
-        mut writer: W,
+        #[allow(unused_mut)] mut writer: W,
         flags: F,
     ) -> Result<(), SerializationError> {
         // All reasonable `Flags` should be less than 8 bits in size
@@ -607,8 +606,7 @@ impl<P: FpParams<N>, const N: usize> CanonicalSerialize for Fp<P, N> {
 
 impl<P: FpParams<N>, const N: usize> CanonicalDeserializeWithFlags for Fp<P, N> {
     fn deserialize_with_flags<R: ark_std::io::Read, F: Flags>(
-        #[allow(unused_mut)]
-        mut reader: R,
+        #[allow(unused_mut)] mut reader: R,
     ) -> Result<(Self, F), SerializationError> {
         match_const!([R], [F], deserialize, N, reader)
     }
@@ -751,7 +749,7 @@ impl<'a, P: FpParams<N>, const N: usize> Div<&'a Fp<P, N>> for Fp<P, N> {
     }
 }
 
-impl_ops_from_ref!(Fp, [P, FpParams<N>], [N, usize, const]);
+impl_ops_from_ref!(Fp, [P: FpParams<N>], [N: usize, const]);
 
 impl<'a, P: FpParams<N>, const N: usize> AddAssign<&'a Self> for Fp<P, N> {
     #[inline]

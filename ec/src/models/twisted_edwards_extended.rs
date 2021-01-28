@@ -21,10 +21,9 @@ use rand::{
 use zeroize::Zeroize;
 
 use ark_ff::{
-    impl_ops_from_ref,
     bytes::{FromBytes, ToBytes},
     fields::{BitIteratorBE, Field, PrimeField, SquareRootField},
-    ToConstraintField, UniformRand,
+    impl_additive_ops_from_ref, impl_ops_from_ref, ToConstraintField, UniformRand,
 };
 
 #[cfg(feature = "parallel")]
@@ -181,11 +180,7 @@ impl<P: Parameters> Neg for GroupAffine<P> {
     }
 }
 
-impl_ops_from_ref!(
-    group_affine,
-    {<add, sub>, [sum, zero, add]}
-    GroupAffine, [P, Parameters]
-);
+impl_additive_ops_from_ref!(<group_affine> GroupAffine, [P: Parameters]);
 
 impl<'a, P: Parameters> Add<&'a Self> for GroupAffine<P> {
     type Output = Self;
@@ -545,10 +540,7 @@ impl<P: Parameters> Neg for GroupProjective<P> {
     }
 }
 
-impl_ops_from_ref!(
-    {<add, sub>, [sum, zero, add]}
-    GroupProjective, [P, Parameters]
-);
+impl_additive_ops_from_ref!(GroupProjective, [P: Parameters]);
 
 impl<'a, P: Parameters> Add<&'a Self> for GroupProjective<P> {
     type Output = Self;

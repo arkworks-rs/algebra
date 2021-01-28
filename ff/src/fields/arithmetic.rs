@@ -264,22 +264,48 @@ macro_rules! sqrt_impl {
 }
 
 #[macro_export]
+macro_rules! impl_additive_ops_from_ref {
+    (<$mod_name:ident> $($args:tt)*) => {
+        impl_ops_from_ref!(
+            <$mod_name>,
+            {
+                <add, sub>,
+                [sum, zero, add]
+            }
+            $($args)*
+        );
+    };
+    ($($args:tt)*) => {
+        impl_ops_from_ref!(
+            <default_ops_mod>,
+            {
+                <add, sub>,
+                [sum, zero, add]
+            }
+            $($args)*
+        );
+    };
+
+}
+
+#[macro_export]
 macro_rules! impl_ops_from_ref {
     (
         // We define a module, which we have the option to name, to hide the macros
         // to prevent resolution ambiguity, when macro is invoked multiple times
-        $mod_name:ident,
+        <$mod_name:ident>,
         // We can here specify the various ops and iter instantiations
         {<$($ops:ident),*>, $([$($iter_args:tt),*]),*}
         // The type we are implementing the ops for
         $type: ident,
         $([
             // These are the type parameters the type is generic over
-            $type_params:ident,
+            $type_params:ident:
             // These are their trait/const generic bounds
             $bounds:ident$(<$($bound_params:tt),*>)?
             // specifically used for const
             $(, $keyword:ident)?
+
         ]),*
 
     ) => {
@@ -410,12 +436,12 @@ macro_rules! impl_ops_from_ref {
     };
     // We instantiate default module name
     ({$($args0:tt)*}$($args:tt)*) => {
-        impl_ops_from_ref!(default_ops_mod, {$($args0)*}$($args)*);
+        impl_ops_from_ref!(<default_ops_mod>, {$($args0)*}$($args)*);
     };
     // We instantiate default ops
     ($($args:tt)*) => {
         impl_ops_from_ref!(
-            default_ops_mod,
+            <default_ops_mod>,
             {
                 <add, sub, mul, div>,
                 [sum, zero, add],
