@@ -266,19 +266,19 @@ macro_rules! sqrt_impl {
 #[macro_export]
 macro_rules! impl_ops_from_ref {
     (
-        // We define a module, which we have the option to name,
-        // to hide the macros to prevent ambiguity
+        // We define a module, which we have the option to name, to hide the macros
+        // to prevent resolution ambiguity, when macro is invoked multiple times
         $mod_name:ident,
-        // We have arguments for the various ops and iter instantiations
+        // We can here specify the various ops and iter instantiations
         {<$($ops:ident),*>, $([$($iter_args:tt),*]),*}
         // The type we are implementing the ops for
         $type: ident,
         $([
-            // These are the type parameters the type generic over
+            // These are the type parameters the type is generic over
             $type_params:ident,
             // These are their trait/const generic bounds
             $bounds:ident$(<$($bound_params:tt),*>)?
-            // keyword, specifically, const
+            // specifically used for const
             $(, $keyword:ident)?
         ]),*
     ) => {
