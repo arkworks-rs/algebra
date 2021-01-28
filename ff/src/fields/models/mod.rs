@@ -3,12 +3,18 @@ macro_rules! limb_instantiation {
         macro_rules! make_nested_macro {
             ($d:tt) => {
                 macro_rules! match_const {
-                    ($d(<$d qn_mark:tt>,)? $d([$d extra_types:ident],)* $fn_name:ident, $N:ident $d(, $d args:tt)*) => {
+                    // Whether or not to use result notation ?
+                    ($d(<$d qn_mark:tt>,)?
+                    // Extra types parametrising function
+                    $d([$d extra_types:ident],)*
+                    // Name of fn
+                    $fn_name:ident
+                    // fn args
+                    $d(, $d args:tt)*) => {
                         paste::paste! {
-                            match $N {
+                            match N {
                                 $($n_limbs =>
-                                    [<$fn_name _ id$n_limbs>]::<P,$d($d extra_types,)* N>(
-                                        $d($d args),*)$d($d qn_mark)?,
+                                    [<$fn_name _ id$n_limbs>]::<P,$d($d extra_types,)* N>($d($d args),*)$d($d qn_mark)?,
                                     )*
                                 _ => unreachable!(),
                             }

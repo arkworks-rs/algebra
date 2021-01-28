@@ -115,7 +115,7 @@ impl<P, const N: usize> Fp<P, N> {
         if r.const_is_zero() {
             r
         } else {
-            r = r.const_mul(&Fp::<P, N>(r2, PhantomData), modulus, inv);
+            r = r.const_mul(&Self(r2, PhantomData), modulus, inv);
             r
         }
     }
@@ -227,7 +227,7 @@ impl<P: FpParams<N>, const N: usize> Fp<P, N> {
 impl<P: FpParams<N>, const N: usize> Zero for Fp<P, N> {
     #[inline]
     fn zero() -> Self {
-        Fp::<P, N>(BigInt::<N>::from(0), PhantomData)
+        Self(BigInt::<N>::from(0), PhantomData)
     }
 
     #[inline]
@@ -239,7 +239,7 @@ impl<P: FpParams<N>, const N: usize> Zero for Fp<P, N> {
 impl<P: FpParams<N>, const N: usize> One for Fp<P, N> {
     #[inline]
     fn one() -> Self {
-        Fp::<P, N>(P::R, PhantomData)
+        Self(P::R, PhantomData)
     }
 
     #[inline]
@@ -358,7 +358,7 @@ impl<P: FpParams<N>, const N: usize> Field for Fp<P, N> {
         }
 
         let input = &mut (self.0).0;
-        match_const!(square_in_place, N, input);
+        match_const!(square_in_place, input);
         self.reduce();
         self
     }
@@ -377,7 +377,7 @@ impl<P: FpParams<N>, const N: usize> Field for Fp<P, N> {
 
             let mut u = self.0;
             let mut v = P::MODULUS;
-            let mut b = Fp::<P, N>(P::R2, PhantomData); // Avoids unnecessary reduction step.
+            let mut b = Self(P::R2, PhantomData); // Avoids unnecessary reduction step.
             let mut c = Self::zero();
 
             while u != one && v != one {
@@ -441,11 +441,11 @@ impl<P: FpParams<N>, const N: usize> PrimeField for Fp<P, N> {
 
     #[inline]
     fn from_repr(r: BigInt<N>) -> Option<Self> {
-        let mut r = Fp::<P, N>(r, PhantomData);
+        let mut r = Self(r, PhantomData);
         if r.is_zero() {
             Some(r)
         } else if r.is_valid() {
-            r *= &Fp::<P, N>(P::R2, PhantomData);
+            r *= &Self(P::R2, PhantomData);
             Some(r)
         } else {
             None
@@ -454,7 +454,7 @@ impl<P: FpParams<N>, const N: usize> PrimeField for Fp<P, N> {
 
     fn into_repr(&self) -> Self::BigInt {
         let input = (self.0).0;
-        let r = match_const!(into_repr, N, input);
+        let r = match_const!(into_repr, input);
         r
     }
 }
@@ -464,17 +464,17 @@ impl<P: FpParams<N>, const N: usize> FftField for Fp<P, N> {
 
     #[inline]
     fn two_adic_root_of_unity() -> Self {
-        Fp::<P, N>(P::TWO_ADIC_ROOT_OF_UNITY, PhantomData)
+        Self(P::TWO_ADIC_ROOT_OF_UNITY, PhantomData)
     }
 
     #[inline]
     fn large_subgroup_root_of_unity() -> Option<Self> {
-        Some(Fp::<P, N>(P::LARGE_SUBGROUP_ROOT_OF_UNITY?, PhantomData))
+        Some(Self(P::LARGE_SUBGROUP_ROOT_OF_UNITY?, PhantomData))
     }
 
     #[inline]
     fn multiplicative_generator() -> Self {
-        Fp::<P, N>(P::GENERATOR, PhantomData)
+        Self(P::GENERATOR, PhantomData)
     }
 }
 
@@ -578,7 +578,7 @@ impl<P: FpParams<N>, const N: usize> CanonicalSerializeWithFlags for Fp<P, N> {
             return Err(SerializationError::NotEnoughSpace);
         }
 
-        match_const!(<?>, [W], [F], serialize, N, self, writer, flags);
+        match_const!(<?>, [W], [F], serialize, self, writer, flags);
 
         Ok(())
     }
@@ -608,7 +608,7 @@ impl<P: FpParams<N>, const N: usize> CanonicalDeserializeWithFlags for Fp<P, N> 
     fn deserialize_with_flags<R: ark_std::io::Read, F: Flags>(
         #[allow(unused_mut)] mut reader: R,
     ) -> Result<(Self, F), SerializationError> {
-        match_const!([R], [F], deserialize, N, reader)
+        match_const!([R], [F], deserialize, reader)
     }
 }
 
@@ -628,7 +628,7 @@ impl<P: FpParams<N>, const N: usize> ToBytes for Fp<P, N> {
 impl<P: FpParams<N>, const N: usize> FromBytes for Fp<P, N> {
     #[inline]
     fn read<R: Read>(reader: R) -> IoResult<Self> {
-        P::BigInt::read(reader).and_then(|b| match Fp::<P, N>::from_repr(b) {
+        P::BigInt::read(reader).and_then(|b| match Self::from_repr(b) {
             Some(f) => Ok(f),
             None => Err(crate::error("FromBytes::read failed")),
         })
@@ -698,7 +698,7 @@ impl<P: FpParams<N>, const N: usize> Neg for Fp<P, N> {
         if !self.is_zero() {
             let mut tmp = P::MODULUS.clone();
             tmp.sub_noborrow(&self.0);
-            Fp::<P, N>(tmp, PhantomData)
+            Self(tmp, PhantomData)
         } else {
             self
         }
@@ -790,7 +790,7 @@ impl<'a, P: FpParams<N>, const N: usize> MulAssign<&'a Self> for Fp<P, N> {
             }
             let input = &mut (self.0).0;
             let other_ = (other.0).0;
-            match_const!(mul_assign, N, input, other_);
+            match_const!(mul_assign, input, other_);
             self.reduce();
         } else {
             *self = self.mul_without_reduce(other, P::MODULUS, P::INV);
