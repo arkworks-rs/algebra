@@ -281,34 +281,53 @@ macro_rules! impl_ops_from_ref {
             // specifically used for const
             $(, $keyword:ident)?
         ]),*
+
     ) => {
         mod $mod_name {
             use super::*;
             macro_rules! instantiate {
                 ($d:tt) => {
-                    macro_rules! result_body {
-                        ($name:ident, $self:ident, $other:ident, $d ($d deref:tt)?) => {
+                    // Template for instantiating ops
+                    macro_rules! ops {
+                        (
+                            // Name of op
+                            $name:ident
+                            // lifetime, mutability and ref of other
+                            $d(, <$d lifetime:tt $d mut:tt $d deref:tt>)?
+                        ) => {
                             paste::paste! {
-                                let mut result = $self;
-                                result.[<$name:snake _assign>](&$d($d deref)?$other);
-                                return result;
+                                #[allow(unused_qualifications)]
+                                impl<
+                                    $d($d lifetime, )?
+                                    $(
+                                        $($keyword)?
+                                        $type_params:
+                                        $bounds$(<$($bound_params)*>)?
+                                    ),*
+                                > [<$name:camel>]<$d(&$d lifetime $d mut)?Self> for $type<$($type_params),*>
+                                {
+                                    type Output = Self;
+
+                                    #[inline]
+                                    fn $name(
+                                        self,
+                                        other: $d(&$d lifetime $d mut)?Self
+                                    ) -> Self {
+                                        let mut result = self;
+                                        result.[<$name:snake _assign>](&$d($d deref)?other);
+                                        return result;
+                                    }
+                                }
                             }
                         }
                     }
 
-                    macro_rules! assign_body {
-                        ($name:ident, $self:ident, $other:ident, $d ($d deref:tt)?) => {
-                            $self.$name(&$d($d deref)?$other)
-                        }
-                    }
-
-                    // Template for instantiating ops related traits
-                    macro_rules! ops {
+                    // Template for instantiating op_assign
+                    macro_rules! ops_assign {
                         (
-                            $name:ident,
-                            $body:ident
-                            $d(, {$d output:ident $d ReturnType:ident})?
-                            $d(, [$d self_mut:tt])?
+                            // Name of op
+                            $name:ident
+                            // lifetime, mutability and ref of other
                             $d(, <$d lifetime:tt $d mut:tt $d deref:tt>)?
                         ) => {
                             paste::paste! {
@@ -322,14 +341,12 @@ macro_rules! impl_ops_from_ref {
                                     ),*
                                 > [<$name:camel>]<$d(&$d lifetime $d mut )?Self> for $type<$($type_params),*>
                                 {
-                                    $d(type $d output = Self;)?
-
                                     #[inline]
                                     fn $name(
-                                        $d(&$d self_mut)?self,
+                                        &mut self,
                                         other: $d(&$d lifetime )?$d($d mut )?Self
-                                    ) $d(-> $d ReturnType)? {
-                                        $body!($name, self, other, $d($d deref)?);
+                                    ) {
+                                        self.$name(&$d($d deref)?other)
                                     }
                                 }
                             }
@@ -340,20 +357,23 @@ macro_rules! impl_ops_from_ref {
                         ($d($d op:ident),*) => {
                             paste::paste! {
                                 $d(
-                                    ops!($d op, result_body, {Output Self});
-                                    ops!($d op, result_body, {Output Self}, <'a mut *>);
-                                    ops!([<$d op _assign>], assign_body, [mut]);
-                                    ops!([<$d op _assign>], assign_body, [mut], <'a mut *>);
+                                    ops!($d op);
+                                    ops!($d op, <'a mut *>);
+                                    ops_assign!([<$d op _assign>]);
+                                    ops_assign!([<$d op _assign>], <'a mut *>);
                                 )*
                             }
                         }
                     }
 
-                    // Template for instantiating iter related traits
+                    // Template for instantiating product and sum
                     macro_rules! iter {
                         (
+                            // Name of iter trait
                             $name:ident,
+                            // Name of identity for op
                             $ident:ident,
+                            // Name of op
                             $op:ident
                             $d(, <$d lifetime:tt>)?
                         ) => {
@@ -380,6 +400,7 @@ macro_rules! impl_ops_from_ref {
             instantiate!($);
             instantiate_ops!($($ops),*);
             $(
+
                 iter!($($iter_args),*);
                 iter!($($iter_args),*, <'a>);
             )*
