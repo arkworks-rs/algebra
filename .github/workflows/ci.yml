@@ -106,7 +106,7 @@ jobs:
             args: "--workspace \
                    --all-features \
                    --exclude ark-poly-benches \
-                   --exclude ark-test-templates" \
+                   --exclude ark-test-templates"
 
   check_no_std:
     name: Check no_std
