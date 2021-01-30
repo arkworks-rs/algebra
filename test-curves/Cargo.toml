@@ -23,6 +23,8 @@ rand_xorshift = "0.2"
 [features]
 default = []
 
+asm = [ "ark-ff/asm" ]
+
 parallel = [ "ark-ff/parallel", "ark-ec/parallel", "ark-std/parallel" ]
 
 bls12_381_scalar_field = []
