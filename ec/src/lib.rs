@@ -322,3 +322,13 @@ where
         Fq = <Self::E1 as PairingEngine>::Fr,
     >;
 }
+
+/// A cycle of elliptic curves, unopinionated
+pub trait SimpleCycleEngine: Sized + 'static + Copy + Debug + Sync + Send
+where
+    <Self::E1 as AffineCurve>::Projective: MulAssign<<Self::E2 as AffineCurve>::BaseField>,
+    <Self::E2 as AffineCurve>::Projective: MulAssign<<Self::E1 as AffineCurve>::BaseField>,
+{
+    type E1: AffineCurve;
+    type E2: AffineCurve;
+}
