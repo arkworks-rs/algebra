@@ -110,7 +110,7 @@ jobs:
 
       - name: Test assembly on nightly
         env:
-          RUSTFLAGS: -C target-feature=+bmi2,+adx
+          RUSTFLAGS: -C target-cpu=native
         uses: actions-rs/cargo@v1
         with:
             command: test
