@@ -1,0 +1,25 @@
+[package]
+name = "ark-test-templates"
+version = "0.1.0"
+authors = [ "arkworks contributors" ]
+description = "A library for tests for finite fields, elliptic curves, and pairings"
+homepage = "https://arkworks.rs"
+repository = "https://github.com/arkworks-rs/algebra"
+documentation = "https://docs.rs/ark-curve-tests/"
+keywords = ["cryptography", "finite fields", "elliptic curves" ]
+categories = ["cryptography"]
+include = ["Cargo.toml", "src", "README.md", "LICENSE-APACHE", "LICENSE-MIT"]
+license = "MIT/Apache-2.0"
+edition = "2018"
+
+[dependencies]
+ark-std = { git = "https://github.com/arkworks-rs/utils", default-features = false }
+ark-serialize = { path = "../serialize", default-features = false }
+ark-ff = { path = "../ff", default-features = false }
+ark-ec = { path = "../ec", default-features = false }
+rand = { version = "0.7", default-features = false}
+rand_xorshift = { version = "0.2", default-features = false}
+
+[features]
+default = []
+std = [ "ark-std/std", "ark-ff/std", "ark-serialize/std", "ark-ec/std" ]
