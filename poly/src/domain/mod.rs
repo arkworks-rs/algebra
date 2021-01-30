@@ -81,24 +81,40 @@ pub trait EvaluationDomain<F: FftField>:
     /// Compute a IFFT, modifying the vector in place.
     fn ifft_in_place<T: DomainCoeff<F>>(&self, evals: &mut Vec<T>);
 
-    /// Multiply the `i`-th element of `coeffs` with the `i`-th power of `g`.
-    #[cfg(not(feature = "parallel"))]
+    /// Multiply the `i`-th element of `coeffs` with `g^i`.
     fn distribute_powers<T: DomainCoeff<F>>(coeffs: &mut [T], g: F) {
-        let mut pow = F::one();
-        coeffs.iter_mut().for_each(|c| {
-            *c *= pow;
+        Self::distribute_powers_and_mul_by_const(coeffs, g, F::one());
+    }
+
+    /// Multiply the `i`-th element of `coeffs` with `c*g^i`.
+    #[cfg(not(feature = "parallel"))]
+    fn distribute_powers_and_mul_by_const<T: DomainCoeff<F>>(coeffs: &mut [T], g: F, c: F) {
+        // invariant: pow = c*g^i at the ith iteration of the loop
+        let mut pow = c;
+        coeffs.iter_mut().for_each(|coeff| {
+            *coeff *= pow;
             pow *= &g
         })
     }
 
-    /// Multiply the `i`-th element of `coeffs` with the `i`-th power of `g`.
+    /// Multiply the `i`-th element of `coeffs` with `c*g^i`.
     #[cfg(feature = "parallel")]
-    fn distribute_powers<T: DomainCoeff<F>>(coeffs: &mut [T], g: F) {
-        let powers_of_g = crate::domain::utils::compute_powers(coeffs.len(), g);
-        coeffs
-            .par_iter_mut()
-            .zip(powers_of_g)
-            .for_each(|(coeff, power)| *coeff *= power);
+    fn distribute_powers_and_mul_by_const<T: DomainCoeff<F>>(coeffs: &mut [T], g: F, c: F) {
+        use ark_std::cmp::max;
+        let min_parallel_chunk_size = 1024;
+        let num_cpus_available = rayon::current_num_threads();
+        let num_elem_per_thread = max(coeffs.len() / num_cpus_available, min_parallel_chunk_size);
+
+        ark_std::cfg_chunks_mut!(coeffs, num_elem_per_thread)
+            .enumerate()
+            .for_each(|(i, chunk)| {
+                let offset = c * g.pow([(i * num_elem_per_thread) as u64]);
+                let mut pow = offset;
+                chunk.iter_mut().for_each(|coeff| {
+                    *coeff *= pow;
+                    pow *= &g
+                })
+            });
     }
 
     /// Compute a FFT over a coset of the domain.

@@ -4,6 +4,7 @@ The main features of this release are:
 
 - Adding the ability to define fields with integer parameters
 - Multi-variate polynomial support
+- Multilinear polynomial support
 - Many speedups to operations involving polynomials
 - Some speedups to `sqrt`
 - Small speedups to MSMs
@@ -45,6 +46,8 @@ The main features of this release are:
 - #96 (ark-ff) Make the `field_new` macro accept values in integer form, without requiring decomposition into limbs, and without requiring encoding in Montgomery form.
 - #106 (ark-ff, ark-ec) Add `Zeroize` trait bound to `Field, ProjectiveGroup, AffineGroup` traits.
 - #117 (ark-poly) Add operations to `SparsePolynomial`, so it implements `Polynomial`
+- #140 (ark-poly) Add support for multilinear extensions in dense and sparse evaluation form.
+- #164 (ark-ff) Add methods `from_{be, le}_bytes_mod_order` to the `PrimeField` trait.
 
 ### Improvements
 - #22 (ark-ec) Speedup fixed-base MSMs
@@ -73,6 +76,8 @@ The main features of this release are:
 - #158 (ark-serialize) Add an impl of `CanonicalSerialize/Deserialize` for `()`.
 - #166 (ark-ff) Add a `to_bytes_be()` and `to_bytes_le` methods to `BigInt`.
 - #169 (ark-poly) Improve radix-2 FFTs by moving to a faster algorithm by Riad S. Wahby.
+- #171, #173, #176 (ark-poly) Apply significant further speedups to the new radix-2 FFT.
+- #188 (ark-ec) Make Short Weierstrass random sampling result in an element with unknown discrete log
 
 ### Bug fixes
 - #36 (ark-ec) In Short-Weierstrass curves, include an infinity bit in `ToConstraintField`.
@@ -82,5 +87,6 @@ The main features of this release are:
      whose leading coefficients cancel.
 - #160 (ark-serialize, ark-ff, ark-ec) Support serializing when `MODULUS_BITS + FLAG_BITS` is greater than the multiple of 8 just greater than `MODULUS_BITS`, which is the case for the Pasta curves (fixes #47).
 - #165 (ark-ff) Enforce in the type system that an extension fields `BaseField` extends from the correct `BasePrimeField`.
+- #184 Compile with `panic='abort'` in release mode, for safety of the library across FFI boundaries.
 
 ## v0.1.0 (Initial release of arkworks/algebra)

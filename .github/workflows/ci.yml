@@ -105,7 +105,8 @@ jobs:
             command: test
             args: "--workspace \
                    --all-features \
-                   --exclude ark-poly-benches"
+                   --exclude ark-poly-benches \
+                   --exclude ark-test-templates"
 
   check_no_std:
     name: Check no_std
@@ -140,10 +141,10 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
             command: check
-            args: --examples --workspace --exclude ark-poly-benches --target thumbv6m-none-eabi
+            args: --examples --workspace --exclude ark-test-templates --exclude ark-poly-benches --target thumbv6m-none-eabi
 
       - name: build
         uses: actions-rs/cargo@v1
         with:
             command: build
-            args: --workspace --exclude ark-poly-benches --target thumbv6m-none-eabi
+            args: --workspace --exclude ark-test-templates --exclude ark-poly-benches --target thumbv6m-none-eabi
