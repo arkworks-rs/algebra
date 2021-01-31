@@ -5,7 +5,7 @@ use rand::{Rng, SeedableRng};
 use rand_xorshift::XorShiftRng;
 
 use crate::bls12_381::{g1, Fq, FqParameters, Fr, G1Affine, G1Projective};
-use ark_test_templates::{curves::*, fields::*, groups::*};
+use ark_algebra_test_templates::{curves::*, fields::*, groups::*};
 
 pub(crate) const ITERATIONS: usize = 5;
 
