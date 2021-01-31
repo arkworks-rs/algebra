@@ -108,6 +108,17 @@ jobs:
                    --exclude ark-poly-benches \
                    --exclude ark-test-templates"
 
+      - name: Test assembly on nightly
+        env:
+          RUSTFLAGS: -C target-cpu=native
+        uses: actions-rs/cargo@v1
+        with:
+            command: test
+            args: "--workspace \
+                   --package ark-test-curves \
+                   --all-features"
+        if: matrix.rust == 'nightly'
+
   check_no_std:
     name: Check no_std
     runs-on: ubuntu-latest
