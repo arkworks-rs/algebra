@@ -18,9 +18,9 @@ pub trait MapToCurve<T: AffineCurve>: Sized {
 
 // Trait for hashing messages to field elements
 pub trait HashToField<F: Field>: Sized {
-    fn new_hash_to_field(domain: &[u8]) -> Result<Self, HashToCurveError>;
+    fn new_hash_to_field(domain: &[u8], count: usize) -> Result<Self, HashToCurveError>;
 
-    fn hash_to_field(&self, msg: &[u8], count: usize) -> Result<Vec<F>, HashToCurveError>;
+    fn hash_to_field(&self, msg: &[u8]) -> Result<Vec<F>, HashToCurveError>;
 }
 
 pub struct MapToCurveBasedHasher<T, H2F, M2C>
