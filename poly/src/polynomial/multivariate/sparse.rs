@@ -59,6 +59,24 @@ impl<F: Field> Polynomial<F> for SparsePolynomial<F, SparseTerm> {
 }
 
 impl<F: Field> MVPolynomial<F> for SparsePolynomial<F, SparseTerm> {
+    /// Returns the number of variables in `self`
+    fn num_vars(&self) -> usize {
+        self.num_vars
+    }
+
+    /// Outputs an `l`-variate polynomial which is the sum of `l` `d`-degree
+    /// univariate polynomials where each coefficient is sampled uniformly at random.
+    fn rand<R: Rng>(d: usize, l: usize, rng: &mut R) -> Self {
+        let mut random_terms = Vec::new();
+        random_terms.push((F::rand(rng), SparseTerm::new(vec![])));
+        for var in 0..l {
+            for deg in 1..=d {
+                random_terms.push((F::rand(rng), SparseTerm::new(vec![(var, deg)])));
+            }
+        }
+        Self::from_coefficients_vec(l, random_terms)
+    }
+
     type Term = SparseTerm;
 
     /// Constructs a new polynomial from a list of tuples of the form `(coeff, Self::Term)`
@@ -93,24 +111,6 @@ impl<F: Field> MVPolynomial<F> for SparsePolynomial<F, SparseTerm> {
     /// Returns the terms of a `self` as a list of tuples of the form `(coeff, Self::Term)`
     fn terms(&self) -> &[(F, Self::Term)] {
         self.terms.as_slice()
-    }
-
-    /// Returns the number of variables in `self`
-    fn num_vars(&self) -> usize {
-        self.num_vars
-    }
-
-    /// Outputs an `l`-variate polynomial which is the sum of `l` `d`-degree
-    /// univariate polynomials where each coefficient is sampled uniformly at random.
-    fn rand<R: Rng>(d: usize, l: usize, rng: &mut R) -> Self {
-        let mut random_terms = Vec::new();
-        random_terms.push((F::rand(rng), SparseTerm::new(vec![])));
-        for var in 0..l {
-            for deg in 1..=d {
-                random_terms.push((F::rand(rng), SparseTerm::new(vec![(var, deg)])));
-            }
-        }
-        Self::from_coefficients_vec(l, random_terms)
     }
 }
 

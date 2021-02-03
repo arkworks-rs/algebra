@@ -1,7 +1,13 @@
 use crate::domain::DomainCoeff;
-use ark_ff::FftField;
+use ark_ff::{FftField, Field};
+use ark_std::vec::Vec;
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
+
+// minimum size of a parallelized chunk
+#[allow(unused)]
+#[cfg(feature = "parallel")]
+const MIN_PARALLEL_CHUNK_SIZE: usize = 1 << 7;
 
 #[inline]
 pub(crate) fn bitreverse(mut n: u32, l: u32) -> u32 {
@@ -11,6 +17,52 @@ pub(crate) fn bitreverse(mut n: u32, l: u32) -> u32 {
         n >>= 1;
     }
     r
+}
+
+pub(crate) fn compute_powers_serial<F: Field>(size: usize, root: F) -> Vec<F> {
+    compute_powers_and_mul_by_const_serial(size, root, F::one())
+}
+
+pub(crate) fn compute_powers_and_mul_by_const_serial<F: Field>(
+    size: usize,
+    root: F,
+    c: F,
+) -> Vec<F> {
+    let mut value = c;
+    (0..size)
+        .map(|_| {
+            let old_value = value;
+            value *= root;
+            old_value
+        })
+        .collect()
+}
+
+#[allow(unused)]
+#[cfg(feature = "parallel")]
+pub(crate) fn compute_powers<F: Field>(size: usize, g: F) -> Vec<F> {
+    if size < MIN_PARALLEL_CHUNK_SIZE {
+        return compute_powers_serial(size, g);
+    }
+    // compute the number of threads we will be using.
+    use ark_std::cmp::{max, min};
+    let num_cpus_available = rayon::current_num_threads();
+    let num_elem_per_thread = max(size / num_cpus_available, MIN_PARALLEL_CHUNK_SIZE);
+    let num_cpus_used = size / num_elem_per_thread;
+
+    // Split up the powers to compute across each thread evenly.
+    let res: Vec<F> = (0..num_cpus_used)
+        .into_par_iter()
+        .flat_map(|i| {
+            let offset = g.pow(&[(i * num_elem_per_thread) as u64]);
+            // Compute the size that this chunks' output should be
+            // (num_elem_per_thread, unless there are less than num_elem_per_thread elements remaining)
+            let num_elements_to_compute = min(size - i * num_elem_per_thread, num_elem_per_thread);
+            let res = compute_powers_and_mul_by_const_serial(num_elements_to_compute, g, offset);
+            res
+        })
+        .collect();
+    res
 }
 
 #[cfg(feature = "parallel")]

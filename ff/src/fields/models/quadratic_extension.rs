@@ -1,6 +1,6 @@
 use ark_serialize::{
     CanonicalDeserialize, CanonicalDeserializeWithFlags, CanonicalSerialize,
-    CanonicalSerializeWithFlags, ConstantSerializedSize, EmptyFlags, Flags, SerializationError,
+    CanonicalSerializeWithFlags, EmptyFlags, Flags, SerializationError,
 };
 use ark_std::{
     cmp::{Ord, Ordering, PartialOrd},
@@ -30,7 +30,7 @@ pub trait QuadExtParameters: 'static + Send + Sync + Sized {
     /// The prime field that this quadratic extension is eventually an extension of.
     type BasePrimeField: PrimeField;
     /// The base field that this field is a quadratic extension of.
-    type BaseField: Field;
+    type BaseField: Field<BasePrimeField = Self::BasePrimeField>;
     /// The type of the coefficients for an efficient implemntation of the
     /// Frobenius endomorphism.
     type FrobCoeff: Field;
@@ -168,6 +168,17 @@ impl<P: QuadExtParameters> Field for QuadExtField<P> {
         2 * P::BaseField::extension_degree()
     }
 
+    fn from_base_prime_field_elems(elems: &[Self::BasePrimeField]) -> Option<Self> {
+        if elems.len() != (Self::extension_degree() as usize) {
+            return None;
+        }
+        let base_ext_deg = P::BaseField::extension_degree() as usize;
+        Some(Self::new(
+            P::BaseField::from_base_prime_field_elems(&elems[0..base_ext_deg]).unwrap(),
+            P::BaseField::from_base_prime_field_elems(&elems[base_ext_deg..]).unwrap(),
+        ))
+    }
+
     fn double(&self) -> Self {
         let mut result = *self;
         result.double_in_place();
@@ -187,7 +198,7 @@ impl<P: QuadExtParameters> Field for QuadExtField<P> {
     }
 
     #[inline]
-    fn from_random_bytes_with_flags(bytes: &[u8]) -> Option<(Self, u8)> {
+    fn from_random_bytes_with_flags<F: Flags>(bytes: &[u8]) -> Option<(Self, F)> {
         let split_at = bytes.len() / 2;
         if let Some(c0) = P::BaseField::from_random_bytes(&bytes[..split_at]) {
             if let Some((c1, flags)) =
@@ -201,7 +212,7 @@ impl<P: QuadExtParameters> Field for QuadExtField<P> {
 
     #[inline]
     fn from_random_bytes(bytes: &[u8]) -> Option<Self> {
-        Self::from_random_bytes_with_flags(bytes).map(|f| f.0)
+        Self::from_random_bytes_with_flags::<EmptyFlags>(bytes).map(|f| f.0)
     }
 
     fn square_in_place(&mut self) -> &mut Self {
@@ -524,6 +535,11 @@ impl<P: QuadExtParameters> CanonicalSerializeWithFlags for QuadExtField<P> {
         self.c1.serialize_with_flags(&mut writer, flags)?;
         Ok(())
     }
+
+    #[inline]
+    fn serialized_size_with_flags<F: Flags>(&self) -> usize {
+        self.c0.serialized_size() + self.c1.serialized_size_with_flags::<F>()
+    }
 }
 
 impl<P: QuadExtParameters> CanonicalSerialize for QuadExtField<P> {
@@ -534,13 +550,8 @@ impl<P: QuadExtParameters> CanonicalSerialize for QuadExtField<P> {
 
     #[inline]
     fn serialized_size(&self) -> usize {
-        Self::SERIALIZED_SIZE
+        self.serialized_size_with_flags::<EmptyFlags>()
     }
-}
-
-impl<P: QuadExtParameters> ConstantSerializedSize for QuadExtField<P> {
-    const SERIALIZED_SIZE: usize = 2 * <P::BaseField as ConstantSerializedSize>::SERIALIZED_SIZE;
-    const UNCOMPRESSED_SIZE: usize = Self::SERIALIZED_SIZE;
 }
 
 impl<P: QuadExtParameters> CanonicalDeserializeWithFlags for QuadExtField<P> {
@@ -577,5 +588,42 @@ where
         res.append(&mut c1_elems);
 
         Some(res)
+    }
+}
+
+#[cfg(test)]
+mod quad_ext_tests {
+    use super::*;
+    use crate::test_field::{Fq, Fq2};
+    use ark_std::test_rng;
+
+    #[test]
+    fn test_from_base_prime_field_elements() {
+        let ext_degree = Fq2::extension_degree() as usize;
+        // Test on slice lengths that aren't equal to the extension degree
+        let max_num_elems_to_test = 4;
+        for d in 0..max_num_elems_to_test {
+            if d == ext_degree {
+                continue;
+            }
+            let mut random_coeffs = Vec::<Fq>::new();
+            for _ in 0..d {
+                random_coeffs.push(Fq::rand(&mut test_rng()));
+            }
+            let res = Fq2::from_base_prime_field_elems(&random_coeffs);
+            assert_eq!(res, None);
+        }
+        // Test on slice lengths that are equal to the extension degree
+        // We test consistency against Fq2::new
+        let number_of_tests = 10;
+        for _ in 0..number_of_tests {
+            let mut random_coeffs = Vec::<Fq>::new();
+            for _ in 0..ext_degree {
+                random_coeffs.push(Fq::rand(&mut test_rng()));
+            }
+            let actual = Fq2::from_base_prime_field_elems(&random_coeffs).unwrap();
+            let expected = Fq2::new(random_coeffs[0], random_coeffs[1]);
+            assert_eq!(actual, expected);
+        }
     }
 }

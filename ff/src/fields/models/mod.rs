@@ -16,6 +16,7 @@ use crate::{
     bytes::{FromBytes, ToBytes},
     fields::{FftField, Field, FpParameters, LegendreSymbol, PrimeField, SquareRootField},
 };
+use ark_serialize::*;
 
 impl_Fp!(Fp64, Fp64Parameters, BigInteger64, BigInteger64, 1);
 impl_Fp!(Fp256, Fp256Parameters, BigInteger256, BigInteger256, 4);

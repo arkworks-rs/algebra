@@ -4,7 +4,7 @@ use crate::{
 };
 use ark_serialize::{
     CanonicalDeserialize, CanonicalDeserializeWithFlags, CanonicalSerialize,
-    CanonicalSerializeWithFlags, ConstantSerializedSize, EdwardsFlags, Flags, SerializationError,
+    CanonicalSerializeWithFlags, EdwardsFlags, SerializationError,
 };
 use ark_std::{
     fmt::{Display, Formatter, Result as FmtResult},
@@ -142,17 +142,15 @@ impl<P: Parameters> AffineCurve for GroupAffine<P> {
     }
 
     fn from_random_bytes(bytes: &[u8]) -> Option<Self> {
-        let x = P::BaseField::from_random_bytes_with_flags(bytes);
-        if let Some((x, flags)) = x {
-            let parsed_flags = EdwardsFlags::from_u8(flags);
+        P::BaseField::from_random_bytes_with_flags::<EdwardsFlags>(bytes).and_then(|(x, flags)| {
+            // if x is valid and is zero, then parse this
+            // point as infinity.
             if x.is_zero() {
                 Some(Self::zero())
             } else {
-                Self::get_point_from_x(x, parsed_flags.is_positive())
+                Self::get_point_from_x(x, flags.is_positive())
             }
-        } else {
-            None
-        }
+        })
     }
 
     #[inline]
@@ -444,6 +442,12 @@ impl<P: Parameters> ProjectiveCurve for GroupProjective<P> {
     }
 
     fn batch_normalization(v: &mut [Self]) {
+        // A projective curve element (x, y, t, z) is normalized
+        // to its affine representation, by the conversion
+        // (x, y, t, z) -> (x/z, y/z, t/z, 1)
+        // Batch normalizing N twisted edwards curve elements costs:
+        //     1 inversion + 6N field multiplications
+        // (batch inversion requires 3N multiplications + 1 inversion)
         let mut z_s = v.iter().map(|g| g.z).collect::<Vec<_>>();
         ark_ff::batch_inversion(&mut z_s);
 
@@ -723,7 +727,7 @@ impl<P: Parameters> CanonicalSerialize for GroupAffine<P> {
 
     #[inline]
     fn serialized_size(&self) -> usize {
-        Self::SERIALIZED_SIZE
+        P::BaseField::zero().serialized_size_with_flags::<EdwardsFlags>()
     }
 
     #[allow(unused_qualifications)]
@@ -736,13 +740,37 @@ impl<P: Parameters> CanonicalSerialize for GroupAffine<P> {
 
     #[inline]
     fn uncompressed_size(&self) -> usize {
-        Self::UNCOMPRESSED_SIZE
+        // x  + y
+        self.x.serialized_size() + self.y.serialized_size()
     }
 }
 
-impl<P: Parameters> ConstantSerializedSize for GroupAffine<P> {
-    const SERIALIZED_SIZE: usize = <P::BaseField as ConstantSerializedSize>::SERIALIZED_SIZE;
-    const UNCOMPRESSED_SIZE: usize = 2 * <P::BaseField as ConstantSerializedSize>::SERIALIZED_SIZE;
+impl<P: Parameters> CanonicalSerialize for GroupProjective<P> {
+    #[allow(unused_qualifications)]
+    #[inline]
+    fn serialize<W: Write>(&self, writer: W) -> Result<(), SerializationError> {
+        let aff = GroupAffine::<P>::from(self.clone());
+        aff.serialize(writer)
+    }
+
+    #[inline]
+    fn serialized_size(&self) -> usize {
+        let aff = GroupAffine::<P>::from(self.clone());
+        aff.serialized_size()
+    }
+
+    #[allow(unused_qualifications)]
+    #[inline]
+    fn serialize_uncompressed<W: Write>(&self, writer: W) -> Result<(), SerializationError> {
+        let aff = GroupAffine::<P>::from(self.clone());
+        aff.serialize_uncompressed(writer)
+    }
+
+    #[inline]
+    fn uncompressed_size(&self) -> usize {
+        let aff = GroupAffine::<P>::from(self.clone());
+        aff.uncompressed_size()
+    }
 }
 
 impl<P: Parameters> CanonicalDeserialize for GroupAffine<P> {
@@ -779,6 +807,26 @@ impl<P: Parameters> CanonicalDeserialize for GroupAffine<P> {
 
         let p = GroupAffine::<P>::new(x, y);
         Ok(p)
+    }
+}
+
+impl<P: Parameters> CanonicalDeserialize for GroupProjective<P> {
+    #[allow(unused_qualifications)]
+    fn deserialize<R: Read>(reader: R) -> Result<Self, SerializationError> {
+        let aff = GroupAffine::<P>::deserialize(reader)?;
+        Ok(aff.into())
+    }
+
+    #[allow(unused_qualifications)]
+    fn deserialize_uncompressed<R: Read>(reader: R) -> Result<Self, SerializationError> {
+        let aff = GroupAffine::<P>::deserialize_uncompressed(reader)?;
+        Ok(aff.into())
+    }
+
+    #[allow(unused_qualifications)]
+    fn deserialize_unchecked<R: Read>(reader: R) -> Result<Self, SerializationError> {
+        let aff = GroupAffine::<P>::deserialize_unchecked(reader)?;
+        Ok(aff.into())
     }
 }
 
