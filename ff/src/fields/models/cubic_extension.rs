@@ -491,22 +491,22 @@ impl<'a, P: CubicExtParameters> MulAssign<&'a Self> for CubicExtField<P> {
         let mut cf = f;
         cf *= &c;
 
-         // x = (e + f) * (b + c) - be - cf;
-         let mut x = e;
+        // x = (e + f) * (b + c) - be - cf;
+        let mut x = e;
         x += &f;
         x *= &(b + &c);
         x -= &be;
         x -= &cf;
 
-         // y = (d + e) * (a + b) - ad - be;
-         let mut y = d;
+        // y = (d + e) * (a + b) - ad - be;
+        let mut y = d;
         y += &e;
         y *= &(a + &b);
         y -= &ad;
         y -= &be;
 
-         // z = (d + f) * (a + c) - ad + be - cf;
-         let mut z = d;
+        // z = (d + f) * (a + c) - ad + be - cf;
+        let mut z = d;
         z += &f;
         z *= &(a + &c);
         z -= &ad;
