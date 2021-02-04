@@ -313,6 +313,7 @@ pub fn prepare_g2<E: PairingEngine>(g: impl Into<E::G2Affine>) -> E::G2Prepared 
 }
 
 /// A cycle of pairing-friendly elliptic curves.
+#[deprecated(note = "Please use `PairingFriendlyCycle` instead")]
 pub trait CycleEngine: Sized + 'static + Copy + Debug + Sync + Send
 where
     <Self::E2 as PairingEngine>::G1Projective: MulAssign<<Self::E1 as PairingEngine>::Fq>,
@@ -322,5 +323,33 @@ where
     type E2: PairingEngine<
         Fr = <Self::E1 as PairingEngine>::Fq,
         Fq = <Self::E1 as PairingEngine>::Fr,
+    >;
+}
+
+pub trait CurveCycle
+where
+    <Self::E1 as AffineCurve>::Projective: MulAssign<<Self::E2 as AffineCurve>::BaseField>,
+    <Self::E2 as AffineCurve>::Projective: MulAssign<<Self::E1 as AffineCurve>::BaseField>,
+{
+    type E1: AffineCurve<
+        BaseField = <Self::E2 as AffineCurve>::ScalarField,
+        ScalarField = <Self::E2 as AffineCurve>::BaseField,
+    >;
+    type E2: AffineCurve;
+}
+
+pub trait PairingFriendlyCycle: CurveCycle {
+    type Engine1: PairingEngine<
+        G1Affine = Self::E1,
+        G1Projective = <Self::E1 as AffineCurve>::Projective,
+        Fq = <Self::E1 as AffineCurve>::BaseField,
+        Fr = <Self::E1 as AffineCurve>::ScalarField,
+    >;
+
+    type Engine2: PairingEngine<
+        G2Affine = Self::E2,
+        G2Projective = <Self::E2 as AffineCurve>::Projective,
+        Fq = <Self::E2 as AffineCurve>::BaseField,
+        Fr = <Self::E2 as AffineCurve>::ScalarField,
     >;
 }

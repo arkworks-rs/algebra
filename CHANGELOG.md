@@ -10,6 +10,7 @@ The main features of this release are:
 - Small speedups to MSMs
 - Big speedups to radix-2 FFTs
 - Fix in the assembly arithmetic backend
+- Adding new traits for basic curve cycles and pairing based curve cycles 
 
 ### Breaking changes
 - #20 (ark-poly) Move univariate DensePolynomial and SparsePolynomial into a 
@@ -80,6 +81,7 @@ The main features of this release are:
 - #169 (ark-poly) Improve radix-2 FFTs by moving to a faster algorithm by Riad S. Wahby.
 - #171, #173, #176 (ark-poly) Apply significant further speedups to the new radix-2 FFT.
 - #188 (ark-ec) Make Short Weierstrass random sampling result in an element with unknown discrete log
+- #190 (ark-ec) Add curve cycle trait and extended pairing cycle trait for all types of ec cycles.
 
 ### Bug fixes
 - #36 (ark-ec) In Short-Weierstrass curves, include an infinity bit in `ToConstraintField`.
