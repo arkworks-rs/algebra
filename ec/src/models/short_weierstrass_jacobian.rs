@@ -498,7 +498,7 @@ impl<P: Parameters> ProjectiveCurve for GroupProjective<P> {
 
             // YYYY = YY^2
             let mut yyyy = yy;
-            yy.square_in_place();
+            yyyy.square_in_place();
 
             // ZZ = Z1^2
             let mut zz = self.z;
