@@ -23,7 +23,7 @@ rayon = { version = "1", optional = true }
 zeroize = { version = "1", default-features = false, features = ["zeroize_derive"] }
 
 [dev-dependencies]
-rand_xorshift = "0.2"
+rand_xorshift = "0.3"
 
 [features]
 default = []

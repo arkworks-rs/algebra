@@ -17,7 +17,7 @@ ark-ec = { path = "../ec", default-features = false }
 ark-serialize = { path = "../serialize", default-features = false }
 ark-algebra-test-templates = { path = "../test-templates", default-features = false }
 rand = { version = "0.7", default-features = false }
-rand_xorshift = "0.2"
+rand_xorshift = "0.3"
 
 
 [features]
