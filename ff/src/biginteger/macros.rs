@@ -40,7 +40,7 @@ macro_rules! bigint_impl {
             fn mul2(&mut self) {
                 let mut last = 0;
                 for i in 0..$num_limbs {
-                    let a = &mut self.0[$num_limbs - i - 1];
+                    let a = &mut self.0[i];
                     let tmp = *a >> 63;
                     *a <<= 1;
                     *a |= last;
