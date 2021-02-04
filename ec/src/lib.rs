@@ -313,8 +313,7 @@ pub fn prepare_g2<E: PairingEngine>(g: impl Into<E::G2Affine>) -> E::G2Prepared 
 }
 
 /// A cycle of pairing-friendly elliptic curves.
-/// TODO: remove this once dependencies are
-///       updated with new curve cycle traits
+#[deprecated("Please use `PairingFriendlyCycle` instead")]
 pub trait CycleEngine: Sized + 'static + Copy + Debug + Sync + Send
 where
     <Self::E2 as PairingEngine>::G1Projective: MulAssign<<Self::E1 as PairingEngine>::Fq>,
