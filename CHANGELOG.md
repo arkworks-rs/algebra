@@ -49,6 +49,7 @@ The main features of this release are:
 - #117 (ark-poly) Add operations to `SparsePolynomial`, so it implements `Polynomial`
 - #140 (ark-poly) Add support for multilinear extensions in dense and sparse evaluation form.
 - #164 (ark-ff) Add methods `from_{be, le}_bytes_mod_order` to the `PrimeField` trait.
+- #197 (ark-test-curves) Add a BN384 curve with low two-arity for mixed-radix testing.
 
 ### Improvements
 - #22 (ark-ec) Speedup fixed-base MSMs

@@ -409,13 +409,13 @@ mod tests {
     use crate::{EvaluationDomain, MixedRadixEvaluationDomain};
     use ark_ff::{Field, Zero};
     use ark_std::test_rng;
-    use ark_test_curves::mnt4_753::Fq as Fr;
+    use ark_test_curves::bn384_small_two_adicity::Fq as Fr;
     use rand::Rng;
 
     #[test]
     fn vanishing_polynomial_evaluation() {
         let rng = &mut test_rng();
-        for coeffs in 0..17 {
+        for coeffs in 0..12 {
             let domain = MixedRadixEvaluationDomain::<Fr>::new(coeffs).unwrap();
             let z = domain.vanishing_polynomial();
             for _ in 0..100 {
@@ -441,7 +441,7 @@ mod tests {
 
     #[test]
     fn size_of_elements() {
-        for coeffs in 1..17 {
+        for coeffs in 1..12 {
             let size = 1 << coeffs;
             let domain = MixedRadixEvaluationDomain::<Fr>::new(size).unwrap();
             let domain_size = domain.size();
@@ -451,7 +451,7 @@ mod tests {
 
     #[test]
     fn elements_contents() {
-        for coeffs in 1..17 {
+        for coeffs in 1..12 {
             let size = 1 << coeffs;
             let domain = MixedRadixEvaluationDomain::<Fr>::new(size).unwrap();
             for (i, element) in domain.elements().enumerate() {
@@ -467,7 +467,7 @@ mod tests {
         use crate::domain::utils::parallel_fft;
         use ark_ff::PrimeField;
         use ark_std::{test_rng, vec::Vec};
-        use ark_test_curves::mnt4_753::Fq as Fr;
+        use ark_test_curves::bn384_small_two_adicity::Fq as Fr;
         use core::cmp::min;
 
         fn test_consistency<F: PrimeField, R: Rng>(rng: &mut R, max_coeffs: u32) {
