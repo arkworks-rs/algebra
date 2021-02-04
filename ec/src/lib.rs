@@ -330,9 +330,6 @@ where
     <Self::E1 as AffineCurve>::Projective: MulAssign<<Self::E2 as AffineCurve>::BaseField>,
     <Self::E2 as AffineCurve>::Projective: MulAssign<<Self::E1 as AffineCurve>::BaseField>,
 {
-    // Maybe these constraints are too tight and could cause rust's constraint solver
-    // error out due to cycles (heh); we remove the
-    // bounds on the associated types if that's the case.
     type E1: AffineCurve<
         BaseField = <Self::E2 as AffineCurve>::ScalarField,
         ScalarField = <Self::E2 as AffineCurve>::BaseField,
