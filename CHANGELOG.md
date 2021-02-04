@@ -9,6 +9,7 @@ The main features of this release are:
 - Some speedups to `sqrt`
 - Small speedups to MSMs
 - Big speedups to radix-2 FFTs
+- Fix in the assembly arithmetic backend
 
 ### Breaking changes
 - #20 (ark-poly) Move univariate DensePolynomial and SparsePolynomial into a 
@@ -88,5 +89,6 @@ The main features of this release are:
 - #160 (ark-serialize, ark-ff, ark-ec) Support serializing when `MODULUS_BITS + FLAG_BITS` is greater than the multiple of 8 just greater than `MODULUS_BITS`, which is the case for the Pasta curves (fixes #47).
 - #165 (ark-ff) Enforce in the type system that an extension fields `BaseField` extends from the correct `BasePrimeField`.
 - #184 Compile with `panic='abort'` in release mode, for safety of the library across FFI boundaries.
+- #192 Fix a bug in the assembly backend for finite field arithmetic.
 
 ## v0.1.0 (Initial release of arkworks/algebra)
