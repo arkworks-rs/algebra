@@ -10,6 +10,7 @@ The main features of this release are:
 - Small speedups to MSMs
 - Big speedups to radix-2 FFTs
 - Fix in the assembly arithmetic backend
+- Adding new traits for basic curve cycles and pairing based curve cycles 
 
 ### Breaking changes
 - #20 (ark-poly) Move univariate DensePolynomial and SparsePolynomial into a 
