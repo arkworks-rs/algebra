@@ -13,7 +13,7 @@ use ark_std::{
 use ark_ff::{
     bytes::{FromBytes, ToBytes},
     fields::{BitIteratorBE, Field, PrimeField, SquareRootField},
-    ToConstraintField, UniformRand,
+    impl_additive_ops_from_ref, impl_ops_from_ref, ToConstraintField, UniformRand,
 };
 
 use crate::{models::SWModelParameters as Parameters, AffineCurve, ProjectiveCurve};
@@ -575,7 +575,7 @@ impl<P: Parameters> Neg for GroupProjective<P> {
     }
 }
 
-ark_ff::impl_additive_ops_from_ref!(GroupProjective, Parameters);
+impl_additive_ops_from_ref!(GroupProjective, [P: Parameters]);
 
 impl<'a, P: Parameters> Add<&'a Self> for GroupProjective<P> {
     type Output = Self;

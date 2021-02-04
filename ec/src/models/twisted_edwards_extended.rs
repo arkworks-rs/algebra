@@ -23,7 +23,7 @@ use zeroize::Zeroize;
 use ark_ff::{
     bytes::{FromBytes, ToBytes},
     fields::{BitIteratorBE, Field, PrimeField, SquareRootField},
-    ToConstraintField, UniformRand,
+    impl_additive_ops_from_ref, impl_ops_from_ref, ToConstraintField, UniformRand,
 };
 
 #[cfg(feature = "parallel")]
@@ -180,7 +180,7 @@ impl<P: Parameters> Neg for GroupAffine<P> {
     }
 }
 
-ark_ff::impl_additive_ops_from_ref!(GroupAffine, Parameters);
+impl_additive_ops_from_ref!(<group_affine> GroupAffine, [P: Parameters]);
 
 impl<'a, P: Parameters> Add<&'a Self> for GroupAffine<P> {
     type Output = Self;
@@ -540,7 +540,7 @@ impl<P: Parameters> Neg for GroupProjective<P> {
     }
 }
 
-ark_ff::impl_additive_ops_from_ref!(GroupProjective, Parameters);
+impl_additive_ops_from_ref!(GroupProjective, [P: Parameters]);
 
 impl<'a, P: Parameters> Add<&'a Self> for GroupProjective<P> {
     type Output = Self;

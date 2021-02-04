@@ -1,29 +1,64 @@
-use ark_std::{
-    cmp::{Ord, Ordering, PartialOrd},
-    fmt::{Display, Formatter, Result as FmtResult},
-    io::{Read, Result as IoResult, Write},
-    marker::PhantomData,
-    ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign},
-    str::FromStr,
-};
-use num_traits::{One, Zero};
+macro_rules! limb_instantiation {
+    ($($n_limbs:expr),*) => {
+        macro_rules! make_nested_macro {
+            ($d:tt) => {
+                macro_rules! match_const {
+                    // Whether or not to use result notation ?
+                    ($d(<$d qn_mark:tt>,)?
+                    // Extra types parametrising function
+                    $d([$d extra_types:ident],)*
+                    // Name of fn
+                    $fn_name:ident
+                    // fn args
+                    $d(, $d args:tt)*) => {
+                        paste::paste! {
+                            match N {
+                                $($n_limbs =>
+                                    [<$fn_name _ id$n_limbs>]::<P,$d($d extra_types,)* N>($d($d args),*)$d($d qn_mark)?,
+                                    )*
+                                _ => unreachable!(),
+                            }
+                        }
+                    };
+                }
+            };
+        }
 
-use crate::{
-    biginteger::{
-        arithmetic as fa, BigInteger as _BigInteger, BigInteger256, BigInteger320, BigInteger384,
-        BigInteger64, BigInteger768, BigInteger832,
-    },
-    bytes::{FromBytes, ToBytes},
-    fields::{FftField, Field, FpParameters, LegendreSymbol, PrimeField, SquareRootField},
-};
-use ark_serialize::*;
+        make_nested_macro!($);
 
-impl_Fp!(Fp64, Fp64Parameters, BigInteger64, BigInteger64, 1);
-impl_Fp!(Fp256, Fp256Parameters, BigInteger256, BigInteger256, 4);
-impl_Fp!(Fp320, Fp320Parameters, BigInteger320, BigInteger320, 5);
-impl_Fp!(Fp384, Fp384Parameters, BigInteger384, BigInteger384, 6);
-impl_Fp!(Fp768, Fp768Parameters, BigInteger768, BigInteger768, 12);
-impl_Fp!(Fp832, Fp832Parameters, BigInteger832, BigInteger832, 13);
+        macro_rules! invoke_n {
+            ($macro_name:ident) => {
+                $($macro_name!($n_limbs);)*
+            };
+        }
+    }
+}
+
+limb_instantiation!(1, 4, 5, 6, 12, 13);
+
+pub mod fp;
+pub use self::fp::*;
+
+macro_rules! impl_fp_types {
+    ($({$limbs:expr, $bits:expr}),*) => {
+        paste::paste! {
+            $(
+                pub type [<Fp $bits>]<P> = Fp<P, $limbs>;
+                pub trait [<Fp $bits Parameters>] {}
+                impl<T> FpParams<$limbs> for T where T: [<Fp $bits Parameters>] + FpParameters<BigInt = BigInt<$limbs>> {}
+            )*
+        }
+    }
+}
+
+impl_fp_types!(
+    {1, 64},
+    {4, 256},
+    {5, 320},
+    {6, 384},
+    {12, 768},
+    {13, 832}
+);
 
 pub mod fp2;
 pub use self::fp2::*;
@@ -46,4 +81,5 @@ pub mod quadratic_extension;
 pub use quadratic_extension::*;
 
 pub mod cubic_extension;
+use crate::{BigInt, FpParameters};
 pub use cubic_extension::*;
