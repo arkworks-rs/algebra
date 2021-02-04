@@ -22,7 +22,7 @@ derivative = { version = "2", default-features = false, features = [ "use_core" 
 hashbrown = {version = "0.9.1"}
 
 [dev-dependencies]
-ark-test-curves = { path = "../test-curves", default-features = false, features = [ "bls12_381_curve", "mnt4_753_curve"] }
+ark-test-curves = { path = "../test-curves", default-features = false, features = [ "bls12_381_curve", "bn384_small_two_adicity_curve"] }
 
 [features]
 default = []
