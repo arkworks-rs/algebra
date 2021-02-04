@@ -21,7 +21,7 @@ impl SWModelParameters for Parameters {
     /// COEFF_A = 0
     const COEFF_A: Fq = field_new!(Fq, "0");
 
-    /// COEFF_B = 3
+    /// COEFF_B = 17
     const COEFF_B: Fq = field_new!(Fq, "17");
 
     /// COFACTOR = 1
