@@ -53,5 +53,5 @@ fn fft_composition() {
     test_fft_composition::<Fr, Fr, _, GeneralEvaluationDomain<Fr>>(rng, 10);
     test_fft_composition::<Fr, G1Projective, _, GeneralEvaluationDomain<Fr>>(rng, 10);
     // This will result in a mixed-radix domain being used.
-    test_fft_composition::<BNFr, BNFr, _, MixedRadixEvaluationDomain<_>>(rng, 17);
+    test_fft_composition::<BNFr, BNFr, _, MixedRadixEvaluationDomain<_>>(rng, 12);
 }
