@@ -81,6 +81,7 @@ The main features of this release are:
 - #169 (ark-poly) Improve radix-2 FFTs by moving to a faster algorithm by Riad S. Wahby.
 - #171, #173, #176 (ark-poly) Apply significant further speedups to the new radix-2 FFT.
 - #188 (ark-ec) Make Short Weierstrass random sampling result in an element with unknown discrete log
+- #190 (ark-ec) Add curve cycle trait and extended pairing cycle trait for all types of ec cycles.
 
 ### Bug fixes
 - #36 (ark-ec) In Short-Weierstrass curves, include an infinity bit in `ToConstraintField`.
