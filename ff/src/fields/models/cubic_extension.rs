@@ -204,13 +204,18 @@ impl<P: CubicExtParameters> Field for CubicExtField<P> {
         let b = self.c1;
         let c = self.c2;
 
-        let s0 = a.square();
+        let mut s0 = a;
+        s0.square_in_place();
         let ab = a * &b;
-        let s1 = ab.double();
-        let s2 = (a - &b + &c).square();
+        let mut s1 = ab;
+        s1.double_in_place();
+        let mut s2 = a - &b + &c;
+        s2.square_in_place();
         let bc = b * &c;
-        let s3 = bc.double();
-        let s4 = c.square();
+        let mut s3 = bc;
+        s3.double_in_place();
+        let mut s4 = c;
+        s4.square_in_place();
 
         self.c0 = s0 + &P::mul_base_field_by_nonresidue(&s3);
         self.c1 = s1 + &P::mul_base_field_by_nonresidue(&s4);
@@ -225,21 +230,33 @@ impl<P: CubicExtParameters> Field for CubicExtField<P> {
             // From "High-Speed Software Implementation of the Optimal Ate AbstractPairing
             // over
             // Barreto-Naehrig Curves"; Algorithm 17
-            let t0 = self.c0.square();
-            let t1 = self.c1.square();
-            let t2 = self.c2.square();
-            let t3 = self.c0 * &self.c1;
-            let t4 = self.c0 * &self.c2;
-            let t5 = self.c1 * &self.c2;
+            let mut t0 = self.c0;
+            t0.square_in_place();
+            let mut t1 = self.c1;
+            t1.square_in_place();
+            let mut t2 = self.c2;
+            t2.square_in_place();
+            let mut t3 = self.c0;
+            t3 *= &self.c1;
+            let mut t4 = self.c0;
+            t4 *= &self.c2;
+            let mut t5 = self.c1;
+            t5 *= &self.c2;
             let n5 = P::mul_base_field_by_nonresidue(&t5);
 
-            let s0 = t0 - &n5;
-            let s1 = P::mul_base_field_by_nonresidue(&t2) - &t3;
-            let s2 = t1 - &t4; // typo in paper referenced above. should be "-" as per Scott, but is "*"
+            let mut s0 = t0;
+            s0 -= &n5;
+            let mut s1 = P::mul_base_field_by_nonresidue(&t2);
+            s1 -= &t3;
+            let mut s2 = t1;
+            s2 -= &t4; // typo in paper referenced above. should be "-" as per Scott, but is "*"
 
-            let a1 = self.c2 * &s1;
-            let a2 = self.c1 * &s2;
-            let mut a3 = a1 + &a2;
+            let mut a1 = self.c2;
+            a1 *= &s1;
+            let mut a2 = self.c1;
+            a2 *= &s2;
+            let mut a3 = a1;
+            a3 += &a2;
             a3 = P::mul_base_field_by_nonresidue(&a3);
             let t6 = (self.c0 * &s0 + &a3).inverse().unwrap();
 
@@ -372,8 +389,11 @@ impl<P: CubicExtParameters> FromBytes for CubicExtField<P> {
 impl<P: CubicExtParameters> Neg for CubicExtField<P> {
     type Output = Self;
     #[inline]
-    fn neg(self) -> Self {
-        Self::new(self.c0.neg(), self.c1.neg(), self.c2.neg())
+    fn neg(mut self) -> Self {
+        self.c0 = -self.c0;
+        self.c1 = -self.c1;
+        self.c2 = -self.c2;
+        self
     }
 }
 
@@ -468,16 +488,36 @@ impl<'a, P: CubicExtParameters> MulAssign<&'a Self> for CubicExtField<P> {
         let e = self.c1;
         let f = self.c2;
 
-        let ad = d * &a;
-        let be = e * &b;
-        let cf = f * &c;
+        let mut ad = d;
+        ad *= &a;
+        let mut be = e;
+        be *= &b;
+        let mut cf = f;
+        cf *= &c;
 
-        let x = (e + &f) * &(b + &c) - &be - &cf;
-        let y = (d + &e) * &(a + &b) - &ad - &be;
-        let z = (d + &f) * &(a + &c) - &ad + &be - &cf;
+        let mut x = e;
+        x += &f;
+        x *= &(b + &c);
+        x -= &be;
+        x -= &cf;
 
-        self.c0 = ad + &P::mul_base_field_by_nonresidue(&x);
-        self.c1 = y + &P::mul_base_field_by_nonresidue(&cf);
+        let mut y = d;
+        y += &e;
+        y *= &(a + &b);
+        y -= &ad;
+        y -= &be;
+
+        let mut z = d;
+        z += &f;
+        z *= &(a + &c);
+        z -= &ad;
+        z += &be;
+        z -= &cf;
+
+        self.c0 = ad;
+        self.c0 += &P::mul_base_field_by_nonresidue(&x);
+        self.c1 = y;
+        self.c1 += &P::mul_base_field_by_nonresidue(&cf);
         self.c2 = z;
     }
 }

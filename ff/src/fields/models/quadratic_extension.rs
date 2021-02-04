@@ -49,7 +49,9 @@ pub trait QuadExtParameters: 'static + Send + Sync + Sized {
     /// and in complex squaring.
     #[inline(always)]
     fn mul_base_field_by_nonresidue(fe: &Self::BaseField) -> Self::BaseField {
-        Self::NONRESIDUE * fe
+        let mut result = Self::NONRESIDUE;
+        result *= fe;
+        result
     }
 
     /// A specializable method for multiplying an element of the base field by
@@ -68,7 +70,7 @@ pub trait QuadExtParameters: 'static + Send + Sync + Sized {
 
         for &value in naf.iter().rev() {
             if found_nonzero {
-                res = res.square();
+                res.square_in_place();
             }
 
             if value != 0 {
@@ -128,16 +130,19 @@ impl<P: QuadExtParameters> QuadExtField<P> {
     /// This simplifies to: `Norm(a) = a.x^2 - P::NON_RESIDUE * a.y^2`.
     /// This is alternatively expressed as `Norm(a) = a^(1 + p)`.
     pub fn norm(&self) -> P::BaseField {
-        let t0 = self.c0.square();
-        let mut t1 = self.c1.square();
+        let mut t0 = self.c0;
+        t0.square_in_place();
+
+        let mut t1 = self.c1;
+        t1.square_in_place();
         t1 = -P::mul_base_field_by_nonresidue(&t1);
-        t1.add_assign(&t0);
+        t1 += &t0;
         t1
     }
 
     pub fn mul_assign_by_basefield(&mut self, element: &P::BaseField) {
-        self.c0.mul_assign(element);
-        self.c1.mul_assign(element);
+        self.c0 *= element;
+        self.c1 *= element;
     }
 }
 
@@ -217,18 +222,25 @@ impl<P: QuadExtParameters> Field for QuadExtField<P> {
 
     fn square_in_place(&mut self) -> &mut Self {
         // v0 = c0 - c1
-        let mut v0 = self.c0 - &self.c1;
+        let mut v0 = self.c0;
+        v0 -= &self.c1;
+
         // v3 = c0 - beta * c1
-        let v3 = self.c0 - &P::mul_base_field_by_nonresidue(&self.c1);
+        let mut v3 = self.c0;
+        v3 -= &P::mul_base_field_by_nonresidue(&self.c1);
         // v2 = c0 * c1
-        let v2 = self.c0 * &self.c1;
+        let mut v2 = self.c0;
+        v2 *= &self.c1;
 
         // v0 = (v0 * v3) + v2
         v0 *= &v3;
         v0 += &v2;
 
-        self.c1 = v2.double();
-        self.c0 = v0 + &P::mul_base_field_by_nonresidue(&v2);
+        self.c1 = v2;
+        self.c1.double_in_place();
+
+        self.c0 = v0;
+        self.c0 += &P::mul_base_field_by_nonresidue(&v2);
 
         self
     }
@@ -239,9 +251,11 @@ impl<P: QuadExtParameters> Field for QuadExtField<P> {
         } else {
             // Guide to Pairing-based Cryptography, Algorithm 5.19.
             // v0 = c0.square()
-            let mut v0 = self.c0.square();
+            let mut v0 = self.c0;
+            v0.square_in_place();
             // v1 = c1.square()
-            let v1 = self.c1.square();
+            let mut v1 = self.c1;
+            v1.square_in_place();
             // v0 = v0 - beta * v1
             v0 -= &P::mul_base_field_by_nonresidue(&v1);
             v0.inverse().map(|v1| {
@@ -420,8 +434,10 @@ impl<P: QuadExtParameters> Neg for QuadExtField<P> {
     type Output = Self;
     #[inline]
     #[must_use]
-    fn neg(self) -> Self {
-        Self::new(-self.c0, -self.c1)
+    fn neg(mut self) -> Self {
+        self.c0 = -self.c0;
+        self.c1 = -self.c1;
+        self
     }
 }
 
@@ -436,10 +452,9 @@ impl<'a, P: QuadExtParameters> Add<&'a QuadExtField<P>> for QuadExtField<P> {
     type Output = Self;
 
     #[inline]
-    fn add(self, other: &Self) -> Self {
-        let mut result = self;
-        result.add_assign(other);
-        result
+    fn add(mut self, other: &Self) -> Self {
+        self.add_assign(other);
+        self
     }
 }
 
@@ -447,10 +462,9 @@ impl<'a, P: QuadExtParameters> Sub<&'a QuadExtField<P>> for QuadExtField<P> {
     type Output = Self;
 
     #[inline]
-    fn sub(self, other: &Self) -> Self {
-        let mut result = self;
-        result.sub_assign(other);
-        result
+    fn sub(mut self, other: &Self) -> Self {
+        self.sub_assign(other);
+        self
     }
 }
 
@@ -458,10 +472,9 @@ impl<'a, P: QuadExtParameters> Mul<&'a QuadExtField<P>> for QuadExtField<P> {
     type Output = Self;
 
     #[inline]
-    fn mul(self, other: &Self) -> Self {
-        let mut result = self;
-        result.mul_assign(other);
-        result
+    fn mul(mut self, other: &Self) -> Self {
+        self.mul_assign(other);
+        self
     }
 }
 
@@ -469,26 +482,25 @@ impl<'a, P: QuadExtParameters> Div<&'a QuadExtField<P>> for QuadExtField<P> {
     type Output = Self;
 
     #[inline]
-    fn div(self, other: &Self) -> Self {
-        let mut result = self;
-        result.mul_assign(&other.inverse().unwrap());
-        result
+    fn div(mut self, other: &Self) -> Self {
+        self.mul_assign(&other.inverse().unwrap());
+        self
     }
 }
 
 impl<'a, P: QuadExtParameters> AddAssign<&'a Self> for QuadExtField<P> {
     #[inline]
     fn add_assign(&mut self, other: &Self) {
-        self.c0.add_assign(&other.c0);
-        self.c1.add_assign(&other.c1);
+        self.c0 += &other.c0;
+        self.c1 += &other.c1;
     }
 }
 
 impl<'a, P: QuadExtParameters> SubAssign<&'a Self> for QuadExtField<P> {
     #[inline]
     fn sub_assign(&mut self, other: &Self) {
-        self.c0.sub_assign(&other.c0);
-        self.c1.sub_assign(&other.c1);
+        self.c0 -= &other.c0;
+        self.c1 -= &other.c1;
     }
 }
 
@@ -500,21 +512,24 @@ impl<'a, P: QuadExtParameters> MulAssign<&'a Self> for QuadExtField<P> {
     fn mul_assign(&mut self, other: &Self) {
         // Karatsuba multiplication;
         // Guide to Pairing-based cryprography, Algorithm 5.16.
-        let v0 = self.c0 * &other.c0;
-        let v1 = self.c1 * &other.c1;
+        let mut v0 = self.c0;
+        v0 *= &other.c0;
+        let mut v1 = self.c1;
+        v1 *= &other.c1;
 
         self.c1 += &self.c0;
         self.c1 *= &(other.c0 + &other.c1);
         self.c1 -= &v0;
         self.c1 -= &v1;
-        self.c0 = v0 + &P::mul_base_field_by_nonresidue(&v1);
+        self.c0 = v0;
+        self.c0 += &P::mul_base_field_by_nonresidue(&v1);
     }
 }
 
 impl<'a, P: QuadExtParameters> DivAssign<&'a Self> for QuadExtField<P> {
     #[inline]
     fn div_assign(&mut self, other: &Self) {
-        self.mul_assign(&other.inverse().unwrap());
+        *self *= &other.inverse().unwrap();
     }
 }
 
