@@ -40,8 +40,8 @@ impl SWModelParameters for Parameters {
     }
 }
 
-/// G1_GENERATOR_X = 1
-pub const G1_GENERATOR_X: Fq = field_new!(Fq, "1");
+/// G1_GENERATOR_X = -1
+pub const G1_GENERATOR_X: Fq = field_new!(Fq, "-1");
 
-/// G1_GENERATOR_Y = sqrt(18)
-pub const G1_GENERATOR_Y: Fq = field_new!(Fq, "1564103007291248495620802981106927637056875497719363782670466283602827039808131416274891289504983049472454474542799");
+/// G1_GENERATOR_Y = 4
+pub const G1_GENERATOR_Y: Fq = field_new!(Fq, "4");
