@@ -338,7 +338,6 @@ where
 }
 
 pub trait PairingFriendlyCycle: CurveCycle {
-    // add whatever extra bounds are necessary.
     type Engine1: PairingEngine<
         G1Affine = Self::E1,
         G1Projective = <Self::E1 as AffineCurve>::Projective,
