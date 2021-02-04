@@ -470,15 +470,22 @@ impl<P: Parameters> ProjectiveCurve for GroupProjective<P> {
         // Source: https://www.hyperelliptic.org/EFD/g1p/data/twisted/extended/doubling/dbl-2008-hwcd
 
         // A = X1^2
-        let a = self.x.square();
+        let mut a = self.x;
+        a.square_in_place();
         // B = Y1^2
-        let b = self.y.square();
+        let mut b = self.y;
+        b.square_in_place();
         // C = 2 * Z1^2
-        let c = self.z.square().double();
+        let mut c = self.z;
+        c.square_in_place();
+        c.double_in_place();
         // D = a * A
         let d = P::mul_by_a(&a);
         // E = (X1 + Y1)^2 - A - B
-        let e = (self.x + &self.y).square() - &a - &b;
+        let mut e = self.x + &self.y;
+        e.square_in_place();
+        e -= &a;
+        e -= &b;
         // G = D + B
         let g = d + &b;
         // F = G - C
@@ -504,30 +511,39 @@ impl<P: Parameters> ProjectiveCurve for GroupProjective<P> {
         // Source: https://www.hyperelliptic.org/EFD/g1p/data/twisted/extended/addition/madd-2008-hwcd
 
         // A = X1*X2
-        let a = self.x * &other.x;
+        let mut a = self.x;
+        a *= &other.x;
         // B = Y1*Y2
-        let b = self.y * &other.y;
+        let mut b = self.y;
+        b *= &other.y;
         // C = T1*d*T2
-        let c = P::COEFF_D * &self.t * &other.x * &other.y;
+        let mut c = P::COEFF_D;
+        c *= &self.t;
+        c *= &other.x;
+        c *= &other.y;
 
-        // D = Z1
-        let d = self.z;
         // E = (X1+Y1)*(X2+Y2)-A-B
-        let e = (self.x + &self.y) * &(other.x + &other.y) - &a - &b;
+        let mut e = (self.x + &self.y) * &(other.x + &other.y);
+        e -= &a;
+        e -= &b;
         // F = D-C
-        let f = d - &c;
+        let f = self.z - &c;
         // G = D+C
-        let g = d + &c;
+        let g = self.z + &c;
         // H = B-a*A
         let h = b - &P::mul_by_a(&a);
         // X3 = E*F
-        self.x = e * &f;
+        self.x = e;
+        self.x *= &f;
         // Y3 = G*H
-        self.y = g * &h;
+        self.y = g;
+        self.y *= &h;
         // T3 = E*H
-        self.t = e * &h;
+        self.t = e;
+        self.t *= &h;
         // Z3 = F*G
-        self.z = f * &g;
+        self.z = f;
+        self.z *= &g;
     }
 }
 
@@ -544,63 +560,65 @@ ark_ff::impl_additive_ops_from_ref!(GroupProjective, Parameters);
 
 impl<'a, P: Parameters> Add<&'a Self> for GroupProjective<P> {
     type Output = Self;
-    fn add(self, other: &'a Self) -> Self {
-        let mut copy = self;
-        copy += other;
-        copy
+    fn add(mut self, other: &'a Self) -> Self {
+        self += other;
+        self
     }
 }
 
 impl<'a, P: Parameters> AddAssign<&'a Self> for GroupProjective<P> {
     fn add_assign(&mut self, other: &'a Self) {
-        // See "Twisted Edwards Curves Revisited" (https://eprint.iacr.org/2008/522.pdf)
-        // by Huseyin Hisil, Kenneth Koon-Ho Wong, Gary Carter, and Ed Dawson
+        // See "Twisted Edwards Curves Revisited"
+        // Huseyin Hisil, Kenneth Koon-Ho Wong, Gary Carter, and Ed Dawson
         // 3.1 Unified Addition in E^e
+        // Source: https://www.hyperelliptic.org/EFD/g1p/data/twisted/extended/addition/madd-2008-hwcd
 
-        // A = x1 * x2
-        let a = self.x * &other.x;
+        // A = X1*X2
+        let mut a = self.x;
+        a *= &other.x;
+        // B = Y1*Y2
+        let mut b = self.y;
+        b *= &other.y;
+        // C = T1*d*T2
+        let mut c = P::COEFF_D;
+        c *= &self.t;
+        c *= &other.x;
+        c *= &other.y;
 
-        // B = y1 * y2
-        let b = self.y * &other.y;
+        // D = Z1 * Z2
+        let mut d = self.z;
+        d *= other.z;
 
-        // C = d * t1 * t2
-        let c = P::COEFF_D * &self.t * &other.t;
-
-        // D = z1 * z2
-        let d = self.z * &other.z;
-
-        // H = B - aA
-        let h = b - &P::mul_by_a(&a);
-
-        // E = (x1 + y1) * (x2 + y2) - A - B
-        let e = (self.x + &self.y) * &(other.x + &other.y) - &a - &b;
-
-        // F = D - C
+        // E = (X1+Y1)*(X2+Y2)-A-B
+        let mut e = (self.x + &self.y) * &(other.x + &other.y);
+        e -= &a;
+        e -= &b;
+        // F = D-C
         let f = d - &c;
-
-        // G = D + C
+        // G = D+C
         let g = d + &c;
-
-        // x3 = E * F
-        self.x = e * &f;
-
-        // y3 = G * H
-        self.y = g * &h;
-
-        // t3 = E * H
-        self.t = e * &h;
-
-        // z3 = F * G
-        self.z = f * &g;
+        // H = B-a*A
+        let h = b - &P::mul_by_a(&a);
+        // X3 = E*F
+        self.x = e;
+        self.x *= &f;
+        // Y3 = G*H
+        self.y = g;
+        self.y *= &h;
+        // T3 = E*H
+        self.t = e;
+        self.t *= &h;
+        // Z3 = F*G
+        self.z = f;
+        self.z *= &g;
     }
 }
 
 impl<'a, P: Parameters> Sub<&'a Self> for GroupProjective<P> {
     type Output = Self;
-    fn sub(self, other: &'a Self) -> Self {
-        let mut copy = self;
-        copy -= other;
-        copy
+    fn sub(mut self, other: &'a Self) -> Self {
+        self -= other;
+        self
     }
 }
 
