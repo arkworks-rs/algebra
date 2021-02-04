@@ -460,7 +460,7 @@ impl<P: Parameters> ProjectiveCurve for GroupProjective<P> {
             d += &b;
             d.square_in_place();
             d -= &a;
-            d -=&c;
+            d -= &c;
             d.double_in_place();
 
             // E = 3*A

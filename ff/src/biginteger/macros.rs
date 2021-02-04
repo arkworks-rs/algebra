@@ -283,9 +283,9 @@ macro_rules! bigint_impl {
                     let a = &self.0[$num_limbs - i - 1];
                     let b = &other.0[$num_limbs - i - 1];
                     if a < b {
-                        return Ordering::Less
+                        return Ordering::Less;
                     } else if a > b {
-                        return Ordering::Greater
+                        return Ordering::Greater;
                     }
                 }
                 Ordering::Equal
