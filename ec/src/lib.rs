@@ -119,6 +119,8 @@ pub trait ProjectiveCurve:
     + Sized
     + ToBytes
     + FromBytes
+    + CanonicalSerialize
+    + CanonicalDeserialize
     + Copy
     + Clone
     + Default
