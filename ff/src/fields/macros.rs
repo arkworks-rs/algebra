@@ -233,7 +233,7 @@ macro_rules! impl_Fp {
         }
 
         impl<P: $FpParameters> $Fp<P> {
-            #[inline]
+            #[inline(always)]
             pub(crate) fn is_valid(&self) -> bool {
                 self.0 < P::MODULUS
             }
