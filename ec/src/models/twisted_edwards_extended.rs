@@ -582,8 +582,7 @@ impl<'a, P: Parameters> AddAssign<&'a Self> for GroupProjective<P> {
         // C = T1*d*T2
         let mut c = P::COEFF_D;
         c *= &self.t;
-        c *= &other.x;
-        c *= &other.y;
+        c *= &other.t;
 
         // D = Z1 * Z2
         let mut d = self.z;
