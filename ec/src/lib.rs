@@ -311,6 +311,8 @@ pub fn prepare_g2<E: PairingEngine>(g: impl Into<E::G2Affine>) -> E::G2Prepared 
 }
 
 /// A cycle of pairing-friendly elliptic curves.
+/// TODO: remove this once dependencies are
+///       updated with new curve cycle traits
 pub trait CycleEngine: Sized + 'static + Copy + Debug + Sync + Send
 where
     <Self::E2 as PairingEngine>::G1Projective: MulAssign<<Self::E1 as PairingEngine>::Fq>,
@@ -323,12 +325,34 @@ where
     >;
 }
 
-/// A cycle of elliptic curves, unopinionated
-pub trait SimpleCycleEngine: Sized + 'static + Copy + Debug + Sync + Send
+pub trait CurveCycle 
 where
     <Self::E1 as AffineCurve>::Projective: MulAssign<<Self::E2 as AffineCurve>::BaseField>,
     <Self::E2 as AffineCurve>::Projective: MulAssign<<Self::E1 as AffineCurve>::BaseField>,
 {
-    type E1: AffineCurve;
+    // Maybe these constraints are too tight and could cause rust's constraint solver
+    // error out due to cycles (heh); we remove the
+    // bounds on the associated types if that's the case.
+    type E1: AffineCurve<
+        BaseField = <Self::E2 as AffineCurve>::ScalarField,
+        ScalarField = <Self::E2 as AffineCurve>::BaseField,
+    >;
     type E2: AffineCurve;
+}
+
+pub trait PairingFriendlyCycle: CurveCycle {
+    // add whatever extra bounds are necessary.
+    type Engine1: PairingEngine<
+        G1Affine = Self::E1,
+        G1Projective = <Self::E1 as AffineCurve>::Projective,
+        Fq = <Self::E1 as AffineCurve>::BaseField,
+        Fr = <Self::E1 as AffineCurve>::ScalarField,
+    >;
+    
+    type Engine2: PairingEngine<
+        G2Affine = Self::E2,
+        G2Projective = <Self::E2 as AffineCurve>::Projective,
+        Fq = <Self::E2 as AffineCurve>::BaseField,
+        Fr = <Self::E2 as AffineCurve>::ScalarField,
+    >;
 }
