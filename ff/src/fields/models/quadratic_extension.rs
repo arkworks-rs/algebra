@@ -238,21 +238,42 @@ impl<P: QuadExtParameters> Field for QuadExtField<P> {
     }
 
     fn square_in_place(&mut self) -> &mut Self {
-        // v0 = c0 - c1
-        let mut v0 = self.c0 - &self.c1;
-        // v3 = c0 - beta * c1
-        let v3 = P::sub_and_mul_base_field_by_nonresidue(&self.c0, &self.c1);
-        // v2 = c0 * c1
-        let v2 = self.c0 * &self.c1;
+        if P::NONRESIDUE == -P::BaseField::one() {
+            // Optimization when the non-residue is -1, where we can remove 2 intermediate additions
+            // and use one fewer intermediate
+            let c0_copy = self.c0;
+            // v0 = c0 - c1
+            let v0 = self.c0 - &self.c1;
+            // result.c1 = 2 c1
+            self.c1.double_in_place();
+            // result.c0 = (c0 - c1) + 2c1 = c0 + c1
+            self.c0 = v0 + &self.c1;
+            // result.c0 *= (c0 - c1)
+            // result.c0 = (c0 + c1) * (c0 - c1) = c0^2 - c1^2
+            self.c0 *= v0;
+            // result.c1 *= c0
+            // result.c1 = 2 * c1 * c0
+            self.c1 *= c0_copy;
 
-        // v0 = (v0 * v3) + v2
-        v0 *= &v3;
-        v0 += &v2;
+            self
+        }
+        else {
+            // v0 = c0 - c1
+            let mut v0 = self.c0 - &self.c1;
+            // v3 = c0 - beta * c1
+            let v3 = P::sub_and_mul_base_field_by_nonresidue(&self.c0, &self.c1);
+            // v2 = c0 * c1
+            let v2 = self.c0 * &self.c1;
 
-        self.c1 = v2.double();
-        self.c0 = P::add_and_mul_base_field_by_nonresidue(&v0, &v2);
+            // v0 = (v0 * v3) + v2
+            v0 *= &v3;
+            v0 += &v2;
 
-        self
+            self.c1 = v2.double();
+            self.c0 = P::add_and_mul_base_field_by_nonresidue(&v0, &v2);
+
+            self
+        }
     }
 
     fn inverse(&self) -> Option<Self> {
