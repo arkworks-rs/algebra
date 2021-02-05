@@ -12,13 +12,13 @@ pub trait Fp2Parameters: 'static + Send + Sync {
     /// Coefficients for the Frobenius automorphism.
     const FROBENIUS_COEFF_FP2_C1: &'static [Self::Fp];
 
-    /// Return fe * Self::NONRESIDUE
+    /// Return `fe * Self::NONRESIDUE`.
     #[inline(always)]
     fn mul_fp_by_nonresidue(fe: &Self::Fp) -> Self::Fp {
         Self::NONRESIDUE * fe
     }
 
-    /// A specializable method for computing x + mul_base_field_by_nonresidue(y)
+    /// A specializable method for computing `x + mul_base_field_by_nonresidue(y)`
     /// This allows for optimizations when the non-residue is
     /// canonically negative in the field.
     #[inline(always)]
@@ -26,7 +26,7 @@ pub trait Fp2Parameters: 'static + Send + Sync {
         *x + Self::mul_fp_by_nonresidue(y)
     }
 
-    /// A specializable method for computing x - mul_base_field_by_nonresidue(y)
+    /// A specializable method for computing `x - mul_base_field_by_nonresidue(y)`
     /// This allows for optimizations when the non-residue is
     /// canonically negative in the field.
     #[inline(always)]
