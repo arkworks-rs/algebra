@@ -1,5 +1,3 @@
-use rand;
-
 extern crate criterion;
 
 use ark_ff::Field;

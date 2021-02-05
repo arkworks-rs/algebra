@@ -1,5 +1,3 @@
-use ark_std::rand;
-
 extern crate criterion;
 
 use ark_ff::FftField;
