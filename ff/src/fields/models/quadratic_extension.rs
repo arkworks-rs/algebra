@@ -49,9 +49,7 @@ pub trait QuadExtParameters: 'static + Send + Sync + Sized {
     /// and in complex squaring.
     #[inline(always)]
     fn mul_base_field_by_nonresidue(fe: &Self::BaseField) -> Self::BaseField {
-        let mut result = Self::NONRESIDUE;
-        result *= fe;
-        result
+        Self::NONRESIDUE * fe
     }
 
     /// A specializable method for multiplying an element of the base field by

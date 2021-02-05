@@ -552,48 +552,45 @@ impl<'a, P: Parameters> Add<&'a Self> for GroupProjective<P> {
 
 impl<'a, P: Parameters> AddAssign<&'a Self> for GroupProjective<P> {
     fn add_assign(&mut self, other: &'a Self) {
-        // See "Twisted Edwards Curves Revisited"
-        // Huseyin Hisil, Kenneth Koon-Ho Wong, Gary Carter, and Ed Dawson
+        // See "Twisted Edwards Curves Revisited" (https://eprint.iacr.org/2008/522.pdf)
+        // by Huseyin Hisil, Kenneth Koon-Ho Wong, Gary Carter, and Ed Dawson
         // 3.1 Unified Addition in E^e
-        // Source: https://www.hyperelliptic.org/EFD/g1p/data/twisted/extended/addition/madd-2008-hwcd
 
-        // A = X1*X2
-        let mut a = self.x;
-        a *= &other.x;
-        // B = Y1*Y2
-        let mut b = self.y;
-        b *= &other.y;
-        // C = T1*d*T2
-        let mut c = P::COEFF_D;
-        c *= &self.t;
-        c *= &other.t;
+        // A = x1 * x2
+        let a = self.x * &other.x;
 
-        // D = Z1 * Z2
-        let mut d = self.z;
-        d *= other.z;
+        // B = y1 * y2
+        let b = self.y * &other.y;
 
-        // E = (X1+Y1)*(X2+Y2)-A-B
-        let mut e = (self.x + &self.y) * &(other.x + &other.y);
-        e -= &a;
-        e -= &b;
-        // F = D-C
-        let f = d - &c;
-        // G = D+C
-        let g = d + &c;
-        // H = B-a*A
+        // C = d * t1 * t2
+        let c = P::COEFF_D * &self.t * &other.t;
+
+        // D = z1 * z2
+        let d = self.z * &other.z;
+
+        // H = B - aA
         let h = b - &P::mul_by_a(&a);
-        // X3 = E*F
-        self.x = e;
-        self.x *= &f;
-        // Y3 = G*H
-        self.y = g;
-        self.y *= &h;
-        // T3 = E*H
-        self.t = e;
-        self.t *= &h;
-        // Z3 = F*G
-        self.z = f;
-        self.z *= &g;
+
+        // E = (x1 + y1) * (x2 + y2) - A - B
+        let e = (self.x + &self.y) * &(other.x + &other.y) - &a - &b;
+
+        // F = D - C
+        let f = d - &c;
+
+        // G = D + C
+        let g = d + &c;
+
+        // x3 = E * F
+        self.x = e * &f;
+
+        // y3 = G * H
+        self.y = g * &h;
+
+        // t3 = E * H
+        self.t = e * &h;
+
+        // z3 = F * G
+        self.z = f * &g;
     }
 }
 
