@@ -19,7 +19,7 @@ pub trait Fp2Parameters: 'static + Send + Sync {
     }
 
     /// A specializable method for computing x + mul_base_field_by_nonresidue(y)
-    /// This allows for optimizations when the non-residue is 
+    /// This allows for optimizations when the non-residue is
     /// canonically negative in the field.
     #[inline(always)]
     fn add_and_mul_fp_by_nonresidue(x: &Self::Fp, y: &Self::Fp) -> Self::Fp {
@@ -27,7 +27,7 @@ pub trait Fp2Parameters: 'static + Send + Sync {
     }
 
     /// A specializable method for computing x - mul_base_field_by_nonresidue(y)
-    /// This allows for optimizations when the non-residue is 
+    /// This allows for optimizations when the non-residue is
     /// canonically negative in the field.
     #[inline(always)]
     fn sub_and_mul_fp_by_nonresidue(x: &Self::Fp, y: &Self::Fp) -> Self::Fp {
@@ -54,12 +54,18 @@ impl<P: Fp2Parameters> QuadExtParameters for Fp2ParamsWrapper<P> {
     }
 
     #[inline(always)]
-    fn add_and_mul_base_field_by_nonresidue(x: &Self::BaseField, y: &Self::BaseField) -> Self::BaseField {
+    fn add_and_mul_base_field_by_nonresidue(
+        x: &Self::BaseField,
+        y: &Self::BaseField,
+    ) -> Self::BaseField {
         P::add_and_mul_fp_by_nonresidue(x, y)
     }
 
     #[inline(always)]
-    fn sub_and_mul_base_field_by_nonresidue(x: &Self::BaseField, y: &Self::BaseField) -> Self::BaseField {
+    fn sub_and_mul_base_field_by_nonresidue(
+        x: &Self::BaseField,
+        y: &Self::BaseField,
+    ) -> Self::BaseField {
         P::sub_and_mul_fp_by_nonresidue(x, y)
     }
 

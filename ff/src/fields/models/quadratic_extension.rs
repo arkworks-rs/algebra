@@ -53,18 +53,24 @@ pub trait QuadExtParameters: 'static + Send + Sync + Sized {
     }
 
     /// A specializable method for computing x + mul_base_field_by_nonresidue(y)
-    /// This allows for optimizations when the non-residue is 
+    /// This allows for optimizations when the non-residue is
     /// canonically negative in the field.
     #[inline(always)]
-    fn add_and_mul_base_field_by_nonresidue(x: &Self::BaseField, y: &Self::BaseField) -> Self::BaseField {
+    fn add_and_mul_base_field_by_nonresidue(
+        x: &Self::BaseField,
+        y: &Self::BaseField,
+    ) -> Self::BaseField {
         *x + Self::mul_base_field_by_nonresidue(y)
     }
 
     /// A specializable method for computing x - mul_base_field_by_nonresidue(y)
-    /// This allows for optimizations when the non-residue is 
+    /// This allows for optimizations when the non-residue is
     /// canonically negative in the field.
     #[inline(always)]
-    fn sub_and_mul_base_field_by_nonresidue(x: &Self::BaseField, y: &Self::BaseField) -> Self::BaseField {
+    fn sub_and_mul_base_field_by_nonresidue(
+        x: &Self::BaseField,
+        y: &Self::BaseField,
+    ) -> Self::BaseField {
         *x - Self::mul_base_field_by_nonresidue(y)
     }
 
