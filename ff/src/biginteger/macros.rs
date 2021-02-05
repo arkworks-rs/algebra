@@ -12,35 +12,38 @@ macro_rules! bigint_impl {
         impl BigInteger for $name {
             const NUM_LIMBS: usize = $num_limbs;
 
-            #[inline]
+            #[ark_ff_asm::unroll_for_loops]
             fn add_nocarry(&mut self, other: &Self) -> bool {
                 let mut carry = 0;
 
-                for (a, b) in self.0.iter_mut().zip(other.0.iter()) {
-                    *a = adc!(*a, *b, &mut carry);
+                for i in 0..$num_limbs {
+                    self.0[i] = adc!(self.0[i], other.0[i], &mut carry);
                 }
 
                 carry != 0
             }
 
-            #[inline]
+            #[ark_ff_asm::unroll_for_loops]
             fn sub_noborrow(&mut self, other: &Self) -> bool {
                 let mut borrow = 0;
 
-                for (a, b) in self.0.iter_mut().zip(other.0.iter()) {
-                    *a = sbb!(*a, *b, &mut borrow);
+                for i in 0..$num_limbs {
+                    self.0[i] = sbb!(self.0[i], other.0[i], &mut borrow);
                 }
 
                 borrow != 0
             }
 
             #[inline]
+            #[ark_ff_asm::unroll_for_loops]
+            #[allow(unused)]
             fn mul2(&mut self) {
                 let mut last = 0;
-                for i in &mut self.0 {
-                    let tmp = *i >> 63;
-                    *i <<= 1;
-                    *i |= last;
+                for i in 0..$num_limbs {
+                    let a = &mut self.0[i];
+                    let tmp = *a >> 63;
+                    *a <<= 1;
+                    *a |= last;
                     last = tmp;
                 }
             }
@@ -72,12 +75,15 @@ macro_rules! bigint_impl {
             }
 
             #[inline]
+            #[ark_ff_asm::unroll_for_loops]
+            #[allow(unused)]
             fn div2(&mut self) {
                 let mut t = 0;
-                for i in self.0.iter_mut().rev() {
-                    let t2 = *i << 63;
-                    *i >>= 1;
-                    *i |= t;
+                for i in 0..$num_limbs {
+                    let a = &mut self.0[$num_limbs - i - 1];
+                    let t2 = *a << 63;
+                    *a >>= 1;
+                    *a |= t;
                     t = t2;
                 }
             }
@@ -270,16 +276,19 @@ macro_rules! bigint_impl {
 
         impl Ord for $name {
             #[inline]
+            #[ark_ff_asm::unroll_for_loops]
             fn cmp(&self, other: &Self) -> ::core::cmp::Ordering {
-                for (a, b) in self.0.iter().rev().zip(other.0.iter().rev()) {
+                use core::cmp::Ordering;
+                for i in 0..$num_limbs {
+                    let a = &self.0[$num_limbs - i - 1];
+                    let b = &other.0[$num_limbs - i - 1];
                     if a < b {
-                        return core::cmp::Ordering::Less;
+                        return Ordering::Less;
                     } else if a > b {
-                        return core::cmp::Ordering::Greater;
+                        return Ordering::Greater;
                     }
                 }
-
-                core::cmp::Ordering::Equal
+                Ordering::Equal
             }
         }
 
