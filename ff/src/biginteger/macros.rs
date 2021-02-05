@@ -17,7 +17,16 @@ macro_rules! bigint_impl {
                 let mut carry = 0;
 
                 for i in 0..$num_limbs {
-                    self.0[i] = adc!(self.0[i], other.0[i], &mut carry);
+                    #[cfg(all(target_arch = "x86_64", feature = "asm"))]
+                    #[cfg_attr(all(target_arch = "x86_64", feature = "asm"), allow(unsafe_code))]
+                    unsafe { 
+                        carry = core::arch::x86_64::_addcarry_u64(carry, self.0[i], other.0[i], &mut self.0[i]) 
+                    };
+
+                    #[cfg(not(feature = "asm"))]
+                    {
+                        self.0[i] = adc!(self.0[i], other.0[i], &mut carry);
+                    }
                 }
 
                 carry != 0
@@ -28,7 +37,16 @@ macro_rules! bigint_impl {
                 let mut borrow = 0;
 
                 for i in 0..$num_limbs {
-                    self.0[i] = sbb!(self.0[i], other.0[i], &mut borrow);
+                    #[cfg(all(target_arch = "x86_64", feature = "asm"))]
+                    #[cfg_attr(all(target_arch = "x86_64", feature = "asm"), allow(unsafe_code))]
+                    unsafe { 
+                        borrow = core::arch::x86_64::_subborrow_u64(borrow, self.0[i], other.0[i], &mut self.0[i]) 
+                    };
+
+                    #[cfg(not(feature = "asm"))]
+                    {
+                        self.0[i] = sbb!(self.0[i], other.0[i], &mut borrow);
+                    }
                 }
 
                 borrow != 0
