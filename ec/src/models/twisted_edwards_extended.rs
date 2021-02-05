@@ -470,15 +470,22 @@ impl<P: Parameters> ProjectiveCurve for GroupProjective<P> {
         // Source: https://www.hyperelliptic.org/EFD/g1p/data/twisted/extended/doubling/dbl-2008-hwcd
 
         // A = X1^2
-        let a = self.x.square();
+        let mut a = self.x;
+        a.square_in_place();
         // B = Y1^2
-        let b = self.y.square();
+        let mut b = self.y;
+        b.square_in_place();
         // C = 2 * Z1^2
-        let c = self.z.square().double();
+        let mut c = self.z;
+        c.square_in_place();
+        c.double_in_place();
         // D = a * A
         let d = P::mul_by_a(&a);
         // E = (X1 + Y1)^2 - A - B
-        let e = (self.x + &self.y).square() - &a - &b;
+        let mut e = self.x + &self.y;
+        e.square_in_place();
+        e -= &a;
+        e -= &b;
         // G = D + B
         let g = d + &b;
         // F = G - C
@@ -504,30 +511,39 @@ impl<P: Parameters> ProjectiveCurve for GroupProjective<P> {
         // Source: https://www.hyperelliptic.org/EFD/g1p/data/twisted/extended/addition/madd-2008-hwcd
 
         // A = X1*X2
-        let a = self.x * &other.x;
+        let mut a = self.x;
+        a *= &other.x;
         // B = Y1*Y2
-        let b = self.y * &other.y;
+        let mut b = self.y;
+        b *= &other.y;
         // C = T1*d*T2
-        let c = P::COEFF_D * &self.t * &other.x * &other.y;
+        let mut c = P::COEFF_D;
+        c *= &self.t;
+        c *= &other.x;
+        c *= &other.y;
 
-        // D = Z1
-        let d = self.z;
         // E = (X1+Y1)*(X2+Y2)-A-B
-        let e = (self.x + &self.y) * &(other.x + &other.y) - &a - &b;
+        let mut e = (self.x + &self.y) * &(other.x + &other.y);
+        e -= &a;
+        e -= &b;
         // F = D-C
-        let f = d - &c;
+        let f = self.z - &c;
         // G = D+C
-        let g = d + &c;
+        let g = self.z + &c;
         // H = B-a*A
         let h = b - &P::mul_by_a(&a);
         // X3 = E*F
-        self.x = e * &f;
+        self.x = e;
+        self.x *= &f;
         // Y3 = G*H
-        self.y = g * &h;
+        self.y = g;
+        self.y *= &h;
         // T3 = E*H
-        self.t = e * &h;
+        self.t = e;
+        self.t *= &h;
         // Z3 = F*G
-        self.z = f * &g;
+        self.z = f;
+        self.z *= &g;
     }
 }
 
