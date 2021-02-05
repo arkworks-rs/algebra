@@ -256,8 +256,7 @@ impl<P: QuadExtParameters> Field for QuadExtField<P> {
             self.c1 *= c0_copy;
 
             self
-        }
-        else {
+        } else {
             // v0 = c0 - c1
             let mut v0 = self.c0 - &self.c1;
             // v3 = c0 - beta * c1
