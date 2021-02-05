@@ -815,8 +815,8 @@ impl<T: CanonicalDeserialize + Ord> CanonicalDeserialize for BTreeSet<T> {
 #[cfg(test)]
 mod test {
     use super::*;
+    use ark_std::rand::RngCore;
     use ark_std::vec;
-    use rand::{RngCore, SeedableRng};
 
     #[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Debug)]
     struct Dummy;
@@ -909,13 +909,7 @@ mod test {
         data: T,
         valid_mutation: fn(&[u8]) -> bool,
     ) {
-        // Seed copied from StdRng tests,
-        // https://rust-random.github.io/rand/src/rand/rngs/std.rs.html#87
-        let seed = [
-            1, 0, 0, 0, 23, 0, 0, 0, 200, 1, 0, 0, 210, 30, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0,
-        ];
-        let mut r = rand::rngs::StdRng::from_seed(seed);
+        let mut r = ark_std::test_rng();
         let mut serialized = vec![0; data.serialized_size()];
         r.fill_bytes(&mut serialized);
         while !valid_mutation(&serialized) {

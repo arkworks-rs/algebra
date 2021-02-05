@@ -8,10 +8,10 @@ use ark_std::collections::BTreeMap;
 use ark_std::fmt::{Debug, Formatter};
 use ark_std::iter::FromIterator;
 use ark_std::ops::{Add, AddAssign, Index, Neg, Sub, SubAssign};
+use ark_std::rand::Rng;
 use ark_std::vec::Vec;
 use ark_std::{fmt, UniformRand};
 use hashbrown::HashMap;
-use rand::Rng;
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
 

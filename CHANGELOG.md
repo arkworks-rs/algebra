@@ -10,6 +10,7 @@ The main features of this release are:
 - Small speedups to MSMs
 - Big speedups to radix-2 FFTs
 - Fix in the assembly arithmetic backend
+- Adding new traits for basic curve cycles and pairing based curve cycles 
 
 ### Breaking changes
 - #20 (ark-poly) Move univariate DensePolynomial and SparsePolynomial into a
@@ -49,6 +50,7 @@ The main features of this release are:
 - #117 (ark-poly) Add operations to `SparsePolynomial`, so it implements `Polynomial`
 - #140 (ark-poly) Add support for multilinear extensions in dense and sparse evaluation form.
 - #164 (ark-ff) Add methods `from_{be, le}_bytes_mod_order` to the `PrimeField` trait.
+- #197 (ark-test-curves) Add a BN384 curve with low two-arity for mixed-radix testing.
 
 ### Improvements
 - #22 (ark-ec) Speedup fixed-base MSMs
@@ -79,7 +81,9 @@ The main features of this release are:
 - #169 (ark-poly) Improve radix-2 FFTs by moving to a faster algorithm by Riad S. Wahby.
 - #171, #173, #176 (ark-poly) Apply significant further speedups to the new radix-2 FFT.
 - #188 (ark-ec) Make Short Weierstrass random sampling result in an element with unknown discrete log.
-- #204 (ark-ff) Improve biginteger arithmetic with unrolling and intrinsics
+- #190 (ark-ec) Add curve cycle trait and extended pairing cycle trait for all types of ec cycles.
+- #201 (ark-ec, ark-ff, ark-test-curves, ark-test-templates) Remove the dependency on `rand_xorshift`.
+- #204 (ark-ff) Improve biginteger arithmetic with unrolling and intrinsics.
 
 ### Bug fixes
 - #36 (ark-ec) In Short-Weierstrass curves, include an infinity bit in `ToConstraintField`.

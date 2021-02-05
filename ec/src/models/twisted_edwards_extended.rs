@@ -6,6 +6,10 @@ use ark_serialize::{
     CanonicalDeserialize, CanonicalDeserializeWithFlags, CanonicalSerialize,
     CanonicalSerializeWithFlags, EdwardsFlags, SerializationError,
 };
+use ark_std::rand::{
+    distributions::{Distribution, Standard},
+    Rng,
+};
 use ark_std::{
     fmt::{Display, Formatter, Result as FmtResult},
     io::{Read, Result as IoResult, Write},
@@ -14,10 +18,6 @@ use ark_std::{
     vec::Vec,
 };
 use num_traits::{One, Zero};
-use rand::{
-    distributions::{Distribution, Standard},
-    Rng,
-};
 use zeroize::Zeroize;
 
 use ark_ff::{
