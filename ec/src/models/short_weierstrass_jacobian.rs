@@ -260,7 +260,6 @@ impl<P: Parameters> Default for GroupAffine<P> {
 #[derivative(
     Copy(bound = "P: Parameters"),
     Clone(bound = "P: Parameters"),
-    Eq(bound = "P: Parameters"),
     Debug(bound = "P: Parameters"),
     Hash(bound = "P: Parameters")
 )]
@@ -279,6 +278,7 @@ impl<P: Parameters> Display for GroupProjective<P> {
     }
 }
 
+impl<P: Parameters> Eq for GroupProjective<P> {}
 impl<P: Parameters> PartialEq for GroupProjective<P> {
     fn eq(&self, other: &Self) -> bool {
         if self.is_zero() {
@@ -581,10 +581,9 @@ impl<'a, P: Parameters> Add<&'a Self> for GroupProjective<P> {
     type Output = Self;
 
     #[inline]
-    fn add(self, other: &'a Self) -> Self {
-        let mut copy = self;
-        copy += other;
-        copy
+    fn add(mut self, other: &'a Self) -> Self {
+        self += other;
+        self
     }
 }
 
@@ -657,10 +656,9 @@ impl<'a, P: Parameters> Sub<&'a Self> for GroupProjective<P> {
     type Output = Self;
 
     #[inline]
-    fn sub(self, other: &'a Self) -> Self {
-        let mut copy = self;
-        copy -= other;
-        copy
+    fn sub(mut self, other: &'a Self) -> Self {
+        self -= other;
+        self
     }
 }
 
