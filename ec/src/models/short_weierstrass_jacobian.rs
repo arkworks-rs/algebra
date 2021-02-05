@@ -121,8 +121,10 @@ impl<P: Parameters> GroupAffine<P> {
             true
         } else {
             // Check that the point is on the curve
+            // y2 = y^2
             let mut y2 = self.y;
             y2.square_in_place();
+            // x3b = x^3 + Ax + b
             let mut x3b = self.x;
             x3b.square_in_place();
             x3b *= &self.x;
