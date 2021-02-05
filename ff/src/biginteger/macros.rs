@@ -48,7 +48,7 @@ macro_rules! bigint_impl {
                 }
             }
 
-            #[inline]
+            #[ark_ff_asm::unroll_for_loops]
             fn muln(&mut self, mut n: u32) {
                 if n >= 64 * $num_limbs {
                     *self = Self::from(0);
@@ -57,18 +57,20 @@ macro_rules! bigint_impl {
 
                 while n >= 64 {
                     let mut t = 0;
-                    for i in &mut self.0 {
-                        core::mem::swap(&mut t, i);
+                    for i in 0..$num_limbs {
+                        core::mem::swap(&mut t, &mut self.0[i]);
                     }
                     n -= 64;
                 }
 
                 if n > 0 {
                     let mut t = 0;
-                    for i in &mut self.0 {
-                        let t2 = *i >> (64 - n);
-                        *i <<= n;
-                        *i |= t;
+                    #[allow(unused)]
+                    for i in 0..$num_limbs {
+                        let a = &mut self.0[i];
+                        let t2 = *a >> (64 - n);
+                        *a <<= n;
+                        *a |= t;
                         t = t2;
                     }
                 }
@@ -88,7 +90,7 @@ macro_rules! bigint_impl {
                 }
             }
 
-            #[inline]
+            #[ark_ff_asm::unroll_for_loops]
             fn divn(&mut self, mut n: u32) {
                 if n >= 64 * $num_limbs {
                     *self = Self::from(0);
@@ -97,18 +99,20 @@ macro_rules! bigint_impl {
 
                 while n >= 64 {
                     let mut t = 0;
-                    for i in self.0.iter_mut().rev() {
-                        core::mem::swap(&mut t, i);
+                    for i in 0..$num_limbs {
+                        core::mem::swap(&mut t, &mut self.0[$num_limbs - i - 1]);
                     }
                     n -= 64;
                 }
 
                 if n > 0 {
                     let mut t = 0;
-                    for i in self.0.iter_mut().rev() {
-                        let t2 = *i << (64 - n);
-                        *i >>= n;
-                        *i |= t;
+                    #[allow(unused)]
+                    for i in 0..$num_limbs {
+                        let a = &mut self.0[$num_limbs - i - 1];
+                        let t2 = *a << (64 - n);
+                        *a >>= n;
+                        *a |= t;
                         t = t2;
                     }
                 }
