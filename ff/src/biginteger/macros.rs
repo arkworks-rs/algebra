@@ -26,7 +26,12 @@ macro_rules! bigint_impl {
                     #[cfg(use_asm)]
                     #[allow(unsafe_code)]
                     unsafe {
-                        carry = core::arch::x86_64::_addcarryx_u64(carry, self.0[i], other.0[i], &mut self.0[i]);
+                        carry = core::arch::x86_64::_addcarryx_u64(
+                            carry,
+                            self.0[i],
+                            other.0[i],
+                            &mut self.0[i],
+                        );
                     }
                 }
 
@@ -47,7 +52,12 @@ macro_rules! bigint_impl {
                     #[cfg(use_asm)]
                     #[allow(unsafe_code)]
                     unsafe {
-                        borrow = core::arch::x86_64::_subborrow_u64(borrow, self.0[i], other.0[i], &mut self.0[i]);
+                        borrow = core::arch::x86_64::_subborrow_u64(
+                            borrow,
+                            self.0[i],
+                            other.0[i],
+                            &mut self.0[i],
+                        );
                     }
                 }
 
@@ -61,6 +71,7 @@ macro_rules! bigint_impl {
 
                 for i in 0..$num_limbs {
                     #[cfg(not(use_asm))]
+                    #[allow(unused_assignments)]
                     {
                         self.0[i] = adc!(self.0[i], self.0[i], &mut carry);
                     }
@@ -68,7 +79,12 @@ macro_rules! bigint_impl {
                     #[cfg(use_asm)]
                     #[allow(unsafe_code, unused_assignments)]
                     unsafe {
-                        carry = core::arch::x86_64::_addcarryx_u64(carry, self.0[i], self.0[i], &mut self.0[i]);
+                        carry = core::arch::x86_64::_addcarryx_u64(
+                            carry,
+                            self.0[i],
+                            self.0[i],
+                            &mut self.0[i],
+                        );
                     }
                 }
             }
@@ -90,7 +106,13 @@ macro_rules! bigint_impl {
                 }
 
                 if n > 0 {
-                    self.mul2();
+                    let mut t = 0;
+                    for i in &mut self.0 {
+                        let t2 = *i >> (64 - n);
+                        *i <<= n;
+                        *i |= t;
+                        t = t2;
+                    }
                 }
             }
 
@@ -145,7 +167,7 @@ macro_rules! bigint_impl {
             #[ark_ff_asm::unroll_for_loops]
             fn is_zero(&self) -> bool {
                 for i in 0..$num_limbs {
-                    if self.0[i] != 0  {
+                    if self.0[i] != 0 {
                         return false;
                     }
                 }
