@@ -233,7 +233,7 @@ macro_rules! impl_Fp {
         }
 
         impl<P: $FpParameters> $Fp<P> {
-            #[inline]
+            #[inline(always)]
             pub(crate) fn is_valid(&self) -> bool {
                 self.0 < P::MODULUS
             }
@@ -605,7 +605,7 @@ macro_rules! impl_Fp {
             #[must_use]
             fn neg(self) -> Self {
                 if !self.is_zero() {
-                    let mut tmp = P::MODULUS.clone();
+                    let mut tmp = P::MODULUS;
                     tmp.sub_noborrow(&self.0);
                     $Fp::<P>(tmp, PhantomData)
                 } else {
@@ -618,10 +618,9 @@ macro_rules! impl_Fp {
             type Output = Self;
 
             #[inline]
-            fn add(self, other: &Self) -> Self {
-                let mut result = self.clone();
-                result.add_assign(other);
-                result
+            fn add(mut self, other: &Self) -> Self {
+                self.add_assign(other);
+                self
             }
         }
 
@@ -629,10 +628,9 @@ macro_rules! impl_Fp {
             type Output = Self;
 
             #[inline]
-            fn sub(self, other: &Self) -> Self {
-                let mut result = self.clone();
-                result.sub_assign(other);
-                result
+            fn sub(mut self, other: &Self) -> Self {
+                self.sub_assign(other);
+                self
             }
         }
 
@@ -640,10 +638,9 @@ macro_rules! impl_Fp {
             type Output = Self;
 
             #[inline]
-            fn mul(self, other: &Self) -> Self {
-                let mut result = self.clone();
-                result.mul_assign(other);
-                result
+            fn mul(mut self, other: &Self) -> Self {
+                self.mul_assign(other);
+                self
             }
         }
 
@@ -651,10 +648,9 @@ macro_rules! impl_Fp {
             type Output = Self;
 
             #[inline]
-            fn div(self, other: &Self) -> Self {
-                let mut result = self.clone();
-                result.mul_assign(&other.inverse().unwrap());
-                result
+            fn div(mut self, other: &Self) -> Self {
+                self.mul_assign(&other.inverse().unwrap());
+                self
             }
         }
 

@@ -372,8 +372,11 @@ impl<P: CubicExtParameters> FromBytes for CubicExtField<P> {
 impl<P: CubicExtParameters> Neg for CubicExtField<P> {
     type Output = Self;
     #[inline]
-    fn neg(self) -> Self {
-        Self::new(self.c0.neg(), self.c1.neg(), self.c2.neg())
+    fn neg(mut self) -> Self {
+        self.c0 = -self.c0;
+        self.c1 = -self.c1;
+        self.c2 = -self.c2;
+        self
     }
 }
 
@@ -392,10 +395,9 @@ impl<'a, P: CubicExtParameters> Add<&'a CubicExtField<P>> for CubicExtField<P> {
     type Output = Self;
 
     #[inline]
-    fn add(self, other: &Self) -> Self {
-        let mut result = self;
-        result.add_assign(other);
-        result
+    fn add(mut self, other: &Self) -> Self {
+        self.add_assign(other);
+        self
     }
 }
 
@@ -403,10 +405,9 @@ impl<'a, P: CubicExtParameters> Sub<&'a CubicExtField<P>> for CubicExtField<P> {
     type Output = Self;
 
     #[inline]
-    fn sub(self, other: &Self) -> Self {
-        let mut result = self;
-        result.sub_assign(other);
-        result
+    fn sub(mut self, other: &Self) -> Self {
+        self.sub_assign(other);
+        self
     }
 }
 
@@ -414,10 +415,9 @@ impl<'a, P: CubicExtParameters> Mul<&'a CubicExtField<P>> for CubicExtField<P> {
     type Output = Self;
 
     #[inline]
-    fn mul(self, other: &Self) -> Self {
-        let mut result = self;
-        result.mul_assign(other);
-        result
+    fn mul(mut self, other: &Self) -> Self {
+        self.mul_assign(other);
+        self
     }
 }
 
@@ -425,10 +425,9 @@ impl<'a, P: CubicExtParameters> Div<&'a CubicExtField<P>> for CubicExtField<P> {
     type Output = Self;
 
     #[inline]
-    fn div(self, other: &Self) -> Self {
-        let mut result = self;
-        result.mul_assign(&other.inverse().unwrap());
-        result
+    fn div(mut self, other: &Self) -> Self {
+        self.mul_assign(&other.inverse().unwrap());
+        self
     }
 }
 

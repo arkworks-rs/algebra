@@ -104,7 +104,6 @@ macro_rules! impl_field_square_in_place {
                 let _no_carry: bool = !(first_bit_set || all_bits_set);
 
                 if $limbs <= 6 && _no_carry {
-                    assert!($limbs <= 6);
                     ark_ff_asm::x86_64_asm_square!($limbs, (self.0).0);
                     self.reduce();
                     return self;
