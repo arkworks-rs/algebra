@@ -121,8 +121,15 @@ impl<P: Parameters> GroupAffine<P> {
             true
         } else {
             // Check that the point is on the curve
-            let y2 = self.y.square();
-            let x3b = P::add_b(&((self.x.square() * &self.x) + &P::mul_by_a(&self.x)));
+            // y2 = y^2
+            let mut y2 = self.y;
+            y2.square_in_place();
+            // x3b = x^3 + Ax + b
+            let mut x3b = self.x;
+            x3b.square_in_place();
+            x3b *= &self.x;
+            x3b += P::mul_by_a(&self.x);
+            x3b = P::add_b(&x3b);
             y2 == x3b
         }
     }
@@ -292,13 +299,22 @@ impl<P: Parameters> PartialEq for GroupProjective<P> {
         // The points (X, Y, Z) and (X', Y', Z')
         // are equal when (X * Z^2) = (X' * Z'^2)
         // and (Y * Z^3) = (Y' * Z'^3).
-        let z1z1 = self.z.square();
-        let z2z2 = other.z.square();
+        let mut z1z1 = self.z;
+        z1z1.square_in_place();
+        let mut z2z2 = other.z;
+        z2z2.square_in_place();
 
         if self.x * &z2z2 != other.x * &z1z1 {
             false
         } else {
-            self.y * &(z2z2 * &other.z) == other.y * &(z1z1 * &self.z)
+            let mut lhs = self.y;
+            lhs *= z2z2;
+            lhs *= &other.z;
+            let mut rhs = other.y;
+            rhs *= z1z1;
+            rhs *= &self.z;
+
+            lhs == rhs
         }
     }
 }
@@ -430,63 +446,98 @@ impl<P: Parameters> ProjectiveCurve for GroupProjective<P> {
 
         if P::COEFF_A.is_zero() {
             // A = X1^2
-            let mut a = self.x.square();
+            let mut a = self.x;
+            a.square_in_place();
 
             // B = Y1^2
-            let b = self.y.square();
+            let mut b = self.y;
+            b.square_in_place();
 
             // C = B^2
-            let mut c = b.square();
+            let mut c = b;
+            c.square_in_place();
 
             // D = 2*((X1+B)2-A-C)
-            let d = ((self.x + &b).square() - &a - &c).double();
+            let mut d = self.x;
+            d += &b;
+            d.square_in_place();
+            d -= &a;
+            d -= &c;
+            d.double_in_place();
 
             // E = 3*A
-            let e = a + &*a.double_in_place();
+            let mut e = a;
+            e += &*a.double_in_place();
 
             // F = E^2
-            let f = e.square();
+            let mut f = e;
+            f.square_in_place();
 
             // Z3 = 2*Y1*Z1
             self.z *= &self.y;
             self.z.double_in_place();
 
             // X3 = F-2*D
-            self.x = f - &d - &d;
+            self.x = -d;
+            self.x.double_in_place();
+            self.x += f;
 
             // Y3 = E*(D-X3)-8*C
-            self.y = (d - &self.x) * &e - &*c.double_in_place().double_in_place().double_in_place();
+            self.y = d;
+            self.y -= &self.x;
+            self.y *= e;
+            self.y -= &*c.double_in_place().double_in_place().double_in_place();
             self
         } else {
             // http://www.hyperelliptic.org/EFD/g1p/auto-shortw-jacobian-0.html#doubling-dbl-2009-l
             // XX = X1^2
-            let xx = self.x.square();
+            let mut xx = self.x;
+            xx.square_in_place();
 
             // YY = Y1^2
-            let yy = self.y.square();
+            let mut yy = self.y;
+            yy.square_in_place();
 
             // YYYY = YY^2
-            let mut yyyy = yy.square();
+            let mut yyyy = yy;
+            yyyy.square_in_place();
 
             // ZZ = Z1^2
-            let zz = self.z.square();
+            let mut zz = self.z;
+            zz.square_in_place();
 
             // S = 2*((X1+YY)^2-XX-YYYY)
-            let s = ((self.x + &yy).square() - &xx - &yyyy).double();
+            let mut s = self.x;
+            s += &yy;
+            s.square_in_place();
+            s -= &xx;
+            s -= &yyyy;
+            s.double_in_place();
 
             // M = 3*XX+a*ZZ^2
-            let m = xx + &xx + &xx + &P::mul_by_a(&zz.square());
+            let mut m = xx;
+            m.double_in_place();
+            m += xx;
+            m += &P::mul_by_a(&zz.square());
 
             // T = M^2-2*S
-            let t = m.square() - &s.double();
+            let mut t = m;
+            t.square_in_place();
+            t -= &s.double();
 
             // X3 = T
             self.x = t;
-            // Y3 = M*(S-T)-8*YYYY
-            let old_y = self.y;
-            self.y = m * &(s - &t) - &*yyyy.double_in_place().double_in_place().double_in_place();
             // Z3 = (Y1+Z1)^2-YY-ZZ
-            self.z = (old_y + &self.z).square() - &yy - &zz;
+            self.z += &self.y;
+            self.z.square_in_place();
+            self.z -= &yy;
+            self.z -= &zz;
+            // Y3 = M*(S-T)-8*YYYY
+            self.y = s;
+            self.y -= &t;
+            self.y *= m;
+            self.y -= &*yyyy.double_in_place().double_in_place().double_in_place();
+
             self
         }
     }
@@ -507,13 +558,17 @@ impl<P: Parameters> ProjectiveCurve for GroupProjective<P> {
         // Works for all curves.
 
         // Z1Z1 = Z1^2
-        let z1z1 = self.z.square();
+        let mut z1z1 = self.z;
+        z1z1.square_in_place();
 
         // U2 = X2*Z1Z1
-        let u2 = other.x * &z1z1;
+        let mut u2 = other.x;
+        u2 *= &z1z1;
 
         // S2 = Y2*Z1*Z1Z1
-        let s2 = (other.y * &self.z) * &z1z1;
+        let mut s2 = other.y;
+        s2 *= &self.z;
+        s2 *= &z1z1;
 
         if self.x == u2 && self.y == s2 {
             // The two points are equal, so we double.
@@ -522,26 +577,33 @@ impl<P: Parameters> ProjectiveCurve for GroupProjective<P> {
             // If we're adding -a and a together, self.z becomes zero as H becomes zero.
 
             // H = U2-X1
-            let h = u2 - &self.x;
+            let mut h = u2;
+            h -= &self.x;
 
             // HH = H^2
-            let hh = h.square();
+            let mut hh = h;
+            hh.square_in_place();
 
             // I = 4*HH
             let mut i = hh;
             i.double_in_place().double_in_place();
 
             // J = H*I
-            let mut j = h * &i;
+            let mut j = h;
+            j *= &i;
 
             // r = 2*(S2-Y1)
-            let r = (s2 - &self.y).double();
+            let mut r = s2;
+            r -= &self.y;
+            r.double_in_place();
 
             // V = X1*I
-            let v = self.x * &i;
+            let mut v = self.x;
+            v *= &i;
 
             // X3 = r^2 - J - 2*V
-            self.x = r.square();
+            self.x = r;
+            self.x.square_in_place();
             self.x -= &j;
             self.x -= &v;
             self.x -= &v;
@@ -549,7 +611,8 @@ impl<P: Parameters> ProjectiveCurve for GroupProjective<P> {
             // Y3 = r*(V-X3)-2*Y1*J
             j *= &self.y; // J = 2*Y1*J
             j.double_in_place();
-            self.y = v - &self.x;
+            self.y = v;
+            self.y -= &self.x;
             self.y *= &r;
             self.y -= &j;
 
@@ -602,22 +665,30 @@ impl<'a, P: Parameters> AddAssign<&'a Self> for GroupProjective<P> {
         // Works for all curves.
 
         // Z1Z1 = Z1^2
-        let z1z1 = self.z.square();
+        let mut z1z1 = self.z;
+        z1z1.square_in_place();
 
         // Z2Z2 = Z2^2
-        let z2z2 = other.z.square();
+        let mut z2z2 = other.z;
+        z2z2.square_in_place();
 
         // U1 = X1*Z2Z2
-        let u1 = self.x * &z2z2;
+        let mut u1 = self.x;
+        u1 *= &z2z2;
 
         // U2 = X2*Z1Z1
-        let u2 = other.x * &z1z1;
+        let mut u2 = other.x;
+        u2 *= &z1z1;
 
         // S1 = Y1*Z2*Z2Z2
-        let s1 = self.y * &other.z * &z2z2;
+        let mut s1 = self.y;
+        s1 *= &other.z;
+        s1 *= &z2z2;
 
         // S2 = Y2*Z1*Z1Z1
-        let s2 = other.y * &self.z * &z1z1;
+        let mut s2 = other.y;
+        s2 *= &self.z;
+        s2 *= &z1z1;
 
         if u1 == u2 && s1 == s2 {
             // The two points are equal, so we double.
@@ -626,28 +697,45 @@ impl<'a, P: Parameters> AddAssign<&'a Self> for GroupProjective<P> {
             // If we're adding -a and a together, self.z becomes zero as H becomes zero.
 
             // H = U2-U1
-            let h = u2 - &u1;
+            let mut h = u2;
+            h -= &u1;
 
             // I = (2*H)^2
-            let i = (h.double()).square();
+            let mut i = h;
+            i.double_in_place();
+            i.square_in_place();
 
             // J = H*I
-            let j = h * &i;
+            let mut j = h;
+            j *= &i;
 
             // r = 2*(S2-S1)
-            let r = (s2 - &s1).double();
+            let mut r = s2;
+            r -= &s1;
+            r.double_in_place();
 
             // V = U1*I
-            let v = u1 * &i;
+            let mut v = u1;
+            v *= &i;
 
             // X3 = r^2 - J - 2*V
-            self.x = r.square() - &j - &(v.double());
+            self.x = r;
+            self.x.square_in_place();
+            self.x -= &j;
+            self.x -= &v.double();
 
             // Y3 = r*(V - X3) - 2*S1*J
-            self.y = r * &(v - &self.x) - &*(s1 * &j).double_in_place();
+            self.y = v;
+            self.y -= &self.x;
+            self.y *= r;
+            self.y -= &*(s1 * &j).double_in_place();
 
             // Z3 = ((Z1+Z2)^2 - Z1Z1 - Z2Z2)*H
-            self.z = ((self.z + &other.z).square() - &z1z1 - &z2z2) * &h;
+            self.z += &other.z;
+            self.z.square_in_place();
+            self.z -= z1z1;
+            self.z -= z2z2;
+            self.z *= &h;
         }
     }
 }
@@ -700,13 +788,17 @@ impl<P: Parameters> From<GroupProjective<P>> for GroupAffine<P> {
         } else {
             // Z is nonzero, so it must have an inverse in a field.
             let zinv = p.z.inverse().unwrap();
-            let zinv_squared = zinv.square();
+            let mut zinv_squared = zinv;
+            zinv_squared.square_in_place();
 
             // X/Z^2
-            let x = p.x * &zinv_squared;
+            let mut x = p.x;
+            x *= &zinv_squared;
 
             // Y/Z^3
-            let y = p.y * &(zinv_squared * &zinv);
+            let mut y = p.y;
+            y *= zinv_squared;
+            y *= zinv;
 
             GroupAffine::new(x, y, false)
         }
