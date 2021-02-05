@@ -198,7 +198,10 @@ macro_rules! impl_prime_field_standard_sample {
             #[inline]
             fn sample<R: ark_std::rand::Rng + ?Sized>(&self, rng: &mut R) -> $field<P> {
                 loop {
-                    let mut tmp = $field(rng.sample(ark_std::rand::distributions::Standard), PhantomData);
+                    let mut tmp = $field(
+                        rng.sample(ark_std::rand::distributions::Standard),
+                        PhantomData,
+                    );
                     // Mask away the unused bits at the beginning.
                     tmp.0
                         .as_mut()

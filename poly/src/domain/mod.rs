@@ -9,8 +9,8 @@
 
 use ark_ff::FftField;
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
-use ark_std::{fmt, hash, vec::Vec};
 use ark_std::rand::Rng;
+use ark_std::{fmt, hash, vec::Vec};
 
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
