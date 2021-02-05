@@ -1,17 +1,16 @@
 #![allow(unused_imports)]
 use ark_ec::{models::SWModelParameters, AffineCurve, PairingEngine, ProjectiveCurve};
 use ark_ff::{One, UniformRand, Zero};
-use rand::{Rng, SeedableRng};
-use rand_xorshift::XorShiftRng;
 
 use crate::bls12_381::{g1, Fq, FqParameters, Fr, G1Affine, G1Projective};
 use ark_algebra_test_templates::{curves::*, fields::*, groups::*};
+use ark_std::rand::Rng;
 
 pub(crate) const ITERATIONS: usize = 5;
 
 #[test]
 fn test_fr() {
-    let mut rng = XorShiftRng::seed_from_u64(1231275789u64);
+    let mut rng = ark_std::test_rng();
     for _ in 0..ITERATIONS {
         let a: Fr = UniformRand::rand(&mut rng);
         let b: Fr = UniformRand::rand(&mut rng);
@@ -23,7 +22,7 @@ fn test_fr() {
 
 #[test]
 fn test_fq() {
-    let mut rng = XorShiftRng::seed_from_u64(1231275789u64);
+    let mut rng = ark_std::test_rng();
     for _ in 0..ITERATIONS {
         let a: Fq = UniformRand::rand(&mut rng);
         let b: Fq = UniformRand::rand(&mut rng);

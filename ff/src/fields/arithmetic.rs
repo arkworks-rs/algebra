@@ -192,13 +192,16 @@ macro_rules! impl_field_bigint_conv {
 
 macro_rules! impl_prime_field_standard_sample {
     ($field: ident, $params: ident) => {
-        impl<P: $params> rand::distributions::Distribution<$field<P>>
-            for rand::distributions::Standard
+        impl<P: $params> ark_std::rand::distributions::Distribution<$field<P>>
+            for ark_std::rand::distributions::Standard
         {
             #[inline]
-            fn sample<R: rand::Rng + ?Sized>(&self, rng: &mut R) -> $field<P> {
+            fn sample<R: ark_std::rand::Rng + ?Sized>(&self, rng: &mut R) -> $field<P> {
                 loop {
-                    let mut tmp = $field(rng.sample(rand::distributions::Standard), PhantomData);
+                    let mut tmp = $field(
+                        rng.sample(ark_std::rand::distributions::Standard),
+                        PhantomData,
+                    );
                     // Mask away the unused bits at the beginning.
                     tmp.0
                         .as_mut()

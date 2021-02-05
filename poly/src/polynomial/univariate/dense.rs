@@ -10,7 +10,7 @@ use ark_std::{
 };
 
 use ark_ff::{FftField, Field, Zero};
-use rand::Rng;
+use ark_std::rand::Rng;
 
 #[cfg(feature = "parallel")]
 use ark_std::cmp::max;

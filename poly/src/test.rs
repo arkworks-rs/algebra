@@ -11,7 +11,7 @@ fn fft_composition() {
     fn test_fft_composition<
         F: PrimeField,
         T: DomainCoeff<F> + UniformRand + core::fmt::Debug + Eq,
-        R: rand::Rng,
+        R: ark_std::rand::Rng,
         D: EvaluationDomain<F>,
     >(
         rng: &mut R,

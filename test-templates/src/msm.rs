@@ -1,7 +1,5 @@
 use ark_ec::{msm::VariableBaseMSM, AffineCurve, ProjectiveCurve};
 use ark_ff::{PrimeField, UniformRand, Zero};
-use rand::SeedableRng;
-use rand_xorshift::XorShiftRng;
 
 fn naive_var_base_msm<G: AffineCurve>(
     bases: &[G],
@@ -18,7 +16,7 @@ fn naive_var_base_msm<G: AffineCurve>(
 pub fn test_var_base_msm<G: AffineCurve>() {
     const SAMPLES: usize = 1 << 10;
 
-    let mut rng = XorShiftRng::seed_from_u64(234872845u64);
+    let mut rng = ark_std::test_rng();
 
     let v = (0..SAMPLES - 1)
         .map(|_| G::ScalarField::rand(&mut rng).into_repr())

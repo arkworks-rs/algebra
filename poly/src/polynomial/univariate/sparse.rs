@@ -278,9 +278,9 @@ mod tests {
     use ark_ff::{UniformRand, Zero};
     use ark_std::cmp::max;
     use ark_std::ops::Mul;
+    use ark_std::rand::Rng;
     use ark_std::test_rng;
     use ark_test_curves::bls12_381::Fr;
-    use rand::Rng;
 
     // probability of rand sparse polynomial having a particular coefficient be 0
     const ZERO_COEFF_PROBABILITY: f64 = 0.8f64;

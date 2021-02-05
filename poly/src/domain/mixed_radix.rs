@@ -408,9 +408,9 @@ mod tests {
     use crate::polynomial::Polynomial;
     use crate::{EvaluationDomain, MixedRadixEvaluationDomain};
     use ark_ff::{Field, Zero};
+    use ark_std::rand::Rng;
     use ark_std::test_rng;
     use ark_test_curves::bn384_small_two_adicity::Fq as Fr;
-    use rand::Rng;
 
     #[test]
     fn vanishing_polynomial_evaluation() {
