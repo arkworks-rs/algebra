@@ -12,7 +12,7 @@ The main features of this release are:
 - Fix in the assembly arithmetic backend
 
 ### Breaking changes
-- #20 (ark-poly) Move univariate DensePolynomial and SparsePolynomial into a 
+- #20 (ark-poly) Move univariate DensePolynomial and SparsePolynomial into a
     univariate sub-crate. Make this change by:
     find w/ regex `ark_poly::(Dense|Sparse)Polynomial`, and replace with `ark_poly::univariate::$1Polynomial`.
 - #36 (ark-ec) In Short-Weierstrass curves, include an infinity bit in `ToConstraintField`.
@@ -30,12 +30,12 @@ The main features of this release are:
 - #129 (ark-ff) Move `ark_ff::{UniformRand, test_rng}` to `ark_std::{UniformRand, test_rng}`.
     Importing these from `ark-ff` is still possible, but is deprecated and will be removed in the following release.
 - #144 (ark-poly) Add `CanonicalSerialize` and `CanonicalDeserialize` trait bounds for `Polynomial`.
-- #160 (ark-serialize, ark-ff, ark-ec) 
+- #160 (ark-serialize, ark-ff, ark-ec)
   - Remove `ConstantSerializedSize`; users should use `serialized_size*` (see next).
-  - Add `serialized_size_with_flags` method to `CanonicalSerializeWithFlags`. 
+  - Add `serialized_size_with_flags` method to `CanonicalSerializeWithFlags`.
   - Change `from_random_bytes_with_flags` to output `ark_serialize::Flags`.
   - Change signatures of `Flags::from_u8*` to output `Option`.
-  - Change `Flags::from_u8*` to be more strict about the inputs they accept: 
+  - Change `Flags::from_u8*` to be more strict about the inputs they accept:
     if the top bits of the `u8` value do *not* correspond to one of the possible outputs of `Flags::u8_bitmask`, then these methods output `None`, whereas before they output
     a default value.
   Downstream users other than `ark-curves` should not see breakage unless they rely on these methods/traits explicitly.
@@ -78,7 +78,8 @@ The main features of this release are:
 - #166 (ark-ff) Add a `to_bytes_be()` and `to_bytes_le` methods to `BigInt`.
 - #169 (ark-poly) Improve radix-2 FFTs by moving to a faster algorithm by Riad S. Wahby.
 - #171, #173, #176 (ark-poly) Apply significant further speedups to the new radix-2 FFT.
-- #188 (ark-ec) Make Short Weierstrass random sampling result in an element with unknown discrete log
+- #188 (ark-ec) Make Short Weierstrass random sampling result in an element with unknown discrete log.
+- #204 (ark-ff) Improve biginteger arithmetic with unrolling and intrinsics
 
 ### Bug fixes
 - #36 (ark-ec) In Short-Weierstrass curves, include an infinity bit in `ToConstraintField`.

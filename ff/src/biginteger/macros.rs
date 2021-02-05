@@ -13,39 +13,68 @@ macro_rules! bigint_impl {
             const NUM_LIMBS: usize = $num_limbs;
 
             #[inline]
+            #[ark_ff_asm::unroll_for_loops]
             fn add_nocarry(&mut self, other: &Self) -> bool {
                 let mut carry = 0;
 
-                for (a, b) in self.0.iter_mut().zip(other.0.iter()) {
-                    *a = adc!(*a, *b, &mut carry);
+                for i in 0..$num_limbs {
+                    #[cfg(not(use_asm))]
+                    {
+                        self.0[i] = adc!(self.0[i], other.0[i], &mut carry);
+                    }
+
+                    #[cfg(use_asm)]
+                    #[allow(unsafe_code)]
+                    unsafe {
+                        carry = core::arch::x86_64::_addcarryx_u64(carry, self.0[i], other.0[i], &mut self.0[i]);
+                    }
                 }
 
                 carry != 0
             }
 
             #[inline]
+            #[ark_ff_asm::unroll_for_loops]
             fn sub_noborrow(&mut self, other: &Self) -> bool {
                 let mut borrow = 0;
 
-                for (a, b) in self.0.iter_mut().zip(other.0.iter()) {
-                    *a = sbb!(*a, *b, &mut borrow);
+                for i in 0..$num_limbs {
+                    #[cfg(not(use_asm))]
+                    {
+                        self.0[i] = sbb!(self.0[i], other.0[i], &mut borrow);
+                    }
+
+                    #[cfg(use_asm)]
+                    #[allow(unsafe_code)]
+                    unsafe {
+                        borrow = core::arch::x86_64::_subborrow_u64(borrow, self.0[i], other.0[i], &mut self.0[i]);
+                    }
                 }
 
                 borrow != 0
             }
 
             #[inline]
+            #[ark_ff_asm::unroll_for_loops]
             fn mul2(&mut self) {
-                let mut last = 0;
-                for i in &mut self.0 {
-                    let tmp = *i >> 63;
-                    *i <<= 1;
-                    *i |= last;
-                    last = tmp;
+                let mut carry = 0;
+
+                for i in 0..$num_limbs {
+                    #[cfg(not(use_asm))]
+                    {
+                        self.0[i] = adc!(self.0[i], self.0[i], &mut carry);
+                    }
+
+                    #[cfg(use_asm)]
+                    #[allow(unsafe_code, unused_assignments)]
+                    unsafe {
+                        carry = core::arch::x86_64::_addcarryx_u64(carry, self.0[i], self.0[i], &mut self.0[i]);
+                    }
                 }
             }
 
             #[inline]
+            #[ark_ff_asm::unroll_for_loops]
             fn muln(&mut self, mut n: u32) {
                 if n >= 64 * $num_limbs {
                     *self = Self::from(0);
@@ -54,20 +83,14 @@ macro_rules! bigint_impl {
 
                 while n >= 64 {
                     let mut t = 0;
-                    for i in &mut self.0 {
-                        core::mem::swap(&mut t, i);
+                    for i in 0..$num_limbs {
+                        core::mem::swap(&mut t, &mut self.0[i]);
                     }
                     n -= 64;
                 }
 
                 if n > 0 {
-                    let mut t = 0;
-                    for i in &mut self.0 {
-                        let t2 = *i >> (64 - n);
-                        *i <<= n;
-                        *i |= t;
-                        t = t2;
-                    }
+                    self.mul2();
                 }
             }
 
@@ -119,8 +142,14 @@ macro_rules! bigint_impl {
             }
 
             #[inline]
+            #[ark_ff_asm::unroll_for_loops]
             fn is_zero(&self) -> bool {
-                self.0.iter().all(|&e| e == 0)
+                for i in 0..$num_limbs {
+                    if self.0[i] != 0  {
+                        return false;
+                    }
+                }
+                true
             }
 
             #[inline]
@@ -270,8 +299,11 @@ macro_rules! bigint_impl {
 
         impl Ord for $name {
             #[inline]
+            #[ark_ff_asm::unroll_for_loops]
             fn cmp(&self, other: &Self) -> ::core::cmp::Ordering {
-                for (a, b) in self.0.iter().rev().zip(other.0.iter().rev()) {
+                for i in 0..$num_limbs {
+                    let a = &self.0[$num_limbs - i - 1];
+                    let b = &other.0[$num_limbs - i - 1];
                     if a < b {
                         return core::cmp::Ordering::Less;
                     } else if a > b {

@@ -233,7 +233,7 @@ macro_rules! impl_Fp {
         }
 
         impl<P: $FpParameters> $Fp<P> {
-            #[inline]
+            #[inline(always)]
             pub(crate) fn is_valid(&self) -> bool {
                 self.0 < P::MODULUS
             }
@@ -605,7 +605,7 @@ macro_rules! impl_Fp {
             #[must_use]
             fn neg(self) -> Self {
                 if !self.is_zero() {
-                    let mut tmp = P::MODULUS.clone();
+                    let mut tmp = P::MODULUS;
                     tmp.sub_noborrow(&self.0);
                     $Fp::<P>(tmp, PhantomData)
                 } else {
