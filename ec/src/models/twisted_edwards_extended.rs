@@ -14,7 +14,7 @@ use ark_std::{
     vec::Vec,
 };
 use num_traits::{One, Zero};
-use rand::{
+use ark_std::rand::{
     distributions::{Distribution, Standard},
     Rng,
 };

@@ -21,7 +21,7 @@ use crate::{models::SWModelParameters as Parameters, AffineCurve, ProjectiveCurv
 use num_traits::{One, Zero};
 use zeroize::Zeroize;
 
-use rand::{
+use ark_std::rand::{
     distributions::{Distribution, Standard},
     Rng,
 };

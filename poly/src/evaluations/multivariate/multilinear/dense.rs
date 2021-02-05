@@ -8,7 +8,7 @@ use ark_std::fmt::Formatter;
 use ark_std::ops::{Add, AddAssign, Index, Neg, Sub, SubAssign};
 use ark_std::slice::{Iter, IterMut};
 use ark_std::vec::Vec;
-use rand::Rng;
+use ark_std::rand::Rng;
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
 

@@ -7,7 +7,7 @@ use ark_std::{
     ops::{Add, AddAssign, Neg, SubAssign},
     vec::Vec,
 };
-use rand::Rng;
+use ark_std::rand::Rng;
 
 pub mod multivariate;
 pub mod univariate;

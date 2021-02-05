@@ -216,7 +216,7 @@ mod tests {
     use ark_ff::{FftField, Field, One, UniformRand, Zero};
     use ark_std::test_rng;
     use ark_test_curves::bls12_381::Fr;
-    use rand::Rng;
+    use ark_std::rand::Rng;
 
     #[test]
     fn vanishing_polynomial_evaluation() {

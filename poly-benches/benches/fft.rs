@@ -1,4 +1,4 @@
-use rand;
+use ark_std::rand;
 
 extern crate criterion;
 

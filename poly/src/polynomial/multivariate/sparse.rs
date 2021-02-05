@@ -12,7 +12,7 @@ use ark_std::{
     ops::{Add, AddAssign, Neg, Sub, SubAssign},
     vec::Vec,
 };
-use rand::Rng;
+use ark_std::rand::Rng;
 
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;

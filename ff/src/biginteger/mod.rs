@@ -9,7 +9,7 @@ use ark_std::{
     io::{Read, Result as IoResult, Write},
     vec::Vec,
 };
-use rand::{
+use ark_std::rand::{
     distributions::{Distribution, Standard},
     Rng,
 };

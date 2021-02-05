@@ -39,7 +39,7 @@ fn setup_bench<F: Field>(c: &mut Criterion, name: &str, bench_fn: fn(&mut Benche
 
 fn bench_poly_evaluate<F: Field>(b: &mut Bencher, degree: &usize) {
     // Per benchmark setup
-    let mut rng = &mut rand::thread_rng();
+    let mut rng = &mut ark_std::test_rng();
     let poly = DensePolynomial::<F>::rand(*degree, &mut rng);
     b.iter(|| {
         // Per benchmark iteration
@@ -50,7 +50,7 @@ fn bench_poly_evaluate<F: Field>(b: &mut Bencher, degree: &usize) {
 
 fn bench_poly_add<F: Field>(b: &mut Bencher, degree: &usize) {
     // Per benchmark setup
-    let mut rng = &mut rand::thread_rng();
+    let mut rng = &mut ark_std::test_rng();
     let poly_one = DensePolynomial::<F>::rand(*degree, &mut rng);
     let poly_two = DensePolynomial::<F>::rand(*degree, &mut rng);
     b.iter(|| {
@@ -61,7 +61,7 @@ fn bench_poly_add<F: Field>(b: &mut Bencher, degree: &usize) {
 
 fn bench_poly_add_assign<F: Field>(b: &mut Bencher, degree: &usize) {
     // Per benchmark setup
-    let mut rng = &mut rand::thread_rng();
+    let mut rng = &mut ark_std::test_rng();
     let mut poly_one = DensePolynomial::<F>::rand(*degree, &mut rng);
     let poly_two = DensePolynomial::<F>::rand(*degree, &mut rng);
     b.iter(|| {
