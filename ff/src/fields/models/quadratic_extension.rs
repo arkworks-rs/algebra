@@ -63,6 +63,18 @@ pub trait QuadExtParameters: 'static + Send + Sync + Sized {
         *x + Self::mul_base_field_by_nonresidue(y)
     }
 
+    /// A specializable method for computing x + mul_base_field_by_nonresidue(y) + y
+    /// This allows for optimizations when the non-residue is not -1.
+    #[inline(always)]
+    fn add_and_mul_base_field_by_nonresidue_plus_one(
+        x: &Self::BaseField,
+        y: &Self::BaseField,
+    ) -> Self::BaseField {
+        let mut tmp = *x;
+        tmp += y;
+        Self::add_and_mul_base_field_by_nonresidue(&tmp, &y)
+    }
+
     /// A specializable method for computing x - mul_base_field_by_nonresidue(y)
     /// This allows for optimizations when the non-residue is
     /// canonically negative in the field.
@@ -271,18 +283,19 @@ impl<P: QuadExtParameters> Field for QuadExtField<P> {
             // v2 = c0 * c1
             let v2 = self.c0 * &self.c1;
 
-            // v0 = (v0 * v3) + v2
-            // v0 = (c0 - c1) * (c0 - beta*c1) + c0 * c1
-            // v0 = (c0^2 - 2 * beta * c1 - c0 * c1 + beta * c1^2) + c0 * c1
-            // v0 = c0^2 - 2 * beta * c1 + beta * c1^2
+            // v0 = (v0 * v3)
+            // v0 = (c0 - c1) * (c0 - beta*c1)
+            // v0 = (c0^2 - 2 * beta * c1 - c0 * c1 + beta * c1^2)
             v0 *= &v3;
-            v0 += &v2;
 
             // result.c1 = 2 * c0 * c1
             self.c1 = v2.double();
-            // result.c1 = v0 + beta * v2 = c0^2 + beta * c1^2
+            // result.c0 = v0 + beta * v2 = c0^2 + beta * c1^2 + v2
+            // result.c0 = v0 + beta * v2 = c0^2 - c0 * c1 + beta * c1^2 + c0 * c1
+            // result.c0 = v0 + beta * v2 = c0^2 + beta * c1^2
+
             // TODO: Implement a routine for v0 + v2 * (beta + 1), and remove the v0 += &v2 line.
-            self.c0 = P::add_and_mul_base_field_by_nonresidue(&v0, &v2);
+            self.c0 = P::add_and_mul_base_field_by_nonresidue_plus_one(&v0, &v2);
 
             self
         }
