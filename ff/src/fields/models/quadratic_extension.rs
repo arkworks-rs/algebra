@@ -238,9 +238,16 @@ impl<P: QuadExtParameters> Field for QuadExtField<P> {
     }
 
     fn square_in_place(&mut self) -> &mut Self {
+        // (c0, c1)^2 = (c0 + x*c1)^2
+        //            = c0^2 + 2 c0 c1 x + c1^2 x^2
+        //            = c0^2 + beta * c1^2 + 2 c0 * c1 * x
+        //            = (c0^2 + beta * c1^2, 2 c0 * c1)
+        // Where beta is P::NONRESIDUE.
+        // When beta = -1, we can re-use intermediate additions to improve performance.
         if P::NONRESIDUE == -P::BaseField::one() {
-            // Optimization when the non-residue is -1, where we can remove 2 intermediate additions
-            // and use one fewer intermediate
+            // When the non-residue is -1, we save 2 intermediate additions,
+            // and use one fewer intermediate variable
+
             let c0_copy = self.c0;
             // v0 = c0 - c1
             let v0 = self.c0 - &self.c1;
@@ -249,10 +256,10 @@ impl<P: QuadExtParameters> Field for QuadExtField<P> {
             // result.c0 = (c0 - c1) + 2c1 = c0 + c1
             self.c0 = v0 + &self.c1;
             // result.c0 *= (c0 - c1)
-            // result.c0 = (c0 + c1) * (c0 - c1) = c0^2 - c1^2
+            // result.c0 = (c0 - c1) * (c0 + c1) = c0^2 - c1^2
             self.c0 *= v0;
             // result.c1 *= c0
-            // result.c1 = 2 * c1 * c0
+            // result.c1 = (2 * c1) * c0
             self.c1 *= c0_copy;
 
             self
@@ -265,10 +272,16 @@ impl<P: QuadExtParameters> Field for QuadExtField<P> {
             let v2 = self.c0 * &self.c1;
 
             // v0 = (v0 * v3) + v2
+            // v0 = (c0 - c1) * (c0 - beta*c1) + c0 * c1
+            // v0 = (c0^2 - 2 * beta * c1 - c0 * c1 + beta * c1^2) + c0 * c1
+            // v0 = c0^2 - 2 * beta * c1 + beta * c1^2
             v0 *= &v3;
             v0 += &v2;
 
+            // result.c1 = 2 * c0 * c1
             self.c1 = v2.double();
+            // result.c1 = v0 + beta * v2 = c0^2 + beta * c1^2
+            // TODO: Implement a routine for v0 + v2 * (beta + 1), and remove the v0 += &v2 line.
             self.c0 = P::add_and_mul_base_field_by_nonresidue(&v0, &v2);
 
             self
