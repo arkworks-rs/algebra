@@ -21,12 +21,8 @@ macro_rules! bigint_impl {
                     #[cfg(all(target_arch = "x86_64", feature = "asm"))]
                     #[allow(unsafe_code)]
                     unsafe {
-                        carry = core::arch::x86_64::_addcarry_u64(
-                            carry,
-                            self.0[i],
-                            other.0[i],
-                            &mut self.0[i],
-                        )
+                        use core::arch::x86_64::_addcarry_u64;
+                        carry = _addcarry_u64(carry, self.0[i], other.0[i], &mut self.0[i])
                     };
 
                     #[cfg(not(all(target_arch = "x86_64", feature = "asm")))]
@@ -47,12 +43,8 @@ macro_rules! bigint_impl {
                     #[cfg(all(target_arch = "x86_64", feature = "asm"))]
                     #[allow(unsafe_code)]
                     unsafe {
-                        borrow = core::arch::x86_64::_subborrow_u64(
-                            borrow,
-                            self.0[i],
-                            other.0[i],
-                            &mut self.0[i],
-                        )
+                        use core::arch::x86_64::_subborrow_u64;
+                        borrow = _subborrow_u64(borrow, self.0[i], other.0[i], &mut self.0[i])
                     };
 
                     #[cfg(not(all(target_arch = "x86_64", feature = "asm")))]
@@ -75,24 +67,22 @@ macro_rules! bigint_impl {
 
                     for i in 0..$num_limbs {
                         unsafe {
-                            carry = core::arch::x86_64::_addcarry_u64(
-                                carry,
-                                self.0[i],
-                                self.0[i],
-                                &mut self.0[i],
-                            );
-                        }
+                            use core::arch::x86_64::_addcarry_u64;
+                            carry = _addcarry_u64(carry, self.0[i], self.0[i], &mut self.0[i])
+                        };
                     }
-                    return;
                 }
 
-                let mut last = 0;
-                for i in 0..$num_limbs {
-                    let a = &mut self.0[i];
-                    let tmp = *a >> 63;
-                    *a <<= 1;
-                    *a |= last;
-                    last = tmp;
+                #[cfg(not(all(target_arch = "x86_64", feature = "asm")))]
+                {
+                    let mut last = 0;
+                    for i in 0..$num_limbs {
+                        let a = &mut self.0[i];
+                        let tmp = *a >> 63;
+                        *a <<= 1;
+                        *a |= last;
+                        last = tmp;
+                    }
                 }
             }
 
