@@ -544,10 +544,9 @@ ark_ff::impl_additive_ops_from_ref!(GroupProjective, Parameters);
 
 impl<'a, P: Parameters> Add<&'a Self> for GroupProjective<P> {
     type Output = Self;
-    fn add(self, other: &'a Self) -> Self {
-        let mut copy = self;
-        copy += other;
-        copy
+    fn add(mut self, other: &'a Self) -> Self {
+        self += other;
+        self
     }
 }
 
@@ -597,10 +596,9 @@ impl<'a, P: Parameters> AddAssign<&'a Self> for GroupProjective<P> {
 
 impl<'a, P: Parameters> Sub<&'a Self> for GroupProjective<P> {
     type Output = Self;
-    fn sub(self, other: &'a Self) -> Self {
-        let mut copy = self;
-        copy -= other;
-        copy
+    fn sub(mut self, other: &'a Self) -> Self {
+        self -= other;
+        self
     }
 }
 
