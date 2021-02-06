@@ -83,6 +83,7 @@ The main features of this release are:
 - #188 (ark-ec) Make Short Weierstrass random sampling result in an element with unknown discrete log
 - #190 (ark-ec) Add curve cycle trait and extended pairing cycle trait for all types of ec cycles.
 - #201 (ark-ec, ark-ff, ark-test-curves, ark-test-templates) Remove the dependency on `rand_xorshift`
+- #205 (ark-ec, ark-ff) Unroll loops and conditionally use intrinsics in `biginteger` arithmetic, and reduce copies in `ff` and `ec` arithmetic.
 
 ### Bug fixes
 - #36 (ark-ec) In Short-Weierstrass curves, include an infinity bit in `ToConstraintField`.

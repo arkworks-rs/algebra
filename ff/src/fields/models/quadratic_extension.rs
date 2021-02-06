@@ -68,7 +68,7 @@ pub trait QuadExtParameters: 'static + Send + Sync + Sized {
 
         for &value in naf.iter().rev() {
             if found_nonzero {
-                res = res.square();
+                res.square_in_place();
             }
 
             if value != 0 {
@@ -420,8 +420,10 @@ impl<P: QuadExtParameters> Neg for QuadExtField<P> {
     type Output = Self;
     #[inline]
     #[must_use]
-    fn neg(self) -> Self {
-        Self::new(-self.c0, -self.c1)
+    fn neg(mut self) -> Self {
+        self.c0 = -self.c0;
+        self.c1 = -self.c1;
+        self
     }
 }
 
@@ -436,10 +438,9 @@ impl<'a, P: QuadExtParameters> Add<&'a QuadExtField<P>> for QuadExtField<P> {
     type Output = Self;
 
     #[inline]
-    fn add(self, other: &Self) -> Self {
-        let mut result = self;
-        result.add_assign(other);
-        result
+    fn add(mut self, other: &Self) -> Self {
+        self.add_assign(other);
+        self
     }
 }
 
@@ -447,10 +448,9 @@ impl<'a, P: QuadExtParameters> Sub<&'a QuadExtField<P>> for QuadExtField<P> {
     type Output = Self;
 
     #[inline]
-    fn sub(self, other: &Self) -> Self {
-        let mut result = self;
-        result.sub_assign(other);
-        result
+    fn sub(mut self, other: &Self) -> Self {
+        self.sub_assign(other);
+        self
     }
 }
 
@@ -458,10 +458,9 @@ impl<'a, P: QuadExtParameters> Mul<&'a QuadExtField<P>> for QuadExtField<P> {
     type Output = Self;
 
     #[inline]
-    fn mul(self, other: &Self) -> Self {
-        let mut result = self;
-        result.mul_assign(other);
-        result
+    fn mul(mut self, other: &Self) -> Self {
+        self.mul_assign(other);
+        self
     }
 }
 
@@ -469,26 +468,25 @@ impl<'a, P: QuadExtParameters> Div<&'a QuadExtField<P>> for QuadExtField<P> {
     type Output = Self;
 
     #[inline]
-    fn div(self, other: &Self) -> Self {
-        let mut result = self;
-        result.mul_assign(&other.inverse().unwrap());
-        result
+    fn div(mut self, other: &Self) -> Self {
+        self.mul_assign(&other.inverse().unwrap());
+        self
     }
 }
 
 impl<'a, P: QuadExtParameters> AddAssign<&'a Self> for QuadExtField<P> {
     #[inline]
     fn add_assign(&mut self, other: &Self) {
-        self.c0.add_assign(&other.c0);
-        self.c1.add_assign(&other.c1);
+        self.c0 += &other.c0;
+        self.c1 += &other.c1;
     }
 }
 
 impl<'a, P: QuadExtParameters> SubAssign<&'a Self> for QuadExtField<P> {
     #[inline]
     fn sub_assign(&mut self, other: &Self) {
-        self.c0.sub_assign(&other.c0);
-        self.c1.sub_assign(&other.c1);
+        self.c0 -= &other.c0;
+        self.c1 -= &other.c1;
     }
 }
 
