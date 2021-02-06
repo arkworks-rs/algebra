@@ -122,7 +122,7 @@ impl<P: Bls12Parameters> PairingEngine for Bls12<P> {
 
     fn final_exponentiation(f: &Self::Fqk) -> Option<Self::Fqk> {
         // Computing the final exponentation following
-        // https://eprint.iacr.org/2020/875 
+        // https://eprint.iacr.org/2020/875
         // Adapted from the implementation in https://github.com/ConsenSys/gurvy/pull/29
 
         // f1 = r.conjugate() = f^(p^6)
