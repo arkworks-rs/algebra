@@ -12,15 +12,20 @@ use num_traits::One;
 
 use core::marker::PhantomData;
 
+/// A particular BLS12 group can have G2 being either a multiplicative or a divisive twist.
 pub enum TwistType {
     M,
     D,
 }
 
 pub trait Bls12Parameters: 'static {
+    /// Parameterizes the BLS12 family.
     const X: &'static [u64];
+    /// Is `Self::X` negative?
     const X_IS_NEGATIVE: bool;
+    /// What kind of twist is this?
     const TWIST_TYPE: TwistType;
+
     type Fp: PrimeField + SquareRootField + Into<<Self::Fp as PrimeField>::BigInt>;
     type Fp2Params: Fp2Parameters<Fp = Self::Fp>;
     type Fp6Params: Fp6Parameters<Fp2Params = Self::Fp2Params>;
@@ -65,6 +70,7 @@ impl<P: Bls12Parameters> Bls12<P> {
         }
     }
 
+    // Exponentiates `f` by `Self::X`.
     fn exp_by_x(mut f: Fp12<P::Fp12Params>) -> Fp12<P::Fp12Params> {
         f = f.cyclotomic_exp(P::X);
         if P::X_IS_NEGATIVE {
