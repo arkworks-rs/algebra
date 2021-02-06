@@ -285,16 +285,15 @@ impl<P: QuadExtParameters> Field for QuadExtField<P> {
 
             // v0 = (v0 * v3)
             // v0 = (c0 - c1) * (c0 - beta*c1)
-            // v0 = (c0^2 - 2 * beta * c1 - c0 * c1 + beta * c1^2)
+            // v0 = c0^2 - beta * c0 * c1 - c0 * c1 + beta * c1^2
             v0 *= &v3;
 
             // result.c1 = 2 * c0 * c1
             self.c1 = v2.double();
-            // result.c0 = v0 + beta * v2 = c0^2 + beta * c1^2 + v2
-            // result.c0 = v0 + beta * v2 = c0^2 - c0 * c1 + beta * c1^2 + c0 * c1
-            // result.c0 = v0 + beta * v2 = c0^2 + beta * c1^2
-
-            // TODO: Implement a routine for v0 + v2 * (beta + 1), and remove the v0 += &v2 line.
+            // result.c0 = (v0) + ((beta + 1) * v2)
+            // result.c0 = (c0^2 - beta * c0 * c1 - c0 * c1 + beta * c1^2) + ((beta + 1) c0 * c1)
+            // result.c0 = (c0^2 - beta * c0 * c1 + beta * c1^2) + (beta * c0 * c1)
+            // result.c0 = c0^2 + beta * c1^2
             self.c0 = P::add_and_mul_base_field_by_nonresidue_plus_one(&v0, &v2);
 
             self
