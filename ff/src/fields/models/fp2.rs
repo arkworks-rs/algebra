@@ -12,9 +12,35 @@ pub trait Fp2Parameters: 'static + Send + Sync {
     /// Coefficients for the Frobenius automorphism.
     const FROBENIUS_COEFF_FP2_C1: &'static [Self::Fp];
 
+    /// Return `fe * Self::NONRESIDUE`.
     #[inline(always)]
     fn mul_fp_by_nonresidue(fe: &Self::Fp) -> Self::Fp {
         Self::NONRESIDUE * fe
+    }
+
+    /// A specializable method for computing `x + mul_base_field_by_nonresidue(y)`
+    /// This allows for optimizations when the non-residue is
+    /// canonically negative in the field.
+    #[inline(always)]
+    fn add_and_mul_fp_by_nonresidue(x: &Self::Fp, y: &Self::Fp) -> Self::Fp {
+        *x + Self::mul_fp_by_nonresidue(y)
+    }
+
+    /// A specializable method for computing `x + y + mul_base_field_by_nonresidue(y)`
+    /// This allows for optimizations when the non-residue is not `-1`.
+    #[inline(always)]
+    fn add_and_mul_fp_by_nonresidue_plus_one(x: &Self::Fp, y: &Self::Fp) -> Self::Fp {
+        let mut tmp = *x;
+        tmp += y;
+        Self::add_and_mul_fp_by_nonresidue(&tmp, &y)
+    }
+
+    /// A specializable method for computing `x - mul_base_field_by_nonresidue(y)`
+    /// This allows for optimizations when the non-residue is
+    /// canonically negative in the field.
+    #[inline(always)]
+    fn sub_and_mul_fp_by_nonresidue(x: &Self::Fp, y: &Self::Fp) -> Self::Fp {
+        *x - Self::mul_fp_by_nonresidue(y)
     }
 }
 
@@ -34,6 +60,30 @@ impl<P: Fp2Parameters> QuadExtParameters for Fp2ParamsWrapper<P> {
     #[inline(always)]
     fn mul_base_field_by_nonresidue(fe: &Self::BaseField) -> Self::BaseField {
         P::mul_fp_by_nonresidue(fe)
+    }
+
+    #[inline(always)]
+    fn add_and_mul_base_field_by_nonresidue(
+        x: &Self::BaseField,
+        y: &Self::BaseField,
+    ) -> Self::BaseField {
+        P::add_and_mul_fp_by_nonresidue(x, y)
+    }
+
+    #[inline(always)]
+    fn add_and_mul_base_field_by_nonresidue_plus_one(
+        x: &Self::BaseField,
+        y: &Self::BaseField,
+    ) -> Self::BaseField {
+        P::add_and_mul_fp_by_nonresidue_plus_one(x, y)
+    }
+
+    #[inline(always)]
+    fn sub_and_mul_base_field_by_nonresidue(
+        x: &Self::BaseField,
+        y: &Self::BaseField,
+    ) -> Self::BaseField {
+        P::sub_and_mul_fp_by_nonresidue(x, y)
     }
 
     fn mul_base_field_by_frob_coeff(fe: &mut Self::BaseField, power: usize) {
