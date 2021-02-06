@@ -25,7 +25,7 @@ pub trait Fp2Parameters: 'static + Send + Sync {
     fn add_and_mul_fp_by_nonresidue(x: &Self::Fp, y: &Self::Fp) -> Self::Fp {
         *x + Self::mul_fp_by_nonresidue(y)
     }
-    
+
     /// A specializable method for computing `x + y + mul_base_field_by_nonresidue(y)`
     /// This allows for optimizations when the non-residue is not `-1`.
     #[inline(always)]
