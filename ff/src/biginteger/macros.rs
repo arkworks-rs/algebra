@@ -12,13 +12,14 @@ macro_rules! bigint_impl {
         impl BigInteger for $name {
             const NUM_LIMBS: usize = $num_limbs;
 
+            #[inline]
             #[ark_ff_asm::unroll_for_loops]
             fn add_nocarry(&mut self, other: &Self) -> bool {
                 let mut carry = 0;
 
                 for i in 0..$num_limbs {
                     #[cfg(all(target_arch = "x86_64", feature = "asm"))]
-                    #[cfg_attr(all(target_arch = "x86_64", feature = "asm"), allow(unsafe_code))]
+                    #[allow(unsafe_code)]
                     unsafe {
                         carry = core::arch::x86_64::_addcarry_u64(
                             carry,
@@ -28,7 +29,7 @@ macro_rules! bigint_impl {
                         )
                     };
 
-                    #[cfg(not(feature = "asm"))]
+                    #[cfg(not(all(target_arch = "x86_64", feature = "asm")))]
                     {
                         self.0[i] = adc!(self.0[i], other.0[i], &mut carry);
                     }
@@ -37,13 +38,14 @@ macro_rules! bigint_impl {
                 carry != 0
             }
 
+            #[inline]
             #[ark_ff_asm::unroll_for_loops]
             fn sub_noborrow(&mut self, other: &Self) -> bool {
                 let mut borrow = 0;
 
                 for i in 0..$num_limbs {
                     #[cfg(all(target_arch = "x86_64", feature = "asm"))]
-                    #[cfg_attr(all(target_arch = "x86_64", feature = "asm"), allow(unsafe_code))]
+                    #[allow(unsafe_code)]
                     unsafe {
                         borrow = core::arch::x86_64::_subborrow_u64(
                             borrow,
@@ -53,7 +55,7 @@ macro_rules! bigint_impl {
                         )
                     };
 
-                    #[cfg(not(feature = "asm"))]
+                    #[cfg(not(all(target_arch = "x86_64", feature = "asm")))]
                     {
                         self.0[i] = sbb!(self.0[i], other.0[i], &mut borrow);
                     }
@@ -66,6 +68,24 @@ macro_rules! bigint_impl {
             #[ark_ff_asm::unroll_for_loops]
             #[allow(unused)]
             fn mul2(&mut self) {
+                #[cfg(all(target_arch = "x86_64", feature = "asm"))]
+                #[allow(unsafe_code)]
+                {
+                    let mut carry = 0;
+
+                    for i in 0..$num_limbs {
+                        unsafe {
+                            carry = core::arch::x86_64::_addcarry_u64(
+                                carry,
+                                self.0[i],
+                                self.0[i],
+                                &mut self.0[i],
+                            );
+                        }
+                    }
+                    return;
+                }
+
                 let mut last = 0;
                 for i in 0..$num_limbs {
                     let a = &mut self.0[i];
@@ -76,6 +96,7 @@ macro_rules! bigint_impl {
                 }
             }
 
+            #[inline]
             #[ark_ff_asm::unroll_for_loops]
             fn muln(&mut self, mut n: u32) {
                 if n >= 64 * $num_limbs {
@@ -118,6 +139,7 @@ macro_rules! bigint_impl {
                 }
             }
 
+            #[inline]
             #[ark_ff_asm::unroll_for_loops]
             fn divn(&mut self, mut n: u32) {
                 if n >= 64 * $num_limbs {
@@ -158,7 +180,12 @@ macro_rules! bigint_impl {
 
             #[inline]
             fn is_zero(&self) -> bool {
-                self.0.iter().all(|&e| e == 0)
+                for i in 0..$num_limbs {
+                    if self.0[i] != 0 {
+                        return false;
+                    }
+                }
+                true
             }
 
             #[inline]

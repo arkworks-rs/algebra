@@ -88,7 +88,7 @@ pub fn x86_64_asm_mul(input: TokenStream) -> TokenStream {
         let inner_ts: Expr = syn::parse_str(&impl_block).unwrap();
         let ts = quote::quote! {
             let a = &mut #a;
-            let b = #b;
+            let b = &#b;
             #inner_ts
         };
         ts.into()
@@ -290,7 +290,7 @@ fn generate_impl(num_limbs: usize, is_mul: bool) -> String {
     let mut ctx = Context::new();
     ctx.add_declaration("a", "r", "a");
     if is_mul {
-        ctx.add_declaration("b", "r", "&b");
+        ctx.add_declaration("b", "r", "b");
     }
     ctx.add_declaration("modulus", "r", "&P::MODULUS.0");
     ctx.add_declaration("0", "i", "0u64");
