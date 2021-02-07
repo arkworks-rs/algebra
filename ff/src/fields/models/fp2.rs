@@ -1,5 +1,5 @@
 use super::quadratic_extension::*;
-use crate::{fields::PrimeField, Field};
+use crate::fields::PrimeField;
 use core::marker::PhantomData;
 use num_traits::Zero;
 
@@ -8,7 +8,7 @@ pub trait Fp2Parameters: 'static + Send + Sync {
 
     const NONRESIDUE: Self::Fp;
 
-    const NONRESIDUE_I64: Option<i64> = None;
+    const NONRESIDUE_SMALL: Option<i8> = None;
 
     const QUADRATIC_NONRESIDUE: (Self::Fp, Self::Fp);
 
@@ -18,6 +18,9 @@ pub trait Fp2Parameters: 'static + Send + Sync {
     /// Return `fe * Self::NONRESIDUE`.
     #[inline(always)]
     fn mul_fp_by_nonresidue(fe: &Self::Fp) -> Self::Fp {
+        if let Some(i) = Self::NONRESIDUE_SMALL {
+            return fe.mul_by_i8(i);
+        }
         Self::NONRESIDUE * fe
     }
 }
@@ -33,7 +36,7 @@ impl<P: Fp2Parameters> QuadExtParameters for Fp2ParamsWrapper<P> {
 
     const NONRESIDUE: Self::BaseField = P::NONRESIDUE;
 
-    const NONRESIDUE_I64: Option<i64> = P::NONRESIDUE_I64;
+    const NONRESIDUE_SMALL: Option<i8> = P::NONRESIDUE_SMALL;
 
     const FROBENIUS_COEFF_C1: &'static [Self::FrobCoeff] = P::FROBENIUS_COEFF_FP2_C1;
 
@@ -48,7 +51,7 @@ impl<P: Fp2Parameters> QuadExtParameters for Fp2ParamsWrapper<P> {
         fe: &Self::BaseField,
         mode: MulNonResidueMode,
     ) -> Self::BaseField {
-        if let Some(mut i) = Self::NONRESIDUE_I64 {
+        if let Some(mut i) = Self::NONRESIDUE_SMALL {
             if mode == MulNonResidueMode::PlusAddOne {
                 i += 1;
             }
@@ -58,19 +61,9 @@ impl<P: Fp2Parameters> QuadExtParameters for Fp2ParamsWrapper<P> {
                 }
                 let neg = mode == MulNonResidueMode::Minus;
                 let add = i >= 0 && !neg || i < 0 && neg;
-                let i = i.abs() as u64;
 
-                let mut res = *fe;
+                let res = fe.mul_by_i8(i.abs());
 
-                for j in 1..5 {
-                    if i >= 1 << (5 - j) {
-                        res.double_in_place();
-                        // if the next bit is 1
-                        if (i >> (4 - j)) % 2 == 1 {
-                            res += fe;
-                        }
-                    }
-                }
                 if add {
                     return *other + res;
                 } else {

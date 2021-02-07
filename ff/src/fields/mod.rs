@@ -339,6 +339,33 @@ pub trait PrimeField:
     type Params: FpParameters<BigInt = Self::BigInt>;
     type BigInt: BigInteger;
 
+    #[inline(always)]
+    fn mul_by_i8(mut self, i: i8) -> Self {
+        self.mul_assign_by_i8(i);
+        self
+    }
+
+    #[inline(always)]
+    #[ark_ff_asm::unroll_for_loops]
+    fn mul_assign_by_i8(&mut self, i: i8) {
+        if i < 0 {
+            *self = self.neg();
+        }
+        let i = i.abs();
+
+        let tmp = *self;
+
+        for j in 1..7 {
+            if i >= 1 << (7 - j) {
+                self.double_in_place();
+                // if the next bit is 1
+                if (i >> (6 - j)) % 2 == 1 {
+                    *self += tmp;
+                }
+            }
+        }
+    }
+
     /// Returns a prime field element from its underlying representation.
     fn from_repr(repr: Self::BigInt) -> Option<Self>;
 

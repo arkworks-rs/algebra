@@ -7,6 +7,8 @@ pub trait Fp3Parameters: 'static + Send + Sync {
 
     const NONRESIDUE: Self::Fp;
 
+    const NONRESIDUE_SMALL: Option<i8> = None;
+
     const FROBENIUS_COEFF_FP3_C1: &'static [Self::Fp];
     const FROBENIUS_COEFF_FP3_C2: &'static [Self::Fp];
 
@@ -18,6 +20,9 @@ pub trait Fp3Parameters: 'static + Send + Sync {
 
     #[inline(always)]
     fn mul_fp_by_nonresidue(fe: &Self::Fp) -> Self::Fp {
+        if let Some(i) = Self::NONRESIDUE_SMALL {
+            return fe.mul_by_i8(i);
+        }
         Self::NONRESIDUE * fe
     }
 }

@@ -48,7 +48,7 @@ pub trait QuadExtParameters: 'static + Send + Sync + Sized {
     /// The quadratic non-residue used to construct the extension.
     const NONRESIDUE: Self::BaseField;
 
-    const NONRESIDUE_I64: Option<i64> = None;
+    const NONRESIDUE_SMALL: Option<i8> = None;
 
     /// Coefficients for the Frobenius automorphism.
     const FROBENIUS_COEFF_C1: &'static [Self::FrobCoeff];

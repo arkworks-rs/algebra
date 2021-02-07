@@ -7,13 +7,39 @@ pub trait Fp6Parameters: 'static + Send + Sync + Copy {
 
     const NONRESIDUE: Fp2<Self::Fp2Params>;
 
+    const NONRESIDUE_SMALL: Option<(i8, i8, Option<i8>)> = None;
+
     /// Coefficients for the Frobenius automorphism.
     const FROBENIUS_COEFF_FP6_C1: &'static [Fp2<Self::Fp2Params>];
     const FROBENIUS_COEFF_FP6_C2: &'static [Fp2<Self::Fp2Params>];
 
     #[inline(always)]
+    #[ark_ff_asm::unroll_for_loops]
+    // (x + y \alpha) * (a + b \alpha) = (xa + ybU) + (xb + ya)\alpha
     fn mul_fp2_by_nonresidue(fe: &Fp2<Self::Fp2Params>) -> Fp2<Self::Fp2Params> {
-        Self::NONRESIDUE * fe
+        if let Some((x, y, f_res)) = Self::NONRESIDUE_SMALL {
+            if x == 0 && y == 0 {
+                return Fp2::<Self::Fp2Params>::zero();
+            } else if y == 0 {
+                return Fp2::<Self::Fp2Params>::new(fe.c0.mul_by_i8(x), fe.c1.mul_by_i8(x));
+            } else {
+                let t0 = if let Some(res) = f_res {
+                    fe.c1.mul_by_i8(y * res)
+                } else {
+                    Self::Fp2Params::mul_fp_by_nonresidue(&fe.c1.mul_by_i8(y))
+                };
+                if x == 0 {
+                    return Fp2::<Self::Fp2Params>::new(t0, fe.c0.mul_by_i8(y));
+                } else {
+                    return Fp2::<Self::Fp2Params>::new(
+                        fe.c0.mul_by_i8(x) + t0,
+                        fe.c0.mul_by_i8(y) + fe.c1.mul_by_i8(x),
+                    );
+                }
+            }
+        } else {
+            Self::NONRESIDUE * fe
+        }
     }
 }
 
