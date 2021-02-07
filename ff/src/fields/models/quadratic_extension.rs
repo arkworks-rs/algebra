@@ -75,6 +75,40 @@ pub trait QuadExtParameters: 'static + Send + Sync + Sized {
         }
     }
 
+    /// A specializable method for computing x + mul_base_field_by_nonresidue(y)
+    /// This allows for optimizations when the non-residue is
+    /// canonically negative in the field.
+    #[inline(always)]
+    fn add_and_mul_base_field_by_nonresidue(
+        x: &Self::BaseField,
+        y: &Self::BaseField,
+    ) -> Self::BaseField {
+        *x + Self::mul_base_field_by_nonresidue(y)
+    }
+
+    /// A specializable method for computing x + mul_base_field_by_nonresidue(y) + y
+    /// This allows for optimizations when the non-residue is not -1.
+    #[inline(always)]
+    fn add_and_mul_base_field_by_nonresidue_plus_one(
+        x: &Self::BaseField,
+        y: &Self::BaseField,
+    ) -> Self::BaseField {
+        let mut tmp = *x;
+        tmp += y;
+        Self::add_and_mul_base_field_by_nonresidue(&tmp, &y)
+    }
+
+    /// A specializable method for computing x - mul_base_field_by_nonresidue(y)
+    /// This allows for optimizations when the non-residue is
+    /// canonically negative in the field.
+    #[inline(always)]
+    fn sub_and_mul_base_field_by_nonresidue(
+        x: &Self::BaseField,
+        y: &Self::BaseField,
+    ) -> Self::BaseField {
+        *x - Self::mul_base_field_by_nonresidue(y)
+    }
+
     /// A specializable method for multiplying an element of the base field by
     /// the appropriate Frobenius coefficient.
     fn mul_base_field_by_frob_coeff(fe: &mut Self::BaseField, power: usize);
@@ -153,8 +187,14 @@ impl<P: QuadExtParameters> QuadExtField<P> {
     pub fn norm(&self) -> P::BaseField {
         let t0 = self.c0.square();
         // t1 = t0 - P::NON_RESIDUE * c1^2
+<<<<<<< HEAD
         let t1 = self.c1.square();
         P::op_and_mul_base_field_by_nonresidue(&t0, &t1, MulNonResidueMode::Minus)
+=======
+        let mut t1 = self.c1.square();
+        t1 = P::sub_and_mul_base_field_by_nonresidue(&t0, &t1);
+        t1
+>>>>>>> master
     }
 
     pub fn mul_assign_by_basefield(&mut self, element: &P::BaseField) {
@@ -267,11 +307,15 @@ impl<P: QuadExtParameters> Field for QuadExtField<P> {
             // v0 = c0 - c1
             let mut v0 = self.c0 - &self.c1;
             // v3 = c0 - beta * c1
+<<<<<<< HEAD
             let v3 = P::op_and_mul_base_field_by_nonresidue(
                 &self.c0,
                 &self.c1,
                 MulNonResidueMode::Minus,
             );
+=======
+            let v3 = P::sub_and_mul_base_field_by_nonresidue(&self.c0, &self.c1);
+>>>>>>> master
             // v2 = c0 * c1
             let v2 = self.c0 * &self.c1;
 
@@ -286,8 +330,12 @@ impl<P: QuadExtParameters> Field for QuadExtField<P> {
             // result.c0 = (c0^2 - beta * c0 * c1 - c0 * c1 + beta * c1^2) + ((beta + 1) c0 * c1)
             // result.c0 = (c0^2 - beta * c0 * c1 + beta * c1^2) + (beta * c0 * c1)
             // result.c0 = c0^2 + beta * c1^2
+<<<<<<< HEAD
             self.c0 =
                 P::op_and_mul_base_field_by_nonresidue(&v0, &v2, MulNonResidueMode::PlusAddOne);
+=======
+            self.c0 = P::add_and_mul_base_field_by_nonresidue_plus_one(&v0, &v2);
+>>>>>>> master
 
             self
         }
@@ -301,11 +349,15 @@ impl<P: QuadExtParameters> Field for QuadExtField<P> {
             // v1 = c1.square()
             let v1 = self.c1.square();
             // v0 = c0.square() - beta * v1
+<<<<<<< HEAD
             let v0 = P::op_and_mul_base_field_by_nonresidue(
                 &self.c0.square(),
                 &v1,
                 MulNonResidueMode::Minus,
             );
+=======
+            let v0 = P::sub_and_mul_base_field_by_nonresidue(&self.c0.square(), &v1);
+>>>>>>> master
 
             v0.inverse().map(|v1| {
                 let c0 = self.c0 * &v1;
@@ -568,7 +620,11 @@ impl<'a, P: QuadExtParameters> MulAssign<&'a Self> for QuadExtField<P> {
         self.c1 *= &(other.c0 + &other.c1);
         self.c1 -= &v0;
         self.c1 -= &v1;
+<<<<<<< HEAD
         self.c0 = P::op_and_mul_base_field_by_nonresidue(&v0, &v1, MulNonResidueMode::Plus);
+=======
+        self.c0 = P::add_and_mul_base_field_by_nonresidue(&v0, &v1);
+>>>>>>> master
     }
 }
 
