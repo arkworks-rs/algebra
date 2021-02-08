@@ -14,12 +14,11 @@ pub trait Fp6Parameters: 'static + Send + Sync {
 
     #[inline(always)]
     fn mul_fp3_by_nonresidue(fe: &Fp3<Self::Fp3Params>) -> Fp3<Self::Fp3Params> {
-        let mut res = *fe;
-        res.c0 = fe.c2;
-        res.c1 = fe.c0;
-        res.c2 = fe.c1;
-        res.c0 = <Self::Fp3Params as Fp3Parameters>::mul_fp_by_nonresidue(&res.c0);
-        res
+        Fp3::<Self::Fp3Params>::new(
+             <Self::Fp3Params as Fp3Parameters>::mul_fp_by_nonresidue(&fe.c2),
+             fe.c0,
+             fe.c1,
+        )
     }
 }
 
