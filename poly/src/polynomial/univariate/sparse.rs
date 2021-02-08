@@ -62,11 +62,22 @@ impl<F: Field> Polynomial<F> for SparsePolynomial<F> {
         if self.is_zero() {
             return F::zero();
         }
+
+        let max_pow_2 = self.degree().next_power_of_two() - 1;
+
+        let mut pows_2 = Vec::with_capacity(max_pow_2);
+
+        let mut point = *point;
+        pows_2.push(point);
+        for _ in 1..max_pow_2 {
+            point.square_in_place();
+            pows_2.push(point);
+        }
         // compute all coeff * point^{i} and then sum the results
         let total = self
             .coeffs
             .iter()
-            .map(|(i, c)| (*c * point.pow(&[*i as u64])))
+            .map(|(i, c)| (*c * point.pow_with_table(&[*i as u64], &pows_2[..])))
             .sum();
         total
     }
