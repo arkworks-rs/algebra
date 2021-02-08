@@ -9,6 +9,8 @@ The main features of this release are:
 - Some speedups to `sqrt`
 - Small speedups to MSMs
 - Big speedups to radix-2 FFTs
+- Fix in the assembly arithmetic backend
+- Adding new traits for basic curve cycles and pairing based curve cycles 
 
 ### Breaking changes
 - #20 (ark-poly) Move univariate DensePolynomial and SparsePolynomial into a 
@@ -48,6 +50,7 @@ The main features of this release are:
 - #117 (ark-poly) Add operations to `SparsePolynomial`, so it implements `Polynomial`
 - #140 (ark-poly) Add support for multilinear extensions in dense and sparse evaluation form.
 - #164 (ark-ff) Add methods `from_{be, le}_bytes_mod_order` to the `PrimeField` trait.
+- #197 (ark-test-curves) Add a BN384 curve with low two-arity for mixed-radix testing.
 
 ### Improvements
 - #22 (ark-ec) Speedup fixed-base MSMs
@@ -78,6 +81,10 @@ The main features of this release are:
 - #169 (ark-poly) Improve radix-2 FFTs by moving to a faster algorithm by Riad S. Wahby.
 - #171, #173, #176 (ark-poly) Apply significant further speedups to the new radix-2 FFT.
 - #188 (ark-ec) Make Short Weierstrass random sampling result in an element with unknown discrete log
+- #190 (ark-ec) Add curve cycle trait and extended pairing cycle trait for all types of ec cycles.
+- #201 (ark-ec, ark-ff, ark-test-curves, ark-test-templates) Remove the dependency on `rand_xorshift`
+- #205 (ark-ec, ark-ff) Unroll loops and conditionally use intrinsics in `biginteger` arithmetic, and reduce copies in `ff` and `ec` arithmetic.
+- #207 (ark-ff) Improve performance of extension fields when the non-residue is negative. (Improves fq2, fq12, and g2 speed on bls12 and bn curves)
 
 ### Bug fixes
 - #36 (ark-ec) In Short-Weierstrass curves, include an infinity bit in `ToConstraintField`.
@@ -88,5 +95,6 @@ The main features of this release are:
 - #160 (ark-serialize, ark-ff, ark-ec) Support serializing when `MODULUS_BITS + FLAG_BITS` is greater than the multiple of 8 just greater than `MODULUS_BITS`, which is the case for the Pasta curves (fixes #47).
 - #165 (ark-ff) Enforce in the type system that an extension fields `BaseField` extends from the correct `BasePrimeField`.
 - #184 Compile with `panic='abort'` in release mode, for safety of the library across FFI boundaries.
+- #192 Fix a bug in the assembly backend for finite field arithmetic.
 
 ## v0.1.0 (Initial release of arkworks/algebra)

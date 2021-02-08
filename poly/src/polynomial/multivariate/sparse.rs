@@ -5,6 +5,7 @@ use crate::{
 };
 use ark_ff::{Field, Zero};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, SerializationError};
+use ark_std::rand::Rng;
 use ark_std::{
     cmp::Ordering,
     fmt,
@@ -12,7 +13,6 @@ use ark_std::{
     ops::{Add, AddAssign, Neg, Sub, SubAssign},
     vec::Vec,
 };
-use rand::Rng;
 
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;

@@ -1,11 +1,9 @@
 #![allow(unused)]
 use ark_ec::group::Group;
 use ark_ff::{One, UniformRand, Zero};
-use rand::SeedableRng;
-use rand_xorshift::XorShiftRng;
 
 pub fn group_test<G: Group>(a: G, mut b: G) {
-    let mut rng = XorShiftRng::seed_from_u64(1231275789u64);
+    let mut rng = ark_std::test_rng();
     let zero = G::zero();
     let fr_zero = G::ScalarField::zero();
     let fr_one = G::ScalarField::one();

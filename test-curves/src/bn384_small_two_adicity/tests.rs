@@ -1,10 +1,10 @@
 #![allow(unused_imports)]
 use ark_ec::{models::SWModelParameters, AffineCurve, PairingEngine, ProjectiveCurve};
 use ark_ff::{One, UniformRand, Zero};
-
-use crate::bls12_381::{g1, Fq, FqParameters, Fr, G1Affine, G1Projective};
-use ark_algebra_test_templates::{curves::*, fields::*, groups::*};
 use ark_std::rand::Rng;
+
+use crate::bn384_small_two_adicity::{g1, Fq, FqParameters, Fr, G1Affine, G1Projective};
+use ark_algebra_test_templates::{curves::*, fields::*, groups::*};
 
 pub(crate) const ITERATIONS: usize = 5;
 

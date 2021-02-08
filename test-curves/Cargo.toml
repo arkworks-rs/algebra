@@ -15,13 +15,12 @@ ark-ec = { path = "../ec", default-features = false }
 
 [dev-dependencies]
 ark-serialize = { path = "../serialize", default-features = false }
-ark-test-templates = { path = "../test-templates", default-features = false }
-rand = { version = "0.7", default-features = false }
-rand_xorshift = "0.2"
-
+ark-algebra-test-templates = { path = "../test-templates", default-features = false }
 
 [features]
 default = []
+
+asm = [ "ark-ff/asm" ]
 
 parallel = [ "ark-ff/parallel", "ark-ec/parallel", "ark-std/parallel" ]
 
@@ -31,3 +30,7 @@ bls12_381_curve = [ "bls12_381_scalar_field" ]
 mnt4_753_scalar_field = []
 mnt4_753_base_field = []
 mnt4_753_curve = [ "mnt4_753_scalar_field", "mnt4_753_base_field" ]
+
+bn384_small_two_adicity_scalar_field = []
+bn384_small_two_adicity_base_field = []
+bn384_small_two_adicity_curve = [ "bn384_small_two_adicity_scalar_field", "bn384_small_two_adicity_base_field" ]
