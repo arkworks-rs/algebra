@@ -66,19 +66,26 @@ impl<F: Field> Polynomial<F> for SparsePolynomial<F> {
         let total_bits = core::mem::size_of::<usize>() * 8;
         let max_pow_2 = total_bits - self.degree().leading_zeros() as usize;
 
-        let mut pows_2 = Vec::with_capacity(max_pow_2);
+        let mut pows_2 = Vec::<F>::with_capacity(max_pow_2);
 
-        let mut point = *point;
-        pows_2.push(point);
+        let mut p = *point;
+        pows_2.push(p);
         for _ in 1..max_pow_2 {
-            point.square_in_place();
-            pows_2.push(point);
+            p.square_in_place();
+            pows_2.push(p);
         }
         // compute all coeff * point^{i} and then sum the results
         let total = self
             .coeffs
             .iter()
-            .map(|(i, c)| (*c * point.pow_with_table(&[*i as u64], &pows_2[..])))
+            .map(|(i, c)| {
+                debug_assert_eq!(
+                    F::pow_with_table(&pows_2[..], &[*i as u64]),
+                    point.pow(&[*i as u64]),
+                    "pows not equal"
+                );
+                *c * F::pow_with_table(&pows_2[..], &[*i as u64])
+            })
             .sum();
         total
     }

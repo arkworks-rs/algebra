@@ -192,24 +192,11 @@ pub trait Field:
     /// Exponentiates this element by a number represented with `u64` limbs,
     /// least significant limb first.
     #[inline]
-    fn pow_with_table<S: AsRef<[u64]>>(&self, exp: S, pows_2: &[Self]) -> Self {
-        let exp = exp.as_ref();
-        let len = exp.len();
-        let mut max = len * 64;
-        for i in 0..len {
-            let lz = exp[len - 1 - i].leading_zeros() as usize;
-            max -= lz;
-            if lz == 64 {
-                break;
-            }
-        }
-
-        let mut res = Self::zero();
-        for i in 0..max {
-            let part = i / 64;
-            let bit = i - (64 * part);
-            if exp[part] & (1 << bit) > 0 {
-                res *= pows_2[i]
+    fn pow_with_table<S: AsRef<[u64]>>(pows_2: &[Self], exp: S) -> Self {
+        let mut res = Self::one();
+        for (pow, bit) in BitIteratorLE::without_trailing_zeros(exp).enumerate() {
+            if bit {
+                res *= &pows_2[pow];
             }
         }
         res

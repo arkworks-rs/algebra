@@ -15,9 +15,9 @@ const BENCHMARK_MIN_DEGREE: usize = 1 << 15;
 const BENCHMARK_MAX_DEGREE: usize = 1 << 17;
 const BENCHMARK_LOG_INTERVAL_DEGREE: usize = 1;
 
-const ENABLE_ADD_BENCH: bool = false;
-const ENABLE_ADD_ASSIGN_BENCH: bool = false;
-const ENABLE_EVALUATE_BENCH: bool = false;
+const ENABLE_ADD_BENCH: bool = true;
+const ENABLE_ADD_ASSIGN_BENCH: bool = true;
+const ENABLE_EVALUATE_BENCH: bool = true;
 const ENABLE_SPARSE_EVALUATE_BENCH: bool = true;
 
 // returns vec![2^{min}, 2^{min + interval}, ..., 2^{max}], where:
