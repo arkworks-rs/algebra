@@ -191,7 +191,7 @@ pub trait Field:
 
     /// Exponentiates this element by a number represented with `u64` limbs,
     /// least significant limb first.
-    #[inline(always)]
+    #[inline]
     fn pow_with_table<S: AsRef<[u64]>>(&self, exp: S, pows_2: &[Self]) -> Self {
         let exp = exp.as_ref();
         let len = exp.len();
@@ -199,7 +199,9 @@ pub trait Field:
         for i in 0..len {
             let lz = exp[len - 1 - i].leading_zeros() as usize;
             max -= lz;
-            if lz == 64 { break; }
+            if lz == 64 {
+                break;
+            }
         }
 
         let mut res = Self::zero();

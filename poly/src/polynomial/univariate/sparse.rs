@@ -63,7 +63,8 @@ impl<F: Field> Polynomial<F> for SparsePolynomial<F> {
             return F::zero();
         }
 
-        let max_pow_2 = self.degree().next_power_of_two() - 1;
+        let total_bits = core::mem::size_of::<usize>() * 8;
+        let max_pow_2 = total_bits - self.degree().leading_zeros() as usize;
 
         let mut pows_2 = Vec::with_capacity(max_pow_2);
 
