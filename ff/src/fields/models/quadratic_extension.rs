@@ -68,10 +68,11 @@ pub trait QuadExtParameters: 'static + Send + Sync + Sized {
         fe: &Self::BaseField,
         mode: MulNonResidueMode,
     ) -> Self::BaseField {
+        let t0 = Self::mul_base_field_by_nonresidue(fe);
         match mode {
-            MulNonResidueMode::Minus => *other - (Self::NONRESIDUE * fe),
-            MulNonResidueMode::Plus => *other + (Self::NONRESIDUE * fe),
-            MulNonResidueMode::PlusAddOne => *other + fe + (Self::NONRESIDUE * fe),
+            MulNonResidueMode::Minus => *other - t0,
+            MulNonResidueMode::Plus => *other + t0,
+            MulNonResidueMode::PlusAddOne => *other + fe + t0,
         }
     }
 
