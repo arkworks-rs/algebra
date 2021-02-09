@@ -347,8 +347,8 @@ pub trait PairingFriendlyCycle: CurveCycle {
     >;
 
     type Engine2: PairingEngine<
-        G2Affine = Self::E2,
-        G2Projective = <Self::E2 as AffineCurve>::Projective,
+        G1Affine = Self::E2,
+        G1Projective = <Self::E2 as AffineCurve>::Projective,
         Fq = <Self::E2 as AffineCurve>::BaseField,
         Fr = <Self::E2 as AffineCurve>::ScalarField,
     >;
