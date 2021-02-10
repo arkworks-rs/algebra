@@ -25,6 +25,7 @@ use crate::{
     ToConstraintField, UniformRand,
 };
 
+
 /// Defines a Quadratic extension field from a quadratic non-residue.
 pub trait QuadExtParameters: 'static + Send + Sync + Sized {
     /// The prime field that this quadratic extension is eventually an extension of.
@@ -39,7 +40,7 @@ pub trait QuadExtParameters: 'static + Send + Sync + Sized {
     const DEGREE_OVER_BASE_PRIME_FIELD: usize;
 
     /// The quadratic non-residue used to construct the extension.
-    const NONRESIDUE: Self::BaseField;
+    const NONRESIDUE: <Self::BaseField as Field>::SmallValue;
 
     /// Coefficients for the Frobenius automorphism.
     const FROBENIUS_COEFF_C1: &'static [Self::FrobCoeff];
@@ -49,7 +50,7 @@ pub trait QuadExtParameters: 'static + Send + Sync + Sized {
     /// and in complex squaring.
     #[inline(always)]
     fn mul_base_field_by_nonresidue(fe: &Self::BaseField) -> Self::BaseField {
-        Self::NONRESIDUE * fe
+        Self::NONRESIDUE * *fe
     }
 
     /// A specializable method for computing x + mul_base_field_by_nonresidue(y)
@@ -197,6 +198,7 @@ impl<P: QuadExtParameters> One for QuadExtField<P> {
 
 impl<P: QuadExtParameters> Field for QuadExtField<P> {
     type BasePrimeField = P::BasePrimeField;
+    type SmallValue = SmallQuadExtField<P::BaseField>;
 
     fn extension_degree() -> u64 {
         2 * P::BaseField::extension_degree()
@@ -256,7 +258,7 @@ impl<P: QuadExtParameters> Field for QuadExtField<P> {
         //            = (c0^2 + beta * c1^2, 2 c0 * c1)
         // Where beta is P::NONRESIDUE.
         // When beta = -1, we can re-use intermediate additions to improve performance.
-        if P::NONRESIDUE == -P::BaseField::one() {
+        if P::NONRESIDUE.eq(&-1) {
             // When the non-residue is -1, we save 2 intermediate additions,
             // and use one fewer intermediate variable
 
@@ -655,6 +657,100 @@ where
     }
 }
 
+/// Represents an element of the quadratic extension field where the elements
+/// might have small absolute magnitude
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+pub struct SmallQuadExtField<F: Field> {
+    /// 0-th coefficient. 
+    pub c0: F::SmallValue,
+    /// 1-th coefficient. 
+    pub c1: F::SmallValue,
+}
+impl<F: Field> Neg for SmallQuadExtField<F> {
+    type Output = Self;
+    fn neg(mut self) -> Self {
+        self.c0 = -self.c0;
+        self.c1 = -self.c1;
+        self
+    }
+}
+
+impl<P: QuadExtParameters> Mul<QuadExtField<P>> for SmallQuadExtField<P::BaseField> {
+    type Output = QuadExtField<P>;
+    fn mul(self, mut other: QuadExtField<P>) -> Self::Output {
+        // Karatsuba multiplication;
+        // Guide to Pairing-based cryprography, Algorithm 5.16.
+        let v0 = self.c0 * other.c0;
+        let v1 = self.c1 * other.c1;
+
+        other.c1 += other.c0;
+        other.c1 *= &(P::BaseField::from(self.c0) + &other.c1);
+        other.c1 -= &v0;
+        other.c1 -= &v1;
+        other.c0 = P::add_and_mul_base_field_by_nonresidue(&v0, &v1);
+        other
+    }
+}
+
+impl<P: QuadExtParameters> From<SmallQuadExtField<P::BaseField>> for QuadExtField<P> {
+    fn from(other: SmallQuadExtField<P::BaseField>) -> Self {
+        Self::new(other.c0.into(), other.c1.into())
+    }
+}
+
+// Required for `Zero`
+impl<F: Field> Add<Self> for SmallQuadExtField<F> {
+    type Output = Self;
+    fn add(mut self, other: Self) -> Self {
+        self.c0 = self.c0 + other.c0;
+        self.c1 = self.c1 + other.c1;
+        self
+    }
+}
+
+impl<P: QuadExtParameters> Mul<SmallQuadExtField<P::BaseField>> for QuadExtField<P> {
+    type Output = Self;
+    fn mul(self, other: SmallQuadExtField<P::BaseField>) -> Self {
+        other * self
+    }
+}
+
+impl<F: Field> PartialEq<i8> for SmallQuadExtField<F> {
+    fn eq(&self, other: &i8) -> bool {
+        self == &Self::from(*other)
+    }
+}
+
+impl<F: Field> From<i8> for SmallQuadExtField<F> {
+    fn from(other: i8) -> Self {
+        Self {
+            c0: F::SmallValue::from(other),
+            c1: F::SmallValue::zero(),
+        }
+    }
+}
+
+impl<P: QuadExtParameters> From<QuadExtField<P>> for SmallQuadExtField<P::BaseField> {
+    fn from(other: QuadExtField<P>) -> Self {
+        Self {
+            c0: other.c0.into(),
+            c1: other.c1.into(),
+        }
+    }
+}
+
+impl<F: Field> Zero for SmallQuadExtField<F> {
+    fn zero() -> Self {
+        Self {
+            c0: F::SmallValue::zero(),
+            c1: F::SmallValue::zero(),
+        }
+    }
+
+    fn is_zero(&self) -> bool {
+        self.c0.is_zero() && self.c1.is_zero()
+    }
+}
 #[cfg(test)]
 mod quad_ext_tests {
     use super::*;

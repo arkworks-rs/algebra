@@ -5,7 +5,7 @@ use core::marker::PhantomData;
 pub trait Fp6Parameters: 'static + Send + Sync + Copy {
     type Fp2Params: Fp2Parameters;
 
-    const NONRESIDUE: Fp2<Self::Fp2Params>;
+    const NONRESIDUE: <Fp2<Self::Fp2Params> as Field>::SmallValue;
 
     /// Coefficients for the Frobenius automorphism.
     const FROBENIUS_COEFF_FP6_C1: &'static [Fp2<Self::Fp2Params>];
@@ -13,7 +13,7 @@ pub trait Fp6Parameters: 'static + Send + Sync + Copy {
 
     #[inline(always)]
     fn mul_fp2_by_nonresidue(fe: &Fp2<Self::Fp2Params>) -> Fp2<Self::Fp2Params> {
-        Self::NONRESIDUE * fe
+        Self::NONRESIDUE * *fe
     }
 }
 
@@ -26,7 +26,7 @@ impl<P: Fp6Parameters> CubicExtParameters for Fp6ParamsWrapper<P> {
 
     const DEGREE_OVER_BASE_PRIME_FIELD: usize = 6;
 
-    const NONRESIDUE: Self::BaseField = P::NONRESIDUE;
+    const NONRESIDUE: <Fp2<P::Fp2Params> as Field>::SmallValue = P::NONRESIDUE;
 
     const FROBENIUS_COEFF_C1: &'static [Self::FrobCoeff] = P::FROBENIUS_COEFF_FP6_C1;
     const FROBENIUS_COEFF_C2: &'static [Self::FrobCoeff] = P::FROBENIUS_COEFF_FP6_C2;

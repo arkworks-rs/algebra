@@ -271,7 +271,7 @@ pub(crate) mod fq2 {
 
         /// NONRESIDUE = -5
         #[rustfmt::skip]
-        const NONRESIDUE: Fq = field_new!(Fq, "-5");
+        const NONRESIDUE: SmallFp<Fq> = SmallFp::Small(-5);
 
         /// QUADRATIC_NONRESIDUE = U
         #[rustfmt::skip]
@@ -305,6 +305,8 @@ pub(crate) mod fq6 {
     // Copy of BLS12-377's Fq6
     use super::{fq::*, fq2::*};
     use crate::{field_new, fields::*};
+    type SmallFq = SmallFp<Fq>;
+    type SmallFq2 = <Fq2 as Field>::SmallValue;
 
     #[allow(dead_code)]
     pub type Fq6 = Fp6<Fq6Parameters>;
@@ -317,7 +319,7 @@ pub(crate) mod fq6 {
 
         /// NONRESIDUE = U
         #[rustfmt::skip]
-        const NONRESIDUE: Fq2 = field_new!(Fq2, FQ_ZERO, FQ_ONE);
+        const NONRESIDUE: SmallFq2 = SmallFq2 { c0: SmallFq::Small(0), c1: SmallFq::Small(1) };
 
         #[rustfmt::skip]
         const FROBENIUS_COEFF_FP6_C1: &'static [Fq2] = &[

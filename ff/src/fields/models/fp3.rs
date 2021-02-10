@@ -5,7 +5,7 @@ use core::marker::PhantomData;
 pub trait Fp3Parameters: 'static + Send + Sync {
     type Fp: PrimeField + SquareRootField;
 
-    const NONRESIDUE: Self::Fp;
+    const NONRESIDUE: <Self::Fp as Field>::SmallValue;
 
     const FROBENIUS_COEFF_FP3_C1: &'static [Self::Fp];
     const FROBENIUS_COEFF_FP3_C2: &'static [Self::Fp];
@@ -18,7 +18,7 @@ pub trait Fp3Parameters: 'static + Send + Sync {
 
     #[inline(always)]
     fn mul_fp_by_nonresidue(fe: &Self::Fp) -> Self::Fp {
-        Self::NONRESIDUE * fe
+        Self::NONRESIDUE * *fe
     }
 }
 
@@ -31,7 +31,7 @@ impl<P: Fp3Parameters> CubicExtParameters for Fp3ParamsWrapper<P> {
 
     const DEGREE_OVER_BASE_PRIME_FIELD: usize = 3;
 
-    const NONRESIDUE: Self::BaseField = P::NONRESIDUE;
+    const NONRESIDUE: <P::Fp as Field>::SmallValue = P::NONRESIDUE;
 
     const FROBENIUS_COEFF_C1: &'static [Self::FrobCoeff] = P::FROBENIUS_COEFF_FP3_C1;
     const FROBENIUS_COEFF_C2: &'static [Self::FrobCoeff] = P::FROBENIUS_COEFF_FP3_C2;

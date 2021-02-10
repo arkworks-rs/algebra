@@ -1,11 +1,11 @@
 use super::quadratic_extension::*;
-use crate::fields::PrimeField;
+use crate::fields::{PrimeField, Field};
 use core::marker::PhantomData;
 
 pub trait Fp2Parameters: 'static + Send + Sync {
     type Fp: PrimeField;
 
-    const NONRESIDUE: Self::Fp;
+    const NONRESIDUE: <Self::Fp as Field>::SmallValue;
 
     const QUADRATIC_NONRESIDUE: (Self::Fp, Self::Fp);
 
@@ -15,7 +15,7 @@ pub trait Fp2Parameters: 'static + Send + Sync {
     /// Return `fe * Self::NONRESIDUE`.
     #[inline(always)]
     fn mul_fp_by_nonresidue(fe: &Self::Fp) -> Self::Fp {
-        Self::NONRESIDUE * fe
+        Self::NONRESIDUE * *fe
     }
 
     /// A specializable method for computing `x + mul_base_field_by_nonresidue(y)`
@@ -53,7 +53,7 @@ impl<P: Fp2Parameters> QuadExtParameters for Fp2ParamsWrapper<P> {
 
     const DEGREE_OVER_BASE_PRIME_FIELD: usize = 2;
 
-    const NONRESIDUE: Self::BaseField = P::NONRESIDUE;
+    const NONRESIDUE: <Self::BaseField as Field>::SmallValue = P::NONRESIDUE;
 
     const FROBENIUS_COEFF_C1: &'static [Self::FrobCoeff] = P::FROBENIUS_COEFF_FP2_C1;
 

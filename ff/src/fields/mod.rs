@@ -94,6 +94,7 @@ pub trait Field:
     + CanonicalDeserializeWithFlags
     + Add<Self, Output = Self>
     + Sub<Self, Output = Self>
+    + Mul<<Self as Field>::SmallValue, Output = Self>
     + Mul<Self, Output = Self>
     + Div<Self, Output = Self>
     + AddAssign<Self>
@@ -112,6 +113,7 @@ pub trait Field:
     + for<'a> core::iter::Sum<&'a Self>
     + core::iter::Product<Self>
     + for<'a> core::iter::Product<&'a Self>
+    + From<<Self as Field>::SmallValue>
     + From<u128>
     + From<u64>
     + From<u32>
@@ -120,6 +122,17 @@ pub trait Field:
     + From<bool>
 {
     type BasePrimeField: PrimeField;
+    type SmallValue: 
+        Copy 
+        + Zero
+        + Add<Self::SmallValue, Output = Self::SmallValue> 
+        + Neg<Output = Self::SmallValue> 
+        + From<i8>
+        + From<Self>
+        + PartialEq
+        + Eq
+        + PartialEq<i8>
+        + Mul<Self, Output = Self>;
 
     /// Returns the characteristic of the field,
     /// in little-endian representation.

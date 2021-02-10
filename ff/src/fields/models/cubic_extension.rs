@@ -38,7 +38,7 @@ pub trait CubicExtParameters: 'static + Send + Sync {
     const DEGREE_OVER_BASE_PRIME_FIELD: usize;
 
     /// The cubic non-residue used to construct the extension.
-    const NONRESIDUE: Self::BaseField;
+    const NONRESIDUE: <Self::BaseField as Field>::SmallValue;
 
     /// Coefficients for the Frobenius automorphism.
     const FROBENIUS_COEFF_C1: &'static [Self::FrobCoeff];
@@ -48,7 +48,7 @@ pub trait CubicExtParameters: 'static + Send + Sync {
     /// the quadratic non-residue. This is used in multiplication and squaring.
     #[inline(always)]
     fn mul_base_field_by_nonresidue(fe: &Self::BaseField) -> Self::BaseField {
-        Self::NONRESIDUE * fe
+        Self::NONRESIDUE * *fe
     }
 
     /// A specializable method for multiplying an element of the base field by
@@ -139,6 +139,7 @@ impl<P: CubicExtParameters> One for CubicExtField<P> {
 
 impl<P: CubicExtParameters> Field for CubicExtField<P> {
     type BasePrimeField = P::BasePrimeField;
+    type SmallValue = SmallCubicExtField<P::BaseField>;
 
     fn extension_degree() -> u64 {
         3 * P::BaseField::extension_degree()
@@ -564,6 +565,119 @@ where
         res.append(&mut c2_elems);
 
         Some(res)
+    }
+}
+
+/// Represents an element of the quadratic extension field where the elements
+/// might have small absolute magnitude
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+pub struct SmallCubicExtField<F: Field> {
+    c0: F::SmallValue,
+    c1: F::SmallValue,
+    c2: F::SmallValue,
+}
+impl<F: Field> Neg for SmallCubicExtField<F> {
+    type Output = Self;
+    fn neg(mut self) -> Self {
+        self.c0 = -self.c0;
+        self.c1 = -self.c1;
+        self.c2 = -self.c2;
+        self
+    }
+}
+
+impl<P: CubicExtParameters> Mul<CubicExtField<P>> for SmallCubicExtField<P::BaseField> {
+    type Output = CubicExtField<P>;
+    fn mul(self, mut other: CubicExtField<P>) -> Self::Output {
+        // Devegili OhEig Scott Dahab --- Multiplication and Squaring on
+        // AbstractPairing-Friendly
+        // Fields.pdf; Section 4 (Karatsuba)
+
+        let a = other.c0;
+        let b = other.c1;
+        let c = other.c2;
+
+        let d = self.c0;
+        let e = self.c1;
+        let f = self.c2;
+
+        let ad = d * a;
+        let be = e * b;
+        let cf = f * c;
+
+        let x = (e + f) * (b + &c) - &be - &cf;
+        let y = (d + e) * (a + &b) - &ad - &be;
+        let z = (d + f) * (a + &c) - &ad + &be - &cf;
+
+        other.c0 = ad + &P::mul_base_field_by_nonresidue(&x);
+        other.c1 = y + &P::mul_base_field_by_nonresidue(&cf);
+        other.c2 = z;
+        other
+
+    }
+}
+
+impl<P: CubicExtParameters> From<SmallCubicExtField<P::BaseField>> for CubicExtField<P> {
+    fn from(other: SmallCubicExtField<P::BaseField>) -> Self {
+        Self::new(other.c0.into(), other.c1.into(), other.c2.into())
+    }
+}
+
+// Required for `Zero`
+impl<F: Field> Add<Self> for SmallCubicExtField<F> {
+    type Output = Self;
+    fn add(mut self, other: Self) -> Self {
+        self.c0 = self.c0 + other.c0;
+        self.c1 = self.c1 + other.c1;
+        self.c2 = self.c2 + other.c2;
+        self
+    }
+}
+
+impl<P: CubicExtParameters> Mul<SmallCubicExtField<P::BaseField>> for CubicExtField<P> {
+    type Output = Self;
+    fn mul(self, other: SmallCubicExtField<P::BaseField>) -> Self {
+        other * self
+    }
+}
+
+impl<F: Field> PartialEq<i8> for SmallCubicExtField<F> {
+    fn eq(&self, other: &i8) -> bool {
+        self == &Self::from(*other)
+    }
+}
+
+impl<F: Field> From<i8> for SmallCubicExtField<F> {
+    fn from(other: i8) -> Self {
+        Self {
+            c0: F::SmallValue::from(other),
+            c1: F::SmallValue::zero(),
+            c2: F::SmallValue::zero(),
+        }
+    }
+}
+
+impl<P: CubicExtParameters> From<CubicExtField<P>> for SmallCubicExtField<P::BaseField> {
+    fn from(other: CubicExtField<P>) -> Self {
+        Self {
+            c0: other.c0.into(),
+            c1: other.c1.into(),
+            c2: other.c2.into(),
+        }
+    }
+}
+
+impl<F: Field> Zero for SmallCubicExtField<F> {
+    fn zero() -> Self {
+        Self {
+            c0: F::SmallValue::zero(),
+            c1: F::SmallValue::zero(),
+            c2: F::SmallValue::zero(),
+        }
+    }
+
+    fn is_zero(&self) -> bool {
+        self.c0.is_zero() && self.c1.is_zero() && self.c2.is_zero() 
     }
 }
 

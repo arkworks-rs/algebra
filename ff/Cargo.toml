@@ -18,6 +18,7 @@ ark-ff-asm = { path = "../ff-asm" }
 ark-ff-macros = { path = "../ff-macros" }
 ark-std = { git = "https://github.com/arkworks-rs/utils", default-features = false }
 ark-serialize = { path = "../serialize", default-features = false }
+either = { version = "1", default-features = false }
 derivative = { version = "2", features = ["use_core"] }
 num-traits = { version = "0.2", default-features = false }
 rayon = { version = "1", optional = true }

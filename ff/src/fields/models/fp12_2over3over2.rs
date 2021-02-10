@@ -13,7 +13,7 @@ pub trait Fp12Parameters: 'static + Send + Sync + Copy {
 
     /// This *must* equal (0, 1, 0);
     /// see [[DESD06, Section 6.1]](https://eprint.iacr.org/2006/471.pdf).
-    const NONRESIDUE: Fp6<Self::Fp6Params>;
+    const NONRESIDUE: <Fp6<Self::Fp6Params> as Field>::SmallValue;
 
     /// Coefficients for the Frobenius automorphism.
     const FROBENIUS_COEFF_FP12_C1: &'static [Fp2<Fp2Params<Self>>];
@@ -38,7 +38,7 @@ impl<P: Fp12Parameters> QuadExtParameters for Fp12ParamsWrapper<P> {
 
     const DEGREE_OVER_BASE_PRIME_FIELD: usize = 12;
 
-    const NONRESIDUE: Self::BaseField = P::NONRESIDUE;
+    const NONRESIDUE: <Fp6<P::Fp6Params> as Field>::SmallValue = P::NONRESIDUE;
 
     const FROBENIUS_COEFF_C1: &'static [Self::FrobCoeff] = P::FROBENIUS_COEFF_FP12_C1;
 
