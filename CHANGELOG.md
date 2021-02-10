@@ -96,5 +96,6 @@ The main features of this release are:
 - #165 (ark-ff) Enforce in the type system that an extension fields `BaseField` extends from the correct `BasePrimeField`.
 - #184 Compile with `panic='abort'` in release mode, for safety of the library across FFI boundaries.
 - #192 Fix a bug in the assembly backend for finite field arithmetic.
+- #217 (ark-ec) Fix the definition of `PairingFriendlyCycle` introduced in #190.
 
 ## v0.1.0 (Initial release of arkworks/algebra)
