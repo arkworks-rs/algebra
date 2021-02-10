@@ -189,8 +189,10 @@ pub trait Field:
         res
     }
 
-    /// Exponentiates this element by a number represented with `u64` limbs,
-    /// least significant limb first.
+    /// Exponentiates a field element by a number represented with `u64` limbs,
+    /// via a table containing as many powers of 2 of the given element
+    /// as the ceil of log2 of the exp, starting from the 1st power,
+    /// i.e. pows_2 = [p, p^2, p^4, ..., p^(2^n)] where exp has <= n bits
     #[inline]
     fn pow_with_table<S: AsRef<[u64]>>(pows_2: &[Self], exp: S) -> Self {
         let mut res = Self::one();
