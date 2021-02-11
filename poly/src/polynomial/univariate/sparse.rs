@@ -63,9 +63,8 @@ impl<F: Field> Polynomial<F> for SparsePolynomial<F> {
             return F::zero();
         }
 
-        // Add one for good luck/avoid corner case
-        let max_pow_2 = ark_std::log2(self.degree()) as usize + 1;
-        let mut pows_2 = Vec::<F>::with_capacity(max_pow_2);
+        let max_pow_2 = 0usize.leading_zeros() - self.degree().leading_zeros();
+        let mut pows_2 = Vec::<F>::with_capacity(max_pow_2 as usize);
 
         let mut p = *point;
         pows_2.push(p);
