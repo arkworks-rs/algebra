@@ -63,12 +63,13 @@ impl<F: Field> Polynomial<F> for SparsePolynomial<F> {
             return F::zero();
         }
 
-        let num_powers = ark_std::log2(self.degree());
+        // We need floor(log2(deg)) + 1 powers, starting from the 0th power p^2^0 = p
+        let num_powers = 0usize.leading_zeros() - self.degree().leading_zeros();
         let mut powers_of_2 = Vec::with_capacity(num_powers as usize);
 
         let mut p = *point;
-        pows_2.push(p);
-        for _ in 1..=num_powers {
+        powers_of_2.push(p);
+        for _ in 1..num_powers {
             p.square_in_place();
             powers_of_2.push(p);
         }
