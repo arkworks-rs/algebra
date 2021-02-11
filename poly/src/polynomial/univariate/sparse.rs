@@ -79,11 +79,11 @@ impl<F: Field> Polynomial<F> for SparsePolynomial<F> {
             .iter()
             .map(|(i, c)| {
                 debug_assert_eq!(
-                    F::pow_with_table(&powers_of_2[..], &[*i as u64]),
+                    F::pow_with_table(&powers_of_2[..], &[*i as u64]).unwrap(),
                     point.pow(&[*i as u64]),
                     "pows not equal"
                 );
-                *c * F::pow_with_table(&powers_of_2[..], &[*i as u64])
+                *c * F::pow_with_table(&powers_of_2[..], &[*i as u64]).unwrap()
             })
             .sum();
         total
