@@ -63,14 +63,14 @@ impl<F: Field> Polynomial<F> for SparsePolynomial<F> {
             return F::zero();
         }
 
-        let max_pow_2 = 0usize.leading_zeros() - self.degree().leading_zeros();
-        let mut pows_2 = Vec::<F>::with_capacity(max_pow_2 as usize);
+        let num_powers = ark_std::log2(self.degree());
+        let mut powers_of_2 = Vec::with_capacity(num_powers as usize);
 
         let mut p = *point;
         pows_2.push(p);
-        for _ in 1..max_pow_2 {
+        for _ in 1..=num_powers {
             p.square_in_place();
-            pows_2.push(p);
+            powers_of_2.push(p);
         }
         // compute all coeff * point^{i} and then sum the results
         let total = self
@@ -78,11 +78,11 @@ impl<F: Field> Polynomial<F> for SparsePolynomial<F> {
             .iter()
             .map(|(i, c)| {
                 debug_assert_eq!(
-                    F::pow_with_table(&pows_2[..], &[*i as u64]),
+                    F::pow_with_table(&powers_of_2[..], &[*i as u64]),
                     point.pow(&[*i as u64]),
                     "pows not equal"
                 );
-                *c * F::pow_with_table(&pows_2[..], &[*i as u64])
+                *c * F::pow_with_table(&powers_of_2[..], &[*i as u64])
             })
             .sum();
         total
