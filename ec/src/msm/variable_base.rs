@@ -36,10 +36,10 @@ impl VariableBaseMSM {
         let window_sums: Vec<_> = ark_std::cfg_into_iter!(window_starts)
             .map(|w_start| {
                 let mut res = zero;
-                // We don't need the "zero" bucket, so we only have 2^c - 1 buckets
+                // We don't need the "zero" bucket, so we only have 2^c - 1 buckets.
                 let mut buckets = vec![zero; (1 << c) - 1];
                 // This clone is cheap, because the iterator contains just a
-                // pointer and an index into the original vectors
+                // pointer and an index into the original vectors.
                 scalars_and_bases_iter.clone().for_each(|(&scalar, base)| {
                     if scalar == fr_one {
                         // We only process unit scalars once in the first window.
@@ -53,7 +53,7 @@ impl VariableBaseMSM {
                         // lower bits.
                         scalar.divn(w_start as u32);
 
-                        // We mod the remaining bits by the window size.
+                        // We mod the remaining bits by 2^{window size}, thus taking `c` bits.
                         let scalar = scalar.as_ref()[0] % (1 << c);
 
                         // If the scalar is non-zero, we update the corresponding
@@ -78,7 +78,7 @@ impl VariableBaseMSM {
                 // hence batch normalization is a slowdown.
 
                 // `running_sum` = sum_{j in i..num_buckets} bucket[j],
-                // where we iterate backwords from i = num_buckets to 0
+                // where we iterate backward from i = num_buckets to 0.
                 let mut running_sum = G::Projective::zero();
                 buckets.into_iter().rev().for_each(|b| {
                     running_sum += &b;
