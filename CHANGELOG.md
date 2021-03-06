@@ -11,6 +11,7 @@ The main features of this release are:
 - Big speedups to radix-2 FFTs
 - Fix in the assembly arithmetic backend
 - Adding new traits for basic curve cycles and pairing based curve cycles
+- Providing wNAF scalar multiplcation functionality
 
 ### Breaking changes
 - #20 (ark-poly) Move univariate DensePolynomial and SparsePolynomial into a

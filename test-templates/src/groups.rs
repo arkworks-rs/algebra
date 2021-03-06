@@ -1,6 +1,9 @@
 #![allow(unused)]
 use ark_ec::group::Group;
+use ark_ec::group::wnaf::{wnaf_mul, wnaf_table};
 use ark_ff::{One, UniformRand, Zero};
+use ark_ff::BigInteger;
+use ark_ff::fields::PrimeField;
 
 pub fn group_test<G: Group>(a: G, mut b: G) {
     let mut rng = ark_std::test_rng();
@@ -8,6 +11,7 @@ pub fn group_test<G: Group>(a: G, mut b: G) {
     let fr_zero = G::ScalarField::zero();
     let fr_one = G::ScalarField::one();
     let fr_two = fr_one + &fr_one;
+
     assert_eq!(zero, zero);
     assert_eq!(zero.is_zero(), true);
     assert_eq!(a.mul(&fr_one), a);
@@ -70,4 +74,14 @@ pub fn group_test<G: Group>(a: G, mut b: G) {
         a.mul(&(fr_rand1 * &fr_rand2)),
         "(a * r1) * r2 != a * (r1 * r2)"
     );
+
+    // Check that mul and wnaf_mul give the same results for several window values
+    for w in 2..=22 {
+        let scalar = G::ScalarField::rand(&mut rng);
+        let scalar_bigint : <G::ScalarField as PrimeField>::BigInt = scalar.into();
+        let scalar_wnaf = scalar_bigint.find_wnaf();
+        let mut wnaf_lut : Vec<G> = vec![];
+        wnaf_table(&mut wnaf_lut, a, w);
+        assert_eq!(a.mul(&scalar), wnaf_mul(&wnaf_lut, &scalar_wnaf));
+    }
 }
