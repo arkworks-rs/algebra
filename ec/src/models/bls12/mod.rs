@@ -158,13 +158,13 @@ impl<P: Bls12Parameters> PairingEngine for Bls12<P> {
             let mut y2 = r;
             y2.conjugate();
             // t[1].Mul(&t[1], &t[2])
-            y1 *= y2;
+            y1 *= &y2;
             // t[2].Expt(&t[1])
             y2 = Self::exp_by_x(y1);
             // t[1].InverseUnitary(&t[1])
             y1.conjugate();
             // t[1].Mul(&t[1], &t[2])
-            y1 *= y2;
+            y1 *= &y2;
             // t[2].Expt(&t[1])
             y2 = Self::exp_by_x(y1);
             // t[1].Frobenius(&t[1])
@@ -172,7 +172,7 @@ impl<P: Bls12Parameters> PairingEngine for Bls12<P> {
             // t[1].Mul(&t[1], &t[2])
             y1 *= &y2;
             // result.Mul(&result, &t[0])
-            r *= y0;
+            r *= &y0;
             // t[0].Expt(&t[1])
             y0 = Self::exp_by_x(y1);
             // t[2].Expt(&t[0])
@@ -183,11 +183,11 @@ impl<P: Bls12Parameters> PairingEngine for Bls12<P> {
             // t[1].InverseUnitary(&t[1])
             y1.conjugate();
             // t[1].Mul(&t[1], &t[2])
-            y1 *= y2;
+            y1 *= &y2;
             // t[1].Mul(&t[1], &t[0])
-            y1 *= y0;
+            y1 *= &y0;
             // result.Mul(&result, &t[1])
-            r *= y1;
+            r *= &y1;
             r
         })
     }
