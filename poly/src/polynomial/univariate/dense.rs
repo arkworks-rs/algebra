@@ -57,7 +57,9 @@ impl<F: Field> DensePolynomial<F> {
     #[inline]
     // Horner's method for polynomial evaluation
     fn horner_evaluate(poly_coeffs: &[F], point: &F) -> F {
-        poly_coeffs.iter().rfold(F::zero(), move |result, coeff| { result * point + coeff })
+        poly_coeffs
+            .iter()
+            .rfold(F::zero(), move |result, coeff| result * point + coeff)
     }
 
     #[cfg(not(feature = "parallel"))]
