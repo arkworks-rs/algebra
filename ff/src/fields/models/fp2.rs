@@ -1,5 +1,5 @@
 use super::quadratic_extension::*;
-use crate::fields::{PrimeField, Field};
+use crate::fields::{Field, PrimeField};
 use core::marker::PhantomData;
 
 pub trait Fp2Parameters: 'static + Send + Sync {

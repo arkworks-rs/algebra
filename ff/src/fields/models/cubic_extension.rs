@@ -613,7 +613,6 @@ impl<P: CubicExtParameters> Mul<CubicExtField<P>> for SmallCubicExtField<P::Base
         other.c1 = y + &P::mul_base_field_by_nonresidue(&cf);
         other.c2 = z;
         other
-
     }
 }
 
@@ -677,7 +676,7 @@ impl<F: Field> Zero for SmallCubicExtField<F> {
     }
 
     fn is_zero(&self) -> bool {
-        self.c0.is_zero() && self.c1.is_zero() && self.c2.is_zero() 
+        self.c0.is_zero() && self.c1.is_zero() && self.c2.is_zero()
     }
 }
 

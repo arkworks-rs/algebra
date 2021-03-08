@@ -122,11 +122,10 @@ pub trait Field:
     + From<bool>
 {
     type BasePrimeField: PrimeField;
-    type SmallValue: 
-        Copy 
+    type SmallValue: Copy
         + Zero
-        + Add<Self::SmallValue, Output = Self::SmallValue> 
-        + Neg<Output = Self::SmallValue> 
+        + Add<Self::SmallValue, Output = Self::SmallValue>
+        + Neg<Output = Self::SmallValue>
         + From<i8>
         + From<Self>
         + PartialEq

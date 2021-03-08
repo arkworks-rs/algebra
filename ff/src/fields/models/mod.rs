@@ -64,7 +64,10 @@ impl<F: PrimeField + From<Self>> Add<Self> for SmallFp<F> {
     fn add(self, other: Self) -> Self {
         use SmallFp::*;
         match (self, other) {
-            (Small(f1), Small(f2)) => f1.checked_add(f2).expect("cannot multiply these small numbers").into(),
+            (Small(f1), Small(f2)) => f1
+                .checked_add(f2)
+                .expect("cannot multiply these small numbers")
+                .into(),
             (Full(f1), Full(f2)) => Self::from(f1 + f2),
             (_, Full(f2)) => Self::from(F::from(self) + f2),
             (Full(f2), _) => Self::from(F::from(other) + f2),
@@ -72,9 +75,9 @@ impl<F: PrimeField + From<Self>> Add<Self> for SmallFp<F> {
     }
 }
 
-impl<F: PrimeField> Mul<F> for SmallFp<F> 
+impl<F: PrimeField> Mul<F> for SmallFp<F>
 where
-    F: From<Self>
+    F: From<Self>,
 {
     type Output = F;
     fn mul(self, mut other: F) -> Self::Output {
@@ -86,37 +89,37 @@ where
                 let f = f.wrapping_abs() as u8;
                 match f {
                     0 => other = F::zero(),
-                    1 => {},
-                    2 => { 
+                    1 => {}
+                    2 => {
                         other.double_in_place();
-                    },
-                    3 => { 
+                    }
+                    3 => {
                         other += other.double();
-                    },
-                    4 => { 
+                    }
+                    4 => {
                         other.double_in_place().double_in_place();
-                    },
-                    5 => { 
+                    }
+                    5 => {
                         let other_copy = other;
                         other.double_in_place().double_in_place();
                         other += other_copy;
-                    },
-                    6 => { 
+                    }
+                    6 => {
                         other += other.double(); // self *= 3
                         other.double_in_place(); // self *= 2
-                    },
-                    7 => { 
+                    }
+                    7 => {
                         let mut result = other;
                         result.double_in_place().double_in_place().double_in_place();
                         result -= other;
                         other = result;
-                    },
+                    }
                     _ => {
                         other *= F::from(f);
-                    },
+                    }
                 };
                 if is_negative {
-                    -other 
+                    -other
                 } else {
                     other
                 }
@@ -125,9 +128,9 @@ where
     }
 }
 
-impl<F: PrimeField> PartialEq<i8> for SmallFp<F> 
+impl<F: PrimeField> PartialEq<i8> for SmallFp<F>
 where
-    F: From<Self>
+    F: From<Self>,
 {
     fn eq(&self, other: &i8) -> bool {
         *self == Self::from(*other)

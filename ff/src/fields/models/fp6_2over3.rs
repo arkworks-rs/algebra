@@ -1,7 +1,7 @@
 use super::quadratic_extension::*;
 use core::marker::PhantomData;
 
-use crate::fields::{Fp3, Fp3Parameters, Field};
+use crate::fields::{Field, Fp3, Fp3Parameters};
 
 pub trait Fp6Parameters: 'static + Send + Sync {
     type Fp3Params: Fp3Parameters;

@@ -25,7 +25,6 @@ use crate::{
     ToConstraintField, UniformRand,
 };
 
-
 /// Defines a Quadratic extension field from a quadratic non-residue.
 pub trait QuadExtParameters: 'static + Send + Sync + Sized {
     /// The prime field that this quadratic extension is eventually an extension of.
@@ -661,9 +660,9 @@ where
 /// might have small absolute magnitude
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub struct SmallQuadExtField<F: Field> {
-    /// 0-th coefficient. 
+    /// 0-th coefficient.
     pub c0: F::SmallValue,
-    /// 1-th coefficient. 
+    /// 1-th coefficient.
     pub c1: F::SmallValue,
 }
 impl<F: Field> Neg for SmallQuadExtField<F> {
