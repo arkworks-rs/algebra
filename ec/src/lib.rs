@@ -328,6 +328,8 @@ where
 
 pub trait CurveCycle
 where
+    <Self::E1 as AffineCurve>::BaseField: PrimeField + SquareRootField,
+    <Self::E2 as AffineCurve>::BaseField: PrimeField + SquareRootField,
     <Self::E1 as AffineCurve>::Projective: MulAssign<<Self::E2 as AffineCurve>::BaseField>,
     <Self::E2 as AffineCurve>::Projective: MulAssign<<Self::E1 as AffineCurve>::BaseField>,
 {
@@ -338,7 +340,19 @@ where
     type E2: AffineCurve;
 }
 
-pub trait PairingFriendlyCycle: CurveCycle {
+pub trait PairingFriendlyCycle: CurveCycle
+where
+    <Self::E1 as AffineCurve>::BaseField: PrimeField + SquareRootField,
+    <Self::E2 as AffineCurve>::BaseField: PrimeField + SquareRootField,
+    <Self::E1 as AffineCurve>::Projective: MulAssign<<Self::E2 as AffineCurve>::BaseField>,
+    <Self::E2 as AffineCurve>::Projective: MulAssign<<Self::E1 as AffineCurve>::BaseField>,
+    <Self::Engine1 as PairingEngine>::G1Prepared: From<Self::E1>,
+    <Self::Engine2 as PairingEngine>::G1Prepared: From<Self::E2>,
+    <Self::Engine1 as PairingEngine>::G2Projective:
+        MulAssign<<Self::E1 as AffineCurve>::ScalarField>,
+    <Self::Engine2 as PairingEngine>::G2Projective:
+        MulAssign<<Self::E2 as AffineCurve>::ScalarField>,
+{
     type Engine1: PairingEngine<
         G1Affine = Self::E1,
         G1Projective = <Self::E1 as AffineCurve>::Projective,
