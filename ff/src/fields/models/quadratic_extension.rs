@@ -710,6 +710,7 @@ impl<F: Field> Add<Self> for SmallQuadExtField<F> {
 impl<P: QuadExtParameters> Mul<SmallQuadExtField<P::BaseField>> for QuadExtField<P> {
     type Output = Self;
     fn mul(self, other: SmallQuadExtField<P::BaseField>) -> Self {
+        // this just forwards to the `Mul` impl for `SmallQuadraticExtField`.
         other * self
     }
 }

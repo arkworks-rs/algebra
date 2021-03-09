@@ -539,9 +539,11 @@ macro_rules! impl_Fp {
                 }
             }
         }
+
         impl<P: $FpParameters> Mul<SmallFp<Self>> for $Fp<P> {
             type Output = Self;
             fn mul(self, other: SmallFp<Self>) -> Self {
+                // forwards to the `Mul` impl on `SmallFp`.
                 other * self
             }
         }

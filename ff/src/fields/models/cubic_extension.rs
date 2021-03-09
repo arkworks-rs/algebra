@@ -568,8 +568,8 @@ where
     }
 }
 
-/// Represents an element of the quadratic extension field where the elements
-/// might have small absolute magnitude
+/// Represents an element of the cubic extension field where the elements
+/// might have small absolute magnitude.
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub struct SmallCubicExtField<F: Field> {
     c0: F::SmallValue,
@@ -636,6 +636,7 @@ impl<F: Field> Add<Self> for SmallCubicExtField<F> {
 impl<P: CubicExtParameters> Mul<SmallCubicExtField<P::BaseField>> for CubicExtField<P> {
     type Output = Self;
     fn mul(self, other: SmallCubicExtField<P::BaseField>) -> Self {
+        // this just forwards to the `Mul` impl for `SmallCubicExtField`.
         other * self
     }
 }
