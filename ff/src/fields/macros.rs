@@ -560,165 +560,162 @@ macro_rules! impl_Fp {
         impl<P: $FpParameters> FromBytes for $Fp<P> {
             #[inline]
             fn read<R: Read>(reader: R) -> IoResult<Self> {
-                $BigInteger::read(reader).and_then(|b|
-                    match $Fp::from_repr(b) {
-                        Some(f) => Ok(f),
-                        None => Err(crate::error("FromBytes::read failed")),
-                    })
-                }
+                let b = $BigInteger::read(reader)?;
+                $Fp::from_repr(b).ok_or(crate::error("FromBytes::read failed"))
             }
+        }
 
-            impl<P: $FpParameters> FromStr for $Fp<P> {
-                type Err = ();
+        impl<P: $FpParameters> FromStr for $Fp<P> {
+            type Err = ();
 
-                /// Interpret a string of numbers as a (congruent) prime field element.
-                /// Does not accept unnecessary leading zeroes or a blank string.
-                fn from_str(s: &str) -> Result<Self, Self::Err> {
-                    if s.is_empty() {
-                        return Err(());
-                    }
+            /// Interpret a string of numbers as a (congruent) prime field element.
+            /// Does not accept unnecessary leading zeroes or a blank string.
+            fn from_str(s: &str) -> Result<Self, Self::Err> {
+                if s.is_empty() {
+                    return Err(());
+                }
 
-                    if s == "0" {
-                        return Ok(Self::zero());
-                    }
+                if s == "0" {
+                    return Ok(Self::zero());
+                }
 
-                    let mut res = Self::zero();
+                let mut res = Self::zero();
 
-                    let ten = Self::from(<Self as PrimeField>::BigInt::from(10));
+                let ten = Self::from(<Self as PrimeField>::BigInt::from(10));
 
-                    let mut first_digit = true;
+                let mut first_digit = true;
 
-                    for c in s.chars() {
-                        match c.to_digit(10) {
-                            Some(c) => {
-                                if first_digit {
-                                    if c == 0 {
-                                        return Err(());
-                                    }
-
-                                    first_digit = false;
+                for c in s.chars() {
+                    match c.to_digit(10) {
+                        Some(c) => {
+                            if first_digit {
+                                if c == 0 {
+                                    return Err(());
                                 }
 
-                                res.mul_assign(&ten);
-                                let digit = Self::from(u64::from(c));
-                                res.add_assign(&digit);
-                            },
-                            None => {
-                                return Err(());
-                            },
-                        }
-                    }
-                    if !res.is_valid() {
-                        Err(())
-                    } else {
-                        Ok(res)
+                                first_digit = false;
+                            }
+
+                            res.mul_assign(&ten);
+                            let digit = Self::from(u64::from(c));
+                            res.add_assign(&digit);
+                        },
+                        None => {
+                            return Err(());
+                        },
                     }
                 }
-            }
-
-            impl<P: $FpParameters> Display for $Fp<P> {
-                #[inline]
-                fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
-                    write!(f, stringify!($Fp"({})"), self.into_repr())
-                }
-            }
-
-            impl<P: $FpParameters> Neg for $Fp<P> {
-                type Output = Self;
-                #[inline]
-                #[must_use]
-                fn neg(self) -> Self {
-                    if !self.is_zero() {
-                        let mut tmp = P::MODULUS;
-                        tmp.sub_noborrow(&self.0);
-                        $Fp::<P>(tmp, PhantomData)
-                    } else {
-                        self
-                    }
-                }
-            }
-
-            impl<'a, P: $FpParameters> Add<&'a $Fp<P>> for $Fp<P> {
-                type Output = Self;
-
-                #[inline]
-                fn add(mut self, other: &Self) -> Self {
-                    self.add_assign(other);
-                    self
-                }
-            }
-
-            impl<'a, P: $FpParameters> Sub<&'a $Fp<P>> for $Fp<P> {
-                type Output = Self;
-
-                #[inline]
-                fn sub(mut self, other: &Self) -> Self {
-                    self.sub_assign(other);
-                    self
-                }
-            }
-
-            impl<'a, P: $FpParameters> Mul<&'a $Fp<P>> for $Fp<P> {
-                type Output = Self;
-
-                #[inline]
-                fn mul(mut self, other: &Self) -> Self {
-                    self.mul_assign(other);
-                    self
-                }
-            }
-
-            impl<'a, P: $FpParameters> Div<&'a $Fp<P>> for $Fp<P> {
-                type Output = Self;
-
-                #[inline]
-                fn div(mut self, other: &Self) -> Self {
-                    self.mul_assign(&other.inverse().unwrap());
-                    self
-                }
-            }
-
-            impl_additive_ops_from_ref!($Fp, $FpParameters);
-            impl_multiplicative_ops_from_ref!($Fp, $FpParameters);
-
-            impl<'a, P: $FpParameters> AddAssign<&'a Self> for $Fp<P> {
-                #[inline]
-                fn add_assign(&mut self, other: &Self) {
-                    // This cannot exceed the backing capacity.
-                    self.0.add_nocarry(&other.0);
-                    // However, it may need to be reduced
-                    self.reduce();
-                }
-            }
-
-            impl<'a, P: $FpParameters> SubAssign<&'a Self> for $Fp<P> {
-                #[inline]
-                fn sub_assign(&mut self, other: &Self) {
-                    // If `other` is larger than `self`, add the modulus to self first.
-                    if other.0 > self.0 {
-                        self.0.add_nocarry(&P::MODULUS);
-                    }
-                    self.0.sub_noborrow(&other.0);
-                }
-            }
-
-            impl<'a, P: $FpParameters> MulAssign<&'a Self> for $Fp<P> {
-                impl_field_mul_assign!($limbs);
-            }
-
-            impl<'a, P: $FpParameters> DivAssign<&'a Self> for $Fp<P> {
-                #[inline]
-                fn div_assign(&mut self, other: &Self) {
-                    self.mul_assign(&other.inverse().unwrap());
-                }
-            }
-
-            impl<P: $FpParameters> zeroize::Zeroize for $Fp<P> {
-                // The phantom data does not contain element-specific data
-                // and thus does not need to be zeroized.
-                fn zeroize(&mut self) {
-                    self.0.zeroize();
+                if !res.is_valid() {
+                    Err(())
+                } else {
+                    Ok(res)
                 }
             }
         }
+
+        impl<P: $FpParameters> Display for $Fp<P> {
+            #[inline]
+            fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+                write!(f, stringify!($Fp"({})"), self.into_repr())
+            }
+        }
+
+        impl<P: $FpParameters> Neg for $Fp<P> {
+            type Output = Self;
+            #[inline]
+            #[must_use]
+            fn neg(self) -> Self {
+                if !self.is_zero() {
+                    let mut tmp = P::MODULUS;
+                    tmp.sub_noborrow(&self.0);
+                    $Fp::<P>(tmp, PhantomData)
+                } else {
+                    self
+                }
+            }
+        }
+
+        impl<'a, P: $FpParameters> Add<&'a $Fp<P>> for $Fp<P> {
+            type Output = Self;
+
+            #[inline]
+            fn add(mut self, other: &Self) -> Self {
+                self.add_assign(other);
+                self
+            }
+        }
+
+        impl<'a, P: $FpParameters> Sub<&'a $Fp<P>> for $Fp<P> {
+            type Output = Self;
+
+            #[inline]
+            fn sub(mut self, other: &Self) -> Self {
+                self.sub_assign(other);
+                self
+            }
+        }
+
+        impl<'a, P: $FpParameters> Mul<&'a $Fp<P>> for $Fp<P> {
+            type Output = Self;
+
+            #[inline]
+            fn mul(mut self, other: &Self) -> Self {
+                self.mul_assign(other);
+                self
+            }
+        }
+
+        impl<'a, P: $FpParameters> Div<&'a $Fp<P>> for $Fp<P> {
+            type Output = Self;
+
+            #[inline]
+            fn div(mut self, other: &Self) -> Self {
+                self.mul_assign(&other.inverse().unwrap());
+                self
+            }
+        }
+
+        impl_additive_ops_from_ref!($Fp, $FpParameters);
+        impl_multiplicative_ops_from_ref!($Fp, $FpParameters);
+
+        impl<'a, P: $FpParameters> AddAssign<&'a Self> for $Fp<P> {
+            #[inline]
+            fn add_assign(&mut self, other: &Self) {
+                // This cannot exceed the backing capacity.
+                self.0.add_nocarry(&other.0);
+                // However, it may need to be reduced
+                self.reduce();
+            }
+        }
+
+        impl<'a, P: $FpParameters> SubAssign<&'a Self> for $Fp<P> {
+            #[inline]
+            fn sub_assign(&mut self, other: &Self) {
+                // If `other` is larger than `self`, add the modulus to self first.
+                if other.0 > self.0 {
+                    self.0.add_nocarry(&P::MODULUS);
+                }
+                self.0.sub_noborrow(&other.0);
+            }
+        }
+
+        impl<'a, P: $FpParameters> MulAssign<&'a Self> for $Fp<P> {
+            impl_field_mul_assign!($limbs);
+        }
+
+        impl<'a, P: $FpParameters> DivAssign<&'a Self> for $Fp<P> {
+            #[inline]
+            fn div_assign(&mut self, other: &Self) {
+                self.mul_assign(&other.inverse().unwrap());
+            }
+        }
+
+        impl<P: $FpParameters> zeroize::Zeroize for $Fp<P> {
+            // The phantom data does not contain element-specific data
+            // and thus does not need to be zeroized.
+            fn zeroize(&mut self) {
+                self.0.zeroize();
+            }
+        }
     }
+}
