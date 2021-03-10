@@ -70,13 +70,12 @@ impl<P: Bls12Parameters> Bls12<P> {
         }
     }
 
-    // Exponentiates `f` by `Self::X`.
-    fn exp_by_x(mut f: Fp12<P::Fp12Params>) -> Fp12<P::Fp12Params> {
-        f = f.cyclotomic_exp(P::X);
+    // Exponentiates `f` by `Self::X`, and stores the result in `result`.
+    fn exp_by_x(f: &Fp12<P::Fp12Params>, result: &mut Fp12<P::Fp12Params>) {
+        *result = f.cyclotomic_exp(P::X);
         if P::X_IS_NEGATIVE {
-            f.conjugate();
+            result.conjugate();
         }
-        f
     }
 }
 
@@ -153,20 +152,21 @@ impl<P: Bls12Parameters> PairingEngine for Bls12<P> {
             // t[0].CyclotomicSquare(&result)
             let mut y0 = r.cyclotomic_square();
             // t[1].Expt(&result)
-            let mut y1 = Self::exp_by_x(r);
+            let mut y1 = Fp12::zero();
+            Self::exp_by_x(&r, &mut y1);
             // t[2].InverseUnitary(&result)
             let mut y2 = r;
             y2.conjugate();
             // t[1].Mul(&t[1], &t[2])
             y1 *= &y2;
             // t[2].Expt(&t[1])
-            y2 = Self::exp_by_x(y1);
+            Self::exp_by_x(&y1, &mut y2);
             // t[1].InverseUnitary(&t[1])
             y1.conjugate();
             // t[1].Mul(&t[1], &t[2])
             y1 *= &y2;
             // t[2].Expt(&t[1])
-            y2 = Self::exp_by_x(y1);
+            Self::exp_by_x(&y1, &mut y2);
             // t[1].Frobenius(&t[1])
             y1.frobenius_map(1);
             // t[1].Mul(&t[1], &t[2])
@@ -174,9 +174,9 @@ impl<P: Bls12Parameters> PairingEngine for Bls12<P> {
             // result.Mul(&result, &t[0])
             r *= &y0;
             // t[0].Expt(&t[1])
-            y0 = Self::exp_by_x(y1);
+            Self::exp_by_x(&y1, &mut y0);
             // t[2].Expt(&t[0])
-            y2 = Self::exp_by_x(y0);
+            Self::exp_by_x(&y0, &mut y2);
             // t[0].FrobeniusSquare(&t[1])
             y0 = y1;
             y0.frobenius_map(2);
