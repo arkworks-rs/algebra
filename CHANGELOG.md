@@ -10,10 +10,10 @@ The main features of this release are:
 - Small speedups to MSMs
 - Big speedups to radix-2 FFTs
 - Fix in the assembly arithmetic backend
-- Adding new traits for basic curve cycles and pairing based curve cycles 
+- Adding new traits for basic curve cycles and pairing based curve cycles
 
 ### Breaking changes
-- #20 (ark-poly) Move univariate DensePolynomial and SparsePolynomial into a 
+- #20 (ark-poly) Move univariate DensePolynomial and SparsePolynomial into a
     univariate sub-crate. Make this change by:
     find w/ regex `ark_poly::(Dense|Sparse)Polynomial`, and replace with `ark_poly::univariate::$1Polynomial`.
 - #36 (ark-ec) In Short-Weierstrass curves, include an infinity bit in `ToConstraintField`.
@@ -31,12 +31,12 @@ The main features of this release are:
 - #129 (ark-ff) Move `ark_ff::{UniformRand, test_rng}` to `ark_std::{UniformRand, test_rng}`.
     Importing these from `ark-ff` is still possible, but is deprecated and will be removed in the following release.
 - #144 (ark-poly) Add `CanonicalSerialize` and `CanonicalDeserialize` trait bounds for `Polynomial`.
-- #160 (ark-serialize, ark-ff, ark-ec) 
+- #160 (ark-serialize, ark-ff, ark-ec)
   - Remove `ConstantSerializedSize`; users should use `serialized_size*` (see next).
-  - Add `serialized_size_with_flags` method to `CanonicalSerializeWithFlags`. 
+  - Add `serialized_size_with_flags` method to `CanonicalSerializeWithFlags`.
   - Change `from_random_bytes_with_flags` to output `ark_serialize::Flags`.
   - Change signatures of `Flags::from_u8*` to output `Option`.
-  - Change `Flags::from_u8*` to be more strict about the inputs they accept: 
+  - Change `Flags::from_u8*` to be more strict about the inputs they accept:
     if the top bits of the `u8` value do *not* correspond to one of the possible outputs of `Flags::u8_bitmask`, then these methods output `None`, whereas before they output
     a default value.
   Downstream users other than `ark-curves` should not see breakage unless they rely on these methods/traits explicitly.
@@ -85,6 +85,7 @@ The main features of this release are:
 - #201 (ark-ec, ark-ff, ark-test-curves, ark-test-templates) Remove the dependency on `rand_xorshift`
 - #205 (ark-ec, ark-ff) Unroll loops and conditionally use intrinsics in `biginteger` arithmetic, and reduce copies in `ff` and `ec` arithmetic.
 - #207 (ark-ff) Improve performance of extension fields when the non-residue is negative. (Improves fq2, fq12, and g2 speed on bls12 and bn curves)
+- #214 (ark-poly) Utilise a more efficient way of evaluating a polynomial at a single point
 
 ### Bug fixes
 - #36 (ark-ec) In Short-Weierstrass curves, include an infinity bit in `ToConstraintField`.

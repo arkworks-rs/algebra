@@ -57,13 +57,9 @@ impl<F: Field> DensePolynomial<F> {
     #[inline]
     // Horner's method for polynomial evaluation
     fn horner_evaluate(poly_coeffs: &[F], point: &F) -> F {
-        let mut result = F::zero();
-        let num_coeffs = poly_coeffs.len();
-        for i in (0..num_coeffs).rev() {
-            result *= point;
-            result += poly_coeffs[i];
-        }
-        result
+        poly_coeffs
+            .iter()
+            .rfold(F::zero(), move |result, coeff| result * point + coeff)
     }
 
     #[cfg(not(feature = "parallel"))]
@@ -561,7 +557,7 @@ mod tests {
         let rng = &mut test_rng();
         for a_degree in 0..70 {
             let p = DensePolynomial::rand(a_degree, rng);
-            let point: Fr = Fr::from(10u64);
+            let point: Fr = Fr::rand(rng);
             let mut total = Fr::zero();
             for (i, coeff) in p.coeffs.iter().enumerate() {
                 total += &(point.pow(&[i as u64]) * coeff);

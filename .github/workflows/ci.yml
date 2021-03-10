@@ -159,3 +159,60 @@ jobs:
         with:
             command: build
             args: --workspace --exclude ark-algebra-test-templates --exclude ark-poly-benches --target thumbv6m-none-eabi
+
+  test_against_curves:
+    name: Test against curves
+    runs-on: ubuntu-latest
+    env:
+      RUSTFLAGS: -Dwarnings
+    strategy:
+      matrix:
+        rust:
+          - stable
+          - nightly
+    steps:
+      - name: Checkout curves
+        uses: actions/checkout@v2
+        with:
+          repository: arkworks-rs/curves
+    
+      - name: Checkout algebra
+        uses: actions/checkout@v2
+        with:
+          repository: arkworks-rs/algebra
+          path: algebra
+
+      - name: Install Rust (${{ matrix.rust }})
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: ${{ matrix.rust }}
+          override: true
+
+      - uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            algebra/target
+            target
+          key: ${{ runner.os }}-cargo-curves-${{ hashFiles('**/Cargo.lock') }}
+          
+      - name: Patch cargo.toml
+        run: |
+          echo                                                                             >> Cargo.toml
+          echo      "[patch.'https://github.com/arkworks-rs/algebra']"                     >> Cargo.toml
+          echo      "ark-ff = { path = 'algebra/ff' }"                                     >> Cargo.toml
+          echo      "ark-serialize = { path = 'algebra/serialize' }"                       >> Cargo.toml
+          echo      "ark-ff-macros = { path = 'algebra/ff-macros' }"                       >> Cargo.toml
+          echo      "ark-ff-asm = { path = 'algebra/ff-asm' }"                             >> Cargo.toml
+          echo      "ark-ec = { path = 'algebra/ec' }"                                     >> Cargo.toml
+          echo      "ark-algebra-test-templates = { path = 'algebra/test-templates' }"     >> Cargo.toml
+        
+      - name: Test
+        uses: actions-rs/cargo@v1
+        with:
+            command: test
+            args: "--workspace \
+                   --all-features \
+                   --exclude curve-benches"
