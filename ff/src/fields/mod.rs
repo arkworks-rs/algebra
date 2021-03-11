@@ -122,16 +122,7 @@ pub trait Field:
     + From<bool>
 {
     type BasePrimeField: PrimeField;
-    type SmallValue: Copy
-        + Zero
-        + Add<Self::SmallValue, Output = Self::SmallValue>
-        + Neg<Output = Self::SmallValue>
-        + From<i8>
-        + From<Self>
-        + PartialEq
-        + Eq
-        + PartialEq<i8>
-        + Mul<Self, Output = Self>;
+    type SmallValue: SmallFieldValue<Self>;
 
     /// Returns the characteristic of the field,
     /// in little-endian representation.
@@ -202,6 +193,35 @@ pub trait Field:
     }
 }
 
+pub trait SmallFieldValue<F: Field>: Copy
+        + Neg<Output = Self>
+        + Mul<F, Output = F>
+        + From<i8>
+        + From<F>
+        + PartialEq
+        + Eq
+        + PartialEq<i8>
+{
+    /// Returns the additive identity of the field.
+    // Note: we add explicit methods instead of using the `Zero` trait 
+    // to avoid an unnecessary `Add` impl that's required by the `Zero` trait.
+    fn zero() -> Self;
+
+    /// Is `self` the additive identity of the field?
+    fn is_zero(&self) -> bool;
+
+    /// Is `self` less than or equal to the additive identity of the field?
+    ///
+    /// * When `F: PrimeField`, for an element x ∈ [p-1] of `F`, this method returns
+    /// `(x - (p-1)/2) <= 0`.
+    /// * Otherwise, `F` is an extension field F_q (q is a prime power), for an element
+    /// `x` of `F`, this method returns true only if each coefficient of the underlying 
+    /// representation is less than or equal to zero.
+    ///
+    /// Note that this ordering is *different* from the ordering on `F`; there every element 
+    /// lies in the range `0..(p-1)`, and is hence never negative.
+    fn is_leq_zero(&self) -> bool;
+}
 /// A trait that defines parameters for a field that can be used for FFTs.
 pub trait FftParameters: 'static + Send + Sync + Sized {
     type BigInt: BigInteger;
@@ -612,6 +632,8 @@ fn serial_batch_inversion_and_mul<F: Field>(v: &mut [F], coeff: &F) {
         tmp = new_tmp;
     }
 }
+
+
 
 #[cfg(all(test, feature = "std"))]
 mod std_tests {

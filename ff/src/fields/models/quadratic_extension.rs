@@ -21,7 +21,7 @@ use ark_std::rand::{
 
 use crate::{
     bytes::{FromBytes, ToBytes},
-    fields::{Field, LegendreSymbol, PrimeField, SquareRootField},
+    fields::{Field, LegendreSymbol, PrimeField, SquareRootField, SmallFieldValue},
     ToConstraintField, UniformRand,
 };
 
@@ -665,6 +665,24 @@ pub struct SmallQuadExtField<F: Field> {
     /// 1-th coefficient.
     pub c1: F::SmallValue,
 }
+
+impl<P: QuadExtParameters> SmallFieldValue<QuadExtField<P>> for SmallQuadExtField<QuadExtField<P>> {
+    fn zero() -> Self {
+        Self {
+            c0: P::BaseField::SmallValue::zero(),
+            c1: P::BaseField::SmallValue::zero(),
+        }
+    }
+
+    fn is_zero(&self) -> bool {
+        self.c0.is_zero() && self.c1.is_zero()
+    }
+
+    fn is_leq_zero(&self) -> bool {
+        self.c0.is_leq_zero() && self.c1.is_leq_zero()
+    }
+}
+
 impl<F: Field> Neg for SmallQuadExtField<F> {
     type Output = Self;
     fn neg(mut self) -> Self {
@@ -694,16 +712,6 @@ impl<P: QuadExtParameters> Mul<QuadExtField<P>> for SmallQuadExtField<P::BaseFie
 impl<P: QuadExtParameters> From<SmallQuadExtField<P::BaseField>> for QuadExtField<P> {
     fn from(other: SmallQuadExtField<P::BaseField>) -> Self {
         Self::new(other.c0.into(), other.c1.into())
-    }
-}
-
-// Required for `Zero`
-impl<F: Field> Add<Self> for SmallQuadExtField<F> {
-    type Output = Self;
-    fn add(mut self, other: Self) -> Self {
-        self.c0 = self.c0 + other.c0;
-        self.c1 = self.c1 + other.c1;
-        self
     }
 }
 
@@ -739,18 +747,6 @@ impl<P: QuadExtParameters> From<QuadExtField<P>> for SmallQuadExtField<P::BaseFi
     }
 }
 
-impl<F: Field> Zero for SmallQuadExtField<F> {
-    fn zero() -> Self {
-        Self {
-            c0: F::SmallValue::zero(),
-            c1: F::SmallValue::zero(),
-        }
-    }
-
-    fn is_zero(&self) -> bool {
-        self.c0.is_zero() && self.c1.is_zero()
-    }
-}
 #[cfg(test)]
 mod quad_ext_tests {
     use super::*;

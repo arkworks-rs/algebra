@@ -21,7 +21,7 @@ use ark_std::rand::{
 
 use crate::{
     bytes::{FromBytes, ToBytes},
-    fields::{Field, PrimeField},
+    fields::{Field, PrimeField, SmallFieldValue},
     ToConstraintField, UniformRand,
 };
 
@@ -576,6 +576,25 @@ pub struct SmallCubicExtField<F: Field> {
     c1: F::SmallValue,
     c2: F::SmallValue,
 }
+
+impl<F: Field> SmallFieldValue<F> for SmallCubicExtField<F> {
+    fn zero() -> Self {
+        Self {
+            c0: F::SmallValue::zero(),
+            c1: F::SmallValue::zero(),
+            c2: F::SmallValue::zero(),
+        }
+    }
+
+    fn is_zero(&self) -> bool {
+        self.c0.is_zero() && self.c1.is_zero() && self.c2.is_zero()
+    }
+
+    fn is_leq_zero(&self) -> bool {
+        self.c0.is_leq_zero() && self.c1.is_leq_zero() && self.c2.is_leq_zero()
+    }
+}
+
 impl<F: Field> Neg for SmallCubicExtField<F> {
     type Output = Self;
     fn neg(mut self) -> Self {
@@ -622,16 +641,6 @@ impl<P: CubicExtParameters> From<SmallCubicExtField<P::BaseField>> for CubicExtF
     }
 }
 
-// Required for `Zero`
-impl<F: Field> Add<Self> for SmallCubicExtField<F> {
-    type Output = Self;
-    fn add(mut self, other: Self) -> Self {
-        self.c0 = self.c0 + other.c0;
-        self.c1 = self.c1 + other.c1;
-        self.c2 = self.c2 + other.c2;
-        self
-    }
-}
 
 impl<P: CubicExtParameters> Mul<SmallCubicExtField<P::BaseField>> for CubicExtField<P> {
     type Output = Self;
@@ -664,20 +673,6 @@ impl<P: CubicExtParameters> From<CubicExtField<P>> for SmallCubicExtField<P::Bas
             c1: other.c1.into(),
             c2: other.c2.into(),
         }
-    }
-}
-
-impl<F: Field> Zero for SmallCubicExtField<F> {
-    fn zero() -> Self {
-        Self {
-            c0: F::SmallValue::zero(),
-            c1: F::SmallValue::zero(),
-            c2: F::SmallValue::zero(),
-        }
-    }
-
-    fn is_zero(&self) -> bool {
-        self.c0.is_zero() && self.c1.is_zero() && self.c2.is_zero()
     }
 }
 
