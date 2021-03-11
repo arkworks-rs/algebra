@@ -1,4 +1,5 @@
 use super::quadratic_extension::*;
+use crate::fields::Field;
 use core::marker::PhantomData;
 
 use crate::fields::{Fp2, Fp2Parameters};
@@ -8,7 +9,7 @@ pub trait Fp4Parameters: 'static + Send + Sync {
 
     /// This *must* equal (0, 1);
     /// see [[DESD06, Section 5.1]](https://eprint.iacr.org/2006/471.pdf).
-    const NONRESIDUE: Fp2<Self::Fp2Params>;
+    const NONRESIDUE: <Fp2<Self::Fp2Params> as Field>::SmallValue;
 
     /// Coefficients for the Frobenius automorphism.
     /// non_residue^((modulus^i-1)/4) for i=0,1,2,3
@@ -18,7 +19,7 @@ pub trait Fp4Parameters: 'static + Send + Sync {
     fn mul_fp2_by_nonresidue(fe: &Fp2<Self::Fp2Params>) -> Fp2<Self::Fp2Params> {
         // see [[DESD06, Section 5.1]](https://eprint.iacr.org/2006/471.pdf).
         Fp2::new(
-            <Self::Fp2Params as Fp2Parameters>::NONRESIDUE * &fe.c1,
+            <Self::Fp2Params as Fp2Parameters>::NONRESIDUE * fe.c1,
             fe.c0,
         )
     }
@@ -33,7 +34,7 @@ impl<P: Fp4Parameters> QuadExtParameters for Fp4ParamsWrapper<P> {
 
     const DEGREE_OVER_BASE_PRIME_FIELD: usize = 4;
 
-    const NONRESIDUE: Self::BaseField = P::NONRESIDUE;
+    const NONRESIDUE: <Fp2<P::Fp2Params> as Field>::SmallValue = P::NONRESIDUE;
 
     const FROBENIUS_COEFF_C1: &'static [Self::FrobCoeff] = P::FROBENIUS_COEFF_FP4_C1;
 

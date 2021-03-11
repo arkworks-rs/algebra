@@ -272,6 +272,7 @@ macro_rules! impl_Fp {
 
         impl<P: $FpParameters> Field for $Fp<P> {
             type BasePrimeField = Self;
+            type SmallValue = SmallFp<Self>;
 
             fn extension_degree() -> u64 {
                 1
@@ -347,8 +348,8 @@ macro_rules! impl_Fp {
                         *b &= m;
                     }
                     Self::deserialize(&result_bytes[..($limbs * 8)])
-                        .ok()
-                        .and_then(|f| F::from_u8(flags).map(|flag| (f, flag)))
+                    .ok()
+                    .and_then(|f| F::from_u8(flags).map(|flag| (f, flag)))
                 }
             }
 
@@ -522,6 +523,31 @@ macro_rules! impl_Fp {
         impl_prime_field_from_int!($Fp, u8, $FpParameters, $limbs);
         impl_prime_field_from_int!($Fp, bool, $FpParameters, $limbs);
 
+        impl<P: $FpParameters> From<SmallFp<Self>> for $Fp<P> {
+            fn from(other: SmallFp<Self>) -> Self {
+                match other {
+                    SmallFp::Full(f) => f,
+                    SmallFp::Small(f) => {
+                        // TODO: replace with `unsigned_abs` once it is stable.
+                        let f_u8 = f.wrapping_abs() as u8;
+                        if f.is_positive() {
+                            Self::from(f_u8)
+                        } else {
+                            -Self::from(f_u8)
+                        }
+                    }
+                }
+            }
+        }
+
+        impl<P: $FpParameters> Mul<SmallFp<Self>> for $Fp<P> {
+            type Output = Self;
+            fn mul(self, other: SmallFp<Self>) -> Self {
+                // forwards to the `Mul` impl on `SmallFp`.
+                other * self
+            }
+        }
+
         impl_prime_field_standard_sample!($Fp, $FpParameters);
 
         impl_prime_field_serializer!($Fp, $FpParameters, $limbs * 8);
@@ -536,11 +562,8 @@ macro_rules! impl_Fp {
         impl<P: $FpParameters> FromBytes for $Fp<P> {
             #[inline]
             fn read<R: Read>(reader: R) -> IoResult<Self> {
-                $BigInteger::read(reader).and_then(|b|
-                    match $Fp::from_repr(b) {
-                        Some(f) => Ok(f),
-                        None => Err(crate::error("FromBytes::read failed")),
-                    })
+                let b = $BigInteger::read(reader)?;
+                $Fp::from_repr(b).ok_or(crate::error("FromBytes::read failed"))
             }
         }
 
