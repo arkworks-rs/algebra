@@ -6,7 +6,7 @@ use ark_ff::fields::{
     fp12_2over3over2::{Fp12, Fp12Parameters},
     fp2::Fp2Parameters,
     fp6_3over2::Fp6Parameters,
-    BitIteratorBE, Field, Fp2, PrimeField, SquareRootField,
+    BitIteratorBE, Field, Fp2, PrimeField, SquareRootField, Zero,
 };
 use num_traits::One;
 
