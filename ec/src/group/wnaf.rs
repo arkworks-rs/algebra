@@ -1,6 +1,6 @@
 extern crate alloc;
-use alloc::vec::Vec;
 use crate::Group;
+use alloc::vec::Vec;
 
 pub fn wnaf_mul<G: Group>(table: &[G], scalar_wnaf: &[i64]) -> G {
     let mut result = G::zero();
