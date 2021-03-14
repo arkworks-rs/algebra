@@ -3,20 +3,22 @@ use crate::{
     multivariate::{SparseTerm, Term},
     MVPolynomial, Polynomial,
 };
-use ark_ff::Field;
+use ark_ff::{Field, Zero};
+use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, SerializationError};
+use ark_std::rand::Rng;
 use ark_std::{
     cmp::Ordering,
     fmt,
+    io::{Read, Write},
     ops::{Add, AddAssign, Neg, Sub, SubAssign},
     vec::Vec,
 };
-use rand::Rng;
 
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
 
 /// Stores a sparse multivariate polynomial in coefficient form.
-#[derive(Derivative)]
+#[derive(Derivative, CanonicalSerialize, CanonicalDeserialize)]
 #[derivative(Clone, PartialEq, Eq, Hash, Default)]
 pub struct SparsePolynomial<F: Field, T: Term> {
     /// The number of variables the polynomial supports
@@ -34,19 +36,6 @@ impl<F: Field, T: Term> SparsePolynomial<F, T> {
 
 impl<F: Field> Polynomial<F> for SparsePolynomial<F, SparseTerm> {
     type Point = Vec<F>;
-
-    /// Returns the zero polynomial.
-    fn zero() -> Self {
-        Self {
-            num_vars: 0,
-            terms: Vec::new(),
-        }
-    }
-
-    /// Checks if the given polynomial is zero.
-    fn is_zero(&self) -> bool {
-        self.terms.is_empty() || self.terms.iter().all(|(c, _)| c.is_zero())
-    }
 
     /// Returns the total degree of the polynomial
     fn degree(&self) -> usize {
@@ -70,6 +59,24 @@ impl<F: Field> Polynomial<F> for SparsePolynomial<F, SparseTerm> {
 }
 
 impl<F: Field> MVPolynomial<F> for SparsePolynomial<F, SparseTerm> {
+    /// Returns the number of variables in `self`
+    fn num_vars(&self) -> usize {
+        self.num_vars
+    }
+
+    /// Outputs an `l`-variate polynomial which is the sum of `l` `d`-degree
+    /// univariate polynomials where each coefficient is sampled uniformly at random.
+    fn rand<R: Rng>(d: usize, l: usize, rng: &mut R) -> Self {
+        let mut random_terms = Vec::new();
+        random_terms.push((F::rand(rng), SparseTerm::new(vec![])));
+        for var in 0..l {
+            for deg in 1..=d {
+                random_terms.push((F::rand(rng), SparseTerm::new(vec![(var, deg)])));
+            }
+        }
+        Self::from_coefficients_vec(l, random_terms)
+    }
+
     type Term = SparseTerm;
 
     /// Constructs a new polynomial from a list of tuples of the form `(coeff, Self::Term)`
@@ -104,24 +111,6 @@ impl<F: Field> MVPolynomial<F> for SparsePolynomial<F, SparseTerm> {
     /// Returns the terms of a `self` as a list of tuples of the form `(coeff, Self::Term)`
     fn terms(&self) -> &[(F, Self::Term)] {
         self.terms.as_slice()
-    }
-
-    /// Returns the number of variables in `self`
-    fn num_vars(&self) -> usize {
-        self.num_vars
-    }
-
-    /// Outputs an `l`-variate polynomial which is the sum of `l` `d`-degree
-    /// univariate polynomials where each coefficient is sampled uniformly at random.
-    fn rand<R: Rng>(d: usize, l: usize, rng: &mut R) -> Self {
-        let mut random_terms = Vec::new();
-        random_terms.push((F::rand(rng), SparseTerm::new(vec![])));
-        for var in 0..l {
-            for deg in 1..=d {
-                random_terms.push((F::rand(rng), SparseTerm::new(vec![(var, deg)])));
-            }
-        }
-        Self::from_coefficients_vec(l, random_terms)
     }
 }
 
@@ -237,10 +226,26 @@ impl<F: Field, T: Term> fmt::Debug for SparsePolynomial<F, T> {
     }
 }
 
+impl<F: Field, T: Term> Zero for SparsePolynomial<F, T> {
+    /// Returns the zero polynomial.
+    fn zero() -> Self {
+        Self {
+            num_vars: 0,
+            terms: Vec::new(),
+        }
+    }
+
+    /// Checks if the given polynomial is zero.
+    fn is_zero(&self) -> bool {
+        self.terms.is_empty() || self.terms.iter().all(|(c, _)| c.is_zero())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ark_ff::{test_rng, Field, UniformRand, Zero};
+    use ark_ff::{Field, UniformRand, Zero};
+    use ark_std::test_rng;
     use ark_test_curves::bls12_381::Fr;
 
     // TODO: Make tests generic over term type

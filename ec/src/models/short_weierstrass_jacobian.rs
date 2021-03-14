@@ -2,7 +2,7 @@
 use crate::accel_dummy::*;
 use ark_serialize::{
     CanonicalDeserialize, CanonicalDeserializeWithFlags, CanonicalSerialize,
-    CanonicalSerializeWithFlags, ConstantSerializedSize, Flags, SWFlags, SerializationError,
+    CanonicalSerializeWithFlags, SWFlags, SerializationError,
 };
 use ark_std::{
     fmt::{Display, Formatter, Result as FmtResult},
@@ -33,8 +33,9 @@ use crate::{
 };
 
 use num_traits::{One, Zero};
+use zeroize::Zeroize;
 
-use rand::{
+use ark_std::rand::{
     distributions::{Distribution, Standard},
     Rng,
 };
@@ -297,6 +298,16 @@ impl<P: Parameters> GroupAffine<P> {
     }
 }
 
+impl<P: Parameters> Zeroize for GroupAffine<P> {
+    // The phantom data does not contain element-specific data
+    // and thus does not need to be zeroized.
+    fn zeroize(&mut self) {
+        self.x.zeroize();
+        self.y.zeroize();
+        self.infinity.zeroize();
+    }
+}
+
 impl<P: Parameters> Zero for GroupAffine<P> {
     #[inline]
     fn zero() -> Self {
@@ -342,16 +353,15 @@ impl<P: Parameters> AffineCurve for GroupAffine<P> {
     }
 
     fn from_random_bytes(bytes: &[u8]) -> Option<Self> {
-        P::BaseField::from_random_bytes_with_flags(bytes).and_then(|(x, flags)| {
-            let infinity_flag_mask = SWFlags::Infinity.u8_bitmask();
-            let positive_flag_mask = SWFlags::PositiveY.u8_bitmask();
+        P::BaseField::from_random_bytes_with_flags::<SWFlags>(bytes).and_then(|(x, flags)| {
             // if x is valid and is zero and only the infinity flag is set, then parse this
             // point as infinity. For all other choices, get the original point.
-            if x.is_zero() && flags == infinity_flag_mask {
+            if x.is_zero() && flags.is_infinity() {
                 Some(Self::zero())
+            } else if let Some(y_is_positive) = flags.is_positive() {
+                Self::get_point_from_x(x, y_is_positive) // Unwrap is safe because it's not zero.
             } else {
-                let is_positive = flags & positive_flag_mask != 0;
-                Self::get_point_from_x(x, is_positive)
+                None
             }
         })
     }
@@ -1024,7 +1034,6 @@ impl<P: Parameters> BatchGroupArithmetic for GroupAffine<P> {
 #[derivative(
     Copy(bound = "P: Parameters"),
     Clone(bound = "P: Parameters"),
-    Eq(bound = "P: Parameters"),
     Debug(bound = "P: Parameters"),
     Hash(bound = "P: Parameters")
 )]
@@ -1043,6 +1052,7 @@ impl<P: Parameters> Display for GroupProjective<P> {
     }
 }
 
+impl<P: Parameters> Eq for GroupProjective<P> {}
 impl<P: Parameters> PartialEq for GroupProjective<P> {
     fn eq(&self, other: &Self) -> bool {
         if self.is_zero() {
@@ -1056,13 +1066,13 @@ impl<P: Parameters> PartialEq for GroupProjective<P> {
         // The points (X, Y, Z) and (X', Y', Z')
         // are equal when (X * Z^2) = (X' * Z'^2)
         // and (Y * Z^3) = (Y' * Z'^3).
-        let z1 = self.z.square();
-        let z2 = other.z.square();
+        let z1z1 = self.z.square();
+        let z2z2 = other.z.square();
 
-        if self.x * &z2 != other.x * &z1 {
+        if self.x * &z2z2 != other.x * &z1z1 {
             false
         } else {
-            self.y * &(z2 * &other.z) == other.y * &(z1 * &self.z)
+            self.y * &(z2z2 * &other.z) == other.y * &(z1z1 * &self.z)
         }
     }
 }
@@ -1070,10 +1080,14 @@ impl<P: Parameters> PartialEq for GroupProjective<P> {
 impl<P: Parameters> Distribution<GroupProjective<P>> for Standard {
     #[inline]
     fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> GroupProjective<P> {
-        let mut res = GroupProjective::prime_subgroup_generator();
-        res.mul_assign(P::ScalarField::rand(rng));
-        debug_assert!(GroupAffine::from(res).is_in_correct_subgroup_assuming_on_curve());
-        res
+        loop {
+            let x = P::BaseField::rand(rng);
+            let greatest = rng.gen();
+
+            if let Some(p) = GroupAffine::get_point_from_x(x, greatest) {
+                return p.scale_by_cofactor().into();
+            }
+        }
     }
 }
 
@@ -1111,6 +1125,16 @@ impl<P: Parameters> GroupProjective<P> {
             z,
             _params: PhantomData,
         }
+    }
+}
+
+impl<P: Parameters> Zeroize for GroupProjective<P> {
+    // The phantom data does not contain element-specific data
+    // and thus does not need to be zeroized.
+    fn zeroize(&mut self) {
+        self.x.zeroize();
+        self.y.zeroize();
+        self.z.zeroize();
     }
 }
 
@@ -1159,51 +1183,25 @@ impl<P: Parameters> ProjectiveCurve for GroupProjective<P> {
 
     #[inline]
     fn batch_normalization(v: &mut [Self]) {
-        // Montgomery’s Trick and Fast Implementation of Masked AES
-        // Genelle, Prouff and Quisquater
-        // Section 3.2
-
-        // First pass: compute [a, ab, abc, ...]
-        let mut prod = Vec::with_capacity(v.len());
-        let mut tmp = P::BaseField::one();
-        for g in v.iter_mut()
-            // Ignore normalized elements
-            .filter(|g| !g.is_normalized())
-        {
-            tmp *= &g.z;
-            prod.push(tmp);
-        }
-
-        // Invert `tmp`.
-        tmp = tmp.inverse().unwrap(); // Guaranteed to be nonzero.
-
-        // Second pass: iterate backwards to compute inverses
-        for (g, s) in v.iter_mut()
-            // Backwards
-            .rev()
-            // Ignore normalized elements
-            .filter(|g| !g.is_normalized())
-            // Backwards, skip last element, fill in one for last term.
-            .zip(prod.into_iter().rev().skip(1).chain(Some(P::BaseField::one())))
-        {
-            // tmp := tmp * g.z; g.z := tmp * s = 1/z
-            let newtmp = tmp * &g.z;
-            g.z = tmp * &s;
-            tmp = newtmp;
-        }
-
-        #[cfg(not(feature = "parallel"))]
-        let v_iter = v.iter_mut();
-        #[cfg(feature = "parallel")]
-        let v_iter = v.par_iter_mut();
+        // A projective curve element (x, y, z) is normalized
+        // to its affine representation, by the conversion
+        // (x, y, z) -> (x / z^2, y / z^3, 1)
+        // Batch normalizing N short-weierstrass curve elements costs:
+        //     1 inversion + 6N field multiplications + N field squarings    (Field ops)
+        // (batch inversion requires 3N multiplications + 1 inversion)
+        let mut z_s = v.iter().map(|g| g.z).collect::<Vec<_>>();
+        ark_ff::batch_inversion(&mut z_s);
 
         // Perform affine transformations
-        v_iter.filter(|g| !g.is_normalized()).for_each(|g| {
-            let z2 = g.z.square(); // 1/z
-            g.x *= &z2; // x/z^2
-            g.y *= &(z2 * &g.z); // y/z^3
-            g.z = P::BaseField::one(); // z = 1
-        });
+        ark_std::cfg_iter_mut!(v)
+            .zip(z_s)
+            .filter(|(g, _)| !g.is_normalized())
+            .for_each(|(g, z)| {
+                let z2 = z.square(); // 1/z
+                g.x *= &z2; // x/z^2
+                g.y *= &(z2 * &z); // y/z^3
+                g.z = P::BaseField::one(); // z = 1
+            });
     }
 
     fn double_in_place(&mut self) -> &mut Self {
@@ -1383,10 +1381,9 @@ impl<'a, P: Parameters> Add<&'a Self> for GroupProjective<P> {
     type Output = Self;
 
     #[inline]
-    fn add(self, other: &'a Self) -> Self {
-        let mut copy = self;
-        copy += other;
-        copy
+    fn add(mut self, other: &'a Self) -> Self {
+        self += other;
+        self
     }
 }
 
@@ -1459,10 +1456,9 @@ impl<'a, P: Parameters> Sub<&'a Self> for GroupProjective<P> {
     type Output = Self;
 
     #[inline]
-    fn sub(self, other: &'a Self) -> Self {
-        let mut copy = self;
-        copy -= other;
-        copy
+    fn sub(mut self, other: &'a Self) -> Self {
+        self -= other;
+        self
     }
 }
 
@@ -1533,7 +1529,7 @@ impl<P: Parameters> CanonicalSerialize for GroupAffine<P> {
 
     #[inline]
     fn serialized_size(&self) -> usize {
-        Self::SERIALIZED_SIZE
+        P::BaseField::zero().serialized_size_with_flags::<SWFlags>()
     }
 
     #[allow(unused_qualifications)]
@@ -1551,13 +1547,36 @@ impl<P: Parameters> CanonicalSerialize for GroupAffine<P> {
 
     #[inline]
     fn uncompressed_size(&self) -> usize {
-        Self::UNCOMPRESSED_SIZE
+        self.x.serialized_size() + self.y.serialized_size_with_flags::<SWFlags>()
     }
 }
 
-impl<P: Parameters> ConstantSerializedSize for GroupAffine<P> {
-    const SERIALIZED_SIZE: usize = <P::BaseField as ConstantSerializedSize>::SERIALIZED_SIZE;
-    const UNCOMPRESSED_SIZE: usize = 2 * <P::BaseField as ConstantSerializedSize>::SERIALIZED_SIZE;
+impl<P: Parameters> CanonicalSerialize for GroupProjective<P> {
+    #[allow(unused_qualifications)]
+    #[inline]
+    fn serialize<W: Write>(&self, writer: W) -> Result<(), SerializationError> {
+        let aff = GroupAffine::<P>::from(self.clone());
+        aff.serialize(writer)
+    }
+
+    #[inline]
+    fn serialized_size(&self) -> usize {
+        let aff = GroupAffine::<P>::from(self.clone());
+        aff.serialized_size()
+    }
+
+    #[allow(unused_qualifications)]
+    #[inline]
+    fn serialize_uncompressed<W: Write>(&self, writer: W) -> Result<(), SerializationError> {
+        let aff = GroupAffine::<P>::from(self.clone());
+        aff.serialize_uncompressed(writer)
+    }
+
+    #[inline]
+    fn uncompressed_size(&self) -> usize {
+        let aff = GroupAffine::<P>::from(self.clone());
+        aff.uncompressed_size()
+    }
 }
 
 impl<P: Parameters> CanonicalDeserialize for GroupAffine<P> {
@@ -1601,6 +1620,26 @@ impl<P: Parameters> CanonicalDeserialize for GroupAffine<P> {
             CanonicalDeserializeWithFlags::deserialize_with_flags(&mut reader)?;
         let p = GroupAffine::<P>::new(x, y, flags.is_infinity());
         Ok(p)
+    }
+}
+
+impl<P: Parameters> CanonicalDeserialize for GroupProjective<P> {
+    #[allow(unused_qualifications)]
+    fn deserialize<R: Read>(reader: R) -> Result<Self, SerializationError> {
+        let aff = GroupAffine::<P>::deserialize(reader)?;
+        Ok(aff.into())
+    }
+
+    #[allow(unused_qualifications)]
+    fn deserialize_uncompressed<R: Read>(reader: R) -> Result<Self, SerializationError> {
+        let aff = GroupAffine::<P>::deserialize_uncompressed(reader)?;
+        Ok(aff.into())
+    }
+
+    #[allow(unused_qualifications)]
+    fn deserialize_unchecked<R: Read>(reader: R) -> Result<Self, SerializationError> {
+        let aff = GroupAffine::<P>::deserialize_unchecked(reader)?;
+        Ok(aff.into())
     }
 }
 

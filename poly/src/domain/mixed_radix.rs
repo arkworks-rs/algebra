@@ -15,14 +15,21 @@ use crate::domain::{
     DomainCoeff, EvaluationDomain,
 };
 use ark_ff::{fields::utils::k_adicity, FftField, FftParameters};
-use ark_std::{cmp::min, convert::TryFrom, fmt, vec::Vec};
+use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, SerializationError};
+use ark_std::{
+    cmp::min,
+    convert::TryFrom,
+    fmt,
+    io::{Read, Write},
+    vec::Vec,
+};
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
 
 /// Defines a domain over which finite field (I)FFTs can be performed. Works
 /// only for fields that have a multiplicative subgroup of size that is
 /// a power-of-2 and another small subgroup over a different base defined.
-#[derive(Copy, Clone, Hash, Eq, PartialEq)]
+#[derive(Copy, Clone, Hash, Eq, PartialEq, CanonicalSerialize, CanonicalDeserialize)]
 pub struct MixedRadixEvaluationDomain<F: FftField> {
     /// The size of the domain.
     pub size: u64,
@@ -201,6 +208,14 @@ impl<F: FftField> EvaluationDomain<F> for MixedRadixEvaluationDomain<F> {
     /// 1`.
     fn evaluate_vanishing_polynomial(&self, tau: F) -> F {
         tau.pow(&[self.size]) - F::one()
+    }
+
+    /// Returns the `i`-th element of the domain, where elements are ordered by
+    /// their power of the generator which they correspond to.
+    /// e.g. the `i`-th element is g^i
+    fn element(&self, i: usize) -> F {
+        // TODO: Consider precomputed exponentiation tables if we need this to be faster.
+        self.group_gen.pow(&[i as u64])
     }
 
     /// Return an iterator over the elements of the domain.
@@ -390,21 +405,23 @@ pub(crate) fn serial_mixed_radix_fft<T: DomainCoeff<F>, F: FftField>(
 
 #[cfg(test)]
 mod tests {
+    use crate::polynomial::Polynomial;
     use crate::{EvaluationDomain, MixedRadixEvaluationDomain};
-    use ark_ff::{test_rng, Field, Zero};
-    use ark_test_curves::mnt4_753::Fq as Fr;
-    use rand::Rng;
+    use ark_ff::{Field, Zero};
+    use ark_std::rand::Rng;
+    use ark_std::test_rng;
+    use ark_test_curves::bn384_small_two_adicity::Fq as Fr;
 
     #[test]
     fn vanishing_polynomial_evaluation() {
         let rng = &mut test_rng();
-        for coeffs in 0..17 {
+        for coeffs in 0..12 {
             let domain = MixedRadixEvaluationDomain::<Fr>::new(coeffs).unwrap();
             let z = domain.vanishing_polynomial();
             for _ in 0..100 {
-                let point = rng.gen();
+                let point: Fr = rng.gen();
                 assert_eq!(
-                    z.evaluate(point),
+                    z.evaluate(&point),
                     domain.evaluate_vanishing_polynomial(point)
                 )
             }
@@ -417,14 +434,14 @@ mod tests {
             let domain = MixedRadixEvaluationDomain::<Fr>::new(coeffs).unwrap();
             let z = domain.vanishing_polynomial();
             for point in domain.elements() {
-                assert!(z.evaluate(point).is_zero())
+                assert!(z.evaluate(&point).is_zero())
             }
         }
     }
 
     #[test]
     fn size_of_elements() {
-        for coeffs in 1..17 {
+        for coeffs in 1..12 {
             let size = 1 << coeffs;
             let domain = MixedRadixEvaluationDomain::<Fr>::new(size).unwrap();
             let domain_size = domain.size();
@@ -434,7 +451,7 @@ mod tests {
 
     #[test]
     fn elements_contents() {
-        for coeffs in 1..17 {
+        for coeffs in 1..12 {
             let size = 1 << coeffs;
             let domain = MixedRadixEvaluationDomain::<Fr>::new(size).unwrap();
             for (i, element) in domain.elements().enumerate() {
@@ -448,9 +465,9 @@ mod tests {
     fn parallel_fft_consistency() {
         use super::serial_mixed_radix_fft;
         use crate::domain::utils::parallel_fft;
-        use ark_ff::{test_rng, PrimeField};
-        use ark_std::vec::Vec;
-        use ark_test_curves::mnt4_753::Fq as Fr;
+        use ark_ff::PrimeField;
+        use ark_std::{test_rng, vec::Vec};
+        use ark_test_curves::bn384_small_two_adicity::Fq as Fr;
         use core::cmp::min;
 
         fn test_consistency<F: PrimeField, R: Rng>(rng: &mut R, max_coeffs: u32) {

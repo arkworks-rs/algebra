@@ -1,6 +1,6 @@
 ## ark-ec
 
-This crate defines several elliptic curve traits, and curve models that follow these traits.
+This crate defines Elliptic Curve traits, curve models that follow these traits, and multi-scalar multiplications.
 Implementations of particular curves using these curve models can be found in [`arkworks-rs/curves`](https://github.com/arkworks-rs/curves/README.md).
 
 The available elliptic curve traits are

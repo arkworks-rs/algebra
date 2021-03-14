@@ -1,10 +1,4 @@
-#![deny(
-    warnings,
-    unused,
-    future_incompatible,
-    nonstandard_style,
-    rust_2018_idioms
-)]
+#![warn(unused, future_incompatible, nonstandard_style, rust_2018_idioms)]
 #![forbid(unsafe_code)]
 #![recursion_limit = "128"]
 
@@ -94,8 +88,8 @@ pub fn x86_64_asm_mul(input: TokenStream) -> TokenStream {
 
         let inner_ts: Expr = syn::parse_str(&impl_block).unwrap();
         let ts = quote::quote! {
-            let mut a = #a;
-            let b = #b;
+            let a = &mut #a;
+            let b = &#b;
             #inner_ts
         };
         ts.into()
@@ -145,7 +139,7 @@ pub fn x86_64_asm_square(input: TokenStream) -> TokenStream {
 
         let inner_ts: Expr = syn::parse_str(&impl_block).unwrap();
         let ts = quote::quote! {
-            let mut a = #a;
+            let a = &mut #a;
             #inner_ts
         };
         ts.into()
@@ -295,9 +289,9 @@ fn generate_llvm_asm_mul_string(
 
 fn generate_impl(num_limbs: usize, is_mul: bool) -> String {
     let mut ctx = Context::new();
-    ctx.add_declaration("a", "r", "&mut a");
+    ctx.add_declaration("a", "r", "a");
     if is_mul {
-        ctx.add_declaration("b", "r", "&b");
+        ctx.add_declaration("b", "r", "b");
     }
     ctx.add_declaration("modulus", "r", "&P::MODULUS.0");
     ctx.add_declaration("0", "i", "0u64");

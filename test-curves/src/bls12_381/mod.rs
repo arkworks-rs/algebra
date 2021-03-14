@@ -10,3 +10,6 @@ pub mod g1;
 pub use fq::*;
 #[cfg(feature = "bls12_381_curve")]
 pub use g1::*;
+
+#[cfg(test)]
+mod tests;

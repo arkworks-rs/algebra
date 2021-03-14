@@ -1,7 +1,7 @@
 //! Work with sparse and dense polynomials.
 
 use crate::{EvaluationDomain, Evaluations, Polynomial, UVPolynomial};
-use ark_ff::{FftField, Field};
+use ark_ff::{FftField, Field, Zero};
 use ark_std::{borrow::Cow, convert::TryInto, vec::Vec};
 use DenseOrSparsePolynomial::*;
 
@@ -145,11 +145,11 @@ impl<'a, F: 'a + FftField> DenseOrSparsePolynomial<'a, F> {
     fn eval_over_domain_helper<D: EvaluationDomain<F>>(self, domain: D) -> Evaluations<F, D> {
         match self {
             SPolynomial(Cow::Borrowed(s)) => {
-                let evals = domain.elements().map(|elem| s.evaluate(elem)).collect();
+                let evals = domain.elements().map(|elem| s.evaluate(&elem)).collect();
                 Evaluations::from_vec_and_domain(evals, domain)
             }
             SPolynomial(Cow::Owned(s)) => {
-                let evals = domain.elements().map(|elem| s.evaluate(elem)).collect();
+                let evals = domain.elements().map(|elem| s.evaluate(&elem)).collect();
                 Evaluations::from_vec_and_domain(evals, domain)
             }
             DPolynomial(Cow::Borrowed(d)) => {

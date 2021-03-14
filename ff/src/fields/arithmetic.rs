@@ -50,6 +50,8 @@ macro_rules! impl_field_mul_assign {
             }
             // Checking the modulus at compile time
             let first_bit_set = P::MODULUS.0[$limbs - 1] >> 63 != 0;
+            // $limbs can be 1, hence we can run into a case with an unused mut.
+            #[allow(unused_mut)]
             let mut all_bits_set = P::MODULUS.0[$limbs - 1] == !0 - (1 << 63);
             for i in 1..$limbs {
                 all_bits_set &= P::MODULUS.0[$limbs - i - 1] == !0u64;
@@ -62,8 +64,8 @@ macro_rules! impl_field_mul_assign {
                 #[cfg(use_asm)]
                 #[allow(unsafe_code, unused_mut)]
                 {
-                    if $limbs <= 6 {
-                        assert!($limbs <= 6);
+                    // Tentatively avoid using assembly for `$limbs == 1`.
+                    if $limbs <= 6 && $limbs > 1 {
                         ark_ff_asm::x86_64_asm_mul!($limbs, (self.0).0, (other.0).0);
                         self.reduce();
                         return;
@@ -78,8 +80,8 @@ macro_rules! impl_field_mul_assign {
                     let k = r[0].wrapping_mul(P::INV);
                     fa::mac_discard(r[0], k, P::MODULUS.0[0], &mut carry2);
                     for j in 1..$limbs {
-                        r[j] = fa::mac_with_carry(r[j], (self.0).0[j], (other.0).0[i], &mut carry1);
-                        r[j - 1] = fa::mac_with_carry(r[j], k, P::MODULUS.0[j], &mut carry2);
+                        r[j] = mac_with_carry!(r[j], (self.0).0[j], (other.0).0[i], &mut carry1);
+                        r[j - 1] = mac_with_carry!(r[j], k, P::MODULUS.0[j], &mut carry2);
                     }
                     r[$limbs - 1] = carry1 + carry2;
                 }
@@ -87,29 +89,7 @@ macro_rules! impl_field_mul_assign {
                 self.reduce();
             // Alternative implementation
             } else {
-                let mut r = [0u64; $limbs * 2];
-
-                for i in 0..$limbs {
-                    let mut carry = 0;
-                    for j in 0..$limbs {
-                        r[j + i] =
-                            fa::mac_with_carry(r[j + i], (self.0).0[i], (other.0).0[j], &mut carry);
-                    }
-                    r[$limbs + i] = carry;
-                }
-                // Montgomery reduction
-                let mut _carry2 = 0;
-                for i in 0..$limbs {
-                    let k = r[i].wrapping_mul(P::INV);
-                    let mut carry = 0;
-                    fa::mac_with_carry(r[i], k, P::MODULUS.0[0], &mut carry);
-                    for j in 1..$limbs {
-                        r[j + i] = fa::mac_with_carry(r[j + i], k, P::MODULUS.0[j], &mut carry);
-                    }
-                    r[$limbs + i] = fa::adc(r[$limbs + i], _carry2, &mut carry);
-                    _carry2 = carry;
-                }
-                (self.0).0.copy_from_slice(&r[$limbs..]);
+                *self = self.mul_without_reduce(other, P::MODULUS, P::INV);
                 self.reduce();
             }
         }
@@ -215,10 +195,10 @@ macro_rules! impl_field_into_repr {
                 let k = r[i].wrapping_mul(P::INV);
                 let mut carry = 0;
 
-                fa::mac_with_carry(r[i], k, P::MODULUS.0[0], &mut carry);
+                mac_with_carry!(r[i], k, P::MODULUS.0[0], &mut carry);
                 for j in 1..$limbs {
                     r[(j + i) % $limbs] =
-                        fa::mac_with_carry(r[(j + i) % $limbs], k, P::MODULUS.0[j], &mut carry);
+                        mac_with_carry!(r[(j + i) % $limbs], k, P::MODULUS.0[j], &mut carry);
                 }
                 r[i % $limbs] = carry;
             }
@@ -234,6 +214,10 @@ macro_rules! impl_field_square_in_place {
         #[ark_ff_asm::unroll_for_loops]
         #[allow(unused_braces, clippy::absurd_extreme_comparisons)]
         fn square_in_place(&mut self) -> &mut Self {
+            if $limbs == 1 {
+                *self = *self * *self;
+                return self;
+            }
             #[cfg(use_bw6_asm)]
             #[allow(unsafe_code, unused_mut, unconditional_panic)]
             {
@@ -270,14 +254,18 @@ macro_rules! impl_field_square_in_place {
             let mut all_bits_set = P::MODULUS.0[$limbs - 1] == !0 - (1 << 63);
             for i in 1..$limbs {
                 all_bits_set &= P::MODULUS.0[$limbs - i - 1] == !0u64;
-            }
-            let _no_carry: bool = !(first_bit_set || all_bits_set);
-
             #[cfg(use_asm)]
             #[allow(unsafe_code, unused_mut)]
             {
+                // Checking the modulus at compile time
+                let first_bit_set = P::MODULUS.0[$limbs - 1] >> 63 != 0;
+                let mut all_bits_set = P::MODULUS.0[$limbs - 1] == !0 - (1 << 63);
+                for i in 1..$limbs {
+                    all_bits_set &= P::MODULUS.0[$limbs - i - 1] == core::u64::MAX;
+                }
+                let _no_carry: bool = !(first_bit_set || all_bits_set);
+
                 if $limbs <= 6 && _no_carry {
-                    assert!($limbs <= 6);
                     ark_ff_asm::x86_64_asm_square!($limbs, (self.0).0);
                     self.reduce();
                     return self;
@@ -290,12 +278,8 @@ macro_rules! impl_field_square_in_place {
                 if i < $limbs - 1 {
                     for j in 0..$limbs {
                         if j > i {
-                            r[i + j] = fa::mac_with_carry(
-                                r[i + j],
-                                (self.0).0[i],
-                                (self.0).0[j],
-                                &mut carry,
-                            );
+                            r[i + j] =
+                                mac_with_carry!(r[i + j], (self.0).0[i], (self.0).0[j], &mut carry);
                         }
                     }
                     r[$limbs + i] = carry;
@@ -304,8 +288,15 @@ macro_rules! impl_field_square_in_place {
             }
             r[$limbs * 2 - 1] = r[$limbs * 2 - 2] >> 63;
             for i in 0..$limbs {
-                r[$limbs * 2 - 2 - i] =
-                    (r[$limbs * 2 - 2 - i] << 1) | (r[$limbs * 2 - 3 - i] >> 63);
+                // This computes `r[2 * ($limbs - 1) - (i + 1)]`, but additionally
+                // handles the case where the index underflows.
+                // Note that we should never hit this case because it only occurs
+                // when `$limbs == 1`, but we handle that separately above.
+                let subtractor = (2 * ($limbs - 1usize))
+                    .checked_sub(i + 1)
+                    .map(|index| r[index])
+                    .unwrap_or(0);
+                r[2 * ($limbs - 1) - i] = (r[2 * ($limbs - 1) - i] << 1) | (subtractor >> 63);
             }
             for i in 3..$limbs {
                 r[$limbs + 1 - i] = (r[$limbs + 1 - i] << 1) | (r[$limbs - i] >> 63);
@@ -313,19 +304,24 @@ macro_rules! impl_field_square_in_place {
             r[1] <<= 1;
 
             for i in 0..$limbs {
-                r[2 * i] = fa::mac_with_carry(r[2 * i], (self.0).0[i], (self.0).0[i], &mut carry);
-                r[2 * i + 1] = fa::adc(r[2 * i + 1], 0, &mut carry);
+                r[2 * i] = mac_with_carry!(r[2 * i], (self.0).0[i], (self.0).0[i], &mut carry);
+                // need unused assignment because the last iteration of the loop produces an
+                // assignment to `carry` that is unused.
+                #[allow(unused_assignments)]
+                {
+                    r[2 * i + 1] = adc!(r[2 * i + 1], 0, &mut carry);
+                }
             }
             // Montgomery reduction
             let mut _carry2 = 0;
             for i in 0..$limbs {
                 let k = r[i].wrapping_mul(P::INV);
                 let mut carry = 0;
-                fa::mac_with_carry(r[i], k, P::MODULUS.0[0], &mut carry);
+                mac_with_carry!(r[i], k, P::MODULUS.0[0], &mut carry);
                 for j in 1..$limbs {
-                    r[j + i] = fa::mac_with_carry(r[j + i], k, P::MODULUS.0[j], &mut carry);
+                    r[j + i] = mac_with_carry!(r[j + i], k, P::MODULUS.0[j], &mut carry);
                 }
-                r[$limbs + i] = fa::adc(r[$limbs + i], _carry2, &mut carry);
+                r[$limbs + i] = adc!(r[$limbs + i], _carry2, &mut carry);
                 _carry2 = carry;
             }
             (self.0).0.copy_from_slice(&r[$limbs..]);
@@ -357,13 +353,16 @@ macro_rules! impl_field_bigint_conv {
 
 macro_rules! impl_prime_field_standard_sample {
     ($field: ident, $params: ident) => {
-        impl<P: $params> rand::distributions::Distribution<$field<P>>
-            for rand::distributions::Standard
+        impl<P: $params> ark_std::rand::distributions::Distribution<$field<P>>
+            for ark_std::rand::distributions::Standard
         {
             #[inline]
-            fn sample<R: rand::Rng + ?Sized>(&self, rng: &mut R) -> $field<P> {
+            fn sample<R: ark_std::rand::Rng + ?Sized>(&self, rng: &mut R) -> $field<P> {
                 loop {
-                    let mut tmp = $field(rng.sample(rand::distributions::Standard), PhantomData);
+                    let mut tmp = $field(
+                        rng.sample(ark_std::rand::distributions::Standard),
+                        PhantomData,
+                    );
                     // Mask away the unused bits at the beginning.
                     tmp.0
                         .as_mut()
@@ -380,22 +379,35 @@ macro_rules! impl_prime_field_standard_sample {
 }
 
 macro_rules! impl_prime_field_from_int {
-    ($field: ident, u128, $params: ident) => {
+    ($field: ident, u128, $params: ident, $limbs:expr) => {
         impl<P: $params> From<u128> for $field<P> {
             fn from(other: u128) -> Self {
-                let upper = (other >> 64) as u64;
-                let lower = ((other << 64) >> 64) as u64;
                 let mut default_int = P::BigInt::default();
-                default_int.0[0] = lower;
-                default_int.0[1] = upper;
+                if $limbs == 1 {
+                    default_int.0[0] = (other % u128::from(P::MODULUS.0[0])) as u64;
+                } else {
+                    let upper = (other >> 64) as u64;
+                    let lower = ((other << 64) >> 64) as u64;
+                    // This is equivalent to the following, but satisfying the compiler:
+                    // default_int.0[0] = lower;
+                    // default_int.0[1] = upper;
+                    let limbs = [lower, upper];
+                    for (cur, other) in default_int.0.iter_mut().zip(&limbs) {
+                        *cur = *other;
+                    }
+                }
                 Self::from_repr(default_int).unwrap()
             }
         }
     };
-    ($field: ident, $int: ident, $params: ident) => {
+    ($field: ident, $int: ident, $params: ident, $limbs:expr) => {
         impl<P: $params> From<$int> for $field<P> {
             fn from(other: $int) -> Self {
-                Self::from_repr(P::BigInt::from(u64::from(other))).unwrap()
+                if $limbs == 1 {
+                    Self::from_repr(P::BigInt::from(u64::from(other) % P::MODULUS.0[0])).unwrap()
+                } else {
+                    Self::from_repr(P::BigInt::from(u64::from(other))).unwrap()
+                }
             }
         }
     };
@@ -403,57 +415,63 @@ macro_rules! impl_prime_field_from_int {
 
 macro_rules! sqrt_impl {
     ($Self:ident, $P:tt, $self:expr) => {{
-        use crate::fields::LegendreSymbol::*;
         // https://eprint.iacr.org/2012/685.pdf (page 12, algorithm 5)
         // Actually this is just normal Tonelli-Shanks; since `P::Generator`
         // is a quadratic non-residue, `P::ROOT_OF_UNITY = P::GENERATOR ^ t`
         // is also a quadratic non-residue (since `t` is odd).
-        match $self.legendre() {
-            Zero => Some(*$self),
-            QuadraticNonResidue => None,
-            QuadraticResidue => {
-                let mut z = $Self::qnr_to_t();
-                let mut w = $self.pow($P::T_MINUS_ONE_DIV_TWO);
-                let mut x = w * $self;
-                let mut b = x * &w;
+        if $self.is_zero() {
+            return Some($Self::zero());
+        }
+        // Try computing the square root (x at the end of the algorithm)
+        // Check at the end of the algorithm if x was a square root
+        // Begin Tonelli-Shanks
+        let mut z = $Self::qnr_to_t();
+        let mut w = $self.pow($P::T_MINUS_ONE_DIV_TWO);
+        let mut x = w * $self;
+        let mut b = x * &w;
 
-                let mut v = $P::TWO_ADICITY as usize;
-                // t = self^t
-                #[cfg(debug_assertions)]
-                {
-                    let mut check = b;
-                    for _ in 0..(v - 1) {
-                        check.square_in_place();
-                    }
-                    if !check.is_one() {
-                        panic!("Input is not a square root, but it passed the QR test")
-                    }
-                }
+        let mut v = $P::TWO_ADICITY as usize;
 
-                while !b.is_one() {
-                    let mut k = 0usize;
+        while !b.is_one() {
+            let mut k = 0usize;
 
-                    let mut b2k = b;
-                    while !b2k.is_one() {
-                        // invariant: b2k = b^(2^k) after entering this loop
-                        b2k.square_in_place();
-                        k += 1;
-                    }
-
-                    let j = v - k - 1;
-                    w = z;
-                    for _ in 0..j {
-                        w.square_in_place();
-                    }
-
-                    z = w.square();
-                    b *= &z;
-                    x *= &w;
-                    v = k;
-                }
-
-                Some(x)
+            let mut b2k = b;
+            while !b2k.is_one() {
+                // invariant: b2k = b^(2^k) after entering this loop
+                b2k.square_in_place();
+                k += 1;
             }
+
+            if k == ($P::TWO_ADICITY as usize) {
+                // We are in the case where self^(T * 2^k) = x^(P::MODULUS - 1) = 1,
+                // which means that no square root exists.
+                return None;
+            }
+            let j = v - k;
+            w = z;
+            for _ in 1..j {
+                w.square_in_place();
+            }
+
+            z = w.square();
+            b *= &z;
+            x *= &w;
+            v = k;
+        }
+        // Is x the square root? If so, return it.
+        if (x.square() == *$self) {
+            return Some(x);
+        } else {
+            // Consistency check that if no square root is found,
+            // it is because none exists.
+            #[cfg(debug_assertions)]
+            {
+                use crate::fields::LegendreSymbol::*;
+                if ($self.legendre() != QuadraticNonResidue) {
+                    panic!("Input has a square root per its legendre symbol, but it was not found")
+                }
+            }
+            None
         }
     }};
 }

@@ -1,11 +1,5 @@
 #![cfg_attr(not(feature = "std"), no_std)]
-#![deny(
-    warnings,
-    unused,
-    future_incompatible,
-    nonstandard_style,
-    rust_2018_idioms
-)]
+#![warn(unused, future_incompatible, nonstandard_style, rust_2018_idioms)]
 #![forbid(unsafe_code)]
 #![allow(
     clippy::op_ref,
@@ -25,7 +19,7 @@ use ark_ff::{
     fields::{Field, PrimeField, SquareRootField},
     UniformRand,
 };
-use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, ConstantSerializedSize};
+use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use ark_std::{
     fmt::{Debug, Display},
     hash::Hash,
@@ -33,6 +27,7 @@ use ark_std::{
     vec::Vec,
 };
 use num_traits::Zero;
+use zeroize::Zeroize;
 
 pub mod batch_verify;
 pub use self::batch_verify::*;
@@ -143,6 +138,8 @@ pub trait ProjectiveCurve:
     + Sized
     + ToBytes
     + FromBytes
+    + CanonicalSerialize
+    + CanonicalDeserialize
     + Copy
     + Clone
     + Default
@@ -152,6 +149,7 @@ pub trait ProjectiveCurve:
     + Debug
     + Display
     + UniformRand
+    + Zeroize
     + Zero
     + Neg<Output = Self>
     + Add<Self, Output = Self>
@@ -224,9 +222,9 @@ pub trait ProjectiveCurve:
     fn add_assign_mixed(&mut self, other: &Self::Affine);
 
     /// Performs scalar multiplication of this element.
-    fn mul<S: Into<<Self::ScalarField as PrimeField>::BigInt>>(mut self, other: S) -> Self {
+    fn mul<S: AsRef<[u64]>>(mut self, other: S) -> Self {
         let mut res = Self::zero();
-        for b in ark_ff::BitIteratorBE::without_leading_zeros(other.into()) {
+        for b in ark_ff::BitIteratorBE::without_leading_zeros(other) {
             res.double_in_place();
             if b {
                 res += self;
@@ -249,7 +247,6 @@ pub trait AffineCurve:
     + ToBytes
     + FromBytes
     + CanonicalSerialize
-    + ConstantSerializedSize
     + CanonicalDeserialize
     + Copy
     + Clone
@@ -261,6 +258,7 @@ pub trait AffineCurve:
     + Display
     + Zero
     + Neg<Output = Self>
+    + Zeroize
     + From<<Self as AffineCurve>::Projective>
     + BatchGroupArithmetic<BaseFieldForBatch = <Self as AffineCurve>::BaseField>
 {
@@ -339,6 +337,7 @@ pub fn prepare_g2<E: PairingEngine>(g: impl Into<E::G2Affine>) -> E::G2Prepared 
 }
 
 /// A cycle of pairing-friendly elliptic curves.
+#[deprecated(note = "Please use `PairingFriendlyCycle` instead")]
 pub trait CycleEngine: Sized + 'static + Copy + Debug + Sync + Send
 where
     <Self::E2 as PairingEngine>::G1Projective: MulAssign<<Self::E1 as PairingEngine>::Fq>,
@@ -348,5 +347,33 @@ where
     type E2: PairingEngine<
         Fr = <Self::E1 as PairingEngine>::Fq,
         Fq = <Self::E1 as PairingEngine>::Fr,
+    >;
+}
+
+pub trait CurveCycle
+where
+    <Self::E1 as AffineCurve>::Projective: MulAssign<<Self::E2 as AffineCurve>::BaseField>,
+    <Self::E2 as AffineCurve>::Projective: MulAssign<<Self::E1 as AffineCurve>::BaseField>,
+{
+    type E1: AffineCurve<
+        BaseField = <Self::E2 as AffineCurve>::ScalarField,
+        ScalarField = <Self::E2 as AffineCurve>::BaseField,
+    >;
+    type E2: AffineCurve;
+}
+
+pub trait PairingFriendlyCycle: CurveCycle {
+    type Engine1: PairingEngine<
+        G1Affine = Self::E1,
+        G1Projective = <Self::E1 as AffineCurve>::Projective,
+        Fq = <Self::E1 as AffineCurve>::BaseField,
+        Fr = <Self::E1 as AffineCurve>::ScalarField,
+    >;
+
+    type Engine2: PairingEngine<
+        G1Affine = Self::E2,
+        G1Projective = <Self::E2 as AffineCurve>::Projective,
+        Fq = <Self::E2 as AffineCurve>::BaseField,
+        Fr = <Self::E2 as AffineCurve>::ScalarField,
     >;
 }

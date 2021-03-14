@@ -6,9 +6,10 @@ use crate::{
 };
 use ark_serialize::{
     CanonicalDeserialize, CanonicalDeserializeWithFlags, CanonicalSerialize,
-    CanonicalSerializeWithFlags, ConstantSerializedSize,
+    CanonicalSerializeWithFlags, EmptyFlags, Flags,
 };
 use ark_std::{
+    cmp::min,
     fmt::{Debug, Display},
     hash::Hash,
     ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign},
@@ -16,7 +17,9 @@ use ark_std::{
     vec::Vec,
 };
 
+pub use ark_ff_macros;
 use num_traits::{One, Zero};
+use zeroize::Zeroize;
 
 #[macro_use]
 pub mod macros;
@@ -28,14 +31,25 @@ pub mod arithmetic;
 pub mod models;
 pub use self::models::*;
 
+#[cfg(feature = "parallel")]
+use ark_std::cmp::max;
+#[cfg(feature = "parallel")]
+use rayon::prelude::*;
+
 #[macro_export]
 macro_rules! field_new {
-    ($name:ident, $c0:expr) => {
-        $name {
-            0: $c0,
-            1: core::marker::PhantomData,
-        }
-    };
+    ($name:ident, $c0:expr) => {{
+        use $crate::FpParameters;
+        type Params = <$name as $crate::PrimeField>::Params;
+        let (is_positive, limbs) = $crate::ark_ff_macros::to_sign_and_limbs!($c0);
+        $name::const_from_str(
+            &limbs,
+            is_positive,
+            Params::R2,
+            Params::MODULUS,
+            Params::INV,
+        )
+    }};
     ($name:ident, $c0:expr, $c1:expr $(,)?) => {
         $name {
             c0: $c0,
@@ -66,15 +80,15 @@ pub trait Field:
     + Send
     + Sync
     + Eq
+    + Zero
     + One
     + Ord
     + Neg<Output = Self>
     + UniformRand
-    + Zero
+    + Zeroize
     + Sized
     + Hash
     + CanonicalSerialize
-    + ConstantSerializedSize
     + CanonicalSerializeWithFlags
     + CanonicalDeserialize
     + CanonicalDeserializeWithFlags
@@ -107,10 +121,19 @@ pub trait Field:
 {
     type BasePrimeField: PrimeField;
 
-    /// Returns the characteristic of the field.
+    /// Returns the characteristic of the field,
+    /// in little-endian representation.
     fn characteristic<'a>() -> &'a [u64] {
         Self::BasePrimeField::characteristic()
     }
+
+    /// Returns the extension degree of this field with respect
+    /// to `Self::BasePrimeField`.
+    fn extension_degree() -> u64;
+
+    /// Convert a slice of base prime field elements into a field element.
+    /// If the slice length != Self::extension_degree(), must return None.
+    fn from_base_prime_field_elems(elems: &[Self::BasePrimeField]) -> Option<Self>;
 
     /// Returns `self + self`.
     #[must_use]
@@ -123,14 +146,14 @@ pub trait Field:
     /// otherwise returns None. This function is primarily intended for sampling
     /// random field elements from a hash-function or RNG output.
     fn from_random_bytes(bytes: &[u8]) -> Option<Self> {
-        Self::from_random_bytes_with_flags(bytes).map(|f| f.0)
+        Self::from_random_bytes_with_flags::<EmptyFlags>(bytes).map(|f| f.0)
     }
 
     /// Returns a field element with an extra sign bit used for group parsing if
     /// the set of bytes forms a valid field element, otherwise returns
     /// None. This function is primarily intended for sampling
     /// random field elements from a hash-function or RNG output.
-    fn from_random_bytes_with_flags(bytes: &[u8]) -> Option<(Self, u8)>;
+    fn from_random_bytes_with_flags<F: Flags>(bytes: &[u8]) -> Option<(Self, F)>;
 
     /// Returns `self * self`.
     #[must_use]
@@ -164,6 +187,24 @@ pub trait Field:
             }
         }
         res
+    }
+
+    /// Exponentiates a field element `f` by a number represented with `u64` limbs,
+    /// using a precomputed table containing as many powers of 2 of `f`
+    /// as the 1 + the floor of log2 of the exponent `exp`, starting from the 1st power.
+    /// That is, `powers_of_2` should equal `&[p, p^2, p^4, ..., p^(2^n)]`
+    /// when `exp` has at most `n` bits.
+    ///
+    /// This returns `None` when a power is missing from the table.
+    #[inline]
+    fn pow_with_table<S: AsRef<[u64]>>(powers_of_2: &[Self], exp: S) -> Option<Self> {
+        let mut res = Self::one();
+        for (pow, bit) in BitIteratorLE::without_trailing_zeros(exp).enumerate() {
+            if bit {
+                res *= powers_of_2.get(pow)?;
+            }
+        }
+        Some(res)
     }
 }
 
@@ -223,7 +264,7 @@ pub trait FpParameters: FftParameters {
     /// (Should equal `SELF::MODULUS_BITS - 1`)
     const CAPACITY: u32;
 
-    /// t for 2^s * t = MODULUS - 1
+    /// t for 2^s * t = MODULUS - 1, and t coprime to 2.
     const T: Self::BigInt;
 
     /// (t - 1) / 2
@@ -322,7 +363,42 @@ pub trait PrimeField:
     /// Returns the underlying representation of the prime field element.
     fn into_repr(&self) -> Self::BigInt;
 
-    /// Return the a QNR^T
+    /// Reads bytes in big-endian, and converts them to a field element.
+    /// If the bytes are larger than the modulus, it will reduce them.
+    fn from_be_bytes_mod_order(bytes: &[u8]) -> Self {
+        let num_modulus_bytes = ((Self::Params::MODULUS_BITS + 7) / 8) as usize;
+        let num_bytes_to_directly_convert = min(num_modulus_bytes - 1, bytes.len());
+        // Copy the leading big-endian bytes directly into a field element.
+        // The number of bytes directly converted must be less than the
+        // number of bytes needed to represent the modulus, as we must begin
+        // modular reduction once the data is of the same number of bytes as the modulus.
+        let mut bytes_to_directly_convert = Vec::new();
+        bytes_to_directly_convert.extend(bytes[..num_bytes_to_directly_convert].iter().rev());
+        // Guaranteed to not be None, as the input is less than the modulus size.
+        let mut res = Self::from_random_bytes(&bytes_to_directly_convert).unwrap();
+
+        // Update the result, byte by byte.
+        // We go through existing field arithmetic, which handles the reduction.
+        // TODO: If we need higher speeds, parse more bytes at once, or implement
+        // modular multiplication by a u64
+        let window_size = Self::from(256u64);
+        for byte in bytes[num_bytes_to_directly_convert..].iter() {
+            res *= window_size;
+            res += Self::from(*byte);
+        }
+        res
+    }
+
+    /// Reads bytes in little-endian, and converts them to a field element.
+    /// If the bytes are larger than the modulus, it will reduce them.
+    fn from_le_bytes_mod_order(bytes: &[u8]) -> Self {
+        let mut bytes_copy = bytes.to_vec();
+        bytes_copy.reverse();
+        Self::from_be_bytes_mod_order(&bytes_copy)
+    }
+
+    /// Return the QNR^t, for t defined by
+    /// `2^s * t = MODULUS - 1`, and t coprime to 2.
     fn qnr_to_t() -> Self {
         Self::two_adic_root_of_unity()
     }
@@ -355,7 +431,10 @@ pub trait PrimeField:
 
 /// The interface for a field that supports an efficient square-root operation.
 pub trait SquareRootField: Field {
-    /// Returns the Legendre symbol.
+    /// Returns a `LegendreSymbol`, which indicates whether this field element is
+    ///  1 : a quadratic residue
+    ///  0 : equal to 0
+    /// -1 : a quadratic non-residue
     fn legendre(&self) -> LegendreSymbol;
 
     /// Returns the square root of self, if it exists.
@@ -471,19 +550,49 @@ impl<Slice: AsRef<[u64]>> Iterator for BitIteratorLE<Slice> {
 }
 
 use crate::biginteger::{
-    BigInteger256, BigInteger320, BigInteger384, BigInteger768, BigInteger832,
+    BigInteger256, BigInteger320, BigInteger384, BigInteger64, BigInteger768, BigInteger832,
 };
 
+impl_field_bigint_conv!(Fp64, BigInteger64, Fp64Parameters);
 impl_field_bigint_conv!(Fp256, BigInteger256, Fp256Parameters);
 impl_field_bigint_conv!(Fp320, BigInteger320, Fp320Parameters);
 impl_field_bigint_conv!(Fp384, BigInteger384, Fp384Parameters);
 impl_field_bigint_conv!(Fp768, BigInteger768, Fp768Parameters);
 impl_field_bigint_conv!(Fp832, BigInteger832, Fp832Parameters);
 
+// Given a vector of field elements {v_i}, compute the vector {v_i^(-1)}
 pub fn batch_inversion<F: Field>(v: &mut [F]) {
+    batch_inversion_and_mul(v, &F::one());
+}
+
+#[cfg(not(feature = "parallel"))]
+// Given a vector of field elements {v_i}, compute the vector {coeff * v_i^(-1)}
+pub fn batch_inversion_and_mul<F: Field>(v: &mut [F], coeff: &F) {
+    serial_batch_inversion_and_mul(v, coeff);
+}
+
+#[cfg(feature = "parallel")]
+// Given a vector of field elements {v_i}, compute the vector {coeff * v_i^(-1)}
+pub fn batch_inversion_and_mul<F: Field>(v: &mut [F], coeff: &F) {
+    // Divide the vector v evenly between all available cores
+    let min_elements_per_thread = 1;
+    let num_cpus_available = rayon::current_num_threads();
+    let num_elems = v.len();
+    let num_elem_per_thread = max(num_elems / num_cpus_available, min_elements_per_thread);
+
+    // Batch invert in parallel, without copying the vector
+    v.par_chunks_mut(num_elem_per_thread).for_each(|mut chunk| {
+        serial_batch_inversion_and_mul(&mut chunk, coeff);
+    });
+}
+
+/// Given a vector of field elements {v_i}, compute the vector {coeff * v_i^(-1)}
+/// This method is explicitly single core.
+fn serial_batch_inversion_and_mul<F: Field>(v: &mut [F], coeff: &F) {
     // Montgomery’s Trick and Fast Implementation of Masked AES
     // Genelle, Prouff and Quisquater
     // Section 3.2
+    // but with an optimization to multiply every element in the returned vector by coeff
 
     // First pass: compute [a, ab, abc, ...]
     let mut prod = Vec::with_capacity(v.len());
@@ -495,6 +604,9 @@ pub fn batch_inversion<F: Field>(v: &mut [F]) {
 
     // Invert `tmp`.
     tmp = tmp.inverse().unwrap(); // Guaranteed to be nonzero.
+
+    // Multiply product by coeff, so all inverses will be scaled by coeff
+    tmp = tmp * coeff;
 
     // Second pass: iterate backwards to compute inverses
     for (f, s) in v.iter_mut()
@@ -513,8 +625,9 @@ pub fn batch_inversion<F: Field>(v: &mut [F]) {
 }
 
 #[cfg(all(test, feature = "std"))]
-mod tests {
+mod std_tests {
     use super::BitIteratorLE;
+
     #[test]
     fn bit_iterator_le() {
         let bits = BitIteratorLE::new(&[0, 1 << 10]).collect::<Vec<_>>();
@@ -526,6 +639,141 @@ mod tests {
             } else {
                 assert!(bit)
             }
+        }
+    }
+}
+
+#[cfg(test)]
+mod no_std_tests {
+    use super::*;
+    use crate::test_field::Fr;
+    use ark_std::test_rng;
+
+    #[test]
+    fn test_batch_inversion() {
+        let mut random_coeffs = Vec::<Fr>::new();
+        let vec_size = 1000;
+
+        for _ in 0..=vec_size {
+            random_coeffs.push(Fr::rand(&mut test_rng()));
+        }
+
+        let mut random_coeffs_inv = random_coeffs.clone();
+        batch_inversion::<Fr>(&mut random_coeffs_inv);
+        for i in 0..=vec_size {
+            assert_eq!(random_coeffs_inv[i] * random_coeffs[i], Fr::one());
+        }
+        let rand_multiplier = Fr::rand(&mut test_rng());
+        let mut random_coeffs_inv_shifted = random_coeffs.clone();
+        batch_inversion_and_mul(&mut random_coeffs_inv_shifted, &rand_multiplier);
+        for i in 0..=vec_size {
+            assert_eq!(
+                random_coeffs_inv_shifted[i] * random_coeffs[i],
+                rand_multiplier
+            );
+        }
+    }
+
+    #[test]
+    fn test_from_be_bytes_mod_order() {
+        // Each test vector is a byte array,
+        // and its tested by parsing it with from_bytes_mod_order, and the num-bigint library.
+        // The bytes are currently generated from scripts/test_vectors.py.
+        // TODO: Eventually generate all the test vector bytes via computation with the modulus
+        use ark_std::rand::Rng;
+        use ark_std::string::ToString;
+        use num_bigint::BigUint;
+
+        let ref_modulus =
+            BigUint::from_bytes_be(&<Fr as PrimeField>::Params::MODULUS.to_bytes_be());
+
+        let mut test_vectors = vec![
+            // 0
+            vec![0u8],
+            // 1
+            vec![1u8],
+            // 255
+            vec![255u8],
+            // 256
+            vec![1u8, 0u8],
+            // 65791
+            vec![1u8, 0u8, 255u8],
+            // 204827637402836681560342736360101429053478720705186085244545541796635082752
+            vec![
+                115u8, 237u8, 167u8, 83u8, 41u8, 157u8, 125u8, 72u8, 51u8, 57u8, 216u8, 8u8, 9u8,
+                161u8, 216u8, 5u8, 83u8, 189u8, 164u8, 2u8, 255u8, 254u8, 91u8, 254u8, 255u8,
+                255u8, 255u8, 255u8, 0u8, 0u8, 0u8,
+            ],
+            // 204827637402836681560342736360101429053478720705186085244545541796635082753
+            vec![
+                115u8, 237u8, 167u8, 83u8, 41u8, 157u8, 125u8, 72u8, 51u8, 57u8, 216u8, 8u8, 9u8,
+                161u8, 216u8, 5u8, 83u8, 189u8, 164u8, 2u8, 255u8, 254u8, 91u8, 254u8, 255u8,
+                255u8, 255u8, 255u8, 0u8, 0u8, 1u8,
+            ],
+            // 52435875175126190479447740508185965837690552500527637822603658699938581184512
+            vec![
+                115u8, 237u8, 167u8, 83u8, 41u8, 157u8, 125u8, 72u8, 51u8, 57u8, 216u8, 8u8, 9u8,
+                161u8, 216u8, 5u8, 83u8, 189u8, 164u8, 2u8, 255u8, 254u8, 91u8, 254u8, 255u8,
+                255u8, 255u8, 255u8, 0u8, 0u8, 0u8, 0u8,
+            ],
+            // 52435875175126190479447740508185965837690552500527637822603658699938581184513
+            vec![
+                115u8, 237u8, 167u8, 83u8, 41u8, 157u8, 125u8, 72u8, 51u8, 57u8, 216u8, 8u8, 9u8,
+                161u8, 216u8, 5u8, 83u8, 189u8, 164u8, 2u8, 255u8, 254u8, 91u8, 254u8, 255u8,
+                255u8, 255u8, 255u8, 0u8, 0u8, 0u8, 1u8,
+            ],
+            // 52435875175126190479447740508185965837690552500527637822603658699938581184514
+            vec![
+                115u8, 237u8, 167u8, 83u8, 41u8, 157u8, 125u8, 72u8, 51u8, 57u8, 216u8, 8u8, 9u8,
+                161u8, 216u8, 5u8, 83u8, 189u8, 164u8, 2u8, 255u8, 254u8, 91u8, 254u8, 255u8,
+                255u8, 255u8, 255u8, 0u8, 0u8, 0u8, 2u8,
+            ],
+            // 104871750350252380958895481016371931675381105001055275645207317399877162369026
+            vec![
+                231u8, 219u8, 78u8, 166u8, 83u8, 58u8, 250u8, 144u8, 102u8, 115u8, 176u8, 16u8,
+                19u8, 67u8, 176u8, 10u8, 167u8, 123u8, 72u8, 5u8, 255u8, 252u8, 183u8, 253u8,
+                255u8, 255u8, 255u8, 254u8, 0u8, 0u8, 0u8, 2u8,
+            ],
+            // 13423584044832304762738621570095607254448781440135075282586536627184276783235328
+            vec![
+                115u8, 237u8, 167u8, 83u8, 41u8, 157u8, 125u8, 72u8, 51u8, 57u8, 216u8, 8u8, 9u8,
+                161u8, 216u8, 5u8, 83u8, 189u8, 164u8, 2u8, 255u8, 254u8, 91u8, 254u8, 255u8,
+                255u8, 255u8, 255u8, 0u8, 0u8, 0u8, 1u8, 0u8,
+            ],
+            // 115792089237316195423570985008687907853269984665640564039457584007913129639953
+            vec![
+                1u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8,
+                0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8,
+                17u8,
+            ],
+            // 168227964412442385903018725516873873690960537166168201862061242707851710824468
+            vec![
+                1u8, 115u8, 237u8, 167u8, 83u8, 41u8, 157u8, 125u8, 72u8, 51u8, 57u8, 216u8, 8u8,
+                9u8, 161u8, 216u8, 5u8, 83u8, 189u8, 164u8, 2u8, 255u8, 254u8, 91u8, 254u8, 255u8,
+                255u8, 255u8, 255u8, 0u8, 0u8, 0u8, 20u8,
+            ],
+            // 29695210719928072218913619902732290376274806626904512031923745164725699769008210
+            vec![
+                1u8, 0u8, 115u8, 237u8, 167u8, 83u8, 41u8, 157u8, 125u8, 72u8, 51u8, 57u8, 216u8,
+                8u8, 9u8, 161u8, 216u8, 5u8, 83u8, 189u8, 164u8, 2u8, 255u8, 254u8, 91u8, 254u8,
+                255u8, 255u8, 255u8, 255u8, 0u8, 0u8, 0u8, 82u8,
+            ],
+        ];
+        // Add random bytestrings to the test vector list
+        for i in 1..512 {
+            let mut rng = test_rng();
+            let data: Vec<u8> = (0..i).map(|_| rng.gen()).collect();
+            test_vectors.push(data);
+        }
+        for i in test_vectors {
+            let mut expected_biguint = BigUint::from_bytes_be(&i);
+            // Reduce expected_biguint using modpow API
+            expected_biguint =
+                expected_biguint.modpow(&BigUint::from_bytes_be(&[1u8]), &ref_modulus);
+            let expected_string = expected_biguint.to_string();
+            let expected = Fr::from_str(&expected_string).unwrap();
+            let actual = Fr::from_be_bytes_mod_order(&i);
+            assert_eq!(expected, actual, "failed on test {:?}", i);
         }
     }
 }

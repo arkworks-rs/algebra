@@ -11,7 +11,11 @@ use crate::domain::{
     DomainCoeff, EvaluationDomain, MixedRadixEvaluationDomain, Radix2EvaluationDomain,
 };
 use ark_ff::{FftField, FftParameters};
-use ark_std::vec::Vec;
+use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, SerializationError};
+use ark_std::{
+    io::{Read, Write},
+    vec::Vec,
+};
 
 /// Defines a domain over which finite field (I)FFTs can be performed.
 /// Generally tries to build a radix-2 domain and falls back to a mixed-radix
@@ -29,6 +33,125 @@ macro_rules! map {
         match $self {
             Self::Radix2(domain) => EvaluationDomain::$f1(domain, $($x)*),
             Self::MixedRadix(domain) => EvaluationDomain::$f1(domain, $($x)*),
+        }
+    }
+}
+
+impl<F: FftField> CanonicalSerialize for GeneralEvaluationDomain<F> {
+    fn serialize<W: Write>(&self, mut writer: W) -> Result<(), SerializationError> {
+        let type_id = match self {
+            GeneralEvaluationDomain::Radix2(_) => 0u8,
+            GeneralEvaluationDomain::MixedRadix(_) => 1u8,
+        };
+        type_id.serialize(&mut writer)?;
+
+        match self {
+            GeneralEvaluationDomain::Radix2(domain) => domain.serialize(&mut writer),
+            GeneralEvaluationDomain::MixedRadix(domain) => domain.serialize(&mut writer),
+        }
+    }
+
+    fn serialized_size(&self) -> usize {
+        let type_id = match self {
+            GeneralEvaluationDomain::Radix2(_) => 0u8,
+            GeneralEvaluationDomain::MixedRadix(_) => 1u8,
+        };
+
+        type_id.serialized_size()
+            + match self {
+                GeneralEvaluationDomain::Radix2(domain) => domain.serialized_size(),
+                GeneralEvaluationDomain::MixedRadix(domain) => domain.serialized_size(),
+            }
+    }
+
+    fn serialize_uncompressed<W: Write>(&self, mut writer: W) -> Result<(), SerializationError> {
+        let type_id = match self {
+            GeneralEvaluationDomain::Radix2(_) => 0u8,
+            GeneralEvaluationDomain::MixedRadix(_) => 1u8,
+        };
+        type_id.serialize_uncompressed(&mut writer)?;
+
+        match self {
+            GeneralEvaluationDomain::Radix2(domain) => domain.serialize_uncompressed(&mut writer),
+            GeneralEvaluationDomain::MixedRadix(domain) => {
+                domain.serialize_uncompressed(&mut writer)
+            }
+        }
+    }
+
+    fn serialize_unchecked<W: Write>(&self, mut writer: W) -> Result<(), SerializationError> {
+        let type_id = match self {
+            GeneralEvaluationDomain::Radix2(_) => 0u8,
+            GeneralEvaluationDomain::MixedRadix(_) => 1u8,
+        };
+        type_id.serialize_unchecked(&mut writer)?;
+
+        match self {
+            GeneralEvaluationDomain::Radix2(domain) => domain.serialize_unchecked(&mut writer),
+            GeneralEvaluationDomain::MixedRadix(domain) => domain.serialize_unchecked(&mut writer),
+        }
+    }
+
+    fn uncompressed_size(&self) -> usize {
+        let type_id = match self {
+            GeneralEvaluationDomain::Radix2(_) => 0u8,
+            GeneralEvaluationDomain::MixedRadix(_) => 1u8,
+        };
+
+        type_id.uncompressed_size()
+            + match self {
+                GeneralEvaluationDomain::Radix2(domain) => domain.uncompressed_size(),
+                GeneralEvaluationDomain::MixedRadix(domain) => domain.uncompressed_size(),
+            }
+    }
+}
+
+impl<F: FftField> CanonicalDeserialize for GeneralEvaluationDomain<F> {
+    fn deserialize<R: Read>(mut reader: R) -> Result<Self, SerializationError> {
+        let type_id = u8::deserialize(&mut reader)?;
+
+        if type_id == 0u8 {
+            Ok(Self::Radix2(Radix2EvaluationDomain::<F>::deserialize(
+                &mut reader,
+            )?))
+        } else if type_id == 1u8 {
+            Ok(Self::MixedRadix(
+                MixedRadixEvaluationDomain::<F>::deserialize(&mut reader)?,
+            ))
+        } else {
+            Err(SerializationError::InvalidData)
+        }
+    }
+
+    fn deserialize_uncompressed<R: Read>(mut reader: R) -> Result<Self, SerializationError> {
+        let type_id = u8::deserialize_uncompressed(&mut reader)?;
+
+        if type_id == 0u8 {
+            Ok(Self::Radix2(
+                Radix2EvaluationDomain::<F>::deserialize_uncompressed(&mut reader)?,
+            ))
+        } else if type_id == 1u8 {
+            Ok(Self::MixedRadix(
+                MixedRadixEvaluationDomain::<F>::deserialize_uncompressed(&mut reader)?,
+            ))
+        } else {
+            Err(SerializationError::InvalidData)
+        }
+    }
+
+    fn deserialize_unchecked<R: Read>(mut reader: R) -> Result<Self, SerializationError> {
+        let type_id = u8::deserialize_unchecked(&mut reader)?;
+
+        if type_id == 0u8 {
+            Ok(Self::Radix2(
+                Radix2EvaluationDomain::<F>::deserialize_unchecked(&mut reader)?,
+            ))
+        } else if type_id == 1u8 {
+            Ok(Self::MixedRadix(
+                MixedRadixEvaluationDomain::<F>::deserialize_unchecked(&mut reader)?,
+            ))
+        } else {
+            Err(SerializationError::InvalidData)
         }
     }
 }
@@ -112,6 +235,11 @@ impl<F: FftField> EvaluationDomain<F> for GeneralEvaluationDomain<F> {
         map!(self, evaluate_vanishing_polynomial, tau)
     }
 
+    /// Returns the `i`-th element of the domain.
+    fn element(&self, i: usize) -> F {
+        map!(self, element, i)
+    }
+
     /// Return an iterator over the elements of the domain.
     fn elements(&self) -> GeneralElements<F> {
         GeneralElements(map!(self, elements))
@@ -132,11 +260,13 @@ impl<F: FftField> Iterator for GeneralElements<F> {
 
 #[cfg(test)]
 mod tests {
+    use crate::polynomial::Polynomial;
     use crate::{EvaluationDomain, GeneralEvaluationDomain};
-    use ark_ff::{test_rng, Zero};
+    use ark_ff::Zero;
+    use ark_std::rand::Rng;
+    use ark_std::test_rng;
     use ark_test_curves::bls12_381::Fr;
-    use ark_test_curves::mnt4_753::Fq as MNT6Fr;
-    use rand::Rng;
+    use ark_test_curves::bn384_small_two_adicity::Fr as BNFr;
 
     #[test]
     fn vanishing_polynomial_evaluation() {
@@ -147,19 +277,19 @@ mod tests {
             for _ in 0..100 {
                 let point = rng.gen();
                 assert_eq!(
-                    z.evaluate(point),
+                    z.evaluate(&point),
                     domain.evaluate_vanishing_polynomial(point)
                 )
             }
         }
 
         for coeffs in 15..17 {
-            let domain = GeneralEvaluationDomain::<MNT6Fr>::new(coeffs).unwrap();
+            let domain = GeneralEvaluationDomain::<BNFr>::new(coeffs).unwrap();
             let z = domain.vanishing_polynomial();
             for _ in 0..100 {
                 let point = rng.gen();
                 assert_eq!(
-                    z.evaluate(point),
+                    z.evaluate(&point),
                     domain.evaluate_vanishing_polynomial(point)
                 )
             }
@@ -172,7 +302,7 @@ mod tests {
             let domain = GeneralEvaluationDomain::<Fr>::new(coeffs).unwrap();
             let z = domain.vanishing_polynomial();
             for point in domain.elements() {
-                assert!(z.evaluate(point).is_zero())
+                assert!(z.evaluate(&point).is_zero())
             }
         }
     }

@@ -1,13 +1,13 @@
 //! Modules for working with univariate or multivariate polynomials.
-
-use ark_ff::Field;
+use ark_ff::{Field, Zero};
+use ark_serialize::*;
+use ark_std::rand::Rng;
 use ark_std::{
     fmt::Debug,
     hash::Hash,
     ops::{Add, AddAssign, Neg, SubAssign},
     vec::Vec,
 };
-use rand::Rng;
 
 pub mod multivariate;
 pub mod univariate;
@@ -22,18 +22,15 @@ pub trait Polynomial<F: Field>:
     + Eq
     + Add
     + Neg
+    + Zero
+    + CanonicalSerialize
+    + CanonicalDeserialize
     + for<'a> AddAssign<&'a Self>
     + for<'a> AddAssign<(F, &'a Self)>
     + for<'a> SubAssign<&'a Self>
 {
     /// The type of evaluation points for this polynomial.
     type Point: Sized + Clone + Ord + Debug + Sync + Hash;
-
-    /// Returns the zero polynomial.
-    fn zero() -> Self;
-
-    /// Checks if the given polynomial is zero.
-    fn is_zero(&self) -> bool;
 
     /// Returns the total degree of the polynomial
     fn degree(&self) -> usize;

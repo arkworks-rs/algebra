@@ -10,6 +10,7 @@ publish = false
 
 [dependencies]
 paste = "0.1"
+ark-std = { git = "https://github.com/arkworks-rs/utils", default-features = false }
 ark-ff = { path = "../ff", default-features = false }
 ark-ec = { path = "../ec", default-features = false }
 ark-std = { git = "https://github.com/arkworks-rs/utils", default-features = false }
@@ -18,10 +19,16 @@ ark-std = { git = "https://github.com/arkworks-rs/utils", default-features = fal
 lazy_static = { version = "1.4.0", optional = true }
 accel = { git = "https://github.com/jon-chuang/accel", package = "accel", optional = true }
 
+[dev-dependencies]
+ark-serialize = { path = "../serialize", default-features = false }
+ark-algebra-test-templates = { path = "../test-templates", default-features = false }
+
 [features]
 default = []
 
 cuda = [ "ark-ec/cuda",  "accel", "lazy_static", "ark-ec/std" ]
+asm = [ "ark-ff/asm" ]
+parallel = [ "ark-ff/parallel", "ark-ec/parallel", "ark-std/parallel" ]
 
 bls12_381_scalar_field = []
 bls12_381_curve = [ "bls12_381_scalar_field" ]
@@ -29,3 +36,7 @@ bls12_381_curve = [ "bls12_381_scalar_field" ]
 mnt4_753_scalar_field = []
 mnt4_753_base_field = []
 mnt4_753_curve = [ "mnt4_753_scalar_field", "mnt4_753_base_field" ]
+
+bn384_small_two_adicity_scalar_field = []
+bn384_small_two_adicity_base_field = []
+bn384_small_two_adicity_curve = [ "bn384_small_two_adicity_scalar_field", "bn384_small_two_adicity_base_field" ]
