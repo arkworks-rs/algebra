@@ -76,7 +76,7 @@ pub fn group_test<G: Group>(a: G, mut b: G) {
     );
 
     // Check that mul and wnaf_mul give the same results for several window values
-    for w in 2..=22 {
+    for w in 2..=5 {
         let scalar = G::ScalarField::rand(&mut rng);
         let scalar_bigint: <G::ScalarField as PrimeField>::BigInt = scalar.into();
         let scalar_wnaf = scalar_bigint.find_wnaf();
