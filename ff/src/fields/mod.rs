@@ -67,6 +67,31 @@ macro_rules! field_new {
     };
 }
 
+#[macro_export]
+macro_rules! field_new_from_raw_repr {
+    ($name:ident, $c0:expr) => {
+        $name {
+            0: $c0,
+            1: core::marker::PhantomData,
+        }
+    };
+    ($name:ident, $c0:expr, $c1:expr $(,)?) => {
+        $name {
+            c0: $c0,
+            c1: $c1,
+            _parameters: core::marker::PhantomData,
+        }
+    };
+    ($name:ident, $c0:expr, $c1:expr, $c2:expr $(,)?) => {
+        $name {
+            c0: $c0,
+            c1: $c1,
+            c2: $c2,
+            _parameters: core::marker::PhantomData,
+        }
+    };
+}
+
 /// The interface for a generic field.
 pub trait Field:
     ToBytes
@@ -416,6 +441,11 @@ pub trait PrimeField:
     /// Returns the trace minus one divided by two.
     fn trace_minus_one_div_two() -> Self::BigInt {
         Self::Params::T_MINUS_ONE_DIV_TWO
+    }
+
+    /// Returns the trace minus one divided by two.
+    fn modulus() -> Self::BigInt {
+        Self::Params::MODULUS
     }
 
     /// Returns the modulus minus one divided by two.

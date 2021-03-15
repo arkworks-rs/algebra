@@ -1,4 +1,5 @@
 use ark_ec::{
+    impl_glv_for_sw, impl_scalar_mul_kernel, impl_scalar_mul_parameters,
     models::{ModelParameters, SWModelParameters},
     short_weierstrass_jacobian::*,
 };
@@ -11,6 +12,8 @@ pub type G1Projective = GroupProjective<Parameters>;
 
 #[derive(Clone, Default, PartialEq, Eq)]
 pub struct Parameters;
+
+impl_scalar_mul_kernel!(bn384, "ark-bn384", g1, G1Projective);
 
 impl ModelParameters for Parameters {
     type BaseField = Fq;
@@ -38,6 +41,8 @@ impl SWModelParameters for Parameters {
     fn mul_by_a(_: &Self::BaseField) -> Self::BaseField {
         Self::BaseField::zero()
     }
+
+    impl_scalar_mul_parameters!(G1Projective);
 }
 
 /// G1_GENERATOR_X = -1
