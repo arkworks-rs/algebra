@@ -12,6 +12,7 @@ use ark_std::{
     rc::Rc,
     string::String,
     vec::Vec,
+    vec,
 };
 pub use error::*;
 pub use flags::*;

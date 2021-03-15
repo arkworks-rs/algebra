@@ -1342,15 +1342,16 @@ impl<P: Parameters> ProjectiveCurve for GroupProjective<P> {
         }
     }
 
-    fn mul<S: Into<<Self::ScalarField as PrimeField>::BigInt>>(mut self, other: S) -> Self {
+    fn mul<S: AsRef<[u64]>>(mut self, other: S) -> Self {
         if P::has_glv() {
             let w = P::glv_window_size();
             let mut res = Self::zero();
-            impl_glv_mul!(Self, P, w, self, res, other);
+            let exponent_bigint = <Self::ScalarField as PrimeField>::BigInt::from_slice(other.as_ref());
+            impl_glv_mul!(Self, P, w, self, res, exponent_bigint);
             res
         } else {
             let mut res = Self::zero();
-            for b in BitIteratorBE::without_leading_zeros(other.into()) {
+            for b in BitIteratorBE::without_leading_zeros(other.as_ref()) {
                 res.double_in_place();
                 if b {
                     res += self;

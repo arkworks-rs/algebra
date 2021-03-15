@@ -31,6 +31,7 @@ serde_json = { version = "1.0.58", optional = true }
 dirs = { version = "1.0.5", optional = true }
 log = { version = "0.4.11", optional = true }
 paste = "0.1"
+zeroize = { version = "1", default-features = false, features = ["zeroize_derive"] }
 
 [dev-dependencies]
 rand_xorshift = "0.2"
@@ -39,4 +40,4 @@ rand_xorshift = "0.2"
 cuda = [ "std", "parallel", "accel", "lazy_static", "serde_json", "dirs", "closure", "log" ]
 default = []
 std = [ "ark-std/std", "ark-ff/std", "ark-serialize/std" ]
-parallel = [ "std", "rayon", "ark-std/parallel", "rand/default" ]
+parallel = [ "std", "rayon", "ark-std/parallel" ]

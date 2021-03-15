@@ -288,7 +288,7 @@ macro_rules! bigint_impl {
                     let mut carry = 0u64;
                     for j in 0..$num_limbs / 2 {
                         r[j + i] =
-                            arithmetic::mac_with_carry(r[j + i], this[i], other[j], &mut carry);
+                            mac_with_carry!(r[j + i], this[i], other[j], &mut carry);
                     }
                     r[$num_limbs / 2 + i] = carry;
                 }
@@ -305,7 +305,7 @@ macro_rules! bigint_impl {
                     let mut carry = 0u64;
                     for j in 0..($num_limbs - i) {
                         r[j + i] =
-                            arithmetic::mac_with_carry(r[j + i], this[i], other[j], &mut carry);
+                            mac_with_carry!(r[j + i], this[i], other[j], &mut carry);
                     }
                 }
                 Self::new(r)

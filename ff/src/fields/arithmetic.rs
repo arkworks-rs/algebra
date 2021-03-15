@@ -249,11 +249,6 @@ macro_rules! impl_field_square_in_place {
                 }
             }
 
-            // Checking the modulus at compile time
-            let first_bit_set = P::MODULUS.0[$limbs - 1] >> 63 != 0;
-            let mut all_bits_set = P::MODULUS.0[$limbs - 1] == !0 - (1 << 63);
-            for i in 1..$limbs {
-                all_bits_set &= P::MODULUS.0[$limbs - i - 1] == !0u64;
             #[cfg(use_asm)]
             #[allow(unsafe_code, unused_mut)]
             {

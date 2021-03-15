@@ -7,7 +7,7 @@ use ark_ec::{
 };
 use ark_ff::{
     biginteger::{BigInteger256, BigInteger384, BigInteger512},
-    field_new, PrimeField, Zero,
+    field_new, field_new_from_raw_repr, PrimeField, Zero,
 };
 
 pub type G1Affine = GroupAffine<Parameters>;
@@ -25,7 +25,7 @@ impl_scalar_mul_kernel_glv!(bls12_381, "ark-bls12-381", g1, G1Projective);
 
 impl GLVParameters for Parameters {
     type WideBigInt = BigInteger512;
-    const OMEGA: Self::BaseField = field_new!(
+    const OMEGA: Self::BaseField = field_new_from_raw_repr!(
         Fq,
         BigInteger384([
             3526659474838938856,
@@ -36,7 +36,7 @@ impl GLVParameters for Parameters {
             368068849512964448,
         ])
     );
-    const LAMBDA: Self::ScalarField = field_new!(
+    const LAMBDA: Self::ScalarField = field_new_from_raw_repr!(
         Fr,
         BigInteger256([
             7865245318337523249,

@@ -3,10 +3,9 @@ use crate::{
     ProjectiveCurve, BATCH_AFFINE_BATCH_SIZE,
 };
 use ark_ff::fields::FpParameters;
-use ark_std::{cfg_chunks_mut, fmt, vec::Vec};
+use ark_std::{cfg_chunks_mut, fmt, vec::Vec, rand::Rng};
 use num_traits::identities::Zero;
 
-use rand::Rng;
 #[cfg(feature = "parallel")]
 use {rand::thread_rng, rayon::prelude::*};
 

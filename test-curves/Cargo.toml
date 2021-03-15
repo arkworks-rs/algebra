@@ -13,7 +13,6 @@ paste = "0.1"
 ark-std = { git = "https://github.com/arkworks-rs/utils", default-features = false }
 ark-ff = { path = "../ff", default-features = false }
 ark-ec = { path = "../ec", default-features = false }
-ark-std = { git = "https://github.com/arkworks-rs/utils", default-features = false }
 
 
 lazy_static = { version = "1.4.0", optional = true }

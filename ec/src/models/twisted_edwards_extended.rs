@@ -23,10 +23,6 @@ use ark_std::{
     vec::Vec,
 };
 use num_traits::{One, Zero};
-use rand::{
-    distributions::{Distribution, Standard},
-    Rng,
-};
 #[cfg(feature = "cuda")]
 use {
     crate::BatchGroupArithmeticSlice, accel::*, closure::closure, log::debug, peekmore::PeekMore,
