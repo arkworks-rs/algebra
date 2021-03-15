@@ -80,8 +80,7 @@ pub fn group_test<G: Group>(a: G, mut b: G) {
         let scalar = G::ScalarField::rand(&mut rng);
         let scalar_bigint: <G::ScalarField as PrimeField>::BigInt = scalar.into();
         let scalar_wnaf = scalar_bigint.find_wnaf();
-        let mut wnaf_lut: Vec<G> = vec![];
-        wnaf_table(&mut wnaf_lut, a, w);
+        let wnaf_lut = wnaf_table(a, w);
         assert_eq!(a.mul(&scalar), wnaf_mul(&wnaf_lut, &scalar_wnaf));
     }
 }

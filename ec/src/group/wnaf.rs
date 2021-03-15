@@ -26,7 +26,8 @@ pub fn wnaf_mul<G: Group>(table: &[G], scalar_wnaf: &[i64]) -> G {
     result
 }
 
-pub fn wnaf_table<G: Group>(table: &mut Vec<G>, mut base: G, window: usize) {
+pub fn wnaf_table<G: Group>(mut base: G, window: usize) -> Vec<G> {
+    let mut table: Vec<G> = vec![];
     table.truncate(0);
     table.reserve(1 << (window - 1));
 
@@ -36,4 +37,5 @@ pub fn wnaf_table<G: Group>(table: &mut Vec<G>, mut base: G, window: usize) {
         table.push(base);
         base.add_assign(&dbl);
     }
+    table
 }
