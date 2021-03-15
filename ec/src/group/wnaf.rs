@@ -2,6 +2,9 @@ extern crate alloc;
 use crate::Group;
 use alloc::vec::Vec;
 
+// Computes scalar multiplication of a scalar_wnaf and a group element G. It uses the wNAF method.
+// `scalar_wnaf` is expected in its NAF form which can be obtained by using `find_wnaf` on the underlying BigInt.
+// `table` holds pre-computed multiples of the group element; it can be calculated using `wnaf_table`.
 pub fn wnaf_mul<G: Group>(table: &[G], scalar_wnaf: &[i64]) -> G {
     let mut result = G::zero();
 
@@ -28,7 +31,6 @@ pub fn wnaf_mul<G: Group>(table: &[G], scalar_wnaf: &[i64]) -> G {
 
 pub fn wnaf_table<G: Group>(mut base: G, window: usize) -> Vec<G> {
     let mut table: Vec<G> = vec![];
-    table.truncate(0);
     table.reserve(1 << (window - 1));
 
     let dbl = base.double();
