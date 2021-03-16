@@ -11,7 +11,6 @@ The main features of this release are:
 - Big speedups to radix-2 FFTs
 - Fix in the assembly arithmetic backend
 - Adding new traits for basic curve cycles and pairing based curve cycles
-- Providing wNAF scalar multiplcation functionality
 
 ### Breaking changes
 - #20 (ark-poly) Move univariate DensePolynomial and SparsePolynomial into a
@@ -52,6 +51,7 @@ The main features of this release are:
 - #140 (ark-poly) Add support for multilinear extensions in dense and sparse evaluation form.
 - #164 (ark-ff) Add methods `from_{be, le}_bytes_mod_order` to the `PrimeField` trait.
 - #197 (ark-test-curves) Add a BN384 curve with low two-arity for mixed-radix testing.
+- #230 (ark-ec) Add `wnaf_mul` implementation for groups
 
 ### Improvements
 - #22 (ark-ec) Speedup fixed-base MSMs
