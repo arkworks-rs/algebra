@@ -29,9 +29,6 @@ use ark_std::{
 use num_traits::Zero;
 use zeroize::Zeroize;
 
-pub mod batch_arith;
-pub use self::batch_arith::*;
-
 pub mod models;
 pub use self::models::*;
 
@@ -243,7 +240,6 @@ pub trait AffineCurve:
     + Neg<Output = Self>
     + Zeroize
     + From<<Self as AffineCurve>::Projective>
-    + BatchGroupArithmetic<BaseFieldForBatch = <Self as AffineCurve>::BaseField>
 {
     const COFACTOR: &'static [u64];
     type ScalarField: PrimeField + SquareRootField + Into<<Self::ScalarField as PrimeField>::BigInt>;
