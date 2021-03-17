@@ -590,16 +590,15 @@ impl<P: Parameters> ProjectiveCurve for GroupProjective<P> {
         }
     }
 
-    fn mul<S: AsRef<[u64]>>(mut self, other: S) -> Self {
+    fn mul<S: AsRef<[u64]>>(self, other: S) -> Self {
         let mut res = Self::zero();
         for b in BitIteratorBE::without_leading_zeros(other.as_ref()) {
             res.double_in_place();
             if b {
-                res += self;
+                res += &self;
             }
         }
-        self = res;
-        self
+        res
     }
 }
 
