@@ -1,6 +1,4 @@
-use crate::{
-    AffineCurve, ModelParameters, ProjectiveCurve,
-};
+use crate::{AffineCurve, ModelParameters, ProjectiveCurve};
 use ark_serialize::{
     CanonicalDeserialize, CanonicalDeserializeWithFlags, CanonicalSerialize,
     CanonicalSerializeWithFlags, EdwardsFlags, SerializationError,
