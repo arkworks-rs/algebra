@@ -1,10 +1,6 @@
-#[cfg(not(feature = "cuda"))]
-use crate::accel_dummy::*;
 use crate::{
     batch_arith::{decode_endo_from_u32, BatchGroupArithmetic},
-    cuda::scalar_mul::{internal::GPUScalarMulInternal, ScalarMulProfiler},
-    impl_gpu_cpu_run_kernel, impl_gpu_te_projective, impl_run_kernel, AffineCurve, ModelParameters,
-    ProjectiveCurve,
+    AffineCurve, ModelParameters, ProjectiveCurve,
 };
 use ark_serialize::{
     CanonicalDeserialize, CanonicalDeserializeWithFlags, CanonicalSerialize,
@@ -19,21 +15,14 @@ use ark_std::{
     io::{Read, Result as IoResult, Write},
     marker::PhantomData,
     ops::{Add, AddAssign, MulAssign, Neg, Sub, SubAssign},
-    string::String,
     vec::Vec,
 };
 use num_traits::{One, Zero};
-#[cfg(feature = "cuda")]
-use {
-    crate::BatchGroupArithmeticSlice, accel::*, closure::closure, log::debug, peekmore::PeekMore,
-    std::sync::Mutex,
-};
 use zeroize::Zeroize;
 
 use ark_ff::{
-    biginteger::BigInteger,
     bytes::{FromBytes, ToBytes},
-    fields::{BitIteratorBE, Field, FpParameters, PrimeField, SquareRootField},
+    fields::{BitIteratorBE, Field, PrimeField, SquareRootField},
     impl_additive_ops_from_ref, ToConstraintField, UniformRand,
 };
 
@@ -62,20 +51,6 @@ pub trait TEModelParameters: ModelParameters + Sized {
         copy *= &Self::COEFF_A;
         copy
     }
-
-    fn scalar_mul_kernel(
-        ctx: &Context,
-        grid: usize,
-        block: usize,
-        table: *const GroupProjective<Self>,
-        exps: *const u8,
-        out: *mut GroupProjective<Self>,
-        n: isize,
-    ) -> error::Result<()>;
-
-    fn scalar_mul_static_profiler() -> ScalarMulProfiler;
-
-    fn namespace() -> &'static str;
 }
 
 use {MontgomeryModelParameters as MontgomeryParameters, TEModelParameters as Parameters};
@@ -679,8 +654,6 @@ impl<P: Parameters> Zero for GroupProjective<P> {
         self.x.is_zero() && self.y == self.z && !self.y.is_zero() && self.t.is_zero()
     }
 }
-
-impl_gpu_te_projective!(Parameters);
 
 impl<P: Parameters> ProjectiveCurve for GroupProjective<P> {
     const COFACTOR: &'static [u64] = P::COFACTOR;

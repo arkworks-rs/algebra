@@ -1,5 +1,3 @@
-#[cfg(not(feature = "cuda"))]
-use crate::accel_dummy::*;
 use ark_serialize::{
     CanonicalDeserialize, CanonicalDeserializeWithFlags, CanonicalSerialize,
     CanonicalSerializeWithFlags, SWFlags, SerializationError,
@@ -9,27 +7,19 @@ use ark_std::{
     io::{Read, Result as IoResult, Write},
     marker::PhantomData,
     ops::{Add, AddAssign, MulAssign, Neg, Sub, SubAssign},
-    string::String,
     vec::Vec,
-};
-#[cfg(feature = "cuda")]
-use {
-    crate::BatchGroupArithmeticSlice, accel::*, closure::closure, log::debug, peekmore::PeekMore,
-    std::sync::Mutex,
 };
 
 use ark_ff::{
     biginteger::BigInteger,
     bytes::{FromBytes, ToBytes},
-    fields::{BitIteratorBE, Field, FpParameters, PrimeField, SquareRootField},
+    fields::{BitIteratorBE, Field, PrimeField, SquareRootField},
     ToConstraintField, UniformRand,
 };
 
 use crate::{
     batch_arith::{decode_endo_from_u32, BatchGroupArithmetic, ENDO_CODING_BITS},
-    cuda::scalar_mul::{internal::GPUScalarMulInternal, ScalarMulProfiler},
-    impl_gpu_cpu_run_kernel, impl_gpu_sw_projective, impl_run_kernel, AffineCurve, ModelParameters,
-    ProjectiveCurve,
+    AffineCurve, ModelParameters, ProjectiveCurve,
 };
 
 use num_traits::{One, Zero};
@@ -88,22 +78,6 @@ pub trait SWModelParameters: ModelParameters + Sized {
     ) {
         unimplemented!()
     }
-
-    // CUDA kernels are parameter specific and cannot
-    // be instantiated generically
-    fn scalar_mul_kernel(
-        ctx: &Context,
-        grid: usize,
-        block: usize,
-        table: *const GroupProjective<Self>,
-        exps: *const u8,
-        out: *mut GroupProjective<Self>,
-        n: isize,
-    ) -> error::Result<()>;
-
-    fn scalar_mul_static_profiler() -> ScalarMulProfiler;
-
-    fn namespace() -> &'static str;
 }
 
 /// Implements GLV mul for a single element with a wNAF tables
@@ -1158,8 +1132,6 @@ impl<P: Parameters> Zero for GroupProjective<P> {
     }
 }
 
-impl_gpu_sw_projective!(Parameters);
-
 impl<P: Parameters> ProjectiveCurve for GroupProjective<P> {
     const COFACTOR: &'static [u64] = P::COFACTOR;
     type BaseField = P::BaseField;
@@ -1346,7 +1318,8 @@ impl<P: Parameters> ProjectiveCurve for GroupProjective<P> {
         if P::has_glv() {
             let w = P::glv_window_size();
             let mut res = Self::zero();
-            let exponent_bigint = <Self::ScalarField as PrimeField>::BigInt::from_slice(other.as_ref());
+            let exponent_bigint =
+                <Self::ScalarField as PrimeField>::BigInt::from_slice(other.as_ref());
             impl_glv_mul!(Self, P, w, self, res, exponent_bigint);
             res
         } else {

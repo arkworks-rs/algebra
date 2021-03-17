@@ -1,6 +1,6 @@
 use crate::bls12_381::*;
 use ark_ec::{
-    impl_glv_for_sw, impl_scalar_mul_kernel_glv, impl_scalar_mul_parameters,
+    impl_glv_for_sw,
     models::{ModelParameters, SWModelParameters},
     short_weierstrass_jacobian::*,
     GLVParameters,
@@ -20,8 +20,6 @@ impl ModelParameters for Parameters {
     type BaseField = Fq;
     type ScalarField = Fr;
 }
-
-impl_scalar_mul_kernel_glv!(bls12_381, "ark-bls12-381", g1, G1Projective);
 
 impl GLVParameters for Parameters {
     type WideBigInt = BigInteger512;
@@ -81,7 +79,6 @@ impl SWModelParameters for Parameters {
         Self::BaseField::zero()
     }
 
-    impl_scalar_mul_parameters!(G1Projective);
     impl_glv_for_sw!();
 }
 

@@ -11,8 +11,8 @@ use ark_std::{
     convert::TryFrom,
     rc::Rc,
     string::String,
-    vec::Vec,
     vec,
+    vec::Vec,
 };
 pub use error::*;
 pub use flags::*;
@@ -227,7 +227,6 @@ macro_rules! impl_serialize_for_slice {
     }
 }
 
-
 // Implement Serialization for `String`
 // It is serialized by obtaining its byte representation as a Vec<u8> and
 // serializing that. This yields an end serialization of
@@ -251,7 +250,6 @@ impl CanonicalDeserialize for String {
             .map_err(|_| SerializationError::InvalidData)
     }
 }
-
 
 impl<T: CanonicalSerialize> CanonicalSerialize for [T] {
     impl_serialize_for_slice!(

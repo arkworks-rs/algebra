@@ -1,14 +1,14 @@
-extern crate ark_ff;
 extern crate ark_ec;
+extern crate ark_ff;
 extern crate num_bigint;
 extern crate num_traits;
 
 mod arithmetic;
 
-use num_bigint::BigUint;
-use ark_ff::{BigInteger, Field, PrimeField};
-use ark_ec::ProjectiveCurve;
 pub use arithmetic::*;
+use ark_ec::ProjectiveCurve;
+use ark_ff::{BigInteger, Field, PrimeField};
+use num_bigint::BigUint;
 use num_traits::Zero;
 use std::ops::Neg;
 
@@ -100,7 +100,10 @@ pub fn print_glv_params<G: ProjectiveCurve, WideBigInt: BigInteger, BaseFieldBig
 
     println!("const OMEGA: Self::BaseField = {:?};", omega);
     let n = <G::ScalarField as PrimeField>::modulus();
-    println!("const LAMBDA: Self::ScalarField = {:?};", to_str(lambda.into_repr()));
+    println!(
+        "const LAMBDA: Self::ScalarField = {:?};",
+        to_str(lambda.into_repr())
+    );
 
     let vecs = get_lattice_basis::<G::ScalarField>(n, lambda.into_repr());
 
