@@ -29,14 +29,8 @@ use ark_std::{
 use num_traits::Zero;
 use zeroize::Zeroize;
 
-pub mod batch_verify;
-pub use self::batch_verify::*;
-
 pub mod batch_arith;
 pub use self::batch_arith::*;
-
-pub mod bucketed_add;
-pub use self::bucketed_add::*;
 
 #[macro_use]
 pub mod glv;
