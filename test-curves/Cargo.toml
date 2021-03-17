@@ -25,7 +25,6 @@ ark-algebra-test-templates = { path = "../test-templates", default-features = fa
 [features]
 default = []
 
-cuda = [ "ark-ec/cuda",  "accel", "lazy_static", "ark-ec/std" ]
 asm = [ "ark-ff/asm" ]
 parallel = [ "ark-ff/parallel", "ark-ec/parallel", "ark-std/parallel" ]
 
