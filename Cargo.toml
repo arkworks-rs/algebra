@@ -14,8 +14,6 @@ members = [
     "poly-benches",
     "test-curves",
     "test-templates",
-
-    "scripts/glv-lattice-basis",
 ]
 
 [profile.release]

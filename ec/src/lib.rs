@@ -32,10 +32,6 @@ use zeroize::Zeroize;
 pub mod batch_arith;
 pub use self::batch_arith::*;
 
-#[macro_use]
-pub mod glv;
-pub use self::glv::*;
-
 pub mod models;
 pub use self::models::*;
 
