@@ -55,7 +55,7 @@ pub trait UVPolynomial<F: Field>: Polynomial<F, Point = F> {
     fn rand<R: Rng>(d: usize, rng: &mut R) -> Self;
 }
 
-/// Describes the interface for univariate polynomials
+/// Describes the interface for multivariate polynomials
 pub trait MVPolynomial<F: Field>: Polynomial<F> {
     /// The type of the terms of `self`
     type Term: multivariate::Term;
