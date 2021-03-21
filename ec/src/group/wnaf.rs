@@ -2,7 +2,7 @@ extern crate alloc;
 use crate::Group;
 use alloc::vec::Vec;
 
-// Computes scalar multiplication of a scalar_wnaf and a group element G. It uses the wNAF method.
+// Computes scalar multiplication of a preprocessed group element by a scalar in windowed non-adjacent form (wNAF).
 // `scalar_wnaf` is expected in its NAF form which can be obtained by using `find_wnaf` on the underlying BigInt.
 // `table` holds pre-computed multiples of the group element; it can be calculated using `wnaf_table`.
 pub fn wnaf_mul<G: Group>(table: &[G], scalar_wnaf: &[i64]) -> G {
