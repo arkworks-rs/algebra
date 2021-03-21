@@ -8,7 +8,7 @@ use alloc::vec::Vec;
 pub fn wnaf_mul<G: ProjectiveCurve>(table: &[G], scalar_wnaf: &[i64]) -> G {
     let mut result = G::zero();
 
-    let mut found_one = false;
+    let mut found_non_zero = false;
 
     for n in scalar_wnaf.iter().rev() {
         if found_one {
