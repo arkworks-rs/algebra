@@ -3,8 +3,10 @@ use ark_ec::{
     AffineCurve, MontgomeryModelParameters, ProjectiveCurve, SWModelParameters, TEModelParameters,
 };
 use ark_ff::{Field, One, PrimeField, UniformRand, Zero};
+use ark_ff::BigInteger;
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, SWFlags, SerializationError};
 use ark_std::{io::Cursor, vec::Vec};
+use ark_ec::wnaf::{wnaf_mul, wnaf_table};
 
 pub const ITERATIONS: usize = 10;
 
@@ -102,6 +104,17 @@ fn random_multiplication_test<G: ProjectiveCurve>() {
         let mut tmp1 = a;
         tmp1.add_assign(&b);
         tmp1.mul_assign(s);
+
+        // s ( a + b) using wNAF for several window values in [2,5]
+        for w in 2..=5 {
+            let mut tmp4 = a;
+            tmp4.add_assign(&b);
+
+            let scalar_wnaf = s.into_repr().find_wnaf();
+            let wnaf_lut = wnaf_table(tmp4, w);
+
+            assert_eq!(tmp1, wnaf_mul(&wnaf_lut, &scalar_wnaf));
+        }
 
         // sa + sb
         a.mul_assign(s);

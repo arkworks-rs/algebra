@@ -11,8 +11,6 @@ use ark_ff::{
     UniformRand,
 };
 
-pub mod wnaf;
-
 pub trait Group:
     ToBytes
     + 'static

@@ -1,8 +1,6 @@
 #![allow(unused)]
-use ark_ec::group::wnaf::{wnaf_mul, wnaf_table};
 use ark_ec::group::Group;
 use ark_ff::fields::PrimeField;
-use ark_ff::BigInteger;
 use ark_ff::{One, UniformRand, Zero};
 
 pub fn group_test<G: Group>(a: G, mut b: G) {
@@ -74,13 +72,4 @@ pub fn group_test<G: Group>(a: G, mut b: G) {
         a.mul(&(fr_rand1 * &fr_rand2)),
         "(a * r1) * r2 != a * (r1 * r2)"
     );
-
-    // Check that mul and wnaf_mul give the same results for several window values
-    for w in 2..=5 {
-        let scalar = G::ScalarField::rand(&mut rng);
-        let scalar_bigint: <G::ScalarField as PrimeField>::BigInt = scalar.into();
-        let scalar_wnaf = scalar_bigint.find_wnaf();
-        let wnaf_lut = wnaf_table(a, w);
-        assert_eq!(a.mul(&scalar), wnaf_mul(&wnaf_lut, &scalar_wnaf));
-    }
 }
