@@ -16,7 +16,7 @@ pub fn wnaf_mul<G: ProjectiveCurve>(table: &[G], scalar_wnaf: &[i64]) -> G {
         }
 
         if *n != 0 {
-            found_one = true;
+            found_non_zero = true;
 
             if *n > 0 {
                 result += &table[(n / 2) as usize];
