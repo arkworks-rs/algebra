@@ -36,7 +36,7 @@ pub fn wnaf_table<G: ProjectiveCurve>(mut base: G, window: usize) -> Vec<G> {
 
     for _ in 0..(1 << (window - 1)) {
         table.push(base);
-        base.add_assign(&dbl);
+        base += &dbl;
     }
     table
 }
