@@ -30,8 +30,7 @@ pub fn wnaf_mul<G: ProjectiveCurve>(table: &[G], scalar_wnaf: &[i64]) -> G {
 }
 
 pub fn wnaf_table<G: ProjectiveCurve>(mut base: G, window: usize) -> Vec<G> {
-    let mut table: Vec<G> = vec![];
-    table.reserve(1 << (window - 1));
+    let mut table = Vec::with_capacity(1 << (window - 1));
 
     let dbl = base.double();
 
