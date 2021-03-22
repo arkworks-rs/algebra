@@ -88,6 +88,8 @@ macro_rules! impl_field_square_in_place {
         #[allow(unused_braces, clippy::absurd_extreme_comparisons)]
         fn square_in_place(&mut self) -> &mut Self {
             if $limbs == 1 {
+                // We default to multiplying with `self` using the `Mul` impl
+                // for the 1 limb case
                 *self = *self * *self;
                 return self;
             }
