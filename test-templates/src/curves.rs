@@ -109,9 +109,12 @@ fn random_multiplication_test<G: ProjectiveCurve>() {
             let mut tmp4 = a + &b;
             let context = WnafContext::new(w);
             assert_eq!(tmp1, context.mul(tmp4, &s));
-            let bad_context = WnafContext::new(w - 1);
-            let bad_table = bad_context.table(tmp4);
-            assert_eq!(bad_context.mul_with_table(&bad_table, &s), None);
+
+            if w > 2 {
+                let bad_context = WnafContext::new(w - 1);
+                let bad_table = bad_context.table(tmp4);
+                assert_eq!(context.mul_with_table(&bad_table, &s), None);
+            }
         }
 
         // sa + sb
