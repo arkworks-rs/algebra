@@ -20,6 +20,13 @@ pub mod arithmetic;
 #[macro_use]
 mod macros;
 
+pub fn signed_mod_reduction(n: u64, modulus: u64) -> i64 {
+    if (n % modulus) >= (modulus / 2) {
+        ((n % modulus) as i64) - (modulus as i64)
+    } else {
+        (n % modulus) as i64
+    }
+}
 bigint_impl!(BigInteger64, 1);
 bigint_impl!(BigInteger128, 2);
 bigint_impl!(BigInteger256, 4);
@@ -122,8 +129,29 @@ pub trait BigInteger:
     /// with trailing zeros.
     fn to_bytes_le(&self) -> Vec<u8>;
 
-    /// Returns a vector for wnaf.
-    fn find_wnaf(&self) -> Vec<i64>;
+    /// Returns the windowed non-adjacent form of `self`, for a window of size `w`.
+    fn find_wnaf(&self, w: usize) -> Vec<i64> {
+        let mut res = vec![];
+        let mut e = *self;
+
+        while !e.is_zero() {
+            let z: i64;
+            if e.is_odd() {
+                z = signed_mod_reduction(e.as_ref()[0], 1 << w);
+                if z >= 0 {
+                    e.sub_noborrow(&Self::from(z as u64));
+                } else {
+                    e.add_nocarry(&Self::from((-z) as u64));
+                }
+            } else {
+                z = 0;
+            }
+            res.push(z);
+            e.div2();
+        }
+
+        res
+    }
 
     /// Writes this `BigInteger` as a big endian integer. Always writes
     /// `(num_bits` / 8) bytes.
