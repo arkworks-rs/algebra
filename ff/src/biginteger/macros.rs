@@ -255,8 +255,6 @@ macro_rules! bigint_impl {
             }
         }
 
-        
-
         impl CanonicalSerialize for $name {
             #[inline]
             fn serialize<W: Write>(&self, writer: W) -> Result<(), SerializationError> {
