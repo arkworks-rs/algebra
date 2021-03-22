@@ -1,7 +1,7 @@
 use super::quadratic_extension::*;
 use crate::{
     fields::{fp6_3over2::*, Field, Fp2, Fp2Parameters},
-    One, Zero,
+    One,
 };
 use core::marker::PhantomData;
 use core::ops::{AddAssign, SubAssign};
@@ -53,15 +53,15 @@ impl<P: Fp12Parameters> QuadExtParameters for Fp12ParamsWrapper<P> {
 
     fn cyclotomic_exp(fe: &Fp12<P>, exponent: impl AsRef<[u64]>) -> Fp12<P> {
         let mut res = QuadExtField::one();
-        let mut self_inverse = fe.clone();
-        self_inverse.conjugate();
+        let mut fe_inverse = *fe;
+        fe_inverse.conjugate();
 
         let mut found_nonzero = false;
         let naf = crate::biginteger::arithmetic::find_wnaf(exponent.as_ref());
 
         for &value in naf.iter().rev() {
             if found_nonzero {
-                res = res.cyclotomic_square();
+                res.cyclotomic_square_in_place();
             }
 
             if value != 0 {
@@ -70,7 +70,7 @@ impl<P: Fp12Parameters> QuadExtParameters for Fp12ParamsWrapper<P> {
                 if value > 0 {
                     res *= fe;
                 } else {
-                    res *= &self_inverse;
+                    res *= &fe_inverse;
                 }
             }
         }
@@ -131,77 +131,87 @@ impl<P: Fp12Parameters> Fp12<P> {
         self.c0.add_assign(&aa);
     }
 
-    pub fn cyclotomic_square(&self) -> Self {
+    pub fn cyclotomic_square_in_place(&mut self) {
         // Faster Squaring in the Cyclotomic Subgroup of Sixth Degree Extensions
         // - Robert Granger and Michael Scott
         //
         if characteristic_square_mod_6_is_one(Self::characteristic()) {
-            let mut result = Self::zero();
             let fp2_nr = <P::Fp6Params as Fp6Parameters>::mul_fp2_by_nonresidue;
 
-            let mut z0 = self.c0.c0;
-            let mut z4 = self.c0.c1;
-            let mut z3 = self.c0.c2;
-            let mut z2 = self.c1.c0;
-            let mut z1 = self.c1.c1;
-            let mut z5 = self.c1.c2;
+            let r0 = &self.c0.c0;
+            let r4 = &self.c0.c1;
+            let r3 = &self.c0.c2;
+            let r2 = &self.c1.c0;
+            let r1 = &self.c1.c1;
+            let r5 = &self.c1.c2;
 
             // t0 + t1*y = (z0 + z1*y)^2 = a^2
-            let mut tmp = z0 * &z1;
-            let t0 = (z0 + &z1) * &(z0 + &fp2_nr(&z1)) - &tmp - &fp2_nr(&tmp);
+            let mut tmp = *r0 * r1;
+            let t0 = (*r0 + r1) * &(fp2_nr(&r1) + r0) - &tmp - &fp2_nr(&tmp);
             let t1 = tmp.double();
 
             // t2 + t3*y = (z2 + z3*y)^2 = b^2
-            tmp = z2 * &z3;
-            let t2 = (z2 + &z3) * &(z2 + &fp2_nr(&z3)) - &tmp - &fp2_nr(&tmp);
+            tmp = *r2 * r3;
+            let t2 = (*r2 + r3) * &(fp2_nr(&r3) + r2) - &tmp - &fp2_nr(&tmp);
             let t3 = tmp.double();
 
             // t4 + t5*y = (z4 + z5*y)^2 = c^2
-            tmp = z4 * &z5;
-            let t4 = (z4 + &z5) * &(z4 + &fp2_nr(&z5)) - &tmp - &fp2_nr(&tmp);
+            tmp = *r4 * r5;
+            let t4 = (*r4 + r5) * &(fp2_nr(&r5) + r4) - &tmp - &fp2_nr(&tmp);
             let t5 = tmp.double();
+
+            let z0 = &mut self.c0.c0;
+            let z4 = &mut self.c0.c1;
+            let z3 = &mut self.c0.c2;
+            let z2 = &mut self.c1.c0;
+            let z1 = &mut self.c1.c1;
+            let z5 = &mut self.c1.c2;
 
             // for A
 
             // z0 = 3 * t0 - 2 * z0
-            z0 = t0 - &z0;
-            z0 = z0 + &z0;
-            result.c0.c0 = z0 + &t0;
+            *z0 = t0 - &*z0;
+            z0.double_in_place();
+            *z0 += &t0;
 
             // z1 = 3 * t1 + 2 * z1
-            z1 = t1 + &z1;
-            z1 = z1 + &z1;
-            result.c1.c1 = z1 + &t1;
+            *z1 = t1 + &*z1;
+            z1.double_in_place();
+            *z1 += &t1;
 
             // for B
 
             // z2 = 3 * (xi * t5) + 2 * z2
             tmp = fp2_nr(&t5);
-            z2 = tmp + &z2;
-            z2 = z2 + &z2;
-            result.c1.c0 = z2 + &tmp;
+            *z2 += tmp;
+            z2.double_in_place();
+            *z2 += &tmp;
 
             // z3 = 3 * t4 - 2 * z3
-            z3 = t4 - &z3;
-            z3 = z3 + &z3;
-            result.c0.c2 = z3 + &t4;
+            *z3 = t4 - &*z3;
+            z3.double_in_place();
+            *z3 += &t4;
 
             // for C
 
             // z4 = 3 * t2 - 2 * z4
-            z4 = t2 - &z4;
-            z4 = z4 + &z4;
-            result.c0.c1 = z4 + &t2;
+            *z4 = t2 - &*z4;
+            z4.double_in_place();
+            *z4 += &t2;
 
             // z5 = 3 * t3 + 2 * z5
-            z5 = t3 + &z5;
-            z5 = z5 + &z5;
-            result.c1.c2 = z5 + &t3;
-
-            result
+            *z5 += t3;
+            z5.double_in_place();
+            *z5 += &t3;
         } else {
-            self.square()
+            self.square_in_place();
         }
+    }
+
+    pub fn cyclotomic_square(&self) -> Self {
+        let mut result = *self;
+        result.cyclotomic_square_in_place();
+        result
     }
 }
 
