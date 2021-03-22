@@ -1,6 +1,5 @@
 #![allow(unused)]
 use ark_ec::group::Group;
-use ark_ff::fields::PrimeField;
 use ark_ff::{One, UniformRand, Zero};
 
 pub fn group_test<G: Group>(a: G, mut b: G) {
