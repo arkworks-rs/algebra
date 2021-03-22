@@ -1,12 +1,12 @@
 #![allow(unused)]
+use ark_ec::wnaf::{wnaf_mul, wnaf_table};
 use ark_ec::{
     AffineCurve, MontgomeryModelParameters, ProjectiveCurve, SWModelParameters, TEModelParameters,
 };
-use ark_ff::{Field, One, PrimeField, UniformRand, Zero};
 use ark_ff::BigInteger;
+use ark_ff::{Field, One, PrimeField, UniformRand, Zero};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, SWFlags, SerializationError};
 use ark_std::{io::Cursor, vec::Vec};
-use ark_ec::wnaf::{wnaf_mul, wnaf_table};
 
 pub const ITERATIONS: usize = 10;
 
