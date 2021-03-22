@@ -1,6 +1,5 @@
-extern crate alloc;
 use crate::ProjectiveCurve;
-use alloc::vec::Vec;
+use ark_std::vec::Vec;
 
 // Computes scalar multiplication of a preprocessed group element by a scalar in windowed non-adjacent form (wNAF).
 // `scalar_wnaf` is expected in its NAF form which can be obtained by using `find_wnaf` on the underlying BigInt.
