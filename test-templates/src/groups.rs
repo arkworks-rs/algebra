@@ -1,9 +1,11 @@
 #![allow(unused)]
-use ark_ec::group::Group;
+use ark_ec::{group::Group, msm::VariableBaseMSM};
 use ark_ff::{One, UniformRand, Zero};
 
-pub fn group_test<G: Group>(a: G, mut b: G) {
+pub fn group_tests<G: Group>() {
     let mut rng = ark_std::test_rng();
+    let a = G::rand(&mut rng);
+    let mut b = G::rand(&mut rng);
     let zero = G::zero();
     let fr_zero = G::ScalarField::zero();
     let fr_one = G::ScalarField::one();
