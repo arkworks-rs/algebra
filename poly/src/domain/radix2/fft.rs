@@ -143,6 +143,7 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
         // It is left as a TODO to implement this for the parallel case
         #[allow(unused_mut)]
         let mut roots = self.roots_of_unity(root);
+
         #[cfg(not(feature = "parallel"))]
         let mut root_len = roots.len();
         #[cfg(not(feature = "parallel"))]
@@ -177,15 +178,11 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
                 *hi = neg;
 
                 #[cfg(feature = "parallel")]
-                {
-                    *hi *= roots[nchunks * chunk_index];
-                }
-
-                // Cache-aligned, so the index is just the chunk_index
+                let index = nchunks * chunk_index;
                 #[cfg(not(feature = "parallel"))]
-                {
-                    *hi *= roots[chunk_index];
-                }
+                let index = chunk_index;
+
+                *hi *= roots[index];
             };
 
             ark_std::cfg_chunks_mut!(xi, chunk_size).for_each(|cxi| {
