@@ -145,7 +145,7 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
         let mut roots = self.roots_of_unity(root);
 
         #[cfg(not(feature = "parallel"))]
-        let (mut root_len, first_iteration) = (roots.len(), true);
+        let (mut root_len, mut first_iteration) = (roots.len(), true);
 
         let mut gap = xi.len() / 2;
         while gap > 0 {
