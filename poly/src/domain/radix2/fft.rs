@@ -143,7 +143,7 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
         // It is left as a TODO to implement this for the parallel case
         #[allow(unused_mut)]
         let mut roots = self.roots_of_unity(root);
-        
+
         #[cfg(not(feature = "parallel"))]
         let (mut root_len, mut first_iteration) = (roots.len(), true);
 
