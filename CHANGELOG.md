@@ -87,6 +87,7 @@ The main features of this release are:
 - [\#207](https://github.com/arkworks-rs/algebra/pull/207) (ark-ff) Improve performance of extension fields when the non-residue is negative. (Improves fq2, fq12, and g2 speed on bls12 and bn curves)
 - [\#211](https://github.com/arkworks-rs/algebra/pull/211) (ark-ec) Improve performance of BLS12 final exponentiation.
 - [\#214](https://github.com/arkworks-rs/algebra/pull/214) (ark-poly) Utilise a more efficient way of evaluating a polynomial at a single point
+- [\#242](https://github.com/arkworks-rs/algebra/pull/242) (ark-poly) Speedup the sequential radix-2 FFT significantly by making the method in which it accesses roots more cache-friendly.
 
 ### Bug fixes
 - [\#36](https://github.com/arkworks-rs/algebra/pull/36) (ark-ec) In Short-Weierstrass curves, include an infinity bit in `ToConstraintField`.
