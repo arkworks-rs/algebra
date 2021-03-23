@@ -160,7 +160,7 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
                 // Roots are already cache aligned in the first iteration, so we don't need to do anything.
                 if !first_iteration {
                     // if the roots are cache aligned in iteration i, then in iteration i+1,
-                    // cache alignment requires selecting every other root. 
+                    // cache alignment requires selecting every other root.
                     // (The even powers relative to the current iterations generator)
                     for i in 1..(root_len / 2) {
                         roots[i] = roots[i * 2];
