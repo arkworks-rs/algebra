@@ -138,20 +138,53 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
     }
 
     fn io_helper<T: DomainCoeff<F>>(&self, xi: &mut [T], root: F) {
-        let roots = self.roots_of_unity(root);
+        // In the sequential case, we will keep on making the roots cache-aligned,
+        // according to the access pattern that the FFT uses.
+        // It is left as a TODO to implement this for the parallel case
+        #[allow(unused_mut)]
+        let mut roots = self.roots_of_unity(root);
+
+        #[cfg(not(feature = "parallel"))]
+        let (mut root_len, mut first_iteration) = (roots.len(), true);
 
         let mut gap = xi.len() / 2;
         while gap > 0 {
             // each butterfly cluster uses 2*gap positions
             let chunk_size = 2 * gap;
+            #[cfg(feature = "parallel")]
             let nchunks = xi.len() / chunk_size;
 
-            let butterfly_fn = |(idx, (lo, hi)): (usize, (&mut T, &mut T))| {
+            // Cache align the FFT roots in the sequential case.
+            // In this case, we are aiming to make every root that is accessed one after another,
+            // appear one after another in the list of roots.
+            #[cfg(not(feature = "parallel"))]
+            {
+                // Roots are already cache aligned in the first iteration, so we don't need to do anything.
+                if !first_iteration {
+                    // if the roots are cache aligned in iteration i, then in iteration i+1,
+                    // cache alignment requires selecting every other root.
+                    // (The even powers relative to the current iterations generator)
+                    for i in 1..(root_len / 2) {
+                        roots[i] = roots[i * 2];
+                    }
+                    root_len /= 2;
+                    first_iteration = false;
+                }
+            }
+
+            let butterfly_fn = |(chunk_index, (lo, hi)): (usize, (&mut T, &mut T))| {
                 let neg = *lo - *hi;
                 *lo += *hi;
 
                 *hi = neg;
-                *hi *= roots[nchunks * idx];
+
+                #[cfg(feature = "parallel")]
+                let index = nchunks * chunk_index;
+                // Due to cache aligning, the index into roots is the chunk index
+                #[cfg(not(feature = "parallel"))]
+                let index = chunk_index;
+
+                *hi *= roots[index];
             };
 
             ark_std::cfg_chunks_mut!(xi, chunk_size).for_each(|cxi| {
