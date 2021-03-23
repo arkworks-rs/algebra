@@ -137,36 +137,37 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
             });
     }
 
-    #[allow(unused)]
     fn io_helper<T: DomainCoeff<F>>(&self, xi: &mut [T], root: F) {
         // In the sequential case, we will keep on making the roots cache-aligned,
         // according to the access pattern that the FFT uses.
         // It is left as a TODO to implement this for the parallel case
+        #[allow(unused_mut)]
         let mut roots = self.roots_of_unity(root);
+        #[cfg(not(feature = "parallel"))]
         let mut root_len = roots.len();
+        #[cfg(not(feature = "parallel"))]
+        let mut first_iteration = true;
 
         let mut gap = xi.len() / 2;
-        let mut first_iteration = true;
         while gap > 0 {
             // each butterfly cluster uses 2*gap positions
             let chunk_size = 2 * gap;
+            #[cfg(feature = "parallel")]
             let nchunks = xi.len() / chunk_size;
 
             // Cache align the FFT roots in the sequential case.
             // In this case, we are aiming to make every root that is accessed one after another,
             // appear one after another in the list of roots.
+            // Roots are already cache aligned in the first iteration, so we don't need to do anything.
             #[cfg(not(feature = "parallel"))]
-            {
-                // Roots are already cache aligned in the first iteration, so we don't need to do anything.
-                if !first_iteration {
-                    // if the roots are cache aligned in iteration i, then in iteration i+1,
-                    // cache alignment requires selecting every other root.
-                    // (The even powers relative to the current iterations generator)
-                    for i in 1..(root_len / 2) {
-                        roots[i] = roots[i * 2];
-                    }
-                    root_len /= 2;
+            if !first_iteration {
+                // if the roots are cache aligned in iteration i, then in iteration i+1,
+                // cache alignment requires selecting every other root.
+                // (The even powers relative to the current iterations generator)
+                for i in 1..(root_len / 2) {
+                    roots[i] = roots[i * 2];
                 }
+                root_len /= 2;
             }
 
             let butterfly_fn = |(chunk_index, (lo, hi)): (usize, (&mut T, &mut T))| {
@@ -179,9 +180,10 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
                 {
                     *hi *= roots[nchunks * chunk_index];
                 }
+
+                // Cache-aligned, so the index is just the chunk_index
                 #[cfg(not(feature = "parallel"))]
                 {
-                    // Cache-aligned, so the index is just the chunk_index
                     *hi *= roots[chunk_index];
                 }
             };
@@ -199,7 +201,10 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
                 }
             });
             gap /= 2;
-            first_iteration = false;
+            #[cfg(not(feature = "parallel"))]
+            {
+                first_iteration = false;
+            }
         }
     }
 
