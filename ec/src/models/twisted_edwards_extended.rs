@@ -1,7 +1,4 @@
-use crate::{
-    models::{MontgomeryModelParameters as MontgomeryParameters, TEModelParameters as Parameters},
-    AffineCurve, ProjectiveCurve,
-};
+use crate::{AffineCurve, ModelParameters, ProjectiveCurve};
 use ark_serialize::{
     CanonicalDeserialize, CanonicalDeserializeWithFlags, CanonicalSerialize,
     CanonicalSerializeWithFlags, EdwardsFlags, SerializationError,
@@ -23,11 +20,37 @@ use zeroize::Zeroize;
 use ark_ff::{
     bytes::{FromBytes, ToBytes},
     fields::{BitIteratorBE, Field, PrimeField, SquareRootField},
-    ToConstraintField, UniformRand,
+    impl_additive_ops_from_ref, ToConstraintField, UniformRand,
 };
 
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
+
+pub trait MontgomeryModelParameters: ModelParameters {
+    const COEFF_A: Self::BaseField;
+    const COEFF_B: Self::BaseField;
+
+    type TEModelParameters: TEModelParameters<BaseField = Self::BaseField>;
+}
+
+pub trait TEModelParameters: ModelParameters + Sized {
+    const COEFF_A: Self::BaseField;
+    const COEFF_D: Self::BaseField;
+    const COFACTOR: &'static [u64];
+    const COFACTOR_INV: Self::ScalarField;
+    const AFFINE_GENERATOR_COEFFS: (Self::BaseField, Self::BaseField);
+
+    type MontgomeryModelParameters: MontgomeryModelParameters<BaseField = Self::BaseField>;
+
+    #[inline(always)]
+    fn mul_by_a(elem: &Self::BaseField) -> Self::BaseField {
+        let mut copy = *elem;
+        copy *= &Self::COEFF_A;
+        copy
+    }
+}
+
+use {MontgomeryModelParameters as MontgomeryParameters, TEModelParameters as Parameters};
 
 #[derive(Derivative)]
 #[derivative(
@@ -180,7 +203,7 @@ impl<P: Parameters> Neg for GroupAffine<P> {
     }
 }
 
-ark_ff::impl_additive_ops_from_ref!(GroupAffine, Parameters);
+impl_additive_ops_from_ref!(GroupAffine, Parameters);
 
 impl<'a, P: Parameters> Add<&'a Self> for GroupAffine<P> {
     type Output = Self;
@@ -432,6 +455,11 @@ impl<P: Parameters> ProjectiveCurve for GroupProjective<P> {
     type BaseField = P::BaseField;
     type ScalarField = P::ScalarField;
     type Affine = GroupAffine<P>;
+
+    #[inline(always)]
+    fn get_x(&mut self) -> &mut Self::BaseField {
+        &mut self.x
+    }
 
     fn prime_subgroup_generator() -> Self {
         GroupAffine::prime_subgroup_generator().into()
@@ -708,7 +736,6 @@ impl<P: MontgomeryParameters> MontgomeryGroupAffine<P> {
         }
     }
 }
-
 impl<P: Parameters> CanonicalSerialize for GroupAffine<P> {
     #[allow(unused_qualifications)]
     #[inline]
@@ -773,7 +800,15 @@ impl<P: Parameters> CanonicalSerialize for GroupProjective<P> {
 
 impl<P: Parameters> CanonicalDeserialize for GroupAffine<P> {
     #[allow(unused_qualifications)]
-    fn deserialize<R: Read>(mut reader: R) -> Result<Self, SerializationError> {
+    fn deserialize<R: Read>(reader: R) -> Result<Self, SerializationError> {
+        let p = Self::deserialize_unchecked(reader)?;
+        if !p.is_in_correct_subgroup_assuming_on_curve() {
+            return Err(SerializationError::InvalidData);
+        }
+        Ok(p)
+    }
+    #[allow(unused_qualifications)]
+    fn deserialize_unchecked<R: Read>(mut reader: R) -> Result<Self, SerializationError> {
         let (x, flags): (P::BaseField, EdwardsFlags) =
             CanonicalDeserializeWithFlags::deserialize_with_flags(&mut reader)?;
         if x == P::BaseField::zero() {
@@ -781,16 +816,13 @@ impl<P: Parameters> CanonicalDeserialize for GroupAffine<P> {
         } else {
             let p = GroupAffine::<P>::get_point_from_x(x, flags.is_positive())
                 .ok_or(SerializationError::InvalidData)?;
-            if !p.is_in_correct_subgroup_assuming_on_curve() {
-                return Err(SerializationError::InvalidData);
-            }
             Ok(p)
         }
     }
 
     #[allow(unused_qualifications)]
     fn deserialize_uncompressed<R: Read>(reader: R) -> Result<Self, SerializationError> {
-        let p = Self::deserialize_unchecked(reader)?;
+        let p = Self::deserialize_uncompressed_unchecked(reader)?;
 
         if !p.is_in_correct_subgroup_assuming_on_curve() {
             return Err(SerializationError::InvalidData);
@@ -799,7 +831,9 @@ impl<P: Parameters> CanonicalDeserialize for GroupAffine<P> {
     }
 
     #[allow(unused_qualifications)]
-    fn deserialize_unchecked<R: Read>(mut reader: R) -> Result<Self, SerializationError> {
+    fn deserialize_uncompressed_unchecked<R: Read>(
+        mut reader: R,
+    ) -> Result<Self, SerializationError> {
         let x: P::BaseField = CanonicalDeserialize::deserialize(&mut reader)?;
         let y: P::BaseField = CanonicalDeserialize::deserialize(&mut reader)?;
 

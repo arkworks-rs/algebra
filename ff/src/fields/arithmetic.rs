@@ -2,8 +2,9 @@
 /// reduction for efficient implementation. It also additionally
 /// uses the "no-carry optimization" outlined
 /// [here](https://hackmd.io/@zkteam/modular_multiplication) if
-/// `P::MODULUS` has (a) a non-zero MSB, and (b) at least one
+/// `P::MODULUS` has BOTH (a) a zero MSB, AND (b) at least one
 /// zero bit in the rest of the modulus.
+
 macro_rules! impl_field_mul_assign {
     ($limbs:expr) => {
         #[inline]
@@ -17,6 +18,7 @@ macro_rules! impl_field_mul_assign {
             for i in 1..$limbs {
                 all_bits_set &= P::MODULUS.0[$limbs - i - 1] == !0u64;
             }
+
             let _no_carry: bool = !(first_bit_set || all_bits_set);
 
             // No-carry optimisation applied to CIOS
@@ -52,6 +54,33 @@ macro_rules! impl_field_mul_assign {
                 *self = self.mul_without_reduce(other, P::MODULUS, P::INV);
                 self.reduce();
             }
+        }
+    };
+}
+
+macro_rules! impl_field_add_assign {
+    ($limbs:expr) => {
+        #[inline]
+        #[ark_ff_asm::unroll_for_loops]
+        fn add_assign(&mut self, other: &Self) {
+            // This cannot exceed the backing capacity.
+            self.0.add_nocarry(&other.0);
+            // However, it may need to be reduced
+            self.reduce();
+        }
+    };
+}
+
+macro_rules! impl_field_sub_assign {
+    ($limbs:expr) => {
+        #[inline]
+        #[ark_ff_asm::unroll_for_loops]
+        fn sub_assign(&mut self, other: &Self) {
+            // If `other` is larger than `self`, add the modulus to self first.
+            if other.0 > self.0 {
+                self.0.add_nocarry(&P::MODULUS);
+            }
+            self.0.sub_noborrow(&other.0);
         }
     };
 }
@@ -93,6 +122,7 @@ macro_rules! impl_field_square_in_place {
                 *self = *self * *self;
                 return self;
             }
+
             #[cfg(use_asm)]
             #[allow(unsafe_code, unused_mut)]
             {

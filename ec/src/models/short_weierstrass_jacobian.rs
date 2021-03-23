@@ -16,7 +16,7 @@ use ark_ff::{
     ToConstraintField, UniformRand,
 };
 
-use crate::{models::SWModelParameters as Parameters, AffineCurve, ProjectiveCurve};
+use crate::{AffineCurve, ModelParameters, ProjectiveCurve};
 
 use num_traits::{One, Zero};
 use zeroize::Zeroize;
@@ -28,6 +28,30 @@ use ark_std::rand::{
 
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
+
+pub trait SWModelParameters: ModelParameters + Sized {
+    const COEFF_A: Self::BaseField;
+    const COEFF_B: Self::BaseField;
+    const COFACTOR: &'static [u64];
+    const COFACTOR_INV: Self::ScalarField;
+    const AFFINE_GENERATOR_COEFFS: (Self::BaseField, Self::BaseField);
+
+    #[inline(always)]
+    fn mul_by_a(elem: &Self::BaseField) -> Self::BaseField {
+        let mut copy = *elem;
+        copy *= &Self::COEFF_A;
+        copy
+    }
+
+    #[inline(always)]
+    fn add_b(elem: &Self::BaseField) -> Self::BaseField {
+        let mut copy = *elem;
+        copy += &Self::COEFF_B;
+        copy
+    }
+}
+
+use SWModelParameters as Parameters;
 
 #[derive(Derivative)]
 #[derivative(
@@ -202,7 +226,7 @@ impl<P: Parameters> AffineCurve for GroupAffine<P> {
     }
 
     #[inline]
-    fn mul<S: Into<<Self::ScalarField as PrimeField>::BigInt>>(&self, by: S) -> GroupProjective<P> {
+    fn mul<S: Into<<Self::ScalarField as PrimeField>::BigInt>>(&self, by: S) -> Self::Projective {
         let bits = BitIteratorBE::new(by.into());
         self.mul_bits(bits)
     }
@@ -390,6 +414,11 @@ impl<P: Parameters> ProjectiveCurve for GroupProjective<P> {
     type ScalarField = P::ScalarField;
     type Affine = GroupAffine<P>;
 
+    #[inline(always)]
+    fn get_x(&mut self) -> &mut Self::BaseField {
+        &mut self.x
+    }
+
     #[inline]
     fn prime_subgroup_generator() -> Self {
         GroupAffine::prime_subgroup_generator().into()
@@ -559,6 +588,17 @@ impl<P: Parameters> ProjectiveCurve for GroupProjective<P> {
             self.z -= &z1z1;
             self.z -= &hh;
         }
+    }
+
+    fn mul<S: AsRef<[u64]>>(self, other: S) -> Self {
+        let mut res = Self::zero();
+        for b in BitIteratorBE::without_leading_zeros(other.as_ref()) {
+            res.double_in_place();
+            if b {
+                res += &self;
+            }
+        }
+        res
     }
 }
 
@@ -782,26 +822,7 @@ impl<P: Parameters> CanonicalSerialize for GroupProjective<P> {
 impl<P: Parameters> CanonicalDeserialize for GroupAffine<P> {
     #[allow(unused_qualifications)]
     fn deserialize<R: Read>(reader: R) -> Result<Self, SerializationError> {
-        let (x, flags): (P::BaseField, SWFlags) =
-            CanonicalDeserializeWithFlags::deserialize_with_flags(reader)?;
-        if flags.is_infinity() {
-            Ok(Self::zero())
-        } else {
-            let p = GroupAffine::<P>::get_point_from_x(x, flags.is_positive().unwrap())
-                .ok_or(SerializationError::InvalidData)?;
-            if !p.is_in_correct_subgroup_assuming_on_curve() {
-                return Err(SerializationError::InvalidData);
-            }
-            Ok(p)
-        }
-    }
-
-    #[allow(unused_qualifications)]
-    fn deserialize_uncompressed<R: Read>(
-        reader: R,
-    ) -> Result<Self, ark_serialize::SerializationError> {
         let p = Self::deserialize_unchecked(reader)?;
-
         if !p.is_in_correct_subgroup_assuming_on_curve() {
             return Err(SerializationError::InvalidData);
         }
@@ -809,7 +830,31 @@ impl<P: Parameters> CanonicalDeserialize for GroupAffine<P> {
     }
 
     #[allow(unused_qualifications)]
-    fn deserialize_unchecked<R: Read>(mut reader: R) -> Result<Self, SerializationError> {
+    fn deserialize_unchecked<R: Read>(reader: R) -> Result<Self, SerializationError> {
+        let (x, flags): (P::BaseField, SWFlags) =
+            CanonicalDeserializeWithFlags::deserialize_with_flags(reader)?;
+        if flags.is_infinity() {
+            Ok(Self::zero())
+        } else {
+            let p = GroupAffine::<P>::get_point_from_x(x, flags.is_positive().unwrap())
+                .ok_or(SerializationError::InvalidData)?;
+            Ok(p)
+        }
+    }
+
+    #[allow(unused_qualifications)]
+    fn deserialize_uncompressed<R: Read>(reader: R) -> Result<Self, SerializationError> {
+        let p = Self::deserialize_uncompressed_unchecked(reader)?;
+        if !p.is_in_correct_subgroup_assuming_on_curve() {
+            return Err(SerializationError::InvalidData);
+        }
+        Ok(p)
+    }
+
+    #[allow(unused_qualifications)]
+    fn deserialize_uncompressed_unchecked<R: Read>(
+        mut reader: R,
+    ) -> Result<Self, SerializationError> {
         let x: P::BaseField = CanonicalDeserialize::deserialize(&mut reader)?;
         let (y, flags): (P::BaseField, SWFlags) =
             CanonicalDeserializeWithFlags::deserialize_with_flags(&mut reader)?;

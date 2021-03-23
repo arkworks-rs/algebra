@@ -214,6 +214,8 @@ pub trait ProjectiveCurve:
         self = res;
         self
     }
+
+    fn get_x(&mut self) -> &mut Self::BaseField;
 }
 
 /// Affine representation of an elliptic curve point guaranteed to be
