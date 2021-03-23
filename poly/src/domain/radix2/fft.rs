@@ -167,6 +167,7 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
                     roots[i] = roots[i * 2];
                 }
                 root_len /= 2;
+                first_iteration = false;
             }
 
             let butterfly_fn = |(chunk_index, (lo, hi)): (usize, (&mut T, &mut T))| {
@@ -196,10 +197,6 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
                 }
             });
             gap /= 2;
-            #[cfg(not(feature = "parallel"))]
-            {
-                first_iteration = false;
-            }
         }
     }
 
