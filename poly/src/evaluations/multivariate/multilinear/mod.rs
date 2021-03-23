@@ -12,7 +12,7 @@ use ark_std::vec::Vec;
 use ark_ff::{Field, Zero};
 
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
-use rand::Rng;
+use ark_std::rand::Rng;
 
 /// This trait describes an interface for the multilinear extension
 /// of an array.

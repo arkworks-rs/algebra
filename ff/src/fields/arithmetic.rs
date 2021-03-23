@@ -26,7 +26,6 @@ macro_rules! impl_field_mul_assign {
                 {
                     // Tentatively avoid using assembly for `$limbs == 1`.
                     if $limbs <= 6 && $limbs > 1 {
-                        assert!($limbs <= 6);
                         ark_ff_asm::x86_64_asm_mul!($limbs, (self.0).0, (other.0).0);
                         self.reduce();
                         return;
@@ -89,6 +88,8 @@ macro_rules! impl_field_square_in_place {
         #[allow(unused_braces, clippy::absurd_extreme_comparisons)]
         fn square_in_place(&mut self) -> &mut Self {
             if $limbs == 1 {
+                // We default to multiplying with `self` using the `Mul` impl
+                // for the 1 limb case
                 *self = *self * *self;
                 return self;
             }
@@ -104,7 +105,6 @@ macro_rules! impl_field_square_in_place {
                 let _no_carry: bool = !(first_bit_set || all_bits_set);
 
                 if $limbs <= 6 && _no_carry {
-                    assert!($limbs <= 6);
                     ark_ff_asm::x86_64_asm_square!($limbs, (self.0).0);
                     self.reduce();
                     return self;
@@ -192,13 +192,16 @@ macro_rules! impl_field_bigint_conv {
 
 macro_rules! impl_prime_field_standard_sample {
     ($field: ident, $params: ident) => {
-        impl<P: $params> rand::distributions::Distribution<$field<P>>
-            for rand::distributions::Standard
+        impl<P: $params> ark_std::rand::distributions::Distribution<$field<P>>
+            for ark_std::rand::distributions::Standard
         {
             #[inline]
-            fn sample<R: rand::Rng + ?Sized>(&self, rng: &mut R) -> $field<P> {
+            fn sample<R: ark_std::rand::Rng + ?Sized>(&self, rng: &mut R) -> $field<P> {
                 loop {
-                    let mut tmp = $field(rng.sample(rand::distributions::Standard), PhantomData);
+                    let mut tmp = $field(
+                        rng.sample(ark_std::rand::distributions::Standard),
+                        PhantomData,
+                    );
                     // Mask away the unused bits at the beginning.
                     tmp.0
                         .as_mut()

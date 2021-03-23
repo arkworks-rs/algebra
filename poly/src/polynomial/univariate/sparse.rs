@@ -62,11 +62,29 @@ impl<F: Field> Polynomial<F> for SparsePolynomial<F> {
         if self.is_zero() {
             return F::zero();
         }
+
+        // We need floor(log2(deg)) + 1 powers, starting from the 0th power p^2^0 = p
+        let num_powers = 0usize.leading_zeros() - self.degree().leading_zeros();
+        let mut powers_of_2 = Vec::with_capacity(num_powers as usize);
+
+        let mut p = *point;
+        powers_of_2.push(p);
+        for _ in 1..num_powers {
+            p.square_in_place();
+            powers_of_2.push(p);
+        }
         // compute all coeff * point^{i} and then sum the results
         let total = self
             .coeffs
             .iter()
-            .map(|(i, c)| (*c * point.pow(&[*i as u64])))
+            .map(|(i, c)| {
+                debug_assert_eq!(
+                    F::pow_with_table(&powers_of_2[..], &[*i as u64]).unwrap(),
+                    point.pow(&[*i as u64]),
+                    "pows not equal"
+                );
+                *c * F::pow_with_table(&powers_of_2[..], &[*i as u64]).unwrap()
+            })
             .sum();
         total
     }
@@ -278,9 +296,9 @@ mod tests {
     use ark_ff::{UniformRand, Zero};
     use ark_std::cmp::max;
     use ark_std::ops::Mul;
+    use ark_std::rand::Rng;
     use ark_std::test_rng;
     use ark_test_curves::bls12_381::Fr;
-    use rand::Rng;
 
     // probability of rand sparse polynomial having a particular coefficient be 0
     const ZERO_COEFF_PROBABILITY: f64 = 0.8f64;

@@ -16,9 +16,6 @@ edition = "2018"
 ark-serialize-derive = { path = "../serialize-derive", optional = true }
 ark-std = { git = "https://github.com/arkworks-rs/utils", default-features = false }
 
-[dev-dependencies]
-rand = { version = "0.7", default-features = false }
-
 [features]
 default = []
 std = [ "ark-std/std" ]

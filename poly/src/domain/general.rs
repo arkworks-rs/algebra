@@ -263,10 +263,10 @@ mod tests {
     use crate::polynomial::Polynomial;
     use crate::{EvaluationDomain, GeneralEvaluationDomain};
     use ark_ff::Zero;
+    use ark_std::rand::Rng;
     use ark_std::test_rng;
     use ark_test_curves::bls12_381::Fr;
-    use ark_test_curves::mnt4_753::Fq as MNT6Fr;
-    use rand::Rng;
+    use ark_test_curves::bn384_small_two_adicity::Fr as BNFr;
 
     #[test]
     fn vanishing_polynomial_evaluation() {
@@ -284,7 +284,7 @@ mod tests {
         }
 
         for coeffs in 15..17 {
-            let domain = GeneralEvaluationDomain::<MNT6Fr>::new(coeffs).unwrap();
+            let domain = GeneralEvaluationDomain::<BNFr>::new(coeffs).unwrap();
             let z = domain.vanishing_polynomial();
             for _ in 0..100 {
                 let point = rng.gen();

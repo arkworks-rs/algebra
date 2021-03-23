@@ -4,14 +4,14 @@ use crate::{
     UniformRand,
 };
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, SerializationError};
+use ark_std::rand::{
+    distributions::{Distribution, Standard},
+    Rng,
+};
 use ark_std::{
     fmt::{Debug, Display},
     io::{Read, Result as IoResult, Write},
     vec::Vec,
-};
-use rand::{
-    distributions::{Distribution, Standard},
-    Rng,
 };
 use zeroize::Zeroize;
 

@@ -21,7 +21,7 @@ use crate::{models::SWModelParameters as Parameters, AffineCurve, ProjectiveCurv
 use num_traits::{One, Zero};
 use zeroize::Zeroize;
 
-use rand::{
+use ark_std::rand::{
     distributions::{Distribution, Standard},
     Rng,
 };
@@ -193,8 +193,8 @@ impl<P: Parameters> AffineCurve for GroupAffine<P> {
             // point as infinity. For all other choices, get the original point.
             if x.is_zero() && flags.is_infinity() {
                 Some(Self::zero())
-            } else if let Some(y_is_positve) = flags.is_positive() {
-                Self::get_point_from_x(x, y_is_positve) // Unwrap is safe because it's not zero.
+            } else if let Some(y_is_positive) = flags.is_positive() {
+                Self::get_point_from_x(x, y_is_positive) // Unwrap is safe because it's not zero.
             } else {
                 None
             }
@@ -260,7 +260,6 @@ impl<P: Parameters> Default for GroupAffine<P> {
 #[derivative(
     Copy(bound = "P: Parameters"),
     Clone(bound = "P: Parameters"),
-    Eq(bound = "P: Parameters"),
     Debug(bound = "P: Parameters"),
     Hash(bound = "P: Parameters")
 )]
@@ -279,6 +278,7 @@ impl<P: Parameters> Display for GroupProjective<P> {
     }
 }
 
+impl<P: Parameters> Eq for GroupProjective<P> {}
 impl<P: Parameters> PartialEq for GroupProjective<P> {
     fn eq(&self, other: &Self) -> bool {
         if self.is_zero() {
@@ -306,10 +306,14 @@ impl<P: Parameters> PartialEq for GroupProjective<P> {
 impl<P: Parameters> Distribution<GroupProjective<P>> for Standard {
     #[inline]
     fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> GroupProjective<P> {
-        let mut res = GroupProjective::prime_subgroup_generator();
-        res.mul_assign(P::ScalarField::rand(rng));
-        debug_assert!(GroupAffine::from(res).is_in_correct_subgroup_assuming_on_curve());
-        res
+        loop {
+            let x = P::BaseField::rand(rng);
+            let greatest = rng.gen();
+
+            if let Some(p) = GroupAffine::get_point_from_x(x, greatest) {
+                return p.scale_by_cofactor().into();
+            }
+        }
     }
 }
 
@@ -577,10 +581,9 @@ impl<'a, P: Parameters> Add<&'a Self> for GroupProjective<P> {
     type Output = Self;
 
     #[inline]
-    fn add(self, other: &'a Self) -> Self {
-        let mut copy = self;
-        copy += other;
-        copy
+    fn add(mut self, other: &'a Self) -> Self {
+        self += other;
+        self
     }
 }
 
@@ -653,10 +656,9 @@ impl<'a, P: Parameters> Sub<&'a Self> for GroupProjective<P> {
     type Output = Self;
 
     #[inline]
-    fn sub(self, other: &'a Self) -> Self {
-        let mut copy = self;
-        copy -= other;
-        copy
+    fn sub(mut self, other: &'a Self) -> Self {
+        self -= other;
+        self
     }
 }
 
@@ -749,6 +751,34 @@ impl<P: Parameters> CanonicalSerialize for GroupAffine<P> {
     }
 }
 
+impl<P: Parameters> CanonicalSerialize for GroupProjective<P> {
+    #[allow(unused_qualifications)]
+    #[inline]
+    fn serialize<W: Write>(&self, writer: W) -> Result<(), SerializationError> {
+        let aff = GroupAffine::<P>::from(self.clone());
+        aff.serialize(writer)
+    }
+
+    #[inline]
+    fn serialized_size(&self) -> usize {
+        let aff = GroupAffine::<P>::from(self.clone());
+        aff.serialized_size()
+    }
+
+    #[allow(unused_qualifications)]
+    #[inline]
+    fn serialize_uncompressed<W: Write>(&self, writer: W) -> Result<(), SerializationError> {
+        let aff = GroupAffine::<P>::from(self.clone());
+        aff.serialize_uncompressed(writer)
+    }
+
+    #[inline]
+    fn uncompressed_size(&self) -> usize {
+        let aff = GroupAffine::<P>::from(self.clone());
+        aff.uncompressed_size()
+    }
+}
+
 impl<P: Parameters> CanonicalDeserialize for GroupAffine<P> {
     #[allow(unused_qualifications)]
     fn deserialize<R: Read>(reader: R) -> Result<Self, SerializationError> {
@@ -785,6 +815,26 @@ impl<P: Parameters> CanonicalDeserialize for GroupAffine<P> {
             CanonicalDeserializeWithFlags::deserialize_with_flags(&mut reader)?;
         let p = GroupAffine::<P>::new(x, y, flags.is_infinity());
         Ok(p)
+    }
+}
+
+impl<P: Parameters> CanonicalDeserialize for GroupProjective<P> {
+    #[allow(unused_qualifications)]
+    fn deserialize<R: Read>(reader: R) -> Result<Self, SerializationError> {
+        let aff = GroupAffine::<P>::deserialize(reader)?;
+        Ok(aff.into())
+    }
+
+    #[allow(unused_qualifications)]
+    fn deserialize_uncompressed<R: Read>(reader: R) -> Result<Self, SerializationError> {
+        let aff = GroupAffine::<P>::deserialize_uncompressed(reader)?;
+        Ok(aff.into())
+    }
+
+    #[allow(unused_qualifications)]
+    fn deserialize_unchecked<R: Read>(reader: R) -> Result<Self, SerializationError> {
+        let aff = GroupAffine::<P>::deserialize_unchecked(reader)?;
+        Ok(aff.into())
     }
 }
 
