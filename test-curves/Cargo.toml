@@ -1,6 +1,6 @@
 [package]
 name = "ark-test-curves"
-version = "0.1.0"
+version = "0.2.0"
 authors = [ "arkworks contributors" ]
 description = "A library for testing ark-poly"
 include = ["Cargo.toml", "src", "README.md", "LICENSE-APACHE", "LICENSE-MIT"]
