@@ -1,6 +1,6 @@
 [package]
 name = "ark-serialize"
-version = "0.1.0"
+version = "0.2.0"
 authors = [ "arkworks contributors" ]
 description = "A library for serializing types in the arkworks ecosystem"
 homepage = "https://arkworks.rs"
