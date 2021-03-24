@@ -84,12 +84,12 @@ fn bench_coset_ifft_in_place<F: FftField, D: EvaluationDomain<F>>(b: &mut Benche
 }
 
 fn fft_benches<F: FftField, D: EvaluationDomain<F>>(c: &mut Criterion, name: &'static str) {
-    // let cur_name = format!("{:?} - subgroup_fft_in_place", name.clone());
-    // setup_bench(c, &cur_name, bench_fft_in_place::<F, D>);
+    let cur_name = format!("{:?} - subgroup_fft_in_place", name.clone());
+    setup_bench(c, &cur_name, bench_fft_in_place::<F, D>);
     let cur_name = format!("{:?} - subgroup_ifft_in_place", name.clone());
     setup_bench(c, &cur_name, bench_ifft_in_place::<F, D>);
-    // let cur_name = format!("{:?} - coset_fft_in_place", name.clone());
-    // setup_bench(c, &cur_name, bench_coset_fft_in_place::<F, D>);
+    let cur_name = format!("{:?} - coset_fft_in_place", name.clone());
+    setup_bench(c, &cur_name, bench_coset_fft_in_place::<F, D>);
     let cur_name = format!("{:?} - coset_ifft_in_place", name.clone());
     setup_bench(c, &cur_name, bench_coset_ifft_in_place::<F, D>);
 }
