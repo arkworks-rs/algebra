@@ -1,6 +1,6 @@
 [package]
 name = "ark-serialize"
-version = "0.1.0"
+version = "0.2.0"
 authors = [ "arkworks contributors" ]
 description = "A library for serializing types in the arkworks ecosystem"
 homepage = "https://arkworks.rs"
@@ -13,7 +13,7 @@ license = "MIT/Apache-2.0"
 edition = "2018"
 
 [dependencies]
-ark-serialize-derive = { version = "0.1.0", path = "../serialize-derive", optional = true }
+ark-serialize-derive = { version = "^0.2.0", path = "../serialize-derive", optional = true }
 ark-std = { version = "0.2.0", default-features = false }
 
 [features]
