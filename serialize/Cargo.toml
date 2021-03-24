@@ -13,8 +13,8 @@ license = "MIT/Apache-2.0"
 edition = "2018"
 
 [dependencies]
-ark-serialize-derive = { version = "0.2.0", path = "../serialize-derive", optional = true }
-ark-std = { version = "0.2.0", git = "https://github.com/arkworks-rs/utils", default-features = false }
+ark-serialize-derive = { version = "0.1.0", path = "../serialize-derive", optional = true }
+ark-std = { version = "0.1.0", git = "https://github.com/arkworks-rs/utils", default-features = false }
 
 [features]
 default = []
