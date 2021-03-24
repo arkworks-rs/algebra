@@ -14,10 +14,10 @@ edition = "2018"
 build = "build.rs"
 
 [dependencies]
-ark-ff-asm = { path = "../ff-asm" }
-ark-ff-macros = { path = "../ff-macros" }
-ark-std = { git = "https://github.com/arkworks-rs/utils", default-features = false }
-ark-serialize = { path = "../serialize", default-features = false }
+ark-ff-asm = { version = "0.2.0", path = "../ff-asm" }
+ark-ff-macros = { version = "0.2.0", path = "../ff-macros" }
+ark-std = { version = "0.2.0", git = "https://github.com/arkworks-rs/utils", default-features = false }
+ark-serialize = { version = "0.2.0", path = "../serialize", default-features = false }
 derivative = { version = "2", features = ["use_core"] }
 num-traits = { version = "0.2", default-features = false }
 rayon = { version = "1", optional = true }
