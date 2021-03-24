@@ -1,4 +1,4 @@
-## Pending
+## v0.2.0
 
 The main features of this release are:
 

@@ -1,12 +1,12 @@
 [package]
 name = "ark-serialize-derive"
-version = "0.1.1-alpha.0"
+version = "0.1.0"
 authors = [ "arkworks Contributors" ]
 description = "A library for deriving serialization traits for the arkworks ecosystem"
 homepage = "https://arkworks.rs"
 repository = "https://github.com/arkworks-rs/algebra"
 documentation = "https://docs.rs/algebra/"
-keywords = ["cryptography", "finite fields", "elliptic curves", "pairing", "serialization"]
+keywords = ["cryptography", "finite-fields", "elliptic-curves", "serialization"]
 categories = ["cryptography"]
 include = ["Cargo.toml", "src", "README.md", "LICENSE-APACHE", "LICENSE-MIT"]
 license = "MIT/Apache-2.0"

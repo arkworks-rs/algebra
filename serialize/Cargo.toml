@@ -6,15 +6,15 @@ description = "A library for serializing types in the arkworks ecosystem"
 homepage = "https://arkworks.rs"
 repository = "https://github.com/arkworks-rs/algebra"
 documentation = "https://docs.rs/ark-serialize/"
-keywords = ["cryptography", "finite fields", "serialization" ]
+keywords = ["cryptography", "serialization" ]
 categories = ["cryptography"]
 include = ["Cargo.toml", "src", "README.md", "LICENSE-APACHE", "LICENSE-MIT"]
 license = "MIT/Apache-2.0"
 edition = "2018"
 
 [dependencies]
-ark-serialize-derive = { path = "../serialize-derive", optional = true }
-ark-std = { git = "https://github.com/arkworks-rs/utils", default-features = false }
+ark-serialize-derive = { version = "0.1.0", path = "../serialize-derive", optional = true }
+ark-std = { version = "0.2.0", default-features = false }
 
 [features]
 default = []

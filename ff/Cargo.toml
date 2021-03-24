@@ -6,7 +6,7 @@ description = "A library for finite fields"
 homepage = "https://arkworks.rs"
 repository = "https://github.com/arkworks-rs/algebra"
 documentation = "https://docs.rs/ark-ff/"
-keywords = ["cryptography", "finite fields" ]
+keywords = ["cryptography", "finite-fields" ]
 categories = ["cryptography"]
 include = ["Cargo.toml", "src", "README.md", "LICENSE-APACHE", "LICENSE-MIT"]
 license = "MIT/Apache-2.0"
@@ -14,10 +14,10 @@ edition = "2018"
 build = "build.rs"
 
 [dependencies]
-ark-ff-asm = { path = "../ff-asm" }
-ark-ff-macros = { path = "../ff-macros" }
-ark-std = { git = "https://github.com/arkworks-rs/utils", default-features = false }
-ark-serialize = { path = "../serialize", default-features = false }
+ark-ff-asm = { version = "0.1.0", path = "../ff-asm" }
+ark-ff-macros = { version = "0.1.0", path = "../ff-macros" }
+ark-std = { version = "0.2.0", default-features = false }
+ark-serialize = { version = "0.1.0", path = "../serialize", default-features = false }
 derivative = { version = "2", features = ["use_core"] }
 num-traits = { version = "0.2", default-features = false }
 rayon = { version = "1", optional = true }
