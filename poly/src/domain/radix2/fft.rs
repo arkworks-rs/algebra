@@ -144,8 +144,6 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
         #[allow(unused_mut)]
         let mut roots = self.roots_of_unity(root);
 
-        let mut root_len = roots.len();
-
         #[cfg(feature = "parallel")]
         let max_threads = rayon::current_num_threads();
 
@@ -196,12 +194,36 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
             // appear one after another in the list of roots.
             // (The even powers relative to the current iterations generator)
 
-            let roots_chunks = root_len / 
+            #[cfg(feature = "parallel")]
+            {
+                for i in 1..core::cmp::min(roots.len() / 2, 1 << LOG_ROOTS_OF_UNITY_PARALLEL_SIZE) {
+                    roots[i] = roots[i * 2];
+                }
 
-            for i in 1..(root_len / 2) {
-                roots[i] = roots[i * 2];
+                for i in LOG_ROOTS_OF_UNITY_PARALLEL_SIZE..ark_std::log2(roots.len() / 2) {
+                    let j = 1 << i; // j = 1, 2, 4, ..., roots.len() / 4
+                    let chunk_size = j / max_threads;
+                    let (roots_lo, roots_hi) = roots.split_at_mut(2 * j);
+                    cfg_chunks_mut!(roots_lo[j .. 2 * j], chunk_size)
+                        .zip(cfg_chunks_mut!(roots_hi[..2 * j], chunk_size * 2))
+                        .for_each(|(chunk, chunk_2)| {
+                            for i in 0..chunk.len() {
+                                chunk[i] = chunk_2[2 * i];
+                            }
+                        }
+                    );
+                }
+                roots.resize(roots.len() / 2, F::default());
             }
-            root_len /= 2;
+
+            #[cfg(not(feature = "parallel"))]
+            {
+                for i in 1..roots.len() / 2 {
+                    roots[i] = roots[i * 2];
+                }
+
+                roots.resize(roots.len() / 2, F::default());
+            }
 
             gap /= 2;
         }
