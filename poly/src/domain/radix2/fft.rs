@@ -144,45 +144,27 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
         #[allow(unused_mut)]
         let mut roots = self.roots_of_unity(root);
 
+        let mut root_len = roots.len();
+
+        #[cfg(feature = "parallel")]
+        let max_threads = rayon::current_num_threads();
+
         #[cfg(not(feature = "parallel"))]
-        let (mut root_len, mut first_iteration) = (roots.len(), true);
+        let max_threads = 1;
 
         let mut gap = xi.len() / 2;
         while gap > 0 {
             // each butterfly cluster uses 2*gap positions
             let chunk_size = 2 * gap;
-            #[cfg(feature = "parallel")]
-            let nchunks = xi.len() / chunk_size;
+            let num_chunks = xi.len() / chunk_size;
+            let sub_chunks = (max_threads - 1) / num_chunks + 1;
+            let sub_chunk_size = chunk_size / (2 * sub_chunks);
 
-            // Cache align the FFT roots in the sequential case.
-            // In this case, we are aiming to make every root that is accessed one after another,
-            // appear one after another in the list of roots.
-            #[cfg(not(feature = "parallel"))]
-            {
-                // Roots are already cache aligned in the first iteration, so we don't need to do anything.
-                if !first_iteration {
-                    // if the roots are cache aligned in iteration i, then in iteration i+1,
-                    // cache alignment requires selecting every other root.
-                    // (The even powers relative to the current iterations generator)
-                    for i in 1..(root_len / 2) {
-                        roots[i] = roots[i * 2];
-                    }
-                    root_len /= 2;
-                    first_iteration = false;
-                }
-            }
-
-            let butterfly_fn = |(chunk_index, (lo, hi)): (usize, (&mut T, &mut T))| {
+            let butterfly_fn = |(index, (lo, hi)): (usize, (&mut T, &mut T))| {
                 let neg = *lo - *hi;
                 *lo += *hi;
 
                 *hi = neg;
-
-                #[cfg(feature = "parallel")]
-                let index = nchunks * chunk_index;
-                // Due to cache aligning, the index into roots is the chunk index
-                #[cfg(not(feature = "parallel"))]
-                let index = chunk_index;
 
                 *hi *= roots[index];
             };
@@ -193,12 +175,34 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
                 // we parallelize the butterfly operation within the chunk.
                 //
                 // if chunk_size > MIN_CHUNK_SIZE_FOR_PARALLELIZATION
+
                 if gap > MIN_CHUNK_SIZE_FOR_PARALLELIZATION / 2 {
-                    cfg_iter_mut!(lo).zip(hi).enumerate().for_each(butterfly_fn);
+                    cfg_chunks_mut!(lo, sub_chunk_size)
+                        .zip(cfg_chunks_mut!(hi, sub_chunk_size))
+                        .enumerate()
+                        .for_each(
+                            |(chunk_id, (lo_chunk, hi_chunk))| {
+                                lo_chunk.iter_mut().zip(hi_chunk).enumerate().for_each(
+                                    |(idx, d)| butterfly_fn((chunk_id * sub_chunk_size + idx, d))
+                                );
+                            }
+                        );
                 } else {
                     lo.iter_mut().zip(hi).enumerate().for_each(butterfly_fn);
                 }
             });
+
+            // In this case, we are aiming to make every root that is accessed one after another,
+            // appear one after another in the list of roots.
+            // (The even powers relative to the current iterations generator)
+
+            let roots_chunks = root_len / 
+
+            for i in 1..(root_len / 2) {
+                roots[i] = roots[i * 2];
+            }
+            root_len /= 2;
+
             gap /= 2;
         }
     }
