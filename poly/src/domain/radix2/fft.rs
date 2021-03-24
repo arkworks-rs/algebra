@@ -141,7 +141,6 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
         // In the sequential case, we will keep on making the roots cache-aligned,
         // according to the access pattern that the FFT uses.
         // It is left as a TODO to implement this for the parallel case
-
         let mut roots = self.roots_of_unity(root);
 
         #[cfg(feature = "parallel")]
