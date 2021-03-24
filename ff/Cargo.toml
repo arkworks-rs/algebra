@@ -14,7 +14,7 @@ edition = "2018"
 build = "build.rs"
 
 [dependencies]
-ark-ff-asm = { version = "0.1.0", path = "../ff-asm" }
+ark-ff-asm = { version = "^0.2.0", path = "../ff-asm" }
 ark-ff-macros = { version = "^0.2.0", path = "../ff-macros" }
 ark-std = { version = "0.2.0", default-features = false }
 ark-serialize = { version = "^0.2.0", path = "../serialize", default-features = false }
