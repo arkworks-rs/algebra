@@ -4,7 +4,7 @@
 use crate::domain::utils::compute_powers_serial;
 use crate::domain::{radix2::*, DomainCoeff};
 use ark_ff::FftField;
-use ark_std::{cfg_iter_mut, vec::Vec};
+use ark_std::{cfg_chunks_mut, cfg_iter_mut, vec::Vec};
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
 
@@ -141,7 +141,7 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
         // In the sequential case, we will keep on making the roots cache-aligned,
         // according to the access pattern that the FFT uses.
         // It is left as a TODO to implement this for the parallel case
-        #[allow(unused_mut)]
+
         let mut roots = self.roots_of_unity(root);
 
         #[cfg(feature = "parallel")]
@@ -167,7 +167,7 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
                 *hi *= roots[index];
             };
 
-            ark_std::cfg_chunks_mut!(xi, chunk_size).for_each(|cxi| {
+            cfg_chunks_mut!(xi, chunk_size).for_each(|cxi| {
                 let (lo, hi) = cxi.split_at_mut(gap);
                 // If the chunk is sufficiently big that parallelism helps,
                 // we parallelize the butterfly operation within the chunk.
@@ -178,13 +178,15 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
                     cfg_chunks_mut!(lo, sub_chunk_size)
                         .zip(cfg_chunks_mut!(hi, sub_chunk_size))
                         .enumerate()
-                        .for_each(
-                            |(chunk_id, (lo_chunk, hi_chunk))| {
-                                lo_chunk.iter_mut().zip(hi_chunk).enumerate().for_each(
-                                    |(idx, d)| butterfly_fn((chunk_id * sub_chunk_size + idx, d))
-                                );
-                            }
-                        );
+                        .for_each(|(chunk_id, (lo_chunk, hi_chunk))| {
+                            lo_chunk
+                                .iter_mut()
+                                .zip(hi_chunk)
+                                .enumerate()
+                                .for_each(|(idx, d)| {
+                                    butterfly_fn((chunk_id * sub_chunk_size + idx, d))
+                                });
+                        });
                 } else {
                     lo.iter_mut().zip(hi).enumerate().for_each(butterfly_fn);
                 }
@@ -204,14 +206,13 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
                     let j = 1 << i; // j = 1, 2, 4, ..., roots.len() / 4
                     let chunk_size = j / max_threads;
                     let (roots_lo, roots_hi) = roots.split_at_mut(2 * j);
-                    cfg_chunks_mut!(roots_lo[j .. 2 * j], chunk_size)
+                    cfg_chunks_mut!(roots_lo[j..2 * j], chunk_size)
                         .zip(cfg_chunks_mut!(roots_hi[..2 * j], chunk_size * 2))
                         .for_each(|(chunk, chunk_2)| {
                             for i in 0..chunk.len() {
                                 chunk[i] = chunk_2[2 * i];
                             }
-                        }
-                    );
+                        });
                 }
                 roots.resize(roots.len() / 2, F::default());
             }
@@ -230,32 +231,71 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
     }
 
     fn oi_helper<T: DomainCoeff<F>>(&self, xi: &mut [T], root: F) {
-        let roots = self.roots_of_unity(root);
+        let roots_cache = self.roots_of_unity(root);
+        let mut compacted_roots = vec![F::default(); roots_cache.len() / 2];
+
+        #[cfg(feature = "parallel")]
+        let max_threads = rayon::current_num_threads();
+
+        #[cfg(not(feature = "parallel"))]
+        let max_threads = 1;
 
         let mut gap = 1;
         while gap < xi.len() {
+            // each butterfly cluster uses 2*gap positions
             let chunk_size = 2 * gap;
-            let nchunks = xi.len() / chunk_size;
+            let num_chunks = xi.len() / chunk_size;
+            let sub_chunks = (max_threads - 1) / num_chunks + 1;
+            let sub_chunk_size = chunk_size / (2 * sub_chunks);
+
+            let roots = if gap < xi.len() / 2 {
+                if gap > MIN_CHUNK_SIZE_FOR_PARALLELIZATION {
+                    cfg_iter_mut!(compacted_roots[..gap])
+                        .enumerate()
+                        .for_each(|(i, root)| {
+                            *root = roots_cache[num_chunks * i];
+                        });
+                } else {
+                    for i in 0..gap {
+                        compacted_roots[i] = roots_cache[num_chunks * i];
+                    }
+                }
+                &compacted_roots[..]
+            } else {
+                &roots_cache[..]
+            };
 
             let butterfly_fn = |(idx, (lo, hi)): (usize, (&mut T, &mut T))| {
-                *hi *= roots[nchunks * idx];
+                *hi *= roots[idx];
                 let neg = *lo - *hi;
                 *lo += *hi;
                 *hi = neg;
             };
 
-            ark_std::cfg_chunks_mut!(xi, chunk_size).for_each(|cxi| {
+            cfg_chunks_mut!(xi, chunk_size).for_each(|cxi| {
                 let (lo, hi) = cxi.split_at_mut(gap);
                 // If the chunk is sufficiently big that parallelism helps,
                 // we parallelize the butterfly operation within the chunk.
                 //
                 // if chunk_size > MIN_CHUNK_SIZE_FOR_PARALLELIZATION
                 if gap > MIN_CHUNK_SIZE_FOR_PARALLELIZATION / 2 {
-                    cfg_iter_mut!(lo).zip(hi).enumerate().for_each(butterfly_fn);
+                    cfg_chunks_mut!(lo, sub_chunk_size)
+                        .zip(cfg_chunks_mut!(hi, sub_chunk_size))
+                        .enumerate()
+                        .for_each(|(chunk_id, (lo_chunk, hi_chunk))| {
+                            lo_chunk
+                                .iter_mut()
+                                .zip(hi_chunk)
+                                .enumerate()
+                                .for_each(|(idx, d)| {
+                                    butterfly_fn((chunk_id * sub_chunk_size + idx, d))
+                                });
+                        });
                 } else {
                     lo.iter_mut().zip(hi).enumerate().for_each(butterfly_fn);
                 }
             });
+
             gap *= 2;
         }
     }
