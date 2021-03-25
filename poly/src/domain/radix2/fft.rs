@@ -154,8 +154,15 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
             // each butterfly cluster uses 2*gap positions
             let chunk_size = 2 * gap;
             let num_chunks = xi.len() / chunk_size;
+
+            // Since we define the number of sub chunks per chunk as the ceil of the threads
+            // partitioned amongst the chunks, as follows
             let sub_chunks = (max_threads - 1) / num_chunks + 1;
-            let sub_chunk_size = chunk_size / (2 * sub_chunks);
+
+            // the size of each sub chunk that results in that number of sub chunks
+            // is the floor of the gap, which is the chunk problem size, divided by
+            // the number of sub chunks
+            let sub_chunk_size = gap / sub_chunks;
 
             let butterfly_fn = |(index, (lo, hi)): (usize, (&mut T, &mut T))| {
                 let neg = *lo - *hi;
@@ -170,8 +177,7 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
                 let (lo, hi) = cxi.split_at_mut(gap);
                 // If the chunk is sufficiently big that parallelism helps,
                 // we parallelize the butterfly operation within the chunk.
-                //
-                // if chunk_size > MIN_CHUNK_SIZE_FOR_PARALLELIZATION
+                // We chunk up the chunk such that each thread can operate on elements in sequence.
 
                 if gap > MIN_CHUNK_SIZE_FOR_PARALLELIZATION / 2 {
                     cfg_chunks_mut!(lo, sub_chunk_size)
@@ -201,10 +207,20 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
                     roots[i] = roots[i * 2];
                 }
 
-                for i in LOG_ROOTS_OF_UNITY_PARALLEL_SIZE..ark_std::log2(roots.len() / 2) {
-                    let j = 1 << i; // j = 1, 2, 4, ..., roots.len() / 4
-                    let chunk_size = j / max_threads;
+                // if a sufficient amount of roots have been compacted, we have the following situation:
+                // [a:compacted][b:writable][---- c:to be written ----][...rest of slice ...]
+                //  <----j----> <----j----> <---------   2j   -------->
+                // So we divy up b and c into chunks and write them in parallel. We procede
+                // recursively, where c becomes the new writeable b.
+
+                for i in LOG_ROOTS_OF_UNITY_PARALLEL_SIZE..=ark_std::log2(roots.len() / 4) {
+                    let j = 1 << i;
+
+                    // We set this to be the ceil of the problem size divided by the number of threads
+                    let chunk_size = (j - 1) / max_threads + 1;
+
                     let (roots_lo, roots_hi) = roots.split_at_mut(2 * j);
+
                     cfg_chunks_mut!(roots_lo[j..2 * j], chunk_size)
                         .zip(cfg_chunks_mut!(roots_hi[..2 * j], chunk_size * 2))
                         .for_each(|(chunk, chunk_2)| {
@@ -244,8 +260,17 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
             // each butterfly cluster uses 2*gap positions
             let chunk_size = 2 * gap;
             let num_chunks = xi.len() / chunk_size;
+
+            // Since we define the number of sub chunks per chunk as the ceil of the threads
+            // partitioned amongst the chunks, as follows
             let sub_chunks = (max_threads - 1) / num_chunks + 1;
-            let sub_chunk_size = chunk_size / (2 * sub_chunks);
+
+            // the size of each sub chunk that results in that number of sub chunks
+            // is the floor of the gap, which is the chunk problem size, divided by
+            // the number of sub chunks
+            let sub_chunk_size = gap / sub_chunks;
+
+            let mut cache_index_multiplier = num_chunks;
 
             let roots = if gap < xi.len() / 2 {
                 if gap > MIN_CHUNK_SIZE_FOR_PARALLELIZATION {
@@ -259,13 +284,14 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
                         compacted_roots[i] = roots_cache[num_chunks * i];
                     }
                 }
+                cache_index_multiplier = 1;
                 &compacted_roots[..]
             } else {
                 &roots_cache[..]
             };
 
             let butterfly_fn = |(idx, (lo, hi)): (usize, (&mut T, &mut T))| {
-                *hi *= roots[idx];
+                *hi *= roots[cache_index_multiplier * idx];
                 let neg = *lo - *hi;
                 *lo += *hi;
                 *hi = neg;
@@ -275,8 +301,9 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
                 let (lo, hi) = cxi.split_at_mut(gap);
                 // If the chunk is sufficiently big that parallelism helps,
                 // we parallelize the butterfly operation within the chunk.
-                //
-                // if chunk_size > MIN_CHUNK_SIZE_FOR_PARALLELIZATION
+                // We chunk up the chunk such that each thread can operate on elements in sequence.
+                // to help cache locality.
+
                 if gap > MIN_CHUNK_SIZE_FOR_PARALLELIZATION / 2 {
                     cfg_chunks_mut!(lo, sub_chunk_size)
                         .zip(cfg_chunks_mut!(hi, sub_chunk_size))
