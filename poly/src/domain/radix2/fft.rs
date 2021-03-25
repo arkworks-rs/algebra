@@ -177,11 +177,12 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
                 let (lo, hi) = cxi.split_at_mut(gap);
                 // If the chunk is sufficiently big that parallelism helps,
                 // we parallelize the butterfly operation within the chunk.
-                // We chunk up the chunk such that each thread can operate on elements in sequence.
+                // We chunk up the chunk such that each thread can operate on elements in sequence
+                // to help cache locality.
 
                 // If `sub_chunks == 1` the problem can be fully parallelised across `max_threads`
                 // So each chunk should just utilise the sequential impl
-                if gap > MIN_CHUNK_SIZE_FOR_PARALLELIZATION / 2 * sub_chunks || sub_chunks == 1 {
+                if gap > 32 * sub_chunks && sub_chunks > 1 {
                     cfg_chunks_mut!(lo, sub_chunk_size)
                         .zip(cfg_chunks_mut!(hi, sub_chunk_size))
                         .enumerate()
@@ -273,12 +274,15 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
             let sub_chunk_size = gap / sub_chunks;
 
             let roots = if gap < xi.len() / 2 {
-                if gap > MIN_CHUNK_SIZE_FOR_PARALLELIZATION {
-                    cfg_iter_mut!(compacted_roots[..gap])
-                        .enumerate()
-                        .for_each(|(i, root)| {
-                            *root = roots_cache[num_chunks * i];
-                        });
+                if gap > 32 * max_threads {
+                    let chunk_size = (gap - 1) / max_threads + 1;
+                    cfg_chunks_mut!(compacted_roots[..gap], chunk_size)
+                        .zip(cfg_chunks!(roots_cache[..gap * num_chunks], chunk_size * num_chunks))
+                        .for_each(|(compact, cache)|
+                            for (a, b) in compact.iter_mut().zip(cache.iter().step_by(num_chunks)) {
+                                *a = *b;
+                            }
+                        );
                 } else {
                     for i in 0..gap {
                         compacted_roots[i] = roots_cache[num_chunks * i];
@@ -300,12 +304,12 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
                 let (lo, hi) = cxi.split_at_mut(gap);
                 // If the chunk is sufficiently big that parallelism helps,
                 // we parallelize the butterfly operation within the chunk.
-                // We chunk up the chunk such that each thread can operate on elements in sequence.
+                // We chunk up the chunk such that each thread can operate on elements in sequence
                 // to help cache locality.
 
                 // If `sub_chunks == 1` the problem can be fully parallelised across `max_threads`
                 // So each chunk should just utilise the sequential impl
-                if gap > MIN_CHUNK_SIZE_FOR_PARALLELIZATION / 2 * sub_chunks || sub_chunks == 1 {
+                if gap > 32 * sub_chunks && sub_chunks > 1 {
                     cfg_chunks_mut!(lo, sub_chunk_size)
                         .zip(cfg_chunks_mut!(hi, sub_chunk_size))
                         .enumerate()
