@@ -8,6 +8,9 @@
 
 ### Improvements
 
+### Bug fixes
+- [\#252](https://github.com/arkworks-rs/algebra/pull/252) (ark-ff) Fix prime field sampling when `REPR_SHIFT_BITS` is 64.
+
 
 ## v0.2.0
 
