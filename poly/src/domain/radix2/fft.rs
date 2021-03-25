@@ -179,7 +179,9 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
                 // we parallelize the butterfly operation within the chunk.
                 // We chunk up the chunk such that each thread can operate on elements in sequence.
 
-                if gap > MIN_CHUNK_SIZE_FOR_PARALLELIZATION / 2 * sub_chunks {
+                // If `sub_chunks == 1` the problem can be fully parallelised across `max_threads`
+                // So each chunk should just utilise the sequential impl
+                if gap > MIN_CHUNK_SIZE_FOR_PARALLELIZATION / 2 * sub_chunks || sub_chunks == 1 {
                     cfg_chunks_mut!(lo, sub_chunk_size)
                         .zip(cfg_chunks_mut!(hi, sub_chunk_size))
                         .enumerate()
@@ -192,8 +194,6 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
                                     butterfly_fn((chunk_id * sub_chunk_size + idx, d))
                                 });
                         });
-                } else if gap > MIN_CHUNK_SIZE_FOR_PARALLELIZATION / 2 {
-                    cfg_iter_mut!(lo).zip(hi).enumerate().for_each(butterfly_fn);
                 } else {
                     lo.iter_mut().zip(hi).enumerate().for_each(butterfly_fn);
                 }
@@ -303,7 +303,9 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
                 // We chunk up the chunk such that each thread can operate on elements in sequence.
                 // to help cache locality.
 
-                if gap > MIN_CHUNK_SIZE_FOR_PARALLELIZATION / 2 * sub_chunks {
+                // If `sub_chunks == 1` the problem can be fully parallelised across `max_threads`
+                // So each chunk should just utilise the sequential impl
+                if gap > MIN_CHUNK_SIZE_FOR_PARALLELIZATION / 2 * sub_chunks || sub_chunks == 1 {
                     cfg_chunks_mut!(lo, sub_chunk_size)
                         .zip(cfg_chunks_mut!(hi, sub_chunk_size))
                         .enumerate()
@@ -316,8 +318,6 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
                                     butterfly_fn((chunk_id * sub_chunk_size + idx, d))
                                 });
                         });
-                } else if gap > MIN_CHUNK_SIZE_FOR_PARALLELIZATION / 2 {
-                    cfg_iter_mut!(lo).zip(hi).enumerate().for_each(butterfly_fn);
                 } else {
                     lo.iter_mut().zip(hi).enumerate().for_each(butterfly_fn);
                 }
