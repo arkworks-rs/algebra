@@ -204,6 +204,7 @@ macro_rules! impl_prime_field_standard_sample {
                     );
 
                     // Mask away the unused bits at the beginning.
+                    assert!(P::REPR_SHAVE_BITS <= 64);
                     let mask = if P::REPR_SHAVE_BITS == 64 {
                         0
                     } else {
