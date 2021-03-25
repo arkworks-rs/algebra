@@ -420,7 +420,7 @@ impl<P: Parameters> ProjectiveCurve for GroupProjective<P> {
     ///
     /// For `N = v.len()`, this costs 1 inversion + 6N field multiplications + N field squarings.
     ///
-    /// In comparison, just batch inversion requires 3N field multiplications + 1 inversion.
+    /// (Where batch inversion comprises 3N field multiplications + 1 inversion of these operations)
     #[inline]
     fn batch_normalization(v: &mut [Self]) {
         let mut z_s = v.iter().map(|g| g.z).collect::<Vec<_>>();

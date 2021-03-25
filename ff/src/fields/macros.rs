@@ -90,7 +90,7 @@ macro_rules! impl_Fp {
     ($Fp:ident, $FpParameters:ident, $BigInteger:ident, $BigIntegerType:ty, $limbs:expr, $field_size:expr) => {
         pub trait $FpParameters: FpParameters<BigInt = $BigIntegerType> {}
 
-        /// Represents an element of the  prime field F_p, where `p == P::MODULUS`.
+        /// Represents an element of the prime field F_p, where `p == P::MODULUS`.
         /// This type can represent elements in any field of size at most
         #[doc = $field_size]
         /// bits.
@@ -430,7 +430,6 @@ macro_rules! impl_Fp {
                     None
                 }
             }
-
 
             /// The Frobenius map has no effect in a prime field.
             #[inline]
