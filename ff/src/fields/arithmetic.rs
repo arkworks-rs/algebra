@@ -202,17 +202,14 @@ macro_rules! impl_prime_field_standard_sample {
                         rng.sample(ark_std::rand::distributions::Standard),
                         PhantomData,
                     );
-                    
+
                     // Mask away the unused bits at the beginning.
                     let mask = if P::REPR_SHAVE_BITS == 64 {
                         0
                     } else {
                         core::u64::MAX >> P::REPR_SHAVE_BITS
                     };
-                    tmp.0
-                        .as_mut()
-                        .last_mut()
-                        .map(|val| *val &= mask);                    
+                    tmp.0.as_mut().last_mut().map(|val| *val &= mask);
 
                     if tmp.is_valid() {
                         return tmp;
