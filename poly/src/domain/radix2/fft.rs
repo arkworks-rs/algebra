@@ -179,7 +179,7 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
                 // we parallelize the butterfly operation within the chunk.
                 // We chunk up the chunk such that each thread can operate on elements in sequence.
 
-                if gap > MIN_CHUNK_SIZE_FOR_PARALLELIZATION / 2 {
+                if gap > MIN_CHUNK_SIZE_FOR_PARALLELIZATION / 2 * sub_chunks {
                     cfg_chunks_mut!(lo, sub_chunk_size)
                         .zip(cfg_chunks_mut!(hi, sub_chunk_size))
                         .enumerate()
@@ -192,6 +192,8 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
                                     butterfly_fn((chunk_id * sub_chunk_size + idx, d))
                                 });
                         });
+                } else if gap > MIN_CHUNK_SIZE_FOR_PARALLELIZATION / 2 {
+                    cfg_iter_mut!(lo).zip(hi).enumerate().for_each(butterfly_fn);
                 } else {
                     lo.iter_mut().zip(hi).enumerate().for_each(butterfly_fn);
                 }
@@ -270,8 +272,6 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
             // the number of sub chunks
             let sub_chunk_size = gap / sub_chunks;
 
-            let mut cache_index_multiplier = num_chunks;
-
             let roots = if gap < xi.len() / 2 {
                 if gap > MIN_CHUNK_SIZE_FOR_PARALLELIZATION {
                     cfg_iter_mut!(compacted_roots[..gap])
@@ -284,14 +284,13 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
                         compacted_roots[i] = roots_cache[num_chunks * i];
                     }
                 }
-                cache_index_multiplier = 1;
                 &compacted_roots[..]
             } else {
                 &roots_cache[..]
             };
 
             let butterfly_fn = |(idx, (lo, hi)): (usize, (&mut T, &mut T))| {
-                *hi *= roots[cache_index_multiplier * idx];
+                *hi *= roots[idx];
                 let neg = *lo - *hi;
                 *lo += *hi;
                 *hi = neg;
@@ -304,7 +303,7 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
                 // We chunk up the chunk such that each thread can operate on elements in sequence.
                 // to help cache locality.
 
-                if gap > MIN_CHUNK_SIZE_FOR_PARALLELIZATION / 2 {
+                if gap > MIN_CHUNK_SIZE_FOR_PARALLELIZATION / 2 * sub_chunks {
                     cfg_chunks_mut!(lo, sub_chunk_size)
                         .zip(cfg_chunks_mut!(hi, sub_chunk_size))
                         .enumerate()
@@ -317,6 +316,8 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
                                     butterfly_fn((chunk_id * sub_chunk_size + idx, d))
                                 });
                         });
+                } else if gap > MIN_CHUNK_SIZE_FOR_PARALLELIZATION / 2 {
+                    cfg_iter_mut!(lo).zip(hi).enumerate().for_each(butterfly_fn);
                 } else {
                     lo.iter_mut().zip(hi).enumerate().for_each(butterfly_fn);
                 }
