@@ -253,30 +253,6 @@ macro_rules! bigint_impl {
                 }
                 res
             }
-
-            #[inline]
-            fn find_wnaf(&self) -> Vec<i64> {
-                let mut res = vec![];
-
-                let mut e = self.clone();
-                while !e.is_zero() {
-                    let z: i64;
-                    if e.is_odd() {
-                        z = 2 - (e.0[0] % 4) as i64;
-                        if z >= 0 {
-                            e.sub_noborrow(&Self::from(z as u64));
-                        } else {
-                            e.add_nocarry(&Self::from((-z) as u64));
-                        }
-                    } else {
-                        z = 0;
-                    }
-                    res.push(z);
-                    e.div2();
-                }
-
-                res
-            }
         }
 
         impl CanonicalSerialize for $name {
