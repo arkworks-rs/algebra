@@ -8,6 +8,9 @@
 
 ### Improvements
 
+### Bug fixes
+- [\#252](https://github.com/arkworks-rs/algebra/pull/252) (ark-ff) Fix prime field sampling when `REPR_SHIFT_BITS` is 64.
+
 
 ## v0.2.0
 
@@ -111,6 +114,5 @@ The main features of this release are:
 - [\#184](https://github.com/arkworks-rs/algebra/pull/184) Compile with `panic='abort'` in release mode, for safety of the library across FFI boundaries.
 - [\#192](https://github.com/arkworks-rs/algebra/pull/192) Fix a bug in the assembly backend for finite field arithmetic.
 - [\#217](https://github.com/arkworks-rs/algebra/pull/217) (ark-ec) Fix the definition of `PairingFriendlyCycle` introduced in #190.
-- [\#252](https://github.com/arkworks-rs/algebra/pull/252) (ark-ff) Fix prime field sampling when `REPR_SHIFT_BITS` is 64.
 
 ## v0.1.0 (Initial release of arkworks/algebra)
