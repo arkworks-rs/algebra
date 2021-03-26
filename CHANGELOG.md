@@ -1,5 +1,19 @@
 ## Pending
 
+### Breaking changes
+
+### Features
+
+- [\#230](https://github.com/arkworks-rs/algebra/pull/230) (ark-ec) Add `wnaf_mul` implementation for `ProjectiveCurve`.
+
+### Improvements
+
+### Bug fixes
+- [\#252](https://github.com/arkworks-rs/algebra/pull/252) (ark-ff) Fix prime field sampling when `REPR_SHIFT_BITS` is 64.
+
+
+## v0.2.0
+
 The main features of this release are:
 
 - Adding the ability to define fields with integer parameters
