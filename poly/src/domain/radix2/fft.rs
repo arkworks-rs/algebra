@@ -4,7 +4,7 @@
 use crate::domain::utils::compute_powers_serial;
 use crate::domain::{radix2::*, DomainCoeff};
 use ark_ff::FftField;
-use ark_std::{cfg_chunks_mut, cfg_iter_mut, vec::Vec};
+use ark_std::{cfg_chunks_mut, vec::Vec};
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
 
@@ -182,7 +182,7 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
 
                 // If `sub_chunks == 1` the problem can be fully parallelised across `max_threads`
                 // So each chunk should just utilise the sequential impl
-                if gap > 32 * sub_chunks && sub_chunks > 1 {
+                if gap > MIN_PROBLEM_SIZE * sub_chunks && sub_chunks > 1 {
                     cfg_chunks_mut!(lo, sub_chunk_size)
                         .zip(cfg_chunks_mut!(hi, sub_chunk_size))
                         .enumerate()
@@ -206,7 +206,10 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
 
             #[cfg(feature = "parallel")]
             {
-                for i in 1..core::cmp::min(roots.len() / 2, 1 << LOG_ROOTS_OF_UNITY_PARALLEL_SIZE) {
+                // We use parallelisation only when the problem size of each thread is large enough
+                let min_size_log_2 = LOG_MIN_PROBLEM_SIZE as u32 * ark_std::log2(max_threads);
+
+                for i in 1..core::cmp::min(roots.len() / 2, 1 << min_size_log_2) {
                     roots[i] = roots[i * 2];
                 }
 
@@ -216,7 +219,7 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
                 // So we divy up b and c into chunks and write them in parallel. We procede
                 // recursively, where c becomes the new writeable b.
 
-                for i in LOG_ROOTS_OF_UNITY_PARALLEL_SIZE..=ark_std::log2(roots.len() / 4) {
+                for i in min_size_log_2..=ark_std::log2(roots.len() / 4) {
                     let j = 1 << i;
 
                     // We set this to be the ceil of the problem size divided by the number of threads
@@ -274,15 +277,18 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
             let sub_chunk_size = gap / sub_chunks;
 
             let roots = if gap < xi.len() / 2 {
-                if gap > 32 * max_threads {
+                if gap > MIN_PROBLEM_SIZE * max_threads {
                     let chunk_size = (gap - 1) / max_threads + 1;
                     cfg_chunks_mut!(compacted_roots[..gap], chunk_size)
-                        .zip(cfg_chunks!(roots_cache[..gap * num_chunks], chunk_size * num_chunks))
-                        .for_each(|(compact, cache)|
+                        .zip(cfg_chunks!(
+                            roots_cache[..gap * num_chunks],
+                            chunk_size * num_chunks
+                        ))
+                        .for_each(|(compact, cache)| {
                             for (a, b) in compact.iter_mut().zip(cache.iter().step_by(num_chunks)) {
                                 *a = *b;
                             }
-                        );
+                        });
                 } else {
                     for i in 0..gap {
                         compacted_roots[i] = roots_cache[num_chunks * i];
@@ -309,7 +315,7 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
 
                 // If `sub_chunks == 1` the problem can be fully parallelised across `max_threads`
                 // So each chunk should just utilise the sequential impl
-                if gap > 32 * sub_chunks && sub_chunks > 1 {
+                if gap > MIN_PROBLEM_SIZE * sub_chunks && sub_chunks > 1 {
                     cfg_chunks_mut!(lo, sub_chunk_size)
                         .zip(cfg_chunks_mut!(hi, sub_chunk_size))
                         .enumerate()
@@ -332,12 +338,8 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
     }
 }
 
-// This value controls that when doing a butterfly on a chunk of size c,
-// do you parallelize operations on the chunk.
-// If c > MIN_CHUNK_SIZE_FOR_PARALLELIZATION,
-// then parallelize, else be sequential.
-// This value was chosen empirically.
-const MIN_CHUNK_SIZE_FOR_PARALLELIZATION: usize = 2048;
+const LOG_MIN_PROBLEM_SIZE: usize = 8;
+const MIN_PROBLEM_SIZE: usize = 1 << LOG_MIN_PROBLEM_SIZE;
 
 // minimum size at which to parallelize.
 #[cfg(feature = "parallel")]
