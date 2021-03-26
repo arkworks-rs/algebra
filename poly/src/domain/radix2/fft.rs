@@ -192,18 +192,13 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
                 if gap > MIN_PROBLEM_SIZE * sub_chunks && sub_chunks > 1 {
                     cfg_chunks_mut!(lo, sub_chunk_size)
                         .zip(cfg_chunks_mut!(hi, sub_chunk_size))
-                        .enumerate()
-                        .for_each(|(chunk_id, (lo_chunk, hi_chunk))| {
+                        .zip(ark_std::cfg_chunks!(roots, sub_chunk_size))
+                        .for_each(|((lo_chunk, hi_chunk), roots_chunk)| {
                             lo_chunk
                                 .iter_mut()
                                 .zip(hi_chunk)
                                 .enumerate()
-                                .for_each(|(idx, d)| {
-                                    Self::butterfly_fn_io(
-                                        &roots[..],
-                                        (chunk_id * sub_chunk_size + idx, d),
-                                    )
-                                });
+                                .for_each(|x| Self::butterfly_fn_io(&roots_chunk[..], x));
                         });
                 } else {
                     lo.iter_mut()
@@ -326,18 +321,13 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
                 if gap > MIN_PROBLEM_SIZE * sub_chunks && sub_chunks > 1 {
                     cfg_chunks_mut!(lo, sub_chunk_size)
                         .zip(cfg_chunks_mut!(hi, sub_chunk_size))
-                        .enumerate()
-                        .for_each(|(chunk_id, (lo_chunk, hi_chunk))| {
+                        .zip(ark_std::cfg_chunks!(roots, sub_chunk_size))
+                        .for_each(|((lo_chunk, hi_chunk), roots_chunk)| {
                             lo_chunk
                                 .iter_mut()
                                 .zip(hi_chunk)
                                 .enumerate()
-                                .for_each(|(idx, d)| {
-                                    Self::butterfly_fn_oi(
-                                        &roots[..],
-                                        (chunk_id * sub_chunk_size + idx, d),
-                                    )
-                                });
+                                .for_each(|x| Self::butterfly_fn_io(&roots_chunk[..], x));
                         });
                 } else {
                     lo.iter_mut()
