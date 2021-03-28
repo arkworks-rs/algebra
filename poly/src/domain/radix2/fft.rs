@@ -156,50 +156,23 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
     fn io_helper<T: DomainCoeff<F>>(&self, xi: &mut [T], root: F) {
         // In the sequential case, we will keep on making the roots cache-aligned,
         // according to the access pattern that the FFT uses.
-        // It is left as a TODO to implement this for the parallel case
         let mut roots = self.roots_of_unity(root);
-
-        #[cfg(feature = "parallel")]
-        let max_threads = rayon::current_num_threads();
-
-        #[cfg(not(feature = "parallel"))]
-        let max_threads = 1;
 
         let mut gap = xi.len() / 2;
         while gap > 0 {
             // each butterfly cluster uses 2*gap positions
             let chunk_size = 2 * gap;
-            let num_chunks = xi.len() / chunk_size;
-
-            // Since we define the number of sub chunks per chunk as the ceil of the threads
-            // partitioned amongst the chunks, as follows
-            let sub_chunks = (max_threads - 1) / num_chunks + 1;
-
-            // the size of each sub chunk that results in that number of sub chunks
-            // is the floor of the gap, which is the chunk problem size, divided by
-            // the number of sub chunks
-            let sub_chunk_size = gap / sub_chunks;
 
             cfg_chunks_mut!(xi, chunk_size).for_each(|cxi| {
                 let (lo, hi) = cxi.split_at_mut(gap);
                 // If the chunk is sufficiently big that parallelism helps,
                 // we parallelize the butterfly operation within the chunk.
-                // We chunk up the chunk such that each thread can operate on elements in sequence
-                // to help cache locality.
 
-                // If `sub_chunks == 1` the problem can be fully parallelised across `max_threads`
-                // So each chunk should just utilise the sequential impl
-                if gap > MIN_PROBLEM_SIZE * sub_chunks && sub_chunks > 1 {
-                    cfg_chunks_mut!(lo, sub_chunk_size)
-                        .zip(cfg_chunks_mut!(hi, sub_chunk_size))
-                        .zip(ark_std::cfg_chunks!(roots, sub_chunk_size))
-                        .for_each(|((lo_chunk, hi_chunk), roots_chunk)| {
-                            lo_chunk
-                                .iter_mut()
-                                .zip(hi_chunk)
-                                .enumerate()
-                                .for_each(|x| Self::butterfly_fn_io(&roots_chunk[..], x));
-                        });
+                if gap > MIN_PROBLEM_SIZE {
+                    cfg_iter_mut!(lo)
+                        .zip(cfg_iter_mut!(hi))
+                        .enumerate()
+                        .for_each(|x| Self::butterfly_fn_oi(&roots[..], x));
                 } else {
                     lo.iter_mut()
                         .zip(hi)
@@ -214,8 +187,7 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
 
             #[cfg(feature = "parallel")]
             {
-                // We use parallelisation only when the problem size of each thread is large enough
-                let min_size_log_2 = LOG_MIN_PROBLEM_SIZE as u32 + ark_std::log2(max_threads);
+                let min_size_log_2 = LOG_MIN_PROBLEM_SIZE as u32;
 
                 for i in 1..core::cmp::min(roots.len() / 2, 1 << min_size_log_2) {
                     roots[i] = roots[i * 2];
@@ -230,18 +202,11 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
                 for i in min_size_log_2..=ark_std::log2(roots.len() / 4) {
                     let j = 1 << i;
 
-                    // We set this to be the ceil of the problem size divided by the number of threads
-                    let chunk_size = (j - 1) / max_threads + 1;
-
                     let (roots_lo, roots_hi) = roots.split_at_mut(2 * j);
 
-                    cfg_chunks_mut!(roots_lo[j..2 * j], chunk_size)
-                        .zip(cfg_chunks_mut!(roots_hi[..2 * j], chunk_size * 2))
-                        .for_each(|(chunk, chunk_2)| {
-                            for i in 0..chunk.len() {
-                                chunk[i] = chunk_2[2 * i];
-                            }
-                        });
+                    cfg_iter_mut!(roots_lo[j..2 * j])
+                        .zip(cfg_iter!(roots_hi[..2 * j]).step_by(2))
+                        .for_each(|(a, b)| *a = *b);
                 }
                 roots.resize(roots.len() / 2, F::default());
             }
@@ -263,42 +228,17 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
         let roots_cache = self.roots_of_unity(root);
         let mut compacted_roots = vec![F::default(); roots_cache.len() / 2];
 
-        #[cfg(feature = "parallel")]
-        let max_threads = rayon::current_num_threads();
-
-        #[cfg(not(feature = "parallel"))]
-        let max_threads = 1;
-
         let mut gap = 1;
         while gap < xi.len() {
             // each butterfly cluster uses 2*gap positions
             let chunk_size = 2 * gap;
             let num_chunks = xi.len() / chunk_size;
 
-            // Since we define the number of sub chunks per chunk as the ceil of the threads
-            // partitioned amongst the chunks, as follows
-            let sub_chunks = (max_threads - 1) / num_chunks + 1;
-
-            // the size of each sub chunk that results in that number of sub chunks
-            // is the floor of the gap, which is the chunk problem size, divided by
-            // the number of sub chunks
-            let sub_chunk_size = gap / sub_chunks;
-
             let roots = if gap < xi.len() / 2 {
-                if gap > MIN_PROBLEM_SIZE * 2 && max_threads > 1 {
-                    let threads_to_use = core::cmp::min(max_threads, gap / MIN_PROBLEM_SIZE);
-                    let chunk_size = (gap - 1) / threads_to_use + 1;
-
-                    cfg_chunks_mut!(compacted_roots[..gap], chunk_size)
-                        .zip(cfg_chunks!(
-                            roots_cache[..gap * num_chunks],
-                            chunk_size * num_chunks
-                        ))
-                        .for_each(|(compact, cache)| {
-                            for (a, b) in compact.iter_mut().zip(cache.iter().step_by(num_chunks)) {
-                                *a = *b;
-                            }
-                        });
+                if gap > MIN_PROBLEM_SIZE {
+                    cfg_iter_mut!(compacted_roots[..gap])
+                        .zip(cfg_iter!(roots_cache[..gap * num_chunks]).step_by(num_chunks))
+                        .for_each(|(a, b)| *a = *b);
                 } else {
                     for i in 0..gap {
                         compacted_roots[i] = roots_cache[num_chunks * i];
@@ -313,22 +253,12 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
                 let (lo, hi) = cxi.split_at_mut(gap);
                 // If the chunk is sufficiently big that parallelism helps,
                 // we parallelize the butterfly operation within the chunk.
-                // We chunk up the chunk such that each thread can operate on elements in sequence
-                // to help cache locality.
 
-                // If `sub_chunks == 1` the problem can be fully parallelised across `max_threads`
-                // So each chunk should just utilise the sequential impl
-                if gap > MIN_PROBLEM_SIZE * sub_chunks && sub_chunks > 1 {
-                    cfg_chunks_mut!(lo, sub_chunk_size)
-                        .zip(cfg_chunks_mut!(hi, sub_chunk_size))
-                        .zip(ark_std::cfg_chunks!(roots, sub_chunk_size))
-                        .for_each(|((lo_chunk, hi_chunk), roots_chunk)| {
-                            lo_chunk
-                                .iter_mut()
-                                .zip(hi_chunk)
-                                .enumerate()
-                                .for_each(|x| Self::butterfly_fn_io(&roots_chunk[..], x));
-                        });
+                if gap > MIN_PROBLEM_SIZE {
+                    cfg_iter_mut!(lo)
+                        .zip(cfg_iter_mut!(hi))
+                        .enumerate()
+                        .for_each(|x| Self::butterfly_fn_oi(&roots[..], x));
                 } else {
                     lo.iter_mut()
                         .zip(hi)
@@ -342,7 +272,7 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
     }
 }
 
-const LOG_MIN_PROBLEM_SIZE: usize = 8;
+const LOG_MIN_PROBLEM_SIZE: usize = 10;
 const MIN_PROBLEM_SIZE: usize = 1 << LOG_MIN_PROBLEM_SIZE;
 
 // minimum size at which to parallelize.
