@@ -157,6 +157,8 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
         // In the sequential case, we will keep on making the roots cache-aligned,
         // according to the access pattern that the FFT uses.
         let mut roots = self.roots_of_unity(root);
+        let mut step = 1;
+        let mut first = true;
 
         #[cfg(feature = "parallel")]
         let max_threads = rayon::current_num_threads();
@@ -168,7 +170,20 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
         while gap > 0 {
             // each butterfly cluster uses 2*gap positions
             let chunk_size = 2 * gap;
-            let num_chunks= xi.len() / chunk_size;
+            let num_chunks = xi.len() / chunk_size;
+
+            // Only compact if the roots lookup is done a significant amount of times
+            // Which also implies a large lookup stride.
+            if num_chunks >= MIN_COMPACTION_CHUNKS {
+                if !first {
+                    roots = cfg_into_iter!(roots).step_by(step * 2).collect()
+                }
+                step = 1;
+                roots.shrink_to_fit();
+            } else {
+                step = num_chunks;
+            }
+            first = false;
 
             cfg_chunks_mut!(xi, chunk_size).for_each(|cxi| {
                 let (lo, hi) = cxi.split_at_mut(gap);
@@ -178,53 +193,15 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
                 if gap > MIN_PROBLEM_SIZE && num_chunks < max_threads {
                     cfg_iter_mut!(lo)
                         .zip(cfg_iter_mut!(hi))
-                        .zip(cfg_iter!(roots))
+                        .zip(cfg_iter!(roots).step_by(step))
                         .for_each(Self::butterfly_fn_io);
                 } else {
                     lo.iter_mut()
                         .zip(hi)
-                        .zip(roots.iter())
+                        .zip(roots.iter().step_by(step))
                         .for_each(Self::butterfly_fn_io);
                 }
             });
-            // In this case, we are aiming to make every root that is accessed one after another,
-            // appear one after another in the list of roots.
-            // (The even powers relative to the current iterations generator)
-
-            #[cfg(feature = "parallel")]
-            {
-                let min_size_log_2 = LOG_MIN_PROBLEM_SIZE as u32;
-
-                for i in 1..core::cmp::min(roots.len() / 2, 1 << min_size_log_2) {
-                    roots[i] = roots[i * 2];
-                }
-
-                // if a sufficient amount of roots have been compacted, we have the following situation:
-                // [a:compacted][b:writable][---- c:to be written ----][...rest of slice ...]
-                //  <----j----> <----j----> <---------   2j   -------->
-                // So we divy up b and c into chunks and write them in parallel. We procede
-                // recursively, where c becomes the new writeable b.
-
-                for i in min_size_log_2..=ark_std::log2(roots.len() / 4) {
-                    let j = 1 << i;
-
-                    let (roots_lo, roots_hi) = roots.split_at_mut(2 * j);
-
-                    cfg_iter_mut!(roots_lo[j..2 * j])
-                        .zip(cfg_iter!(roots_hi[..2 * j]).step_by(2))
-                        .for_each(|(a, b)| *a = *b);
-                }
-                roots.resize(roots.len() / 2, F::default());
-            }
-
-            #[cfg(not(feature = "parallel"))]
-            {
-                for i in 1..roots.len() / 2 {
-                    roots[i] = roots[i * 2];
-                }
-
-                roots.resize(roots.len() / 2, F::default());
-            }
 
             gap /= 2;
         }
@@ -232,7 +209,11 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
 
     fn oi_helper<T: DomainCoeff<F>>(&self, xi: &mut [T], root: F) {
         let roots_cache = self.roots_of_unity(root);
-        let mut compacted_roots = vec![F::default(); roots_cache.len() / 2];
+        let compaction_size = core::cmp::min(
+            roots_cache.len() / 2,
+            roots_cache.len() / MIN_COMPACTION_CHUNKS,
+        );
+        let mut compacted_roots = vec![F::default(); compaction_size];
 
         #[cfg(feature = "parallel")]
         let max_threads = rayon::current_num_threads();
@@ -246,7 +227,9 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
             let chunk_size = 2 * gap;
             let num_chunks = xi.len() / chunk_size;
 
-            let (roots, step) = if gap < xi.len() / 2 {
+            // Only compact if the roots lookup is done a significant amount of times
+            // Which also implies a large lookup stride.
+            let (roots, step) = if num_chunks >= MIN_COMPACTION_CHUNKS && gap < xi.len() / 2 {
                 if gap > MIN_PROBLEM_SIZE {
                     cfg_iter_mut!(compacted_roots[..gap])
                         .zip(cfg_iter!(roots_cache[..gap * num_chunks]).step_by(num_chunks))
@@ -284,6 +267,7 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
     }
 }
 
+const MIN_COMPACTION_CHUNKS: usize = 1 << 7;
 const LOG_MIN_PROBLEM_SIZE: usize = 10;
 const MIN_PROBLEM_SIZE: usize = 1 << LOG_MIN_PROBLEM_SIZE;
 
