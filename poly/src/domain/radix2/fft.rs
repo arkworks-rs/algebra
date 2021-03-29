@@ -230,15 +230,9 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
             // Only compact if the roots lookup is done a significant amount of times
             // Which also implies a large lookup stride.
             let (roots, step) = if num_chunks >= MIN_COMPACTION_CHUNKS && gap < xi.len() / 2 {
-                if gap > MIN_PROBLEM_SIZE {
-                    cfg_iter_mut!(compacted_roots[..gap])
-                        .zip(cfg_iter!(roots_cache[..gap * num_chunks]).step_by(num_chunks))
-                        .for_each(|(a, b)| *a = *b);
-                } else {
-                    for i in 0..gap {
-                        compacted_roots[i] = roots_cache[num_chunks * i];
-                    }
-                }
+                cfg_iter_mut!(compacted_roots[..gap])
+                    .zip(cfg_iter!(roots_cache[..gap * num_chunks]).step_by(num_chunks))
+                    .for_each(|(a, b)| *a = *b);
                 (&compacted_roots[..gap], 1)
             } else {
                 (&roots_cache[..], num_chunks)
