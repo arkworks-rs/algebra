@@ -154,15 +154,12 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
     }
 
     fn io_helper<T: DomainCoeff<F>>(&self, xi: &mut [T], root: F) {
-        // In the sequential case, we will keep on making the roots cache-aligned,
-        // according to the access pattern that the FFT uses.
         let mut roots = self.roots_of_unity(root);
         let mut step = 1;
         let mut first = true;
 
         #[cfg(feature = "parallel")]
         let max_threads = rayon::current_num_threads();
-
         #[cfg(not(feature = "parallel"))]
         let max_threads = 1;
 
@@ -172,7 +169,8 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
             let chunk_size = 2 * gap;
             let num_chunks = xi.len() / chunk_size;
 
-            // Only compact if the roots lookup is done a significant amount of times
+            // Only compact roots to achieve cache locality/compactness if
+            // the roots lookup is done a significant amount of times
             // Which also implies a large lookup stride.
             if num_chunks >= MIN_COMPACTION_CHUNKS {
                 if !first {
@@ -217,7 +215,6 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
 
         #[cfg(feature = "parallel")]
         let max_threads = rayon::current_num_threads();
-
         #[cfg(not(feature = "parallel"))]
         let max_threads = 1;
 
@@ -227,7 +224,8 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
             let chunk_size = 2 * gap;
             let num_chunks = xi.len() / chunk_size;
 
-            // Only compact if the roots lookup is done a significant amount of times
+            // Only compact roots to achieve cache locality/compactness if
+            // the roots lookup is done a significant amount of times
             // Which also implies a large lookup stride.
             let (roots, step) = if num_chunks >= MIN_COMPACTION_CHUNKS && gap < xi.len() / 2 {
                 cfg_iter_mut!(compacted_roots[..gap])
