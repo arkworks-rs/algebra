@@ -138,16 +138,16 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
     }
 
     #[inline(always)]
-    fn butterfly_fn_io<T: DomainCoeff<F>>(roots: &[F], (idx, (lo, hi)): (usize, (&mut T, &mut T))) {
+    fn butterfly_fn_io<T: DomainCoeff<F>>(((lo, hi), root): ((&mut T, &mut T), &F)) {
         let neg = *lo - *hi;
         *lo += *hi;
         *hi = neg;
-        *hi *= roots[idx];
+        *hi *= *root;
     }
 
     #[inline(always)]
-    fn butterfly_fn_oi<T: DomainCoeff<F>>(roots: &[F], (idx, (lo, hi)): (usize, (&mut T, &mut T))) {
-        *hi *= roots[idx];
+    fn butterfly_fn_oi<T: DomainCoeff<F>>(((lo, hi), root): ((&mut T, &mut T), &F)) {
+        *hi *= *root;
         let neg = *lo - *hi;
         *lo += *hi;
         *hi = neg;
@@ -158,29 +158,35 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
         // according to the access pattern that the FFT uses.
         let mut roots = self.roots_of_unity(root);
 
+        #[cfg(feature = "parallel")]
+        let max_threads = rayon::current_num_threads();
+
+        #[cfg(not(feature = "parallel"))]
+        let max_threads = 1;
+
         let mut gap = xi.len() / 2;
         while gap > 0 {
             // each butterfly cluster uses 2*gap positions
             let chunk_size = 2 * gap;
+            let num_chunks= xi.len() / chunk_size;
 
             cfg_chunks_mut!(xi, chunk_size).for_each(|cxi| {
                 let (lo, hi) = cxi.split_at_mut(gap);
                 // If the chunk is sufficiently big that parallelism helps,
                 // we parallelize the butterfly operation within the chunk.
 
-                if gap > MIN_PROBLEM_SIZE {
+                if gap > MIN_PROBLEM_SIZE && num_chunks < max_threads {
                     cfg_iter_mut!(lo)
                         .zip(cfg_iter_mut!(hi))
-                        .enumerate()
-                        .for_each(|x| Self::butterfly_fn_oi(&roots[..], x));
+                        .zip(cfg_iter!(roots))
+                        .for_each(Self::butterfly_fn_io);
                 } else {
                     lo.iter_mut()
                         .zip(hi)
-                        .enumerate()
-                        .for_each(|x| Self::butterfly_fn_io(&roots[..], x));
+                        .zip(roots.iter())
+                        .for_each(Self::butterfly_fn_io);
                 }
             });
-
             // In this case, we are aiming to make every root that is accessed one after another,
             // appear one after another in the list of roots.
             // (The even powers relative to the current iterations generator)
@@ -228,13 +234,19 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
         let roots_cache = self.roots_of_unity(root);
         let mut compacted_roots = vec![F::default(); roots_cache.len() / 2];
 
+        #[cfg(feature = "parallel")]
+        let max_threads = rayon::current_num_threads();
+
+        #[cfg(not(feature = "parallel"))]
+        let max_threads = 1;
+
         let mut gap = 1;
         while gap < xi.len() {
             // each butterfly cluster uses 2*gap positions
             let chunk_size = 2 * gap;
             let num_chunks = xi.len() / chunk_size;
 
-            let roots = if gap < xi.len() / 2 {
+            let (roots, step) = if gap < xi.len() / 2 {
                 if gap > MIN_PROBLEM_SIZE {
                     cfg_iter_mut!(compacted_roots[..gap])
                         .zip(cfg_iter!(roots_cache[..gap * num_chunks]).step_by(num_chunks))
@@ -244,9 +256,9 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
                         compacted_roots[i] = roots_cache[num_chunks * i];
                     }
                 }
-                &compacted_roots[..]
+                (&compacted_roots[..gap], 1)
             } else {
-                &roots_cache[..]
+                (&roots_cache[..], num_chunks)
             };
 
             cfg_chunks_mut!(xi, chunk_size).for_each(|cxi| {
@@ -254,16 +266,16 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
                 // If the chunk is sufficiently big that parallelism helps,
                 // we parallelize the butterfly operation within the chunk.
 
-                if gap > MIN_PROBLEM_SIZE {
+                if gap > MIN_PROBLEM_SIZE && num_chunks < max_threads {
                     cfg_iter_mut!(lo)
                         .zip(cfg_iter_mut!(hi))
-                        .enumerate()
-                        .for_each(|x| Self::butterfly_fn_oi(&roots[..], x));
+                        .zip(cfg_iter!(roots).step_by(step))
+                        .for_each(Self::butterfly_fn_oi);
                 } else {
                     lo.iter_mut()
                         .zip(hi)
-                        .enumerate()
-                        .for_each(|x| Self::butterfly_fn_oi(&roots[..], x));
+                        .zip(roots.iter().step_by(step))
+                        .for_each(Self::butterfly_fn_oi);
                 }
             });
 
