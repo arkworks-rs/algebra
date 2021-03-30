@@ -229,11 +229,16 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
 
     fn oi_helper<T: DomainCoeff<F>>(&self, xi: &mut [T], root: F) {
         let roots_cache = self.roots_of_unity(root);
-        let compaction_size = core::cmp::min(
+
+        // The `cmp::min` is only necessary for the case where
+        // `MIN_NUM_CHUNKS_FOR_COMPACTION = 1`. Else, notice that we compact
+        // the roots cache by a stride of at least `MIN_NUM_CHUNKS_FOR_COMPACTION`.
+
+        let compaction_max_size = core::cmp::min(
             roots_cache.len() / 2,
             roots_cache.len() / MIN_NUM_CHUNKS_FOR_COMPACTION,
         );
-        let mut compacted_roots = vec![F::default(); compaction_size];
+        let mut compacted_roots = vec![F::default(); compaction_max_size];
 
         #[cfg(feature = "parallel")]
         let max_threads = rayon::current_num_threads();
@@ -277,7 +282,7 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
 
 /// The minimum number of chunks at which root compaction
 /// is beneficial.
-const MIN_NUM_CHUNKS_FOR_COMPACTION: usize = 1 << 30;
+const MIN_NUM_CHUNKS_FOR_COMPACTION: usize = 1 << 7;
 const MIN_GAP_SIZE_FOR_PARALLELISATION: usize = 1 << 10;
 
 // minimum size at which to parallelize.
