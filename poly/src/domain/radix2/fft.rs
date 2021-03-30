@@ -153,6 +153,35 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
         *hi = neg;
     }
 
+    fn apply_butterfly<T: DomainCoeff<F>, G: Fn(((&mut T, &mut T), &F)) + Copy + Sync + Send>(
+        g: G,
+        xi: &mut [T],
+        roots: &[F],
+        step: usize,
+        chunk_size: usize,
+        num_chunks: usize,
+        max_threads: usize,
+        gap: usize,
+    ) {
+        cfg_chunks_mut!(xi, chunk_size).for_each(|cxi| {
+            let (lo, hi) = cxi.split_at_mut(gap);
+            // If the chunk is sufficiently big that parallelism helps,
+            // we parallelize the butterfly operation within the chunk.
+
+            if gap > MIN_GAP_SIZE_FOR_PARALLELISATION && num_chunks < max_threads {
+                cfg_iter_mut!(lo)
+                    .zip(hi)
+                    .zip(cfg_iter!(roots).step_by(step))
+                    .for_each(g);
+            } else {
+                lo.iter_mut()
+                    .zip(hi)
+                    .zip(roots.iter().step_by(step))
+                    .for_each(g);
+            }
+        });
+    }
+
     fn io_helper<T: DomainCoeff<F>>(&self, xi: &mut [T], root: F) {
         let mut roots = self.roots_of_unity(root);
         let mut step = 1;
@@ -172,7 +201,7 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
             // Only compact roots to achieve cache locality/compactness if
             // the roots lookup is done a significant amount of times
             // Which also implies a large lookup stride.
-            if num_chunks >= MIN_COMPACTION_CHUNKS {
+            if num_chunks >= MIN_NUM_CHUNKS_FOR_COMPACTION {
                 if !first {
                     roots = cfg_into_iter!(roots).step_by(step * 2).collect()
                 }
@@ -183,23 +212,16 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
             }
             first = false;
 
-            cfg_chunks_mut!(xi, chunk_size).for_each(|cxi| {
-                let (lo, hi) = cxi.split_at_mut(gap);
-                // If the chunk is sufficiently big that parallelism helps,
-                // we parallelize the butterfly operation within the chunk.
-
-                if gap > MIN_PROBLEM_SIZE && num_chunks < max_threads {
-                    cfg_iter_mut!(lo)
-                        .zip(cfg_iter_mut!(hi))
-                        .zip(cfg_iter!(roots).step_by(step))
-                        .for_each(Self::butterfly_fn_io);
-                } else {
-                    lo.iter_mut()
-                        .zip(hi)
-                        .zip(roots.iter().step_by(step))
-                        .for_each(Self::butterfly_fn_io);
-                }
-            });
+            Self::apply_butterfly(
+                Self::butterfly_fn_io,
+                xi,
+                &roots[..],
+                step,
+                chunk_size,
+                num_chunks,
+                max_threads,
+                gap,
+            );
 
             gap /= 2;
         }
@@ -209,7 +231,7 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
         let roots_cache = self.roots_of_unity(root);
         let compaction_size = core::cmp::min(
             roots_cache.len() / 2,
-            roots_cache.len() / MIN_COMPACTION_CHUNKS,
+            roots_cache.len() / MIN_NUM_CHUNKS_FOR_COMPACTION,
         );
         let mut compacted_roots = vec![F::default(); compaction_size];
 
@@ -227,41 +249,36 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
             // Only compact roots to achieve cache locality/compactness if
             // the roots lookup is done a significant amount of times
             // Which also implies a large lookup stride.
-            let (roots, step) = if num_chunks >= MIN_COMPACTION_CHUNKS && gap < xi.len() / 2 {
+            let (roots, step) = if num_chunks >= MIN_NUM_CHUNKS_FOR_COMPACTION && gap < xi.len() / 2
+            {
                 cfg_iter_mut!(compacted_roots[..gap])
-                    .zip(cfg_iter!(roots_cache[..gap * num_chunks]).step_by(num_chunks))
+                    .zip(cfg_iter!(roots_cache[..(gap * num_chunks)]).step_by(num_chunks))
                     .for_each(|(a, b)| *a = *b);
                 (&compacted_roots[..gap], 1)
             } else {
                 (&roots_cache[..], num_chunks)
             };
 
-            cfg_chunks_mut!(xi, chunk_size).for_each(|cxi| {
-                let (lo, hi) = cxi.split_at_mut(gap);
-                // If the chunk is sufficiently big that parallelism helps,
-                // we parallelize the butterfly operation within the chunk.
-
-                if gap > MIN_PROBLEM_SIZE && num_chunks < max_threads {
-                    cfg_iter_mut!(lo)
-                        .zip(cfg_iter_mut!(hi))
-                        .zip(cfg_iter!(roots).step_by(step))
-                        .for_each(Self::butterfly_fn_oi);
-                } else {
-                    lo.iter_mut()
-                        .zip(hi)
-                        .zip(roots.iter().step_by(step))
-                        .for_each(Self::butterfly_fn_oi);
-                }
-            });
+            Self::apply_butterfly(
+                Self::butterfly_fn_oi,
+                xi,
+                roots,
+                step,
+                chunk_size,
+                num_chunks,
+                max_threads,
+                gap,
+            );
 
             gap *= 2;
         }
     }
 }
 
-const MIN_COMPACTION_CHUNKS: usize = 1 << 7;
-const LOG_MIN_PROBLEM_SIZE: usize = 10;
-const MIN_PROBLEM_SIZE: usize = 1 << LOG_MIN_PROBLEM_SIZE;
+/// The minimum number of chunks at which root compaction
+/// is beneficial.
+const MIN_NUM_CHUNKS_FOR_COMPACTION: usize = 1 << 30;
+const MIN_GAP_SIZE_FOR_PARALLELISATION: usize = 1 << 10;
 
 // minimum size at which to parallelize.
 #[cfg(feature = "parallel")]
