@@ -88,6 +88,8 @@ macro_rules! impl_field_square_in_place {
         #[allow(unused_braces, clippy::absurd_extreme_comparisons)]
         fn square_in_place(&mut self) -> &mut Self {
             if $limbs == 1 {
+                // We default to multiplying with `self` using the `Mul` impl
+                // for the 1 limb case
                 *self = *self * *self;
                 return self;
             }
@@ -200,11 +202,15 @@ macro_rules! impl_prime_field_standard_sample {
                         rng.sample(ark_std::rand::distributions::Standard),
                         PhantomData,
                     );
+
                     // Mask away the unused bits at the beginning.
-                    tmp.0
-                        .as_mut()
-                        .last_mut()
-                        .map(|val| *val &= core::u64::MAX >> P::REPR_SHAVE_BITS);
+                    assert!(P::REPR_SHAVE_BITS <= 64);
+                    let mask = if P::REPR_SHAVE_BITS == 64 {
+                        0
+                    } else {
+                        core::u64::MAX >> P::REPR_SHAVE_BITS
+                    };
+                    tmp.0.as_mut().last_mut().map(|val| *val &= mask);
 
                     if tmp.is_valid() {
                         return tmp;
