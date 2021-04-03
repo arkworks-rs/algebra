@@ -407,11 +407,9 @@ impl<'a, 'b, F: Field> Mul<F> for &'b DensePolynomial<F> {
             DensePolynomial::zero()
         } else {
             let mut result = self.clone();
-            result
-                .iter_mut()
-                .for_each(|e| {
-                    *e *= elem;
-                });
+            result.iter_mut().for_each(|e| {
+                *e *= elem;
+            });
             result
         }
     }
@@ -582,6 +580,19 @@ mod tests {
                 total += &(point.pow(&[i as u64]) * coeff);
             }
             assert_eq!(p.evaluate(&point), total);
+        }
+    }
+
+    #[test]
+    fn mul_random_element() {
+        let rng = &mut test_rng();
+        for degree in 0..70 {
+            let a = DensePolynomial::<Fr>::rand(degree, rng);
+            let e = Fr::rand(rng);
+            assert_eq!(
+                &a * e,
+                a.naive_mul(&DensePolynomial::from_coefficients_slice(&[e]))
+            )
         }
     }
 
