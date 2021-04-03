@@ -398,6 +398,25 @@ impl<'a, 'b, F: Field> Div<&'a DensePolynomial<F>> for &'b DensePolynomial<F> {
     }
 }
 
+impl<'a, 'b, F: Field> Mul<F> for &'b DensePolynomial<F> {
+    type Output = DensePolynomial<F>;
+
+    #[inline]
+    fn mul(self, elem: F) -> DensePolynomial<F> {
+        if self.is_zero() || elem.is_zero() {
+            DensePolynomial::zero()
+        } else {
+            let mut result = self.clone();
+            result
+                .iter_mut()
+                .for_each(|e| {
+                    *e *= elem;
+                });
+            result
+        }
+    }
+}
+
 /// Performs O(nlogn) multiplication of polynomials if F is smooth.
 impl<'a, 'b, F: FftField> Mul<&'a DensePolynomial<F>> for &'b DensePolynomial<F> {
     type Output = DensePolynomial<F>;
