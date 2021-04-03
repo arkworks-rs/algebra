@@ -407,7 +407,7 @@ impl<'a, 'b, F: Field> Mul<F> for &'b DensePolynomial<F> {
             DensePolynomial::zero()
         } else {
             let mut result = self.clone();
-            result.iter_mut().for_each(|e| {
+            cfg_iter_mut!(result).for_each(|e| {
                 *e *= elem;
             });
             result
