@@ -1,5 +1,7 @@
 ## Pending
 
+- [\#258](https://github.com/arkworks-rs/algebra/pull/258) (ark-poly) Add `Mul<F>` implementation for `DensePolynomial`
+
 ### Breaking changes
 
 ### Features
