@@ -2,14 +2,14 @@
 use crate::univariate::DenseOrSparsePolynomial;
 use crate::{univariate::SparsePolynomial, Polynomial, UVPolynomial};
 use crate::{EvaluationDomain, Evaluations, GeneralEvaluationDomain};
+use ark_ff::{FftField, Field, Zero};
 use ark_serialize::*;
+use ark_std::rand::Rng;
 use ark_std::{
     fmt,
     ops::{Add, AddAssign, Deref, DerefMut, Div, Mul, Neg, Sub, SubAssign},
     vec::Vec,
 };
-use ark_ff::{FftField, Field, Zero};
-use ark_std::rand::Rng;
 
 #[cfg(feature = "parallel")]
 use ark_std::cmp::max;
