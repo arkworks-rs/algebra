@@ -516,6 +516,17 @@ mod tests {
     use ark_std::{rand::Rng, test_rng};
     use ark_test_curves::bls12_381::Fr;
 
+    fn rand_sparse_poly<R: Rng>(degree: usize, rng: &mut R) -> SparsePolynomial<Fr> {
+        // Initialize coeffs so that its guaranteed to have a x^{degree} term
+        let mut coeffs = vec![(degree, Fr::rand(rng))];
+        for i in 0..degree {
+            if !rng.gen_bool(0.8) {
+                coeffs.push((i, Fr::rand(rng)));
+            }
+        }
+        SparsePolynomial::from_coefficients_vec(coeffs)
+    }
+
     #[test]
     fn double_polynomials_random() {
         let rng = &mut test_rng();
@@ -537,6 +548,19 @@ mod tests {
                 let res1 = &p1 + &p2;
                 let res2 = &p2 + &p1;
                 assert_eq!(res1, res2);
+            }
+        }
+    }
+
+    #[test]
+    fn add_sparse_polynomials() {
+        let rng = &mut test_rng();
+        for a_degree in 0..70 {
+            for b_degree in 0..70 {
+                let p1 = DensePolynomial::<Fr>::rand(a_degree, rng);
+                let p2 = rand_sparse_poly(b_degree, rng);
+                let res = &p1 + &p2;
+                assert_eq!(res, &p1 + &Into::<DensePolynomial<Fr>>::into(p2));
             }
         }
     }
@@ -573,17 +597,6 @@ mod tests {
                 assert_eq!(res1, -res2);
             }
         }
-    }
-
-    fn rand_sparse_poly<R: Rng>(degree: usize, rng: &mut R) -> SparsePolynomial<Fr> {
-        // Initialize coeffs so that its guaranteed to have a x^{degree} term
-        let mut coeffs = vec![(degree, Fr::rand(rng))];
-        for i in 0..degree {
-            if !rng.gen_bool(0.8) {
-                coeffs.push((i, Fr::rand(rng)));
-            }
-        }
-        SparsePolynomial::from_coefficients_vec(coeffs)
     }
 
     #[test]

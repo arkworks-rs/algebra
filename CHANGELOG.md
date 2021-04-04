@@ -6,6 +6,7 @@
 
 - [\#230](https://github.com/arkworks-rs/algebra/pull/230) (ark-ec) Add `wnaf_mul` implementation for `ProjectiveCurve`.
 - [\#258](https://github.com/arkworks-rs/algebra/pull/258) (ark-poly) Add `Mul<F>` implementation for `DensePolynomial`
+- [\#259](https://github.com/arkworks-rs/algebra/pull/259) (ark-poly) Add `Mul<F>` implementation for `SparsePolynomial` and `Add<SparsePolynomial<F>>/Sub<SparsePolynomial<F>>` for `DensePolynomial` 
 
 ### Improvements
 
