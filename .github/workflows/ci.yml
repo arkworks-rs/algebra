@@ -215,4 +215,12 @@ jobs:
             command: test
             args: "--workspace \
                    --all-features \
+                   -p ark-bls12-377 \
+                   -p ark-bls12-381 \
+                   -p ark-bn254 \
+                   -p ark-pallas \
+                   -p ark-bw6-761 \
+                   -p ark-mnt4-298 \
+                   -p ark-mnt6-298 \
+                   -p ark-ed-on-bls12-377 \
                    --exclude curve-benches"
