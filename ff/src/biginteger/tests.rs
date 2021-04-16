@@ -90,6 +90,12 @@ fn test_biginteger384() {
 }
 
 #[test]
+fn test_biginteger448() {
+    use crate::biginteger::BigInteger448 as B;
+    test_biginteger(B::new([0u64; 7]));
+}
+
+#[test]
 fn test_biginteger768() {
     use crate::biginteger::BigInteger768 as B;
     test_biginteger(B::new([0u64; 12]));
