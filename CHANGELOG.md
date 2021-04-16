@@ -6,7 +6,8 @@
 
 - [\#230](https://github.com/arkworks-rs/algebra/pull/230) (ark-ec) Add `wnaf_mul` implementation for `ProjectiveCurve`.
 - [\#245](https://github.com/arkworks-rs/algebra/pull/245) (ark-poly) Speedup the sequential and parallel radix-2 FFT and IFFT significantly by making the method in which it accesses roots more cache-friendly.
-- [\#258](https://github.com/arkworks-rs/algebra/pull/258) (ark-poly) Add `Mul<F>` implementation for `DensePolynomial`
+- [\#258](https://github.com/arkworks-rs/algebra/pull/258) (ark-poly) Add `Mul<F>` implementation for `DensePolynomial`.
+- [\#261](https://github.com/arkworks-rs/algebra/pull/261) (ark-ff) Add support for 448-bit integers and fields.
 
 ### Improvements
 
@@ -36,12 +37,12 @@ The main features of this release are:
 - [\#37](https://github.com/arkworks-rs/algebra/pull/37) (ark-poly) In the `Polynomial` trait, add `Hash` trait bound to `Point`.
 - [\#38](https://github.com/arkworks-rs/algebra/pull/38) (ark-poly) Add `Add` and `Neg` trait bounds to `Polynomial`.
 - [\#51](https://github.com/arkworks-rs/algebra/pull/51) (ark-ff) Removed `unitary_inverse` from `QuadExtField`. Make this change by
-    replacing `x.unitary_inverse()` with `let mut tmp = x.clone(); tmp.conjugate()`
+    replacing `x.unitary_inverse()` with `let mut tmp = x.clone(); tmp.conjugate()`.
 - [\#53](https://github.com/arkworks-rs/algebra/pull/53) (ark-poly) Add `Zero` trait bound to `Polynomial`.
 - [\#96](https://github.com/arkworks-rs/algebra/pull/96) (ark-ff) Make the `field_new` macro accept values in integer form, without requiring decomposition into limbs, and without requiring encoding in Montgomery form.
 - [\#106](https://github.com/arkworks-rs/algebra/pull/106) (ark-ff, ark-ec) Add `Zeroize` trait bound to `Field, ProjectiveGroup, AffineGroup` traits.
 - [\#108](https://github.com/arkworks-rs/algebra/pull/108) (ark-ff) Add `extension_degree()` method to `Field`.
-- [\#110](https://github.com/arkworks-rs/algebra/pull/110) (ark-ec) Change the trait bound on the scalar for `mul`, from (essentially) `Into<BigInt>` to `AsRef<[u64]>`
+- [\#110](https://github.com/arkworks-rs/algebra/pull/110) (ark-ec) Change the trait bound on the scalar for `mul`, from (essentially) `Into<BigInt>` to `AsRef<[u64]>`.
 - [\#117](https://github.com/arkworks-rs/algebra/pull/117) (ark-poly) Make the univariate `SparsePolynomial` implement `Polynomial`. Make this change
     by replacing `sparse_poly.evaluate(pt)` to `sparse_poly.evaluate(&pt)`.
 - [\#129](https://github.com/arkworks-rs/algebra/pull/129) (ark-ff) Move `ark_ff::{UniformRand, test_rng}` to `ark_std::{UniformRand, test_rng}`.
@@ -60,23 +61,23 @@ The main features of this release are:
 - [\#166](https://github.com/arkworks-rs/algebra/pull/166) (ark-ff) Change `BigInt::{from_bytes, to_bits}` to `from_bytes_le, from_bytes_be, to_bits_le, to_bits_be`.
 
 ### Features
-- [\#20](https://github.com/arkworks-rs/algebra/pull/20) (ark-poly) Add structs/traits for multivariate polynomials
+- [\#20](https://github.com/arkworks-rs/algebra/pull/20) (ark-poly) Add structs/traits for multivariate polynomials.
 - [\#96](https://github.com/arkworks-rs/algebra/pull/96) (ark-ff) Make the `field_new` macro accept values in integer form, without requiring decomposition into limbs, and without requiring encoding in Montgomery form.
 - [\#106](https://github.com/arkworks-rs/algebra/pull/106) (ark-ff, ark-ec) Add `Zeroize` trait bound to `Field, ProjectiveGroup, AffineGroup` traits.
-- [\#117](https://github.com/arkworks-rs/algebra/pull/117) (ark-poly) Add operations to `SparsePolynomial`, so it implements `Polynomial`
+- [\#117](https://github.com/arkworks-rs/algebra/pull/117) (ark-poly) Add operations to `SparsePolynomial`, so it implements `Polynomial`.
 - [\#140](https://github.com/arkworks-rs/algebra/pull/140) (ark-poly) Add support for multilinear extensions in dense and sparse evaluation form.
 - [\#164](https://github.com/arkworks-rs/algebra/pull/164) (ark-ff) Add methods `from_{be, le}_bytes_mod_order` to the `PrimeField` trait.
 - [\#197](https://github.com/arkworks-rs/algebra/pull/197) (ark-test-curves) Add a BN384 curve with low two-arity for mixed-radix testing.
 
 ### Improvements
-- [\#22](https://github.com/arkworks-rs/algebra/pull/22) (ark-ec) Speedup fixed-base MSMs
-- [\#28](https://github.com/arkworks-rs/algebra/pull/28) (ark-poly) Add `domain()` method on the `evaluations` struct
-- [\#31](https://github.com/arkworks-rs/algebra/pull/31) (ark-ec) Speedup point doubling on twisted edwards curves
-- [\#35](https://github.com/arkworks-rs/algebra/pull/35) (ark-ff) Implement `ToConstraintField` for `bool`
-- [\#48](https://github.com/arkworks-rs/algebra/pull/48) (ark-ff) Speedup `sqrt` on `QuadExtField`
-- [\#94](https://github.com/arkworks-rs/algebra/pull/94) (ark-ff) Implement `ToBytes` and `FromBytes` for `u128`
-- [\#99](https://github.com/arkworks-rs/algebra/pull/99) (ark-poly) Speedup `evaluate_all_lagrange_coefficients`
-- [\#100](https://github.com/arkworks-rs/algebra/pull/100) (ark-ff) Implement `batch_inverse_and_mul`
+- [\#22](https://github.com/arkworks-rs/algebra/pull/22) (ark-ec) Speedup fixed-base MSMs.
+- [\#28](https://github.com/arkworks-rs/algebra/pull/28) (ark-poly) Add `domain()` method on the `evaluations` struct.
+- [\#31](https://github.com/arkworks-rs/algebra/pull/31) (ark-ec) Speedup point doubling on twisted edwards curves.
+- [\#35](https://github.com/arkworks-rs/algebra/pull/35) (ark-ff) Implement `ToConstraintField` for `bool`.
+- [\#48](https://github.com/arkworks-rs/algebra/pull/48) (ark-ff) Speedup `sqrt` on `QuadExtField`.
+- [\#94](https://github.com/arkworks-rs/algebra/pull/94) (ark-ff) Implement `ToBytes` and `FromBytes` for `u128`.
+- [\#99](https://github.com/arkworks-rs/algebra/pull/99) (ark-poly) Speedup `evaluate_all_lagrange_coefficients`.
+- [\#100](https://github.com/arkworks-rs/algebra/pull/100) (ark-ff) Implement `batch_inverse_and_mul`.
 - [\#101](https://github.com/arkworks-rs/algebra/pull/101) (ark-ff) Add `element(i: usize)` on the `Domain` trait.
 - [\#107](https://github.com/arkworks-rs/algebra/pull/107) (ark-serialize) Add an impl of `CanonicalSerialize/Deserialize` for `BTreeSet`.
 - [\#114](https://github.com/arkworks-rs/algebra/pull/114) (ark-poly) Significantly speedup and reduce memory usage of `DensePolynomial.evaluate`.
@@ -85,10 +86,10 @@ The main features of this release are:
 - [\#115](https://github.com/arkworks-rs/algebra/pull/115) (ark-ff) Add parallel implementation of `batch_inversion`.
 - [\#122](https://github.com/arkworks-rs/algebra/pull/122) (ark-poly) Add infrastructure for benchmarking `FFT`s.
 - [\#125](https://github.com/arkworks-rs/algebra/pull/125) (ark-poly) Add parallelization to applying coset shifts within `coset_fft`.
-- [\#126](https://github.com/arkworks-rs/algebra/pull/126) (ark-ec) Use `ark_ff::batch_inversion` for point normalization
-- [\#131](https://github.com/arkworks-rs/algebra/pull/131), #137 (ark-ff) Speedup `sqrt` on fields when a square root exists. (And slows it down when doesn't exist)
-- [\#141](https://github.com/arkworks-rs/algebra/pull/141) (ark-ff) Add `Fp64`
-- [\#144](https://github.com/arkworks-rs/algebra/pull/144) (ark-poly) Add serialization for polynomials and evaluations
+- [\#126](https://github.com/arkworks-rs/algebra/pull/126) (ark-ec) Use `ark_ff::batch_inversion` for point normalization.
+- [\#131](https://github.com/arkworks-rs/algebra/pull/131), #137 (ark-ff) Speedup `sqrt` on fields when a square root exists. (And slows it down when doesn't exist.)
+- [\#141](https://github.com/arkworks-rs/algebra/pull/141) (ark-ff) Add `Fp64`.
+- [\#144](https://github.com/arkworks-rs/algebra/pull/144) (ark-poly) Add serialization for polynomials and evaluations.
 - [\#149](https://github.com/arkworks-rs/algebra/pull/149) (ark-serialize) Add an impl of `CanonicalSerialize/Deserialize` for `String`.
 - [\#153](https://github.com/arkworks-rs/algebra/pull/153) (ark-serialize) Add an impl of `CanonicalSerialize/Deserialize` for `Rc<T>`.
 - [\#157](https://github.com/arkworks-rs/algebra/pull/157) (ark-ec) Speed up `variable_base_msm` by not relying on unnecessary normalization.
@@ -96,13 +97,13 @@ The main features of this release are:
 - [\#166](https://github.com/arkworks-rs/algebra/pull/166) (ark-ff) Add a `to_bytes_be()` and `to_bytes_le` methods to `BigInt`.
 - [\#169](https://github.com/arkworks-rs/algebra/pull/169) (ark-poly) Improve radix-2 FFTs by moving to a faster algorithm by Riad S. Wahby.
 - [\#171](https://github.com/arkworks-rs/algebra/pull/171), #173, #176 (ark-poly) Apply significant further speedups to the new radix-2 FFT.
-- [\#188](https://github.com/arkworks-rs/algebra/pull/188) (ark-ec) Make Short Weierstrass random sampling result in an element with unknown discrete log
+- [\#188](https://github.com/arkworks-rs/algebra/pull/188) (ark-ec) Make Short Weierstrass random sampling result in an element with unknown discrete log.
 - [\#190](https://github.com/arkworks-rs/algebra/pull/190) (ark-ec) Add curve cycle trait and extended pairing cycle trait for all types of ec cycles.
-- [\#201](https://github.com/arkworks-rs/algebra/pull/201) (ark-ec, ark-ff, ark-test-curves, ark-test-templates) Remove the dependency on `rand_xorshift`
+- [\#201](https://github.com/arkworks-rs/algebra/pull/201) (ark-ec, ark-ff, ark-test-curves, ark-test-templates) Remove the dependency on `rand_xorshift`.
 - [\#205](https://github.com/arkworks-rs/algebra/pull/205) (ark-ec, ark-ff) Unroll loops and conditionally use intrinsics in `biginteger` arithmetic, and reduce copies in `ff` and `ec` arithmetic.
-- [\#207](https://github.com/arkworks-rs/algebra/pull/207) (ark-ff) Improve performance of extension fields when the non-residue is negative. (Improves fq2, fq12, and g2 speed on bls12 and bn curves)
+- [\#207](https://github.com/arkworks-rs/algebra/pull/207) (ark-ff) Improve performance of extension fields when the non-residue is negative. (Improves fq2, fq12, and g2 speed on bls12 and bn curves.)
 - [\#211](https://github.com/arkworks-rs/algebra/pull/211) (ark-ec) Improve performance of BLS12 final exponentiation.
-- [\#214](https://github.com/arkworks-rs/algebra/pull/214) (ark-poly) Utilise a more efficient way of evaluating a polynomial at a single point
+- [\#214](https://github.com/arkworks-rs/algebra/pull/214) (ark-poly) Utilise a more efficient way of evaluating a polynomial at a single point.
 - [\#242](https://github.com/arkworks-rs/algebra/pull/242), [\#244][https://github.com/arkworks-rs/algebra/pull/244] (ark-poly) Speedup the sequential radix-2 FFT significantly by making the method in which it accesses roots more cache-friendly.
 
 ### Bug fixes
