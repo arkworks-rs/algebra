@@ -530,11 +530,11 @@ macro_rules! impl_Fp {
             }
         }
 
-        impl_prime_field_from_int!($Fp, u128, $FpParameters, $limbs);
-        impl_prime_field_from_int!($Fp, u64, $FpParameters, $limbs);
-        impl_prime_field_from_int!($Fp, u32, $FpParameters, $limbs);
-        impl_prime_field_from_int!($Fp, u16, $FpParameters, $limbs);
-        impl_prime_field_from_int!($Fp, u8, $FpParameters, $limbs);
+        impl_prime_field_from_int!($Fp, 128, $FpParameters, $limbs);
+        impl_prime_field_from_int!($Fp, 64, $FpParameters, $limbs);
+        impl_prime_field_from_int!($Fp, 32, $FpParameters, $limbs);
+        impl_prime_field_from_int!($Fp, 16, $FpParameters, $limbs);
+        impl_prime_field_from_int!($Fp, 8, $FpParameters, $limbs);
         impl_prime_field_from_int!($Fp, bool, $FpParameters, $limbs);
 
         impl_prime_field_standard_sample!($Fp, $FpParameters);
