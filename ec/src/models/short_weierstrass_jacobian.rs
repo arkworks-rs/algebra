@@ -106,7 +106,12 @@ impl<P: Parameters> GroupAffine<P> {
     #[allow(dead_code)]
     pub fn get_point_from_x(x: P::BaseField, greatest: bool) -> Option<Self> {
         // Compute x^3 + ax + b
-        let x3b = P::add_b(&((x.square() * &x) + &P::mul_by_a(&x)));
+        // Rust does not optimise away addition with zero
+        let x3b = if P::COEFF_A.is_zero() {
+            P::add_b(&(x.square() * &x))
+        } else {
+            P::add_b(&((x.square() * &x) + &P::mul_by_a(&x)))
+        };
 
         x3b.sqrt().map(|y| {
             let negy = -y;
@@ -122,7 +127,12 @@ impl<P: Parameters> GroupAffine<P> {
         } else {
             // Check that the point is on the curve
             let y2 = self.y.square();
-            let x3b = P::add_b(&((self.x.square() * &self.x) + &P::mul_by_a(&self.x)));
+            // Rust does not optimise away addition with zero
+            let x3b = if P::COEFF_A.is_zero() {
+                P::add_b(&(self.x.square() * &self.x))
+            } else {
+                P::add_b(&((self.x.square() * &self.x) + &P::mul_by_a(&self.x)))
+            };
             y2 == x3b
         }
     }
