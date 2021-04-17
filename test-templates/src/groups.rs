@@ -8,6 +8,7 @@ pub fn group_test<G: Group>(a: G, mut b: G) {
     let fr_zero = G::ScalarField::zero();
     let fr_one = G::ScalarField::one();
     let fr_two = fr_one + &fr_one;
+
     assert_eq!(zero, zero);
     assert_eq!(zero.is_zero(), true);
     assert_eq!(a.mul(&fr_one), a);

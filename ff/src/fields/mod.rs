@@ -188,6 +188,24 @@ pub trait Field:
         }
         res
     }
+
+    /// Exponentiates a field element `f` by a number represented with `u64` limbs,
+    /// using a precomputed table containing as many powers of 2 of `f`
+    /// as the 1 + the floor of log2 of the exponent `exp`, starting from the 1st power.
+    /// That is, `powers_of_2` should equal `&[p, p^2, p^4, ..., p^(2^n)]`
+    /// when `exp` has at most `n` bits.
+    ///
+    /// This returns `None` when a power is missing from the table.
+    #[inline]
+    fn pow_with_table<S: AsRef<[u64]>>(powers_of_2: &[Self], exp: S) -> Option<Self> {
+        let mut res = Self::one();
+        for (pow, bit) in BitIteratorLE::without_trailing_zeros(exp).enumerate() {
+            if bit {
+                res *= powers_of_2.get(pow)?;
+            }
+        }
+        Some(res)
+    }
 }
 
 /// A trait that defines parameters for a field that can be used for FFTs.
@@ -527,13 +545,15 @@ impl<Slice: AsRef<[u64]>> Iterator for BitIteratorLE<Slice> {
 }
 
 use crate::biginteger::{
-    BigInteger256, BigInteger320, BigInteger384, BigInteger64, BigInteger768, BigInteger832,
+    BigInteger256, BigInteger320, BigInteger384, BigInteger448, BigInteger64, BigInteger768,
+    BigInteger832,
 };
 
 impl_field_bigint_conv!(Fp64, BigInteger64, Fp64Parameters);
 impl_field_bigint_conv!(Fp256, BigInteger256, Fp256Parameters);
 impl_field_bigint_conv!(Fp320, BigInteger320, Fp320Parameters);
 impl_field_bigint_conv!(Fp384, BigInteger384, Fp384Parameters);
+impl_field_bigint_conv!(Fp448, BigInteger448, Fp448Parameters);
 impl_field_bigint_conv!(Fp768, BigInteger768, Fp768Parameters);
 impl_field_bigint_conv!(Fp832, BigInteger832, Fp832Parameters);
 

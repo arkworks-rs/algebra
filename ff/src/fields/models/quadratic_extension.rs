@@ -269,10 +269,10 @@ impl<P: QuadExtParameters> Field for QuadExtField<P> {
             self.c0 = v0 + &self.c1;
             // result.c0 *= (c0 - c1)
             // result.c0 = (c0 - c1) * (c0 + c1) = c0^2 - c1^2
-            self.c0 *= v0;
+            self.c0 *= &v0;
             // result.c1 *= c0
             // result.c1 = (2 * c1) * c0
-            self.c1 *= c0_copy;
+            self.c1 *= &c0_copy;
 
             self
         } else {
