@@ -29,7 +29,7 @@ pub trait SWModelParameters: ModelParameters {
 
     #[inline(always)]
     fn add_b(elem: &Self::BaseField) -> Self::BaseField {
-        if Self::COEFF_B != Self::BaseField::zero() {
+        if !Self::COEFF_B.is_zero() {
             let mut copy = *elem;
             copy += &Self::COEFF_B;
             return copy;
