@@ -128,7 +128,7 @@ impl<P: Parameters> GroupAffine<P> {
             // Check that the point is on the curve
             let y2 = self.y.square();
             // Rust does not optimise away addition with zero
-            let x3b = if P::COEFF_A == P::BaseField::zero() {
+            let x3b = if P::COEFF_A.is_zero() {
                 P::add_b(&(self.x.square() * &self.x))
             } else {
                 P::add_b(&((self.x.square() * &self.x) + &P::mul_by_a(&self.x)))
