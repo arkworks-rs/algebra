@@ -11,7 +11,7 @@ use num_traits::{One, Zero};
 use crate::{
     biginteger::{
         arithmetic as fa, BigInteger as _BigInteger, BigInteger256, BigInteger320, BigInteger384,
-        BigInteger64, BigInteger768, BigInteger832,
+        BigInteger448, BigInteger64, BigInteger768, BigInteger832,
     },
     bytes::{FromBytes, ToBytes},
     fields::{FftField, Field, FpParameters, LegendreSymbol, PrimeField, SquareRootField},
@@ -42,6 +42,14 @@ impl_Fp!(
     BigInteger384,
     6,
     "384"
+);
+impl_Fp!(
+    Fp448,
+    Fp448Parameters,
+    BigInteger448,
+    BigInteger448,
+    7,
+    "448"
 );
 impl_Fp!(
     Fp768,
