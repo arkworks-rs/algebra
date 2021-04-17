@@ -525,10 +525,7 @@ impl<P: Parameters> ProjectiveCurve for GroupProjective<P> {
             self.z = P::BaseField::one();
             return;
         }
-
-        //
-        // Works for all curves.
-
+        
         // Z1Z1 = Z1^2
         let z1z1 = self.z.square();
 
