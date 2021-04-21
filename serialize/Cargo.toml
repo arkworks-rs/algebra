@@ -15,8 +15,14 @@ edition = "2018"
 [dependencies]
 ark-serialize-derive = { version = "^0.2.0", path = "../serialize-derive", optional = true }
 ark-std = { version = "0.2.0", default-features = false }
+digest = { version = "0.9", default-features = false }
+
+[dev-dependencies]
+sha2 = { version = "0.9.3", default-features = false}
+sha3 = { version = "0.9.1", default-features = false}
+blake2 = { version = "0.9.1", default-features = false}
 
 [features]
 default = []
-std = [ "ark-std/std" ]
+std = [ "ark-std/std", ]
 derive = [ "ark-serialize-derive" ]
