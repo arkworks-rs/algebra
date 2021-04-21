@@ -123,7 +123,7 @@ pub trait Field:
 
     /// Returns the characteristic of the field,
     /// in little-endian representation.
-    fn characteristic<'a>() -> &'a [u64] {
+    fn characteristic() -> &'static [u64] {
         Self::BasePrimeField::characteristic()
     }
 
@@ -166,7 +166,8 @@ pub trait Field:
     #[must_use]
     fn inverse(&self) -> Option<Self>;
 
-    // Sets `self` to `self`'s inverse if it exists. Otherwise it is a no-op.
+    // If `self.inverse().is_none()`, this just returns `None`. Otherwise, it sets
+    // `self` to `self.inverse().unwrap()`.
     fn inverse_in_place(&mut self) -> Option<&mut Self>;
 
     /// Exponentiates this element by a power of the base prime modulus via

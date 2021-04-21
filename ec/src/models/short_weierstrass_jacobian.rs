@@ -29,6 +29,8 @@ use ark_std::rand::{
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
 
+/// Affine coordinates for a point on an elliptic curve in short Weierstrass form,
+/// over the base field `P::BaseField`.
 #[derive(Derivative)]
 #[derivative(
     Copy(bound = "P: Parameters"),
@@ -79,6 +81,7 @@ impl<P: Parameters> GroupAffine<P> {
         }
     }
 
+    /// Multiply `self` by the cofactor of the curve, `P::COFACTOR`.
     pub fn scale_by_cofactor(&self) -> GroupProjective<P> {
         let cofactor = BitIteratorBE::new(P::COFACTOR);
         self.mul_bits(cofactor)
@@ -121,6 +124,7 @@ impl<P: Parameters> GroupAffine<P> {
         })
     }
 
+    /// Checks if `self` is a valid point on the curve.
     pub fn is_on_curve(&self) -> bool {
         if self.is_zero() {
             true
@@ -137,6 +141,8 @@ impl<P: Parameters> GroupAffine<P> {
         }
     }
 
+    /// Checks if `self` is in the subgroup having order that equaling that of
+    /// `P::ScalarField`.
     pub fn is_in_correct_subgroup_assuming_on_curve(&self) -> bool {
         self.mul_bits(BitIteratorBE::new(P::ScalarField::characteristic()))
             .is_zero()
@@ -154,11 +160,15 @@ impl<P: Parameters> Zeroize for GroupAffine<P> {
 }
 
 impl<P: Parameters> Zero for GroupAffine<P> {
+    /// Returns the point at infinity. Note that in affine coordinates,
+    /// the point at infinity does not lie on the curve, and this is indicated
+    /// by setting the `infinity` flag to true.
     #[inline]
     fn zero() -> Self {
         Self::new(P::BaseField::zero(), P::BaseField::one(), true)
     }
 
+    /// Checks if `self` is the point at infinity.
     #[inline]
     fn is_zero(&self) -> bool {
         self.infinity
@@ -230,6 +240,8 @@ impl<P: Parameters> AffineCurve for GroupAffine<P> {
 impl<P: Parameters> Neg for GroupAffine<P> {
     type Output = Self;
 
+    /// If `self.is_zero()`, returns `self` (`== Self::zero()`).
+    /// Else, returns `(x, -y)`, where `self = (x, y)`.
     #[inline]
     fn neg(self) -> Self {
         if !self.is_zero() {
@@ -266,6 +278,9 @@ impl<P: Parameters> Default for GroupAffine<P> {
     }
 }
 
+/// Jacobian coordinates for a point on an elliptic curve in short Weierstrass form,
+/// over the base field `P::BaseField`. This struct implements arithmetic
+/// via the Jacobian formulae
 #[derive(Derivative)]
 #[derivative(
     Copy(bound = "P: Parameters"),
@@ -365,9 +380,8 @@ impl<P: Parameters> GroupProjective<P> {
 }
 
 impl<P: Parameters> Zeroize for GroupProjective<P> {
-    // The phantom data does not contain element-specific data
-    // and thus does not need to be zeroized.
     fn zeroize(&mut self) {
+        // `PhantomData` does not contain any data and thus does not need to be zeroized.
         self.x.zeroize();
         self.y.zeroize();
         self.z.zeroize();
@@ -375,8 +389,7 @@ impl<P: Parameters> Zeroize for GroupProjective<P> {
 }
 
 impl<P: Parameters> Zero for GroupProjective<P> {
-    // The point at infinity is always represented by
-    // Z = 0.
+    /// Returns the point at infinity, which always has Z = 0.
     #[inline]
     fn zero() -> Self {
         Self::new(
@@ -386,8 +399,7 @@ impl<P: Parameters> Zero for GroupProjective<P> {
         )
     }
 
-    // The point at infinity is always represented by
-    // Z = 0.
+    /// Checks whether `self.z.is_zero()`.
     #[inline]
     fn is_zero(&self) -> bool {
         self.z.is_zero()
@@ -410,14 +422,17 @@ impl<P: Parameters> ProjectiveCurve for GroupProjective<P> {
         self.is_zero() || self.z.is_one()
     }
 
+    /// Normalizes a slice of projective elements so that
+    /// conversion to affine is cheap.
+    ///
+    /// In more detail, this method converts a curve point in Jacobian coordinates
+    /// (x, y, z) into an equivalent representation (x/z^2, y/z^3, 1).
+    ///
+    /// For `N = v.len()`, this costs 1 inversion + 6N field multiplications + N field squarings.
+    ///
+    /// (Where batch inversion comprises 3N field multiplications + 1 inversion of these operations)
     #[inline]
     fn batch_normalization(v: &mut [Self]) {
-        // A projective curve element (x, y, z) is normalized
-        // to its affine representation, by the conversion
-        // (x, y, z) -> (x / z^2, y / z^3, 1)
-        // Batch normalizing N short-weierstrass curve elements costs:
-        //     1 inversion + 6N field multiplications + N field squarings    (Field ops)
-        // (batch inversion requires 3N multiplications + 1 inversion)
         let mut z_s = v.iter().map(|g| g.z).collect::<Vec<_>>();
         ark_ff::batch_inversion(&mut z_s);
 
@@ -433,6 +448,11 @@ impl<P: Parameters> ProjectiveCurve for GroupProjective<P> {
             });
     }
 
+    /// Sets `self = 2 * self`. Note that Jacobian formulae are incomplete, and
+    /// so doubling cannot be computed as `self + self`. Instead, this implementation
+    /// uses the following specialized doubling formulae:
+    /// * [`P::A` is zero](http://www.hyperelliptic.org/EFD/g1p/auto-shortw-jacobian-0.html#doubling-dbl-2009-l)
+    /// * [`P::A` is not zero](https://www.hyperelliptic.org/EFD/g1p/auto-shortw-jacobian.html#doubling-dbl-2007-bl)
     fn double_in_place(&mut self) -> &mut Self {
         if self.is_zero() {
             return self;
@@ -501,6 +521,9 @@ impl<P: Parameters> ProjectiveCurve for GroupProjective<P> {
         }
     }
 
+    /// When `other.is_normalized()` (i.e., `other.z == 1`), we can use a more efficient
+    /// [formula](http://www.hyperelliptic.org/EFD/g1p/auto-shortw-jacobian-0.html#addition-madd-2007-bl)
+    /// to compute `self + other`.
     fn add_assign_mixed(&mut self, other: &GroupAffine<P>) {
         if other.is_zero() {
             return;
@@ -512,9 +535,6 @@ impl<P: Parameters> ProjectiveCurve for GroupProjective<P> {
             self.z = P::BaseField::one();
             return;
         }
-
-        // http://www.hyperelliptic.org/EFD/g1p/auto-shortw-jacobian-0.html#addition-madd-2007-bl
-        // Works for all curves.
 
         // Z1Z1 = Z1^2
         let z1z1 = self.z.square();
