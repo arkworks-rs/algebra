@@ -115,17 +115,25 @@ impl<'a, H: Digest> ark_std::io::Write for HashMarshaller<'a, H> {
 
 /// The CanonicalSerialize induces a natural way to hash the
 /// corresponding value, of which this is the convenience trait.
-pub trait Hash: CanonicalSerialize {
+pub trait CanonicalSerializeHashExt: CanonicalSerialize {
     fn hash<H: Digest>(&self) -> GenericArray<u8, <H as Digest>::OutputSize> {
         let mut hasher = H::new();
         self.serialize(HashMarshaller(&mut hasher))
             .expect("HashMarshaller::flush should be infaillible!");
         hasher.finalize()
     }
+
+    fn hash_uncompressed<H: Digest>(&self) -> GenericArray<u8, <H as Digest>::OutputSize> {
+        let mut hasher = H::new();
+        self.serialize_uncompressed(HashMarshaller(&mut hasher))
+            .expect("HashMarshaller::flush should be infaillible!");
+        hasher.finalize()
+    }
 }
 
-/// Hash is a (blanket) extension trait of CanonicalSerialize
-impl<T: CanonicalSerialize> Hash for T {}
+/// CanonicalSerializeHashExt is a (blanket) extension trait of
+/// CanonicalSerialize
+impl<T: CanonicalSerialize> CanonicalSerializeHashExt for T {}
 
 /// Deserializer in little endian format allowing flags to be encoded.
 pub trait CanonicalDeserializeWithFlags: Sized {
@@ -940,6 +948,16 @@ mod test {
         let h2 = hash.finalize();
 
         assert_eq!(h1, h2);
+
+        let h3 = data.hash_uncompressed::<H>();
+
+        let mut hash = H::new();
+        serialized = vec![0; data.uncompressed_size()];
+        data.serialize_uncompressed(&mut serialized[..]).unwrap();
+        hash.update(&serialized);
+        let h4 = hash.finalize();
+
+        assert_eq!(h3, h4);
     }
 
     // Serialize T, randomly mutate the data, and deserialize it.
