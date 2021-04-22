@@ -245,9 +245,8 @@ macro_rules! impl_prime_field_from_int {
 
         impl <P: $params> From<i128> for $field<P> {
             fn from(other: i128) -> Self {
-                let positive = other.is_positive();
                 let abs = Self::from(other.unsigned_abs());
-                if positive {
+                if other.is_positive() {
                     abs
                 } else {
                     -abs
@@ -280,9 +279,8 @@ macro_rules! impl_prime_field_from_int {
 
             impl<P: $params> From<[<i $int>]> for $field<P> {
                 fn from(other: [<i $int>]) -> Self {
-                    let positive = other.is_positive();
                     let abs = Self::from(other.unsigned_abs());
-                    if positive {
+                    if other.is_positive() {
                         abs
                     } else {
                         -abs
