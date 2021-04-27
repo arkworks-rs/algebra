@@ -604,7 +604,7 @@ fn serial_batch_inversion_and_mul<F: Field>(v: &mut [F], coeff: &F) {
     tmp = tmp.inverse().unwrap(); // Guaranteed to be nonzero.
 
     // Multiply product by coeff, so all inverses will be scaled by coeff
-    tmp = tmp * coeff;
+    tmp *= coeff;
 
     // Second pass: iterate backwards to compute inverses
     for (f, s) in v.iter_mut()
