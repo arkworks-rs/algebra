@@ -435,9 +435,33 @@ impl<P: QuadExtParameters> From<u128> for QuadExtField<P> {
     }
 }
 
+impl<P: QuadExtParameters> From<i128> for QuadExtField<P> {
+    #[inline]
+    fn from(val: i128) -> Self {
+        let abs = Self::from(val.unsigned_abs());
+        if val.is_positive() {
+            abs
+        } else {
+            -abs
+        }
+    }
+}
+
 impl<P: QuadExtParameters> From<u64> for QuadExtField<P> {
     fn from(other: u64) -> Self {
         Self::new(other.into(), P::BaseField::zero())
+    }
+}
+
+impl<P: QuadExtParameters> From<i64> for QuadExtField<P> {
+    #[inline]
+    fn from(val: i64) -> Self {
+        let abs = Self::from(val.unsigned_abs());
+        if val.is_positive() {
+            abs
+        } else {
+            -abs
+        }
     }
 }
 
@@ -447,15 +471,51 @@ impl<P: QuadExtParameters> From<u32> for QuadExtField<P> {
     }
 }
 
+impl<P: QuadExtParameters> From<i32> for QuadExtField<P> {
+    #[inline]
+    fn from(val: i32) -> Self {
+        let abs = Self::from(val.unsigned_abs());
+        if val.is_positive() {
+            abs
+        } else {
+            -abs
+        }
+    }
+}
+
 impl<P: QuadExtParameters> From<u16> for QuadExtField<P> {
     fn from(other: u16) -> Self {
         Self::new(other.into(), P::BaseField::zero())
     }
 }
 
+impl<P: QuadExtParameters> From<i16> for QuadExtField<P> {
+    #[inline]
+    fn from(val: i16) -> Self {
+        let abs = Self::from(val.unsigned_abs());
+        if val.is_positive() {
+            abs
+        } else {
+            -abs
+        }
+    }
+}
+
 impl<P: QuadExtParameters> From<u8> for QuadExtField<P> {
     fn from(other: u8) -> Self {
         Self::new(other.into(), P::BaseField::zero())
+    }
+}
+
+impl<P: QuadExtParameters> From<i8> for QuadExtField<P> {
+    #[inline]
+    fn from(val: i8) -> Self {
+        let abs = Self::from(val.unsigned_abs());
+        if val.is_positive() {
+            abs
+        } else {
+            -abs
+        }
     }
 }
 

@@ -1,4 +1,4 @@
-use ark_ff::{Field, PrimeField, SquareRootField};
+use ark_ff::{Field, PrimeField, SquareRootField, Zero};
 
 pub mod bls12;
 pub mod bn;
@@ -29,9 +29,12 @@ pub trait SWModelParameters: ModelParameters {
 
     #[inline(always)]
     fn add_b(elem: &Self::BaseField) -> Self::BaseField {
-        let mut copy = *elem;
-        copy += &Self::COEFF_B;
-        copy
+        if !Self::COEFF_B.is_zero() {
+            let mut copy = *elem;
+            copy += &Self::COEFF_B;
+            return copy;
+        }
+        *elem
     }
 }
 

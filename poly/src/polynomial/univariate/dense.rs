@@ -57,13 +57,9 @@ impl<F: Field> DensePolynomial<F> {
     #[inline]
     // Horner's method for polynomial evaluation
     fn horner_evaluate(poly_coeffs: &[F], point: &F) -> F {
-        let mut result = F::zero();
-        let num_coeffs = poly_coeffs.len();
-        for i in (0..num_coeffs).rev() {
-            result *= point;
-            result += poly_coeffs[i];
-        }
-        result
+        poly_coeffs
+            .iter()
+            .rfold(F::zero(), move |result, coeff| result * point + coeff)
     }
 
     #[cfg(not(feature = "parallel"))]
@@ -402,6 +398,23 @@ impl<'a, 'b, F: Field> Div<&'a DensePolynomial<F>> for &'b DensePolynomial<F> {
     }
 }
 
+impl<'a, 'b, F: Field> Mul<F> for &'b DensePolynomial<F> {
+    type Output = DensePolynomial<F>;
+
+    #[inline]
+    fn mul(self, elem: F) -> DensePolynomial<F> {
+        if self.is_zero() || elem.is_zero() {
+            DensePolynomial::zero()
+        } else {
+            let mut result = self.clone();
+            cfg_iter_mut!(result).for_each(|e| {
+                *e *= elem;
+            });
+            result
+        }
+    }
+}
+
 /// Performs O(nlogn) multiplication of polynomials if F is smooth.
 impl<'a, 'b, F: FftField> Mul<&'a DensePolynomial<F>> for &'b DensePolynomial<F> {
     type Output = DensePolynomial<F>;
@@ -561,12 +574,25 @@ mod tests {
         let rng = &mut test_rng();
         for a_degree in 0..70 {
             let p = DensePolynomial::rand(a_degree, rng);
-            let point: Fr = Fr::from(10u64);
+            let point: Fr = Fr::rand(rng);
             let mut total = Fr::zero();
             for (i, coeff) in p.coeffs.iter().enumerate() {
                 total += &(point.pow(&[i as u64]) * coeff);
             }
             assert_eq!(p.evaluate(&point), total);
+        }
+    }
+
+    #[test]
+    fn mul_random_element() {
+        let rng = &mut test_rng();
+        for degree in 0..70 {
+            let a = DensePolynomial::<Fr>::rand(degree, rng);
+            let e = Fr::rand(rng);
+            assert_eq!(
+                &a * e,
+                a.naive_mul(&DensePolynomial::from_coefficients_slice(&[e]))
+            )
         }
     }
 

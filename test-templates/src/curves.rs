@@ -1,4 +1,5 @@
 #![allow(unused)]
+use ark_ec::wnaf::WnafContext;
 use ark_ec::{
     AffineCurve, MontgomeryModelParameters, ProjectiveCurve, SWModelParameters, TEModelParameters,
 };
@@ -102,6 +103,19 @@ fn random_multiplication_test<G: ProjectiveCurve>() {
         let mut tmp1 = a;
         tmp1.add_assign(&b);
         tmp1.mul_assign(s);
+
+        // s ( a + b) using wNAF for several window values in [2,5]
+        for w in 2..=5 {
+            let mut tmp4 = a + &b;
+            let context = WnafContext::new(w);
+            assert_eq!(tmp1, context.mul(tmp4, &s));
+
+            if w > 2 {
+                let bad_context = WnafContext::new(w - 1);
+                let bad_table = bad_context.table(tmp4);
+                assert_eq!(context.mul_with_table(&bad_table, &s), None);
+            }
+        }
 
         // sa + sb
         a.mul_assign(s);

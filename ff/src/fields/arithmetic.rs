@@ -88,6 +88,8 @@ macro_rules! impl_field_square_in_place {
         #[allow(unused_braces, clippy::absurd_extreme_comparisons)]
         fn square_in_place(&mut self) -> &mut Self {
             if $limbs == 1 {
+                // We default to multiplying with `self` using the `Mul` impl
+                // for the 1 limb case
                 *self = *self * *self;
                 return self;
             }
@@ -200,11 +202,15 @@ macro_rules! impl_prime_field_standard_sample {
                         rng.sample(ark_std::rand::distributions::Standard),
                         PhantomData,
                     );
+
                     // Mask away the unused bits at the beginning.
-                    tmp.0
-                        .as_mut()
-                        .last_mut()
-                        .map(|val| *val &= core::u64::MAX >> P::REPR_SHAVE_BITS);
+                    assert!(P::REPR_SHAVE_BITS <= 64);
+                    let mask = if P::REPR_SHAVE_BITS == 64 {
+                        0
+                    } else {
+                        core::u64::MAX >> P::REPR_SHAVE_BITS
+                    };
+                    tmp.0.as_mut().last_mut().map(|val| *val &= mask);
 
                     if tmp.is_valid() {
                         return tmp;
@@ -216,7 +222,7 @@ macro_rules! impl_prime_field_standard_sample {
 }
 
 macro_rules! impl_prime_field_from_int {
-    ($field: ident, u128, $params: ident, $limbs:expr) => {
+    ($field: ident, 128, $params: ident, $limbs:expr) => {
         impl<P: $params> From<u128> for $field<P> {
             fn from(other: u128) -> Self {
                 let mut default_int = P::BigInt::default();
@@ -236,14 +242,49 @@ macro_rules! impl_prime_field_from_int {
                 Self::from_repr(default_int).unwrap()
             }
         }
+
+        impl <P: $params> From<i128> for $field<P> {
+            fn from(other: i128) -> Self {
+                let abs = Self::from(other.unsigned_abs());
+                if other.is_positive() {
+                    abs
+                } else {
+                    -abs
+                }
+            }
+        }
     };
-    ($field: ident, $int: ident, $params: ident, $limbs:expr) => {
-        impl<P: $params> From<$int> for $field<P> {
-            fn from(other: $int) -> Self {
+    ($field: ident, bool, $params: ident, $limbs:expr) => {
+        impl<P: $params> From<bool> for $field<P> {
+            fn from(other: bool) -> Self {
                 if $limbs == 1 {
                     Self::from_repr(P::BigInt::from(u64::from(other) % P::MODULUS.0[0])).unwrap()
                 } else {
                     Self::from_repr(P::BigInt::from(u64::from(other))).unwrap()
+                }
+            }
+        }
+    };
+    ($field: ident, $int: expr, $params: ident, $limbs:expr) => {
+        paste::paste!{
+            impl<P: $params> From<[<u $int>]> for $field<P> {
+                fn from(other: [<u $int>]) -> Self {
+                    if $limbs == 1 {
+                        Self::from_repr(P::BigInt::from(u64::from(other) % P::MODULUS.0[0])).unwrap()
+                    } else {
+                        Self::from_repr(P::BigInt::from(u64::from(other))).unwrap()
+                    }
+                }
+            }
+
+            impl<P: $params> From<[<i $int>]> for $field<P> {
+                fn from(other: [<i $int>]) -> Self {
+                    let abs = Self::from(other.unsigned_abs());
+                    if other.is_positive() {
+                        abs
+                    } else {
+                        -abs
+                    }
                 }
             }
         }

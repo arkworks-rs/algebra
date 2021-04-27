@@ -36,6 +36,8 @@ pub mod group;
 
 pub mod msm;
 
+pub mod wnaf;
+
 pub trait PairingEngine: Sized + 'static + Copy + Debug + Sync + Send + Eq + PartialEq {
     /// This is the scalar field of the G1/G2 groups.
     type Fr: PrimeField + SquareRootField;
