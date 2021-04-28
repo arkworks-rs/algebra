@@ -662,7 +662,7 @@ impl<T: CanonicalDeserialize> CanonicalDeserialize for Rc<T> {
 impl CanonicalSerialize for bool {
     #[inline]
     fn serialize<W: Write>(&self, writer: W) -> Result<(), SerializationError> {
-        Ok((*self as u8).serialize(writer)?)
+        (*self as u8).serialize(writer)
     }
 
     #[inline]
