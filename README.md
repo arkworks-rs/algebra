@@ -15,7 +15,7 @@ This library is released under the MIT License and the Apache v2 License (see [L
 
 ## Directory structure
 
-This repository contains several Rust crates: 
+This repository contains several Rust crates:  
 
 * [`ark-ff`](ff): Provides generic implementations of various finite fields
 * [`ark-ec`](ec): Provides generic implementations for different kinds of elliptic curves, along with pairings over these
