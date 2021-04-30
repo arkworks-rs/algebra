@@ -9,3 +9,5 @@ MD024: { siblings_only: true }
 MD025: false
 # MD033 lint blocks HTML in MD
 MD033: false
+# MD036 no-emphasis-as-heading
+MD036: false

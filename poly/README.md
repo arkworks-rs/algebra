@@ -38,7 +38,7 @@ This crate also provides the [`univariate/DenseOrSparsePolynomial`](./src/polyno
 
 ### Evaluations
 
-The `evaluations` module provides data structures to represent univariate polynomials in lagrange form. 
+The `evaluations` module provides data structures to represent univariate polynomials in lagrange form.
 
 - [`univariate/Evaluations`](./src/evaluations/univariate/mod.rs#L18)
 Represents a univariate polynomial in evaluation form, which can be used for FFT.
