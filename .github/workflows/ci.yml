@@ -167,6 +167,15 @@ jobs:
       RUSTFLAGS: -Dwarnings
     strategy:
       matrix:
+        curve:
+          - bls12_377
+          - bls12_381
+          - bn254
+          - pallas
+          - bw6_761
+          - mnt4_298
+          - mnt6_298
+          - ed_on_bls12_377
         rust:
           - stable
           - nightly
@@ -175,7 +184,7 @@ jobs:
         uses: actions/checkout@v2
         with:
           repository: arkworks-rs/curves
-    
+
       - name: Checkout algebra
         uses: actions/checkout@v2
         with:
@@ -197,7 +206,7 @@ jobs:
             algebra/target
             target
           key: ${{ runner.os }}-cargo-curves-${{ hashFiles('**/Cargo.lock') }}
-          
+
       - name: Patch cargo.toml
         run: |
           echo                                                                             >> Cargo.toml
@@ -208,19 +217,6 @@ jobs:
           echo      "ark-ff-asm = { path = 'algebra/ff-asm' }"                             >> Cargo.toml
           echo      "ark-ec = { path = 'algebra/ec' }"                                     >> Cargo.toml
           echo      "ark-algebra-test-templates = { path = 'algebra/test-templates' }"     >> Cargo.toml
-        
-      - name: Test
-        uses: actions-rs/cargo@v1
-        with:
-            command: test
-            args: "--workspace \
-                   --all-features \
-                   -p ark-bls12-377 \
-                   -p ark-bls12-381 \
-                   -p ark-bn254 \
-                   -p ark-pallas \
-                   -p ark-bw6-761 \
-                   -p ark-mnt4-298 \
-                   -p ark-mnt6-298 \
-                   -p ark-ed-on-bls12-377 \
-                   --exclude curve-benches"
+
+      - name: Test on ${{ matrix.curve }}
+        run: "cd ${{ matrix.curve }} && cargo test --all-features"
