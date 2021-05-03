@@ -176,9 +176,6 @@ jobs:
           - mnt4_298
           - mnt6_298
           - ed_on_bls12_377
-        rust:
-          - stable
-          - nightly
     steps:
       - name: Checkout curves
         uses: actions/checkout@v2
@@ -191,26 +188,17 @@ jobs:
           repository: arkworks-rs/algebra
           path: algebra
 
-      - name: Install Rust (${{ matrix.rust }})
+      - name: Install Rust
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: ${{ matrix.rust }}
+          toolchain: stable
           override: true
-
-      - uses: actions/cache@v2
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            algebra/target
-            target
-          key: ${{ runner.os }}-cargo-curves-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Patch cargo.toml
         run: |
           echo                                                                             >> Cargo.toml
-          echo      "[patch.'https://github.com/arkworks-rs/algebra']"                     >> Cargo.toml
+          echo      "[patch.crates-io]"                                                    >> Cargo.toml
           echo      "ark-ff = { path = 'algebra/ff' }"                                     >> Cargo.toml
           echo      "ark-serialize = { path = 'algebra/serialize' }"                       >> Cargo.toml
           echo      "ark-ff-macros = { path = 'algebra/ff-macros' }"                       >> Cargo.toml
