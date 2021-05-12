@@ -26,7 +26,7 @@ In addition, the [`curves`](https://github.com/arkworks-rs/curves) repository co
 
 ## Build guide
 
-The library compiles on the `stable` toolchain of the Rust compiler. To install the latest version of Rust, first install `rustup` by following the instructions [here](https://rustup.rs/), or via your platform's package manager. Once `rustup` is installed, install the Rust toolchain by invoking:
+The library compiles on the `stable` toolchain of the Rust compiler (v 1.51+). To install the latest version of Rust, first install `rustup` by following the instructions [here](https://rustup.rs/), or via your platform's package manager. Once `rustup` is installed, install the Rust toolchain by invoking:
 
 ```bash
 rustup install stable
