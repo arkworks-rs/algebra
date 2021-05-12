@@ -123,7 +123,7 @@ pub trait Field:
 
     /// Returns the characteristic of the field,
     /// in little-endian representation.
-    fn characteristic<'a>() -> &'a [u64] {
+    fn characteristic() -> &'static [u64] {
         Self::BasePrimeField::characteristic()
     }
 
@@ -166,7 +166,8 @@ pub trait Field:
     #[must_use]
     fn inverse(&self) -> Option<Self>;
 
-    // Sets `self` to `self`'s inverse if it exists. Otherwise it is a no-op.
+    // If `self.inverse().is_none()`, this just returns `None`. Otherwise, it sets
+    // `self` to `self.inverse().unwrap()`.
     fn inverse_in_place(&mut self) -> Option<&mut Self>;
 
     /// Exponentiates this element by a power of the base prime modulus via
@@ -545,13 +546,15 @@ impl<Slice: AsRef<[u64]>> Iterator for BitIteratorLE<Slice> {
 }
 
 use crate::biginteger::{
-    BigInteger256, BigInteger320, BigInteger384, BigInteger64, BigInteger768, BigInteger832,
+    BigInteger256, BigInteger320, BigInteger384, BigInteger448, BigInteger64, BigInteger768,
+    BigInteger832,
 };
 
 impl_field_bigint_conv!(Fp64, BigInteger64, Fp64Parameters);
 impl_field_bigint_conv!(Fp256, BigInteger256, Fp256Parameters);
 impl_field_bigint_conv!(Fp320, BigInteger320, Fp320Parameters);
 impl_field_bigint_conv!(Fp384, BigInteger384, Fp384Parameters);
+impl_field_bigint_conv!(Fp448, BigInteger448, Fp448Parameters);
 impl_field_bigint_conv!(Fp768, BigInteger768, Fp768Parameters);
 impl_field_bigint_conv!(Fp832, BigInteger832, Fp832Parameters);
 
@@ -601,7 +604,7 @@ fn serial_batch_inversion_and_mul<F: Field>(v: &mut [F], coeff: &F) {
     tmp = tmp.inverse().unwrap(); // Guaranteed to be nonzero.
 
     // Multiply product by coeff, so all inverses will be scaled by coeff
-    tmp = tmp * coeff;
+    tmp *= coeff;
 
     // Second pass: iterate backwards to compute inverses
     for (f, s) in v.iter_mut()

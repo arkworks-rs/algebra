@@ -312,10 +312,34 @@ impl<P: CubicExtParameters> From<u128> for CubicExtField<P> {
     }
 }
 
+impl<P: CubicExtParameters> From<i128> for CubicExtField<P> {
+    #[inline]
+    fn from(val: i128) -> Self {
+        let abs = Self::from(val.unsigned_abs());
+        if val.is_positive() {
+            abs
+        } else {
+            -abs
+        }
+    }
+}
+
 impl<P: CubicExtParameters> From<u64> for CubicExtField<P> {
     fn from(other: u64) -> Self {
         let fe: P::BaseField = other.into();
         Self::new(fe, P::BaseField::zero(), P::BaseField::zero())
+    }
+}
+
+impl<P: CubicExtParameters> From<i64> for CubicExtField<P> {
+    #[inline]
+    fn from(val: i64) -> Self {
+        let abs = Self::from(val.unsigned_abs());
+        if val.is_positive() {
+            abs
+        } else {
+            -abs
+        }
     }
 }
 
@@ -326,6 +350,18 @@ impl<P: CubicExtParameters> From<u32> for CubicExtField<P> {
     }
 }
 
+impl<P: CubicExtParameters> From<i32> for CubicExtField<P> {
+    #[inline]
+    fn from(val: i32) -> Self {
+        let abs = Self::from(val.unsigned_abs());
+        if val.is_positive() {
+            abs
+        } else {
+            -abs
+        }
+    }
+}
+
 impl<P: CubicExtParameters> From<u16> for CubicExtField<P> {
     fn from(other: u16) -> Self {
         let fe: P::BaseField = other.into();
@@ -333,10 +369,34 @@ impl<P: CubicExtParameters> From<u16> for CubicExtField<P> {
     }
 }
 
+impl<P: CubicExtParameters> From<i16> for CubicExtField<P> {
+    #[inline]
+    fn from(val: i16) -> Self {
+        let abs = Self::from(val.unsigned_abs());
+        if val.is_positive() {
+            abs
+        } else {
+            -abs
+        }
+    }
+}
+
 impl<P: CubicExtParameters> From<u8> for CubicExtField<P> {
     fn from(other: u8) -> Self {
         let fe: P::BaseField = other.into();
         Self::new(fe, P::BaseField::zero(), P::BaseField::zero())
+    }
+}
+
+impl<P: CubicExtParameters> From<i8> for CubicExtField<P> {
+    #[inline]
+    fn from(val: i8) -> Self {
+        let abs = Self::from(val.unsigned_abs());
+        if val.is_positive() {
+            abs
+        } else {
+            -abs
+        }
     }
 }
 
