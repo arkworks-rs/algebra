@@ -23,7 +23,7 @@ pub trait BnParameters: 'static {
     // Whether or not `X` is negative.
     const X_IS_NEGATIVE: bool;
 
-    // The absolute value of `6X + 2`
+    // The absolute value of `6X + 2`.
     const ATE_LOOP_COUNT: &'static [i8];
     // Whether or not `6X + 2` is negative. `6X + 2` is negative often when `X` is negative.
     const ATE_LOOP_COUNT_IS_NEGATIVE: bool;
