@@ -281,21 +281,4 @@ impl<P: Bls12Parameters> PairingEngine for Bls12<P> {
             r
         })
     }
-
-    fn product_of_pairings<'a, I>(i: I) -> Self::Fqk
-    where
-        I: IntoIterator<Item = &'a (Self::G1Prepared, Self::G2Prepared)>,
-    {
-        Self::final_exponentiation(&Self::miller_loop(i)).unwrap()
-    }
-
-    fn pairing<G1, G2>(p: G1, q: G2) -> Self::Fqk
-    where
-        G1: Into<Self::G1Affine>,
-        G2: Into<Self::G2Affine>,
-    {
-        let g1_prep = Self::G1Prepared::from(p.into());
-        let g2_prep = Self::G2Prepared::from(q.into());
-        Self::product_of_pairings(core::iter::once(&(g1_prep, g2_prep)))
-    }
 }
