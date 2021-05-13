@@ -108,21 +108,6 @@ impl<P: Bls12Parameters> PairingEngine for Bls12<P> {
             }
         }
 
-        let mut f = Self::Fqk::one();
-
-        // for i in BitIteratorBE::new(P::X).skip(1) {
-        //     f.square_in_place();
-
-        //     for (p, ref mut coeffs) in &mut pairs {
-        //         Self::ell(&mut f, coeffs.next().unwrap(), &p.0);
-        //     }
-
-        //     if i {
-        //         for &mut (p, ref mut coeffs) in &mut pairs {
-        //             Self::ell(&mut f, coeffs.next().unwrap(), &p.0);
-        //         }
-        //     }
-        // }
         #[cfg(feature = "parallel")]
         use rayon::prelude::*;
 
@@ -139,14 +124,14 @@ impl<P: Bls12Parameters> PairingEngine for Bls12<P> {
         )>,
                  mut f: QuadExtField<Fp12ParamsWrapper<<P as Bls12Parameters>::Fp12Params>>|
          -> QuadExtField<Fp12ParamsWrapper<<P as Bls12Parameters>::Fp12Params>> {
-             let coeffs = coeffs.as_slice();
-             let mut j = 0;
+            let coeffs = coeffs.as_slice();
+            let mut j = 0;
             for i in BitIteratorBE::new(P::X).skip(1) {
                 f.square_in_place();
-                Self::ell(f, &coeffs[j], &p.0);
+                f = Self::ell(f, &coeffs[j], &p.0);
                 j += 1;
                 if i {
-                    Self::ell(f, &coeffs[j], &p.0);
+                    f = Self::ell(f, &coeffs[j], &p.0);
                     j += 1;
                 }
             }
@@ -157,13 +142,16 @@ impl<P: Bls12Parameters> PairingEngine for Bls12<P> {
         pairs
             .par_iter()
             .zip(f_vec.par_iter())
-            .map(|(p /*(p, coeffs)*/, f)| a(&p.0, &p.1, *f))
+            .map(|(p, f)| a(&p.0, &p.1, *f))
             .collect_into_vec(&mut products);
 
+        let mut f = Self::Fqk::one();
+        for ff in products {
+            f *= ff;
+        }
         if P::X_IS_NEGATIVE {
             f.conjugate();
         }
-
         f
     }
 
@@ -232,5 +220,22 @@ impl<P: Bls12Parameters> PairingEngine for Bls12<P> {
             r *= &y1;
             r
         })
+    }
+
+    fn product_of_pairings<'a, I>(i: I) -> Self::Fqk
+    where
+        I: IntoIterator<Item = &'a (Self::G1Prepared, Self::G2Prepared)>,
+    {
+        Self::final_exponentiation(&Self::miller_loop(i)).unwrap()
+    }
+
+    fn pairing<G1, G2>(p: G1, q: G2) -> Self::Fqk
+    where
+        G1: Into<Self::G1Affine>,
+        G2: Into<Self::G2Affine>,
+    {
+        let g1_prep = Self::G1Prepared::from(p.into());
+        let g2_prep = Self::G2Prepared::from(q.into());
+        Self::product_of_pairings(core::iter::once(&(g1_prep, g2_prep)))
     }
 }
