@@ -2,17 +2,21 @@ use crate::{
     models::{ModelParameters, SWModelParameters},
     PairingEngine,
 };
-use ark_ff::fields::{
-    fp12_2over3over2::{Fp12, Fp12Parameters},
-    fp2::Fp2Parameters,
-    fp6_3over2::Fp6Parameters,
-    BitIteratorBE, Field, Fp2, PrimeField, SquareRootField,
+use ark_ff::{
+    fields::{
+        fp12_2over3over2::{Fp12, Fp12Parameters},
+        fp2::Fp2Parameters,
+        fp6_3over2::Fp6Parameters,
+        BitIteratorBE, Field, Fp2, PrimeField, SquareRootField,
+    },
+    Fp12ParamsWrapper, Fp2ParamsWrapper, QuadExtField,
 };
 use num_traits::{One, Zero};
 
-use core::marker::PhantomData;
+use core::{marker::PhantomData, slice::Iter};
 
-/// A particular BLS12 group can have G2 being either a multiplicative or a divisive twist.
+/// A particular BLS12 group can have G2 being either a multiplicative or a
+/// divisive twist.
 pub enum TwistType {
     M,
     D,
@@ -51,23 +55,25 @@ pub struct Bls12<P: Bls12Parameters>(PhantomData<fn() -> P>);
 
 impl<P: Bls12Parameters> Bls12<P> {
     // Evaluate the line function at point p.
-    fn ell(f: &mut Fp12<P::Fp12Params>, coeffs: &g2::EllCoeff<Fp2<P::Fp2Params>>, p: &G1Affine<P>) {
+    fn ell(f: Fp12<P::Fp12Params>, coeffs: &g2::EllCoeff<Fp2<P::Fp2Params>>, p: &G1Affine<P>) -> Fp12<P::Fp12Params>{
         let mut c0 = coeffs.0;
         let mut c1 = coeffs.1;
         let mut c2 = coeffs.2;
+        let mut f_mut = f;
 
         match P::TWIST_TYPE {
             TwistType::M => {
                 c2.mul_assign_by_fp(&p.y);
                 c1.mul_assign_by_fp(&p.x);
-                f.mul_by_014(&c0, &c1, &c2);
-            }
+                f_mut.mul_by_014(&c0, &c1, &c2);
+            },
             TwistType::D => {
                 c0.mul_assign_by_fp(&p.y);
                 c1.mul_assign_by_fp(&p.x);
-                f.mul_by_034(&c0, &c1, &c2);
-            }
+                f_mut.mul_by_034(&c0, &c1, &c2);
+            },
         }
+        f_mut
     }
 
     // Exponentiates `f` by `Self::X`, and stores the result in `result`.
@@ -104,19 +110,55 @@ impl<P: Bls12Parameters> PairingEngine for Bls12<P> {
 
         let mut f = Self::Fqk::one();
 
-        for i in BitIteratorBE::new(P::X).skip(1) {
-            f.square_in_place();
+        // for i in BitIteratorBE::new(P::X).skip(1) {
+        //     f.square_in_place();
 
-            for (p, ref mut coeffs) in &mut pairs {
-                Self::ell(&mut f, coeffs.next().unwrap(), &p.0);
-            }
+        //     for (p, ref mut coeffs) in &mut pairs {
+        //         Self::ell(&mut f, coeffs.next().unwrap(), &p.0);
+        //     }
 
-            if i {
-                for &mut (p, ref mut coeffs) in &mut pairs {
-                    Self::ell(&mut f, coeffs.next().unwrap(), &p.0);
+        //     if i {
+        //         for &mut (p, ref mut coeffs) in &mut pairs {
+        //             Self::ell(&mut f, coeffs.next().unwrap(), &p.0);
+        //         }
+        //     }
+        // }
+        #[cfg(feature = "parallel")]
+        use rayon::prelude::*;
+
+        let mut f_vec = vec![];
+        for _ in 0..pairs.len() {
+            f_vec.push(Self::Fqk::one());
+        }
+
+        let a = |p: &&G1Prepared<P>,
+                 coeffs: &Iter<'_, (
+            QuadExtField<Fp2ParamsWrapper<<P as Bls12Parameters>::Fp2Params>>,
+            QuadExtField<Fp2ParamsWrapper<<P as Bls12Parameters>::Fp2Params>>,
+            QuadExtField<Fp2ParamsWrapper<<P as Bls12Parameters>::Fp2Params>>,
+        )>,
+                 mut f: QuadExtField<Fp12ParamsWrapper<<P as Bls12Parameters>::Fp12Params>>|
+         -> QuadExtField<Fp12ParamsWrapper<<P as Bls12Parameters>::Fp12Params>> {
+             let coeffs = coeffs.as_slice();
+             let mut j = 0;
+            for i in BitIteratorBE::new(P::X).skip(1) {
+                f.square_in_place();
+                Self::ell(f, &coeffs[j], &p.0);
+                j += 1;
+                if i {
+                    Self::ell(f, &coeffs[j], &p.0);
+                    j += 1;
                 }
             }
-        }
+            f
+        };
+
+        let mut products = vec![];
+        pairs
+            .par_iter()
+            .zip(f_vec.par_iter())
+            .map(|(p /*(p, coeffs)*/, f)| a(&p.0, &p.1, *f))
+            .collect_into_vec(&mut products);
 
         if P::X_IS_NEGATIVE {
             f.conjugate();
