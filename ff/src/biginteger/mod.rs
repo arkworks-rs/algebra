@@ -13,8 +13,8 @@ use ark_std::{
     io::{Read, Result as IoResult, Write},
     vec::Vec,
 };
-use zeroize::Zeroize;
 use num_bigint::BigUint;
+use zeroize::Zeroize;
 
 #[macro_use]
 pub mod arithmetic;
