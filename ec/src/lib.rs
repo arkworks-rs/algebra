@@ -81,7 +81,7 @@ pub trait PairingEngine: Sized + 'static + Copy + Debug + Sync + Send + Eq + Par
     /// The extension field that hosts the target group of the pairing.
     type Fqk: Field;
 
-    /// Perform a miller loop with some number of (G1, G2) pairs.
+    /// Compute the product of miller loops for some number of (G1, G2) pairs.
     #[must_use]
     fn miller_loop<'a, I>(i: I) -> Self::Fqk
     where

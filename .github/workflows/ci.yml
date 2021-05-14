@@ -167,52 +167,44 @@ jobs:
       RUSTFLAGS: -Dwarnings
     strategy:
       matrix:
-        rust:
-          - stable
-          - nightly
+        curve:
+          - bls12_377
+          - bls12_381
+          - bn254
+          - pallas
+          - bw6_761
+          - mnt4_298
+          - mnt6_298
+          - ed_on_bls12_377
     steps:
       - name: Checkout curves
         uses: actions/checkout@v2
         with:
           repository: arkworks-rs/curves
-    
+
       - name: Checkout algebra
         uses: actions/checkout@v2
         with:
           repository: arkworks-rs/algebra
           path: algebra
 
-      - name: Install Rust (${{ matrix.rust }})
+      - name: Install Rust
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: ${{ matrix.rust }}
+          toolchain: stable
           override: true
 
-      - uses: actions/cache@v2
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            algebra/target
-            target
-          key: ${{ runner.os }}-cargo-curves-${{ hashFiles('**/Cargo.lock') }}
-          
       - name: Patch cargo.toml
         run: |
           echo                                                                             >> Cargo.toml
-          echo      "[patch.'https://github.com/arkworks-rs/algebra']"                     >> Cargo.toml
+          echo      "[patch.crates-io]"                                                    >> Cargo.toml
           echo      "ark-ff = { path = 'algebra/ff' }"                                     >> Cargo.toml
           echo      "ark-serialize = { path = 'algebra/serialize' }"                       >> Cargo.toml
           echo      "ark-ff-macros = { path = 'algebra/ff-macros' }"                       >> Cargo.toml
           echo      "ark-ff-asm = { path = 'algebra/ff-asm' }"                             >> Cargo.toml
           echo      "ark-ec = { path = 'algebra/ec' }"                                     >> Cargo.toml
           echo      "ark-algebra-test-templates = { path = 'algebra/test-templates' }"     >> Cargo.toml
-        
-      - name: Test
-        uses: actions-rs/cargo@v1
-        with:
-            command: test
-            args: "--workspace \
-                   --all-features \
-                   --exclude curve-benches"
+
+      - name: Test on ${{ matrix.curve }}
+        run: "cd ${{ matrix.curve }} && cargo test --all-features"

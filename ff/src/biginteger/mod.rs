@@ -34,6 +34,7 @@ bigint_impl!(BigInteger128, 2);
 bigint_impl!(BigInteger256, 4);
 bigint_impl!(BigInteger320, 5);
 bigint_impl!(BigInteger384, 6);
+bigint_impl!(BigInteger448, 7);
 bigint_impl!(BigInteger768, 12);
 bigint_impl!(BigInteger832, 13);
 
