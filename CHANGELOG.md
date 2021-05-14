@@ -1,3 +1,5 @@
+# CHANGELOG
+
 ## Pending
 
 ### Breaking changes
