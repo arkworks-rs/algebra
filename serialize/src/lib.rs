@@ -20,6 +20,8 @@ pub use flags::*;
 #[doc(hidden)]
 pub use ark_serialize_derive::*;
 
+use digest::{generic_array::GenericArray, Digest};
+
 /// Serializer in little endian format allowing to encode flags.
 pub trait CanonicalSerializeWithFlags: CanonicalSerialize {
     /// Serializes `self` and `flags` into `writer`.
@@ -93,6 +95,45 @@ pub trait CanonicalSerialize {
         self.serialized_size()
     }
 }
+
+// This private struct works around Serialize taking the pre-existing
+// std::io::Write instance of most digest::Digest implementations by value
+struct HashMarshaller<'a, H: Digest>(&'a mut H);
+
+impl<'a, H: Digest> ark_std::io::Write for HashMarshaller<'a, H> {
+    #[inline]
+    fn write(&mut self, buf: &[u8]) -> ark_std::io::Result<usize> {
+        Digest::update(self.0, buf);
+        Ok(buf.len())
+    }
+
+    #[inline]
+    fn flush(&mut self) -> ark_std::io::Result<()> {
+        Ok(())
+    }
+}
+
+/// The CanonicalSerialize induces a natural way to hash the
+/// corresponding value, of which this is the convenience trait.
+pub trait CanonicalSerializeHashExt: CanonicalSerialize {
+    fn hash<H: Digest>(&self) -> GenericArray<u8, <H as Digest>::OutputSize> {
+        let mut hasher = H::new();
+        self.serialize(HashMarshaller(&mut hasher))
+            .expect("HashMarshaller::flush should be infaillible!");
+        hasher.finalize()
+    }
+
+    fn hash_uncompressed<H: Digest>(&self) -> GenericArray<u8, <H as Digest>::OutputSize> {
+        let mut hasher = H::new();
+        self.serialize_uncompressed(HashMarshaller(&mut hasher))
+            .expect("HashMarshaller::flush should be infaillible!");
+        hasher.finalize()
+    }
+}
+
+/// CanonicalSerializeHashExt is a (blanket) extension trait of
+/// CanonicalSerialize
+impl<T: CanonicalSerialize> CanonicalSerializeHashExt for T {}
 
 /// Deserializer in little endian format allowing flags to be encoded.
 pub trait CanonicalDeserializeWithFlags: Sized {
@@ -621,7 +662,7 @@ impl<T: CanonicalDeserialize> CanonicalDeserialize for Rc<T> {
 impl CanonicalSerialize for bool {
     #[inline]
     fn serialize<W: Write>(&self, writer: W) -> Result<(), SerializationError> {
-        Ok((*self as u8).serialize(writer)?)
+        (*self as u8).serialize(writer)
     }
 
     #[inline]
@@ -897,6 +938,28 @@ mod test {
         assert_eq!(data, de);
     }
 
+    fn test_hash<T: CanonicalSerialize, H: Digest + core::fmt::Debug>(data: T) {
+        let h1 = data.hash::<H>();
+
+        let mut hash = H::new();
+        let mut serialized = vec![0; data.serialized_size()];
+        data.serialize(&mut serialized[..]).unwrap();
+        hash.update(&serialized);
+        let h2 = hash.finalize();
+
+        assert_eq!(h1, h2);
+
+        let h3 = data.hash_uncompressed::<H>();
+
+        let mut hash = H::new();
+        serialized = vec![0; data.uncompressed_size()];
+        data.serialize_uncompressed(&mut serialized[..]).unwrap();
+        hash.update(&serialized);
+        let h4 = hash.finalize();
+
+        assert_eq!(h3, h4);
+    }
+
     // Serialize T, randomly mutate the data, and deserialize it.
     // Ensure it fails.
     // Up to the caller to provide a valid mutation criterion
@@ -1023,5 +1086,23 @@ mod test {
     #[test]
     fn test_phantomdata() {
         test_serialize(core::marker::PhantomData::<Dummy>);
+    }
+
+    #[test]
+    fn test_sha2() {
+        test_hash::<_, sha2::Sha256>(Dummy);
+        test_hash::<_, sha2::Sha512>(Dummy);
+    }
+
+    #[test]
+    fn test_blake2() {
+        test_hash::<_, blake2::Blake2b>(Dummy);
+        test_hash::<_, blake2::Blake2s>(Dummy);
+    }
+
+    #[test]
+    fn test_sha3() {
+        test_hash::<_, sha3::Sha3_256>(Dummy);
+        test_hash::<_, sha3::Sha3_512>(Dummy);
     }
 }
