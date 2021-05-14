@@ -367,8 +367,8 @@ macro_rules! bigint_impl {
                     .enumerate()
                     .for_each(|(i, chunk)| {
                         let mut chunk_padded = [0u8; 8];
-                        for i in 0..chunk.len() {
-                            chunk_padded[i] = chunk[i];
+                        for j in 0..chunk.len() {
+                            chunk_padded[j] = chunk[j];
                         }
                         limbs[i] = u64::from_le_bytes(chunk_padded)
                     });
