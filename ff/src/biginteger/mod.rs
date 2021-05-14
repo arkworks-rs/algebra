@@ -14,6 +14,7 @@ use ark_std::{
     vec::Vec,
 };
 use zeroize::Zeroize;
+use num_bigint::BigUint;
 
 #[macro_use]
 pub mod arithmetic;
@@ -63,6 +64,8 @@ pub trait BigInteger:
     + AsMut<[u64]>
     + AsRef<[u64]>
     + From<u64>
+    + From<BigUint>
+    + Into<BigUint>
 {
     /// Number of limbs.
     const NUM_LIMBS: usize;

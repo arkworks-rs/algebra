@@ -352,5 +352,48 @@ macro_rules! bigint_impl {
                 repr
             }
         }
+
+        impl From<BigUint> for $name {
+            #[inline]
+            fn from(val: BigUint) -> $name {
+                use num_traits::ToPrimitive;
+                use num_traits::Zero;
+
+                let mut tmp = val.clone();
+                let mut tmp2 = val.clone();
+
+                let mut limbs = [0u64; $num_limbs];
+
+                for i in 0..$num_limbs {
+                    tmp >>= 64;
+                    tmp <<= 64;
+
+                    limbs[i] = (tmp2 - tmp.clone()).to_u64().unwrap();
+
+                    tmp >>= 64;
+                    tmp2 = tmp.clone();
+                }
+
+                assert!(tmp.is_zero());
+
+                Self(limbs)
+            }
+        }
+
+        impl Into<BigUint> for $name {
+            #[inline]
+            fn into(self) -> BigUint {
+                use num_traits::Zero;
+
+                let mut sum = BigUint::zero();
+
+                for i in (0..$num_limbs).rev() {
+                    sum <<= 64;
+                    sum += self.0[i];
+                }
+
+                sum
+            }
+        }
     };
 }
