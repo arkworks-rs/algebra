@@ -346,6 +346,39 @@ impl<'a, 'b, F: Field> AddAssign<(F, &'a DensePolynomial<F>)> for DensePolynomia
     }
 }
 
+
+impl<'a, F: Field> AddAssign<&'a SparsePolynomial<F>> for DensePolynomial<F> {
+    #[inline]
+    fn add_assign(&mut self, other: &'a SparsePolynomial<F>) {
+        if self.is_zero() {
+            self.coeffs.truncate(0);
+            self.coeffs.resize(other.degree() + 1, F::zero());
+
+            for (i, coeff) in other.iter() {
+                self.coeffs[*i] = *coeff;
+            }
+            return;
+        } else if other.is_zero() {
+            return;
+        } else {
+            // If `other` has higher degree than `self`, create a dense vector
+            // storing the upper coefficients of the addition
+            let mut upper_coeffs = match other.degree() > self.degree() {
+                true => vec![F::zero(); other.degree() - self.degree()],
+                false => Vec::new(),
+            };
+            for (pow, coeff) in other.iter() {
+                if *pow <= self.degree() {
+                    self.coeffs[*pow] += coeff;
+                } else {
+                    upper_coeffs[*pow - self.degree() - 1] = *coeff;
+                }
+            }
+            self.coeffs.extend(upper_coeffs);
+        }
+    }
+}
+
 impl<F: Field> Neg for DensePolynomial<F> {
     type Output = DensePolynomial<F>;
 
@@ -446,6 +479,38 @@ impl<'a, 'b, F: Field> SubAssign<&'a DensePolynomial<F>> for DensePolynomial<F> 
         // This can happen if they were the same degree, or if other's
         // coefficients were constructed with leading zeros.
         self.truncate_leading_zeros();
+    }
+}
+
+impl<'a, F: Field> SubAssign<&'a SparsePolynomial<F>> for DensePolynomial<F> {
+    #[inline]
+    fn sub_assign(&mut self, other: &'a SparsePolynomial<F>) {
+        if self.is_zero() {
+            self.coeffs.truncate(0);
+            self.coeffs.resize(other.degree() + 1, F::zero());
+
+            for (i, coeff) in other.iter() {
+                self.coeffs[*i] = (*coeff).neg();
+            }
+            return;
+        } else if other.is_zero() {
+            return;
+        } else {
+            // If `other` has higher degree than `self`, create a dense vector
+            // storing the upper coefficients of the subtraction
+            let mut upper_coeffs = match other.degree() > self.degree() {
+                true => vec![F::zero(); other.degree() - self.degree()],
+                false => Vec::new(),
+            };
+            for (pow, coeff) in other.iter() {
+                if *pow <= self.degree() {
+                    self.coeffs[*pow] -= coeff;
+                } else {
+                    upper_coeffs[*pow - self.degree() - 1] = -*coeff;
+                }
+            }
+            self.coeffs.extend(upper_coeffs);
+        }
     }
 }
 
@@ -566,6 +631,21 @@ mod tests {
     }
 
     #[test]
+    fn add_assign_sparse_polynomials() {
+        let rng = &mut test_rng();
+        for a_degree in 0..70 {
+            for b_degree in 0..70 {
+                let p1 = DensePolynomial::<Fr>::rand(a_degree, rng);
+                let p2 = rand_sparse_poly(b_degree, rng);
+
+                let mut res = p1.clone();
+                res += &p2;
+                assert_eq!(res, &p1 + &Into::<DensePolynomial<Fr>>::into(p2));
+            }
+        }
+    }
+
+    #[test]
     fn add_polynomials_with_mul() {
         let rng = &mut test_rng();
         for a_degree in 0..70 {
@@ -607,6 +687,21 @@ mod tests {
                 let p1 = DensePolynomial::<Fr>::rand(a_degree, rng);
                 let p2 = rand_sparse_poly(b_degree, rng);
                 let res = &p1 - &p2;
+                assert_eq!(res, &p1 - &Into::<DensePolynomial<Fr>>::into(p2));
+            }
+        }
+    }
+
+    #[test]
+    fn sub_assign_sparse_polynomials() {
+        let rng = &mut test_rng();
+        for a_degree in 0..70 {
+            for b_degree in 0..70 {
+                let p1 = DensePolynomial::<Fr>::rand(a_degree, rng);
+                let p2 = rand_sparse_poly(b_degree, rng);
+
+                let mut res = p1.clone();
+                res -= &p2;
                 assert_eq!(res, &p1 - &Into::<DensePolynomial<Fr>>::into(p2));
             }
         }

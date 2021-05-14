@@ -8,7 +8,7 @@ use ark_std::{
     collections::BTreeMap,
     fmt,
     io::{Read, Write},
-    ops::{Add, AddAssign, Mul, Neg, SubAssign},
+    ops::{Add, AddAssign, Deref, DerefMut, Mul, Neg, SubAssign},
     vec::Vec,
 };
 
@@ -39,7 +39,7 @@ impl<F: Field> fmt::Debug for SparsePolynomial<F> {
     }
 }
 
-impl<F: Field> core::ops::Deref for SparsePolynomial<F> {
+impl<F: Field> Deref for SparsePolynomial<F> {
     type Target = [(usize, F)];
 
     fn deref(&self) -> &[(usize, F)] {
@@ -47,7 +47,7 @@ impl<F: Field> core::ops::Deref for SparsePolynomial<F> {
     }
 }
 
-impl<F: Field> core::ops::DerefMut for SparsePolynomial<F> {
+impl<F: Field> DerefMut for SparsePolynomial<F> {
     fn deref_mut(&mut self) -> &mut [(usize, F)] {
         &mut self.coeffs
     }
