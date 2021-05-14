@@ -354,6 +354,8 @@ pub trait PrimeField:
     + FromStr
     + From<<Self as PrimeField>::BigInt>
     + Into<<Self as PrimeField>::BigInt>
+    + From<BigUint>
+    + Into<BigUint>
 {
     type Params: FpParameters<BigInt = Self::BigInt>;
     type BigInt: BigInteger;
@@ -549,6 +551,7 @@ use crate::biginteger::{
     BigInteger256, BigInteger320, BigInteger384, BigInteger448, BigInteger64, BigInteger768,
     BigInteger832,
 };
+use num_bigint::BigUint;
 
 impl_field_bigint_conv!(Fp64, BigInteger64, Fp64Parameters);
 impl_field_bigint_conv!(Fp256, BigInteger256, Fp256Parameters);

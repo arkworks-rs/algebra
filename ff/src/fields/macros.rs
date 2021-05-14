@@ -717,5 +717,19 @@ macro_rules! impl_Fp {
                 self.0.zeroize();
             }
         }
+
+        impl<P: $FpParameters> From<num_bigint::BigUint> for $Fp<P> {
+            #[inline]
+            fn from(val: num_bigint::BigUint) -> $Fp<P> {
+                $Fp::<P>::from_repr(<$BigIntegerType>::from(val)).unwrap()
+            }
+        }
+
+        impl<P: $FpParameters> Into<num_bigint::BigUint> for $Fp<P> {
+            #[inline]
+            fn into(self) -> num_bigint::BigUint {
+                self.into_repr().into()
+            }
+        }
     }
 }

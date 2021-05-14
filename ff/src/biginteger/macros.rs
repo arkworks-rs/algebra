@@ -355,26 +355,23 @@ macro_rules! bigint_impl {
 
         impl From<BigUint> for $name {
             #[inline]
-            fn from(val: BigUint) -> $name {
-                use num_traits::ToPrimitive;
-                use num_traits::Zero;
-
-                let mut tmp = val.clone();
-                let mut tmp2 = val.clone();
+            fn from(val: num_bigint::BigUint) -> $name {
+                let bytes = val.to_bytes_le();
+                assert!(bytes.len() <= $num_limbs * 8);
 
                 let mut limbs = [0u64; $num_limbs];
 
-                for i in 0..$num_limbs {
-                    tmp >>= 64;
-                    tmp <<= 64;
-
-                    limbs[i] = (tmp2 - tmp.clone()).to_u64().unwrap();
-
-                    tmp >>= 64;
-                    tmp2 = tmp.clone();
-                }
-
-                assert!(tmp.is_zero());
+                bytes
+                    .chunks(8)
+                    .into_iter()
+                    .enumerate()
+                    .for_each(|(i, chunk)| {
+                        let mut chunk_padded = [0u8; 8];
+                        for i in 0..chunk.len() {
+                            chunk_padded[i] = chunk[i];
+                        }
+                        limbs[i] = u64::from_le_bytes(chunk_padded)
+                    });
 
                 Self(limbs)
             }
@@ -382,17 +379,8 @@ macro_rules! bigint_impl {
 
         impl Into<BigUint> for $name {
             #[inline]
-            fn into(self) -> BigUint {
-                use num_traits::Zero;
-
-                let mut sum = BigUint::zero();
-
-                for i in (0..$num_limbs).rev() {
-                    sum <<= 64;
-                    sum += self.0[i];
-                }
-
-                sum
+            fn into(self) -> num_bigint::BigUint {
+                BigUint::from_bytes_le(&self.to_bytes_le())
             }
         }
     };
