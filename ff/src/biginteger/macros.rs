@@ -353,27 +353,36 @@ macro_rules! bigint_impl {
             }
         }
 
-        impl From<BigUint> for $name {
+        impl TryFrom<BigUint> for $name {
+            type Error = ark_std::string::String;
+
             #[inline]
-            fn from(val: num_bigint::BigUint) -> $name {
+            fn try_from(val: num_bigint::BigUint) -> Result<$name, Self::Error> {
                 let bytes = val.to_bytes_le();
-                assert!(bytes.len() <= $num_limbs * 8);
 
-                let mut limbs = [0u64; $num_limbs];
+                if bytes.len() > $num_limbs * 8 {
+                    Err(format!(
+                        "A BigUint with {} bytes cannot be converted into a {}.",
+                        bytes.len(),
+                        ark_std::stringify!($name)
+                    ))
+                } else {
+                    let mut limbs = [0u64; $num_limbs];
 
-                bytes
-                    .chunks(8)
-                    .into_iter()
-                    .enumerate()
-                    .for_each(|(i, chunk)| {
-                        let mut chunk_padded = [0u8; 8];
-                        for j in 0..chunk.len() {
-                            chunk_padded[j] = chunk[j];
-                        }
-                        limbs[i] = u64::from_le_bytes(chunk_padded)
-                    });
+                    bytes
+                        .chunks(8)
+                        .into_iter()
+                        .enumerate()
+                        .for_each(|(i, chunk)| {
+                            let mut chunk_padded = [0u8; 8];
+                            for j in 0..chunk.len() {
+                                chunk_padded[j] = chunk[j];
+                            }
+                            limbs[i] = u64::from_le_bytes(chunk_padded)
+                        });
 
-                Self(limbs)
+                    Ok(Self(limbs))
+                }
             }
         }
 

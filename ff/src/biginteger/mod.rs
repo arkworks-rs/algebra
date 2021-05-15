@@ -9,6 +9,7 @@ use ark_std::rand::{
     Rng,
 };
 use ark_std::{
+    convert::TryFrom,
     fmt::{Debug, Display},
     io::{Read, Result as IoResult, Write},
     vec::Vec,
@@ -65,7 +66,7 @@ pub trait BigInteger:
     + AsMut<[u64]>
     + AsRef<[u64]>
     + From<u64>
-    + From<BigUint>
+    + TryFrom<BigUint>
     + Into<BigUint>
 {
     /// Number of limbs.

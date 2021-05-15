@@ -721,7 +721,7 @@ macro_rules! impl_Fp {
         impl<P: $FpParameters> From<num_bigint::BigUint> for $Fp<P> {
             #[inline]
             fn from(val: num_bigint::BigUint) -> $Fp<P> {
-                $Fp::<P>::from_repr(<$BigIntegerType>::from(val)).unwrap()
+                $Fp::<P>::from_le_bytes_mod_order(&val.to_bytes_le())
             }
         }
 
