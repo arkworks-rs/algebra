@@ -647,7 +647,7 @@ mod std_tests {
 #[cfg(test)]
 mod no_std_tests {
     use super::*;
-    use crate::test_field::Fr;
+    use crate::test_field::{Fr, FrParameters};
     use ark_std::test_rng;
 
     #[test]
@@ -673,6 +673,26 @@ mod no_std_tests {
                 rand_multiplier
             );
         }
+    }
+
+    #[test]
+    fn test_from_into_biguint() {
+        let mut rng = ark_std::test_rng();
+
+        let modulus_bits = FrParameters::MODULUS_BITS;
+        let modulus: num_bigint::BigUint = FrParameters::MODULUS.into();
+
+        let mut rand_bytes = Vec::new();
+        for _ in 0..(2 * modulus_bits / 8) {
+            rand_bytes.push(u8::rand(&mut rng));
+        }
+
+        let rand = BigUint::from_bytes_le(&rand_bytes);
+
+        let a: BigUint = Fr::from(rand.clone()).into();
+        let b = rand % modulus;
+
+        assert_eq!(a, b);
     }
 
     #[test]

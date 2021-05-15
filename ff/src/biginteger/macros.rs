@@ -362,7 +362,7 @@ macro_rules! bigint_impl {
 
                 if bytes.len() > $num_limbs * 8 {
                     Err(format!(
-                        "A BigUint with {} bytes cannot be converted into a {}.",
+                        "A BigUint of {} bytes cannot fit into a {}.",
                         bytes.len(),
                         ark_std::stringify!($name)
                     ))

@@ -62,7 +62,7 @@ fn biginteger_conversion_test<B: BigInteger>() {
 
     let x: B = UniformRand::rand(&mut rng);
     let x_bigint: BigUint = x.clone().into();
-    let x_recovered = <B as From<BigUint>>::from(x_bigint);
+    let x_recovered = B::try_from(x_bigint).ok().unwrap();
 
     assert_eq!(x, x_recovered);
 }
