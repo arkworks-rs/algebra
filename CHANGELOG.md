@@ -17,6 +17,7 @@
 - [\#279](https://github.com/arkworks-rs/algebra/pull/279) (ark-ec) Parallelize miller loop operations for BLS12.
 
 ### Improvements
+- [\#279](https://github.com/arkworks-rs/algebra/pull/279) (ark-ec) Parallelize miller loop operations for BLS12.
 
 ### Bug fixes
 - [\#252](https://github.com/arkworks-rs/algebra/pull/252) (ark-ff) Fix prime field sampling when `REPR_SHIFT_BITS` is 64.
