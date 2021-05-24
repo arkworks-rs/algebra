@@ -11,12 +11,11 @@ use ark_ff::fields::{
 use core::marker::PhantomData;
 use num_traits::{One, Zero};
 
-#[cfg(feature = "parallel")]
 use ark_ff::{Fp12ParamsWrapper, Fp2ParamsWrapper, QuadExtField};
-#[cfg(feature = "parallel")]
 use core::slice::Iter;
+use ark_std::cfg_iter;
 #[cfg(feature = "parallel")]
-use rayon::prelude::*;
+use rayon::iter::{IntoParallelRefIterator, IndexedParallelIterator,ParallelIterator};
 
 /// A particular BLS12 group can have G2 being either a multiplicative or a
 /// divisive twist.
@@ -58,33 +57,6 @@ pub struct Bls12<P: Bls12Parameters>(PhantomData<fn() -> P>);
 
 impl<P: Bls12Parameters> Bls12<P> {
     // Evaluate the line function at point p.
-    #[cfg(feature = "parallel")]
-    fn ell(
-        f: Fp12<P::Fp12Params>,
-        coeffs: &g2::EllCoeff<Fp2<P::Fp2Params>>,
-        p: &G1Affine<P>,
-    ) -> Fp12<P::Fp12Params> {
-        let mut c0 = coeffs.0;
-        let mut c1 = coeffs.1;
-        let mut c2 = coeffs.2;
-        let mut f_mut = f;
-
-        match P::TWIST_TYPE {
-            TwistType::M => {
-                c2.mul_assign_by_fp(&p.y);
-                c1.mul_assign_by_fp(&p.x);
-                f_mut.mul_by_014(&c0, &c1, &c2);
-            }
-            TwistType::D => {
-                c0.mul_assign_by_fp(&p.y);
-                c1.mul_assign_by_fp(&p.x);
-                f_mut.mul_by_034(&c0, &c1, &c2);
-            }
-        }
-        f_mut
-    }
-
-    #[cfg(not(feature = "parallel"))]
     fn ell(f: &mut Fp12<P::Fp12Params>, coeffs: &g2::EllCoeff<Fp2<P::Fp2Params>>, p: &G1Affine<P>) {
         let mut c0 = coeffs.0;
         let mut c1 = coeffs.1;
@@ -136,27 +108,21 @@ impl<P: Bls12Parameters> PairingEngine for Bls12<P> {
                 pairs.push((p, q.ell_coeffs.iter()));
             }
         }
-
         let mut f = Self::Fqk::one();
-
         for i in BitIteratorBE::new(P::X).skip(1) {
             f.square_in_place();
-
             for (p, ref mut coeffs) in &mut pairs {
                 Self::ell(&mut f, coeffs.next().unwrap(), &p.0);
             }
-
             if i {
                 for &mut (p, ref mut coeffs) in &mut pairs {
                     Self::ell(&mut f, coeffs.next().unwrap(), &p.0);
                 }
             }
         }
-
         if P::X_IS_NEGATIVE {
             f.conjugate();
         }
-
         f
     }
 
@@ -192,10 +158,10 @@ impl<P: Bls12Parameters> PairingEngine for Bls12<P> {
             let mut j = 0;
             for i in BitIteratorBE::new(P::X).skip(1) {
                 f.square_in_place();
-                f = Self::ell(f, &coeffs[j], &p.0);
+                Self::ell(&mut f, &coeffs[j], &p.0);
                 j += 1;
                 if i {
-                    f = Self::ell(f, &coeffs[j], &p.0);
+                    Self::ell(&mut f, &coeffs[j], &p.0);
                     j += 1;
                 }
             }
@@ -203,10 +169,8 @@ impl<P: Bls12Parameters> PairingEngine for Bls12<P> {
         };
 
         let mut products = vec![];
-        pairs
-            .par_iter()
-            .zip(f_vec.par_iter())
-            .map(|(p, f)| a(&p.0, &p.1, *f))
+        cfg_iter!(pairs).zip(f_vec)
+            .map(|(p, f)| a(&p.0, &p.1, f))
             .collect_into_vec(&mut products);
 
         let mut f = Self::Fqk::one();
