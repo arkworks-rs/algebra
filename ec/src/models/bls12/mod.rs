@@ -12,10 +12,10 @@ use core::marker::PhantomData;
 use num_traits::{One, Zero};
 
 use ark_ff::{Fp12ParamsWrapper, Fp2ParamsWrapper, QuadExtField};
-use core::slice::Iter;
 use ark_std::cfg_iter;
+use core::slice::Iter;
 #[cfg(feature = "parallel")]
-use rayon::iter::{IntoParallelRefIterator, IndexedParallelIterator,ParallelIterator};
+use rayon::iter::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator};
 
 /// A particular BLS12 group can have G2 being either a multiplicative or a
 /// divisive twist.
@@ -169,7 +169,8 @@ impl<P: Bls12Parameters> PairingEngine for Bls12<P> {
         };
 
         let mut products = vec![];
-        cfg_iter!(pairs).zip(f_vec)
+        cfg_iter!(pairs)
+            .zip(f_vec)
             .map(|(p, f)| a(&p.0, &p.1, f))
             .collect_into_vec(&mut products);
 
