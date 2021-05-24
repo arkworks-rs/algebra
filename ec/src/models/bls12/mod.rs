@@ -12,7 +12,9 @@ use core::marker::PhantomData;
 use num_traits::{One, Zero};
 
 use ark_ff::{Fp12ParamsWrapper, Fp2ParamsWrapper, QuadExtField};
+#[cfg(feature = "parallel")]
 use ark_std::cfg_iter;
+#[cfg(feature = "parallel")]
 use core::slice::Iter;
 #[cfg(feature = "parallel")]
 use rayon::iter::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator};
