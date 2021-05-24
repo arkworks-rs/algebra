@@ -11,6 +11,7 @@ use ark_ff::fields::{
 use core::marker::PhantomData;
 use num_traits::{One, Zero};
 
+#[cfg(feature = "parallel")]
 use ark_ff::{Fp12ParamsWrapper, Fp2ParamsWrapper, QuadExtField};
 #[cfg(feature = "parallel")]
 use ark_std::cfg_iter;
