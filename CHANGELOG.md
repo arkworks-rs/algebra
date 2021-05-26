@@ -4,6 +4,8 @@
 
 ### Breaking changes
 
+- [\#285](https://github.com/arkworks-rs/algebra/pull/285) (ark-ec) Remove `ATE_LOOP_COUNT_IS_NEGATIVE` from BN curve parameter trait.
+
 ### Features
 
 - [\#230](https://github.com/arkworks-rs/algebra/pull/230) (ark-ec) Add `wnaf_mul` implementation for `ProjectiveCurve`.

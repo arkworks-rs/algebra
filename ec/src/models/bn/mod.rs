@@ -25,8 +25,6 @@ pub trait BnParameters: 'static {
 
     // The absolute value of `6X + 2`.
     const ATE_LOOP_COUNT: &'static [i8];
-    // Whether or not `6X + 2` is negative. `6X + 2` is negative when `X` is negative.
-    const ATE_LOOP_COUNT_IS_NEGATIVE: bool = Self::X_IS_NEGATIVE;
 
     const TWIST_TYPE: TwistType;
     const TWIST_MUL_BY_Q_X: Fp2<Self::Fp2Params>;
