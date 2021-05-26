@@ -1,4 +1,5 @@
 use crate::{biginteger::BigInteger, UniformRand};
+use num_bigint::BigUint;
 
 fn biginteger_arithmetic_test<B: BigInteger>(a: B, b: B, zero: B) {
     // zero == zero
@@ -56,6 +57,16 @@ fn biginteger_bytes_test<B: BigInteger>() {
     assert_eq!(x, y);
 }
 
+fn biginteger_conversion_test<B: BigInteger>() {
+    let mut rng = ark_std::test_rng();
+
+    let x: B = UniformRand::rand(&mut rng);
+    let x_bigint: BigUint = x.clone().into();
+    let x_recovered = B::try_from(x_bigint).ok().unwrap();
+
+    assert_eq!(x, x_recovered);
+}
+
 fn test_biginteger<B: BigInteger>(zero: B) {
     let mut rng = ark_std::test_rng();
     let a: B = UniformRand::rand(&mut rng);
@@ -63,6 +74,7 @@ fn test_biginteger<B: BigInteger>(zero: B) {
     biginteger_arithmetic_test(a, b, zero);
     biginteger_bytes_test::<B>();
     biginteger_bits_test::<B>();
+    biginteger_conversion_test::<B>();
 }
 
 #[test]
