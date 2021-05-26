@@ -19,6 +19,7 @@
 ### Bug fixes
 
 - [\#252](https://github.com/arkworks-rs/algebra/pull/252) (ark-ff) Fix prime field sampling when `REPR_SHIFT_BITS` is 64.
+- [\#284](https://github.com/arkworks-rs/algebra/pull/284) (ark-poly-benches) Fix the panic `subgroup_fft_in_place` benchmark for MNT6-753's Fr.
 
 ## v0.2.0
 
@@ -62,7 +63,7 @@ The main features of this release are:
     - Change `Flags::from_u8*` to be more strict about the inputs they accept:
       if the top bits of the `u8` value do *not* correspond to one of the possible outputs of `Flags::u8_bitmask`, then these methods output `None`, whereas before they output
       a default value.
-  Downstream users other than `ark-curves` should not see breakage unless they rely on these methods/traits explicitly.
+    Downstream users other than `ark-curves` should not see breakage unless they rely on these methods/traits explicitly.
 - [\#165](https://github.com/arkworks-rs/algebra/pull/165) (ark-ff) Add `from_base_field_elements` as a method to the `Field` trait.
 - [\#166](https://github.com/arkworks-rs/algebra/pull/166) (ark-ff) Change `BigInt::{from_bytes, to_bits}` to `from_bytes_le, from_bytes_be, to_bits_le, to_bits_be`.
 
