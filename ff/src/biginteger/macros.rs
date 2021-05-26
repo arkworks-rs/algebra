@@ -352,5 +352,43 @@ macro_rules! bigint_impl {
                 repr
             }
         }
+
+        impl TryFrom<BigUint> for $name {
+            type Error = ark_std::string::String;
+
+            #[inline]
+            fn try_from(val: num_bigint::BigUint) -> Result<$name, Self::Error> {
+                let bytes = val.to_bytes_le();
+
+                if bytes.len() > $num_limbs * 8 {
+                    Err(format!(
+                        "A BigUint of {} bytes cannot fit into a {}.",
+                        bytes.len(),
+                        ark_std::stringify!($name)
+                    ))
+                } else {
+                    let mut limbs = [0u64; $num_limbs];
+
+                    bytes
+                        .chunks(8)
+                        .into_iter()
+                        .enumerate()
+                        .for_each(|(i, chunk)| {
+                            let mut chunk_padded = [0u8; 8];
+                            chunk_padded[..chunk.len()].copy_from_slice(chunk);
+                            limbs[i] = u64::from_le_bytes(chunk_padded)
+                        });
+
+                    Ok(Self(limbs))
+                }
+            }
+        }
+
+        impl Into<BigUint> for $name {
+            #[inline]
+            fn into(self) -> num_bigint::BigUint {
+                BigUint::from_bytes_le(&self.to_bytes_le())
+            }
+        }
     };
 }

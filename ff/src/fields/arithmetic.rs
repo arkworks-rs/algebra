@@ -60,6 +60,7 @@ macro_rules! impl_field_into_repr {
     ($limbs:expr, $BigIntegerType:ty) => {
         #[inline]
         #[ark_ff_asm::unroll_for_loops]
+        #[allow(clippy::modulo_one)]
         fn into_repr(&self) -> $BigIntegerType {
             let mut tmp = self.0;
             let mut r = tmp.0;
