@@ -1,3 +1,5 @@
+# CHANGELOG
+
 ## Pending
 
 ### Breaking changes
@@ -14,8 +16,9 @@
 ### Improvements
 
 ### Bug fixes
-- [\#252](https://github.com/arkworks-rs/algebra/pull/252) (ark-ff) Fix prime field sampling when `REPR_SHIFT_BITS` is 64.
 
+- [\#252](https://github.com/arkworks-rs/algebra/pull/252) (ark-ff) Fix prime field sampling when `REPR_SHIFT_BITS` is 64.
+- [\#284](https://github.com/arkworks-rs/algebra/pull/284) (ark-poly-benches) Fix the panic `subgroup_fft_in_place` benchmark for MNT6-753's Fr.
 
 ## v0.2.0
 
@@ -32,6 +35,7 @@ The main features of this release are:
 - Adding new traits for basic curve cycles and pairing based curve cycles
 
 ### Breaking changes
+
 - [\#20](https://github.com/arkworks-rs/algebra/pull/20) (ark-poly) Move univariate DensePolynomial and SparsePolynomial into a
     univariate sub-crate. Make this change by:
     find w/ regex `ark_poly::(Dense|Sparse)Polynomial`, and replace with `ark_poly::univariate::$1Polynomial`.
@@ -51,18 +55,19 @@ The main features of this release are:
     Importing these from `ark-ff` is still possible, but is deprecated and will be removed in the following release.
 - [\#144](https://github.com/arkworks-rs/algebra/pull/144) (ark-poly) Add `CanonicalSerialize` and `CanonicalDeserialize` trait bounds for `Polynomial`.
 - [\#160](https://github.com/arkworks-rs/algebra/pull/160) (ark-serialize, ark-ff, ark-ec)
-  - Remove `ConstantSerializedSize`; users should use `serialized_size*` (see next).
-  - Add `serialized_size_with_flags` method to `CanonicalSerializeWithFlags`.
-  - Change `from_random_bytes_with_flags` to output `ark_serialize::Flags`.
-  - Change signatures of `Flags::from_u8*` to output `Option`.
-  - Change `Flags::from_u8*` to be more strict about the inputs they accept:
-    if the top bits of the `u8` value do *not* correspond to one of the possible outputs of `Flags::u8_bitmask`, then these methods output `None`, whereas before they output
-    a default value.
-  Downstream users other than `ark-curves` should not see breakage unless they rely on these methods/traits explicitly.
+    - Remove `ConstantSerializedSize`; users should use `serialized_size*` (see next).
+    - Add `serialized_size_with_flags` method to `CanonicalSerializeWithFlags`.
+    - Change `from_random_bytes_with_flags` to output `ark_serialize::Flags`.
+    - Change signatures of `Flags::from_u8*` to output `Option`.
+    - Change `Flags::from_u8*` to be more strict about the inputs they accept:
+      if the top bits of the `u8` value do *not* correspond to one of the possible outputs of `Flags::u8_bitmask`, then these methods output `None`, whereas before they output
+      a default value.
+    Downstream users other than `ark-curves` should not see breakage unless they rely on these methods/traits explicitly.
 - [\#165](https://github.com/arkworks-rs/algebra/pull/165) (ark-ff) Add `from_base_field_elements` as a method to the `Field` trait.
 - [\#166](https://github.com/arkworks-rs/algebra/pull/166) (ark-ff) Change `BigInt::{from_bytes, to_bits}` to `from_bytes_le, from_bytes_be, to_bits_le, to_bits_be`.
 
 ### Features
+
 - [\#20](https://github.com/arkworks-rs/algebra/pull/20) (ark-poly) Add structs/traits for multivariate polynomials.
 - [\#96](https://github.com/arkworks-rs/algebra/pull/96) (ark-ff) Make the `field_new` macro accept values in integer form, without requiring decomposition into limbs, and without requiring encoding in Montgomery form.
 - [\#106](https://github.com/arkworks-rs/algebra/pull/106) (ark-ff, ark-ec) Add `Zeroize` trait bound to `Field, ProjectiveGroup, AffineGroup` traits.
@@ -72,6 +77,7 @@ The main features of this release are:
 - [\#197](https://github.com/arkworks-rs/algebra/pull/197) (ark-test-curves) Add a BN384 curve with low two-arity for mixed-radix testing.
 
 ### Improvements
+
 - [\#22](https://github.com/arkworks-rs/algebra/pull/22) (ark-ec) Speedup fixed-base MSMs.
 - [\#28](https://github.com/arkworks-rs/algebra/pull/28) (ark-poly) Add `domain()` method on the `evaluations` struct.
 - [\#31](https://github.com/arkworks-rs/algebra/pull/31) (ark-ec) Speedup point doubling on twisted edwards curves.
@@ -109,6 +115,7 @@ The main features of this release are:
 - [\#242](https://github.com/arkworks-rs/algebra/pull/242), [\#244][https://github.com/arkworks-rs/algebra/pull/244] (ark-poly) Speedup the sequential radix-2 FFT significantly by making the method in which it accesses roots more cache-friendly.
 
 ### Bug fixes
+
 - [\#36](https://github.com/arkworks-rs/algebra/pull/36) (ark-ec) In Short-Weierstrass curves, include an infinity bit in `ToConstraintField`.
 - [\#107](https://github.com/arkworks-rs/algebra/pull/107) (ark-serialize) Fix handling of `(de)serialize_uncompressed/unchecked` in various impls of `CanonicalSerialize/Deserialize`.
 - [\#112](https://github.com/arkworks-rs/algebra/pull/112) (ark-serialize) Make `bool`s checked serialization methods non-malleable.
