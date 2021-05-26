@@ -15,6 +15,7 @@
 
 ### Bug fixes
 - [\#252](https://github.com/arkworks-rs/algebra/pull/252) (ark-ff) Fix prime field sampling when `REPR_SHIFT_BITS` is 64.
+- [\#284](https://github.com/arkworks-rs/algebra/pull/284) (ark-poly-benches) Fix the panic `subgroup_fft_in_place` benchmark for MNT6-753's Fr.
 
 
 ## v0.2.0
