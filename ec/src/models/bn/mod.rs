@@ -134,7 +134,7 @@ impl<P: BnParameters> PairingEngine for Bn<P> {
             }
         }
 
-        if P::ATE_LOOP_COUNT_IS_NEGATIVE {
+        if P::X_IS_NEGATIVE {
             f.conjugate();
         }
 
