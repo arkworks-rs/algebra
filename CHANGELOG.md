@@ -9,6 +9,7 @@
 - [\#230](https://github.com/arkworks-rs/algebra/pull/230) (ark-ec) Add `wnaf_mul` implementation for `ProjectiveCurve`.
 - [\#245](https://github.com/arkworks-rs/algebra/pull/245) (ark-poly) Speedup the sequential and parallel radix-2 FFT and IFFT significantly by making the method in which it accesses roots more cache-friendly.
 - [\#258](https://github.com/arkworks-rs/algebra/pull/258) (ark-poly) Add `Mul<F>` implementation for `DensePolynomial`.
+- [\#259](https://github.com/arkworks-rs/algebra/pull/259) (ark-poly) Add `Mul<F>` implementation for `SparsePolynomial` and `Add<SparsePolynomial<F>>/Sub<SparsePolynomial<F>>` for `DensePolynomial`.
 - [\#261](https://github.com/arkworks-rs/algebra/pull/261) (ark-ff) Add support for 448-bit integers and fields.
 - [\#263](https://github.com/arkworks-rs/algebra/pull/263) (ark-ff) Add `From<iXXX>` implementations to fields.
 - [\#265](https://github.com/arkworks-rs/algebra/pull/265) (ark-serialize) Add hashing as an extension trait of `CanonicalSerialize`.
