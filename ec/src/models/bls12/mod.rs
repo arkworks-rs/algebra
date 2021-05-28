@@ -8,11 +8,20 @@ use ark_ff::fields::{
     fp6_3over2::Fp6Parameters,
     BitIteratorBE, Field, Fp2, PrimeField, SquareRootField,
 };
+use core::marker::PhantomData;
 use num_traits::{One, Zero};
 
-use core::marker::PhantomData;
+#[cfg(feature = "parallel")]
+use ark_ff::{Fp12ParamsWrapper, Fp2ParamsWrapper, QuadExtField};
+#[cfg(feature = "parallel")]
+use ark_std::cfg_iter;
+#[cfg(feature = "parallel")]
+use core::slice::Iter;
+#[cfg(feature = "parallel")]
+use rayon::iter::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator};
 
-/// A particular BLS12 group can have G2 being either a multiplicative or a divisive twist.
+/// A particular BLS12 group can have G2 being either a multiplicative or a
+/// divisive twist.
 pub enum TwistType {
     M,
     D,
@@ -91,6 +100,36 @@ impl<P: Bls12Parameters> PairingEngine for Bls12<P> {
     type Fqe = Fp2<P::Fp2Params>;
     type Fqk = Fp12<P::Fp12Params>;
 
+    #[cfg(not(feature = "parallel"))]
+    fn miller_loop<'a, I>(i: I) -> Self::Fqk
+    where
+        I: IntoIterator<Item = &'a (Self::G1Prepared, Self::G2Prepared)>,
+    {
+        let mut pairs = vec![];
+        for (p, q) in i {
+            if !p.is_zero() && !q.is_zero() {
+                pairs.push((p, q.ell_coeffs.iter()));
+            }
+        }
+        let mut f = Self::Fqk::one();
+        for i in BitIteratorBE::new(P::X).skip(1) {
+            f.square_in_place();
+            for (p, ref mut coeffs) in &mut pairs {
+                Self::ell(&mut f, coeffs.next().unwrap(), &p.0);
+            }
+            if i {
+                for &mut (p, ref mut coeffs) in &mut pairs {
+                    Self::ell(&mut f, coeffs.next().unwrap(), &p.0);
+                }
+            }
+        }
+        if P::X_IS_NEGATIVE {
+            f.conjugate();
+        }
+        f
+    }
+
+    #[cfg(feature = "parallel")]
     fn miller_loop<'a, I>(i: I) -> Self::Fqk
     where
         I: IntoIterator<Item = &'a (Self::G1Prepared, Self::G2Prepared)>,
@@ -102,26 +141,49 @@ impl<P: Bls12Parameters> PairingEngine for Bls12<P> {
             }
         }
 
-        let mut f = Self::Fqk::one();
-
-        for i in BitIteratorBE::new(P::X).skip(1) {
-            f.square_in_place();
-
-            for (p, ref mut coeffs) in &mut pairs {
-                Self::ell(&mut f, coeffs.next().unwrap(), &p.0);
-            }
-
-            if i {
-                for &mut (p, ref mut coeffs) in &mut pairs {
-                    Self::ell(&mut f, coeffs.next().unwrap(), &p.0);
-                }
-            }
+        let mut f_vec = vec![];
+        for _ in 0..pairs.len() {
+            f_vec.push(Self::Fqk::one());
         }
 
+        let a = |p: &&G1Prepared<P>,
+                 coeffs: &Iter<
+            '_,
+            (
+                QuadExtField<Fp2ParamsWrapper<<P as Bls12Parameters>::Fp2Params>>,
+                QuadExtField<Fp2ParamsWrapper<<P as Bls12Parameters>::Fp2Params>>,
+                QuadExtField<Fp2ParamsWrapper<<P as Bls12Parameters>::Fp2Params>>,
+            ),
+        >,
+                 mut f: QuadExtField<Fp12ParamsWrapper<<P as Bls12Parameters>::Fp12Params>>|
+         -> QuadExtField<Fp12ParamsWrapper<<P as Bls12Parameters>::Fp12Params>> {
+            let coeffs = coeffs.as_slice();
+            let mut j = 0;
+            for i in BitIteratorBE::new(P::X).skip(1) {
+                f.square_in_place();
+                Self::ell(&mut f, &coeffs[j], &p.0);
+                j += 1;
+                if i {
+                    Self::ell(&mut f, &coeffs[j], &p.0);
+                    j += 1;
+                }
+            }
+            f
+        };
+
+        let mut products = vec![];
+        cfg_iter!(pairs)
+            .zip(f_vec)
+            .map(|(p, f)| a(&p.0, &p.1, f))
+            .collect_into_vec(&mut products);
+
+        let mut f = Self::Fqk::one();
+        for ff in products {
+            f *= ff;
+        }
         if P::X_IS_NEGATIVE {
             f.conjugate();
         }
-
         f
     }
 
