@@ -13,8 +13,9 @@
 - [\#261](https://github.com/arkworks-rs/algebra/pull/261) (ark-ff) Add support for 448-bit integers and fields.
 - [\#263](https://github.com/arkworks-rs/algebra/pull/263) (ark-ff) Add `From<iXXX>` implementations to fields.
 - [\#265](https://github.com/arkworks-rs/algebra/pull/265) (ark-serialize) Add hashing as an extension trait of `CanonicalSerialize`.
-- [\#280](https://github.com/arkworks-rs/algebra/pull/280) (ark-ff) Add `Into<BigUint>` and `From<BigUint>` implementations to `BigInteger` and `PrimeField`.
 - [\#279](https://github.com/arkworks-rs/algebra/pull/279) (ark-ec) Parallelize miller loop operations for BLS12.
+- [\#280](https://github.com/arkworks-rs/algebra/pull/280) (ark-ff) Add `Into<BigUint>` and `From<BigUint>` implementations to `BigInteger` and `PrimeField`.
+- [\#289](https://github.com/arkworks-rs/algebra/pull/289) (ark-ec) Add `Sum` implementation for all `AffineCurve`.
 
 ### Improvements
 - [\#279](https://github.com/arkworks-rs/algebra/pull/279) (ark-ec) Parallelize miller loop operations for BLS12.
