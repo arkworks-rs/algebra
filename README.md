@@ -67,7 +67,6 @@ RUSTFLAGS="-C target-feature=+bmi2,+adx" cargo +nightly test/build/bench --featu
 To enable this in the `Cargo.toml` of your own projects, enable the `asm` feature flag:
 
 ```toml
-...
 ark-ff = { version = "0.1", features = [ "asm" ] }
 ```
 
