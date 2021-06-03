@@ -1,4 +1,5 @@
 #![allow(unused)]
+#![allow(clippy::eq_op)]
 use ark_ff::fields::{FftField, FftParameters, Field, LegendreSymbol, PrimeField, SquareRootField};
 use ark_serialize::{buffer_bit_byte_size, Flags, SWFlags};
 use ark_std::io::Cursor;

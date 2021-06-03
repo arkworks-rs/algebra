@@ -37,7 +37,7 @@ def convert_int_to_byte_vec(number):
 
     byte_arr = []
     for i in range(num_bytes):
-        byte = s[i * 8: (i + 1) * 8]
+        byte = s[i * 8 : (i + 1) * 8]
         i = int(byte, 2)
         byte_arr += [str(i) + "u8"]
 
