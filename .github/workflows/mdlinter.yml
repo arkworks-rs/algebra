@@ -28,3 +28,8 @@ jobs:
           MARKDOWN_CONFIG_FILE: .markdownlint.yml
           VALIDATE_PROTOBUF: false
           VALIDATE_JSCPD: false
+          # use Python Pylint as the only linter to avoid conflicts
+          VALIDATE_PYTHON_BLACK: false
+          VALIDATE_PYTHON_FLAKE8: false
+          VALIDATE_PYTHON_ISORT: false
+          VALIDATE_PYTHON_MYPY: false

@@ -1,4 +1,5 @@
 #![allow(unused)]
+#![allow(clippy::eq_op)]
 use ark_ec::group::Group;
 use ark_ff::{One, UniformRand, Zero};
 

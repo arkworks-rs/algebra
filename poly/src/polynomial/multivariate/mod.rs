@@ -53,9 +53,7 @@ pub trait Term:
 
 /// Stores a term (monomial) in a multivariate polynomial.
 /// Each element is of the form `(variable, power)`.  
-#[derive(
-    Clone, PartialOrd, PartialEq, Eq, Hash, Default, CanonicalSerialize, CanonicalDeserialize,
-)]
+#[derive(Clone, PartialEq, Eq, Hash, Default, CanonicalSerialize, CanonicalDeserialize)]
 pub struct SparseTerm(Vec<(usize, usize)>);
 
 impl SparseTerm {
@@ -141,26 +139,32 @@ impl Deref for SparseTerm {
     }
 }
 
-impl Ord for SparseTerm {
+impl PartialOrd for SparseTerm {
     /// Sort by total degree. If total degree is equal then ordering
     /// is given by exponent weight in lower-numbered variables
     /// ie. `x_1 > x_2`, `x_1^2 > x_1 * x_2`, etc.
-    fn cmp(&self, other: &Self) -> Ordering {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         if self.degree() != other.degree() {
-            self.degree().cmp(&other.degree())
+            Some(self.degree().cmp(&other.degree()))
         } else {
             // Iterate through all variables and return the corresponding ordering
             // if they differ in variable numbering or power
             for (cur, other) in self.iter().zip(other.iter()) {
                 if other.0 == cur.0 {
                     if cur.1 != other.1 {
-                        return (cur.1).cmp(&other.1);
+                        return Some((cur.1).cmp(&other.1));
                     }
                 } else {
-                    return (other.0).cmp(&cur.0);
+                    return Some((other.0).cmp(&cur.0));
                 }
             }
-            Ordering::Equal
+            Some(Ordering::Equal)
         }
+    }
+}
+
+impl Ord for SparseTerm {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.partial_cmp(other).unwrap()
     }
 }

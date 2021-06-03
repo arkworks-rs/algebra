@@ -239,6 +239,8 @@ pub trait AffineCurve:
     + Zero
     + Neg<Output = Self>
     + Zeroize
+    + core::iter::Sum<Self>
+    + for<'a> core::iter::Sum<&'a Self>
     + From<<Self as AffineCurve>::Projective>
 {
     const COFACTOR: &'static [u64];
