@@ -280,17 +280,17 @@ impl<P: Parameters> Default for GroupAffine<P> {
 
 impl<P: Parameters> core::iter::Sum<Self> for GroupAffine<P> {
     fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
-        iter.map(|x| x.into_projective())
-            .sum::<GroupProjective<P>>()
-            .into()
+        let mut sum = GroupProjective::<P>::zero();
+        iter.for_each(|x| sum.add_assign_mixed(&x));
+        sum.into()
     }
 }
 
 impl<'a, P: Parameters> core::iter::Sum<&'a Self> for GroupAffine<P> {
     fn sum<I: Iterator<Item = &'a Self>>(iter: I) -> Self {
-        iter.map(|x| x.into_projective())
-            .sum::<GroupProjective<P>>()
-            .into()
+        let mut sum = GroupProjective::<P>::zero();
+        iter.for_each(|x| sum.add_assign_mixed(&x));
+        sum.into()
     }
 }
 
