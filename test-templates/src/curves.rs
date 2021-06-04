@@ -1,4 +1,5 @@
 #![allow(unused)]
+use ark_ec::twisted_edwards_extended::GroupProjective;
 use ark_ec::wnaf::WnafContext;
 use ark_ec::{
     AffineCurve, MontgomeryModelParameters, ProjectiveCurve, SWModelParameters, TEModelParameters,
@@ -6,7 +7,6 @@ use ark_ec::{
 use ark_ff::{Field, One, PrimeField, UniformRand, Zero};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, SWFlags, SerializationError};
 use ark_std::{io::Cursor, vec::Vec};
-use ark_ec::twisted_edwards_extended::GroupProjective;
 
 pub const ITERATIONS: usize = 10;
 
@@ -424,8 +424,8 @@ pub fn sw_affine_sum_test<P: SWModelParameters>() {
             test_vec.push(GroupProjective::<P>::rand(&mut rng).into_affine());
         }
 
-        let sum_computed : GroupAffine<P> = test_vec.iter().sum();
-        let mut sum_expected  = GroupAffine::zero();
+        let sum_computed: GroupAffine<P> = test_vec.iter().sum();
+        let mut sum_expected = GroupAffine::zero();
         for p in test_vec.iter() {
             sum_expected += &p;
         }
