@@ -218,7 +218,7 @@ pub trait CyclotomicField: Field {
     /// By default this is `false`, but should be set to `true` for quadratic extensions.
     const INVERSE_IS_FAST: bool = false;
 
-    /// Compute a square in the cyclotomic subgroup. By default this is computed using [`Self::square`], but for
+    /// Compute a square in the cyclotomic subgroup. By default this is computed using [`Field::square`], but for
     /// degree 12 extensions, this can be computed faster than normal squaring.
     fn cyclotomic_square(&self) -> Self {
         let mut result = *self;
@@ -226,13 +226,13 @@ pub trait CyclotomicField: Field {
         result
     }
 
-    /// Square [`self`] in place. By default this is computed using [`Self::square_in_place`], but for
+    /// Square `self` in place. By default this is computed using [`Field::square_in_place`], but for
     /// degree 12 extensions, this can be computed faster than normal squaring.
     fn cyclotomic_square_in_place(&mut self) -> &mut Self {
         self.square_in_place()
     }
 
-    /// Compute the inverse of [`self`]. See [`Self::INVERSE_IS_FAST`] for details.
+    /// Compute the inverse of `self`. See [`Self::INVERSE_IS_FAST`] for details.
     /// Returns [`None`] if `self.is_zero()`, and [`Some`] otherwise.
     fn cyclotomic_inverse(&self) -> Option<Self> {
         let mut result = *self;
@@ -240,13 +240,13 @@ pub trait CyclotomicField: Field {
         Some(result)
     }
 
-    /// Compute the inverse of [`self`]. See [`Self::INVERSE_IS_FAST`] for details.
+    /// Compute the inverse of `self`. See [`Self::INVERSE_IS_FAST`] for details.
     /// Returns [`None`] if `self.is_zero()`, and [`Some`] otherwise.
     fn cyclotomic_inverse_in_place(&mut self) -> Option<&mut Self> {
         self.inverse_in_place()
     }
 
-    /// Compute a cyclotomic exponentiation of [`self`] with respect to `e`.
+    /// Compute a cyclotomic exponentiation of `self` with respect to `e`.
     fn cyclotomic_exp(&self, e: impl AsRef<[u64]>) -> Self {
         let mut result = *self;
         result.cyclotomic_exp_in_place(e);
