@@ -15,7 +15,7 @@ The available elliptic curve traits are:
 * [`ProjectiveCurve`](https://github.com/arkworks-rs/algebra/blob/master/ec/src/lib.rs#L118) - Interface for elliptic curve points in a representation that is more efficient for most computation.
 * [`PairingEngine`](https://github.com/arkworks-rs/algebra/blob/master/ec/src/lib.rs#L41) - Pairing friendly elliptic curves (Contains the pairing function, and acts as a wrapper type on G1, G2, GT, and the relevant fields).
 * [`CurveCycle`](https://github.com/arkworks-rs/algebra/blob/master/ec/src/lib.rs#L319) - Wrapper type for a cycle of elliptic curves.
-* [`PairingFriendlyCycle`](https://github.com/arkworks-rs/algebra/blob/master/ec/src/lib.rs#L331) - Wrapper type for a cycle of pairing friendly elliptic curves. 
+* [`PairingFriendlyCycle`](https://github.com/arkworks-rs/algebra/blob/master/ec/src/lib.rs#L331) - Wrapper type for a cycle of pairing friendly elliptic curves.
 
 The elliptic curve models implemented are:
 
