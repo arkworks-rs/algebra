@@ -24,6 +24,7 @@ pub trait Fp6Parameters: 'static + Send + Sync {
 }
 
 impl<P: Fp6Parameters> CyclotomicField for Fp6<P> {
+    const INVERSE_IS_FAST: bool = true;
     fn cyclotomic_inverse_in_place(&mut self) -> Option<&mut Self> {
         self.is_zero().not().then(|| {
             self.conjugate();

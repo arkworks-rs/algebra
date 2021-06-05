@@ -102,6 +102,7 @@ impl<P: Fp2Parameters> Fp2<P> {
 }
 
 impl<P: Fp2Parameters> CyclotomicField for Fp2<P> {
+    const INVERSE_IS_FAST: bool = true;
     fn cyclotomic_inverse_in_place(&mut self) -> Option<&mut Self> {
         self.is_zero().not().then(|| {
             self.conjugate();

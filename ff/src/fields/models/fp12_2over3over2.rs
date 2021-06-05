@@ -55,6 +55,8 @@ impl<P: Fp12Parameters> QuadExtParameters for Fp12ParamsWrapper<P> {
 pub type Fp12<P> = QuadExtField<Fp12ParamsWrapper<P>>;
 
 impl<P: Fp12Parameters> CyclotomicField for Fp12<P> {
+    const INVERSE_IS_FAST: bool = true;
+
     fn cyclotomic_inverse_in_place(&mut self) -> Option<&mut Self> {
         self.is_zero().not().then(|| {
             self.conjugate();
