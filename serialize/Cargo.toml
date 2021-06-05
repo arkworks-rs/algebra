@@ -14,7 +14,7 @@ edition = "2018"
 
 [dependencies]
 ark-serialize-derive = { version = "^0.3.0", path = "../serialize-derive", optional = true }
-ark-std = { version = "0.3.0", default-features = false }
+ark-std = { version = "^0.3.0", default-features = false }
 digest = { version = "0.9", default-features = false }
 
 [dev-dependencies]
