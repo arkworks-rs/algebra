@@ -1,4 +1,4 @@
-use crate::{AffineCurve, ProjectiveCurve};
+use crate::Group;
 use ark_ff::{BigInteger, FpParameters, PrimeField};
 use ark_std::vec::Vec;
 use ark_std::{cfg_iter, cfg_iter_mut};
@@ -17,11 +17,11 @@ impl FixedBaseMSM {
         }
     }
 
-    pub fn get_window_table<T: ProjectiveCurve>(
+    pub fn get_window_table<T: Group>(
         scalar_size: usize,
         window: usize,
         g: T,
-    ) -> Vec<Vec<T::Affine>> {
+    ) -> Vec<Vec<T::UniqueRepr>> {
         let in_window = 1 << window;
         let outerc = (scalar_size + window - 1) / window;
         let last_in_window = 1 << (scalar_size - (outerc - 1) * window);
@@ -54,20 +54,20 @@ impl FixedBaseMSM {
                 }
             });
         cfg_iter!(multiples_of_g)
-            .map(|s| T::batch_normalization_into_affine(&s))
+            .map(|s| T::batch_to_unique(&s))
             .collect()
     }
 
-    pub fn windowed_mul<T: ProjectiveCurve>(
+    pub fn windowed_mul<T: Group>(
         outerc: usize,
         window: usize,
-        multiples_of_g: &[Vec<T::Affine>],
+        multiples_of_g: &[Vec<T::UniqueRepr>],
         scalar: &T::ScalarField,
     ) -> T {
         let modulus_size = <T::ScalarField as PrimeField>::Params::MODULUS_BITS as usize;
         let scalar_val = scalar.into_repr().to_bits_le();
 
-        let mut res = multiples_of_g[0][0].into_projective();
+        let mut res = multiples_of_g[0][0].into();
         for outer in 0..outerc {
             let mut inner = 0usize;
             for i in 0..window {
@@ -75,15 +75,15 @@ impl FixedBaseMSM {
                     inner |= 1 << i;
                 }
             }
-            res.add_assign_mixed(&multiples_of_g[outer][inner]);
+            res.add_unique_in_place(&multiples_of_g[outer][inner]);
         }
         res
     }
 
-    pub fn multi_scalar_mul<T: ProjectiveCurve>(
+    pub fn multi_scalar_mul<T: Group>(
         scalar_size: usize,
         window: usize,
-        table: &[Vec<T::Affine>],
+        table: &[Vec<T::UniqueRepr>],
         v: &[T::ScalarField],
     ) -> Vec<T> {
         let outerc = (scalar_size + window - 1) / window;

@@ -1,7 +1,7 @@
 use ark_ff::prelude::*;
 use ark_std::vec::Vec;
 
-use crate::{AffineCurve, ProjectiveCurve};
+use crate::Group;
 
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
@@ -9,10 +9,10 @@ use rayon::prelude::*;
 pub struct VariableBaseMSM;
 
 impl VariableBaseMSM {
-    pub fn multi_scalar_mul<G: AffineCurve>(
-        bases: &[G],
+    pub fn multi_scalar_mul<G: Group>(
+        bases: &[G::UniqueRepr],
         scalars: &[<G::ScalarField as PrimeField>::BigInt],
-    ) -> G::Projective {
+    ) -> G {
         let size = ark_std::cmp::min(bases.len(), scalars.len());
         let scalars = &scalars[..size];
         let bases = &bases[..size];
@@ -27,7 +27,7 @@ impl VariableBaseMSM {
         let num_bits = <G::ScalarField as PrimeField>::Params::MODULUS_BITS as usize;
         let fr_one = G::ScalarField::one().into_repr();
 
-        let zero = G::Projective::zero();
+        let zero = G::zero();
         let window_starts: Vec<_> = (0..num_bits).step_by(c).collect();
 
         // Each window is of size `c`.
@@ -44,7 +44,7 @@ impl VariableBaseMSM {
                     if scalar == fr_one {
                         // We only process unit scalars once in the first window.
                         if w_start == 0 {
-                            res.add_assign_mixed(base);
+                            res.add_unique_in_place(base);
                         }
                     } else {
                         let mut scalar = scalar;
@@ -60,7 +60,7 @@ impl VariableBaseMSM {
                         // bucket.
                         // (Recall that `buckets` doesn't have a zero bucket.)
                         if scalar != 0 {
-                            buckets[(scalar - 1) as usize].add_assign_mixed(base);
+                            buckets[(scalar - 1) as usize].add_unique_in_place(base);
                         }
                     }
                 });
@@ -79,7 +79,7 @@ impl VariableBaseMSM {
 
                 // `running_sum` = sum_{j in i..num_buckets} bucket[j],
                 // where we iterate backward from i = num_buckets to 0.
-                let mut running_sum = G::Projective::zero();
+                let mut running_sum = G::zero();
                 buckets.into_iter().rev().for_each(|b| {
                     running_sum += &b;
                     res += &running_sum;

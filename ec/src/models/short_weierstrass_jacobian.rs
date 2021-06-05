@@ -4,27 +4,25 @@ use ark_serialize::{
 };
 use ark_std::{
     fmt::{Display, Formatter, Result as FmtResult},
-    io::{Read, Result as IoResult, Write},
+    io::{Read, Write},
     marker::PhantomData,
-    ops::{Add, AddAssign, MulAssign, Neg, Sub, SubAssign},
+    ops::{Add, AddAssign, MulAssign, Mul, Neg, Sub, SubAssign},
     vec::Vec,
+    rand::{
+        distributions::{Distribution, Standard},
+        Rng,
+    },
 };
 
 use ark_ff::{
-    bytes::{FromBytes, ToBytes},
     fields::{BitIteratorBE, Field, PrimeField, SquareRootField},
     ToConstraintField, UniformRand,
 };
 
-use crate::{models::SWModelParameters as Parameters, AffineCurve, ProjectiveCurve};
+use crate::{models::SWModelParameters as Parameters, Group, CurveGroup};
 
 use num_traits::{One, Zero};
 use zeroize::Zeroize;
-
-use ark_std::rand::{
-    distributions::{Distribution, Standard},
-    Rng,
-};
 
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
@@ -41,7 +39,7 @@ use rayon::prelude::*;
     Hash(bound = "P: Parameters")
 )]
 #[must_use]
-pub struct GroupAffine<P: Parameters> {
+pub struct Affine<P: Parameters> {
     pub x: P::BaseField,
     pub y: P::BaseField,
     pub infinity: bool,
@@ -49,29 +47,29 @@ pub struct GroupAffine<P: Parameters> {
     _params: PhantomData<P>,
 }
 
-impl<P: Parameters> PartialEq<GroupProjective<P>> for GroupAffine<P> {
-    fn eq(&self, other: &GroupProjective<P>) -> bool {
-        self.into_projective() == *other
+impl<P: Parameters> PartialEq<Projective<P>> for Affine<P> {
+    fn eq(&self, other: &Projective<P>) -> bool {
+        Projective::from(*self) == *other
     }
 }
 
-impl<P: Parameters> PartialEq<GroupAffine<P>> for GroupProjective<P> {
-    fn eq(&self, other: &GroupAffine<P>) -> bool {
-        *self == other.into_projective()
+impl<P: Parameters> PartialEq<Affine<P>> for Projective<P> {
+    fn eq(&self, other: &Affine<P>) -> bool {
+        *self == Self::from(*other)
     }
 }
 
-impl<P: Parameters> Display for GroupAffine<P> {
+impl<P: Parameters> Display for Affine<P> {
     fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
         if self.infinity {
-            write!(f, "GroupAffine(Infinity)")
+            write!(f, "Affine(Infinity)")
         } else {
-            write!(f, "GroupAffine(x={}, y={})", self.x, self.y)
+            write!(f, "Affine(x={}, y={})", self.x, self.y)
         }
     }
 }
 
-impl<P: Parameters> GroupAffine<P> {
+impl<P: Parameters> Affine<P> {
     pub fn new(x: P::BaseField, y: P::BaseField, infinity: bool) -> Self {
         Self {
             x,
@@ -81,21 +79,21 @@ impl<P: Parameters> GroupAffine<P> {
         }
     }
 
-    /// Multiply `self` by the cofactor of the curve, `P::COFACTOR`.
-    pub fn scale_by_cofactor(&self) -> GroupProjective<P> {
-        let cofactor = BitIteratorBE::new(P::COFACTOR);
+    /// Multiply [`self`] by the cofactor of the curve, [`P::COFACTOR`].
+    pub fn scale_by_cofactor(&self) -> Projective<P> {
+        let cofactor = BitIteratorBE::without_leading_zeros(P::COFACTOR);
         self.mul_bits(cofactor)
     }
 
     /// Multiplies `self` by the scalar represented by `bits`. `bits` must be a big-endian
     /// bit-wise decomposition of the scalar.
-    pub(crate) fn mul_bits(&self, bits: impl Iterator<Item = bool>) -> GroupProjective<P> {
-        let mut res = GroupProjective::zero();
+    pub(crate) fn mul_bits(&self, bits: impl Iterator<Item = bool>) -> Projective<P> {
+        let mut res = Projective::zero();
         // Skip leading zeros.
         for i in bits.skip_while(|b| !b) {
             res.double_in_place();
             if i {
-                res.add_assign_mixed(&self)
+                res.add_unique_in_place(&self)
             }
         }
         res
@@ -104,7 +102,7 @@ impl<P: Parameters> GroupAffine<P> {
     /// Attempts to construct an affine point given an x-coordinate. The
     /// point is not guaranteed to be in the prime order subgroup.
     ///
-    /// If and only if `greatest` is set will the lexicographically
+    /// If and only if [`greatest`] is set will the lexicographically
     /// largest y-coordinate be selected.
     #[allow(dead_code)]
     pub fn get_point_from_x(x: P::BaseField, greatest: bool) -> Option<Self> {
@@ -124,7 +122,7 @@ impl<P: Parameters> GroupAffine<P> {
         })
     }
 
-    /// Checks if `self` is a valid point on the curve.
+    /// Checks if [`self`] is a valid point on the curve.
     pub fn is_on_curve(&self) -> bool {
         if self.is_zero() {
             true
@@ -141,15 +139,15 @@ impl<P: Parameters> GroupAffine<P> {
         }
     }
 
-    /// Checks if `self` is in the subgroup having order that equaling that of
-    /// `P::ScalarField`.
+    /// Checks if [`self`] is in the subgroup having order that equaling that of
+    /// [`P::ScalarField`].
     pub fn is_in_correct_subgroup_assuming_on_curve(&self) -> bool {
         self.mul_bits(BitIteratorBE::new(P::ScalarField::characteristic()))
             .is_zero()
     }
 }
 
-impl<P: Parameters> Zeroize for GroupAffine<P> {
+impl<P: Parameters> Zeroize for Affine<P> {
     // The phantom data does not contain element-specific data
     // and thus does not need to be zeroized.
     fn zeroize(&mut self) {
@@ -159,7 +157,7 @@ impl<P: Parameters> Zeroize for GroupAffine<P> {
     }
 }
 
-impl<P: Parameters> Zero for GroupAffine<P> {
+impl<P: Parameters> Zero for Affine<P> {
     /// Returns the point at infinity. Note that in affine coordinates,
     /// the point at infinity does not lie on the curve, and this is indicated
     /// by setting the `infinity` flag to true.
@@ -175,7 +173,7 @@ impl<P: Parameters> Zero for GroupAffine<P> {
     }
 }
 
-impl<P: Parameters> Add<Self> for GroupAffine<P> {
+impl<P: Parameters> Add<Self> for Affine<P> {
     type Output = Self;
     fn add(self, other: Self) -> Self {
         let mut copy = self;
@@ -184,22 +182,17 @@ impl<P: Parameters> Add<Self> for GroupAffine<P> {
     }
 }
 
-impl<'a, P: Parameters> AddAssign<&'a Self> for GroupAffine<P> {
+impl<'a, P: Parameters> AddAssign<&'a Self> for Affine<P> {
     fn add_assign(&mut self, other: &'a Self) {
-        let mut s_proj = GroupProjective::from(*self);
-        s_proj.add_assign_mixed(other);
-        *self = s_proj.into();
+        let mut s = Projective::from(*self);
+        s.add_unique_in_place(other);
+        *self = s.into();
     }
 }
 
-impl<P: Parameters> AffineCurve for GroupAffine<P> {
-    const COFACTOR: &'static [u64] = P::COFACTOR;
-    type BaseField = P::BaseField;
-    type ScalarField = P::ScalarField;
-    type Projective = GroupProjective<P>;
-
+impl<P: Parameters> Affine<P> {
     #[inline]
-    fn prime_subgroup_generator() -> Self {
+    fn generator() -> Self {
         Self::new(
             P::AFFINE_GENERATOR_COEFFS.0,
             P::AFFINE_GENERATOR_COEFFS.1,
@@ -207,37 +200,39 @@ impl<P: Parameters> AffineCurve for GroupAffine<P> {
         )
     }
 
-    fn from_random_bytes(bytes: &[u8]) -> Option<Self> {
-        P::BaseField::from_random_bytes_with_flags::<SWFlags>(bytes).and_then(|(x, flags)| {
-            // if x is valid and is zero and only the infinity flag is set, then parse this
-            // point as infinity. For all other choices, get the original point.
-            if x.is_zero() && flags.is_infinity() {
-                Some(Self::zero())
-            } else if let Some(y_is_positive) = flags.is_positive() {
-                Self::get_point_from_x(x, y_is_positive) // Unwrap is safe because it's not zero.
-            } else {
-                None
-            }
-        })
-    }
-
     #[inline]
-    fn mul<S: Into<<Self::ScalarField as PrimeField>::BigInt>>(&self, by: S) -> GroupProjective<P> {
-        let bits = BitIteratorBE::new(by.into());
-        self.mul_bits(bits)
-    }
-
-    #[inline]
-    fn mul_by_cofactor_to_projective(&self) -> Self::Projective {
+    pub fn mul_by_cofactor_to_projective(&self) -> Projective<P> {
         self.scale_by_cofactor()
     }
 
-    fn mul_by_cofactor_inv(&self) -> Self {
-        self.mul(P::COFACTOR_INV).into()
+    pub fn mul_by_cofactor_inv(&self) -> Self {
+        self.mul(P::COFACTOR_INV.into()).into()
     }
 }
 
-impl<P: Parameters> Neg for GroupAffine<P> {
+impl<P: Parameters> Mul<<P::ScalarField as PrimeField>::BigInt> for Affine<P> {
+    type Output = Projective<P>;
+    #[inline]
+    fn mul(self, by: <P::ScalarField as PrimeField>::BigInt) -> Projective<P> {
+        let bits = BitIteratorBE::without_leading_zeros(by);
+        self.mul_bits(bits)
+    }
+}
+
+impl<P: Parameters> Distribution<Affine<P>> for Standard {
+    #[inline]
+    fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> Affine<P> {
+        loop {
+            let x = P::BaseField::rand(rng);
+            let greatest = rng.gen();
+            if let Some(p) = Affine::get_point_from_x(x, greatest) {
+                return p.scale_by_cofactor().into();
+            }
+        }
+    }
+}
+
+impl<P: Parameters> Neg for Affine<P> {
     type Output = Self;
 
     /// If `self.is_zero()`, returns `self` (`== Self::zero()`).
@@ -252,44 +247,43 @@ impl<P: Parameters> Neg for GroupAffine<P> {
     }
 }
 
-impl<P: Parameters> ToBytes for GroupAffine<P> {
-    #[inline]
-    fn write<W: Write>(&self, mut writer: W) -> IoResult<()> {
-        self.x.write(&mut writer)?;
-        self.y.write(&mut writer)?;
-        self.infinity.write(&mut writer)
-    }
-}
-
-impl<P: Parameters> FromBytes for GroupAffine<P> {
-    #[inline]
-    fn read<R: Read>(mut reader: R) -> IoResult<Self> {
-        let x = P::BaseField::read(&mut reader)?;
-        let y = P::BaseField::read(&mut reader)?;
-        let infinity = bool::read(reader)?;
-        Ok(Self::new(x, y, infinity))
-    }
-}
-
-impl<P: Parameters> Default for GroupAffine<P> {
+impl<P: Parameters> Default for Affine<P> {
     #[inline]
     fn default() -> Self {
         Self::zero()
     }
 }
 
-impl<P: Parameters> core::iter::Sum<Self> for GroupAffine<P> {
+impl<P: Parameters> core::iter::Sum<Self> for Affine<P> {
     fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
-        iter.map(|x| x.into_projective())
-            .sum::<GroupProjective<P>>()
+        iter.map(Projective::from)
+            .sum::<Projective<P>>()
             .into()
     }
 }
 
-impl<'a, P: Parameters> core::iter::Sum<&'a Self> for GroupAffine<P> {
+impl<'a, P: Parameters> core::iter::Sum<&'a Self> for Affine<P> {
     fn sum<I: Iterator<Item = &'a Self>>(iter: I) -> Self {
-        iter.map(|x| x.into_projective())
-            .sum::<GroupProjective<P>>()
+        iter.copied()
+            .map(Projective::from)
+            .sum::<Projective<P>>()
+            .into()
+    }
+}
+
+impl<P: Parameters> core::iter::Sum<Projective<P>> for Affine<P> {
+    fn sum<I: Iterator<Item = Projective<P>>>(iter: I) -> Self {
+        iter.map(Projective::from)
+            .sum::<Projective<P>>()
+            .into()
+    }
+}
+
+impl<'a, P: Parameters> core::iter::Sum<&'a Projective<P>> for Affine<P> {
+    fn sum<I: Iterator<Item = &'a Projective<P>>>(iter: I) -> Self {
+        iter.copied()
+            .map(Projective::from)
+            .sum::<Projective<P>>()
             .into()
     }
 }
@@ -305,7 +299,7 @@ impl<'a, P: Parameters> core::iter::Sum<&'a Self> for GroupAffine<P> {
     Hash(bound = "P: Parameters")
 )]
 #[must_use]
-pub struct GroupProjective<P: Parameters> {
+pub struct Projective<P: Parameters> {
     pub x: P::BaseField,
     pub y: P::BaseField,
     pub z: P::BaseField,
@@ -313,14 +307,14 @@ pub struct GroupProjective<P: Parameters> {
     _params: PhantomData<P>,
 }
 
-impl<P: Parameters> Display for GroupProjective<P> {
+impl<P: Parameters> Display for Projective<P> {
     fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
-        write!(f, "{}", GroupAffine::from(*self))
+        write!(f, "{}", Affine::from(*self))
     }
 }
 
-impl<P: Parameters> Eq for GroupProjective<P> {}
-impl<P: Parameters> PartialEq for GroupProjective<P> {
+impl<P: Parameters> Eq for Projective<P> {}
+impl<P: Parameters> PartialEq for Projective<P> {
     fn eq(&self, other: &Self) -> bool {
         if self.is_zero() {
             return other.is_zero();
@@ -344,47 +338,29 @@ impl<P: Parameters> PartialEq for GroupProjective<P> {
     }
 }
 
-impl<P: Parameters> Distribution<GroupProjective<P>> for Standard {
+impl<P: Parameters> Distribution<Projective<P>> for Standard {
     #[inline]
-    fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> GroupProjective<P> {
+    fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> Projective<P> {
         loop {
             let x = P::BaseField::rand(rng);
             let greatest = rng.gen();
 
-            if let Some(p) = GroupAffine::get_point_from_x(x, greatest) {
+            if let Some(p) = Affine::get_point_from_x(x, greatest) {
                 return p.scale_by_cofactor().into();
             }
         }
     }
 }
 
-impl<P: Parameters> ToBytes for GroupProjective<P> {
-    #[inline]
-    fn write<W: Write>(&self, mut writer: W) -> IoResult<()> {
-        self.x.write(&mut writer)?;
-        self.y.write(&mut writer)?;
-        self.z.write(writer)
-    }
-}
-
-impl<P: Parameters> FromBytes for GroupProjective<P> {
-    #[inline]
-    fn read<R: Read>(mut reader: R) -> IoResult<Self> {
-        let x = P::BaseField::read(&mut reader)?;
-        let y = P::BaseField::read(&mut reader)?;
-        let z = P::BaseField::read(reader)?;
-        Ok(Self::new(x, y, z))
-    }
-}
-
-impl<P: Parameters> Default for GroupProjective<P> {
+impl<P: Parameters> Default for Projective<P> {
     #[inline]
     fn default() -> Self {
         Self::zero()
     }
 }
 
-impl<P: Parameters> GroupProjective<P> {
+impl<P: Parameters> Projective<P> {
+    /// Construct a [`Self`] *without* validating that the coordinates form a valid point.
     pub fn new(x: P::BaseField, y: P::BaseField, z: P::BaseField) -> Self {
         Self {
             x,
@@ -393,9 +369,15 @@ impl<P: Parameters> GroupProjective<P> {
             _params: PhantomData,
         }
     }
+
+    /// Can [`self`] be converted to [`Affine`] cheaply?
+    #[inline]
+    pub fn is_normalized(&self) -> bool {
+        self.is_zero() || self.z.is_one()
+    }
 }
 
-impl<P: Parameters> Zeroize for GroupProjective<P> {
+impl<P: Parameters> Zeroize for Projective<P> {
     fn zeroize(&mut self) {
         // `PhantomData` does not contain any data and thus does not need to be zeroized.
         self.x.zeroize();
@@ -404,7 +386,7 @@ impl<P: Parameters> Zeroize for GroupProjective<P> {
     }
 }
 
-impl<P: Parameters> Zero for GroupProjective<P> {
+impl<P: Parameters> Zero for Projective<P> {
     /// Returns the point at infinity, which always has Z = 0.
     #[inline]
     fn zero() -> Self {
@@ -422,24 +404,29 @@ impl<P: Parameters> Zero for GroupProjective<P> {
     }
 }
 
-impl<P: Parameters> ProjectiveCurve for GroupProjective<P> {
+impl<P: Parameters> CurveGroup for Projective<P> {
     const COFACTOR: &'static [u64] = P::COFACTOR;
+
+    const COFACTOR_INVERSE: Self::ScalarField = P::COFACTOR_INV;
+
     type BaseField = P::BaseField;
+}
+
+impl<P: Parameters> Group for Projective<P> {
     type ScalarField = P::ScalarField;
-    type Affine = GroupAffine<P>;
+    type UniqueRepr = Affine<P>;
 
     #[inline]
-    fn prime_subgroup_generator() -> Self {
-        GroupAffine::prime_subgroup_generator().into()
+    fn generator() -> Self::UniqueRepr {
+        Affine::generator()
     }
 
-    #[inline]
-    fn is_normalized(&self) -> bool {
-        self.is_zero() || self.z.is_one()
+    /// Converts [`self`] into the unique representation.
+    fn to_unique(&self) -> Self::UniqueRepr {
+        (*self).into()
     }
 
-    /// Normalizes a slice of projective elements so that
-    /// conversion to affine is cheap.
+    /// Canonicalize a slice of projective elements into their unique representation.
     ///
     /// In more detail, this method converts a curve point in Jacobian coordinates
     /// (x, y, z) into an equivalent representation (x/z^2, y/z^3, 1).
@@ -447,21 +434,31 @@ impl<P: Parameters> ProjectiveCurve for GroupProjective<P> {
     /// For `N = v.len()`, this costs 1 inversion + 6N field multiplications + N field squarings.
     ///
     /// (Where batch inversion comprises 3N field multiplications + 1 inversion of these operations)
-    #[inline]
-    fn batch_normalization(v: &mut [Self]) {
+    fn batch_to_unique(v: &[Self]) -> Vec<Self::UniqueRepr> {
         let mut z_s = v.iter().map(|g| g.z).collect::<Vec<_>>();
         ark_ff::batch_inversion(&mut z_s);
 
         // Perform affine transformations
-        ark_std::cfg_iter_mut!(v)
+        ark_std::cfg_iter!(v)
             .zip(z_s)
             .filter(|(g, _)| !g.is_normalized())
-            .for_each(|(g, z)| {
+            .map(|(g, z)| {
+                let mut g = *g;
                 let z2 = z.square(); // 1/z
                 g.x *= &z2; // x/z^2
                 g.y *= &(z2 * &z); // y/z^3
                 g.z = P::BaseField::one(); // z = 1
-            });
+                g.to_unique()
+            })
+            .collect()
+    }
+
+    /// Doubles `self`.
+    #[must_use]
+    fn double(&self) -> Self {
+        let mut copy = *self;
+        copy.double_in_place();
+        copy
     }
 
     /// Sets `self = 2 * self`. Note that Jacobian formulae are incomplete, and
@@ -535,12 +532,11 @@ impl<P: Parameters> ProjectiveCurve for GroupProjective<P> {
             self.z = (old_y + &self.z).square() - &yy - &zz;
             self
         }
+
     }
 
-    /// When `other.is_normalized()` (i.e., `other.z == 1`), we can use a more efficient
-    /// [formula](http://www.hyperelliptic.org/EFD/g1p/auto-shortw-jacobian-0.html#addition-madd-2007-bl)
-    /// to compute `self + other`.
-    fn add_assign_mixed(&mut self, other: &GroupAffine<P>) {
+    /// Add an affine element to `self` in place using the more efficient [formula](http://www.hyperelliptic.org/EFD/g1p/auto-shortw-jacobian-0.html#addition-madd-2007-bl)
+    fn add_unique_in_place(&mut self, other: &Affine<P>) {
         if other.is_zero() {
             return;
         }
@@ -608,7 +604,7 @@ impl<P: Parameters> ProjectiveCurve for GroupProjective<P> {
     }
 }
 
-impl<P: Parameters> Neg for GroupProjective<P> {
+impl<P: Parameters> Neg for Projective<P> {
     type Output = Self;
 
     #[inline]
@@ -621,9 +617,9 @@ impl<P: Parameters> Neg for GroupProjective<P> {
     }
 }
 
-ark_ff::impl_additive_ops_from_ref!(GroupProjective, Parameters);
+ark_ff::impl_additive_ops_from_ref!(Projective, Parameters);
 
-impl<'a, P: Parameters> Add<&'a Self> for GroupProjective<P> {
+impl<'a, P: Parameters> Add<&'a Self> for Projective<P> {
     type Output = Self;
 
     #[inline]
@@ -633,7 +629,7 @@ impl<'a, P: Parameters> Add<&'a Self> for GroupProjective<P> {
     }
 }
 
-impl<'a, P: Parameters> AddAssign<&'a Self> for GroupProjective<P> {
+impl<'a, P: Parameters> AddAssign<&'a Self> for Projective<P> {
     fn add_assign(&mut self, other: &'a Self) {
         if self.is_zero() {
             *self = *other;
@@ -698,7 +694,7 @@ impl<'a, P: Parameters> AddAssign<&'a Self> for GroupProjective<P> {
     }
 }
 
-impl<'a, P: Parameters> Sub<&'a Self> for GroupProjective<P> {
+impl<'a, P: Parameters> Sub<&'a Self> for Projective<P> {
     type Output = Self;
 
     #[inline]
@@ -708,13 +704,13 @@ impl<'a, P: Parameters> Sub<&'a Self> for GroupProjective<P> {
     }
 }
 
-impl<'a, P: Parameters> SubAssign<&'a Self> for GroupProjective<P> {
+impl<'a, P: Parameters> SubAssign<&'a Self> for Projective<P> {
     fn sub_assign(&mut self, other: &'a Self) {
         *self += &(-(*other));
     }
 }
 
-impl<P: Parameters> MulAssign<P::ScalarField> for GroupProjective<P> {
+impl<P: Parameters> MulAssign<P::ScalarField> for Projective<P> {
     fn mul_assign(&mut self, other: P::ScalarField) {
         *self = self.mul(other.into_repr())
     }
@@ -722,9 +718,9 @@ impl<P: Parameters> MulAssign<P::ScalarField> for GroupProjective<P> {
 
 // The affine point X, Y is represented in the Jacobian
 // coordinates with Z = 1.
-impl<P: Parameters> From<GroupAffine<P>> for GroupProjective<P> {
+impl<P: Parameters> From<Affine<P>> for Projective<P> {
     #[inline]
-    fn from(p: GroupAffine<P>) -> GroupProjective<P> {
+    fn from(p: Affine<P>) -> Projective<P> {
         if p.is_zero() {
             Self::zero()
         } else {
@@ -735,14 +731,14 @@ impl<P: Parameters> From<GroupAffine<P>> for GroupProjective<P> {
 
 // The projective point X, Y, Z is represented in the affine
 // coordinates as X/Z^2, Y/Z^3.
-impl<P: Parameters> From<GroupProjective<P>> for GroupAffine<P> {
+impl<P: Parameters> From<Projective<P>> for Affine<P> {
     #[inline]
-    fn from(p: GroupProjective<P>) -> GroupAffine<P> {
+    fn from(p: Projective<P>) -> Affine<P> {
         if p.is_zero() {
-            GroupAffine::zero()
+            Affine::zero()
         } else if p.z.is_one() {
             // If Z is one, the point is already normalized.
-            GroupAffine::new(p.x, p.y, false)
+            Affine::new(p.x, p.y, false)
         } else {
             // Z is nonzero, so it must have an inverse in a field.
             let zinv = p.z.inverse().unwrap();
@@ -754,12 +750,12 @@ impl<P: Parameters> From<GroupProjective<P>> for GroupAffine<P> {
             // Y/Z^3
             let y = p.y * &(zinv_squared * &zinv);
 
-            GroupAffine::new(x, y, false)
+            Affine::new(x, y, false)
         }
     }
 }
 
-impl<P: Parameters> CanonicalSerialize for GroupAffine<P> {
+impl<P: Parameters> CanonicalSerialize for Affine<P> {
     #[allow(unused_qualifications)]
     #[inline]
     fn serialize<W: Write>(&self, writer: W) -> Result<(), SerializationError> {
@@ -797,35 +793,35 @@ impl<P: Parameters> CanonicalSerialize for GroupAffine<P> {
     }
 }
 
-impl<P: Parameters> CanonicalSerialize for GroupProjective<P> {
+impl<P: Parameters> CanonicalSerialize for Projective<P> {
     #[allow(unused_qualifications)]
     #[inline]
     fn serialize<W: Write>(&self, writer: W) -> Result<(), SerializationError> {
-        let aff = GroupAffine::<P>::from(self.clone());
+        let aff = Affine::<P>::from(self.clone());
         aff.serialize(writer)
     }
 
     #[inline]
     fn serialized_size(&self) -> usize {
-        let aff = GroupAffine::<P>::from(self.clone());
+        let aff = Affine::<P>::from(self.clone());
         aff.serialized_size()
     }
 
     #[allow(unused_qualifications)]
     #[inline]
     fn serialize_uncompressed<W: Write>(&self, writer: W) -> Result<(), SerializationError> {
-        let aff = GroupAffine::<P>::from(self.clone());
+        let aff = Affine::<P>::from(self.clone());
         aff.serialize_uncompressed(writer)
     }
 
     #[inline]
     fn uncompressed_size(&self) -> usize {
-        let aff = GroupAffine::<P>::from(self.clone());
+        let aff = Affine::<P>::from(self.clone());
         aff.uncompressed_size()
     }
 }
 
-impl<P: Parameters> CanonicalDeserialize for GroupAffine<P> {
+impl<P: Parameters> CanonicalDeserialize for Affine<P> {
     #[allow(unused_qualifications)]
     fn deserialize<R: Read>(reader: R) -> Result<Self, SerializationError> {
         let (x, flags): (P::BaseField, SWFlags) =
@@ -833,7 +829,7 @@ impl<P: Parameters> CanonicalDeserialize for GroupAffine<P> {
         if flags.is_infinity() {
             Ok(Self::zero())
         } else {
-            let p = GroupAffine::<P>::get_point_from_x(x, flags.is_positive().unwrap())
+            let p = Affine::<P>::get_point_from_x(x, flags.is_positive().unwrap())
                 .ok_or(SerializationError::InvalidData)?;
             if !p.is_in_correct_subgroup_assuming_on_curve() {
                 return Err(SerializationError::InvalidData);
@@ -859,32 +855,32 @@ impl<P: Parameters> CanonicalDeserialize for GroupAffine<P> {
         let x: P::BaseField = CanonicalDeserialize::deserialize(&mut reader)?;
         let (y, flags): (P::BaseField, SWFlags) =
             CanonicalDeserializeWithFlags::deserialize_with_flags(&mut reader)?;
-        let p = GroupAffine::<P>::new(x, y, flags.is_infinity());
+        let p = Affine::<P>::new(x, y, flags.is_infinity());
         Ok(p)
     }
 }
 
-impl<P: Parameters> CanonicalDeserialize for GroupProjective<P> {
+impl<P: Parameters> CanonicalDeserialize for Projective<P> {
     #[allow(unused_qualifications)]
     fn deserialize<R: Read>(reader: R) -> Result<Self, SerializationError> {
-        let aff = GroupAffine::<P>::deserialize(reader)?;
+        let aff = Affine::<P>::deserialize(reader)?;
         Ok(aff.into())
     }
 
     #[allow(unused_qualifications)]
     fn deserialize_uncompressed<R: Read>(reader: R) -> Result<Self, SerializationError> {
-        let aff = GroupAffine::<P>::deserialize_uncompressed(reader)?;
+        let aff = Affine::<P>::deserialize_uncompressed(reader)?;
         Ok(aff.into())
     }
 
     #[allow(unused_qualifications)]
     fn deserialize_unchecked<R: Read>(reader: R) -> Result<Self, SerializationError> {
-        let aff = GroupAffine::<P>::deserialize_unchecked(reader)?;
+        let aff = Affine::<P>::deserialize_unchecked(reader)?;
         Ok(aff.into())
     }
 }
 
-impl<M: Parameters, ConstraintF: Field> ToConstraintField<ConstraintF> for GroupAffine<M>
+impl<M: Parameters, ConstraintF: Field> ToConstraintField<ConstraintF> for Affine<M>
 where
     M::BaseField: ToConstraintField<ConstraintF>,
 {
@@ -899,12 +895,12 @@ where
     }
 }
 
-impl<M: Parameters, ConstraintF: Field> ToConstraintField<ConstraintF> for GroupProjective<M>
+impl<M: Parameters, ConstraintF: Field> ToConstraintField<ConstraintF> for Projective<M>
 where
     M::BaseField: ToConstraintField<ConstraintF>,
 {
     #[inline]
     fn to_field_elements(&self) -> Option<Vec<ConstraintF>> {
-        GroupAffine::from(*self).to_field_elements()
+        Affine::from(*self).to_field_elements()
     }
 }
