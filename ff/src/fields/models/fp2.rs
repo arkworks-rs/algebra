@@ -1,6 +1,7 @@
 use super::quadratic_extension::*;
-use crate::fields::PrimeField;
+use crate::{CyclotomicField, fields::PrimeField, Zero};
 use core::marker::PhantomData;
+use core::ops::Not;
 
 pub trait Fp2Parameters: 'static + Send + Sync {
     type Fp: PrimeField;
@@ -97,5 +98,14 @@ impl<P: Fp2Parameters> Fp2<P> {
     pub fn mul_assign_by_fp(&mut self, other: &P::Fp) {
         self.c0 *= other;
         self.c1 *= other;
+    }
+}
+
+impl<P: Fp2Parameters> CyclotomicField for Fp2<P> {
+    fn cyclotomic_inverse_in_place(&mut self) -> Option<&mut Self> {
+        self.is_zero().not().then(|| {
+            self.conjugate();
+            self
+        })
     }
 }

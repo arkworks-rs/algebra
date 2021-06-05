@@ -209,6 +209,94 @@ pub trait Field:
     }
 }
 
+/// Fields that have a cyclotomic subgroup, and which can leverage efficient inversion
+/// and squaring operations for elements in this subgroup.
+pub trait CyclotomicField: Field {
+
+    /// Is the inverse fast to compute? For example, in quadratic extensions, the inverse
+    /// can be computed at the cost of negating one coordinate, which is much faster than
+    /// standard inversion.
+    /// By default this is `false`, but should be set to `true` for quadratic extensions.
+    const INVERSE_IS_FAST: bool = false;
+
+    /// Compute a square in the cyclotomic subgroup. By default this is computed using [`Self::square`], but for
+    /// degree 12 extensions, this can be computed faster than normal squaring.
+    fn cyclotomic_square(&self) -> Self {
+        let mut result = *self;
+        result.cyclotomic_square_in_place();
+        result
+    }
+
+    /// Square [`self`] in place. By default this is computed using [`Self::square_in_place`], but for
+    /// degree 12 extensions, this can be computed faster than normal squaring.
+    fn cyclotomic_square_in_place(&mut self) -> &mut Self {
+        self.square_in_place()
+    }
+
+    /// Compute the inverse of [`self`]. See [`Self::INVERSE_IS_FAST`] for details.
+    /// Returns [`None`] if `self.is_zero()`, and [`Some`] otherwise.
+    fn cyclotomic_inverse(&self) -> Option<Self> {
+        let mut result = *self;
+        result.cyclotomic_inverse_in_place()?;
+        Some(result)
+    }
+
+    /// Compute the inverse of [`self`]. See [`Self::INVERSE_IS_FAST`] for details.
+    /// Returns [`None`] if `self.is_zero()`, and [`Some`] otherwise.
+    fn cyclotomic_inverse_in_place(&mut self) -> Option<&mut Self> {
+        self.inverse_in_place()
+    }
+
+    /// Compute a cyclotomic exponentiation of [`self`] with respect to `e`.
+    fn cyclotomic_exp(&self, e: impl AsRef<[u64]>) -> Self {
+        let mut result = *self;
+        result.cyclotomic_exp_in_place(e);
+        result
+    }
+
+    /// Set `self` to be the result of exponentiating [`self`] by `e`, using efficient cyclotomic algorithms.
+    fn cyclotomic_exp_in_place(&mut self, e: impl AsRef<[u64]>) {
+        if self.is_zero() {
+            return
+        }
+
+        if Self::INVERSE_IS_FAST {
+            // We only use NAF-based exponentiation if inverses are fast to compute.
+            let naf = crate::biginteger::arithmetic::find_wnaf(e.as_ref());
+            exp_loop(self, naf.into_iter().rev())
+        } else {
+            exp_loop(self, BitIteratorBE::without_leading_zeros(e.as_ref()).map(|e| e as i8))
+        };
+    }
+}
+
+/// Helper function to calculate the double-and-add loop for exponentiation.
+fn exp_loop<F: CyclotomicField, I: Iterator<Item = i8>>(f: &mut F, e: I) {
+    let self_inverse = if F::INVERSE_IS_FAST {
+        f.cyclotomic_inverse().unwrap()  // must exist because self is not zero.
+    } else {
+        F::one()
+    };
+    let mut res = F::one();
+    let mut found_nonzero = false;
+    for value in e {
+        if found_nonzero {
+            res.cyclotomic_square_in_place();
+        }
+
+        if value != 0 {
+            found_nonzero = true;
+
+            if value > 0 {
+                res *= &*f;
+            } else if F::INVERSE_IS_FAST {// only use wnaf if inversion is fast.
+                res *= &self_inverse;
+            }
+        }
+    }
+    *f = res;
+}
+
 /// A trait that defines parameters for a field that can be used for FFTs.
 pub trait FftParameters: 'static + Send + Sync + Sized {
     type BigInt: BigInteger;

@@ -1,8 +1,8 @@
 use super::quadratic_extension::*;
 use core::marker::PhantomData;
-use core::ops::MulAssign;
+use core::ops::{Not, MulAssign};
 
-use crate::fields::{Fp3, Fp3Parameters};
+use crate::{fields::{CyclotomicField, Fp3, Fp3Parameters}, Zero};
 
 pub trait Fp6Parameters: 'static + Send + Sync {
     type Fp3Params: Fp3Parameters;
@@ -20,6 +20,15 @@ pub trait Fp6Parameters: 'static + Send + Sync {
         res.c2 = fe.c1;
         res.c0 = <Self::Fp3Params as Fp3Parameters>::mul_fp_by_nonresidue(&res.c0);
         res
+    }
+}
+
+impl<P: Fp6Parameters> CyclotomicField for Fp6<P> {
+    fn cyclotomic_inverse_in_place(&mut self) -> Option<&mut Self> {
+        self.is_zero().not().then(|| {
+            self.conjugate();
+            self
+        })
     }
 }
 

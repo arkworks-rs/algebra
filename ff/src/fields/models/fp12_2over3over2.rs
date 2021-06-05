@@ -1,10 +1,10 @@
 use super::quadratic_extension::*;
 use crate::{
-    fields::{fp6_3over2::*, Field, Fp2, Fp2Parameters},
-    One,
+    fields::{fp6_3over2::*, Field, Fp2, Fp2Parameters, CyclotomicField},
+    Zero,
 };
 use core::marker::PhantomData;
-use core::ops::{AddAssign, SubAssign};
+use core::ops::{AddAssign, SubAssign, Not};
 
 type Fp2Params<P> = <<P as Fp12Parameters>::Fp6Params as Fp6Parameters>::Fp2Params;
 
@@ -50,88 +50,19 @@ impl<P: Fp12Parameters> QuadExtParameters for Fp12ParamsWrapper<P> {
     fn mul_base_field_by_frob_coeff(fe: &mut Self::BaseField, power: usize) {
         fe.mul_assign_by_fp2(Self::FROBENIUS_COEFF_C1[power % Self::DEGREE_OVER_BASE_PRIME_FIELD]);
     }
-
-    fn cyclotomic_exp(fe: &Fp12<P>, exponent: impl AsRef<[u64]>) -> Fp12<P> {
-        let mut res = QuadExtField::one();
-        let mut fe_inverse = *fe;
-        fe_inverse.conjugate();
-
-        let mut found_nonzero = false;
-        let naf = crate::biginteger::arithmetic::find_wnaf(exponent.as_ref());
-
-        for &value in naf.iter().rev() {
-            if found_nonzero {
-                res.cyclotomic_square_in_place();
-            }
-
-            if value != 0 {
-                found_nonzero = true;
-
-                if value > 0 {
-                    res *= fe;
-                } else {
-                    res *= &fe_inverse;
-                }
-            }
-        }
-        res
-    }
 }
 
 pub type Fp12<P> = QuadExtField<Fp12ParamsWrapper<P>>;
 
-impl<P: Fp12Parameters> Fp12<P> {
-    pub fn mul_by_fp(
-        &mut self,
-        element: &<<P::Fp6Params as Fp6Parameters>::Fp2Params as Fp2Parameters>::Fp,
-    ) {
-        self.c0.mul_by_fp(&element);
-        self.c1.mul_by_fp(&element);
+impl<P: Fp12Parameters> CyclotomicField for Fp12<P> {
+    fn cyclotomic_inverse_in_place(&mut self) -> Option<&mut Self> {
+        self.is_zero().not().then(|| {
+            self.conjugate();
+            self
+        })
     }
 
-    pub fn mul_by_034(
-        &mut self,
-        c0: &Fp2<Fp2Params<P>>,
-        c3: &Fp2<Fp2Params<P>>,
-        c4: &Fp2<Fp2Params<P>>,
-    ) {
-        let a0 = self.c0.c0 * c0;
-        let a1 = self.c0.c1 * c0;
-        let a2 = self.c0.c2 * c0;
-        let a = Fp6::new(a0, a1, a2);
-        let mut b = self.c1;
-        b.mul_by_01(&c3, &c4);
-
-        let c0 = *c0 + c3;
-        let c1 = c4;
-        let mut e = self.c0 + &self.c1;
-        e.mul_by_01(&c0, &c1);
-        self.c1 = e - &(a + &b);
-        self.c0 = a + &P::mul_fp6_by_nonresidue(&b);
-    }
-
-    pub fn mul_by_014(
-        &mut self,
-        c0: &Fp2<Fp2Params<P>>,
-        c1: &Fp2<Fp2Params<P>>,
-        c4: &Fp2<Fp2Params<P>>,
-    ) {
-        let mut aa = self.c0;
-        aa.mul_by_01(c0, c1);
-        let mut bb = self.c1;
-        bb.mul_by_1(c4);
-        let mut o = *c1;
-        o.add_assign(c4);
-        self.c1.add_assign(&self.c0);
-        self.c1.mul_by_01(c0, &o);
-        self.c1.sub_assign(&aa);
-        self.c1.sub_assign(&bb);
-        self.c0 = bb;
-        self.c0 = P::mul_fp6_by_nonresidue(&self.c0);
-        self.c0.add_assign(&aa);
-    }
-
-    pub fn cyclotomic_square_in_place(&mut self) {
+    fn cyclotomic_square_in_place(&mut self) -> &mut Self {
         // Faster Squaring in the Cyclotomic Subgroup of Sixth Degree Extensions
         // - Robert Granger and Michael Scott
         //
@@ -203,30 +134,79 @@ impl<P: Fp12Parameters> Fp12<P> {
             *z5 += t3;
             z5.double_in_place();
             *z5 += &t3;
+            self
         } else {
-            self.square_in_place();
+            self.square_in_place()
         }
-    }
-
-    pub fn cyclotomic_square(&self) -> Self {
-        let mut result = *self;
-        result.cyclotomic_square_in_place();
-        result
     }
 }
 
-// TODO: make `const fn` in 1.46.
-pub fn characteristic_square_mod_6_is_one(characteristic: &[u64]) -> bool {
+impl<P: Fp12Parameters> Fp12<P> {
+    pub fn mul_by_fp(
+        &mut self,
+        element: &<<P::Fp6Params as Fp6Parameters>::Fp2Params as Fp2Parameters>::Fp,
+    ) {
+        self.c0.mul_by_fp(&element);
+        self.c1.mul_by_fp(&element);
+    }
+
+    pub fn mul_by_034(
+        &mut self,
+        c0: &Fp2<Fp2Params<P>>,
+        c3: &Fp2<Fp2Params<P>>,
+        c4: &Fp2<Fp2Params<P>>,
+    ) {
+        let a0 = self.c0.c0 * c0;
+        let a1 = self.c0.c1 * c0;
+        let a2 = self.c0.c2 * c0;
+        let a = Fp6::new(a0, a1, a2);
+        let mut b = self.c1;
+        b.mul_by_01(&c3, &c4);
+
+        let c0 = *c0 + c3;
+        let c1 = c4;
+        let mut e = self.c0 + &self.c1;
+        e.mul_by_01(&c0, &c1);
+        self.c1 = e - &(a + &b);
+        self.c0 = a + &P::mul_fp6_by_nonresidue(&b);
+    }
+
+    pub fn mul_by_014(
+        &mut self,
+        c0: &Fp2<Fp2Params<P>>,
+        c1: &Fp2<Fp2Params<P>>,
+        c4: &Fp2<Fp2Params<P>>,
+    ) {
+        let mut aa = self.c0;
+        aa.mul_by_01(c0, c1);
+        let mut bb = self.c1;
+        bb.mul_by_1(c4);
+        let mut o = *c1;
+        o.add_assign(c4);
+        self.c1.add_assign(&self.c0);
+        self.c1.mul_by_01(c0, &o);
+        self.c1.sub_assign(&aa);
+        self.c1.sub_assign(&bb);
+        self.c0 = bb;
+        self.c0 = P::mul_fp6_by_nonresidue(&self.c0);
+        self.c0.add_assign(&aa);
+    }
+}
+
+pub const fn characteristic_square_mod_6_is_one(characteristic: &[u64]) -> bool {
     // characteristic mod 6 = (a_0 + 2**64 * a_1 + ...) mod 6
     //                      = a_0 mod 6 + (2**64 * a_1 mod 6) + (...) mod 6
     //                      = a_0 mod 6 + (4 * a_1 mod 6) + (4 * ...) mod 6
     let mut char_mod_6 = 0u64;
-    for (i, limb) in characteristic.iter().enumerate() {
+    let mut i = 0;
+    while i < characteristic.len() {
+        let limb = characteristic[i];
         char_mod_6 += if i == 0 {
             limb % 6
         } else {
             (4 * (limb % 6)) % 6
         };
+        i += 1;
     }
     (char_mod_6 * char_mod_6) % 6 == 1
 }

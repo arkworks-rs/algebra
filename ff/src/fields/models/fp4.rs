@@ -1,7 +1,8 @@
 use super::quadratic_extension::*;
 use core::marker::PhantomData;
+use core::ops::Not;
 
-use crate::fields::{Fp2, Fp2Parameters};
+use crate::{fields::{CyclotomicField, Fp2, Fp2Parameters}, Zero};
 
 pub trait Fp4Parameters: 'static + Send + Sync {
     type Fp2Params: Fp2Parameters;
@@ -48,6 +49,15 @@ impl<P: Fp4Parameters> QuadExtParameters for Fp4ParamsWrapper<P> {
 }
 
 pub type Fp4<P> = QuadExtField<Fp4ParamsWrapper<P>>;
+
+impl<P: Fp4Parameters> CyclotomicField for Fp4<P> {
+    fn cyclotomic_inverse_in_place(&mut self) -> Option<&mut Self> {
+        self.is_zero().not().then(|| {
+            self.conjugate();
+            self
+        })
+    }
+}
 
 impl<P: Fp4Parameters> Fp4<P> {
     pub fn mul_by_fp(&mut self, element: &<P::Fp2Params as Fp2Parameters>::Fp) {
