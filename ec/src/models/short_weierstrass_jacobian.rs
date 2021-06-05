@@ -278,6 +278,20 @@ impl<P: Parameters> Default for GroupAffine<P> {
     }
 }
 
+impl<P: Parameters> core::iter::Sum<Self> for GroupAffine<P> {
+    fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
+        iter.fold(GroupProjective::<P>::zero(), |sum, x| sum.add_mixed(&x))
+            .into()
+    }
+}
+
+impl<'a, P: Parameters> core::iter::Sum<&'a Self> for GroupAffine<P> {
+    fn sum<I: Iterator<Item = &'a Self>>(iter: I) -> Self {
+        iter.fold(GroupProjective::<P>::zero(), |sum, x| sum.add_mixed(&x))
+            .into()
+    }
+}
+
 /// Jacobian coordinates for a point on an elliptic curve in short Weierstrass form,
 /// over the base field `P::BaseField`. This struct implements arithmetic
 /// via the Jacobian formulae

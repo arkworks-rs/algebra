@@ -5,6 +5,8 @@
 ### Breaking changes
 
 - [\#285](https://github.com/arkworks-rs/algebra/pull/285) (ark-ec) Remove `ATE_LOOP_COUNT_IS_NEGATIVE` from BN curve parameter trait.
+- [\#292](https://github.com/arkworks-rs/algebra/pull/292) (ark-ec) Remove `CycleEngine`.
+- [\#293](https://github.com/arkworks-rs/algebra/pull/293) (ark-ff) Remove `ark_ff::test_rng`.
 
 ### Features
 
@@ -16,13 +18,13 @@
 - [\#263](https://github.com/arkworks-rs/algebra/pull/263) (ark-ff) Add `From<iXXX>` implementations to fields.
 - [\#265](https://github.com/arkworks-rs/algebra/pull/265) (ark-serialize) Add hashing as an extension trait of `CanonicalSerialize`.
 - [\#280](https://github.com/arkworks-rs/algebra/pull/280) (ark-ff) Add `Into<BigUint>` and `From<BigUint>` implementations to `BigInteger` and `PrimeField`.
-- [\#279](https://github.com/arkworks-rs/algebra/pull/279) (ark-ec) Parallelize miller loop operations for BLS12.
+- [\#289](https://github.com/arkworks-rs/algebra/pull/289) (ark-ec) Add `Sum` implementation for all `AffineCurve`.
 
 ### Improvements
+
 - [\#279](https://github.com/arkworks-rs/algebra/pull/279) (ark-ec) Parallelize miller loop operations for BLS12.
 
 ### Bug fixes
-- [\#252](https://github.com/arkworks-rs/algebra/pull/252) (ark-ff) Fix prime field sampling when `REPR_SHIFT_BITS` is 64.
 
 - [\#252](https://github.com/arkworks-rs/algebra/pull/252) (ark-ff) Fix prime field sampling when `REPR_SHIFT_BITS` is 64.
 - [\#284](https://github.com/arkworks-rs/algebra/pull/284) (ark-poly-benches) Fix the panic `subgroup_fft_in_place` benchmark for MNT6-753's Fr.

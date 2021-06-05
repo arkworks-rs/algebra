@@ -1,4 +1,5 @@
 #![allow(unused)]
+#![allow(clippy::eq_op)]
 use ark_ff::fields::{FftField, FftParameters, Field, LegendreSymbol, PrimeField, SquareRootField};
 use ark_serialize::{buffer_bit_byte_size, Flags, SWFlags};
 use ark_std::io::Cursor;
@@ -313,11 +314,9 @@ pub fn fft_field_test<F: FftField>() {
     if let Some(small_subgroup_base) = F::FftParams::SMALL_SUBGROUP_BASE {
         let small_subgroup_base_adicity = F::FftParams::SMALL_SUBGROUP_BASE_ADICITY.unwrap();
         let large_subgroup_root_of_unity = F::large_subgroup_root_of_unity().unwrap();
-        assert_eq!(
-            large_subgroup_root_of_unity.pow([(1 << F::FftParams::TWO_ADICITY)
-                * (small_subgroup_base as u64).pow(small_subgroup_base_adicity)]),
-            F::one()
-        );
+        let pow = (1 << F::FftParams::TWO_ADICITY)
+            * (small_subgroup_base as u64).pow(small_subgroup_base_adicity);
+        assert_eq!(large_subgroup_root_of_unity.pow([pow]), F::one());
 
         for i in 0..F::FftParams::TWO_ADICITY {
             for j in 0..small_subgroup_base_adicity {

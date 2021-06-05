@@ -239,6 +239,8 @@ pub trait AffineCurve:
     + Zero
     + Neg<Output = Self>
     + Zeroize
+    + core::iter::Sum<Self>
+    + for<'a> core::iter::Sum<&'a Self>
     + From<<Self as AffineCurve>::Projective>
 {
     const COFACTOR: &'static [u64];
@@ -312,20 +314,6 @@ pub fn prepare_g1<E: PairingEngine>(g: impl Into<E::G1Affine>) -> E::G1Prepared 
 pub fn prepare_g2<E: PairingEngine>(g: impl Into<E::G2Affine>) -> E::G2Prepared {
     let g: E::G2Affine = g.into();
     E::G2Prepared::from(g)
-}
-
-/// A cycle of pairing-friendly elliptic curves.
-#[deprecated(note = "Please use `PairingFriendlyCycle` instead")]
-pub trait CycleEngine: Sized + 'static + Copy + Debug + Sync + Send
-where
-    <Self::E2 as PairingEngine>::G1Projective: MulAssign<<Self::E1 as PairingEngine>::Fq>,
-    <Self::E2 as PairingEngine>::G2Projective: MulAssign<<Self::E1 as PairingEngine>::Fq>,
-{
-    type E1: PairingEngine;
-    type E2: PairingEngine<
-        Fr = <Self::E1 as PairingEngine>::Fq,
-        Fq = <Self::E1 as PairingEngine>::Fr,
-    >;
 }
 
 pub trait CurveCycle
