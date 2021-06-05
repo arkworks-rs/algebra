@@ -4,6 +4,7 @@
 
 ### Breaking changes
 
+- [\#285](https://github.com/arkworks-rs/algebra/pull/285) (ark-ec) Remove `ATE_LOOP_COUNT_IS_NEGATIVE` from BN curve parameter trait.
 - [\#292](https://github.com/arkworks-rs/algebra/pull/292) (ark-ec) Remove `CycleEngine`.
 - [\#293](https://github.com/arkworks-rs/algebra/pull/293) (ark-ff) Remove `ark_ff::test_rng`.
 
