@@ -256,15 +256,14 @@ impl<P: Parameters> Default for Affine<P> {
 
 impl<P: Parameters> core::iter::Sum<Self> for Affine<P> {
     fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
-        iter.map(Projective::from).sum::<Projective<P>>().into()
+        iter.fold(Projective::<P>::zero(), |sum, x| sum.add_unique(&x))
+            .into()
     }
 }
 
 impl<'a, P: Parameters> core::iter::Sum<&'a Self> for Affine<P> {
     fn sum<I: Iterator<Item = &'a Self>>(iter: I) -> Self {
-        iter.copied()
-            .map(Projective::from)
-            .sum::<Projective<P>>()
+        iter.fold(Projective::<P>::zero(), |sum, x| sum.add_unique(x))
             .into()
     }
 }
