@@ -1,6 +1,6 @@
 [package]
 name = "ark-ff-asm"
-version = "0.2.0"
+version = "0.3.0"
 authors = [ "arkworks contributors" ]
 description = "A library for generating x86-64 assembly for finite field multiplication"
 homepage = "https://arkworks.rs"
