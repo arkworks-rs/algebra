@@ -4,6 +4,8 @@
 
 ### Breaking changes
 
+- [\#293](https://github.com/arkworks-rs/algebra/pull/293) (ark-ff) Remove `ark_ff::test_rng`.
+
 ### Features
 
 - [\#230](https://github.com/arkworks-rs/algebra/pull/230) (ark-ec) Add `wnaf_mul` implementation for `ProjectiveCurve`.
