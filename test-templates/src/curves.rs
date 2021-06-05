@@ -1,4 +1,5 @@
 #![allow(unused)]
+use ark_ec::twisted_edwards_extended::GroupProjective;
 use ark_ec::wnaf::WnafContext;
 use ark_ec::{
     AffineCurve, MontgomeryModelParameters, ProjectiveCurve, SWModelParameters, TEModelParameters,
@@ -301,6 +302,7 @@ pub fn curve_tests<G: ProjectiveCurve>() {
 pub fn sw_tests<P: SWModelParameters>() {
     sw_curve_serialization_test::<P>();
     sw_from_random_bytes::<P>();
+    sw_affine_sum_test::<P>();
 }
 
 pub fn sw_from_random_bytes<P: SWModelParameters>() {
@@ -408,6 +410,27 @@ pub fn sw_curve_serialization_test<P: SWModelParameters>() {
             let b = GroupAffine::<P>::deserialize_uncompressed(&mut cursor).unwrap();
             assert_eq!(a, b);
         }
+    }
+}
+
+pub fn sw_affine_sum_test<P: SWModelParameters>() {
+    use ark_ec::models::short_weierstrass_jacobian::{GroupAffine, GroupProjective};
+
+    let mut rng = ark_std::test_rng();
+
+    for _ in 0..ITERATIONS {
+        let mut test_vec = Vec::new();
+        for _ in 0..10 {
+            test_vec.push(GroupProjective::<P>::rand(&mut rng).into_affine());
+        }
+
+        let sum_computed: GroupAffine<P> = test_vec.iter().sum();
+        let mut sum_expected = GroupAffine::zero();
+        for p in test_vec.iter() {
+            sum_expected += &p;
+        }
+
+        assert_eq!(sum_computed, sum_expected);
     }
 }
 
