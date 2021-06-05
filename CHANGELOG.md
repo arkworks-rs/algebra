@@ -5,6 +5,7 @@
 ### Breaking changes
 
 - [\#292](https://github.com/arkworks-rs/algebra/pull/292) (ark-ec) Remove `CycleEngine`.
+- [\#293](https://github.com/arkworks-rs/algebra/pull/293) (ark-ff) Remove `ark_ff::test_rng`.
 
 ### Features
 
