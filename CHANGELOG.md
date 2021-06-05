@@ -3,6 +3,7 @@
 ## Pending
 
 ### Breaking changes
+
 - [\#292](https://github.com/arkworks-rs/algebra/pull/292) (ark-ec) Remove `CycleEngine`.
 
 ### Features
