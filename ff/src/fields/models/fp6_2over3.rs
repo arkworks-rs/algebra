@@ -1,8 +1,11 @@
 use super::quadratic_extension::*;
 use core::marker::PhantomData;
-use core::ops::{Not, MulAssign};
+use core::ops::{MulAssign, Not};
 
-use crate::{fields::{CyclotomicField, Fp3, Fp3Parameters}, Zero};
+use crate::{
+    fields::{CyclotomicField, Fp3, Fp3Parameters},
+    Zero,
+};
 
 pub trait Fp6Parameters: 'static + Send + Sync {
     type Fp3Params: Fp3Parameters;

@@ -1,10 +1,10 @@
 use super::quadratic_extension::*;
 use crate::{
-    fields::{fp6_3over2::*, Field, Fp2, Fp2Parameters, CyclotomicField},
+    fields::{fp6_3over2::*, CyclotomicField, Field, Fp2, Fp2Parameters},
     Zero,
 };
 use core::marker::PhantomData;
-use core::ops::{AddAssign, SubAssign, Not};
+use core::ops::{AddAssign, Not, SubAssign};
 
 type Fp2Params<P> = <<P as Fp12Parameters>::Fp6Params as Fp6Parameters>::Fp2Params;
 

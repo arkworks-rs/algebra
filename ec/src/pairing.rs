@@ -1,23 +1,27 @@
-use ark_ff::{One, Zero, PrimeField, SquareRootField, CyclotomicField};
-use ark_std::{io::{Read, Write}, fmt::{Display, Formatter, Result as FmtResult}};
-use ark_serialize::SerializationError;
-use ark_std::rand::{Rng, distributions::{Distribution, Standard}};
 use crate::*;
+use ark_ff::{CyclotomicField, One, PrimeField, SquareRootField, Zero};
+use ark_serialize::SerializationError;
+use ark_std::rand::{
+    distributions::{Distribution, Standard},
+    Rng,
+};
+use ark_std::{
+    fmt::{Display, Formatter, Result as FmtResult},
+    io::{Read, Write},
+};
 
 pub trait Pairing: Sized + 'static + Copy + Debug + Sync + Send + Eq {
     /// This is the scalar field of `Self::G1` and `Self::G2`.
     type ScalarField: PrimeField + SquareRootField;
 
     /// An element of G1.
-    type G1: CurveGroup<ScalarField = Self::ScalarField>
-        + MulAssign<Self::ScalarField>; // needed due to https://github.com/rust-lang/rust/issues/69640
+    type G1: CurveGroup<ScalarField = Self::ScalarField> + MulAssign<Self::ScalarField>; // needed due to https://github.com/rust-lang/rust/issues/69640
 
     /// An element of G1 that has been preprocessed for use in a pairing.
     type G1Prepared: Default + Clone + Send + Sync + Debug + From<Self::G1>;
 
     /// An element of G2.
-    type G2: CurveGroup<ScalarField = Self::ScalarField> 
-        + MulAssign<Self::ScalarField>; // needed due to https://github.com/rust-lang/rust/issues/69640
+    type G2: CurveGroup<ScalarField = Self::ScalarField> + MulAssign<Self::ScalarField>; // needed due to https://github.com/rust-lang/rust/issues/69640
 
     /// An element of G2 that has been preprocessed for use in a pairing.
     type G2Prepared: Default + Clone + Send + Sync + Debug + From<Self::G2>;
@@ -27,7 +31,9 @@ pub trait Pairing: Sized + 'static + Copy + Debug + Sync + Send + Eq {
 
     /// Perform a miller loop with some number of (G1, G2) pairs.
     #[must_use]
-    fn miller_loop<'a>(i: impl IntoIterator<Item = &'a (Self::G1Prepared, Self::G2Prepared)>) -> MillerLoopOutput<Self>;
+    fn miller_loop<'a>(
+        i: impl IntoIterator<Item = &'a (Self::G1Prepared, Self::G2Prepared)>,
+    ) -> MillerLoopOutput<Self>;
 
     /// Perform final exponentiation of the result of a miller loop.
     #[must_use]
@@ -35,8 +41,9 @@ pub trait Pairing: Sized + 'static + Copy + Debug + Sync + Send + Eq {
 
     /// Computes a product of pairings.
     #[must_use]
-    fn product_of_pairings<'a>(i: impl IntoIterator<Item = &'a (Self::G1Prepared, Self::G2Prepared)>) -> PairingOutput<Self>
-    {
+    fn product_of_pairings<'a>(
+        i: impl IntoIterator<Item = &'a (Self::G1Prepared, Self::G2Prepared)>,
+    ) -> PairingOutput<Self> {
         Self::final_exponentiation(Self::miller_loop(i))
     }
 
@@ -49,10 +56,18 @@ pub trait Pairing: Sized + 'static + Copy + Debug + Sync + Send + Eq {
     }
 }
 
-/// Represents the target group of a pairing. This struct is a 
+/// Represents the target group of a pairing. This struct is a
 /// wrapper around the field that the target group is embedded in.
 #[derive(Derivative, CanonicalSerialize, CanonicalDeserialize)]
-#[derivative(Copy(bound = ""), Clone(bound = ""), PartialEq(bound = ""), Eq(bound = ""), Debug(bound = ""), Default(bound = ""), Hash(bound = ""))]
+#[derivative(
+    Copy(bound = ""),
+    Clone(bound = ""),
+    PartialEq(bound = ""),
+    Eq(bound = ""),
+    Debug(bound = ""),
+    Default(bound = ""),
+    Hash(bound = "")
+)]
 pub struct PairingOutput<P: Pairing>(P::TargetField);
 
 impl<P: Pairing> PairingOutput<P> {
@@ -165,7 +180,7 @@ impl<P: Pairing> Group for PairingOutput<P> {
         let g2 = P::G2::generator();
         P::pairing(g1.into(), g2.into())
     }
-    
+
     fn to_unique(&self) -> Self::UniqueRepr {
         *self
     }
@@ -181,8 +196,8 @@ impl<P: Pairing> Group for PairingOutput<P> {
 
     fn add_unique_in_place(&mut self, other: &Self::UniqueRepr) {
         // We're using the underlying field's multiplicative group.
-		self.0 *= other.0
-	}
+        self.0 *= other.0
+    }
 
     fn mul(self, other: impl Into<<Self::ScalarField as PrimeField>::BigInt>) -> Self {
         Self(self.0.cyclotomic_exp(other.into().as_ref()))

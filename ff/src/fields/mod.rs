@@ -212,7 +212,6 @@ pub trait Field:
 /// Fields that have a cyclotomic subgroup, and which can leverage efficient inversion
 /// and squaring operations for elements in this subgroup.
 pub trait CyclotomicField: Field {
-
     /// Is the inverse fast to compute? For example, in quadratic extensions, the inverse
     /// can be computed at the cost of negating one coordinate, which is much faster than
     /// standard inversion.
@@ -257,7 +256,7 @@ pub trait CyclotomicField: Field {
     /// Set `self` to be the result of exponentiating [`self`] by `e`, using efficient cyclotomic algorithms.
     fn cyclotomic_exp_in_place(&mut self, e: impl AsRef<[u64]>) {
         if self.is_zero() {
-            return
+            return;
         }
 
         if Self::INVERSE_IS_FAST {
@@ -265,7 +264,10 @@ pub trait CyclotomicField: Field {
             let naf = crate::biginteger::arithmetic::find_wnaf(e.as_ref());
             exp_loop(self, naf.into_iter().rev())
         } else {
-            exp_loop(self, BitIteratorBE::without_leading_zeros(e.as_ref()).map(|e| e as i8))
+            exp_loop(
+                self,
+                BitIteratorBE::without_leading_zeros(e.as_ref()).map(|e| e as i8),
+            )
         };
     }
 }
@@ -273,7 +275,7 @@ pub trait CyclotomicField: Field {
 /// Helper function to calculate the double-and-add loop for exponentiation.
 fn exp_loop<F: CyclotomicField, I: Iterator<Item = i8>>(f: &mut F, e: I) {
     let self_inverse = if F::INVERSE_IS_FAST {
-        f.cyclotomic_inverse().unwrap()  // must exist because self is not zero.
+        f.cyclotomic_inverse().unwrap() // must exist because self is not zero.
     } else {
         F::one()
     };
@@ -289,7 +291,8 @@ fn exp_loop<F: CyclotomicField, I: Iterator<Item = i8>>(f: &mut F, e: I) {
 
             if value > 0 {
                 res *= &*f;
-            } else if F::INVERSE_IS_FAST {// only use wnaf if inversion is fast.
+            } else if F::INVERSE_IS_FAST {
+                // only use wnaf if inversion is fast.
                 res *= &self_inverse;
             }
         }

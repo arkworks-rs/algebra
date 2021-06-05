@@ -2,7 +2,10 @@ use super::quadratic_extension::*;
 use core::marker::PhantomData;
 use core::ops::Not;
 
-use crate::{fields::{CyclotomicField, Fp2, Fp2Parameters}, Zero};
+use crate::{
+    fields::{CyclotomicField, Fp2, Fp2Parameters},
+    Zero,
+};
 
 pub trait Fp4Parameters: 'static + Send + Sync {
     type Fp2Params: Fp2Parameters;

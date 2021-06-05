@@ -6,12 +6,12 @@ use ark_std::{
     fmt::{Display, Formatter, Result as FmtResult},
     io::{Read, Write},
     marker::PhantomData,
-    ops::{Add, AddAssign, MulAssign, Mul, Neg, Sub, SubAssign},
-    vec::Vec,
+    ops::{Add, AddAssign, Mul, MulAssign, Neg, Sub, SubAssign},
     rand::{
         distributions::{Distribution, Standard},
         Rng,
     },
+    vec::Vec,
 };
 
 use ark_ff::{
@@ -19,7 +19,7 @@ use ark_ff::{
     ToConstraintField, UniformRand,
 };
 
-use crate::{models::SWModelParameters as Parameters, Group, CurveGroup};
+use crate::{models::SWModelParameters as Parameters, CurveGroup, Group};
 
 use num_traits::{One, Zero};
 use zeroize::Zeroize;
@@ -256,9 +256,7 @@ impl<P: Parameters> Default for Affine<P> {
 
 impl<P: Parameters> core::iter::Sum<Self> for Affine<P> {
     fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
-        iter.map(Projective::from)
-            .sum::<Projective<P>>()
-            .into()
+        iter.map(Projective::from).sum::<Projective<P>>().into()
     }
 }
 
@@ -273,9 +271,7 @@ impl<'a, P: Parameters> core::iter::Sum<&'a Self> for Affine<P> {
 
 impl<P: Parameters> core::iter::Sum<Projective<P>> for Affine<P> {
     fn sum<I: Iterator<Item = Projective<P>>>(iter: I) -> Self {
-        iter.map(Projective::from)
-            .sum::<Projective<P>>()
-            .into()
+        iter.map(Projective::from).sum::<Projective<P>>().into()
     }
 }
 
@@ -532,7 +528,6 @@ impl<P: Parameters> Group for Projective<P> {
             self.z = (old_y + &self.z).square() - &yy - &zz;
             self
         }
-
     }
 
     /// Add an affine element to `self` in place using the more efficient [formula](http://www.hyperelliptic.org/EFD/g1p/auto-shortw-jacobian-0.html#addition-madd-2007-bl)

@@ -1,5 +1,5 @@
 use super::quadratic_extension::*;
-use crate::{CyclotomicField, fields::PrimeField, Zero};
+use crate::{fields::PrimeField, CyclotomicField, Zero};
 use core::marker::PhantomData;
 use core::ops::Not;
 

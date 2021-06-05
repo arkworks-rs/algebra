@@ -21,7 +21,7 @@ use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use ark_std::{
     fmt::{Debug, Display},
     hash::Hash,
-    ops::{Add, AddAssign, MulAssign, Neg, Sub, SubAssign, Mul},
+    ops::{Add, AddAssign, Mul, MulAssign, Neg, Sub, SubAssign},
     vec::Vec,
 };
 use num_traits::Zero;
@@ -37,12 +37,11 @@ pub mod msm;
 
 pub mod wnaf;
 
-
 /// Represents (elements of) a group of prime order `r`.
 pub trait Group:
-	'static
+    'static
     + Sized
-	+ Eq
+    + Eq
     + Copy
     + Default
     + Send
@@ -67,15 +66,25 @@ pub trait Group:
     + From<<Self as Group>::UniqueRepr>
     + Zeroize
 {
-	/// The scalar field `F_r`, where `r` is the order of this group.
+    /// The scalar field `F_r`, where `r` is the order of this group.
     type ScalarField: PrimeField + SquareRootField;
 
-	/// The unique representation of elements of this group.
-	/// For example, in elliptic curve groups, this can be defined to be the affine representation of curve points.
-    type UniqueRepr:
-        Copy + Eq + Debug + Display + From<Self> + Into<Self> + UniformRand + Zero + Neg 
-        + Mul<<Self::ScalarField as PrimeField>::BigInt, Output = Self> + core::iter::Sum<Self>
-        + for<'a> core::iter::Sum<&'a Self> + CanonicalSerialize + CanonicalDeserialize;
+    /// The unique representation of elements of this group.
+    /// For example, in elliptic curve groups, this can be defined to be the affine representation of curve points.
+    type UniqueRepr: Copy
+        + Eq
+        + Debug
+        + Display
+        + From<Self>
+        + Into<Self>
+        + UniformRand
+        + Zero
+        + Neg
+        + Mul<<Self::ScalarField as PrimeField>::BigInt, Output = Self>
+        + core::iter::Sum<Self>
+        + for<'a> core::iter::Sum<&'a Self>
+        + CanonicalSerialize
+        + CanonicalDeserialize;
 
     /// Returns a fixed generator of this group.
     #[must_use]
@@ -102,7 +111,7 @@ pub trait Group:
 
     /// Compute `self + other`, where `other` has type [`Self::UniqueRepr`].
     /// This method is useful for elliptic curve groups, where it can
-	/// be implemented via fast(er) mixed addition algorithms.
+    /// be implemented via fast(er) mixed addition algorithms.
     fn add_unique(mut self, other: &Self::UniqueRepr) -> Self {
         self.add_unique_in_place(other);
         self
@@ -110,46 +119,46 @@ pub trait Group:
 
     /// Set `self` to be `self + other`, where `other` has type `Self::CanonicalRepr.
     /// This method is useful for elliptic curve groups, where it can
-	/// be implemented via fast(er) mixed addition algorithms.
+    /// be implemented via fast(er) mixed addition algorithms.
     fn add_unique_in_place(&mut self, other: &Self::UniqueRepr) {
-		*self += &Self::from(*other)
-	}
+        *self += &Self::from(*other)
+    }
 
     /// Compute `other * self`, where `other` is any type that can be converted
-	/// into `<Self::ScalarField>::BigInt`. This includes `Self::ScalarField`.
+    /// into `<Self::ScalarField>::BigInt`. This includes `Self::ScalarField`.
     fn mul(self, other: impl Into<<Self::ScalarField as PrimeField>::BigInt>) -> Self {
         self.mul_bits_be(ark_ff::BitIteratorBE::without_leading_zeros(other.into()))
     }
 
-    /// Computes `other * self`, where `other` is a *big-endian* 
-	/// bit representation of some integer.
+    /// Computes `other * self`, where `other` is a *big-endian*
+    /// bit representation of some integer.
     fn mul_bits_be(&self, other: impl Iterator<Item = bool>) -> Self {
         let mut res = Self::zero();
-        for b in other.skip_while(|b| !b) { // skip leading zeros
+        for b in other.skip_while(|b| !b) {
+            // skip leading zeros
             res.double_in_place();
             if b {
                 res += self;
             }
         }
-		res
+        res
     }
 }
 
-/// The additive [`Group`] defined by points on an elliptic curve. 
+/// The additive [`Group`] defined by points on an elliptic curve.
 /// Defines additional associated types and constants that are
-/// useful when working with curves. 
+/// useful when working with curves.
 pub trait CurveGroup: Group {
-	/// The cofactor of this elliptic curve.
+    /// The cofactor of this elliptic curve.
     const COFACTOR: &'static [u64];
 
-	/// The value `(Self::COFACTOR)^(-1)` in `Self::ScalarField`.
+    /// The value `(Self::COFACTOR)^(-1)` in `Self::ScalarField`.
     const COFACTOR_INVERSE: Self::ScalarField;
 
-	/// The base field that this elliptic curve is defined over. 
-	/// Unlike `Self::ScalarField`, this does not have to be a prime field.
+    /// The base field that this elliptic curve is defined over.
+    /// Unlike `Self::ScalarField`, this does not have to be a prime field.
     type BaseField: Field;
 }
-
 
 /// Preprocess a G1 element for use in a pairing.
 pub fn prepare_g1<P: Pairing>(g: impl Into<P::G1>) -> P::G1Prepared {
@@ -176,13 +185,7 @@ where
 }
 
 pub trait PairingFriendlyCycle: CurveCycle {
-    type Engine1: Pairing<
-        G1 = Self::E1,
-        ScalarField = <Self::E1 as Group>::ScalarField,
-    >;
+    type Engine1: Pairing<G1 = Self::E1, ScalarField = <Self::E1 as Group>::ScalarField>;
 
-    type Engine2: Pairing<
-        G1 = Self::E2,
-        ScalarField = <Self::E2 as Group>::ScalarField,
-    >;
+    type Engine2: Pairing<G1 = Self::E2, ScalarField = <Self::E2 as Group>::ScalarField>;
 }
