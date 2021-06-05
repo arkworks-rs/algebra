@@ -29,10 +29,6 @@ mod test_field;
 
 pub use ark_std::UniformRand;
 
-mod rand;
-#[allow(deprecated)]
-pub use self::rand::test_rng;
-
 mod to_field_vec;
 pub use to_field_vec::ToConstraintField;
 
