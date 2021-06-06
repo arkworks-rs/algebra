@@ -253,7 +253,7 @@ mod tests {
     /// Generate random `l`-variate polynomial of maximum individual degree `d`
     fn rand_poly<R: Rng>(l: usize, d: usize, rng: &mut R) -> SparsePolynomial<Fr, SparseTerm> {
         let mut random_terms = Vec::new();
-        let num_terms = rng.gen_range(1, 1000);
+        let num_terms = rng.gen_range(1..1000);
         // For each term, randomly select up to `l` variables with degree
         // in [1,d] and random coefficient
         random_terms.push((Fr::rand(rng), SparseTerm::new(vec![])));
@@ -261,7 +261,7 @@ mod tests {
             let term = (0..l)
                 .map(|i| {
                     if rng.gen_bool(0.5) {
-                        Some((i, rng.gen_range(1, d + 1)))
+                        Some((i, rng.gen_range(1..(d + 1))))
                     } else {
                         None
                     }
