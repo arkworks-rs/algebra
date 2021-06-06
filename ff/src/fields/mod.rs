@@ -211,6 +211,8 @@ pub trait Field:
 
 /// Fields that have a cyclotomic subgroup, and which can leverage efficient inversion
 /// and squaring operations for elements in this subgroup.
+/// If a field has multiplicative order p^d - 1, the cyclotomic subgroups refer to subgroups of order φ_n(p),
+/// for any n < d, where φ_n is the [nth cyclotomic polynomial](https://en.wikipedia.org/wiki/Cyclotomic_polynomial)
 pub trait CyclotomicField: Field {
     /// Is the inverse fast to compute? For example, in quadratic extensions, the inverse
     /// can be computed at the cost of negating one coordinate, which is much faster than
@@ -274,8 +276,10 @@ pub trait CyclotomicField: Field {
 
 /// Helper function to calculate the double-and-add loop for exponentiation.
 fn exp_loop<F: CyclotomicField, I: Iterator<Item = i8>>(f: &mut F, e: I) {
+    // If the inverse is fast and we're using naf, we compute the inverse of the base.
+    // Otherwise we do nothing with the variable, so we default it to one.
     let self_inverse = if F::INVERSE_IS_FAST {
-        f.cyclotomic_inverse().unwrap() // must exist because self is not zero.
+        f.cyclotomic_inverse().unwrap() // The inverse must exist because self is not zero.
     } else {
         F::one()
     };
