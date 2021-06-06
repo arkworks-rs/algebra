@@ -1,6 +1,6 @@
 [package]
 name = "ark-poly"
-version = "0.2.0"
+version = "0.3.0"
 authors = [ "arkworks contributors" ]
 description = "A library for efficient polynomial arithmetic via FFTs over finite fields"
 homepage = "https://arkworks.rs"
@@ -13,9 +13,9 @@ license = "MIT/Apache-2.0"
 edition = "2018"
 
 [dependencies]
-ark-ff = { version = "^0.2.0", path = "../ff", default-features = false }
-ark-serialize = { version = "^0.2.0", path = "../serialize", default-features = false, features = ["derive"] }
-ark-std = { version = "0.2.0", default-features = false }
+ark-ff = { version = "^0.3.0", path = "../ff", default-features = false }
+ark-serialize = { version = "^0.3.0", path = "../serialize", default-features = false, features = ["derive"] }
+ark-std = { version = "^0.3.0", default-features = false }
 rayon = { version = "1", optional = true }
 derivative = { version = "2", default-features = false, features = [ "use_core" ] }
 hashbrown = { version = "0.11.1"}

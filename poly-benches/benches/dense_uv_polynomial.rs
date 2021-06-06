@@ -46,7 +46,7 @@ fn bench_sparse_poly_evaluate<F: Field>(b: &mut Bencher, non_zero_entries: &usiz
     let mut rng = &mut ark_std::test_rng();
     let mut inner: Vec<(usize, F)> = Vec::with_capacity(*non_zero_entries);
     (0..*non_zero_entries)
-        .for_each(|_| inner.push((rng.gen_range(0, MAX_DEGREE), F::rand(&mut rng))));
+        .for_each(|_| inner.push((rng.gen_range(0..MAX_DEGREE), F::rand(&mut rng))));
     let poly = SparsePolynomial::<F>::from_coefficients_vec(inner);
     b.iter(|| {
         // Per benchmark iteration
