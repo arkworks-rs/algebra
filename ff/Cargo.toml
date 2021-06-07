@@ -26,7 +26,7 @@ zeroize = { version = "1", default-features = false, features = ["zeroize_derive
 num-bigint = { version = "0.4.0", default-features = false }
 
 [build-dependencies]
-rustc_version = "0.3"
+rustc_version = "0.4"
 
 [features]
 default = []
