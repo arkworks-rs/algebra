@@ -12,6 +12,7 @@ use ark_std::rand::{
 };
 use ark_std::{
     fmt::{Display, Formatter, Result as FmtResult},
+    hash::{Hash, Hasher},
     io::{Read, Result as IoResult, Write},
     marker::PhantomData,
     ops::{Add, AddAssign, MulAssign, Neg, Sub, SubAssign},
@@ -302,8 +303,7 @@ mod group_impl {
     Copy(bound = "P: Parameters"),
     Clone(bound = "P: Parameters"),
     Eq(bound = "P: Parameters"),
-    Debug(bound = "P: Parameters"),
-    Hash(bound = "P: Parameters")
+    Debug(bound = "P: Parameters")
 )]
 #[must_use]
 pub struct GroupProjective<P: Parameters> {
@@ -345,6 +345,12 @@ impl<P: Parameters> PartialEq for GroupProjective<P> {
 
         // x1/z1 == x2/z2  <==> x1 * z2 == x2 * z1
         (self.x * &other.z) == (other.x * &self.z) && (self.y * &other.z) == (other.y * &self.z)
+    }
+}
+
+impl<P: Parameters> Hash for GroupProjective<P> {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.into_affine().hash(state)
     }
 }
 

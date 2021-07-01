@@ -4,6 +4,7 @@ use ark_serialize::{
 };
 use ark_std::{
     fmt::{Display, Formatter, Result as FmtResult},
+    hash::{Hash, Hasher},
     io::{Read, Result as IoResult, Write},
     marker::PhantomData,
     ops::{Add, AddAssign, MulAssign, Neg, Sub, SubAssign},
@@ -299,8 +300,7 @@ impl<'a, P: Parameters> core::iter::Sum<&'a Self> for GroupAffine<P> {
 #[derivative(
     Copy(bound = "P: Parameters"),
     Clone(bound = "P: Parameters"),
-    Debug(bound = "P: Parameters"),
-    Hash(bound = "P: Parameters")
+    Debug(bound = "P: Parameters")
 )]
 #[must_use]
 pub struct GroupProjective<P: Parameters> {
@@ -339,6 +339,12 @@ impl<P: Parameters> PartialEq for GroupProjective<P> {
         } else {
             self.y * &(z2z2 * &other.z) == other.y * &(z1z1 * &self.z)
         }
+    }
+}
+
+impl<P: Parameters> Hash for GroupProjective<P> {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.into_affine().hash(state)
     }
 }
 

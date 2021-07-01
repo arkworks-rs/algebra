@@ -4,6 +4,8 @@
 
 ### Breaking changes
 
+- [\#300](https://github.com/arkworks-rs/algebra/pull/300) (ark-ec) Change the implementation of `Hash` trait of `GroupProjective` to use the affine coordinates.
+
 ### Features
 
 ### Improvements
