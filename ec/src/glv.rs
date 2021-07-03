@@ -1,12 +1,11 @@
 use crate::ModelParameters;
 
-/// The GLV parameters here require the following conditions to be satisfied:
-/// 1. MODULUS_BITS < NUM_LIMBS * 64 - 1. So 2 * n < 1 << (64 * NUM_LIMBS)
-/// We also assume that (|b1| + 2) * (|b2| + 2) < 2 * n
-/// We also know that either B1 is neg or B2 is.
+/// The GLV parameters that are useful to compute the endomorphism 
+/// and scalar decomposition.
 pub trait GLVParameters: Send + Sync + 'static + ModelParameters {
     type CurveAffine;
     type CurveProjective;
+    
     // phi(P) = lambda*P for all P
     // constants that are used to calculate phi(P)
     const COEFF_A1: Self::BaseField;
