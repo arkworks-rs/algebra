@@ -1,4 +1,3 @@
-use crate::BitIteratorBE;
 use ark_std::{vec, vec::Vec};
 
 /// Calculate a + b + carry, returning the sum and modifying the
@@ -106,71 +105,23 @@ pub fn find_wnaf(num: &[u64]) -> Vec<i64> {
     res
 }
 
-/// Compute the relaxed NAF of the number, where the top 2 bits can be both non-zero.
-pub fn find_relaxed_naf(num: &[u64]) -> Vec<i64> {
-    use num_traits::abs;
+fn find_relaxed_naf(num: &[u64]) -> Vec<i64> {
+    let mut res = find_wnaf(num);
 
-    // first, find the standard NAF representation
-    let naf = find_wnaf(&num);
-    let naf_cost = naf.iter().map(|g| abs(*g)).sum::<i64>() + (naf.len() as i64);
-
-    // then, consider the modified NAF representation
-
-    // obtain the bits of the num
-    let mut bits = BitIteratorBE::new(num).collect::<Vec<_>>();
-
-    // clear the first true bit
-    let mut size = 0;
-    for (i, bit) in bits.iter_mut().enumerate() {
-        if *bit == true {
-            *bit = false;
-            size = bits.len() - i;
-            break;
-        }
+    let len = res.len();
+    if res[len - 2] == 0 && res[len - 3] == -1 {
+        res[len - 3] = 1;
+        res[len - 2] = 1;
+        res.resize(len - 1, 0);
     }
 
-    // if naf has the optimal size, then return directly
-    if naf.len() == size {
-        return naf;
-    }
+    res
+}
 
-    // reassemble the number
-    let tmp = {
-        let mut res = vec![0u64; num.len()];
-        let mut acc: u64 = 0;
-        let mut bits = bits.to_vec();
-        bits.reverse();
-        for (i, bits64) in bits.chunks(64).enumerate() {
-            for bit in bits64.iter().rev() {
-                acc <<= 1;
-                acc += *bit as u64;
-            }
-            res[i] = acc;
-            acc = 0;
-        }
-        res
-    };
-
-    let mut modified_naf = find_wnaf(&tmp);
-
-    // if `modified_naf` has length `size`, then it cannot be better then the `naf`
-    if modified_naf.len() <= size - 1 {
-        // restructure the modified NAF
-        modified_naf.resize(size - 1, 0);
-        modified_naf.push(1);
-
-        // compute the
-        let modified_naf_cost =
-            modified_naf.iter().map(|g| abs(*g)).sum::<i64>() + (modified_naf.len() as i64);
-
-        if naf_cost <= modified_naf_cost {
-            naf
-        } else {
-            modified_naf
-        }
-    } else {
-        naf
-    }
+#[test]
+fn test_find_relaxed_naf_usefulness() {
+    let vec = find_relaxed_naf(&[12u64]);
+    assert_eq!(vec.len(), 4);
 }
 
 #[test]
