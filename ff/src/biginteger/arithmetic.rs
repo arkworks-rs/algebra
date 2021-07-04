@@ -1,4 +1,4 @@
-use ark_std::vec::Vec;
+use ark_std::{vec, vec::Vec};
 
 /// Calculate a + b + carry, returning the sum and modifying the
 /// carry value.
@@ -103,4 +103,63 @@ pub fn find_wnaf(num: &[u64]) -> Vec<i64> {
     }
 
     res
+}
+
+pub fn find_relaxed_naf(num: &[u64]) -> Vec<i64> {
+    let mut res = find_wnaf(num);
+
+    let len = res.len();
+    if res[len - 2] == 0 && res[len - 3] == -1 {
+        res[len - 3] = 1;
+        res[len - 2] = 1;
+        res.resize(len - 1, 0);
+    }
+
+    res
+}
+
+#[test]
+fn test_find_relaxed_naf_usefulness() {
+    let vec = find_relaxed_naf(&[12u64]);
+    assert_eq!(vec.len(), 4);
+}
+
+#[test]
+fn test_find_relaxed_naf_correctness() {
+    use ark_std::{One, UniformRand, Zero};
+    use num_bigint::BigInt;
+
+    let mut rng = ark_std::test_rng();
+
+    for _ in 0..10 {
+        let num = [
+            u64::rand(&mut rng),
+            u64::rand(&mut rng),
+            u64::rand(&mut rng),
+            u64::rand(&mut rng),
+        ];
+        let relaxed_naf = find_relaxed_naf(&num);
+
+        let test = {
+            let mut sum = BigInt::zero();
+            let mut cur = BigInt::one();
+            for v in relaxed_naf {
+                sum += cur.clone() * v;
+                cur = cur * 2;
+            }
+            sum
+        };
+
+        let test_expected = {
+            let mut sum = BigInt::zero();
+            let mut cur = BigInt::one();
+            for v in num.iter() {
+                sum += cur.clone() * v;
+                cur = cur << 64;
+            }
+            sum
+        };
+
+        assert_eq!(test, test_expected);
+    }
 }

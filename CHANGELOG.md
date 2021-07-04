@@ -10,6 +10,8 @@
 
 ### Improvements
 
+- [\#302](https://github.com/arkworks-rs/algebra/pull/302) (ark-ff) Add the relaxed NAF computation.
+
 ### Bug fixes
 
 ## v0.3.0
