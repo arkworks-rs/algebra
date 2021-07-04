@@ -105,7 +105,7 @@ pub fn find_wnaf(num: &[u64]) -> Vec<i64> {
     res
 }
 
-fn find_relaxed_naf(num: &[u64]) -> Vec<i64> {
+pub fn find_relaxed_naf(num: &[u64]) -> Vec<i64> {
     let mut res = find_wnaf(num);
 
     let len = res.len();
