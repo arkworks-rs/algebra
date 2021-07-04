@@ -1,4 +1,5 @@
-use ark_std::vec::Vec;
+use crate::BitIteratorBE;
+use ark_std::{vec, vec::Vec};
 
 /// Calculate a + b + carry, returning the sum and modifying the
 /// carry value.
@@ -103,4 +104,111 @@ pub fn find_wnaf(num: &[u64]) -> Vec<i64> {
     }
 
     res
+}
+
+/// Compute the relaxed NAF of the number, where the top 2 bits can be both non-zero.
+pub fn find_relaxed_naf(num: &[u64]) -> Vec<i64> {
+    use num_traits::abs;
+
+    // first, find the standard NAF representation
+    let naf = find_wnaf(&num);
+    let naf_cost = naf.iter().map(|g| abs(*g)).sum::<i64>() + (naf.len() as i64);
+
+    // then, consider the modified NAF representation
+
+    // obtain the bits of the num
+    let mut bits = BitIteratorBE::new(num).collect::<Vec<_>>();
+
+    // clear the first true bit
+    let mut size = 0;
+    for (i, bit) in bits.iter_mut().enumerate() {
+        if *bit == true {
+            *bit = false;
+            size = bits.len() - i;
+            break;
+        }
+    }
+
+    // if naf has the optimal size, then return directly
+    if naf.len() == size {
+        return naf;
+    }
+
+    // reassemble the number
+    let tmp = {
+        let mut res = vec![0u64; num.len()];
+        let mut acc: u64 = 0;
+        let mut bits = bits.to_vec();
+        bits.reverse();
+        for (i, bits64) in bits.chunks(64).enumerate() {
+            for bit in bits64.iter().rev() {
+                acc <<= 1;
+                acc += *bit as u64;
+            }
+            res[i] = acc;
+            acc = 0;
+        }
+        res
+    };
+
+    let mut modified_naf = find_wnaf(&tmp);
+
+    // if `modified_naf` has length `size`, then it cannot be better then the `naf`
+    if modified_naf.len() <= size - 1 {
+        // restructure the modified NAF
+        modified_naf.resize(size - 1, 0);
+        modified_naf.push(1);
+
+        // compute the
+        let modified_naf_cost =
+            modified_naf.iter().map(|g| abs(*g)).sum::<i64>() + (modified_naf.len() as i64);
+
+        if naf_cost <= modified_naf_cost {
+            naf
+        } else {
+            modified_naf
+        }
+    } else {
+        naf
+    }
+}
+
+#[test]
+fn test_find_naf_correctness() {
+    use ark_std::{One, UniformRand, Zero};
+    use num_bigint::BigInt;
+
+    let mut rng = ark_std::test_rng();
+
+    for _ in 0..10 {
+        let num = [
+            u64::rand(&mut rng),
+            u64::rand(&mut rng),
+            u64::rand(&mut rng),
+            u64::rand(&mut rng),
+        ];
+        let relaxed_naf = find_relaxed_naf(&num);
+
+        let test = {
+            let mut sum = BigInt::zero();
+            let mut cur = BigInt::one();
+            for v in relaxed_naf {
+                sum += cur.clone() * v;
+                cur = cur * 2;
+            }
+            sum
+        };
+
+        let test_expected = {
+            let mut sum = BigInt::zero();
+            let mut cur = BigInt::one();
+            for v in num.iter() {
+                sum += cur.clone() * v;
+                cur = cur << 64;
+            }
+            sum
+        };
+
+        assert_eq!(test, test_expected);
+    }
 }
