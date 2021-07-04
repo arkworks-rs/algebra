@@ -178,6 +178,12 @@ pub trait Field:
     /// least significant limb first.
     #[must_use]
     fn pow<S: AsRef<[u64]>>(&self, exp: S) -> Self {
+        // handle the special case when self = 0 and exp = 0
+        if self.is_zero() {
+            assert_ne!(exp.as_ref().iter().filter(|x| **x != 0u64).count(), 0);
+            return Self::zero();
+        }
+
         let mut res = Self::one();
 
         for i in BitIteratorBE::without_leading_zeros(exp) {
@@ -796,5 +802,15 @@ mod no_std_tests {
             let actual = Fr::from_be_bytes_mod_order(&i);
             assert_eq!(expected, actual, "failed on test {:?}", i);
         }
+    }
+
+    #[test]
+    #[should_panic]
+    fn pow_zero_by_zero() {
+        use crate::test_field::Fr;
+        use crate::Field;
+        use ark_std::Zero;
+
+        let _ = Fr::zero().pow(&[0u64, 0u64, 0u64, 0u64]);
     }
 }
