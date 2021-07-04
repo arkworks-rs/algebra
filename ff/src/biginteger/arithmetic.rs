@@ -174,7 +174,7 @@ pub fn find_relaxed_naf(num: &[u64]) -> Vec<i64> {
 }
 
 #[test]
-fn test_find_naf_correctness() {
+fn test_find_relaxed_naf_correctness() {
     use ark_std::{One, UniformRand, Zero};
     use num_bigint::BigInt;
 
