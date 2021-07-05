@@ -1,11 +1,11 @@
 use crate::ModelParameters;
 
-/// The GLV parameters that are useful to compute the endomorphism 
+/// The GLV parameters that are useful to compute the endomorphism
 /// and scalar decomposition.
 pub trait GLVParameters: Send + Sync + 'static + ModelParameters {
     type CurveAffine;
     type CurveProjective;
-    
+
     // phi(P) = lambda*P for all P
     // constants that are used to calculate phi(P)
     const COEFF_A1: Self::BaseField;
