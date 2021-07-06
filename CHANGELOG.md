@@ -2,7 +2,7 @@
 
 ## Pending
 
-- [\#301](https://github.com/arkworks-rs/algebra/pull/201) (ark-ec) Add `GLVParameters` trait definition.
+- [\#301](https://github.com/arkworks-rs/algebra/pull/301) (ark-ec) Add `GLVParameters` trait definition.
 
 ### Breaking changes
 
