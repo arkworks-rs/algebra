@@ -104,10 +104,10 @@ impl<P: Fp2Parameters> Fp2<P> {
 impl<P: Fp2Parameters> CyclotomicField for Fp2<P> {
     const INVERSE_IS_FAST: bool = true;
     fn cyclotomic_inverse_in_place(&mut self) -> Option<&mut Self> {
-    // As the multiplicative subgroup is of order p^2 - 1, the only non-trivial cyclotomic subgroup is of order p+1
-    // Therefore, for any element in the cyclotomic subgroup, we have that `x^(p+1) = 1`.
-    // Recall that `x^(p+1)` in a quadratic extension field is equal to the norm in the base field, so we have that
-    // `x * x.conjugate() = 1`. By uniqueness of inverses, for this subgroup, x.inverse() = x.conjugate()
+        // As the multiplicative subgroup is of order p^2 - 1, the only non-trivial cyclotomic subgroup is of order p+1
+        // Therefore, for any element in the cyclotomic subgroup, we have that `x^(p+1) = 1`.
+        // Recall that `x^(p+1)` in a quadratic extension field is equal to the norm in the base field, so we have that
+        // `x * x.conjugate() = 1`. By uniqueness of inverses, for this subgroup, x.inverse() = x.conjugate()
 
         self.is_zero().not().then(|| {
             self.conjugate();

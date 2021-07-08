@@ -45,8 +45,8 @@ mod affine {
     )]
     #[must_use]
     pub struct SWAffine<P: Parameters> {
-        x: P::BaseField,
-        y: P::BaseField,
+        pub(super) x: P::BaseField,
+        pub(super) y: P::BaseField,
         infinity: bool,
         #[derivative(Debug = "ignore")]
         _params: PhantomData<P>,
@@ -109,7 +109,7 @@ mod affine {
             self.x
         }
 
-        /// Returns the x-coordinate of this curve point.
+        /// Returns the y-coordinate of this curve point.
         #[inline(always)]
         pub fn y(&self) -> P::BaseField {
             self.y
@@ -117,8 +117,20 @@ mod affine {
 
         /// Is self the point at infinity? This returns the same result as `Self::is_zero()`.
         #[inline(always)]
-        pub fn is_point_at_infinity(&self) -> bool {
-            self.is_zero()
+        pub fn is_zero(&self) -> bool {
+            self.infinity
+        }
+
+        /// Returns the point at infinity. Note that in affine coordinates,
+        /// the point at infinity does not lie on the curve.
+        #[inline]
+        pub fn zero() -> Self {
+            Self {
+                x: P::BaseField::zero(),
+                y: P::BaseField::one(),
+                infinity: true,
+                _params: PhantomData,
+            }
         }
 
         /// Multiply [`self`] by the cofactor of the curve, [`P::COFACTOR`].
@@ -187,63 +199,11 @@ mod affine {
             self.mul_bits(BitIteratorBE::new(P::ScalarField::characteristic()))
                 .is_zero()
         }
-    }
 
-    impl<P: Parameters> Zeroize for SWAffine<P> {
-        // The phantom data does not contain element-specific data
-        // and thus does not need to be zeroized.
-        fn zeroize(&mut self) {
-            self.x.zeroize();
-            self.y.zeroize();
-            self.infinity.zeroize();
-        }
-    }
-
-    impl<P: Parameters> Zero for SWAffine<P> {
-        /// Returns the point at infinity. Note that in affine coordinates,
-        /// the point at infinity does not lie on the curve, and this is indicated
-        /// by setting the `infinity` flag to true.
-        #[inline]
-        fn zero() -> Self {
-            Self {
-                x: P::BaseField::zero(), 
-                y: P::BaseField::one(),
-                infinity: true,
-                _params: PhantomData,
-            }
-        }
-
-        /// Checks if `self` is the point at infinity.
-        #[inline]
-        fn is_zero(&self) -> bool {
-            self.infinity
-        }
-    }
-
-    impl<P: Parameters> Add<Self> for SWAffine<P> {
-        type Output = Self;
-        fn add(self, other: Self) -> Self {
-            let mut copy = self;
-            copy += &other;
-            copy
-        }
-    }
-
-    impl<'a, P: Parameters> AddAssign<&'a Self> for SWAffine<P> {
-        fn add_assign(&mut self, other: &'a Self) {
-            let mut s = SWProjective::from(*self);
-            s.add_unique_in_place(other);
-            *self = s.into();
-        }
-    }
-
-    impl<P: Parameters> SWAffine<P> {
+        /// Return the generator of the prime order subgroup.
         #[inline]
         pub fn generator() -> Self {
-            Self::new_unchecked(
-                P::AFFINE_GENERATOR_COEFFS.0,
-                P::AFFINE_GENERATOR_COEFFS.1,
-            )
+            Self::new_unchecked(P::AFFINE_GENERATOR_COEFFS.0, P::AFFINE_GENERATOR_COEFFS.1)
         }
 
         #[inline]
@@ -253,6 +213,16 @@ mod affine {
 
         pub fn mul_by_cofactor_inv(&self) -> Self {
             self.mul(P::COFACTOR_INV.into()).into()
+        }
+    }
+
+    impl<P: Parameters> Zeroize for SWAffine<P> {
+        // The phantom data does not contain element-specific data
+        // and thus does not need to be zeroized.
+        fn zeroize(&mut self) {
+            self.x.zeroize();
+            self.y.zeroize();
+            self.infinity.zeroize();
         }
     }
 
@@ -338,32 +308,35 @@ mod affine {
                 // Serialize 0.
                 P::BaseField::zero().serialize_with_flags(writer, flags)
             } else {
-                let flags = SWFlags::from_y_sign(self.y() > -self.y());
-                self.x().serialize_with_flags(writer, flags)
+                let flags = SWFlags::from_y_sign(self.y > -self.y);
+                self.x.serialize_with_flags(writer, flags)
             }
         }
-        
+
         #[inline]
         fn serialized_size(&self) -> usize {
             P::BaseField::zero().serialized_size_with_flags::<SWFlags>()
         }
-        
+
         #[allow(unused_qualifications)]
         #[inline]
-        fn serialize_uncompressed<W: Write>(&self, mut writer: W) -> Result<(), SerializationError> {
+        fn serialize_uncompressed<W: Write>(
+            &self,
+            mut writer: W,
+        ) -> Result<(), SerializationError> {
             let flags = if self.is_zero() {
                 SWFlags::infinity()
             } else {
                 SWFlags::default()
             };
-            self.x().serialize(&mut writer)?;
-            self.y().serialize_with_flags(&mut writer, flags)?;
+            self.x.serialize(&mut writer)?;
+            self.y.serialize_with_flags(&mut writer, flags)?;
             Ok(())
         }
-        
+
         #[inline]
         fn uncompressed_size(&self) -> usize {
-            self.x().serialized_size() + self.y().serialized_size_with_flags::<SWFlags>()
+            self.x.serialized_size() + self.y.serialized_size_with_flags::<SWFlags>()
         }
     }
 
@@ -390,7 +363,7 @@ mod affine {
         ) -> Result<Self, ark_serialize::SerializationError> {
             let p = Self::deserialize_unchecked(reader)?;
 
-            if !p.is_in_correct_subgroup_assuming_on_curve() {
+            if !(p.is_on_curve() && p.is_in_correct_subgroup_assuming_on_curve()) {
                 return Err(SerializationError::InvalidData);
             }
             Ok(p)
@@ -423,7 +396,6 @@ mod affine {
         }
     }
 }
-
 
 mod projective {
     use super::*;
@@ -593,14 +565,6 @@ mod projective {
                 .collect()
         }
 
-        /// Doubles `self`.
-        #[must_use]
-        fn double(&self) -> Self {
-            let mut copy = *self;
-            copy.double_in_place();
-            copy
-        }
-
         /// Sets `self = 2 * self`. Note that Jacobian formulae are incomplete, and
         /// so doubling cannot be computed as `self + self`. Instead, this implementation
         /// uses the following specialized doubling formulae:
@@ -638,7 +602,8 @@ mod projective {
                 self.x = f - &d - &d;
 
                 // Y3 = E*(D-X3)-8*C
-                self.y = (d - &self.x) * &e - &*c.double_in_place().double_in_place().double_in_place();
+                self.y =
+                    (d - &self.x) * &e - &*c.double_in_place().double_in_place().double_in_place();
                 self
             } else {
                 // http://www.hyperelliptic.org/EFD/g1p/auto-shortw-jacobian-0.html#doubling-dbl-2009-l
@@ -667,7 +632,8 @@ mod projective {
                 self.x = t;
                 // Y3 = M*(S-T)-8*YYYY
                 let old_y = self.y;
-                self.y = m * &(s - &t) - &*yyyy.double_in_place().double_in_place().double_in_place();
+                self.y =
+                    m * &(s - &t) - &*yyyy.double_in_place().double_in_place().double_in_place();
                 // Z3 = (Y1+Z1)^2-YY-ZZ
                 self.z = (old_y + &self.z).square() - &yy - &zz;
                 self
@@ -681,8 +647,8 @@ mod projective {
             }
 
             if self.is_zero() {
-                self.x = other.x();
-                self.y = other.y();
+                self.x = other.x;
+                self.y = other.y;
                 self.z = P::BaseField::one();
                 return;
             }
@@ -691,10 +657,10 @@ mod projective {
             let z1z1 = self.z.square();
 
             // U2 = X2*Z1Z1
-            let u2 = other.x() * &z1z1;
+            let u2 = other.x * &z1z1;
 
             // S2 = Y2*Z1*Z1Z1
-            let s2 = (other.y() * &self.z) * &z1z1;
+            let s2 = (other.y * &self.z) * &z1z1;
 
             if self.x == u2 && self.y == s2 {
                 // The two points are equal, so we double.
@@ -863,7 +829,7 @@ mod projective {
             if p.is_zero() {
                 Self::zero()
             } else {
-                Self::new(p.x(), p.y(), P::BaseField::one())
+                Self::new(p.x, p.y, P::BaseField::one())
             }
         }
     }
@@ -922,8 +888,6 @@ mod projective {
         }
     }
 
-    
-
     impl<P: Parameters> CanonicalDeserialize for SWProjective<P> {
         #[allow(unused_qualifications)]
         fn deserialize<R: Read>(reader: R) -> Result<Self, SerializationError> {
@@ -943,8 +907,6 @@ mod projective {
             Ok(aff.into())
         }
     }
-
-    
 
     impl<M: Parameters, ConstraintF: Field> ToConstraintField<ConstraintF> for SWProjective<M>
     where

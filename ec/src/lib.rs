@@ -78,8 +78,7 @@ pub trait Group:
         + From<Self>
         + Into<Self>
         + UniformRand
-        + Zero
-        + Neg
+        + Neg<Output = Self::UniqueRepr>
         + Mul<<Self::ScalarField as PrimeField>::BigInt, Output = Self>
         + core::iter::Sum<Self>
         + for<'a> core::iter::Sum<&'a Self>
