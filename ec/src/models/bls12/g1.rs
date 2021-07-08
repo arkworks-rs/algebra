@@ -1,6 +1,6 @@
 use crate::{
     bls12::Bls12Parameters,
-    short_weierstrass_jacobian::{SWAffine, SWProjective},
+    short_weierstrass::{SWAffine, SWProjective},
 };
 
 pub type G1Affine<P> = SWAffine<<P as Bls12Parameters>::G1Parameters>;

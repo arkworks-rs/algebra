@@ -7,7 +7,7 @@ use num_traits::One;
 use crate::{
     bls12::{Bls12Parameters, TwistType},
     models::SWModelParameters,
-    short_weierstrass_jacobian::{SWAffine, SWProjective},
+    short_weierstrass::{SWAffine, SWProjective},
 };
 
 pub type G2Affine<P> = SWAffine<<P as Bls12Parameters>::G2Parameters>;

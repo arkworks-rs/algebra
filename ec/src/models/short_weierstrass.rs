@@ -4,8 +4,8 @@ use ark_serialize::{
 };
 use ark_std::{
     fmt::{Display, Formatter, Result as FmtResult},
-    io::{Read, Write},
     hash::{Hash, Hasher},
+    io::{Read, Write},
     marker::PhantomData,
     ops::{Add, AddAssign, Mul, MulAssign, Neg, Sub, SubAssign},
     rand::{
@@ -408,7 +408,7 @@ mod projective {
     #[derivative(
         Copy(bound = "P: Parameters"),
         Clone(bound = "P: Parameters"),
-        Debug(bound = "P: Parameters"),
+        Debug(bound = "P: Parameters")
     )]
     #[must_use]
     pub struct SWProjective<P: Parameters> {
