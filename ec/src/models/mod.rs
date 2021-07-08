@@ -5,8 +5,8 @@ use ark_ff::{Field, PrimeField, SquareRootField, Zero};
 // pub mod bw6;
 // pub mod mnt4;
 // pub mod mnt6;
-pub mod short_weierstrass_jacobian;
-// pub mod twisted_edwards_extended;
+pub mod short_weierstrass;
+// pub mod twisted_edwards;
 
 pub trait ModelParameters: Send + Sync + 'static {
     type BaseField: Field + SquareRootField;

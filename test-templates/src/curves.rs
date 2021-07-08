@@ -306,9 +306,9 @@ pub fn sw_tests<P: SWModelParameters>() {
 }
 
 pub fn sw_from_random_bytes<P: SWModelParameters>() {
-    use ark_ec::models::short_weierstrass_jacobian::{GroupAffine, GroupProjective};
+    use ark_ec::models::short_weierstrass::{SWAffine, SWProjective};
 
-    let buf_size = GroupAffine::<P>::zero().serialized_size();
+    let buf_size = SWAffine::<P>::zero().serialized_size();
 
     let mut rng = ark_std::test_rng();
 
@@ -329,7 +329,7 @@ pub fn sw_from_random_bytes<P: SWModelParameters>() {
 }
 
 pub fn sw_curve_serialization_test<P: SWModelParameters>() {
-    use ark_ec::models::short_weierstrass_jacobian::{GroupAffine, GroupProjective};
+    use ark_ec::models::short_weierstrass::{GroupAffine, GroupProjective};
 
     let buf_size = GroupAffine::<P>::zero().serialized_size();
 
@@ -414,7 +414,7 @@ pub fn sw_curve_serialization_test<P: SWModelParameters>() {
 }
 
 pub fn sw_affine_sum_test<P: SWModelParameters>() {
-    use ark_ec::models::short_weierstrass_jacobian::{GroupAffine, GroupProjective};
+    use ark_ec::models::short_weierstrass::{GroupAffine, GroupProjective};
 
     let mut rng = ark_std::test_rng();
 

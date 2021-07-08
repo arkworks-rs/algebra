@@ -1,12 +1,12 @@
 use crate::bls12_381::*;
 use ark_ec::{
     models::{ModelParameters, SWModelParameters},
-    short_weierstrass_jacobian::*,
+    short_weierstrass::*,
 };
 use ark_ff::{field_new, Zero};
 
-pub type G1Affine = GroupAffine<Parameters>;
-pub type G1Projective = GroupProjective<Parameters>;
+pub type G1Affine = SWAffine<Parameters>;
+pub type G1Projective = SWProjective<Parameters>;
 
 #[derive(Clone, Default, PartialEq, Eq)]
 pub struct Parameters;
