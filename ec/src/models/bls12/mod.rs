@@ -1,6 +1,6 @@
 use crate::{
     models::{ModelParameters, SWModelParameters},
-    pairing::{Pairing, MillerLoopOutput, PairingOutput},
+    pairing::{MillerLoopOutput, Pairing, PairingOutput},
 };
 use ark_ff::fields::{
     fp12_2over3over2::{Fp12, Fp12Parameters},
@@ -182,7 +182,6 @@ impl<P: Bls12Parameters> Pairing for Bls12<P> {
         }
         MillerLoopOutput(f)
     }
-
 
     fn final_exponentiation(mlo: MillerLoopOutput<Self>) -> Option<PairingOutput<Self>> {
         let f = mlo.0;

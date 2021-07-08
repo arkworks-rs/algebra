@@ -18,13 +18,25 @@ pub trait Pairing: Sized + 'static + Copy + Debug + Sync + Send + Eq {
     type G1: CurveGroup<ScalarField = Self::ScalarField> + MulAssign<Self::ScalarField>; // needed due to https://github.com/rust-lang/rust/issues/69640
 
     /// An element of G1 that has been preprocessed for use in a pairing.
-    type G1Prepared: Default + Clone + Send + Sync + Debug + From<Self::G1> + From<<Self::G1 as Group>::UniqueRepr>;
+    type G1Prepared: Default
+        + Clone
+        + Send
+        + Sync
+        + Debug
+        + From<Self::G1>
+        + From<<Self::G1 as Group>::UniqueRepr>;
 
     /// An element of G2.
     type G2: CurveGroup<ScalarField = Self::ScalarField> + MulAssign<Self::ScalarField>; // needed due to https://github.com/rust-lang/rust/issues/69640
 
     /// An element of G2 that has been preprocessed for use in a pairing.
-    type G2Prepared: Default + Clone + Send + Sync + Debug + From<Self::G2> + From<<Self::G2 as Group>::UniqueRepr>;
+    type G2Prepared: Default
+        + Clone
+        + Send
+        + Sync
+        + Debug
+        + From<Self::G2>
+        + From<<Self::G2 as Group>::UniqueRepr>;
 
     /// The extension field that hosts the target group of the pairing.
     type TargetField: CyclotomicField;

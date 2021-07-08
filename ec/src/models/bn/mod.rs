@@ -1,12 +1,12 @@
 use crate::{
     models::{ModelParameters, SWModelParameters},
-    PairingEngine,
+    MillerLoopOutput, Pairing, PairingOutput,
 };
 use ark_ff::fields::{
     fp12_2over3over2::{Fp12, Fp12Parameters},
     fp2::Fp2Parameters,
     fp6_3over2::Fp6Parameters,
-    Field, Fp2, PrimeField, SquareRootField,
+    CyclotomicField, Field, Fp2, PrimeField, SquareRootField,
 };
 use num_traits::One;
 
@@ -63,13 +63,13 @@ impl<P: BnParameters> Bn<P> {
 
         match P::TWIST_TYPE {
             TwistType::M => {
-                c2.mul_assign_by_fp(&p.y);
-                c1.mul_assign_by_fp(&p.x);
+                c2.mul_assign_by_fp(&p.y());
+                c1.mul_assign_by_fp(&p.x());
                 f.mul_by_014(&c0, &c1, &c2);
             }
             TwistType::D => {
-                c0.mul_assign_by_fp(&p.y);
-                c1.mul_assign_by_fp(&p.x);
+                c0.mul_assign_by_fp(&p.y());
+                c1.mul_assign_by_fp(&p.x());
                 f.mul_by_034(&c0, &c1, &c2);
             }
         }
@@ -78,28 +78,22 @@ impl<P: BnParameters> Bn<P> {
     fn exp_by_neg_x(mut f: Fp12<P::Fp12Params>) -> Fp12<P::Fp12Params> {
         f = f.cyclotomic_exp(&P::X);
         if !P::X_IS_NEGATIVE {
-            f.conjugate();
+            f.cyclotomic_inverse_in_place();
         }
         f
     }
 }
-
-impl<P: BnParameters> PairingEngine for Bn<P> {
-    type Fr = <P::G1Parameters as ModelParameters>::ScalarField;
-    type G1Projective = G1Projective<P>;
-    type G1Affine = G1Affine<P>;
+impl<P: BnParameters> Pairing for Bn<P> {
+    type ScalarField = <P::G1Parameters as ModelParameters>::ScalarField;
+    type G1 = G1Projective<P>;
     type G1Prepared = G1Prepared<P>;
-    type G2Projective = G2Projective<P>;
-    type G2Affine = G2Affine<P>;
+    type G2 = G2Projective<P>;
     type G2Prepared = G2Prepared<P>;
-    type Fq = P::Fp;
-    type Fqe = Fp2<P::Fp2Params>;
-    type Fqk = Fp12<P::Fp12Params>;
+    type TargetField = Fp12<P::Fp12Params>;
 
-    fn miller_loop<'a, I>(i: I) -> Self::Fqk
-    where
-        I: IntoIterator<Item = &'a (Self::G1Prepared, Self::G2Prepared)>,
-    {
+    fn miller_loop<'a>(
+        i: impl IntoIterator<Item = &'a (Self::G1Prepared, Self::G2Prepared)>,
+    ) -> MillerLoopOutput<Self> {
         let mut pairs = vec![];
         for (p, q) in i {
             if !p.is_zero() && !q.is_zero() {
@@ -107,7 +101,7 @@ impl<P: BnParameters> PairingEngine for Bn<P> {
             }
         }
 
-        let mut f = Self::Fqk::one();
+        let mut f = Self::TargetField::one();
 
         for i in (1..P::ATE_LOOP_COUNT.len()).rev() {
             if i != P::ATE_LOOP_COUNT.len() - 1 {
@@ -135,7 +129,7 @@ impl<P: BnParameters> PairingEngine for Bn<P> {
         }
 
         if P::ATE_LOOP_COUNT_IS_NEGATIVE {
-            f.conjugate();
+            f.cyclotomic_inverse_in_place();
         }
 
         for &mut (p, ref mut coeffs) in &mut pairs {
@@ -146,18 +140,19 @@ impl<P: BnParameters> PairingEngine for Bn<P> {
             Self::ell(&mut f, coeffs.next().unwrap(), &p.0);
         }
 
-        f
+        MillerLoopOutput(f)
     }
 
     #[allow(clippy::let_and_return)]
-    fn final_exponentiation(f: &Self::Fqk) -> Option<Self::Fqk> {
+    fn final_exponentiation(mlo: MillerLoopOutput<Self>) -> Option<PairingOutput<Self>> {
+        let f = mlo.0;
         // Easy part: result = elt^((q^6-1)*(q^2+1)).
         // Follows, e.g., Beuchat et al page 9, by computing result as follows:
         //   elt^((q^6-1)*(q^2+1)) = (conj(elt) * elt^(-1))^(q^2+1)
 
-        // f1 = r.conjugate() = f^(p^6)
-        let mut f1 = *f;
-        f1.conjugate();
+        // f1 = r.cyclotomic_inverse_in_place() = f^(p^6)
+        let mut f1 = f;
+        f1.cyclotomic_inverse_in_place();
 
         f.inverse().map(|mut f2| {
             // f2 = f^(-1);
@@ -191,8 +186,8 @@ impl<P: BnParameters> PairingEngine for Bn<P> {
             let y4 = Self::exp_by_neg_x(y3);
             let y5 = y4.cyclotomic_square();
             let mut y6 = Self::exp_by_neg_x(y5);
-            y3.conjugate();
-            y6.conjugate();
+            y3.cyclotomic_inverse_in_place();
+            y6.cyclotomic_inverse_in_place();
             let y7 = y6 * &y4;
             let mut y8 = y7 * &y3;
             let y9 = y8 * &y1;
@@ -203,12 +198,12 @@ impl<P: BnParameters> PairingEngine for Bn<P> {
             let y13 = y12 * &y11;
             y8.frobenius_map(2);
             let y14 = y8 * &y13;
-            r.conjugate();
+            r.cyclotomic_inverse_in_place();
             let mut y15 = r * &y9;
             y15.frobenius_map(3);
             let y16 = y15 * &y14;
 
-            y16
+            PairingOutput(y16)
         })
     }
 }

@@ -1,24 +1,17 @@
-use ark_std::{
-    io::{Result as IoResult, Write},
-    vec::Vec,
-};
+use ark_std::vec::Vec;
 
-use ark_ff::{
-    bytes::ToBytes,
-    fields::{Field, Fp2},
-};
+use ark_ff::fields::{Field, Fp2};
 
-use num_traits::{One, Zero};
+use num_traits::One;
 
 use crate::{
     bn::{BnParameters, TwistType},
     models::SWModelParameters,
-    short_weierstrass_jacobian::{GroupAffine, GroupProjective},
-    AffineCurve,
+    short_weierstrass::{SWAffine, SWProjective},
 };
 
-pub type G2Affine<P> = GroupAffine<<P as BnParameters>::G2Parameters>;
-pub type G2Projective<P> = GroupProjective<<P as BnParameters>::G2Parameters>;
+pub type G2Affine<P> = SWAffine<<P as BnParameters>::G2Parameters>;
+pub type G2Projective<P> = SWProjective<<P as BnParameters>::G2Parameters>;
 
 #[derive(Derivative)]
 #[derivative(
@@ -50,18 +43,7 @@ struct G2HomProjective<P: BnParameters> {
 
 impl<P: BnParameters> Default for G2Prepared<P> {
     fn default() -> Self {
-        Self::from(G2Affine::<P>::prime_subgroup_generator())
-    }
-}
-
-impl<P: BnParameters> ToBytes for G2Prepared<P> {
-    fn write<W: Write>(&self, mut writer: W) -> IoResult<()> {
-        for coeff in &self.ell_coeffs {
-            coeff.0.write(&mut writer)?;
-            coeff.1.write(&mut writer)?;
-            coeff.2.write(&mut writer)?;
-        }
-        self.infinity.write(writer)
+        Self::from(G2Affine::<P>::generator())
     }
 }
 
@@ -77,8 +59,8 @@ impl<P: BnParameters> From<G2Affine<P>> for G2Prepared<P> {
 
         let mut ell_coeffs = vec![];
         let mut r = G2HomProjective {
-            x: q.x,
-            y: q.y,
+            x: q.x(),
+            y: q.y(),
             z: Fp2::one(),
         };
 
@@ -101,13 +83,11 @@ impl<P: BnParameters> From<G2Affine<P>> for G2Prepared<P> {
         }
 
         let q1 = mul_by_char::<P>(q);
-        let mut q2 = mul_by_char::<P>(q1);
+        let q2 = -mul_by_char::<P>(q1);
 
         if P::ATE_LOOP_COUNT_IS_NEGATIVE {
             r.y = -r.y;
         }
-
-        q2.y = -q2.y;
 
         ell_coeffs.push(addition_step::<P>(&mut r, &q1));
         ell_coeffs.push(addition_step::<P>(&mut r, &q2));
@@ -118,6 +98,13 @@ impl<P: BnParameters> From<G2Affine<P>> for G2Prepared<P> {
         }
     }
 }
+
+impl<P: BnParameters> From<G2Projective<P>> for G2Prepared<P> {
+    fn from(other: G2Projective<P>) -> Self {
+        G2Prepared::from(G2Affine::<P>::from(other))
+    }
+}
+
 impl<P: BnParameters> G2Prepared<P> {
     pub fn is_zero(&self) -> bool {
         self.infinity
@@ -127,13 +114,14 @@ impl<P: BnParameters> G2Prepared<P> {
 fn mul_by_char<P: BnParameters>(r: G2Affine<P>) -> G2Affine<P> {
     // multiply by field characteristic
 
-    let mut s = r;
-    s.x.frobenius_map(1);
-    s.x *= &P::TWIST_MUL_BY_Q_X;
-    s.y.frobenius_map(1);
-    s.y *= &P::TWIST_MUL_BY_Q_Y;
+    let mut x = r.x();
+    let mut y = r.y();
+    x.frobenius_map(1);
+    x *= &P::TWIST_MUL_BY_Q_X;
+    y.frobenius_map(1);
+    y *= &P::TWIST_MUL_BY_Q_Y;
 
-    s
+    G2Affine::<P>::new_unchecked(x, y)
 }
 
 fn doubling_step<B: BnParameters>(
@@ -171,18 +159,17 @@ fn addition_step<B: BnParameters>(
 ) -> EllCoeff<Fp2<B::Fp2Params>> {
     // Formula for line function when working with
     // homogeneous projective coordinates.
-    let theta = r.y - &(q.y * &r.z);
-    let lambda = r.x - &(q.x * &r.z);
-    let c = theta.square();
+    let theta = r.y - &(q.y() * &r.z);
+    let lambda = r.x - &(q.x() * &r.z);
     let d = lambda.square();
     let e = lambda * &d;
-    let f = r.z * &c;
+    let f = r.z * &theta.square();
     let g = r.x * &d;
     let h = e + &f - &g.double();
     r.x = lambda * &h;
     r.y = theta * &(g - &h) - &(e * &r.y);
     r.z *= &e;
-    let j = theta * &q.x - &(lambda * &q.y);
+    let j = theta * &q.x() - &(lambda * &q.y());
 
     match B::TWIST_TYPE {
         TwistType::M => (j, -theta, lambda),
