@@ -18,13 +18,13 @@ pub trait Pairing: Sized + 'static + Copy + Debug + Sync + Send + Eq {
     type G1: CurveGroup<ScalarField = Self::ScalarField> + MulAssign<Self::ScalarField>; // needed due to https://github.com/rust-lang/rust/issues/69640
 
     /// An element of G1 that has been preprocessed for use in a pairing.
-    type G1Prepared: Default + Clone + Send + Sync + Debug + From<Self::G1>;
+    type G1Prepared: Default + Clone + Send + Sync + Debug + From<Self::G1> + From<<Self::G1 as Group>::UniqueRepr>;
 
     /// An element of G2.
     type G2: CurveGroup<ScalarField = Self::ScalarField> + MulAssign<Self::ScalarField>; // needed due to https://github.com/rust-lang/rust/issues/69640
 
     /// An element of G2 that has been preprocessed for use in a pairing.
-    type G2Prepared: Default + Clone + Send + Sync + Debug + From<Self::G2>;
+    type G2Prepared: Default + Clone + Send + Sync + Debug + From<Self::G2> + From<<Self::G2 as Group>::UniqueRepr>;
 
     /// The extension field that hosts the target group of the pairing.
     type TargetField: CyclotomicField;
@@ -37,14 +37,14 @@ pub trait Pairing: Sized + 'static + Copy + Debug + Sync + Send + Eq {
 
     /// Perform final exponentiation of the result of a miller loop.
     #[must_use]
-    fn final_exponentiation(mlo: MillerLoopOutput<Self>) -> PairingOutput<Self>;
+    fn final_exponentiation(mlo: MillerLoopOutput<Self>) -> Option<PairingOutput<Self>>;
 
     /// Computes a product of pairings.
     #[must_use]
     fn product_of_pairings<'a>(
         i: impl IntoIterator<Item = &'a (Self::G1Prepared, Self::G2Prepared)>,
     ) -> PairingOutput<Self> {
-        Self::final_exponentiation(Self::miller_loop(i))
+        Self::final_exponentiation(Self::miller_loop(i)).unwrap()
     }
 
     /// Performs a pairing between `p` and and `q
@@ -68,7 +68,7 @@ pub trait Pairing: Sized + 'static + Copy + Debug + Sync + Send + Eq {
     Default(bound = ""),
     Hash(bound = "")
 )]
-pub struct PairingOutput<P: Pairing>(P::TargetField);
+pub struct PairingOutput<P: Pairing>(pub P::TargetField);
 
 impl<P: Pairing> PairingOutput<P> {
     /// Converts `self` into an element of the underlying field.
@@ -205,7 +205,7 @@ impl<P: Pairing> Group for PairingOutput<P> {
 }
 
 /// Represents the output of the Miller loop of the pairing.
-pub struct MillerLoopOutput<P: Pairing>(P::TargetField);
+pub struct MillerLoopOutput<P: Pairing>(pub P::TargetField);
 
 impl<P: Pairing> Mul<P::ScalarField> for MillerLoopOutput<P> {
     type Output = Self;

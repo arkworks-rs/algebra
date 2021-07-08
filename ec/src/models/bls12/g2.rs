@@ -1,24 +1,21 @@
 use ark_std::{
-    io::{Result as IoResult, Write},
     vec::Vec,
 };
 
 use ark_ff::{
-    bytes::ToBytes,
     fields::{BitIteratorBE, Field, Fp2},
 };
 
-use num_traits::{One, Zero};
+use num_traits::One;
 
 use crate::{
     bls12::{Bls12Parameters, TwistType},
     models::SWModelParameters,
-    short_weierstrass_jacobian::{GroupAffine, GroupProjective},
-    AffineCurve,
+    short_weierstrass::{SWAffine, SWProjective},
 };
 
-pub type G2Affine<P> = GroupAffine<<P as Bls12Parameters>::G2Parameters>;
-pub type G2Projective<P> = GroupProjective<<P as Bls12Parameters>::G2Parameters>;
+pub type G2Affine<P> = SWAffine<<P as Bls12Parameters>::G2Parameters>;
+pub type G2Projective<P> = SWProjective<<P as Bls12Parameters>::G2Parameters>;
 
 #[derive(Derivative)]
 #[derivative(
@@ -50,18 +47,7 @@ struct G2HomProjective<P: Bls12Parameters> {
 
 impl<P: Bls12Parameters> Default for G2Prepared<P> {
     fn default() -> Self {
-        Self::from(G2Affine::<P>::prime_subgroup_generator())
-    }
-}
-
-impl<P: Bls12Parameters> ToBytes for G2Prepared<P> {
-    fn write<W: Write>(&self, mut writer: W) -> IoResult<()> {
-        for coeff in &self.ell_coeffs {
-            coeff.0.write(&mut writer)?;
-            coeff.1.write(&mut writer)?;
-            coeff.2.write(&mut writer)?;
-        }
-        self.infinity.write(writer)
+        Self::from(G2Affine::<P>::generator())
     }
 }
 
@@ -77,8 +63,8 @@ impl<P: Bls12Parameters> From<G2Affine<P>> for G2Prepared<P> {
 
         let mut ell_coeffs = vec![];
         let mut r = G2HomProjective {
-            x: q.x,
-            y: q.y,
+            x: q.x(),
+            y: q.y(),
             z: Fp2::one(),
         };
 
@@ -96,6 +82,13 @@ impl<P: Bls12Parameters> From<G2Affine<P>> for G2Prepared<P> {
         }
     }
 }
+
+impl<P: Bls12Parameters> From<G2Projective<P>> for G2Prepared<P> {
+    fn from(other: G2Projective<P>) -> Self {
+        G2Prepared::from(G2Affine::<P>::from(other))
+    }
+}
+
 impl<P: Bls12Parameters> G2Prepared<P> {
     pub fn is_zero(&self) -> bool {
         self.infinity
@@ -137,8 +130,8 @@ fn addition_step<B: Bls12Parameters>(
 ) -> EllCoeff<Fp2<B::Fp2Params>> {
     // Formula for line function when working with
     // homogeneous projective coordinates.
-    let theta = r.y - &(q.y * &r.z);
-    let lambda = r.x - &(q.x * &r.z);
+    let theta = r.y - &(q.y() * &r.z);
+    let lambda = r.x - &(q.x() * &r.z);
     let c = theta.square();
     let d = lambda.square();
     let e = lambda * &d;
@@ -148,7 +141,7 @@ fn addition_step<B: Bls12Parameters>(
     r.x = lambda * &h;
     r.y = theta * &(g - &h) - &(e * &r.y);
     r.z *= &e;
-    let j = theta * &q.x - &(lambda * &q.y);
+    let j = theta * &q.x() - &(lambda * &q.y());
 
     match B::TWIST_TYPE {
         TwistType::M => (j, -theta, lambda),
