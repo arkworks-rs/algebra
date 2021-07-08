@@ -35,7 +35,7 @@ pub struct G2Prepared<P: MNT6Parameters> {
 
 impl<P: MNT6Parameters> Default for G2Prepared<P> {
     fn default() -> Self {
-        Self::from(G2Affine::<P>::prime_subgroup_generator())
+        Self::from(G2Affine::<P>::generator())
     }
 }
 

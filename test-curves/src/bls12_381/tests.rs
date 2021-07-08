@@ -48,7 +48,7 @@ fn test_g1_projective_group() {
 
 #[test]
 fn test_g1_generator() {
-    let generator = G1Affine::prime_subgroup_generator();
+    let generator = G1Affine::generator();
     assert!(generator.is_on_curve());
     assert!(generator.is_in_correct_subgroup_assuming_on_curve());
 }

@@ -43,7 +43,7 @@ impl<P: MNT6Parameters> From<G1Affine<P>> for G1Prepared<P> {
 
 impl<P: MNT6Parameters> Default for G1Prepared<P> {
     fn default() -> Self {
-        Self::from(G1Affine::<P>::prime_subgroup_generator())
+        Self::from(G1Affine::<P>::generator())
     }
 }
 
