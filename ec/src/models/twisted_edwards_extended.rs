@@ -13,6 +13,7 @@ use ark_std::rand::{
 use ark_std::{
     fmt::{Display, Formatter, Result as FmtResult},
     io::{Read, Write},
+    hash::{Hash, Hasher},
     marker::PhantomData,
     ops::{Add, AddAssign, Mul, MulAssign, Neg, Sub, SubAssign},
     vec::Vec,
@@ -352,7 +353,6 @@ mod projective {
         Clone(bound = "P: Parameters"),
         Eq(bound = "P: Parameters"),
         Debug(bound = "P: Parameters"),
-        Hash(bound = "P: Parameters")
     )]
     #[must_use]
     pub struct TEProjective<P: Parameters> {
@@ -362,6 +362,12 @@ mod projective {
         z: P::BaseField,
         #[derivative(Debug = "ignore")]
         _params: PhantomData<P>,
+    }
+
+    impl<P: Parameters> Hash for TEProjective<P> {
+        fn hash<H: Hasher>(&self, state: &mut H) {
+            TEAffine::from(*self).hash(state)
+        }
     }
 
     impl<P: Parameters> PartialEq<TEProjective<P>> for TEAffine<P> {

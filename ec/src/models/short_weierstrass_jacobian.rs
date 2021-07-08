@@ -5,6 +5,7 @@ use ark_serialize::{
 use ark_std::{
     fmt::{Display, Formatter, Result as FmtResult},
     io::{Read, Write},
+    hash::{Hash, Hasher},
     marker::PhantomData,
     ops::{Add, AddAssign, Mul, MulAssign, Neg, Sub, SubAssign},
     rand::{
@@ -408,7 +409,6 @@ mod projective {
         Copy(bound = "P: Parameters"),
         Clone(bound = "P: Parameters"),
         Debug(bound = "P: Parameters"),
-        Hash(bound = "P: Parameters")
     )]
     #[must_use]
     pub struct SWProjective<P: Parameters> {
@@ -417,6 +417,12 @@ mod projective {
         z: P::BaseField,
         #[derivative(Debug = "ignore")]
         _params: PhantomData<P>,
+    }
+
+    impl<P: Parameters> Hash for SWProjective<P> {
+        fn hash<H: Hasher>(&self, state: &mut H) {
+            SWAffine::from(*self).hash(state)
+        }
     }
 
     impl<P: Parameters> Display for SWProjective<P> {
