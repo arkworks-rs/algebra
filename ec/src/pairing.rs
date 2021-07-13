@@ -70,7 +70,7 @@ pub trait Pairing: Sized + 'static + Copy + Debug + Sync + Send + Eq {
 
 /// Represents the target group of a pairing. This struct is a
 /// wrapper around the field that the target group is embedded in.
-#[derive(Derivative, CanonicalSerialize, CanonicalDeserialize)]
+#[derive(Derivative)]
 #[derivative(
     Copy(bound = ""),
     Clone(bound = ""),
@@ -82,12 +82,57 @@ pub trait Pairing: Sized + 'static + Copy + Debug + Sync + Send + Eq {
 )]
 pub struct PairingOutput<P: Pairing>(pub P::TargetField);
 
-impl<P: Pairing> PairingOutput<P> {
-    /// Converts `self` into an element of the underlying field.
-    pub fn to_field_element(&self) -> P::TargetField {
-        self.0
+impl<P: Pairing> CanonicalSerialize for PairingOutput<P> {
+        #[allow(unused_qualifications)]
+        #[inline]
+        fn serialize<W: Write>(&self, writer: W) -> Result<(), SerializationError> {
+            self.0.serialize(writer)
+        }
+
+        #[inline]
+        fn serialized_size(&self) -> usize {
+            self.0.serialized_size()
+        }
+
+        #[allow(unused_qualifications)]
+        #[inline]
+        fn serialize_uncompressed<W: Write>(
+            &self,
+            writer: W,
+        ) -> Result<(), SerializationError> {
+            self.0.serialize_uncompressed(writer)
+        }
+
+        #[inline]
+        fn uncompressed_size(&self) -> usize {
+            self.0.uncompressed_size()
+        }
     }
-}
+
+    impl<P: Pairing> CanonicalDeserialize for PairingOutput<P> {
+        #[allow(unused_qualifications)]
+        fn deserialize<R: Read>(reader: R) -> Result<Self, SerializationError> {
+            Self::deserialize_uncompressed(reader)
+        }
+
+        #[allow(unused_qualifications)]
+        fn deserialize_uncompressed<R: Read>(
+            reader: R,
+        ) -> Result<Self, ark_serialize::SerializationError> {
+            let f = Self::deserialize_unchecked(reader)?;
+            // Check that the output is within the field.
+            if f.0.pow(&P::ScalarField::characteristic()).is_one() {
+                Ok(f)
+            } else {
+                Err(SerializationError::InvalidData)
+            }
+        }
+
+        #[allow(unused_qualifications)]
+        fn deserialize_unchecked<R: Read>(reader: R) -> Result<Self, SerializationError> {
+            P::TargetField::deserialize_unchecked(reader).map(Self)
+        }
+    }
 
 impl<P: Pairing> Display for PairingOutput<P> {
     fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
@@ -142,17 +187,11 @@ ark_ff::impl_additive_ops_from_ref!(PairingOutput, Pairing);
 
 impl<P: Pairing> MulAssign<P::ScalarField> for PairingOutput<P> {
     fn mul_assign(&mut self, other: P::ScalarField) {
-        *self = *self * other.into_repr()
+        *self = GroupUniqueRepr::mul(self, other.into_repr())
     }
 }
 
-impl<P: Pairing> Mul<<P::ScalarField as PrimeField>::BigInt> for PairingOutput<P> {
-    type Output = Self;
-    fn mul(mut self, other: <P::ScalarField as PrimeField>::BigInt) -> Self {
-        self.0 = self.0.pow(other.as_ref());
-        self
-    }
-}
+impl<P: Pairing> GroupUniqueRepr for PairingOutput<P> { type G = Self; }
 
 impl<P: Pairing> Zeroize for PairingOutput<P> {
     fn zeroize(&mut self) {
@@ -211,8 +250,19 @@ impl<P: Pairing> Group for PairingOutput<P> {
         self.0 *= other.0
     }
 
-    fn mul(self, other: impl Into<<Self::ScalarField as PrimeField>::BigInt>) -> Self {
+    fn mul(&self, other: impl Into<<Self::ScalarField as PrimeField>::BigInt>) -> Self {
         Self(self.0.cyclotomic_exp(other.into().as_ref()))
+    }
+
+    fn mul_bits_be(&self, other: impl Iterator<Item = bool>) -> Self {
+        // Convert back from bits to [u64] limbs
+        let other = other
+        .collect::<Vec<_>>()
+        .chunks(64)
+        .map(|chunk| 
+            chunk.iter().enumerate().fold(0, |r, (i, bit)| r | u64::from(*bit) << i) 
+        ).collect::<Vec<_>>();
+        Self(self.0.cyclotomic_exp(&other))
     }
 }
 

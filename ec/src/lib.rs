@@ -13,10 +13,7 @@ extern crate derivative;
 #[macro_use]
 extern crate ark_std;
 
-use ark_ff::{
-    fields::{Field, PrimeField, SquareRootField},
-    UniformRand,
-};
+use ark_ff::{BitIteratorBE, UniformRand, fields::{Field, PrimeField, SquareRootField}};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use ark_std::{
     fmt::{Debug, Display},
@@ -64,6 +61,7 @@ pub trait Group:
     + core::iter::Sum<Self>
     + for<'a> core::iter::Sum<&'a Self>
     + From<<Self as Group>::UniqueRepr>
+    + Into<<Self as Group>::UniqueRepr>
     + Zeroize
 {
     /// The scalar field `F_r`, where `r` is the order of this group.
@@ -71,27 +69,21 @@ pub trait Group:
 
     /// The unique representation of elements of this group.
     /// For example, in elliptic curve groups, this can be defined to be the affine representation of curve points.
-    type UniqueRepr: Copy
-        + Eq
-        + Debug
-        + Display
-        + From<Self>
-        + Into<Self>
-        + UniformRand
-        + Neg<Output = Self::UniqueRepr>
-        + Mul<<Self::ScalarField as PrimeField>::BigInt, Output = Self>
-        + core::iter::Sum<Self>
-        + for<'a> core::iter::Sum<&'a Self>
-        + CanonicalSerialize
-        + CanonicalDeserialize;
+    
+    type UniqueRepr: GroupUniqueRepr<G = Self>;
 
     /// Returns a fixed generator of this group.
     #[must_use]
     fn generator() -> Self::UniqueRepr;
 
-    /// Converts [`self`] into the unique representation [`Self::UniqueRepr`].
+    /// Converts `self` into the unique representation [`Self::UniqueRepr`].
     fn to_unique(&self) -> Self::UniqueRepr {
         (*self).into()
+    }
+
+    /// Constructs [`Self`] from an element of type [`Self::UniqueRepr`].
+    fn from_unique(other: Self::UniqueRepr) -> Self {
+        other.into()
     }
 
     /// Canonicalize a batch of group elements into their unique representation.
@@ -125,7 +117,7 @@ pub trait Group:
 
     /// Compute `other * self`, where `other` is any type that can be converted
     /// into `<Self::ScalarField>::BigInt`. This includes `Self::ScalarField`.
-    fn mul(self, other: impl Into<<Self::ScalarField as PrimeField>::BigInt>) -> Self {
+    fn mul(&self, other: impl Into<<Self::ScalarField as PrimeField>::BigInt>) -> Self {
         self.mul_bits_be(ark_ff::BitIteratorBE::without_leading_zeros(other.into()))
     }
 
@@ -138,6 +130,45 @@ pub trait Group:
             res.double_in_place();
             if b {
                 res += self;
+            }
+        }
+        res
+    }
+}
+
+pub trait GroupUniqueRepr: 
+    'static
+    + Send
+    + Sync
+    + Copy
+    + Eq
+    + Debug
+    + Display
+    + From<Self::G>
+    + Into<Self::G>
+    + UniformRand
+    + Neg<Output = Self>
+    + core::iter::Sum<Self::G>
+    + for<'a> core::iter::Sum<&'a Self::G>
+    + CanonicalSerialize
+    + CanonicalDeserialize
+{
+    type G: Group<UniqueRepr = Self>;
+    /// Compute `other * self`, where `other` is any type that can be converted
+    /// into `<Self::ScalarField>::BigInt`. This includes `Self::ScalarField`.
+    fn mul(&self, other: impl Into<<<Self::G as Group>::ScalarField as PrimeField>::BigInt>) -> Self::G {
+        self.mul_bits_be(ark_ff::BitIteratorBE::without_leading_zeros(other.into()))
+    }
+
+    /// Computes `other * self`, where `other` is a *big-endian*
+    /// bit representation of some integer.
+    fn mul_bits_be(&self, other: impl Iterator<Item = bool>) -> Self::G {
+        let mut res = Self::G::zero();
+        for b in other.skip_while(|b| !b) {
+            // skip leading zeros
+            res.double_in_place();
+            if b {
+                res.add_unique_in_place(self);
             }
         }
         res
@@ -157,6 +188,16 @@ pub trait CurveGroup: Group {
     /// The base field that this elliptic curve is defined over.
     /// Unlike `Self::ScalarField`, this does not have to be a prime field.
     type BaseField: Field;
+
+    fn mul_by_cofactor(e: &Self::UniqueRepr) -> Self {
+        let cofactor = BitIteratorBE::without_leading_zeros(Self::COFACTOR);
+        e.mul_bits_be(cofactor)
+    }
+
+    fn mul_by_cofactor_inv(e: &Self::UniqueRepr) -> Self {
+        let cofactor_inv = BitIteratorBE::without_leading_zeros(Self::COFACTOR_INVERSE.into_repr());
+        e.mul_bits_be(cofactor_inv)
+    }
 }
 
 /// Preprocess a G1 element for use in a pairing.

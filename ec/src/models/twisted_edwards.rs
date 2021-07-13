@@ -15,7 +15,7 @@ use ark_std::{
     hash::{Hash, Hasher},
     io::{Read, Write},
     marker::PhantomData,
-    ops::{Add, AddAssign, Mul, MulAssign, Neg, Sub, SubAssign},
+    ops::{Add, AddAssign, MulAssign, Neg, Sub, SubAssign},
     vec::Vec,
 };
 use num_traits::{One, Zero};
@@ -35,6 +35,8 @@ pub use projective::*;
 pub use montgomery_affine::*;
 
 mod affine {
+    use crate::GroupUniqueRepr;
+
     use super::*;
     #[derive(Derivative)]
     #[derivative(
@@ -158,7 +160,7 @@ mod affine {
             self.x.is_zero() & self.y.is_one()
         }
 
-        /// Return the generator of the prime order subgroup.
+        /// Return the generator of this prime order group.
         #[inline]
         pub fn generator() -> Self {
             Self::new_unchecked(P::AFFINE_GENERATOR_COEFFS.0, P::AFFINE_GENERATOR_COEFFS.1)
@@ -170,8 +172,12 @@ mod affine {
         }
 
         pub fn mul_by_cofactor_inv(&self) -> Self {
-            self.mul(P::COFACTOR_INV.into()).into()
+            self.mul(P::COFACTOR_INV).into()
         }
+    }
+
+    impl<P: Parameters> GroupUniqueRepr for TEAffine<P> {
+        type G = TEProjective<P>;
     }
 
     impl<P: Parameters> Zeroize for TEAffine<P> {
@@ -188,16 +194,6 @@ mod affine {
 
         fn neg(self) -> Self {
             Self::new_unchecked(-self.x, self.y)
-        }
-    }
-
-    impl<P: Parameters> Mul<<P::ScalarField as PrimeField>::BigInt> for TEAffine<P> {
-        type Output = TEProjective<P>;
-
-        #[inline]
-        fn mul(self, by: <P::ScalarField as PrimeField>::BigInt) -> TEProjective<P> {
-            let bits = BitIteratorBE::without_leading_zeros(by);
-            self.mul_bits(bits)
         }
     }
 
@@ -488,15 +484,10 @@ mod projective {
             TEAffine::generator()
         }
 
-        /// Converts [`self`] into the unique representation.
-        fn to_unique(&self) -> Self::UniqueRepr {
-            (*self).into()
-        }
-
         /// Canonicalize a slice of projective elements into their unique representation.
         ///
-        /// For `N = v.len()`, this costs  1 inversion + 6N field multiplications
-        /// For `N = v.len()`, this costs 1 inversion + 6N field multiplications.
+        /// For `N = v.len()`, this costs  1 inversion + 5N field multiplications
+        /// For `N = v.len()`, this costs 1 inversion + 5N field multiplications.
         ///
         /// (Where batch inversion comprises 3N field multiplications + 1 inversion of these operations)
         fn batch_to_unique(v: &[Self]) -> Vec<Self::UniqueRepr> {
@@ -509,14 +500,17 @@ mod projective {
             // Perform affine transformations
             ark_std::cfg_iter!(v)
                 .zip(z_s)
-                .filter(|(g, _)| !g.is_normalized())
                 .map(|(g, z)| {
                     let mut g = *g;
-                    g.x *= &z; // x/z
-                    g.y *= &z;
-                    g.t *= &z;
-                    g.z = P::BaseField::one(); // z = 1
-                    g.to_unique()
+                    if !g.is_normalized() {
+                        g.x *= &z; // x/z
+                        g.y *= &z;
+                    }
+                    if g.is_zero() {
+                        TEAffine::zero()
+                    } else {
+                        TEAffine::new_unchecked(g.x, g.y)
+                    }
                 })
                 .collect()
         }

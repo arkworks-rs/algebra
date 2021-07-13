@@ -1,7 +1,7 @@
 use {
     crate::{
         models::{ModelParameters, SWModelParameters},
-        PairingEngine,
+        Pairing,
     },
     ark_ff::{
         fp3::{Fp3, Fp3Parameters},
@@ -15,6 +15,10 @@ use core::marker::PhantomData;
 
 pub mod g1;
 pub mod g2;
+
+use ark_ff::CyclotomicField;
+
+use crate::{MillerLoopOutput, PairingOutput};
 
 use self::g2::{AteAdditionCoefficients, AteDoubleCoefficients, G2ProjectiveExtended};
 pub use self::{
@@ -179,47 +183,40 @@ impl<P: MNT6Parameters> MNT6<P> {
         elt: &Fp6<P::Fp6Params>,
         elt_inv: &Fp6<P::Fp6Params>,
     ) -> Fp6<P::Fp6Params> {
-        let elt_clone = *elt;
-        let elt_inv_clone = *elt_inv;
-
         let mut elt_q = *elt;
         elt_q.frobenius_map(1);
 
-        let w1_part = elt_q.cyclotomic_exp(&P::FINAL_EXPONENT_LAST_CHUNK_1);
         let w0_part = if P::FINAL_EXPONENT_LAST_CHUNK_W0_IS_NEG {
-            elt_inv_clone.cyclotomic_exp(&P::FINAL_EXPONENT_LAST_CHUNK_ABS_OF_W0)
+            elt_inv
         } else {
-            elt_clone.cyclotomic_exp(&P::FINAL_EXPONENT_LAST_CHUNK_ABS_OF_W0)
+            elt
         };
-
-        w1_part * &w0_part
+        
+        elt_q.cyclotomic_exp(&P::FINAL_EXPONENT_LAST_CHUNK_1) * &w0_part.cyclotomic_exp(&P::FINAL_EXPONENT_LAST_CHUNK_ABS_OF_W0)
     }
 }
 
-impl<P: MNT6Parameters> PairingEngine for MNT6<P> {
-    type Fr = <P::G1Parameters as ModelParameters>::ScalarField;
-    type G1Projective = G1Projective<P>;
-    type G1Affine = G1Affine<P>;
+impl<P: MNT6Parameters> Pairing for MNT6<P> {
+    type ScalarField = <P::G1Parameters as ModelParameters>::ScalarField;
+    type G1 = G1Projective<P>;
     type G1Prepared = G1Prepared<P>;
-    type G2Projective = G2Projective<P>;
-    type G2Affine = G2Affine<P>;
+    type G2 = G2Projective<P>;
     type G2Prepared = G2Prepared<P>;
-    type Fq = P::Fp;
-    type Fqe = Fp3<P::Fp3Params>;
-    type Fqk = Fp6<P::Fp6Params>;
+    type TargetField = Fp6<P::Fp6Params>;
 
-    fn miller_loop<'a, I>(i: I) -> Self::Fqk
-    where
-        I: IntoIterator<Item = &'a (Self::G1Prepared, Self::G2Prepared)>,
-    {
-        let mut result = Self::Fqk::one();
+
+    fn miller_loop<'a>(
+        i: impl IntoIterator<Item = &'a (Self::G1Prepared, Self::G2Prepared)>,
+    ) -> MillerLoopOutput<Self> {
+        let mut result = Self::TargetField::one();
         for (p, q) in i {
             result *= &Self::ate_miller_loop(p, q);
         }
-        result
+        MillerLoopOutput(result)
     }
 
-    fn final_exponentiation(r: &Self::Fqk) -> Option<Self::Fqk> {
-        Some(Self::final_exponentiation(r))
+
+    fn final_exponentiation(mlo: MillerLoopOutput<Self>) -> Option<PairingOutput<Self>> {
+        Some(Self::final_exponentiation(&mlo.0)).map(PairingOutput)
     }
 }

@@ -1,21 +1,18 @@
 use crate::{
     mnt4::MNT4Parameters,
     models::mnt4::MNT4,
-    short_weierstrass_jacobian::{GroupAffine, GroupProjective},
-    AffineCurve,
+    short_weierstrass::{SWAffine, SWProjective},
 };
 use ark_ff::{
-    bytes::ToBytes,
     fields::{Field, Fp2},
 };
 use ark_std::{
-    io::{Result as IoResult, Write},
     vec::Vec,
 };
 use num_traits::One;
 
-pub type G2Affine<P> = GroupAffine<<P as MNT4Parameters>::G2Parameters>;
-pub type G2Projective<P> = GroupProjective<<P as MNT4Parameters>::G2Parameters>;
+pub type G2Affine<P> = SWAffine<<P as MNT4Parameters>::G2Parameters>;
+pub type G2Projective<P> = SWProjective<<P as MNT4Parameters>::G2Parameters>;
 
 #[derive(Derivative)]
 #[derivative(
@@ -39,28 +36,22 @@ impl<P: MNT4Parameters> Default for G2Prepared<P> {
     }
 }
 
-impl<P: MNT4Parameters> ToBytes for G2Prepared<P> {
-    fn write<W: Write>(&self, _writer: W) -> IoResult<()> {
-        unimplemented!()
-    }
-}
-
 impl<P: MNT4Parameters> From<G2Affine<P>> for G2Prepared<P> {
     fn from(g2: G2Affine<P>) -> Self {
         let twist_inv = P::TWIST.inverse().unwrap();
 
         let mut g2p = G2Prepared {
-            x: g2.x,
-            y: g2.y,
-            x_over_twist: g2.x * &twist_inv,
-            y_over_twist: g2.y * &twist_inv,
+            x: g2.x(),
+            y: g2.y(),
+            x_over_twist: g2.x() * &twist_inv,
+            y_over_twist: g2.y() * &twist_inv,
             double_coefficients: vec![],
             addition_coefficients: vec![],
         };
 
         let mut r = G2ProjectiveExtended {
-            x: g2.x,
-            y: g2.y,
+            x: g2.x(),
+            y: g2.y(),
             z: <Fp2<P::Fp2Params>>::one(),
             t: <Fp2<P::Fp2Params>>::one(),
         };
@@ -84,7 +75,7 @@ impl<P: MNT4Parameters> From<G2Affine<P>> for G2Prepared<P> {
 
                 if *bit {
                     let (r2, coeff) =
-                        MNT4::<P>::mixed_addition_step_for_flipped_miller_loop(&g2.x, &g2.y, &r);
+                        MNT4::<P>::mixed_addition_step_for_flipped_miller_loop(&g2.x(), &g2.y(), &r);
                     g2p.addition_coefficients.push(coeff);
                     r = r2;
                 }
@@ -113,6 +104,11 @@ impl<P: MNT4Parameters> From<G2Affine<P>> for G2Prepared<P> {
     }
 }
 
+impl<P: MNT4Parameters> From<G2Projective<P>> for G2Prepared<P> {
+    fn from(g2: G2Projective<P>) -> Self {
+        g2.into()
+    }
+}
 pub(super) struct G2ProjectiveExtended<P: MNT4Parameters> {
     pub(crate) x: Fp2<P::Fp2Params>,
     pub(crate) y: Fp2<P::Fp2Params>,

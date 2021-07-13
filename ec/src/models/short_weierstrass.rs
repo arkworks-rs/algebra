@@ -7,7 +7,7 @@ use ark_std::{
     hash::{Hash, Hasher},
     io::{Read, Write},
     marker::PhantomData,
-    ops::{Add, AddAssign, Mul, MulAssign, Neg, Sub, SubAssign},
+    ops::{Add, AddAssign, MulAssign, Neg, Sub, SubAssign},
     rand::{
         distributions::{Distribution, Standard},
         Rng,
@@ -32,6 +32,8 @@ pub use affine::*;
 pub use projective::*;
 
 mod affine {
+    use crate::GroupUniqueRepr;
+
     use super::*;
     /// SWAffine coordinates for a point on an elliptic curve in short Weierstrass form,
     /// over the base field `P::BaseField`.
@@ -201,7 +203,7 @@ mod affine {
                 .is_zero()
         }
 
-        /// Return the generator of the prime order subgroup.
+        /// Return the generator of this prime order group.
         #[inline]
         pub fn generator() -> Self {
             Self::new_unchecked(P::AFFINE_GENERATOR_COEFFS.0, P::AFFINE_GENERATOR_COEFFS.1)
@@ -213,8 +215,12 @@ mod affine {
         }
 
         pub fn mul_by_cofactor_inv(&self) -> Self {
-            self.mul(P::COFACTOR_INV.into()).into()
+            self.mul(P::COFACTOR_INV).into()
         }
+    }
+
+    impl<P: Parameters> GroupUniqueRepr for SWAffine<P> {
+        type G = SWProjective<P>;
     }
 
     impl<P: Parameters> Zeroize for SWAffine<P> {
@@ -224,16 +230,6 @@ mod affine {
             self.x.zeroize();
             self.y.zeroize();
             self.infinity.zeroize();
-        }
-    }
-
-    impl<P: Parameters> Mul<<P::ScalarField as PrimeField>::BigInt> for SWAffine<P> {
-        type Output = SWProjective<P>;
-
-        #[inline]
-        fn mul(self, by: <P::ScalarField as PrimeField>::BigInt) -> SWProjective<P> {
-            let bits = BitIteratorBE::without_leading_zeros(by);
-            self.mul_bits(bits)
         }
     }
 
@@ -539,11 +535,6 @@ mod projective {
             SWAffine::generator()
         }
 
-        /// Converts [`self`] into the unique representation.
-        fn to_unique(&self) -> Self::UniqueRepr {
-            (*self).into()
-        }
-
         /// Canonicalize a slice of projective elements into their unique representation.
         ///
         /// In more detail, this method converts a curve point in Jacobian coordinates
@@ -559,14 +550,19 @@ mod projective {
             // Perform affine transformations
             ark_std::cfg_iter!(v)
                 .zip(z_s)
-                .filter(|(g, _)| !g.is_normalized())
                 .map(|(g, z)| {
                     let mut g = *g;
-                    let z2 = z.square(); // 1/z
-                    g.x *= &z2; // x/z^2
-                    g.y *= &(z2 * &z); // y/z^3
-                    g.z = P::BaseField::one(); // z = 1
-                    g.to_unique()
+                    if !g.is_normalized() {
+                        let z2 = z.square(); // 1/z
+                        g.x *= &z2; // x/z^2
+                        g.y *= &(z2 * &z); // y/z^3
+                    }
+
+                    if g.z.is_zero() {
+                        Self::zero().into()
+                    } else {
+                        SWAffine::new_unchecked(g.x, g.y)
+                    }
                 })
                 .collect()
         }

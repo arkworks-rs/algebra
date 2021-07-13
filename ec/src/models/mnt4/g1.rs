@@ -1,13 +1,11 @@
 use crate::{
     mnt4::MNT4Parameters,
-    short_weierstrass_jacobian::{GroupAffine, GroupProjective},
-    AffineCurve,
+    short_weierstrass::{SWAffine, SWProjective},
 };
-use ark_ff::{bytes::ToBytes, Fp2};
-use ark_std::io::{Result as IoResult, Write};
+use ark_ff::Fp2;
 
-pub type G1Affine<P> = GroupAffine<<P as MNT4Parameters>::G1Parameters>;
-pub type G1Projective<P> = GroupProjective<<P as MNT4Parameters>::G1Parameters>;
+pub type G1Affine<P> = SWAffine<<P as MNT4Parameters>::G1Parameters>;
+pub type G1Projective<P> = SWProjective<<P as MNT4Parameters>::G1Parameters>;
 
 #[derive(Derivative)]
 #[derivative(
@@ -27,31 +25,28 @@ pub struct G1Prepared<P: MNT4Parameters> {
 impl<P: MNT4Parameters> From<G1Affine<P>> for G1Prepared<P> {
     fn from(g1: G1Affine<P>) -> Self {
         let mut x_twist = P::TWIST;
-        x_twist.mul_assign_by_fp(&g1.x);
+        x_twist.mul_assign_by_fp(&g1.x());
 
         let mut y_twist = P::TWIST;
-        y_twist.mul_assign_by_fp(&g1.y);
+        y_twist.mul_assign_by_fp(&g1.y());
 
         Self {
-            x: g1.x,
-            y: g1.y,
+            x: g1.x(),
+            y: g1.y(),
             x_twist,
             y_twist,
         }
     }
 }
 
-impl<P: MNT4Parameters> Default for G1Prepared<P> {
-    fn default() -> Self {
-        Self::from(G1Affine::<P>::generator())
+impl<P: MNT4Parameters> From<G1Projective<P>> for G1Prepared<P> {
+    fn from(g1: G1Projective<P>) -> Self {
+        g1.into()
     }
 }
 
-impl<P: MNT4Parameters> ToBytes for G1Prepared<P> {
-    fn write<W: Write>(&self, mut writer: W) -> IoResult<()> {
-        self.x.write(&mut writer)?;
-        self.y.write(&mut writer)?;
-        self.x_twist.write(&mut writer)?;
-        self.y_twist.write(&mut writer)
+impl<P: MNT4Parameters> Default for G1Prepared<P> {
+    fn default() -> Self {
+        Self::from(G1Affine::<P>::generator())
     }
 }
