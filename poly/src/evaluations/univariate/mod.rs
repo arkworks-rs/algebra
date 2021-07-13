@@ -2,7 +2,7 @@
 
 use crate::univariate::DensePolynomial;
 use crate::{EvaluationDomain, GeneralEvaluationDomain, UVPolynomial};
-use ark_ff::{batch_inversion, FftField};
+use ark_ff::{batch_inverse_in_place, FftField};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, SerializationError};
 use ark_std::{
     io::{Read, Write},
@@ -149,7 +149,7 @@ impl<'a, F: FftField, D: EvaluationDomain<F>> DivAssign<&'a Evaluations<F, D>>
     fn div_assign(&mut self, other: &'a Evaluations<F, D>) {
         assert_eq!(self.domain, other.domain, "domains are unequal");
         let mut other_copy = other.clone();
-        batch_inversion(other_copy.evals.as_mut_slice());
+        batch_inverse_in_place(other_copy.evals.as_mut_slice());
         ark_std::cfg_iter_mut!(self.evals)
             .zip(&other_copy.evals)
             .for_each(|(a, b)| *a *= b);

@@ -155,7 +155,7 @@ impl<F: FftField> EvaluationDomain<F> for Radix2EvaluationDomain<F> {
             // and v_i = g * v_{i-1}, it follows that
             // l_i = g^-1 * l_{i-1}
             // TODO: consider caching the computation of l_i to save N multiplications
-            use ark_ff::fields::batch_inversion;
+            use ark_ff::fields::batch_inverse_in_place;
 
             // v_0_inv = m * h^(m-1)
             let v_0_inv = F::from(self.size) * domain_offset.pow(&[self.size - 1]);
@@ -172,7 +172,7 @@ impl<F: FftField> EvaluationDomain<F> for Radix2EvaluationDomain<F> {
 
             // Invert the lagrange coefficients inverse, to get the actual coefficients,
             // and return these
-            batch_inversion(lagrange_coefficients_inverse.as_mut_slice());
+            batch_inverse_in_place(lagrange_coefficients_inverse.as_mut_slice());
             lagrange_coefficients_inverse
         }
     }

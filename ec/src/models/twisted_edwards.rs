@@ -495,7 +495,7 @@ mod projective {
             // to its affine representation, by the conversion
             // (x, y, t, z) -> (x/z, y/z, t/z, 1)
             let mut z_s = v.iter().map(|g| g.z).collect::<Vec<_>>();
-            ark_ff::batch_inversion(&mut z_s);
+            ark_ff::batch_inverse_in_place(&mut z_s);
 
             // Perform affine transformations
             ark_std::cfg_iter!(v)

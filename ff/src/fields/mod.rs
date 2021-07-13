@@ -657,19 +657,19 @@ impl_field_bigint_conv!(Fp768, BigInteger768, Fp768Parameters);
 impl_field_bigint_conv!(Fp832, BigInteger832, Fp832Parameters);
 
 // Given a vector of field elements {v_i}, compute the vector {v_i^(-1)}
-pub fn batch_inversion<F: Field>(v: &mut [F]) {
-    batch_inversion_and_mul(v, &F::one());
+pub fn batch_inverse_in_place<F: Field>(v: &mut [F]) {
+    batch_inverse_and_mul_in_place(v, &F::one());
 }
 
 #[cfg(not(feature = "parallel"))]
 // Given a vector of field elements {v_i}, compute the vector {coeff * v_i^(-1)}
-pub fn batch_inversion_and_mul<F: Field>(v: &mut [F], coeff: &F) {
-    serial_batch_inversion_and_mul(v, coeff);
+pub fn batch_inverse_and_mul_in_place<F: Field>(v: &mut [F], coeff: &F) {
+    serial_batch_inverse_and_mul_in_place(v, coeff);
 }
 
 #[cfg(feature = "parallel")]
 // Given a vector of field elements {v_i}, compute the vector {coeff * v_i^(-1)}
-pub fn batch_inversion_and_mul<F: Field>(v: &mut [F], coeff: &F) {
+pub fn batch_inverse_and_mul_in_place<F: Field>(v: &mut [F], coeff: &F) {
     // Divide the vector v evenly between all available cores
     let min_elements_per_thread = 1;
     let num_cpus_available = rayon::current_num_threads();
@@ -678,13 +678,13 @@ pub fn batch_inversion_and_mul<F: Field>(v: &mut [F], coeff: &F) {
 
     // Batch invert in parallel, without copying the vector
     v.par_chunks_mut(num_elem_per_thread).for_each(|mut chunk| {
-        serial_batch_inversion_and_mul(&mut chunk, coeff);
+        serial_batch_inverse_and_mul_in_place(&mut chunk, coeff);
     });
 }
 
 /// Given a vector of field elements {v_i}, compute the vector {coeff * v_i^(-1)}
 /// This method is explicitly single core.
-fn serial_batch_inversion_and_mul<F: Field>(v: &mut [F], coeff: &F) {
+fn serial_batch_inverse_and_mul_in_place<F: Field>(v: &mut [F], coeff: &F) {
     // Montgomery’s Trick and Fast Implementation of Masked AES
     // Genelle, Prouff and Quisquater
     // Section 3.2
@@ -755,13 +755,13 @@ mod no_std_tests {
         }
 
         let mut random_coeffs_inv = random_coeffs.clone();
-        batch_inversion::<Fr>(&mut random_coeffs_inv);
+        batch_inverse_in_place::<Fr>(&mut random_coeffs_inv);
         for i in 0..=vec_size {
             assert_eq!(random_coeffs_inv[i] * random_coeffs[i], Fr::one());
         }
         let rand_multiplier = Fr::rand(&mut test_rng());
         let mut random_coeffs_inv_shifted = random_coeffs.clone();
-        batch_inversion_and_mul(&mut random_coeffs_inv_shifted, &rand_multiplier);
+        batch_inverse_and_mul_in_place(&mut random_coeffs_inv_shifted, &rand_multiplier);
         for i in 0..=vec_size {
             assert_eq!(
                 random_coeffs_inv_shifted[i] * random_coeffs[i],

@@ -545,7 +545,7 @@ mod projective {
         /// (Where batch inversion comprises 3N field multiplications + 1 inversion of these operations)
         fn batch_normalize(v: &[Self]) -> Vec<Self::NormalForm> {
             let mut z_s = v.iter().map(|g| g.z).collect::<Vec<_>>();
-            ark_ff::batch_inversion(&mut z_s);
+            ark_ff::batch_inverse_in_place(&mut z_s);
 
             // Perform affine transformations
             ark_std::cfg_iter!(v)
