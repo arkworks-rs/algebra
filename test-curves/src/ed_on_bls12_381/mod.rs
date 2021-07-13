@@ -12,9 +12,9 @@
 //!    * a = -1
 //!    * d = -(10240/10241)
 
-mod g;
-mod fr;
 mod fq;
-pub use fr::*;
+mod fr;
+mod g;
 pub use fq::*;
+pub use fr::*;
 pub use g::*;

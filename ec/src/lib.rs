@@ -13,7 +13,10 @@ extern crate derivative;
 #[macro_use]
 extern crate ark_std;
 
-use ark_ff::{BitIteratorBE, UniformRand, fields::{Field, PrimeField, SquareRootField}};
+use ark_ff::{
+    fields::{Field, PrimeField, SquareRootField},
+    BitIteratorBE, UniformRand,
+};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use ark_std::{
     fmt::{Debug, Display},
@@ -69,7 +72,7 @@ pub trait Group:
 
     /// The unique representation of elements of this group.
     /// For example, in elliptic curve groups, this can be defined to be the affine representation of curve points.
-    
+
     type UniqueRepr: GroupUniqueRepr<G = Self>;
 
     /// Returns a fixed generator of this group.
@@ -136,7 +139,7 @@ pub trait Group:
     }
 }
 
-pub trait GroupUniqueRepr: 
+pub trait GroupUniqueRepr:
     'static
     + Send
     + Sync
@@ -156,7 +159,10 @@ pub trait GroupUniqueRepr:
     type G: Group<UniqueRepr = Self>;
     /// Compute `other * self`, where `other` is any type that can be converted
     /// into `<Self::ScalarField>::BigInt`. This includes `Self::ScalarField`.
-    fn mul(&self, other: impl Into<<<Self::G as Group>::ScalarField as PrimeField>::BigInt>) -> Self::G {
+    fn mul(
+        &self,
+        other: impl Into<<<Self::G as Group>::ScalarField as PrimeField>::BigInt>,
+    ) -> Self::G {
         self.mul_bits_be(ark_ff::BitIteratorBE::without_leading_zeros(other.into()))
     }
 

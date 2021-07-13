@@ -1,8 +1,7 @@
 #![allow(unused)]
 use ark_ec::{
-    wnaf::WnafContext,
-    twisted_edwards::TEProjective,
-    Group, GroupUniqueRepr, CurveGroup, MontgomeryModelParameters, SWModelParameters, TEModelParameters,
+    twisted_edwards::TEProjective, wnaf::WnafContext, CurveGroup, Group, GroupUniqueRepr,
+    MontgomeryModelParameters, SWModelParameters, TEModelParameters,
 };
 use ark_ff::{Field, One, PrimeField, UniformRand, Zero};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, SWFlags, SerializationError};
@@ -72,11 +71,7 @@ fn random_addition_test<G: CurveGroup>() {
                     println!("{} \n{}", tmp[i], tmp[j]);
                 }
                 assert_eq!(tmp[i], tmp[j], "Associativity failed {} {}", i, j);
-                assert_eq!(
-                    tmp[i].into(),
-                    tmp[j].into(),
-                    "Associativity failed"
-                );
+                assert_eq!(tmp[i].into(), tmp[j].into(), "Associativity failed");
             }
 
             assert!(tmp[i] != a);
@@ -218,11 +213,8 @@ fn random_transformation_test<G: CurveGroup>() {
             v[s] = v[s].to_unique().into();
         }
 
-        let expected_v: Vec<G::UniqueRepr> = v
-            .iter()
-            .copied()
-            .map(|v| v.into())
-            .collect::<Vec<_>>();
+        let expected_v: Vec<G::UniqueRepr> =
+            v.iter().copied().map(|v| v.into()).collect::<Vec<_>>();
         let v = G::batch_to_unique(&v);
 
         assert_eq!(v, expected_v);
@@ -273,11 +265,7 @@ pub fn curve_tests<G: CurveGroup>() {
     {
         let a = G::rand(&mut rng);
         let b = a.into().into();
-        let c = a
-            .into()
-            .into()
-            .into()
-            .into();
+        let c = a.into().into().into().into();
         assert_eq!(a, b);
         assert_eq!(b, c);
     }

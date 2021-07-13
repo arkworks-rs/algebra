@@ -3,12 +3,8 @@ use crate::{
     models::mnt4::MNT4,
     short_weierstrass::{SWAffine, SWProjective},
 };
-use ark_ff::{
-    fields::{Field, Fp2},
-};
-use ark_std::{
-    vec::Vec,
-};
+use ark_ff::fields::{Field, Fp2};
+use ark_std::vec::Vec;
 use num_traits::One;
 
 pub type G2Affine<P> = SWAffine<<P as MNT4Parameters>::G2Parameters>;
@@ -74,8 +70,11 @@ impl<P: MNT4Parameters> From<G2Affine<P>> for G2Prepared<P> {
                 r = r2;
 
                 if *bit {
-                    let (r2, coeff) =
-                        MNT4::<P>::mixed_addition_step_for_flipped_miller_loop(&g2.x(), &g2.y(), &r);
+                    let (r2, coeff) = MNT4::<P>::mixed_addition_step_for_flipped_miller_loop(
+                        &g2.x(),
+                        &g2.y(),
+                        &r,
+                    );
                     g2p.addition_coefficients.push(coeff);
                     r = r2;
                 }

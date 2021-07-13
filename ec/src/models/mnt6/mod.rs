@@ -191,8 +191,9 @@ impl<P: MNT6Parameters> MNT6<P> {
         } else {
             elt
         };
-        
-        elt_q.cyclotomic_exp(&P::FINAL_EXPONENT_LAST_CHUNK_1) * &w0_part.cyclotomic_exp(&P::FINAL_EXPONENT_LAST_CHUNK_ABS_OF_W0)
+
+        elt_q.cyclotomic_exp(&P::FINAL_EXPONENT_LAST_CHUNK_1)
+            * &w0_part.cyclotomic_exp(&P::FINAL_EXPONENT_LAST_CHUNK_ABS_OF_W0)
     }
 }
 
@@ -204,7 +205,6 @@ impl<P: MNT6Parameters> Pairing for MNT6<P> {
     type G2Prepared = G2Prepared<P>;
     type TargetField = Fp6<P::Fp6Params>;
 
-
     fn miller_loop<'a>(
         i: impl IntoIterator<Item = &'a (Self::G1Prepared, Self::G2Prepared)>,
     ) -> MillerLoopOutput<Self> {
@@ -214,7 +214,6 @@ impl<P: MNT6Parameters> Pairing for MNT6<P> {
         }
         MillerLoopOutput(result)
     }
-
 
     fn final_exponentiation(mlo: MillerLoopOutput<Self>) -> Option<PairingOutput<Self>> {
         Some(Self::final_exponentiation(&mlo.0)).map(PairingOutput)

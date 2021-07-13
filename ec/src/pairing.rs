@@ -83,56 +83,53 @@ pub trait Pairing: Sized + 'static + Copy + Debug + Sync + Send + Eq {
 pub struct PairingOutput<P: Pairing>(pub P::TargetField);
 
 impl<P: Pairing> CanonicalSerialize for PairingOutput<P> {
-        #[allow(unused_qualifications)]
-        #[inline]
-        fn serialize<W: Write>(&self, writer: W) -> Result<(), SerializationError> {
-            self.0.serialize(writer)
-        }
+    #[allow(unused_qualifications)]
+    #[inline]
+    fn serialize<W: Write>(&self, writer: W) -> Result<(), SerializationError> {
+        self.0.serialize(writer)
+    }
 
-        #[inline]
-        fn serialized_size(&self) -> usize {
-            self.0.serialized_size()
-        }
+    #[inline]
+    fn serialized_size(&self) -> usize {
+        self.0.serialized_size()
+    }
 
-        #[allow(unused_qualifications)]
-        #[inline]
-        fn serialize_uncompressed<W: Write>(
-            &self,
-            writer: W,
-        ) -> Result<(), SerializationError> {
-            self.0.serialize_uncompressed(writer)
-        }
+    #[allow(unused_qualifications)]
+    #[inline]
+    fn serialize_uncompressed<W: Write>(&self, writer: W) -> Result<(), SerializationError> {
+        self.0.serialize_uncompressed(writer)
+    }
 
-        #[inline]
-        fn uncompressed_size(&self) -> usize {
-            self.0.uncompressed_size()
+    #[inline]
+    fn uncompressed_size(&self) -> usize {
+        self.0.uncompressed_size()
+    }
+}
+
+impl<P: Pairing> CanonicalDeserialize for PairingOutput<P> {
+    #[allow(unused_qualifications)]
+    fn deserialize<R: Read>(reader: R) -> Result<Self, SerializationError> {
+        Self::deserialize_uncompressed(reader)
+    }
+
+    #[allow(unused_qualifications)]
+    fn deserialize_uncompressed<R: Read>(
+        reader: R,
+    ) -> Result<Self, ark_serialize::SerializationError> {
+        let f = Self::deserialize_unchecked(reader)?;
+        // Check that the output is within the field.
+        if f.0.pow(&P::ScalarField::characteristic()).is_one() {
+            Ok(f)
+        } else {
+            Err(SerializationError::InvalidData)
         }
     }
 
-    impl<P: Pairing> CanonicalDeserialize for PairingOutput<P> {
-        #[allow(unused_qualifications)]
-        fn deserialize<R: Read>(reader: R) -> Result<Self, SerializationError> {
-            Self::deserialize_uncompressed(reader)
-        }
-
-        #[allow(unused_qualifications)]
-        fn deserialize_uncompressed<R: Read>(
-            reader: R,
-        ) -> Result<Self, ark_serialize::SerializationError> {
-            let f = Self::deserialize_unchecked(reader)?;
-            // Check that the output is within the field.
-            if f.0.pow(&P::ScalarField::characteristic()).is_one() {
-                Ok(f)
-            } else {
-                Err(SerializationError::InvalidData)
-            }
-        }
-
-        #[allow(unused_qualifications)]
-        fn deserialize_unchecked<R: Read>(reader: R) -> Result<Self, SerializationError> {
-            P::TargetField::deserialize_unchecked(reader).map(Self)
-        }
+    #[allow(unused_qualifications)]
+    fn deserialize_unchecked<R: Read>(reader: R) -> Result<Self, SerializationError> {
+        P::TargetField::deserialize_unchecked(reader).map(Self)
     }
+}
 
 impl<P: Pairing> Display for PairingOutput<P> {
     fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
@@ -191,7 +188,9 @@ impl<P: Pairing> MulAssign<P::ScalarField> for PairingOutput<P> {
     }
 }
 
-impl<P: Pairing> GroupUniqueRepr for PairingOutput<P> { type G = Self; }
+impl<P: Pairing> GroupUniqueRepr for PairingOutput<P> {
+    type G = Self;
+}
 
 impl<P: Pairing> Zeroize for PairingOutput<P> {
     fn zeroize(&mut self) {
@@ -257,11 +256,15 @@ impl<P: Pairing> Group for PairingOutput<P> {
     fn mul_bits_be(&self, other: impl Iterator<Item = bool>) -> Self {
         // Convert back from bits to [u64] limbs
         let other = other
-        .collect::<Vec<_>>()
-        .chunks(64)
-        .map(|chunk| 
-            chunk.iter().enumerate().fold(0, |r, (i, bit)| r | u64::from(*bit) << i) 
-        ).collect::<Vec<_>>();
+            .collect::<Vec<_>>()
+            .chunks(64)
+            .map(|chunk| {
+                chunk
+                    .iter()
+                    .enumerate()
+                    .fold(0, |r, (i, bit)| r | u64::from(*bit) << i)
+            })
+            .collect::<Vec<_>>();
         Self(self.0.cyclotomic_exp(&other))
     }
 }

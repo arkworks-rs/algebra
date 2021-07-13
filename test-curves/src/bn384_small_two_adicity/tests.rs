@@ -1,5 +1,5 @@
 #![allow(unused_imports)]
-use ark_ec::{models::SWModelParameters, GroupUniqueRepr, Pairing, CurveGroup};
+use ark_ec::{models::SWModelParameters, CurveGroup, GroupUniqueRepr, Pairing};
 use ark_ff::{One, UniformRand, Zero};
 use ark_std::rand::Rng;
 

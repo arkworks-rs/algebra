@@ -82,9 +82,9 @@ impl FpParameters for FrParameters {
 
 #[cfg(test)]
 mod tests {
-    use ark_std::{test_rng, rand::Rng};
     use super::*;
     use ark_algebra_test_templates::fields::*;
+    use ark_std::{rand::Rng, test_rng};
     #[test]
     fn test_fr() {
         let mut rng = test_rng();

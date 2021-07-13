@@ -185,8 +185,9 @@ impl<P: MNT4Parameters> MNT4<P> {
         } else {
             elt
         };
-        
-        elt_q.cyclotomic_exp(&P::FINAL_EXPONENT_LAST_CHUNK_1) * &w0_part.cyclotomic_exp(&P::FINAL_EXPONENT_LAST_CHUNK_ABS_OF_W0)
+
+        elt_q.cyclotomic_exp(&P::FINAL_EXPONENT_LAST_CHUNK_1)
+            * &w0_part.cyclotomic_exp(&P::FINAL_EXPONENT_LAST_CHUNK_ABS_OF_W0)
     }
 }
 
@@ -197,7 +198,6 @@ impl<P: MNT4Parameters> Pairing for MNT4<P> {
     type G2 = G2Projective<P>;
     type G2Prepared = G2Prepared<P>;
     type TargetField = Fp4<P::Fp4Params>;
-
 
     fn miller_loop<'a>(
         i: impl IntoIterator<Item = &'a (Self::G1Prepared, Self::G2Prepared)>,
