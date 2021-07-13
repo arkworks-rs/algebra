@@ -173,7 +173,7 @@ impl<F: FftField> EvaluationDomain<F> for MixedRadixEvaluationDomain<F> {
             }
             u
         } else {
-            use ark_ff::fields::batch_inversion;
+            use ark_ff::fields::batch_inverse_in_place;
 
             let mut l = (t_size - one) * self.size_inv;
             let mut r = one;
@@ -186,7 +186,7 @@ impl<F: FftField> EvaluationDomain<F> for MixedRadixEvaluationDomain<F> {
                 r *= &self.group_gen;
             }
 
-            batch_inversion(u.as_mut_slice());
+            batch_inverse_in_place(u.as_mut_slice());
 
             ark_std::cfg_iter_mut!(u)
                 .zip(ls)

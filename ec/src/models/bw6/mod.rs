@@ -1,11 +1,14 @@
 use crate::{
     models::{ModelParameters, SWModelParameters},
-    PairingEngine,
+    MillerLoopOutput, Pairing, PairingOutput,
 };
-use ark_ff::fields::{
-    fp3::Fp3Parameters,
-    fp6_2over3::{Fp6, Fp6Parameters},
-    BitIteratorBE, Field, PrimeField, SquareRootField,
+use ark_ff::{
+    fields::{
+        fp3::Fp3Parameters,
+        fp6_2over3::{Fp6, Fp6Parameters},
+        BitIteratorBE, Field, PrimeField, SquareRootField,
+    },
+    CyclotomicField,
 };
 use num_traits::One;
 
@@ -55,22 +58,22 @@ impl<P: BW6Parameters> BW6<P> {
 
         match P::TWIST_TYPE {
             TwistType::M => {
-                c2 *= &p.y;
-                c1 *= &p.x;
+                c2 *= &p.y();
+                c1 *= &p.x();
                 f.mul_by_014(&c0, &c1, &c2);
             }
             TwistType::D => {
-                c0 *= &p.y;
-                c1 *= &p.x;
+                c0 *= &p.y();
+                c1 *= &p.x();
                 f.mul_by_034(&c0, &c1, &c2);
             }
         }
     }
 
     fn exp_by_x(mut f: Fp6<P::Fp6Params>) -> Fp6<P::Fp6Params> {
-        f = f.cyclotomic_exp(&P::X);
+        f.cyclotomic_exp_in_place(&P::X);
         if P::X_IS_NEGATIVE {
-            f.conjugate();
+            f.cyclotomic_inverse_in_place();
         }
         f
     }
@@ -207,22 +210,17 @@ impl<P: BW6Parameters> BW6<P> {
     }
 }
 
-impl<P: BW6Parameters> PairingEngine for BW6<P> {
-    type Fr = <P::G1Parameters as ModelParameters>::ScalarField;
-    type G1Projective = G1Projective<P>;
-    type G1Affine = G1Affine<P>;
+impl<P: BW6Parameters> Pairing for BW6<P> {
+    type ScalarField = <P::G1Parameters as ModelParameters>::ScalarField;
+    type G1 = G1Projective<P>;
     type G1Prepared = G1Prepared<P>;
-    type G2Projective = G2Projective<P>;
-    type G2Affine = G2Affine<P>;
+    type G2 = G2Projective<P>;
     type G2Prepared = G2Prepared<P>;
-    type Fq = P::Fp;
-    type Fqe = P::Fp;
-    type Fqk = Fp6<P::Fp6Params>;
+    type TargetField = Fp6<P::Fp6Params>;
 
-    fn miller_loop<'a, I>(i: I) -> Self::Fqk
-    where
-        I: IntoIterator<Item = &'a (Self::G1Prepared, Self::G2Prepared)>,
-    {
+    fn miller_loop<'a>(
+        i: impl IntoIterator<Item = &'a (Self::G1Prepared, Self::G2Prepared)>,
+    ) -> MillerLoopOutput<Self> {
         // Alg.5 in https://eprint.iacr.org/2020/351.pdf
 
         let mut pairs_1 = vec![];
@@ -235,7 +233,7 @@ impl<P: BW6Parameters> PairingEngine for BW6<P> {
         }
 
         // f_{u+1,Q}(P)
-        let mut f_1 = Self::Fqk::one();
+        let mut f_1 = Self::TargetField::one();
 
         for i in BitIteratorBE::new(P::ATE_LOOP_COUNT_1).skip(1) {
             f_1.square_in_place();
@@ -255,7 +253,7 @@ impl<P: BW6Parameters> PairingEngine for BW6<P> {
         }
 
         // f_{u^2-u^2-u,Q}(P)
-        let mut f_2 = Self::Fqk::one();
+        let mut f_2 = Self::TargetField::one();
 
         for i in (1..P::ATE_LOOP_COUNT_2.len()).rev() {
             if i != P::ATE_LOOP_COUNT_2.len() - 1 {
@@ -288,10 +286,10 @@ impl<P: BW6Parameters> PairingEngine for BW6<P> {
 
         f_2.frobenius_map(1);
 
-        f_1 * &f_2
+        MillerLoopOutput(f_1 * &f_2)
     }
 
-    fn final_exponentiation(f: &Self::Fqk) -> Option<Self::Fqk> {
-        Some(Self::final_exponentiation(f))
+    fn final_exponentiation(mlo: MillerLoopOutput<Self>) -> Option<PairingOutput<Self>> {
+        Some(Self::final_exponentiation(&mlo.0)).map(PairingOutput)
     }
 }

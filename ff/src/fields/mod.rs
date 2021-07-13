@@ -209,6 +209,101 @@ pub trait Field:
     }
 }
 
+/// Fields that have a cyclotomic subgroup, and which can leverage efficient inversion
+/// and squaring operations for elements in this subgroup.
+/// If a field has multiplicative order p^d - 1, the cyclotomic subgroups refer to subgroups of order φ_n(p),
+/// for any n < d, where φ_n is the [nth cyclotomic polynomial](https://en.wikipedia.org/wiki/Cyclotomic_polynomial)
+pub trait CyclotomicField: Field {
+    /// Is the inverse fast to compute? For example, in quadratic extensions, the inverse
+    /// can be computed at the cost of negating one coordinate, which is much faster than
+    /// standard inversion.
+    /// By default this is `false`, but should be set to `true` for quadratic extensions.
+    const INVERSE_IS_FAST: bool = false;
+
+    /// Compute a square in the cyclotomic subgroup. By default this is computed using [`Field::square`], but for
+    /// degree 12 extensions, this can be computed faster than normal squaring.
+    fn cyclotomic_square(&self) -> Self {
+        let mut result = *self;
+        result.cyclotomic_square_in_place();
+        result
+    }
+
+    /// Square `self` in place. By default this is computed using [`Field::square_in_place`], but for
+    /// degree 12 extensions, this can be computed faster than normal squaring.
+    fn cyclotomic_square_in_place(&mut self) -> &mut Self {
+        self.square_in_place()
+    }
+
+    /// Compute the inverse of `self`. See [`Self::INVERSE_IS_FAST`] for details.
+    /// Returns [`None`] if `self.is_zero()`, and [`Some`] otherwise.
+    fn cyclotomic_inverse(&self) -> Option<Self> {
+        let mut result = *self;
+        result.cyclotomic_inverse_in_place()?;
+        Some(result)
+    }
+
+    /// Compute the inverse of `self`. See [`Self::INVERSE_IS_FAST`] for details.
+    /// Returns [`None`] if `self.is_zero()`, and [`Some`] otherwise.
+    fn cyclotomic_inverse_in_place(&mut self) -> Option<&mut Self> {
+        self.inverse_in_place()
+    }
+
+    /// Compute a cyclotomic exponentiation of `self` with respect to `e`.
+    fn cyclotomic_exp(&self, e: impl AsRef<[u64]>) -> Self {
+        let mut result = *self;
+        result.cyclotomic_exp_in_place(e);
+        result
+    }
+
+    /// Set `self` to be the result of exponentiating [`self`] by `e`, using efficient cyclotomic algorithms.
+    fn cyclotomic_exp_in_place(&mut self, e: impl AsRef<[u64]>) {
+        if self.is_zero() {
+            return;
+        }
+
+        if Self::INVERSE_IS_FAST {
+            // We only use NAF-based exponentiation if inverses are fast to compute.
+            let naf = crate::biginteger::arithmetic::find_wnaf(e.as_ref());
+            exp_loop(self, naf.into_iter().rev())
+        } else {
+            exp_loop(
+                self,
+                BitIteratorBE::without_leading_zeros(e.as_ref()).map(|e| e as i8),
+            )
+        };
+    }
+}
+
+/// Helper function to calculate the double-and-add loop for exponentiation.
+fn exp_loop<F: CyclotomicField, I: Iterator<Item = i8>>(f: &mut F, e: I) {
+    // If the inverse is fast and we're using naf, we compute the inverse of the base.
+    // Otherwise we do nothing with the variable, so we default it to one.
+    let self_inverse = if F::INVERSE_IS_FAST {
+        f.cyclotomic_inverse().unwrap() // The inverse must exist because self is not zero.
+    } else {
+        F::one()
+    };
+    let mut res = F::one();
+    let mut found_nonzero = false;
+    for value in e {
+        if found_nonzero {
+            res.cyclotomic_square_in_place();
+        }
+
+        if value != 0 {
+            found_nonzero = true;
+
+            if value > 0 {
+                res *= &*f;
+            } else if F::INVERSE_IS_FAST {
+                // only use wnaf if inversion is fast.
+                res *= &self_inverse;
+            }
+        }
+    }
+    *f = res;
+}
+
 /// A trait that defines parameters for a field that can be used for FFTs.
 pub trait FftParameters: 'static + Send + Sync + Sized {
     type BigInt: BigInteger;
@@ -562,19 +657,19 @@ impl_field_bigint_conv!(Fp768, BigInteger768, Fp768Parameters);
 impl_field_bigint_conv!(Fp832, BigInteger832, Fp832Parameters);
 
 // Given a vector of field elements {v_i}, compute the vector {v_i^(-1)}
-pub fn batch_inversion<F: Field>(v: &mut [F]) {
-    batch_inversion_and_mul(v, &F::one());
+pub fn batch_inverse_in_place<F: Field>(v: &mut [F]) {
+    batch_inverse_and_mul_in_place(v, &F::one());
 }
 
 #[cfg(not(feature = "parallel"))]
 // Given a vector of field elements {v_i}, compute the vector {coeff * v_i^(-1)}
-pub fn batch_inversion_and_mul<F: Field>(v: &mut [F], coeff: &F) {
-    serial_batch_inversion_and_mul(v, coeff);
+pub fn batch_inverse_and_mul_in_place<F: Field>(v: &mut [F], coeff: &F) {
+    serial_batch_inverse_and_mul_in_place(v, coeff);
 }
 
 #[cfg(feature = "parallel")]
 // Given a vector of field elements {v_i}, compute the vector {coeff * v_i^(-1)}
-pub fn batch_inversion_and_mul<F: Field>(v: &mut [F], coeff: &F) {
+pub fn batch_inverse_and_mul_in_place<F: Field>(v: &mut [F], coeff: &F) {
     // Divide the vector v evenly between all available cores
     let min_elements_per_thread = 1;
     let num_cpus_available = rayon::current_num_threads();
@@ -583,13 +678,13 @@ pub fn batch_inversion_and_mul<F: Field>(v: &mut [F], coeff: &F) {
 
     // Batch invert in parallel, without copying the vector
     v.par_chunks_mut(num_elem_per_thread).for_each(|mut chunk| {
-        serial_batch_inversion_and_mul(&mut chunk, coeff);
+        serial_batch_inverse_and_mul_in_place(&mut chunk, coeff);
     });
 }
 
 /// Given a vector of field elements {v_i}, compute the vector {coeff * v_i^(-1)}
 /// This method is explicitly single core.
-fn serial_batch_inversion_and_mul<F: Field>(v: &mut [F], coeff: &F) {
+fn serial_batch_inverse_and_mul_in_place<F: Field>(v: &mut [F], coeff: &F) {
     // Montgomery’s Trick and Fast Implementation of Masked AES
     // Genelle, Prouff and Quisquater
     // Section 3.2
@@ -660,13 +755,13 @@ mod no_std_tests {
         }
 
         let mut random_coeffs_inv = random_coeffs.clone();
-        batch_inversion::<Fr>(&mut random_coeffs_inv);
+        batch_inverse_in_place::<Fr>(&mut random_coeffs_inv);
         for i in 0..=vec_size {
             assert_eq!(random_coeffs_inv[i] * random_coeffs[i], Fr::one());
         }
         let rand_multiplier = Fr::rand(&mut test_rng());
         let mut random_coeffs_inv_shifted = random_coeffs.clone();
-        batch_inversion_and_mul(&mut random_coeffs_inv_shifted, &rand_multiplier);
+        batch_inverse_and_mul_in_place(&mut random_coeffs_inv_shifted, &rand_multiplier);
         for i in 0..=vec_size {
             assert_eq!(
                 random_coeffs_inv_shifted[i] * random_coeffs[i],

@@ -1,21 +1,14 @@
 use crate::{
     mnt6::MNT6Parameters,
     models::mnt6::MNT6,
-    short_weierstrass_jacobian::{GroupAffine, GroupProjective},
-    AffineCurve,
+    short_weierstrass::{SWAffine, SWProjective},
 };
-use ark_ff::{
-    bytes::ToBytes,
-    fields::{Field, Fp3},
-};
-use ark_std::{
-    io::{Result as IoResult, Write},
-    vec::Vec,
-};
+use ark_ff::fields::{Field, Fp3};
+use ark_std::vec::Vec;
 use num_traits::One;
 
-pub type G2Affine<P> = GroupAffine<<P as MNT6Parameters>::G2Parameters>;
-pub type G2Projective<P> = GroupProjective<<P as MNT6Parameters>::G2Parameters>;
+pub type G2Affine<P> = SWAffine<<P as MNT6Parameters>::G2Parameters>;
+pub type G2Projective<P> = SWProjective<<P as MNT6Parameters>::G2Parameters>;
 
 #[derive(Derivative)]
 #[derivative(
@@ -35,13 +28,7 @@ pub struct G2Prepared<P: MNT6Parameters> {
 
 impl<P: MNT6Parameters> Default for G2Prepared<P> {
     fn default() -> Self {
-        Self::from(G2Affine::<P>::prime_subgroup_generator())
-    }
-}
-
-impl<P: MNT6Parameters> ToBytes for G2Prepared<P> {
-    fn write<W: Write>(&self, _writer: W) -> IoResult<()> {
-        unimplemented!()
+        Self::from(G2Affine::<P>::generator())
     }
 }
 
@@ -50,17 +37,17 @@ impl<P: MNT6Parameters> From<G2Affine<P>> for G2Prepared<P> {
         let twist_inv = P::TWIST.inverse().unwrap();
 
         let mut g2p = G2Prepared {
-            x: g2.x,
-            y: g2.y,
-            x_over_twist: g2.x * &twist_inv,
-            y_over_twist: g2.y * &twist_inv,
+            x: g2.x(),
+            y: g2.y(),
+            x_over_twist: g2.x() * &twist_inv,
+            y_over_twist: g2.y() * &twist_inv,
             double_coefficients: vec![],
             addition_coefficients: vec![],
         };
 
         let mut r = G2ProjectiveExtended {
-            x: g2.x,
-            y: g2.y,
+            x: g2.x(),
+            y: g2.y(),
             z: <Fp3<P::Fp3Params>>::one(),
             t: <Fp3<P::Fp3Params>>::one(),
         };
@@ -83,8 +70,11 @@ impl<P: MNT6Parameters> From<G2Affine<P>> for G2Prepared<P> {
                 r = r2;
 
                 if *bit {
-                    let (r2, coeff) =
-                        MNT6::<P>::mixed_addition_step_for_flipped_miller_loop(&g2.x, &g2.y, &r);
+                    let (r2, coeff) = MNT6::<P>::mixed_addition_step_for_flipped_miller_loop(
+                        &g2.x(),
+                        &g2.y(),
+                        &r,
+                    );
                     g2p.addition_coefficients.push(coeff);
                     r = r2;
                 }
@@ -110,6 +100,12 @@ impl<P: MNT6Parameters> From<G2Affine<P>> for G2Prepared<P> {
         }
 
         g2p
+    }
+}
+
+impl<P: MNT6Parameters> From<G2Projective<P>> for G2Prepared<P> {
+    fn from(g2: G2Projective<P>) -> Self {
+        g2.into()
     }
 }
 

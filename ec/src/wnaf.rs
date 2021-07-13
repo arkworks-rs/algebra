@@ -1,4 +1,4 @@
-use crate::ProjectiveCurve;
+use crate::CurveGroup;
 use ark_ff::{BigInteger, PrimeField};
 use ark_std::vec::Vec;
 
@@ -16,7 +16,7 @@ impl WnafContext {
         Self { window_size }
     }
 
-    pub fn table<G: ProjectiveCurve>(&self, mut base: G) -> Vec<G> {
+    pub fn table<G: CurveGroup>(&self, mut base: G) -> Vec<G> {
         let mut table = Vec::with_capacity(1 << (self.window_size - 1));
         let dbl = base.double();
 
@@ -32,7 +32,7 @@ impl WnafContext {
     /// This method uses the wNAF algorithm to perform the scalar multiplication;
     /// first, it uses `Self::table` to calculate an appropriate table of multiples of `g`,
     /// and then uses the wNAF algorithm to compute the scalar multiple.
-    pub fn mul<G: ProjectiveCurve>(&self, g: G, scalar: &G::ScalarField) -> G {
+    pub fn mul<G: CurveGroup>(&self, g: G, scalar: &G::ScalarField) -> G {
         let table = self.table(g);
         self.mul_with_table(&table, scalar).unwrap()
     }
@@ -42,7 +42,7 @@ impl WnafContext {
     /// `scalar` is an element of `G::ScalarField`.
     ///
     /// Returns `None` if the table is too small.
-    pub fn mul_with_table<G: ProjectiveCurve>(
+    pub fn mul_with_table<G: CurveGroup>(
         &self,
         base_table: &[G],
         scalar: &G::ScalarField,
