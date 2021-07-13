@@ -35,7 +35,7 @@ pub use projective::*;
 pub use montgomery_affine::*;
 
 mod affine {
-    use crate::GroupUniqueRepr;
+    use crate::GroupNormalForm;
 
     use super::*;
     #[derive(Derivative)]
@@ -109,7 +109,7 @@ mod affine {
             for i in bits.skip_while(|b| !b) {
                 res.double_in_place();
                 if i {
-                    res.add_unique_in_place(&self)
+                    res.add_normal_in_place(&self)
                 }
             }
             res
@@ -176,7 +176,7 @@ mod affine {
         }
     }
 
-    impl<P: Parameters> GroupUniqueRepr for TEAffine<P> {
+    impl<P: Parameters> GroupNormalForm for TEAffine<P> {
         type G = TEProjective<P>;
     }
 
@@ -199,14 +199,14 @@ mod affine {
 
     impl<P: Parameters> core::iter::Sum<Self> for TEAffine<P> {
         fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
-            iter.fold(TEProjective::<P>::zero(), |sum, x| sum.add_unique(&x))
+            iter.fold(TEProjective::<P>::zero(), |sum, x| sum.add_normal(&x))
                 .into()
         }
     }
 
     impl<'a, P: Parameters> core::iter::Sum<&'a Self> for TEAffine<P> {
         fn sum<I: Iterator<Item = &'a Self>>(iter: I) -> Self {
-            iter.fold(TEProjective::<P>::zero(), |sum, x| sum.add_unique(x))
+            iter.fold(TEProjective::<P>::zero(), |sum, x| sum.add_normal(x))
                 .into()
         }
     }
@@ -478,19 +478,19 @@ mod projective {
 
     impl<P: Parameters> Group for TEProjective<P> {
         type ScalarField = P::ScalarField;
-        type UniqueRepr = TEAffine<P>;
+        type NormalForm = TEAffine<P>;
 
-        fn generator() -> Self::UniqueRepr {
+        fn generator() -> Self::NormalForm {
             TEAffine::generator()
         }
 
-        /// Canonicalize a slice of projective elements into their unique representation.
+        /// Canonicalize a slice of projective elements into their normalized representation.
         ///
         /// For `N = v.len()`, this costs  1 inversion + 5N field multiplications
         /// For `N = v.len()`, this costs 1 inversion + 5N field multiplications.
         ///
         /// (Where batch inversion comprises 3N field multiplications + 1 inversion of these operations)
-        fn batch_to_unique(v: &[Self]) -> Vec<Self::UniqueRepr> {
+        fn batch_normalize(v: &[Self]) -> Vec<Self::NormalForm> {
             // A projective curve element (x, y, t, z) is normalized
             // to its affine representation, by the conversion
             // (x, y, t, z) -> (x/z, y/z, t/z, 1)
@@ -549,7 +549,7 @@ mod projective {
             self
         }
 
-        fn add_unique_in_place(&mut self, other: &TEAffine<P>) {
+        fn add_normal_in_place(&mut self, other: &TEAffine<P>) {
             // See "Twisted Edwards Curves Revisited"
             // Huseyin Hisil, Kenneth Koon-Ho Wong, Gary Carter, and Ed Dawson
             // 3.1 Unified Addition in E^e

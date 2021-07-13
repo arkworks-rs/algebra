@@ -69,10 +69,10 @@ mod test {
 
         let mut g_s_affine_naive = [G1Affine::zero(); 100];
         for (i, g) in g_s.iter().enumerate() {
-            g_s_affine_naive[i] = g.to_unique();
+            g_s_affine_naive[i] = g.normalize();
         }
 
-        let g_s_affine_fast = G1Projective::batch_to_unique(&g_s);
+        let g_s_affine_fast = G1Projective::batch_normalize(&g_s);
         assert_eq!(g_s_affine_naive.as_ref(), g_s_affine_fast.as_slice());
     }
 }

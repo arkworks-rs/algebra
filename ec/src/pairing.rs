@@ -24,7 +24,7 @@ pub trait Pairing: Sized + 'static + Copy + Debug + Sync + Send + Eq {
         + Sync
         + Debug
         + From<Self::G1>
-        + From<<Self::G1 as Group>::UniqueRepr>;
+        + From<<Self::G1 as Group>::NormalForm>;
 
     /// An element of G2.
     type G2: CurveGroup<ScalarField = Self::ScalarField> + MulAssign<Self::ScalarField>; // needed due to https://github.com/rust-lang/rust/issues/69640
@@ -36,7 +36,7 @@ pub trait Pairing: Sized + 'static + Copy + Debug + Sync + Send + Eq {
         + Sync
         + Debug
         + From<Self::G2>
-        + From<<Self::G2 as Group>::UniqueRepr>;
+        + From<<Self::G2 as Group>::NormalForm>;
 
     /// The extension field that hosts the target group of the pairing.
     type TargetField: CyclotomicField;
@@ -184,11 +184,11 @@ ark_ff::impl_additive_ops_from_ref!(PairingOutput, Pairing);
 
 impl<P: Pairing> MulAssign<P::ScalarField> for PairingOutput<P> {
     fn mul_assign(&mut self, other: P::ScalarField) {
-        *self = GroupUniqueRepr::mul(self, other.into_repr())
+        *self = GroupNormalForm::mul(self, other.into_repr())
     }
 }
 
-impl<P: Pairing> GroupUniqueRepr for PairingOutput<P> {
+impl<P: Pairing> GroupNormalForm for PairingOutput<P> {
     type G = Self;
 }
 
@@ -220,9 +220,9 @@ impl<P: Pairing> Distribution<PairingOutput<P>> for Standard {
 
 impl<P: Pairing> Group for PairingOutput<P> {
     type ScalarField = P::ScalarField;
-    type UniqueRepr = Self;
+    type NormalForm = Self;
 
-    fn generator() -> Self::UniqueRepr {
+    fn generator() -> Self::NormalForm {
         // TODO: hardcode these values.
         // Sample a random G1 element
         let g1 = P::G1::generator();
@@ -231,11 +231,11 @@ impl<P: Pairing> Group for PairingOutput<P> {
         P::pairing(g1.into(), g2.into())
     }
 
-    fn to_unique(&self) -> Self::UniqueRepr {
+    fn normalize(&self) -> Self::NormalForm {
         *self
     }
 
-    fn batch_to_unique(v: &[Self]) -> Vec<Self::UniqueRepr> {
+    fn batch_normalize(v: &[Self]) -> Vec<Self::NormalForm> {
         v.iter().copied().collect()
     }
 
@@ -244,7 +244,7 @@ impl<P: Pairing> Group for PairingOutput<P> {
         self
     }
 
-    fn add_unique_in_place(&mut self, other: &Self::UniqueRepr) {
+    fn add_normal_in_place(&mut self, other: &Self::NormalForm) {
         // We're using the underlying field's multiplicative group.
         self.0 *= other.0
     }

@@ -1,5 +1,5 @@
 #![allow(unused_imports)]
-use ark_ec::{models::SWModelParameters, CurveGroup, GroupUniqueRepr, Pairing};
+use ark_ec::{models::SWModelParameters, CurveGroup, GroupNormalForm, Pairing};
 use ark_ff::{One, UniformRand, Zero};
 
 use crate::bls12_381::{g1, Fq, FqParameters, Fr, G1Affine, G1Projective};

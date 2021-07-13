@@ -21,7 +21,7 @@ impl FixedBaseMSM {
         scalar_size: usize,
         window: usize,
         g: T,
-    ) -> Vec<Vec<T::UniqueRepr>> {
+    ) -> Vec<Vec<T::NormalForm>> {
         let in_window = 1 << window;
         let outerc = (scalar_size + window - 1) / window;
         let last_in_window = 1 << (scalar_size - (outerc - 1) * window);
@@ -54,14 +54,14 @@ impl FixedBaseMSM {
                 }
             });
         cfg_iter!(multiples_of_g)
-            .map(|s| T::batch_to_unique(&s))
+            .map(|s| T::batch_normalize(&s))
             .collect()
     }
 
     pub fn windowed_mul<T: Group>(
         outerc: usize,
         window: usize,
-        multiples_of_g: &[Vec<T::UniqueRepr>],
+        multiples_of_g: &[Vec<T::NormalForm>],
         scalar: &T::ScalarField,
     ) -> T {
         let modulus_size = <T::ScalarField as PrimeField>::Params::MODULUS_BITS as usize;
@@ -75,7 +75,7 @@ impl FixedBaseMSM {
                     inner |= 1 << i;
                 }
             }
-            res.add_unique_in_place(&multiples_of_g[outer][inner]);
+            res.add_normal_in_place(&multiples_of_g[outer][inner]);
         }
         res
     }
@@ -83,7 +83,7 @@ impl FixedBaseMSM {
     pub fn multi_scalar_mul<T: Group>(
         scalar_size: usize,
         window: usize,
-        table: &[Vec<T::UniqueRepr>],
+        table: &[Vec<T::NormalForm>],
         v: &[T::ScalarField],
     ) -> Vec<T> {
         let outerc = (scalar_size + window - 1) / window;

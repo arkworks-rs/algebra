@@ -63,34 +63,33 @@ pub trait Group:
     + for<'a> SubAssign<&'a Self>
     + core::iter::Sum<Self>
     + for<'a> core::iter::Sum<&'a Self>
-    + From<<Self as Group>::UniqueRepr>
-    + Into<<Self as Group>::UniqueRepr>
+    + From<<Self as Group>::NormalForm>
+    + Into<<Self as Group>::NormalForm>
     + Zeroize
 {
     /// The scalar field `F_r`, where `r` is the order of this group.
     type ScalarField: PrimeField + SquareRootField;
 
-    /// The unique representation of elements of this group.
+    /// The normalized, normalized representation of elements of this group.
     /// For example, in elliptic curve groups, this can be defined to be the affine representation of curve points.
-
-    type UniqueRepr: GroupUniqueRepr<G = Self>;
+    type NormalForm: GroupNormalForm<G = Self>;
 
     /// Returns a fixed generator of this group.
     #[must_use]
-    fn generator() -> Self::UniqueRepr;
+    fn generator() -> Self::NormalForm;
 
-    /// Converts `self` into the unique representation [`Self::UniqueRepr`].
-    fn to_unique(&self) -> Self::UniqueRepr {
+    /// Converts `self` into the normalized representation [`Self::NormalForm`].
+    fn normalize(&self) -> Self::NormalForm {
         (*self).into()
     }
 
-    /// Constructs [`Self`] from an element of type [`Self::UniqueRepr`].
-    fn from_unique(other: Self::UniqueRepr) -> Self {
+    /// Constructs [`Self`] from an element of type [`Self::NormalForm`].
+    fn from_normal(other: Self::NormalForm) -> Self {
         other.into()
     }
 
-    /// Canonicalize a batch of group elements into their unique representation.
-    fn batch_to_unique(v: &[Self]) -> Vec<Self::UniqueRepr>;
+    /// Canonicalize a batch of group elements into their normalized representation.
+    fn batch_normalize(v: &[Self]) -> Vec<Self::NormalForm>;
 
     /// Doubles `self`.
     #[must_use]
@@ -103,18 +102,18 @@ pub trait Group:
     /// Double `self` in place.
     fn double_in_place(&mut self) -> &mut Self;
 
-    /// Compute `self + other`, where `other` has type [`Self::UniqueRepr`].
+    /// Compute `self + other`, where `other` has type [`Self::NormalForm`].
     /// This method is useful for elliptic curve groups, where it can
     /// be implemented via fast(er) mixed addition algorithms.
-    fn add_unique(mut self, other: &Self::UniqueRepr) -> Self {
-        self.add_unique_in_place(other);
+    fn add_normal(mut self, other: &Self::NormalForm) -> Self {
+        self.add_normal_in_place(other);
         self
     }
 
     /// Set `self` to be `self + other`, where `other` has type `Self::CanonicalRepr.
     /// This method is useful for elliptic curve groups, where it can
     /// be implemented via fast(er) mixed addition algorithms.
-    fn add_unique_in_place(&mut self, other: &Self::UniqueRepr) {
+    fn add_normal_in_place(&mut self, other: &Self::NormalForm) {
         *self += &Self::from(*other)
     }
 
@@ -139,7 +138,7 @@ pub trait Group:
     }
 }
 
-pub trait GroupUniqueRepr:
+pub trait GroupNormalForm:
     'static
     + Send
     + Sync
@@ -156,7 +155,7 @@ pub trait GroupUniqueRepr:
     + CanonicalSerialize
     + CanonicalDeserialize
 {
-    type G: Group<UniqueRepr = Self>;
+    type G: Group<NormalForm = Self>;
     /// Compute `other * self`, where `other` is any type that can be converted
     /// into `<Self::ScalarField>::BigInt`. This includes `Self::ScalarField`.
     fn mul(
@@ -174,7 +173,7 @@ pub trait GroupUniqueRepr:
             // skip leading zeros
             res.double_in_place();
             if b {
-                res.add_unique_in_place(self);
+                res.add_normal_in_place(self);
             }
         }
         res
@@ -195,12 +194,12 @@ pub trait CurveGroup: Group {
     /// Unlike `Self::ScalarField`, this does not have to be a prime field.
     type BaseField: Field;
 
-    fn mul_by_cofactor(e: &Self::UniqueRepr) -> Self {
+    fn mul_by_cofactor(e: &Self::NormalForm) -> Self {
         let cofactor = BitIteratorBE::without_leading_zeros(Self::COFACTOR);
         e.mul_bits_be(cofactor)
     }
 
-    fn mul_by_cofactor_inv(e: &Self::UniqueRepr) -> Self {
+    fn mul_by_cofactor_inv(e: &Self::NormalForm) -> Self {
         let cofactor_inv = BitIteratorBE::without_leading_zeros(Self::COFACTOR_INVERSE.into_repr());
         e.mul_bits_be(cofactor_inv)
     }

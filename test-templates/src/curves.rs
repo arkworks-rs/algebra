@@ -1,6 +1,6 @@
 #![allow(unused)]
 use ark_ec::{
-    twisted_edwards::TEProjective, wnaf::WnafContext, CurveGroup, Group, GroupUniqueRepr,
+    twisted_edwards::TEProjective, wnaf::WnafContext, CurveGroup, Group, GroupNormalForm,
     MontgomeryModelParameters, SWModelParameters, TEModelParameters,
 };
 use ark_ff::{Field, One, PrimeField, UniformRand, Zero};
@@ -27,7 +27,7 @@ fn random_addition_test<G: CurveGroup>() {
             aplusa.add_assign(&a);
 
             let mut aplusamixed = a;
-            aplusamixed.add_unique_in_place(&a.into());
+            aplusamixed.add_normal_in_place(&a.into());
 
             let mut adouble = a;
             adouble.double_in_place();
@@ -51,18 +51,18 @@ fn random_addition_test<G: CurveGroup>() {
 
         // (a + b) + c
         tmp[3] = a_affine.into();
-        tmp[3].add_unique_in_place(&b_affine);
-        tmp[3].add_unique_in_place(&c_affine);
+        tmp[3].add_normal_in_place(&b_affine);
+        tmp[3].add_normal_in_place(&c_affine);
 
         // a + (b + c)
         tmp[4] = b_affine.into();
-        tmp[4].add_unique_in_place(&c_affine);
-        tmp[4].add_unique_in_place(&a_affine);
+        tmp[4].add_normal_in_place(&c_affine);
+        tmp[4].add_normal_in_place(&a_affine);
 
         // (a + c) + b
         tmp[5] = a_affine.into();
-        tmp[5].add_unique_in_place(&c_affine);
-        tmp[5].add_unique_in_place(&b_affine);
+        tmp[5].add_normal_in_place(&c_affine);
+        tmp[5].add_normal_in_place(&b_affine);
 
         // Comparisons
         for i in 0..6 {
@@ -150,7 +150,7 @@ fn random_doubling_test<G: CurveGroup>() {
         tmp2.add_assign(&b);
 
         let mut tmp3 = a;
-        tmp3.add_unique_in_place(&b.into());
+        tmp3.add_normal_in_place(&b.into());
 
         assert_eq!(tmp1, tmp2);
         assert_eq!(tmp1, tmp3);
@@ -178,7 +178,7 @@ fn random_negation_test<G: CurveGroup>() {
         assert!(t3.is_zero());
 
         let mut t4 = t1;
-        t4.add_unique_in_place(&t2.into());
+        t4.add_normal_in_place(&t2.into());
         assert!(t4.is_zero());
 
         t1 = -t1;
@@ -210,12 +210,12 @@ fn random_transformation_test<G: CurveGroup>() {
         }
         for _ in 0..5 {
             let s = between.sample(&mut rng);
-            v[s] = v[s].to_unique().into();
+            v[s] = v[s].normalize().into();
         }
 
-        let expected_v: Vec<G::UniqueRepr> =
+        let expected_v: Vec<G::NormalForm> =
             v.iter().copied().map(|v| v.into()).collect::<Vec<_>>();
-        let v = G::batch_to_unique(&v);
+        let v = G::batch_normalize(&v);
 
         assert_eq!(v, expected_v);
     }
@@ -243,19 +243,19 @@ pub fn curve_tests<G: CurveGroup>() {
         let rcopy = r;
         r.add_assign(&G::zero());
         assert_eq!(r, rcopy);
-        r.add_unique_in_place(&G::zero().into());
+        r.add_normal_in_place(&G::zero().into());
         assert_eq!(r, rcopy);
 
         let mut z = G::zero();
         z.add_assign(&G::zero());
         assert!(z.is_zero());
-        z.add_unique_in_place(&G::zero().into());
+        z.add_normal_in_place(&G::zero().into());
         assert!(z.is_zero());
 
         let mut z2 = z;
         z2.add_assign(&r);
 
-        z.add_unique_in_place(&r.into());
+        z.add_normal_in_place(&r.into());
 
         assert_eq!(z, z2);
         assert_eq!(z, r);
@@ -273,9 +273,9 @@ pub fn curve_tests<G: CurveGroup>() {
     // Test COFACTOR and COFACTOR_INV
     {
         let a = G::rand(&mut rng);
-        let b = a.to_unique();
+        let b = a.normalize();
         let c = G::mul_by_cofactor(&G::mul_by_cofactor_inv(&b).into());
-        assert_eq!(b, c.to_unique());
+        assert_eq!(b, c.normalize());
     }
 
     random_addition_test::<G>();
@@ -389,7 +389,7 @@ pub fn sw_affine_sum_test<P: SWModelParameters>() {
         let sum_computed: SWAffine<P> = test_vec.iter().sum();
         let mut sum_expected = SWProjective::zero();
         for p in test_vec.iter() {
-            sum_expected.add_unique_in_place(&p);
+            sum_expected.add_normal_in_place(&p);
         }
 
         assert_eq!(sum_computed, sum_expected);

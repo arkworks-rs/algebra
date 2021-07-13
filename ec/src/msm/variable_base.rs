@@ -10,7 +10,7 @@ pub struct VariableBaseMSM;
 
 impl VariableBaseMSM {
     pub fn multi_scalar_mul<G: Group>(
-        bases: &[G::UniqueRepr],
+        bases: &[G::NormalForm],
         scalars: &[<G::ScalarField as PrimeField>::BigInt],
     ) -> G {
         let size = ark_std::cmp::min(bases.len(), scalars.len());
@@ -44,7 +44,7 @@ impl VariableBaseMSM {
                     if scalar == fr_one {
                         // We only process unit scalars once in the first window.
                         if w_start == 0 {
-                            res.add_unique_in_place(base);
+                            res.add_normal_in_place(base);
                         }
                     } else {
                         let mut scalar = scalar;
@@ -60,7 +60,7 @@ impl VariableBaseMSM {
                         // bucket.
                         // (Recall that `buckets` doesn't have a zero bucket.)
                         if scalar != 0 {
-                            buckets[(scalar - 1) as usize].add_unique_in_place(base);
+                            buckets[(scalar - 1) as usize].add_normal_in_place(base);
                         }
                     }
                 });

@@ -32,7 +32,7 @@ pub use affine::*;
 pub use projective::*;
 
 mod affine {
-    use crate::GroupUniqueRepr;
+    use crate::GroupNormalForm;
 
     use super::*;
     /// SWAffine coordinates for a point on an elliptic curve in short Weierstrass form,
@@ -150,7 +150,7 @@ mod affine {
             for i in bits.skip_while(|b| !b) {
                 res.double_in_place();
                 if i {
-                    res.add_unique_in_place(&self)
+                    res.add_normal_in_place(&self)
                 }
             }
             res
@@ -219,7 +219,7 @@ mod affine {
         }
     }
 
-    impl<P: Parameters> GroupUniqueRepr for SWAffine<P> {
+    impl<P: Parameters> GroupNormalForm for SWAffine<P> {
         type G = SWProjective<P>;
     }
 
@@ -269,14 +269,14 @@ mod affine {
 
     impl<P: Parameters> core::iter::Sum<Self> for SWAffine<P> {
         fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
-            iter.fold(SWProjective::<P>::zero(), |sum, x| sum.add_unique(&x))
+            iter.fold(SWProjective::<P>::zero(), |sum, x| sum.add_normal(&x))
                 .into()
         }
     }
 
     impl<'a, P: Parameters> core::iter::Sum<&'a Self> for SWAffine<P> {
         fn sum<I: Iterator<Item = &'a Self>>(iter: I) -> Self {
-            iter.fold(SWProjective::<P>::zero(), |sum, x| sum.add_unique(x))
+            iter.fold(SWProjective::<P>::zero(), |sum, x| sum.add_normal(x))
                 .into()
         }
     }
@@ -528,14 +528,14 @@ mod projective {
 
     impl<P: Parameters> Group for SWProjective<P> {
         type ScalarField = P::ScalarField;
-        type UniqueRepr = SWAffine<P>;
+        type NormalForm = SWAffine<P>;
 
         #[inline]
-        fn generator() -> Self::UniqueRepr {
+        fn generator() -> Self::NormalForm {
             SWAffine::generator()
         }
 
-        /// Canonicalize a slice of projective elements into their unique representation.
+        /// Canonicalize a slice of projective elements into their normalized representation.
         ///
         /// In more detail, this method converts a curve point in Jacobian coordinates
         /// (x, y, z) into an equivalent representation (x/z^2, y/z^3, 1).
@@ -543,7 +543,7 @@ mod projective {
         /// For `N = v.len()`, this costs 1 inversion + 6N field multiplications + N field squarings.
         ///
         /// (Where batch inversion comprises 3N field multiplications + 1 inversion of these operations)
-        fn batch_to_unique(v: &[Self]) -> Vec<Self::UniqueRepr> {
+        fn batch_normalize(v: &[Self]) -> Vec<Self::NormalForm> {
             let mut z_s = v.iter().map(|g| g.z).collect::<Vec<_>>();
             ark_ff::batch_inversion(&mut z_s);
 
@@ -643,7 +643,7 @@ mod projective {
         }
 
         /// Add an affine element to `self` in place using the more efficient [formula](http://www.hyperelliptic.org/EFD/g1p/auto-shortw-jacobian-0.html#addition-madd-2007-bl)
-        fn add_unique_in_place(&mut self, other: &SWAffine<P>) {
+        fn add_normal_in_place(&mut self, other: &SWAffine<P>) {
             if other.is_zero() {
                 return;
             }
