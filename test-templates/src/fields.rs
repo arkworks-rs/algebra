@@ -4,6 +4,7 @@ use ark_ff::fields::{FftField, FftParameters, Field, LegendreSymbol, PrimeField,
 use ark_serialize::{buffer_bit_byte_size, Flags, SWFlags};
 use ark_std::io::Cursor;
 use ark_std::rand::Rng;
+use pretty_assertions::{assert_eq, assert_ne};
 
 pub const ITERATIONS: u32 = 40;
 

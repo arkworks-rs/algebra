@@ -1,7 +1,8 @@
 #![allow(unused)]
 #![allow(clippy::eq_op)]
-use ark_ec::group::Group;
+use ark_ec::Group;
 use ark_ff::{One, UniformRand, Zero};
+use pretty_assertions::{assert_eq, assert_ne};
 
 pub fn group_test<G: Group>(a: G, mut b: G) {
     let mut rng = ark_std::test_rng();
@@ -12,12 +13,12 @@ pub fn group_test<G: Group>(a: G, mut b: G) {
 
     assert_eq!(zero, zero);
     assert_eq!(zero.is_zero(), true);
-    assert_eq!(a.mul(&fr_one), a);
-    assert_eq!(a.mul(&fr_two), a + &a);
-    assert_eq!(a.mul(&fr_zero), zero);
-    assert_eq!(a.mul(&fr_zero) - &a, -a);
-    assert_eq!(a.mul(&fr_one) - &a, zero);
-    assert_eq!(a.mul(&fr_two) - &a, a);
+    assert_eq!(a.mul(fr_one), a);
+    assert_eq!(a.mul(fr_two), a + &a);
+    assert_eq!(a.mul(fr_zero), zero);
+    assert_eq!(a.mul(fr_zero) - &a, -a);
+    assert_eq!(a.mul(fr_one) - &a, zero);
+    assert_eq!(a.mul(fr_two) - &a, a);
 
     // a == a
     assert_eq!(a, a);
@@ -49,27 +50,27 @@ pub fn group_test<G: Group>(a: G, mut b: G) {
 
     let fr_rand1 = G::ScalarField::rand(&mut rng);
     let fr_rand2 = G::ScalarField::rand(&mut rng);
-    let a_rand1 = a.mul(&fr_rand1);
-    let a_rand2 = a.mul(&fr_rand2);
+    let a_rand1 = a.mul(fr_rand1);
+    let a_rand2 = a.mul(fr_rand2);
     let fr_three = fr_two + &fr_rand1;
-    let a_two = a.mul(&fr_two);
+    let a_two = a.mul(fr_two);
     assert_eq!(a_two, a.double(), "(a * 2)  != a.double()");
-    let a_six = a.mul(&(fr_three * &fr_two));
-    assert_eq!(a_two.mul(&fr_three), a_six, "(a * 2) * 3 != a * (2 * 3)");
+    let a_six = a.mul((fr_three * &fr_two));
+    assert_eq!(a_two.mul(fr_three), a_six, "(a * 2) * 3 != a * (2 * 3)");
 
     assert_eq!(
-        a_rand1.mul(&fr_rand2),
-        a_rand2.mul(&fr_rand1),
+        a_rand1.mul(fr_rand2),
+        a_rand2.mul(fr_rand1),
         "(a * r1) * r2 != (a * r2) * r1"
     );
     assert_eq!(
-        a_rand2.mul(&fr_rand1),
-        a.mul(&(fr_rand1 * &fr_rand2)),
+        a_rand2.mul(fr_rand1),
+        a.mul(fr_rand1 * &fr_rand2),
         "(a * r2) * r1 != a * (r1 * r2)"
     );
     assert_eq!(
-        a_rand1.mul(&fr_rand2),
-        a.mul(&(fr_rand1 * &fr_rand2)),
+        a_rand1.mul(fr_rand2),
+        a.mul(fr_rand1 * &fr_rand2),
         "(a * r1) * r2 != a * (r1 * r2)"
     );
 }

@@ -17,6 +17,7 @@ ark-std = { version = "^0.3.0", default-features = false }
 ark-serialize = { version = "^0.3.0", path = "../serialize", default-features = false }
 ark-ff = { version = "^0.3.0", path = "../ff", default-features = false }
 ark-ec = { version = "^0.3.0", path = "../ec", default-features = false }
+pretty_assertions = { version = "0.7" }
 
 [features]
 default = []
