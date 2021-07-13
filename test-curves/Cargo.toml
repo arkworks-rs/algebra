@@ -28,6 +28,8 @@ asm = [ "ark-ff/asm" ]
 
 parallel = [ "ark-ff/parallel", "ark-ec/parallel", "ark-std/parallel" ]
 
+ed_on_bls12_381_curve = [ "bls12_381_scalar_field" ]
+
 bls12_381_scalar_field = []
 bls12_381_curve = [ "bls12_381_scalar_field" ]
 

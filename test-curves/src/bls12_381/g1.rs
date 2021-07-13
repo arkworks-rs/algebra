@@ -55,7 +55,7 @@ pub const G1_GENERATOR_Y: Fq = field_new!(Fq, "133950654494447647302047137994192
 #[cfg(test)]
 mod test {
     use super::*;
-    use ark_ec::ProjectiveCurve;
+    use ark_ec::Group;
     use ark_std::UniformRand;
 
     #[test]
@@ -69,10 +69,10 @@ mod test {
 
         let mut g_s_affine_naive = [G1Affine::zero(); 100];
         for (i, g) in g_s.iter().enumerate() {
-            g_s_affine_naive[i] = g.into_affine();
+            g_s_affine_naive[i] = g.to_unique();
         }
 
-        let g_s_affine_fast = G1Projective::batch_normalization_into_affine(&g_s);
+        let g_s_affine_fast = G1Projective::batch_to_unique(&g_s);
         assert_eq!(g_s_affine_naive.as_ref(), g_s_affine_fast.as_slice());
     }
 }
