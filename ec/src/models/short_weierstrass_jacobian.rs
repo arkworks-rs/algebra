@@ -30,8 +30,8 @@ use ark_std::rand::{
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
 
-/// Affine coordinates for a point on an elliptic curve in short Weierstrass form,
-/// over the base field `P::BaseField`.
+/// Affine coordinates for a point on an elliptic curve in short Weierstrass
+/// form, over the base field `P::BaseField`.
 #[derive(Derivative)]
 #[derivative(
     Copy(bound = "P: Parameters"),
@@ -88,8 +88,8 @@ impl<P: Parameters> GroupAffine<P> {
         self.mul_bits(cofactor)
     }
 
-    /// Multiplies `self` by the scalar represented by `bits`. `bits` must be a big-endian
-    /// bit-wise decomposition of the scalar.
+    /// Multiplies `self` by the scalar represented by `bits`. `bits` must be a
+    /// big-endian bit-wise decomposition of the scalar.
     pub(crate) fn mul_bits(&self, bits: impl Iterator<Item = bool>) -> GroupProjective<P> {
         let mut res = GroupProjective::zero();
         // Skip leading zeros.
@@ -215,7 +215,9 @@ impl<P: Parameters> AffineCurve for GroupAffine<P> {
             if x.is_zero() && flags.is_infinity() {
                 Some(Self::zero())
             } else if let Some(y_is_positive) = flags.is_positive() {
-                Self::get_point_from_x(x, y_is_positive) // Unwrap is safe because it's not zero.
+                Self::get_point_from_x(x, y_is_positive) // Unwrap is safe
+                                                         // because it's not
+                                                         // zero.
             } else {
                 None
             }
@@ -293,8 +295,8 @@ impl<'a, P: Parameters> core::iter::Sum<&'a Self> for GroupAffine<P> {
     }
 }
 
-/// Jacobian coordinates for a point on an elliptic curve in short Weierstrass form,
-/// over the base field `P::BaseField`. This struct implements arithmetic
+/// Jacobian coordinates for a point on an elliptic curve in short Weierstrass
+/// form, over the base field `P::BaseField`. This struct implements arithmetic
 /// via the Jacobian formulae
 #[derive(Derivative)]
 #[derivative(
@@ -401,7 +403,8 @@ impl<P: Parameters> GroupProjective<P> {
 
 impl<P: Parameters> Zeroize for GroupProjective<P> {
     fn zeroize(&mut self) {
-        // `PhantomData` does not contain any data and thus does not need to be zeroized.
+        // `PhantomData` does not contain any data and thus does not need to be
+        // zeroized.
         self.x.zeroize();
         self.y.zeroize();
         self.z.zeroize();
@@ -445,12 +448,15 @@ impl<P: Parameters> ProjectiveCurve for GroupProjective<P> {
     /// Normalizes a slice of projective elements so that
     /// conversion to affine is cheap.
     ///
-    /// In more detail, this method converts a curve point in Jacobian coordinates
-    /// (x, y, z) into an equivalent representation (x/z^2, y/z^3, 1).
+    /// In more detail, this method converts a curve point in Jacobian
+    /// coordinates (x, y, z) into an equivalent representation (x/z^2,
+    /// y/z^3, 1).
     ///
-    /// For `N = v.len()`, this costs 1 inversion + 6N field multiplications + N field squarings.
+    /// For `N = v.len()`, this costs 1 inversion + 6N field multiplications + N
+    /// field squarings.
     ///
-    /// (Where batch inversion comprises 3N field multiplications + 1 inversion of these operations)
+    /// (Where batch inversion comprises 3N field multiplications + 1 inversion
+    /// of these operations)
     #[inline]
     fn batch_normalization(v: &mut [Self]) {
         let mut z_s = v.iter().map(|g| g.z).collect::<Vec<_>>();
@@ -469,8 +475,8 @@ impl<P: Parameters> ProjectiveCurve for GroupProjective<P> {
     }
 
     /// Sets `self = 2 * self`. Note that Jacobian formulae are incomplete, and
-    /// so doubling cannot be computed as `self + self`. Instead, this implementation
-    /// uses the following specialized doubling formulae:
+    /// so doubling cannot be computed as `self + self`. Instead, this
+    /// implementation uses the following specialized doubling formulae:
     /// * [`P::A` is zero](http://www.hyperelliptic.org/EFD/g1p/auto-shortw-jacobian-0.html#doubling-dbl-2009-l)
     /// * [`P::A` is not zero](https://www.hyperelliptic.org/EFD/g1p/auto-shortw-jacobian.html#doubling-dbl-2007-bl)
     fn double_in_place(&mut self) -> &mut Self {
@@ -541,8 +547,8 @@ impl<P: Parameters> ProjectiveCurve for GroupProjective<P> {
         }
     }
 
-    /// When `other.is_normalized()` (i.e., `other.z == 1`), we can use a more efficient
-    /// [formula](http://www.hyperelliptic.org/EFD/g1p/auto-shortw-jacobian-0.html#addition-madd-2007-bl)
+    /// When `other.is_normalized()` (i.e., `other.z == 1`), we can use a more
+    /// efficient [formula](http://www.hyperelliptic.org/EFD/g1p/auto-shortw-jacobian-0.html#addition-madd-2007-bl)
     /// to compute `self + other`.
     fn add_assign_mixed(&mut self, other: &GroupAffine<P>) {
         if other.is_zero() {

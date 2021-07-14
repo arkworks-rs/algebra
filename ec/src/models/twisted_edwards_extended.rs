@@ -6,16 +6,16 @@ use ark_serialize::{
     CanonicalDeserialize, CanonicalDeserializeWithFlags, CanonicalSerialize,
     CanonicalSerializeWithFlags, EdwardsFlags, SerializationError,
 };
-use ark_std::rand::{
-    distributions::{Distribution, Standard},
-    Rng,
-};
 use ark_std::{
     fmt::{Display, Formatter, Result as FmtResult},
     hash::{Hash, Hasher},
     io::{Read, Result as IoResult, Write},
     marker::PhantomData,
     ops::{Add, AddAssign, MulAssign, Neg, Sub, SubAssign},
+    rand::{
+        distributions::{Distribution, Standard},
+        Rng,
+    },
     vec::Vec,
 };
 use num_traits::{One, Zero};
@@ -67,8 +67,8 @@ impl<P: Parameters> GroupAffine<P> {
         self.mul_bits(BitIteratorBE::new(P::COFACTOR))
     }
 
-    /// Multiplies `self` by the scalar represented by `bits`. `bits` must be a big-endian
-    /// bit-wise decomposition of the scalar.
+    /// Multiplies `self` by the scalar represented by `bits`. `bits` must be a
+    /// big-endian bit-wise decomposition of the scalar.
     pub(crate) fn mul_bits(&self, bits: impl Iterator<Item = bool>) -> GroupProjective<P> {
         let mut res = GroupProjective::zero();
         for i in bits.skip_while(|b| !b) {
@@ -297,7 +297,8 @@ mod group_impl {
 /// `GroupProjective` implements Extended Twisted Edwards Coordinates
 /// as described in [\[HKCD08\]](https://eprint.iacr.org/2008/522.pdf).
 ///
-/// This implementation uses the unified addition formulae from that paper (see Section 3.1).
+/// This implementation uses the unified addition formulae from that paper (see
+/// Section 3.1).
 #[derive(Derivative)]
 #[derivative(
     Copy(bound = "P: Parameters"),

@@ -32,6 +32,8 @@ use zeroize::Zeroize;
 pub mod models;
 pub use self::models::*;
 
+pub mod glv;
+
 pub mod group;
 
 pub mod msm;
