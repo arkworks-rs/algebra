@@ -18,7 +18,8 @@ pub enum TwistType {
 }
 
 pub trait BnParameters: 'static {
-    // The absolute value of the BN curve parameter `X` (as in `q = 36 X^4 + 36 X^3 + 24 X^2 + 6 X + 1`).
+    // The absolute value of the BN curve parameter `X` (as in `q = 36 X^4 + 36 X^3
+    // + 24 X^2 + 6 X + 1`).
     const X: &'static [u64];
     // Whether or not `X` is negative.
     const X_IS_NEGATIVE: bool;
