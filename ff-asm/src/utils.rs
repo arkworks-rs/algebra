@@ -1,5 +1,5 @@
 pub const RAX: &str = "%rax";
-pub const RBX: &str = "%rbx";
+pub const RSI: &str = "%rsi";
 pub const RCX: &str = "%rcx";
 pub const RDX: &str = "%rdx";
 // pub const RDI: &'static str = "%rdi";

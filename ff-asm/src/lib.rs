@@ -222,9 +222,9 @@ fn generate_llvm_asm_mul_string(
                 adcxq(RAX, R[j]);
             }
             mulxq($b[$limbs - 1], RAX, RCX);
-            movq($zero, RBX);
+            movq($zero, RSI);
             adcxq(RAX, R[$limbs - 1]);
-            adcxq(RBX, RCX);
+            adcxq(RSI, RCX);
             comment("Mul 1 end")
         };
     }
@@ -234,15 +234,15 @@ fn generate_llvm_asm_mul_string(
             comment(&format!("mul_add_1 start for iteration {}", $i));
             movq($a[$i], RDX);
             for j in 0..$limbs - 1 {
-                mulxq($b[j], RAX, RBX);
+                mulxq($b[j], RAX, RSI);
                 adcxq(RAX, R[(j + $i) % $limbs]);
-                adoxq(RBX, R[(j + $i + 1) % $limbs]);
+                adoxq(RSI, R[(j + $i + 1) % $limbs]);
             }
             mulxq($b[$limbs - 1], RAX, RCX);
-            movq($zero, RBX);
+            movq($zero, RSI);
             adcxq(RAX, R[($i + $limbs - 1) % $limbs]);
-            adoxq(RBX, RCX);
-            adcxq(RBX, RCX);
+            adoxq(RSI, RCX);
+            adcxq(RSI, RCX);
             comment(&format!("mul_add_1 end for iteration {}", $i));
         };
     }
@@ -252,19 +252,19 @@ fn generate_llvm_asm_mul_string(
             comment(&format!("mul_add_shift_1 start for iteration {}", $i));
             movq($mod_prime, RDX);
             mulxq(R[$i], RDX, RAX);
-            mulxq($a[0], RAX, RBX);
+            mulxq($a[0], RAX, RSI);
             adcxq(R[$i % $limbs], RAX);
-            adoxq(RBX, R[($i + 1) % $limbs]);
+            adoxq(RSI, R[($i + 1) % $limbs]);
             for j in 1..$limbs - 1 {
-                mulxq($a[j], RAX, RBX);
+                mulxq($a[j], RAX, RSI);
                 adcxq(RAX, R[(j + $i) % $limbs]);
-                adoxq(RBX, R[(j + $i + 1) % $limbs]);
+                adoxq(RSI, R[(j + $i + 1) % $limbs]);
             }
             mulxq($a[$limbs - 1], RAX, R[$i % $limbs]);
-            movq($zero, RBX);
+            movq($zero, RSI);
             adcxq(RAX, R[($i + $limbs - 1) % $limbs]);
             adoxq(RCX, R[$i % $limbs]);
-            adcxq(RBX, R[$i % $limbs]);
+            adcxq(RSI, R[$i % $limbs]);
             comment(&format!("mul_add_shift_1 end for iteration {}", $i));
         };
     }
@@ -300,7 +300,7 @@ fn generate_impl(num_limbs: usize, is_mul: bool) -> String {
     }
     ctx.add_declaration("modulus", DeclType::Register, "&P::MODULUS.0");
     ctx.add_declaration("zero", DeclType::Constant, "0u64");
-    ctx.add_declaration("mod_prime", DeclType::Constant, "P::INV");
+    ctx.add_declaration("mod_prime", DeclType::Register, "P::INV");
 
     if num_limbs > MAX_REGS {
         ctx.add_buffer(2 * num_limbs);
@@ -317,7 +317,7 @@ fn generate_impl(num_limbs: usize, is_mul: bool) -> String {
     );
 
     ctx.add_llvm_asm(llvm_asm_string);
-    ctx.add_clobbers(["rcx", "rbx", "rdx", "rax"].iter().copied());
+    ctx.add_clobbers(["rcx", "rsi", "rdx", "rax"].iter().copied());
     ctx.add_clobbers(
         REG_CLOBBER
             .iter()

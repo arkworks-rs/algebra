@@ -75,7 +75,7 @@ impl Context {
         self.append(&format!(
             "
                     unsafe {{
-                        llvm_asm!({},",
+                        asm!({},",
             ctx_string
         ));
     }
