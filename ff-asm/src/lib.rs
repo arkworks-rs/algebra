@@ -312,7 +312,12 @@ fn generate_impl(num_limbs: usize, is_mul: bool) -> String {
 
     ctx.add_llvm_asm(llvm_asm_string);
     ctx.add_clobbers(["rcx", "rbx", "rdx", "rax"].iter().copied());
-    ctx.add_clobbers(REG_CLOBBER.iter().take(std::cmp::min(num_limbs, 8)).copied());
+    ctx.add_clobbers(
+        REG_CLOBBER
+            .iter()
+            .take(std::cmp::min(num_limbs, 8))
+            .copied(),
+    );
     ctx.build();
     format!("{{ {} }}", ctx.to_string())
 }

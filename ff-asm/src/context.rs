@@ -50,15 +50,16 @@ impl Context {
     }
 
     pub fn decl_name_with_fallback(&self, name: &str, fallback_name: &str) -> String {
-        self.get_decl_name(name).unwrap_or_else(|| self.decl_name(fallback_name))
+        self.get_decl_name(name)
+            .unwrap_or_else(|| self.decl_name(fallback_name))
     }
 
     pub fn add_declaration(&mut self, id: &str, ty: DeclType, var: &str) {
         let declaration = Declare {
-                ty,
-                name: id.to_string(),
-                var: var.to_string(),
-            };
+            ty,
+            name: id.to_string(),
+            var: var.to_string(),
+        };
         self.declarations.push(declaration);
     }
 
@@ -90,15 +91,21 @@ impl Context {
     }
 
     pub fn build(&mut self) {
-        let declarations: String = self.declarations.iter().map(|dec| {
-            use DeclType::*;
-            match dec.ty {
-                Register => format!("\n            {} = in(reg) {},", dec.name, dec.var),
-                Constant => format!("\n            {} = const {},", dec.name, dec.var)
-            }
-        }).collect::<Vec<String>>().join("");
+        let declarations: String = self
+            .declarations
+            .iter()
+            .map(|dec| {
+                use DeclType::*;
+                match dec.ty {
+                    Register => format!("\n            {} = in(reg) {},", dec.name, dec.var),
+                    Constant => format!("\n            {} = const {},", dec.name, dec.var),
+                }
+            })
+            .collect::<Vec<String>>()
+            .join("");
         self.append(&declarations);
-        let clobbers = self.clobbers
+        let clobbers = self
+            .clobbers
             .iter()
             .map(|l| format!("out({}) _", l))
             .collect::<Vec<String>>()
