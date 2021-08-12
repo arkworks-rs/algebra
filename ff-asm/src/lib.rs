@@ -288,34 +288,41 @@ fn generate_llvm_asm_mul_string(
 
 fn generate_impl(num_limbs: usize, is_mul: bool) -> String {
     let mut ctx = Context::new();
-    ctx.add_declaration("a", "r", "a");
+    ctx.add_declaration("a", DeclType::Register, "a");
     if is_mul {
-        ctx.add_declaration("b", "r", "b");
+        ctx.add_declaration("b", DeclType::Register, "b");
     }
-    ctx.add_declaration("modulus", "r", "&P::MODULUS.0");
-    ctx.add_declaration("0", "i", "0u64");
-    ctx.add_declaration("mod_prime", "i", "P::INV");
+    ctx.add_declaration("modulus", DeclType::Register, "&P::MODULUS.0");
+    ctx.add_declaration("zero", DeclType::Constant, "0u64");
+    ctx.add_declaration("mod_prime", DeclType::Constant, "P::INV");
 
     if num_limbs > MAX_REGS {
         ctx.add_buffer(2 * num_limbs);
-        ctx.add_declaration("buf", "r", "&mut spill_buffer");
+        ctx.add_declaration("buf", DeclType::Register, "&mut spill_buffer");
     }
 
     let llvm_asm_string = generate_llvm_asm_mul_string(
-        &ctx.clone().get("a"),
-        &ctx.clone().try_get("b", "a"),
-        &ctx.clone().get("modulus"),
-        &ctx.clone().get("0"),
-        &ctx.clone().get("mod_prime"),
+        &ctx.decl_name("a"),
+        &ctx.decl_name_with_fallback("b", "a"), // "b" is not available during squaring.
+        &ctx.decl_name("modulus"),
+        &ctx.decl_name("zero"),
+        &ctx.decl_name("mod_prime"),
         num_limbs,
     );
 
     ctx.add_llvm_asm(llvm_asm_string);
-    ctx.add_clobber_from_vec(vec!["rcx", "rbx", "rdx", "rax"]);
-    for clobber in REG_CLOBBER.iter().take(std::cmp::min(num_limbs, 8)) {
-        ctx.add_clobber(clobber);
-    }
-    ctx.add_clobber_from_vec(vec!["cc", "memory"]);
+    ctx.add_clobbers(["rcx", "rbx", "rdx", "rax"].iter().copied());
+    ctx.add_clobbers(REG_CLOBBER.iter().take(std::cmp::min(num_limbs, 8)).copied());
     ctx.build();
-    format!("{{ {} }}", ctx.get_string())
+    format!("{{ {} }}", ctx.to_string())
+}
+
+mod tests {
+    #[test]
+    fn expand_muls() {
+        let impl_block = super::generate_impl(4, true);
+        println!("{}", impl_block);
+        let impl_block = super::generate_impl(6, true);
+        println!("{}", impl_block);
+    }
 }
