@@ -36,6 +36,10 @@ pub trait SWModelParameters: ModelParameters {
         }
         *elem
     }
+
+    fn is_in_correct_subgroup_assuming_on_curve_fast(_g : &short_weierstrass_jacobian::GroupAffine<Self>) -> Option<bool> {
+        None
+    }
 }
 
 pub trait TEModelParameters: ModelParameters {
