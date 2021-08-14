@@ -143,7 +143,7 @@ pub fn x86_64_asm_square(input: TokenStream) -> TokenStream {
     }
 }
 
-fn generate_llvm_asm_mul_string<'a>(ctx: &Context<'a>, limbs: usize) -> Vec<String> {
+fn construct_asm_mul<'a>(ctx: &Context<'a>, limbs: usize) -> Vec<String> {
     let r: Vec<AssemblyVar> = Context::R.iter().map(|r| (*r).into()).collect();
     let rax: AssemblyVar = Context::RAX.into();
     let rcx: AssemblyVar = Context::RCX.into();
@@ -297,7 +297,7 @@ fn generate_impl(num_limbs: usize, is_mul: bool) -> String {
         ctx.add_declaration("buf", DeclType::Register, "&mut spill_buffer");
     }
 
-    let asm_instructions = generate_llvm_asm_mul_string(&ctx, num_limbs);
+    let asm_instructions = construct_asm_mul(&ctx, num_limbs);
 
     ctx.add_asm(&asm_instructions);
     ctx.add_clobbers(
@@ -314,7 +314,5 @@ mod tests {
     fn expand_muls() {
         let impl_block = super::generate_impl(4, true);
         println!("{}", impl_block);
-        // let impl_block = super::generate_impl(6, true);
-        // println!("{}", impl_block);
     }
 }
