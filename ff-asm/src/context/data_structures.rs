@@ -1,6 +1,5 @@
 use std::fmt;
 
-
 #[derive(Clone)]
 pub enum AssemblyVar {
     Memory(String),
