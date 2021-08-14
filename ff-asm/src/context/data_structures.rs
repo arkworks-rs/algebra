@@ -41,7 +41,7 @@ impl<'a> From<Declaration<'a>> for AssemblyVar {
 
 impl<'a> From<Register<'a>> for AssemblyVar {
     fn from(other: Register<'a>) -> Self {
-        Self::Fixed(format!("${}", other.0))
+        Self::Fixed(format!("%{}", other.0))
     }
 }
 
