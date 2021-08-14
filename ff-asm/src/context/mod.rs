@@ -97,9 +97,9 @@ impl<'a> Context<'a> {
         let clobbers = self
             .used_registers
             .iter()
-            .map(|l| format!("out({}) _", l))
+            .map(|l| format!("out({}) _,", l))
             .collect::<Vec<String>>()
-            .join(", \n");
+            .join("\n");
         let options = "options(att_syntax)".to_string();
         let assembly = self.instructions_to_string();
         [
