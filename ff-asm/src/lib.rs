@@ -8,10 +8,6 @@ use syn::{
     Expr, Item, ItemFn,
 };
 
-#[macro_use]
-mod utils;
-use utils::*;
-
 mod context;
 use context::*;
 
@@ -53,7 +49,7 @@ struct AsmMulInput {
 impl Parse for AsmMulInput {
     fn parse(input: ParseStream<'_>) -> syn::Result<Self> {
         let input = input
-            .parse_terminated::<_, syn::Token![,]>(Expr::parse)?
+            .parse_terminated::<_, syn::token::Comma>(Expr::parse)?
             .into_iter()
             .collect::<Vec<_>>();
         let num_limbs = input[0].clone();
@@ -105,7 +101,7 @@ struct AsmSquareInput {
 impl Parse for AsmSquareInput {
     fn parse(input: ParseStream<'_>) -> syn::Result<Self> {
         let input = input
-            .parse_terminated::<_, syn::Token![,]>(Expr::parse)?
+            .parse_terminated::<_, syn::token::Comma>(Expr::parse)?
             .into_iter()
             .collect::<Vec<_>>();
         let num_limbs = input[0].clone();
@@ -147,84 +143,79 @@ pub fn x86_64_asm_square(input: TokenStream) -> TokenStream {
     }
 }
 
-fn generate_llvm_asm_mul_string(
-    a: &str,
-    b: &str,
-    modulus: &str,
-    zero: &str,
-    mod_prime: &str,
-    limbs: usize,
-) -> String {
-    let llvm_asm_string = RefCell::new(String::new());
+fn generate_llvm_asm_mul_string<'a>(ctx: &Context<'a>, limbs: usize) -> Vec<String> {
+    let r: Vec<AssemblyVar> = Context::R.iter().map(|r| (*r).into()).collect();
+    let rax: AssemblyVar = Context::RAX.into();
+    let rcx: AssemblyVar = Context::RCX.into();
+    let rdx: AssemblyVar = Context::RDX.into();
+    let rsi: AssemblyVar = Context::RSI.into();
+    let a: AssemblyVar = ctx.get_decl("a").into();
+    let b: AssemblyVar = ctx.get_decl_with_fallback("b", "a").into(); // "b" is not available during squaring.
+    let modulus: AssemblyVar = ctx.get_decl("modulus").into();
+    let zero: AssemblyVar = ctx.get_decl("zero").into();
+    let mod_inv: AssemblyVar = ctx.get_decl("mod_inv").into();
 
-    let begin = || llvm_asm_string.borrow_mut().push_str("\"");
-
-    let end = || {
-        llvm_asm_string.borrow_mut().push_str(
-            "
-                                \"",
-        )
-    };
+    let asm_instructions = RefCell::new(Vec::new());
 
     let comment = |comment: &str| {
-        llvm_asm_string
+        asm_instructions
             .borrow_mut()
-            .push_str(&format!("         // {}", comment));
+            .push(format!("// {}", comment));
     };
 
-    let mulxq = |a: &str, b: &str, c: &str| {
-        llvm_asm_string.borrow_mut().push_str(&format!(
-            "
-                                mulxq {}, {}, {}",
-            a, b, c
-        ));
-    };
+    macro_rules! mulxq {
+        ($a: expr, $b: expr, $c: expr) => {
+            asm_instructions
+                .borrow_mut()
+                .push(format!("mulxq {}, {}, {}", &$a, &$b, &$c));
+        };
+    }
 
-    let adcxq = |a: &str, b: &str| {
-        llvm_asm_string.borrow_mut().push_str(&format!(
-            "
-                                adcxq {}, {}",
-            a, b
-        ));
-    };
+    macro_rules! adcxq {
+        ($a: expr, $b: expr) => {
+            asm_instructions
+                .borrow_mut()
+                .push(format!("adcxq {}, {}", &$a, &$b));
+        };
+    }
 
-    let adoxq = |a: &str, b: &str| {
-        llvm_asm_string.borrow_mut().push_str(&format!(
-            "
-                                adoxq {}, {}",
-            a, b
-        ));
-    };
+    macro_rules! adoxq {
+        ($a: expr, $b: expr) => {
+            asm_instructions
+                .borrow_mut()
+                .push(format!("adoxq {}, {}", &$a, &$b));
+        };
+    }
 
-    let movq = |a: &str, b: &str| {
-        llvm_asm_string.borrow_mut().push_str(&format!(
-            "
-                                movq {}, {}",
-            a, b
-        ));
-    };
+    macro_rules! movq {
+        ($a: expr, $b: expr) => {{
+            asm_instructions
+                .borrow_mut()
+                .push(format!("movq {}, {}", &$a, &$b));
+        }};
+    }
 
-    let xorq = |a: &str, b: &str| {
-        llvm_asm_string.borrow_mut().push_str(&format!(
-            "
-                                xorq {}, {}",
-            a, b
-        ));
-    };
+    macro_rules! xorq {
+        ($a: expr, $b: expr) => {
+            asm_instructions
+                .borrow_mut()
+                .push(format!("xorq {}, {}", &$a, &$b))
+        };
+    }
 
     macro_rules! mul_1 {
         ($a:expr, $b:ident, $zero:ident, $limbs:expr) => {
             comment("Mul 1 start");
-            movq($a, RDX);
-            mulxq($b[0], R[0], R[1]);
+            movq!($a, rdx);
+            mulxq!($b[0], r[0], r[1]);
             for j in 1..$limbs - 1 {
-                mulxq($b[j], RAX, R[((j + 1) % $limbs)]);
-                adcxq(RAX, R[j]);
+                mulxq!($b[j], rax, r[((j + 1) % $limbs)]);
+                adcxq!(rax, r[j]);
             }
-            mulxq($b[$limbs - 1], RAX, RCX);
-            movq($zero, RSI);
-            adcxq(RAX, R[$limbs - 1]);
-            adcxq(RSI, RCX);
+            mulxq!($b[$limbs - 1], rax, rcx);
+            movq!($zero, rsi);
+            adcxq!(rax, r[$limbs - 1]);
+            adcxq!(rsi, rcx);
             comment("Mul 1 end")
         };
     }
@@ -232,64 +223,63 @@ fn generate_llvm_asm_mul_string(
     macro_rules! mul_add_1 {
         ($a:ident, $b:ident, $zero:ident, $i:ident, $limbs:expr) => {
             comment(&format!("mul_add_1 start for iteration {}", $i));
-            movq($a[$i], RDX);
+            movq!($a[$i], rdx);
             for j in 0..$limbs - 1 {
-                mulxq($b[j], RAX, RSI);
-                adcxq(RAX, R[(j + $i) % $limbs]);
-                adoxq(RSI, R[(j + $i + 1) % $limbs]);
+                mulxq!($b[j], rax, rsi);
+                adcxq!(rax, r[(j + $i) % $limbs]);
+                adoxq!(rsi, r[(j + $i + 1) % $limbs]);
             }
-            mulxq($b[$limbs - 1], RAX, RCX);
-            movq($zero, RSI);
-            adcxq(RAX, R[($i + $limbs - 1) % $limbs]);
-            adoxq(RSI, RCX);
-            adcxq(RSI, RCX);
+            mulxq!($b[$limbs - 1], rax, rcx);
+            movq!($zero, rsi);
+            adcxq!(rax, r[($i + $limbs - 1) % $limbs]);
+            adoxq!(rsi, rcx);
+            adcxq!(rsi, rcx);
             comment(&format!("mul_add_1 end for iteration {}", $i));
         };
     }
 
     macro_rules! mul_add_shift_1 {
-        ($a:ident, $mod_prime:ident, $zero:ident, $i:ident, $limbs:expr) => {
+        ($a:ident, $mod_inv:ident, $zero:ident, $i:ident, $limbs:expr) => {
             comment(&format!("mul_add_shift_1 start for iteration {}", $i));
-            movq($mod_prime, RDX);
-            mulxq(R[$i], RDX, RAX);
-            mulxq($a[0], RAX, RSI);
-            adcxq(R[$i % $limbs], RAX);
-            adoxq(RSI, R[($i + 1) % $limbs]);
+            movq!($mod_inv, rdx);
+            mulxq!(r[$i], rdx, rax);
+            mulxq!($a[0], rax, rsi);
+            adcxq!(r[$i % $limbs], rax);
+            adoxq!(rsi, r[($i + 1) % $limbs]);
             for j in 1..$limbs - 1 {
-                mulxq($a[j], RAX, RSI);
-                adcxq(RAX, R[(j + $i) % $limbs]);
-                adoxq(RSI, R[(j + $i + 1) % $limbs]);
+                mulxq!($a[j], rax, rsi);
+                adcxq!(rax, r[(j + $i) % $limbs]);
+                adoxq!(rsi, r[(j + $i + 1) % $limbs]);
             }
-            mulxq($a[$limbs - 1], RAX, R[$i % $limbs]);
-            movq($zero, RSI);
-            adcxq(RAX, R[($i + $limbs - 1) % $limbs]);
-            adoxq(RCX, R[$i % $limbs]);
-            adcxq(RSI, R[$i % $limbs]);
+            mulxq!($a[$limbs - 1], rax, r[$i % $limbs]);
+            movq!($zero, rsi);
+            adcxq!(rax, r[($i + $limbs - 1) % $limbs]);
+            adoxq!(rcx, r[$i % $limbs]);
+            adcxq!(rsi, r[$i % $limbs]);
             comment(&format!("mul_add_shift_1 end for iteration {}", $i));
         };
     }
-    begin();
     {
-        reg!(a0, a1, a, limbs);
-        reg!(b0, b1, b, limbs);
-        reg!(m, m1, modulus, limbs);
+        let a1 = a.memory_accesses(limbs);
+        let b1 = b.memory_accesses(limbs);
+        let m1 = modulus.memory_accesses(limbs);
 
-        xorq(RCX, RCX);
+        xorq!(rcx, rcx);
         for i in 0..limbs {
             if i == 0 {
                 mul_1!(a1[0], b1, zero, limbs);
             } else {
                 mul_add_1!(a1, b1, zero, i, limbs);
             }
-            mul_add_shift_1!(m1, mod_prime, zero, i, limbs);
+            mul_add_shift_1!(m1, mod_inv, zero, i, limbs);
         }
 
+        comment("Moving results into `a`");
         for i in 0..limbs {
-            movq(R[i], a1[i]);
+            movq!(r[i], a1[i]);
         }
     }
-    end();
-    llvm_asm_string.into_inner()
+    asm_instructions.into_inner()
 }
 
 fn generate_impl(num_limbs: usize, is_mul: bool) -> String {
@@ -300,32 +290,23 @@ fn generate_impl(num_limbs: usize, is_mul: bool) -> String {
     }
     ctx.add_declaration("modulus", DeclType::Register, "&P::MODULUS.0");
     ctx.add_declaration("zero", DeclType::Constant, "0u64");
-    ctx.add_declaration("mod_prime", DeclType::Register, "P::INV");
+    ctx.add_declaration("mod_inv", DeclType::Register, "P::INV");
 
     if num_limbs > MAX_REGS {
         ctx.add_buffer(2 * num_limbs);
         ctx.add_declaration("buf", DeclType::Register, "&mut spill_buffer");
     }
 
-    let llvm_asm_string = generate_llvm_asm_mul_string(
-        &ctx.decl_name("a"),
-        &ctx.decl_name_with_fallback("b", "a"), // "b" is not available during squaring.
-        &ctx.decl_name("modulus"),
-        &ctx.decl_name("zero"),
-        &ctx.decl_name("mod_prime"),
-        num_limbs,
-    );
+    let asm_instructions = generate_llvm_asm_mul_string(&ctx, num_limbs);
 
-    ctx.add_llvm_asm(llvm_asm_string);
-    ctx.add_clobbers(["rcx", "rsi", "rdx", "rax"].iter().copied());
+    ctx.add_asm(&asm_instructions);
     ctx.add_clobbers(
-        REG_CLOBBER
+        [Context::RAX, Context::RCX, Context::RSI, Context::RDX]
             .iter()
-            .take(std::cmp::min(num_limbs, 8))
             .copied(),
     );
-    ctx.build();
-    format!("{{ {} }}", ctx.to_string())
+    ctx.add_clobbers(Context::R.iter().take(std::cmp::min(num_limbs, 8)).copied());
+    ctx.build()
 }
 
 mod tests {

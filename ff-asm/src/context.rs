@@ -1,10 +1,62 @@
-pub const REG_CLOBBER: [&str; 8] = ["r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15"];
+use std::fmt;
+#[derive(Clone)]
+pub struct Context<'a> {
+    assembly_instructions: Vec<String>,
+    declarations: Vec<Declaration<'a>>,
+    used_registers: Vec<Register<'a>>,
+}
 
 #[derive(Clone)]
-pub struct Context {
-    ctx_string: String,
-    declarations: Vec<Declare>,
-    clobbers: Vec<String>,
+pub enum AssemblyVar {
+    Memory(String),
+    Variable(String),
+    Fixed(String),
+}
+
+impl AssemblyVar {
+    pub fn memory_access(&self, offset: usize) -> Option<AssemblyVar> {
+        match self {
+            Self::Variable(a) | Self::Fixed(a) => Some(Self::Memory(format!("{}({})", offset, a))),
+            _ => None,
+        }
+    }
+
+    pub fn memory_accesses(&self, range: usize) -> Vec<AssemblyVar> {
+        (0..range)
+            .map(|i| {
+                let offset = i * 8;
+                self.memory_access(offset).unwrap()
+            })
+            .collect()
+    }
+}
+
+impl fmt::Display for AssemblyVar {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
+        match self {
+            Self::Variable(a) | Self::Fixed(a) | Self::Memory(a) => write!(f, "{}", a),
+        }
+    }
+}
+
+impl<'a> From<Declaration<'a>> for AssemblyVar {
+    fn from(other: Declaration<'a>) -> Self {
+        Self::Variable(format!("{{{}}}", other.name))
+    }
+}
+
+impl<'a> From<Register<'a>> for AssemblyVar {
+    fn from(other: Register<'a>) -> Self {
+        Self::Fixed(format!("${}", other.0))
+    }
+}
+
+#[derive(Copy, Clone, PartialEq, Eq)]
+pub struct Register<'a>(pub &'a str);
+impl fmt::Display for Register<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
+        write!(f, "\"{}\"", self.0)
+    }
 }
 
 #[derive(Copy, Clone, Eq, PartialEq)]
@@ -13,110 +65,129 @@ pub enum DeclType {
     Register,
 }
 
-#[derive(Clone)]
-struct Declare {
-    name: String,
-    var: String,
+#[derive(Copy, Clone)]
+pub struct Declaration<'a> {
+    /// Name of the assembly template variable declared by `self`.
+    name: &'a str,
+    /// Rust expression whose value is declared in `self`.
+    expr: &'a str,
+    /// Type of declaration: Constant (~ immediate) or variable.
     ty: DeclType,
 }
 
-impl Context {
+impl fmt::Display for Declaration<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
+        match self.ty {
+            DeclType::Constant => write!(f, "{} = const {},", self.name, self.expr),
+            DeclType::Register => write!(f, "{} = in(reg) {},", self.name, self.expr),
+        }
+    }
+}
+
+impl<'a> Context<'a> {
+    pub const RAX: Register<'static> = Register("rax");
+    pub const RSI: Register<'static> = Register("rsi");
+    pub const RCX: Register<'static> = Register("rcx");
+    pub const RDX: Register<'static> = Register("rdx");
+
+    pub const R: [Register<'static>; 8] = [
+        Register("r8"),
+        Register("r9"),
+        Register("r10"),
+        Register("r11"),
+        Register("r12"),
+        Register("r13"),
+        Register("r14"),
+        Register("r15"),
+    ];
+
     pub fn new() -> Self {
-        Context {
-            ctx_string: String::new(),
+        Self {
+            assembly_instructions: Vec::new(),
             declarations: Vec::new(),
-            clobbers: Vec::new(),
+            used_registers: Vec::new(),
         }
     }
 
-    fn find(&self, name: &str) -> Option<&Declare> {
+    fn find(&self, name: &str) -> Option<&Declaration<'_>> {
         self.declarations.iter().find(|item| item.name == name)
     }
 
     fn append(&mut self, other: &str) {
-        self.ctx_string += other;
+        self.assembly_instructions.push(format!("\"{}\",", other));
     }
 
-    pub fn to_string(&self) -> String {
-        self.ctx_string.clone()
+    fn instructions_to_string(&self) -> String {
+        self.assembly_instructions.join("\n")
     }
 
-    fn get_decl_name(&self, name: &str) -> Option<String> {
-        self.find(name).map(|d| format!("{{{}}}", d.name))
+    fn get_decl_name(&self, name: &str) -> Option<&Declaration<'_>> {
+        self.find(name)
     }
 
-    pub fn decl_name(&self, name: &str) -> String {
-        self.get_decl_name(name).unwrap()
+    pub fn get_decl(&self, name: &str) -> Declaration<'_> {
+        *self.get_decl_name(name).unwrap()
     }
 
-    pub fn decl_name_with_fallback(&self, name: &str, fallback_name: &str) -> String {
+    pub fn get_decl_with_fallback(&self, name: &str, fallback_name: &str) -> Declaration<'_> {
         self.get_decl_name(name)
-            .unwrap_or_else(|| self.decl_name(fallback_name))
+            .copied()
+            .unwrap_or_else(|| self.get_decl(fallback_name))
     }
 
-    pub fn add_declaration(&mut self, id: &str, ty: DeclType, var: &str) {
-        let declaration = Declare {
-            ty,
-            name: id.to_string(),
-            var: var.to_string(),
-        };
+    pub fn add_declaration(&mut self, name: &'a str, ty: DeclType, expr: &'a str) {
+        let declaration = Declaration { ty, name, expr };
         self.declarations.push(declaration);
     }
 
     pub fn add_buffer(&mut self, extra_reg: usize) {
         self.append(&format!(
-            "
-                    let mut spill_buffer = core::mem::MaybeUninit::<[u64; {}]>::uninit();",
+            "let mut spill_buffer = core::mem::MaybeUninit::<[u64; {}]>::uninit();",
             extra_reg
         ));
     }
 
-    pub fn add_llvm_asm(&mut self, ctx_string: String) {
-        self.append(&format!(
-            "
-                    unsafe {{
-                        asm!({},",
-            ctx_string
-        ));
+    pub fn add_asm(&mut self, asm_instructions: &[String]) {
+        for instruction in asm_instructions {
+            self.append(instruction)
+        }
     }
 
-    pub fn add_clobbers<'a>(&mut self, clobbers: impl Iterator<Item = &'a str>) {
+    pub fn add_clobbers(&mut self, clobbers: impl Iterator<Item = Register<'a>>) {
         for clobber in clobbers {
             self.add_clobber(clobber)
         }
     }
 
-    pub fn add_clobber(&mut self, clobber: &str) {
-        self.clobbers.push(format!("\"{}\"", clobber));
+    pub fn add_clobber(&mut self, clobber: Register<'a>) {
+        self.used_registers.push(clobber);
     }
 
-    pub fn build(&mut self) {
+    pub fn build(self) -> String {
         let declarations: String = self
             .declarations
             .iter()
-            .map(|dec| {
-                use DeclType::*;
-                match dec.ty {
-                    Register => format!("\n            {} = in(reg) {},", dec.name, dec.var),
-                    Constant => format!("\n            {} = const {},", dec.name, dec.var),
-                }
-            })
+            .map(ToString::to_string)
             .collect::<Vec<String>>()
-            .join("");
-        self.append(&declarations);
+            .join("\n");
         let clobbers = self
-            .clobbers
+            .used_registers
             .iter()
             .map(|l| format!("out({}) _", l))
             .collect::<Vec<String>>()
-            .join(", \n            ");
-        self.append(&format!(
-            "
-                            {},
-                        options(att_syntax));
-                    }}
-                ",
-            clobbers
-        ));
+            .join(", \n");
+        let options = "options(att_syntax)".to_string();
+        let assembly = self.instructions_to_string();
+        [
+            "unsafe {".to_string(),
+            "asm!(".to_string(),
+            assembly,
+            declarations,
+            clobbers,
+            options,
+            ")".to_string(),
+            "}".to_string(),
+        ]
+        .join("\n")
     }
 }
