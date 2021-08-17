@@ -871,19 +871,6 @@ impl<P: Parameters> CanonicalDeserialize for GroupAffine<P> {
         let p = GroupAffine::<P>::new(x, y, flags.is_infinity());
         Ok(p)
     }
-
-    #[allow(unused_qualifications)]
-    fn deserialize_unsafe<R: Read>(reader: R) -> Result<Self, SerializationError> {
-        let (x, flags): (P::BaseField, SWFlags) =
-            CanonicalDeserializeWithFlags::deserialize_with_flags(reader)?;
-        if flags.is_infinity() {
-            Ok(Self::zero())
-        } else {
-            let p = GroupAffine::<P>::get_point_from_x(x, flags.is_positive().unwrap())
-                .ok_or(SerializationError::InvalidData)?;
-            Ok(p)
-        }
-    } 
 }
 
 impl<P: Parameters> CanonicalDeserialize for GroupProjective<P> {
@@ -902,12 +889,6 @@ impl<P: Parameters> CanonicalDeserialize for GroupProjective<P> {
     #[allow(unused_qualifications)]
     fn deserialize_unchecked<R: Read>(reader: R) -> Result<Self, SerializationError> {
         let aff = GroupAffine::<P>::deserialize_unchecked(reader)?;
-        Ok(aff.into())
-    }
-
-    #[allow(unused_qualifications)]
-    fn deserialize_unsafe<R: Read>(reader: R) -> Result<Self, SerializationError> {
-        let aff = GroupAffine::<P>::deserialize_unsafe(reader)?;
         Ok(aff.into())
     }
 }
