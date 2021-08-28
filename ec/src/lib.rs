@@ -37,6 +37,7 @@ pub mod group;
 pub mod msm;
 
 pub mod hashing;
+pub mod wnaf;
 
 pub trait PairingEngine: Sized + 'static + Copy + Debug + Sync + Send + Eq + PartialEq {
     /// This is the scalar field of the G1/G2 groups.
@@ -81,7 +82,7 @@ pub trait PairingEngine: Sized + 'static + Copy + Debug + Sync + Send + Eq + Par
     /// The extension field that hosts the target group of the pairing.
     type Fqk: Field;
 
-    /// Perform a miller loop with some number of (G1, G2) pairs.
+    /// Compute the product of miller loops for some number of (G1, G2) pairs.
     #[must_use]
     fn miller_loop<'a, I>(i: I) -> Self::Fqk
     where
@@ -239,6 +240,8 @@ pub trait AffineCurve:
     + Zero
     + Neg<Output = Self>
     + Zeroize
+    + core::iter::Sum<Self>
+    + for<'a> core::iter::Sum<&'a Self>
     + From<<Self as AffineCurve>::Projective>
 {
     const COFACTOR: &'static [u64];
@@ -314,15 +317,30 @@ pub fn prepare_g2<E: PairingEngine>(g: impl Into<E::G2Affine>) -> E::G2Prepared 
     E::G2Prepared::from(g)
 }
 
-/// A cycle of pairing-friendly elliptic curves.
-pub trait CycleEngine: Sized + 'static + Copy + Debug + Sync + Send
+pub trait CurveCycle
 where
-    <Self::E2 as PairingEngine>::G1Projective: MulAssign<<Self::E1 as PairingEngine>::Fq>,
-    <Self::E2 as PairingEngine>::G2Projective: MulAssign<<Self::E1 as PairingEngine>::Fq>,
+    <Self::E1 as AffineCurve>::Projective: MulAssign<<Self::E2 as AffineCurve>::BaseField>,
+    <Self::E2 as AffineCurve>::Projective: MulAssign<<Self::E1 as AffineCurve>::BaseField>,
 {
-    type E1: PairingEngine;
-    type E2: PairingEngine<
-        Fr = <Self::E1 as PairingEngine>::Fq,
-        Fq = <Self::E1 as PairingEngine>::Fr,
+    type E1: AffineCurve<
+        BaseField = <Self::E2 as AffineCurve>::ScalarField,
+        ScalarField = <Self::E2 as AffineCurve>::BaseField,
+    >;
+    type E2: AffineCurve;
+}
+
+pub trait PairingFriendlyCycle: CurveCycle {
+    type Engine1: PairingEngine<
+        G1Affine = Self::E1,
+        G1Projective = <Self::E1 as AffineCurve>::Projective,
+        Fq = <Self::E1 as AffineCurve>::BaseField,
+        Fr = <Self::E1 as AffineCurve>::ScalarField,
+    >;
+
+    type Engine2: PairingEngine<
+        G1Affine = Self::E2,
+        G1Projective = <Self::E2 as AffineCurve>::Projective,
+        Fq = <Self::E2 as AffineCurve>::BaseField,
+        Fr = <Self::E2 as AffineCurve>::ScalarField,
     >;
 }

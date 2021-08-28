@@ -4,15 +4,17 @@ use crate::{
     UniformRand,
 };
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, SerializationError};
+use ark_std::rand::{
+    distributions::{Distribution, Standard},
+    Rng,
+};
 use ark_std::{
+    convert::TryFrom,
     fmt::{Debug, Display},
     io::{Read, Result as IoResult, Write},
     vec::Vec,
 };
-use rand::{
-    distributions::{Distribution, Standard},
-    Rng,
-};
+use num_bigint::BigUint;
 use zeroize::Zeroize;
 
 #[macro_use]
@@ -20,11 +22,21 @@ pub mod arithmetic;
 #[macro_use]
 mod macros;
 
+pub fn signed_mod_reduction(n: u64, modulus: u64) -> i64 {
+    let t = (n % modulus) as i64;
+    if t as u64 >= (modulus / 2) {
+        t - (modulus as i64)
+    } else {
+        t
+    }
+}
+
 bigint_impl!(BigInteger64, 1);
 bigint_impl!(BigInteger128, 2);
 bigint_impl!(BigInteger256, 4);
 bigint_impl!(BigInteger320, 5);
 bigint_impl!(BigInteger384, 6);
+bigint_impl!(BigInteger448, 7);
 bigint_impl!(BigInteger768, 12);
 bigint_impl!(BigInteger832, 13);
 
@@ -54,6 +66,8 @@ pub trait BigInteger:
     + AsMut<[u64]>
     + AsRef<[u64]>
     + From<u64>
+    + TryFrom<BigUint>
+    + Into<BigUint>
 {
     /// Number of limbs.
     const NUM_LIMBS: usize;
@@ -122,8 +136,35 @@ pub trait BigInteger:
     /// with trailing zeros.
     fn to_bytes_le(&self) -> Vec<u8>;
 
-    /// Returns a vector for wnaf.
-    fn find_wnaf(&self) -> Vec<i64>;
+    /// Returns the windowed non-adjacent form of `self`, for a window of size `w`.
+    fn find_wnaf(&self, w: usize) -> Option<Vec<i64>> {
+        // w > 2 due to definition of wNAF, and w < 64 to make sure that `i64`
+        // can fit each signed digit
+        if w >= 2 && w < 64 {
+            let mut res = vec![];
+            let mut e = *self;
+
+            while !e.is_zero() {
+                let z: i64;
+                if e.is_odd() {
+                    z = signed_mod_reduction(e.as_ref()[0], 1 << w);
+                    if z >= 0 {
+                        e.sub_noborrow(&Self::from(z as u64));
+                    } else {
+                        e.add_nocarry(&Self::from((-z) as u64));
+                    }
+                } else {
+                    z = 0;
+                }
+                res.push(z);
+                e.div2();
+            }
+
+            Some(res)
+        } else {
+            None
+        }
+    }
 
     /// Writes this `BigInteger` as a big endian integer. Always writes
     /// `(num_bits` / 8) bytes.

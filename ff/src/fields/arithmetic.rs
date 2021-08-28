@@ -26,7 +26,6 @@ macro_rules! impl_field_mul_assign {
                 {
                     // Tentatively avoid using assembly for `$limbs == 1`.
                     if $limbs <= 6 && $limbs > 1 {
-                        assert!($limbs <= 6);
                         ark_ff_asm::x86_64_asm_mul!($limbs, (self.0).0, (other.0).0);
                         self.reduce();
                         return;
@@ -61,6 +60,7 @@ macro_rules! impl_field_into_repr {
     ($limbs:expr, $BigIntegerType:ty) => {
         #[inline]
         #[ark_ff_asm::unroll_for_loops]
+        #[allow(clippy::modulo_one)]
         fn into_repr(&self) -> $BigIntegerType {
             let mut tmp = self.0;
             let mut r = tmp.0;
@@ -89,6 +89,8 @@ macro_rules! impl_field_square_in_place {
         #[allow(unused_braces, clippy::absurd_extreme_comparisons)]
         fn square_in_place(&mut self) -> &mut Self {
             if $limbs == 1 {
+                // We default to multiplying with `self` using the `Mul` impl
+                // for the 1 limb case
                 *self = *self * *self;
                 return self;
             }
@@ -104,7 +106,6 @@ macro_rules! impl_field_square_in_place {
                 let _no_carry: bool = !(first_bit_set || all_bits_set);
 
                 if $limbs <= 6 && _no_carry {
-                    assert!($limbs <= 6);
                     ark_ff_asm::x86_64_asm_square!($limbs, (self.0).0);
                     self.reduce();
                     return self;
@@ -192,18 +193,25 @@ macro_rules! impl_field_bigint_conv {
 
 macro_rules! impl_prime_field_standard_sample {
     ($field: ident, $params: ident) => {
-        impl<P: $params> rand::distributions::Distribution<$field<P>>
-            for rand::distributions::Standard
+        impl<P: $params> ark_std::rand::distributions::Distribution<$field<P>>
+            for ark_std::rand::distributions::Standard
         {
             #[inline]
-            fn sample<R: rand::Rng + ?Sized>(&self, rng: &mut R) -> $field<P> {
+            fn sample<R: ark_std::rand::Rng + ?Sized>(&self, rng: &mut R) -> $field<P> {
                 loop {
-                    let mut tmp = $field(rng.sample(rand::distributions::Standard), PhantomData);
+                    let mut tmp = $field(
+                        rng.sample(ark_std::rand::distributions::Standard),
+                        PhantomData,
+                    );
+
                     // Mask away the unused bits at the beginning.
-                    tmp.0
-                        .as_mut()
-                        .last_mut()
-                        .map(|val| *val &= core::u64::MAX >> P::REPR_SHAVE_BITS);
+                    assert!(P::REPR_SHAVE_BITS <= 64);
+                    let mask = if P::REPR_SHAVE_BITS == 64 {
+                        0
+                    } else {
+                        core::u64::MAX >> P::REPR_SHAVE_BITS
+                    };
+                    tmp.0.as_mut().last_mut().map(|val| *val &= mask);
 
                     if tmp.is_valid() {
                         return tmp;
@@ -215,7 +223,7 @@ macro_rules! impl_prime_field_standard_sample {
 }
 
 macro_rules! impl_prime_field_from_int {
-    ($field: ident, u128, $params: ident, $limbs:expr) => {
+    ($field: ident, 128, $params: ident, $limbs:expr) => {
         impl<P: $params> From<u128> for $field<P> {
             fn from(other: u128) -> Self {
                 let mut default_int = P::BigInt::default();
@@ -235,14 +243,49 @@ macro_rules! impl_prime_field_from_int {
                 Self::from_repr(default_int).unwrap()
             }
         }
+
+        impl <P: $params> From<i128> for $field<P> {
+            fn from(other: i128) -> Self {
+                let abs = Self::from(other.unsigned_abs());
+                if other.is_positive() {
+                    abs
+                } else {
+                    -abs
+                }
+            }
+        }
     };
-    ($field: ident, $int: ident, $params: ident, $limbs:expr) => {
-        impl<P: $params> From<$int> for $field<P> {
-            fn from(other: $int) -> Self {
+    ($field: ident, bool, $params: ident, $limbs:expr) => {
+        impl<P: $params> From<bool> for $field<P> {
+            fn from(other: bool) -> Self {
                 if $limbs == 1 {
                     Self::from_repr(P::BigInt::from(u64::from(other) % P::MODULUS.0[0])).unwrap()
                 } else {
                     Self::from_repr(P::BigInt::from(u64::from(other))).unwrap()
+                }
+            }
+        }
+    };
+    ($field: ident, $int: expr, $params: ident, $limbs:expr) => {
+        paste::paste!{
+            impl<P: $params> From<[<u $int>]> for $field<P> {
+                fn from(other: [<u $int>]) -> Self {
+                    if $limbs == 1 {
+                        Self::from_repr(P::BigInt::from(u64::from(other) % P::MODULUS.0[0])).unwrap()
+                    } else {
+                        Self::from_repr(P::BigInt::from(u64::from(other))).unwrap()
+                    }
+                }
+            }
+
+            impl<P: $params> From<[<i $int>]> for $field<P> {
+                fn from(other: [<i $int>]) -> Self {
+                    let abs = Self::from(other.unsigned_abs());
+                    if other.is_positive() {
+                        abs
+                    } else {
+                        -abs
+                    }
                 }
             }
         }

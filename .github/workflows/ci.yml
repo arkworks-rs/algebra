@@ -159,3 +159,52 @@ jobs:
         with:
             command: build
             args: --workspace --exclude ark-algebra-test-templates --exclude ark-poly-benches --target thumbv6m-none-eabi
+
+  test_against_curves:
+    name: Test against curves
+    runs-on: ubuntu-latest
+    env:
+      RUSTFLAGS: -Dwarnings
+    strategy:
+      matrix:
+        curve:
+          - bls12_377
+          - bls12_381
+          - bn254
+          - pallas
+          - bw6_761
+          - mnt4_298
+          - mnt6_298
+          - ed_on_bls12_377
+    steps:
+      - name: Checkout curves
+        uses: actions/checkout@v2
+        with:
+          repository: arkworks-rs/curves
+
+      - name: Checkout algebra
+        uses: actions/checkout@v2
+        with:
+          repository: arkworks-rs/algebra
+          path: algebra
+
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+
+      - name: Patch cargo.toml
+        run: |
+          echo                                                                             >> Cargo.toml
+          echo      "[patch.crates-io]"                                                    >> Cargo.toml
+          echo      "ark-ff = { path = 'algebra/ff' }"                                     >> Cargo.toml
+          echo      "ark-serialize = { path = 'algebra/serialize' }"                       >> Cargo.toml
+          echo      "ark-ff-macros = { path = 'algebra/ff-macros' }"                       >> Cargo.toml
+          echo      "ark-ff-asm = { path = 'algebra/ff-asm' }"                             >> Cargo.toml
+          echo      "ark-ec = { path = 'algebra/ec' }"                                     >> Cargo.toml
+          echo      "ark-algebra-test-templates = { path = 'algebra/test-templates' }"     >> Cargo.toml
+
+      - name: Test on ${{ matrix.curve }}
+        run: "cd ${{ matrix.curve }} && cargo test --all-features"

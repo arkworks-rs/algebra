@@ -14,7 +14,7 @@ use ark_std::{
 use num_traits::{One, Zero};
 use zeroize::Zeroize;
 
-use rand::{
+use ark_std::rand::{
     distributions::{Distribution, Standard},
     Rng,
 };
@@ -312,10 +312,34 @@ impl<P: CubicExtParameters> From<u128> for CubicExtField<P> {
     }
 }
 
+impl<P: CubicExtParameters> From<i128> for CubicExtField<P> {
+    #[inline]
+    fn from(val: i128) -> Self {
+        let abs = Self::from(val.unsigned_abs());
+        if val.is_positive() {
+            abs
+        } else {
+            -abs
+        }
+    }
+}
+
 impl<P: CubicExtParameters> From<u64> for CubicExtField<P> {
     fn from(other: u64) -> Self {
         let fe: P::BaseField = other.into();
         Self::new(fe, P::BaseField::zero(), P::BaseField::zero())
+    }
+}
+
+impl<P: CubicExtParameters> From<i64> for CubicExtField<P> {
+    #[inline]
+    fn from(val: i64) -> Self {
+        let abs = Self::from(val.unsigned_abs());
+        if val.is_positive() {
+            abs
+        } else {
+            -abs
+        }
     }
 }
 
@@ -326,6 +350,18 @@ impl<P: CubicExtParameters> From<u32> for CubicExtField<P> {
     }
 }
 
+impl<P: CubicExtParameters> From<i32> for CubicExtField<P> {
+    #[inline]
+    fn from(val: i32) -> Self {
+        let abs = Self::from(val.unsigned_abs());
+        if val.is_positive() {
+            abs
+        } else {
+            -abs
+        }
+    }
+}
+
 impl<P: CubicExtParameters> From<u16> for CubicExtField<P> {
     fn from(other: u16) -> Self {
         let fe: P::BaseField = other.into();
@@ -333,10 +369,34 @@ impl<P: CubicExtParameters> From<u16> for CubicExtField<P> {
     }
 }
 
+impl<P: CubicExtParameters> From<i16> for CubicExtField<P> {
+    #[inline]
+    fn from(val: i16) -> Self {
+        let abs = Self::from(val.unsigned_abs());
+        if val.is_positive() {
+            abs
+        } else {
+            -abs
+        }
+    }
+}
+
 impl<P: CubicExtParameters> From<u8> for CubicExtField<P> {
     fn from(other: u8) -> Self {
         let fe: P::BaseField = other.into();
         Self::new(fe, P::BaseField::zero(), P::BaseField::zero())
+    }
+}
+
+impl<P: CubicExtParameters> From<i8> for CubicExtField<P> {
+    #[inline]
+    fn from(val: i8) -> Self {
+        let abs = Self::from(val.unsigned_abs());
+        if val.is_positive() {
+            abs
+        } else {
+            -abs
+        }
     }
 }
 
@@ -372,8 +432,11 @@ impl<P: CubicExtParameters> FromBytes for CubicExtField<P> {
 impl<P: CubicExtParameters> Neg for CubicExtField<P> {
     type Output = Self;
     #[inline]
-    fn neg(self) -> Self {
-        Self::new(self.c0.neg(), self.c1.neg(), self.c2.neg())
+    fn neg(mut self) -> Self {
+        self.c0 = -self.c0;
+        self.c1 = -self.c1;
+        self.c2 = -self.c2;
+        self
     }
 }
 
@@ -392,10 +455,9 @@ impl<'a, P: CubicExtParameters> Add<&'a CubicExtField<P>> for CubicExtField<P> {
     type Output = Self;
 
     #[inline]
-    fn add(self, other: &Self) -> Self {
-        let mut result = self;
-        result.add_assign(other);
-        result
+    fn add(mut self, other: &Self) -> Self {
+        self.add_assign(other);
+        self
     }
 }
 
@@ -403,10 +465,9 @@ impl<'a, P: CubicExtParameters> Sub<&'a CubicExtField<P>> for CubicExtField<P> {
     type Output = Self;
 
     #[inline]
-    fn sub(self, other: &Self) -> Self {
-        let mut result = self;
-        result.sub_assign(other);
-        result
+    fn sub(mut self, other: &Self) -> Self {
+        self.sub_assign(other);
+        self
     }
 }
 
@@ -414,10 +475,9 @@ impl<'a, P: CubicExtParameters> Mul<&'a CubicExtField<P>> for CubicExtField<P> {
     type Output = Self;
 
     #[inline]
-    fn mul(self, other: &Self) -> Self {
-        let mut result = self;
-        result.mul_assign(other);
-        result
+    fn mul(mut self, other: &Self) -> Self {
+        self.mul_assign(other);
+        self
     }
 }
 
@@ -425,10 +485,9 @@ impl<'a, P: CubicExtParameters> Div<&'a CubicExtField<P>> for CubicExtField<P> {
     type Output = Self;
 
     #[inline]
-    fn div(self, other: &Self) -> Self {
-        let mut result = self;
-        result.mul_assign(&other.inverse().unwrap());
-        result
+    fn div(mut self, other: &Self) -> Self {
+        self.mul_assign(&other.inverse().unwrap());
+        self
     }
 }
 

@@ -18,10 +18,14 @@ pub enum TwistType {
 }
 
 pub trait BnParameters: 'static {
+    // The absolute value of the BN curve parameter `X` (as in `q = 36 X^4 + 36 X^3 + 24 X^2 + 6 X + 1`).
     const X: &'static [u64];
+    // Whether or not `X` is negative.
     const X_IS_NEGATIVE: bool;
+
+    // The absolute value of `6X + 2`.
     const ATE_LOOP_COUNT: &'static [i8];
-    const ATE_LOOP_COUNT_IS_NEGATIVE: bool;
+
     const TWIST_TYPE: TwistType;
     const TWIST_MUL_BY_Q_X: Fp2<Self::Fp2Params>;
     const TWIST_MUL_BY_Q_Y: Fp2<Self::Fp2Params>;
@@ -128,7 +132,7 @@ impl<P: BnParameters> PairingEngine for Bn<P> {
             }
         }
 
-        if P::ATE_LOOP_COUNT_IS_NEGATIVE {
+        if P::X_IS_NEGATIVE {
             f.conjugate();
         }
 

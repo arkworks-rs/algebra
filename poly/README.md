@@ -1,4 +1,10 @@
-## ark-poly
+<h1 align="center">ark-poly</h1>
+<p align="center">
+    <img src="https://github.com/arkworks-rs/algebra/workflows/CI/badge.svg?branch=master">
+    <a href="https://github.com/arkworks-rs/algebra/blob/master/LICENSE-APACHE"><img src="https://img.shields.io/badge/license-APACHE-blue.svg"></a>
+    <a href="https://github.com/arkworks-rs/algebra/blob/master/LICENSE-MIT"><img src="https://img.shields.io/badge/license-MIT-blue.svg"></a>
+    <a href="https://deps.rs/repo/github/arkworks-rs/algebra"><img src="https://deps.rs/repo/github/arkworks-rs/algebra/status.svg"></a>
+</p>
 
 This crate implements traits and implementations for polynomials, FFT-friendly subsets of a field (dubbed "domains"), and FFTs for these domains.
 
@@ -32,7 +38,7 @@ This crate also provides the [`univariate/DenseOrSparsePolynomial`](./src/polyno
 
 ### Evaluations
 
-The `evaluations` module provides data structures to represent univariate polynomials in lagrange form. 
+The `evaluations` module provides data structures to represent univariate polynomials in lagrange form.
 
 - [`univariate/Evaluations`](./src/evaluations/univariate/mod.rs#L18)
 Represents a univariate polynomial in evaluation form, which can be used for FFT.

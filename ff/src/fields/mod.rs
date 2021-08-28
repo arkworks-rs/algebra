@@ -123,7 +123,7 @@ pub trait Field:
 
     /// Returns the characteristic of the field,
     /// in little-endian representation.
-    fn characteristic<'a>() -> &'a [u64] {
+    fn characteristic() -> &'static [u64] {
         Self::BasePrimeField::characteristic()
     }
 
@@ -166,7 +166,8 @@ pub trait Field:
     #[must_use]
     fn inverse(&self) -> Option<Self>;
 
-    // Sets `self` to `self`'s inverse if it exists. Otherwise it is a no-op.
+    // If `self.inverse().is_none()`, this just returns `None`. Otherwise, it sets
+    // `self` to `self.inverse().unwrap()`.
     fn inverse_in_place(&mut self) -> Option<&mut Self>;
 
     /// Exponentiates this element by a power of the base prime modulus via
@@ -187,6 +188,24 @@ pub trait Field:
             }
         }
         res
+    }
+
+    /// Exponentiates a field element `f` by a number represented with `u64` limbs,
+    /// using a precomputed table containing as many powers of 2 of `f`
+    /// as the 1 + the floor of log2 of the exponent `exp`, starting from the 1st power.
+    /// That is, `powers_of_2` should equal `&[p, p^2, p^4, ..., p^(2^n)]`
+    /// when `exp` has at most `n` bits.
+    ///
+    /// This returns `None` when a power is missing from the table.
+    #[inline]
+    fn pow_with_table<S: AsRef<[u64]>>(powers_of_2: &[Self], exp: S) -> Option<Self> {
+        let mut res = Self::one();
+        for (pow, bit) in BitIteratorLE::without_trailing_zeros(exp).enumerate() {
+            if bit {
+                res *= powers_of_2.get(pow)?;
+            }
+        }
+        Some(res)
     }
 }
 
@@ -335,6 +354,8 @@ pub trait PrimeField:
     + FromStr
     + From<<Self as PrimeField>::BigInt>
     + Into<<Self as PrimeField>::BigInt>
+    + From<BigUint>
+    + Into<BigUint>
 {
     type Params: FpParameters<BigInt = Self::BigInt>;
     type BigInt: BigInteger;
@@ -527,13 +548,16 @@ impl<Slice: AsRef<[u64]>> Iterator for BitIteratorLE<Slice> {
 }
 
 use crate::biginteger::{
-    BigInteger256, BigInteger320, BigInteger384, BigInteger64, BigInteger768, BigInteger832,
+    BigInteger256, BigInteger320, BigInteger384, BigInteger448, BigInteger64, BigInteger768,
+    BigInteger832,
 };
+use num_bigint::BigUint;
 
 impl_field_bigint_conv!(Fp64, BigInteger64, Fp64Parameters);
 impl_field_bigint_conv!(Fp256, BigInteger256, Fp256Parameters);
 impl_field_bigint_conv!(Fp320, BigInteger320, Fp320Parameters);
 impl_field_bigint_conv!(Fp384, BigInteger384, Fp384Parameters);
+impl_field_bigint_conv!(Fp448, BigInteger448, Fp448Parameters);
 impl_field_bigint_conv!(Fp768, BigInteger768, Fp768Parameters);
 impl_field_bigint_conv!(Fp832, BigInteger832, Fp832Parameters);
 
@@ -583,7 +607,7 @@ fn serial_batch_inversion_and_mul<F: Field>(v: &mut [F], coeff: &F) {
     tmp = tmp.inverse().unwrap(); // Guaranteed to be nonzero.
 
     // Multiply product by coeff, so all inverses will be scaled by coeff
-    tmp = tmp * coeff;
+    tmp *= coeff;
 
     // Second pass: iterate backwards to compute inverses
     for (f, s) in v.iter_mut()
@@ -623,7 +647,7 @@ mod std_tests {
 #[cfg(test)]
 mod no_std_tests {
     use super::*;
-    use crate::test_field::Fr;
+    use crate::test_field::{Fr, FrParameters};
     use ark_std::test_rng;
 
     #[test]
@@ -652,14 +676,34 @@ mod no_std_tests {
     }
 
     #[test]
+    fn test_from_into_biguint() {
+        let mut rng = ark_std::test_rng();
+
+        let modulus_bits = FrParameters::MODULUS_BITS;
+        let modulus: num_bigint::BigUint = FrParameters::MODULUS.into();
+
+        let mut rand_bytes = Vec::new();
+        for _ in 0..(2 * modulus_bits / 8) {
+            rand_bytes.push(u8::rand(&mut rng));
+        }
+
+        let rand = BigUint::from_bytes_le(&rand_bytes);
+
+        let a: BigUint = Fr::from(rand.clone()).into();
+        let b = rand % modulus;
+
+        assert_eq!(a, b);
+    }
+
+    #[test]
     fn test_from_be_bytes_mod_order() {
         // Each test vector is a byte array,
         // and its tested by parsing it with from_bytes_mod_order, and the num-bigint library.
         // The bytes are currently generated from scripts/test_vectors.py.
         // TODO: Eventually generate all the test vector bytes via computation with the modulus
+        use ark_std::rand::Rng;
         use ark_std::string::ToString;
         use num_bigint::BigUint;
-        use rand::Rng;
 
         let ref_modulus =
             BigUint::from_bytes_be(&<Fr as PrimeField>::Params::MODULUS.to_bytes_be());

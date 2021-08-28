@@ -1,17 +1,17 @@
 #![allow(unused)]
+use ark_ec::twisted_edwards_extended::GroupProjective;
+use ark_ec::wnaf::WnafContext;
 use ark_ec::{
     AffineCurve, MontgomeryModelParameters, ProjectiveCurve, SWModelParameters, TEModelParameters,
 };
 use ark_ff::{Field, One, PrimeField, UniformRand, Zero};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, SWFlags, SerializationError};
 use ark_std::{io::Cursor, vec::Vec};
-use rand::SeedableRng;
-use rand_xorshift::XorShiftRng;
 
 pub const ITERATIONS: usize = 10;
 
 fn random_addition_test<G: ProjectiveCurve>() {
-    let mut rng = XorShiftRng::seed_from_u64(1231275789u64);
+    let mut rng = ark_std::test_rng();
 
     for _ in 0..ITERATIONS {
         let a = G::rand(&mut rng);
@@ -90,7 +90,7 @@ fn random_addition_test<G: ProjectiveCurve>() {
 }
 
 fn random_multiplication_test<G: ProjectiveCurve>() {
-    let mut rng = XorShiftRng::seed_from_u64(1231275789u64);
+    let mut rng = ark_std::test_rng();
 
     for _ in 0..ITERATIONS {
         let mut a = G::rand(&mut rng);
@@ -104,6 +104,19 @@ fn random_multiplication_test<G: ProjectiveCurve>() {
         let mut tmp1 = a;
         tmp1.add_assign(&b);
         tmp1.mul_assign(s);
+
+        // s ( a + b) using wNAF for several window values in [2,5]
+        for w in 2..=5 {
+            let mut tmp4 = a + &b;
+            let context = WnafContext::new(w);
+            assert_eq!(tmp1, context.mul(tmp4, &s));
+
+            if w > 2 {
+                let bad_context = WnafContext::new(w - 1);
+                let bad_table = bad_context.table(tmp4);
+                assert_eq!(context.mul_with_table(&bad_table, &s), None);
+            }
+        }
 
         // sa + sb
         a.mul_assign(s);
@@ -122,7 +135,7 @@ fn random_multiplication_test<G: ProjectiveCurve>() {
 }
 
 fn random_doubling_test<G: ProjectiveCurve>() {
-    let mut rng = XorShiftRng::seed_from_u64(1231275789u64);
+    let mut rng = ark_std::test_rng();
 
     for _ in 0..ITERATIONS {
         let mut a = G::rand(&mut rng);
@@ -149,7 +162,7 @@ fn random_doubling_test<G: ProjectiveCurve>() {
 }
 
 fn random_negation_test<G: ProjectiveCurve>() {
-    let mut rng = XorShiftRng::seed_from_u64(1231275789u64);
+    let mut rng = ark_std::test_rng();
 
     for _ in 0..ITERATIONS {
         let r = G::rand(&mut rng);
@@ -178,7 +191,7 @@ fn random_negation_test<G: ProjectiveCurve>() {
 }
 
 fn random_transformation_test<G: ProjectiveCurve>() {
-    let mut rng = XorShiftRng::seed_from_u64(1231275789u64);
+    let mut rng = ark_std::test_rng();
 
     for _ in 0..ITERATIONS {
         let g = G::rand(&mut rng);
@@ -193,7 +206,7 @@ fn random_transformation_test<G: ProjectiveCurve>() {
             .map(|_| G::rand(&mut rng).double())
             .collect::<Vec<_>>();
 
-        use rand::distributions::{Distribution, Uniform};
+        use ark_std::rand::distributions::{Distribution, Uniform};
         let between = Uniform::from(0..ITERATIONS);
         // Sprinkle in some normalized points
         for _ in 0..5 {
@@ -219,7 +232,7 @@ fn random_transformation_test<G: ProjectiveCurve>() {
 }
 
 pub fn curve_tests<G: ProjectiveCurve>() {
-    let mut rng = XorShiftRng::seed_from_u64(1231275789u64);
+    let mut rng = ark_std::test_rng();
 
     // Negation edge case with zero.
     {
@@ -289,6 +302,7 @@ pub fn curve_tests<G: ProjectiveCurve>() {
 pub fn sw_tests<P: SWModelParameters>() {
     sw_curve_serialization_test::<P>();
     sw_from_random_bytes::<P>();
+    sw_affine_sum_test::<P>();
 }
 
 pub fn sw_from_random_bytes<P: SWModelParameters>() {
@@ -296,7 +310,7 @@ pub fn sw_from_random_bytes<P: SWModelParameters>() {
 
     let buf_size = GroupAffine::<P>::zero().serialized_size();
 
-    let mut rng = XorShiftRng::seed_from_u64(1231275789u64);
+    let mut rng = ark_std::test_rng();
 
     for _ in 0..ITERATIONS {
         let a = GroupProjective::<P>::rand(&mut rng);
@@ -319,7 +333,7 @@ pub fn sw_curve_serialization_test<P: SWModelParameters>() {
 
     let buf_size = GroupAffine::<P>::zero().serialized_size();
 
-    let mut rng = XorShiftRng::seed_from_u64(1231275789u64);
+    let mut rng = ark_std::test_rng();
 
     for _ in 0..ITERATIONS {
         let a = GroupProjective::<P>::rand(&mut rng);
@@ -399,6 +413,27 @@ pub fn sw_curve_serialization_test<P: SWModelParameters>() {
     }
 }
 
+pub fn sw_affine_sum_test<P: SWModelParameters>() {
+    use ark_ec::models::short_weierstrass_jacobian::{GroupAffine, GroupProjective};
+
+    let mut rng = ark_std::test_rng();
+
+    for _ in 0..ITERATIONS {
+        let mut test_vec = Vec::new();
+        for _ in 0..10 {
+            test_vec.push(GroupProjective::<P>::rand(&mut rng).into_affine());
+        }
+
+        let sum_computed: GroupAffine<P> = test_vec.iter().sum();
+        let mut sum_expected = GroupAffine::zero();
+        for p in test_vec.iter() {
+            sum_expected += &p;
+        }
+
+        assert_eq!(sum_computed, sum_expected);
+    }
+}
+
 pub fn montgomery_conversion_test<P>()
 where
     P: TEModelParameters,
@@ -431,7 +466,7 @@ where
 
     let buf_size = GroupAffine::<P>::zero().serialized_size();
 
-    let mut rng = XorShiftRng::seed_from_u64(1231275789u64);
+    let mut rng = ark_std::test_rng();
 
     for _ in 0..ITERATIONS {
         let a = GroupProjective::<P>::rand(&mut rng);
@@ -466,7 +501,7 @@ pub fn edwards_curve_serialization_test<P: TEModelParameters>() {
 
     let buf_size = GroupAffine::<P>::zero().serialized_size();
 
-    let mut rng = XorShiftRng::seed_from_u64(1231275789u64);
+    let mut rng = ark_std::test_rng();
 
     for _ in 0..ITERATIONS {
         let a = GroupProjective::<P>::rand(&mut rng);

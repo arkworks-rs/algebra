@@ -1,10 +1,12 @@
-use rand;
-
 extern crate criterion;
 
 use ark_ff::Field;
-use ark_poly::{polynomial::univariate::DensePolynomial, Polynomial, UVPolynomial};
+use ark_poly::{
+    polynomial::univariate::DensePolynomial, polynomial::univariate::SparsePolynomial, Polynomial,
+    UVPolynomial,
+};
 use ark_poly_benches::size_range;
+use ark_std::rand::Rng;
 use ark_test_curves::bls12_381::Fr as bls12_381_fr;
 use criterion::BenchmarkId;
 use criterion::{criterion_group, criterion_main, Bencher, Criterion};
@@ -16,6 +18,7 @@ const BENCHMARK_LOG_INTERVAL_DEGREE: usize = 1;
 const ENABLE_ADD_BENCH: bool = true;
 const ENABLE_ADD_ASSIGN_BENCH: bool = true;
 const ENABLE_EVALUATE_BENCH: bool = true;
+const ENABLE_SPARSE_EVALUATE_BENCH: bool = true;
 
 // returns vec![2^{min}, 2^{min + interval}, ..., 2^{max}], where:
 // interval = BENCHMARK_LOG_INTERVAL_DEGREE
@@ -37,9 +40,24 @@ fn setup_bench<F: Field>(c: &mut Criterion, name: &str, bench_fn: fn(&mut Benche
     group.finish();
 }
 
+fn bench_sparse_poly_evaluate<F: Field>(b: &mut Bencher, non_zero_entries: &usize) {
+    const MAX_DEGREE: usize = 1 << 15;
+    // Per benchmark setup
+    let mut rng = &mut ark_std::test_rng();
+    let mut inner: Vec<(usize, F)> = Vec::with_capacity(*non_zero_entries);
+    (0..*non_zero_entries)
+        .for_each(|_| inner.push((rng.gen_range(0..MAX_DEGREE), F::rand(&mut rng))));
+    let poly = SparsePolynomial::<F>::from_coefficients_vec(inner);
+    b.iter(|| {
+        // Per benchmark iteration
+        let pt = F::rand(&mut rng);
+        poly.evaluate(&pt);
+    });
+}
+
 fn bench_poly_evaluate<F: Field>(b: &mut Bencher, degree: &usize) {
     // Per benchmark setup
-    let mut rng = &mut rand::thread_rng();
+    let mut rng = &mut ark_std::test_rng();
     let poly = DensePolynomial::<F>::rand(*degree, &mut rng);
     b.iter(|| {
         // Per benchmark iteration
@@ -50,7 +68,7 @@ fn bench_poly_evaluate<F: Field>(b: &mut Bencher, degree: &usize) {
 
 fn bench_poly_add<F: Field>(b: &mut Bencher, degree: &usize) {
     // Per benchmark setup
-    let mut rng = &mut rand::thread_rng();
+    let mut rng = &mut ark_std::test_rng();
     let poly_one = DensePolynomial::<F>::rand(*degree, &mut rng);
     let poly_two = DensePolynomial::<F>::rand(*degree, &mut rng);
     b.iter(|| {
@@ -61,7 +79,7 @@ fn bench_poly_add<F: Field>(b: &mut Bencher, degree: &usize) {
 
 fn bench_poly_add_assign<F: Field>(b: &mut Bencher, degree: &usize) {
     // Per benchmark setup
-    let mut rng = &mut rand::thread_rng();
+    let mut rng = &mut ark_std::test_rng();
     let mut poly_one = DensePolynomial::<F>::rand(*degree, &mut rng);
     let poly_two = DensePolynomial::<F>::rand(*degree, &mut rng);
     b.iter(|| {
@@ -82,6 +100,10 @@ fn poly_benches<F: Field>(c: &mut Criterion, name: &'static str) {
     if ENABLE_EVALUATE_BENCH {
         let cur_name = format!("{:?} - evaluate_polynomial", name.clone());
         setup_bench::<F>(c, &cur_name, bench_poly_evaluate::<F>);
+    }
+    if ENABLE_SPARSE_EVALUATE_BENCH {
+        let cur_name = format!("{:?} - evaluate_sparse_polynomial", name.clone());
+        setup_bench::<F>(c, &cur_name, bench_sparse_poly_evaluate::<F>);
     }
 }
 

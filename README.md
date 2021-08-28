@@ -15,7 +15,7 @@ This library is released under the MIT License and the Apache v2 License (see [L
 
 ## Directory structure
 
-This repository contains several Rust crates: 
+This repository contains several Rust crates:  
 
 * [`ark-ff`](ff): Provides generic implementations of various finite fields
 * [`ark-ec`](ec): Provides generic implementations for different kinds of elliptic curves, along with pairings over these
@@ -24,15 +24,16 @@ This repository contains several Rust crates:
 
 In addition, the [`curves`](https://github.com/arkworks-rs/curves) repository contains implementations of popular elliptic curves; see [here](https://github.com/arkworks-rs/curves/README.md) for details.
 
-
 ## Build guide
 
-The library compiles on the `stable` toolchain of the Rust compiler. To install the latest version of Rust, first install `rustup` by following the instructions [here](https://rustup.rs/), or via your platform's package manager. Once `rustup` is installed, install the Rust toolchain by invoking:
+The library compiles on the `stable` toolchain of the Rust compiler (v 1.51+). To install the latest version of Rust, first install `rustup` by following the instructions [here](https://rustup.rs/), or via your platform's package manager. Once `rustup` is installed, install the Rust toolchain by invoking:
+
 ```bash
 rustup install stable
 ```
 
 After that, use `cargo`, the standard Rust build tool, to build the libraries:
+
 ```bash
 git clone https://github.com/arkworks-rs/algebra.git
 cd algebra
@@ -40,7 +41,9 @@ cargo build --release
 ```
 
 ## Tests
+
 This library comes with comprehensive unit and integration tests for each of the provided crates. Run the tests with:
+
 ```bash
 cargo test --all
 ```
@@ -48,6 +51,7 @@ cargo test --all
 ## Benchmarks
 
 To run the benchmarks, install the nightly Rust toolchain, via `rustup install nightly`, and then run the following command:
+
 ```bash
 cargo +nightly bench
 ```
@@ -55,23 +59,25 @@ cargo +nightly bench
 ## Assembly backend for field arithmetic
 
 The `ark-ff` crate contains (off-by-default) optimized assembly implementations of field arithmetic that rely on the `adcxq`, `adoxq` and `mulxq` instructions. These are available on most `x86_64` platforms (Broadwell onwards for Intel and Ryzen onwards for AMD). Using this backend can lead to a 30-70% speedup in finite field and elliptic curve arithmetic. To build with this backend enabled, run the following command:
+
 ```bash
 RUSTFLAGS="-C target-feature=+bmi2,+adx" cargo +nightly test/build/bench --features asm
 ```
 
 To enable this in the `Cargo.toml` of your own projects, enable the `asm` feature flag:
-```
-...
+
+```toml
 ark-ff = { version = "0.1", features = [ "asm" ] }
 ```
+
 Note that because inline assembly support in Rust is currently unstable, using this backend requires using the Nightly compiler at the moment.
 
 ## License
 
 The crates in this repo are licensed under either of the following licenses, at your discretion.
 
- * Apache License Version 2.0 ([LICENSE-APACHE](LICENSE-APACHE) or http://www.apache.org/licenses/LICENSE-2.0)
- * MIT license ([LICENSE-MIT](LICENSE-MIT) or http://opensource.org/licenses/MIT)
+* Apache License Version 2.0 ([LICENSE-APACHE](LICENSE-APACHE) or [apache.org license link](http://www.apache.org/licenses/LICENSE-2.0))
+* MIT license ([LICENSE-MIT](LICENSE-MIT) or [opensource.org license link](http://opensource.org/licenses/MIT))
 
 Unless you explicitly state otherwise, any contribution submitted for inclusion in this library by you shall be dual licensed as above (as defined in the Apache v2 License), without any additional terms or conditions.
 

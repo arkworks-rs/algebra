@@ -87,9 +87,13 @@ macro_rules! impl_prime_field_serializer {
 }
 
 macro_rules! impl_Fp {
-    ($Fp:ident, $FpParameters:ident, $BigInteger:ident, $BigIntegerType:ty, $limbs:expr) => {
+    ($Fp:ident, $FpParameters:ident, $BigInteger:ident, $BigIntegerType:ty, $limbs:expr, $field_size:expr) => {
         pub trait $FpParameters: FpParameters<BigInt = $BigIntegerType> {}
 
+        /// Represents an element of the prime field F_p, where `p == P::MODULUS`.
+        /// This type can represent elements in any field of size at most
+        #[doc = $field_size]
+        /// bits.
         #[derive(Derivative)]
         #[derivative(
             Default(bound = ""),
@@ -233,7 +237,7 @@ macro_rules! impl_Fp {
         }
 
         impl<P: $FpParameters> $Fp<P> {
-            #[inline]
+            #[inline(always)]
             pub(crate) fn is_valid(&self) -> bool {
                 self.0 < P::MODULUS
             }
@@ -301,7 +305,7 @@ macro_rules! impl_Fp {
             }
 
             #[inline]
-            fn characteristic<'a>() -> &'a [u64] {
+            fn characteristic() -> &'static [u64] {
                 P::MODULUS.as_ref()
             }
 
@@ -427,10 +431,9 @@ macro_rules! impl_Fp {
                 }
             }
 
+            /// The Frobenius map has no effect in a prime field.
             #[inline]
-            fn frobenius_map(&mut self, _: usize) {
-                // No-op: No effect in a prime field.
-            }
+            fn frobenius_map(&mut self, _: usize) {}
         }
 
         impl<P: $FpParameters> PrimeField for $Fp<P> {
@@ -501,6 +504,12 @@ macro_rules! impl_Fp {
             }
         }
 
+        /// Note that this implementation of `Ord` compares field elements viewing
+        /// them as integers in the range 0, 1, ..., P::MODULUS - 1. However, other
+        /// implementations of `PrimeField` might choose a different ordering, and
+        /// as such, users should use this `Ord` for applications where
+        /// any ordering suffices (like in a BTreeMap), and not in applications
+        /// where a particular ordering is required.
         impl<P: $FpParameters> Ord for $Fp<P> {
             #[inline(always)]
             fn cmp(&self, other: &Self) -> Ordering {
@@ -508,6 +517,12 @@ macro_rules! impl_Fp {
             }
         }
 
+        /// Note that this implementation of `PartialOrd` compares field elements viewing
+        /// them as integers in the range 0, 1, ..., `P::MODULUS` - 1. However, other
+        /// implementations of `PrimeField` might choose a different ordering, and
+        /// as such, users should use this `PartialOrd` for applications where
+        /// any ordering suffices (like in a BTreeMap), and not in applications
+        /// where a particular ordering is required.
         impl<P: $FpParameters> PartialOrd for $Fp<P> {
             #[inline(always)]
             fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
@@ -515,11 +530,11 @@ macro_rules! impl_Fp {
             }
         }
 
-        impl_prime_field_from_int!($Fp, u128, $FpParameters, $limbs);
-        impl_prime_field_from_int!($Fp, u64, $FpParameters, $limbs);
-        impl_prime_field_from_int!($Fp, u32, $FpParameters, $limbs);
-        impl_prime_field_from_int!($Fp, u16, $FpParameters, $limbs);
-        impl_prime_field_from_int!($Fp, u8, $FpParameters, $limbs);
+        impl_prime_field_from_int!($Fp, 128, $FpParameters, $limbs);
+        impl_prime_field_from_int!($Fp, 64, $FpParameters, $limbs);
+        impl_prime_field_from_int!($Fp, 32, $FpParameters, $limbs);
+        impl_prime_field_from_int!($Fp, 16, $FpParameters, $limbs);
+        impl_prime_field_from_int!($Fp, 8, $FpParameters, $limbs);
         impl_prime_field_from_int!($Fp, bool, $FpParameters, $limbs);
 
         impl_prime_field_standard_sample!($Fp, $FpParameters);
@@ -592,6 +607,8 @@ macro_rules! impl_Fp {
             }
         }
 
+        /// Outputs a string containing the value of `self`, chunked up into
+        /// 64-bit limbs.
         impl<P: $FpParameters> Display for $Fp<P> {
             #[inline]
             fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
@@ -605,7 +622,7 @@ macro_rules! impl_Fp {
             #[must_use]
             fn neg(self) -> Self {
                 if !self.is_zero() {
-                    let mut tmp = P::MODULUS.clone();
+                    let mut tmp = P::MODULUS;
                     tmp.sub_noborrow(&self.0);
                     $Fp::<P>(tmp, PhantomData)
                 } else {
@@ -618,10 +635,9 @@ macro_rules! impl_Fp {
             type Output = Self;
 
             #[inline]
-            fn add(self, other: &Self) -> Self {
-                let mut result = self.clone();
-                result.add_assign(other);
-                result
+            fn add(mut self, other: &Self) -> Self {
+                self.add_assign(other);
+                self
             }
         }
 
@@ -629,10 +645,9 @@ macro_rules! impl_Fp {
             type Output = Self;
 
             #[inline]
-            fn sub(self, other: &Self) -> Self {
-                let mut result = self.clone();
-                result.sub_assign(other);
-                result
+            fn sub(mut self, other: &Self) -> Self {
+                self.sub_assign(other);
+                self
             }
         }
 
@@ -640,21 +655,21 @@ macro_rules! impl_Fp {
             type Output = Self;
 
             #[inline]
-            fn mul(self, other: &Self) -> Self {
-                let mut result = self.clone();
-                result.mul_assign(other);
-                result
+            fn mul(mut self, other: &Self) -> Self {
+                self.mul_assign(other);
+                self
             }
         }
 
         impl<'a, P: $FpParameters> Div<&'a $Fp<P>> for $Fp<P> {
             type Output = Self;
 
+            /// Returns `self * other.inverse()` if `other.inverse()` is `Some`, and
+            /// panics otherwise.
             #[inline]
-            fn div(self, other: &Self) -> Self {
-                let mut result = self.clone();
-                result.mul_assign(&other.inverse().unwrap());
-                result
+            fn div(mut self, other: &Self) -> Self {
+                self.mul_assign(&other.inverse().unwrap());
+                self
             }
         }
 
@@ -686,6 +701,8 @@ macro_rules! impl_Fp {
             impl_field_mul_assign!($limbs);
         }
 
+        /// Computes `self *= other.inverse()` if `other.inverse()` is `Some`, and
+        /// panics otherwise.
         impl<'a, P: $FpParameters> DivAssign<&'a Self> for $Fp<P> {
             #[inline]
             fn div_assign(&mut self, other: &Self) {
@@ -698,6 +715,20 @@ macro_rules! impl_Fp {
             // and thus does not need to be zeroized.
             fn zeroize(&mut self) {
                 self.0.zeroize();
+            }
+        }
+
+        impl<P: $FpParameters> From<num_bigint::BigUint> for $Fp<P> {
+            #[inline]
+            fn from(val: num_bigint::BigUint) -> $Fp<P> {
+                $Fp::<P>::from_le_bytes_mod_order(&val.to_bytes_le())
+            }
+        }
+
+        impl<P: $FpParameters> Into<num_bigint::BigUint> for $Fp<P> {
+            #[inline]
+            fn into(self) -> num_bigint::BigUint {
+                self.into_repr().into()
             }
         }
     }
