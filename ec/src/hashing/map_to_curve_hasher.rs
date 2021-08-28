@@ -41,7 +41,10 @@ where
     M2C: MapToCurve<T>,
 {
     fn new(domain: &[u8]) -> Result<Self, HashToCurveError> {
-        let field_hasher = H2F::new_hash_to_field(domain)?;
+        let field_hasher = H2F::new_hash_to_field(domain, 2)?;
+        //@skalman: I assume if the hash to field generate some number of field element it should also
+        //be the case that each field element result in one point?
+        
         let curve_mapper = M2C::new_map_to_curve(domain)?;
         let _params_t = PhantomData;
         Ok(MapToCurveBasedHasher {
@@ -64,7 +67,7 @@ where
         // 5. P = clear_cofactor(R)
         // 6. return P
 
-        let rand_field_elems = self.field_hasher.hash_to_field(msg, 2)?;
+        let rand_field_elems = self.field_hasher.hash_to_field(msg)?;
 
         let rand_curve_elem_0 = self.curve_mapper.map_to_curve(rand_field_elems[0])?;
         let rand_curve_elem_1 = self.curve_mapper.map_to_curve(rand_field_elems[1])?;

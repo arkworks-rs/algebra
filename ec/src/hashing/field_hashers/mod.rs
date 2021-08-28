@@ -26,12 +26,13 @@ fn hash_len_in_bytes<F: Field>(security_parameter: usize, count: usize) -> usize
     len_in_bytes as usize
 }
 
+//@Skalman: not sure why do we need to that for general bytes that only need to be done by the digest.
 fn map_bytes_to_field_elem<F: Field>(bz: &[u8]) -> Option<F> {
-    let d = F::extension_degree();
+    let d : usize = F::extension_degree() as usize; 
     let len_per_elem = bz.len() / d;
-    let base_field_elems = Vec::new();
+    let mut base_field_elems = Vec::new();
     for i in 0..d {
-        let val = F::BasePrimeField::from_bytes_mod_order(bz[i*len_per_elem..(i+1)*len_per_elem]);
+        let val = F::BasePrimeField::from_be_bytes_mod_order(&bz[i*len_per_elem..(i+1)*len_per_elem]);
         base_field_elems.push(val);
     }
     F::from_base_prime_field_elems(&base_field_elems)
@@ -91,11 +92,13 @@ impl<F: Field, H: VariableOutput + Update + Sized + Clone> HashToField<F>
         let mut hashed_bytes = Vec::new();
         cur_hasher.finalize_variable(|res| hashed_bytes.extend_from_slice(res));
         // Now separate the hashed bytes according to each field element.
+        //@skalman: this is quite weird what if there is not enough hash_bytes ? then all elements are
+        //going to be equal, why not re-digest before generating new element?
         let mut result = Vec::with_capacity(self.count);
         let len_per_elem = hashed_bytes.len() / self.count;
         for i in 0..self.count {
-            let bz_per_elem = result[i*len_per_elem..(i+1)*len_per_elem];
-            let val = map_bytes_to_field_elem(bz_per_elem).unwrap();
+            let bz_per_elem = &hashed_bytes[i*len_per_elem..(i+1)*len_per_elem];
+            let val = map_bytes_to_field_elem::<F>(bz_per_elem).unwrap();
             result.push(val);
         }
 
