@@ -1,5 +1,6 @@
 use ark_ff::{Field, PrimeField, SquareRootField};
 use crate::models::SWModelParameters;
+use ark_ff::vec::Vec;
 
 pub trait ShallueVanDeWoestijneParams : SWModelParameters {
     // a non-zero element of F meeting the below criteria.
