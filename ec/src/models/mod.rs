@@ -1,4 +1,5 @@
-use ark_ff::{Field, PrimeField, SquareRootField, Zero};
+use crate::models::short_weierstrass_jacobian::GroupAffine;
+use ark_ff::{fields::BitIteratorBE, Field, PrimeField, SquareRootField, Zero};
 
 pub mod bls12;
 pub mod bn;
@@ -37,8 +38,11 @@ pub trait SWModelParameters: ModelParameters {
         *elem
     }
 
-    fn is_in_correct_subgroup_assuming_on_curve_fast(_g : &short_weierstrass_jacobian::GroupAffine<Self>) -> Option<bool> {
-        None
+    fn is_in_correct_subgroup_assuming_on_curve<P: SWModelParameters>(
+        item: &GroupAffine<P>,
+    ) -> bool {
+        item.mul_bits(BitIteratorBE::new(Self::ScalarField::characteristic()))
+            .is_zero()
     }
 }
 
