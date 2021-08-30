@@ -42,7 +42,7 @@ use rayon::prelude::*;
     Hash(bound = "P: Parameters")
 )]
 #[must_use]
-pub struct GroupAffine<P: Parameters + ?Sized> {
+pub struct GroupAffine<P: Parameters> {
     pub x: P::BaseField,
     pub y: P::BaseField,
     pub infinity: bool,
