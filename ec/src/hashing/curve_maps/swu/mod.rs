@@ -5,6 +5,8 @@ use ark_ff::vec::Vec;
 use crate::models::SWModelParameters;
 
 use crate::hashing::map_to_curve_hasher::MapToCurve;
+use crate::hashing::HashToCurveError;
+use crate::AffineCurve;
 
 /// Implementation for the SWU hash to curve for the curves of Weierstrass form of y^2 = x^3 + a*x + b where ab != 0. From [WB2019]
 ///
@@ -36,7 +38,17 @@ pub struct SWU_hasher<P: SWUParams> {
     curve_params: PhantomData<fn() -> P>,
 }
 
-impl <P: SWUParams> MapToCurve for SWU_hasher<P> {
+impl <T: AffineCurve, P: SWUParams> MapToCurve<T> for SWU_hasher<P> {
+
+    ///This is to verify if the provided SWUparams makes sense, doesn't do much for now
+    fn new_map_to_curve(domain: &[u8]) -> Result<Self, HashToCurveError>
+    {
+        Ok(SWU_hasher {
+            domain,
+            PhantomData,
+        })
+    }
+    
     /// Map random field point to a random curve point
     /// inspired from
     /// https://github.com/zcash/pasta_curves/blob/main/src/hashtocurve.rs
@@ -68,7 +80,7 @@ impl <P: SWUParams> MapToCurve for SWU_hasher<P> {
     let xi_t2 = P::XI * point.square();
     let ta = xi_t2.square() + xi_t2;
     let num_x1 = b * (ta + P::BaseField::one());
-    let div = a * if (ta.is_zero()) { -ta} else { z};
+    let div = a * if (ta.is_zero()) { -ta} else { P::XI };
     let num2_x1 = num_x1.square();
     let div2 = div.square();
     let div3 = div2 * div;
@@ -81,6 +93,9 @@ impl <P: SWUParams> MapToCurve for SWU_hasher<P> {
     // 7. If is_square(gx1), set x = x1 and y = sqrt(gx1)
     // 8. Else set x = x2 and y = sqrt(gx2)
     let mut gx1_square = false;
+    let gx1 = num_gx1;
+    let zeta_gx1 = P::ZETA;
+
 
         let y1 = if (div3.is_zero) {
             0
@@ -88,7 +103,7 @@ impl <P: SWUParams> MapToCurve for SWU_hasher<P> {
         else 
         {
             gx1 = (num_gx1 / div3);
-            zeta_gx1 = ZETA*gx1;
+            zeta_gx1 = P::ZETA*gx1;
             if gx1.is_square() {
                 gx1_square = false;
                 gx1.sqrt()
@@ -115,8 +130,8 @@ impl <P: SWUParams> MapToCurve for SWU_hasher<P> {
     // When gx1 is not square, y1 is a square root of h * gx1, and so Z * theta * u^3 * y1
     // is a square root of gx2. Note that we don't actually need to compute gx2.
 
-    let y2 = XI_ON_ZETA_SQRT * xi_t2 * t * y1;
-        let num_x = if gx1_square { num_x2} else {num_x1};
+    let y2 = P::XI_ON_ZETA_SQRT * xi_t2 * point * y1;
+        let num_x = if gx1_square { num2_x1} else {num_x1};
 
     //it seems that we only need to return x
     num_x * div
