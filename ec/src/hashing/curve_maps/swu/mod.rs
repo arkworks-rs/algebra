@@ -6,7 +6,8 @@ use crate::models::SWModelParameters;
 
 use crate::hashing::map_to_curve_hasher::MapToCurve;
 use crate::hashing::HashToCurveError;
-use crate::AffineCurve;
+use crate::{AffineCurve};
+use crate::models::short_weierstrass_jacobian::GroupAffine;
 
 /// Implementation for the SWU hash to curve for the curves of Weierstrass form of y^2 = x^3 + a*x + b where ab != 0. From [WB2019]
 ///
@@ -38,21 +39,21 @@ pub struct SWU_hasher<P: SWUParams> {
     curve_params: PhantomData<fn() -> P>,
 }
 
-impl <T: AffineCurve, P: SWUParams> MapToCurve<T> for SWU_hasher<P> {
+impl <P: SWUParams> MapToCurve<GroupAffine<P>> for SWU_hasher<P>{
 
     ///This is to verify if the provided SWUparams makes sense, doesn't do much for now
     fn new_map_to_curve(domain: &[u8]) -> Result<Self, HashToCurveError>
     {
         Ok(SWU_hasher {
-            domain,
-            PhantomData,
+            domain: domain.to_vec(),
+            curve_params: PhantomData,
         })
     }
     
     /// Map random field point to a random curve point
     /// inspired from
     /// https://github.com/zcash/pasta_curves/blob/main/src/hashtocurve.rs
-    fn map_to_curve(&self, point: T::BaseField) -> Result<T, HashToCurveError>  {
+    fn map_to_curve(&self, point: <GroupAffine<P> as AffineCurve>::BaseField) -> Result<GroupAffine<P>, HashToCurveError>  {
     // 1. tv1 = inv0(Z^2 * u^4 + Z * u^2)
     // 2. x1 = (-B / A) * (1 + tv1)
     // 3. If tv1 == 0, set x1 = B / (Z * A)
