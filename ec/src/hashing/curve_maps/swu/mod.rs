@@ -1,6 +1,6 @@
 use core::marker::PhantomData;
 
-use ark_ff::{Field, PrimeField, SquareRootField};
+use ark_ff::{Zero, One, Field, PrimeField, SquareRootField};
 use ark_ff::vec::Vec;
 use crate::models::SWModelParameters;
 
@@ -76,71 +76,70 @@ impl <P: SWUParams> MapToCurve<GroupAffine<P>> for SWU_hasher<P>{
     //    x1 = num_x1/div      = [B*(Z^2 * u^4 + Z * u^2 + 1)] / [-A*(Z^2 * u^4 + Z * u^2]
     //   gx1 = num_gx1/div_gx1 = [num_x1^3 + A * num_x1 * div^2 + B * div^3] / div^3
 
-    let a = P::COEFF_A;
-    let b = P::COEFF_B;
-    let xi_t2 = P::XI * point.square();
-    let ta = xi_t2.square() + xi_t2;
-    let num_x1 = b * (ta + P::BaseField::one());
-    let div = a * if (ta.is_zero()) { -ta} else { P::XI };
-    let num2_x1 = num_x1.square();
-    let div2 = div.square();
-    let div3 = div2 * div;
-    let num_gx1 = (num2_x1 + a * div2) * num_x1 + b * div3;
-
-    // 5. x2 = Z * u^2 * x1
-    let num_x2 = xi_t2 * num_x1; // same div
-
-    // 6. gx2 = x2^3 + A * x2 + B  [optimized out; see below]
-    // 7. If is_square(gx1), set x = x1 and y = sqrt(gx1)
-    // 8. Else set x = x2 and y = sqrt(gx2)
-    let mut gx1_square = false;
-    let gx1 = num_gx1;
-    let zeta_gx1 = P::ZETA;
-
-
-        let y1 = if (div3.is_zero) {
-            0
+        let a = P::COEFF_A;
+        let b = P::COEFF_B;
+        let xi_t2 = P::XI * point.square();
+        let ta = xi_t2.square() + xi_t2;
+        let num_x1 = b * (ta + <P::BaseField as One>::one());
+        let div = a * if (ta.is_zero()) { -ta} else { P::XI };
+        let num2_x1 = num_x1.square();
+        let div2 = div.square();
+        let div3 = div2 * div;
+        let num_gx1 = (num2_x1 + a * div2) * num_x1 + b * div3;
+        
+        // 5. x2 = Z * u^2 * x1
+        let num_x2 = xi_t2 * num_x1; // same div
+        
+        // 6. gx2 = x2^3 + A * x2 + B  [optimized out; see below]
+        // 7. If is_square(gx1), set x = x1 and y = sqrt(gx1)
+        // 8. Else set x = x2 and y = sqrt(gx2)
+        let mut gx1_square = false;
+        let mut gx1 = num_gx1;
+        let mut zeta_gx1 = P::ZETA;
+        
+        
+        let y1: P::BaseField = if (div3.is_zero()) {
+            P::BaseField::zero()
         }
         else 
         {
             gx1 = (num_gx1 / div3);
             zeta_gx1 = P::ZETA*gx1;
-            if gx1.is_square() {
-                gx1_square = false;
-                gx1.sqrt()
-
-            } else {
+            if gx1.legendre().is_qr() {                
                 gx1_square = true;
-                zeta_gx1.sqrt()
-
+                gx1.sqrt().expect("We have checked that gx1 is a quadratic residue. Q.E.D")
+            } else {
+                gx1_square = false;
+                zeta_gx1.sqrt().expect("zeta * gx1 is a quadratic residue because legarde is multiplicative. Q.E.D")
             }
         };
-            
-    // This magic also comes from a generalization of [WB2019, section 4.2].
-    //
-    // The Sarkar square root algorithm with input s gives us a square root of
-    // h * s for free when s is not square, where h is a fixed nonsquare.
-    // In our implementation, h = ROOT_OF_UNITY.
-    // We know that Z / h is a square since both Z and h are
-    // nonsquares. Precompute theta as a square root of Z / ROOT_OF_UNITY.
-    //
-    // We have gx2 = g(Z * u^2 * x1) = Z^3 * u^6 * gx1
-    //                               = (Z * u^3)^2 * (Z/h * h * gx1)
-    //                               = (Z * theta * u^3)^2 * (h * gx1)
-    //
-    // When gx1 is not square, y1 is a square root of h * gx1, and so Z * theta * u^3 * y1
-    // is a square root of gx2. Note that we don't actually need to compute gx2.
-
-    let y2 = P::XI_ON_ZETA_SQRT * xi_t2 * point * y1;
+        
+        // This magic also comes from a generalization of [WB2019, section 4.2].
+        //
+        // The Sarkar square root algorithm with input s gives us a square root of
+        // h * s for free when s is not square, where h is a fixed nonsquare.
+        // In our implementation, h = ROOT_OF_UNITY.
+        // We know that Z / h is a square since both Z and h are
+        // nonsquares. Precompute theta as a square root of Z / ROOT_OF_UNITY.
+        //
+        // We have gx2 = g(Z * u^2 * x1) = Z^3 * u^6 * gx1
+        //                               = (Z * u^3)^2 * (Z/h * h * gx1)
+        //                               = (Z * theta * u^3)^2 * (h * gx1)
+        //
+        // When gx1 is not square, y1 is a square root of h * gx1, and so Z * theta * u^3 * y1
+        // is a square root of gx2. Note that we don't actually need to compute gx2.
+        
+        let y2 = P::XI_ON_ZETA_SQRT * xi_t2 * point * y1;
         let num_x = if gx1_square { num2_x1} else {num_x1};
-
-    //it seems that we only need to return x
-    num_x * div
-    // let y = if {gx1_square} {y2} else {y1};
-
-    //     // 9. If sgn0(u) != sgn0(y), set y = -y
-    // let y = if y % 2 {-y} or {y};
-    // I::new_jacobian(num_x * div, y * div3, div).unwrap()
-
+        let y = if gx1_square { y1} else {y2};
+        
+        //it seems that we only need to return x,  do we?
+        Ok(GroupAffine::<P>::new(num_x * div, y2, false))
+        // let y = if {gx1_square} {y2} else {y1};
+            
+        //     // 9. If sgn0(u) != sgn0(y), set y = -y
+        // let y = if y % 2 {-y} or {y};
+        // I::new_jacobian(num_x * div, y * div3, div).unwrap()
+            
     }
 }
