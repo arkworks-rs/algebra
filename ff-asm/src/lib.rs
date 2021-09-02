@@ -157,7 +157,7 @@ fn generate_llvm_asm_mul_string(
 ) -> String {
     let llvm_asm_string = RefCell::new(String::new());
 
-    let begin = || llvm_asm_string.borrow_mut().push_str("\"");
+    let begin = || llvm_asm_string.borrow_mut().push('\"');
 
     let end = || {
         llvm_asm_string.borrow_mut().push_str(

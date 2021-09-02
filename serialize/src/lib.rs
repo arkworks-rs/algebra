@@ -856,8 +856,7 @@ impl<T: CanonicalDeserialize + Ord> CanonicalDeserialize for BTreeSet<T> {
 #[cfg(test)]
 mod test {
     use super::*;
-    use ark_std::rand::RngCore;
-    use ark_std::vec;
+    use ark_std::{rand::RngCore, vec};
 
     #[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Debug)]
     struct Dummy;

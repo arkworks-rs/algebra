@@ -6,7 +6,6 @@ use ark_std::{
     cmp::{Ord, Ordering, PartialOrd},
     fmt,
     io::{Read, Result as IoResult, Write},
-    marker::PhantomData,
     ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign},
     vec::Vec,
 };
@@ -74,19 +73,11 @@ pub struct CubicExtField<P: CubicExtParameters> {
     pub c0: P::BaseField,
     pub c1: P::BaseField,
     pub c2: P::BaseField,
-    #[derivative(Debug = "ignore")]
-    #[doc(hidden)]
-    pub _parameters: PhantomData<P>,
 }
 
 impl<P: CubicExtParameters> CubicExtField<P> {
     pub fn new(c0: P::BaseField, c1: P::BaseField, c2: P::BaseField) -> Self {
-        CubicExtField {
-            c0,
-            c1,
-            c2,
-            _parameters: PhantomData,
-        }
+        Self { c0, c1, c2 }
     }
 
     pub fn mul_assign_by_base_field(&mut self, value: &P::BaseField) {
@@ -109,12 +100,11 @@ impl<P: CubicExtParameters> CubicExtField<P> {
 
 impl<P: CubicExtParameters> Zero for CubicExtField<P> {
     fn zero() -> Self {
-        CubicExtField {
-            c0: P::BaseField::zero(),
-            c1: P::BaseField::zero(),
-            c2: P::BaseField::zero(),
-            _parameters: PhantomData,
-        }
+        Self::new(
+            P::BaseField::zero(),
+            P::BaseField::zero(),
+            P::BaseField::zero(),
+        )
     }
 
     fn is_zero(&self) -> bool {
@@ -124,12 +114,11 @@ impl<P: CubicExtParameters> Zero for CubicExtField<P> {
 
 impl<P: CubicExtParameters> One for CubicExtField<P> {
     fn one() -> Self {
-        CubicExtField {
-            c0: P::BaseField::one(),
-            c1: P::BaseField::zero(),
-            c2: P::BaseField::zero(),
-            _parameters: PhantomData,
-        }
+        Self::new(
+            P::BaseField::one(),
+            P::BaseField::zero(),
+            P::BaseField::zero(),
+        )
     }
 
     fn is_one(&self) -> bool {
