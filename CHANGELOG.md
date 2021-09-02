@@ -10,6 +10,9 @@
 
 ### Improvements
 
+- [\#310](https://github.com/arkworks-rs/algebra/pull/310) (ark-ec) Remove unnecessary internal `PhantomData`
+- [\#310](https://github.com/arkworks-rs/algebra/pull/310) (ark-ff) Remove unnecessary internal `PhantomData`
+
 ### Bug fixes
 
 ## v0.3.0
