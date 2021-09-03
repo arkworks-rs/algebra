@@ -40,7 +40,7 @@ pub trait SWModelParameters: ModelParameters {
 
     fn is_in_correct_subgroup_assuming_on_curve(item: &GroupAffine<Self>) -> bool
     where
-	 Self: Sized,
+        Self: Sized,
     {
         item.mul_bits(BitIteratorBE::new(Self::ScalarField::characteristic()))
             .is_zero()
