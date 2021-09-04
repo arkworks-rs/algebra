@@ -1,7 +1,9 @@
 //! A sparse polynomial represented in coefficient form.
-use crate::polynomial::Polynomial;
-use crate::univariate::{DenseOrSparsePolynomial, DensePolynomial};
-use crate::{EvaluationDomain, Evaluations, UVPolynomial};
+use crate::{
+    polynomial::Polynomial,
+    univariate::{DenseOrSparsePolynomial, DensePolynomial},
+    EvaluationDomain, Evaluations, UVPolynomial,
+};
 use ark_ff::{FftField, Field, Zero};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, SerializationError};
 use ark_std::{
@@ -122,7 +124,8 @@ impl<'a, 'b, F: Field> Add<&'a SparsePolynomial<F>> for &'b SparsePolynomial<F> 
         let mut self_index = 0;
         let mut other_index = 0;
         loop {
-            // if we've reached the end of one vector, just append the other vector to our result.
+            // if we've reached the end of one vector, just append the other vector to our
+            // result.
             if self_index == self.coeffs.len() && other_index == other.coeffs.len() {
                 return result;
             } else if self_index == self.coeffs.len() {
@@ -316,14 +319,13 @@ impl<F: Field> From<DensePolynomial<F>> for SparsePolynomial<F> {
 
 #[cfg(test)]
 mod tests {
-    use crate::polynomial::Polynomial;
-    use crate::univariate::{DensePolynomial, SparsePolynomial};
-    use crate::{EvaluationDomain, GeneralEvaluationDomain};
+    use crate::{
+        polynomial::Polynomial,
+        univariate::{DensePolynomial, SparsePolynomial},
+        EvaluationDomain, GeneralEvaluationDomain,
+    };
     use ark_ff::{UniformRand, Zero};
-    use ark_std::cmp::max;
-    use ark_std::ops::Mul;
-    use ark_std::rand::Rng;
-    use ark_std::test_rng;
+    use ark_std::{cmp::max, ops::Mul, rand::Rng, test_rng};
     use ark_test_curves::bls12_381::Fr;
 
     // probability of rand sparse polynomial having a particular coefficient be 0
@@ -425,8 +427,9 @@ mod tests {
 
     #[test]
     fn mul_polynomial() {
-        // Test multiplying polynomials over their domains, and over the native representation.
-        // The expected result is obtained by comparing against dense polynomial
+        // Test multiplying polynomials over their domains, and over the native
+        // representation. The expected result is obtained by comparing against
+        // dense polynomial
         let mut rng = test_rng();
         for degree_a in 0..20 {
             let sparse_poly_a = rand_sparse_poly(degree_a, &mut rng);
@@ -466,7 +469,8 @@ mod tests {
 
     #[test]
     fn evaluate_over_domain() {
-        // Test that polynomial evaluation over a domain, and interpolation returns the same poly.
+        // Test that polynomial evaluation over a domain, and interpolation returns the
+        // same poly.
         let mut rng = test_rng();
         for poly_degree_dim in 0..5 {
             let poly_degree = (1 << poly_degree_dim) - 1;

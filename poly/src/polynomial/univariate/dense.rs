@@ -1,13 +1,14 @@
 //! A dense univariate polynomial represented in coefficient form.
-use crate::univariate::DenseOrSparsePolynomial;
-use crate::{univariate::SparsePolynomial, Polynomial, UVPolynomial};
-use crate::{EvaluationDomain, Evaluations, GeneralEvaluationDomain};
+use crate::{
+    univariate::{DenseOrSparsePolynomial, SparsePolynomial},
+    EvaluationDomain, Evaluations, GeneralEvaluationDomain, Polynomial, UVPolynomial,
+};
 use ark_ff::{FftField, Field, Zero};
 use ark_serialize::*;
-use ark_std::rand::Rng;
 use ark_std::{
     fmt,
     ops::{Add, AddAssign, Deref, DerefMut, Div, Mul, Neg, Sub, SubAssign},
+    rand::Rng,
     vec::Vec,
 };
 
@@ -574,8 +575,7 @@ impl<F: Field> Zero for DensePolynomial<F> {
 
 #[cfg(test)]
 mod tests {
-    use crate::polynomial::univariate::*;
-    use crate::{EvaluationDomain, GeneralEvaluationDomain};
+    use crate::{polynomial::univariate::*, EvaluationDomain, GeneralEvaluationDomain};
     use ark_ff::{Field, One, UniformRand, Zero};
     use ark_std::{rand::Rng, test_rng};
     use ark_test_curves::bls12_381::Fr;

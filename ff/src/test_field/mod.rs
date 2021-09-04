@@ -69,7 +69,8 @@ pub(crate) mod fr {
 
         /// GENERATOR = 7
         /// Encoded in Montgomery form, so the value here is
-        /// 7 * R % q = 24006497034320510773280787438025867407531605151569380937148207556313189711857
+        /// 7 * R % q =
+        /// 24006497034320510773280787438025867407531605151569380937148207556313189711857
         #[rustfmt::skip]
         const GENERATOR: BigInteger = BigInteger([
             0xefffffff1,
@@ -181,7 +182,8 @@ pub(crate) mod fq {
 
         /// GENERATOR = -5
         /// Encoded in Montgomery form, so the value here is
-        /// (-5 * R) % q = 92261639910053574722182574790803529333160366917737991650341130812388023949653897454961487930322210790384999596794
+        /// (-5 * R) % q =
+        /// 92261639910053574722182574790803529333160366917737991650341130812388023949653897454961487930322210790384999596794
         #[rustfmt::skip]
         const GENERATOR: BigInteger = BigInteger([
             0xfc0b8000000002fa,

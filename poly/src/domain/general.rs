@@ -260,13 +260,10 @@ impl<F: FftField> Iterator for GeneralElements<F> {
 
 #[cfg(test)]
 mod tests {
-    use crate::polynomial::Polynomial;
-    use crate::{EvaluationDomain, GeneralEvaluationDomain};
+    use crate::{polynomial::Polynomial, EvaluationDomain, GeneralEvaluationDomain};
     use ark_ff::Zero;
-    use ark_std::rand::Rng;
-    use ark_std::test_rng;
-    use ark_test_curves::bls12_381::Fr;
-    use ark_test_curves::bn384_small_two_adicity::Fr as BNFr;
+    use ark_std::{rand::Rng, test_rng};
+    use ark_test_curves::{bls12_381::Fr, bn384_small_two_adicity::Fr as BNFr};
 
     #[test]
     fn vanishing_polynomial_evaluation() {

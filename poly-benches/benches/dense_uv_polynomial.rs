@@ -2,14 +2,13 @@ extern crate criterion;
 
 use ark_ff::Field;
 use ark_poly::{
-    polynomial::univariate::DensePolynomial, polynomial::univariate::SparsePolynomial, Polynomial,
-    UVPolynomial,
+    polynomial::univariate::{DensePolynomial, SparsePolynomial},
+    Polynomial, UVPolynomial,
 };
 use ark_poly_benches::size_range;
 use ark_std::rand::Rng;
 use ark_test_curves::bls12_381::Fr as bls12_381_fr;
-use criterion::BenchmarkId;
-use criterion::{criterion_group, criterion_main, Bencher, Criterion};
+use criterion::{criterion_group, criterion_main, Bencher, BenchmarkId, Criterion};
 
 const BENCHMARK_MIN_DEGREE: usize = 1 << 15;
 const BENCHMARK_MAX_DEGREE: usize = 1 << 17;

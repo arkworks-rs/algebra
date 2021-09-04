@@ -3,12 +3,14 @@
 use crate::evaluations::multivariate::multilinear::{swap_bits, MultilinearExtension};
 use ark_ff::{Field, Zero};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, Read, SerializationError, Write};
-use ark_std::fmt;
-use ark_std::fmt::Formatter;
-use ark_std::ops::{Add, AddAssign, Index, Neg, Sub, SubAssign};
-use ark_std::rand::Rng;
-use ark_std::slice::{Iter, IterMut};
-use ark_std::vec::Vec;
+use ark_std::{
+    fmt,
+    fmt::Formatter,
+    ops::{Add, AddAssign, Index, Neg, Sub, SubAssign},
+    rand::Rng,
+    slice::{Iter, IterMut},
+    vec::Vec,
+};
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
 
@@ -23,13 +25,15 @@ pub struct DenseMultilinearExtension<F: Field> {
 
 impl<F: Field> DenseMultilinearExtension<F> {
     /// Construct a new polynomial from a list of evaluations where the index
-    /// represents a point in {0,1}^`num_vars` in little endian form. For example, `0b1011` represents `P(1,1,0,1)`
+    /// represents a point in {0,1}^`num_vars` in little endian form. For
+    /// example, `0b1011` represents `P(1,1,0,1)`
     pub fn from_evaluations_slice(num_vars: usize, evaluations: &[F]) -> Self {
         Self::from_evaluations_vec(num_vars, evaluations.to_vec())
     }
 
     /// Construct a new polynomial from a list of evaluations where the index
-    /// represents a point in {0,1}^`num_vars` in little endian form. For example, `0b1011` represents `P(1,1,0,1)`
+    /// represents a point in {0,1}^`num_vars` in little endian form. For
+    /// example, `0b1011` represents `P(1,1,0,1)`
     pub fn from_evaluations_vec(num_vars: usize, evaluations: Vec<F>) -> Self {
         // assert that the number of variables matches the size of evaluations
         assert_eq!(
@@ -43,7 +47,8 @@ impl<F: Field> DenseMultilinearExtension<F> {
             evaluations,
         }
     }
-    /// Relabel the point inplace by switching `k` scalars from position `a` to position `b`, and from position `b` to position `a` in vector.
+    /// Relabel the point inplace by switching `k` scalars from position `a` to
+    /// position `b`, and from position `b` to position `a` in vector.
     ///
     /// This function turns `P(x_1,...,x_a,...,x_{a+k - 1},...,x_b,...,x_{b+k - 1},...,x_n)`
     /// to `P(x_1,...,x_b,...,x_{b+k - 1},...,x_a,...,x_{a+k - 1},...,x_n)`
@@ -133,7 +138,8 @@ impl<F: Field> Index<usize> for DenseMultilinearExtension<F> {
 
     /// Returns the evaluation of the polynomial at a point represented by index.
     ///
-    /// Index represents a vector in {0,1}^`num_vars` in little endian form. For example, `0b1011` represents `P(1,1,0,1)`
+    /// Index represents a vector in {0,1}^`num_vars` in little endian form. For
+    /// example, `0b1011` represents `P(1,1,0,1)`
     ///
     /// For dense multilinear polynomial, `index` takes constant time.
     fn index(&self, index: usize) -> &Self::Output {
@@ -267,12 +273,9 @@ impl<F: Field> Zero for DenseMultilinearExtension<F> {
 
 #[cfg(test)]
 mod tests {
-    use crate::DenseMultilinearExtension;
-    use crate::MultilinearExtension;
+    use crate::{DenseMultilinearExtension, MultilinearExtension};
     use ark_ff::{Field, Zero};
-    use ark_std::ops::Neg;
-    use ark_std::vec::Vec;
-    use ark_std::{test_rng, UniformRand};
+    use ark_std::{ops::Neg, test_rng, vec::Vec, UniformRand};
     use ark_test_curves::bls12_381::Fr;
 
     /// utility: evaluate multilinear extension (in form of data array) at a random point

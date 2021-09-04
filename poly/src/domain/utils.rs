@@ -148,16 +148,17 @@ pub(crate) fn parallel_fft<T: DomainCoeff<F>, F: FftField>(
             // Where c represents the index of the coset being considered.
             // multiplying by g^{k*i} corresponds to the shift for just being in a different coset.
             //
-            // TODO: Come back and improve the speed, and make this a more 'normal' Cooley-Tukey.
-            // This appears to be an FFT of the polynomial
+            // TODO: Come back and improve the speed, and make this a more 'normal'
+            // Cooley-Tukey. This appears to be an FFT of the polynomial
             // `P(x) = sum_{c in |coset|} a[i + c |coset|] * x^c`
             // onto this coset.
-            // However this is being evaluated in time O(N) instead of time O(|coset|log(|coset|)).
-            // If this understanding is the case, its not doing standard Cooley-Tukey.
-            // At the moment, this has time complexity of at least 2*N field mul's per thread,
-            // so we will be getting pretty bad parallelism.
-            // Exact complexity per thread atm is `2N + (N/num threads)log(N/num threads)` field muls
-            // Compare to the time complexity of serial is Nlog(N) field muls), with log(N) in [15, 25]
+            // However this is being evaluated in time O(N) instead of time
+            // O(|coset|log(|coset|)). If this understanding is the case, its not
+            // doing standard Cooley-Tukey. At the moment, this has time complexity
+            // of at least 2*N field mul's per thread, so we will be getting
+            // pretty bad parallelism. Exact complexity per thread atm is
+            // `2N + (N/num threads)log(N/num threads)` field muls Compare to the time
+            // complexity of serial is Nlog(N) field muls), with log(N) in [15, 25]
             for i in 0..coset_size {
                 for c in 0..num_threads {
                     let idx = i + (c * coset_size);

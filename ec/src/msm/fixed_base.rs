@@ -1,7 +1,6 @@
 use crate::{AffineCurve, ProjectiveCurve};
 use ark_ff::{BigInteger, FpParameters, PrimeField};
-use ark_std::vec::Vec;
-use ark_std::{cfg_iter, cfg_iter_mut};
+use ark_std::{cfg_iter, cfg_iter_mut, vec::Vec};
 
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;

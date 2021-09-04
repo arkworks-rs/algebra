@@ -3,8 +3,7 @@ extern crate criterion;
 
 use ark_ff::Field;
 use ark_poly::{DenseMultilinearExtension, MultilinearExtension};
-use ark_std::ops::Range;
-use ark_std::test_rng;
+use ark_std::{ops::Range, test_rng};
 use ark_test_curves::bls12_381;
 use criterion::{black_box, BenchmarkId, Criterion};
 

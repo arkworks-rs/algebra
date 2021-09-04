@@ -4,14 +4,14 @@ use crate::{
     UniformRand,
 };
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, SerializationError};
-use ark_std::rand::{
-    distributions::{Distribution, Standard},
-    Rng,
-};
 use ark_std::{
     convert::TryFrom,
     fmt::{Debug, Display},
     io::{Read, Result as IoResult, Write},
+    rand::{
+        distributions::{Distribution, Standard},
+        Rng,
+    },
     vec::Vec,
 };
 use num_bigint::BigUint;

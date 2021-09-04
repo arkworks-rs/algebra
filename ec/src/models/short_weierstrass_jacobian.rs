@@ -6,7 +6,6 @@ use ark_std::{
     fmt::{Display, Formatter, Result as FmtResult},
     hash::{Hash, Hasher},
     io::{Read, Result as IoResult, Write},
-    marker::PhantomData,
     ops::{Add, AddAssign, MulAssign, Neg, Sub, SubAssign},
     vec::Vec,
 };
@@ -46,8 +45,6 @@ pub struct GroupAffine<P: Parameters> {
     pub x: P::BaseField,
     pub y: P::BaseField,
     pub infinity: bool,
-    #[derivative(Debug = "ignore")]
-    _params: PhantomData<P>,
 }
 
 impl<P: Parameters> PartialEq<GroupProjective<P>> for GroupAffine<P> {
@@ -74,12 +71,7 @@ impl<P: Parameters> Display for GroupAffine<P> {
 
 impl<P: Parameters> GroupAffine<P> {
     pub fn new(x: P::BaseField, y: P::BaseField, infinity: bool) -> Self {
-        Self {
-            x,
-            y,
-            infinity,
-            _params: PhantomData,
-        }
+        Self { x, y, infinity }
     }
 
     /// Multiply `self` by the cofactor of the curve, `P::COFACTOR`.
@@ -88,8 +80,8 @@ impl<P: Parameters> GroupAffine<P> {
         self.mul_bits(cofactor)
     }
 
-    /// Multiplies `self` by the scalar represented by `bits`. `bits` must be a big-endian
-    /// bit-wise decomposition of the scalar.
+    /// Multiplies `self` by the scalar represented by `bits`. `bits` must be a
+    /// big-endian bit-wise decomposition of the scalar.
     pub(crate) fn mul_bits(&self, bits: impl Iterator<Item = bool>) -> GroupProjective<P> {
         let mut res = GroupProjective::zero();
         // Skip leading zeros.
@@ -293,8 +285,8 @@ impl<'a, P: Parameters> core::iter::Sum<&'a Self> for GroupAffine<P> {
     }
 }
 
-/// Jacobian coordinates for a point on an elliptic curve in short Weierstrass form,
-/// over the base field `P::BaseField`. This struct implements arithmetic
+/// Jacobian coordinates for a point on an elliptic curve in short Weierstrass
+/// form, over the base field `P::BaseField`. This struct implements arithmetic
 /// via the Jacobian formulae
 #[derive(Derivative)]
 #[derivative(
@@ -307,8 +299,6 @@ pub struct GroupProjective<P: Parameters> {
     pub x: P::BaseField,
     pub y: P::BaseField,
     pub z: P::BaseField,
-    #[derivative(Debug = "ignore")]
-    _params: PhantomData<P>,
 }
 
 impl<P: Parameters> Display for GroupProjective<P> {
@@ -390,18 +380,12 @@ impl<P: Parameters> Default for GroupProjective<P> {
 
 impl<P: Parameters> GroupProjective<P> {
     pub fn new(x: P::BaseField, y: P::BaseField, z: P::BaseField) -> Self {
-        Self {
-            x,
-            y,
-            z,
-            _params: PhantomData,
-        }
+        Self { x, y, z }
     }
 }
 
 impl<P: Parameters> Zeroize for GroupProjective<P> {
     fn zeroize(&mut self) {
-        // `PhantomData` does not contain any data and thus does not need to be zeroized.
         self.x.zeroize();
         self.y.zeroize();
         self.z.zeroize();
@@ -469,8 +453,8 @@ impl<P: Parameters> ProjectiveCurve for GroupProjective<P> {
     }
 
     /// Sets `self = 2 * self`. Note that Jacobian formulae are incomplete, and
-    /// so doubling cannot be computed as `self + self`. Instead, this implementation
-    /// uses the following specialized doubling formulae:
+    /// so doubling cannot be computed as `self + self`. Instead, this
+    /// implementation uses the following specialized doubling formulae:
     /// * [`P::A` is zero](http://www.hyperelliptic.org/EFD/g1p/auto-shortw-jacobian-0.html#doubling-dbl-2009-l)
     /// * [`P::A` is not zero](https://www.hyperelliptic.org/EFD/g1p/auto-shortw-jacobian.html#doubling-dbl-2007-bl)
     fn double_in_place(&mut self) -> &mut Self {
@@ -541,8 +525,8 @@ impl<P: Parameters> ProjectiveCurve for GroupProjective<P> {
         }
     }
 
-    /// When `other.is_normalized()` (i.e., `other.z == 1`), we can use a more efficient
-    /// [formula](http://www.hyperelliptic.org/EFD/g1p/auto-shortw-jacobian-0.html#addition-madd-2007-bl)
+    /// When `other.is_normalized()` (i.e., `other.z == 1`), we can use a more
+    /// efficient [formula](http://www.hyperelliptic.org/EFD/g1p/auto-shortw-jacobian-0.html#addition-madd-2007-bl)
     /// to compute `self + other`.
     fn add_assign_mixed(&mut self, other: &GroupAffine<P>) {
         if other.is_zero() {
