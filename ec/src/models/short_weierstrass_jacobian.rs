@@ -137,8 +137,7 @@ impl<P: Parameters> GroupAffine<P> {
     /// Checks if `self` is in the subgroup having order that equaling that of
     /// `P::ScalarField`.
     pub fn is_in_correct_subgroup_assuming_on_curve(&self) -> bool {
-        self.mul_bits(BitIteratorBE::new(P::ScalarField::characteristic()))
-            .is_zero()
+        P::is_in_correct_subgroup_assuming_on_curve(self)
     }
 }
 
