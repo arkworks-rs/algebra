@@ -9,7 +9,7 @@ pub struct WnafContext {
 }
 
 impl WnafContext {
-    /// Construct a new context for a window of size `window_size`.
+    /// Constructs a new context for a window of size `window_size`.
     pub fn new(window_size: usize) -> Self {
         assert!(window_size >= 2);
         assert!(window_size < 64);

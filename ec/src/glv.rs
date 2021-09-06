@@ -38,7 +38,7 @@ pub trait GLVParameters: Send + Sync + 'static + ModelParameters {
     /// The forth element of the matrix for the scalar decomposition.
     const COEFF_N22: Self::ScalarField;
 
-    /// Map a point G to phi(G):= lambda G where psi is the endomorphism.
+    /// Maps a point G to phi(G):= lambda G where psi is the endomorphism.
     // On an affine curve, the function takes the following steps:
     //  f(y) = a_1 * (y + a_2) * (y + a_3)
     //  g(y) = b_1 * (y + b_2) * (y + b_3)
@@ -48,9 +48,9 @@ pub trait GLVParameters: Send + Sync + 'static + ModelParameters {
     //  y' = g(y) / h(y)
     fn endomorphism(base: &Self::CurveAffine) -> Self::CurveAffine;
 
-    /// Decompose a scalar s into k1, k2, s.t. s = k1 + lambda k2,
+    /// Decomposes a scalar s into k1, k2, s.t. s = k1 + lambda k2,
     fn scalar_decomposition(k: &Self::ScalarField) -> (Self::ScalarField, Self::ScalarField);
 
-    /// Perform GLV multiplication.
+    /// Performs GLV multiplication.
     fn glv_mul(base: &Self::CurveAffine, scalar: &Self::ScalarField) -> Self::CurveProjective;
 }
