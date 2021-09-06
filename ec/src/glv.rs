@@ -6,7 +6,6 @@ pub trait GLVParameters: Send + Sync + 'static + ModelParameters {
     type CurveAffine;
     type CurveProjective;
 
-
     // constants that are used to calculate phi(G) := lambda*G
 
     /// first coeff of f(y) = a_1 * (y + a_2) * (y + a_3)
