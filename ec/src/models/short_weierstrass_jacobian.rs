@@ -6,7 +6,6 @@ use ark_std::{
     fmt::{Display, Formatter, Result as FmtResult},
     hash::{Hash, Hasher},
     io::{Read, Result as IoResult, Write},
-    marker::PhantomData,
     ops::{Add, AddAssign, MulAssign, Neg, Sub, SubAssign},
     vec::Vec,
 };
@@ -46,8 +45,6 @@ pub struct GroupAffine<P: Parameters> {
     pub x: P::BaseField,
     pub y: P::BaseField,
     pub infinity: bool,
-    #[derivative(Debug = "ignore")]
-    _params: PhantomData<P>,
 }
 
 impl<P: Parameters> PartialEq<GroupProjective<P>> for GroupAffine<P> {
@@ -74,12 +71,7 @@ impl<P: Parameters> Display for GroupAffine<P> {
 
 impl<P: Parameters> GroupAffine<P> {
     pub fn new(x: P::BaseField, y: P::BaseField, infinity: bool) -> Self {
-        Self {
-            x,
-            y,
-            infinity,
-            _params: PhantomData,
-        }
+        Self { x, y, infinity }
     }
 
     /// Multiply `self` by the cofactor of the curve, `P::COFACTOR`.
@@ -145,8 +137,7 @@ impl<P: Parameters> GroupAffine<P> {
     /// Checks if `self` is in the subgroup having order that equaling that of
     /// `P::ScalarField`.
     pub fn is_in_correct_subgroup_assuming_on_curve(&self) -> bool {
-        self.mul_bits(BitIteratorBE::new(P::ScalarField::characteristic()))
-            .is_zero()
+        P::is_in_correct_subgroup_assuming_on_curve(self)
     }
 }
 
@@ -309,8 +300,6 @@ pub struct GroupProjective<P: Parameters> {
     pub x: P::BaseField,
     pub y: P::BaseField,
     pub z: P::BaseField,
-    #[derivative(Debug = "ignore")]
-    _params: PhantomData<P>,
 }
 
 impl<P: Parameters> Display for GroupProjective<P> {
@@ -392,19 +381,12 @@ impl<P: Parameters> Default for GroupProjective<P> {
 
 impl<P: Parameters> GroupProjective<P> {
     pub fn new(x: P::BaseField, y: P::BaseField, z: P::BaseField) -> Self {
-        Self {
-            x,
-            y,
-            z,
-            _params: PhantomData,
-        }
+        Self { x, y, z }
     }
 }
 
 impl<P: Parameters> Zeroize for GroupProjective<P> {
     fn zeroize(&mut self) {
-        // `PhantomData` does not contain any data and thus does not need to be
-        // zeroized.
         self.x.zeroize();
         self.y.zeroize();
         self.z.zeroize();

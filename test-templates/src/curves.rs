@@ -1,8 +1,7 @@
 #![allow(unused)]
-use ark_ec::twisted_edwards_extended::GroupProjective;
-use ark_ec::wnaf::WnafContext;
 use ark_ec::{
-    AffineCurve, MontgomeryModelParameters, ProjectiveCurve, SWModelParameters, TEModelParameters,
+    twisted_edwards_extended::GroupProjective, wnaf::WnafContext, AffineCurve,
+    MontgomeryModelParameters, ProjectiveCurve, SWModelParameters, TEModelParameters,
 };
 use ark_ff::{Field, One, PrimeField, UniformRand, Zero};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, SWFlags, SerializationError};

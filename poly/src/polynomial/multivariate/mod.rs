@@ -35,7 +35,8 @@ pub trait Term:
     /// Create a new `Term` from a list of tuples of the form `(variable, power)`
     fn new(term: Vec<(usize, usize)>) -> Self;
 
-    /// Returns the total degree of `self`. This is the sum of all variable powers in `self`
+    /// Returns the total degree of `self`. This is the sum of all variable
+    /// powers in `self`
     fn degree(&self) -> usize;
 
     /// Returns a list of variables in `self`
@@ -52,7 +53,7 @@ pub trait Term:
 }
 
 /// Stores a term (monomial) in a multivariate polynomial.
-/// Each element is of the form `(variable, power)`.  
+/// Each element is of the form `(variable, power)`.
 #[derive(Clone, PartialEq, Eq, Hash, Default, CanonicalSerialize, CanonicalDeserialize)]
 pub struct SparseTerm(Vec<(usize, usize)>);
 

@@ -51,18 +51,13 @@ macro_rules! field_new {
         )
     }};
     ($name:ident, $c0:expr, $c1:expr $(,)?) => {
-        $name {
-            c0: $c0,
-            c1: $c1,
-            _parameters: core::marker::PhantomData,
-        }
+        $name { c0: $c0, c1: $c1 }
     };
     ($name:ident, $c0:expr, $c1:expr, $c2:expr $(,)?) => {
         $name {
             c0: $c0,
             c1: $c1,
             c2: $c2,
-            _parameters: core::marker::PhantomData,
         }
     };
 }
@@ -698,11 +693,10 @@ mod no_std_tests {
     #[test]
     fn test_from_be_bytes_mod_order() {
         // Each test vector is a byte array,
-        // and its tested by parsing it with from_bytes_mod_order, and the num-bigint library.
-        // The bytes are currently generated from scripts/test_vectors.py.
+        // and its tested by parsing it with from_bytes_mod_order, and the num-bigint
+        // library. The bytes are currently generated from scripts/test_vectors.py.
         // TODO: Eventually generate all the test vector bytes via computation with the modulus
-        use ark_std::rand::Rng;
-        use ark_std::string::ToString;
+        use ark_std::{rand::Rng, string::ToString};
         use num_bigint::BigUint;
 
         let ref_modulus =
