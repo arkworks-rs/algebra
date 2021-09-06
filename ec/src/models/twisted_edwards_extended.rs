@@ -290,7 +290,8 @@ mod group_impl {
 /// `GroupProjective` implements Extended Twisted Edwards Coordinates
 /// as described in [\[HKCD08\]](https://eprint.iacr.org/2008/522.pdf).
 ///
-/// This implementation uses the unified addition formulae from that paper (see Section 3.1).
+/// This implementation uses the unified addition formulae from that paper (see
+/// Section 3.1).
 #[derive(Derivative)]
 #[derivative(
     Copy(bound = "P: Parameters"),

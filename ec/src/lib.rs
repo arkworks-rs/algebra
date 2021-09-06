@@ -32,6 +32,8 @@ use zeroize::Zeroize;
 pub mod models;
 pub use self::models::*;
 
+pub mod glv;
+
 pub mod group;
 
 pub mod msm;
@@ -81,13 +83,13 @@ pub trait PairingEngine: Sized + 'static + Copy + Debug + Sync + Send + Eq + Par
     /// The extension field that hosts the target group of the pairing.
     type Fqk: Field;
 
-    /// Compute the product of miller loops for some number of (G1, G2) pairs.
+    /// Computes the product of miller loops for some number of (G1, G2) pairs.
     #[must_use]
     fn miller_loop<'a, I>(i: I) -> Self::Fqk
     where
         I: IntoIterator<Item = &'a (Self::G1Prepared, Self::G2Prepared)>;
 
-    /// Perform final exponentiation of the result of a miller loop.
+    /// Performs final exponentiation of the result of a miller loop.
     #[must_use]
     fn final_exponentiation(_: &Self::Fqk) -> Option<Self::Fqk>;
 
@@ -192,14 +194,14 @@ pub trait ProjectiveCurve:
         (*self).into()
     }
 
-    /// Set `self` to be `self + other`, where `other: Self::Affine`.
+    /// Sets `self` to be `self + other`, where `other: Self::Affine`.
     /// This is usually faster than adding `other` in projective form.
     fn add_mixed(mut self, other: &Self::Affine) -> Self {
         self.add_assign_mixed(other);
         self
     }
 
-    /// Set `self` to be `self + other`, where `other: Self::Affine`.
+    /// Sets `self` to be `self + other`, where `other: Self::Affine`.
     /// This is usually faster than adding `other` in projective form.
     fn add_assign_mixed(&mut self, other: &Self::Affine);
 
@@ -270,18 +272,18 @@ pub trait AffineCurve:
     fn mul<S: Into<<Self::ScalarField as PrimeField>::BigInt>>(&self, other: S)
         -> Self::Projective;
 
-    /// Multiply this element by the cofactor and output the
+    /// Multiplies this element by the cofactor and output the
     /// resulting projective element.
     #[must_use]
     fn mul_by_cofactor_to_projective(&self) -> Self::Projective;
 
-    /// Multiply this element by the cofactor.
+    /// Multiplies this element by the cofactor.
     #[must_use]
     fn mul_by_cofactor(&self) -> Self {
         self.mul_by_cofactor_to_projective().into()
     }
 
-    /// Multiply this element by the inverse of the cofactor in
+    /// Multiplies this element by the inverse of the cofactor in
     /// `Self::ScalarField`.
     #[must_use]
     fn mul_by_cofactor_inv(&self) -> Self;
@@ -304,13 +306,13 @@ impl<C: ProjectiveCurve> Group for C {
     }
 }
 
-/// Preprocess a G1 element for use in a pairing.
+/// Preprocesses a G1 element for use in a pairing.
 pub fn prepare_g1<E: PairingEngine>(g: impl Into<E::G1Affine>) -> E::G1Prepared {
     let g: E::G1Affine = g.into();
     E::G1Prepared::from(g)
 }
 
-/// Preprocess a G2 element for use in a pairing.
+/// Preprocesses a G2 element for use in a pairing.
 pub fn prepare_g2<E: PairingEngine>(g: impl Into<E::G2Affine>) -> E::G2Prepared {
     let g: E::G2Affine = g.into();
     E::G2Prepared::from(g)

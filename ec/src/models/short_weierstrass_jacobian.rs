@@ -29,8 +29,8 @@ use ark_std::rand::{
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
 
-/// Affine coordinates for a point on an elliptic curve in short Weierstrass form,
-/// over the base field `P::BaseField`.
+/// Affine coordinates for a point on an elliptic curve in short Weierstrass
+/// form, over the base field `P::BaseField`.
 #[derive(Derivative)]
 #[derivative(
     Copy(bound = "P: Parameters"),
@@ -206,7 +206,8 @@ impl<P: Parameters> AffineCurve for GroupAffine<P> {
             if x.is_zero() && flags.is_infinity() {
                 Some(Self::zero())
             } else if let Some(y_is_positive) = flags.is_positive() {
-                Self::get_point_from_x(x, y_is_positive) // Unwrap is safe because it's not zero.
+                Self::get_point_from_x(x, y_is_positive)
+                // Unwrap is safe because it's not zero.
             } else {
                 None
             }
@@ -428,12 +429,15 @@ impl<P: Parameters> ProjectiveCurve for GroupProjective<P> {
     /// Normalizes a slice of projective elements so that
     /// conversion to affine is cheap.
     ///
-    /// In more detail, this method converts a curve point in Jacobian coordinates
-    /// (x, y, z) into an equivalent representation (x/z^2, y/z^3, 1).
+    /// In more detail, this method converts a curve point in Jacobian
+    /// coordinates (x, y, z) into an equivalent representation (x/z^2,
+    /// y/z^3, 1).
     ///
-    /// For `N = v.len()`, this costs 1 inversion + 6N field multiplications + N field squarings.
+    /// For `N = v.len()`, this costs 1 inversion + 6N field multiplications + N
+    /// field squarings.
     ///
-    /// (Where batch inversion comprises 3N field multiplications + 1 inversion of these operations)
+    /// (Where batch inversion comprises 3N field multiplications + 1 inversion
+    /// of these operations)
     #[inline]
     fn batch_normalization(v: &mut [Self]) {
         let mut z_s = v.iter().map(|g| g.z).collect::<Vec<_>>();
