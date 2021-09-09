@@ -8,6 +8,7 @@ use ark_std::{
 };
 use core::fmt;
 use digest::{Update, VariableOutput};
+//use ark_std::boxed::Box;
 
 // This function computes the length in bytes that a hash function should output
 // for hashing `count` field elements.

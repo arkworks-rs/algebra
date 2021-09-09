@@ -24,7 +24,7 @@ pub trait SWUParams : SWModelParameters {
     // 2.  -(3 * Z^2 + 4 * A) / (4 * g(Z)) != 0 in F.
     // 3.  -(3 * Z^2 + 4 * A) / (4 * g(Z)) is square in F.
     // 4.  At least one of g(Z) and g(-Z / 2) is square in F.
-    const Z : Self::BaseField;
+    //const Z : Self::BaseField;
     // we need an element of the base field which is not a square root see [1] Sect. 4.
     // it is also convenient to have $g(b/xi * a)$ to be square. In general we use a xi with
     // low absolute value coefficients when they are represented as element of ZZ.
@@ -34,17 +34,17 @@ pub trait SWUParams : SWModelParameters {
     
 }
 
-pub struct SWU_hasher<P: SWUParams> {
+pub struct SWUMap<P: SWUParams> {
     pub domain: Vec<u8>,
     curve_params: PhantomData<fn() -> P>,
 }
 
-impl <P: SWUParams> MapToCurve<GroupAffine<P>> for SWU_hasher<P>{
+impl <P: SWUParams> MapToCurve<GroupAffine<P>> for SWUMap<P>{
 
     ///This is to verify if the provided SWUparams makes sense, doesn't do much for now
     fn new_map_to_curve(domain: &[u8]) -> Result<Self, HashToCurveError>
     {
-        Ok(SWU_hasher {
+        Ok(SWUMap {
             domain: domain.to_vec(),
             curve_params: PhantomData,
         })
