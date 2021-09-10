@@ -42,7 +42,7 @@ where
     M2C: MapToCurve<T>,
 {
     fn new(domain: &[u8]) -> Result<Self, HashToCurveError> {
-        let field_hasher = *H2F::new_hash_to_field(domain, 2)?;
+        let field_hasher = H2F::new_hash_to_field(domain, 2)?;
         //@skalman: I assume if the hash to field generate some number of field element it should also
         //be the case that each field element result in one point?
         
