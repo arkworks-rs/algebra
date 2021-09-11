@@ -8,7 +8,7 @@ use crate::short_weierstrass_jacobian::GroupAffine;
 use crate::hashing::curve_maps::swu::{SWUParams, SWUMap};
 use super::map_to_curve_hasher::MapToCurveBasedHasher;
 use crate::hashing::{map_to_curve_hasher::HashToField, field_hashers::DefaultFieldHasher,HashToCurve};
-
+use ark_ff::{Zero, One, Field, PrimeField, SquareRootField};
 
 pub type F127 = Fp64<F127Parameters>;
 
@@ -117,8 +117,8 @@ impl SWModelParameters for TestSWUMapToCurveParams {
 impl SWUParams for TestSWUMapToCurveParams {
 
     const XI : F127 = field_new!(F127, "126");
-    const ZETA: F127 = field_new!(F127, "2");
-    const XI_ON_ZETA_SQRT: F127 = field_new!(F127, "95");
+    const ZETA: F127 = field_new!(F127, "3");
+    const XI_ON_ZETA_SQRT: F127 = field_new!(F127, "14");
 
 }
 
@@ -127,7 +127,7 @@ impl SWUParams for TestSWUMapToCurveParams {
 fn test_new_curve() {
     let a1 = F127::new(BigInteger64([1]));
     let a2 = F127::new(BigInteger64([2]));
-    let a3 = F127::new(BigInteger64([125]));
+    let a3 = F127::new(BigInteger64([125]));   
 
     println!("{:?}, {:?}, {:?}", field_new!(F127, "1"), F127::new(BigInteger64([1])), <F127 as From<u8>>::from(3) );
     println!("{:?}, {:?}, {:?}", a1+a2, a1+a3, a2+a3);
@@ -135,15 +135,23 @@ fn test_new_curve() {
 }
     
 
+/// Testing checking the hashing parameters are sane
+#[test]
+fn chceking_the_hsahing_parameters() {
+    ///check zeta is a non-square
+    assert!(SquareRootField::legendre(&TestSWUMapToCurveParams::ZETA).is_qr() == false);
+    
+    
+}
 /// The point of the test is to get a  simplest SWU compatible curve
 /// and hash the whole field to it. We observe the map behavoir. Specifically
 /// The map is not constant
 #[test]
 fn map_whole_small_field_to_curve_swu() {
     use blake2::{VarBlake2b};
-        
-    let test_swu_to_curve_hasher = MapToCurveBasedHasher::<GroupAffine<TestSWUMapToCurveParams>, DefaultFieldHasher<VarBlake2b>, SWUMap<TestSWUMapToCurveParams>>::new(&[1]).unwrap();
 
+    let test_swu_to_curve_hasher = MapToCurveBasedHasher::<GroupAffine<TestSWUMapToCurveParams>, DefaultFieldHasher<VarBlake2b>, SWUMap<TestSWUMapToCurveParams>>::new(&[1]).unwrap();
+    
     let hash_result = test_swu_to_curve_hasher.hash(b"if you stick a Babel fish in your ear you can instantly understand anything said to you in any form of language.").unwrap();
 
     println!("{:?}, {:?}", hash_result.x, F127::new(BigInteger64([1])) );
