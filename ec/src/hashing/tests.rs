@@ -7,7 +7,8 @@ use crate::{ModelParameters, models::SWModelParameters, AffineCurve};
 use crate::short_weierstrass_jacobian::GroupAffine;
 use crate::hashing::curve_maps::swu::{SWUParams, SWUMap};
 use super::map_to_curve_hasher::MapToCurveBasedHasher;
-use crate::hashing::{map_to_curve_hasher::HashToField, field_hashers::DefaultFieldHasher};
+use crate::hashing::{map_to_curve_hasher::HashToField, field_hashers::DefaultFieldHasher,HashToCurve};
+
 
 pub type F127 = Fp64<F127Parameters>;
 
@@ -122,13 +123,19 @@ impl SWUParams for TestSWUMapToCurveParams {
 
 }
 
-#[test]
 /// The point of the test is to get a  simplest SWU compatible curve
 /// and hash the whole field to it. We observe the map behavoir. Specifically
 /// The map is not constant
+#[test]
 fn map_whole_small_field_to_curve_swu() {
     use blake2::{VarBlake2b};
         
-    let test_swu_to_curve_hasher: MapToCurveBasedHasher::<GroupAffine<TestSWUMapToCurveParams>, DefaultFieldHasher<VarBlake2b>, SWUMap<TestSWUMapToCurveParams>>;
+    let test_swu_to_curve_hasher = MapToCurveBasedHasher::<GroupAffine<TestSWUMapToCurveParams>, DefaultFieldHasher<VarBlake2b>, SWUMap<TestSWUMapToCurveParams>>::new(&[1]).unwrap();
+
+    let hash_result = test_swu_to_curve_hasher.hash(b"if you stick a Babel fish in your ear you can instantly understand anything said to you in any form of language.").unwrap();
+
+    println!("{:?}, {:?}", hash_result.x, field_new!(F127, "1") );
+
+    assert!(hash_result.x != field_new!(F127, "1"));
 
 }
