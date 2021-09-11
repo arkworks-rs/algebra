@@ -36,10 +36,10 @@ impl FpParameters for F127Parameters {
     const REPR_SHAVE_BITS: u32 = 1;
 
     #[rustfmt::skip]
-    const R: BigInteger64 = BigInteger64([0]);
+    const R: BigInteger64 = BigInteger64([1]);
 
     #[rustfmt::skip]
-    const R2: BigInteger64 = BigInteger64([0]);
+    const R2: BigInteger64 = BigInteger64([1]);
 
     // sage: R = Integers(2^64)
     // sage: R
@@ -116,12 +116,24 @@ impl SWModelParameters for TestSWUMapToCurveParams {
 }
 impl SWUParams for TestSWUMapToCurveParams {
 
-
     const XI : F127 = field_new!(F127, "126");
     const ZETA: F127 = field_new!(F127, "2");
     const XI_ON_ZETA_SQRT: F127 = field_new!(F127, "95");
 
 }
+
+///test that field_new make a none zero element out of 1
+#[test]
+fn test_new_curve() {
+    let a1 = F127::new(BigInteger64([1]));
+    let a2 = F127::new(BigInteger64([2]));
+    let a3 = F127::new(BigInteger64([125]));
+
+    println!("{:?}, {:?}, {:?}", field_new!(F127, "1"), F127::new(BigInteger64([1])), <F127 as From<u8>>::from(3) );
+    println!("{:?}, {:?}, {:?}", a1+a2, a1+a3, a2+a3);
+    assert!(F127::new(BigInteger64([0])) != field_new!(F127, "1"));
+}
+    
 
 /// The point of the test is to get a  simplest SWU compatible curve
 /// and hash the whole field to it. We observe the map behavoir. Specifically
@@ -134,7 +146,8 @@ fn map_whole_small_field_to_curve_swu() {
 
     let hash_result = test_swu_to_curve_hasher.hash(b"if you stick a Babel fish in your ear you can instantly understand anything said to you in any form of language.").unwrap();
 
-    println!("{:?}, {:?}", hash_result.x, field_new!(F127, "1") );
+    println!("{:?}, {:?}", hash_result.x, F127::new(BigInteger64([1])) );
+    println!("{:?}, {:?}, {:?}", hash_result, hash_result.x, F127::new(BigInteger64([1])) );
 
     assert!(hash_result.x != field_new!(F127, "1"));
 

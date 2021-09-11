@@ -110,7 +110,7 @@ impl <P: SWUParams> MapToCurve<GroupAffine<P>> for SWUMap<P>{
                 gx1.sqrt().expect("We have checked that gx1 is a quadratic residue. Q.E.D")
             } else {
                 gx1_square = false;
-                zeta_gx1.sqrt().expect("zeta * gx1 is a quadratic residue because legarde is multiplicative. Q.E.D")
+                zeta_gx1.sqrt().expect("zeta * gx1 is a quadratic residue because legard is multiplicative. Q.E.D")
             }
         };
         
