@@ -18,10 +18,13 @@ impl Fp64Parameters for F127Parameters {}
 impl FftParameters for F127Parameters {
     type BigInt = BigInteger64;
 
+    // N = 126 => s = 1
     const TWO_ADICITY: u32 = 1;
 
+    //sage: FF(3)^63
+    //126
     #[rustfmt::skip]
-    const TWO_ADIC_ROOT_OF_UNITY: BigInteger64 = BigInteger64([1]);
+    const TWO_ADIC_ROOT_OF_UNITY: BigInteger64 = BigInteger64([126]);
 }
 
 impl FpParameters for F127Parameters {
@@ -29,17 +32,21 @@ impl FpParameters for F127Parameters {
     #[rustfmt::skip]
     const MODULUS: BigInteger64 = BigInteger64([127]);
 
-    const MODULUS_BITS: u32 = 8;
+    const MODULUS_BITS: u32 = 7;
 
     const CAPACITY: u32 = Self::MODULUS_BITS - 1;
 
     const REPR_SHAVE_BITS: u32 = 1;
 
+    // Nearst power of 2^64 to 127 is 0 so R = 1 but maybe they mean larger
+    // otherwise square root panics
+    //sage: FF(2^64)
+    //2
     #[rustfmt::skip]
-    const R: BigInteger64 = BigInteger64([1]);
+    const R: BigInteger64 = BigInteger64([2]);
 
     #[rustfmt::skip]
-    const R2: BigInteger64 = BigInteger64([1]);
+    const R2: BigInteger64 = BigInteger64([4]);
 
     // sage: R = Integers(2^64)
     // sage: R
@@ -51,6 +58,8 @@ impl FpParameters for F127Parameters {
     // 9295997013522923649
     const INV: u64 = 9295997013522923649;
 
+    // sage: FF(3).multiplicative_order()
+    // 126
     /// GENERATOR = 3
     #[rustfmt::skip]
     const GENERATOR: BigInteger64 = BigInteger64([3]);
@@ -63,6 +72,10 @@ impl FpParameters for F127Parameters {
 
     // T = (MODULUS - 1) / 2^S =
     // 12208678567578594777604504606729831043093128246378069236549469339647
+    //sage: factor(127-1)
+    //2 * 3^2 * 7
+    //sage: (127-1)/2
+    //63
     #[rustfmt::skip]
     const T: BigInteger64 = BigInteger64([63]);
 
@@ -116,22 +129,23 @@ impl SWModelParameters for TestSWUMapToCurveParams {
 }
 impl SWUParams for TestSWUMapToCurveParams {
 
-    const XI : F127 = field_new!(F127, "126");
-    const ZETA: F127 = field_new!(F127, "3");
-    const XI_ON_ZETA_SQRT: F127 = field_new!(F127, "14");
+    const XI : F127 = F127::new(BigInteger64([126]));//field_new!(F127, "126");
+    const ZETA: F127 = F127::new(BigInteger64([3])); //field_new!(F127, "3");
+    const XI_ON_ZETA_SQRT: F127 = F127::new(BigInteger64([14]));//field_new!(F127, "14");
 
 }
 
 ///test that field_new make a none zero element out of 1
 #[test]
-fn test_new_curve() {
+fn test_field_element_construction() {
     let a1 = F127::new(BigInteger64([1]));
     let a2 = F127::new(BigInteger64([2]));
-    let a3 = F127::new(BigInteger64([125]));   
+    let a3 = F127::new(BigInteger64([125]));
+    let b1 = field_new!(F127, "1");
 
     println!("{:?}, {:?}, {:?}", field_new!(F127, "1"), F127::new(BigInteger64([1])), <F127 as From<u8>>::from(3) );
     println!("{:?}, {:?}, {:?}", a1+a2, a1+a3, a2+a3);
-    assert!(F127::new(BigInteger64([0])) != field_new!(F127, "1"));
+    assert!(F127::new(BigInteger64([1])) == field_new!(F127, "1"));
 }
     
 
@@ -140,7 +154,6 @@ fn test_new_curve() {
 fn chceking_the_hsahing_parameters() {
     ///check zeta is a non-square
     assert!(SquareRootField::legendre(&TestSWUMapToCurveParams::ZETA).is_qr() == false);
-    
     
 }
 /// The point of the test is to get a  simplest SWU compatible curve
