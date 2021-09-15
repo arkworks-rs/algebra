@@ -6,9 +6,11 @@ use ark_ff::{
 use crate::{ModelParameters, models::SWModelParameters, AffineCurve};
 use crate::short_weierstrass_jacobian::GroupAffine;
 use crate::hashing::curve_maps::swu::{SWUParams, SWUMap};
-use super::map_to_curve_hasher::MapToCurveBasedHasher;
+use super::map_to_curve_hasher::{MapToCurveBasedHasher, MapToCurve};
 use crate::hashing::{map_to_curve_hasher::HashToField, field_hashers::DefaultFieldHasher,HashToCurve};
 use ark_ff::{Zero, One, Field, PrimeField, SquareRootField};
+use ark_std::vec::Vec;
+use std::collections::HashMap;
 
 pub type F127 = Fp64<F127Parameters>;
 
@@ -36,7 +38,7 @@ impl FpParameters for F127Parameters {
 
     const CAPACITY: u32 = Self::MODULUS_BITS - 1;
 
-    const REPR_SHAVE_BITS: u32 = 1;
+    const REPR_SHAVE_BITS: u32 = 64 - Self::MODULUS_BITS;
 
     // Nearst power of 2^64 to 127 is 0 so R = 1 but maybe they mean larger
     // otherwise square root panics
@@ -84,7 +86,7 @@ impl FpParameters for F127Parameters {
     const T_MINUS_ONE_DIV_TWO: BigInteger64 = BigInteger64([31]);
 }
 
-const F127_ZERO: F127 = field_new!(F127, "3");
+const F127_ZERO: F127 = field_new!(F127, "0");
 const F127_ONE: F127 = field_new!(F127, "1");
 
 struct TestSWUMapToCurveParams;
@@ -129,23 +131,20 @@ impl SWModelParameters for TestSWUMapToCurveParams {
 }
 impl SWUParams for TestSWUMapToCurveParams {
 
-    const XI : F127 = F127::new(BigInteger64([126]));//field_new!(F127, "126");
-    const ZETA: F127 = F127::new(BigInteger64([3])); //field_new!(F127, "3");
-    const XI_ON_ZETA_SQRT: F127 = F127::new(BigInteger64([14]));//field_new!(F127, "14");
+    const XI : F127 = field_new!(F127, "-1");
+    const ZETA: F127 = field_new!(F127, "3");
+    const XI_ON_ZETA_SQRT: F127 = field_new!(F127, "14");
 
 }
 
 ///test that field_new make a none zero element out of 1
 #[test]
 fn test_field_element_construction() {
-    let a1 = F127::new(BigInteger64([1]));
-    let a2 = F127::new(BigInteger64([2]));
-    let a3 = F127::new(BigInteger64([125]));
-    let b1 = field_new!(F127, "1");
+    let a1 = F127::from(1);
+    let a2 = F127::from(2);
+    let a3 = F127::from(125);
 
-    println!("{:?}, {:?}, {:?}", field_new!(F127, "1"), F127::new(BigInteger64([1])), <F127 as From<u8>>::from(3) );
-    println!("{:?}, {:?}, {:?}", a1+a2, a1+a3, a2+a3);
-    assert!(F127::new(BigInteger64([1])) == field_new!(F127, "1"));
+    assert!(F127::from(0) == a2 + a3);
 }
     
 
@@ -156,20 +155,45 @@ fn chceking_the_hsahing_parameters() {
     assert!(SquareRootField::legendre(&TestSWUMapToCurveParams::ZETA).is_qr() == false);
     
 }
-/// The point of the test is to get a  simplest SWU compatible curve
-/// and hash the whole field to it. We observe the map behavoir. Specifically
-/// The map is not constant
+
+/// The point of the test is to get a  simpl SWU compatible curve
+/// and make simple hash
 #[test]
-fn map_whole_small_field_to_curve_swu() {
+fn hash_arbitary_string_to_curve_swu() {
     use blake2::{VarBlake2b};
 
     let test_swu_to_curve_hasher = MapToCurveBasedHasher::<GroupAffine<TestSWUMapToCurveParams>, DefaultFieldHasher<VarBlake2b>, SWUMap<TestSWUMapToCurveParams>>::new(&[1]).unwrap();
     
-    let hash_result = test_swu_to_curve_hasher.hash(b"if you stick a Babel fish in your ear you can instantly understand anything said to you in any form of language.").unwrap();
+    let hash_result = test_swu_to_curve_hasher.hash(b"if you stick a Babel fish in your ear you can instantly understand anything said to you in any form of language.").expect("fail to hash the string to curve");
 
-    println!("{:?}, {:?}", hash_result.x, F127::new(BigInteger64([1])) );
-    println!("{:?}, {:?}, {:?}", hash_result, hash_result.x, F127::new(BigInteger64([1])) );
+    
+    println!("{:?}, {:?}", hash_result, hash_result.x, );
 
-    assert!(hash_result.x != field_new!(F127, "1"));
+    assert!(hash_result.x != field_new!(F127, "0"));
 
+}
+
+/// the test use a simple SWU compatible curve
+/// and map the whole field to it. We observe the map behaviour. Specifically
+/// The map is not constant and that everything can be mapped and nobody panics
+#[test]
+fn map_field_to_curve_swu() {
+    let test_map_to_curve =  SWUMap::<TestSWUMapToCurveParams>::new_map_to_curve(&[0]).unwrap();
+
+    let mut map_range : Vec<GroupAffine<TestSWUMapToCurveParams>> = vec![];
+    for current_field_element in 0..127 {
+        map_range.push(test_map_to_curve.map_to_curve(F127::from(current_field_element)).unwrap());
+    }
+
+    let mut counts = HashMap::new();
+
+    let mode = map_range.iter().copied().max_by_key(|&n| {
+        let count = counts.entry(n).or_insert(0);
+        *count += 1;
+        *count
+    }).unwrap();
+
+    println!("mode {} repeated {} times", mode, counts.get(&mode).unwrap());
+
+    assert!(*counts.get(&mode).unwrap() != 127);
 }
