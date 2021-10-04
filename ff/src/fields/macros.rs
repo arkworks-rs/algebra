@@ -607,12 +607,11 @@ macro_rules! impl_Fp {
             }
         }
 
-        /// Outputs a string containing the value of `self`, chunked up into
-        /// 64-bit limbs.
         impl<P: $FpParameters> Display for $Fp<P> {
             #[inline]
             fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
-                write!(f, stringify!($Fp"({})"), self.into_repr())
+                let value: num_bigint::BigUint = self.into_repr().into();
+                f.write_fmt(format_args!("{}", value))
             }
         }
 
