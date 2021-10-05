@@ -197,6 +197,10 @@ jobs:
 
       - name: Patch cargo.toml
         run: |
+          if  grep -q "\[patch.crates-io\]" Cargo.toml ; then
+              MATCH=$(awk '/\[patch.crates-io\]/{ print NR; exit }' Cargo.toml); 
+              sed -i "$MATCH,\$d" Cargo.toml
+          fi
           {
             echo      "[patch.crates-io]";
             echo      "ark-ff = { path = 'algebra/ff' }";
