@@ -725,10 +725,10 @@ macro_rules! impl_Fp {
             }
         }
 
-        impl<P: $FpParameters> Into<num_bigint::BigUint> for $Fp<P> {
+        impl<P: $FpParameters> From<$Fp<P>> for num_bigint::BigUint {
             #[inline]
-            fn into(self) -> num_bigint::BigUint {
-                self.into_repr().into()
+            fn from(other: $Fp<P>) -> Self {
+                other.into_repr().into()
             }
         }
     }
