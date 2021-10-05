@@ -230,6 +230,10 @@ pub fn from_str_test<F: PrimeField>() {
             let b = F::from(n);
 
             assert_eq!(a, b);
+            let c = F::from_str(&ark_std::format!("{}", a))
+                .map_err(|_| ())
+                .unwrap();
+            assert_eq!(a, c);
         }
     }
 
