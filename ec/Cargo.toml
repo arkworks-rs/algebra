@@ -16,6 +16,7 @@ edition = "2018"
 ark-std = { version = "^0.3.0", default-features = false }
 ark-serialize = { version = "^0.3.0", path = "../serialize", default-features = false }
 ark-ff = { version = "^0.3.0", path = "../ff", default-features = false }
+ark-poly = {version = "^0.3.0", path = "../poly", default-features = false }
 derivative = { version = "2", features = ["use_core"] }
 digest = { version = "0.9", optional = true}
 num-traits = { version = "0.2", default-features = false }

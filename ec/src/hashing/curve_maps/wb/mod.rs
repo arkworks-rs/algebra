@@ -20,7 +20,7 @@ use super::swu::{SWUParams, SWUMap};
 ///   http://dx.doi.org/10.46586/tches.v2019.i4.154-179
 ///
 ///
-pub trait WBParams : SWModelParameters + Sized{
+pub trait WBParams : SWModelParameters + Sized {
 
     //The isogenouscurve should be defined over the same basefield but it can have different scalar field
     type IsogenousCurve : SWUParams::<BaseField = <Self as ModelParameters>::BaseField>;
@@ -54,13 +54,13 @@ impl<P: WBParams> MapToCurve<GroupAffine<P>> for WBMap<P>{
     /// Map random field point to a random curve point
     /// inspired from
     /// https://github.com/zcash/pasta_curves/blob/main/src/hashtocurve.rs
-    fn map_to_curve(&self, point: <GroupAffine<P> as AffineCurve>::BaseField) -> Result<GroupAffine<P>, HashToCurveError>  {
+    fn map_to_curve(&self, element: <GroupAffine<P> as AffineCurve>::BaseField) -> Result<GroupAffine<P>, HashToCurveError>  {
         //fn hash_to_curve<'a>(domain_prefix: &'a str) -> Box<dyn Fn(&[u8]) -> Self + 'a> {
 
         //first we need to map the field point to the isogenous curve
         //let swu_field_curve_hasher = SWUMap::<P::IsogenousCurve>::new_map_to_curve(&[1]).unwrap();
 
-        let point_on_isogenious_curve = self.swu_field_curve_hasher.map_to_curve(point).unwrap();
+        let point_on_isogenious_curve = self.swu_field_curve_hasher.map_to_curve(element).unwrap();
         P::isogeny_map(point_on_isogenious_curve)
     }
 

@@ -6,11 +6,15 @@ use ark_ff::{
 use crate::{ModelParameters, models::SWModelParameters, AffineCurve};
 use crate::short_weierstrass_jacobian::GroupAffine;
 use crate::hashing::curve_maps::swu::{SWUParams, SWUMap};
+use crate::hashing::curve_maps::wb::{WBParams, WBMap};
 use super::map_to_curve_hasher::{MapToCurveBasedHasher, MapToCurve};
-use crate::hashing::{map_to_curve_hasher::HashToField, field_hashers::DefaultFieldHasher,HashToCurve};
+use crate::hashing::{map_to_curve_hasher::HashToField, field_hashers::DefaultFieldHasher, HashToCurve, HashToCurveError};
+
 use ark_ff::{Zero, One, Field, PrimeField, SquareRootField};
 use ark_std::vec::Vec;
 use std::collections::HashMap;
+
+use ark_poly::{Polynomial, UVPolynomial, univariate::{DensePolynomial}};
 
 pub type F127 = Fp64<F127Parameters>;
 
@@ -196,4 +200,125 @@ fn map_field_to_curve_swu() {
     println!("mode {} repeated {} times", mode, counts.get(&mode).unwrap());
 
     assert!(*counts.get(&mode).unwrap() != 127);
+}
+
+//Testing wb19 on  small curvse
+// E_isogenous : Elliptic Curve defined by y^2 = x^3 + 109*x + 124 over Finite Field of size 127
+// E : y^2 = x^3 + 3
+// Isogeny map
+// (10*x^18*y + 59*x^17*y + 41*x^16*y + 48*x^15*y - 7*x^14*y + 6*x^13*y + 5*x^12*y + 62*x^11*y + 12*x^10*y + 36*x^9*y - 49*x^8*y - 18*x^7*y - 63*x^6*y - 43*x^5*y - 60*x^4*y - 18*x^3*y + 30*x^2*y - 57*x*y - 34*y)/(x^18 + 44*x^17 - 63*x^16 + 52*x^15 + 3*x^14 + 38*x^13 - 30*x^12 + 11*x^11 - 42*x^10 - 13*x^9 - 46*x^8 - 61*x^7 - 16*x^6 - 55*x^5 + 18*x^4 + 23*x^3 - 24*x^2 - 18*x + 32)
+struct TestSWU127MapToIsogenousCurveParams;
+
+//first we define the isogenous curve
+//sage: E_isogenous.order()
+//127
+impl ModelParameters for TestSWU127MapToIsogenousCurveParams {
+    type BaseField = F127;
+    type ScalarField = F127;
+}
+
+// E_isogenous : Elliptic Curve defined by y^2 = x^3 + 109*x + 124 over Finite Field of size 127
+impl SWModelParameters for TestSWU127MapToIsogenousCurveParams {
+    /// COEFF_A = 1
+    const COEFF_A: F127 = field_new!(F127, "109");
+
+    /// COEFF_B = 1
+    #[rustfmt::skip]
+    const COEFF_B: F127 = field_new!(F127, "124");
+
+    const COFACTOR: &'static [u64] = &[1];
+
+    #[rustfmt::skip]
+    const COFACTOR_INV: F127 = field_new!(F127, "1");
+
+    /// AFFINE_GENERATOR_COEFFS = (G1_GENERATOR_X, G1_GENERATOR_Y)
+    const AFFINE_GENERATOR_COEFFS: (Self::BaseField, Self::BaseField) =
+        (field_new!(F127, "62"), field_new!(F127, "70"));
+}
+
+impl SWUParams for TestSWU127MapToIsogenousCurveParams {
+
+    const XI : F127 = field_new!(F127, "-1");
+    const ZETA: F127 = field_new!(F127, "3");
+    const XI_ON_ZETA_SQRT: F127 = field_new!(F127, "14");
+
+}
+
+//The struct defining our parameters for the target curve
+struct TestWBF127MapToCurveParams;
+
+impl ModelParameters for TestWBF127MapToCurveParams {
+    type BaseField = F127;
+    type ScalarField = F127;
+}
+
+impl SWModelParameters for TestWBF127MapToCurveParams {
+    /// COEFF_A = 1
+    const COEFF_A: F127 = field_new!(F127, "109");
+
+    /// COEFF_B = 1
+    #[rustfmt::skip]
+    const COEFF_B: F127 = field_new!(F127, "124");
+
+    const COFACTOR: &'static [u64] = &[1];
+
+    #[rustfmt::skip]
+    const COFACTOR_INV: F127 = field_new!(F127, "1");
+
+    /// AFFINE_GENERATOR_COEFFS = (G1_GENERATOR_X, G1_GENERATOR_Y)
+    const AFFINE_GENERATOR_COEFFS: (Self::BaseField, Self::BaseField) =
+        (field_new!(F127, "62"), field_new!(F127, "70"));
+}
+
+fn isogeny_e2_e1(domain_point: GroupAffine<TestSWU127MapToIsogenousCurveParams>) -> Result<GroupAffine<TestWBF127MapToCurveParams>, HashToCurveError> {
+    //psi_x: (-57*x^13 - 21*x^12 + 10*x^11 + 34*x^10 + 40*x^9 - 13*x^8 + 32*x^7 - 32*x^6 + 23*x^5 - 14*x^4 + 39*x^3 + 23*x^2 + 63*x + 4)/(x^12 - 13*x^11 + 11*x^10 - 33*x^9 - 30*x^8 + 30*x^7 + 34*x^6 - 44*x^5 + 63*x^4 - 20*x^3 - 10*x^2 + 31*x + 2)
+
+    //psi_y: (10*x^18*y + 59*x^17*y + 41*x^16*y + 48*x^15*y - 7*x^14*y + 6*x^13*y + 5*x^12*y + 62*x^11*y + 12*x^10*y + 36*x^9*y - 49*x^8*y - 18*x^7*y - 63*x^6*y - 43*x^5*y - 60*x^4*y - 18*x^3*y + 30*x^2*y - 57*x*y - 34*y)/(x^18 + 44*x^17 - 63*x^16 + 52*x^15 + 3*x^14 + 38*x^13 - 30*x^12 + 11*x^11 - 42*x^10 - 13*x^9 - 46*x^8 - 61*x^7 - 16*x^6 - 55*x^5 + 18*x^4 + 23*x^3 - 24*x^2 - 18*x + 32)
+    let psi_x : [Vec<u64>; 2] = [vec![70, 106, 10, 34, 40, 114, 32, 95, 23, 113, 39, 23, 63,  4], vec![0, 1, 114, 11, 94, 97, 30, 34, 83, 63, 107, 117, 31,  2]];
+    let psi_y = [vec![10,  59, 41, 48, 120, 6, 5, 62, 12, 36, 78, 109, 64, 84, 67, 109, 30, 70,  93], vec![1, 44, 64, 52, 3, 38, 97, 11, 85, 114, 81, 66, 111, 72, 18, 23, 103, 109, 32]];
+
+    let psi_x_num_field_elm : Vec<F127> = psi_x[0].iter().map(|cur_coeff| {F127::from(*cur_coeff as u64) }).collect();
+
+    let psi_x_den_field_elm : Vec<F127> = psi_x[1].iter().map(|cur_coeff| {F127::from(*cur_coeff as u64) }).collect();
+
+    let x_num : DensePolynomial<<TestSWU127MapToIsogenousCurveParams as ModelParameters>::BaseField> = <DensePolynomial<<TestSWU127MapToIsogenousCurveParams as ModelParameters>::BaseField>>::from_coefficients_slice(&psi_x_num_field_elm.as_slice());
+
+    let x_den : DensePolynomial<<TestSWU127MapToIsogenousCurveParams as ModelParameters>::BaseField> = <DensePolynomial<<TestSWU127MapToIsogenousCurveParams as ModelParameters>::BaseField>>::from_coefficients_slice(&psi_x_den_field_elm.as_slice());
+//let mut x_num = F127::from("0");
+    //psi_x.iter().map(| curr_coeff | { x_num += F127::from(curr_coeff) * }
+    let psi_y_num_field_elm : Vec<F127> = psi_y[0].iter().map(|cur_coeff| {F127::from(*cur_coeff as u64) }).collect();
+
+    let psi_y_den_field_elm : Vec<F127> = psi_y[1].iter().map(|cur_coeff| {F127::from(*cur_coeff as u64) }).collect();
+
+    let y_num : DensePolynomial<<TestSWU127MapToIsogenousCurveParams as ModelParameters>::BaseField> = <DensePolynomial<<TestSWU127MapToIsogenousCurveParams as ModelParameters>::BaseField>>::from_coefficients_slice(&psi_y_num_field_elm.as_slice());
+
+    let y_den : DensePolynomial<<TestSWU127MapToIsogenousCurveParams as ModelParameters>::BaseField> = <DensePolynomial<<TestSWU127MapToIsogenousCurveParams as ModelParameters>::BaseField>>::from_coefficients_slice(&psi_y_den_field_elm.as_slice());
+
+    let img_x = x_num.evaluate(&domain_point.x) / x_den.evaluate(&domain_point.x);
+    let img_y = (y_num.evaluate(&domain_point.x) * domain_point.y) / y_den.evaluate(&domain_point.x);
+    Ok(GroupAffine::<TestWBF127MapToCurveParams>::new(img_x, img_y, false))
+
+}
+
+// E_isogenous : Elliptic Curve defined by y^2 = x^3 + 109*x + 124 over Finite Field of size 127
+impl WBParams for TestWBF127MapToCurveParams {
+    type IsogenousCurve = TestSWU127MapToIsogenousCurveParams;
+    const isogeny_map: fn(domain_point: GroupAffine<Self::IsogenousCurve>) -> Result<GroupAffine<Self>, HashToCurveError> = isogeny_e2_e1;
+
+}
+
+/// The point of the test is to get a  simpl SWU compatible curve
+/// and make simple hash
+#[test]
+fn hash_arbitary_string_to_curve_wb() {
+    use blake2::{VarBlake2b};
+
+    let test_wb_to_curve_hasher = MapToCurveBasedHasher::<GroupAffine<TestWBF127MapToCurveParams>, DefaultFieldHasher<VarBlake2b>, WBMap<TestWBF127MapToCurveParams>>::new(&[1]).unwrap();
+    
+    let hash_result = test_wb_to_curve_hasher.hash(b"if you stick a Babel fish in your ear you can instantly understand anything said to you in any form of language.").expect("fail to hash the string to curve");
+    
+    println!("{:?}, {:?}", hash_result, hash_result.x, );
+
+    assert!(hash_result.x != field_new!(F127, "0"));
+
 }
