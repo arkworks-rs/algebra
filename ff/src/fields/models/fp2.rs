@@ -2,11 +2,18 @@ use super::quadratic_extension::*;
 use crate::fields::PrimeField;
 use core::marker::PhantomData;
 
+/// Interface for defining the parameters of quadratic extension fields
 pub trait Fp2Parameters: 'static + Send + Sync {
+    /// Subfield of Fp2
     type Fp: PrimeField;
 
+    /// Element of the subfield F_p used to construct the extension field s.t.
+    /// a polynomial `f(X) = X^2 - Self::NONRESIDUE` in F_p\[X\] is irreducible
+    /// over the subfield
     const NONRESIDUE: Self::Fp;
 
+    /// Element of the extension field Fp2, represented as a tuple (c0, c1),
+    /// s.t. `c = c0 + c1 * X` for c0, c1 in `Self::Fp` is an element of Fp2
     const QUADRATIC_NONRESIDUE: (Self::Fp, Self::Fp);
 
     /// Coefficients for the Frobenius automorphism.
@@ -44,6 +51,7 @@ pub trait Fp2Parameters: 'static + Send + Sync {
     }
 }
 
+/// Wrapper for Fp2Parameters, allowing combination of Fp2Parameters & QuadExtParameters traits
 pub struct Fp2ParamsWrapper<P: Fp2Parameters>(PhantomData<P>);
 
 impl<P: Fp2Parameters> QuadExtParameters for Fp2ParamsWrapper<P> {
@@ -91,6 +99,8 @@ impl<P: Fp2Parameters> QuadExtParameters for Fp2ParamsWrapper<P> {
     }
 }
 
+/// Alias for instances of quadratic extension fields. Helpful for avoiding the
+/// implementation details of using Fp2ParamsWrapper.
 pub type Fp2<P> = QuadExtField<Fp2ParamsWrapper<P>>;
 
 impl<P: Fp2Parameters> Fp2<P> {
