@@ -104,6 +104,27 @@ impl<P: Fp2Parameters> QuadExtParameters for Fp2ParamsWrapper<P> {
 pub type Fp2<P> = QuadExtField<Fp2ParamsWrapper<P>>;
 
 impl<P: Fp2Parameters> Fp2<P> {
+    /// In-place multiply both coefficients `c0` & `c1` of the extension field
+    /// Fp2 by an element from the base field Fp. The coefficients themselves
+    /// are elements of Fp.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # extern crate ark_std;
+    /// # use ark_std::test_rng;
+    /// # use ark_ff::test_field::{Fq as Fp, Fq2 as Fp2};
+    /// # use ark_std::UniformRand;
+    /// let c0: Fp = Fp::rand(&mut test_rng());
+    /// let c1: Fp = Fp::rand(&mut test_rng());
+    /// let mut ext_element: Fp2 = Fp2::new(c0, c1);
+    ///
+    /// let base_field_element: Fp = Fp::rand(&mut test_rng());
+    /// ext_element.mul_assign_by_fp(&base_field_element);
+    ///
+    /// assert_eq!(ext_element.c0, c0*base_field_element);
+    /// assert_eq!(ext_element.c1, c1*base_field_element);
+    /// ```
     pub fn mul_assign_by_fp(&mut self, other: &P::Fp) {
         self.c0 *= other;
         self.c1 *= other;
