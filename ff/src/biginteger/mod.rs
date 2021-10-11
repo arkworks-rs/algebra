@@ -292,7 +292,7 @@ pub trait BigInteger:
     /// let vec = vec![0; 64];
     /// vec[0] = 1;
     /// assert_equal!(arr, vec);
-    /// ```
+    /// ``` 
     fn to_bytes_le(&self) -> Vec<u8>;
 
     /// Returns the windowed non-adjacent form of `self`, for a window of size `w`.
