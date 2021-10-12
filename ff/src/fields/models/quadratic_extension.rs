@@ -131,11 +131,26 @@ pub trait QuadExtParameters: 'static + Send + Sync + Sized {
     Eq(bound = "P: QuadExtParameters")
 )]
 pub struct QuadExtField<P: QuadExtParameters> {
+    /// coefficient c0 in the representation of the field element c = c0 + c1 * X
     pub c0: P::BaseField,
+    /// coefficient c1 in the representation of the field element c = c0 + c1 * X
     pub c1: P::BaseField,
 }
 
 impl<P: QuadExtParameters> QuadExtField<P> {
+    /// Create a new field element from coefficients
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use ark_std::test_rng;
+    /// # use ark_ff::test_field::{Fq as Fp, Fq2 as Fp2};
+    /// # use ark_std::UniformRand;
+    /// let c0: Fp = Fp::rand(&mut test_rng());
+    /// let c1: Fp = Fp::rand(&mut test_rng());
+    /// // `Fp2` is an alias for QuadExtField<Fp2ParamsWrapper<Fp2Parameters>>
+    /// let c: Fp2 = Fp2::new(c0, c1);
+    /// ```
     pub fn new(c0: P::BaseField, c1: P::BaseField) -> Self {
         Self { c0, c1 }
     }
