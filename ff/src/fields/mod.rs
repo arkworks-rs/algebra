@@ -161,8 +161,8 @@ pub trait Field:
     #[must_use]
     fn inverse(&self) -> Option<Self>;
 
-    // If `self.inverse().is_none()`, this just returns `None`. Otherwise, it sets
-    // `self` to `self.inverse().unwrap()`.
+    /// If `self.inverse().is_none()`, this just returns `None`. Otherwise, it sets
+    /// `self` to `self.inverse().unwrap()`.
     fn inverse_in_place(&mut self) -> Option<&mut Self>;
 
     /// Exponentiates this element by a power of the base prime modulus via
@@ -352,7 +352,10 @@ pub trait PrimeField:
     + From<BigUint>
     + Into<BigUint>
 {
+    /// Type alias for FpParameters
     type Params: FpParameters<BigInt = Self::BigInt>;
+
+    /// Type alias for BigInteger
     type BigInt: BigInteger;
 
     /// Returns a prime field element from its underlying representation.
