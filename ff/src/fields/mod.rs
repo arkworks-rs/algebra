@@ -438,6 +438,18 @@ pub trait SquareRootField: Field {
     fn sqrt_in_place(&mut self) -> Option<&mut Self>;
 }
 
+/// Indication of the field element's quadratic residuosity
+///
+/// # Examples
+/// ```
+/// # use ark_std::test_rng;
+/// # use ark_ff::test_field::Fq as Fp;
+/// # use ark_std::UniformRand;
+/// # use ark_ff::{LegendreSymbol, Field, SquareRootField};
+/// let a: Fp = Fp::rand(&mut test_rng());
+/// let b = a.square();
+/// assert_eq!(b.legendre(), LegendreSymbol::QuadraticResidue);
+/// ```
 #[derive(Debug, PartialEq)]
 pub enum LegendreSymbol {
     Zero = 0,
@@ -446,14 +458,47 @@ pub enum LegendreSymbol {
 }
 
 impl LegendreSymbol {
+    /// Returns true if the field element is a zero (mod `Field::MODULUS`)
+    ///
+    /// # Examples
+    /// ```
+    /// # use ark_std::test_rng;
+    /// # use ark_ff::test_field::Fq as Fp;
+    /// # use ark_std::UniformRand;
+    /// # use ark_ff::{LegendreSymbol, Field, SquareRootField};
+    /// let a: Fp = Fp::rand(&mut test_rng());
+    /// let b: Fp = a.square();
+    /// assert!(!b.legendre().is_zero());
+    /// ```
     pub fn is_zero(&self) -> bool {
         *self == LegendreSymbol::Zero
     }
 
+    /// Returns true if the field element is a non-quadratic residue
+    ///
+    /// # Examples
+    /// ```
+    /// # use ark_ff::test_field::{Fq, Fq2Parameters};
+    /// # use ark_ff::{LegendreSymbol, SquareRootField};
+    /// # use ark_ff::Fp2Parameters;
+    /// let a: Fq = Fq2Parameters::NONRESIDUE;
+    /// assert!(a.legendre().is_qnr());
+    /// ```
     pub fn is_qnr(&self) -> bool {
         *self == LegendreSymbol::QuadraticNonResidue
     }
 
+    /// Returns true if the field element is a quadratic residue
+    /// # Examples
+    /// ```
+    /// # use ark_std::test_rng;
+    /// # use ark_ff::test_field::Fq as Fp;
+    /// # use ark_std::UniformRand;
+    /// # use ark_ff::{LegendreSymbol, Field, SquareRootField};
+    /// let a: Fp = Fp::rand(&mut test_rng());
+    /// let b: Fp = a.square();
+    /// assert!(b.legendre().is_qr());
+    /// ```
     pub fn is_qr(&self) -> bool {
         *self == LegendreSymbol::QuadraticResidue
     }
