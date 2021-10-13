@@ -1,8 +1,8 @@
 use crate::{
+    biginteger::BigInteger,
     bytes::{FromBytes, ToBytes},
     fields::{BitIteratorBE, BitIteratorLE},
     UniformRand,
-    biginteger::BigInteger
 };
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, SerializationError};
 use ark_std::{
