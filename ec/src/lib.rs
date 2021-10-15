@@ -1,3 +1,4 @@
+#![feature(generic_const_exprs)]
 #![cfg_attr(not(feature = "std"), no_std)]
 #![warn(unused, future_incompatible, nonstandard_style, rust_2018_idioms)]
 #![forbid(unsafe_code)]
