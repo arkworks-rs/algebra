@@ -261,11 +261,11 @@ impl ModelParameters for TestWBF127MapToCurveParams {
 
 impl SWModelParameters for TestWBF127MapToCurveParams {
     /// COEFF_A = 1
-    const COEFF_A: F127 = field_new!(F127, "109");
+    const COEFF_A: F127 = field_new!(F127, "0");
 
     /// COEFF_B = 1
     #[rustfmt::skip]
-    const COEFF_B: F127 = field_new!(F127, "124");
+    const COEFF_B: F127 = field_new!(F127, "3");
 
     const COFACTOR: &'static [u64] = &[1];
 
@@ -308,18 +308,20 @@ fn isogeny_e2_e1(domain_point: GroupAffine<TestSWU127MapToIsogenousCurveParams>)
 }
 
 // E_isogenous : Elliptic Curve defined by y^2 = x^3 + 109*x + 124 over Finite Field of size 127
-impl WBParams for TestWBF127MapToCurveParams {
+impl WBParams<13> for TestWBF127MapToCurveParams 
+//where [(); ISO_DEG + 1]: Sized, [(); ISO_DEG*2 + 1]: Sized,
+{
     type IsogenousCurve = TestSWU127MapToIsogenousCurveParams;
 
-    const PHI_X_NOM = [field_new!(F127, "70"), field_new!(F127, "106"), field_new!(F127, "10"), field_new!(F127, "34"), field_new!(F127, "40"), field_new!(F127, "114"), field_new!(F127, "32"), field_new!(F127, "95"), field_new!(F127, "23"), field_new!(F127, "113"), field_new!(F127, "39"), field_new!(F127, "23"), field_new!(F127, "63"), field_new!(F127, " 4")];
+    const PHI_X_NOM: [<Self::IsogenousCurve as ModelParameters>::BaseField; 13 + 1] = [field_new!(F127, "70"), field_new!(F127, "106"), field_new!(F127, "10"), field_new!(F127, "34"), field_new!(F127, "40"), field_new!(F127, "114"), field_new!(F127, "32"), field_new!(F127, "95"), field_new!(F127, "23"), field_new!(F127, "113"), field_new!(F127, "39"), field_new!(F127, "23"), field_new!(F127, "63"), field_new!(F127, "4")];
 
-    const PHI_X_DEN = [field_new!(F127, "0"), field_new!(F127, "1"), field_new!(F127, "114"), field_new!(F127, "11"), field_new!(F127, "94"), field_new!(F127, "97"), field_new!(F127, "30"), field_new!(F127, "34"), field_new!(F127, "83"), field_new!(F127, "63"), field_new!(F127, "107"), field_new!(F127, "117"), field_new!(F127, "31"), field_new!(F127, "2")];
-
-    const PHI_Y_NOM = [field_new!(F127, "10"), field_new!(F127, " 59"), field_new!(F127, "41"), field_new!(F127, "48"), field_new!(F127, "120"), field_new!(F127, "6"), field_new!(F127, "5"), field_new!(F127, "62"), field_new!(F127, "12"), field_new!(F127, "36"), field_new!(F127, "78"), field_new!(F127, "109"), field_new!(F127, "64"), field_new!(F127, "84"), field_new!(F127, "67"), field_new!(F127, "109"), field_new!(F127, "30"), field_new!(F127, "70"), field_new!(F127, "93")];
+    const PHI_X_DEN: [<Self::IsogenousCurve as ModelParameters>::BaseField; 13 + 1] = [field_new!(F127, "0"), field_new!(F127, "1"), field_new!(F127, "114"), field_new!(F127, "11"), field_new!(F127, "94"), field_new!(F127, "97"), field_new!(F127, "30"), field_new!(F127, "34"), field_new!(F127, "83"), field_new!(F127, "63"), field_new!(F127, "107"), field_new!(F127, "117"), field_new!(F127, "31"), field_new!(F127, "2")];
+    
+    const PHI_Y_NOM: [<Self::IsogenousCurve as ModelParameters>::BaseField; 13*2 + 1] = [field_new!(F127, "0"), field_new!(F127, "0"), field_new!(F127, "0"), field_new!(F127, "0"), field_new!(F127, "0"), field_new!(F127, "0"), field_new!(F127, "0"), field_new!(F127, "0"), field_new!(F127, "10"), field_new!(F127, "59"), field_new!(F127, "41"), field_new!(F127, "48"), field_new!(F127, "120"), field_new!(F127, "6"), field_new!(F127, "5"), field_new!(F127, "62"), field_new!(F127, "12"), field_new!(F127, "36"), field_new!(F127, "78"), field_new!(F127, "109"), field_new!(F127, "64"), field_new!(F127, "84"), field_new!(F127, "67"), field_new!(F127, "109"), field_new!(F127, "30"), field_new!(F127, "70"), field_new!(F127, "93")];
                        
-    const PHI_Y_DEN = [field_new!(F127, "1"), field_new!(F127, "44"), field_new!(F127, "64"), field_new!(F127, "52"), field_new!(F127, "3"), field_new!(F127, "38"), field_new!(F127, "97"), field_new!(F127, "11"), field_new!(F127, "85"), field_new!(F127, "114"), field_new!(F127, "81"), field_new!(F127, "66"), field_new!(F127, "111"), field_new!(F127, "72"), field_new!(F127, "18"), field_new!(F127, "23"), field_new!(F127, "103"), field_new!(F127, "109"), field_new!(F127, "32")];
+    const PHI_Y_DEN: [<Self::IsogenousCurve as ModelParameters>::BaseField; 13*2 + 1] = [field_new!(F127, "0"), field_new!(F127, "0"), field_new!(F127, "0"), field_new!(F127, "0"), field_new!(F127, "0"), field_new!(F127, "0"), field_new!(F127, "0"), field_new!(F127, "0"), field_new!(F127, "0"), field_new!(F127, "44"), field_new!(F127, "64"), field_new!(F127, "52"), field_new!(F127, "3"), field_new!(F127, "38"), field_new!(F127, "97"), field_new!(F127, "11"), field_new!(F127, "85"), field_new!(F127, "114"), field_new!(F127, "81"), field_new!(F127, "66"), field_new!(F127, "111"), field_new!(F127, "72"), field_new!(F127, "18"), field_new!(F127, "23"), field_new!(F127, "103"), field_new!(F127, "109"), field_new!(F127, "32")];
 
-    const isogeny_map: fn(domain_point: GroupAffine<Self::IsogenousCurve>) -> Result<GroupAffine<Self>, HashToCurveError> = isogeny_e2_e1;
+    //const isogeny_map: fn(domain_point: GroupAffine<Self::IsogenousCurve>) -> Result<GroupAffine<Self>, HashToCurveError> = isogeny_e2_e1;
 
 }
 
@@ -329,11 +331,11 @@ impl WBParams for TestWBF127MapToCurveParams {
 fn hash_arbitary_string_to_curve_wb() {
     use blake2::{VarBlake2b};
 
-    let test_wb_to_curve_hasher = MapToCurveBasedHasher::<GroupAffine<TestWBF127MapToCurveParams>, DefaultFieldHasher<VarBlake2b>, WBMap<TestWBF127MapToCurveParams>>::new(&[1]).unwrap();
+    let test_wb_to_curve_hasher = MapToCurveBasedHasher::<GroupAffine<TestWBF127MapToCurveParams>, DefaultFieldHasher<VarBlake2b>, WBMap<13, TestWBF127MapToCurveParams>>::new(&[1]).unwrap();
     
     let hash_result = test_wb_to_curve_hasher.hash(b"if you stick a Babel fish in your ear you can instantly understand anything said to you in any form of language.").expect("fail to hash the string to curve");
     
-    println!("{:?}, {:?}", hash_result, hash_result.x, );
+    println!("the wb hash is: {:?}", hash_result);
 
     assert!(hash_result.x != field_new!(F127, "0"));
 

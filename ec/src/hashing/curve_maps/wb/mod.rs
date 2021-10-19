@@ -22,16 +22,16 @@ use super::swu::{SWUParams, SWUMap};
 ///
 ///
 pub trait WBParams<const ISO_DEG: usize> : SWModelParameters + Sized
-    where [(); ISO_DEG]: Sized, [(); ISO_DEG*2]: Sized,
+    where [(); ISO_DEG + 1]: Sized, [(); ISO_DEG*2 + 1]: Sized,
 {
     //The isogenouscurve should be defined over the same basefield but it can have different scalar field
     //type IsogenousCurveScalarField :
     type IsogenousCurve : SWUParams::<BaseField = <Self as ModelParameters>::BaseField>;
     //const ISO_DEG: usize;
-    const PHI_X_NOM: [<Self::IsogenousCurve as ModelParameters>::BaseField; ISO_DEG];
-    const PHI_X_DEN: [<Self::IsogenousCurve as ModelParameters>::BaseField; ISO_DEG];
-    const PHI_Y_NOM: [<Self::IsogenousCurve as ModelParameters>::BaseField; ISO_DEG*2];
-    const PHI_Y_DEN: [<Self::IsogenousCurve as ModelParameters>::BaseField; ISO_DEG*2];
+    const PHI_X_NOM: [<Self::IsogenousCurve as ModelParameters>::BaseField; ISO_DEG + 1];
+    const PHI_X_DEN: [<Self::IsogenousCurve as ModelParameters>::BaseField; ISO_DEG + 1];
+    const PHI_Y_NOM: [<Self::IsogenousCurve as ModelParameters>::BaseField; ISO_DEG*2 + 1];
+    const PHI_Y_DEN: [<Self::IsogenousCurve as ModelParameters>::BaseField; ISO_DEG*2 + 1];
 
     fn isogeny_map(domain_point: GroupAffine<Self::IsogenousCurve>) -> Result<GroupAffine<Self>, HashToCurveError>{
 
@@ -54,9 +54,8 @@ pub trait WBParams<const ISO_DEG: usize> : SWModelParameters + Sized
 	
 }
 
-
 pub struct WBMap<const ISO_DEG: usize, P: WBParams<ISO_DEG>>
-where [(); ISO_DEG]: Sized, [(); ISO_DEG*2]: Sized,
+where [(); ISO_DEG + 1]: Sized, [(); ISO_DEG*2 + 1]: Sized,
 {
     pub domain: Vec<u8>,
     swu_field_curve_hasher: SWUMap<P::IsogenousCurve>,
@@ -66,7 +65,7 @@ where [(); ISO_DEG]: Sized, [(); ISO_DEG*2]: Sized,
 }
 
 impl<const ISO_DEG: usize, P: WBParams<ISO_DEG>> MapToCurve<GroupAffine<P>> for WBMap<ISO_DEG, P>
-        where [(); ISO_DEG]: Sized, [(); ISO_DEG*2]: Sized,
+    where [(); ISO_DEG + 1]: Sized, [(); ISO_DEG*2 + 1]: Sized,
 {
 
     ///This is to verify if the provided WBparams makes sense, doesn't do much for now
