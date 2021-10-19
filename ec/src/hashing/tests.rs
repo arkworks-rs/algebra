@@ -16,6 +16,12 @@ use std::collections::HashMap;
 
 use ark_poly::{Polynomial, UVPolynomial, univariate::{DensePolynomial}};
 
+//use ark_bls12_377::Bls12_377;
+//use ark_bl12_377::{
+//    fields::{FQ_ONE, FQ_ZERO},
+//    Fq, Fr,
+//};
+
 pub type F127 = Fp64<F127Parameters>;
 
 pub struct F127Parameters;
@@ -133,6 +139,7 @@ impl SWModelParameters for TestSWUMapToCurveParams {
 
 
 }
+
 impl SWUParams for TestSWUMapToCurveParams {
 
     const XI : F127 = field_new!(F127, "-1");
@@ -303,6 +310,15 @@ fn isogeny_e2_e1(domain_point: GroupAffine<TestSWU127MapToIsogenousCurveParams>)
 // E_isogenous : Elliptic Curve defined by y^2 = x^3 + 109*x + 124 over Finite Field of size 127
 impl WBParams for TestWBF127MapToCurveParams {
     type IsogenousCurve = TestSWU127MapToIsogenousCurveParams;
+
+    const PHI_X_NOM = [field_new!(F127, "70"), field_new!(F127, "106"), field_new!(F127, "10"), field_new!(F127, "34"), field_new!(F127, "40"), field_new!(F127, "114"), field_new!(F127, "32"), field_new!(F127, "95"), field_new!(F127, "23"), field_new!(F127, "113"), field_new!(F127, "39"), field_new!(F127, "23"), field_new!(F127, "63"), field_new!(F127, " 4")];
+
+    const PHI_X_DEN = [field_new!(F127, "0"), field_new!(F127, "1"), field_new!(F127, "114"), field_new!(F127, "11"), field_new!(F127, "94"), field_new!(F127, "97"), field_new!(F127, "30"), field_new!(F127, "34"), field_new!(F127, "83"), field_new!(F127, "63"), field_new!(F127, "107"), field_new!(F127, "117"), field_new!(F127, "31"), field_new!(F127, "2")];
+
+    const PHI_Y_NOM = [field_new!(F127, "10"), field_new!(F127, " 59"), field_new!(F127, "41"), field_new!(F127, "48"), field_new!(F127, "120"), field_new!(F127, "6"), field_new!(F127, "5"), field_new!(F127, "62"), field_new!(F127, "12"), field_new!(F127, "36"), field_new!(F127, "78"), field_new!(F127, "109"), field_new!(F127, "64"), field_new!(F127, "84"), field_new!(F127, "67"), field_new!(F127, "109"), field_new!(F127, "30"), field_new!(F127, "70"), field_new!(F127, "93")];
+                       
+    const PHI_Y_DEN = [field_new!(F127, "1"), field_new!(F127, "44"), field_new!(F127, "64"), field_new!(F127, "52"), field_new!(F127, "3"), field_new!(F127, "38"), field_new!(F127, "97"), field_new!(F127, "11"), field_new!(F127, "85"), field_new!(F127, "114"), field_new!(F127, "81"), field_new!(F127, "66"), field_new!(F127, "111"), field_new!(F127, "72"), field_new!(F127, "18"), field_new!(F127, "23"), field_new!(F127, "103"), field_new!(F127, "109"), field_new!(F127, "32")];
+
     const isogeny_map: fn(domain_point: GroupAffine<Self::IsogenousCurve>) -> Result<GroupAffine<Self>, HashToCurveError> = isogeny_e2_e1;
 
 }
@@ -322,3 +338,4 @@ fn hash_arbitary_string_to_curve_wb() {
     assert!(hash_result.x != field_new!(F127, "0"));
 
 }
+
