@@ -12,8 +12,6 @@ use core::marker::PhantomData;
 use num_traits::{One, Zero};
 
 #[cfg(feature = "parallel")]
-use ark_ff::{Fp12ParamsWrapper, Fp2ParamsWrapper, QuadExtField};
-#[cfg(feature = "parallel")]
 use ark_std::cfg_iter;
 #[cfg(feature = "parallel")]
 use core::slice::Iter;
@@ -150,13 +148,13 @@ impl<P: Bls12Parameters> PairingEngine for Bls12<P> {
                  coeffs: &Iter<
             '_,
             (
-                QuadExtField<Fp2ParamsWrapper<<P as Bls12Parameters>::Fp2Params>>,
-                QuadExtField<Fp2ParamsWrapper<<P as Bls12Parameters>::Fp2Params>>,
-                QuadExtField<Fp2ParamsWrapper<<P as Bls12Parameters>::Fp2Params>>,
+                Fp2<<P as Bls12Parameters>::Fp2Params>,
+                Fp2<<P as Bls12Parameters>::Fp2Params>,
+                Fp2<<P as Bls12Parameters>::Fp2Params>,
             ),
         >,
-                 mut f: QuadExtField<Fp12ParamsWrapper<<P as Bls12Parameters>::Fp12Params>>|
-         -> QuadExtField<Fp12ParamsWrapper<<P as Bls12Parameters>::Fp12Params>> {
+                 mut f: Fp12<<P as Bls12Parameters>::Fp12Params>|
+         -> Fp12<<P as Bls12Parameters>::Fp12Params> {
             let coeffs = coeffs.as_slice();
             let mut j = 0;
             for i in BitIteratorBE::new(P::X).skip(1) {

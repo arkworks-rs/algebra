@@ -6,7 +6,6 @@ use ark_std::{
     cmp::{Ord, Ordering, PartialOrd},
     fmt,
     io::{Read, Result as IoResult, Write},
-    marker::PhantomData,
     ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign},
     vec::Vec,
 };
@@ -134,26 +133,21 @@ pub trait QuadExtParameters: 'static + Send + Sync + Sized {
 pub struct QuadExtField<P: QuadExtParameters> {
     pub c0: P::BaseField,
     pub c1: P::BaseField,
-    #[derivative(Debug = "ignore")]
-    #[doc(hidden)]
-    pub _parameters: PhantomData<P>,
 }
 
 impl<P: QuadExtParameters> QuadExtField<P> {
     pub fn new(c0: P::BaseField, c1: P::BaseField) -> Self {
-        QuadExtField {
-            c0,
-            c1,
-            _parameters: PhantomData,
-        }
+        Self { c0, c1 }
     }
 
-    /// This is only to be used when the element is *known* to be in the cyclotomic subgroup.
+    /// This is only to be used when the element is *known* to be in the
+    /// cyclotomic subgroup.
     pub fn conjugate(&mut self) {
         self.c1 = -self.c1;
     }
 
-    /// This is only to be used when the element is *known* to be in the cyclotomic subgroup.
+    /// This is only to be used when the element is *known* to be in the
+    /// cyclotomic subgroup.
     pub fn cyclotomic_exp(&self, exponent: impl AsRef<[u64]>) -> Self {
         P::cyclotomic_exp(self, exponent)
     }

@@ -18,12 +18,14 @@ pub enum TwistType {
 }
 
 pub trait BnParameters: 'static {
-    // The absolute value of the BN curve parameter `X` (as in `q = 36 X^4 + 36 X^3 + 24 X^2 + 6 X + 1`).
+    /// The absolute value of the BN curve parameter `X`
+    /// (as in `q = 36 X^4 + 36 X^3 + 24 X^2 + 6 X + 1`).
     const X: &'static [u64];
-    // Whether or not `X` is negative.
+
+    /// Whether or not `X` is negative.
     const X_IS_NEGATIVE: bool;
 
-    // The absolute value of `6X + 2`.
+    /// The absolute value of `6X + 2`.
     const ATE_LOOP_COUNT: &'static [i8];
 
     const TWIST_TYPE: TwistType;
@@ -53,7 +55,7 @@ pub use self::{
 pub struct Bn<P: BnParameters>(PhantomData<fn() -> P>);
 
 impl<P: BnParameters> Bn<P> {
-    // Evaluate the line function at point p.
+    /// Evaluates the line function at point p.
     fn ell(f: &mut Fp12<P::Fp12Params>, coeffs: &g2::EllCoeff<Fp2<P::Fp2Params>>, p: &G1Affine<P>) {
         let mut c0 = coeffs.0;
         let mut c1 = coeffs.1;

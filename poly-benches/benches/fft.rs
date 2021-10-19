@@ -1,13 +1,13 @@
 extern crate criterion;
 
 use ark_ff::FftField;
-use ark_poly::{polynomial::univariate::DensePolynomial, polynomial::UVPolynomial};
-use ark_poly::{EvaluationDomain, MixedRadixEvaluationDomain, Radix2EvaluationDomain};
+use ark_poly::{
+    polynomial::{univariate::DensePolynomial, UVPolynomial},
+    EvaluationDomain, MixedRadixEvaluationDomain, Radix2EvaluationDomain,
+};
 use ark_poly_benches::size_range;
-use ark_test_curves::bls12_381::Fr as bls12_381_fr;
-use ark_test_curves::mnt4_753::Fq as mnt6_753_fr;
-use criterion::BenchmarkId;
-use criterion::{criterion_group, criterion_main, Bencher, Criterion};
+use ark_test_curves::{bls12_381::Fr as bls12_381_fr, mnt4_753::Fq as mnt6_753_fr};
+use criterion::{criterion_group, criterion_main, Bencher, BenchmarkId, Criterion};
 
 // degree bounds to benchmark on
 // e.g. degree bound of 2^{15}, means we do an FFT for a degree (2^{15} - 1) polynomial

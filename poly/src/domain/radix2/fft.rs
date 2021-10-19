@@ -1,8 +1,7 @@
 // The code below is a port of the excellent library of https://github.com/kwantam/fffft by Riad S. Wahby
 // to the arkworks APIs
 
-use crate::domain::utils::compute_powers_serial;
-use crate::domain::{radix2::*, DomainCoeff};
+use crate::domain::{radix2::*, utils::compute_powers_serial, DomainCoeff};
 use ark_ff::FftField;
 use ark_std::{cfg_chunks_mut, vec::Vec};
 #[cfg(feature = "parallel")]
@@ -12,9 +11,11 @@ use rayon::prelude::*;
 enum FFTOrder {
     /// Both the input and the output of the FFT must be in-order.
     II,
-    /// The input of the FFT must be in-order, but the output does not have to be.
+    /// The input of the FFT must be in-order, but the output does not have to
+    /// be.
     IO,
-    /// The input of the FFT can be out of order, but the output must be in-order.
+    /// The input of the FFT can be out of order, but the output must be
+    /// in-order.
     OI,
 }
 
@@ -284,8 +285,8 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
 /// is beneficial.
 const MIN_NUM_CHUNKS_FOR_COMPACTION: usize = 1 << 7;
 
-/// The minimum size of a chunk at which parallelization of `butterfly`s is beneficial.
-/// This value was chosen empirically.
+/// The minimum size of a chunk at which parallelization of `butterfly`s is
+/// beneficial. This value was chosen empirically.
 const MIN_GAP_SIZE_FOR_PARALLELISATION: usize = 1 << 10;
 
 // minimum size at which to parallelize.

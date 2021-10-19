@@ -1,15 +1,13 @@
-use {
-    crate::{
-        models::{ModelParameters, SWModelParameters},
-        PairingEngine,
-    },
-    ark_ff::{
-        fp2::{Fp2, Fp2Parameters},
-        fp4::{Fp4, Fp4Parameters},
-        BitIteratorBE, Field, PrimeField, SquareRootField,
-    },
-    num_traits::{One, Zero},
+use crate::{
+    models::{ModelParameters, SWModelParameters},
+    PairingEngine,
 };
+use ark_ff::{
+    fp2::{Fp2, Fp2Parameters},
+    fp4::{Fp4, Fp4Parameters},
+    BitIteratorBE, Field, PrimeField, SquareRootField,
+};
+use num_traits::{One, Zero};
 
 use core::marker::PhantomData;
 
