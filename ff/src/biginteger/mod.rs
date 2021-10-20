@@ -1,5 +1,4 @@
 use crate::{
-    BigInteger,
     bytes::{FromBytes, ToBytes},
     fields::{BitIteratorBE, BitIteratorLE},
     UniformRand,
@@ -25,7 +24,7 @@ mod macros;
 
 /// Compute the signed modulo operation on a u64 representation, returning the result.
 /// Example:
-/// let res = signed_mod_reduction(-5u)
+/// `let res = signed_mod_reduction(-5u)`.
 pub fn signed_mod_reduction(n: u64, modulus: u64) -> i64 {
     let t = (n % modulus) as i64;
     if t as u64 >= (modulus / 2) {
@@ -80,7 +79,7 @@ pub trait BigInteger:
     /// # Example
     ///
     /// ```
-    /// use crate::BigInteger as B;
+    /// use ark_ff::{biginteger::BigInteger64 as B, BigInteger as _};
     ///
     /// let (mut one, mut two_add, mut three) = (B::from(1u64), B::from(2u64), B::from(3u64));
     /// two_add.add_nocarry(&one);
@@ -92,7 +91,7 @@ pub trait BigInteger:
     /// # Example
     ///
     /// ```
-    /// use crate::BigInteger as B;
+    /// use ark_ff::{biginteger::BigInteger64 as B, BigInteger as _};
     ///
     /// let (mut one, mut two, mut three_sub) = (B::from(1u64), B::from(2u64), B::from(3u64));
     /// three_sub.sub_noborrow(&two);
@@ -105,7 +104,7 @@ pub trait BigInteger:
     /// # Example
     ///
     /// ```
-    /// use crate::BigInteger as B;
+    /// use ark_ff::{biginteger::BigInteger64 as B, BigInteger as _};
     ///
     /// let (mut two_mul, mut four) = (B::from(2u64), B::from(4u64));
     /// two_mul.mul2();
@@ -117,7 +116,7 @@ pub trait BigInteger:
     /// # Example
     ///
     /// ```
-    /// use crate::BigInteger as B;
+    /// use ark_ff::{biginteger::BigInteger64 as B, BigInteger as _};
     ///
     /// let (mut one_mul, mut thirty_two) = (B::from(1u64), B::from(32u64));
     /// one_mul.muln(5);
@@ -130,7 +129,7 @@ pub trait BigInteger:
     /// # Example
     ///
     /// ```
-    /// use crate::BigInteger as B;
+    /// use ark_ff::{biginteger::BigInteger64 as B, BigInteger as _};
     ///
     /// let (mut two, mut four_div) = (B::from(2u64), B::from(4u64));
     /// four_div.div2();
@@ -142,7 +141,7 @@ pub trait BigInteger:
     /// # Example
     ///
     /// ```
-    /// use crate::BigInteger as B;
+    /// use ark_ff::{biginteger::BigInteger64 as B, BigInteger as _};
     ///
     /// let (mut one, mut thirty_two_div) = (B::from(1u64), B::from(32u64));
     /// thirty_two_div.divn(5);
@@ -154,7 +153,7 @@ pub trait BigInteger:
     /// # Example
     ///
     /// ```
-    /// use crate::BigInteger as B;
+    /// use ark_ff::{biginteger::BigInteger64 as B, BigInteger as _};
     ///
     /// let mut one = B::from(1u64);
     /// assert!(one.is_odd());
@@ -165,10 +164,10 @@ pub trait BigInteger:
     /// # Example
     ///
     /// ```
-    /// use crate::BigInteger as B;
+    /// use ark_ff::{biginteger::BigInteger64 as B, BigInteger as _};
     ///
     /// let mut two = B::from(2u64);
-    /// assert!(one.is_even());
+    /// assert!(two.is_even());
     /// ```
     fn is_even(&self) -> bool;
 
@@ -176,22 +175,26 @@ pub trait BigInteger:
     /// # Example
     ///
     /// ```
-    /// use crate::BigInteger as B;
+    /// use ark_ff::{biginteger::BigInteger64 as B, BigInteger as _};
     ///
     /// let mut zero = B::from(0u64);
     /// assert!(zero.is_zero());
     /// ```
     fn is_zero(&self) -> bool;
 
-    /// Compute the number of bits needed to encode this number. Always a
-    /// multiple of 64.
+    /// Compute the minimum number of bits needed to encode this number.
     /// # Example
-    ///
     /// ```
-    /// use crate::BigInteger as B;
+    /// use ark_ff::{biginteger::BigInteger64 as B, BigInteger as _};
     ///
-    /// let mut zero = B::from(0u64);
-    /// assert_equal!(zero.num_bits(), 64u32);
+    /// let zero = B::from(0u64);
+    /// assert_eq!(zero.num_bits(), 0);
+    /// let one = B::from(1u64);
+    /// assert_eq!(one.num_bits(), 1);
+    /// let max = B::from(u64::MAX);
+    /// assert_eq!(max.num_bits(), 64);
+    /// let u32_max = B::from(u32::MAX as u64);
+    /// assert_eq!(u32_max.num_bits(), 32);
     /// ```
     fn num_bits(&self) -> u32;
 
@@ -199,7 +202,7 @@ pub trait BigInteger:
     /// # Example
     ///
     /// ```
-    /// use crate::BigInteger as B;
+    /// use ark_ff::{biginteger::BigInteger64 as B, BigInteger as _};
     ///
     /// let mut one = B::from(1u64);
     /// assert!(one.get_bit(0));
@@ -212,12 +215,12 @@ pub trait BigInteger:
     /// # Example
     ///
     /// ```
-    /// use crate::BigInteger as B;
+    /// use ark_ff::{biginteger::BigInteger64 as B, BigInteger as _};
     ///
     /// let mut arr : [bool; 64] = [false; 64];
     /// arr[63] = true;
     /// let mut one = B::from(1u64);
-    /// assert_equal!(B::from_bits_be(&arr), one);
+    /// assert_eq!(B::from_bits_be(&arr), one);
     /// ```   
     fn from_bits_be(bits: &[bool]) -> Self;
 
@@ -226,12 +229,12 @@ pub trait BigInteger:
     /// # Example
     ///
     /// ```
-    /// use crate::BigInteger as B;
+    /// use ark_ff::{biginteger::BigInteger64 as B, BigInteger as _};
     ///
     /// let mut arr : [bool; 64] = [false; 64];
     /// arr[0] = true;
     /// let mut one = B::from(1u64);
-    /// assert_equal!(B::from_bits_le(&arr), one);
+    /// assert_eq!(B::from_bits_le(&arr), one);
     /// ```   
     fn from_bits_le(bits: &[bool]) -> Self;
 
@@ -240,13 +243,13 @@ pub trait BigInteger:
     /// # Example
     ///
     /// ```
-    /// use crate::BigInteger as B;
+    /// use ark_ff::{biginteger::BigInteger64 as B, BigInteger as _};
     ///
-    /// let mut one = B::from(1u64);
-    /// let arr : Vec<bool> = one.to_bits_be();
-    /// let vec = vec![false; 64];
+    /// let one = B::from(1u64);
+    /// let arr = one.to_bits_be();
+    /// let mut vec = vec![false; 64];
     /// vec[63] = true;
-    /// assert_equal!(arr, vec);
+    /// assert_eq!(arr, vec);
     /// ```  
     fn to_bits_be(&self) -> Vec<bool> {
         BitIteratorBE::new(self).collect::<Vec<_>>()
@@ -257,13 +260,13 @@ pub trait BigInteger:
     /// # Example
     ///
     /// ```
-    /// use crate::BigInteger as B;
+    /// use ark_ff::{biginteger::BigInteger64 as B, BigInteger as _};
     ///
-    /// let mut one = B::from(1u64);
-    /// let arr : Vec<bool> = one.to_bits_le();
-    /// let vec = vec![false; 64];
+    /// let one = B::from(1u64);
+    /// let arr = one.to_bits_le();
+    /// let mut vec = vec![false; 64];
     /// vec[0] = true;
-    /// assert_equal!(arr, vec);
+    /// assert_eq!(arr, vec);
     /// ```
     fn to_bits_le(&self) -> Vec<bool> {
         BitIteratorLE::new(self).collect::<Vec<_>>()
@@ -274,13 +277,13 @@ pub trait BigInteger:
     /// # Example
     ///
     /// ```
-    /// use crate::BigInteger as B;
+    /// use ark_ff::{biginteger::BigInteger64 as B, BigInteger as _};
     ///
-    /// let mut one = B::from(1u64);
-    /// let arr : Vec<u8> = one.to_bits_be();
-    /// let vec = vec![0; 64];
-    /// vec[63] = 1;
-    /// assert_equal!(arr, vec);
+    /// let one = B::from(1u64);
+    /// let arr = one.to_bytes_be();
+    /// let mut vec = vec![0; 8];
+    /// vec[7] = 1;
+    /// assert_eq!(arr, vec);
     /// ```
     fn to_bytes_be(&self) -> Vec<u8>;
 
@@ -289,13 +292,13 @@ pub trait BigInteger:
     /// # Example
     ///
     /// ```
-    /// use crate::BigInteger as B;
+    /// use ark_ff::{biginteger::BigInteger64 as B, BigInteger as _};
     ///
-    /// let mut one = B::from(1u64);
-    /// let arr : Vec<u8> = one.to_bits_le();
-    /// let vec = vec![0; 64];
+    /// let one = B::from(1u64);
+    /// let arr = one.to_bytes_le();
+    /// let mut vec = vec![0; 8];
     /// vec[0] = 1;
-    /// assert_equal!(arr, vec);
+    /// assert_eq!(arr, vec);
     /// ```
     fn to_bytes_le(&self) -> Vec<u8>;
 
@@ -330,13 +333,13 @@ pub trait BigInteger:
     }
 
     /// Writes this `BigInteger` as a big endian integer. Always writes
-    /// `(num_bits` / 8) bytes.
+    /// `NUM_LIMBS * 8` bytes.
     fn write_le<W: Write>(&self, writer: &mut W) -> IoResult<()> {
         self.write(writer)
     }
 
-    /// Reads a big endian integer occupying (`num_bits` / 8) bytes into this
-    /// representation.
+    /// Reads a big endian integer occupying
+    /// `NUM_LIMBS * 8` bytes into this representation.
     fn read_le<R: Read>(&mut self, reader: &mut R) -> IoResult<()> {
         *self = Self::read(reader)?;
         Ok(())
