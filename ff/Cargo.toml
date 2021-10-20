@@ -33,3 +33,7 @@ default = []
 std = [ "ark-std/std", "ark-serialize/std" ]
 parallel = [ "std", "rayon", "ark-std/parallel" ]
 asm = []
+# The reason we do this is because items with cfg(doctest) are not compiled
+# for doctests, see: https://github.com/rust-lang/rust/issues/67295
+# Tests should be run with `cargo test --features test`
+test = []
