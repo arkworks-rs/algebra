@@ -99,8 +99,8 @@ impl<P: Fp2Parameters> QuadExtParameters for Fp2ParamsWrapper<P> {
     }
 }
 
-/// Alias for instances of quadratic extension fields. Helpful for avoiding the
-/// implementation details of using Fp2ParamsWrapper.
+/// Alias for instances of quadratic extension fields. Helpful for omitting verbose
+/// instantiations involving `Fp2ParamsWrapper`.
 pub type Fp2<P> = QuadExtField<Fp2ParamsWrapper<P>>;
 
 impl<P: Fp2Parameters> Fp2<P> {

@@ -7,21 +7,32 @@
 </p>
 
 This crate defines Finite Field traits and useful abstraction models that follow these traits.
-Implementations of finite fields with concrete parameters can be found in [`arkworks-rs/curves`](https://github.com/arkworks-rs/curves/README.md) under `arkworks-rs/curves/<your favourite curve>/src/fields/`, which are used for some of the popular curves, such as [`Fq`](https://github.com/arkworks-rs/curves/blob/master/bls12_381/src/fields/fq.rs) used in BLS-381.
+Implementations of finite fields with concrete parameters can be found in [`arkworks-rs/curves`](https://github.com/arkworks-rs/curves/README.md) under `arkworks-rs/curves/<your favourite curve>/src/fields/`, which are used for some of the popular curves, such as a specific [`Fq`](https://github.com/arkworks-rs/curves/blob/master/bls12_381/src/fields/fq.rs) used in BLS-381.
 
-It is important to distinguish two types of traits here: 
-- Fields: define an interface for basic manipulation of field elements by providing methods for in-place operations (such as doubling or sqrt) and functions inherent to the field. 
-- Field Parameters: hold the parameters that define the precise field, as well as provide additional functionality that the field has aquired (e.g. operations involving a QNR by extending the field).
+This crate contains two types of traits:
+- Field: defines an interface for instantiation and manipulation of field elements by methods inherent to the field, as well as provides useful getters on the underlying field and on the element.
+- Field Parameters: holds the parameters defining the field in question. For extension fields, it also provides additional functionality aquired on the field, such as operations involving a QNR used for constructing the field (`NONRESIDUE`).
 
 
-The available traits are:
+The available field traits are:
 
 * [`Field`](https://github.com/arkworks-rs/algebra/blob/master/ff/src/fields/mod.rs#L65) - Interface for the most generic finte field
-* [`FftField`](https://github.com/arkworks-rs/algebra/blob/master/ff/src/fields/mod.rs#L273) - Exposes methods that allow for performing FFT on this Field's  elements
-* [`PrimeField`](https://github.com/arkworks-rs/algebra/blob/master/ff/src/fields/mod.rs#L345) - Relies on the `Field` supertrait 
-* [`SquareRootField`](https://github.com/arkworks-rs/algebra/blob/master/ff/src/fields/mod.rs#L425) - Interface for Fields that support square-root operations, such as ...
+* [`FftField`](https://github.com/arkworks-rs/algebra/blob/master/ff/src/fields/mod.rs#L273) - Exposes methods that allow for performing efficient FFTs on this field's elements
+* [`PrimeField`](https://github.com/arkworks-rs/algebra/blob/master/ff/src/fields/mod.rs#L345) - Field with `p` (`p` prime) elements, later referred to as `Fp`.
+* [`SquareRootField`](https://github.com/arkworks-rs/algebra/blob/master/ff/src/fields/mod.rs#L425) - Interface for fields that support square-root operations
 
 The models implemented are:
 
-* [`Quadratic Extension`](https://github.com/arkworks-rs/algebra/blob/master/ff/src/fields/models/quadratic_extension.rs) - 
-* [`Cubic Extension`](https://github.com/arkworks-rs/algebra/blob/master/ff/src/fields/models/cubic_extension.rs) - 
+* [`Quadratic Extension`](https://github.com/arkworks-rs/algebra/blob/master/ff/src/fields/models/quadratic_extension.rs)
+  * [`QuadExtField`](https://github.com/arkworks-rs/algebra/blob/mmagician%2Fff-docs/ff/src/fields/models/quadratic_extension.rs#L140) - Struct representing a quadratic extension field, in this case holding two elements
+  * [`QuadExtParameters`](https://github.com/arkworks-rs/algebra/blob/mmagician%2Fff-docs/ff/src/fields/models/quadratic_extension.rs#L27) - Trait defining the necessary parameters needed to instantiate a Quadratic Extension Field
+* [`Cubic Extension`](https://github.com/arkworks-rs/algebra/blob/master/ff/src/fields/models/cubic_extension.rs)
+  * [`CubicExtField`](https://github.com/arkworks-rs/algebra/blob/mmagician%2Fff-docs/ff/src/fields/models/cubic_extension.rs#L72) - Struct representing a cubic extension field, holds three elements
+  * [`CubicExtParameters`](https://github.com/arkworks-rs/algebra/blob/mmagician%2Fff-docs/ff/src/fields/models/cubic_extension.rs#L27) - Trait defining the necessary parameters needed to instantiate a Cubic Extension Field
+  
+The above two models serve as abstractions for constructing the extension fields `Fp^m` directly (i.e. `m` equal 2 or 3) or for creating extension towers to arrive at higher `m`. The latter is done by applying the extensions iteratively, e.g. cubic extension over a quadratic extension field.
+* [`Fp2`](https://github.com/arkworks-rs/algebra/blob/mmagician%2Fff-docs/ff/src/fields/models/fp2.rs#L102) - Quadratic extension directly on the prime field, i.e. `BaseField == BasePrimeField`
+* [`Fp3`]() - Cubic extension directly on the prime field, i.e. `BaseField == BasePrimeField`
+* [`Fp6_2over3`](https://github.com/arkworks-rs/algebra/blob/mmagician%2Fff-docs/ff/src/fields/models/fp6_2over3.rs#L48) - Extension tower: quadratic extension on a cubic extension field, i.e. `BaseField = Fp3`, but `BasePrimeField = Fp`.
+* [`Fp6_3over2`](https://github.com/arkworks-rs/algebra/blob/mmagician%2Fff-docs/ff/src/fields/models/fp6_3over2.rs#L49) - Extension tower, similar to the above except that the towering order is reversed: it's a cubic extension on a quadratic extension field, i.e. `BaseField = Fp2`, but `BasePrimeField = Fp`. Only this latter one is exported by default as `Fp6`.
+* [`Fp12_2over3over2`](https://github.com/arkworks-rs/algebra/blob/mmagician%2Fff-docs/ff/src/fields/models/fp12_2over3over2.rs#L83) - Extension tower: quadratic extension of the `Fp6_3over2`, i.e. `BaseField = Fp6`.
