@@ -1,4 +1,5 @@
 use crate::{
+    BigInteger,
     bytes::{FromBytes, ToBytes},
     fields::{BitIteratorBE, BitIteratorLE},
     UniformRand,
@@ -22,6 +23,9 @@ pub mod arithmetic;
 #[macro_use]
 mod macros;
 
+/// Compute the signed modulo operation on a u64 representation, returning the result.
+/// Example:
+/// let res = signed_mod_reduction(-5u)
 pub fn signed_mod_reduction(n: u64, modulus: u64) -> i64 {
     let t = (n % modulus) as i64;
     if t as u64 >= (modulus / 2) {
@@ -76,7 +80,7 @@ pub trait BigInteger:
     /// # Example
     ///
     /// ```
-    /// use BigInteger64 as B;
+    /// use crate::BigInteger as B;
     ///
     /// let (mut one, mut two_add, mut three) = (B::from(1u64), B::from(2u64), B::from(3u64));
     /// two_add.add_nocarry(&one);
@@ -88,7 +92,7 @@ pub trait BigInteger:
     /// # Example
     ///
     /// ```
-    /// use BigInteger64 as B;
+    /// use crate::BigInteger as B;
     ///
     /// let (mut one, mut two, mut three_sub) = (B::from(1u64), B::from(2u64), B::from(3u64));
     /// three_sub.sub_noborrow(&two);
@@ -101,7 +105,7 @@ pub trait BigInteger:
     /// # Example
     ///
     /// ```
-    /// use BigInteger64 as B;
+    /// use crate::BigInteger as B;
     ///
     /// let (mut two_mul, mut four) = (B::from(2u64), B::from(4u64));
     /// two_mul.mul2();
@@ -113,7 +117,7 @@ pub trait BigInteger:
     /// # Example
     ///
     /// ```
-    /// use BigInteger64 as B;
+    /// use crate::BigInteger as B;
     ///
     /// let (mut one_mul, mut thirty_two) = (B::from(1u64), B::from(32u64));
     /// one_mul.muln(5);
@@ -126,7 +130,7 @@ pub trait BigInteger:
     /// # Example
     ///
     /// ```
-    /// use BigInteger64 as B;
+    /// use crate::BigInteger as B;
     ///
     /// let (mut two, mut four_div) = (B::from(2u64), B::from(4u64));
     /// four_div.div2();
@@ -138,7 +142,7 @@ pub trait BigInteger:
     /// # Example
     ///
     /// ```
-    /// use BigInteger64 as B;
+    /// use crate::BigInteger as B;
     ///
     /// let (mut one, mut thirty_two_div) = (B::from(1u64), B::from(32u64));
     /// thirty_two_div.divn(5);
@@ -150,7 +154,7 @@ pub trait BigInteger:
     /// # Example
     ///
     /// ```
-    /// use BigInteger64 as B;
+    /// use crate::BigInteger as B;
     ///
     /// let mut one = B::from(1u64);
     /// assert!(one.is_odd());
@@ -161,7 +165,7 @@ pub trait BigInteger:
     /// # Example
     ///
     /// ```
-    /// use BigInteger64 as B;
+    /// use crate::BigInteger as B;
     ///
     /// let mut two = B::from(2u64);
     /// assert!(one.is_even());
@@ -172,7 +176,7 @@ pub trait BigInteger:
     /// # Example
     ///
     /// ```
-    /// use BigInteger64 as B;
+    /// use crate::BigInteger as B;
     ///
     /// let mut zero = B::from(0u64);
     /// assert!(zero.is_zero());
@@ -184,7 +188,7 @@ pub trait BigInteger:
     /// # Example
     ///
     /// ```
-    /// use BigInteger64 as B;
+    /// use crate::BigInteger as B;
     ///
     /// let mut zero = B::from(0u64);
     /// assert_equal!(zero.num_bits(), 64u32);
@@ -195,7 +199,7 @@ pub trait BigInteger:
     /// # Example
     ///
     /// ```
-    /// use BigInteger64 as B;
+    /// use crate::BigInteger as B;
     ///
     /// let mut one = B::from(1u64);
     /// assert!(one.get_bit(0));
@@ -208,7 +212,7 @@ pub trait BigInteger:
     /// # Example
     ///
     /// ```
-    /// use BigInteger64 as B;
+    /// use crate::BigInteger as B;
     ///
     /// let mut arr : [bool; 64] = [false; 64];
     /// arr[63] = true;
@@ -222,7 +226,7 @@ pub trait BigInteger:
     /// # Example
     ///
     /// ```
-    /// use BigInteger64 as B;
+    /// use crate::BigInteger as B;
     ///
     /// let mut arr : [bool; 64] = [false; 64];
     /// arr[0] = true;
@@ -236,7 +240,7 @@ pub trait BigInteger:
     /// # Example
     ///
     /// ```
-    /// use BigInteger64 as B;
+    /// use crate::BigInteger as B;
     ///
     /// let mut one = B::from(1u64);
     /// let arr : Vec<bool> = one.to_bits_be();
@@ -253,7 +257,7 @@ pub trait BigInteger:
     /// # Example
     ///
     /// ```
-    /// use BigInteger64 as B;
+    /// use crate::BigInteger as B;
     ///
     /// let mut one = B::from(1u64);
     /// let arr : Vec<bool> = one.to_bits_le();
@@ -270,7 +274,7 @@ pub trait BigInteger:
     /// # Example
     ///
     /// ```
-    /// use BigInteger64 as B;
+    /// use crate::BigInteger as B;
     ///
     /// let mut one = B::from(1u64);
     /// let arr : Vec<u8> = one.to_bits_be();
@@ -285,7 +289,7 @@ pub trait BigInteger:
     /// # Example
     ///
     /// ```
-    /// use BigInteger64 as B;
+    /// use crate::BigInteger as B;
     ///
     /// let mut one = B::from(1u64);
     /// let arr : Vec<u8> = one.to_bits_le();
