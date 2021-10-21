@@ -86,9 +86,16 @@ pub trait BigInteger:
     /// ```
     /// use ark_ff::{biginteger::BigInteger64 as B, BigInteger as _};
     ///
-    /// let (mut one, mut two_add, mut three) = (B::from(1u64), B::from(2u64), B::from(3u64));
+    /// /// Basic
+    /// let (mut one, mut two_add) = (B::from(1u64), B::from(2u64));
     /// two_add.add_ret_carry(&one);
-    /// assert_eq!(two_add, three);
+    /// assert_eq!(two_add, B::from(3u64));
+    /// 
+    /// /// Edge-Case
+    /// let mut max_one = B::from(u64::MAX);
+    /// let carry = max_one.add_ret_carry(&one);
+    /// assert_eq!(max_one, B::from(0u64));
+    /// assert_eq!(carry, true)
     /// ```
     fn add_ret_carry(&mut self, other: &Self) -> bool;
 
@@ -98,9 +105,15 @@ pub trait BigInteger:
     /// ```
     /// use ark_ff::{biginteger::BigInteger64 as B, BigInteger as _};
     ///
+    /// /// Basic
     /// let (mut one, mut two, mut three_sub) = (B::from(1u64), B::from(2u64), B::from(3u64));
     /// three_sub.sub_ret_borrow(&two);
     /// assert_eq!(three_sub, one);
+    /// 
+    /// /// Edge-Case
+    /// let borrow = one.sub_ret_borrow(&two);
+    /// assert_eq!(borrow, true);
+    /// assert_eq!(one, B::from(u64::MAX));
     /// ```
     fn sub_ret_borrow(&mut self, other: &Self) -> bool;
 
@@ -111,9 +124,21 @@ pub trait BigInteger:
     /// ```
     /// use ark_ff::{biginteger::BigInteger64 as B, BigInteger as _};
     ///
-    /// let (mut two_mul, mut four) = (B::from(2u64), B::from(4u64));
+    /// /// Basic
+    /// let mut two_mul = B::from(2u64);
     /// two_mul.mul2();
-    /// assert_eq!(two_mul, four);
+    /// assert_eq!(two_mul, B::from(4u64));
+    ///
+    /// /// Edge-Cases
+    /// let mut zero = B::from(0u64);
+    /// zero.mul2();
+    /// assert_eq!(zero, B::from(0u64));
+    /// 
+    /// let mut arr : [bool; 64] = [false; 64];
+    /// arr[0] = true;
+    /// let mut mul = B::from_bits_be(&arr);
+    /// mul.mul2();
+    /// assert_eq!(mul, B::from(0u64));
     /// ```
     fn mul2(&mut self);
 
@@ -123,9 +148,21 @@ pub trait BigInteger:
     /// ```
     /// use ark_ff::{biginteger::BigInteger64 as B, BigInteger as _};
     ///
-    /// let (mut one_mul, mut thirty_two) = (B::from(1u64), B::from(32u64));
+    /// /// Basic
+    /// let mut one_mul = B::from(1u64);
     /// one_mul.muln(5);
-    /// assert_eq!(one_mul, thirty_two);
+    /// assert_eq!(one_mul, B::from(32u64));
+    ///
+    /// /// Edge-Case
+    /// let mut zero = B::from(0u64);
+    /// zero.muln(5);
+    /// assert_eq!(zero, B::from(0u64));
+    /// 
+    /// let mut arr : [bool; 64] = [false; 64];
+    /// arr[4] = true;
+    /// let mut mul = B::from_bits_be(&arr);
+    /// mul.muln(5);
+    /// assert_eq!(mul, B::from(0u64));
     /// ```
     fn muln(&mut self, amt: u32);
 
@@ -136,9 +173,19 @@ pub trait BigInteger:
     /// ```
     /// use ark_ff::{biginteger::BigInteger64 as B, BigInteger as _};
     ///
+    /// /// Basic
     /// let (mut two, mut four_div) = (B::from(2u64), B::from(4u64));
     /// four_div.div2();
     /// assert_eq!(two, four_div);
+    ///
+    /// /// Edge-Case
+    /// let mut zero = B::from(0u64);
+    /// zero.div2();
+    /// assert_eq!(zero, B::from(0u64));
+    ///
+    /// let mut one = B::from(1u64);
+    /// one.div2();
+    /// assert_eq!(one, B::from(0u64));
     /// ```
     fn div2(&mut self);
 
@@ -148,9 +195,17 @@ pub trait BigInteger:
     /// ```
     /// use ark_ff::{biginteger::BigInteger64 as B, BigInteger as _};
     ///
+    /// /// Basic
     /// let (mut one, mut thirty_two_div) = (B::from(1u64), B::from(32u64));
     /// thirty_two_div.divn(5);
     /// assert_eq!(one, thirty_two_div);
+    /// 
+    /// /// Edge-Case
+    /// let mut arr : [bool; 64] = [false; 64];
+    /// arr[4] = true;
+    /// let mut div = B::from_bits_le(&arr);
+    /// div.divn(5);
+    /// assert_eq!(div, B::from(0u64));
     /// ```
     fn divn(&mut self, amt: u32);
 
