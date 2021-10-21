@@ -384,10 +384,10 @@ macro_rules! bigint_impl {
             }
         }
 
-        impl Into<BigUint> for $name {
+        impl From<$name> for BigUint {
             #[inline]
-            fn into(self) -> num_bigint::BigUint {
-                BigUint::from_bytes_le(&self.to_bytes_le())
+            fn from(val: $name) -> num_bigint::BigUint {
+                BigUint::from_bytes_le(&val.to_bytes_le())
             }
         }
     };
