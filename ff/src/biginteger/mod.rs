@@ -90,7 +90,7 @@ pub trait BigInteger:
     /// let (mut one, mut two_add) = (B::from(1u64), B::from(2u64));
     /// two_add.add_ret_carry(&one);
     /// assert_eq!(two_add, B::from(3u64));
-    /// 
+    ///
     /// /// Edge-Case
     /// let mut max_one = B::from(u64::MAX);
     /// let carry = max_one.add_ret_carry(&one);
@@ -109,7 +109,7 @@ pub trait BigInteger:
     /// let (mut one, mut two, mut three_sub) = (B::from(1u64), B::from(2u64), B::from(3u64));
     /// three_sub.sub_ret_borrow(&two);
     /// assert_eq!(three_sub, one);
-    /// 
+    ///
     /// /// Edge-Case
     /// let borrow = one.sub_ret_borrow(&two);
     /// assert_eq!(borrow, true);
@@ -133,7 +133,7 @@ pub trait BigInteger:
     /// let mut zero = B::from(0u64);
     /// zero.mul2();
     /// assert_eq!(zero, B::from(0u64));
-    /// 
+    ///
     /// let mut arr : [bool; 64] = [false; 64];
     /// arr[0] = true;
     /// let mut mul = B::from_bits_be(&arr);
@@ -157,7 +157,7 @@ pub trait BigInteger:
     /// let mut zero = B::from(0u64);
     /// zero.muln(5);
     /// assert_eq!(zero, B::from(0u64));
-    /// 
+    ///
     /// let mut arr : [bool; 64] = [false; 64];
     /// arr[4] = true;
     /// let mut mul = B::from_bits_be(&arr);
@@ -199,7 +199,7 @@ pub trait BigInteger:
     /// let (mut one, mut thirty_two_div) = (B::from(1u64), B::from(32u64));
     /// thirty_two_div.divn(5);
     /// assert_eq!(one, thirty_two_div);
-    /// 
+    ///
     /// /// Edge-Case
     /// let mut arr : [bool; 64] = [false; 64];
     /// arr[4] = true;
