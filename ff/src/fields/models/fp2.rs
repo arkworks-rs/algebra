@@ -2,18 +2,17 @@ use super::quadratic_extension::*;
 use crate::fields::PrimeField;
 use core::marker::PhantomData;
 
-/// Interface for defining the parameters of quadratic extension fields
+/// Parameters for defining degree-two extension fields.
 pub trait Fp2Parameters: 'static + Send + Sync {
-    /// Subfield of Fp2
+    /// Base prime field underlying this extension.
     type Fp: PrimeField;
 
-    /// Element of the subfield F_p used to construct the extension field s.t.
-    /// a polynomial `f(X) = X^2 - Self::NONRESIDUE` in F_p\[X\] is irreducible
-    /// over the subfield
+    /// Quadratic non-residue in `Self::Fp` used to construct the extension
+    /// field. That is, `NONRESIDUE` is such that the quadratic polynomial 
+    /// `f(X) = X^2 - Self::NONRESIDUE` in Fp\[X\] is irreducible in `Self::Fp`.
     const NONRESIDUE: Self::Fp;
 
-    /// Element of the extension field Fp2, represented as a tuple (c0, c1),
-    /// s.t. `c = c0 + c1 * X` for c0, c1 in `Self::Fp` is an element of Fp2
+    /// A quadratic nonresidue in Fp2, used for calculating square roots in Fp2.
     const QUADRATIC_NONRESIDUE: (Self::Fp, Self::Fp);
 
     /// Coefficients for the Frobenius automorphism.

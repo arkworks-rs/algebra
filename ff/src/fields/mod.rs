@@ -352,10 +352,10 @@ pub trait PrimeField:
     + From<BigUint>
     + Into<BigUint>
 {
-    /// Type alias for FpParameters
+    /// Associated `FpParameters` that define this field.
     type Params: FpParameters<BigInt = Self::BigInt>;
 
-    /// Type alias for BigInteger
+    /// A `BigInteger` type that can represent elements of this field.
     type BigInt: BigInteger;
 
     /// Returns a prime field element from its underlying representation.
@@ -461,7 +461,7 @@ pub enum LegendreSymbol {
 }
 
 impl LegendreSymbol {
-    /// Returns true if the field element is a zero (mod `Field::MODULUS`)
+    /// Returns true if `self.is_zero()`.
     ///
     /// # Examples
     /// ```
@@ -477,7 +477,7 @@ impl LegendreSymbol {
         *self == LegendreSymbol::Zero
     }
 
-    /// Returns true if the field element is a non-quadratic residue
+    /// Returns true if `self` is a quadratic non-residue.
     ///
     /// # Examples
     /// ```
@@ -491,7 +491,7 @@ impl LegendreSymbol {
         *self == LegendreSymbol::QuadraticNonResidue
     }
 
-    /// Returns true if the field element is a quadratic residue
+    /// Returns true if `self` is a quadratic residue.
     /// # Examples
     /// ```
     /// # use ark_std::test_rng;

@@ -131,14 +131,15 @@ pub trait QuadExtParameters: 'static + Send + Sync + Sized {
     Eq(bound = "P: QuadExtParameters")
 )]
 pub struct QuadExtField<P: QuadExtParameters> {
-    /// coefficient c0 in the representation of the field element c = c0 + c1 * X
+    /// Coefficient c0 in the representation of the field element c = c0 + c1 * X
     pub c0: P::BaseField,
-    /// coefficient c1 in the representation of the field element c = c0 + c1 * X
+    /// Coefficient c1 in the representation of the field element c = c0 + c1 * X
     pub c1: P::BaseField,
 }
 
 impl<P: QuadExtParameters> QuadExtField<P> {
-    /// Create a new field element from coefficients
+    /// Create a new field element from coefficients `c0` and `c1`,
+    /// so that the result is of the form `c0 + c1 * X`.
     ///
     /// # Examples
     ///
@@ -148,7 +149,7 @@ impl<P: QuadExtParameters> QuadExtField<P> {
     /// # use ark_std::UniformRand;
     /// let c0: Fp = Fp::rand(&mut test_rng());
     /// let c1: Fp = Fp::rand(&mut test_rng());
-    /// // `Fp2` is an alias for QuadExtField<Fp2ParamsWrapper<Fp2Parameters>>
+    /// // `Fp2` a degree-2 extension over `Fp`.
     /// let c: Fp2 = Fp2::new(c0, c1);
     /// ```
     pub fn new(c0: P::BaseField, c1: P::BaseField) -> Self {

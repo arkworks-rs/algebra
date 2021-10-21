@@ -118,7 +118,8 @@ macro_rules! impl_Fp {
 
         impl<P> $Fp<P> {
             /// Construct a new prime element directly from its underlying
-            /// BigInteger data type.
+            /// `BigInteger` data type. The `BigInteger` should be in 
+            /// Montgomery representation. If it is not, use `Self::from_repr`. 
             #[inline]
             pub const fn new(element: $BigIntegerType) -> Self {
                 Self(element, PhantomData)
