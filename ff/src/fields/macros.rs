@@ -128,7 +128,7 @@ macro_rules! impl_Fp {
 
             const fn const_neg(self, modulus: $BigIntegerType) -> Self {
                 if !self.const_is_zero() {
-                    Self::new(Self::sub_ret_borrow(&modulus, &self.0))
+                    Self::new(Self::sub_noborrow(&modulus, &self.0))
                 } else {
                     self
                 }
@@ -217,7 +217,7 @@ macro_rules! impl_Fp {
             #[inline]
             const fn const_reduce(mut self, modulus: $BigIntegerType) -> Self {
                 if !self.const_is_valid(modulus) {
-                    self.0 = Self::sub_ret_borrow(&self.0, &modulus);
+                    self.0 = Self::sub_noborrow(&self.0, &modulus);
                 }
                 self
             }
@@ -226,7 +226,7 @@ macro_rules! impl_Fp {
             // need unused assignment because the last iteration of the loop produces an assignment
             // to `borrow` that is unused.
             #[allow(unused_assignments)]
-            const fn sub_ret_borrow(a: &$BigIntegerType, b: &$BigIntegerType) -> $BigInteger {
+            const fn sub_noborrow(a: &$BigIntegerType, b: &$BigIntegerType) -> $BigInteger {
                 let mut a = *a;
                 let mut borrow = 0;
                 for i in 0..$limbs {
@@ -245,7 +245,7 @@ macro_rules! impl_Fp {
             #[inline]
             fn reduce(&mut self) {
                 if !self.is_valid() {
-                    self.0.sub_ret_borrow(&P::MODULUS);
+                    self.0.sub_noborrow(&P::MODULUS);
                 }
             }
         }
@@ -389,7 +389,7 @@ macro_rules! impl_Fp {
                             if b.0.is_even() {
                                 b.0.div2();
                             } else {
-                                b.0.add_ret_carry(&P::MODULUS);
+                                b.0.add_nocarry(&P::MODULUS);
                                 b.0.div2();
                             }
                         }
@@ -400,16 +400,16 @@ macro_rules! impl_Fp {
                             if c.0.is_even() {
                                 c.0.div2();
                             } else {
-                                c.0.add_ret_carry(&P::MODULUS);
+                                c.0.add_nocarry(&P::MODULUS);
                                 c.0.div2();
                             }
                         }
 
                         if v < u {
-                            u.sub_ret_borrow(&v);
+                            u.sub_noborrow(&v);
                             b.sub_assign(&c);
                         } else {
-                            v.sub_ret_borrow(&u);
+                            v.sub_noborrow(&u);
                             c.sub_assign(&b);
                         }
                     }
@@ -623,7 +623,7 @@ macro_rules! impl_Fp {
             fn neg(self) -> Self {
                 if !self.is_zero() {
                     let mut tmp = P::MODULUS;
-                    tmp.sub_ret_borrow(&self.0);
+                    tmp.sub_noborrow(&self.0);
                     $Fp::<P>(tmp, PhantomData)
                 } else {
                     self
@@ -680,7 +680,7 @@ macro_rules! impl_Fp {
             #[inline]
             fn add_assign(&mut self, other: &Self) {
                 // This cannot exceed the backing capacity.
-                self.0.add_ret_carry(&other.0);
+                self.0.add_nocarry(&other.0);
                 // However, it may need to be reduced
                 self.reduce();
             }
@@ -691,9 +691,9 @@ macro_rules! impl_Fp {
             fn sub_assign(&mut self, other: &Self) {
                 // If `other` is larger than `self`, add the modulus to self first.
                 if other.0 > self.0 {
-                    self.0.add_ret_carry(&P::MODULUS);
+                    self.0.add_nocarry(&P::MODULUS);
                 }
-                self.0.sub_ret_borrow(&other.0);
+                self.0.sub_noborrow(&other.0);
             }
         }
 

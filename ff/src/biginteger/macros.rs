@@ -14,7 +14,7 @@ macro_rules! bigint_impl {
 
             #[inline]
             #[ark_ff_asm::unroll_for_loops]
-            fn add_ret_carry(&mut self, other: &Self) -> bool {
+            fn add_nocarry(&mut self, other: &Self) -> bool {
                 let mut carry = 0;
 
                 for i in 0..$num_limbs {
@@ -36,7 +36,7 @@ macro_rules! bigint_impl {
 
             #[inline]
             #[ark_ff_asm::unroll_for_loops]
-            fn sub_ret_borrow(&mut self, other: &Self) -> bool {
+            fn sub_noborrow(&mut self, other: &Self) -> bool {
                 let mut borrow = 0;
 
                 for i in 0..$num_limbs {

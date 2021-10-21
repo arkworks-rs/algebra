@@ -14,24 +14,24 @@ fn biginteger_arithmetic_test<B: BigInteger>(a: B, b: B, zero: B) {
 
     // a + 0 = a
     let mut a0_add = a.clone();
-    a0_add.add_ret_carry(&zero);
+    a0_add.add_nocarry(&zero);
     assert_eq!(a0_add, a);
 
     // a - 0 = a
     let mut a0_sub = a.clone();
-    a0_sub.sub_ret_borrow(&zero);
+    a0_sub.sub_noborrow(&zero);
     assert_eq!(a0_sub, a);
 
     // a - a = 0
     let mut aa_sub = a.clone();
-    aa_sub.sub_ret_borrow(&a);
+    aa_sub.sub_noborrow(&a);
     assert_eq!(aa_sub, zero);
 
     // a + b = b + a
     let mut ab_add = a.clone();
-    ab_add.add_ret_carry(&b);
+    ab_add.add_nocarry(&b);
     let mut ba_add = b.clone();
-    ba_add.add_ret_carry(&a);
+    ba_add.add_nocarry(&a);
     assert_eq!(ab_add, ba_add);
 }
 

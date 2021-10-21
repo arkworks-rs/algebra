@@ -88,16 +88,16 @@ pub trait BigInteger:
     ///
     /// /// Basic
     /// let (mut one, mut two_add) = (B::from(1u64), B::from(2u64));
-    /// two_add.add_ret_carry(&one);
+    /// two_add.add_nocarry(&one);
     /// assert_eq!(two_add, B::from(3u64));
     ///
     /// /// Edge-Case
     /// let mut max_one = B::from(u64::MAX);
-    /// let carry = max_one.add_ret_carry(&one);
+    /// let carry = max_one.add_nocarry(&one);
     /// assert_eq!(max_one, B::from(0u64));
     /// assert_eq!(carry, true)
     /// ```
-    fn add_ret_carry(&mut self, other: &Self) -> bool;
+    fn add_nocarry(&mut self, other: &Self) -> bool;
 
     /// Subtract another representation from this one, returning the borrow bit.
     /// # Example
@@ -107,15 +107,15 @@ pub trait BigInteger:
     ///
     /// /// Basic
     /// let (mut one, mut two, mut three_sub) = (B::from(1u64), B::from(2u64), B::from(3u64));
-    /// three_sub.sub_ret_borrow(&two);
+    /// three_sub.sub_noborrow(&two);
     /// assert_eq!(three_sub, one);
     ///
     /// /// Edge-Case
-    /// let borrow = one.sub_ret_borrow(&two);
+    /// let borrow = one.sub_noborrow(&two);
     /// assert_eq!(borrow, true);
     /// assert_eq!(one, B::from(u64::MAX));
     /// ```
-    fn sub_ret_borrow(&mut self, other: &Self) -> bool;
+    fn sub_noborrow(&mut self, other: &Self) -> bool;
 
     /// Performs a leftwise bitshift of this number, effectively multiplying
     /// it by 2. Overflow is ignored.
@@ -375,9 +375,9 @@ pub trait BigInteger:
                 if e.is_odd() {
                     z = signed_mod_reduction(e.as_ref()[0], 1 << w);
                     if z >= 0 {
-                        e.sub_ret_borrow(&Self::from(z as u64));
+                        e.sub_noborrow(&Self::from(z as u64));
                     } else {
-                        e.add_ret_carry(&Self::from((-z) as u64));
+                        e.add_nocarry(&Self::from((-z) as u64));
                     }
                 } else {
                     z = 0;
