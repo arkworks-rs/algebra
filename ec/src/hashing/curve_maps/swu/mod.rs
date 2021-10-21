@@ -28,7 +28,7 @@ pub trait SWUParams : SWModelParameters {
     // we need an element of the base field which is not a square root see [1] Sect. 4.
     // it is also convenient to have $g(b/xi * a)$ to be square. In general we use a xi with
     // low absolute value coefficients when they are represented as element of ZZ.
-    const XI : Self::BaseField;
+    const XI : Self::BaseField; //a nonsquare in Fq
     const ZETA: Self::BaseField; //arbitatry root of unity
     const XI_ON_ZETA_SQRT: Self::BaseField; //square root of THETA
     
