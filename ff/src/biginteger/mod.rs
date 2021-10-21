@@ -87,10 +87,10 @@ pub trait BigInteger:
     /// use ark_ff::{biginteger::BigInteger64 as B, BigInteger as _};
     ///
     /// let (mut one, mut two_add, mut three) = (B::from(1u64), B::from(2u64), B::from(3u64));
-    /// two_add.add_nocarry(&one);
+    /// two_add.add_ret_carry(&one);
     /// assert_eq!(two_add, three);
     /// ```
-    fn add_nocarry(&mut self, other: &Self) -> bool;
+    fn add_ret_carry(&mut self, other: &Self) -> bool;
 
     /// Subtract another representation from this one, returning the borrow bit.
     /// # Example
@@ -99,10 +99,10 @@ pub trait BigInteger:
     /// use ark_ff::{biginteger::BigInteger64 as B, BigInteger as _};
     ///
     /// let (mut one, mut two, mut three_sub) = (B::from(1u64), B::from(2u64), B::from(3u64));
-    /// three_sub.sub_noborrow(&two);
+    /// three_sub.sub_ret_borrow(&two);
     /// assert_eq!(three_sub, one);
     /// ```
-    fn sub_noborrow(&mut self, other: &Self) -> bool;
+    fn sub_ret_borrow(&mut self, other: &Self) -> bool;
 
     /// Performs a leftwise bitshift of this number, effectively multiplying
     /// it by 2. Overflow is ignored.
@@ -320,9 +320,9 @@ pub trait BigInteger:
                 if e.is_odd() {
                     z = signed_mod_reduction(e.as_ref()[0], 1 << w);
                     if z >= 0 {
-                        e.sub_noborrow(&Self::from(z as u64));
+                        e.sub_ret_borrow(&Self::from(z as u64));
                     } else {
-                        e.add_nocarry(&Self::from((-z) as u64));
+                        e.add_ret_carry(&Self::from((-z) as u64));
                     }
                 } else {
                     z = 0;

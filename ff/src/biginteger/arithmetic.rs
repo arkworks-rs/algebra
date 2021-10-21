@@ -58,7 +58,7 @@ pub(crate) fn mac_discard(a: u64, b: u64, c: u64, carry: &mut u64) {
 pub fn find_wnaf(num: &[u64]) -> Vec<i64> {
     let is_zero = |num: &[u64]| num.iter().all(|x| *x == 0u64);
     let is_odd = |num: &[u64]| num[0] & 1 == 1;
-    let sub_noborrow = |num: &mut [u64], z: u64| {
+    let sub_ret_borrow = |num: &mut [u64], z: u64| {
         let mut other = vec![0u64; num.len()];
         other[0] = z;
         let mut borrow = 0;
@@ -67,7 +67,7 @@ pub fn find_wnaf(num: &[u64]) -> Vec<i64> {
             *a = sbb!(*a, b, &mut borrow);
         }
     };
-    let add_nocarry = |num: &mut [u64], z: u64| {
+    let add_ret_carry = |num: &mut [u64], z: u64| {
         let mut other = vec![0u64; num.len()];
         other[0] = z;
         let mut carry = 0;
@@ -94,9 +94,9 @@ pub fn find_wnaf(num: &[u64]) -> Vec<i64> {
         if is_odd(&num) {
             z = 2 - (num[0] % 4) as i64;
             if z >= 0 {
-                sub_noborrow(&mut num, z as u64)
+                sub_ret_borrow(&mut num, z as u64)
             } else {
-                add_nocarry(&mut num, (-z) as u64)
+                add_ret_carry(&mut num, (-z) as u64)
             }
         } else {
             z = 0;
