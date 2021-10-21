@@ -23,8 +23,13 @@ pub mod arithmetic;
 mod macros;
 
 /// Compute the signed modulo operation on a u64 representation, returning the result.
-/// Example:
-/// `let res = signed_mod_reduction(-5u)`.
+/// If n % modulus > modulus / 2, return modulus - n
+/// # Example
+/// ```
+/// use ark_ff::signed_mod_reduction;
+/// let res = signed_mod_reduction(6u64, 8u64);
+/// assert_eq!(res, -2i64);
+/// ```
 pub fn signed_mod_reduction(n: u64, modulus: u64) -> i64 {
     let t = (n % modulus) as i64;
     if t as u64 >= (modulus / 2) {
