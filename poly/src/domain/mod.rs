@@ -58,22 +58,19 @@ pub trait EvaluationDomain<F: FftField>:
         F::from(self.size() as u64)
     }
 
-    /// Return the log_size of the group of `self`.
+    /// Return log_2(size) of `self`.
     fn log_size_of_group(&self) -> u64;
 
-    /// Return the inverse of the size of `self`.
+    /// Return the inverse of `self.size_as_field_element()`.
     fn size_inv(&self) -> F;
 
-    /// Return the generator for the multiplicative subgroup of the [`FftField`]
-    /// where `self` is defined over.
+    /// Return the generator for the multiplicative subgroup that defines this domain.
     fn group_gen(&self) -> F;
 
-    /// Return the inverse of the generator for the multiplicative subgroup of
-    /// the [`FftField`] where `self` is defined over.
+    /// Return the group inverse of `self.group_gen()`.
     fn group_gen_inv(&self) -> F;
 
-    /// Return the inverse of the multiplicative generator of the [`FftField`]
-    /// where `self` is defined over.
+    /// Return the inverse of the multiplicative generator of `F`.
     fn generator_inv(&self) -> F;
 
     /// Compute a FFT.

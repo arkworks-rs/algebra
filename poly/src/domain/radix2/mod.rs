@@ -143,13 +143,10 @@ impl<F: FftField> EvaluationDomain<F> for Radix2EvaluationDomain<F> {
         // Define the following as
         // - H: The coset we are in, with generator g and offset h
         // - m: The size of the coset H
-        // - Z_H: The vanishing polynomial for H. Z_H(x) = prod_{i in m} (x - hg^i) =
-        //   x^m - h^m
-        // - v_i: A sequence of values, where v_0 = 1/(m * h^(m-1)), and v_{i + 1} = g *
-        //   v_i
+        // - Z_H: The vanishing polynomial for H. Z_H(x) = prod_{i in m} (x - hg^i) = x^m - h^m
+        // - v_i: A sequence of values, where v_0 = 1/(m * h^(m-1)), and v_{i + 1} = g * v_i
         //
-        // We then compute L_{i,H}(tau) as `L_{i,H}(tau) = Z_H(tau) * v_i / (tau - h
-        // g^i)`
+        // We then compute L_{i,H}(tau) as `L_{i,H}(tau) = Z_H(tau) * v_i / (tau - h * g^i)`
         //
         // However, if tau in H, both the numerator and denominator equal 0
         // when i corresponds to the value tau equals, and the coefficient is 0

@@ -6,7 +6,7 @@
 
 - [\#300](https://github.com/arkworks-rs/algebra/pull/300) (ark-ec) Change the implementation of `Hash` trait of `GroupProjective` to use the affine coordinates.
 - [\#310](https://github.com/arkworks-rs/algebra/pull/310) (ark-ec, ark-ff) Remove unnecessary internal `PhantomData`.
-- [\#333](https://github.com/arkworks-rs/algebra/pull/333) (ark-poly) Add inner field getters for EvaluationDomain trait.
+- [\#333](https://github.com/arkworks-rs/algebra/pull/333) (ark-poly) Expose more properties of `EvaluationDomain`s.
 
 ### Features
 
