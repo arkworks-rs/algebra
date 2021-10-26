@@ -8,7 +8,7 @@ pub trait Fp2Parameters: 'static + Send + Sync {
     type Fp: PrimeField;
 
     /// Quadratic non-residue in `Self::Fp` used to construct the extension
-    /// field. That is, `NONRESIDUE` is such that the quadratic polynomial 
+    /// field. That is, `NONRESIDUE` is such that the quadratic polynomial
     /// `f(X) = X^2 - Self::NONRESIDUE` in Fp\[X\] is irreducible in `Self::Fp`.
     const NONRESIDUE: Self::Fp;
 
