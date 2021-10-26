@@ -446,7 +446,7 @@ pub trait SquareRootField: Field {
 /// # Examples
 /// ```
 /// # use ark_std::test_rng;
-/// # use ark_ff::test_field::Fq as Fp;
+/// # use ark_test_curves::bls12_381::Fq as Fp;
 /// # use ark_std::UniformRand;
 /// # use ark_ff::{LegendreSymbol, Field, SquareRootField};
 /// let a: Fp = Fp::rand(&mut test_rng());
@@ -466,7 +466,7 @@ impl LegendreSymbol {
     /// # Examples
     /// ```
     /// # use ark_std::test_rng;
-    /// # use ark_ff::test_field::Fq as Fp;
+    /// # use ark_test_curves::bls12_381::Fq as Fp;
     /// # use ark_std::UniformRand;
     /// # use ark_ff::{LegendreSymbol, Field, SquareRootField};
     /// let a: Fp = Fp::rand(&mut test_rng());
@@ -481,7 +481,7 @@ impl LegendreSymbol {
     ///
     /// # Examples
     /// ```
-    /// # use ark_ff::test_field::{Fq, Fq2Parameters};
+    /// # use ark_test_curves::bls12_381::{Fq, Fq2Parameters};
     /// # use ark_ff::{LegendreSymbol, SquareRootField};
     /// # use ark_ff::Fp2Parameters;
     /// let a: Fq = Fq2Parameters::NONRESIDUE;
@@ -495,7 +495,7 @@ impl LegendreSymbol {
     /// # Examples
     /// ```
     /// # use ark_std::test_rng;
-    /// # use ark_ff::test_field::Fq as Fp;
+    /// # use ark_test_curves::bls12_381::Fq as Fp;
     /// # use ark_std::UniformRand;
     /// # use ark_ff::{LegendreSymbol, Field, SquareRootField};
     /// let a: Fp = Fp::rand(&mut test_rng());
