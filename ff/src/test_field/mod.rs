@@ -1,10 +1,10 @@
 #[allow(unused)]
-pub use fq::*;
+pub(crate) use fq::*;
 #[allow(unused)]
-pub use fq2::*;
+pub(crate) use fq2::*;
 #[allow(unused)]
-pub use fq6::*;
-pub use fr::*;
+pub(crate) use fq6::*;
+pub(crate) use fr::*;
 
 pub(crate) mod fr {
     /// Copy of BLS12-381's Fr

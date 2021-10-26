@@ -24,8 +24,8 @@ pub mod fields;
 pub use self::fields::*;
 
 // This is only used for testing.
-#[cfg(any(feature = "test", test))]
-pub mod test_field;
+#[cfg(test)]
+mod test_field;
 
 pub use ark_std::UniformRand;
 
