@@ -5,7 +5,7 @@ authors = [ "arkworks contributors" ]
 description = "A library for benchmarking finite-field FFTs"
 include = ["Cargo.toml", "src", "README.md", "LICENSE-APACHE", "LICENSE-MIT"]
 license = "MIT/Apache-2.0"
-edition = "2018"
+edition = "2021"
 publish = false
 
 [dependencies]
