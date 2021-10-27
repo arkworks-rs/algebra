@@ -36,6 +36,8 @@ macro_rules! sbb {
     }};
 }
 
+/// Calculate a + b * c, returning the lower 64 bits of the result and setting
+/// `carry` to the upper 64 bits.
 #[inline(always)]
 pub(crate) fn mac(a: u64, b: u64, c: u64, carry: &mut u64) -> u64 {
     let tmp = (u128::from(a)) + u128::from(b) * u128::from(c);
@@ -45,6 +47,8 @@ pub(crate) fn mac(a: u64, b: u64, c: u64, carry: &mut u64) -> u64 {
     tmp as u64
 }
 
+/// Calculate a + b * c, discarding the lower 64 bits of the result and setting
+/// `carry` to the upper 64 bits.
 #[inline(always)]
 pub(crate) fn mac_discard(a: u64, b: u64, c: u64, carry: &mut u64) {
     let tmp = (u128::from(a)) + u128::from(b) * u128::from(c);
@@ -52,6 +56,7 @@ pub(crate) fn mac_discard(a: u64, b: u64, c: u64, carry: &mut u64) {
     *carry = (tmp >> 64) as u64;
 }
 
+/// Compute the Window NAF (non-adjacent form) of num
 pub fn find_wnaf(num: &[u64]) -> Vec<i64> {
     let is_zero = |num: &[u64]| num.iter().all(|x| *x == 0u64);
     let is_odd = |num: &[u64]| num[0] & 1 == 1;

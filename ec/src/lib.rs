@@ -239,6 +239,7 @@ pub trait AffineCurve:
     + Copy
     + Clone
     + Default
+    + UniformRand
     + Send
     + Sync
     + Hash
