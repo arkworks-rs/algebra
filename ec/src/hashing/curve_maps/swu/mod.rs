@@ -2,6 +2,7 @@ use core::marker::PhantomData;
 
 use ark_ff::{Zero, One, Field, PrimeField, SquareRootField};
 use ark_ff::vec::Vec;
+use ark_std::string::ToString;
 use crate::models::SWModelParameters;
 
 use crate::hashing::map_to_curve_hasher::MapToCurve;
@@ -44,6 +45,11 @@ impl <P: SWUParams> MapToCurve<GroupAffine<P>> for SWUMap<P>{
     ///This is to verify if the provided SWUparams makes sense, doesn't do much for now
     fn new_map_to_curve(domain: &[u8]) -> Result<Self, HashToCurveError>
     {
+        //Verifying that both XI and ZETA are non-squares
+        if (P::XI.legendre().is_qr() || P::ZETA.legendre().is_qr()) {
+            return Err(HashToCurveError::MapToCurveError("both Xi and Zeta should be quadratic non-residues for the SWU map".to_string()));
+        }
+        
         Ok(SWUMap {
             domain: domain.to_vec(),
             curve_params: PhantomData,
