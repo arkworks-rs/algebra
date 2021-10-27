@@ -1,5 +1,11 @@
 #![cfg_attr(not(feature = "std"), no_std)]
-#![warn(unused, future_incompatible, nonstandard_style, rust_2018_idioms)]
+#![warn(
+    unused,
+    future_incompatible,
+    nonstandard_style,
+    rust_2018_idioms,
+    rust_2021_compatibility
+)]
 #![allow(clippy::op_ref, clippy::suspicious_op_assign_impl)]
 #![cfg_attr(not(feature = "asm"), forbid(unsafe_code))]
 #![cfg_attr(use_asm, feature(llvm_asm))]

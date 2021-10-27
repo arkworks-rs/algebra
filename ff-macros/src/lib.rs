@@ -1,4 +1,10 @@
-#![warn(unused, future_incompatible, nonstandard_style, rust_2018_idioms)]
+#![warn(
+    unused,
+    future_incompatible,
+    nonstandard_style,
+    rust_2018_idioms,
+    rust_2021_compatibility
+)]
 #![forbid(unsafe_code)]
 
 use num_bigint::{BigInt, Sign};
