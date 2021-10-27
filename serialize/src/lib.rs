@@ -77,8 +77,8 @@ pub trait CanonicalSerialize {
     /// Particular examples of interest:
     /// `bool` - 1 byte encoding
     /// uints - Direct encoding
-    /// Length prefixing (for any container implemented by default) - 8 byte
-    /// encoding Elliptic curves - compressed point encoding
+    /// Length prefixing (for any container implemented by default) - 8 byte encoding
+    /// Elliptic curves - compressed point encoding
     fn serialize<W: Write>(&self, writer: W) -> Result<(), SerializationError>;
 
     fn serialized_size(&self) -> usize;
@@ -697,8 +697,7 @@ impl CanonicalDeserialize for bool {
     }
 }
 
-// Serialize BTreeMap as `len(map) || key 1 || value 1 || ... || key n || value
-// n`
+// Serialize BTreeMap as `len(map) || key 1 || value 1 || ... || key n || value n`
 impl<K, V> CanonicalSerialize for BTreeMap<K, V>
 where
     K: CanonicalSerialize,
