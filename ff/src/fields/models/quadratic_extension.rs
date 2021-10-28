@@ -712,8 +712,11 @@ where
 #[cfg(test)]
 mod quad_ext_tests {
     use super::*;
-    use crate::test_field::{Fq, Fq2};
     use ark_std::test_rng;
+    use ark_test_curves::{
+        bls12_381::{Fq, Fq2},
+        Field,
+    };
 
     #[test]
     fn test_from_base_prime_field_elements() {
