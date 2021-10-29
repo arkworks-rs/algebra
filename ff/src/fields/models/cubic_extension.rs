@@ -619,8 +619,11 @@ where
 #[cfg(test)]
 mod cube_ext_tests {
     use super::*;
-    use crate::test_field::{Fq, Fq2, Fq6};
     use ark_std::test_rng;
+    use ark_test_curves::{
+        bls12_381::{Fq, Fq2, Fq6},
+        Field,
+    };
 
     #[test]
     fn test_from_base_prime_field_elements() {

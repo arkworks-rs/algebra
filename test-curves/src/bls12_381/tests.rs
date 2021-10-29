@@ -1,8 +1,8 @@
 #![allow(unused_imports)]
 use ark_ec::{models::SWModelParameters, AffineCurve, PairingEngine, ProjectiveCurve};
-use ark_ff::{One, UniformRand, Zero};
+use ark_ff::{Field, One, UniformRand, Zero};
 
-use crate::bls12_381::{g1, Fq, FqParameters, Fr, G1Affine, G1Projective};
+use crate::bls12_381::{g1, Fq, Fq2, Fq6, FqParameters, Fr, G1Affine, G1Projective};
 use ark_algebra_test_templates::{curves::*, fields::*, groups::*};
 use ark_std::rand::Rng;
 
@@ -30,6 +30,29 @@ fn test_fq() {
         primefield_test::<Fq>();
         sqrt_field_test(a);
     }
+}
+
+#[test]
+fn test_fq2() {
+    let mut rng = ark_std::test_rng();
+    for _ in 0..ITERATIONS {
+        let a: Fq2 = UniformRand::rand(&mut rng);
+        let b: Fq2 = UniformRand::rand(&mut rng);
+        field_test(a, b);
+        sqrt_field_test(a);
+    }
+    frobenius_test::<Fq2, _>(Fq::characteristic(), 13);
+}
+
+#[test]
+fn test_fq6() {
+    let mut rng = ark_std::test_rng();
+    for _ in 0..ITERATIONS {
+        let g: Fq6 = UniformRand::rand(&mut rng);
+        let h: Fq6 = UniformRand::rand(&mut rng);
+        field_test(g, h);
+    }
+    frobenius_test::<Fq6, _>(Fq::characteristic(), 13);
 }
 
 #[test]
