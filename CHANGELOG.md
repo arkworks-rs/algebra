@@ -6,9 +6,12 @@
 
 - [\#300](https://github.com/arkworks-rs/algebra/pull/300) (ark-ec) Change the implementation of `Hash` trait of `GroupProjective` to use the affine coordinates.
 - [\#310](https://github.com/arkworks-rs/algebra/pull/310) (ark-ec, ark-ff) Remove unnecessary internal `PhantomData`.
+- [\#333](https://github.com/arkworks-rs/algebra/pull/333) (ark-poly) Expose more properties of `EvaluationDomain`s.
+- [\#338](https://github.com/arkworks-rs/algebra/pull/338) (ark-ec) Add missing `UniformRand` trait bound to `GroupAffine`.
 
 ### Features
 
+- [\#321](https://github.com/arkworks-rs/algebra/pull/321) (ark-ff) Change bigint conversions to impl `From` instead of `Into`.
 - [\#301](https://github.com/arkworks-rs/algebra/pull/301) (ark-ec) Add `GLVParameters` trait definition.
 - [\#312](https://github.com/arkworks-rs/algebra/pull/312) (ark-ec) Add `is_in_correct_subgroup_assuming_on_curve` for all `SWModelParameters`.
 

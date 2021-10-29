@@ -128,6 +128,31 @@ impl<F: FftField> EvaluationDomain<F> for MixedRadixEvaluationDomain<F> {
     }
 
     #[inline]
+    fn log_size_of_group(&self) -> u64 {
+        self.log_size_of_group as u64
+    }
+
+    #[inline]
+    fn size_inv(&self) -> F {
+        self.size_inv
+    }
+
+    #[inline]
+    fn group_gen(&self) -> F {
+        self.group_gen
+    }
+
+    #[inline]
+    fn group_gen_inv(&self) -> F {
+        self.group_gen_inv
+    }
+
+    #[inline]
+    fn generator_inv(&self) -> F {
+        self.generator_inv
+    }
+
+    #[inline]
     fn fft_in_place<T: DomainCoeff<F>>(&self, coeffs: &mut Vec<T>) {
         coeffs.resize(self.size(), T::zero());
         best_fft(
@@ -214,7 +239,8 @@ impl<F: FftField> EvaluationDomain<F> for MixedRadixEvaluationDomain<F> {
     /// their power of the generator which they correspond to.
     /// e.g. the `i`-th element is g^i
     fn element(&self, i: usize) -> F {
-        // TODO: Consider precomputed exponentiation tables if we need this to be faster.
+        // TODO: Consider precomputed exponentiation tables if we need this to be
+        // faster.
         self.group_gen.pow(&[i as u64])
     }
 

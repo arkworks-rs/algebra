@@ -184,6 +184,20 @@ impl<'a, P: Parameters> AddAssign<&'a Self> for GroupAffine<P> {
     }
 }
 
+impl<P: Parameters> Distribution<GroupAffine<P>> for Standard {
+    #[inline]
+    fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> GroupAffine<P> {
+        loop {
+            let x = P::BaseField::rand(rng);
+            let greatest = rng.gen();
+
+            if let Some(p) = GroupAffine::get_point_from_x(x, greatest) {
+                return p.scale_by_cofactor().into();
+            }
+        }
+    }
+}
+
 impl<P: Parameters> AffineCurve for GroupAffine<P> {
     const COFACTOR: &'static [u64] = P::COFACTOR;
     type BaseField = P::BaseField;

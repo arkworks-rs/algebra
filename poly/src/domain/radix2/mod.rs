@@ -96,6 +96,31 @@ impl<F: FftField> EvaluationDomain<F> for Radix2EvaluationDomain<F> {
     }
 
     #[inline]
+    fn log_size_of_group(&self) -> u64 {
+        self.log_size_of_group as u64
+    }
+
+    #[inline]
+    fn size_inv(&self) -> F {
+        self.size_inv
+    }
+
+    #[inline]
+    fn group_gen(&self) -> F {
+        self.group_gen
+    }
+
+    #[inline]
+    fn group_gen_inv(&self) -> F {
+        self.group_gen_inv
+    }
+
+    #[inline]
+    fn generator_inv(&self) -> F {
+        self.generator_inv
+    }
+
+    #[inline]
     fn fft_in_place<T: DomainCoeff<F>>(&self, coeffs: &mut Vec<T>) {
         coeffs.resize(self.size(), T::zero());
         self.in_order_fft_in_place(&mut *coeffs)
@@ -121,7 +146,7 @@ impl<F: FftField> EvaluationDomain<F> for Radix2EvaluationDomain<F> {
         // - Z_H: The vanishing polynomial for H. Z_H(x) = prod_{i in m} (x - hg^i) = x^m - h^m
         // - v_i: A sequence of values, where v_0 = 1/(m * h^(m-1)), and v_{i + 1} = g * v_i
         //
-        // We then compute L_{i,H}(tau) as `L_{i,H}(tau) = Z_H(tau) * v_i / (tau - h g^i)`
+        // We then compute L_{i,H}(tau) as `L_{i,H}(tau) = Z_H(tau) * v_i / (tau - h * g^i)`
         //
         // However, if tau in H, both the numerator and denominator equal 0
         // when i corresponds to the value tau equals, and the coefficient is 0
@@ -194,7 +219,8 @@ impl<F: FftField> EvaluationDomain<F> for Radix2EvaluationDomain<F> {
     /// their power of the generator which they correspond to.
     /// e.g. the `i`-th element is g^i
     fn element(&self, i: usize) -> F {
-        // TODO: Consider precomputed exponentiation tables if we need this to be faster.
+        // TODO: Consider precomputed exponentiation tables if we need this to be
+        // faster.
         self.group_gen.pow(&[i as u64])
     }
 
@@ -279,7 +305,8 @@ mod tests {
             let rand_pt = Fr::rand(&mut test_rng());
             let lagrange_coeffs = domain.evaluate_all_lagrange_coefficients(rand_pt);
 
-            // Sample the random polynomial, evaluate it over the domain and the random point.
+            // Sample the random polynomial, evaluate it over the domain and the random
+            // point.
             let rand_poly = DensePolynomial::<Fr>::rand(domain_size - 1, &mut test_rng());
             let poly_evals = domain.fft(rand_poly.coeffs());
             let actual_eval = rand_poly.evaluate(&rand_pt);
