@@ -1,6 +1,5 @@
 use core::marker::PhantomData;
 
-use ark_ff::{Zero, One, Field, PrimeField, SquareRootField};
 use ark_ff::vec::Vec;
 use ark_poly::{Polynomial, UVPolynomial, univariate::{DensePolynomial}};
 use crate::models::SWModelParameters;
@@ -26,7 +25,7 @@ pub trait WBParams : SWModelParameters + Sized
     //The isogenouscurve should be defined over the same basefield but it can have different scalar field
     //type IsogenousCurveScalarField :
     type IsogenousCurve : SWUParams::<BaseField = <Self as ModelParameters>::BaseField>;
-    //const ISO_DEG: usize;
+
     const PHI_X_NOM: &'static [<Self::IsogenousCurve as ModelParameters>::BaseField];
     const PHI_X_DEN: &'static [<Self::IsogenousCurve as ModelParameters>::BaseField];
     
@@ -58,8 +57,6 @@ pub struct WBMap<P: WBParams>
     pub domain: Vec<u8>,
     swu_field_curve_hasher: SWUMap<P::IsogenousCurve>,
     curve_params: PhantomData<fn() -> P>,
-
-    //TODO: We should perhaps store the SWUMap object for efficiency
 }
 
 impl<P: WBParams> MapToCurve<GroupAffine<P>> for WBMap<P>
@@ -81,11 +78,8 @@ impl<P: WBParams> MapToCurve<GroupAffine<P>> for WBMap<P>
     /// inspired from
     /// https://github.com/zcash/pasta_curves/blob/main/src/hashtocurve.rs
     fn map_to_curve(&self, element: <GroupAffine<P> as AffineCurve>::BaseField) -> Result<GroupAffine<P>, HashToCurveError>  {
-        //fn hash_to_curve<'a>(domain_prefix: &'a str) -> Box<dyn Fn(&[u8]) -> Self + 'a> {
-
         //first we need to map the field point to the isogenous curve
         //let swu_field_curve_hasher = SWUMap::<P::IsogenousCurve>::new_map_to_curve(&[1]).unwrap();
-
         let point_on_isogenious_curve = self.swu_field_curve_hasher.map_to_curve(element).unwrap();
         P::isogeny_map(point_on_isogenious_curve)
     }

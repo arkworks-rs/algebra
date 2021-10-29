@@ -1,12 +1,8 @@
 use crate::AffineCurve;
-use ark_ff::{Field, PrimeField};
 use ark_std::{
-    marker::PhantomData,
-    string::{String, ToString},
-    vec::Vec,
+    string::{String},
 };
 use core::fmt;
-use digest::{Update, VariableOutput};
 
 pub mod field_hashers;
 pub mod map_to_curve_hasher;

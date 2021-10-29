@@ -1,13 +1,13 @@
 use core::marker::PhantomData;
 
-use ark_ff::{Zero, One, Field, PrimeField, SquareRootField};
+use ark_ff::{Zero, One, Field, SquareRootField};
 use ark_ff::vec::Vec;
 use ark_std::string::ToString;
 use crate::models::SWModelParameters;
 
 use crate::hashing::map_to_curve_hasher::MapToCurve;
 use crate::hashing::HashToCurveError;
-use crate::{AffineCurve};
+use crate::AffineCurve;
 use crate::models::short_weierstrass_jacobian::GroupAffine;
 
 /// Implementation for the SWU hash to curve for the curves of Weierstrass form of y^2 = x^3 + a*x + b where ab != 0. From [WB2019]
@@ -19,13 +19,6 @@ use crate::models::short_weierstrass_jacobian::GroupAffine;
 ///
 ///
 pub trait SWUParams : SWModelParameters {
-    // a non-zero element of F meeting the below criteria.
-    // Let g(x) be the value of y^2, e.g. g(x) = x^3 + Ax + B
-    // 1.  g(Z) != 0 in F.
-    // 2.  -(3 * Z^2 + 4 * A) / (4 * g(Z)) != 0 in F.
-    // 3.  -(3 * Z^2 + 4 * A) / (4 * g(Z)) is square in F.
-    // 4.  At least one of g(Z) and g(-Z / 2) is square in F.
-    //const Z : Self::BaseField;
     // we need an element of the base field which is not a square root see [1] Sect. 4.
     // it is also convenient to have $g(b/xi * a)$ to be square. In general we use a xi with
     // low absolute value coefficients when they are represented as element of ZZ.
@@ -46,10 +39,20 @@ impl <P: SWUParams> MapToCurve<GroupAffine<P>> for SWUMap<P>{
     fn new_map_to_curve(domain: &[u8]) -> Result<Self, HashToCurveError>
     {
         //Verifying that both XI and ZETA are non-squares
-        if (P::XI.legendre().is_qr() || P::ZETA.legendre().is_qr()) {
+        if P::XI.legendre().is_qr() || P::ZETA.legendre().is_qr() {
             return Err(HashToCurveError::MapToCurveError("both Xi and Zeta should be quadratic non-residues for the SWU map".to_string()));
         }
-        
+
+        //Verifying precomupted values 
+        if (P::XI/P::ZETA).sqrt().expect("we already checked that numinator and denominator are quadratic non-residues and legandre is multiplicative. Q.E.D") != P::XI_ON_ZETA_SQRT {
+            return Err(HashToCurveError::MapToCurveError("precomupted P::XI_ON_ZETA_SQRT is not what it suppose to be".to_string()));
+        }
+
+        //Verifying the prerequisite for applicability  of SWU map
+        if P::COEFF_A.is_zero() || P::COEFF_B.is_zero() {
+            return Err(HashToCurveError::MapToCurveError("Simplified SWU requires a * b != 0 in the short Weierstrass form of y^2 = x^3 + a*x + b ".to_string()));        
+        }
+
         Ok(SWUMap {
             domain: domain.to_vec(),
             curve_params: PhantomData,
@@ -87,11 +90,12 @@ impl <P: SWUParams> MapToCurve<GroupAffine<P>> for SWUMap<P>{
         let xi_t2 = P::XI * point.square();
         let ta = xi_t2.square() + xi_t2;
         let num_x1 = b * (ta + <P::BaseField as One>::one());
-        let div = a * if (ta.is_zero()) { -ta} else { P::XI };
+        let div = a * if ta.is_zero() { P::XI } else { -ta};
         let num2_x1 = num_x1.square();
         let div2 = div.square();
         let div3 = div2 * div;
         let num_gx1 = (num2_x1 + a * div2) * num_x1 + b * div3;
+        //println!("xi_t2: {} ta: {} num_x1: {} div/2/3: {}/{}/{} num2_x1: {} num_gx1: {}", xi_t2, ta, num_x1, div, div2,div3, num2_x1, num_gx1);
         
         // 5. x2 = Z * u^2 * x1
         let num_x2 = xi_t2 * num_x1; // same div
@@ -99,24 +103,21 @@ impl <P: SWUParams> MapToCurve<GroupAffine<P>> for SWUMap<P>{
         // 6. gx2 = x2^3 + A * x2 + B  [optimized out; see below]
         // 7. If is_square(gx1), set x = x1 and y = sqrt(gx1)
         // 8. Else set x = x2 and y = sqrt(gx2)
-        let mut gx1_square = false;
-        let mut gx1 = num_gx1;
-        let mut zeta_gx1 = P::ZETA;
+        let gx1_square;
+        let gx1;
+        let zeta_gx1;        
         
-        
-        let y1: P::BaseField = if (div3.is_zero()) {
-            P::BaseField::zero()
-        }
-        else 
+        assert!(!div3.is_zero(), "we have checked that neither a or xi are zero. Q.E.D.");
+        let y1: P::BaseField = 
         {
-            gx1 = (num_gx1 / div3);
+            gx1 = num_gx1 / div3;
             zeta_gx1 = P::ZETA*gx1;
+            //println!("zeta: {} gx1: {} zeta_gx1: {} num_x1: {} div: {}", P::ZETA, gx1, zeta_gx1, num_x1, div);
             if gx1.legendre().is_qr() {                
                 gx1_square = true;
                 gx1.sqrt().expect("We have checked that gx1 is a quadratic residue. Q.E.D")
             } else {
                 gx1_square = false;
-                //println!("zeta: {:?} gx1: {:?} zeta_gx1: {:?}", P::ZETA, gx1, zeta_gx1);
                 zeta_gx1.sqrt().expect("zeta * gx1 is a quadratic residue because legard is multiplicative. Q.E.D")
             }
         };
@@ -137,16 +138,19 @@ impl <P: SWUParams> MapToCurve<GroupAffine<P>> for SWUMap<P>{
         // is a square root of gx2. Note that we don't actually need to compute gx2.
         
         let y2 = P::XI_ON_ZETA_SQRT * xi_t2 * point * y1;
-        let num_x = if gx1_square { num2_x1} else {num_x1};
+        let num_x = if gx1_square { num_x1} else {num_x2};
         let y = if gx1_square { y1} else {y2};
-        
-        //it seems that we only need to return x,  do we?
-        Ok(GroupAffine::<P>::new(num_x * div, y2, false))
-        // let y = if {gx1_square} {y2} else {y1};
+
+        let x_affine = num_x/div;
+        let y_affine = y;
+        let point_on_curve = GroupAffine::<P>::new(x_affine, y_affine, false);
+        // println!("swu map result: {} -> x_affine:{} P:{}", point, x_affine, point_on_curve);        
+        assert!(point_on_curve.is_on_curve(), "swu mapped to a point off the curve");
+        Ok(point_on_curve)
             
         //     // 9. If sgn0(u) != sgn0(y), set y = -y
         // let y = if y % 2 {-y} or {y};
         // I::new_jacobian(num_x * div, y * div3, div).unwrap()
-            
+
     }
 }

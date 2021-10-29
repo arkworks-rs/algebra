@@ -2,11 +2,9 @@ use crate::hashing::map_to_curve_hasher::*;
 use crate::hashing::*;
 use ark_ff::{Field, PrimeField};
 use ark_std::{
-    marker::PhantomData,
-    string::{String, ToString},
+    string::{ToString},
     vec::Vec,
 };
-use core::fmt;
 use digest::{Update, VariableOutput};
 //use ark_std::boxed::Box;
 

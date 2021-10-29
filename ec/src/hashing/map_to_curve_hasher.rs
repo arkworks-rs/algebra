@@ -1,14 +1,10 @@
 use crate::hashing::*;
 use crate::AffineCurve;
-use ark_ff::{Field, PrimeField};
+use ark_ff::{Field};
 use ark_std::{
     marker::PhantomData,
-    string::{String, ToString},
     vec::Vec,
 };
-use core::fmt;
-use digest::{Update, VariableOutput};
-//use ark_std::boxed::Box;
 
 /// Trait for mapping a random field element to a random curve point.
 pub trait MapToCurve<T: AffineCurve> {
