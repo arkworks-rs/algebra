@@ -9,6 +9,7 @@
 - [\#333](https://github.com/arkworks-rs/algebra/pull/333) (ark-poly) Expose more properties of `EvaluationDomain`s.
 - [\#338](https://github.com/arkworks-rs/algebra/pull/338) (ark-ec) Add missing `UniformRand` trait bound to `GroupAffine`.
 - [\#338](https://github.com/arkworks-rs/algebra/pull/338) (workspace) Change to Rust 2021 edition.
+
 ### Features
 
 - [\#321](https://github.com/arkworks-rs/algebra/pull/321) (ark-ff) Change bigint conversions to impl `From` instead of `Into`.
