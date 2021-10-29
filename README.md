@@ -74,7 +74,7 @@ Note that because inline assembly support in Rust is currently unstable, using t
 
 ## License
 
-The crates in this repo are licensed under either of the following licenses, at your discretion.
+The crates in this repository are licensed under either of the following licenses, at your discretion.
 
 * Apache License Version 2.0 ([LICENSE-APACHE](LICENSE-APACHE) or [apache.org license link](http://www.apache.org/licenses/LICENSE-2.0))
 * MIT license ([LICENSE-MIT](LICENSE-MIT) or [opensource.org license link](http://opensource.org/licenses/MIT))
