@@ -11,7 +11,7 @@ on:
       - "**.md"
 
 jobs:
-  build:
+  super-linter:
     name: Markdown linter
     runs-on: ubuntu-latest
     steps:
