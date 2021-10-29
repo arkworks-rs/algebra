@@ -17,7 +17,7 @@
 
 ### Improvements
 
-### Bug fixes
+### Bugfixes
 
 ## v0.3.0
 
@@ -43,7 +43,7 @@
 
 - [\#279](https://github.com/arkworks-rs/algebra/pull/279) (ark-ec) Parallelize miller loop operations for BLS12.
 
-### Bug fixes
+### Bugfixes
 
 - [\#252](https://github.com/arkworks-rs/algebra/pull/252) (ark-ff) Fix prime field sampling when `REPR_SHIFT_BITS` is 64.
 - [\#284](https://github.com/arkworks-rs/algebra/pull/284) (ark-poly-benches) Fix the panic `subgroup_fft_in_place` benchmark for MNT6-753's Fr.
@@ -66,7 +66,7 @@ The main features of this release are:
 
 - [\#20](https://github.com/arkworks-rs/algebra/pull/20) (ark-poly) Move univariate DensePolynomial and SparsePolynomial into a
     univariate sub-crate. Make this change by:
-    find w/ regex `ark_poly::(Dense|Sparse)Polynomial`, and replace with `ark_poly::univariate::$1Polynomial`.
+    find w/ regular expression `ark_poly::(Dense|Sparse)Polynomial`, and replace with `ark_poly::univariate::$1Polynomial`.
 - [\#36](https://github.com/arkworks-rs/algebra/pull/36) (ark-ec) In Short-Weierstrass curves, include an infinity bit in `ToConstraintField`.
 - [\#37](https://github.com/arkworks-rs/algebra/pull/37) (ark-poly) In the `Polynomial` trait, add `Hash` trait bound to `Point`.
 - [\#38](https://github.com/arkworks-rs/algebra/pull/38) (ark-poly) Add `Add` and `Neg` trait bounds to `Polynomial`.
@@ -142,7 +142,7 @@ The main features of this release are:
 - [\#214](https://github.com/arkworks-rs/algebra/pull/214) (ark-poly) Utilise a more efficient way of evaluating a polynomial at a single point.
 - [\#242](https://github.com/arkworks-rs/algebra/pull/242), [\#244][https://github.com/arkworks-rs/algebra/pull/244] (ark-poly) Speedup the sequential radix-2 FFT significantly by making the method in which it accesses roots more cache-friendly.
 
-### Bug fixes
+### Bugfixes
 
 - [\#36](https://github.com/arkworks-rs/algebra/pull/36) (ark-ec) In Short-Weierstrass curves, include an infinity bit in `ToConstraintField`.
 - [\#107](https://github.com/arkworks-rs/algebra/pull/107) (ark-serialize) Fix handling of `(de)serialize_uncompressed/unchecked` in various impls of `CanonicalSerialize/Deserialize`.
