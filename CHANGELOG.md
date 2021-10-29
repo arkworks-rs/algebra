@@ -2,6 +2,8 @@
 
 ## Pending
 
+  - [\#???] Add WB and SWU hash to curve maps to hashing PR.
+
 ### Breaking changes
 
 - [\#300](https://github.com/arkworks-rs/algebra/pull/300) (ark-ec) Change the implementation of `Hash` trait of `GroupProjective` to use the affine coordinates.
