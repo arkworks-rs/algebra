@@ -25,6 +25,9 @@ rayon = { version = "1", optional = true }
 zeroize = { version = "1", default-features = false, features = ["zeroize_derive"] }
 num-bigint = { version = "0.4", default-features = false }
 
+[dev-dependencies]
+ark-test-curves = { version = "^0.3.0", path = "../test-curves", default-features = false, features = [ "bls12_381_curve"] }
+
 [build-dependencies]
 rustc_version = "0.4"
 

@@ -642,8 +642,15 @@ mod std_tests {
 #[cfg(test)]
 mod no_std_tests {
     use super::*;
-    use crate::test_field::{Fr, FrParameters};
     use ark_std::test_rng;
+    // TODO: only Fr & FrParameters should need to be imported.
+    // The rest of imports are caused by cargo not resolving the deps properly
+    // from this crate and from ark_test_curves
+    use ark_test_curves::{
+        batch_inversion, batch_inversion_and_mul,
+        bls12_381::{Fr, FrParameters},
+        BigInteger, FpParameters, PrimeField,
+    };
 
     #[test]
     fn test_batch_inversion() {

@@ -1,5 +1,8 @@
 #![no_std]
 
+extern crate ark_ff;
+pub use ark_ff::*;
+
 #[cfg(any(feature = "bls12_381_scalar_field", feature = "bls12_381_curve"))]
 pub mod bls12_381;
 

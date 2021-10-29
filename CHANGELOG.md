@@ -17,7 +17,10 @@
 
 ### Improvements
 
+- [\#339](https://github.com/arkworks-rs/algebra/pull/339) (ark-ff) Remove duplicated code from `test_field` module and replace its usage with `ark-test-curves` crate.
+
 ### Bugfixes
+
 
 ## v0.3.0
 

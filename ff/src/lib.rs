@@ -23,10 +23,6 @@ pub use self::biginteger::*;
 pub mod fields;
 pub use self::fields::*;
 
-// This is only used for testing.
-#[cfg(test)]
-mod test_field;
-
 pub use ark_std::UniformRand;
 
 mod to_field_vec;
