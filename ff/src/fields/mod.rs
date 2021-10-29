@@ -649,7 +649,7 @@ mod no_std_tests {
     use ark_test_curves::{
         batch_inversion, batch_inversion_and_mul,
         bls12_381::{Fr, FrParameters},
-        BigInteger, Field, FpParameters, PrimeField,
+        BigInteger, FpParameters, PrimeField,
     };
 
     #[test]
