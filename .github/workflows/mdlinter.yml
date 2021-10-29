@@ -23,7 +23,7 @@ jobs:
           VALIDATE_ALL_CODEBASE: true
           DEFAULT_BRANCH: master
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          VALIDATE_MD: true
+          VALIDATE_MARKDOWN: true
           VALIDATE_PROTOBUF: false
           VALIDATE_JSCPD: false
           # use Python Pylint as the only linter to avoid conflicts
