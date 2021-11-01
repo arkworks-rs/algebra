@@ -43,8 +43,11 @@ impl <P: SWUParams> MapToCurve<GroupAffine<P>> for SWUMap<P>{
             return Err(HashToCurveError::MapToCurveError("both Xi and Zeta should be quadratic non-residues for the SWU map".to_string()));
         }
 
-        //Verifying precomupted values 
-        if (P::XI/P::ZETA).sqrt().expect("we already checked that numinator and denominator are quadratic non-residues and legandre is multiplicative. Q.E.D") != P::XI_ON_ZETA_SQRT {
+        //Verifying precomupted values
+        let xi_on_zeta = P::XI/P::ZETA;
+        //println!("XI/ZETA: {}", xi_on_zeta);
+        let xi_on_zeta_sqrt = xi_on_zeta.sqrt().expect("we already checked that numerator and denominator are quadratic non-residues and legandre is multiplicative. Q.E.D"); 
+        if  xi_on_zeta_sqrt != P::XI_ON_ZETA_SQRT && xi_on_zeta_sqrt != -P::XI_ON_ZETA_SQRT {
             return Err(HashToCurveError::MapToCurveError("precomupted P::XI_ON_ZETA_SQRT is not what it suppose to be".to_string()));
         }
 
