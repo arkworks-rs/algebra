@@ -139,6 +139,17 @@ impl<P: Parameters> GroupAffine<P> {
             Self::new(x, y)
         })
     }
+    // This method serialises points using the old format
+    fn serialize_old<W: Write>(&self, writer: W) -> Result<(), SerializationError> {
+        if self.is_zero() {
+            let flags = EdwardsFlags::default();
+            // Serialize 0.
+            P::BaseField::zero().serialize_with_flags(writer, flags)
+        } else {
+            let flags = EdwardsFlags::from_y_sign(self.y > -self.y);
+            self.x.serialize_with_flags(writer, flags)
+        }
+    }
 }
 
 impl<P: Parameters> Zero for GroupAffine<P> {
@@ -734,8 +745,8 @@ impl<P: Parameters> CanonicalSerialize for GroupAffine<P> {
             // Serialize 0.
             P::BaseField::zero().serialize_with_flags(writer, flags)
         } else {
-            let flags = EdwardsFlags::from_y_sign(self.y > -self.y);
-            self.x.serialize_with_flags(writer, flags)
+            let flags = EdwardsFlags::from_y_sign(self.x > -self.x);
+            self.y.serialize_with_flags(writer, flags)
         }
     }
 
