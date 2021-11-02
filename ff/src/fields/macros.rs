@@ -88,11 +88,9 @@ macro_rules! impl_prime_field_serializer {
 
 macro_rules! impl_Fp {
     ($Fp:ident, $FpParameters:ident, $BigInteger:ident, $BigIntegerType:ty, $limbs:expr, $field_size:expr) => {
-        /// Parameters of the prime field of size at most
+        /// Trait for prime field parameters of size at most
         #[doc = $field_size]
-        /// invariably tied to the BigInteger struct comprising
-        #[doc = stringify!($limbs)]
-        /// that holds the internal representation of the field elements.
+        /// bits.
         pub trait $FpParameters: FpParameters<BigInt = $BigIntegerType> {}
 
         /// Represents an element of the prime field F_p, where `p == P::MODULUS`.
