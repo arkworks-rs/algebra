@@ -10,8 +10,8 @@ This crate defines Finite Field traits and useful abstraction models that follow
 Implementations of finite fields with concrete parameters can be found in [`arkworks-rs/curves`](https://github.com/arkworks-rs/curves/README.md) under `arkworks-rs/curves/<your favourite curve>/src/fields/`, which are used for some of the popular curves, such as a specific [`Fq`](https://github.com/arkworks-rs/curves/blob/master/bls12_381/src/fields/fq.rs) used in BLS-381.
 
 This crate contains two types of traits:
-- Field: defines an interface for instantiation and manipulation of field elements by methods inherent to the field, as well as provides useful getters on the underlying field and on the element.
-- Field Parameters: holds the parameters defining the field in question. For extension fields, it also provides additional functionality aquired on the field, such as operations involving a QNR used for constructing the field (`NONRESIDUE`).
+- `Field` traits: These define interfaces for manipulating field elements, such as addition, multiplication, inverses, square roots, and more.
+- Field Parameters: holds the parameters defining the field in question. For extension fields, it also provides additional functionality required for the field, such as operations involving a (cubic or quadratic) non-residue used for constructing the field (`NONRESIDUE`).
 
 
 The available field traits are:
