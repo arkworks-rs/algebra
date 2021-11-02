@@ -73,21 +73,27 @@ impl<P: Parameters> GroupAffine<P> {
         res
     }
 
-    /// Attempts to construct an affine point given an x-coordinate. The
+    /// Attempts to construct an affine point given an y-coordinate. The
     /// point is not guaranteed to be in the prime order subgroup.
     ///
     /// If and only if `greatest` is set will the lexicographically
-    /// largest y-coordinate be selected.
+    /// largest x-coordinate be selected.
+    ///
+    /// a * X^2 + Y^2 = 1 + d * X^2 * Y^2
+    /// a * X^2 - d * X^2 * Y^2 = 1 - Y^2
+    /// X^2 * (a - d * Y^2) = 1 - Y^2
+    /// X^2 = (1 - Y^2) / (a - d * Y^2)
     #[allow(dead_code)]
-    pub fn get_point_from_x(x: P::BaseField, greatest: bool) -> Option<Self> {
-        let x2 = x.square();
-        let one = P::BaseField::one();
-        let numerator = P::mul_by_a(&x2) - &one;
-        let denominator = P::COEFF_D * &x2 - &one;
-        let y2 = denominator.inverse().map(|denom| denom * &numerator);
-        y2.and_then(|y2| y2.sqrt()).map(|y| {
-            let negy = -y;
-            let y = if (y < negy) ^ greatest { y } else { negy };
+    pub fn get_point_from_y(y: P::BaseField, greatest: bool) -> Option<Self> {
+        let y2 = y.square();
+
+        let numerator = P::BaseField::one() - y2;
+        let denominator = P::COEFF_A - (y2 * P::COEFF_D);
+
+        let x2 = denominator.inverse().map(|denom| denom * &numerator);
+        x2.and_then(|x2| x2.sqrt()).map(|x| {
+            let negx = -x;
+            let x = if (x < negx) ^ greatest { x } else { negx };
             Self::new(x, y)
         })
     }
@@ -108,6 +114,30 @@ impl<P: Parameters> GroupAffine<P> {
     pub fn is_in_correct_subgroup_assuming_on_curve(&self) -> bool {
         self.mul_bits(BitIteratorBE::new(P::ScalarField::characteristic()))
             .is_zero()
+    }
+}
+
+// This impl block is being used to encapsulate all of the methods that are
+// needed for backwards compatibility with the old serialisation format
+// #See issue330
+impl<P: Parameters> GroupAffine<P> {
+    /// Attempts to construct an affine point given an x-coordinate. The
+    /// point is not guaranteed to be in the prime order subgroup.
+    ///
+    /// If and only if `greatest` is set will the lexicographically
+    /// largest y-coordinate be selected.
+    #[allow(dead_code)]
+    pub fn get_point_from_x_old(x: P::BaseField, greatest: bool) -> Option<Self> {
+        let x2 = x.square();
+        let one = P::BaseField::one();
+        let numerator = P::mul_by_a(&x2) - &one;
+        let denominator = P::COEFF_D * &x2 - &one;
+        let y2 = denominator.inverse().map(|denom| denom * &numerator);
+        y2.and_then(|y2| y2.sqrt()).map(|y| {
+            let negy = -y;
+            let y = if (y < negy) ^ greatest { y } else { negy };
+            Self::new(x, y)
+        })
     }
 }
 
