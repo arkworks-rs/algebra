@@ -201,6 +201,31 @@ impl<F: FftField> EvaluationDomain<F> for GeneralEvaluationDomain<F> {
     }
 
     #[inline]
+    fn log_size_of_group(&self) -> u64 {
+        map!(self, log_size_of_group) as u64
+    }
+
+    #[inline]
+    fn size_inv(&self) -> F {
+        map!(self, size_inv)
+    }
+
+    #[inline]
+    fn group_gen(&self) -> F {
+        map!(self, group_gen)
+    }
+
+    #[inline]
+    fn group_gen_inv(&self) -> F {
+        map!(self, group_gen_inv)
+    }
+
+    #[inline]
+    fn generator_inv(&self) -> F {
+        map!(self, generator_inv)
+    }
+
+    #[inline]
     fn fft_in_place<T: DomainCoeff<F>>(&self, coeffs: &mut Vec<T>) {
         map!(self, fft_in_place, coeffs)
     }

@@ -19,8 +19,8 @@ checked off. If any of the checklist items are not applicable, please leave them
 write a little note why.
 
 - [ ] Targeted PR against correct branch (master)
-- [ ] Linked to Github issue with discussion and accepted design OR have an explanation in the PR that describes this work.
+- [ ] Linked to GitHub issue with discussion and accepted design OR have an explanation in the PR that describes this work.
 - [ ] Wrote unit tests
 - [ ] Updated relevant documentation in the code
 - [ ] Added a relevant changelog entry to the `Pending` section in `CHANGELOG.md`
-- [ ] Re-reviewed `Files changed` in the Github PR explorer
+- [ ] Re-reviewed `Files changed` in the GitHub PR explorer
