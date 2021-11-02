@@ -166,13 +166,13 @@ impl<P: Parameters> AffineCurve for GroupAffine<P> {
     }
 
     fn from_random_bytes(bytes: &[u8]) -> Option<Self> {
-        P::BaseField::from_random_bytes_with_flags::<EdwardsFlags>(bytes).and_then(|(x, flags)| {
-            // if x is valid and is zero, then parse this
+        P::BaseField::from_random_bytes_with_flags::<EdwardsFlags>(bytes).and_then(|(y, flags)| {
+            // if y is valid and is zero, then parse this
             // point as infinity.
-            if x.is_zero() {
+            if y.is_zero() {
                 Some(Self::zero())
             } else {
-                Self::get_point_from_x(x, flags.is_positive())
+                Self::get_point_from_y(y, flags.is_positive())
             }
         })
     }
@@ -281,10 +281,10 @@ impl<P: Parameters> Distribution<GroupAffine<P>> for Standard {
     #[inline]
     fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> GroupAffine<P> {
         loop {
-            let x = P::BaseField::rand(rng);
+            let y = P::BaseField::rand(rng);
             let greatest = rng.gen();
 
-            if let Some(p) = GroupAffine::get_point_from_x(x, greatest) {
+            if let Some(p) = GroupAffine::get_point_from_y(y, greatest) {
                 return p.scale_by_cofactor().into();
             }
         }
@@ -380,10 +380,10 @@ impl<P: Parameters> Distribution<GroupProjective<P>> for Standard {
     #[inline]
     fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> GroupProjective<P> {
         loop {
-            let x = P::BaseField::rand(rng);
+            let y = P::BaseField::rand(rng);
             let greatest = rng.gen();
 
-            if let Some(p) = GroupAffine::get_point_from_x(x, greatest) {
+            if let Some(p) = GroupAffine::get_point_from_y(y, greatest) {
                 return p.scale_by_cofactor();
             }
         }
@@ -790,12 +790,12 @@ impl<P: Parameters> CanonicalSerialize for GroupProjective<P> {
 impl<P: Parameters> CanonicalDeserialize for GroupAffine<P> {
     #[allow(unused_qualifications)]
     fn deserialize<R: Read>(mut reader: R) -> Result<Self, SerializationError> {
-        let (x, flags): (P::BaseField, EdwardsFlags) =
+        let (y, flags): (P::BaseField, EdwardsFlags) =
             CanonicalDeserializeWithFlags::deserialize_with_flags(&mut reader)?;
-        if x == P::BaseField::zero() {
+        if y == P::BaseField::zero() {
             Ok(Self::zero())
         } else {
-            let p = GroupAffine::<P>::get_point_from_x(x, flags.is_positive())
+            let p = GroupAffine::<P>::get_point_from_y(y, flags.is_positive())
                 .ok_or(SerializationError::InvalidData)?;
             if !p.is_in_correct_subgroup_assuming_on_curve() {
                 return Err(SerializationError::InvalidData);
