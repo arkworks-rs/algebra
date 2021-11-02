@@ -91,7 +91,7 @@ macro_rules! impl_Fp {
         /// Parameters of the prime field of size at most
         #[doc = $field_size]
         /// invariably tied to the BigInteger struct comprising
-        #[doc = $limbs]
+        #[doc = stringify!($limbs)]
         /// that holds the internal representation of the field elements.
         pub trait $FpParameters: FpParameters<BigInt = $BigIntegerType> {}
 
