@@ -1,11 +1,14 @@
 use super::quadratic_extension::*;
 use crate::fields::PrimeField;
 use core::marker::PhantomData;
+use num_traits::Zero;
 
 pub trait Fp2Parameters: 'static + Send + Sync {
     type Fp: PrimeField;
 
     const NONRESIDUE: Self::Fp;
+
+    const NONRESIDUE_SMALL: Option<i8> = None;
 
     const QUADRATIC_NONRESIDUE: (Self::Fp, Self::Fp);
 
@@ -15,32 +18,10 @@ pub trait Fp2Parameters: 'static + Send + Sync {
     /// Return `fe * Self::NONRESIDUE`.
     #[inline(always)]
     fn mul_fp_by_nonresidue(fe: &Self::Fp) -> Self::Fp {
+        if let Some(i) = Self::NONRESIDUE_SMALL {
+            return fe.mul_by_i8(i);
+        }
         Self::NONRESIDUE * fe
-    }
-
-    /// A specializable method for computing `x + mul_base_field_by_nonresidue(y)`
-    /// This allows for optimizations when the non-residue is
-    /// canonically negative in the field.
-    #[inline(always)]
-    fn add_and_mul_fp_by_nonresidue(x: &Self::Fp, y: &Self::Fp) -> Self::Fp {
-        *x + Self::mul_fp_by_nonresidue(y)
-    }
-
-    /// A specializable method for computing `x + y + mul_base_field_by_nonresidue(y)`
-    /// This allows for optimizations when the non-residue is not `-1`.
-    #[inline(always)]
-    fn add_and_mul_fp_by_nonresidue_plus_one(x: &Self::Fp, y: &Self::Fp) -> Self::Fp {
-        let mut tmp = *x;
-        tmp += y;
-        Self::add_and_mul_fp_by_nonresidue(&tmp, &y)
-    }
-
-    /// A specializable method for computing `x - mul_base_field_by_nonresidue(y)`
-    /// This allows for optimizations when the non-residue is
-    /// canonically negative in the field.
-    #[inline(always)]
-    fn sub_and_mul_fp_by_nonresidue(x: &Self::Fp, y: &Self::Fp) -> Self::Fp {
-        *x - Self::mul_fp_by_nonresidue(y)
     }
 }
 
@@ -55,39 +36,46 @@ impl<P: Fp2Parameters> QuadExtParameters for Fp2ParamsWrapper<P> {
 
     const NONRESIDUE: Self::BaseField = P::NONRESIDUE;
 
+    const NONRESIDUE_SMALL: Option<i8> = P::NONRESIDUE_SMALL;
+
     const FROBENIUS_COEFF_C1: &'static [Self::FrobCoeff] = P::FROBENIUS_COEFF_FP2_C1;
-
-    #[inline(always)]
-    fn mul_base_field_by_nonresidue(fe: &Self::BaseField) -> Self::BaseField {
-        P::mul_fp_by_nonresidue(fe)
-    }
-
-    #[inline(always)]
-    fn add_and_mul_base_field_by_nonresidue(
-        x: &Self::BaseField,
-        y: &Self::BaseField,
-    ) -> Self::BaseField {
-        P::add_and_mul_fp_by_nonresidue(x, y)
-    }
-
-    #[inline(always)]
-    fn add_and_mul_base_field_by_nonresidue_plus_one(
-        x: &Self::BaseField,
-        y: &Self::BaseField,
-    ) -> Self::BaseField {
-        P::add_and_mul_fp_by_nonresidue_plus_one(x, y)
-    }
-
-    #[inline(always)]
-    fn sub_and_mul_base_field_by_nonresidue(
-        x: &Self::BaseField,
-        y: &Self::BaseField,
-    ) -> Self::BaseField {
-        P::sub_and_mul_fp_by_nonresidue(x, y)
-    }
 
     fn mul_base_field_by_frob_coeff(fe: &mut Self::BaseField, power: usize) {
         *fe *= &Self::FROBENIUS_COEFF_C1[power % Self::DEGREE_OVER_BASE_PRIME_FIELD];
+    }
+
+    #[inline(always)]
+    #[ark_ff_asm::unroll_for_loops]
+    fn op_and_mul_base_field_by_nonresidue(
+        other: &Self::BaseField,
+        fe: &Self::BaseField,
+        mode: MulNonResidueMode,
+    ) -> Self::BaseField {
+        if let Some(mut i) = Self::NONRESIDUE_SMALL {
+            if mode == MulNonResidueMode::PlusAddOne {
+                i += 1;
+            }
+            if i.abs() < (1 << 5) {
+                if i == 0 {
+                    return Self::BaseField::zero();
+                }
+                let neg = mode == MulNonResidueMode::Minus;
+                let add = i >= 0 && !neg || i < 0 && neg;
+
+                let res = fe.mul_by_i8(i.abs());
+
+                if add {
+                    return *other + res;
+                } else {
+                    return *other - res;
+                }
+            }
+        }
+        match mode {
+            MulNonResidueMode::Minus => *other - P::mul_fp_by_nonresidue(fe),
+            MulNonResidueMode::Plus => *other + P::mul_fp_by_nonresidue(fe),
+            MulNonResidueMode::PlusAddOne => *other + P::mul_fp_by_nonresidue(fe) + fe,
+        }
     }
 }
 

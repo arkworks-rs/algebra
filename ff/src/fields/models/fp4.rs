@@ -18,7 +18,7 @@ pub trait Fp4Parameters: 'static + Send + Sync {
     fn mul_fp2_by_nonresidue(fe: &Fp2<Self::Fp2Params>) -> Fp2<Self::Fp2Params> {
         // see [[DESD06, Section 5.1]](https://eprint.iacr.org/2006/471.pdf).
         Fp2::new(
-            <Self::Fp2Params as Fp2Parameters>::NONRESIDUE * &fe.c1,
+            <Self::Fp2Params as Fp2Parameters>::mul_fp_by_nonresidue(&fe.c1),
             fe.c0,
         )
     }
