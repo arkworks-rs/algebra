@@ -146,7 +146,9 @@ impl<P: Parameters> GroupAffine<P> {
             // Serialize 0.
             P::BaseField::zero().serialize_with_flags(writer, flags)
         } else {
-            let flags = EdwardsFlags::from_y_sign(self.y > -self.y);
+            // Note: although this says `from_x_sign` and we are
+            // using the sign of `y`. The logic works the same.
+            let flags = EdwardsFlags::from_x_sign(self.y > -self.y);
             self.x.serialize_with_flags(writer, flags)
         }
     }
@@ -745,7 +747,7 @@ impl<P: Parameters> CanonicalSerialize for GroupAffine<P> {
             // Serialize 0.
             P::BaseField::zero().serialize_with_flags(writer, flags)
         } else {
-            let flags = EdwardsFlags::from_y_sign(self.x > -self.x);
+            let flags = EdwardsFlags::from_x_sign(self.x > -self.x);
             self.y.serialize_with_flags(writer, flags)
         }
     }
