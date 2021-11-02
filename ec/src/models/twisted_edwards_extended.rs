@@ -786,6 +786,17 @@ impl<P: Parameters> CanonicalSerialize for GroupAffine<P> {
     }
 }
 
+impl<P: Parameters> GroupProjective<P> {
+    fn serialize_old<W: Write>(&self, writer: W) -> Result<(), SerializationError> {
+        let aff = GroupAffine::<P>::from(self.clone());
+        aff.serialize_old(writer)
+    }
+
+    fn deserialize_old<R: Read>(reader: R) -> Result<Self, SerializationError> {
+        let aff = GroupAffine::<P>::deserialize_old(reader)?;
+        Ok(aff.into())
+    }
+}
 impl<P: Parameters> CanonicalSerialize for GroupProjective<P> {
     #[allow(unused_qualifications)]
     #[inline]
