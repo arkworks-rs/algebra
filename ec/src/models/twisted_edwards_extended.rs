@@ -152,6 +152,20 @@ impl<P: Parameters> GroupAffine<P> {
             self.x.serialize_with_flags(writer, flags)
         }
     }
+    fn deserialize_old<R: Read>(mut reader: R) -> Result<Self, SerializationError> {
+        let (x, flags): (P::BaseField, EdwardsFlags) =
+            CanonicalDeserializeWithFlags::deserialize_with_flags(&mut reader)?;
+        if x == P::BaseField::zero() {
+            Ok(Self::zero())
+        } else {
+            let p = GroupAffine::<P>::get_point_from_x_old(x, flags.is_positive())
+                .ok_or(SerializationError::InvalidData)?;
+            if !p.is_in_correct_subgroup_assuming_on_curve() {
+                return Err(SerializationError::InvalidData);
+            }
+            Ok(p)
+        }
+    }
 }
 
 impl<P: Parameters> Zero for GroupAffine<P> {
