@@ -140,7 +140,7 @@ impl<P: Parameters> GroupAffine<P> {
         })
     }
     // This method serialises points using the old format
-    fn serialize_old<W: Write>(&self, writer: W) -> Result<(), SerializationError> {
+    pub fn serialize_old<W: Write>(&self, writer: W) -> Result<(), SerializationError> {
         if self.is_zero() {
             let flags = EdwardsFlags::default();
             // Serialize 0.
@@ -152,7 +152,7 @@ impl<P: Parameters> GroupAffine<P> {
             self.x.serialize_with_flags(writer, flags)
         }
     }
-    fn deserialize_old<R: Read>(mut reader: R) -> Result<Self, SerializationError> {
+    pub fn deserialize_old<R: Read>(mut reader: R) -> Result<Self, SerializationError> {
         let (x, flags): (P::BaseField, EdwardsFlags) =
             CanonicalDeserializeWithFlags::deserialize_with_flags(&mut reader)?;
         if x == P::BaseField::zero() {
@@ -787,12 +787,12 @@ impl<P: Parameters> CanonicalSerialize for GroupAffine<P> {
 }
 
 impl<P: Parameters> GroupProjective<P> {
-    fn serialize_old<W: Write>(&self, writer: W) -> Result<(), SerializationError> {
+    pub fn serialize_old<W: Write>(&self, writer: W) -> Result<(), SerializationError> {
         let aff = GroupAffine::<P>::from(self.clone());
         aff.serialize_old(writer)
     }
 
-    fn deserialize_old<R: Read>(reader: R) -> Result<Self, SerializationError> {
+    pub fn deserialize_old<R: Read>(reader: R) -> Result<Self, SerializationError> {
         let aff = GroupAffine::<P>::deserialize_old(reader)?;
         Ok(aff.into())
     }
