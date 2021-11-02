@@ -117,57 +117,6 @@ impl<P: Parameters> GroupAffine<P> {
     }
 }
 
-// This impl block is being used to encapsulate all of the methods that are
-// needed for backwards compatibility with the old serialisation format
-// #See issue330
-impl<P: Parameters> GroupAffine<P> {
-    /// Attempts to construct an affine point given an x-coordinate. The
-    /// point is not guaranteed to be in the prime order subgroup.
-    ///
-    /// If and only if `greatest` is set will the lexicographically
-    /// largest y-coordinate be selected.
-    #[allow(dead_code)]
-    pub fn get_point_from_x_old(x: P::BaseField, greatest: bool) -> Option<Self> {
-        let x2 = x.square();
-        let one = P::BaseField::one();
-        let numerator = P::mul_by_a(&x2) - &one;
-        let denominator = P::COEFF_D * &x2 - &one;
-        let y2 = denominator.inverse().map(|denom| denom * &numerator);
-        y2.and_then(|y2| y2.sqrt()).map(|y| {
-            let negy = -y;
-            let y = if (y < negy) ^ greatest { y } else { negy };
-            Self::new(x, y)
-        })
-    }
-    // This method serialises points using the old format
-    pub fn serialize_old<W: Write>(&self, writer: W) -> Result<(), SerializationError> {
-        if self.is_zero() {
-            let flags = EdwardsFlags::default();
-            // Serialize 0.
-            P::BaseField::zero().serialize_with_flags(writer, flags)
-        } else {
-            // Note: although this says `from_x_sign` and we are
-            // using the sign of `y`. The logic works the same.
-            let flags = EdwardsFlags::from_x_sign(self.y > -self.y);
-            self.x.serialize_with_flags(writer, flags)
-        }
-    }
-    pub fn deserialize_old<R: Read>(mut reader: R) -> Result<Self, SerializationError> {
-        let (x, flags): (P::BaseField, EdwardsFlags) =
-            CanonicalDeserializeWithFlags::deserialize_with_flags(&mut reader)?;
-        if x == P::BaseField::zero() {
-            Ok(Self::zero())
-        } else {
-            let p = GroupAffine::<P>::get_point_from_x_old(x, flags.is_positive())
-                .ok_or(SerializationError::InvalidData)?;
-            if !p.is_in_correct_subgroup_assuming_on_curve() {
-                return Err(SerializationError::InvalidData);
-            }
-            Ok(p)
-        }
-    }
-}
-
 impl<P: Parameters> Zero for GroupAffine<P> {
     fn zero() -> Self {
         Self::new(P::BaseField::zero(), P::BaseField::one())
@@ -786,17 +735,6 @@ impl<P: Parameters> CanonicalSerialize for GroupAffine<P> {
     }
 }
 
-impl<P: Parameters> GroupProjective<P> {
-    pub fn serialize_old<W: Write>(&self, writer: W) -> Result<(), SerializationError> {
-        let aff = GroupAffine::<P>::from(self.clone());
-        aff.serialize_old(writer)
-    }
-
-    pub fn deserialize_old<R: Read>(reader: R) -> Result<Self, SerializationError> {
-        let aff = GroupAffine::<P>::deserialize_old(reader)?;
-        Ok(aff.into())
-    }
-}
 impl<P: Parameters> CanonicalSerialize for GroupProjective<P> {
     #[allow(unused_qualifications)]
     #[inline]
@@ -902,5 +840,67 @@ where
     #[inline]
     fn to_field_elements(&self) -> Option<Vec<ConstraintF>> {
         GroupAffine::from(*self).to_field_elements()
+    }
+}
+
+// This impl block and the one following are being used to encapsulate all of
+// the methods that are needed for backwards compatibility with the old
+// serialization format
+// See Issue #330
+impl<P: Parameters> GroupAffine<P> {
+    /// Attempts to construct an affine point given an x-coordinate. The
+    /// point is not guaranteed to be in the prime order subgroup.
+    ///
+    /// If and only if `greatest` is set will the lexicographically
+    /// largest y-coordinate be selected.
+    #[allow(dead_code)]
+    pub fn get_point_from_x_old(x: P::BaseField, greatest: bool) -> Option<Self> {
+        let x2 = x.square();
+        let one = P::BaseField::one();
+        let numerator = P::mul_by_a(&x2) - &one;
+        let denominator = P::COEFF_D * &x2 - &one;
+        let y2 = denominator.inverse().map(|denom| denom * &numerator);
+        y2.and_then(|y2| y2.sqrt()).map(|y| {
+            let negy = -y;
+            let y = if (y < negy) ^ greatest { y } else { negy };
+            Self::new(x, y)
+        })
+    }
+    pub fn serialize_old<W: Write>(&self, writer: W) -> Result<(), SerializationError> {
+        if self.is_zero() {
+            let flags = EdwardsFlags::default();
+            // Serialize 0.
+            P::BaseField::zero().serialize_with_flags(writer, flags)
+        } else {
+            // Note: although this says `from_x_sign` and we are
+            // using the sign of `y`. The logic works the same.
+            let flags = EdwardsFlags::from_x_sign(self.y > -self.y);
+            self.x.serialize_with_flags(writer, flags)
+        }
+    }
+    pub fn deserialize_old<R: Read>(mut reader: R) -> Result<Self, SerializationError> {
+        let (x, flags): (P::BaseField, EdwardsFlags) =
+            CanonicalDeserializeWithFlags::deserialize_with_flags(&mut reader)?;
+        if x == P::BaseField::zero() {
+            Ok(Self::zero())
+        } else {
+            let p = GroupAffine::<P>::get_point_from_x_old(x, flags.is_positive())
+                .ok_or(SerializationError::InvalidData)?;
+            if !p.is_in_correct_subgroup_assuming_on_curve() {
+                return Err(SerializationError::InvalidData);
+            }
+            Ok(p)
+        }
+    }
+}
+impl<P: Parameters> GroupProjective<P> {
+    pub fn serialize_old<W: Write>(&self, writer: W) -> Result<(), SerializationError> {
+        let aff = GroupAffine::<P>::from(self.clone());
+        aff.serialize_old(writer)
+    }
+
+    pub fn deserialize_old<R: Read>(reader: R) -> Result<Self, SerializationError> {
+        let aff = GroupAffine::<P>::deserialize_old(reader)?;
+        Ok(aff.into())
     }
 }
