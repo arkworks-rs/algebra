@@ -47,8 +47,6 @@ pub trait WBParams : SWModelParameters + Sized
     let img_x = x_num.evaluate(&domain_point.x) *  v[0];
     let img_y = (y_num.evaluate(&domain_point.x) * domain_point.y) * v[1];
 
-    //let img_x = x_num.evaluate(&domain_point.x) / x_den.evaluate(&domain_point.x);
-    //let img_y = (y_num.evaluate(&domain_point.x) * domain_point.y) / y_den.evaluate(&domain_point.x);
     Ok(GroupAffine::<Self>::new(img_x, img_y, false))
 	
 
