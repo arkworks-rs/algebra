@@ -1,6 +1,6 @@
 use core::marker::PhantomData;
 
-use ark_ff::vec::Vec;
+use ark_ff::{batch_inversion, vec::Vec};
 use ark_poly::{Polynomial, UVPolynomial, univariate::{DensePolynomial}};
 use crate::models::SWModelParameters;
 use crate::ModelParameters;
@@ -42,11 +42,13 @@ pub trait WBParams : SWModelParameters + Sized
 
 	let y_den : DensePolynomial<<Self::IsogenousCurve as ModelParameters>::BaseField> = <DensePolynomial<<Self::IsogenousCurve as ModelParameters>::BaseField>>::from_coefficients_slice(&Self::PHI_Y_DEN[..]);
 
-	
-    let img_x = x_num.evaluate(&domain_point.x) / x_den.evaluate(&domain_point.x);
-    let img_y = (y_num.evaluate(&domain_point.x) * domain_point.y) / y_den.evaluate(&domain_point.x);
+    let mut v:[<Self as ModelParameters>::BaseField;2] = [x_den.evaluate(&domain_point.x), y_den.evaluate(&domain_point.x)];
+    batch_inversion(& mut v);
+    let img_x = x_num.evaluate(&domain_point.x) *  v[0];
+    let img_y = (y_num.evaluate(&domain_point.x) * domain_point.y) * v[1];
+
     Ok(GroupAffine::<Self>::new(img_x, img_y, false))
-    	
+	
 
      }
 	
