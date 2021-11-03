@@ -248,7 +248,7 @@ impl SWModelParameters for TestSWU127MapToIsogenousCurveParams {
 
     /// AFFINE_GENERATOR_COEFFS = (G1_GENERATOR_X, G1_GENERATOR_Y)
     const AFFINE_GENERATOR_COEFFS: (Self::BaseField, Self::BaseField) =
-        (field_new!(F127, "62"), field_new!(F127, "70"));
+        (field_new!(F127, "84"), field_new!(F127, "2"));
 }
 
 impl SWUParams for TestSWU127MapToIsogenousCurveParams {
