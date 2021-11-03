@@ -43,7 +43,7 @@ pub trait WBParams : SWModelParameters + Sized
 	let y_den : DensePolynomial<<Self::IsogenousCurve as ModelParameters>::BaseField> = <DensePolynomial<<Self::IsogenousCurve as ModelParameters>::BaseField>>::from_coefficients_slice(&Self::PHI_Y_DEN[..]);
 
     let mut v:[<Self as ModelParameters>::BaseField;2] = [x_den.evaluate(&domain_point.x), y_den.evaluate(&domain_point.x)];
-    ark_ff::batch_inversion(& mut v);
+    batch_inversion(& mut v);
     let img_x = x_num.evaluate(&domain_point.x) *  v[0];
     let img_y = (y_num.evaluate(&domain_point.x) * domain_point.y) * v[1];
 
