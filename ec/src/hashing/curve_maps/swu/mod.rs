@@ -46,11 +46,17 @@ impl <P: SWUParams> MapToCurve<GroupAffine<P>> for SWUMap<P>{
         //Verifying precomupted values
         let xi_on_zeta = P::XI/P::ZETA;
         //println!("XI/ZETA: {}", xi_on_zeta);
-        let xi_on_zeta_sqrt = xi_on_zeta.sqrt().expect("we already checked that numerator and denominator are quadratic non-residues and legandre is multiplicative. Q.E.D"); 
-        if  xi_on_zeta_sqrt != P::XI_ON_ZETA_SQRT && xi_on_zeta_sqrt != -P::XI_ON_ZETA_SQRT {
-            return Err(HashToCurveError::MapToCurveError("precomupted P::XI_ON_ZETA_SQRT is not what it suppose to be".to_string()));
+        match xi_on_zeta.sqrt()
+        {
+            Some(xi_on_zeta_sqrt) => if  xi_on_zeta_sqrt != P::XI_ON_ZETA_SQRT && xi_on_zeta_sqrt != -P::XI_ON_ZETA_SQRT {
+                    return Err(HashToCurveError::MapToCurveError("precomupted P::XI_ON_ZETA_SQRT is not what it suppose to be".to_string()));
+            },
+            None => {
+                println!("https://github.com/arkworks-rs/algebra/issues/344 bug prevents us to perform sanity check");
+                //panic!("even though we already checked that numerator and denominator are quadratic non-residues and legandre is multiplicative. Q.E.D");
+            }
         }
-
+            
         //Verifying the prerequisite for applicability  of SWU map
         if P::COEFF_A.is_zero() || P::COEFF_B.is_zero() {
             return Err(HashToCurveError::MapToCurveError("Simplified SWU requires a * b != 0 in the short Weierstrass form of y^2 = x^3 + a*x + b ".to_string()));        
