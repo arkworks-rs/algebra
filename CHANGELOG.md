@@ -8,6 +8,8 @@
 - [\#310](https://github.com/arkworks-rs/algebra/pull/310) (ark-ec, ark-ff) Remove unnecessary internal `PhantomData`.
 - [\#333](https://github.com/arkworks-rs/algebra/pull/333) (ark-poly) Expose more properties of `EvaluationDomain`s.
 - [\#338](https://github.com/arkworks-rs/algebra/pull/338) (ark-ec) Add missing `UniformRand` trait bound to `GroupAffine`.
+- [\#338](https://github.com/arkworks-rs/algebra/pull/338) (workspace) Change to Rust 2021 edition.
+- [\#345](https://github.com/arkworks-rs/algebra/pull/345) (arc-ec, ark-serialize) Change the serialization format for Twisted Edwards Curves. We now encode the Y coordinate and take the sign bit of the X co-ordinate, the default flag is also now the Positive X value. The old methods for backwards compatibility are located [here](https://github.com/arkworks-rs/algebra/pull/345/files#diff-3621a48bb33f469144044d8d5fc663f767e103132a764812cda6be6c25877494R860)
 
 ### Features
 
@@ -20,7 +22,6 @@
 - [\#339](https://github.com/arkworks-rs/algebra/pull/339) (ark-ff) Remove duplicated code from `test_field` module and replace its usage with `ark-test-curves` crate.
 
 ### Bugfixes
-
 
 ## v0.3.0
 

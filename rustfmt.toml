@@ -1,5 +1,5 @@
 condense_wildcard_suffixes = true
-edition = "2018"
+edition = "2021"
 imports_granularity = "Crate"
 match_block_trailing_comma = true
 normalize_comments = true
