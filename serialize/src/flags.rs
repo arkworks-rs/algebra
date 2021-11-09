@@ -167,8 +167,8 @@ impl EdwardsFlags {
 impl Default for EdwardsFlags {
     #[inline]
     fn default() -> Self {
-        // NegativeX doesn't change the serialization
-        EdwardsFlags::NegativeX
+        // PositiveX doesn't change the serialization
+        EdwardsFlags::PositiveX
     }
 }
 
@@ -178,7 +178,7 @@ impl Flags for EdwardsFlags {
     #[inline]
     fn u8_bitmask(&self) -> u8 {
         let mut mask = 0;
-        if let Self::PositiveX = self {
+        if let Self::NegativeX = self {
             mask |= 1 << 7;
         }
         mask
@@ -188,9 +188,9 @@ impl Flags for EdwardsFlags {
     fn from_u8(value: u8) -> Option<Self> {
         let x_sign = (value >> 7) & 1 == 1;
         if x_sign {
-            Some(Self::PositiveX)
-        } else {
             Some(Self::NegativeX)
+        } else {
+            Some(Self::PositiveX)
         }
     }
 }
