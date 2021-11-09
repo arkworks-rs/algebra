@@ -1,5 +1,11 @@
 #![cfg_attr(not(feature = "std"), no_std)]
-#![warn(unused, future_incompatible, nonstandard_style, rust_2018_idioms)]
+#![warn(
+    unused,
+    future_incompatible,
+    nonstandard_style,
+    rust_2018_idioms,
+    rust_2021_compatibility
+)]
 #![forbid(unsafe_code)]
 mod error;
 mod flags;
@@ -38,8 +44,8 @@ pub trait CanonicalSerializeWithFlags: CanonicalSerialize {
 /// Serializer in little endian format.
 /// The serialization format must be 'length-extension' safe.
 /// e.g. if T implements Canonical Serialize and Deserialize,
-/// then for all strings `x, y`, if `a = T::deserialize(Reader(x))` and `a` is not an error,
-/// then it must be the case that `a = T::deserialize(Reader(x || y))`,
+/// then for all strings `x, y`, if `a = T::deserialize(Reader(x))` and `a` is
+/// not an error, then it must be the case that `a = T::deserialize(Reader(x || y))`,
 /// and that both readers read the same number of bytes.
 ///
 /// This trait can be derived if all fields of a struct implement
@@ -64,8 +70,9 @@ pub trait CanonicalSerialize {
     /// Serializes `self` into `writer`.
     /// It is left up to a particular type for how it strikes the
     /// serialization efficiency vs compression tradeoff.
-    /// For standard types (e.g. `bool`, lengths, etc.) typically an uncompressed
-    /// form is used, whereas for algebraic types compressed forms are used.
+    /// For standard types (e.g. `bool`, lengths, etc.) typically an
+    /// uncompressed form is used, whereas for algebraic types compressed
+    /// forms are used.
     ///
     /// Particular examples of interest:
     /// `bool` - 1 byte encoding
