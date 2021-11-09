@@ -90,12 +90,15 @@ impl<P: Parameters> GroupAffine<P> {
         let numerator = P::BaseField::one() - y2;
         let denominator = P::COEFF_A - (y2 * P::COEFF_D);
 
-        denominator.inverse().map(|denom| denom * &numerator)
-        .and_then(|x2| x2.sqrt()).map(|x| {
-            let negx = -x;
-            let x = if (x < negx) ^ greatest { x } else { negx };
-            Self::new(x, y)
-        })
+        denominator
+            .inverse()
+            .map(|denom| denom * &numerator)
+            .and_then(|x2| x2.sqrt())
+            .map(|x| {
+                let negx = -x;
+                let x = if (x < negx) ^ greatest { x } else { negx };
+                Self::new(x, y)
+            })
     }
 
     /// Checks that the current point is on the elliptic curve.
@@ -881,7 +884,10 @@ impl<P: Parameters> GroupAffine<P> {
 
     #[allow(unused_qualifications)]
     #[inline]
-    pub fn serialize_uncompressed_old<W: Write>(&self, mut writer: W) -> Result<(), SerializationError> {
+    pub fn serialize_uncompressed_old<W: Write>(
+        &self,
+        mut writer: W,
+    ) -> Result<(), SerializationError> {
         self.x.serialize_uncompressed(&mut writer)?;
         self.y.serialize_uncompressed(&mut writer)?;
         Ok(())
@@ -920,7 +926,10 @@ impl<P: Parameters> GroupProjective<P> {
 
     #[allow(unused_qualifications)]
     #[inline]
-    pub fn serialize_uncompressed_old<W: Write>(&self, writer: W) -> Result<(), SerializationError> {
+    pub fn serialize_uncompressed_old<W: Write>(
+        &self,
+        writer: W,
+    ) -> Result<(), SerializationError> {
         let aff = GroupAffine::<P>::from(self.clone());
         aff.serialize_uncompressed(writer)
     }
