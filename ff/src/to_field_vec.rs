@@ -42,7 +42,6 @@ impl<ConstraintF: Field> ToConstraintField<ConstraintF> for () {
 impl<ConstraintF: PrimeField> ToConstraintField<ConstraintF> for [u8] {
     #[inline]
     fn to_field_elements(&self) -> Option<Vec<ConstraintF>> {
-        use core::convert::TryFrom;
         let max_size = usize::try_from(<ConstraintF as PrimeField>::Params::CAPACITY / 8).unwrap();
         let bigint_size = <ConstraintF as PrimeField>::BigInt::NUM_LIMBS * 8;
         let fes = self

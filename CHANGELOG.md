@@ -8,6 +8,7 @@
 - [\#310](https://github.com/arkworks-rs/algebra/pull/310) (ark-ec, ark-ff) Remove unnecessary internal `PhantomData`.
 - [\#333](https://github.com/arkworks-rs/algebra/pull/333) (ark-poly) Expose more properties of `EvaluationDomain`s.
 - [\#338](https://github.com/arkworks-rs/algebra/pull/338) (ark-ec) Add missing `UniformRand` trait bound to `GroupAffine`.
+- [\#338](https://github.com/arkworks-rs/algebra/pull/338) (workspace) Change to Rust 2021 edition.
 
 ### Features
 
@@ -20,7 +21,6 @@
 - [\#339](https://github.com/arkworks-rs/algebra/pull/339) (ark-ff) Remove duplicated code from `test_field` module and replace its usage with `ark-test-curves` crate.
 
 ### Bugfixes
-
 
 ## v0.3.0
 
