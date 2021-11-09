@@ -124,9 +124,9 @@ impl Flags for SWFlags {
 
     #[inline]
     fn from_u8(value: u8) -> Option<Self> {
-        let x_sign = (value >> 7) & 1 == 1;
+        let y_sign = (value >> 7) & 1 == 1;
         let is_infinity = (value >> 6) & 1 == 1;
-        match (x_sign, is_infinity) {
+        match (y_sign, is_infinity) {
             // This is invalid because we only want *one* way to serialize
             // the point at infinity.
             (true, true) => None,
