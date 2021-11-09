@@ -878,6 +878,25 @@ impl<P: Parameters> GroupAffine<P> {
             self.x.serialize_with_flags(writer, flags)
         }
     }
+
+    #[allow(unused_qualifications)]
+    #[inline]
+    pub fn serialize_uncompressed_old<W: Write>(&self, mut writer: W) -> Result<(), SerializationError> {
+        self.x.serialize_uncompressed(&mut writer)?;
+        self.y.serialize_uncompressed(&mut writer)?;
+        Ok(())
+    }
+
+    #[allow(unused_qualifications)]
+    pub fn deserialize_uncompressed_old<R: Read>(reader: R) -> Result<Self, SerializationError> {
+        let p = Self::deserialize_unchecked(reader)?;
+
+        if !p.is_in_correct_subgroup_assuming_on_curve() {
+            return Err(SerializationError::InvalidData);
+        }
+        Ok(p)
+    }
+
     pub fn deserialize_old<R: Read>(mut reader: R) -> Result<Self, SerializationError> {
         let (x, flags): (P::BaseField, EdwardsFlags) =
             CanonicalDeserializeWithFlags::deserialize_with_flags(&mut reader)?;
@@ -897,6 +916,19 @@ impl<P: Parameters> GroupProjective<P> {
     pub fn serialize_old<W: Write>(&self, writer: W) -> Result<(), SerializationError> {
         let aff = GroupAffine::<P>::from(self.clone());
         aff.serialize_old(writer)
+    }
+
+    #[allow(unused_qualifications)]
+    #[inline]
+    pub fn serialize_uncompressed_old<W: Write>(&self, writer: W) -> Result<(), SerializationError> {
+        let aff = GroupAffine::<P>::from(self.clone());
+        aff.serialize_uncompressed(writer)
+    }
+
+    #[allow(unused_qualifications)]
+    pub fn deserialize_uncompressed_old<R: Read>(reader: R) -> Result<Self, SerializationError> {
+        let aff = GroupAffine::<P>::deserialize_uncompressed(reader)?;
+        Ok(aff.into())
     }
 
     pub fn deserialize_old<R: Read>(reader: R) -> Result<Self, SerializationError> {
