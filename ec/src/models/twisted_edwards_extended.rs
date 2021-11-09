@@ -856,7 +856,7 @@ impl<P: Parameters> GroupAffine<P> {
     ///
     /// If and only if `greatest` is set will the lexicographically
     /// largest y-coordinate be selected.
-    /// 
+    ///
     /// This method is implemented for backwards compatibility with the old serialization format
     /// and will be deprecated and then removed in a future version.
     #[allow(dead_code)]
