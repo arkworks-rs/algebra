@@ -1,4 +1,4 @@
-use ark_ec::{msm::VariableBaseMSM, AffineCurve, ProjectiveCurve};
+use ark_ec::{msm::VariableBase, AffineCurve, ProjectiveCurve};
 use ark_ff::{PrimeField, UniformRand, Zero};
 
 fn naive_var_base_msm<G: AffineCurve>(
@@ -27,7 +27,7 @@ pub fn test_var_base_msm<G: AffineCurve>() {
     let g = <G::Projective as ProjectiveCurve>::batch_normalization_into_affine(&g);
 
     let naive = naive_var_base_msm(g.as_slice(), v.as_slice());
-    let fast = VariableBaseMSM::multi_scalar_mul(g.as_slice(), v.as_slice());
+    let fast = VariableBase::msm(g.as_slice(), v.as_slice());
 
     assert_eq!(naive.into_affine(), fast.into_affine());
 }
