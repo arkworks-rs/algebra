@@ -5,9 +5,9 @@ use ark_std::{cfg_iter, cfg_iter_mut, vec::Vec};
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
 
-pub struct FixedBaseMSM;
+pub struct FixedBase;
 
-impl FixedBaseMSM {
+impl FixedBase {
     pub fn get_mul_window_size(num_scalars: usize) -> usize {
         if num_scalars < 32 {
             3
@@ -79,7 +79,9 @@ impl FixedBaseMSM {
         res
     }
 
-    pub fn multi_scalar_mul<T: ProjectiveCurve>(
+    // TODO use const-generics for the scalar size and window
+    // TODO use iterators of iterators of T::Affine instead of taking owned Vec
+    pub fn msm<T: ProjectiveCurve>(
         scalar_size: usize,
         window: usize,
         table: &[Vec<T::Affine>],
