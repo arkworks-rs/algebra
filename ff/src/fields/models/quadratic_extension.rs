@@ -171,6 +171,25 @@ impl<P: QuadExtParameters> QuadExtField<P> {
     /// Norm of QuadExtField over `P::BaseField`:`Norm(a) = a * a.conjugate()`.
     /// This simplifies to: `Norm(a) = a.x^2 - P::NON_RESIDUE * a.y^2`.
     /// This is alternatively expressed as `Norm(a) = a^(1 + p)`.
+    ///
+    /// # Examples
+    /// ```
+    /// # use ark_std::test_rng;
+    /// # use ark_std::{UniformRand, Zero};
+    /// # use ark_test_curves::{Field, bls12_381::Fq2 as Fp2};
+    /// let c: Fp2 = Fp2::rand(&mut test_rng());
+    /// let norm = c.norm();
+    /// // We now compute the norm using the `a * a.conjugate()` approach.
+    /// // A Frobenius map sends an element of `Fp2` to one of its p_th powers:
+    /// // `a.frobenius_map(1) -> a^p` and `a^p` is also `a`'s Galois conjugate.
+    /// let mut c_conjugate = c;
+    /// c_conjugate.frobenius_map(1);
+    /// let norm2 = c * c_conjugate;
+    /// // Computing the norm of an `Fp2` element should result in an element
+    /// // in BaseField `Fp`, i.e. `c1 == 0`
+    /// assert!(norm2.c1.is_zero());
+    /// assert_eq!(norm, norm2.c0);
+    /// ```
     pub fn norm(&self) -> P::BaseField {
         let t0 = self.c0.square();
         // t1 = t0 - P::NON_RESIDUE * c1^2
