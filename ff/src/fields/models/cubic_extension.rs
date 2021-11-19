@@ -29,6 +29,10 @@ pub trait CubicExtParameters: 'static + Send + Sync {
     /// The prime field that this cubic extension is eventually an extension of.
     type BasePrimeField: PrimeField;
     /// The base field that this field is a cubic extension of.
+    ///
+    /// Note: while for simple instances of cubic extensions such as `Fp3`
+    /// we might see `BaseField == BasePrimeField`, it won't always hold true.
+    /// E.g. for an extension tower: `BasePrimeField == Fp`, but `BaseField == Fp2`.
     type BaseField: Field<BasePrimeField = Self::BasePrimeField>;
     /// The type of the coefficients for an efficient implemntation of the
     /// Frobenius endomorphism.

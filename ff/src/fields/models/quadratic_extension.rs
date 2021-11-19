@@ -29,6 +29,10 @@ pub trait QuadExtParameters: 'static + Send + Sync + Sized {
     /// The prime field that this quadratic extension is eventually an extension of.
     type BasePrimeField: PrimeField;
     /// The base field that this field is a quadratic extension of.
+    ///
+    /// Note: while for simple instances of quadratic extensions such as `Fp2`
+    /// we might see `BaseField == BasePrimeField`, it won't always hold true.
+    /// E.g. for an extension tower: `BasePrimeField == Fp`, but `BaseField == Fp3`.
     type BaseField: Field<BasePrimeField = Self::BasePrimeField>;
     /// The type of the coefficients for an efficient implemntation of the
     /// Frobenius endomorphism.
