@@ -1,4 +1,4 @@
-<h1 align="center">ark-ec</h1>
+<h1 align="center">ark-ff</h1>
 <p align="center">
     <img src="https://github.com/arkworks-rs/algebra/workflows/CI/badge.svg?branch=master">
     <a href="https://github.com/arkworks-rs/algebra/blob/master/LICENSE-APACHE"><img src="https://img.shields.io/badge/license-APACHE-blue.svg"></a>

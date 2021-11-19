@@ -123,7 +123,6 @@ impl<P: Fp2Parameters> Fp2<P> {
     /// assert_eq!(ext_element.c0, c0*base_field_element);
     /// assert_eq!(ext_element.c1, c1*base_field_element);
     /// ```
-    /// TODO: isn't this the same as mul_assign_by_basefield from QuadExtParameters?
     pub fn mul_assign_by_fp(&mut self, other: &P::Fp) {
         self.c0 *= other;
         self.c1 *= other;

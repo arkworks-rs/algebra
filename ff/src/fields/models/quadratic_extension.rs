@@ -131,9 +131,9 @@ pub trait QuadExtParameters: 'static + Send + Sync + Sized {
     Eq(bound = "P: QuadExtParameters")
 )]
 pub struct QuadExtField<P: QuadExtParameters> {
-    /// Coefficient c0 in the representation of the field element c = c0 + c1 * X
+    /// Coefficient `c0` in the representation of the field element `c = c0 + c1 * X`
     pub c0: P::BaseField,
-    /// Coefficient c1 in the representation of the field element c = c0 + c1 * X
+    /// Coefficient `c1` in the representation of the field element `c = c0 + c1 * X`
     pub c1: P::BaseField,
 }
 
