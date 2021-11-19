@@ -198,6 +198,8 @@ impl<P: QuadExtParameters> QuadExtField<P> {
         t1
     }
 
+    /// In-place multiply both coefficients `c0` & `c1` of the quadratic
+    /// extension field by an element from the base field.
     pub fn mul_assign_by_basefield(&mut self, element: &P::BaseField) {
         self.c0.mul_assign(element);
         self.c1.mul_assign(element);

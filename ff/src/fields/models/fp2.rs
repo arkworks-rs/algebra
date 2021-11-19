@@ -104,8 +104,8 @@ pub type Fp2<P> = QuadExtField<Fp2ParamsWrapper<P>>;
 
 impl<P: Fp2Parameters> Fp2<P> {
     /// In-place multiply both coefficients `c0` & `c1` of the extension field
-    /// Fp2 by an element from the base field Fp. The coefficients themselves
-    /// are elements of Fp.
+    /// `Fp2` by an element from `Fp`. The coefficients themselves
+    /// are elements of `Fp`.
     ///
     /// # Examples
     ///
