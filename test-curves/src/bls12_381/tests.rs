@@ -3,7 +3,7 @@ use ark_ec::{models::SWModelParameters, AffineCurve, PairingEngine, ProjectiveCu
 use ark_ff::{Field, One, UniformRand, Zero};
 
 use crate::bls12_381::{g1, Fq, Fq2, Fq6, FqParameters, Fr, G1Affine, G1Projective};
-use ark_algebra_test_templates::{curves::*, fields::*, groups::*};
+use ark_algebra_test_templates::{curves::*, fields::*, groups::*, msm::*};
 use ark_std::rand::Rng;
 
 pub(crate) const ITERATIONS: usize = 5;
@@ -53,6 +53,11 @@ fn test_fq6() {
         field_test(g, h);
     }
     frobenius_test::<Fq6, _>(Fq::characteristic(), 13);
+}
+
+#[test]
+fn test_g1_affine_curve() {
+    test_var_base_msm::<G1Affine>();
 }
 
 #[test]

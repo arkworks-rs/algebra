@@ -4,7 +4,7 @@ use ark_ff::{One, UniformRand, Zero};
 use ark_std::rand::Rng;
 
 use crate::bn384_small_two_adicity::{g1, Fq, FqParameters, Fr, G1Affine, G1Projective};
-use ark_algebra_test_templates::{curves::*, fields::*, groups::*};
+use ark_algebra_test_templates::{curves::*, fields::*, groups::*, msm::*};
 
 pub(crate) const ITERATIONS: usize = 5;
 
@@ -30,6 +30,11 @@ fn test_fq() {
         primefield_test::<Fq>();
         sqrt_field_test(a);
     }
+}
+
+#[test]
+fn test_g1_affine_curve() {
+    test_var_base_msm::<G1Affine>();
 }
 
 #[test]
