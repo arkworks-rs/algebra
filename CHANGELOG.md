@@ -25,6 +25,8 @@
 
 ### Bugfixes
 
+- [\#350](https://github.com/arkworks-rs/algebra/pull/350) (ark-serialize) Fix issues with santiation whenever a non-standard `Result` type is in scope.
+
 ## v0.3.0
 
 ### Breaking changes
