@@ -59,7 +59,7 @@ fn impl_serialize_field(
             uncompressed_size_body.push(
                 quote! { size += CanonicalSerialize::uncompressed_size(&self.#(#idents).*); },
             );
-        },
+        }
     }
 }
 
