@@ -44,7 +44,7 @@ fn impl_serialize_field(
                 );
                 idents.pop();
             }
-        },
+        }
         _ => {
             serialize_body
                 .push(quote! { CanonicalSerialize::serialize(&self.#(#idents).*, &mut writer)?; });
@@ -82,12 +82,11 @@ fn impl_canonical_serialize(ast: &syn::DeriveInput) -> TokenStream {
                     None => {
                         let index = Index::from(i);
                         idents.push(Box::new(index));
-                    },
+                    }
                     Some(ref ident) => {
                         idents.push(Box::new(ident.clone()));
-                    },
+                    }
                 }
-
                 impl_serialize_field(
                     &mut serialize_body,
                     &mut serialized_size_body,
@@ -98,7 +97,7 @@ fn impl_canonical_serialize(ast: &syn::DeriveInput) -> TokenStream {
                     &field.ty,
                 );
             }
-        },
+        }
         _ => panic!(
             "Serialize can only be derived for structs, {} is not a struct",
             name
@@ -123,7 +122,6 @@ fn impl_canonical_serialize(ast: &syn::DeriveInput) -> TokenStream {
                 #(#serialize_uncompressed_body)*
                 Ok(())
             }
-
             #[allow(unused_mut, unused_variables)]
             fn serialize_unchecked<W: Write>(&self, mut writer: W) -> ::core::result::Result<(), SerializationError> {
                 #(#serialize_unchecked_body)*
@@ -166,7 +164,7 @@ fn impl_deserialize_field(ty: &Type) -> (TokenStream, TokenStream, TokenStream) 
                 quote! { (#(#uncompressed_fields)*), },
                 quote! { (#(#unchecked_fields)*), },
             )
-        },
+        }
         _ => (
             quote! { CanonicalDeserialize::deserialize(&mut reader)?, },
             quote! { CanonicalDeserialize::deserialize_uncompressed(&mut reader)?, },
@@ -199,7 +197,7 @@ fn impl_canonical_deserialize(ast: &syn::DeriveInput) -> TokenStream {
                         compressed_field_cases.push(compressed);
                         uncompressed_field_cases.push(uncompressed);
                         unchecked_field_cases.push(unchecked);
-                    },
+                    }
                     // struct field without len_type
                     Some(ident) => {
                         let (compressed_field, uncompressed_field, unchecked_field) =
@@ -207,7 +205,7 @@ fn impl_canonical_deserialize(ast: &syn::DeriveInput) -> TokenStream {
                         compressed_field_cases.push(quote! { #ident: #compressed_field });
                         uncompressed_field_cases.push(quote! { #ident: #uncompressed_field });
                         unchecked_field_cases.push(quote! { #ident: #unchecked_field });
-                    },
+                    }
                 }
             }
 
@@ -244,7 +242,7 @@ fn impl_canonical_deserialize(ast: &syn::DeriveInput) -> TokenStream {
                     })
                 });
             }
-        },
+        }
         _ => panic!(
             "Deserialize can only be derived for structs, {} is not a Struct",
             name
