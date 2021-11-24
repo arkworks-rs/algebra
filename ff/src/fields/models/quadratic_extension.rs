@@ -19,6 +19,7 @@ use ark_std::rand::{
 };
 
 use crate::{
+    biginteger::BigInteger,
     bytes::{FromBytes, ToBytes},
     fields::{Field, LegendreSymbol, PrimeField, SquareRootField},
     ToConstraintField, UniformRand,
@@ -284,7 +285,6 @@ impl<P: QuadExtParameters> Field for QuadExtField<P> {
 
             // result.c1 = 2 * c0 * c1
             self.c1 = v2.double();
-            // result.c0 = (v0) + ((beta + 1) * v2)
             // result.c0 = (c0^2 - beta * c0 * c1 - c0 * c1 + beta * c1^2) + ((beta + 1) c0 * c1)
             // result.c0 = (c0^2 - beta * c0 * c1 + beta * c1^2) + (beta * c0 * c1)
             // result.c0 = c0^2 + beta * c1^2
@@ -330,7 +330,7 @@ impl<P: QuadExtParameters> Field for QuadExtField<P> {
 
 impl<'a, P: QuadExtParameters> SquareRootField for QuadExtField<P>
 where
-    P::BaseField: SquareRootField,
+    P::BaseField: SquareRootField + From<P::BasePrimeField>,
 {
     fn legendre(&self) -> LegendreSymbol {
         // The LegendreSymbol in a field of order q for an element x can be
@@ -355,11 +355,17 @@ where
         // Try computing the square root
         // Check at the end of the algorithm if it was a square root
         let alpha = self.norm();
-        // TODO: Precompute this
-        let two_inv = P::BaseField::one()
-            .double()
-            .inverse()
-            .expect("Two should always have an inverse");
+
+        // Compute `(p+1)/2` as `1/2`.
+        // This is cheaper than `P::BaseField::one().double().inverse()`
+        let mut two_inv = P::BasePrimeField::modulus();
+
+        two_inv.add_nocarry(&1u64.into());
+        two_inv.div2();
+
+        let two_inv = P::BasePrimeField::from(two_inv);
+        let two_inv = P::BaseField::from(two_inv);
+
         alpha.sqrt().and_then(|alpha| {
             let mut delta = (alpha + &self.c0) * &two_inv;
             if delta.legendre().is_qnr() {
