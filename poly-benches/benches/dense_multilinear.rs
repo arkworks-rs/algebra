@@ -12,7 +12,7 @@ const NUM_VARIABLES_RANGE: Range<usize> = 10..21;
 fn arithmetic_op_bench<F: Field>(c: &mut Criterion) {
     let mut rng = test_rng();
 
-    let mut group = c.benchmark_group("Add");
+    let mut group = c.benchmark_group("AddDense");
     for nv in NUM_VARIABLES_RANGE {
         group.bench_with_input(BenchmarkId::new("Add", nv), &nv, |b, &nv| {
             let poly1 = DenseMultilinearExtension::<F>::rand(nv, &mut rng);
@@ -22,7 +22,7 @@ fn arithmetic_op_bench<F: Field>(c: &mut Criterion) {
     }
     group.finish();
 
-    let mut group = c.benchmark_group("Sub");
+    let mut group = c.benchmark_group("SubDense");
     for nv in NUM_VARIABLES_RANGE {
         group.bench_with_input(BenchmarkId::new("Sub", nv), &nv, |b, &nv| {
             let poly1 = DenseMultilinearExtension::<F>::rand(nv, &mut rng);
@@ -35,7 +35,7 @@ fn arithmetic_op_bench<F: Field>(c: &mut Criterion) {
 
 fn evaluation_op_bench<F: Field>(c: &mut Criterion) {
     let mut rng = test_rng();
-    let mut group = c.benchmark_group("Evaluate");
+    let mut group = c.benchmark_group("EvaluateDense");
     for nv in NUM_VARIABLES_RANGE {
         group.bench_with_input(BenchmarkId::new("evaluate", nv), &nv, |b, &nv| {
             let poly = DenseMultilinearExtension::<F>::rand(nv, &mut rng);
