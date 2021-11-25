@@ -418,6 +418,11 @@ pub trait PrimeField:
         Self::Params::T_MINUS_ONE_DIV_TWO
     }
 
+    /// Returns the modulus.
+    fn modulus() -> Self::BigInt {
+        Self::Params::MODULUS
+    }
+
     /// Returns the modulus minus one divided by two.
     fn modulus_minus_one_div_two() -> Self::BigInt {
         Self::Params::MODULUS_MINUS_ONE_DIV_TWO
