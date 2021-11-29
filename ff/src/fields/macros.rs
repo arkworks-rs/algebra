@@ -612,7 +612,7 @@ macro_rules! impl_Fp {
         impl<P: $FpParameters> Display for $Fp<P> {
             #[inline]
             fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
-                write!(f, stringify!($Fp"({})"), self.into_repr())
+                write!(f, stringify!($Fp "({})"), self.into_repr())
             }
         }
 

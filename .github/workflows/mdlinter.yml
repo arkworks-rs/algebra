@@ -11,7 +11,7 @@ on:
       - "**.md"
 
 jobs:
-  build:
+  super-linter:
     name: Markdown linter
     runs-on: ubuntu-latest
     steps:
@@ -20,12 +20,9 @@ jobs:
       - name: Lint Code Base
         uses: docker://github/super-linter:latest
         env:
-          LINTER_RULES_PATH: .github
           VALIDATE_ALL_CODEBASE: true
           DEFAULT_BRANCH: master
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          VALIDATE_MD: true
-          MARKDOWN_CONFIG_FILE: .markdownlint.yml
           VALIDATE_PROTOBUF: false
           VALIDATE_JSCPD: false
           # use Python Pylint as the only linter to avoid conflicts
