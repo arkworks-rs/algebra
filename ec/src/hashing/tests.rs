@@ -1,18 +1,18 @@
 use ark_ff::{
-    biginteger::{BigInteger256, BigInteger64},
+    biginteger::{BigInteger64},
     field_new,
-    fields::{FftParameters, Fp384, Fp384Parameters, FpParameters, Fp256, Fp256Parameters, Fp64, Fp64Parameters},
+    fields::{FftParameters, FpParameters, Fp64, Fp64Parameters},
 };
 use crate::{ModelParameters, models::SWModelParameters};
 use crate::short_weierstrass_jacobian::GroupAffine;
 use crate::hashing::curve_maps::swu::{SWUParams, SWUMap};
 use crate::hashing::curve_maps::wb::{WBParams, WBMap};
 use super::map_to_curve_hasher::{MapToCurveBasedHasher, MapToCurve};
-use crate::hashing::{field_hashers::DefaultFieldHasher, HashToCurve, HashToCurveError};
+use crate::hashing::{field_hashers::DefaultFieldHasher, HashToCurve};
 
 use ark_ff::{SquareRootField};
 use ark_std::vec::Vec;
-use std::collections::HashMap;
+use hashbrown::HashMap;
 
 use ark_poly::{Polynomial, UVPolynomial, univariate::{DensePolynomial}};
 
@@ -185,7 +185,7 @@ fn hash_arbitary_string_to_curve_swu() {
     
     let hash_result = test_swu_to_curve_hasher.hash(b"if you stick a Babel fish in your ear you can instantly understand anything said to you in any form of language.").expect("fail to hash the string to curve");
 
-    
+    #[cfg(feature = "std")]
     println!("{:?}, {:?}", hash_result, hash_result.x, );
 
     assert!(hash_result.x != F127_ZERO);
@@ -201,7 +201,7 @@ fn map_field_to_curve_swu() {
 
     let mut map_range : Vec<GroupAffine<TestSWUMapToCurveParams>> = vec![];
     for current_field_element in 0..127 {
-        map_range.push(test_map_to_curve.map_to_curve(F127::from(current_field_element)).unwrap());
+        map_range.push(test_map_to_curve.map_to_curve(F127::from(current_field_element as u64)).unwrap());
     }
 
     let mut counts = HashMap::new();
@@ -212,6 +212,7 @@ fn map_field_to_curve_swu() {
         *count
     }).unwrap();
 
+    #[cfg(feature = "std")]
     println!("mode {} repeated {} times", mode, counts.get(&mode).unwrap());
 
     assert!(*counts.get(&mode).unwrap() != 127);
@@ -320,7 +321,8 @@ fn hash_arbitary_string_to_curve_wb() {
     let test_wb_to_curve_hasher = MapToCurveBasedHasher::<GroupAffine<TestWBF127MapToCurveParams>, DefaultFieldHasher<VarBlake2b>, WBMap<TestWBF127MapToCurveParams>>::new(&[1]).unwrap();
     
     let hash_result = test_wb_to_curve_hasher.hash(b"if you stick a Babel fish in your ear you can instantly understand anything said to you in any form of language.").expect("fail to hash the string to curve");
-    
+
+    #[cfg(feature = "std")]
     println!("the wb hash is: {:?}", hash_result);
 
     assert!(hash_result.x != F127_ZERO);

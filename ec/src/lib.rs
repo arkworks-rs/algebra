@@ -16,9 +16,10 @@
 #[macro_use]
 extern crate derivative;
 
+#[macro_use]
 extern crate ark_std;
 
-#[macro_use]
+#[cfg(feature = "std")]
 extern crate std;
 
 use crate::group::Group;

@@ -2,7 +2,6 @@ use core::marker::PhantomData;
 
 use ark_ff::{batch_inversion, vec::Vec};
 use ark_poly::{Polynomial, UVPolynomial, univariate::{DensePolynomial}};
-use ark_std::string::ToString;
 use crate::models::SWModelParameters;
 use crate::ModelParameters;
 
@@ -71,11 +70,9 @@ impl<P: WBParams> MapToCurve<GroupAffine<P>> for WBMap<P>
         //Verifying that the isogeny maps the generator of the SWU curve into us
         let isogenous_curve_generator = GroupAffine::<P::IsogenousCurve>::new(P::IsogenousCurve::AFFINE_GENERATOR_COEFFS.0, P::IsogenousCurve::AFFINE_GENERATOR_COEFFS.1, false);
 
-        match (P::isogeny_map(isogenous_curve_generator)) {
+        match P::isogeny_map(isogenous_curve_generator) {
             Ok(point_on_curve) => if   !point_on_curve.is_on_curve() {
-                println!("Domain Point: {}", isogenous_curve_generator);
-                println!("Codomain Point: {}", point_on_curve);                
-                return Err(HashToCurveError::MapToCurveError("the isogeny map does not map the generator of its domain into its codomain.".to_string()));
+                return Err(HashToCurveError::MapToCurveError(format!("the isogeny maps the generator of its domain: {} into {} which does not belong to its codomain.",isogenous_curve_generator, point_on_curve)));
             },
             Err(e) => return Err(e)
         }

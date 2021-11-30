@@ -52,6 +52,7 @@ impl <P: SWUParams> MapToCurve<GroupAffine<P>> for SWUMap<P>{
                     return Err(HashToCurveError::MapToCurveError("precomupted P::XI_ON_ZETA_SQRT is not what it suppose to be".to_string()));
             },
             None => {
+                #[cfg(feature = "std")]
                 println!("https://github.com/arkworks-rs/algebra/issues/344 bug prevents us to perform sanity check");
                 //panic!("even though we already checked that numerator and denominator are quadratic non-residues and legandre is multiplicative. Q.E.D");
             }
