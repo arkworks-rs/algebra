@@ -350,7 +350,13 @@ where
         // Square root based on the complex method. See
         // https://eprint.iacr.org/2012/685.pdf (page 15, algorithm 8)
         if self.c1.is_zero() {
-            return self.c0.sqrt().map(|c0| Self::new(c0, P::BaseField::zero()));
+            if self.c0.legendre().is_qr() {
+                return self.c0.sqrt().map(|c0| Self::new(c0, P::BaseField::zero()));
+            } else {
+                return (self.c0 * P::NONRESIDUE)
+                    .sqrt()
+                    .map(|res| Self::new(P::BaseField::zero(), res));
+            }
         }
         // Try computing the square root
         // Check at the end of the algorithm if it was a square root

@@ -1,6 +1,6 @@
 #![allow(unused_imports)]
 use ark_ec::{models::SWModelParameters, AffineCurve, PairingEngine, ProjectiveCurve};
-use ark_ff::{Field, One, UniformRand, Zero};
+use ark_ff::{Field, One, UniformRand, Zero, SquareRootField};
 
 use crate::bls12_381::{g1, Fq, Fq2, Fq6, FqParameters, Fr, G1Affine, G1Projective};
 use ark_algebra_test_templates::{curves::*, fields::*, groups::*};
@@ -74,4 +74,13 @@ fn test_g1_generator() {
     let generator = G1Affine::prime_subgroup_generator();
     assert!(generator.is_on_curve());
     assert!(generator.is_in_correct_subgroup_assuming_on_curve());
+}
+
+#[test]
+fn test_fq2_sqrt() {
+    let fq2 = Fq2::new(-Fq::one(), Fq::zero());
+    assert!(fq2.sqrt().is_some()); // should be a residue, expect c0 = 0, c1 = -1
+    assert_eq!(fq2.c0, Fq::zero());
+    assert_eq!(fq2.c1, -Fq::one());
+
 }
