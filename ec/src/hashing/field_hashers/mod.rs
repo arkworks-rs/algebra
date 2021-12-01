@@ -1,8 +1,9 @@
-use crate::hashing::{map_to_curve_hasher::*, *};
 use ark_ff::{Field, PrimeField};
-use ark_std::{string::ToString, vec::Vec};
+use ark_std::vec::Vec;
+
+use crate::hashing::{map_to_curve_hasher::*, *};
+use ark_std::string::ToString;
 use digest::{Update, VariableOutput};
-// use ark_std::boxed::Box;
 
 // This function computes the length in bytes that a hash function should output
 // for hashing `count` field elements.

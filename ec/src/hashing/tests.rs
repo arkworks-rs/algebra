@@ -1,12 +1,10 @@
-use super::map_to_curve_hasher::{MapToCurve, MapToCurveBasedHasher};
 use crate::{
     hashing::{
         curve_maps::{
             swu::{SWUMap, SWUParams},
-            wb::{WBMap, WBParams},
+            wb::WBParams,
         },
-        field_hashers::DefaultFieldHasher,
-        HashToCurve,
+        map_to_curve_hasher::MapToCurve,
     },
     models::SWModelParameters,
     short_weierstrass_jacobian::GroupAffine,
@@ -22,6 +20,11 @@ use ark_ff::SquareRootField;
 use ark_std::vec::Vec;
 use hashbrown::HashMap;
 
+#[cfg(feature = "default")]
+use crate::hashing::{
+    curve_maps::wb::WBMap, field_hashers::DefaultFieldHasher,
+    map_to_curve_hasher::MapToCurveBasedHasher, HashToCurve,
+};
 
 pub type F127 = Fp64<F127Parameters>;
 
@@ -177,6 +180,7 @@ fn chceking_the_hsahing_parameters() {
 
 /// The point of the test is to get a  simpl SWU compatible curve
 /// and make simple hash
+#[cfg(feature = "default")]
 #[test]
 fn hash_arbitary_string_to_curve_swu() {
     use blake2::VarBlake2b;
@@ -399,6 +403,7 @@ impl WBParams for TestWBF127MapToCurveParams {
 
 /// The point of the test is to get a  simpl SWU compatible curve
 /// and make simple hash
+#[cfg(feature = "default")]
 #[test]
 fn hash_arbitary_string_to_curve_wb() {
     use blake2::VarBlake2b;
