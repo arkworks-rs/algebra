@@ -1,12 +1,10 @@
 use crate::AffineCurve;
-use ark_std::{
-    string::{String},
-};
+use ark_std::string::String;
 use core::fmt;
 
+pub mod curve_maps;
 pub mod field_hashers;
 pub mod map_to_curve_hasher;
-pub mod curve_maps;
 
 /// Trait for hashing arbitrary data to a group element on an elliptic curve
 pub trait HashToCurve<T: AffineCurve>: Sized {

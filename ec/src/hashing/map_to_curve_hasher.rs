@@ -1,20 +1,18 @@
-use crate::hashing::*;
-use crate::AffineCurve;
-use ark_ff::{Field};
-use ark_std::{
-    marker::PhantomData,
-    vec::Vec,
-};
+use crate::{hashing::*, AffineCurve};
+use ark_ff::Field;
+use ark_std::{marker::PhantomData, vec::Vec};
 
 /// Trait for mapping a random field element to a random curve point.
 pub trait MapToCurve<T: AffineCurve> {
-    fn new_map_to_curve(domain: &[u8]) -> Result<Self, HashToCurveError> where Self: Sized;
+    fn new_map_to_curve(domain: &[u8]) -> Result<Self, HashToCurveError>
+    where
+        Self: Sized;
     /// Map random field point to a random curve point
     fn map_to_curve(&self, point: T::BaseField) -> Result<T, HashToCurveError>;
 }
 
 // Trait for hashing messages to field elements
-pub trait HashToField<F: Field> : Sized {
+pub trait HashToField<F: Field>: Sized {
     fn new_hash_to_field(domain: &[u8], count: usize) -> Result<Self, HashToCurveError>;
 
     fn hash_to_field(&self, msg: &[u8]) -> Result<Vec<F>, HashToCurveError>;
@@ -23,7 +21,7 @@ pub trait HashToField<F: Field> : Sized {
 pub struct MapToCurveBasedHasher<T, H2F, M2C>
 where
     T: AffineCurve,
-    H2F: HashToField<T::BaseField> ,
+    H2F: HashToField<T::BaseField>,
     M2C: MapToCurve<T>,
 {
     field_hasher: H2F,
@@ -39,9 +37,6 @@ where
 {
     fn new(domain: &[u8]) -> Result<Self, HashToCurveError> {
         let field_hasher = H2F::new_hash_to_field(domain, 2)?;
-        //@skalman: I assume if the hash to field generate some number of field element it should also
-        //be the case that each field element result in one point?
-        
         let curve_mapper = M2C::new_map_to_curve(domain)?;
         let _params_t = PhantomData;
         Ok(MapToCurveBasedHasher {
@@ -51,12 +46,13 @@ where
         })
     }
 
-    // Produce a hash of the message, using the hash to field and map to curve traits.
-    // This uses the IETF hash to curve's specification for Random oracle encoding (hash_to_curve)
-    // defined by combining these components.
+    // Produce a hash of the message, using the hash to field and map to curve
+    // traits. This uses the IETF hash to curve's specification for Random
+    // oracle encoding (hash_to_curve) defined by combining these components.
     // See https://tools.ietf.org/html/draft-irtf-cfrg-hash-to-curve-09#section-3
     fn hash(&self, msg: &[u8]) -> Result<T, HashToCurveError> {
-        // IETF spec of hash_to_curve, from hash_to_field and map_to_curve sub-components
+        // IETF spec of hash_to_curve, from hash_to_field and map_to_curve
+        // sub-components
         // 1. u = hash_to_field(msg, 2)
         // 2. Q0 = map_to_curve(u[0])
         // 3. Q1 = map_to_curve(u[1])
@@ -75,4 +71,3 @@ where
         Ok(rand_subgroup_elem)
     }
 }
-
