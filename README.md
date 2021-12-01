@@ -61,7 +61,7 @@ cargo +nightly bench
 The `ark-ff` crate contains (off-by-default) optimized assembly implementations of field arithmetic that rely on the `adcxq`, `adoxq` and `mulxq` instructions. These are available on most `x86_64` platforms (Broadwell onwards for Intel and Ryzen onwards for AMD). Using this backend can lead to a 30-70% speedup in finite field and elliptic curve arithmetic. To build with this backend enabled, run the following command:
 
 ```bash
-RUSTFLAGS="-C target-feature=+bmi2,+adx" cargo +nightly test/build/bench --features asm
+RUSTFLAGS="-C target-feature=+bmi2,+adx" cargo +nightly [test/build/bench] --features asm
 ```
 
 To enable this in the `Cargo.toml` of your own projects, enable the `asm` feature flag:
