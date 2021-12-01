@@ -22,7 +22,6 @@ use ark_ff::SquareRootField;
 use ark_std::vec::Vec;
 use hashbrown::HashMap;
 
-use ark_poly::{univariate::DensePolynomial, Polynomial, UVPolynomial};
 
 pub type F127 = Fp64<F127Parameters>;
 
