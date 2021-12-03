@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - master
-      - hash_to_curve_wb_with_ci_check
 env:
   RUST_BACKTRACE: 1
 
