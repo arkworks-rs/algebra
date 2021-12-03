@@ -19,7 +19,7 @@ ark-ff = { version = "^0.3.0", path = "../ff", default-features = false }
 ark-poly = {version = "^0.3.0", path = "../poly", default-features = false }
 derivative = { version = "2", features = ["use_core"] }
 digest = { version = "0.9", optional = true}
-num-traits = { version = "0.2" }
+num-traits = { version = "0.2", default-features = false }
 rayon = { version = "1", optional = true }
 zeroize = { version = "1", default-features = false, features = ["zeroize_derive"] }
 
