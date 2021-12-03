@@ -20,7 +20,7 @@ use ark_ff::SquareRootField;
 use ark_std::vec::Vec;
 use hashbrown::HashMap;
 
-#[cfg(feature = "default")]
+#[cfg(all(feature = "default", feature = "std"))]
 use crate::hashing::{
     curve_maps::wb::WBMap, field_hashers::DefaultFieldHasher,
     map_to_curve_hasher::MapToCurveBasedHasher, HashToCurve,
@@ -180,7 +180,7 @@ fn chceking_the_hsahing_parameters() {
 
 /// The point of the test is to get a  simpl SWU compatible curve
 /// and make simple hash
-#[cfg(feature = "default")]
+#[cfg(all(feature = "default", feature="std"))]
 #[test]
 fn hash_arbitary_string_to_curve_swu() {
     use blake2::VarBlake2b;
@@ -403,7 +403,7 @@ impl WBParams for TestWBF127MapToCurveParams {
 
 /// The point of the test is to get a  simpl SWU compatible curve
 /// and make simple hash
-#[cfg(feature = "default")]
+#[cfg(all(feature = "default", feature="std"))]
 #[test]
 fn hash_arbitary_string_to_curve_wb() {
     use blake2::VarBlake2b;
