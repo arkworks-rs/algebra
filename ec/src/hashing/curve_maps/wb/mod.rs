@@ -76,7 +76,7 @@ impl<P: WBParams> MapToCurve<GroupAffine<P>> for WBMap<P> {
                 if !point_on_curve.is_on_curve() {
                     return Err(HashToCurveError::MapToCurveError(format!("the isogeny maps the generator of its domain: {} into {} which does not belong to its codomain.",isogenous_curve_generator, point_on_curve)));
                 }
-            },
+            }
             Err(e) => return Err(e),
         }
 
