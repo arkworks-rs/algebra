@@ -78,9 +78,8 @@ fn test_g1_generator() {
 
 #[test]
 fn test_fq2_sqrt() {
-    let fq2 = Fq2::new(-Fq::one(), Fq::zero());
-    assert!(fq2.sqrt().is_some()); // should be a residue, expect c0 = 0, c1 = -1
-    assert_eq!(fq2.c0, Fq::zero());
-    assert_eq!(fq2.c1, -Fq::one());
-
+    // regression test for the case when c1=0 and c0.legendre().is_qnr()
+    let fq2_sqrt = Fq2::new(-Fq::one(), Fq::zero()).sqrt().unwrap();
+    assert_eq!(fq2_sqrt.c0, Fq::zero());
+    assert_eq!(fq2_sqrt.c1, Fq::one());
 }
