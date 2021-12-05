@@ -23,10 +23,11 @@
 
 - [\#339](https://github.com/arkworks-rs/algebra/pull/339) (ark-ff) Remove duplicated code from `test_field` module and replace its usage with `ark-test-curves` crate.
 - [\#352](https://github.com/arkworks-rs/algebra/pull/352) (ark-ff) Update `QuadExtField::sqrt` for better performance.
+- [\#357](https://github.com/arkworks-rs/algebra/pull/357) (ark-poly) Speedup division by vanishing polynomials for dense polynomials.
 
 ### Bugfixes
 
-- [\#350](https://github.com/arkworks-rs/algebra/pull/350) (ark-serialize) Fix issues with santiation whenever a non-standard `Result` type is in scope.
+- [\#350](https://github.com/arkworks-rs/algebra/pull/350) (ark-serialize) Fix issues with sanitation whenever a non-standard `Result` type is in scope.
 
 ## v0.3.0
 
