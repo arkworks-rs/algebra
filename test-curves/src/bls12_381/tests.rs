@@ -1,6 +1,6 @@
- #![allow(unused_imports)]
+#![allow(unused_imports)]
 use ark_ec::{models::SWModelParameters, AffineCurve, PairingEngine, ProjectiveCurve};
-use ark_ff::{Field, One, UniformRand, Zero, SquareRootField};
+use ark_ff::{Field, One, UniformRand, Zero};
 
 use crate::bls12_381::{g1, Fq, Fq2, Fq6, FqParameters, Fr, G1Affine, G1Projective};
 use ark_algebra_test_templates::{
