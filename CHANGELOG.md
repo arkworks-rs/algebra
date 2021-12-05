@@ -27,6 +27,7 @@
 ### Bugfixes
 
 - [\#350](https://github.com/arkworks-rs/algebra/pull/350) (ark-serialize) Fix issues with santiation whenever a non-standard `Result` type is in scope.
+- [\#358](https://github.com/arkworks-rs/algebra/pull/358) (ark-ff) Fix the bug for `QuadExtField::sqrt` when `c1 = 0 && c0.legendre.is_qnr()`
 
 ## v0.3.0
 
