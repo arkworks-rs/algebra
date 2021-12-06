@@ -148,6 +148,7 @@ impl<F: FftField> DensePolynomial<F> {
         let domain_size = domain.size();
 
         if self.coeffs.len() < domain_size {
+            // If degree(self) < len(Domain), then the quotient is zero, and the entire polynomial is the remainder
             Some((DensePolynomial::<F>::zero(), self.clone()))
         } else {
             // Compute the quotient
