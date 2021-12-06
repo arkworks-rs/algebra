@@ -12,8 +12,9 @@ use crate::{
 
 use super::swu::{SWUMap, SWUParams};
 
-/// Implementation for the WB hash to curve for the curves of Weierstrass form
-/// of y^2 = x^3 + a*x + b where b != 0 but a can be zero like BLS-381 curve.
+/// Trait defining the necessary parameters for the WB hash-to-curve method
+/// for the curves of Weierstrass form of:
+/// of y^2 = x^3 + a*x + b where b != 0 but `a` can be zero like BLS-381 curve.
 /// From [WB2019]
 ///
 /// - [WB19] Wahby, R. S., & Boneh, D. (2019). Fast and simple constant-time
