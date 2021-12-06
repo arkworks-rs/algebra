@@ -6,7 +6,7 @@ use crate::{
         },
         field_hashers::DefaultFieldHasher,
         map_to_curve_hasher::{MapToCurve, MapToCurveBasedHasher},
-        HashToCurve
+        HashToCurve,
     },
     models::SWModelParameters,
     short_weierstrass_jacobian::GroupAffine,

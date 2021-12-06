@@ -53,12 +53,12 @@ impl<P: SWUParams> MapToCurve<GroupAffine<P>> for SWUMap<P> {
                         "precomupted P::XI_ON_ZETA_SQRT is not what it suppose to be".to_string(),
                     ));
                 }
-            },
+            }
             None => {
                 panic!(
                     "`xi_on_zeta` was expected to have a sqrt, since the numerator and denominator are non-residues and Legendre symbol is multiplicative. Q.E.D"
                 );
-            },
+            }
         }
 
         // Verifying the prerequisite for applicability  of SWU map
