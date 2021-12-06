@@ -2,8 +2,6 @@
 
 ## Pending
 
-  + [\#343](https://github.com/arkworks-rs/algebra/pull/343) Add WB and SWU hash-to-curve maps.
-
 ### Breaking changes
 
 - [\#300](https://github.com/arkworks-rs/algebra/pull/300) (ark-ec) Change the implementation of `Hash` trait of `GroupProjective` to use the affine coordinates.
@@ -20,6 +18,7 @@
 - [\#301](https://github.com/arkworks-rs/algebra/pull/301) (ark-ec) Add `GLVParameters` trait definition.
 - [\#312](https://github.com/arkworks-rs/algebra/pull/312) (ark-ec) Add `is_in_correct_subgroup_assuming_on_curve` for all `SWModelParameters`.
 - [\#348](https://github.com/arkworks-rs/algebra/pull/348) (ark-ec) Add `msm:{Fixed,Variable}Base:msm_checked_len`.
+- [\#343](https://github.com/arkworks-rs/algebra/pull/343) (ark-ec) Add WB and SWU hash-to-curve maps.
 
 ### Improvements
 
