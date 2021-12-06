@@ -22,12 +22,6 @@ use ark_ff::SquareRootField;
 use ark_std::vec::Vec;
 use hashbrown::HashMap;
 
-#[cfg(all(feature = "default", feature = "std"))]
-use crate::hashing::{
-    curve_maps::wb::WBMap, field_hashers::DefaultFieldHasher,
-    map_to_curve_hasher::MapToCurveBasedHasher, HashToCurve,
-};
-
 pub type F127 = Fp64<F127Parameters>;
 
 pub struct F127Parameters;
