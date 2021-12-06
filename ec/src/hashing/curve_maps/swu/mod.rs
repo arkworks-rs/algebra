@@ -46,7 +46,6 @@ impl<P: SWUParams> MapToCurve<GroupAffine<P>> for SWUMap<P> {
 
         // Verifying precomupted values
         let xi_on_zeta = P::XI / P::ZETA;
-        // println!("XI/ZETA: {}", xi_on_zeta);
         match xi_on_zeta.sqrt() {
             Some(xi_on_zeta_sqrt) => {
                 if xi_on_zeta_sqrt != P::XI_ON_ZETA_SQRT && xi_on_zeta_sqrt != -P::XI_ON_ZETA_SQRT {
@@ -113,8 +112,6 @@ impl<P: SWUParams> MapToCurve<GroupAffine<P>> for SWUMap<P> {
         let div2 = div.square();
         let div3 = div2 * div;
         let num_gx1 = (num2_x1 + a * div2) * num_x1 + b * div3;
-        // println!("xi_t2: {} ta: {} num_x1: {} div/2/3: {}/{}/{} num2_x1: {} num_gx1:
-        // {}", xi_t2, ta, num_x1, div, div2,div3, num2_x1, num_gx1);
 
         // 5. x2 = Z * u^2 * x1
         let num_x2 = xi_t2 * num_x1; // same div
@@ -133,8 +130,6 @@ impl<P: SWUParams> MapToCurve<GroupAffine<P>> for SWUMap<P> {
         let y1: P::BaseField = {
             gx1 = num_gx1 / div3;
             zeta_gx1 = P::ZETA * gx1;
-            // println!("zeta: {} gx1: {} zeta_gx1: {} num_x1: {} div: {}", P::ZETA, gx1,
-            // zeta_gx1, num_x1, div);
             if gx1.legendre().is_qr() {
                 gx1_square = true;
                 gx1.sqrt()
@@ -170,8 +165,6 @@ impl<P: SWUParams> MapToCurve<GroupAffine<P>> for SWUMap<P> {
         let x_affine = num_x / div;
         let y_affine = y;
         let point_on_curve = GroupAffine::<P>::new(x_affine, y_affine, false);
-        // println!("swu map result: {} -> x_affine:{} P:{}", point, x_affine,
-        // point_on_curve);
         assert!(
             point_on_curve.is_on_curve(),
             "swu mapped to a point off the curve"

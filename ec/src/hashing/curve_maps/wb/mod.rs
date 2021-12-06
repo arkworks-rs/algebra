@@ -83,7 +83,6 @@ impl<P: WBParams> MapToCurve<GroupAffine<P>> for WBMap<P> {
         Ok(WBMap {
             domain: domain.to_vec(),
             swu_field_curve_hasher: SWUMap::<P::IsogenousCurve>::new_map_to_curve(&domain).unwrap(),
-            // map_to_isogenous_curve: SWUMap<Self::IsogenousCurve>;
             curve_params: PhantomData,
         })
     }
@@ -96,8 +95,6 @@ impl<P: WBParams> MapToCurve<GroupAffine<P>> for WBMap<P> {
         element: <GroupAffine<P> as AffineCurve>::BaseField,
     ) -> Result<GroupAffine<P>, HashToCurveError> {
         // first we need to map the field point to the isogenous curve
-        // let swu_field_curve_hasher =
-        // SWUMap::<P::IsogenousCurve>::new_map_to_curve(&[1]).unwrap();
         let point_on_isogenious_curve = self.swu_field_curve_hasher.map_to_curve(element).unwrap();
         P::isogeny_map(point_on_isogenious_curve)
     }
