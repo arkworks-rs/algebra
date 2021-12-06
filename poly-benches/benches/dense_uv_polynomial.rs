@@ -1,9 +1,9 @@
 extern crate criterion;
 
-use ark_ff::Field;
+use ark_ff::{FftField, Field};
 use ark_poly::{
     polynomial::univariate::{DensePolynomial, SparsePolynomial},
-    Polynomial, UVPolynomial,
+    EvaluationDomain, GeneralEvaluationDomain, Polynomial, UVPolynomial,
 };
 use ark_poly_benches::size_range;
 use ark_std::rand::Rng;
@@ -18,6 +18,7 @@ const ENABLE_ADD_BENCH: bool = true;
 const ENABLE_ADD_ASSIGN_BENCH: bool = true;
 const ENABLE_EVALUATE_BENCH: bool = true;
 const ENABLE_SPARSE_EVALUATE_BENCH: bool = true;
+const ENABLE_DIV_BY_VANISHING_POLY_BENCH: bool = true;
 
 // returns vec![2^{min}, 2^{min + interval}, ..., 2^{max}], where:
 // interval = BENCHMARK_LOG_INTERVAL_DEGREE
@@ -87,7 +88,16 @@ fn bench_poly_add_assign<F: Field>(b: &mut Bencher, degree: &usize) {
     });
 }
 
-fn poly_benches<F: Field>(c: &mut Criterion, name: &'static str) {
+fn bench_div_by_vanishing_poly<F: FftField>(b: &mut Bencher, degree: &usize) {
+    // Per benchmark setup
+    let mut rng = &mut ark_std::test_rng();
+    let p = DensePolynomial::<F>::rand(*degree, &mut rng);
+    let domain = GeneralEvaluationDomain::new(BENCHMARK_MIN_DEGREE).unwrap();
+
+    b.iter(|| p.divide_by_vanishing_poly(domain));
+}
+
+fn poly_benches<F: FftField>(c: &mut Criterion, name: &'static str) {
     if ENABLE_ADD_BENCH {
         let cur_name = format!("{:?} - add_polynomial", name.clone());
         setup_bench::<F>(c, &cur_name, bench_poly_add::<F>);
@@ -103,6 +113,10 @@ fn poly_benches<F: Field>(c: &mut Criterion, name: &'static str) {
     if ENABLE_SPARSE_EVALUATE_BENCH {
         let cur_name = format!("{:?} - evaluate_sparse_polynomial", name.clone());
         setup_bench::<F>(c, &cur_name, bench_sparse_poly_evaluate::<F>);
+    }
+    if ENABLE_DIV_BY_VANISHING_POLY_BENCH {
+        let cur_name = format!("{:?} - evaluate_div_by_vanishing_poly", name.clone());
+        setup_bench::<F>(c, &cur_name, bench_div_by_vanishing_poly::<F>);
     }
 }
 
