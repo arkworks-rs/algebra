@@ -8,7 +8,7 @@ use ark_algebra_test_templates::{
     curves::*, fields::*, generate_field_test, generate_g1_test, groups::*, msm::*,
 };
 
-use core::ops::{AddAssign, MulAssign, SubAssign};
+use ark_std::ops::{AddAssign, MulAssign, SubAssign};
 
 generate_field_test!(bn384_small_two_adicity;);
 generate_g1_test!(bn384_small_two_adicity; curve_tests; sw_tests;);
