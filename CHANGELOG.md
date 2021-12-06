@@ -2,7 +2,7 @@
 
 ## Pending
 
-  - [\#???] Add WB and SWU hash to curve maps to hashing PR.
+  + [\#343](https://github.com/arkworks-rs/algebra/pull/343) Add WB and SWU hash-to-curve maps.
 
 ### Breaking changes
 
