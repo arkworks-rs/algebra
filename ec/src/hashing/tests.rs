@@ -2,9 +2,11 @@ use crate::{
     hashing::{
         curve_maps::{
             swu::{SWUMap, SWUParams},
-            wb::WBParams,
+            wb::{WBMap, WBParams},
         },
-        map_to_curve_hasher::MapToCurve,
+        field_hashers::DefaultFieldHasher,
+        map_to_curve_hasher::{MapToCurve, MapToCurveBasedHasher},
+        HashToCurve,
     },
     models::SWModelParameters,
     short_weierstrass_jacobian::GroupAffine,
@@ -19,12 +21,6 @@ use ark_ff::{
 use ark_ff::SquareRootField;
 use ark_std::vec::Vec;
 use hashbrown::HashMap;
-
-#[cfg(all(feature = "default", feature = "std"))]
-use crate::hashing::{
-    curve_maps::wb::WBMap, field_hashers::DefaultFieldHasher,
-    map_to_curve_hasher::MapToCurveBasedHasher, HashToCurve,
-};
 
 pub type F127 = Fp64<F127Parameters>;
 
@@ -171,16 +167,14 @@ fn test_field_division() {
     assert!(num / den == num_on_den);
 }
 
-/// Testing checking the hashing parameters are sane
-/// check zeta is a non-square
+/// Check that the hashing parameters are sane: zeta should be a non-square
 #[test]
-fn chceking_the_hsahing_parameters() {
+fn checking_the_hashing_parameters() {
     assert!(SquareRootField::legendre(&TestSWUMapToCurveParams::ZETA).is_qr() == false);
 }
 
-/// The point of the test is to get a  simpl SWU compatible curve
-/// and make simple hash
-#[cfg(all(feature = "default", feature = "std"))]
+/// The point of the test is to get a simple SWU compatible curve and make
+/// simple hash
 #[test]
 fn hash_arbitary_string_to_curve_swu() {
     use blake2::VarBlake2b;
@@ -194,15 +188,16 @@ fn hash_arbitary_string_to_curve_swu() {
 
     let hash_result = test_swu_to_curve_hasher.hash(b"if you stick a Babel fish in your ear you can instantly understand anything said to you in any form of language.").expect("fail to hash the string to curve");
 
-    #[cfg(feature = "std")]
-    println!("{:?}, {:?}", hash_result, hash_result.x,);
+    assert!(
+            hash_result.is_on_curve(),
+            "hash results into a point off the curve"
+    );
 
-    assert!(hash_result.x != F127_ZERO);
 }
 
-/// the test use a simple SWU compatible curve
-/// and map the whole field to it. We observe the map behaviour. Specifically
-/// The map is not constant and that everything can be mapped and nobody panics
+/// Use a simple SWU compatible curve and map the whole field to it. We observe
+/// the map behaviour. Specifically, the map should be non-constant, all
+/// elements should be mapped to curve successfully. everything can be mapped
 #[test]
 fn map_field_to_curve_swu() {
     let test_map_to_curve = SWUMap::<TestSWUMapToCurveParams>::new_map_to_curve(&[0]).unwrap();
@@ -228,19 +223,13 @@ fn map_field_to_curve_swu() {
         })
         .unwrap();
 
-    #[cfg(feature = "std")]
-    println!(
-        "mode {} repeated {} times",
-        mode,
-        counts.get(&mode).unwrap()
-    );
-
-    assert!(*counts.get(&mode).unwrap() != 127);
+    assert!(*counts.get(&mode).unwrap() != 127, "a constant hash function is not good.");
 }
 
-/// Testing WB19 hashing on  small curvse
+/// Testing WB19 hashing on a small curve
 /// E_isogenous : Elliptic Curve defined by y^2 = x^3 + 109*x + 124 over Finite
 /// Field of size 127
+/// Isogenous to E : y^2 = x^3 + 3
 struct TestSWU127MapToIsogenousCurveParams;
 
 /// First we define the isogenous curve
@@ -405,9 +394,8 @@ impl WBParams for TestWBF127MapToCurveParams {
     ];
 }
 
-/// The point of the test is to get a simpl SWU compatible curve
+/// The point of the test is to get a simple WB compatible curve
 /// and make simple hash
-#[cfg(all(feature = "default", feature = "std"))]
 #[test]
 fn hash_arbitary_string_to_curve_wb() {
     use blake2::VarBlake2b;
@@ -421,8 +409,11 @@ fn hash_arbitary_string_to_curve_wb() {
 
     let hash_result = test_wb_to_curve_hasher.hash(b"if you stick a Babel fish in your ear you can instantly understand anything said to you in any form of language.").expect("fail to hash the string to curve");
 
-    #[cfg(feature = "std")]
-    println!("the wb hash is: {:?}", hash_result);
+    assert!(hash_result.x != F127_ZERO && hash_result.y != F127_ZERO, "we assume that not both a and b coefficienst are zero for the test curve");
+    
+    assert!(
+            hash_result.is_on_curve(),
+            "hash results into a point off the curve"
+    );
 
-    assert!(hash_result.x != F127_ZERO);
 }

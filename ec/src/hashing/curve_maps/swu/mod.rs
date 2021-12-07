@@ -10,8 +10,9 @@ use crate::{
     AffineCurve,
 };
 
-/// Implementation for the SWU hash to curve for the curves of Weierstrass form
-/// of y^2 = x^3 + a*x + b where ab != 0. From [WB2019]
+/// Trait defining the necessary parameters for the SWU hash-to-curve method
+/// for the curves of Weierstrass form of:
+/// y^2 = x^3 + a*x + b where ab != 0. From [WB2019]
 ///
 /// - [WB19] Wahby, R. S., & Boneh, D. (2019). Fast and simple constant-time
 ///   hashing to the bls12-381 elliptic curve. IACR Transactions on
@@ -45,7 +46,6 @@ impl<P: SWUParams> MapToCurve<GroupAffine<P>> for SWUMap<P> {
 
         // Verifying precomupted values
         let xi_on_zeta = P::XI / P::ZETA;
-        // println!("XI/ZETA: {}", xi_on_zeta);
         match xi_on_zeta.sqrt() {
             Some(xi_on_zeta_sqrt) => {
                 if xi_on_zeta_sqrt != P::XI_ON_ZETA_SQRT && xi_on_zeta_sqrt != -P::XI_ON_ZETA_SQRT {
@@ -55,11 +55,9 @@ impl<P: SWUParams> MapToCurve<GroupAffine<P>> for SWUMap<P> {
                 }
             }
             None => {
-                #[cfg(feature = "std")]
-                println!("https://github.com/arkworks-rs/algebra/issues/344 bug prevents us to perform sanity check");
-                // panic!("even though we already checked that numerator and
-                // denominator are quadratic non-residues and legandre is
-                // multiplicative. Q.E.D");
+                panic!(
+                    "`xi_on_zeta` was expected to have a sqrt, since the numerator and denominator are non-residues and Legendre symbol is multiplicative. Q.E.D"
+                );
             }
         }
 
@@ -114,8 +112,6 @@ impl<P: SWUParams> MapToCurve<GroupAffine<P>> for SWUMap<P> {
         let div2 = div.square();
         let div3 = div2 * div;
         let num_gx1 = (num2_x1 + a * div2) * num_x1 + b * div3;
-        // println!("xi_t2: {} ta: {} num_x1: {} div/2/3: {}/{}/{} num2_x1: {} num_gx1:
-        // {}", xi_t2, ta, num_x1, div, div2,div3, num2_x1, num_gx1);
 
         // 5. x2 = Z * u^2 * x1
         let num_x2 = xi_t2 * num_x1; // same div
@@ -134,8 +130,6 @@ impl<P: SWUParams> MapToCurve<GroupAffine<P>> for SWUMap<P> {
         let y1: P::BaseField = {
             gx1 = num_gx1 / div3;
             zeta_gx1 = P::ZETA * gx1;
-            // println!("zeta: {} gx1: {} zeta_gx1: {} num_x1: {} div: {}", P::ZETA, gx1,
-            // zeta_gx1, num_x1, div);
             if gx1.legendre().is_qr() {
                 gx1_square = true;
                 gx1.sqrt()
@@ -171,8 +165,6 @@ impl<P: SWUParams> MapToCurve<GroupAffine<P>> for SWUMap<P> {
         let x_affine = num_x / div;
         let y_affine = y;
         let point_on_curve = GroupAffine::<P>::new(x_affine, y_affine, false);
-        // println!("swu map result: {} -> x_affine:{} P:{}", point, x_affine,
-        // point_on_curve);
         assert!(
             point_on_curve.is_on_curve(),
             "swu mapped to a point off the curve"

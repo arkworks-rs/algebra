@@ -11,13 +11,16 @@ pub trait MapToCurve<T: AffineCurve> {
     fn map_to_curve(&self, point: T::BaseField) -> Result<T, HashToCurveError>;
 }
 
-// Trait for hashing messages to field elements
+/// Trait for hashing messages to field elements
 pub trait HashToField<F: Field>: Sized {
     fn new_hash_to_field(domain: &[u8], count: usize) -> Result<Self, HashToCurveError>;
 
     fn hash_to_field(&self, msg: &[u8]) -> Result<Vec<F>, HashToCurveError>;
 }
 
+/// Helper struct that can be used to construct elements on the elliptic curve
+/// from arbitrary messages, by first hashing the message onto a field element
+/// and then mapping it to the elliptic curve defined over that field.
 pub struct MapToCurveBasedHasher<T, H2F, M2C>
 where
     T: AffineCurve,

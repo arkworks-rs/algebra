@@ -350,7 +350,20 @@ where
         // Square root based on the complex method. See
         // https://eprint.iacr.org/2012/685.pdf (page 15, algorithm 8)
         if self.c1.is_zero() {
-            return self.c0.sqrt().map(|c0| Self::new(c0, P::BaseField::zero()));
+            // for c = c0 + c1 * x, we have c1 = 0
+            // sqrt(c) == sqrt(c0) is an element of Fp2, i.e. sqrt(c0) = a = a0 + a1 * x for some a0, a1 in Fp
+            // squaring both sides: c0 = a0^2 + a1^2 * x^2 + (2 * a0 * a1 * x) = a0^2 + (a1^2 * P::NONRESIDUE)
+            // since there are no `x` terms on LHS, a0 * a1 = 0
+            // so either a0 = sqrt(c0) or a1 = sqrt(c0/P::NONRESIDUE)
+            if self.c0.legendre().is_qr() {
+                // either c0 is a valid sqrt in the base field
+                return self.c0.sqrt().map(|c0| Self::new(c0, P::BaseField::zero()));
+            } else {
+                // or we need to compute sqrt(c0/P::NONRESIDUE)
+                return (self.c0.div(P::NONRESIDUE))
+                    .sqrt()
+                    .map(|res| Self::new(P::BaseField::zero(), res));
+            }
         }
         // Try computing the square root
         // Check at the end of the algorithm if it was a square root
