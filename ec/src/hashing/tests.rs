@@ -238,32 +238,26 @@ fn map_field_to_curve_swu() {
     assert!(*counts.get(&mode).unwrap() != 127);
 }
 
-// Testing wb19 on  small curvse
-// E_isogenous : Elliptic Curve defined by y^2 = x^3 + 109*x + 124 over Finite
-// Field of size 127 E : y^2 = x^3 + 3
-// Isogeny map
-// (10*x^18*y + 59*x^17*y + 41*x^16*y + 48*x^15*y - 7*x^14*y + 6*x^13*y +
-// 5*x^12*y + 62*x^11*y + 12*x^10*y + 36*x^9*y - 49*x^8*y - 18*x^7*y - 63*x^6*y
-// - 43*x^5*y - 60*x^4*y - 18*x^3*y + 30*x^2*y - 57*x*y - 34*y)/(x^18 + 44*x^17
-// - 63*x^16 + 52*x^15 + 3*x^14 + 38*x^13 - 30*x^12 + 11*x^11 - 42*x^10 - 13*x^9
-// - 46*x^8 - 61*x^7 - 16*x^6 - 55*x^5 + 18*x^4 + 23*x^3 - 24*x^2 - 18*x + 32)
+/// Testing WB19 hashing on  small curvse
+/// E_isogenous : Elliptic Curve defined by y^2 = x^3 + 109*x + 124 over Finite
+/// Field of size 127
 struct TestSWU127MapToIsogenousCurveParams;
 
-// first we define the isogenous curve
-// sage: E_isogenous.order()
-// 127
+/// First we define the isogenous curve
+/// sage: E_isogenous.order()
+/// 127
 impl ModelParameters for TestSWU127MapToIsogenousCurveParams {
     type BaseField = F127;
     type ScalarField = F127;
 }
 
-// E_isogenous : Elliptic Curve defined by y^2 = x^3 + 109*x + 124 over Finite
-// Field of size 127
+/// E_isogenous : Elliptic Curve defined by y^2 = x^3 + 109*x + 124 over Finite
+/// Field of size 127
 impl SWModelParameters for TestSWU127MapToIsogenousCurveParams {
-    /// COEFF_A = 1
+    /// COEFF_A = 109
     const COEFF_A: F127 = field_new!(F127, "109");
 
-    /// COEFF_B = 1
+    /// COEFF_B = 124
     #[rustfmt::skip]
     const COEFF_B: F127 = field_new!(F127, "124");
 
@@ -277,13 +271,17 @@ impl SWModelParameters for TestSWU127MapToIsogenousCurveParams {
         (field_new!(F127, "84"), field_new!(F127, "2"));
 }
 
+/// SWU parameters for E_isogenous
 impl SWUParams for TestSWU127MapToIsogenousCurveParams {
+    /// NON-SQUARE = - 1
     const XI: F127 = field_new!(F127, "-1");
+    /// A Primitive Root of unity = 3
     const ZETA: F127 = field_new!(F127, "3");
+    /// sqrt(Xi/Zeta)
     const XI_ON_ZETA_SQRT: F127 = field_new!(F127, "13");
 }
 
-// The struct defining our parameters for the target curve
+/// The struct defining our parameters for the target curve of hashing
 struct TestWBF127MapToCurveParams;
 
 impl ModelParameters for TestWBF127MapToCurveParams {
@@ -291,6 +289,8 @@ impl ModelParameters for TestWBF127MapToCurveParams {
     type ScalarField = F127;
 }
 
+/// E: Elliptic Curve defined by y^2 = x^3 + 3 over Finite
+/// Field of size 127
 impl SWModelParameters for TestWBF127MapToCurveParams {
     /// COEFF_A = 0
     const COEFF_A: F127 = F127_ZERO;
@@ -309,17 +309,21 @@ impl SWModelParameters for TestWBF127MapToCurveParams {
         (field_new!(F127, "62"), field_new!(F127, "70"));
 }
 
-// E_isogenous : Elliptic Curve defined by y^2 = x^3 + 109*x + 124 over Finite
-// Field of size 127 psi_x: (-57*x^13 - 21*x^12 + 10*x^11 + 34*x^10 + 40*x^9 -
-// 13*x^8 + 32*x^7 - 32*x^6 + 23*x^5 - 14*x^4 + 39*x^3 + 23*x^2 + 63*x +
-// 4)/(x^12 - 13*x^11 + 11*x^10 - 33*x^9 - 30*x^8 + 30*x^7 + 34*x^6 - 44*x^5 +
-// 63*x^4 - 20*x^3 - 10*x^2 + 31*x + 2)
-
-// psi_y: (10*x^18*y + 59*x^17*y + 41*x^16*y + 48*x^15*y - 7*x^14*y + 6*x^13*y +
-// 5*x^12*y + 62*x^11*y + 12*x^10*y + 36*x^9*y - 49*x^8*y - 18*x^7*y - 63*x^6*y
-// - 43*x^5*y - 60*x^4*y - 18*x^3*y + 30*x^2*y - 57*x*y - 34*y)/(x^18 + 44*x^17
-// - 63*x^16 + 52*x^15 + 3*x^14 + 38*x^13 - 30*x^12 + 11*x^11 - 42*x^10 - 13*x^9
-// - 46*x^8 - 61*x^7 - 16*x^6 - 55*x^5 + 18*x^4 + 23*x^3 - 24*x^2 - 18*x + 32)
+/// E_isogenous : Elliptic Curve defined by y^2 = x^3 + 109*x + 124 over Finite
+/// Field of size 127
+/// With psi: E_isogenous -> E
+/// psi = (psi_x(x,y), psi_y(x,y))
+/// where
+/// psi_x: (-57*x^13 - 21*x^12 + 10*x^11 + 34*x^10 + 40*x^9 -
+/// 13*x^8 + 32*x^7 - 32*x^6 + 23*x^5 - 14*x^4 + 39*x^3 + 23*x^2 + 63*x +
+/// 4)/(x^12 - 13*x^11 + 11*x^10 - 33*x^9 - 30*x^8 + 30*x^7 + 34*x^6 - 44*x^5 +
+/// 63*x^4 - 20*x^3 - 10*x^2 + 31*x + 2)
+///
+/// psi_y: (10*x^18*y + 59*x^17*y + 41*x^16*y + 48*x^15*y - 7*x^14*y + 6*x^13*y +
+/// 5*x^12*y + 62*x^11*y + 12*x^10*y + 36*x^9*y - 49*x^8*y - 18*x^7*y - 63*x^6*y
+/// - 43*x^5*y - 60*x^4*y - 18*x^3*y + 30*x^2*y - 57*x*y - 34*y)/(x^18 + 44*x^17
+/// - 63*x^16 + 52*x^15 + 3*x^14 + 38*x^13 - 30*x^12 + 11*x^11 - 42*x^10 - 13*x^9
+/// - 46*x^8 - 61*x^7 - 16*x^6 - 55*x^5 + 18*x^4 + 23*x^3 - 24*x^2 - 18*x + 32)
 impl WBParams for TestWBF127MapToCurveParams {
     type IsogenousCurve = TestSWU127MapToIsogenousCurveParams;
 
@@ -401,7 +405,7 @@ impl WBParams for TestWBF127MapToCurveParams {
     ];
 }
 
-/// The point of the test is to get a  simpl SWU compatible curve
+/// The point of the test is to get a simpl SWU compatible curve
 /// and make simple hash
 #[cfg(all(feature = "default", feature = "std"))]
 #[test]
