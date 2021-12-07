@@ -101,7 +101,6 @@ impl<P: SWUParams> MapToCurve<GroupAffine<P>> for SWUMap<P> {
         //    x1 = num_x1/div      = [B*(Z^2 * u^4 + Z * u^2 + 1)] / [-A*(Z^2 * u^4 + Z
         // * u^2]   gx1 = num_gx1/div_gx1 = [num_x1^3 + A * num_x1 * div^2 + B *
         // div^3] / div^3
-
         let a = P::COEFF_A;
         let b = P::COEFF_B;
         let xi_t2 = P::XI * point.square();
@@ -162,6 +161,8 @@ impl<P: SWUParams> MapToCurve<GroupAffine<P>> for SWUMap<P> {
         let num_x = if gx1_square { num_x1 } else { num_x2 };
         let y = if gx1_square { y1 } else { y2 };
 
+        // 9. If sgn0(u) != sgn0(y), set y = -y
+        // let y = if y % 2 {-y} or {y};
         let x_affine = num_x / div;
         let y_affine = y;
         let point_on_curve = GroupAffine::<P>::new(x_affine, y_affine, false);
@@ -171,8 +172,5 @@ impl<P: SWUParams> MapToCurve<GroupAffine<P>> for SWUMap<P> {
         );
         Ok(point_on_curve)
 
-        //     // 9. If sgn0(u) != sgn0(y), set y = -y
-        // let y = if y % 2 {-y} or {y};
-        // I::new_jacobian(num_x * div, y * div3, div).unwrap()
     }
 }
