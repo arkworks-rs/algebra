@@ -171,6 +171,5 @@ impl<P: SWUParams> MapToCurve<GroupAffine<P>> for SWUMap<P> {
             "swu mapped to a point off the curve"
         );
         Ok(point_on_curve)
-
     }
 }
