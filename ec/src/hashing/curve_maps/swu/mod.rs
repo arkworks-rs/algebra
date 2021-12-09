@@ -1,5 +1,7 @@
 use core::marker::PhantomData;
 
+use ark_ff::bytes::{ToBytes};
+
 use crate::models::SWModelParameters;
 use ark_ff::{vec::Vec, Field, One, SquareRootField, Zero};
 use ark_std::string::ToString;
@@ -161,10 +163,14 @@ impl<P: SWUParams> MapToCurve<GroupAffine<P>> for SWUMap<P> {
         let num_x = if gx1_square { num_x1 } else { num_x2 };
         let y = if gx1_square { y1 } else { y2 };
 
-        // 9. If sgn0(u) != sgn0(y), set y = -y
-        // let y = if y % 2 {-y} or {y};
+        
         let x_affine = num_x / div;
-        let y_affine = y;
+        // 9. If sgn0(u) != sgn0(y), set y = -y
+        let mut a = [0u8; 128];
+        let mut b =  [0u8; 128];
+        point.write(&mut a[..]).unwrap();
+        y.write(&mut b[..]).unwrap();
+        let y_affine = if a[0] % 2 == b[0] % 2 { -y } else {y};
         let point_on_curve = GroupAffine::<P>::new(x_affine, y_affine, false);
         assert!(
             point_on_curve.is_on_curve(),
