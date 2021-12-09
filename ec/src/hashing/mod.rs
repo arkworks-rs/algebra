@@ -5,7 +5,6 @@ use core::fmt;
 pub mod curve_maps;
 pub mod map_to_curve_hasher;
 
-#[cfg(feature = "default")]
 pub mod field_hashers;
 
 /// Trait for hashing arbitrary data to a group element on an elliptic curve

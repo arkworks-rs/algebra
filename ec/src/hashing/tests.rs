@@ -189,10 +189,9 @@ fn hash_arbitary_string_to_curve_swu() {
     let hash_result = test_swu_to_curve_hasher.hash(b"if you stick a Babel fish in your ear you can instantly understand anything said to you in any form of language.").expect("fail to hash the string to curve");
 
     assert!(
-            hash_result.is_on_curve(),
-            "hash results into a point off the curve"
+        hash_result.is_on_curve(),
+        "hash results into a point off the curve"
     );
-
 }
 
 /// Use a simple SWU compatible curve and map the whole field to it. We observe
@@ -223,7 +222,10 @@ fn map_field_to_curve_swu() {
         })
         .unwrap();
 
-    assert!(*counts.get(&mode).unwrap() != 127, "a constant hash function is not good.");
+    assert!(
+        *counts.get(&mode).unwrap() != 127,
+        "a constant hash function is not good."
+    );
 }
 
 /// Testing WB19 hashing on a small curve
@@ -409,11 +411,13 @@ fn hash_arbitary_string_to_curve_wb() {
 
     let hash_result = test_wb_to_curve_hasher.hash(b"if you stick a Babel fish in your ear you can instantly understand anything said to you in any form of language.").expect("fail to hash the string to curve");
 
-    assert!(hash_result.x != F127_ZERO && hash_result.y != F127_ZERO, "we assume that not both a and b coefficienst are zero for the test curve");
-    
     assert!(
-            hash_result.is_on_curve(),
-            "hash results into a point off the curve"
+        hash_result.x != F127_ZERO && hash_result.y != F127_ZERO,
+        "we assume that not both a and b coefficienst are zero for the test curve"
     );
 
+    assert!(
+        hash_result.is_on_curve(),
+        "hash results into a point off the curve"
+    );
 }
