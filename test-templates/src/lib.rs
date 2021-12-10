@@ -253,7 +253,7 @@ macro_rules! generate_field_test {
 
     (fq4; $($tail:tt)*) => {
         #[test]
-        fn test_fq6() {
+        fn test_fq4() {
             let mut rng = ark_std::test_rng();
             for _ in 0..ITERATIONS {
                 let g: Fq4 = UniformRand::rand(&mut rng);

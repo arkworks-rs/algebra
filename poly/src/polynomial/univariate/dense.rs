@@ -145,9 +145,48 @@ impl<F: FftField> DensePolynomial<F> {
         &self,
         domain: D,
     ) -> Option<(DensePolynomial<F>, DensePolynomial<F>)> {
-        let self_poly = DenseOrSparsePolynomial::from(self);
-        let vanishing_poly = DenseOrSparsePolynomial::from(domain.vanishing_polynomial());
-        self_poly.divide_with_q_and_r(&vanishing_poly)
+        let domain_size = domain.size();
+
+        if self.coeffs.len() < domain_size {
+            // If degree(self) < len(Domain), then the quotient is zero, and the entire polynomial is the remainder
+            Some((DensePolynomial::<F>::zero(), self.clone()))
+        } else {
+            // Compute the quotient
+            //
+            // If `self.len() <= 2 * domain_size`
+            //    then quotient is simply `self.coeffs[domain_size..]`
+            // Otherwise
+            //    during the division by `x^domain_size - 1`, some of `self.coeffs[domain_size..]` will be updated as well
+            //    which can be computed using the following algorithm.
+            //
+            let mut quotient_vec = self.coeffs[domain_size..].to_vec();
+            for i in 1..(self.len() / domain_size) {
+                cfg_iter_mut!(quotient_vec)
+                    .zip(&self.coeffs[domain_size * (i + 1)..])
+                    .for_each(|(s, c)| *s += c);
+            }
+
+            // Compute the remainder
+            //
+            // `remainder = self - quotient_vec * (x^domain_size - 1)`
+            //
+            // Note that remainder must be smaller than `domain_size`.
+            // So we can look at only the first `domain_size` terms.
+            //
+            // Therefore,
+            // `remainder = self.coeffs[0..domain_size] - quotient_vec * (-1)`
+            // i.e.,
+            // `remainder = self.coeffs[0..domain_size] + quotient_vec`
+            //
+            let mut remainder_vec = self.coeffs[0..domain_size].to_vec();
+            cfg_iter_mut!(remainder_vec)
+                .zip(&quotient_vec)
+                .for_each(|(s, c)| *s += c);
+
+            let quotient = DensePolynomial::<F>::from_coefficients_vec(quotient_vec);
+            let remainder = DensePolynomial::<F>::from_coefficients_vec(remainder_vec);
+            Some((quotient, remainder))
+        }
     }
 }
 
@@ -811,6 +850,20 @@ mod tests {
                 let ans1 = p.mul_by_vanishing_poly(domain);
                 let ans2 = &p * &domain.vanishing_polynomial().into();
                 assert_eq!(ans1, ans2);
+            }
+        }
+    }
+
+    #[test]
+    fn divide_by_vanishing_poly() {
+        let rng = &mut test_rng();
+        for size in 1..10 {
+            let domain = GeneralEvaluationDomain::new(1 << size).unwrap();
+            for degree in 0..12 {
+                let p = DensePolynomial::<Fr>::rand(degree * 100, rng);
+                let (quotient, remainder) = p.divide_by_vanishing_poly(domain).unwrap();
+                let p_recovered = quotient.mul_by_vanishing_poly(domain) + remainder;
+                assert_eq!(p, p_recovered);
             }
         }
     }
