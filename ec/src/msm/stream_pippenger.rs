@@ -2,7 +2,7 @@
 use crate::AffineCurve;
 use ark_ff::{PrimeField, Zero};
 
-use ark_std::{borrow::Borrow, ops::AddAssign};
+use ark_std::{borrow::Borrow, ops::AddAssign, vec::Vec};
 
 /// Struct for the chunked Pippenger algorithm.
 pub struct ChunkedPippenger<G: AffineCurve> {
