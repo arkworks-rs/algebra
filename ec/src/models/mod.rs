@@ -9,16 +9,19 @@ pub mod mnt6;
 pub mod short_weierstrass_jacobian;
 pub mod twisted_edwards_extended;
 
+/// Model parameters for an elliptic curve.
 pub trait ModelParameters: Send + Sync + 'static {
     type BaseField: Field + SquareRootField;
     type ScalarField: PrimeField + SquareRootField + Into<<Self::ScalarField as PrimeField>::BigInt>;
+
+    const COFACTOR: &'static [u64];
+    const COFACTOR_INV: Self::ScalarField;
 }
 
+/// Model parameters for a Short Weierstrass curve.
 pub trait SWModelParameters: ModelParameters {
     const COEFF_A: Self::BaseField;
     const COEFF_B: Self::BaseField;
-    const COFACTOR: &'static [u64];
-    const COFACTOR_INV: Self::ScalarField;
     const AFFINE_GENERATOR_COEFFS: (Self::BaseField, Self::BaseField);
 
     #[inline(always)]
@@ -47,11 +50,10 @@ pub trait SWModelParameters: ModelParameters {
     }
 }
 
+/// Model parameters for a Twisted Edwards curve.
 pub trait TEModelParameters: ModelParameters {
     const COEFF_A: Self::BaseField;
     const COEFF_D: Self::BaseField;
-    const COFACTOR: &'static [u64];
-    const COFACTOR_INV: Self::ScalarField;
     const AFFINE_GENERATOR_COEFFS: (Self::BaseField, Self::BaseField);
 
     type MontgomeryModelParameters: MontgomeryModelParameters<BaseField = Self::BaseField>;
@@ -64,6 +66,7 @@ pub trait TEModelParameters: ModelParameters {
     }
 }
 
+/// Model parameters for a Montgomery curve.
 pub trait MontgomeryModelParameters: ModelParameters {
     const COEFF_A: Self::BaseField;
     const COEFF_B: Self::BaseField;
