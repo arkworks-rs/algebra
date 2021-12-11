@@ -8,7 +8,7 @@ pub mod mnt6;
 pub mod short_weierstrass_jacobian;
 pub mod twisted_edwards_extended;
 
-/// Required for the is_in_correct_subgroup_assuming_on_curve function.
+/// Required for the is_in_correct_subgroup_assuming_on_curve() function in ModelParameters.
 pub trait MultipliablePoint<R: Zero> {
     fn mul_bits(&self, bits: impl Iterator<Item = bool>) -> R;
 }
@@ -21,6 +21,8 @@ pub trait ModelParameters: Send + Sync + 'static {
     const COFACTOR: &'static [u64];
     const COFACTOR_INV: Self::ScalarField;
 
+    /// Checks that the current point is in the prime order subgroup given
+    /// the point on the curve.
     /// Requires type parameters G: the type of point passed in, and H: the type of
     /// point that results from multiplying G by a scalar.
     fn is_in_correct_subgroup_assuming_on_curve<G, H>(item: &G) -> bool
