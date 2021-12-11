@@ -16,7 +16,9 @@ use ark_ff::{
     ToConstraintField, UniformRand,
 };
 
-use crate::{models::SWModelParameters as Parameters, AffineCurve, ProjectiveCurve};
+use crate::{
+    models::SWModelParameters as Parameters, AffineCurve, MultipliablePoint, ProjectiveCurve,
+};
 
 use num_traits::{One, Zero};
 use zeroize::Zeroize;
@@ -69,20 +71,10 @@ impl<P: Parameters> Display for GroupAffine<P> {
     }
 }
 
-impl<P: Parameters> GroupAffine<P> {
-    pub fn new(x: P::BaseField, y: P::BaseField, infinity: bool) -> Self {
-        Self { x, y, infinity }
-    }
-
-    /// Multiply `self` by the cofactor of the curve, `P::COFACTOR`.
-    pub fn scale_by_cofactor(&self) -> GroupProjective<P> {
-        let cofactor = BitIteratorBE::new(P::COFACTOR);
-        self.mul_bits(cofactor)
-    }
-
+impl<P: Parameters> MultipliablePoint<GroupProjective<P>> for GroupAffine<P> {
     /// Multiplies `self` by the scalar represented by `bits`. `bits` must be a
     /// big-endian bit-wise decomposition of the scalar.
-    pub(crate) fn mul_bits(&self, bits: impl Iterator<Item = bool>) -> GroupProjective<P> {
+    fn mul_bits(&self, bits: impl Iterator<Item = bool>) -> GroupProjective<P> {
         let mut res = GroupProjective::zero();
         // Skip leading zeros.
         for i in bits.skip_while(|b| !b) {
@@ -92,6 +84,18 @@ impl<P: Parameters> GroupAffine<P> {
             }
         }
         res
+    }
+}
+
+impl<P: Parameters> GroupAffine<P> {
+    pub fn new(x: P::BaseField, y: P::BaseField, infinity: bool) -> Self {
+        Self { x, y, infinity }
+    }
+
+    /// Multiply `self` by the cofactor of the curve, `P::COFACTOR`.
+    pub fn scale_by_cofactor(&self) -> GroupProjective<P> {
+        let cofactor = BitIteratorBE::new(P::COFACTOR);
+        self.mul_bits(cofactor)
     }
 
     /// Attempts to construct an affine point given an x-coordinate. The
@@ -137,7 +141,7 @@ impl<P: Parameters> GroupAffine<P> {
     /// Checks if `self` is in the subgroup having order that equaling that of
     /// `P::ScalarField`.
     pub fn is_in_correct_subgroup_assuming_on_curve(&self) -> bool {
-        P::is_in_correct_subgroup_assuming_on_curve(self)
+        P::is_in_correct_subgroup_assuming_on_curve::<GroupAffine<P>, GroupProjective<P>>(self)
     }
 }
 

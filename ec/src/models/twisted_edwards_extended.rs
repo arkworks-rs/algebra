@@ -1,6 +1,6 @@
 use crate::{
     models::{MontgomeryModelParameters as MontgomeryParameters, TEModelParameters as Parameters},
-    AffineCurve, ProjectiveCurve,
+    AffineCurve, MultipliablePoint, ProjectiveCurve,
 };
 use ark_serialize::{
     CanonicalDeserialize, CanonicalDeserializeWithFlags, CanonicalSerialize,
@@ -29,6 +29,8 @@ use ark_ff::{
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
 
+/// Affine coordinates for a point on a twisted Edwards curve, over the
+/// base field `P::BaseField`.
 #[derive(Derivative)]
 #[derivative(
     Copy(bound = "P: Parameters"),
@@ -50,19 +52,10 @@ impl<P: Parameters> Display for GroupAffine<P> {
     }
 }
 
-impl<P: Parameters> GroupAffine<P> {
-    pub fn new(x: P::BaseField, y: P::BaseField) -> Self {
-        Self { x, y }
-    }
-
-    #[must_use]
-    pub fn scale_by_cofactor(&self) -> <Self as AffineCurve>::Projective {
-        self.mul_bits(BitIteratorBE::new(P::COFACTOR))
-    }
-
+impl<P: Parameters> MultipliablePoint<GroupProjective<P>> for GroupAffine<P> {
     /// Multiplies `self` by the scalar represented by `bits`. `bits` must be a
     /// big-endian bit-wise decomposition of the scalar.
-    pub(crate) fn mul_bits(&self, bits: impl Iterator<Item = bool>) -> GroupProjective<P> {
+    fn mul_bits(&self, bits: impl Iterator<Item = bool>) -> GroupProjective<P> {
         let mut res = GroupProjective::zero();
         for i in bits.skip_while(|b| !b) {
             res.double_in_place();
@@ -71,6 +64,17 @@ impl<P: Parameters> GroupAffine<P> {
             }
         }
         res
+    }
+}
+
+impl<P: Parameters> GroupAffine<P> {
+    pub fn new(x: P::BaseField, y: P::BaseField) -> Self {
+        Self { x, y }
+    }
+
+    #[must_use]
+    pub fn scale_by_cofactor(&self) -> <Self as AffineCurve>::Projective {
+        self.mul_bits(BitIteratorBE::new(P::COFACTOR))
     }
 
     /// Attempts to construct an affine point given an y-coordinate. The
@@ -115,8 +119,7 @@ impl<P: Parameters> GroupAffine<P> {
     /// Checks that the current point is in the prime order subgroup given
     /// the point on the curve.
     pub fn is_in_correct_subgroup_assuming_on_curve(&self) -> bool {
-        self.mul_bits(BitIteratorBE::new(P::ScalarField::characteristic()))
-            .is_zero()
+        P::is_in_correct_subgroup_assuming_on_curve::<GroupAffine<P>, GroupProjective<P>>(self)
     }
 }
 
@@ -296,7 +299,7 @@ mod group_impl {
 
 //////////////////////////////////////////////////////////////////////////////
 
-/// `GroupProjective` implements Extended Twisted Edwards Coordinates
+/// `GroupProjective` implements Extended Twisted Edwards (Jacobian) Coordinates
 /// as described in [\[HKCD08\]](https://eprint.iacr.org/2008/522.pdf).
 ///
 /// This implementation uses the unified addition formulae from that paper (see

@@ -1,4 +1,3 @@
-use crate::models::short_weierstrass_jacobian::GroupAffine;
 use ark_ff::{fields::BitIteratorBE, Field, PrimeField, SquareRootField, Zero};
 
 pub mod bls12;
@@ -9,6 +8,11 @@ pub mod mnt6;
 pub mod short_weierstrass_jacobian;
 pub mod twisted_edwards_extended;
 
+/// Required for the is_in_correct_subgroup_assuming_on_curve function.
+pub trait MultipliablePoint<R: Zero> {
+    fn mul_bits(&self, bits: impl Iterator<Item = bool>) -> R;
+}
+
 /// Model parameters for an elliptic curve.
 pub trait ModelParameters: Send + Sync + 'static {
     type BaseField: Field + SquareRootField;
@@ -16,6 +20,17 @@ pub trait ModelParameters: Send + Sync + 'static {
 
     const COFACTOR: &'static [u64];
     const COFACTOR_INV: Self::ScalarField;
+
+    /// Requires type parameters G: the type of point passed in, and H: the type of
+    /// point that results from multiplying G by a scalar.
+    fn is_in_correct_subgroup_assuming_on_curve<G, H>(item: &G) -> bool
+    where
+        G: MultipliablePoint<H>,
+        H: Zero,
+    {
+        item.mul_bits(BitIteratorBE::new(Self::ScalarField::characteristic()))
+            .is_zero()
+    }
 }
 
 /// Model parameters for a Short Weierstrass curve.
@@ -39,14 +54,6 @@ pub trait SWModelParameters: ModelParameters {
             return copy;
         }
         *elem
-    }
-
-    fn is_in_correct_subgroup_assuming_on_curve(item: &GroupAffine<Self>) -> bool
-    where
-        Self: Sized,
-    {
-        item.mul_bits(BitIteratorBE::new(Self::ScalarField::characteristic()))
-            .is_zero()
     }
 }
 
