@@ -1,6 +1,6 @@
 use crate::{
     models::{MontgomeryModelParameters as MontgomeryParameters, TEModelParameters as Parameters},
-    AffineCurve, MultipliablePoint, ProjectiveCurve,
+    AffineCurve, ProjectiveCurve,
 };
 use ark_serialize::{
     CanonicalDeserialize, CanonicalDeserializeWithFlags, CanonicalSerialize,
@@ -49,21 +49,6 @@ pub struct GroupAffine<P: Parameters> {
 impl<P: Parameters> Display for GroupAffine<P> {
     fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
         write!(f, "GroupAffine(x={}, y={})", self.x, self.y)
-    }
-}
-
-impl<P: Parameters> MultipliablePoint<GroupProjective<P>> for GroupAffine<P> {
-    /// Multiplies `self` by the scalar represented by `bits`. `bits` must be a
-    /// big-endian bit-wise decomposition of the scalar.
-    fn mul_bits(&self, bits: impl Iterator<Item = bool>) -> GroupProjective<P> {
-        let mut res = GroupProjective::zero();
-        for i in bits.skip_while(|b| !b) {
-            res.double_in_place();
-            if i {
-                res.add_assign_mixed(&self)
-            }
-        }
-        res
     }
 }
 
@@ -119,7 +104,7 @@ impl<P: Parameters> GroupAffine<P> {
     /// Checks that the current point is in the prime order subgroup given
     /// the point on the curve.
     pub fn is_in_correct_subgroup_assuming_on_curve(&self) -> bool {
-        P::is_in_correct_subgroup_assuming_on_curve::<GroupAffine<P>, GroupProjective<P>>(self)
+        P::is_in_correct_subgroup_assuming_on_curve(self)
     }
 }
 
@@ -143,8 +128,17 @@ impl<P: Parameters> AffineCurve for GroupAffine<P> {
         Self::new(P::AFFINE_GENERATOR_COEFFS.0, P::AFFINE_GENERATOR_COEFFS.1)
     }
 
-    fn mul<S: Into<<Self::ScalarField as PrimeField>::BigInt>>(&self, by: S) -> GroupProjective<P> {
-        self.mul_bits(BitIteratorBE::new(by.into()))
+    /// Multiplies `self` by the scalar represented by `bits`. `bits` must be a
+    /// big-endian bit-wise decomposition of the scalar.
+    fn mul_bits(&self, bits: impl Iterator<Item = bool>) -> GroupProjective<P> {
+        let mut res = GroupProjective::zero();
+        for i in bits.skip_while(|b| !b) {
+            res.double_in_place();
+            if i {
+                res.add_assign_mixed(&self)
+            }
+        }
+        res
     }
 
     fn from_random_bytes(bytes: &[u8]) -> Option<Self> {

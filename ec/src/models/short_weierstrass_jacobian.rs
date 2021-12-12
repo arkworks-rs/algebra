@@ -16,9 +16,7 @@ use ark_ff::{
     ToConstraintField, UniformRand,
 };
 
-use crate::{
-    models::SWModelParameters as Parameters, AffineCurve, MultipliablePoint, ProjectiveCurve,
-};
+use crate::{models::SWModelParameters as Parameters, AffineCurve, ProjectiveCurve};
 
 use num_traits::{One, Zero};
 use zeroize::Zeroize;
@@ -68,22 +66,6 @@ impl<P: Parameters> Display for GroupAffine<P> {
         } else {
             write!(f, "GroupAffine(x={}, y={})", self.x, self.y)
         }
-    }
-}
-
-impl<P: Parameters> MultipliablePoint<GroupProjective<P>> for GroupAffine<P> {
-    /// Multiplies `self` by the scalar represented by `bits`. `bits` must be a
-    /// big-endian bit-wise decomposition of the scalar.
-    fn mul_bits(&self, bits: impl Iterator<Item = bool>) -> GroupProjective<P> {
-        let mut res = GroupProjective::zero();
-        // Skip leading zeros.
-        for i in bits.skip_while(|b| !b) {
-            res.double_in_place();
-            if i {
-                res.add_assign_mixed(&self)
-            }
-        }
-        res
     }
 }
 
@@ -141,7 +123,7 @@ impl<P: Parameters> GroupAffine<P> {
     /// Checks if `self` is in the subgroup having order that equaling that of
     /// `P::ScalarField`.
     pub fn is_in_correct_subgroup_assuming_on_curve(&self) -> bool {
-        P::is_in_correct_subgroup_assuming_on_curve::<GroupAffine<P>, GroupProjective<P>>(self)
+        P::is_in_correct_subgroup_assuming_on_curve(self)
     }
 }
 
@@ -232,10 +214,18 @@ impl<P: Parameters> AffineCurve for GroupAffine<P> {
         })
     }
 
-    #[inline]
-    fn mul<S: Into<<Self::ScalarField as PrimeField>::BigInt>>(&self, by: S) -> GroupProjective<P> {
-        let bits = BitIteratorBE::new(by.into());
-        self.mul_bits(bits)
+    /// Multiplies `self` by the scalar represented by `bits`. `bits` must be a
+    /// big-endian bit-wise decomposition of the scalar.
+    fn mul_bits(&self, bits: impl Iterator<Item = bool>) -> GroupProjective<P> {
+        let mut res = GroupProjective::zero();
+        // Skip leading zeros.
+        for i in bits.skip_while(|b| !b) {
+            res.double_in_place();
+            if i {
+                res.add_assign_mixed(&self)
+            }
+        }
+        res
     }
 
     #[inline]

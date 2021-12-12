@@ -22,7 +22,7 @@ extern crate ark_std;
 use crate::group::Group;
 use ark_ff::{
     bytes::{FromBytes, ToBytes},
-    fields::{Field, PrimeField, SquareRootField},
+    fields::{BitIteratorBE, Field, PrimeField, SquareRootField},
     UniformRand,
 };
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
@@ -274,10 +274,16 @@ pub trait AffineCurve:
     /// random group elements from a hash-function or RNG output.
     fn from_random_bytes(bytes: &[u8]) -> Option<Self>;
 
+    /// Multiplies `self` by the scalar represented by `bits`. `bits` must be a
+    /// big-endian bit-wise decomposition of the scalar.
+    fn mul_bits(&self, bits: impl Iterator<Item = bool>) -> Self::Projective;
+
     /// Performs scalar multiplication of this element with mixed addition.
     #[must_use]
-    fn mul<S: Into<<Self::ScalarField as PrimeField>::BigInt>>(&self, other: S)
-        -> Self::Projective;
+    #[inline]
+    fn mul<S: Into<<Self::ScalarField as PrimeField>::BigInt>>(&self, by: S) -> Self::Projective {
+        self.mul_bits(BitIteratorBE::new(by.into()))
+    }
 
     /// Multiplies this element by the cofactor and output the
     /// resulting projective element.
