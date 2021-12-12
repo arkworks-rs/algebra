@@ -282,7 +282,7 @@ pub trait AffineCurve:
     #[must_use]
     #[inline]
     fn mul<S: Into<<Self::ScalarField as PrimeField>::BigInt>>(&self, by: S) -> Self::Projective {
-        self.mul_bits(BitIteratorBE::new(by.into()))
+        self.mul_bits(BitIteratorBE::without_leading_zeros(by.into()))
     }
 
     /// Multiplies this element by the cofactor and output the

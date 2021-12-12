@@ -100,9 +100,11 @@ impl<P: Parameters> GroupAffine<P> {
 
         lhs == rhs
     }
+}
 
-    /// Checks that the current point is in the prime order subgroup given
-    /// the point on the curve.
+impl<P: Parameters> GroupAffine<P> {
+    /// Checks if `self` is in the subgroup having order equaling that of
+    /// `P::ScalarField` given it is on the curve.
     pub fn is_in_correct_subgroup_assuming_on_curve(&self) -> bool {
         P::is_in_correct_subgroup_assuming_on_curve(self)
     }
@@ -293,7 +295,7 @@ mod group_impl {
 
 //////////////////////////////////////////////////////////////////////////////
 
-/// `GroupProjective` implements Extended Twisted Edwards (Jacobian) Coordinates
+/// `GroupProjective` implements Extended Twisted Edwards Coordinates
 /// as described in [\[HKCD08\]](https://eprint.iacr.org/2008/522.pdf).
 ///
 /// This implementation uses the unified addition formulae from that paper (see

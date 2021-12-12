@@ -119,9 +119,11 @@ impl<P: Parameters> GroupAffine<P> {
             y2 == x3b
         }
     }
+}
 
-    /// Checks if `self` is in the subgroup having order that equaling that of
-    /// `P::ScalarField`.
+impl<P: Parameters> GroupAffine<P> {
+    /// Checks if `self` is in the subgroup having order equaling that of
+    /// `P::ScalarField` given it is on the curve.
     pub fn is_in_correct_subgroup_assuming_on_curve(&self) -> bool {
         P::is_in_correct_subgroup_assuming_on_curve(self)
     }
