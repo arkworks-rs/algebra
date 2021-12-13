@@ -276,7 +276,17 @@ pub trait AffineCurve:
 
     /// Multiplies `self` by the scalar represented by `bits`. `bits` must be a
     /// big-endian bit-wise decomposition of the scalar.
-    fn mul_bits(&self, bits: impl Iterator<Item = bool>) -> Self::Projective;
+    fn mul_bits(&self, bits: impl Iterator<Item = bool>) -> Self::Projective {
+        let mut res = Self::Projective::zero();
+        // Skip leading zeros.
+        for i in bits.skip_while(|b| !b) {
+            <Self::Projective as ProjectiveCurve>::double_in_place(&mut res);
+            if i {
+                res.add_assign_mixed(&self)
+            }
+        }
+        res
+    }
 
     /// Performs scalar multiplication of this element with mixed addition.
     #[must_use]

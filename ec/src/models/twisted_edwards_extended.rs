@@ -130,19 +130,6 @@ impl<P: Parameters> AffineCurve for GroupAffine<P> {
         Self::new(P::AFFINE_GENERATOR_COEFFS.0, P::AFFINE_GENERATOR_COEFFS.1)
     }
 
-    /// Multiplies `self` by the scalar represented by `bits`. `bits` must be a
-    /// big-endian bit-wise decomposition of the scalar.
-    fn mul_bits(&self, bits: impl Iterator<Item = bool>) -> GroupProjective<P> {
-        let mut res = GroupProjective::zero();
-        for i in bits.skip_while(|b| !b) {
-            res.double_in_place();
-            if i {
-                res.add_assign_mixed(&self)
-            }
-        }
-        res
-    }
-
     fn from_random_bytes(bytes: &[u8]) -> Option<Self> {
         P::BaseField::from_random_bytes_with_flags::<EdwardsFlags>(bytes).and_then(|(y, flags)| {
             // if y is valid and is zero, then parse this

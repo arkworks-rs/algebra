@@ -216,20 +216,6 @@ impl<P: Parameters> AffineCurve for GroupAffine<P> {
         })
     }
 
-    /// Multiplies `self` by the scalar represented by `bits`. `bits` must be a
-    /// big-endian bit-wise decomposition of the scalar.
-    fn mul_bits(&self, bits: impl Iterator<Item = bool>) -> GroupProjective<P> {
-        let mut res = GroupProjective::zero();
-        // Skip leading zeros.
-        for i in bits.skip_while(|b| !b) {
-            res.double_in_place();
-            if i {
-                res.add_assign_mixed(&self)
-            }
-        }
-        res
-    }
-
     #[inline]
     fn mul_by_cofactor_to_projective(&self) -> Self::Projective {
         self.scale_by_cofactor()
