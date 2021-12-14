@@ -7,8 +7,8 @@ use crate::{AffineCurve, ProjectiveCurve};
 use rayon::prelude::*;
 
 pub mod stream_pippenger;
-
 pub use stream_pippenger::*;
+
 pub struct VariableBase;
 
 impl VariableBase {

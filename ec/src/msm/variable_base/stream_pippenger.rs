@@ -1,4 +1,5 @@
 //! A space-efficient implementation of Pippenger's algorithm.
+//!
 use crate::AffineCurve;
 use ark_ff::{PrimeField, Zero};
 
@@ -22,6 +23,7 @@ impl<G: AffineCurve> ChunkedPippenger<G> {
             buf_size: max_msm_buffer,
         }
     }
+
     /// Initialize a chunked Pippenger instance with the given buffer size.
     pub fn with_size(buf_size: usize) -> Self {
         Self {
