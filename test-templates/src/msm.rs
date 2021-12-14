@@ -1,5 +1,5 @@
 use ark_ec::{
-    msm::variable_base::{stream_pippenger::ChunkedPippenger, VariableBase},
+    msm::{ChunkedPippenger, VariableBase},
     AffineCurve, ProjectiveCurve,
 };
 use ark_ff::{PrimeField, UniformRand, Zero};
