@@ -1,9 +1,7 @@
 mod fixed_base;
-mod variable_base;
+pub mod variable_base;
 pub use fixed_base::*;
 pub use variable_base::*;
-
-pub mod stream_pippenger;
 
 /// The result of this function is only approximately `ln(a)`
 /// [`Explanation of usage`]
