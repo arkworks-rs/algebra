@@ -13,8 +13,8 @@
 - [\#348](https://github.com/arkworks-rs/algebra/pull/348) (arc-ec) Rename `msm:{Fixed,Variable}BaseMSM:multi_scalar_mul` to `msm:{Fixed,Variable}:msm` to avoid redundancy.
 - [\#359](https://github.com/arkworks-rs/algebra/pull/359) (ark-test-templates) Simplify the field and curve test macros.
 - [\#365](https://github.com/arkworks-rs/algebra/pull/365) (arc-ec)
-	- Move `COFACTOR`, `COFACTOR_INV`, and `is_in_correct_subgroup_assuming_on_curve()` from `{SW,TE}ModelParameters` to `ModelParameters`. 
-	- Add `mul_bits()` to `AffineCurve` and provide a default implementation of `mul()` using this.
+    - Move `COFACTOR`, `COFACTOR_INV`, and `is_in_correct_subgroup_assuming_on_curve()` from `{SW,TE}ModelParameters` to `ModelParameters`.
+    - Add `mul_bits()` to `AffineCurve` and provide a default implementation of `mul()` using this.
     - Remove duplicate function `scale_by_cofactor()` from `short_weierstrass_jacobian::GroupAffine` and `twisted_edwards_extended::GroupAffine`
 
 ### Features
