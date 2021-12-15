@@ -20,8 +20,7 @@ impl ModelParameters for Parameters {
     /// COFACTOR = 1
     const COFACTOR: &'static [u64] = &[1];
 
-    /// COFACTOR^(-1) mod r =
-    /// 1
+    /// COFACTOR^(-1) mod r = 1
     #[rustfmt::skip]
     const COFACTOR_INV: Fr = FR_ONE;
 }

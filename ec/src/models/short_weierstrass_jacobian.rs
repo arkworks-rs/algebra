@@ -74,12 +74,6 @@ impl<P: Parameters> GroupAffine<P> {
         Self { x, y, infinity }
     }
 
-    /// Multiply `self` by the cofactor of the curve, `P::COFACTOR`.
-    pub fn scale_by_cofactor(&self) -> GroupProjective<P> {
-        let cofactor = BitIteratorBE::new(P::COFACTOR);
-        self.mul_bits(cofactor)
-    }
-
     /// Attempts to construct an affine point given an x-coordinate. The
     /// point is not guaranteed to be in the prime order subgroup.
     ///
@@ -180,7 +174,7 @@ impl<P: Parameters> Distribution<GroupAffine<P>> for Standard {
             let greatest = rng.gen();
 
             if let Some(p) = GroupAffine::get_point_from_x(x, greatest) {
-                return p.scale_by_cofactor().into();
+                return p.mul_by_cofactor();
             }
         }
     }
@@ -218,7 +212,7 @@ impl<P: Parameters> AffineCurve for GroupAffine<P> {
 
     #[inline]
     fn mul_by_cofactor_to_projective(&self) -> Self::Projective {
-        self.scale_by_cofactor()
+        self.mul_bits(BitIteratorBE::new(P::COFACTOR))
     }
 
     fn mul_by_cofactor_inv(&self) -> Self {
@@ -342,7 +336,7 @@ impl<P: Parameters> Distribution<GroupProjective<P>> for Standard {
             let greatest = rng.gen();
 
             if let Some(p) = GroupAffine::get_point_from_x(x, greatest) {
-                return p.scale_by_cofactor().into();
+                return p.mul_by_cofactor_to_projective();
             }
         }
     }

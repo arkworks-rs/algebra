@@ -4,7 +4,7 @@ use ark_ec::{
 };
 use ark_ff::{field_new, Zero};
 
-use crate::bn384_small_two_adicity::{Fq, Fr};
+use crate::bn384_small_two_adicity::{Fq, Fr, FR_ONE};
 
 pub type G1Affine = GroupAffine<Parameters>;
 pub type G1Projective = GroupProjective<Parameters>;
@@ -18,10 +18,10 @@ impl ModelParameters for Parameters {
     type Affine = GroupAffine<Self>;
 
     /// COFACTOR = 1
-    const COFACTOR: &'static [u64] = &[0x1];
+    const COFACTOR: &'static [u64] = &[1];
 
     /// COFACTOR_INV = COFACTOR^{-1} mod r = 1
-    const COFACTOR_INV: Fr = field_new!(Fr, "1");
+    const COFACTOR_INV: Fr = FR_ONE;
 }
 
 impl SWModelParameters for Parameters {
