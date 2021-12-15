@@ -27,6 +27,7 @@ pub trait SWUParams: SWModelParameters {
     const XI_ON_ZETA_SQRT: Self::BaseField; // square root of THETA
 }
 
+/// Represents the SWU hash-to-curve map defined by `P`.
 pub struct SWUMap<P: SWUParams> {
     pub domain: Vec<u8>,
     curve_params: PhantomData<fn() -> P>,
