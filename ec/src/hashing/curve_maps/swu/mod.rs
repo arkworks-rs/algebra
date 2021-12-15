@@ -14,7 +14,7 @@ use crate::{
 
 /// Trait defining the necessary parameters for the SWU hash-to-curve method
 /// for the curves of Weierstrass form of:
-/// y^2 = x^3 + a*x + b where ab != 0. From [WB2019]
+/// y^2 = x^3 + a*x + b where ab != 0. From [\[WB2019\]]
 ///
 /// - [WB19] Wahby, R. S., & Boneh, D. (2019). Fast and simple constant-time
 ///   hashing to the bls12-381 elliptic curve. IACR Transactions on
