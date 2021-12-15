@@ -49,7 +49,7 @@ impl<P: SWUParams> MapToCurve<GroupAffine<P>> for SWUMap<P> {
             Some(xi_on_zeta_sqrt) => {
                 if xi_on_zeta_sqrt != P::XI_ON_ZETA_SQRT && xi_on_zeta_sqrt != -P::XI_ON_ZETA_SQRT {
                     return Err(HashToCurveError::MapToCurveError(
-                        "precomupted P::XI_ON_ZETA_SQRT is not what it suppose to be".to_string(),
+                        "precomputed P::XI_ON_ZETA_SQRT is not what it is supposed to be".to_string(),
                     ));
                 }
             }
