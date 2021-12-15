@@ -16,10 +16,7 @@ use crate::{
 /// for the curves of Weierstrass form of:
 /// y^2 = x^3 + a*x + b where ab != 0. From [\[WB2019\]]
 ///
-/// - [WB19] Wahby, R. S., & Boneh, D. (2019). Fast and simple constant-time
-///   hashing to the bls12-381 elliptic curve. IACR Transactions on
-///   Cryptographic Hardware and Embedded Systems, nil(nil), 154–179.
-///   http://dx.doi.org/10.46586/tches.v2019.i4.154-179
+/// - [\[WB2019\]] <https://eprint.iacr.org/2019/403>
 pub trait SWUParams: SWModelParameters {
     // we need an element of the base field which is not a square root see [1] Sect.
     // 4. it is also convenient to have $g(b/xi * a)$ to be square. In general
