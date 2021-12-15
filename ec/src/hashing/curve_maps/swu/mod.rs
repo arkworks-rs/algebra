@@ -34,8 +34,7 @@ pub struct SWUMap<P: SWUParams> {
 }
 
 impl<P: SWUParams> MapToCurve<GroupAffine<P>> for SWUMap<P> {
-    /// This is to verify if the provided SWUparams makes sense, doesn't do much
-    /// for now
+    /// Constructs a new map if `P` represents a valid map.
     fn new_map_to_curve(domain: &[u8]) -> Result<Self, HashToCurveError> {
         // Verifying that both XI and ZETA are non-squares
         if P::XI.legendre().is_qr() || P::ZETA.legendre().is_qr() {
