@@ -39,7 +39,7 @@ impl<P: SWUParams> MapToCurve<GroupAffine<P>> for SWUMap<P> {
         // Verifying that both XI and ZETA are non-squares
         if P::XI.legendre().is_qr() || P::ZETA.legendre().is_qr() {
             return Err(HashToCurveError::MapToCurveError(
-                "both Xi and Zeta should be quadratic non-residues for the SWU map".to_string(),
+                "both xi and zeta should be quadratic non-residues for the SWU map".to_string(),
             ));
         }
 
