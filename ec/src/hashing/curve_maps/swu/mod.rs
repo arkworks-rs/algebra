@@ -76,7 +76,7 @@ impl<P: SWUParams> MapToCurve<GroupAffine<P>> for SWUMap<P> {
     /// <https://github.com/zcash/pasta_curves/blob/main/src/hashtocurve.rs>.
     fn map_to_curve(
         &self,
-        point: <GroupAffine<P> as AffineCurve>::BaseField,
+        point: P::BaseField,
     ) -> Result<GroupAffine<P>, HashToCurveError> {
         // 1. tv1 = inv0(Z^2 * u^4 + Z * u^2)
         // 2. x1 = (-B / A) * (1 + tv1)
