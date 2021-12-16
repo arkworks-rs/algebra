@@ -9,12 +9,12 @@ use digest::{Update, VariableOutput};
 // for hashing `count` field elements.
 // See section 5.1 and 5.3 of the
 // [IETF hash standardization draft](https://tools.ietf.org/html/draft-irtf-cfrg-hash-to-curve-10)
-fn hash_len_in_bytes<F: Field>(security_parameter: usize, count: usize) -> usize {
+fn hash_len_in_bytes<F: Field, const SEC_PARAM: usize>(count: usize) -> usize {
     // ceil(log(p))
     let base_field_size_in_bits = F::BasePrimeField::size_in_bits();
     // ceil(log(p)) + security_parameter
     let base_field_size_with_security_padding_in_bits =
-        base_field_size_in_bits + security_parameter;
+        base_field_size_in_bits + SEC_PARAM;
     // ceil( (ceil(log(p)) + security_parameter) / 8)
     let bytes_per_base_field_elem =
         ((base_field_size_with_security_padding_in_bits + 7) / 8) as u64;
@@ -28,7 +28,7 @@ fn map_bytes_to_field_elem<F: Field>(bz: &[u8]) -> Option<F> {
     let mut base_field_elems = Vec::new();
     for i in 0..d {
         let val = F::BasePrimeField::from_be_bytes_mod_order(
-            &bz[i * len_per_elem..(i + 1) * len_per_elem],
+            &bz[(i * len_per_elem)..][..len_per_elem],
         );
         base_field_elems.push(val);
     }
@@ -51,8 +51,7 @@ impl<F: Field, H: VariableOutput + Update + Sized + Clone> HashToField<F>
 {
     fn new_hash_to_field(domain: &[u8], count: usize) -> Result<Self, HashToCurveError> {
         // Hardcode security parameter
-        let security_parameter = 128;
-        let bytes_per_base_field_elem = hash_len_in_bytes::<F>(security_parameter, count);
+        let bytes_per_base_field_elem = hash_len_in_bytes::<F, 128>(security_parameter, count);
         // Create hasher and map the error type
         let wrapped_hasher = H::new(bytes_per_base_field_elem);
         let mut hasher = match wrapped_hasher {
@@ -93,7 +92,7 @@ impl<F: Field, H: VariableOutput + Update + Sized + Clone> HashToField<F>
         let mut result = Vec::with_capacity(self.count);
         let len_per_elem = hashed_bytes.len() / self.count;
         for i in 0..self.count {
-            let bz_per_elem = &hashed_bytes[i * len_per_elem..(i + 1) * len_per_elem];
+            let bz_per_elem = &hashed_bytes[i * len_per_elem..][..len_per_elem];
             let val = map_bytes_to_field_elem::<F>(bz_per_elem).unwrap();
             result.push(val);
         }
