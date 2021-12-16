@@ -94,11 +94,11 @@ impl<P: CubicExtParameters> CubicExtField<P> {
         // w.r.t to BaseField, we need the 0th, 1st & 2nd powers of `q`
         // Since Frobenius coefficients on the towered extensions are
         // indexed w.r.t. to BasePrimeField, we need to calculate the correct index.
-        let index_multiplier = P::BaseField::extension_degree();
+        let index_multiplier = P::BaseField::extension_degree() as usize;
         let mut self_to_p = *self;
-        self_to_p.frobenius_map(1);
+        self_to_p.frobenius_map(1 * index_multiplier);
         let mut self_to_p2 = *self;
-        self_to_p2.frobenius_map(2);
+        self_to_p2.frobenius_map(2 * index_multiplier);
         self_to_p *= &(self_to_p2 * self);
         assert!(self_to_p.c1.is_zero() && self_to_p.c2.is_zero());
         self_to_p.c0
