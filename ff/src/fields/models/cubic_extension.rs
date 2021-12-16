@@ -86,8 +86,15 @@ impl<P: CubicExtParameters> CubicExtField<P> {
         self.c2.mul_assign(value);
     }
 
-    /// Calculate the norm of an element with respect to the base field `P::BaseField`.
+    /// Calculate the norm of an element with respect to the base field
+    /// `P::BaseField`. The norm maps an element `a` in the extension field
+    /// `Fq^m` to an element in the BaseField `Fq`.
+    /// `Norm(a) = a * a^q * a^(q^2)`
     pub fn norm(&self) -> P::BaseField {
+        // w.r.t to BaseField, we need the 0th, 1st & 2nd powers of `q`
+        // Since Frobenius coefficients on the towered extensions are
+        // indexed w.r.t. to BasePrimeField, we need to calculate the correct index.
+        let index_multiplier = P::BaseField::extension_degree();
         let mut self_to_p = *self;
         self_to_p.frobenius_map(1);
         let mut self_to_p2 = *self;
