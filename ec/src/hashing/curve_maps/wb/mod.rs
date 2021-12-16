@@ -22,7 +22,7 @@ use super::swu::{SWUMap, SWUParams};
 ///   Cryptographic Hardware and Embedded Systems, nil(nil), 154–179.
 ///   http://dx.doi.org/10.46586/tches.v2019.i4.154-179
 pub trait WBParams: SWModelParameters + Sized {
-    // The isogenouscurve should be defined over the same basefield but it can have
+    // The isogenous curve should be defined over the same base field but it can have
     // different scalar field type IsogenousCurveScalarField :
     type IsogenousCurve: SWUParams<BaseField = <Self as ModelParameters>::BaseField>;
 
@@ -62,8 +62,7 @@ pub struct WBMap<P: WBParams> {
 }
 
 impl<P: WBParams> MapToCurve<GroupAffine<P>> for WBMap<P> {
-    /// This is to verify if the provided WBparams makes sense, doesn't do much
-    /// for now
+    /// Constructs a new map if `P` represents a valid map.
     fn new_map_to_curve(domain: &[u8]) -> Result<Self, HashToCurveError> {
         // Verifying that the isogeny maps the generator of the SWU curve into us
         let isogenous_curve_generator = GroupAffine::<P::IsogenousCurve>::new(
