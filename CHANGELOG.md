@@ -19,6 +19,7 @@
 - [\#301](https://github.com/arkworks-rs/algebra/pull/301) (ark-ec) Add `GLVParameters` trait definition.
 - [\#312](https://github.com/arkworks-rs/algebra/pull/312) (ark-ec) Add `is_in_correct_subgroup_assuming_on_curve` for all `SWModelParameters`.
 - [\#348](https://github.com/arkworks-rs/algebra/pull/348) (ark-ec) Add `msm:{Fixed,Variable}Base:msm_checked_len`.
+- [\#364](https://github.com/arkworks-rs/algebra/pull/364) (ark-ec) Add `ChunkedPippenger` to variable-base MSM.
 
 ### Improvements
 
