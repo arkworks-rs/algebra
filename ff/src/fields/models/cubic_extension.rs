@@ -622,8 +622,19 @@ mod cube_ext_tests {
     use ark_std::test_rng;
     use ark_test_curves::{
         bls12_381::{Fq, Fq2, Fq6},
+        mnt6_753::Fq3,
         Field,
     };
+
+    #[test]
+    fn test_norm_for_towers() {
+        let mut rng = test_rng();
+        let a: Fq3 = rng.gen();
+        let _ = a.norm();
+
+        let a: Fq6 = rng.gen();
+        let _ = a.norm();
+    }
 
     #[test]
     fn test_from_base_prime_field_elements() {
