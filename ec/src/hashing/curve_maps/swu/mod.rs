@@ -97,9 +97,8 @@ impl<P: SWUParams> MapToCurve<GroupAffine<P>> for SWUMap<P> {
         //   gx2        g(X_1(t))
         //
         // Using the "here" names:
-        //    x1 = num_x1/div      = [B*(Z^2 * u^4 + Z * u^2 + 1)] / [-A*(Z^2 * u^4 + Z
-        // * u^2]   gx1 = num_gx1/div_gx1 = [num_x1^3 + A * num_x1 * div^2 + B *
-        // div^3] / div^3
+        //    x1 = num_x1/div      = [B*(Z^2 * u^4 + Z * u^2 + 1)] / [-A*(Z^2 * u^4 + Z * u^2]
+        //   gx1 = num_gx1/div_gx1 = [num_x1^3 + A * num_x1 * div^2 + B * div^3] / div^3
         let a = P::COEFF_A;
         let b = P::COEFF_B;
         let xi_t2 = P::XI * point.square();
