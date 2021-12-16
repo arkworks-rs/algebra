@@ -71,9 +71,9 @@ impl<P: SWUParams> MapToCurve<GroupAffine<P>> for SWUMap<P> {
         })
     }
 
-    /// Map random field point to a random curve point
-    /// inspired from
-    /// https://github.com/zcash/pasta_curves/blob/main/src/hashtocurve.rs
+    /// Map an arbitrary base field element to a curve point.
+    /// Based on
+    /// <https://github.com/zcash/pasta_curves/blob/main/src/hashtocurve.rs>.
     fn map_to_curve(
         &self,
         point: <GroupAffine<P> as AffineCurve>::BaseField,
