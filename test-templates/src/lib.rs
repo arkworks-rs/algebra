@@ -274,7 +274,6 @@ macro_rules! generate_field_test {
                 let g: Fq6 = UniformRand::rand(&mut rng);
                 let h: Fq6 = UniformRand::rand(&mut rng);
                 field_test(g, h);
-                g.norm();
             }
             frobenius_test::<Fq6, _>(Fq::characteristic(), 13);
         }

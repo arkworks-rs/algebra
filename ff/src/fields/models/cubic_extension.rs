@@ -635,10 +635,12 @@ mod cube_ext_tests {
 
     #[test]
     fn test_norm_for_towers() {
+        // First, test the simple fp3
         let mut rng = test_rng();
         let a: Fq3 = rng.gen();
         let _ = a.norm();
 
+        // then also the tower 3_over_2, norm should work
         let a: Fq6 = rng.gen();
         let _ = a.norm();
     }
