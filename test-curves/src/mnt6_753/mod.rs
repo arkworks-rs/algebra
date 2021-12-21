@@ -1,4 +1,3 @@
-#[cfg(feature = "mnt6_753")]
 pub mod fr;
 pub use self::fr::*;
 
