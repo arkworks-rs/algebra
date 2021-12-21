@@ -20,7 +20,7 @@ digest = { version = "0.9", default-features = false }
 [dev-dependencies]
 sha2 = { version = "0.9.3", default-features = false}
 sha3 = { version = "0.9.1", default-features = false}
-blake2 = { version = "0.9.1", default-features = false}
+blake2 = { version = "0.10.0", default-features = false}
 
 [features]
 default = []
