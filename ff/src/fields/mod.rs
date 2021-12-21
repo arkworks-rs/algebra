@@ -115,7 +115,8 @@ pub trait Field:
     + From<bool>
 {
     type BasePrimeField: PrimeField;
-
+    type BasePrimeFieldArr: AsRef<[Self::BasePrimeField]>;
+    
     /// Returns the characteristic of the field,
     /// in little-endian representation.
     fn characteristic() -> &'static [u64] {
@@ -126,6 +127,11 @@ pub trait Field:
     /// to `Self::BasePrimeField`.
     fn extension_degree() -> u64;
 
+    fn to_base_prime_field_elements(&self) -> Self::BasePrimeFieldArr;
+
+    fn parity<F: Field>(element: &F) -> bool {
+	element.to_base_prime_field_elements().as_ref()[0].into_repr().is_odd()
+    }
     /// Convert a slice of base prime field elements into a field element.
     /// If the slice length != Self::extension_degree(), must return None.
     fn from_base_prime_field_elems(elems: &[Self::BasePrimeField]) -> Option<Self>;

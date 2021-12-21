@@ -233,11 +233,17 @@ impl<P: QuadExtParameters> One for QuadExtField<P> {
 
 impl<P: QuadExtParameters> Field for QuadExtField<P> {
     type BasePrimeField = P::BasePrimeField;
+    type BasePrimeFieldArr = Vec<Self::BasePrimeField>;
 
     fn extension_degree() -> u64 {
         2 * P::BaseField::extension_degree()
     }
 
+    fn to_base_prime_field_elements(&self) -> Self::BasePrimeFieldArr {
+	self.c0.to_base_prime_field_elements().as_ref().into_iter().map(|ci| *ci).chain(self.c1.to_base_prime_field_elements().as_ref().into_iter().map(|ci| *ci)).collect::<Vec<Self::BasePrimeField>>()
+
+    }
+    
     fn from_base_prime_field_elems(elems: &[Self::BasePrimeField]) -> Option<Self> {
         if elems.len() != (Self::extension_degree() as usize) {
             return None;
