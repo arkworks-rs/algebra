@@ -88,6 +88,9 @@ macro_rules! impl_prime_field_serializer {
 
 macro_rules! impl_Fp {
     ($Fp:ident, $FpParameters:ident, $BigInteger:ident, $BigIntegerType:ty, $limbs:expr, $field_size:expr) => {
+        /// Trait for prime field parameters of size at most
+        #[doc = $field_size]
+        /// bits.
         pub trait $FpParameters: FpParameters<BigInt = $BigIntegerType> {}
 
         /// Represents an element of the prime field F_p, where `p == P::MODULUS`.
@@ -112,6 +115,9 @@ macro_rules! impl_Fp {
         );
 
         impl<P> $Fp<P> {
+            /// Construct a new prime element directly from its underlying
+            /// `BigInteger` data type. The `BigInteger` should be in
+            /// Montgomery representation. If it is not, use `Self::from_repr`.
             #[inline]
             pub const fn new(element: $BigIntegerType) -> Self {
                 Self(element, PhantomData)
