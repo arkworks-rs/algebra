@@ -12,7 +12,7 @@ use ark_std::{
 
 use ark_ff::{
     bytes::{FromBytes, ToBytes},
-    fields::{BitIteratorBE, Field, PrimeField, SquareRootField},
+    fields::{Field, PrimeField, SquareRootField},
     ToConstraintField, UniformRand,
 };
 
@@ -181,7 +181,7 @@ impl<P: Parameters> Distribution<GroupAffine<P>> for Standard {
 }
 
 impl<P: Parameters> AffineCurve for GroupAffine<P> {
-    const COFACTOR: &'static [u64] = P::COFACTOR;
+    type Parameters = P;
     type BaseField = P::BaseField;
     type ScalarField = P::ScalarField;
     type Projective = GroupProjective<P>;
@@ -208,15 +208,6 @@ impl<P: Parameters> AffineCurve for GroupAffine<P> {
                 None
             }
         })
-    }
-
-    #[inline]
-    fn mul_by_cofactor_to_projective(&self) -> Self::Projective {
-        self.mul_bits(BitIteratorBE::new(P::COFACTOR))
-    }
-
-    fn mul_by_cofactor_inv(&self) -> Self {
-        self.mul(P::COFACTOR_INV).into()
     }
 }
 
@@ -401,7 +392,7 @@ impl<P: Parameters> Zero for GroupProjective<P> {
 }
 
 impl<P: Parameters> ProjectiveCurve for GroupProjective<P> {
-    const COFACTOR: &'static [u64] = P::COFACTOR;
+    type Parameters = P;
     type BaseField = P::BaseField;
     type ScalarField = P::ScalarField;
     type Affine = GroupAffine<P>;

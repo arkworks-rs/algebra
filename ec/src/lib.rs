@@ -156,10 +156,10 @@ pub trait ProjectiveCurve:
     + for<'a> core::iter::Sum<&'a Self>
     + From<<Self as ProjectiveCurve>::Affine>
 {
-    const COFACTOR: &'static [u64];
+    type Parameters: ModelParameters<ScalarField = Self::ScalarField, BaseField = Self::BaseField, Affine = Self::Affine>;
     type ScalarField: PrimeField + SquareRootField;
     type BaseField: Field;
-    type Affine: AffineCurve<Projective = Self, ScalarField = Self::ScalarField, BaseField = Self::BaseField>
+    type Affine: AffineCurve<Parameters = Self::Parameters, Projective = Self, ScalarField = Self::ScalarField, BaseField = Self::BaseField>
         + From<Self>
         + Into<Self>;
 
@@ -252,10 +252,10 @@ pub trait AffineCurve:
     + for<'a> core::iter::Sum<&'a Self>
     + From<<Self as AffineCurve>::Projective>
 {
-    const COFACTOR: &'static [u64];
+    type Parameters: ModelParameters<ScalarField = Self::ScalarField, BaseField = Self::BaseField, Affine = Self>;
     type ScalarField: PrimeField + SquareRootField + Into<<Self::ScalarField as PrimeField>::BigInt>;
     type BaseField: Field;
-    type Projective: ProjectiveCurve<Affine = Self, ScalarField = Self::ScalarField, BaseField = Self::BaseField>
+    type Projective: ProjectiveCurve<Parameters = Self::Parameters, Affine = Self, ScalarField = Self::ScalarField, BaseField = Self::BaseField>
         + From<Self>
         + Into<Self>
         + MulAssign<Self::ScalarField>; // needed due to https://github.com/rust-lang/rust/issues/69640
@@ -298,7 +298,10 @@ pub trait AffineCurve:
     /// Multiplies this element by the cofactor and output the
     /// resulting projective element.
     #[must_use]
-    fn mul_by_cofactor_to_projective(&self) -> Self::Projective;
+    #[inline]
+    fn mul_by_cofactor_to_projective(&self) -> Self::Projective {
+        self.mul_bits(BitIteratorBE::new(Self::Parameters::COFACTOR))
+    }
 
     /// Multiplies this element by the cofactor.
     #[must_use]
@@ -309,7 +312,9 @@ pub trait AffineCurve:
     /// Multiplies this element by the inverse of the cofactor in
     /// `Self::ScalarField`.
     #[must_use]
-    fn mul_by_cofactor_inv(&self) -> Self;
+    fn mul_by_cofactor_inv(&self) -> Self {
+        self.mul(Self::Parameters::COFACTOR_INV).into()
+    }
 }
 
 impl<C: ProjectiveCurve> Group for C {
