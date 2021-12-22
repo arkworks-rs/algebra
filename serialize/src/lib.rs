@@ -26,7 +26,7 @@ pub use flags::*;
 #[doc(hidden)]
 pub use ark_serialize_derive::*;
 
-use digest::{generic_array::GenericArray, Digest};
+use digest::{generic_array::GenericArray, Digest, OutputSizeUser};
 
 /// Serializer in little endian format allowing to encode flags.
 pub trait CanonicalSerializeWithFlags: CanonicalSerialize {
@@ -123,14 +123,14 @@ impl<'a, H: Digest> ark_std::io::Write for HashMarshaller<'a, H> {
 /// The CanonicalSerialize induces a natural way to hash the
 /// corresponding value, of which this is the convenience trait.
 pub trait CanonicalSerializeHashExt: CanonicalSerialize {
-    fn hash<H: Digest>(&self) -> GenericArray<u8, <H as Digest>::OutputSize> {
+    fn hash<H: Digest>(&self) -> GenericArray<u8, <H as OutputSizeUser>::OutputSize> {
         let mut hasher = H::new();
         self.serialize(HashMarshaller(&mut hasher))
             .expect("HashMarshaller::flush should be infaillible!");
         hasher.finalize()
     }
 
-    fn hash_uncompressed<H: Digest>(&self) -> GenericArray<u8, <H as Digest>::OutputSize> {
+    fn hash_uncompressed<H: Digest>(&self) -> GenericArray<u8, <H as OutputSizeUser>::OutputSize> {
         let mut hasher = H::new();
         self.serialize_uncompressed(HashMarshaller(&mut hasher))
             .expect("HashMarshaller::flush should be infaillible!");
@@ -1102,8 +1102,8 @@ mod test {
 
     #[test]
     fn test_blake2() {
-        test_hash::<_, blake2::Blake2b>(Dummy);
-        test_hash::<_, blake2::Blake2s>(Dummy);
+        test_hash::<_, blake2::Blake2b512>(Dummy);
+        test_hash::<_, blake2::Blake2s256>(Dummy);
     }
 
     #[test]
