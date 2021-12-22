@@ -19,9 +19,10 @@ extern crate derivative;
 #[macro_use]
 extern crate ark_std;
 
+use crate::group::Group;
 use ark_ff::{
     bytes::{FromBytes, ToBytes},
-    fields::{BitIteratorBE, Field, PrimeField, SquareRootField},
+    fields::{Field, PrimeField, SquareRootField},
     UniformRand,
 };
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
@@ -155,19 +156,11 @@ pub trait ProjectiveCurve:
     + for<'a> core::iter::Sum<&'a Self>
     + From<<Self as ProjectiveCurve>::Affine>
 {
-    type Parameters: ModelParameters<
-        ScalarField = Self::ScalarField,
-        BaseField = Self::BaseField,
-        Affine = Self::Affine,
-    >;
+    const COFACTOR: &'static [u64];
     type ScalarField: PrimeField + SquareRootField;
     type BaseField: Field;
-    type Affine: AffineCurve<
-            Parameters = Self::Parameters,
-            Projective = Self,
-            ScalarField = Self::ScalarField,
-            BaseField = Self::BaseField,
-        > + From<Self>
+    type Affine: AffineCurve<Projective = Self, ScalarField = Self::ScalarField, BaseField = Self::BaseField>
+        + From<Self>
         + Into<Self>;
 
     /// Returns a fixed generator of unknown exponent.
@@ -259,19 +252,11 @@ pub trait AffineCurve:
     + for<'a> core::iter::Sum<&'a Self>
     + From<<Self as AffineCurve>::Projective>
 {
-    type Parameters: ModelParameters<
-        ScalarField = Self::ScalarField,
-        BaseField = Self::BaseField,
-        Affine = Self,
-    >;
+    const COFACTOR: &'static [u64];
     type ScalarField: PrimeField + SquareRootField + Into<<Self::ScalarField as PrimeField>::BigInt>;
     type BaseField: Field;
-    type Projective: ProjectiveCurve<
-            Parameters = Self::Parameters,
-            Affine = Self,
-            ScalarField = Self::ScalarField,
-            BaseField = Self::BaseField,
-        > + From<Self>
+    type Projective: ProjectiveCurve<Affine = Self, ScalarField = Self::ScalarField, BaseField = Self::BaseField>
+        + From<Self>
         + Into<Self>
         + MulAssign<Self::ScalarField>; // needed due to https://github.com/rust-lang/rust/issues/69640
 
@@ -289,34 +274,15 @@ pub trait AffineCurve:
     /// random group elements from a hash-function or RNG output.
     fn from_random_bytes(bytes: &[u8]) -> Option<Self>;
 
-    /// Multiplies `self` by the scalar represented by `bits`. `bits` must be a
-    /// big-endian bit-wise decomposition of the scalar.
-    fn mul_bits(&self, bits: impl Iterator<Item = bool>) -> Self::Projective {
-        let mut res = Self::Projective::zero();
-        // Skip leading zeros.
-        for i in bits.skip_while(|b| !b) {
-            res.double_in_place();
-            if i {
-                res.add_assign_mixed(&self)
-            }
-        }
-        res
-    }
-
     /// Performs scalar multiplication of this element with mixed addition.
     #[must_use]
-    #[inline]
-    fn mul<S: Into<<Self::ScalarField as PrimeField>::BigInt>>(&self, by: S) -> Self::Projective {
-        self.mul_bits(BitIteratorBE::without_leading_zeros(by.into()))
-    }
+    fn mul<S: Into<<Self::ScalarField as PrimeField>::BigInt>>(&self, other: S)
+        -> Self::Projective;
 
     /// Multiplies this element by the cofactor and output the
     /// resulting projective element.
     #[must_use]
-    #[inline]
-    fn mul_by_cofactor_to_projective(&self) -> Self::Projective {
-        self.mul_bits(BitIteratorBE::new(Self::Parameters::COFACTOR))
-    }
+    fn mul_by_cofactor_to_projective(&self) -> Self::Projective;
 
     /// Multiplies this element by the cofactor.
     #[must_use]
@@ -327,12 +293,10 @@ pub trait AffineCurve:
     /// Multiplies this element by the inverse of the cofactor in
     /// `Self::ScalarField`.
     #[must_use]
-    fn mul_by_cofactor_inv(&self) -> Self {
-        self.mul(Self::Parameters::COFACTOR_INV).into()
-    }
+    fn mul_by_cofactor_inv(&self) -> Self;
 }
 
-impl<C: ProjectiveCurve> crate::group::Group for C {
+impl<C: ProjectiveCurve> Group for C {
     type ScalarField = C::ScalarField;
 
     #[inline]
