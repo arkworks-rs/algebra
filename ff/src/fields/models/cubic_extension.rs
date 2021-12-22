@@ -169,7 +169,7 @@ impl<P: CubicExtParameters> Field for CubicExtField<P> {
     }
 
     fn to_base_prime_field_elements(&self) -> Self::BasePrimeFieldArr {
-	self.c0.to_base_prime_field_elements().as_ref().into_iter().map(|ci| *ci).chain(self.c1.to_base_prime_field_elements().as_ref().into_iter().map(|ci| *ci)).collect::<Vec<Self::BasePrimeField>>()
+	self.c0.to_base_prime_field_elements().as_ref().into_iter().map(|ci| *ci).chain(self.c1.to_base_prime_field_elements().as_ref().into_iter().map(|ci| *ci)).chain(self.c2.to_base_prime_field_elements().as_ref().into_iter().map(|ci| *ci)).collect::<Vec<Self::BasePrimeField>>()
 
     }
 
