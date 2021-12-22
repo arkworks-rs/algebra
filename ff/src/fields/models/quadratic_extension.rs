@@ -19,6 +19,7 @@ use ark_std::rand::{
 };
 
 use crate::{
+    biginteger::BigInteger,
     bytes::{FromBytes, ToBytes},
     fields::{Field, LegendreSymbol, PrimeField, SquareRootField},
     ToConstraintField, UniformRand,
@@ -325,7 +326,6 @@ impl<P: QuadExtParameters> Field for QuadExtField<P> {
 
             // result.c1 = 2 * c0 * c1
             self.c1 = v2.double();
-            // result.c0 = (v0) + ((beta + 1) * v2)
             // result.c0 = (c0^2 - beta * c0 * c1 - c0 * c1 + beta * c1^2) + ((beta + 1) c0 * c1)
             // result.c0 = (c0^2 - beta * c0 * c1 + beta * c1^2) + (beta * c0 * c1)
             // result.c0 = c0^2 + beta * c1^2
@@ -371,7 +371,7 @@ impl<P: QuadExtParameters> Field for QuadExtField<P> {
 
 impl<'a, P: QuadExtParameters> SquareRootField for QuadExtField<P>
 where
-    P::BaseField: SquareRootField,
+    P::BaseField: SquareRootField + From<P::BasePrimeField>,
 {
     fn legendre(&self) -> LegendreSymbol {
         // The LegendreSymbol in a field of order q for an element x can be
@@ -391,16 +391,35 @@ where
         // Square root based on the complex method. See
         // https://eprint.iacr.org/2012/685.pdf (page 15, algorithm 8)
         if self.c1.is_zero() {
-            return self.c0.sqrt().map(|c0| Self::new(c0, P::BaseField::zero()));
+            // for c = c0 + c1 * x, we have c1 = 0
+            // sqrt(c) == sqrt(c0) is an element of Fp2, i.e. sqrt(c0) = a = a0 + a1 * x for some a0, a1 in Fp
+            // squaring both sides: c0 = a0^2 + a1^2 * x^2 + (2 * a0 * a1 * x) = a0^2 + (a1^2 * P::NONRESIDUE)
+            // since there are no `x` terms on LHS, a0 * a1 = 0
+            // so either a0 = sqrt(c0) or a1 = sqrt(c0/P::NONRESIDUE)
+            if self.c0.legendre().is_qr() {
+                // either c0 is a valid sqrt in the base field
+                return self.c0.sqrt().map(|c0| Self::new(c0, P::BaseField::zero()));
+            } else {
+                // or we need to compute sqrt(c0/P::NONRESIDUE)
+                return (self.c0.div(P::NONRESIDUE))
+                    .sqrt()
+                    .map(|res| Self::new(P::BaseField::zero(), res));
+            }
         }
         // Try computing the square root
         // Check at the end of the algorithm if it was a square root
         let alpha = self.norm();
-        // TODO: Precompute this
-        let two_inv = P::BaseField::one()
-            .double()
-            .inverse()
-            .expect("Two should always have an inverse");
+
+        // Compute `(p+1)/2` as `1/2`.
+        // This is cheaper than `P::BaseField::one().double().inverse()`
+        let mut two_inv = P::BasePrimeField::modulus();
+
+        two_inv.add_nocarry(&1u64.into());
+        two_inv.div2();
+
+        let two_inv = P::BasePrimeField::from(two_inv);
+        let two_inv = P::BaseField::from(two_inv);
+
         alpha.sqrt().and_then(|alpha| {
             let mut delta = (alpha + &self.c0) * &two_inv;
             if delta.legendre().is_qnr() {

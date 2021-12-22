@@ -1,6 +1,6 @@
-<h1 align="center">arkworks::algebra</h1>
+<h1 style="text-align: center;">arkworks::algebra</h1>
 
-<p align="center">
+<p style="text-align: center;">
     <img src="https://github.com/arkworks-rs/algebra/workflows/CI/badge.svg?branch=master">
     <a href="https://github.com/arkworks-rs/algebra/blob/master/LICENSE-APACHE"><img src="https://img.shields.io/badge/license-APACHE-blue.svg"></a>
     <a href="https://github.com/arkworks-rs/algebra/blob/master/LICENSE-MIT"><img src="https://img.shields.io/badge/license-MIT-blue.svg"></a>
@@ -61,7 +61,7 @@ cargo +nightly bench
 The `ark-ff` crate contains (off-by-default) optimized assembly implementations of field arithmetic that rely on the `adcxq`, `adoxq` and `mulxq` instructions. These are available on most `x86_64` platforms (Broadwell onwards for Intel and Ryzen onwards for AMD). Using this backend can lead to a 30-70% speedup in finite field and elliptic curve arithmetic. To build with this backend enabled, run the following command:
 
 ```bash
-RUSTFLAGS="-C target-feature=+bmi2,+adx" cargo +nightly test/build/bench --features asm
+RUSTFLAGS="-C target-feature=+bmi2,+adx" cargo +nightly [test/build/bench] --features asm
 ```
 
 To enable this in the `Cargo.toml` of your own projects, enable the `asm` feature flag:

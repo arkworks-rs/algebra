@@ -9,3 +9,4 @@ Cargo.lock
 params
 *.swp
 *.swo
+.vscode
