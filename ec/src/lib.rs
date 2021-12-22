@@ -155,11 +155,19 @@ pub trait ProjectiveCurve:
     + for<'a> core::iter::Sum<&'a Self>
     + From<<Self as ProjectiveCurve>::Affine>
 {
-    type Parameters: ModelParameters<ScalarField = Self::ScalarField, BaseField = Self::BaseField, Affine = Self::Affine>;
+    type Parameters: ModelParameters<
+        ScalarField = Self::ScalarField,
+        BaseField = Self::BaseField,
+        Affine = Self::Affine,
+    >;
     type ScalarField: PrimeField + SquareRootField;
     type BaseField: Field;
-    type Affine: AffineCurve<Parameters = Self::Parameters, Projective = Self, ScalarField = Self::ScalarField, BaseField = Self::BaseField>
-        + From<Self>
+    type Affine: AffineCurve<
+            Parameters = Self::Parameters,
+            Projective = Self,
+            ScalarField = Self::ScalarField,
+            BaseField = Self::BaseField,
+        > + From<Self>
         + Into<Self>;
 
     /// Returns a fixed generator of unknown exponent.
@@ -251,11 +259,19 @@ pub trait AffineCurve:
     + for<'a> core::iter::Sum<&'a Self>
     + From<<Self as AffineCurve>::Projective>
 {
-    type Parameters: ModelParameters<ScalarField = Self::ScalarField, BaseField = Self::BaseField, Affine = Self>;
+    type Parameters: ModelParameters<
+        ScalarField = Self::ScalarField,
+        BaseField = Self::BaseField,
+        Affine = Self,
+    >;
     type ScalarField: PrimeField + SquareRootField + Into<<Self::ScalarField as PrimeField>::BigInt>;
     type BaseField: Field;
-    type Projective: ProjectiveCurve<Parameters = Self::Parameters, Affine = Self, ScalarField = Self::ScalarField, BaseField = Self::BaseField>
-        + From<Self>
+    type Projective: ProjectiveCurve<
+            Parameters = Self::Parameters,
+            Affine = Self,
+            ScalarField = Self::ScalarField,
+            BaseField = Self::BaseField,
+        > + From<Self>
         + Into<Self>
         + MulAssign<Self::ScalarField>; // needed due to https://github.com/rust-lang/rust/issues/69640
 
