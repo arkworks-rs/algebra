@@ -116,7 +116,7 @@ pub trait Field:
 {
     type BasePrimeField: PrimeField;
     type BasePrimeFieldArr: AsRef<[Self::BasePrimeField]>;
-    
+
     /// Returns the characteristic of the field,
     /// in little-endian representation.
     fn characteristic() -> &'static [u64] {

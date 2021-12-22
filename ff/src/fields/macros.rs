@@ -282,7 +282,7 @@ macro_rules! impl_Fp {
 
         impl<P: $FpParameters> Field for $Fp<P> {
             type BasePrimeField = Self;
-	    type BasePrimeFieldArr = [Self::BasePrimeField; 1];
+	        type BasePrimeFieldArr = [Self::BasePrimeField; 1];
 
             fn extension_degree() -> u64 {
                 1
