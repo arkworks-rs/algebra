@@ -35,6 +35,8 @@ mnt4_753_scalar_field = []
 mnt4_753_base_field = []
 mnt4_753_curve = [ "mnt4_753_scalar_field", "mnt4_753_base_field" ]
 
+mnt6_753 = [ "mnt4_753_scalar_field", "mnt4_753_base_field" ]
+
 bn384_small_two_adicity_scalar_field = []
 bn384_small_two_adicity_base_field = []
 bn384_small_two_adicity_curve = [ "bn384_small_two_adicity_scalar_field", "bn384_small_two_adicity_base_field" ]

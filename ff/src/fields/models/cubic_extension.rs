@@ -86,12 +86,19 @@ impl<P: CubicExtParameters> CubicExtField<P> {
         self.c2.mul_assign(value);
     }
 
-    /// Calculate the norm of an element with respect to the base field `P::BaseField`.
+    /// Calculate the norm of an element with respect to the base field
+    /// `P::BaseField`. The norm maps an element `a` in the extension field
+    /// `Fq^m` to an element in the BaseField `Fq`.
+    /// `Norm(a) = a * a^q * a^(q^2)`
     pub fn norm(&self) -> P::BaseField {
+        // w.r.t to BaseField, we need the 0th, 1st & 2nd powers of `q`
+        // Since Frobenius coefficients on the towered extensions are
+        // indexed w.r.t. to BasePrimeField, we need to calculate the correct index.
+        let index_multiplier = P::BaseField::extension_degree() as usize;
         let mut self_to_p = *self;
-        self_to_p.frobenius_map(1);
+        self_to_p.frobenius_map(1 * index_multiplier);
         let mut self_to_p2 = *self;
-        self_to_p2.frobenius_map(2);
+        self_to_p2.frobenius_map(2 * index_multiplier);
         self_to_p *= &(self_to_p2 * self);
         assert!(self_to_p.c1.is_zero() && self_to_p.c2.is_zero());
         self_to_p.c0
@@ -622,8 +629,21 @@ mod cube_ext_tests {
     use ark_std::test_rng;
     use ark_test_curves::{
         bls12_381::{Fq, Fq2, Fq6},
+        mnt6_753::Fq3,
         Field,
     };
+
+    #[test]
+    fn test_norm_for_towers() {
+        // First, test the simple fp3
+        let mut rng = test_rng();
+        let a: Fq3 = rng.gen();
+        let _ = a.norm();
+
+        // then also the tower 3_over_2, norm should work
+        let a: Fq6 = rng.gen();
+        let _ = a.norm();
+    }
 
     #[test]
     fn test_from_base_prime_field_elements() {
