@@ -51,7 +51,7 @@ impl<F: Field, H: VariableOutput + Update + Sized + Clone> HashToField<F>
 {
     fn new_hash_to_field(domain: &[u8], count: usize) -> Result<Self, HashToCurveError> {
         // Hardcode security parameter
-        let bytes_per_base_field_elem = hash_len_in_bytes::<F, 128>(security_parameter, count);
+        let bytes_per_base_field_elem = hash_len_in_bytes::<F, 128>(count);
         // Create hasher and map the error type
         let wrapped_hasher = H::new(bytes_per_base_field_elem);
         let mut hasher = match wrapped_hasher {
