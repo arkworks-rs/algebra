@@ -11,6 +11,7 @@ use crate::{
 };
 
 use super::swu::{SWUMap, SWUParams};
+type BaseField<MP> = <MP as ModelParameters>::BaseField;
 
 /// Trait defining the necessary parameters for the WB hash-to-curve method
 /// for the curves of Weierstrass form of:
@@ -24,26 +25,36 @@ use super::swu::{SWUMap, SWUParams};
 pub trait WBParams: SWModelParameters + Sized {
     // The isogenous curve should be defined over the same base field but it can have
     // different scalar field type IsogenousCurveScalarField :
-    type IsogenousCurve: SWUParams<BaseField = <Self as ModelParameters>::BaseField>;
+/// Trait defining the necessary parameters for the WB hash-to-curve method
+/// for the curves of Weierstrass form of:
+/// of y^2 = x^3 + a*x + b where b != 0 but `a` can be zero like BLS-381 curve.
+/// From [WB2019]
+///
+/// - [WB19] Wahby, R. S., & Boneh, D. (2019). Fast and simple constant-time
+///   hashing to the bls12-381 elliptic curve. IACR Transactions on
+///   Cryptographic Hardware and Embedded Systems, nil(nil), 154–179.
+///   http://dx.doi.org/10.46586/tches.v2019.i4.154-179
+pub trait WBParams: SWModelParameters + Sized {
+    // The isogenous curve should be defined over the same base field but it can have
+    // different scalar field type IsogenousCurveScalarField :
+    type IsogenousCurve: SWUParams<BaseField = BaseField<Self>>;
 
-    const PHI_X_NOM: &'static [<Self::IsogenousCurve as ModelParameters>::BaseField];
-    const PHI_X_DEN: &'static [<Self::IsogenousCurve as ModelParameters>::BaseField];
+    const PHI_X_NOM: &'static [BaseField<Self>];
+    const PHI_X_DEN: &'static [BaseField<Self>];
 
-    const PHI_Y_NOM: &'static [<Self::IsogenousCurve as ModelParameters>::BaseField];
-    const PHI_Y_DEN: &'static [<Self::IsogenousCurve as ModelParameters>::BaseField];
+    const PHI_Y_NOM: &'static [BaseField<Self>];
+    const PHI_Y_DEN: &'static [BaseField<Self>];
 
     fn isogeny_map(
         domain_point: GroupAffine<Self::IsogenousCurve>,
     ) -> Result<GroupAffine<Self>, HashToCurveError> {
-        let x_num : DensePolynomial<<Self::IsogenousCurve as ModelParameters>::BaseField> = <DensePolynomial<<Self::IsogenousCurve as ModelParameters>::BaseField>>::from_coefficients_slice(&Self::PHI_X_NOM[..]);
+        let x_num = DensePolynomial::from_coefficients_slice(&Self::PHI_X_NOM[..]);
+        let x_den = DensePolynomial::from_coefficients_slice(&Self::PHI_X_DEN[..]);
 
-        let x_den : DensePolynomial<<Self::IsogenousCurve as ModelParameters>::BaseField> = <DensePolynomial<<Self::IsogenousCurve as ModelParameters>::BaseField>>::from_coefficients_slice(&Self::PHI_X_DEN[..]);
+        let y_num = DensePolynomial::from_coefficients_slice(&Self::PHI_Y_NOM[..]);
+        let y_den = DensePolynomial::from_coefficients_slice(&Self::PHI_Y_DEN[..]);
 
-        let y_num : DensePolynomial<<Self::IsogenousCurve as ModelParameters>::BaseField> = <DensePolynomial<<Self::IsogenousCurve as ModelParameters>::BaseField>>::from_coefficients_slice(&Self::PHI_Y_NOM[..]);
-
-        let y_den : DensePolynomial<<Self::IsogenousCurve as ModelParameters>::BaseField> = <DensePolynomial<<Self::IsogenousCurve as ModelParameters>::BaseField>>::from_coefficients_slice(&Self::PHI_Y_DEN[..]);
-
-        let mut v: [<Self as ModelParameters>::BaseField; 2] = [
+        let mut v: [BaseField<Self>; 2] = [
             x_den.evaluate(&domain_point.x),
             y_den.evaluate(&domain_point.x),
         ];
@@ -51,7 +62,7 @@ pub trait WBParams: SWModelParameters + Sized {
         let img_x = x_num.evaluate(&domain_point.x) * v[0];
         let img_y = (y_num.evaluate(&domain_point.x) * domain_point.y) * v[1];
 
-        Ok(GroupAffine::<Self>::new(img_x, img_y, false))
+        Ok(GroupAffine::new(img_x, img_y, false))
     }
 }
 
