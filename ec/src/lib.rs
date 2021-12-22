@@ -19,7 +19,6 @@ extern crate derivative;
 #[macro_use]
 extern crate ark_std;
 
-use crate::group::Group;
 use ark_ff::{
     bytes::{FromBytes, ToBytes},
     fields::{BitIteratorBE, Field, PrimeField, SquareRootField},
@@ -280,7 +279,7 @@ pub trait AffineCurve:
         let mut res = Self::Projective::zero();
         // Skip leading zeros.
         for i in bits.skip_while(|b| !b) {
-            <Self::Projective as ProjectiveCurve>::double_in_place(&mut res);
+            res.double_in_place();
             if i {
                 res.add_assign_mixed(&self)
             }
@@ -317,7 +316,7 @@ pub trait AffineCurve:
     }
 }
 
-impl<C: ProjectiveCurve> Group for C {
+impl<C: ProjectiveCurve> crate::group::Group for C {
     type ScalarField = C::ScalarField;
 
     #[inline]
