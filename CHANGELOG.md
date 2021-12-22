@@ -12,6 +12,10 @@
 - [\#345](https://github.com/arkworks-rs/algebra/pull/345) (arc-ec, ark-serialize) Change the serialization format for Twisted Edwards Curves. We now encode the Y coordinate and take the sign bit of the X co-ordinate, the default flag is also now the Positive X value. The old methods for backwards compatibility are located [here](https://github.com/arkworks-rs/algebra/pull/345/files#diff-3621a48bb33f469144044d8d5fc663f767e103132a764812cda6be6c25877494R860)
 - [\#348](https://github.com/arkworks-rs/algebra/pull/348) (arc-ec) Rename `msm:{Fixed,Variable}BaseMSM:multi_scalar_mul` to `msm:{Fixed,Variable}:msm` to avoid redundancy.
 - [\#359](https://github.com/arkworks-rs/algebra/pull/359) (ark-test-templates) Simplify the field and curve test macros.
+- [\#365](https://github.com/arkworks-rs/algebra/pull/365) (arc-ec)
+    - Move `COFACTOR`, `COFACTOR_INV`, and `is_in_correct_subgroup_assuming_on_curve()` from `{SW,TE}ModelParameters` to `ModelParameters`.
+    - Add `mul_bits()` to `AffineCurve` and provide a default implementation of `mul()` using this.
+    - Remove duplicate function `scale_by_cofactor()` from `short_weierstrass_jacobian::GroupAffine` and `twisted_edwards_extended::GroupAffine`
 
 ### Features
 
