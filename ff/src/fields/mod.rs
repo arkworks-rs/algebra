@@ -161,8 +161,8 @@ pub trait Field:
     #[must_use]
     fn inverse(&self) -> Option<Self>;
 
-    // If `self.inverse().is_none()`, this just returns `None`. Otherwise, it sets
-    // `self` to `self.inverse().unwrap()`.
+    /// If `self.inverse().is_none()`, this just returns `None`. Otherwise, it sets
+    /// `self` to `self.inverse().unwrap()`.
     fn inverse_in_place(&mut self) -> Option<&mut Self>;
 
     /// Exponentiates this element by a power of the base prime modulus via
@@ -353,7 +353,10 @@ pub trait PrimeField:
     + From<BigUint>
     + Into<BigUint>
 {
+    /// Associated `FpParameters` that define this field.
     type Params: FpParameters<BigInt = Self::BigInt>;
+
+    /// A `BigInteger` type that can represent elements of this field.
     type BigInt: BigInteger;
 
     /// Returns a prime field element from its underlying representation.
@@ -445,6 +448,18 @@ pub trait SquareRootField: Field {
     fn sqrt_in_place(&mut self) -> Option<&mut Self>;
 }
 
+/// Indication of the field element's quadratic residuosity
+///
+/// # Examples
+/// ```
+/// # use ark_std::test_rng;
+/// # use ark_test_curves::bls12_381::Fq as Fp;
+/// # use ark_std::UniformRand;
+/// # use ark_ff::{LegendreSymbol, Field, SquareRootField};
+/// let a: Fp = Fp::rand(&mut test_rng());
+/// let b = a.square();
+/// assert_eq!(b.legendre(), LegendreSymbol::QuadraticResidue);
+/// ```
 #[derive(Debug, PartialEq)]
 pub enum LegendreSymbol {
     Zero = 0,
@@ -453,14 +468,47 @@ pub enum LegendreSymbol {
 }
 
 impl LegendreSymbol {
+    /// Returns true if `self.is_zero()`.
+    ///
+    /// # Examples
+    /// ```
+    /// # use ark_std::test_rng;
+    /// # use ark_test_curves::bls12_381::Fq as Fp;
+    /// # use ark_std::UniformRand;
+    /// # use ark_ff::{LegendreSymbol, Field, SquareRootField};
+    /// let a: Fp = Fp::rand(&mut test_rng());
+    /// let b: Fp = a.square();
+    /// assert!(!b.legendre().is_zero());
+    /// ```
     pub fn is_zero(&self) -> bool {
         *self == LegendreSymbol::Zero
     }
 
+    /// Returns true if `self` is a quadratic non-residue.
+    ///
+    /// # Examples
+    /// ```
+    /// # use ark_test_curves::bls12_381::{Fq, Fq2Parameters};
+    /// # use ark_ff::{LegendreSymbol, SquareRootField};
+    /// # use ark_ff::Fp2Parameters;
+    /// let a: Fq = Fq2Parameters::NONRESIDUE;
+    /// assert!(a.legendre().is_qnr());
+    /// ```
     pub fn is_qnr(&self) -> bool {
         *self == LegendreSymbol::QuadraticNonResidue
     }
 
+    /// Returns true if `self` is a quadratic residue.
+    /// # Examples
+    /// ```
+    /// # use ark_std::test_rng;
+    /// # use ark_test_curves::bls12_381::Fq as Fp;
+    /// # use ark_std::UniformRand;
+    /// # use ark_ff::{LegendreSymbol, Field, SquareRootField};
+    /// let a: Fp = Fp::rand(&mut test_rng());
+    /// let b: Fp = a.square();
+    /// assert!(b.legendre().is_qr());
+    /// ```
     pub fn is_qr(&self) -> bool {
         *self == LegendreSymbol::QuadraticResidue
     }

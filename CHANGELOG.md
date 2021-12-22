@@ -19,6 +19,7 @@
 - [\#301](https://github.com/arkworks-rs/algebra/pull/301) (ark-ec) Add `GLVParameters` trait definition.
 - [\#312](https://github.com/arkworks-rs/algebra/pull/312) (ark-ec) Add `is_in_correct_subgroup_assuming_on_curve` for all `SWModelParameters`.
 - [\#348](https://github.com/arkworks-rs/algebra/pull/348) (ark-ec) Add `msm:{Fixed,Variable}Base:msm_checked_len`.
+- [\#364](https://github.com/arkworks-rs/algebra/pull/364) (ark-ec) Add `ChunkedPippenger` to variable-base MSM.
 - [\#343](https://github.com/arkworks-rs/algebra/pull/343) (ark-ec) Add WB and SWU hash-to-curve maps.
 
 ### Improvements
@@ -31,6 +32,7 @@
 
 - [\#350](https://github.com/arkworks-rs/algebra/pull/350) (ark-serialize) Fix issues with santiation whenever a non-standard `Result` type is in scope.
 - [\#358](https://github.com/arkworks-rs/algebra/pull/358) (ark-ff) Fix the bug for `QuadExtField::sqrt` when `c1 = 0 && c0.legendre.is_qnr()`
+- [\#366](https://github.com/arkworks-rs/algebra/pull/366) (ark-ff) Fix `norm()` for cubic extension field towers.
 
 ## v0.3.0
 

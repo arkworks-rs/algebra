@@ -1,6 +1,6 @@
-<h1 align="center">arkworks::algebra</h1>
+<h1 style="text-align: center;">arkworks::algebra</h1>
 
-<p align="center">
+<p style="text-align: center;">
     <img src="https://github.com/arkworks-rs/algebra/workflows/CI/badge.svg?branch=master">
     <a href="https://github.com/arkworks-rs/algebra/blob/master/LICENSE-APACHE"><img src="https://img.shields.io/badge/license-APACHE-blue.svg"></a>
     <a href="https://github.com/arkworks-rs/algebra/blob/master/LICENSE-MIT"><img src="https://img.shields.io/badge/license-MIT-blue.svg"></a>

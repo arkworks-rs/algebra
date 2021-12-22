@@ -6,6 +6,9 @@ use crate::{AffineCurve, ProjectiveCurve};
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
 
+pub mod stream_pippenger;
+pub use stream_pippenger::*;
+
 pub struct VariableBase;
 
 impl VariableBase {
