@@ -4,6 +4,7 @@ use ark_std::{marker::PhantomData, vec::Vec};
 
 /// Trait for mapping a random field element to a random curve point.
 pub trait MapToCurve<T: AffineCurve> {
+    /// Constructs a new mapping.
     fn new_map_to_curve(domain: &[u8]) -> Result<Self, HashToCurveError>
     where
         Self: Sized;
@@ -11,10 +12,17 @@ pub trait MapToCurve<T: AffineCurve> {
     fn map_to_curve(&self, point: T::BaseField) -> Result<T, HashToCurveError>;
 }
 
-/// Trait for hashing messages to field elements
+/// Trait for hashing messages to field elements.
 pub trait HashToField<F: Field>: Sized {
+    /// Initialises a new hash-to-field helper struct.
+    ///
+    /// # Arguments
+    ///
+    /// * `domain` - bytes that get concatenated with the `msg` during hashing, in order to separate potentially interfering instantiations of the hasher.
+    /// * `count` - number of elements in field `F` to output.
     fn new_hash_to_field(domain: &[u8], count: usize) -> Result<Self, HashToCurveError>;
 
+    /// Hash an arbitrary `msg` to #`count` elements from field `F`.
     fn hash_to_field(&self, msg: &[u8]) -> Result<Vec<F>, HashToCurveError>;
 }
 
