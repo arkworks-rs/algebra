@@ -24,10 +24,15 @@ use crate::{
     ToConstraintField, UniformRand,
 };
 
+/// Defines a Cubic extension field from a cubic non-residue.
 pub trait CubicExtParameters: 'static + Send + Sync {
     /// The prime field that this cubic extension is eventually an extension of.
     type BasePrimeField: PrimeField;
     /// The base field that this field is a cubic extension of.
+    ///
+    /// Note: while for simple instances of cubic extensions such as `Fp3`
+    /// we might see `BaseField == BasePrimeField`, it won't always hold true.
+    /// E.g. for an extension tower: `BasePrimeField == Fp`, but `BaseField == Fp2`.
     type BaseField: Field<BasePrimeField = Self::BasePrimeField>;
     /// The type of the coefficients for an efficient implemntation of the
     /// Frobenius endomorphism.
@@ -59,6 +64,8 @@ pub trait CubicExtParameters: 'static + Send + Sync {
     );
 }
 
+/// An element of a cubic extension field F_p\[X\]/(X^3 - P::NONRESIDUE) is
+/// represented as c0 + c1 * X + c2 * X^2, for c0, c1, c2 in `P::BaseField`.
 #[derive(Derivative)]
 #[derivative(
     Default(bound = "P: CubicExtParameters"),
@@ -76,6 +83,26 @@ pub struct CubicExtField<P: CubicExtParameters> {
 }
 
 impl<P: CubicExtParameters> CubicExtField<P> {
+    /// Create a new field element from coefficients `c0`, `c1` and `c2`
+    /// so that the result is of the form `c0 + c1 * X + c2 * X^2`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use ark_std::test_rng;
+    /// # use ark_test_curves::bls12_381::{Fq2 as Fp2, Fq6 as Fp6};
+    /// # use ark_test_curves::bls12_381::Fq6Parameters;
+    /// # use ark_std::UniformRand;
+    /// # use ark_ff::models::fp6_3over2::Fp6ParamsWrapper;
+    /// use ark_ff::models::cubic_extension::CubicExtField;
+    ///
+    /// let c0: Fp2 = Fp2::rand(&mut test_rng());
+    /// let c1: Fp2 = Fp2::rand(&mut test_rng());
+    /// let c2: Fp2 = Fp2::rand(&mut test_rng());
+    /// # type Params = Fp6ParamsWrapper<Fq6Parameters>;
+    /// // `Fp6` a degree-3 extension over `Fp2`.
+    /// let c: CubicExtField<Params> = Fp6::new(c0, c1, c2);
+    /// ```
     pub fn new(c0: P::BaseField, c1: P::BaseField, c2: P::BaseField) -> Self {
         Self { c0, c1, c2 }
     }
