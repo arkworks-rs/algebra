@@ -15,7 +15,6 @@ pub struct Parameters;
 impl ModelParameters for Parameters {
     type BaseField = Fq;
     type ScalarField = Fr;
-    type Affine = GroupAffine<Self>;
 
     /// COFACTOR = 1
     const COFACTOR: &'static [u64] = &[1];
