@@ -55,7 +55,6 @@ pub trait SWModelParameters: ModelParameters {
 pub trait TEModelParameters: ModelParameters {
     const COEFF_A: Self::BaseField;
     const COEFF_D: Self::BaseField;
-    type Affine: AffineCurve<BaseField = Self::BaseField, ScalarField = Self::ScalarField>;
     const AFFINE_GENERATOR_COEFFS: (Self::BaseField, Self::BaseField);
 
     type MontgomeryModelParameters: MontgomeryModelParameters<BaseField = Self::BaseField>;
