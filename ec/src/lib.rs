@@ -155,11 +155,7 @@ pub trait ProjectiveCurve:
     + for<'a> core::iter::Sum<&'a Self>
     + From<<Self as ProjectiveCurve>::Affine>
 {
-    type Parameters: ModelParameters<
-        ScalarField = Self::ScalarField,
-        BaseField = Self::BaseField,
-        Affine = Self::Affine,
-    >;
+    type Parameters: ModelParameters<ScalarField = Self::ScalarField, BaseField = Self::BaseField>;
     type ScalarField: PrimeField + SquareRootField;
     type BaseField: Field;
     type Affine: AffineCurve<
@@ -259,11 +255,7 @@ pub trait AffineCurve:
     + for<'a> core::iter::Sum<&'a Self>
     + From<<Self as AffineCurve>::Projective>
 {
-    type Parameters: ModelParameters<
-        ScalarField = Self::ScalarField,
-        BaseField = Self::BaseField,
-        Affine = Self,
-    >;
+    type Parameters: ModelParameters<ScalarField = Self::ScalarField, BaseField = Self::BaseField>;
     type ScalarField: PrimeField + SquareRootField + Into<<Self::ScalarField as PrimeField>::BigInt>;
     type BaseField: Field;
     type Projective: ProjectiveCurve<

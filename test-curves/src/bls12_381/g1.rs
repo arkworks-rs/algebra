@@ -14,7 +14,6 @@ pub struct Parameters;
 impl ModelParameters for Parameters {
     type BaseField = Fq;
     type ScalarField = Fr;
-    type Affine = GroupAffine<Self>;
 
     /// COFACTOR = (x - 1)^2 / 3  = 76329603384216526031706109802092473003
     const COFACTOR: &'static [u64] = &[0x8c00aaab0000aaab, 0x396c8c005555e156];
