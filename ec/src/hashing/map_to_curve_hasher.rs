@@ -5,7 +5,7 @@ use ark_std::{marker::PhantomData, vec::Vec};
 /// Trait for mapping a random field element to a random curve point.
 pub trait MapToCurve<T: AffineCurve> {
     /// Constructs a new mapping.
-    fn new_map_to_curve(domain: &[u8]) -> Result<Self, HashToCurveError>
+    fn new_map_to_curve() -> Result<Self, HashToCurveError>
     where
         Self: Sized;
     /// Map random field point to a random curve point
@@ -48,7 +48,7 @@ where
 {
     fn new(domain: &[u8]) -> Result<Self, HashToCurveError> {
         let field_hasher = H2F::new_hash_to_field(domain, 2)?;
-        let curve_mapper = M2C::new_map_to_curve(domain)?;
+        let curve_mapper = M2C::new_map_to_curve()?;
         let _params_t = PhantomData;
         Ok(MapToCurveBasedHasher {
             field_hasher,

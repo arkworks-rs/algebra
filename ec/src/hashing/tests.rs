@@ -199,7 +199,7 @@ fn hash_arbitary_string_to_curve_swu() {
 /// elements should be mapped to curve successfully. everything can be mapped
 #[test]
 fn map_field_to_curve_swu() {
-    let test_map_to_curve = SWUMap::<TestSWUMapToCurveParams>::new_map_to_curve(&[0]).unwrap();
+    let test_map_to_curve = SWUMap::<TestSWUMapToCurveParams>::new_map_to_curve().unwrap();
 
     let mut map_range: Vec<GroupAffine<TestSWUMapToCurveParams>> = vec![];
     for current_field_element in 0..127 {

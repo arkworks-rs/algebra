@@ -55,14 +55,13 @@ pub trait WBParams: SWModelParameters + Sized {
 }
 
 pub struct WBMap<P: WBParams> {
-    pub domain: Vec<u8>,
     swu_field_curve_hasher: SWUMap<P::IsogenousCurve>,
     curve_params: PhantomData<fn() -> P>,
 }
 
 impl<P: WBParams> MapToCurve<GroupAffine<P>> for WBMap<P> {
     /// Constructs a new map if `P` represents a valid map.
-    fn new_map_to_curve(domain: &[u8]) -> Result<Self, HashToCurveError> {
+    fn new_map_to_curve() -> Result<Self, HashToCurveError> {
         // Verifying that the isogeny maps the generator of the SWU curve into us
         let isogenous_curve_generator = GroupAffine::<P::IsogenousCurve>::new(
             P::IsogenousCurve::AFFINE_GENERATOR_COEFFS.0,
@@ -80,8 +79,7 @@ impl<P: WBParams> MapToCurve<GroupAffine<P>> for WBMap<P> {
         }
 
         Ok(WBMap {
-            domain: domain.to_vec(),
-            swu_field_curve_hasher: SWUMap::<P::IsogenousCurve>::new_map_to_curve(&domain).unwrap(),
+            swu_field_curve_hasher: SWUMap::<P::IsogenousCurve>::new_map_to_curve().unwrap(),
             curve_params: PhantomData,
         })
     }
