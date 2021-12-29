@@ -1,6 +1,6 @@
 use core::marker::PhantomData;
 
-use ark_ff::bytes::{ToBytes};
+use ark_ff::bytes::ToBytes;
 
 use crate::models::SWModelParameters;
 use ark_ff::{vec::Vec, Field, One, SquareRootField, Zero};
@@ -9,7 +9,6 @@ use ark_std::string::ToString;
 use crate::{
     hashing::{map_to_curve_hasher::MapToCurve, HashToCurveError},
     models::short_weierstrass_jacobian::GroupAffine,
-    AffineCurve,
 };
 
 /// Trait defining the necessary parameters for the SWU hash-to-curve method
@@ -49,7 +48,8 @@ impl<P: SWUParams> MapToCurve<GroupAffine<P>> for SWUMap<P> {
             Some(xi_on_zeta_sqrt) => {
                 if xi_on_zeta_sqrt != P::XI_ON_ZETA_SQRT && xi_on_zeta_sqrt != -P::XI_ON_ZETA_SQRT {
                     return Err(HashToCurveError::MapToCurveError(
-                        "precomputed P::XI_ON_ZETA_SQRT is not what it is supposed to be".to_string(),
+                        "precomputed P::XI_ON_ZETA_SQRT is not what it is supposed to be"
+                            .to_string(),
                     ));
                 }
             }
@@ -74,10 +74,7 @@ impl<P: SWUParams> MapToCurve<GroupAffine<P>> for SWUMap<P> {
     /// Map an arbitrary base field element to a curve point.
     /// Based on
     /// <https://github.com/zcash/pasta_curves/blob/main/src/hashtocurve.rs>.
-    fn map_to_curve(
-        &self,
-        point: P::BaseField,
-    ) -> Result<GroupAffine<P>, HashToCurveError> {
+    fn map_to_curve(&self, point: P::BaseField) -> Result<GroupAffine<P>, HashToCurveError> {
         // 1. tv1 = inv0(Z^2 * u^4 + Z * u^2)
         // 2. x1 = (-B / A) * (1 + tv1)
         // 3. If tv1 == 0, set x1 = B / (Z * A)
@@ -159,14 +156,13 @@ impl<P: SWUParams> MapToCurve<GroupAffine<P>> for SWUMap<P> {
         let num_x = if gx1_square { num_x1 } else { num_x2 };
         let y = if gx1_square { y1 } else { y2 };
 
-        
         let x_affine = num_x / div;
         // 9. If sgn0(u) != sgn0(y), set y = -y
         let mut a = [0u8; 128];
-        let mut b =  [0u8; 128];
+        let mut b = [0u8; 128];
         point.write(&mut a[..]).unwrap();
         y.write(&mut b[..]).unwrap();
-        let y_affine = if a[0] % 2 == b[0] % 2 { -y } else {y};
+        let y_affine = if a[0] % 2 == b[0] % 2 { -y } else { y };
         let point_on_curve = GroupAffine::<P>::new(x_affine, y_affine, false);
         assert!(
             point_on_curve.is_on_curve(),

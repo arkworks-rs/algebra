@@ -13,8 +13,7 @@ fn hash_len_in_bytes<F: Field, const SEC_PARAM: usize>(count: usize) -> usize {
     // ceil(log(p))
     let base_field_size_in_bits = F::BasePrimeField::size_in_bits();
     // ceil(log(p)) + security_parameter
-    let base_field_size_with_security_padding_in_bits =
-        base_field_size_in_bits + SEC_PARAM;
+    let base_field_size_with_security_padding_in_bits = base_field_size_in_bits + SEC_PARAM;
     // ceil( (ceil(log(p)) + security_parameter) / 8)
     let bytes_per_base_field_elem =
         ((base_field_size_with_security_padding_in_bits + 7) / 8) as u64;
@@ -27,9 +26,8 @@ fn map_bytes_to_field_elem<F: Field>(bz: &[u8]) -> Option<F> {
     let len_per_elem = bz.len() / d;
     let mut base_field_elems = Vec::new();
     for i in 0..d {
-        let val = F::BasePrimeField::from_be_bytes_mod_order(
-            &bz[(i * len_per_elem)..][..len_per_elem],
-        );
+        let val =
+            F::BasePrimeField::from_be_bytes_mod_order(&bz[(i * len_per_elem)..][..len_per_elem]);
         base_field_elems.push(val);
     }
     F::from_base_prime_field_elems(&base_field_elems)
@@ -51,7 +49,7 @@ impl<F: Field, H: VariableOutput + Update + Sized + Clone> HashToField<F>
 {
     fn new_hash_to_field(domain: &[u8], count: usize) -> Result<Self, HashToCurveError> {
         // Hardcode security parameter
-        let bytes_per_base_field_elem = hash_len_in_bytes::<F, 128>(security_parameter, count);
+        let bytes_per_base_field_elem = hash_len_in_bytes::<F, 128>(count);
         // Create hasher and map the error type
         let wrapped_hasher = H::new(bytes_per_base_field_elem);
         let mut hasher = match wrapped_hasher {
