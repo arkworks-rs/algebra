@@ -20,7 +20,6 @@ derivative = { version = "2", features = ["use_core"] }
 num-traits = { version = "0.2", default-features = false }
 rayon = { version = "1", optional = true }
 zeroize = { version = "1", default-features = false, features = ["zeroize_derive"] }
-paste = "1.0.4"
 
 [features]
 default = []
