@@ -194,7 +194,7 @@ macro_rules! generate_g1_generator_raw_test {
                     let p = G1Affine::new(x, if y < -y { y } else { -y }, false);
                     assert!(!p.is_in_correct_subgroup_assuming_on_curve());
 
-                    let g1 = p.scale_by_cofactor();
+                    let g1 = p.mul_by_cofactor_to_projective();
                     if !g1.is_zero() {
                         assert_eq!(i, $const);
                         let g1 = G1Affine::from(g1);
