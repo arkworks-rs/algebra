@@ -219,6 +219,86 @@ impl_uint!(u16);
 impl_uint!(u32);
 impl_uint!(u64);
 
+// Macro for implementing serialize for arrays up to size 32.
+macro_rules! impl_arrays {
+    ($($count:tt)+) => {
+        $(
+            impl<T: CanonicalSerialize> CanonicalSerialize for [T; $count] {
+                #[inline]
+                fn serialize<W: Write>(&self, mut writer: W) -> Result<(), SerializationError> {
+                    for item in self.iter() {
+                        item.serialize(&mut writer)?;
+                    }
+                    Ok(())
+                }
+
+                #[inline]
+                fn serialized_size(&self) -> usize {
+                    self.iter().map(|item| item.serialized_size()).sum::<usize>()
+                }
+
+                #[inline]
+                fn serialize_uncompressed<W: Write>(&self, mut writer: W) -> Result<(), SerializationError> {
+                    for item in self.iter() {
+                        item.serialize_uncompressed(&mut writer)?;
+                    }
+                    Ok(())
+                }
+
+                #[inline]
+                fn serialize_unchecked<W: Write>(&self, mut writer: W) -> Result<(), SerializationError> {
+                    for item in self.iter() {
+                        item.serialize_unchecked(&mut writer)?;
+                    }
+                    Ok(())
+                }
+
+                #[inline]
+                fn uncompressed_size(&self) -> usize {
+                    self
+                        .iter()
+                        .map(|item| item.uncompressed_size())
+                        .sum::<usize>()
+                }
+            }
+
+            impl<T: CanonicalDeserialize + Copy + Default> CanonicalDeserialize for [T; $count] {
+                #[inline]
+                fn deserialize<R: Read>(mut reader: R) -> Result<Self, SerializationError> {
+                    let mut values = [T::default(); $count];
+                    for val in values.iter_mut() {
+                        *val = T::deserialize(&mut reader)?;
+                    }
+                    Ok(values)
+                }
+
+                #[inline]
+                fn deserialize_uncompressed<R: Read>(mut reader: R) -> Result<Self, SerializationError> {
+                    let mut values = [T::default(); $count];
+                    for val in values.iter_mut() {
+                        *val = T::deserialize_uncompressed(&mut reader)?;
+                    }
+                    Ok(values)
+                }
+
+                #[inline]
+                fn deserialize_unchecked<R: Read>(mut reader: R) -> Result<Self, SerializationError> {
+                    let mut values = [T::default(); $count];
+                    for val in values.iter_mut() {
+                        *val = T::deserialize_unchecked(&mut reader)?;
+                    }
+                    Ok(values)
+                }
+            }
+        )+
+    };
+}
+
+impl_arrays!(01 02 03 04 05 06 07 08 09 10
+             11 12 13 14 15 16 17 18 19 20
+             21 22 23 24 25 26 27 28 29 30
+             31 32);
+
 // Serialize usize with 8 bytes
 impl CanonicalSerialize for usize {
     #[inline]
