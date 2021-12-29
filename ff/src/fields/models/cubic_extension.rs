@@ -8,6 +8,7 @@ use ark_std::{
     io::{Read, Result as IoResult, Write},
     ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign},
     vec::Vec,
+    boxed::Box,
 };
 
 use num_traits::{One, Zero};
@@ -162,14 +163,14 @@ impl<P: CubicExtParameters> One for CubicExtField<P> {
 
 impl<P: CubicExtParameters> Field for CubicExtField<P> {
     type BasePrimeField = P::BasePrimeField;
-    type BasePrimeFieldArr = Vec<Self::BasePrimeField>;
+    type BasePrimeFieldIter = Box<dyn Iterator<Item = Self::BasePrimeField>>;
 
     fn extension_degree() -> u64 {
         3 * P::BaseField::extension_degree()
     }
 
-    fn to_base_prime_field_elements(&self) -> Self::BasePrimeFieldArr {
-	self.c0.to_base_prime_field_elements().as_ref().into_iter().map(|ci| *ci).chain(self.c1.to_base_prime_field_elements().as_ref().into_iter().map(|ci| *ci)).chain(self.c2.to_base_prime_field_elements().as_ref().into_iter().map(|ci| *ci)).collect::<Vec<Self::BasePrimeField>>()
+    fn to_base_prime_field_elements(&self) -> Self::BasePrimeFieldIter {
+	    Box::new(self.c0.to_base_prime_field_elements().chain(self.c1.to_base_prime_field_elements().chain(self.c2.to_base_prime_field_elements())))
 
     }
 

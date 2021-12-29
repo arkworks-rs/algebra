@@ -15,6 +15,7 @@ use ark_std::{
     ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign},
     str::FromStr,
     vec::Vec,
+    boxed::Box,
 };
 
 pub use ark_ff_macros;
@@ -115,7 +116,7 @@ pub trait Field:
     + From<bool>
 {
     type BasePrimeField: PrimeField;
-    type BasePrimeFieldArr: AsRef<[Self::BasePrimeField]>;
+    type BasePrimeFieldIter: Iterator<Item = Self::BasePrimeField>;
 
     /// Returns the characteristic of the field,
     /// in little-endian representation.
@@ -127,10 +128,10 @@ pub trait Field:
     /// to `Self::BasePrimeField`.
     fn extension_degree() -> u64;
 
-    fn to_base_prime_field_elements(&self) -> Self::BasePrimeFieldArr;
+    fn to_base_prime_field_elements(&self) -> Self::BasePrimeFieldIter;
 
     fn parity<F: Field>(element: &F) -> bool {
-	element.to_base_prime_field_elements().as_ref()[0].into_repr().is_odd()
+	    element.to_base_prime_field_elements().next().unwrap().into_repr().is_odd()
     }
     /// Convert a slice of base prime field elements into a field element.
     /// If the slice length != Self::extension_degree(), must return None.
