@@ -371,7 +371,7 @@ pub type BigInteger128 = BigInt<2>;
 pub type BigInteger256 = BigInt<4>;
 pub type BigInteger320 = BigInt<5>;
 pub type BigInteger384 = BigInt<6>;
-pub type BigInteger384 = BigInt<7>;
+pub type BigInteger448 = BigInt<7>;
 pub type BigInteger768 = BigInt<12>;
 pub type BigInteger832 = BigInt<13>;
 
