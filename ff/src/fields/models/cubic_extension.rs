@@ -714,10 +714,10 @@ mod cube_ext_tests {
 
     #[test]
     fn test_parity() {
-       let a1 = Fq2::new(field_new!(Fq,"0"), field_new!(Fq,"0"));
-       let a2 = Fq2::new(field_new!(Fq,"0"), field_new!(Fq,"1"));
-       let a3 = Fq2::new(field_new!(Fq,"1"), field_new!(Fq,"0"));
-       let a4 = Fq2::new(field_new!(Fq,"1"), field_new!(Fq,"1")); 
+       let a1 = Fq2::new(Fq::from(0), Fq::from(0));
+       let a2 = Fq2::new(Fq::from(0), Fq::from(1));
+       let a3 = Fq2::new(Fq::from(1), Fq::from(0));
+       let a4 = Fq2::new(Fq::from(1), Fq::from(1)); 
        let element_test1 = Fq6::new(a1, a2, a3);
        let element_test2 = Fq6::new(a2, a3, a4);
        let element_test3 = Fq6::new(a3, a4, a1);
@@ -728,4 +728,5 @@ mod cube_ext_tests {
        assert_eq!(Fq6::parity(&element_test4), true);
         
     }
+    
 }

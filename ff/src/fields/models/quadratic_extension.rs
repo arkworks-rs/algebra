@@ -814,12 +814,12 @@ mod quad_ext_tests {
         }
     }
 
-#[test]
+    #[test]
     fn test_parity() {
-       let element_test1 = Fq2::new(field_new!(Fq,"0"), field_new!(Fq,"1"));
-       let element_test2 = Fq2::new(field_new!(Fq,"1"), field_new!(Fq,"0"));
-       let element_test3 = Fq2::new(field_new!(Fq,"10"), field_new!(Fq,"5"));
-       let element_test4 = Fq2::new(field_new!(Fq,"5"), field_new!(Fq,"10"));
+       let element_test1 = Fq2::new(Fq::from(0), Fq::from(1));
+       let element_test2 = Fq2::new(Fq::from(1), Fq::from(0));
+       let element_test3 = Fq2::new(Fq::from(10), Fq::from(5));
+       let element_test4 = Fq2::new(Fq::from(5), Fq::from(10));
        assert_eq!(Fq2::parity(&element_test1), false);
        assert_eq!(Fq2::parity(&element_test2), true);
        assert_eq!(Fq2::parity(&element_test3), false);
