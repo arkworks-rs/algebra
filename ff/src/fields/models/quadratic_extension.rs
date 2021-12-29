@@ -670,7 +670,8 @@ impl<'a, P: QuadExtParameters> SubAssign<&'a Self> for QuadExtField<P> {
     }
 }
 
-impl_ops_from_ref!(QuadExtField, [P: QuadExtParameters]);
+impl_additive_ops_from_ref!(QuadExtField, QuadExtParameters);
+impl_multiplicative_ops_from_ref!(QuadExtField, QuadExtParameters);
 
 impl<'a, P: QuadExtParameters> MulAssign<&'a Self> for QuadExtField<P> {
     #[inline]

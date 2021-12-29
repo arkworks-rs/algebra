@@ -155,7 +155,7 @@ impl<P: Parameters> Neg for GroupAffine<P> {
     }
 }
 
-impl_additive_ops_from_ref!(<group_affine> GroupAffine, [P: Parameters]);
+ark_ff::impl_additive_ops_from_ref!(GroupAffine, Parameters);
 
 impl<'a, P: Parameters> Add<&'a Self> for GroupAffine<P> {
     type Output = Self;
@@ -513,7 +513,7 @@ impl<P: Parameters> Neg for GroupProjective<P> {
     }
 }
 
-impl_additive_ops_from_ref!(GroupProjective, [P: Parameters]);
+ark_ff::impl_additive_ops_from_ref!(GroupProjective, Parameters);
 
 impl<'a, P: Parameters> Add<&'a Self> for GroupProjective<P> {
     type Output = Self;

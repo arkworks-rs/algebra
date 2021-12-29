@@ -36,16 +36,21 @@ macro_rules! impl_field_mul_assign {
                 let mut carry2 = 0u64;
 
                 for i in 0..$limbs {
-                    r[0] = fa::mac(r[0], input[0], other[i], &mut carry1);
+                    r[0] = fa::mac(r[0], (self.0).0[0], (other.0).0[i], &mut carry1);
                     let k = r[0].wrapping_mul(P::INV);
                     fa::mac_discard(r[0], k, P::MODULUS.0[0], &mut carry2);
                     for j in 1..$limbs {
-                        r[j] = mac_with_carry!(r[j], input[j], other[i], &mut carry1);
+                        r[j] = mac_with_carry!(r[j], (self.0).0[j], (other.0).0[i], &mut carry1);
                         r[j - 1] = mac_with_carry!(r[j], k, P::MODULUS.0[j], &mut carry2);
                     }
                     r[$limbs - 1] = carry1 + carry2;
                 }
-                input.copy_from_slice(&r[..]);
+                (self.0).0 = r;
+                self.reduce();
+            // Alternative implementation
+            } else {
+                *self = self.mul_without_reduce(other, P::MODULUS, P::INV);
+                self.reduce();
             }
         }
     };
@@ -64,20 +69,20 @@ macro_rules! impl_field_into_repr {
                 let k = r[i].wrapping_mul(P::INV);
                 let mut carry = 0;
 
-                    mac_with_carry!(r[i], k, P::MODULUS.0[0], &mut carry);
-                    for j in 1..$limbs {
-                        r[(j + i) % $limbs] =
-                            mac_with_carry!(r[(j + i) % $limbs], k, P::MODULUS.0[j], &mut carry);
-                    }
-                    r[i % $limbs] = carry;
+                mac_with_carry!(r[i], k, P::MODULUS.0[0], &mut carry);
+                for j in 1..$limbs {
+                    r[(j + i) % $limbs] =
+                        mac_with_carry!(r[(j + i) % $limbs], k, P::MODULUS.0[j], &mut carry);
                 }
-                BigInt::<N>(r)
+                r[i % $limbs] = carry;
             }
+            tmp.0 = r;
+            tmp
         }
     };
 }
-// macro_rules! impl_deserialize_flags {
-macro_rules! impl_serialize_flags {
+
+macro_rules! impl_field_square_in_place {
     ($limbs: expr) => {
         #[inline]
         #[ark_ff_asm::unroll_for_loops]
@@ -108,33 +113,82 @@ macro_rules! impl_serialize_flags {
             }
             let mut r = [0u64; $limbs * 2];
 
-// macro_rules! impl_deserialize_flags {
-macro_rules! impl_deserialize_flags {
-    ($limbs: expr) => {
-        paste::paste! {
-            fn [<deserialize _id $limbs>]<P: FpParams<N>, R: ark_std::io::Read, F: Flags, const N: usize>(
-                mut reader: R,
-            ) -> Result<(Fp<P, N>, F), SerializationError> {
-                // All reasonable `Flags` should be less than 8 bits in size
-                // (256 values are enough for anyone!)
-                if F::BIT_SIZE > 8 {
-                    return Err(SerializationError::NotEnoughSpace);
+            let mut carry = 0;
+            for i in 0..$limbs {
+                if i < $limbs - 1 {
+                    for j in 0..$limbs {
+                        if j > i {
+                            r[i + j] =
+                                mac_with_carry!(r[i + j], (self.0).0[i], (self.0).0[j], &mut carry);
+                        }
+                    }
+                    r[$limbs + i] = carry;
+                    carry = 0;
                 }
-                // Calculate the number of bytes required to represent a field element
-                // serialized with `flags`. If `F::BIT_SIZE < 8`,
-                // this is at most `$byte_size + 1`
-                let output_byte_size = buffer_byte_size(P::MODULUS_BITS as usize + F::BIT_SIZE);
+            }
+            r[$limbs * 2 - 1] = r[$limbs * 2 - 2] >> 63;
+            for i in 0..$limbs {
+                // This computes `r[2 * ($limbs - 1) - (i + 1)]`, but additionally
+                // handles the case where the index underflows.
+                // Note that we should never hit this case because it only occurs
+                // when `$limbs == 1`, but we handle that separately above.
+                let subtractor = (2 * ($limbs - 1usize))
+                    .checked_sub(i + 1)
+                    .map(|index| r[index])
+                    .unwrap_or(0);
+                r[2 * ($limbs - 1) - i] = (r[2 * ($limbs - 1) - i] << 1) | (subtractor >> 63);
+            }
+            for i in 3..$limbs {
+                r[$limbs + 1 - i] = (r[$limbs + 1 - i] << 1) | (r[$limbs - i] >> 63);
+            }
+            r[1] <<= 1;
 
-                let mut masked_bytes = [0u8; $limbs * 8 + 1];
-                reader.read_exact(&mut masked_bytes[..output_byte_size])?;
+            for i in 0..$limbs {
+                r[2 * i] = mac_with_carry!(r[2 * i], (self.0).0[i], (self.0).0[i], &mut carry);
+                // need unused assignment because the last iteration of the loop produces an
+                // assignment to `carry` that is unused.
+                #[allow(unused_assignments)]
+                {
+                    r[2 * i + 1] = adc!(r[2 * i + 1], 0, &mut carry);
+                }
+            }
+            // Montgomery reduction
+            let mut _carry2 = 0;
+            for i in 0..$limbs {
+                let k = r[i].wrapping_mul(P::INV);
+                let mut carry = 0;
+                mac_with_carry!(r[i], k, P::MODULUS.0[0], &mut carry);
+                for j in 1..$limbs {
+                    r[j + i] = mac_with_carry!(r[j + i], k, P::MODULUS.0[j], &mut carry);
+                }
+                r[$limbs + i] = adc!(r[$limbs + i], _carry2, &mut carry);
+                _carry2 = carry;
+            }
+            (self.0).0.copy_from_slice(&r[$limbs..]);
+            self.reduce();
+            self
+        }
+    };
+}
 
-                let flags = F::from_u8_remove_flags(&mut masked_bytes[output_byte_size - 1])
-                    .ok_or(SerializationError::UnexpectedFlags)?;
-
-                Ok((<Fp<P, N>>::read(&masked_bytes[..])?, flags))
+macro_rules! impl_field_bigint_conv {
+    ($field: ident, $bigint: ident, $params: ident) => {
+        impl<P: $params> Into<$bigint> for $field<P> {
+            fn into(self) -> $bigint {
+                self.into_repr()
             }
         }
-    }
+
+        impl<P: $params> From<$bigint> for $field<P> {
+            /// Converts `Self::BigInteger` into `Self`
+            ///
+            /// # Panics
+            /// This method panics if `int` is larger than `P::MODULUS`.
+            fn from(int: $bigint) -> Self {
+                Self::from_repr(int).unwrap()
+            }
+        }
+    };
 }
 
 macro_rules! impl_prime_field_standard_sample {
@@ -159,28 +213,10 @@ macro_rules! impl_prime_field_standard_sample {
                     };
                     tmp.0.as_mut().last_mut().map(|val| *val &= mask);
 
-                for i in 0..$limbs {
-                    r[2 * i] = mac_with_carry!(r[2 * i], input[i], input[i], &mut carry);
-                    // need unused assignment because the last iteration of the loop produces an
-                    // assignment to `carry` that is unused.
-                    #[allow(unused_assignments)]
-                    {
-                        r[2 * i + 1] = adc!(r[2 * i + 1], 0, &mut carry);
+                    if tmp.is_valid() {
+                        return tmp;
                     }
                 }
-                // Montgomery reduction
-                let mut _carry2 = 0;
-                for i in 0..$limbs {
-                    let k = r[i].wrapping_mul(P::INV);
-                    let mut carry = 0;
-                    mac_with_carry!(r[i], k, P::MODULUS.0[0], &mut carry);
-                    for j in 1..$limbs {
-                        r[j + i] = mac_with_carry!(r[j + i], k, P::MODULUS.0[j], &mut carry);
-                    }
-                    r[$limbs + i] = adc!(r[$limbs + i], _carry2, &mut carry);
-                    _carry2 = carry;
-                }
-                input.copy_from_slice(&r[N..]);
             }
         }
     };
@@ -319,191 +355,194 @@ macro_rules! sqrt_impl {
     }};
 }
 
+// Implements AddAssign on Self by deferring to an implementation on &Self
 #[macro_export]
 macro_rules! impl_additive_ops_from_ref {
-    (<$mod_name:ident> $($args:tt)*) => {
-        impl_ops_from_ref!(
-            <$mod_name>,
-            {
-                <add, sub>,
-                [sum, zero, add]
+    ($type: ident, $params: ident) => {
+        #[allow(unused_qualifications)]
+        impl<P: $params> core::ops::Add<Self> for $type<P> {
+            type Output = Self;
+
+            #[inline]
+            fn add(self, other: Self) -> Self {
+                let mut result = self;
+                result.add_assign(&other);
+                result
             }
-            $($args)*
-        );
-    };
-    ($($args:tt)*) => {
-        impl_ops_from_ref!(
-            <default_ops_mod>,
-            {
-                <add, sub>,
-                [sum, zero, add]
-            }
-            $($args)*
-        );
-    };
-
-}
-
-#[macro_export]
-macro_rules! impl_ops_from_ref {
-    (
-        // We define a module, which we have the option to name, to hide the macros
-        // to prevent resolution ambiguity, when macro is invoked multiple times
-        <$mod_name:ident>,
-        // We can here specify the various ops and iter instantiations
-        {<$($ops:ident),*>, $([$($iter_args:tt),*]),*}
-        // The type we are implementing the ops for
-        $type: ident,
-        $([
-            // These are the type parameters the type is generic over
-            $type_params:ident:
-            // These are their trait/const generic bounds
-            $bounds:ident$(<$($bound_params:tt),*>)?
-            // specifically used for const
-            $(, $keyword:ident)?
-
-        ]),*
-
-    ) => {
-        mod $mod_name {
-            use super::*;
-            macro_rules! instantiate {
-                ($d:tt) => {
-                    // Template for instantiating ops
-                    macro_rules! ops {
-                        (
-                            // Name of op
-                            $name:ident
-                            // lifetime, mutability and ref of other
-                            $d(, <$d lifetime:tt $d mut:tt $d deref:tt>)?
-                        ) => {
-                            paste::paste! {
-                                #[allow(unused_qualifications)]
-                                impl<
-                                    $d($d lifetime, )?
-                                    $(
-                                        $($keyword)?
-                                        $type_params:
-                                        $bounds$(<$($bound_params)*>)?
-                                    ),*
-                                > [<$name:camel>]<$d(&$d lifetime $d mut)?Self> for $type<$($type_params),*>
-                                {
-                                    type Output = Self;
-
-                                    #[inline]
-                                    fn $name(
-                                        self,
-                                        other: $d(&$d lifetime $d mut)?Self
-                                    ) -> Self {
-                                        let mut result = self;
-                                        result.[<$name:snake _assign>](&$d($d deref)?other);
-                                        return result;
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    // Template for instantiating op_assign
-                    macro_rules! ops_assign {
-                        (
-                            // Name of op
-                            $name:ident
-                            // lifetime, mutability and ref of other
-                            $d(, <$d lifetime:tt $d mut:tt $d deref:tt>)?
-                        ) => {
-                            paste::paste! {
-                                #[allow(unused_qualifications)]
-                                impl<
-                                    $d($d lifetime, )?
-                                    $(
-                                        $($keyword)?
-                                        $type_params:
-                                        $bounds$(<$($bound_params)*>)?
-                                    ),*
-                                > [<$name:camel>]<$d(&$d lifetime $d mut )?Self> for $type<$($type_params),*>
-                                {
-                                    #[inline]
-                                    fn $name(
-                                        &mut self,
-                                        other: $d(&$d lifetime )?$d($d mut )?Self
-                                    ) {
-                                        self.$name(&$d($d deref)?other)
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    macro_rules! instantiate_ops {
-                        ($d($d op:ident),*) => {
-                            paste::paste! {
-                                $d(
-                                    ops!($d op);
-                                    ops!($d op, <'a mut *>);
-                                    ops_assign!([<$d op _assign>]);
-                                    ops_assign!([<$d op _assign>], <'a mut *>);
-                                )*
-                            }
-                        }
-                    }
-
-                    // Template for instantiating product and sum
-                    macro_rules! iter {
-                        (
-                            // Name of iter trait
-                            $name:ident,
-                            // Name of identity for op
-                            $ident:ident,
-                            // Name of op
-                            $op:ident
-                            $d(, <$d lifetime:tt>)?
-                        ) => {
-                            paste::paste! {
-                                #[allow(unused_qualifications)]
-                                impl<
-                                    $d($d lifetime, )?
-                                    $(
-                                        $($keyword)?
-                                        $type_params:
-                                        $bounds$(<$($bound_params)*>)?
-                                    ),*
-                                > core::iter::[<$name:camel>]<$d(&$d lifetime )?Self> for $type<$($type_params),*>
-                                {
-                                    fn $name<I: Iterator<Item = $d(&$d lifetime )?Self>>(iter: I) -> Self {
-                                        iter.fold(Self::$ident(), [<$op:camel>]::$op)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            instantiate!($);
-            instantiate_ops!($($ops),*);
-            $(
-
-                iter!($($iter_args),*);
-                iter!($($iter_args),*, <'a>);
-            )*
         }
 
-        pub use $mod_name::*;
-    };
-    // We instantiate default module name
-    ({$($args0:tt)*}$($args:tt)*) => {
-        impl_ops_from_ref!(<default_ops_mod>, {$($args0)*}$($args)*);
-    };
-    // We instantiate default ops
-    ($($args:tt)*) => {
-        impl_ops_from_ref!(
-            <default_ops_mod>,
-            {
-                <add, sub, mul, div>,
-                [sum, zero, add],
-                [product, one, mul]
+        #[allow(unused_qualifications)]
+        impl<'a, P: $params> core::ops::Add<&'a mut Self> for $type<P> {
+            type Output = Self;
+
+            #[inline]
+            fn add(self, other: &'a mut Self) -> Self {
+                let mut result = self;
+                result.add_assign(&*other);
+                result
             }
-            $($args)*
-        );
+        }
+
+        #[allow(unused_qualifications)]
+        impl<P: $params> core::ops::Sub<Self> for $type<P> {
+            type Output = Self;
+
+            #[inline]
+            fn sub(self, other: Self) -> Self {
+                let mut result = self;
+                result.sub_assign(&other);
+                result
+            }
+        }
+
+        #[allow(unused_qualifications)]
+        impl<'a, P: $params> core::ops::Sub<&'a mut Self> for $type<P> {
+            type Output = Self;
+
+            #[inline]
+            fn sub(self, other: &'a mut Self) -> Self {
+                let mut result = self;
+                result.sub_assign(&*other);
+                result
+            }
+        }
+
+        #[allow(unused_qualifications)]
+        impl<P: $params> core::iter::Sum<Self> for $type<P> {
+            fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
+                iter.fold(Self::zero(), core::ops::Add::add)
+            }
+        }
+
+        #[allow(unused_qualifications)]
+        impl<'a, P: $params> core::iter::Sum<&'a Self> for $type<P> {
+            fn sum<I: Iterator<Item = &'a Self>>(iter: I) -> Self {
+                iter.fold(Self::zero(), core::ops::Add::add)
+            }
+        }
+
+        #[allow(unused_qualifications)]
+        impl<P: $params> core::ops::AddAssign<Self> for $type<P> {
+            fn add_assign(&mut self, other: Self) {
+                self.add_assign(&other)
+            }
+        }
+
+        #[allow(unused_qualifications)]
+        impl<P: $params> core::ops::SubAssign<Self> for $type<P> {
+            fn sub_assign(&mut self, other: Self) {
+                self.sub_assign(&other)
+            }
+        }
+
+        #[allow(unused_qualifications)]
+        impl<'a, P: $params> core::ops::AddAssign<&'a mut Self> for $type<P> {
+            fn add_assign(&mut self, other: &'a mut Self) {
+                self.add_assign(&*other)
+            }
+        }
+
+        #[allow(unused_qualifications)]
+        impl<'a, P: $params> core::ops::SubAssign<&'a mut Self> for $type<P> {
+            fn sub_assign(&mut self, other: &'a mut Self) {
+                self.sub_assign(&*other)
+            }
+        }
+    };
+}
+
+// Implements AddAssign on Self by deferring to an implementation on &Self
+#[macro_export]
+macro_rules! impl_multiplicative_ops_from_ref {
+    ($type: ident, $params: ident) => {
+        #[allow(unused_qualifications)]
+        impl<P: $params> core::ops::Mul<Self> for $type<P> {
+            type Output = Self;
+
+            #[inline]
+            fn mul(self, other: Self) -> Self {
+                let mut result = self;
+                result.mul_assign(&other);
+                result
+            }
+        }
+
+        #[allow(unused_qualifications)]
+        impl<P: $params> core::ops::Div<Self> for $type<P> {
+            type Output = Self;
+
+            #[inline]
+            fn div(self, other: Self) -> Self {
+                let mut result = self;
+                result.div_assign(&other);
+                result
+            }
+        }
+
+        #[allow(unused_qualifications)]
+        impl<'a, P: $params> core::ops::Mul<&'a mut Self> for $type<P> {
+            type Output = Self;
+
+            #[inline]
+            fn mul(self, other: &'a mut Self) -> Self {
+                let mut result = self;
+                result.mul_assign(&*other);
+                result
+            }
+        }
+
+        #[allow(unused_qualifications)]
+        impl<'a, P: $params> core::ops::Div<&'a mut Self> for $type<P> {
+            type Output = Self;
+
+            #[inline]
+            fn div(self, other: &'a mut Self) -> Self {
+                let mut result = self;
+                result.div_assign(&*other);
+                result
+            }
+        }
+
+        #[allow(unused_qualifications)]
+        impl<P: $params> core::iter::Product<Self> for $type<P> {
+            fn product<I: Iterator<Item = Self>>(iter: I) -> Self {
+                iter.fold(Self::one(), core::ops::Mul::mul)
+            }
+        }
+
+        #[allow(unused_qualifications)]
+        impl<'a, P: $params> core::iter::Product<&'a Self> for $type<P> {
+            fn product<I: Iterator<Item = &'a Self>>(iter: I) -> Self {
+                iter.fold(Self::one(), Mul::mul)
+            }
+        }
+
+        #[allow(unused_qualifications)]
+        impl<P: $params> core::ops::MulAssign<Self> for $type<P> {
+            fn mul_assign(&mut self, other: Self) {
+                self.mul_assign(&other)
+            }
+        }
+
+        #[allow(unused_qualifications)]
+        impl<'a, P: $params> core::ops::DivAssign<&'a mut Self> for $type<P> {
+            fn div_assign(&mut self, other: &'a mut Self) {
+                self.div_assign(&*other)
+            }
+        }
+
+        #[allow(unused_qualifications)]
+        impl<'a, P: $params> core::ops::MulAssign<&'a mut Self> for $type<P> {
+            fn mul_assign(&mut self, other: &'a mut Self) {
+                self.mul_assign(&*other)
+            }
+        }
+
+        #[allow(unused_qualifications)]
+        impl<P: $params> core::ops::DivAssign<Self> for $type<P> {
+            fn div_assign(&mut self, other: Self) {
+                self.div_assign(&other)
+            }
+        }
     };
 }
