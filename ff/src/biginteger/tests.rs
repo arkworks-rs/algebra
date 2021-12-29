@@ -1,7 +1,7 @@
 use crate::{biginteger::BigInteger, UniformRand};
-use rand::SeedableRng;
-use rand_xorshift::XorShiftRng;
+use num_bigint::BigUint;
 
+// Test elementary math operations for BigInteger.
 fn biginteger_arithmetic_test<B: BigInteger>(a: B, b: B, zero: B) {
     // zero == zero
     assert_eq!(zero, zero);
@@ -35,36 +35,59 @@ fn biginteger_arithmetic_test<B: BigInteger>(a: B, b: B, zero: B) {
     assert_eq!(ab_add, ba_add);
 }
 
+// Test correctness of BigInteger's bit values
 fn biginteger_bits_test<B: BigInteger>() {
     let mut one = B::from(1u64);
+    // 0th bit of BigInteger representing 1 is 1
     assert!(one.get_bit(0));
+    // 1st bit of BigInteger representing 1 is not 1
     assert!(!one.get_bit(1));
     one.muln(5);
     let thirty_two = one;
+    // 0th bit of BigInteger representing 32 is not 1
     assert!(!thirty_two.get_bit(0));
+    // 1st bit of BigInteger representing 32 is not 1
     assert!(!thirty_two.get_bit(1));
+    // 2nd bit of BigInteger representing 32 is not 1
     assert!(!thirty_two.get_bit(2));
+    // 3rd bit of BigInteger representing 32 is not 1
     assert!(!thirty_two.get_bit(3));
+    // 4th bit of BigInteger representing 32 is not 1
     assert!(!thirty_two.get_bit(4));
+    // 5th bit of BigInteger representing 32 is 1
     assert!(thirty_two.get_bit(5), "{:?}", thirty_two);
 }
 
+// Test conversion of BigInteger to byte representation
 fn biginteger_bytes_test<B: BigInteger>() {
     let mut bytes = [0u8; 256];
-    let mut rng = XorShiftRng::seed_from_u64(1231275789u64);
+    let mut rng = ark_std::test_rng();
     let x: B = UniformRand::rand(&mut rng);
     x.write(bytes.as_mut()).unwrap();
     let y = B::read(bytes.as_ref()).unwrap();
     assert_eq!(x, y);
 }
 
+// Test conversion from BigInteger to BigUint
+fn biginteger_conversion_test<B: BigInteger>() {
+    let mut rng = ark_std::test_rng();
+
+    let x: B = UniformRand::rand(&mut rng);
+    let x_bigint: BigUint = x.clone().into();
+    let x_recovered = B::try_from(x_bigint).ok().unwrap();
+
+    assert_eq!(x, x_recovered);
+}
+
+// Wrapper test function for BigInteger
 fn test_biginteger<B: BigInteger>(zero: B) {
-    let mut rng = XorShiftRng::seed_from_u64(1231275789u64);
+    let mut rng = ark_std::test_rng();
     let a: B = UniformRand::rand(&mut rng);
     let b: B = UniformRand::rand(&mut rng);
     biginteger_arithmetic_test(a, b, zero);
     biginteger_bytes_test::<B>();
     biginteger_bits_test::<B>();
+    biginteger_conversion_test::<B>();
 }
 
 #[test]
@@ -89,6 +112,12 @@ fn test_biginteger256() {
 fn test_biginteger384() {
     use crate::biginteger::BigInteger384 as B;
     test_biginteger(B::new([0u64; 6]));
+}
+
+#[test]
+fn test_biginteger448() {
+    use crate::biginteger::BigInteger448 as B;
+    test_biginteger(B::new([0u64; 7]));
 }
 
 #[test]

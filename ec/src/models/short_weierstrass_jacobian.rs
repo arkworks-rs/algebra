@@ -4,16 +4,16 @@ use ark_serialize::{
 };
 use ark_std::{
     fmt::{Display, Formatter, Result as FmtResult},
+    hash::{Hash, Hasher},
     io::{Read, Result as IoResult, Write},
-    marker::PhantomData,
     ops::{Add, AddAssign, MulAssign, Neg, Sub, SubAssign},
     vec::Vec,
 };
 
 use ark_ff::{
     bytes::{FromBytes, ToBytes},
-    fields::{BitIteratorBE, Field, PrimeField, SquareRootField},
-    impl_additive_ops_from_ref, impl_ops_from_ref, ToConstraintField, UniformRand,
+    fields::{Field, PrimeField, SquareRootField},
+    ToConstraintField, UniformRand,
 };
 
 use crate::{models::SWModelParameters as Parameters, AffineCurve, ProjectiveCurve};
@@ -21,7 +21,7 @@ use crate::{models::SWModelParameters as Parameters, AffineCurve, ProjectiveCurv
 use num_traits::{One, Zero};
 use zeroize::Zeroize;
 
-use rand::{
+use ark_std::rand::{
     distributions::{Distribution, Standard},
     Rng,
 };
@@ -29,6 +29,8 @@ use rand::{
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
 
+/// Affine coordinates for a point on an elliptic curve in short Weierstrass
+/// form, over the base field `P::BaseField`.
 #[derive(Derivative)]
 #[derivative(
     Copy(bound = "P: Parameters"),
@@ -43,8 +45,6 @@ pub struct GroupAffine<P: Parameters> {
     pub x: P::BaseField,
     pub y: P::BaseField,
     pub infinity: bool,
-    #[derivative(Debug = "ignore")]
-    _params: PhantomData<P>,
 }
 
 impl<P: Parameters> PartialEq<GroupProjective<P>> for GroupAffine<P> {
@@ -71,31 +71,7 @@ impl<P: Parameters> Display for GroupAffine<P> {
 
 impl<P: Parameters> GroupAffine<P> {
     pub fn new(x: P::BaseField, y: P::BaseField, infinity: bool) -> Self {
-        Self {
-            x,
-            y,
-            infinity,
-            _params: PhantomData,
-        }
-    }
-
-    pub fn scale_by_cofactor(&self) -> GroupProjective<P> {
-        let cofactor = BitIteratorBE::new(P::COFACTOR);
-        self.mul_bits(cofactor)
-    }
-
-    /// Multiplies `self` by the scalar represented by `bits`. `bits` must be a big-endian
-    /// bit-wise decomposition of the scalar.
-    pub(crate) fn mul_bits(&self, bits: impl Iterator<Item = bool>) -> GroupProjective<P> {
-        let mut res = GroupProjective::zero();
-        // Skip leading zeros.
-        for i in bits.skip_while(|b| !b) {
-            res.double_in_place();
-            if i {
-                res.add_assign_mixed(&self)
-            }
-        }
-        res
+        Self { x, y, infinity }
     }
 
     /// Attempts to construct an affine point given an x-coordinate. The
@@ -106,7 +82,12 @@ impl<P: Parameters> GroupAffine<P> {
     #[allow(dead_code)]
     pub fn get_point_from_x(x: P::BaseField, greatest: bool) -> Option<Self> {
         // Compute x^3 + ax + b
-        let x3b = P::add_b(&((x.square() * &x) + &P::mul_by_a(&x)));
+        // Rust does not optimise away addition with zero
+        let x3b = if P::COEFF_A.is_zero() {
+            P::add_b(&(x.square() * &x))
+        } else {
+            P::add_b(&((x.square() * &x) + &P::mul_by_a(&x)))
+        };
 
         x3b.sqrt().map(|y| {
             let negy = -y;
@@ -116,20 +97,29 @@ impl<P: Parameters> GroupAffine<P> {
         })
     }
 
+    /// Checks if `self` is a valid point on the curve.
     pub fn is_on_curve(&self) -> bool {
         if self.is_zero() {
             true
         } else {
             // Check that the point is on the curve
             let y2 = self.y.square();
-            let x3b = P::add_b(&((self.x.square() * &self.x) + &P::mul_by_a(&self.x)));
+            // Rust does not optimise away addition with zero
+            let x3b = if P::COEFF_A.is_zero() {
+                P::add_b(&(self.x.square() * &self.x))
+            } else {
+                P::add_b(&((self.x.square() * &self.x) + &P::mul_by_a(&self.x)))
+            };
             y2 == x3b
         }
     }
+}
 
+impl<P: Parameters> GroupAffine<P> {
+    /// Checks if `self` is in the subgroup having order equaling that of
+    /// `P::ScalarField` given it is on the curve.
     pub fn is_in_correct_subgroup_assuming_on_curve(&self) -> bool {
-        self.mul_bits(BitIteratorBE::new(P::ScalarField::characteristic()))
-            .is_zero()
+        P::is_in_correct_subgroup_assuming_on_curve(self)
     }
 }
 
@@ -144,11 +134,15 @@ impl<P: Parameters> Zeroize for GroupAffine<P> {
 }
 
 impl<P: Parameters> Zero for GroupAffine<P> {
+    /// Returns the point at infinity. Note that in affine coordinates,
+    /// the point at infinity does not lie on the curve, and this is indicated
+    /// by setting the `infinity` flag to true.
     #[inline]
     fn zero() -> Self {
         Self::new(P::BaseField::zero(), P::BaseField::one(), true)
     }
 
+    /// Checks if `self` is the point at infinity.
     #[inline]
     fn is_zero(&self) -> bool {
         self.infinity
@@ -172,8 +166,22 @@ impl<'a, P: Parameters> AddAssign<&'a Self> for GroupAffine<P> {
     }
 }
 
+impl<P: Parameters> Distribution<GroupAffine<P>> for Standard {
+    #[inline]
+    fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> GroupAffine<P> {
+        loop {
+            let x = P::BaseField::rand(rng);
+            let greatest = rng.gen();
+
+            if let Some(p) = GroupAffine::get_point_from_x(x, greatest) {
+                return p.mul_by_cofactor();
+            }
+        }
+    }
+}
+
 impl<P: Parameters> AffineCurve for GroupAffine<P> {
-    const COFACTOR: &'static [u64] = P::COFACTOR;
+    type Parameters = P;
     type BaseField = P::BaseField;
     type ScalarField = P::ScalarField;
     type Projective = GroupProjective<P>;
@@ -193,33 +201,21 @@ impl<P: Parameters> AffineCurve for GroupAffine<P> {
             // point as infinity. For all other choices, get the original point.
             if x.is_zero() && flags.is_infinity() {
                 Some(Self::zero())
-            } else if let Some(y_is_positve) = flags.is_positive() {
-                Self::get_point_from_x(x, y_is_positve) // Unwrap is safe because it's not zero.
+            } else if let Some(y_is_positive) = flags.is_positive() {
+                Self::get_point_from_x(x, y_is_positive)
+                // Unwrap is safe because it's not zero.
             } else {
                 None
             }
         })
-    }
-
-    #[inline]
-    fn mul<S: Into<<Self::ScalarField as PrimeField>::BigInt>>(&self, by: S) -> GroupProjective<P> {
-        let bits = BitIteratorBE::new(by.into());
-        self.mul_bits(bits)
-    }
-
-    #[inline]
-    fn mul_by_cofactor_to_projective(&self) -> Self::Projective {
-        self.scale_by_cofactor()
-    }
-
-    fn mul_by_cofactor_inv(&self) -> Self {
-        self.mul(P::COFACTOR_INV).into()
     }
 }
 
 impl<P: Parameters> Neg for GroupAffine<P> {
     type Output = Self;
 
+    /// If `self.is_zero()`, returns `self` (`== Self::zero()`).
+    /// Else, returns `(x, -y)`, where `self = (x, y)`.
     #[inline]
     fn neg(self) -> Self {
         if !self.is_zero() {
@@ -256,21 +252,34 @@ impl<P: Parameters> Default for GroupAffine<P> {
     }
 }
 
+impl<P: Parameters> core::iter::Sum<Self> for GroupAffine<P> {
+    fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
+        iter.fold(GroupProjective::<P>::zero(), |sum, x| sum.add_mixed(&x))
+            .into()
+    }
+}
+
+impl<'a, P: Parameters> core::iter::Sum<&'a Self> for GroupAffine<P> {
+    fn sum<I: Iterator<Item = &'a Self>>(iter: I) -> Self {
+        iter.fold(GroupProjective::<P>::zero(), |sum, x| sum.add_mixed(&x))
+            .into()
+    }
+}
+
+/// Jacobian coordinates for a point on an elliptic curve in short Weierstrass
+/// form, over the base field `P::BaseField`. This struct implements arithmetic
+/// via the Jacobian formulae
 #[derive(Derivative)]
 #[derivative(
     Copy(bound = "P: Parameters"),
     Clone(bound = "P: Parameters"),
-    Eq(bound = "P: Parameters"),
-    Debug(bound = "P: Parameters"),
-    Hash(bound = "P: Parameters")
+    Debug(bound = "P: Parameters")
 )]
 #[must_use]
 pub struct GroupProjective<P: Parameters> {
     pub x: P::BaseField,
     pub y: P::BaseField,
     pub z: P::BaseField,
-    #[derivative(Debug = "ignore")]
-    _params: PhantomData<P>,
 }
 
 impl<P: Parameters> Display for GroupProjective<P> {
@@ -279,6 +288,7 @@ impl<P: Parameters> Display for GroupProjective<P> {
     }
 }
 
+impl<P: Parameters> Eq for GroupProjective<P> {}
 impl<P: Parameters> PartialEq for GroupProjective<P> {
     fn eq(&self, other: &Self) -> bool {
         if self.is_zero() {
@@ -303,13 +313,23 @@ impl<P: Parameters> PartialEq for GroupProjective<P> {
     }
 }
 
+impl<P: Parameters> Hash for GroupProjective<P> {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.into_affine().hash(state)
+    }
+}
+
 impl<P: Parameters> Distribution<GroupProjective<P>> for Standard {
     #[inline]
     fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> GroupProjective<P> {
-        let mut res = GroupProjective::prime_subgroup_generator();
-        res.mul_assign(P::ScalarField::rand(rng));
-        debug_assert!(GroupAffine::from(res).is_in_correct_subgroup_assuming_on_curve());
-        res
+        loop {
+            let x = P::BaseField::rand(rng);
+            let greatest = rng.gen();
+
+            if let Some(p) = GroupAffine::get_point_from_x(x, greatest) {
+                return p.mul_by_cofactor_to_projective();
+            }
+        }
     }
 }
 
@@ -341,18 +361,11 @@ impl<P: Parameters> Default for GroupProjective<P> {
 
 impl<P: Parameters> GroupProjective<P> {
     pub fn new(x: P::BaseField, y: P::BaseField, z: P::BaseField) -> Self {
-        Self {
-            x,
-            y,
-            z,
-            _params: PhantomData,
-        }
+        Self { x, y, z }
     }
 }
 
 impl<P: Parameters> Zeroize for GroupProjective<P> {
-    // The phantom data does not contain element-specific data
-    // and thus does not need to be zeroized.
     fn zeroize(&mut self) {
         self.x.zeroize();
         self.y.zeroize();
@@ -361,8 +374,7 @@ impl<P: Parameters> Zeroize for GroupProjective<P> {
 }
 
 impl<P: Parameters> Zero for GroupProjective<P> {
-    // The point at infinity is always represented by
-    // Z = 0.
+    /// Returns the point at infinity, which always has Z = 0.
     #[inline]
     fn zero() -> Self {
         Self::new(
@@ -372,8 +384,7 @@ impl<P: Parameters> Zero for GroupProjective<P> {
         )
     }
 
-    // The point at infinity is always represented by
-    // Z = 0.
+    /// Checks whether `self.z.is_zero()`.
     #[inline]
     fn is_zero(&self) -> bool {
         self.z.is_zero()
@@ -381,7 +392,7 @@ impl<P: Parameters> Zero for GroupProjective<P> {
 }
 
 impl<P: Parameters> ProjectiveCurve for GroupProjective<P> {
-    const COFACTOR: &'static [u64] = P::COFACTOR;
+    type Parameters = P;
     type BaseField = P::BaseField;
     type ScalarField = P::ScalarField;
     type Affine = GroupAffine<P>;
@@ -396,14 +407,20 @@ impl<P: Parameters> ProjectiveCurve for GroupProjective<P> {
         self.is_zero() || self.z.is_one()
     }
 
+    /// Normalizes a slice of projective elements so that
+    /// conversion to affine is cheap.
+    ///
+    /// In more detail, this method converts a curve point in Jacobian
+    /// coordinates (x, y, z) into an equivalent representation (x/z^2,
+    /// y/z^3, 1).
+    ///
+    /// For `N = v.len()`, this costs 1 inversion + 6N field multiplications + N
+    /// field squarings.
+    ///
+    /// (Where batch inversion comprises 3N field multiplications + 1 inversion
+    /// of these operations)
     #[inline]
     fn batch_normalization(v: &mut [Self]) {
-        // A projective curve element (x, y, z) is normalized
-        // to its affine representation, by the conversion
-        // (x, y, z) -> (x / z^2, y / z^3, 1)
-        // Batch normalizing N short-weierstrass curve elements costs:
-        //     1 inversion + 6N field multiplications + N field squarings    (Field ops)
-        // (batch inversion requires 3N multiplications + 1 inversion)
         let mut z_s = v.iter().map(|g| g.z).collect::<Vec<_>>();
         ark_ff::batch_inversion(&mut z_s);
 
@@ -419,6 +436,11 @@ impl<P: Parameters> ProjectiveCurve for GroupProjective<P> {
             });
     }
 
+    /// Sets `self = 2 * self`. Note that Jacobian formulae are incomplete, and
+    /// so doubling cannot be computed as `self + self`. Instead, this
+    /// implementation uses the following specialized doubling formulae:
+    /// * [`P::A` is zero](http://www.hyperelliptic.org/EFD/g1p/auto-shortw-jacobian-0.html#doubling-dbl-2009-l)
+    /// * [`P::A` is not zero](https://www.hyperelliptic.org/EFD/g1p/auto-shortw-jacobian.html#doubling-dbl-2007-bl)
     fn double_in_place(&mut self) -> &mut Self {
         if self.is_zero() {
             return self;
@@ -487,6 +509,9 @@ impl<P: Parameters> ProjectiveCurve for GroupProjective<P> {
         }
     }
 
+    /// When `other.is_normalized()` (i.e., `other.z == 1`), we can use a more
+    /// efficient [formula](http://www.hyperelliptic.org/EFD/g1p/auto-shortw-jacobian-0.html#addition-madd-2007-bl)
+    /// to compute `self + other`.
     fn add_assign_mixed(&mut self, other: &GroupAffine<P>) {
         if other.is_zero() {
             return;
@@ -498,9 +523,6 @@ impl<P: Parameters> ProjectiveCurve for GroupProjective<P> {
             self.z = P::BaseField::one();
             return;
         }
-
-        // http://www.hyperelliptic.org/EFD/g1p/auto-shortw-jacobian-0.html#addition-madd-2007-bl
-        // Works for all curves.
 
         // Z1Z1 = Z1^2
         let z1z1 = self.z.square();
@@ -577,10 +599,9 @@ impl<'a, P: Parameters> Add<&'a Self> for GroupProjective<P> {
     type Output = Self;
 
     #[inline]
-    fn add(self, other: &'a Self) -> Self {
-        let mut copy = self;
-        copy += other;
-        copy
+    fn add(mut self, other: &'a Self) -> Self {
+        self += other;
+        self
     }
 }
 
@@ -653,10 +674,9 @@ impl<'a, P: Parameters> Sub<&'a Self> for GroupProjective<P> {
     type Output = Self;
 
     #[inline]
-    fn sub(self, other: &'a Self) -> Self {
-        let mut copy = self;
-        copy -= other;
-        copy
+    fn sub(mut self, other: &'a Self) -> Self {
+        self -= other;
+        self
     }
 }
 
@@ -749,6 +769,34 @@ impl<P: Parameters> CanonicalSerialize for GroupAffine<P> {
     }
 }
 
+impl<P: Parameters> CanonicalSerialize for GroupProjective<P> {
+    #[allow(unused_qualifications)]
+    #[inline]
+    fn serialize<W: Write>(&self, writer: W) -> Result<(), SerializationError> {
+        let aff = GroupAffine::<P>::from(self.clone());
+        aff.serialize(writer)
+    }
+
+    #[inline]
+    fn serialized_size(&self) -> usize {
+        let aff = GroupAffine::<P>::from(self.clone());
+        aff.serialized_size()
+    }
+
+    #[allow(unused_qualifications)]
+    #[inline]
+    fn serialize_uncompressed<W: Write>(&self, writer: W) -> Result<(), SerializationError> {
+        let aff = GroupAffine::<P>::from(self.clone());
+        aff.serialize_uncompressed(writer)
+    }
+
+    #[inline]
+    fn uncompressed_size(&self) -> usize {
+        let aff = GroupAffine::<P>::from(self.clone());
+        aff.uncompressed_size()
+    }
+}
+
 impl<P: Parameters> CanonicalDeserialize for GroupAffine<P> {
     #[allow(unused_qualifications)]
     fn deserialize<R: Read>(reader: R) -> Result<Self, SerializationError> {
@@ -785,6 +833,26 @@ impl<P: Parameters> CanonicalDeserialize for GroupAffine<P> {
             CanonicalDeserializeWithFlags::deserialize_with_flags(&mut reader)?;
         let p = GroupAffine::<P>::new(x, y, flags.is_infinity());
         Ok(p)
+    }
+}
+
+impl<P: Parameters> CanonicalDeserialize for GroupProjective<P> {
+    #[allow(unused_qualifications)]
+    fn deserialize<R: Read>(reader: R) -> Result<Self, SerializationError> {
+        let aff = GroupAffine::<P>::deserialize(reader)?;
+        Ok(aff.into())
+    }
+
+    #[allow(unused_qualifications)]
+    fn deserialize_uncompressed<R: Read>(reader: R) -> Result<Self, SerializationError> {
+        let aff = GroupAffine::<P>::deserialize_uncompressed(reader)?;
+        Ok(aff.into())
+    }
+
+    #[allow(unused_qualifications)]
+    fn deserialize_unchecked<R: Read>(reader: R) -> Result<Self, SerializationError> {
+        let aff = GroupAffine::<P>::deserialize_unchecked(reader)?;
+        Ok(aff.into())
     }
 }
 

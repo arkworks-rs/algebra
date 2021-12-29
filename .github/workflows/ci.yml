@@ -105,7 +105,19 @@ jobs:
             command: test
             args: "--workspace \
                    --all-features \
-                   --exclude ark-poly-benches"
+                   --exclude ark-poly-benches \
+                   --exclude ark-algebra-test-templates"
+
+      - name: Test assembly on nightly
+        env:
+          RUSTFLAGS: -C target-cpu=native
+        uses: actions-rs/cargo@v1
+        with:
+            command: test
+            args: "--workspace \
+                   --package ark-test-curves \
+                   --all-features"
+        if: matrix.rust == 'nightly'
 
   check_no_std:
     name: Check no_std
@@ -114,14 +126,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
-      - name: Install Rust (${{ matrix.rust }})
+      - name: Install Rust
         uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
           target: thumbv6m-none-eabi
           override: true
 
-      - name: Install Rust ARM64 (${{ matrix.rust }})
+      - name: Install Rust ARM64
         uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
@@ -140,10 +152,64 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
             command: check
-            args: --examples --workspace --exclude ark-poly-benches --target thumbv6m-none-eabi
+            args: --examples --workspace --exclude ark-algebra-test-templates --exclude ark-poly-benches --target thumbv6m-none-eabi
 
       - name: build
         uses: actions-rs/cargo@v1
         with:
             command: build
-            args: --workspace --exclude ark-poly-benches --target thumbv6m-none-eabi
+            args: --workspace --exclude ark-algebra-test-templates --exclude ark-poly-benches --target thumbv6m-none-eabi
+
+  test_against_curves:
+    name: Test against curves
+    runs-on: ubuntu-latest
+    env:
+      RUSTFLAGS: -Dwarnings
+    strategy:
+      matrix:
+        curve:
+          - bls12_377
+          - bls12_381
+          - bn254
+          - pallas
+          - bw6_761
+          - mnt4_298
+          - mnt6_298
+          - ed_on_bls12_377
+    steps:
+      - name: Checkout curves
+        uses: actions/checkout@v2
+        with:
+          repository: arkworks-rs/curves
+
+      - name: Checkout algebra
+        uses: actions/checkout@v2
+        with:
+          repository: arkworks-rs/algebra
+          path: algebra
+
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+
+      - name: Patch cargo.toml
+        run: |
+          if  grep -q "\[patch.crates-io\]" Cargo.toml ; then
+              MATCH=$(awk '/\[patch.crates-io\]/{ print NR; exit }' Cargo.toml); 
+              sed -i "$MATCH,\$d" Cargo.toml
+          fi
+          {
+            echo      "[patch.crates-io]";
+            echo      "ark-ff = { path = 'algebra/ff' }";
+            echo      "ark-serialize = { path = 'algebra/serialize' }";
+            echo      "ark-ff-macros = { path = 'algebra/ff-macros' }";
+            echo      "ark-ff-asm = { path = 'algebra/ff-asm' }";
+            echo      "ark-ec = { path = 'algebra/ec' }";
+            echo      "ark-algebra-test-templates = { path = 'algebra/test-templates' }"
+          } >> Cargo.toml
+
+      - name: Test on ${{ matrix.curve }}
+        run: "cd ${{ matrix.curve }} && cargo test --all-features"

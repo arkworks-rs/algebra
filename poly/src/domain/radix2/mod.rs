@@ -53,7 +53,7 @@ impl<F: FftField> EvaluationDomain<F> for Radix2EvaluationDomain<F> {
         let size = if num_coeffs.is_power_of_two() {
             num_coeffs as u64
         } else {
-            num_coeffs.next_power_of_two() as u64
+            num_coeffs.checked_next_power_of_two()? as u64
         };
         let log_size_of_group = size.trailing_zeros();
 
@@ -82,7 +82,7 @@ impl<F: FftField> EvaluationDomain<F> for Radix2EvaluationDomain<F> {
     }
 
     fn compute_size_of_domain(num_coeffs: usize) -> Option<usize> {
-        let size = num_coeffs.next_power_of_two();
+        let size = num_coeffs.checked_next_power_of_two()?;
         if size.trailing_zeros() > F::FftParams::TWO_ADICITY {
             None
         } else {
@@ -93,6 +93,31 @@ impl<F: FftField> EvaluationDomain<F> for Radix2EvaluationDomain<F> {
     #[inline]
     fn size(&self) -> usize {
         usize::try_from(self.size).unwrap()
+    }
+
+    #[inline]
+    fn log_size_of_group(&self) -> u64 {
+        self.log_size_of_group as u64
+    }
+
+    #[inline]
+    fn size_inv(&self) -> F {
+        self.size_inv
+    }
+
+    #[inline]
+    fn group_gen(&self) -> F {
+        self.group_gen
+    }
+
+    #[inline]
+    fn group_gen_inv(&self) -> F {
+        self.group_gen_inv
+    }
+
+    #[inline]
+    fn generator_inv(&self) -> F {
+        self.generator_inv
     }
 
     #[inline]
@@ -121,11 +146,12 @@ impl<F: FftField> EvaluationDomain<F> for Radix2EvaluationDomain<F> {
         // - Z_H: The vanishing polynomial for H. Z_H(x) = prod_{i in m} (x - hg^i) = x^m - h^m
         // - v_i: A sequence of values, where v_0 = 1/(m * h^(m-1)), and v_{i + 1} = g * v_i
         //
-        // We then compute L_{i,H}(tau) as `L_{i,H}(tau) = Z_H(tau) * v_i / (tau - h g^i)`
+        // We then compute L_{i,H}(tau) as `L_{i,H}(tau) = Z_H(tau) * v_i / (tau - h * g^i)`
         //
         // However, if tau in H, both the numerator and denominator equal 0
-        // when i corresponds to the value tau equals, and the coefficient is 0 everywhere else.
-        // We handle this case separately, and we can easily detect by checking if the vanishing poly is 0.
+        // when i corresponds to the value tau equals, and the coefficient is 0
+        // everywhere else. We handle this case separately, and we can easily
+        // detect by checking if the vanishing poly is 0.
         let size = self.size();
         // TODO: Make this use the vanishing polynomial
         let z_h_at_tau = tau.pow(&[self.size]) - F::one();
@@ -193,7 +219,8 @@ impl<F: FftField> EvaluationDomain<F> for Radix2EvaluationDomain<F> {
     /// their power of the generator which they correspond to.
     /// e.g. the `i`-th element is g^i
     fn element(&self, i: usize) -> F {
-        // TODO: Consider precomputed exponentiation tables if we need this to be faster.
+        // TODO: Consider precomputed exponentiation tables if we need this to be
+        // faster.
         self.group_gen.pow(&[i as u64])
     }
 
@@ -210,13 +237,14 @@ impl<F: FftField> EvaluationDomain<F> for Radix2EvaluationDomain<F> {
 
 #[cfg(test)]
 mod tests {
-    use crate::domain::Vec;
-    use crate::polynomial::{univariate::*, Polynomial, UVPolynomial};
-    use crate::{EvaluationDomain, Radix2EvaluationDomain};
+    use crate::{
+        domain::Vec,
+        polynomial::{univariate::*, Polynomial, UVPolynomial},
+        EvaluationDomain, Radix2EvaluationDomain,
+    };
     use ark_ff::{FftField, Field, One, UniformRand, Zero};
-    use ark_std::test_rng;
+    use ark_std::{rand::Rng, test_rng};
     use ark_test_curves::bls12_381::Fr;
-    use rand::Rng;
 
     #[test]
     fn vanishing_polynomial_evaluation() {
@@ -266,7 +294,8 @@ mod tests {
         }
     }
 
-    /// Test that lagrange interpolation for a random polynomial at a random point works.
+    /// Test that lagrange interpolation for a random polynomial at a random
+    /// point works.
     #[test]
     fn non_systematic_lagrange_coefficients_test() {
         for domain_dim in 1..10 {
@@ -276,7 +305,8 @@ mod tests {
             let rand_pt = Fr::rand(&mut test_rng());
             let lagrange_coeffs = domain.evaluate_all_lagrange_coefficients(rand_pt);
 
-            // Sample the random polynomial, evaluate it over the domain and the random point.
+            // Sample the random polynomial, evaluate it over the domain and the random
+            // point.
             let rand_poly = DensePolynomial::<Fr>::rand(domain_size - 1, &mut test_rng());
             let poly_evals = domain.fft(rand_poly.coeffs());
             let actual_eval = rand_poly.evaluate(&rand_pt);
@@ -293,8 +323,8 @@ mod tests {
     /// Test that lagrange coefficients for a point in the domain is correct
     #[test]
     fn systematic_lagrange_coefficients_test() {
-        // This runs in time O(N^2) in the domain size, so keep the domain dimension low.
-        // We generate lagrange coefficients for each element in the domain.
+        // This runs in time O(N^2) in the domain size, so keep the domain dimension
+        // low. We generate lagrange coefficients for each element in the domain.
         for domain_dim in 1..5 {
             let domain_size = 1 << domain_dim;
             let domain = Radix2EvaluationDomain::<Fr>::new(domain_size).unwrap();

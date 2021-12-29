@@ -1,5 +1,11 @@
 #![cfg_attr(not(feature = "std"), no_std)]
-#![warn(unused, future_incompatible, nonstandard_style, rust_2018_idioms)]
+#![warn(
+    unused,
+    future_incompatible,
+    nonstandard_style,
+    rust_2018_idioms,
+    rust_2021_compatibility
+)]
 #![forbid(unsafe_code)]
 #![allow(
     clippy::op_ref,
@@ -13,10 +19,9 @@ extern crate derivative;
 #[macro_use]
 extern crate ark_std;
 
-use crate::group::Group;
 use ark_ff::{
     bytes::{FromBytes, ToBytes},
-    fields::{Field, PrimeField, SquareRootField},
+    fields::{BitIteratorBE, Field, PrimeField, SquareRootField},
     UniformRand,
 };
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
@@ -32,9 +37,13 @@ use zeroize::Zeroize;
 pub mod models;
 pub use self::models::*;
 
+pub mod glv;
+
 pub mod group;
 
 pub mod msm;
+
+pub mod wnaf;
 
 pub trait PairingEngine: Sized + 'static + Copy + Debug + Sync + Send + Eq + PartialEq {
     /// This is the scalar field of the G1/G2 groups.
@@ -79,13 +88,13 @@ pub trait PairingEngine: Sized + 'static + Copy + Debug + Sync + Send + Eq + Par
     /// The extension field that hosts the target group of the pairing.
     type Fqk: Field;
 
-    /// Perform a miller loop with some number of (G1, G2) pairs.
+    /// Computes the product of miller loops for some number of (G1, G2) pairs.
     #[must_use]
     fn miller_loop<'a, I>(i: I) -> Self::Fqk
     where
         I: IntoIterator<Item = &'a (Self::G1Prepared, Self::G2Prepared)>;
 
-    /// Perform final exponentiation of the result of a miller loop.
+    /// Performs final exponentiation of the result of a miller loop.
     #[must_use]
     fn final_exponentiation(_: &Self::Fqk) -> Option<Self::Fqk>;
 
@@ -119,6 +128,8 @@ pub trait ProjectiveCurve:
     + Sized
     + ToBytes
     + FromBytes
+    + CanonicalSerialize
+    + CanonicalDeserialize
     + Copy
     + Clone
     + Default
@@ -144,11 +155,15 @@ pub trait ProjectiveCurve:
     + for<'a> core::iter::Sum<&'a Self>
     + From<<Self as ProjectiveCurve>::Affine>
 {
-    const COFACTOR: &'static [u64];
+    type Parameters: ModelParameters<ScalarField = Self::ScalarField, BaseField = Self::BaseField>;
     type ScalarField: PrimeField + SquareRootField;
     type BaseField: Field;
-    type Affine: AffineCurve<Projective = Self, ScalarField = Self::ScalarField, BaseField = Self::BaseField>
-        + From<Self>
+    type Affine: AffineCurve<
+            Parameters = Self::Parameters,
+            Projective = Self,
+            ScalarField = Self::ScalarField,
+            BaseField = Self::BaseField,
+        > + From<Self>
         + Into<Self>;
 
     /// Returns a fixed generator of unknown exponent.
@@ -188,14 +203,14 @@ pub trait ProjectiveCurve:
         (*self).into()
     }
 
-    /// Set `self` to be `self + other`, where `other: Self::Affine`.
+    /// Sets `self` to be `self + other`, where `other: Self::Affine`.
     /// This is usually faster than adding `other` in projective form.
     fn add_mixed(mut self, other: &Self::Affine) -> Self {
         self.add_assign_mixed(other);
         self
     }
 
-    /// Set `self` to be `self + other`, where `other: Self::Affine`.
+    /// Sets `self` to be `self + other`, where `other: Self::Affine`.
     /// This is usually faster than adding `other` in projective form.
     fn add_assign_mixed(&mut self, other: &Self::Affine);
 
@@ -227,6 +242,7 @@ pub trait AffineCurve:
     + Copy
     + Clone
     + Default
+    + UniformRand
     + Send
     + Sync
     + Hash
@@ -235,13 +251,19 @@ pub trait AffineCurve:
     + Zero
     + Neg<Output = Self>
     + Zeroize
+    + core::iter::Sum<Self>
+    + for<'a> core::iter::Sum<&'a Self>
     + From<<Self as AffineCurve>::Projective>
 {
-    const COFACTOR: &'static [u64];
+    type Parameters: ModelParameters<ScalarField = Self::ScalarField, BaseField = Self::BaseField>;
     type ScalarField: PrimeField + SquareRootField + Into<<Self::ScalarField as PrimeField>::BigInt>;
     type BaseField: Field;
-    type Projective: ProjectiveCurve<Affine = Self, ScalarField = Self::ScalarField, BaseField = Self::BaseField>
-        + From<Self>
+    type Projective: ProjectiveCurve<
+            Parameters = Self::Parameters,
+            Affine = Self,
+            ScalarField = Self::ScalarField,
+            BaseField = Self::BaseField,
+        > + From<Self>
         + Into<Self>
         + MulAssign<Self::ScalarField>; // needed due to https://github.com/rust-lang/rust/issues/69640
 
@@ -259,29 +281,50 @@ pub trait AffineCurve:
     /// random group elements from a hash-function or RNG output.
     fn from_random_bytes(bytes: &[u8]) -> Option<Self>;
 
+    /// Multiplies `self` by the scalar represented by `bits`. `bits` must be a
+    /// big-endian bit-wise decomposition of the scalar.
+    fn mul_bits(&self, bits: impl Iterator<Item = bool>) -> Self::Projective {
+        let mut res = Self::Projective::zero();
+        // Skip leading zeros.
+        for i in bits.skip_while(|b| !b) {
+            res.double_in_place();
+            if i {
+                res.add_assign_mixed(&self)
+            }
+        }
+        res
+    }
+
     /// Performs scalar multiplication of this element with mixed addition.
     #[must_use]
-    fn mul<S: Into<<Self::ScalarField as PrimeField>::BigInt>>(&self, other: S)
-        -> Self::Projective;
+    #[inline]
+    fn mul<S: Into<<Self::ScalarField as PrimeField>::BigInt>>(&self, by: S) -> Self::Projective {
+        self.mul_bits(BitIteratorBE::without_leading_zeros(by.into()))
+    }
 
-    /// Multiply this element by the cofactor and output the
+    /// Multiplies this element by the cofactor and output the
     /// resulting projective element.
     #[must_use]
-    fn mul_by_cofactor_to_projective(&self) -> Self::Projective;
+    #[inline]
+    fn mul_by_cofactor_to_projective(&self) -> Self::Projective {
+        self.mul_bits(BitIteratorBE::new(Self::Parameters::COFACTOR))
+    }
 
-    /// Multiply this element by the cofactor.
+    /// Multiplies this element by the cofactor.
     #[must_use]
     fn mul_by_cofactor(&self) -> Self {
         self.mul_by_cofactor_to_projective().into()
     }
 
-    /// Multiply this element by the inverse of the cofactor in
+    /// Multiplies this element by the inverse of the cofactor in
     /// `Self::ScalarField`.
     #[must_use]
-    fn mul_by_cofactor_inv(&self) -> Self;
+    fn mul_by_cofactor_inv(&self) -> Self {
+        self.mul(Self::Parameters::COFACTOR_INV).into()
+    }
 }
 
-impl<C: ProjectiveCurve> Group for C {
+impl<C: ProjectiveCurve> crate::group::Group for C {
     type ScalarField = C::ScalarField;
 
     #[inline]
@@ -298,27 +341,42 @@ impl<C: ProjectiveCurve> Group for C {
     }
 }
 
-/// Preprocess a G1 element for use in a pairing.
+/// Preprocesses a G1 element for use in a pairing.
 pub fn prepare_g1<E: PairingEngine>(g: impl Into<E::G1Affine>) -> E::G1Prepared {
     let g: E::G1Affine = g.into();
     E::G1Prepared::from(g)
 }
 
-/// Preprocess a G2 element for use in a pairing.
+/// Preprocesses a G2 element for use in a pairing.
 pub fn prepare_g2<E: PairingEngine>(g: impl Into<E::G2Affine>) -> E::G2Prepared {
     let g: E::G2Affine = g.into();
     E::G2Prepared::from(g)
 }
 
-/// A cycle of pairing-friendly elliptic curves.
-pub trait CycleEngine: Sized + 'static + Copy + Debug + Sync + Send
+pub trait CurveCycle
 where
-    <Self::E2 as PairingEngine>::G1Projective: MulAssign<<Self::E1 as PairingEngine>::Fq>,
-    <Self::E2 as PairingEngine>::G2Projective: MulAssign<<Self::E1 as PairingEngine>::Fq>,
+    <Self::E1 as AffineCurve>::Projective: MulAssign<<Self::E2 as AffineCurve>::BaseField>,
+    <Self::E2 as AffineCurve>::Projective: MulAssign<<Self::E1 as AffineCurve>::BaseField>,
 {
-    type E1: PairingEngine;
-    type E2: PairingEngine<
-        Fr = <Self::E1 as PairingEngine>::Fq,
-        Fq = <Self::E1 as PairingEngine>::Fr,
+    type E1: AffineCurve<
+        BaseField = <Self::E2 as AffineCurve>::ScalarField,
+        ScalarField = <Self::E2 as AffineCurve>::BaseField,
+    >;
+    type E2: AffineCurve;
+}
+
+pub trait PairingFriendlyCycle: CurveCycle {
+    type Engine1: PairingEngine<
+        G1Affine = Self::E1,
+        G1Projective = <Self::E1 as AffineCurve>::Projective,
+        Fq = <Self::E1 as AffineCurve>::BaseField,
+        Fr = <Self::E1 as AffineCurve>::ScalarField,
+    >;
+
+    type Engine2: PairingEngine<
+        G1Affine = Self::E2,
+        G1Projective = <Self::E2 as AffineCurve>::Projective,
+        Fq = <Self::E2 as AffineCurve>::BaseField,
+        Fr = <Self::E2 as AffineCurve>::ScalarField,
     >;
 }

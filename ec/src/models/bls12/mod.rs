@@ -8,19 +8,31 @@ use ark_ff::fields::{
     fp6_3over2::Fp6Parameters,
     BitIteratorBE, Field, Fp2, PrimeField, SquareRootField,
 };
-use num_traits::One;
-
 use core::marker::PhantomData;
+use num_traits::{One, Zero};
 
+#[cfg(feature = "parallel")]
+use ark_std::cfg_iter;
+#[cfg(feature = "parallel")]
+use core::slice::Iter;
+#[cfg(feature = "parallel")]
+use rayon::iter::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator};
+
+/// A particular BLS12 group can have G2 being either a multiplicative or a
+/// divisive twist.
 pub enum TwistType {
     M,
     D,
 }
 
 pub trait Bls12Parameters: 'static {
+    /// Parameterizes the BLS12 family.
     const X: &'static [u64];
+    /// Is `Self::X` negative?
     const X_IS_NEGATIVE: bool;
+    /// What kind of twist is this?
     const TWIST_TYPE: TwistType;
+
     type Fp: PrimeField + SquareRootField + Into<<Self::Fp as PrimeField>::BigInt>;
     type Fp2Params: Fp2Parameters<Fp = Self::Fp>;
     type Fp6Params: Fp6Parameters<Fp2Params = Self::Fp2Params>;
@@ -65,12 +77,12 @@ impl<P: Bls12Parameters> Bls12<P> {
         }
     }
 
-    fn exp_by_x(mut f: Fp12<P::Fp12Params>) -> Fp12<P::Fp12Params> {
-        f = f.cyclotomic_exp(P::X);
+    // Exponentiates `f` by `Self::X`, and stores the result in `result`.
+    fn exp_by_x(f: &Fp12<P::Fp12Params>, result: &mut Fp12<P::Fp12Params>) {
+        *result = f.cyclotomic_exp(P::X);
         if P::X_IS_NEGATIVE {
-            f.conjugate();
+            result.conjugate();
         }
-        f
     }
 }
 
@@ -86,6 +98,36 @@ impl<P: Bls12Parameters> PairingEngine for Bls12<P> {
     type Fqe = Fp2<P::Fp2Params>;
     type Fqk = Fp12<P::Fp12Params>;
 
+    #[cfg(not(feature = "parallel"))]
+    fn miller_loop<'a, I>(i: I) -> Self::Fqk
+    where
+        I: IntoIterator<Item = &'a (Self::G1Prepared, Self::G2Prepared)>,
+    {
+        let mut pairs = vec![];
+        for (p, q) in i {
+            if !p.is_zero() && !q.is_zero() {
+                pairs.push((p, q.ell_coeffs.iter()));
+            }
+        }
+        let mut f = Self::Fqk::one();
+        for i in BitIteratorBE::new(P::X).skip(1) {
+            f.square_in_place();
+            for (p, ref mut coeffs) in &mut pairs {
+                Self::ell(&mut f, coeffs.next().unwrap(), &p.0);
+            }
+            if i {
+                for &mut (p, ref mut coeffs) in &mut pairs {
+                    Self::ell(&mut f, coeffs.next().unwrap(), &p.0);
+                }
+            }
+        }
+        if P::X_IS_NEGATIVE {
+            f.conjugate();
+        }
+        f
+    }
+
+    #[cfg(feature = "parallel")]
     fn miller_loop<'a, I>(i: I) -> Self::Fqk
     where
         I: IntoIterator<Item = &'a (Self::G1Prepared, Self::G2Prepared)>,
@@ -97,35 +139,56 @@ impl<P: Bls12Parameters> PairingEngine for Bls12<P> {
             }
         }
 
-        let mut f = Self::Fqk::one();
-
-        for i in BitIteratorBE::new(P::X).skip(1) {
-            f.square_in_place();
-
-            for (p, ref mut coeffs) in &mut pairs {
-                Self::ell(&mut f, coeffs.next().unwrap(), &p.0);
-            }
-
-            if i {
-                for &mut (p, ref mut coeffs) in &mut pairs {
-                    Self::ell(&mut f, coeffs.next().unwrap(), &p.0);
-                }
-            }
+        let mut f_vec = vec![];
+        for _ in 0..pairs.len() {
+            f_vec.push(Self::Fqk::one());
         }
 
+        let a = |p: &&G1Prepared<P>,
+                 coeffs: &Iter<
+            '_,
+            (
+                Fp2<<P as Bls12Parameters>::Fp2Params>,
+                Fp2<<P as Bls12Parameters>::Fp2Params>,
+                Fp2<<P as Bls12Parameters>::Fp2Params>,
+            ),
+        >,
+                 mut f: Fp12<<P as Bls12Parameters>::Fp12Params>|
+         -> Fp12<<P as Bls12Parameters>::Fp12Params> {
+            let coeffs = coeffs.as_slice();
+            let mut j = 0;
+            for i in BitIteratorBE::new(P::X).skip(1) {
+                f.square_in_place();
+                Self::ell(&mut f, &coeffs[j], &p.0);
+                j += 1;
+                if i {
+                    Self::ell(&mut f, &coeffs[j], &p.0);
+                    j += 1;
+                }
+            }
+            f
+        };
+
+        let mut products = vec![];
+        cfg_iter!(pairs)
+            .zip(f_vec)
+            .map(|(p, f)| a(&p.0, &p.1, f))
+            .collect_into_vec(&mut products);
+
+        let mut f = Self::Fqk::one();
+        for ff in products {
+            f *= ff;
+        }
         if P::X_IS_NEGATIVE {
             f.conjugate();
         }
-
         f
     }
 
     fn final_exponentiation(f: &Self::Fqk) -> Option<Self::Fqk> {
         // Computing the final exponentation following
-        // https://eprint.iacr.org/2016/130.pdf.
-        // We don't use their "faster" formula because it is difficult to make
-        // it work for curves with odd `P::X`.
-        // Hence we implement the algorithm from Table 1 below.
+        // https://eprint.iacr.org/2020/875
+        // Adapted from the implementation in https://github.com/ConsenSys/gurvy/pull/29
 
         // f1 = r.conjugate() = f^(p^6)
         let mut f1 = *f;
@@ -145,35 +208,47 @@ impl<P: Bls12Parameters> PairingEngine for Bls12<P> {
             // r = f^((p^6 - 1)(p^2 + 1))
             r *= &f2;
 
-            // Hard part of the final exponentation is below:
-            // From https://eprint.iacr.org/2016/130.pdf, Table 1
+            // Hard part of the final exponentation:
+            // t[0].CyclotomicSquare(&result)
             let mut y0 = r.cyclotomic_square();
-            y0.conjugate();
-
-            let mut y5 = Self::exp_by_x(r);
-
-            let mut y1 = y5.cyclotomic_square();
-            let mut y3 = y0 * &y5;
-            y0 = Self::exp_by_x(y3);
-            let y2 = Self::exp_by_x(y0);
-            let mut y4 = Self::exp_by_x(y2);
-            y4 *= &y1;
-            y1 = Self::exp_by_x(y4);
-            y3.conjugate();
-            y1 *= &y3;
-            y1 *= &r;
-            y3 = r;
-            y3.conjugate();
-            y0 *= &r;
-            y0.frobenius_map(3);
-            y4 *= &y3;
-            y4.frobenius_map(1);
-            y5 *= &y2;
-            y5.frobenius_map(2);
-            y5 *= &y0;
-            y5 *= &y4;
-            y5 *= &y1;
-            y5
+            // t[1].Expt(&result)
+            let mut y1 = Fp12::zero();
+            Self::exp_by_x(&r, &mut y1);
+            // t[2].InverseUnitary(&result)
+            let mut y2 = r;
+            y2.conjugate();
+            // t[1].Mul(&t[1], &t[2])
+            y1 *= &y2;
+            // t[2].Expt(&t[1])
+            Self::exp_by_x(&y1, &mut y2);
+            // t[1].InverseUnitary(&t[1])
+            y1.conjugate();
+            // t[1].Mul(&t[1], &t[2])
+            y1 *= &y2;
+            // t[2].Expt(&t[1])
+            Self::exp_by_x(&y1, &mut y2);
+            // t[1].Frobenius(&t[1])
+            y1.frobenius_map(1);
+            // t[1].Mul(&t[1], &t[2])
+            y1 *= &y2;
+            // result.Mul(&result, &t[0])
+            r *= &y0;
+            // t[0].Expt(&t[1])
+            Self::exp_by_x(&y1, &mut y0);
+            // t[2].Expt(&t[0])
+            Self::exp_by_x(&y0, &mut y2);
+            // t[0].FrobeniusSquare(&t[1])
+            y0 = y1;
+            y0.frobenius_map(2);
+            // t[1].InverseUnitary(&t[1])
+            y1.conjugate();
+            // t[1].Mul(&t[1], &t[2])
+            y1 *= &y2;
+            // t[1].Mul(&t[1], &t[0])
+            y1 *= &y0;
+            // result.Mul(&result, &t[1])
+            r *= &y1;
+            r
         })
     }
 }

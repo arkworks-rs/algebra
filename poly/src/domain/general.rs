@@ -201,6 +201,31 @@ impl<F: FftField> EvaluationDomain<F> for GeneralEvaluationDomain<F> {
     }
 
     #[inline]
+    fn log_size_of_group(&self) -> u64 {
+        map!(self, log_size_of_group) as u64
+    }
+
+    #[inline]
+    fn size_inv(&self) -> F {
+        map!(self, size_inv)
+    }
+
+    #[inline]
+    fn group_gen(&self) -> F {
+        map!(self, group_gen)
+    }
+
+    #[inline]
+    fn group_gen_inv(&self) -> F {
+        map!(self, group_gen_inv)
+    }
+
+    #[inline]
+    fn generator_inv(&self) -> F {
+        map!(self, generator_inv)
+    }
+
+    #[inline]
     fn fft_in_place<T: DomainCoeff<F>>(&self, coeffs: &mut Vec<T>) {
         map!(self, fft_in_place, coeffs)
     }
@@ -260,13 +285,10 @@ impl<F: FftField> Iterator for GeneralElements<F> {
 
 #[cfg(test)]
 mod tests {
-    use crate::polynomial::Polynomial;
-    use crate::{EvaluationDomain, GeneralEvaluationDomain};
+    use crate::{polynomial::Polynomial, EvaluationDomain, GeneralEvaluationDomain};
     use ark_ff::Zero;
-    use ark_std::test_rng;
-    use ark_test_curves::bls12_381::Fr;
-    use ark_test_curves::mnt4_753::Fq as MNT6Fr;
-    use rand::Rng;
+    use ark_std::{rand::Rng, test_rng};
+    use ark_test_curves::{bls12_381::Fr, bn384_small_two_adicity::Fr as BNFr};
 
     #[test]
     fn vanishing_polynomial_evaluation() {
@@ -284,7 +306,7 @@ mod tests {
         }
 
         for coeffs in 15..17 {
-            let domain = GeneralEvaluationDomain::<MNT6Fr>::new(coeffs).unwrap();
+            let domain = GeneralEvaluationDomain::<BNFr>::new(coeffs).unwrap();
             let z = domain.vanishing_polynomial();
             for _ in 0..100 {
                 let point = rng.gen();

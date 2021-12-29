@@ -128,6 +128,31 @@ impl<F: FftField> EvaluationDomain<F> for MixedRadixEvaluationDomain<F> {
     }
 
     #[inline]
+    fn log_size_of_group(&self) -> u64 {
+        self.log_size_of_group as u64
+    }
+
+    #[inline]
+    fn size_inv(&self) -> F {
+        self.size_inv
+    }
+
+    #[inline]
+    fn group_gen(&self) -> F {
+        self.group_gen
+    }
+
+    #[inline]
+    fn group_gen_inv(&self) -> F {
+        self.group_gen_inv
+    }
+
+    #[inline]
+    fn generator_inv(&self) -> F {
+        self.generator_inv
+    }
+
+    #[inline]
     fn fft_in_place<T: DomainCoeff<F>>(&self, coeffs: &mut Vec<T>) {
         coeffs.resize(self.size(), T::zero());
         best_fft(
@@ -214,7 +239,8 @@ impl<F: FftField> EvaluationDomain<F> for MixedRadixEvaluationDomain<F> {
     /// their power of the generator which they correspond to.
     /// e.g. the `i`-th element is g^i
     fn element(&self, i: usize) -> F {
-        // TODO: Consider precomputed exponentiation tables if we need this to be faster.
+        // TODO: Consider precomputed exponentiation tables if we need this to be
+        // faster.
         self.group_gen.pow(&[i as u64])
     }
 
@@ -405,17 +431,15 @@ pub(crate) fn serial_mixed_radix_fft<T: DomainCoeff<F>, F: FftField>(
 
 #[cfg(test)]
 mod tests {
-    use crate::polynomial::Polynomial;
-    use crate::{EvaluationDomain, MixedRadixEvaluationDomain};
+    use crate::{polynomial::Polynomial, EvaluationDomain, MixedRadixEvaluationDomain};
     use ark_ff::{Field, Zero};
-    use ark_std::test_rng;
-    use ark_test_curves::mnt4_753::Fq as Fr;
-    use rand::Rng;
+    use ark_std::{rand::Rng, test_rng};
+    use ark_test_curves::bn384_small_two_adicity::Fq as Fr;
 
     #[test]
     fn vanishing_polynomial_evaluation() {
         let rng = &mut test_rng();
-        for coeffs in 0..17 {
+        for coeffs in 0..12 {
             let domain = MixedRadixEvaluationDomain::<Fr>::new(coeffs).unwrap();
             let z = domain.vanishing_polynomial();
             for _ in 0..100 {
@@ -441,7 +465,7 @@ mod tests {
 
     #[test]
     fn size_of_elements() {
-        for coeffs in 1..17 {
+        for coeffs in 1..12 {
             let size = 1 << coeffs;
             let domain = MixedRadixEvaluationDomain::<Fr>::new(size).unwrap();
             let domain_size = domain.size();
@@ -451,7 +475,7 @@ mod tests {
 
     #[test]
     fn elements_contents() {
-        for coeffs in 1..17 {
+        for coeffs in 1..12 {
             let size = 1 << coeffs;
             let domain = MixedRadixEvaluationDomain::<Fr>::new(size).unwrap();
             for (i, element) in domain.elements().enumerate() {
@@ -467,7 +491,7 @@ mod tests {
         use crate::domain::utils::parallel_fft;
         use ark_ff::PrimeField;
         use ark_std::{test_rng, vec::Vec};
-        use ark_test_curves::mnt4_753::Fq as Fr;
+        use ark_test_curves::bn384_small_two_adicity::Fq as Fr;
         use core::cmp::min;
 
         fn test_consistency<F: PrimeField, R: Rng>(rng: &mut R, max_coeffs: u32) {

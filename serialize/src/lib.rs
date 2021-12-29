@@ -1,5 +1,11 @@
 #![cfg_attr(not(feature = "std"), no_std)]
-#![warn(unused, future_incompatible, nonstandard_style, rust_2018_idioms)]
+#![warn(
+    unused,
+    future_incompatible,
+    nonstandard_style,
+    rust_2018_idioms,
+    rust_2021_compatibility
+)]
 #![forbid(unsafe_code)]
 mod error;
 mod flags;
@@ -20,6 +26,8 @@ pub use flags::*;
 #[doc(hidden)]
 pub use ark_serialize_derive::*;
 
+use digest::{generic_array::GenericArray, Digest, OutputSizeUser};
+
 /// Serializer in little endian format allowing to encode flags.
 pub trait CanonicalSerializeWithFlags: CanonicalSerialize {
     /// Serializes `self` and `flags` into `writer`.
@@ -36,8 +44,8 @@ pub trait CanonicalSerializeWithFlags: CanonicalSerialize {
 /// Serializer in little endian format.
 /// The serialization format must be 'length-extension' safe.
 /// e.g. if T implements Canonical Serialize and Deserialize,
-/// then for all strings `x, y`, if `a = T::deserialize(Reader(x))` and `a` is not an error,
-/// then it must be the case that `a = T::deserialize(Reader(x || y))`,
+/// then for all strings `x, y`, if `a = T::deserialize(Reader(x))` and `a` is
+/// not an error, then it must be the case that `a = T::deserialize(Reader(x || y))`,
 /// and that both readers read the same number of bytes.
 ///
 /// This trait can be derived if all fields of a struct implement
@@ -62,8 +70,9 @@ pub trait CanonicalSerialize {
     /// Serializes `self` into `writer`.
     /// It is left up to a particular type for how it strikes the
     /// serialization efficiency vs compression tradeoff.
-    /// For standard types (e.g. `bool`, lengths, etc.) typically an uncompressed
-    /// form is used, whereas for algebraic types compressed forms are used.
+    /// For standard types (e.g. `bool`, lengths, etc.) typically an
+    /// uncompressed form is used, whereas for algebraic types compressed
+    /// forms are used.
     ///
     /// Particular examples of interest:
     /// `bool` - 1 byte encoding
@@ -93,6 +102,45 @@ pub trait CanonicalSerialize {
         self.serialized_size()
     }
 }
+
+// This private struct works around Serialize taking the pre-existing
+// std::io::Write instance of most digest::Digest implementations by value
+struct HashMarshaller<'a, H: Digest>(&'a mut H);
+
+impl<'a, H: Digest> ark_std::io::Write for HashMarshaller<'a, H> {
+    #[inline]
+    fn write(&mut self, buf: &[u8]) -> ark_std::io::Result<usize> {
+        Digest::update(self.0, buf);
+        Ok(buf.len())
+    }
+
+    #[inline]
+    fn flush(&mut self) -> ark_std::io::Result<()> {
+        Ok(())
+    }
+}
+
+/// The CanonicalSerialize induces a natural way to hash the
+/// corresponding value, of which this is the convenience trait.
+pub trait CanonicalSerializeHashExt: CanonicalSerialize {
+    fn hash<H: Digest>(&self) -> GenericArray<u8, <H as OutputSizeUser>::OutputSize> {
+        let mut hasher = H::new();
+        self.serialize(HashMarshaller(&mut hasher))
+            .expect("HashMarshaller::flush should be infaillible!");
+        hasher.finalize()
+    }
+
+    fn hash_uncompressed<H: Digest>(&self) -> GenericArray<u8, <H as OutputSizeUser>::OutputSize> {
+        let mut hasher = H::new();
+        self.serialize_uncompressed(HashMarshaller(&mut hasher))
+            .expect("HashMarshaller::flush should be infaillible!");
+        hasher.finalize()
+    }
+}
+
+/// CanonicalSerializeHashExt is a (blanket) extension trait of
+/// CanonicalSerialize
+impl<T: CanonicalSerialize> CanonicalSerializeHashExt for T {}
 
 /// Deserializer in little endian format allowing flags to be encoded.
 pub trait CanonicalDeserializeWithFlags: Sized {
@@ -621,7 +669,7 @@ impl<T: CanonicalDeserialize> CanonicalDeserialize for Rc<T> {
 impl CanonicalSerialize for bool {
     #[inline]
     fn serialize<W: Write>(&self, writer: W) -> Result<(), SerializationError> {
-        Ok((*self as u8).serialize(writer)?)
+        (*self as u8).serialize(writer)
     }
 
     #[inline]
@@ -815,8 +863,7 @@ impl<T: CanonicalDeserialize + Ord> CanonicalDeserialize for BTreeSet<T> {
 #[cfg(test)]
 mod test {
     use super::*;
-    use ark_std::vec;
-    use rand::{RngCore, SeedableRng};
+    use ark_std::{rand::RngCore, vec};
 
     #[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Debug)]
     struct Dummy;
@@ -897,6 +944,28 @@ mod test {
         assert_eq!(data, de);
     }
 
+    fn test_hash<T: CanonicalSerialize, H: Digest + core::fmt::Debug>(data: T) {
+        let h1 = data.hash::<H>();
+
+        let mut hash = H::new();
+        let mut serialized = vec![0; data.serialized_size()];
+        data.serialize(&mut serialized[..]).unwrap();
+        hash.update(&serialized);
+        let h2 = hash.finalize();
+
+        assert_eq!(h1, h2);
+
+        let h3 = data.hash_uncompressed::<H>();
+
+        let mut hash = H::new();
+        serialized = vec![0; data.uncompressed_size()];
+        data.serialize_uncompressed(&mut serialized[..]).unwrap();
+        hash.update(&serialized);
+        let h4 = hash.finalize();
+
+        assert_eq!(h3, h4);
+    }
+
     // Serialize T, randomly mutate the data, and deserialize it.
     // Ensure it fails.
     // Up to the caller to provide a valid mutation criterion
@@ -909,13 +978,7 @@ mod test {
         data: T,
         valid_mutation: fn(&[u8]) -> bool,
     ) {
-        // Seed copied from StdRng tests,
-        // https://rust-random.github.io/rand/src/rand/rngs/std.rs.html#87
-        let seed = [
-            1, 0, 0, 0, 23, 0, 0, 0, 200, 1, 0, 0, 210, 30, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0,
-        ];
-        let mut r = rand::rngs::StdRng::from_seed(seed);
+        let mut r = ark_std::test_rng();
         let mut serialized = vec![0; data.serialized_size()];
         r.fill_bytes(&mut serialized);
         while !valid_mutation(&serialized) {
@@ -1029,5 +1092,23 @@ mod test {
     #[test]
     fn test_phantomdata() {
         test_serialize(core::marker::PhantomData::<Dummy>);
+    }
+
+    #[test]
+    fn test_sha2() {
+        test_hash::<_, sha2::Sha256>(Dummy);
+        test_hash::<_, sha2::Sha512>(Dummy);
+    }
+
+    #[test]
+    fn test_blake2() {
+        test_hash::<_, blake2::Blake2b512>(Dummy);
+        test_hash::<_, blake2::Blake2s256>(Dummy);
+    }
+
+    #[test]
+    fn test_sha3() {
+        test_hash::<_, sha3::Sha3_256>(Dummy);
+        test_hash::<_, sha3::Sha3_512>(Dummy);
     }
 }

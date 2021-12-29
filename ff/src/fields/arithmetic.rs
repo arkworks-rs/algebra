@@ -6,13 +6,31 @@
 /// zero bit in the rest of the modulus.
 macro_rules! impl_field_mul_assign {
     ($limbs:expr) => {
-        paste::paste! {
-            #[inline(always)]
-            #[ark_ff_asm::unroll_for_loops]
-            fn [<mul_assign _id $limbs>]<P: FpParams<N>, const N: usize>(
-                input: &mut [u64; N],
-                other: [u64; N],
-            ) {
+        #[inline]
+        #[ark_ff_asm::unroll_for_loops]
+        fn mul_assign(&mut self, other: &Self) {
+            // Checking the modulus at compile time
+            let first_bit_set = P::MODULUS.0[$limbs - 1] >> 63 != 0;
+            // $limbs can be 1, hence we can run into a case with an unused mut.
+            #[allow(unused_mut)]
+            let mut all_bits_set = P::MODULUS.0[$limbs - 1] == !0 - (1 << 63);
+            for i in 1..$limbs {
+                all_bits_set &= P::MODULUS.0[$limbs - i - 1] == !0u64;
+            }
+            let _no_carry: bool = !(first_bit_set || all_bits_set);
+
+            // No-carry optimisation applied to CIOS
+            if _no_carry {
+                #[cfg(use_asm)]
+                #[allow(unsafe_code, unused_mut)]
+                {
+                    // Tentatively avoid using assembly for `$limbs == 1`.
+                    if $limbs <= 6 && $limbs > 1 {
+                        ark_ff_asm::x86_64_asm_mul!($limbs, (self.0).0, (other.0).0);
+                        self.reduce();
+                        return;
+                    }
+                }
                 let mut r = [0u64; $limbs];
                 let mut carry1 = 0u64;
                 let mut carry2 = 0u64;
@@ -34,18 +52,17 @@ macro_rules! impl_field_mul_assign {
 }
 
 macro_rules! impl_field_into_repr {
-    ($limbs:expr) => {
-        paste::paste! {
-            #[inline]
-            #[ark_ff_asm::unroll_for_loops]
-            fn [<into_repr _id $limbs>]<P: FpParams<N>, const N: usize>(
-                input: [u64; N]
-            ) -> BigInt<N> {
-                let mut r = input;
-                // Montgomery Reduction
-                for i in 0..$limbs {
-                    let k = r[i].wrapping_mul(P::INV);
-                    let mut carry = 0;
+    ($limbs:expr, $BigIntegerType:ty) => {
+        #[inline]
+        #[ark_ff_asm::unroll_for_loops]
+        #[allow(clippy::modulo_one)]
+        fn into_repr(&self) -> $BigIntegerType {
+            let mut tmp = self.0;
+            let mut r = tmp.0;
+            // Montgomery Reduction
+            for i in 0..$limbs {
+                let k = r[i].wrapping_mul(P::INV);
+                let mut carry = 0;
 
                     mac_with_carry!(r[i], k, P::MODULUS.0[0], &mut carry);
                     for j in 1..$limbs {
@@ -62,33 +79,34 @@ macro_rules! impl_field_into_repr {
 // macro_rules! impl_deserialize_flags {
 macro_rules! impl_serialize_flags {
     ($limbs: expr) => {
-        paste::paste! {
-            #[inline(always)]
-            fn [<serialize _id $limbs>]<P: FpParams<N>, W: ark_std::io::Write, F: Flags, const N: usize>(
-                input: &Fp<P, N>,
-                mut writer: W,
-                flags: F,
-            ) -> Result<(), SerializationError> {
-                // Calculate the number of bytes required to represent a field element
-                // serialized with `flags`. If `F::BIT_SIZE < 8`,
-                // this is at most `$byte_size + 1`
-                let output_byte_size = buffer_byte_size(P::MODULUS_BITS as usize + F::BIT_SIZE);
-
-                // Write out `self` to a temporary buffer.
-                // The size of the buffer is $byte_size + 1 because `F::BIT_SIZE`
-                // is at most 8 bits.
-                let mut bytes = [0u8; $limbs * 8 + 1];
-                input.write(&mut bytes[..$limbs * 8])?;
-
-                // Mask out the bits of the last byte that correspond to the flag.
-                bytes[output_byte_size - 1] |= flags.u8_bitmask();
-
-                writer.write_all(&bytes[..output_byte_size])?;
-                Ok(())
+        #[inline]
+        #[ark_ff_asm::unroll_for_loops]
+        #[allow(unused_braces, clippy::absurd_extreme_comparisons)]
+        fn square_in_place(&mut self) -> &mut Self {
+            if $limbs == 1 {
+                // We default to multiplying with `self` using the `Mul` impl
+                // for the 1 limb case
+                *self = *self * *self;
+                return self;
             }
-        }
-    }
-}
+            #[cfg(use_asm)]
+            #[allow(unsafe_code, unused_mut)]
+            {
+                // Checking the modulus at compile time
+                let first_bit_set = P::MODULUS.0[$limbs - 1] >> 63 != 0;
+                let mut all_bits_set = P::MODULUS.0[$limbs - 1] == !0 - (1 << 63);
+                for i in 1..$limbs {
+                    all_bits_set &= P::MODULUS.0[$limbs - i - 1] == core::u64::MAX;
+                }
+                let _no_carry: bool = !(first_bit_set || all_bits_set);
+
+                if $limbs <= 6 && _no_carry {
+                    ark_ff_asm::x86_64_asm_square!($limbs, (self.0).0);
+                    self.reduce();
+                    return self;
+                }
+            }
+            let mut r = [0u64; $limbs * 2];
 
 // macro_rules! impl_deserialize_flags {
 macro_rules! impl_deserialize_flags {
@@ -119,45 +137,27 @@ macro_rules! impl_deserialize_flags {
     }
 }
 
-macro_rules! impl_field_square_in_place {
-    ($limbs: expr) => {
-        paste::paste! {
-            #[inline(always)]
-            #[ark_ff_asm::unroll_for_loops]
-            #[allow(unused_braces, clippy::absurd_extreme_comparisons)]
-            fn [<square_in_place _id $limbs>]<P: FpParams<N>, const N: usize>(
-                input: &mut [u64; N],
-            ) {
-                let mut r = [0u64; $limbs * 2];
-                let mut carry = 0;
-                for i in 0..$limbs {
-                    if i < $limbs - 1 {
-                        for j in 0..$limbs {
-                            if j > i {
-                                r[i + j] =
-                                    mac_with_carry!(r[i + j], input[i], input[j], &mut carry);
-                            }
-                        }
-                        r[$limbs + i] = carry;
-                        carry = 0;
-                    }
-                }
-                r[$limbs * 2 - 1] = r[$limbs * 2 - 2] >> 63;
-                for i in 0..$limbs {
-                    // This computes `r[2 * ($limbs - 1) - (i + 1)]`, but additionally
-                    // handles the case where the index underflows.
-                    // Note that we should never hit this case because it only occurs
-                    // when `$limbs == 1`, but we handle that separately above.
-                    let subtractor = (2 * ($limbs - 1usize))
-                        .checked_sub(i + 1)
-                        .map(|index| r[index])
-                        .unwrap_or(0);
-                    r[2 * ($limbs - 1) - i] = (r[2 * ($limbs - 1) - i] << 1) | (subtractor >> 63);
-                }
-                for i in 3..$limbs {
-                    r[$limbs + 1 - i] = (r[$limbs + 1 - i] << 1) | (r[$limbs - i] >> 63);
-                }
-                r[1] <<= 1;
+macro_rules! impl_prime_field_standard_sample {
+    ($field: ident, $params: ident) => {
+        impl<P: $params> ark_std::rand::distributions::Distribution<$field<P>>
+            for ark_std::rand::distributions::Standard
+        {
+            #[inline]
+            fn sample<R: ark_std::rand::Rng + ?Sized>(&self, rng: &mut R) -> $field<P> {
+                loop {
+                    let mut tmp = $field(
+                        rng.sample(ark_std::rand::distributions::Standard),
+                        PhantomData,
+                    );
+
+                    // Mask away the unused bits at the beginning.
+                    assert!(P::REPR_SHAVE_BITS <= 64);
+                    let mask = if P::REPR_SHAVE_BITS == 64 {
+                        0
+                    } else {
+                        core::u64::MAX >> P::REPR_SHAVE_BITS
+                    };
+                    tmp.0.as_mut().last_mut().map(|val| *val &= mask);
 
                 for i in 0..$limbs {
                     r[2 * i] = mac_with_carry!(r[2 * i], input[i], input[i], &mut carry);
@@ -187,13 +187,69 @@ macro_rules! impl_field_square_in_place {
 }
 
 macro_rules! impl_prime_field_from_int {
-    ($int: ident) => {
-        impl<P: FpParams<N>, const N: usize> From<$int> for Fp<P, N> {
-            fn from(other: $int) -> Self {
-                if N == 1 {
+    ($field: ident, 128, $params: ident, $limbs:expr) => {
+        impl<P: $params> From<u128> for $field<P> {
+            fn from(other: u128) -> Self {
+                let mut default_int = P::BigInt::default();
+                if $limbs == 1 {
+                    default_int.0[0] = (other % u128::from(P::MODULUS.0[0])) as u64;
+                } else {
+                    let upper = (other >> 64) as u64;
+                    let lower = ((other << 64) >> 64) as u64;
+                    // This is equivalent to the following, but satisfying the compiler:
+                    // default_int.0[0] = lower;
+                    // default_int.0[1] = upper;
+                    let limbs = [lower, upper];
+                    for (cur, other) in default_int.0.iter_mut().zip(&limbs) {
+                        *cur = *other;
+                    }
+                }
+                Self::from_repr(default_int).unwrap()
+            }
+        }
+
+        impl <P: $params> From<i128> for $field<P> {
+            fn from(other: i128) -> Self {
+                let abs = Self::from(other.unsigned_abs());
+                if other.is_positive() {
+                    abs
+                } else {
+                    -abs
+                }
+            }
+        }
+    };
+    ($field: ident, bool, $params: ident, $limbs:expr) => {
+        impl<P: $params> From<bool> for $field<P> {
+            fn from(other: bool) -> Self {
+                if $limbs == 1 {
                     Self::from_repr(P::BigInt::from(u64::from(other) % P::MODULUS.0[0])).unwrap()
                 } else {
                     Self::from_repr(P::BigInt::from(u64::from(other))).unwrap()
+                }
+            }
+        }
+    };
+    ($field: ident, $int: expr, $params: ident, $limbs:expr) => {
+        paste::paste!{
+            impl<P: $params> From<[<u $int>]> for $field<P> {
+                fn from(other: [<u $int>]) -> Self {
+                    if $limbs == 1 {
+                        Self::from_repr(P::BigInt::from(u64::from(other) % P::MODULUS.0[0])).unwrap()
+                    } else {
+                        Self::from_repr(P::BigInt::from(u64::from(other))).unwrap()
+                    }
+                }
+            }
+
+            impl<P: $params> From<[<i $int>]> for $field<P> {
+                fn from(other: [<i $int>]) -> Self {
+                    let abs = Self::from(other.unsigned_abs());
+                    if other.is_positive() {
+                        abs
+                    } else {
+                        -abs
+                    }
                 }
             }
         }

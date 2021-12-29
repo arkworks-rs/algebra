@@ -18,9 +18,9 @@ Before we can merge this PR, please make sure that all the following items have 
 checked off. If any of the checklist items are not applicable, please leave them but
 write a little note why.
 
-- [ ] Targeted PR against correct branch (main)
-- [ ] Linked to Github issue with discussion and accepted design OR have an explanation in the PR that describes this work.
+- [ ] Targeted PR against correct branch (master)
+- [ ] Linked to GitHub issue with discussion and accepted design OR have an explanation in the PR that describes this work.
 - [ ] Wrote unit tests
 - [ ] Updated relevant documentation in the code
 - [ ] Added a relevant changelog entry to the `Pending` section in `CHANGELOG.md`
-- [ ] Re-reviewed `Files changed` in the Github PR explorer
+- [ ] Re-reviewed `Files changed` in the GitHub PR explorer

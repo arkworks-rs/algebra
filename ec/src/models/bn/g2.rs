@@ -103,7 +103,7 @@ impl<P: BnParameters> From<G2Affine<P>> for G2Prepared<P> {
         let q1 = mul_by_char::<P>(q);
         let mut q2 = mul_by_char::<P>(q1);
 
-        if P::ATE_LOOP_COUNT_IS_NEGATIVE {
+        if P::X_IS_NEGATIVE {
             r.y = -r.y;
         }
 

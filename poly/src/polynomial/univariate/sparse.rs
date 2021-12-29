@@ -1,16 +1,21 @@
 //! A sparse polynomial represented in coefficient form.
-use crate::polynomial::Polynomial;
-use crate::univariate::{DenseOrSparsePolynomial, DensePolynomial};
-use crate::{EvaluationDomain, Evaluations, UVPolynomial};
+use crate::{
+    polynomial::Polynomial,
+    univariate::{DenseOrSparsePolynomial, DensePolynomial},
+    EvaluationDomain, Evaluations, UVPolynomial,
+};
 use ark_ff::{FftField, Field, Zero};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, SerializationError};
 use ark_std::{
     collections::BTreeMap,
     fmt,
     io::{Read, Write},
-    ops::{Add, AddAssign, Neg, SubAssign},
+    ops::{Add, AddAssign, Deref, DerefMut, Mul, Neg, SubAssign},
     vec::Vec,
 };
+
+#[cfg(feature = "parallel")]
+use rayon::prelude::*;
 
 /// Stores a sparse polynomial in coefficient form.
 #[derive(Clone, PartialEq, Eq, Hash, Default, CanonicalSerialize, CanonicalDeserialize)]
@@ -36,11 +41,17 @@ impl<F: Field> fmt::Debug for SparsePolynomial<F> {
     }
 }
 
-impl<F: Field> core::ops::Deref for SparsePolynomial<F> {
+impl<F: Field> Deref for SparsePolynomial<F> {
     type Target = [(usize, F)];
 
     fn deref(&self) -> &[(usize, F)] {
         &self.coeffs
+    }
+}
+
+impl<F: Field> DerefMut for SparsePolynomial<F> {
+    fn deref_mut(&mut self) -> &mut [(usize, F)] {
+        &mut self.coeffs
     }
 }
 
@@ -62,11 +73,29 @@ impl<F: Field> Polynomial<F> for SparsePolynomial<F> {
         if self.is_zero() {
             return F::zero();
         }
+
+        // We need floor(log2(deg)) + 1 powers, starting from the 0th power p^2^0 = p
+        let num_powers = 0usize.leading_zeros() - self.degree().leading_zeros();
+        let mut powers_of_2 = Vec::with_capacity(num_powers as usize);
+
+        let mut p = *point;
+        powers_of_2.push(p);
+        for _ in 1..num_powers {
+            p.square_in_place();
+            powers_of_2.push(p);
+        }
         // compute all coeff * point^{i} and then sum the results
         let total = self
             .coeffs
             .iter()
-            .map(|(i, c)| (*c * point.pow(&[*i as u64])))
+            .map(|(i, c)| {
+                debug_assert_eq!(
+                    F::pow_with_table(&powers_of_2[..], &[*i as u64]).unwrap(),
+                    point.pow(&[*i as u64]),
+                    "pows not equal"
+                );
+                *c * F::pow_with_table(&powers_of_2[..], &[*i as u64]).unwrap()
+            })
             .sum();
         total
     }
@@ -95,7 +124,8 @@ impl<'a, 'b, F: Field> Add<&'a SparsePolynomial<F>> for &'b SparsePolynomial<F> 
         let mut self_index = 0;
         let mut other_index = 0;
         loop {
-            // if we've reached the end of one vector, just append the other vector to our result.
+            // if we've reached the end of one vector, just append the other vector to our
+            // result.
             if self_index == self.coeffs.len() && other_index == other.coeffs.len() {
                 return result;
             } else if self_index == self.coeffs.len() {
@@ -165,6 +195,23 @@ impl<'a, 'b, F: Field> SubAssign<&'a SparsePolynomial<F>> for SparsePolynomial<F
     fn sub_assign(&mut self, other: &'a SparsePolynomial<F>) {
         let self_copy = -self.clone();
         self.coeffs = (self_copy + other.clone()).coeffs;
+    }
+}
+
+impl<'a, 'b, F: Field> Mul<F> for &'b SparsePolynomial<F> {
+    type Output = SparsePolynomial<F>;
+
+    #[inline]
+    fn mul(self, elem: F) -> SparsePolynomial<F> {
+        if self.is_zero() || elem.is_zero() {
+            SparsePolynomial::zero()
+        } else {
+            let mut result = self.clone();
+            cfg_iter_mut!(result).for_each(|e| {
+                (*e).1 *= elem;
+            });
+            result
+        }
     }
 }
 
@@ -272,15 +319,14 @@ impl<F: Field> From<DensePolynomial<F>> for SparsePolynomial<F> {
 
 #[cfg(test)]
 mod tests {
-    use crate::polynomial::Polynomial;
-    use crate::univariate::{DensePolynomial, SparsePolynomial};
-    use crate::{EvaluationDomain, GeneralEvaluationDomain};
+    use crate::{
+        polynomial::Polynomial,
+        univariate::{DensePolynomial, SparsePolynomial},
+        EvaluationDomain, GeneralEvaluationDomain,
+    };
     use ark_ff::{UniformRand, Zero};
-    use ark_std::cmp::max;
-    use ark_std::ops::Mul;
-    use ark_std::test_rng;
+    use ark_std::{cmp::max, ops::Mul, rand::Rng, test_rng};
     use ark_test_curves::bls12_381::Fr;
-    use rand::Rng;
 
     // probability of rand sparse polynomial having a particular coefficient be 0
     const ZERO_COEFF_PROBABILITY: f64 = 0.8f64;
@@ -367,9 +413,23 @@ mod tests {
     }
 
     #[test]
+    fn mul_random_element() {
+        let rng = &mut test_rng();
+        for degree in 0..20 {
+            let a = rand_sparse_poly(degree, rng);
+            let e = Fr::rand(rng);
+            assert_eq!(
+                &a * e,
+                a.mul(&SparsePolynomial::from_coefficients_slice(&[(0, e)]))
+            )
+        }
+    }
+
+    #[test]
     fn mul_polynomial() {
-        // Test multiplying polynomials over their domains, and over the native representation.
-        // The expected result is obtained by comparing against dense polynomial
+        // Test multiplying polynomials over their domains, and over the native
+        // representation. The expected result is obtained by comparing against
+        // dense polynomial
         let mut rng = test_rng();
         for degree_a in 0..20 {
             let sparse_poly_a = rand_sparse_poly(degree_a, &mut rng);
@@ -409,7 +469,8 @@ mod tests {
 
     #[test]
     fn evaluate_over_domain() {
-        // Test that polynomial evaluation over a domain, and interpolation returns the same poly.
+        // Test that polynomial evaluation over a domain, and interpolation returns the
+        // same poly.
         let mut rng = test_rng();
         for poly_degree_dim in 0..5 {
             let poly_degree = (1 << poly_degree_dim) - 1;
