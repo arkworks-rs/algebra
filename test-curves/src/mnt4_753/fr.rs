@@ -1,4 +1,5 @@
 use ark_ff::{
+    biginteger::BigInt,
     biginteger::BigInteger768 as BigInteger,
     fields::{FftParameters, Fp768, Fp768Parameters, FpParameters},
 };
@@ -15,7 +16,7 @@ impl FftParameters for FrParameters {
 
     const TWO_ADICITY: u32 = 30;
 
-    const TWO_ADIC_ROOT_OF_UNITY: BigInteger = BigInteger([
+    const TWO_ADIC_ROOT_OF_UNITY: BigInteger = BigInt::<12>([
         0x307f66b297671883,
         0xd72a7f2b1e645f4e,
         0x67079daa9a902283,
@@ -32,7 +33,7 @@ impl FftParameters for FrParameters {
 }
 impl FpParameters for FrParameters {
     /// MODULUS = 41898490967918953402344214791240637128170709919953949071783502921025352812571106773058893763790338921418070971888458477323173057491593855069696241854796396165721416325350064441470418137846398469611935719059908164220784476160001
-    const MODULUS: BigInteger = BigInteger([
+    const MODULUS: BigInteger = BigInt::<12>([
         0xd90776e240000001,
         0x4ea099170fa13a4f,
         0xd6c381bc3f005797,
@@ -53,7 +54,7 @@ impl FpParameters for FrParameters {
 
     const REPR_SHAVE_BITS: u32 = 15;
 
-    const R: BigInteger = BigInteger([
+    const R: BigInteger = BigInt::<12>([
         0xb99680147fff6f42,
         0x4eb16817b589cea8,
         0xa1ebd2d90c79e179,
@@ -68,7 +69,7 @@ impl FpParameters for FrParameters {
         0x7b479ec8e242,
     ]);
 
-    const R2: BigInteger = BigInteger([
+    const R2: BigInteger = BigInt::<12>([
         0x3f9c69c7b7f4c8d1,
         0x70a50fa9ee48d127,
         0xcdbe6702009569cb,
@@ -85,7 +86,7 @@ impl FpParameters for FrParameters {
 
     const INV: u64 = 0xc90776e23fffffff;
 
-    const GENERATOR: BigInteger = BigInteger([
+    const GENERATOR: BigInteger = BigInt::<12>([
         0xeee0a5d37ff6635e,
         0xff458536cfa1cff4,
         0x659af978d8169ab0,
@@ -100,7 +101,7 @@ impl FpParameters for FrParameters {
         0x11ca8d50bf627,
     ]);
 
-    const MODULUS_MINUS_ONE_DIV_TWO: BigInteger = BigInteger([
+    const MODULUS_MINUS_ONE_DIV_TWO: BigInteger = BigInt::<12>([
         0xec83bb7120000000,
         0xa7504c8b87d09d27,
         0x6b61c0de1f802bcb,
@@ -119,7 +120,7 @@ impl FpParameters for FrParameters {
 
     /// T = (MODULUS - 1) / 2^S =
     /// 39021010480745652133919498688765463538626870065884617224134041854204007249857398469987226430131438115069708760723898631821547688442835449306011425196003537779414482717728302293895201885929702287178426719326440397855625
-    const T: BigInteger = BigInteger([
+    const T: BigInteger = BigInt::<12>([
         0x3e84e93f641ddb89,
         0xfc015e5d3a82645c,
         0xd264ea935b0e06f0,
@@ -136,7 +137,7 @@ impl FpParameters for FrParameters {
 
     /// (T - 1) / 2 =
     /// 19510505240372826066959749344382731769313435032942308612067020927102003624928699234993613215065719057534854380361949315910773844221417724653005712598001768889707241358864151146947600942964851143589213359663220198927812
-    const T_MINUS_ONE_DIV_TWO: BigInteger = BigInteger([
+    const T_MINUS_ONE_DIV_TWO: BigInteger = BigInt::<12>([
         0x1f42749fb20eedc4,
         0x7e00af2e9d41322e,
         0x69327549ad870378,
