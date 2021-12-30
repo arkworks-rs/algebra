@@ -348,7 +348,43 @@ impl<const N: usize> From<u64> for BigInt<N> {
         repr
     }
 }
+impl<const N: usize> TryFrom<BigUint> for BigInt<N> {
+    type Error = ark_std::string::String;
 
+    #[inline]
+    fn try_from(val: num_bigint::BigUint) -> Result<BigInt<N>, Self::Error> {
+        let bytes = val.to_bytes_le();
+
+        if bytes.len() > N * 8 {
+            Err(format!(
+                "A BigUint of {} bytes cannot fit into {} limbs.",
+                bytes.len(),
+                N
+            ))
+        } else {
+            let mut limbs = [0u64; N];
+
+            bytes
+                .chunks(8)
+                .into_iter()
+                .enumerate()
+                .for_each(|(i, chunk)| {
+                    let mut chunk_padded = [0u8; 8];
+                    chunk_padded[..chunk.len()].copy_from_slice(chunk);
+                    limbs[i] = u64::from_le_bytes(chunk_padded)
+                });
+
+            Ok(Self(limbs))
+        }
+    }
+}
+
+impl<const N: usize> From<BigInt<N>> for BigUint {
+    #[inline]
+    fn from(val: BigInt<N>) -> num_bigint::BigUint {
+        BigUint::from_bytes_le(&val.to_bytes_le())
+    }
+}
 /// Compute the signed modulo operation on a u64 representation, returning the result.
 /// If n % modulus > modulus / 2, return modulus - n
 /// # Example
