@@ -39,96 +39,145 @@ impl<const N: usize> BigInteger for BigInt<N> {
     const NUM_LIMBS: usize = N;
 
     #[inline]
+    #[ark_ff_asm::unroll_for_loops]
     fn add_nocarry(&mut self, other: &Self) -> bool {
         let mut carry = 0;
 
-        for (a, b) in self.0.iter_mut().zip(other.0.iter()) {
-            *a = adc!(*a, *b, &mut carry);
+        for i in 0..N {
+            #[cfg(all(target_arch = "x86_64", feature = "asm"))]
+            #[allow(unsafe_code)]
+            unsafe {
+                use core::arch::x86_64::_addcarry_u64;
+                carry = _addcarry_u64(carry, self.0[i], other.0[i], &mut self.0[i])
+            };
+
+            #[cfg(not(all(target_arch = "x86_64", feature = "asm")))]
+            {
+                self.0[i] = adc!(self.0[i], other.0[i], &mut carry);
+            }
         }
 
         carry != 0
     }
-
     #[inline]
+    #[ark_ff_asm::unroll_for_loops]
     fn sub_noborrow(&mut self, other: &Self) -> bool {
         let mut borrow = 0;
 
-        for (a, b) in self.0.iter_mut().zip(other.0.iter()) {
-            *a = sbb!(*a, *b, &mut borrow);
+        for i in 0..N {
+            #[cfg(all(target_arch = "x86_64", feature = "asm"))]
+            #[allow(unsafe_code)]
+            unsafe {
+                use core::arch::x86_64::_subborrow_u64;
+                borrow = _subborrow_u64(borrow, self.0[i], other.0[i], &mut self.0[i])
+            };
+
+            #[cfg(not(all(target_arch = "x86_64", feature = "asm")))]
+            {
+                self.0[i] = sbb!(self.0[i], other.0[i], &mut borrow);
+            }
         }
 
         borrow != 0
     }
 
     #[inline]
+    #[ark_ff_asm::unroll_for_loops]
+    #[allow(unused)]
     fn mul2(&mut self) {
-        let mut last = 0;
-        for i in &mut self.0 {
-            let tmp = *i >> 63;
-            *i <<= 1;
-            *i |= last;
-            last = tmp;
+        #[cfg(all(target_arch = "x86_64", feature = "asm"))]
+        #[allow(unsafe_code)]
+        {
+            let mut carry = 0;
+
+            for i in 0..N {
+                unsafe {
+                    use core::arch::x86_64::_addcarry_u64;
+                    carry = _addcarry_u64(carry, self.0[i], self.0[i], &mut self.0[i])
+                };
+            }
+        }
+
+        #[cfg(not(all(target_arch = "x86_64", feature = "asm")))]
+        {
+            let mut last = 0;
+            for i in 0..N {
+                let a = &mut self.0[i];
+                let tmp = *a >> 63;
+                *a <<= 1;
+                *a |= last;
+                last = tmp;
+            }
         }
     }
 
     #[inline]
+    #[ark_ff_asm::unroll_for_loops]
     fn muln(&mut self, mut n: u32) {
-        if n >= 64 * N as u32 {
+        if n >= (64 * N) as u32 {
             *self = Self::from(0);
             return;
         }
 
         while n >= 64 {
             let mut t = 0;
-            for i in &mut self.0 {
-                core::mem::swap(&mut t, i);
+            for i in 0..N {
+                core::mem::swap(&mut t, &mut self.0[i]);
             }
             n -= 64;
         }
 
         if n > 0 {
             let mut t = 0;
-            for i in &mut self.0 {
-                let t2 = *i >> (64 - n);
-                *i <<= n;
-                *i |= t;
+            #[allow(unused)]
+            for i in 0..N {
+                let a = &mut self.0[i];
+                let t2 = *a >> (64 - n);
+                *a <<= n;
+                *a |= t;
                 t = t2;
             }
         }
     }
 
     #[inline]
+    #[ark_ff_asm::unroll_for_loops]
+    #[allow(unused)]
     fn div2(&mut self) {
         let mut t = 0;
-        for i in self.0.iter_mut().rev() {
-            let t2 = *i << 63;
-            *i >>= 1;
-            *i |= t;
+        for i in 0..N {
+            let a = &mut self.0[N - i - 1];
+            let t2 = *a << 63;
+            *a >>= 1;
+            *a |= t;
             t = t2;
         }
     }
 
     #[inline]
+    #[ark_ff_asm::unroll_for_loops]
     fn divn(&mut self, mut n: u32) {
-        if n >= 64 * N as u32 {
+        if n >= (64 * N) as u32 {
             *self = Self::from(0);
             return;
         }
 
         while n >= 64 {
             let mut t = 0;
-            for i in self.0.iter_mut().rev() {
-                core::mem::swap(&mut t, i);
+            for i in 0..N {
+                core::mem::swap(&mut t, &mut self.0[N - i - 1]);
             }
             n -= 64;
         }
 
         if n > 0 {
             let mut t = 0;
-            for i in self.0.iter_mut().rev() {
-                let t2 = *i << (64 - n);
-                *i >>= n;
-                *i |= t;
+            #[allow(unused)]
+            for i in 0..N {
+                let a = &mut self.0[N - i - 1];
+                let t2 = *a << (64 - n);
+                *a >>= n;
+                *a |= t;
                 t = t2;
             }
         }
@@ -146,7 +195,12 @@ impl<const N: usize> BigInteger for BigInt<N> {
 
     #[inline]
     fn is_zero(&self) -> bool {
-        self.0.iter().all(|&e| e == 0)
+        for i in 0..N {
+            if self.0[i] != 0 {
+                return false;
+            }
+        }
+        true
     }
 
     #[inline]
@@ -224,30 +278,6 @@ impl<const N: usize> BigInteger for BigInt<N> {
         }
         res
     }
-
-    #[inline]
-    fn find_wnaf(&self) -> Vec<i64> {
-        let mut res = vec![];
-
-        let mut e = self.clone();
-        while !e.is_zero() {
-            let z: i64;
-            if e.is_odd() {
-                z = 2 - (e.0[0] % 4) as i64;
-                if z >= 0 {
-                    e.sub_noborrow(&Self::from(z as u64));
-                } else {
-                    e.add_nocarry(&Self::from((-z) as u64));
-                }
-            } else {
-                z = 0;
-            }
-            res.push(z);
-            e.div2();
-        }
-
-        res
-    }
 }
 
 impl<const N: usize> CanonicalSerialize for BigInt<N> {
@@ -274,7 +304,7 @@ impl<const N: usize> CanonicalDeserialize for BigInt<N> {
 impl<const N: usize> ToBytes for BigInt<N> {
     #[inline]
     fn write<W: Write>(&self, writer: W) -> IoResult<()> {
-        self.0.as_ref().write(writer)
+        self.0.write(writer)
     }
 }
 
@@ -296,16 +326,19 @@ impl<const N: usize> Display for BigInt<N> {
 
 impl<const N: usize> Ord for BigInt<N> {
     #[inline]
+    #[ark_ff_asm::unroll_for_loops]
     fn cmp(&self, other: &Self) -> ::core::cmp::Ordering {
-        for (a, b) in self.0.iter().rev().zip(other.0.iter().rev()) {
+        use core::cmp::Ordering;
+        for i in 0..N {
+            let a = &self.0[N - i - 1];
+            let b = &other.0[N - i - 1];
             if a < b {
-                return core::cmp::Ordering::Less;
+                return Ordering::Less;
             } else if a > b {
-                return core::cmp::Ordering::Greater;
+                return Ordering::Greater;
             }
         }
-
-        core::cmp::Ordering::Equal
+        Ordering::Equal
     }
 }
 
