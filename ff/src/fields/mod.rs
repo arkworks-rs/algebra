@@ -711,7 +711,7 @@ mod no_std_tests {
     // from this crate and from ark_test_curves
     use ark_test_curves::{
         batch_inversion, batch_inversion_and_mul,
-        bls12_381::{Fr, Fq, FrParameters},
+        bls12_381::{Fr, FrParameters},
         BigInteger, FpParameters, PrimeField, Field,
     };
 
@@ -865,12 +865,12 @@ mod no_std_tests {
 
     #[test]
     fn test_parity() {
-       let a1 = Fq::from(0);
-       let a2 = Fq::from(1);
-       let a3 = Fq::from(10);
-       assert_eq!(Fq::parity(&a1), false);
-       assert_eq!(Fq::parity(&a2), true);
-       assert_eq!(Fq::parity(&a3), false);
+       let a1 = Fr::from(0);
+       let a2 = Fr::from(1);
+       let a3 = Fr::from(10);
+       assert_eq!(Fr::parity(&a1), false);
+       assert_eq!(Fr::parity(&a2), true);
+       assert_eq!(Fr::parity(&a3), false);
         
     }
     
