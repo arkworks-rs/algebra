@@ -711,8 +711,8 @@ mod no_std_tests {
     // from this crate and from ark_test_curves
     use ark_test_curves::{
         batch_inversion, batch_inversion_and_mul,
-        bls12_381::{Fr, FrParameters},
-        BigInteger, FpParameters, PrimeField,
+        bls12_381::{Fr, Fq, FrParameters},
+        BigInteger, FpParameters, PrimeField, Field,
     };
 
     #[test]
@@ -862,4 +862,17 @@ mod no_std_tests {
             assert_eq!(expected, actual, "failed on test {:?}", i);
         }
     }
+
+    #[test]
+    fn test_parity() {
+       let a1 = Fq::from(0);
+       let a2 = Fq::from(1);
+       let a3 = Fq::from(10);
+       assert_eq!(Fq::parity(&a1), false);
+       assert_eq!(Fq::parity(&a2), true);
+       assert_eq!(Fq::parity(&a3), false);
+        
+    }
+    
 }
+
