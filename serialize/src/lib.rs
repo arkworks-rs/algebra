@@ -324,7 +324,9 @@ impl<T: CanonicalSerialize, const N: usize> CanonicalSerialize for [T; N] {
 
     #[inline]
     fn serialized_size(&self) -> usize {
-        self.iter().map(|item| item.serialized_size()).sum::<usize>()
+        self.iter()
+            .map(|item| item.serialized_size())
+            .sum::<usize>()
     }
 
     #[inline]
@@ -345,8 +347,7 @@ impl<T: CanonicalSerialize, const N: usize> CanonicalSerialize for [T; N] {
 
     #[inline]
     fn uncompressed_size(&self) -> usize {
-        self
-            .iter()
+        self.iter()
             .map(|item| item.uncompressed_size())
             .sum::<usize>()
     }
@@ -1069,7 +1070,6 @@ mod test {
         test_serialize([1u64, 2, 3, 4, 5]);
         test_serialize([1u8; 33]);
     }
-
 
     #[test]
     fn test_vec() {
