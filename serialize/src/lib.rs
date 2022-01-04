@@ -1065,6 +1065,13 @@ mod test {
     }
 
     #[test]
+    fn test_array() {
+        test_serialize([1u64, 2, 3, 4, 5]);
+        test_serialize([1u8; 33]);
+    }
+
+
+    #[test]
     fn test_vec() {
         test_serialize(vec![1u64, 2, 3, 4, 5]);
         test_serialize(Vec::<u64>::new());
