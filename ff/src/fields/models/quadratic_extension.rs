@@ -783,8 +783,8 @@ mod quad_ext_tests {
         bls12_381::{Fq, Fq2},
         Field,
     };
-    extern crate ark_ec;
-    pub use ark_ec::parity;
+
+    use ark_ec::hashing::curve_maps::swu::parity;
 
     #[test]
     fn test_from_base_prime_field_elements() {

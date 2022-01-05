@@ -27,6 +27,7 @@ num-bigint = { version = "0.4", default-features = false }
 
 [dev-dependencies]
 ark-test-curves = { version = "^0.3.0", path = "../test-curves", default-features = false, features = [ "bls12_381_curve", "mnt6_753"] }
+ark-ec = { version = "^0.3.0", path = "../ec" }
 
 [build-dependencies]
 rustc_version = "0.4"

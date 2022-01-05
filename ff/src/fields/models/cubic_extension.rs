@@ -666,8 +666,8 @@ mod cube_ext_tests {
         mnt6_753::Fq3,
         Field,
     };
-    extern crate ark_ec;
-    pub use ark_ec::parity;
+
+    use ark_ec::hashing::curve_maps::swu::parity;
 
     #[test]
     fn test_norm_for_towers() {
