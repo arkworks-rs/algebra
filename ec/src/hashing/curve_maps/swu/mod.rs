@@ -28,7 +28,7 @@ pub struct SWUMap<P: SWUParams> {
     curve_params: PhantomData<fn() -> P>,
 }
 
-fn parity<F: Field>(element: &F) -> bool {
+pub fn parity<F: Field>(element: &F) -> bool {
     element.to_base_prime_field_elements().next().unwrap().into_repr().is_odd()
 }
 

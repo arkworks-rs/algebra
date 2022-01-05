@@ -723,10 +723,14 @@ mod cube_ext_tests {
        let element_test2 = Fq6::new(a2, a3, a4);
        let element_test3 = Fq6::new(a3, a4, a1);
        let element_test4 = Fq6::new(a4, a1, a2);
-       assert_eq!(Fq6::parity(&element_test1), false);
-       assert_eq!(Fq6::parity(&element_test2), false);
-       assert_eq!(Fq6::parity(&element_test3), true);
-       assert_eq!(Fq6::parity(&element_test4), true);
+       assert_eq!(parity(&element_test1), false); 
+       assert_eq!(parity(&element_test2), false);
+       assert_eq!(parity(&element_test3), true); 
+       assert_eq!(parity(&element_test4), true);
+    //   assert_eq!(Fq6::parity(&element_test1), false);
+    //   assert_eq!(Fq6::parity(&element_test2), false);
+    //   assert_eq!(Fq6::parity(&element_test3), true);
+    //   assert_eq!(Fq6::parity(&element_test4), true);
         
     }
     

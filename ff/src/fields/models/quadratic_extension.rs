@@ -820,10 +820,10 @@ mod quad_ext_tests {
        let element_test2 = Fq2::new(Fq::from(1), Fq::from(0));
        let element_test3 = Fq2::new(Fq::from(10), Fq::from(5));
        let element_test4 = Fq2::new(Fq::from(5), Fq::from(10));
-       assert_eq!(Fq2::parity(&element_test1), false);
-       assert_eq!(Fq2::parity(&element_test2), true);
-       assert_eq!(Fq2::parity(&element_test3), false);
-       assert_eq!(Fq2::parity(&element_test4), true);
+       assert_eq!(parity(&element_test1), false);
+       assert_eq!(parity(&element_test2), true);
+       assert_eq!(parity(&element_test3), false);
+       assert_eq!(parity(&element_test4), true);
         
     }
 }

@@ -708,8 +708,9 @@ mod no_std_tests {
     use ark_test_curves::{
         batch_inversion, batch_inversion_and_mul,
         bls12_381::{Fr, FrParameters},
-        BigInteger, FpParameters, PrimeField, Field,
+        BigInteger, FpParameters, PrimeField, 
     };
+    use super::hashing::curve_maps::swu::parity;
 
     #[test]
     fn test_batch_inversion() {
@@ -864,9 +865,9 @@ mod no_std_tests {
        let a1 = Fr::from(0);
        let a2 = Fr::from(1);
        let a3 = Fr::from(10);
-       assert_eq!(Fr::parity(&a1), false);
-       assert_eq!(Fr::parity(&a2), true);
-       assert_eq!(Fr::parity(&a3), false);
+       assert_eq!(parity(&a1), false);
+       assert_eq!(parity(&a2), true);
+       assert_eq!(parity(&a3), false);
         
     }
     
