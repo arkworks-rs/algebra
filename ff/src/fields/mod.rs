@@ -710,7 +710,8 @@ mod no_std_tests {
         bls12_381::{Fr, FrParameters},
         BigInteger, FpParameters, PrimeField, 
     };
-    use super::hashing::curve_maps::swu::parity;
+    extern crate ark_ec;
+    pub use ark_ec::parity;
 
     #[test]
     fn test_batch_inversion() {
