@@ -129,10 +129,6 @@ pub trait Field:
 
     fn to_base_prime_field_elements(&self) -> Self::BasePrimeFieldIter;
 
-    ///fn parity<F: Field>(element: &F) -> bool {
-	///    element.to_base_prime_field_elements().next().unwrap().into_repr().is_odd()
-    ///}
-    /// 
     /// Convert a slice of base prime field elements into a field element.
     /// If the slice length != Self::extension_degree(), must return None.
     fn from_base_prime_field_elems(elems: &[Self::BasePrimeField]) -> Option<Self>;

@@ -156,7 +156,6 @@ impl<P: SWUParams> MapToCurve<GroupAffine<P>> for SWUMap<P> {
         let y = if gx1_square { y1 } else { y2 };
 
         let x_affine = num_x / div;
-        //let y_affine = if P::BaseField::parity(&y) { -y } else {y};
         let y_affine = if parity(&y) { -y } else {y};
         let point_on_curve = GroupAffine::<P>::new(x_affine, y_affine, false);
         assert!(
