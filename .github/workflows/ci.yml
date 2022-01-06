@@ -209,6 +209,14 @@ jobs:
             echo      "ark-ff-asm = { path = 'algebra/ff-asm' }";
             echo      "ark-ec = { path = 'algebra/ec' }";
             echo      "ark-algebra-test-templates = { path = 'algebra/test-templates' }"
+            echo      "ark-bls12-377 = { git = 'https://github.com/arkworks-rs/curves' }"
+            echo      "ark-bls12-381 = { git = 'https://github.com/arkworks-rs/curves' }"
+            echo      "ark-bn254 = { git = 'https://github.com/arkworks-rs/curves' }"
+            echo      "ark-pallas = { git = 'https://github.com/arkworks-rs/curves' }"
+            echo      "ark-bw6-761 = { git = 'https://github.com/arkworks-rs/curves' }"
+            echo      "ark-mnt4-298 = { git = 'https://github.com/arkworks-rs/curves' }"
+            echo      "ark-mnt6-298 = { git = 'https://github.com/arkworks-rs/curves' }"
+            echo      "ark-ed-on-bls12-377 = { git = 'https://github.com/arkworks-rs/curves' }"
           } >> Cargo.toml
 
       - name: Test on ${{ matrix.curve }}
