@@ -103,7 +103,6 @@ macro_rules! impl_Fp {
             Hash(bound = ""),
             Clone(bound = ""),
             Copy(bound = ""),
-            Debug(bound = ""),
             PartialEq(bound = ""),
             Eq(bound = "")
         )]
@@ -253,6 +252,12 @@ macro_rules! impl_Fp {
                 if !self.is_valid() {
                     self.0.sub_noborrow(&P::MODULUS);
                 }
+            }
+        }
+
+        impl<P> ark_std::fmt::Debug for $Fp<P> {
+            fn fmt(&self, f: &mut ark_std::fmt::Formatter<'_>) -> ark_std::fmt::Result {
+                ark_std::fmt::Debug::fmt(&self.0, f)
             }
         }
 
