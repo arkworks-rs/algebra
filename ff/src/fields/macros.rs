@@ -254,7 +254,7 @@ macro_rules! impl_Fp {
                 }
             }
         }
-        
+
         impl<P> ark_std::fmt::Debug for $Fp<P> {
             fn fmt(&self, f: &mut ark_std::fmt::Formatter<'_>) -> ark_std::fmt::Result {
                 ark_std::fmt::Debug::fmt(&self.0, f)
