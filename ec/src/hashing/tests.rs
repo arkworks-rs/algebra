@@ -106,6 +106,11 @@ const F127_ONE: F127 = field_new!(F127, "1");
 struct TestSWUMapToCurveParams;
 
 impl ModelParameters for TestSWUMapToCurveParams {
+    const COFACTOR: &'static [u64] = &[1];
+
+    #[rustfmt::skip]
+    const COFACTOR_INV: F127 = F127_ONE;
+
     type BaseField = F127;
     type ScalarField = F127;
 }
@@ -130,11 +135,6 @@ impl SWModelParameters for TestSWUMapToCurveParams {
     /// COEFF_B = 1
     #[rustfmt::skip]
     const COEFF_B: F127 = field_new!(F127, "63");
-
-    const COFACTOR: &'static [u64] = &[1];
-
-    #[rustfmt::skip]
-    const COFACTOR_INV: F127 = F127_ONE;
 
     /// AFFINE_GENERATOR_COEFFS = (G1_GENERATOR_X, G1_GENERATOR_Y)
     const AFFINE_GENERATOR_COEFFS: (Self::BaseField, Self::BaseField) =
@@ -238,6 +238,11 @@ struct TestSWU127MapToIsogenousCurveParams;
 /// sage: E_isogenous.order()
 /// 127
 impl ModelParameters for TestSWU127MapToIsogenousCurveParams {
+    const COFACTOR: &'static [u64] = &[1];
+
+    #[rustfmt::skip]
+    const COFACTOR_INV: F127 = F127_ONE;
+
     type BaseField = F127;
     type ScalarField = F127;
 }
@@ -251,11 +256,6 @@ impl SWModelParameters for TestSWU127MapToIsogenousCurveParams {
     /// COEFF_B = 124
     #[rustfmt::skip]
     const COEFF_B: F127 = field_new!(F127, "124");
-
-    const COFACTOR: &'static [u64] = &[1];
-
-    #[rustfmt::skip]
-    const COFACTOR_INV: F127 = F127_ONE;
 
     /// AFFINE_GENERATOR_COEFFS = (G1_GENERATOR_X, G1_GENERATOR_Y)
     const AFFINE_GENERATOR_COEFFS: (Self::BaseField, Self::BaseField) =
@@ -276,6 +276,11 @@ impl SWUParams for TestSWU127MapToIsogenousCurveParams {
 struct TestWBF127MapToCurveParams;
 
 impl ModelParameters for TestWBF127MapToCurveParams {
+    const COFACTOR: &'static [u64] = &[1];
+
+    #[rustfmt::skip]
+    const COFACTOR_INV: F127 = F127_ONE;
+
     type BaseField = F127;
     type ScalarField = F127;
 }
@@ -289,11 +294,6 @@ impl SWModelParameters for TestWBF127MapToCurveParams {
     /// COEFF_B = 3
     #[rustfmt::skip]
     const COEFF_B: F127 = field_new!(F127, "3");
-
-    const COFACTOR: &'static [u64] = &[1];
-
-    #[rustfmt::skip]
-    const COFACTOR_INV: F127 = F127_ONE;
 
     /// AFFINE_GENERATOR_COEFFS = (G1_GENERATOR_X, G1_GENERATOR_Y)
     const AFFINE_GENERATOR_COEFFS: (Self::BaseField, Self::BaseField) =
