@@ -185,7 +185,6 @@ jobs:
       - name: Checkout algebra
         uses: actions/checkout@v2
         with:
-          repository: arkworks-rs/algebra
           path: algebra
 
       - name: Install Rust
