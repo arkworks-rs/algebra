@@ -14,7 +14,7 @@ use ark_std::{
     hash::Hash,
     ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign},
     str::FromStr,
-    vec::Vec
+    vec::Vec,
 };
 
 pub use ark_ff_macros;
@@ -708,7 +708,7 @@ mod no_std_tests {
     use ark_test_curves::{
         batch_inversion, batch_inversion_and_mul,
         bls12_381::{Fr, FrParameters},
-        BigInteger, FpParameters, PrimeField, 
+        BigInteger, FpParameters, PrimeField,
     };
 
     use ark_ec::hashing::curve_maps::swu::parity;
@@ -863,14 +863,11 @@ mod no_std_tests {
 
     #[test]
     fn test_parity() {
-       let a1 = Fr::from(0);
-       let a2 = Fr::from(1);
-       let a3 = Fr::from(10);
-       assert_eq!(parity(&a1), false);
-       assert_eq!(parity(&a2), true);
-       assert_eq!(parity(&a3), false);
-        
+        let a1 = Fr::from(0);
+        let a2 = Fr::from(1);
+        let a3 = Fr::from(10);
+        assert_eq!(parity(&a1), false);
+        assert_eq!(parity(&a2), true);
+        assert_eq!(parity(&a3), false);
     }
-    
 }
-

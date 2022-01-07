@@ -6,9 +6,9 @@ use ark_std::{
     cmp::{Ord, Ordering, PartialOrd},
     fmt,
     io::{Read, Result as IoResult, Write},
+    iter::Chain,
     ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign},
     vec::Vec,
-    boxed::Box,
 };
 
 use num_traits::{One, Zero};
@@ -161,17 +161,21 @@ impl<P: CubicExtParameters> One for CubicExtField<P> {
     }
 }
 
+type BaseFieldIter<P> = <<P as CubicExtParameters>::BaseField as Field>::BasePrimeFieldIter;
 impl<P: CubicExtParameters> Field for CubicExtField<P> {
     type BasePrimeField = P::BasePrimeField;
-    type BasePrimeFieldIter = Box<dyn Iterator<Item = Self::BasePrimeField>>;
+    type BasePrimeFieldIter = Chain<BaseFieldIter<P>, Chain<BaseFieldIter<P>, BaseFieldIter<P>>>;
 
     fn extension_degree() -> u64 {
         3 * P::BaseField::extension_degree()
     }
 
     fn to_base_prime_field_elements(&self) -> Self::BasePrimeFieldIter {
-	    Box::new(self.c0.to_base_prime_field_elements().chain(self.c1.to_base_prime_field_elements().chain(self.c2.to_base_prime_field_elements())))
-
+        self.c0.to_base_prime_field_elements().chain(
+            self.c1
+                .to_base_prime_field_elements()
+                .chain(self.c2.to_base_prime_field_elements()),
+        )
     }
 
     fn from_base_prime_field_elems(elems: &[Self::BasePrimeField]) -> Option<Self> {
@@ -717,18 +721,17 @@ mod cube_ext_tests {
 
     #[test]
     fn test_parity() {
-       let a1 = Fq2::new(Fq::from(0), Fq::from(0));
-       let a2 = Fq2::new(Fq::from(0), Fq::from(1));
-       let a3 = Fq2::new(Fq::from(1), Fq::from(0));
-       let a4 = Fq2::new(Fq::from(1), Fq::from(1)); 
-       let element_test1 = Fq6::new(a1, a2, a3);
-       let element_test2 = Fq6::new(a2, a3, a4);
-       let element_test3 = Fq6::new(a3, a4, a1);
-       let element_test4 = Fq6::new(a4, a1, a2);
-       assert_eq!(parity(&element_test1), false); 
-       assert_eq!(parity(&element_test2), false);
-       assert_eq!(parity(&element_test3), true); 
-       assert_eq!(parity(&element_test4), true);   
+        let a1 = Fq2::new(Fq::from(0), Fq::from(0));
+        let a2 = Fq2::new(Fq::from(0), Fq::from(1));
+        let a3 = Fq2::new(Fq::from(1), Fq::from(0));
+        let a4 = Fq2::new(Fq::from(1), Fq::from(1));
+        let element_test1 = Fq6::new(a1, a2, a3);
+        let element_test2 = Fq6::new(a2, a3, a4);
+        let element_test3 = Fq6::new(a3, a4, a1);
+        let element_test4 = Fq6::new(a4, a1, a2);
+        assert_eq!(parity(&element_test1), false);
+        assert_eq!(parity(&element_test2), false);
+        assert_eq!(parity(&element_test3), true);
+        assert_eq!(parity(&element_test4), true);
     }
-    
 }

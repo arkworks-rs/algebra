@@ -1,7 +1,7 @@
-use core::marker::PhantomData;
 use crate::models::SWModelParameters;
-use ark_ff::{Field, One, SquareRootField, Zero, PrimeField, BigInteger};
+use ark_ff::{BigInteger, Field, One, PrimeField, SquareRootField, Zero};
 use ark_std::string::ToString;
+use core::marker::PhantomData;
 
 use crate::{
     hashing::{map_to_curve_hasher::MapToCurve, HashToCurveError},
@@ -29,7 +29,12 @@ pub struct SWUMap<P: SWUParams> {
 }
 
 pub fn parity<F: Field>(element: &F) -> bool {
-    element.to_base_prime_field_elements().next().unwrap().into_repr().is_odd()
+    element
+        .to_base_prime_field_elements()
+        .next()
+        .unwrap()
+        .into_repr()
+        .is_odd()
 }
 
 impl<P: SWUParams> MapToCurve<GroupAffine<P>> for SWUMap<P> {
@@ -156,7 +161,7 @@ impl<P: SWUParams> MapToCurve<GroupAffine<P>> for SWUMap<P> {
         let y = if gx1_square { y1 } else { y2 };
 
         let x_affine = num_x / div;
-        let y_affine = if parity(&y) { -y } else {y};
+        let y_affine = if parity(&y) { -y } else { y };
         let point_on_curve = GroupAffine::<P>::new(x_affine, y_affine, false);
         assert!(
             point_on_curve.is_on_curve(),

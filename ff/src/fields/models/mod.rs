@@ -2,11 +2,10 @@ use ark_std::{
     cmp::{Ord, Ordering, PartialOrd},
     fmt::{Display, Formatter, Result as FmtResult},
     io::{Read, Result as IoResult, Write},
+    iter,
     marker::PhantomData,
     ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign},
     str::FromStr,
-    boxed::Box,
-    iter,
 };
 use num_traits::{One, Zero};
 

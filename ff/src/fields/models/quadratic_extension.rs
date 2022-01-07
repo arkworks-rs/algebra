@@ -6,9 +6,9 @@ use ark_std::{
     cmp::{Ord, Ordering, PartialOrd},
     fmt,
     io::{Read, Result as IoResult, Write},
+    iter::Chain,
     ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign},
     vec::Vec,
-    boxed::Box,
 };
 
 use num_traits::{One, Zero};
@@ -232,18 +232,22 @@ impl<P: QuadExtParameters> One for QuadExtField<P> {
     }
 }
 
+type BaseFieldIter<P> = <<P as QuadExtParameters>::BaseField as Field>::BasePrimeFieldIter;
 impl<P: QuadExtParameters> Field for QuadExtField<P> {
     type BasePrimeField = P::BasePrimeField;
-    type BasePrimeFieldIter = Box<dyn Iterator<Item = Self::BasePrimeField>>; 
+
+    type BasePrimeFieldIter = Chain<BaseFieldIter<P>, BaseFieldIter<P>>;
 
     fn extension_degree() -> u64 {
         2 * P::BaseField::extension_degree()
     }
 
     fn to_base_prime_field_elements(&self) -> Self::BasePrimeFieldIter {
-	    Box::new((self.c0.to_base_prime_field_elements()).chain(self.c1.to_base_prime_field_elements()))
+        self.c0
+            .to_base_prime_field_elements()
+            .chain(self.c1.to_base_prime_field_elements())
     }
-    
+
     fn from_base_prime_field_elems(elems: &[Self::BasePrimeField]) -> Option<Self> {
         if elems.len() != (Self::extension_degree() as usize) {
             return None;
@@ -818,14 +822,13 @@ mod quad_ext_tests {
 
     #[test]
     fn test_parity() {
-       let element_test1 = Fq2::new(Fq::from(0), Fq::from(1));
-       let element_test2 = Fq2::new(Fq::from(1), Fq::from(0));
-       let element_test3 = Fq2::new(Fq::from(10), Fq::from(5));
-       let element_test4 = Fq2::new(Fq::from(5), Fq::from(10));
-       assert_eq!(parity(&element_test1), false);
-       assert_eq!(parity(&element_test2), true);
-       assert_eq!(parity(&element_test3), false);
-       assert_eq!(parity(&element_test4), true);
-        
+        let element_test1 = Fq2::new(Fq::from(0), Fq::from(1));
+        let element_test2 = Fq2::new(Fq::from(1), Fq::from(0));
+        let element_test3 = Fq2::new(Fq::from(10), Fq::from(5));
+        let element_test4 = Fq2::new(Fq::from(5), Fq::from(10));
+        assert_eq!(parity(&element_test1), false);
+        assert_eq!(parity(&element_test2), true);
+        assert_eq!(parity(&element_test3), false);
+        assert_eq!(parity(&element_test4), true);
     }
 }
