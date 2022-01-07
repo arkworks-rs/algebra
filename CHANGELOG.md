@@ -16,6 +16,7 @@
     - Move `COFACTOR`, `COFACTOR_INV`, and `is_in_correct_subgroup_assuming_on_curve()` from `{SW,TE}ModelParameters` to `ModelParameters`.
     - Add `mul_bits()` to `AffineCurve` and provide a default implementation of `mul()` using this.
     - Remove duplicate function `scale_by_cofactor()` from `short_weierstrass_jacobian::GroupAffine` and `twisted_edwards_extended::GroupAffine`
+- [\#370](https://github.com/arkworks-rs/algebra/pull/370) (all) Set the minimum `rust-version = 1.56` in the manifests of all crates.
 
 ### Features
 
@@ -24,6 +25,7 @@
 - [\#312](https://github.com/arkworks-rs/algebra/pull/312) (ark-ec) Add `is_in_correct_subgroup_assuming_on_curve` for all `SWModelParameters`.
 - [\#348](https://github.com/arkworks-rs/algebra/pull/348) (ark-ec) Add `msm:{Fixed,Variable}Base:msm_checked_len`.
 - [\#364](https://github.com/arkworks-rs/algebra/pull/364) (ark-ec) Add `ChunkedPippenger` to variable-base MSM.
+- [\#371](https://github.com/arkworks-rs/algebra/pull/371) (ark-serialize) Add serialization impls for arrays
 
 ### Improvements
 
