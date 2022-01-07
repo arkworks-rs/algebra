@@ -56,6 +56,19 @@ To run the benchmarks, install the nightly Rust toolchain, via `rustup install n
 cargo +nightly bench
 ```
 
+This library comes with a comprehensive suite of benchmarks. Running all of the suites might consume a significant amount of time, so it might be beneficial to filter the benchmarks. In this example, the `sqrt` routine is benchmarked for `bls12-381`:
+
+```bash
+cargo +nightly bench 'Sqrt/Bls12-381' --features bls12_381_curve
+```
+
+More information can be found in [Criterion Command-Line Options](https://bheisler.github.io/criterion.rs/book/user_guide/command_line_options.html).
+
+The available suites can be found in the Toml specification files:
+
+* `poly-benches/Cargo.toml`
+* `test-curves/Cargo.toml`
+
 ## Assembly backend for field arithmetic
 
 The `ark-ff` crate contains (off-by-default) optimized assembly implementations of field arithmetic that rely on the `adcxq`, `adoxq` and `mulxq` instructions. These are available on most `x86_64` platforms (Broadwell onwards for Intel and Ryzen onwards for AMD). Using this backend can lead to a 30-70% speedup in finite field and elliptic curve arithmetic. To build with this backend enabled, run the following command:
