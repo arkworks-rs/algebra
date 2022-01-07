@@ -9,7 +9,6 @@
 #![allow(clippy::op_ref, clippy::suspicious_op_assign_impl)]
 #![cfg_attr(not(feature = "asm"), forbid(unsafe_code))]
 #![cfg_attr(feature = "asm", deny(unsafe_code))]
-#![cfg_attr(use_asm, feature(asm))]
 #![cfg_attr(use_asm, feature(asm_const))]
 
 #[macro_use]
