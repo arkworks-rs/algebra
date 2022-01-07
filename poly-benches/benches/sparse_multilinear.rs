@@ -12,8 +12,8 @@ const NUM_VARIABLES_RANGE: Range<usize> = 12..23;
 fn arithmetic_op_bench<F: Field>(c: &mut Criterion) {
     let mut rng = test_rng();
 
-    let mut group = c.benchmark_group("AddSparse");
-    for nv in NUM_VARIABLES_RANGE.step_by(2) {
+    let mut group = c.benchmark_group("Add");
+    for nv in NUM_VARIABLES_RANGE {
         let num_nonzero_entries = 1 << (nv / 2);
         group.bench_with_input(
             BenchmarkId::new("add", num_nonzero_entries),
@@ -35,8 +35,8 @@ fn arithmetic_op_bench<F: Field>(c: &mut Criterion) {
     }
     group.finish();
 
-    let mut group = c.benchmark_group("SubSparse");
-    for nv in NUM_VARIABLES_RANGE.step_by(2) {
+    let mut group = c.benchmark_group("Sub");
+    for nv in NUM_VARIABLES_RANGE {
         let num_nonzero_entries = 1 << (nv / 2);
         group.bench_with_input(
             BenchmarkId::new("sub", num_nonzero_entries),
@@ -61,8 +61,8 @@ fn arithmetic_op_bench<F: Field>(c: &mut Criterion) {
 
 fn evaluation_op_bench<F: Field>(c: &mut Criterion) {
     let mut rng = test_rng();
-    let mut group = c.benchmark_group("EvaluateSparse");
-    for nv in NUM_VARIABLES_RANGE.step_by(2) {
+    let mut group = c.benchmark_group("Evaluate");
+    for nv in NUM_VARIABLES_RANGE {
         let num_nonzero_entries = 1 << (nv / 2);
         group.bench_with_input(
             BenchmarkId::new("evaluate", num_nonzero_entries),
