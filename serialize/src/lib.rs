@@ -45,8 +45,8 @@ pub trait CanonicalSerializeWithFlags: CanonicalSerialize {
 /// The serialization format must be 'length-extension' safe.
 /// e.g. if T implements Canonical Serialize and Deserialize,
 /// then for all strings `x, y`, if `a = T::deserialize(Reader(x))` and `a` is
-/// not an error, then it must be the case that `a = T::deserialize(Reader(x || y))`,
-/// and that both readers read the same number of bytes.
+/// not an error, then it must be the case that `a = T::deserialize(Reader(x ||
+/// y))`, and that both readers read the same number of bytes.
 ///
 /// This trait can be derived if all fields of a struct implement
 /// `CanonicalSerialize` and the `derive` feature is enabled.
@@ -77,8 +77,8 @@ pub trait CanonicalSerialize {
     /// Particular examples of interest:
     /// `bool` - 1 byte encoding
     /// uints - Direct encoding
-    /// Length prefixing (for any container implemented by default) - 8 byte encoding
-    /// Elliptic curves - compressed point encoding
+    /// Length prefixing (for any container implemented by default) - 8 byte
+    /// encoding Elliptic curves - compressed point encoding
     fn serialize<W: Write>(&self, writer: W) -> Result<(), SerializationError>;
 
     fn serialized_size(&self) -> usize;
@@ -353,32 +353,21 @@ impl<T: CanonicalSerialize, const N: usize> CanonicalSerialize for [T; N] {
     }
 }
 
-impl<T: CanonicalDeserialize + Default + Copy, const N: usize> CanonicalDeserialize for [T; N] {
+// TODO: Update once feature #89379 (array_from_fn) is stabilized
+impl<T: CanonicalDeserialize, const N: usize> CanonicalDeserialize for [T; N] {
     #[inline]
     fn deserialize<R: Read>(mut reader: R) -> Result<Self, SerializationError> {
-        let mut values = [T::default(); N];
-        for val in values.iter_mut() {
-            *val = T::deserialize(&mut reader)?;
-        }
-        Ok(values)
+        Ok([(); N].map(|_| T::deserialize(&mut reader).unwrap()))
     }
 
     #[inline]
     fn deserialize_uncompressed<R: Read>(mut reader: R) -> Result<Self, SerializationError> {
-        let mut values = [T::default(); N];
-        for val in values.iter_mut() {
-            *val = T::deserialize_uncompressed(&mut reader)?;
-        }
-        Ok(values)
+        Ok([(); N].map(|_| T::deserialize_uncompressed(&mut reader).unwrap()))
     }
 
     #[inline]
     fn deserialize_unchecked<R: Read>(mut reader: R) -> Result<Self, SerializationError> {
-        let mut values = [T::default(); N];
-        for val in values.iter_mut() {
-            *val = T::deserialize_unchecked(&mut reader)?;
-        }
-        Ok(values)
+        Ok([(); N].map(|_| T::deserialize_unchecked(&mut reader).unwrap()))
     }
 }
 
@@ -766,7 +755,8 @@ impl CanonicalDeserialize for bool {
     }
 }
 
-// Serialize BTreeMap as `len(map) || key 1 || value 1 || ... || key n || value n`
+// Serialize BTreeMap as `len(map) || key 1 || value 1 || ... || key n || value
+// n`
 impl<K, V> CanonicalSerialize for BTreeMap<K, V>
 where
     K: CanonicalSerialize,
