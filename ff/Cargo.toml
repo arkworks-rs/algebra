@@ -12,6 +12,7 @@ include = ["Cargo.toml", "build.rs", "src", "README.md", "LICENSE-APACHE", "LICE
 license = "MIT/Apache-2.0"
 edition = "2021"
 build = "build.rs"
+rust-version = "1.56"
 
 [dependencies]
 ark-ff-asm = { version = "^0.3.0", path = "../ff-asm" }
@@ -26,7 +27,7 @@ zeroize = { version = "1", default-features = false, features = ["zeroize_derive
 num-bigint = { version = "0.4", default-features = false }
 
 [dev-dependencies]
-ark-test-curves = { version = "^0.3.0", path = "../test-curves", default-features = false, features = [ "bls12_381_curve"] }
+ark-test-curves = { version = "^0.3.0", path = "../test-curves", default-features = false, features = [ "bls12_381_curve", "mnt6_753"] }
 
 [build-dependencies]
 rustc_version = "0.4"

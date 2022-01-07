@@ -19,6 +19,7 @@ use ark_std::rand::{
 };
 
 use crate::{
+    biginteger::BigInteger,
     bytes::{FromBytes, ToBytes},
     fields::{Field, LegendreSymbol, PrimeField, SquareRootField},
     ToConstraintField, UniformRand,
@@ -29,6 +30,10 @@ pub trait QuadExtParameters: 'static + Send + Sync + Sized {
     /// The prime field that this quadratic extension is eventually an extension of.
     type BasePrimeField: PrimeField;
     /// The base field that this field is a quadratic extension of.
+    ///
+    /// Note: while for simple instances of quadratic extensions such as `Fp2`
+    /// we might see `BaseField == BasePrimeField`, it won't always hold true.
+    /// E.g. for an extension tower: `BasePrimeField == Fp`, but `BaseField == Fp3`.
     type BaseField: Field<BasePrimeField = Self::BasePrimeField>;
     /// The type of the coefficients for an efficient implemntation of the
     /// Frobenius endomorphism.
@@ -131,11 +136,27 @@ pub trait QuadExtParameters: 'static + Send + Sync + Sized {
     Eq(bound = "P: QuadExtParameters")
 )]
 pub struct QuadExtField<P: QuadExtParameters> {
+    /// Coefficient `c0` in the representation of the field element `c = c0 + c1 * X`
     pub c0: P::BaseField,
+    /// Coefficient `c1` in the representation of the field element `c = c0 + c1 * X`
     pub c1: P::BaseField,
 }
 
 impl<P: QuadExtParameters> QuadExtField<P> {
+    /// Create a new field element from coefficients `c0` and `c1`,
+    /// so that the result is of the form `c0 + c1 * X`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use ark_std::test_rng;
+    /// # use ark_test_curves::bls12_381::{Fq as Fp, Fq2 as Fp2};
+    /// # use ark_std::UniformRand;
+    /// let c0: Fp = Fp::rand(&mut test_rng());
+    /// let c1: Fp = Fp::rand(&mut test_rng());
+    /// // `Fp2` a degree-2 extension over `Fp`.
+    /// let c: Fp2 = Fp2::new(c0, c1);
+    /// ```
     pub fn new(c0: P::BaseField, c1: P::BaseField) -> Self {
         Self { c0, c1 }
     }
@@ -155,6 +176,25 @@ impl<P: QuadExtParameters> QuadExtField<P> {
     /// Norm of QuadExtField over `P::BaseField`:`Norm(a) = a * a.conjugate()`.
     /// This simplifies to: `Norm(a) = a.x^2 - P::NON_RESIDUE * a.y^2`.
     /// This is alternatively expressed as `Norm(a) = a^(1 + p)`.
+    ///
+    /// # Examples
+    /// ```
+    /// # use ark_std::test_rng;
+    /// # use ark_std::{UniformRand, Zero};
+    /// # use ark_test_curves::{Field, bls12_381::Fq2 as Fp2};
+    /// let c: Fp2 = Fp2::rand(&mut test_rng());
+    /// let norm = c.norm();
+    /// // We now compute the norm using the `a * a.conjugate()` approach.
+    /// // A Frobenius map sends an element of `Fp2` to one of its p_th powers:
+    /// // `a.frobenius_map(1) -> a^p` and `a^p` is also `a`'s Galois conjugate.
+    /// let mut c_conjugate = c;
+    /// c_conjugate.frobenius_map(1);
+    /// let norm2 = c * c_conjugate;
+    /// // Computing the norm of an `Fp2` element should result in an element
+    /// // in BaseField `Fp`, i.e. `c1 == 0`
+    /// assert!(norm2.c1.is_zero());
+    /// assert_eq!(norm, norm2.c0);
+    /// ```
     pub fn norm(&self) -> P::BaseField {
         let t0 = self.c0.square();
         // t1 = t0 - P::NON_RESIDUE * c1^2
@@ -163,6 +203,8 @@ impl<P: QuadExtParameters> QuadExtField<P> {
         t1
     }
 
+    /// In-place multiply both coefficients `c0` & `c1` of the quadratic
+    /// extension field by an element from the base field.
     pub fn mul_assign_by_basefield(&mut self, element: &P::BaseField) {
         self.c0.mul_assign(element);
         self.c1.mul_assign(element);
@@ -284,7 +326,6 @@ impl<P: QuadExtParameters> Field for QuadExtField<P> {
 
             // result.c1 = 2 * c0 * c1
             self.c1 = v2.double();
-            // result.c0 = (v0) + ((beta + 1) * v2)
             // result.c0 = (c0^2 - beta * c0 * c1 - c0 * c1 + beta * c1^2) + ((beta + 1) c0 * c1)
             // result.c0 = (c0^2 - beta * c0 * c1 + beta * c1^2) + (beta * c0 * c1)
             // result.c0 = c0^2 + beta * c1^2
@@ -330,7 +371,7 @@ impl<P: QuadExtParameters> Field for QuadExtField<P> {
 
 impl<'a, P: QuadExtParameters> SquareRootField for QuadExtField<P>
 where
-    P::BaseField: SquareRootField,
+    P::BaseField: SquareRootField + From<P::BasePrimeField>,
 {
     fn legendre(&self) -> LegendreSymbol {
         // The LegendreSymbol in a field of order q for an element x can be
@@ -350,16 +391,35 @@ where
         // Square root based on the complex method. See
         // https://eprint.iacr.org/2012/685.pdf (page 15, algorithm 8)
         if self.c1.is_zero() {
-            return self.c0.sqrt().map(|c0| Self::new(c0, P::BaseField::zero()));
+            // for c = c0 + c1 * x, we have c1 = 0
+            // sqrt(c) == sqrt(c0) is an element of Fp2, i.e. sqrt(c0) = a = a0 + a1 * x for some a0, a1 in Fp
+            // squaring both sides: c0 = a0^2 + a1^2 * x^2 + (2 * a0 * a1 * x) = a0^2 + (a1^2 * P::NONRESIDUE)
+            // since there are no `x` terms on LHS, a0 * a1 = 0
+            // so either a0 = sqrt(c0) or a1 = sqrt(c0/P::NONRESIDUE)
+            if self.c0.legendre().is_qr() {
+                // either c0 is a valid sqrt in the base field
+                return self.c0.sqrt().map(|c0| Self::new(c0, P::BaseField::zero()));
+            } else {
+                // or we need to compute sqrt(c0/P::NONRESIDUE)
+                return (self.c0.div(P::NONRESIDUE))
+                    .sqrt()
+                    .map(|res| Self::new(P::BaseField::zero(), res));
+            }
         }
         // Try computing the square root
         // Check at the end of the algorithm if it was a square root
         let alpha = self.norm();
-        // TODO: Precompute this
-        let two_inv = P::BaseField::one()
-            .double()
-            .inverse()
-            .expect("Two should always have an inverse");
+
+        // Compute `(p+1)/2` as `1/2`.
+        // This is cheaper than `P::BaseField::one().double().inverse()`
+        let mut two_inv = P::BasePrimeField::modulus();
+
+        two_inv.add_nocarry(&1u64.into());
+        two_inv.div2();
+
+        let two_inv = P::BasePrimeField::from(two_inv);
+        let two_inv = P::BaseField::from(two_inv);
+
         alpha.sqrt().and_then(|alpha| {
             let mut delta = (alpha + &self.c0) * &two_inv;
             if delta.legendre().is_qnr() {

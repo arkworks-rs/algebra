@@ -22,13 +22,15 @@ use zeroize::Zeroize;
 
 use ark_ff::{
     bytes::{FromBytes, ToBytes},
-    fields::{BitIteratorBE, Field, PrimeField, SquareRootField},
+    fields::{Field, PrimeField, SquareRootField},
     ToConstraintField, UniformRand,
 };
 
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
 
+/// Affine coordinates for a point on a twisted Edwards curve, over the
+/// base field `P::BaseField`.
 #[derive(Derivative)]
 #[derivative(
     Copy(bound = "P: Parameters"),
@@ -53,24 +55,6 @@ impl<P: Parameters> Display for GroupAffine<P> {
 impl<P: Parameters> GroupAffine<P> {
     pub fn new(x: P::BaseField, y: P::BaseField) -> Self {
         Self { x, y }
-    }
-
-    #[must_use]
-    pub fn scale_by_cofactor(&self) -> <Self as AffineCurve>::Projective {
-        self.mul_bits(BitIteratorBE::new(P::COFACTOR))
-    }
-
-    /// Multiplies `self` by the scalar represented by `bits`. `bits` must be a
-    /// big-endian bit-wise decomposition of the scalar.
-    pub(crate) fn mul_bits(&self, bits: impl Iterator<Item = bool>) -> GroupProjective<P> {
-        let mut res = GroupProjective::zero();
-        for i in bits.skip_while(|b| !b) {
-            res.double_in_place();
-            if i {
-                res.add_assign_mixed(&self)
-            }
-        }
-        res
     }
 
     /// Attempts to construct an affine point given an y-coordinate. The
@@ -111,12 +95,13 @@ impl<P: Parameters> GroupAffine<P> {
 
         lhs == rhs
     }
+}
 
-    /// Checks that the current point is in the prime order subgroup given
-    /// the point on the curve.
+impl<P: Parameters> GroupAffine<P> {
+    /// Checks if `self` is in the subgroup having order equaling that of
+    /// `P::ScalarField` given it is on the curve.
     pub fn is_in_correct_subgroup_assuming_on_curve(&self) -> bool {
-        self.mul_bits(BitIteratorBE::new(P::ScalarField::characteristic()))
-            .is_zero()
+        P::is_in_correct_subgroup_assuming_on_curve(self)
     }
 }
 
@@ -131,17 +116,13 @@ impl<P: Parameters> Zero for GroupAffine<P> {
 }
 
 impl<P: Parameters> AffineCurve for GroupAffine<P> {
-    const COFACTOR: &'static [u64] = P::COFACTOR;
+    type Parameters = P;
     type BaseField = P::BaseField;
     type ScalarField = P::ScalarField;
     type Projective = GroupProjective<P>;
 
     fn prime_subgroup_generator() -> Self {
         Self::new(P::AFFINE_GENERATOR_COEFFS.0, P::AFFINE_GENERATOR_COEFFS.1)
-    }
-
-    fn mul<S: Into<<Self::ScalarField as PrimeField>::BigInt>>(&self, by: S) -> GroupProjective<P> {
-        self.mul_bits(BitIteratorBE::new(by.into()))
     }
 
     fn from_random_bytes(bytes: &[u8]) -> Option<Self> {
@@ -154,15 +135,6 @@ impl<P: Parameters> AffineCurve for GroupAffine<P> {
                 Self::get_point_from_y(y, flags.is_positive())
             }
         })
-    }
-
-    #[inline]
-    fn mul_by_cofactor_to_projective(&self) -> Self::Projective {
-        self.scale_by_cofactor()
-    }
-
-    fn mul_by_cofactor_inv(&self) -> Self {
-        self.mul(P::COFACTOR_INV).into()
     }
 }
 
@@ -264,7 +236,7 @@ impl<P: Parameters> Distribution<GroupAffine<P>> for Standard {
             let greatest = rng.gen();
 
             if let Some(p) = GroupAffine::get_point_from_y(y, greatest) {
-                return p.scale_by_cofactor().into();
+                return p.mul_by_cofactor();
             }
         }
     }
@@ -363,7 +335,7 @@ impl<P: Parameters> Distribution<GroupProjective<P>> for Standard {
             let greatest = rng.gen();
 
             if let Some(p) = GroupAffine::get_point_from_y(y, greatest) {
-                return p.scale_by_cofactor();
+                return p.mul_by_cofactor_to_projective();
             }
         }
     }
@@ -429,7 +401,7 @@ impl<P: Parameters> Zero for GroupProjective<P> {
 }
 
 impl<P: Parameters> ProjectiveCurve for GroupProjective<P> {
-    const COFACTOR: &'static [u64] = P::COFACTOR;
+    type Parameters = P;
     type BaseField = P::BaseField;
     type ScalarField = P::ScalarField;
     type Affine = GroupAffine<P>;

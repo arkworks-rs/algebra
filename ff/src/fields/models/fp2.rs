@@ -2,11 +2,17 @@ use super::quadratic_extension::*;
 use crate::fields::PrimeField;
 use core::marker::PhantomData;
 
+/// Parameters for defining degree-two extension fields.
 pub trait Fp2Parameters: 'static + Send + Sync {
+    /// Base prime field underlying this extension.
     type Fp: PrimeField;
 
+    /// Quadratic non-residue in `Self::Fp` used to construct the extension
+    /// field. That is, `NONRESIDUE` is such that the quadratic polynomial
+    /// `f(X) = X^2 - Self::NONRESIDUE` in Fp\[X\] is irreducible in `Self::Fp`.
     const NONRESIDUE: Self::Fp;
 
+    /// A quadratic nonresidue in Fp2, used for calculating square roots in Fp2.
     const QUADRATIC_NONRESIDUE: (Self::Fp, Self::Fp);
 
     /// Coefficients for the Frobenius automorphism.
@@ -44,6 +50,7 @@ pub trait Fp2Parameters: 'static + Send + Sync {
     }
 }
 
+/// Wrapper for Fp2Parameters, allowing combination of Fp2Parameters & QuadExtParameters traits
 pub struct Fp2ParamsWrapper<P: Fp2Parameters>(PhantomData<P>);
 
 impl<P: Fp2Parameters> QuadExtParameters for Fp2ParamsWrapper<P> {
@@ -91,9 +98,31 @@ impl<P: Fp2Parameters> QuadExtParameters for Fp2ParamsWrapper<P> {
     }
 }
 
+/// Alias for instances of quadratic extension fields. Helpful for omitting verbose
+/// instantiations involving `Fp2ParamsWrapper`.
 pub type Fp2<P> = QuadExtField<Fp2ParamsWrapper<P>>;
 
 impl<P: Fp2Parameters> Fp2<P> {
+    /// In-place multiply both coefficients `c0` & `c1` of the extension field
+    /// `Fp2` by an element from `Fp`. The coefficients themselves
+    /// are elements of `Fp`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use ark_std::test_rng;
+    /// # use ark_test_curves::bls12_381::{Fq as Fp, Fq2 as Fp2};
+    /// # use ark_std::UniformRand;
+    /// let c0: Fp = Fp::rand(&mut test_rng());
+    /// let c1: Fp = Fp::rand(&mut test_rng());
+    /// let mut ext_element: Fp2 = Fp2::new(c0, c1);
+    ///
+    /// let base_field_element: Fp = Fp::rand(&mut test_rng());
+    /// ext_element.mul_assign_by_fp(&base_field_element);
+    ///
+    /// assert_eq!(ext_element.c0, c0*base_field_element);
+    /// assert_eq!(ext_element.c1, c1*base_field_element);
+    /// ```
     pub fn mul_assign_by_fp(&mut self, other: &P::Fp) {
         self.c0 *= other;
         self.c1 *= other;
