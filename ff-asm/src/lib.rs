@@ -294,7 +294,7 @@ fn generate_impl(num_limbs: usize, is_mul: bool) -> String {
     if is_mul {
         ctx.add_declaration("b", DeclType::Register, "b");
     }
-    ctx.add_declaration("modulus", DeclType::Constant, "&P::MODULUS.0");
+    ctx.add_declaration("modulus", DeclType::Register, "&P::MODULUS.0");
     ctx.add_declaration("zero", DeclType::Constant, "0u64");
     ctx.add_declaration("mod_inv", DeclType::Constant, "P::INV");
 
