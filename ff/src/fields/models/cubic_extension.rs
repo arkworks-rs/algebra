@@ -671,8 +671,6 @@ mod cube_ext_tests {
         Field,
     };
 
-    use ark_ec::hashing::curve_maps::swu::parity;
-
     #[test]
     fn test_norm_for_towers() {
         // First, test the simple fp3
@@ -717,21 +715,5 @@ mod cube_ext_tests {
             let expected = Fq6::new(expected_0, expected_1, expected_2);
             assert_eq!(actual, expected);
         }
-    }
-
-    #[test]
-    fn test_parity() {
-        let a1 = Fq2::new(Fq::from(0), Fq::from(0));
-        let a2 = Fq2::new(Fq::from(0), Fq::from(1));
-        let a3 = Fq2::new(Fq::from(1), Fq::from(0));
-        let a4 = Fq2::new(Fq::from(1), Fq::from(1));
-        let element_test1 = Fq6::new(a1, a2, a3);
-        let element_test2 = Fq6::new(a2, a3, a4);
-        let element_test3 = Fq6::new(a3, a4, a1);
-        let element_test4 = Fq6::new(a4, a1, a2);
-        assert_eq!(parity(&element_test1), false);
-        assert_eq!(parity(&element_test2), false);
-        assert_eq!(parity(&element_test3), true);
-        assert_eq!(parity(&element_test4), true);
-    }
+    }   
 }

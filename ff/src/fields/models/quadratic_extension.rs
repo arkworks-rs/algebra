@@ -788,8 +788,6 @@ mod quad_ext_tests {
         Field,
     };
 
-    use ark_ec::hashing::curve_maps::swu::parity;
-
     #[test]
     fn test_from_base_prime_field_elements() {
         let ext_degree = Fq2::extension_degree() as usize;
@@ -818,17 +816,5 @@ mod quad_ext_tests {
             let expected = Fq2::new(random_coeffs[0], random_coeffs[1]);
             assert_eq!(actual, expected);
         }
-    }
-
-    #[test]
-    fn test_parity() {
-        let element_test1 = Fq2::new(Fq::from(0), Fq::from(1));
-        let element_test2 = Fq2::new(Fq::from(1), Fq::from(0));
-        let element_test3 = Fq2::new(Fq::from(10), Fq::from(5));
-        let element_test4 = Fq2::new(Fq::from(5), Fq::from(10));
-        assert_eq!(parity(&element_test1), false);
-        assert_eq!(parity(&element_test2), true);
-        assert_eq!(parity(&element_test3), false);
-        assert_eq!(parity(&element_test4), true);
     }
 }

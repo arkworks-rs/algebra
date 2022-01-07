@@ -710,9 +710,7 @@ mod no_std_tests {
         bls12_381::{Fr, FrParameters},
         BigInteger, FpParameters, PrimeField,
     };
-
-    use ark_ec::hashing::curve_maps::swu::parity;
-
+    
     #[test]
     fn test_batch_inversion() {
         let mut random_coeffs = Vec::<Fr>::new();
@@ -859,15 +857,5 @@ mod no_std_tests {
             let actual = Fr::from_be_bytes_mod_order(&i);
             assert_eq!(expected, actual, "failed on test {:?}", i);
         }
-    }
-
-    #[test]
-    fn test_parity() {
-        let a1 = Fr::from(0);
-        let a2 = Fr::from(1);
-        let a3 = Fr::from(10);
-        assert_eq!(parity(&a1), false);
-        assert_eq!(parity(&a2), true);
-        assert_eq!(parity(&a3), false);
     }
 }
