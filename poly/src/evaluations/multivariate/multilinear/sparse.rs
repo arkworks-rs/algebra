@@ -1,16 +1,21 @@
 //! multilinear polynomial represented in sparse evaluation form.
 
-use crate::evaluations::multivariate::multilinear::swap_bits;
-use crate::{DenseMultilinearExtension, MultilinearExtension};
+use crate::{
+    evaluations::multivariate::multilinear::swap_bits, DenseMultilinearExtension,
+    MultilinearExtension,
+};
 use ark_ff::{Field, Zero};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, Read, SerializationError, Write};
-use ark_std::collections::BTreeMap;
-use ark_std::fmt::{Debug, Formatter};
-use ark_std::iter::FromIterator;
-use ark_std::ops::{Add, AddAssign, Index, Neg, Sub, SubAssign};
-use ark_std::rand::Rng;
-use ark_std::vec::Vec;
-use ark_std::{fmt, UniformRand};
+use ark_std::{
+    collections::BTreeMap,
+    fmt,
+    fmt::{Debug, Formatter},
+    iter::FromIterator,
+    ops::{Add, AddAssign, Index, Neg, Sub, SubAssign},
+    rand::Rng,
+    vec::Vec,
+    UniformRand,
+};
 use hashbrown::HashMap;
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
@@ -47,11 +52,14 @@ impl<F: Field> SparseMultilinearExtension<F> {
         }
     }
 
-    /// Outputs an `l`-variate multilinear extension where value of evaluations are sampled uniformly at random.
-    /// The number of nonzero entries is `num_nonzero_entries` and indices of those nonzero entries are distributed uniformly at random.
+    /// Outputs an `l`-variate multilinear extension where value of evaluations
+    /// are sampled uniformly at random. The number of nonzero entries is
+    /// `num_nonzero_entries` and indices of those nonzero entries are
+    /// distributed uniformly at random.
     ///
-    /// Note that this function uses rejection sampling. As number of nonzero entries approach `2 ^ num_vars`,
-    /// sampling will be very slow due to large number of collisions.
+    /// Note that this function uses rejection sampling. As number of nonzero
+    /// entries approach `2 ^ num_vars`, sampling will be very slow due to
+    /// large number of collisions.
     pub fn rand_with_config<R: Rng>(
         num_vars: usize,
         num_nonzero_entries: usize,
@@ -121,8 +129,10 @@ impl<F: Field> MultilinearExtension<F> for SparseMultilinearExtension<F> {
         }
     }
 
-    /// Outputs an `l`-variate multilinear extension where value of evaluations are sampled uniformly at random.
-    /// The number of nonzero entries is `sqrt(2^num_vars)` and indices of those nonzero entries are distributed uniformly at random.
+    /// Outputs an `l`-variate multilinear extension where value of evaluations
+    /// are sampled uniformly at random. The number of nonzero entries is
+    /// `sqrt(2^num_vars)` and indices of those nonzero entries are distributed
+    /// uniformly at random.
     fn rand<R: Rng>(num_vars: usize, rng: &mut R) -> Self {
         Self::rand_with_config(num_vars, 1 << (num_vars / 2), rng)
     }
@@ -203,11 +213,14 @@ impl<F: Field> MultilinearExtension<F> for SparseMultilinearExtension<F> {
 impl<F: Field> Index<usize> for SparseMultilinearExtension<F> {
     type Output = F;
 
-    /// Returns the evaluation of the polynomial at a point represented by index.
+    /// Returns the evaluation of the polynomial at a point represented by
+    /// index.
     ///
-    /// Index represents a vector in {0,1}^`num_vars` in little endian form. For example, `0b1011` represents `P(1,1,0,1)`
+    /// Index represents a vector in {0,1}^`num_vars` in little endian form. For
+    /// example, `0b1011` represents `P(1,1,0,1)`
     ///
-    /// For Sparse multilinear polynomial, Lookup_evaluation takes log time to the size of polynomial.
+    /// For Sparse multilinear polynomial, Lookup_evaluation takes log time to
+    /// the size of polynomial.
     fn index(&self, index: usize) -> &Self::Output {
         if let Some(v) = self.evaluations.get(&index) {
             v
@@ -392,13 +405,12 @@ fn hashmap_to_treemap<F: Field>(map: &HashMap<usize, F>) -> BTreeMap<usize, F> {
 
 #[cfg(test)]
 mod tests {
-    use crate::evaluations::multivariate::multilinear::MultilinearExtension;
-    use crate::SparseMultilinearExtension;
+    use crate::{
+        evaluations::multivariate::multilinear::MultilinearExtension, SparseMultilinearExtension,
+    };
     use ark_ff::{One, Zero};
     use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
-    use ark_std::ops::Neg;
-    use ark_std::vec::Vec;
-    use ark_std::{test_rng, UniformRand};
+    use ark_std::{ops::Neg, test_rng, vec::Vec, UniformRand};
     use ark_test_curves::bls12_381::Fr;
     /// Some sanity test to ensure random sparse polynomial make sense.
     #[test]

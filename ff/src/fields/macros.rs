@@ -88,6 +88,9 @@ macro_rules! impl_prime_field_serializer {
 
 macro_rules! impl_Fp {
     ($Fp:ident, $FpParameters:ident, $BigInteger:ident, $BigIntegerType:ty, $limbs:expr, $field_size:expr) => {
+        /// Trait for prime field parameters of size at most
+        #[doc = $field_size]
+        /// bits.
         pub trait $FpParameters: FpParameters<BigInt = $BigIntegerType> {}
 
         /// Represents an element of the prime field F_p, where `p == P::MODULUS`.
@@ -100,7 +103,6 @@ macro_rules! impl_Fp {
             Hash(bound = ""),
             Clone(bound = ""),
             Copy(bound = ""),
-            Debug(bound = ""),
             PartialEq(bound = ""),
             Eq(bound = "")
         )]
@@ -112,6 +114,9 @@ macro_rules! impl_Fp {
         );
 
         impl<P> $Fp<P> {
+            /// Construct a new prime element directly from its underlying
+            /// `BigInteger` data type. The `BigInteger` should be in
+            /// Montgomery representation. If it is not, use `Self::from_repr`.
             #[inline]
             pub const fn new(element: $BigIntegerType) -> Self {
                 Self(element, PhantomData)
@@ -247,6 +252,12 @@ macro_rules! impl_Fp {
                 if !self.is_valid() {
                     self.0.sub_noborrow(&P::MODULUS);
                 }
+            }
+        }
+
+        impl<P> ark_std::fmt::Debug for $Fp<P> {
+            fn fmt(&self, f: &mut ark_std::fmt::Formatter<'_>) -> ark_std::fmt::Result {
+                ark_std::fmt::Debug::fmt(&self.0, f)
             }
         }
 
@@ -612,7 +623,7 @@ macro_rules! impl_Fp {
         impl<P: $FpParameters> Display for $Fp<P> {
             #[inline]
             fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
-                write!(f, stringify!($Fp"({})"), self.into_repr())
+                write!(f, stringify!($Fp "({})"), self.into_repr())
             }
         }
 
@@ -725,10 +736,10 @@ macro_rules! impl_Fp {
             }
         }
 
-        impl<P: $FpParameters> Into<num_bigint::BigUint> for $Fp<P> {
+        impl<P: $FpParameters> From<$Fp<P>> for num_bigint::BigUint {
             #[inline]
-            fn into(self) -> num_bigint::BigUint {
-                self.into_repr().into()
+            fn from(other: $Fp<P>) -> Self {
+                other.into_repr().into()
             }
         }
     }

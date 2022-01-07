@@ -10,17 +10,18 @@ keywords = ["cryptography", "serialization" ]
 categories = ["cryptography"]
 include = ["Cargo.toml", "src", "README.md", "LICENSE-APACHE", "LICENSE-MIT"]
 license = "MIT/Apache-2.0"
-edition = "2018"
+edition = "2021"
+rust-version = "1.56"
 
 [dependencies]
 ark-serialize-derive = { version = "^0.3.0", path = "../serialize-derive", optional = true }
 ark-std = { version = "^0.3.0", default-features = false }
-digest = { version = "0.9", default-features = false }
+digest = { version = "0.10", default-features = false }
 
 [dev-dependencies]
-sha2 = { version = "0.9.3", default-features = false}
-sha3 = { version = "0.9.1", default-features = false}
-blake2 = { version = "0.9.1", default-features = false}
+sha2 = { version = "0.10", default-features = false}
+sha3 = { version = "0.10", default-features = false}
+blake2 = { version = "0.10", default-features = false}
 
 [features]
 default = []

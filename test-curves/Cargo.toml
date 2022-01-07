@@ -10,7 +10,8 @@ keywords = ["cryptography", "serialization" ]
 categories = ["cryptography"]
 include = ["Cargo.toml", "src", "README.md", "LICENSE-APACHE", "LICENSE-MIT"]
 license = "MIT/Apache-2.0"
-edition = "2018"
+edition = "2021"
+rust-version = "1.56"
 
 [dependencies]
 ark-std = { version = "^0.3.0", default-features = false }
@@ -34,6 +35,8 @@ bls12_381_curve = [ "bls12_381_scalar_field" ]
 mnt4_753_scalar_field = []
 mnt4_753_base_field = []
 mnt4_753_curve = [ "mnt4_753_scalar_field", "mnt4_753_base_field" ]
+
+mnt6_753 = [ "mnt4_753_scalar_field", "mnt4_753_base_field" ]
 
 bn384_small_two_adicity_scalar_field = []
 bn384_small_two_adicity_base_field = []

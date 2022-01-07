@@ -10,7 +10,8 @@ keywords = ["cryptography", "finite-fields", "elliptic-curves", "serialization"]
 categories = ["cryptography"]
 include = ["Cargo.toml", "src", "README.md", "LICENSE-APACHE", "LICENSE-MIT"]
 license = "MIT/Apache-2.0"
-edition = "2018"
+edition = "2021"
+rust-version = "1.56"
 
 ################################# Dependencies ################################
 

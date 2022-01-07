@@ -9,7 +9,7 @@ pub struct WnafContext {
 }
 
 impl WnafContext {
-    /// Construct a new context for a window of size `window_size`.
+    /// Constructs a new context for a window of size `window_size`.
     pub fn new(window_size: usize) -> Self {
         assert!(window_size >= 2);
         assert!(window_size < 64);
@@ -29,17 +29,19 @@ impl WnafContext {
 
     /// Computes scalar multiplication of a group element `g` by `scalar`.
     ///
-    /// This method uses the wNAF algorithm to perform the scalar multiplication;
-    /// first, it uses `Self::table` to calculate an appropriate table of multiples of `g`,
-    /// and then uses the wNAF algorithm to compute the scalar multiple.
+    /// This method uses the wNAF algorithm to perform the scalar
+    /// multiplication; first, it uses `Self::table` to calculate an
+    /// appropriate table of multiples of `g`, and then uses the wNAF
+    /// algorithm to compute the scalar multiple.
     pub fn mul<G: ProjectiveCurve>(&self, g: G, scalar: &G::ScalarField) -> G {
         let table = self.table(g);
         self.mul_with_table(&table, scalar).unwrap()
     }
 
     /// Computes scalar multiplication of a group element by `scalar`.
-    /// `base_table` holds precomputed multiples of the group element; it can be generated using `Self::table`.
-    /// `scalar` is an element of `G::ScalarField`.
+    /// `base_table` holds precomputed multiples of the group element; it can be
+    /// generated using `Self::table`. `scalar` is an element of
+    /// `G::ScalarField`.
     ///
     /// Returns `None` if the table is too small.
     pub fn mul_with_table<G: ProjectiveCurve>(

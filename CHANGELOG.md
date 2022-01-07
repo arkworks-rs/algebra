@@ -5,12 +5,39 @@
 ### Breaking changes
 
 - [\#300](https://github.com/arkworks-rs/algebra/pull/300) (ark-ec) Change the implementation of `Hash` trait of `GroupProjective` to use the affine coordinates.
+- [\#310](https://github.com/arkworks-rs/algebra/pull/310) (ark-ec, ark-ff) Remove unnecessary internal `PhantomData`.
+- [\#333](https://github.com/arkworks-rs/algebra/pull/333) (ark-poly) Expose more properties of `EvaluationDomain`s.
+- [\#338](https://github.com/arkworks-rs/algebra/pull/338) (ark-ec) Add missing `UniformRand` trait bound to `GroupAffine`.
+- [\#338](https://github.com/arkworks-rs/algebra/pull/338) (workspace) Change to Rust 2021 edition.
+- [\#345](https://github.com/arkworks-rs/algebra/pull/345) (arc-ec, ark-serialize) Change the serialization format for Twisted Edwards Curves. We now encode the Y coordinate and take the sign bit of the X co-ordinate, the default flag is also now the Positive X value. The old methods for backwards compatibility are located [here](https://github.com/arkworks-rs/algebra/pull/345/files#diff-3621a48bb33f469144044d8d5fc663f767e103132a764812cda6be6c25877494R860)
+- [\#348](https://github.com/arkworks-rs/algebra/pull/348) (arc-ec) Rename `msm:{Fixed,Variable}BaseMSM:multi_scalar_mul` to `msm:{Fixed,Variable}:msm` to avoid redundancy.
+- [\#359](https://github.com/arkworks-rs/algebra/pull/359) (ark-test-templates) Simplify the field and curve test macros.
+- [\#365](https://github.com/arkworks-rs/algebra/pull/365) (arc-ec)
+    - Move `COFACTOR`, `COFACTOR_INV`, and `is_in_correct_subgroup_assuming_on_curve()` from `{SW,TE}ModelParameters` to `ModelParameters`.
+    - Add `mul_bits()` to `AffineCurve` and provide a default implementation of `mul()` using this.
+    - Remove duplicate function `scale_by_cofactor()` from `short_weierstrass_jacobian::GroupAffine` and `twisted_edwards_extended::GroupAffine`
+- [\#370](https://github.com/arkworks-rs/algebra/pull/370) (all) Set the minimum `rust-version = 1.56` in the manifests of all crates.
 
 ### Features
 
+- [\#321](https://github.com/arkworks-rs/algebra/pull/321) (ark-ff) Change bigint conversions to impl `From` instead of `Into`.
+- [\#301](https://github.com/arkworks-rs/algebra/pull/301) (ark-ec) Add `GLVParameters` trait definition.
+- [\#312](https://github.com/arkworks-rs/algebra/pull/312) (ark-ec) Add `is_in_correct_subgroup_assuming_on_curve` for all `SWModelParameters`.
+- [\#348](https://github.com/arkworks-rs/algebra/pull/348) (ark-ec) Add `msm:{Fixed,Variable}Base:msm_checked_len`.
+- [\#364](https://github.com/arkworks-rs/algebra/pull/364) (ark-ec) Add `ChunkedPippenger` to variable-base MSM.
+- [\#371](https://github.com/arkworks-rs/algebra/pull/371) (ark-serialize) Add serialization impls for arrays
+
 ### Improvements
 
-### Bug fixes
+- [\#339](https://github.com/arkworks-rs/algebra/pull/339) (ark-ff) Remove duplicated code from `test_field` module and replace its usage with `ark-test-curves` crate.
+- [\#352](https://github.com/arkworks-rs/algebra/pull/352) (ark-ff) Update `QuadExtField::sqrt` for better performance.
+- [\#357](https://github.com/arkworks-rs/algebra/pull/357) (ark-poly) Speedup division by vanishing polynomials for dense polynomials.
+
+### Bugfixes
+
+- [\#350](https://github.com/arkworks-rs/algebra/pull/350) (ark-serialize) Fix issues with santiation whenever a non-standard `Result` type is in scope.
+- [\#358](https://github.com/arkworks-rs/algebra/pull/358) (ark-ff) Fix the bug for `QuadExtField::sqrt` when `c1 = 0 && c0.legendre.is_qnr()`
+- [\#366](https://github.com/arkworks-rs/algebra/pull/366) (ark-ff) Fix `norm()` for cubic extension field towers.
 
 ## v0.3.0
 
@@ -36,7 +63,7 @@
 
 - [\#279](https://github.com/arkworks-rs/algebra/pull/279) (ark-ec) Parallelize miller loop operations for BLS12.
 
-### Bug fixes
+### Bugfixes
 
 - [\#252](https://github.com/arkworks-rs/algebra/pull/252) (ark-ff) Fix prime field sampling when `REPR_SHIFT_BITS` is 64.
 - [\#284](https://github.com/arkworks-rs/algebra/pull/284) (ark-poly-benches) Fix the panic `subgroup_fft_in_place` benchmark for MNT6-753's Fr.
@@ -59,7 +86,7 @@ The main features of this release are:
 
 - [\#20](https://github.com/arkworks-rs/algebra/pull/20) (ark-poly) Move univariate DensePolynomial and SparsePolynomial into a
     univariate sub-crate. Make this change by:
-    find w/ regex `ark_poly::(Dense|Sparse)Polynomial`, and replace with `ark_poly::univariate::$1Polynomial`.
+    find w/ regular expression `ark_poly::(Dense|Sparse)Polynomial`, and replace with `ark_poly::univariate::$1Polynomial`.
 - [\#36](https://github.com/arkworks-rs/algebra/pull/36) (ark-ec) In Short-Weierstrass curves, include an infinity bit in `ToConstraintField`.
 - [\#37](https://github.com/arkworks-rs/algebra/pull/37) (ark-poly) In the `Polynomial` trait, add `Hash` trait bound to `Point`.
 - [\#38](https://github.com/arkworks-rs/algebra/pull/38) (ark-poly) Add `Add` and `Neg` trait bounds to `Polynomial`.
@@ -135,7 +162,7 @@ The main features of this release are:
 - [\#214](https://github.com/arkworks-rs/algebra/pull/214) (ark-poly) Utilise a more efficient way of evaluating a polynomial at a single point.
 - [\#242](https://github.com/arkworks-rs/algebra/pull/242), [\#244][https://github.com/arkworks-rs/algebra/pull/244] (ark-poly) Speedup the sequential radix-2 FFT significantly by making the method in which it accesses roots more cache-friendly.
 
-### Bug fixes
+### Bugfixes
 
 - [\#36](https://github.com/arkworks-rs/algebra/pull/36) (ark-ec) In Short-Weierstrass curves, include an infinity bit in `ToConstraintField`.
 - [\#107](https://github.com/arkworks-rs/algebra/pull/107) (ark-serialize) Fix handling of `(de)serialize_uncompressed/unchecked` in various impls of `CanonicalSerialize/Deserialize`.
