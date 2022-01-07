@@ -942,17 +942,17 @@ mod test {
             &self,
             mut writer: W,
         ) -> Result<(), SerializationError> {
-            (&[100u8, 200u8]).serialize_uncompressed(&mut writer)
+            [100u8, 200u8].serialize_uncompressed(&mut writer)
         }
 
         #[inline]
         fn uncompressed_size(&self) -> usize {
-            (&[100u8, 200u8]).uncompressed_size()
+            [100u8, 200u8].uncompressed_size()
         }
 
         #[inline]
         fn serialize_unchecked<W: Write>(&self, mut writer: W) -> Result<(), SerializationError> {
-            (&[100u8, 200u8]).serialize_unchecked(&mut writer)
+            [100u8, 200u8].serialize_unchecked(&mut writer)
         }
     }
 
@@ -966,16 +966,16 @@ mod test {
 
         #[inline]
         fn deserialize_uncompressed<R: Read>(mut reader: R) -> Result<Self, SerializationError> {
-            let result = Vec::<u8>::deserialize_uncompressed(&mut reader)?;
-            assert_eq!(result.as_slice(), &[100u8, 200u8]);
+            let result = <[u8; 2]>::deserialize_uncompressed(&mut reader)?;
+            assert_eq!(result, [100u8, 200u8]);
 
             Ok(Dummy)
         }
 
         #[inline]
         fn deserialize_unchecked<R: Read>(mut reader: R) -> Result<Self, SerializationError> {
-            let result = Vec::<u8>::deserialize_unchecked(&mut reader)?;
-            assert_eq!(result.as_slice(), &[100u8, 200u8]);
+            let result = <[u8; 2]>::deserialize_unchecked(&mut reader)?;
+            assert_eq!(result, [100u8, 200u8]);
 
             Ok(Dummy)
         }
