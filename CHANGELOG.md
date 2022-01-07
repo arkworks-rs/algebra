@@ -31,6 +31,7 @@
 
 - [\#339](https://github.com/arkworks-rs/algebra/pull/339) (ark-ff) Remove duplicated code from `test_field` module and replace its usage with `ark-test-curves` crate.
 - [\#352](https://github.com/arkworks-rs/algebra/pull/352) (ark-ff) Update `QuadExtField::sqrt` for better performance.
+- [\#354](https://github.com/arkworks-rs/algebra/pull/354) (test-curves) Add benchmarks to `test-curves`.
 - [\#357](https://github.com/arkworks-rs/algebra/pull/357) (ark-poly) Speedup division by vanishing polynomials for dense polynomials.
 
 ### Bugfixes
