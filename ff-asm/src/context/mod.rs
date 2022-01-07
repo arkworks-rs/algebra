@@ -104,7 +104,7 @@ impl<'a> Context<'a> {
         let assembly = self.instructions_to_string();
         [
             "unsafe {".to_string(),
-            "asm!(".to_string(),
+            "ark_std::arch::asm!(".to_string(),
             assembly,
             declarations,
             clobbers,
