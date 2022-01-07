@@ -19,9 +19,405 @@ use zeroize::Zeroize;
 
 #[macro_use]
 pub mod arithmetic;
-#[macro_use]
-mod macros;
 
+#[derive(Copy, Clone, PartialEq, Eq, Debug, Hash, Zeroize)]
+pub struct BigInt<const N: usize>(pub [u64; N]);
+
+impl<const N: usize> Default for BigInt<N> {
+    fn default() -> Self {
+        Self([0u64; N])
+    }
+}
+
+impl<const N: usize> BigInt<N> {
+    pub const fn new(value: [u64; N]) -> Self {
+        Self(value)
+    }
+}
+
+impl<const N: usize> BigInteger for BigInt<N> {
+    const NUM_LIMBS: usize = N;
+
+    #[inline]
+    #[ark_ff_asm::unroll_for_loops]
+    fn add_nocarry(&mut self, other: &Self) -> bool {
+        let mut carry = 0;
+
+        for i in 0..N {
+            #[cfg(all(target_arch = "x86_64", feature = "asm"))]
+            #[allow(unsafe_code)]
+            unsafe {
+                use core::arch::x86_64::_addcarry_u64;
+                carry = _addcarry_u64(carry, self.0[i], other.0[i], &mut self.0[i])
+            };
+
+            #[cfg(not(all(target_arch = "x86_64", feature = "asm")))]
+            {
+                self.0[i] = adc!(self.0[i], other.0[i], &mut carry);
+            }
+        }
+
+        carry != 0
+    }
+    #[inline]
+    #[ark_ff_asm::unroll_for_loops]
+    fn sub_noborrow(&mut self, other: &Self) -> bool {
+        let mut borrow = 0;
+
+        for i in 0..N {
+            #[cfg(all(target_arch = "x86_64", feature = "asm"))]
+            #[allow(unsafe_code)]
+            unsafe {
+                use core::arch::x86_64::_subborrow_u64;
+                borrow = _subborrow_u64(borrow, self.0[i], other.0[i], &mut self.0[i])
+            };
+
+            #[cfg(not(all(target_arch = "x86_64", feature = "asm")))]
+            {
+                self.0[i] = sbb!(self.0[i], other.0[i], &mut borrow);
+            }
+        }
+
+        borrow != 0
+    }
+
+    #[inline]
+    #[ark_ff_asm::unroll_for_loops]
+    #[allow(unused)]
+    fn mul2(&mut self) {
+        #[cfg(all(target_arch = "x86_64", feature = "asm"))]
+        #[allow(unsafe_code)]
+        {
+            let mut carry = 0;
+
+            for i in 0..N {
+                unsafe {
+                    use core::arch::x86_64::_addcarry_u64;
+                    carry = _addcarry_u64(carry, self.0[i], self.0[i], &mut self.0[i])
+                };
+            }
+        }
+
+        #[cfg(not(all(target_arch = "x86_64", feature = "asm")))]
+        {
+            let mut last = 0;
+            for i in 0..N {
+                let a = &mut self.0[i];
+                let tmp = *a >> 63;
+                *a <<= 1;
+                *a |= last;
+                last = tmp;
+            }
+        }
+    }
+
+    #[inline]
+    #[ark_ff_asm::unroll_for_loops]
+    fn muln(&mut self, mut n: u32) {
+        if n >= (64 * N) as u32 {
+            *self = Self::from(0);
+            return;
+        }
+
+        while n >= 64 {
+            let mut t = 0;
+            for i in 0..N {
+                core::mem::swap(&mut t, &mut self.0[i]);
+            }
+            n -= 64;
+        }
+
+        if n > 0 {
+            let mut t = 0;
+            #[allow(unused)]
+            for i in 0..N {
+                let a = &mut self.0[i];
+                let t2 = *a >> (64 - n);
+                *a <<= n;
+                *a |= t;
+                t = t2;
+            }
+        }
+    }
+
+    #[inline]
+    #[ark_ff_asm::unroll_for_loops]
+    #[allow(unused)]
+    fn div2(&mut self) {
+        let mut t = 0;
+        for i in 0..N {
+            let a = &mut self.0[N - i - 1];
+            let t2 = *a << 63;
+            *a >>= 1;
+            *a |= t;
+            t = t2;
+        }
+    }
+
+    #[inline]
+    #[ark_ff_asm::unroll_for_loops]
+    fn divn(&mut self, mut n: u32) {
+        if n >= (64 * N) as u32 {
+            *self = Self::from(0);
+            return;
+        }
+
+        while n >= 64 {
+            let mut t = 0;
+            for i in 0..N {
+                core::mem::swap(&mut t, &mut self.0[N - i - 1]);
+            }
+            n -= 64;
+        }
+
+        if n > 0 {
+            let mut t = 0;
+            #[allow(unused)]
+            for i in 0..N {
+                let a = &mut self.0[N - i - 1];
+                let t2 = *a << (64 - n);
+                *a >>= n;
+                *a |= t;
+                t = t2;
+            }
+        }
+    }
+
+    #[inline]
+    fn is_odd(&self) -> bool {
+        self.0[0] & 1 == 1
+    }
+
+    #[inline]
+    fn is_even(&self) -> bool {
+        !self.is_odd()
+    }
+
+    #[inline]
+    fn is_zero(&self) -> bool {
+        for i in 0..N {
+            if self.0[i] != 0 {
+                return false;
+            }
+        }
+        true
+    }
+
+    #[inline]
+    fn num_bits(&self) -> u32 {
+        let mut ret = N as u32 * 64;
+        for i in self.0.iter().rev() {
+            let leading = i.leading_zeros();
+            ret -= leading;
+            if leading != 64 {
+                break;
+            }
+        }
+
+        ret
+    }
+
+    #[inline]
+    fn get_bit(&self, i: usize) -> bool {
+        if i >= 64 * N {
+            false
+        } else {
+            let limb = i / 64;
+            let bit = i - (64 * limb);
+            (self.0[limb] & (1 << bit)) != 0
+        }
+    }
+
+    #[inline]
+    fn from_bits_be(bits: &[bool]) -> Self {
+        let mut res = Self::default();
+        let mut acc: u64 = 0;
+
+        let mut bits = bits.to_vec();
+        bits.reverse();
+        for (i, bits64) in bits.chunks(64).enumerate() {
+            for bit in bits64.iter().rev() {
+                acc <<= 1;
+                acc += *bit as u64;
+            }
+            res.0[i] = acc;
+            acc = 0;
+        }
+        res
+    }
+
+    fn from_bits_le(bits: &[bool]) -> Self {
+        let mut res = Self::default();
+        let mut acc: u64 = 0;
+
+        let bits = bits.to_vec();
+        for (i, bits64) in bits.chunks(64).enumerate() {
+            for bit in bits64.iter().rev() {
+                acc <<= 1;
+                acc += *bit as u64;
+            }
+            res.0[i] = acc;
+            acc = 0;
+        }
+        res
+    }
+
+    #[inline]
+    fn to_bytes_be(&self) -> Vec<u8> {
+        let mut le_bytes = self.to_bytes_le();
+        le_bytes.reverse();
+        le_bytes
+    }
+
+    #[inline]
+    fn to_bytes_le(&self) -> Vec<u8> {
+        let array_map = self.0.iter().map(|limb| limb.to_le_bytes());
+        let mut res = Vec::<u8>::with_capacity(N * 8);
+        for limb in array_map {
+            res.extend_from_slice(&limb);
+        }
+        res
+    }
+}
+
+impl<const N: usize> CanonicalSerialize for BigInt<N> {
+    #[inline]
+    fn serialize<W: Write>(&self, writer: W) -> Result<(), SerializationError> {
+        self.write(writer)?;
+        Ok(())
+    }
+
+    #[inline]
+    fn serialized_size(&self) -> usize {
+        Self::NUM_LIMBS * 8
+    }
+}
+
+impl<const N: usize> CanonicalDeserialize for BigInt<N> {
+    #[inline]
+    fn deserialize<R: Read>(reader: R) -> Result<Self, SerializationError> {
+        let value = Self::read(reader)?;
+        Ok(value)
+    }
+}
+
+impl<const N: usize> ToBytes for BigInt<N> {
+    #[inline]
+    fn write<W: Write>(&self, writer: W) -> IoResult<()> {
+        self.0.write(writer)
+    }
+}
+
+impl<const N: usize> FromBytes for BigInt<N> {
+    #[inline]
+    fn read<R: Read>(reader: R) -> IoResult<Self> {
+        <[u64; N]>::read(reader).map(Self::new)
+    }
+}
+
+impl<const N: usize> Display for BigInt<N> {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
+        for i in self.0.iter().rev() {
+            write!(f, "{:016X}", *i)?;
+        }
+        Ok(())
+    }
+}
+
+impl<const N: usize> Ord for BigInt<N> {
+    #[inline]
+    #[ark_ff_asm::unroll_for_loops]
+    fn cmp(&self, other: &Self) -> ::core::cmp::Ordering {
+        use core::cmp::Ordering;
+        for i in 0..N {
+            let a = &self.0[N - i - 1];
+            let b = &other.0[N - i - 1];
+            if a < b {
+                return Ordering::Less;
+            } else if a > b {
+                return Ordering::Greater;
+            }
+        }
+        Ordering::Equal
+    }
+}
+
+impl<const N: usize> PartialOrd for BigInt<N> {
+    #[inline]
+    fn partial_cmp(&self, other: &Self) -> Option<::core::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl<const N: usize> Distribution<BigInt<N>> for Standard {
+    fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> BigInt<N> {
+        let mut res = [0u64; N];
+        for i in 0..N {
+            res[i] = rng.gen();
+        }
+        BigInt::<N>(res)
+    }
+}
+
+impl<const N: usize> AsMut<[u64]> for BigInt<N> {
+    #[inline]
+    fn as_mut(&mut self) -> &mut [u64] {
+        &mut self.0
+    }
+}
+
+impl<const N: usize> AsRef<[u64]> for BigInt<N> {
+    #[inline]
+    fn as_ref(&self) -> &[u64] {
+        &self.0
+    }
+}
+
+impl<const N: usize> From<u64> for BigInt<N> {
+    #[inline]
+    fn from(val: u64) -> BigInt<N> {
+        let mut repr = Self::default();
+        repr.0[0] = val;
+        repr
+    }
+}
+impl<const N: usize> TryFrom<BigUint> for BigInt<N> {
+    type Error = ark_std::string::String;
+
+    #[inline]
+    fn try_from(val: num_bigint::BigUint) -> Result<BigInt<N>, Self::Error> {
+        let bytes = val.to_bytes_le();
+
+        if bytes.len() > N * 8 {
+            Err(format!(
+                "A BigUint of {} bytes cannot fit into {} limbs.",
+                bytes.len(),
+                N
+            ))
+        } else {
+            let mut limbs = [0u64; N];
+
+            bytes
+                .chunks(8)
+                .into_iter()
+                .enumerate()
+                .for_each(|(i, chunk)| {
+                    let mut chunk_padded = [0u8; 8];
+                    chunk_padded[..chunk.len()].copy_from_slice(chunk);
+                    limbs[i] = u64::from_le_bytes(chunk_padded)
+                });
+
+            Ok(Self(limbs))
+        }
+    }
+}
+
+impl<const N: usize> From<BigInt<N>> for BigUint {
+    #[inline]
+    fn from(val: BigInt<N>) -> num_bigint::BigUint {
+        BigUint::from_bytes_le(&val.to_bytes_le())
+    }
+}
 /// Compute the signed modulo operation on a u64 representation, returning the result.
 /// If n % modulus > modulus / 2, return modulus - n
 /// # Example
@@ -39,14 +435,14 @@ pub fn signed_mod_reduction(n: u64, modulus: u64) -> i64 {
     }
 }
 
-bigint_impl!(BigInteger64, 1);
-bigint_impl!(BigInteger128, 2);
-bigint_impl!(BigInteger256, 4);
-bigint_impl!(BigInteger320, 5);
-bigint_impl!(BigInteger384, 6);
-bigint_impl!(BigInteger448, 7);
-bigint_impl!(BigInteger768, 12);
-bigint_impl!(BigInteger832, 13);
+pub type BigInteger64 = BigInt<1>;
+pub type BigInteger128 = BigInt<2>;
+pub type BigInteger256 = BigInt<4>;
+pub type BigInteger320 = BigInt<5>;
+pub type BigInteger384 = BigInt<6>;
+pub type BigInteger448 = BigInt<7>;
+pub type BigInteger768 = BigInt<12>;
+pub type BigInteger832 = BigInt<13>;
 
 #[cfg(test)]
 mod tests;

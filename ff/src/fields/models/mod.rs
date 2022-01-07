@@ -10,8 +10,8 @@ use num_traits::{One, Zero};
 
 use crate::{
     biginteger::{
-        arithmetic as fa, BigInteger as _BigInteger, BigInteger256, BigInteger320, BigInteger384,
-        BigInteger448, BigInteger64, BigInteger768, BigInteger832,
+        arithmetic as fa, BigInt, BigInteger as _BigInteger, BigInteger256, BigInteger320,
+        BigInteger384, BigInteger448, BigInteger64, BigInteger768, BigInteger832,
     },
     bytes::{FromBytes, ToBytes},
     fields::{FftField, Field, FpParameters, LegendreSymbol, PrimeField, SquareRootField},
