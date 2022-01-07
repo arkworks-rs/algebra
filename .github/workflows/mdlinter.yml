@@ -1,26 +1,40 @@
-
 name: Lint
 on:
   push:
-    branches:
-      - master
-    paths:
-      - "**.md"
+    branches: [master, main]
   pull_request:
-    paths:
-      - "**.md"
+    branches: [master, main]
 
+###############
+# Set the Job #
+###############
 jobs:
-  super-linter:
-    name: Markdown linter
+  build:
+    # Name the Job
+    name: Lint Code Base
+    # Set the agent to run on
     runs-on: ubuntu-latest
+
+    ##################
+    # Load all steps #
+    ##################
     steps:
-      - name: Checkout
+      ##########################
+      # Checkout the code base #
+      ##########################
+      - name: Checkout Code
         uses: actions/checkout@v2
+        with:
+          # Full git history is needed to get a proper list of changed files within `super-linter`
+          fetch-depth: 0
+
+      ################################
+      # Run Linter against code base #
+      ################################
       - name: Lint Code Base
-        uses: docker://github/super-linter:latest
+        uses: github/super-linter/slim@v4
         env:
-          VALIDATE_ALL_CODEBASE: true
+          VALIDATE_ALL_CODEBASE: false
           DEFAULT_BRANCH: master
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VALIDATE_PROTOBUF: false
@@ -30,3 +44,4 @@ jobs:
           VALIDATE_PYTHON_FLAKE8: false
           VALIDATE_PYTHON_ISORT: false
           VALIDATE_PYTHON_MYPY: false
+          VALIDATE_YAML: false
