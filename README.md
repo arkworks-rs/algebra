@@ -67,7 +67,7 @@ RUSTFLAGS="-C target-feature=+bmi2,+adx" cargo +nightly [test/build/bench] --fea
 To enable this in the `Cargo.toml` of your own projects, enable the `asm` feature flag:
 
 ```toml
-ark-ff = { version = "0.1", features = [ "asm" ] }
+ark-ff = { version = "0.3.0", features = [ "asm" ] }
 ```
 
 Note that because inline assembly support in Rust is currently unstable, using this backend requires using the Nightly compiler at the moment.
