@@ -715,5 +715,5 @@ mod cube_ext_tests {
             let expected = Fq6::new(expected_0, expected_1, expected_2);
             assert_eq!(actual, expected);
         }
-    }   
+    }
 }

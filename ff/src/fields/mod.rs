@@ -710,7 +710,7 @@ mod no_std_tests {
         bls12_381::{Fr, FrParameters},
         BigInteger, FpParameters, PrimeField,
     };
-    
+
     #[test]
     fn test_batch_inversion() {
         let mut random_coeffs = Vec::<Fr>::new();
