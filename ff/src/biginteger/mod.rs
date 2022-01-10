@@ -53,12 +53,13 @@ impl<const N: usize> BigInteger for BigInt<N> {
 
             #[cfg(not(all(target_arch = "x86_64", feature = "asm")))]
             {
-                self.0[i] = adc!(self.0[i], other.0[i], &mut carry);
+                self.0[i] = arithmetic::adc(self.0[i], other.0[i], &mut carry);
             }
         }
 
         carry != 0
     }
+
     #[inline]
     #[ark_ff_asm::unroll_for_loops]
     fn sub_noborrow(&mut self, other: &Self) -> bool {
@@ -74,7 +75,7 @@ impl<const N: usize> BigInteger for BigInt<N> {
 
             #[cfg(not(all(target_arch = "x86_64", feature = "asm")))]
             {
-                self.0[i] = sbb!(self.0[i], other.0[i], &mut borrow);
+                self.0[i] = arithmetic::sbb(self.0[i], other.0[i], &mut borrow);
             }
         }
 
@@ -115,7 +116,7 @@ impl<const N: usize> BigInteger for BigInt<N> {
     #[ark_ff_asm::unroll_for_loops]
     fn muln(&mut self, mut n: u32) {
         if n >= (64 * N) as u32 {
-            *self = Self::from(0);
+            *self = Self::from(0u64);
             return;
         }
 
@@ -158,7 +159,7 @@ impl<const N: usize> BigInteger for BigInt<N> {
     #[ark_ff_asm::unroll_for_loops]
     fn divn(&mut self, mut n: u32) {
         if n >= (64 * N) as u32 {
-            *self = Self::from(0);
+            *self = Self::from(0u64);
             return;
         }
 
@@ -381,19 +382,44 @@ impl<const N: usize> From<u64> for BigInt<N> {
         repr
     }
 }
-impl<const N: usize> TryFrom<BigUint> for BigInt<N> {
-    type Error = ark_std::string::String;
 
+impl<const N: usize> From<u32> for BigInt<N> {
+    #[inline]
+    fn from(val: u32) -> BigInt<N> {
+        let mut repr = Self::default();
+        repr.0[0] = u64::from(val);
+        repr
+    }
+}
+
+impl<const N: usize> From<u16> for BigInt<N> {
+    #[inline]
+    fn from(val: u16) -> BigInt<N> {
+        let mut repr = Self::default();
+        repr.0[0] = u64::from(val);
+        repr
+    }
+}
+
+impl<const N: usize> From<u8> for BigInt<N> {
+    #[inline]
+    fn from(val: u8) -> BigInt<N> {
+        let mut repr = Self::default();
+        repr.0[0] = u64::from(val);
+        repr
+    }
+}
+
+impl<const N: usize> TryFrom<BigUint> for BigInt<N> {
+    type Error = ();
+
+    /// Returns `Err(())` if the bit size of `val` is more than `N * 64`.
     #[inline]
     fn try_from(val: num_bigint::BigUint) -> Result<BigInt<N>, Self::Error> {
         let bytes = val.to_bytes_le();
 
         if bytes.len() > N * 8 {
-            Err(format!(
-                "A BigUint of {} bytes cannot fit into {} limbs.",
-                bytes.len(),
-                N
-            ))
+            Err(())
         } else {
             let mut limbs = [0u64; N];
 
@@ -418,6 +444,7 @@ impl<const N: usize> From<BigInt<N>> for BigUint {
         BigUint::from_bytes_le(&val.to_bytes_le())
     }
 }
+
 /// Compute the signed modulo operation on a u64 representation, returning the result.
 /// If n % modulus > modulus / 2, return modulus - n
 /// # Example
@@ -470,7 +497,10 @@ pub trait BigInteger:
     + AsMut<[u64]>
     + AsRef<[u64]>
     + From<u64>
-    + TryFrom<BigUint>
+    + From<u32>
+    + From<u16>
+    + From<u8>
+    + TryFrom<BigUint, Error = ()>
     + Into<BigUint>
 {
     /// Number of 64-bit limbs representing `Self`.

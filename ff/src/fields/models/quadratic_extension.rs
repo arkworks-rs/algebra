@@ -5,7 +5,7 @@ use ark_serialize::{
 use ark_std::{
     cmp::{Ord, Ordering, PartialOrd},
     fmt,
-    io::{Read, Result as IoResult, Write},
+    io::{Read, Write},
     ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign},
     vec::Vec,
 };
@@ -20,7 +20,6 @@ use ark_std::rand::{
 
 use crate::{
     biginteger::BigInteger,
-    bytes::{FromBytes, ToBytes},
     fields::{Field, LegendreSymbol, PrimeField, SquareRootField},
     ToConstraintField, UniformRand,
 };
@@ -412,7 +411,7 @@ where
 
         // Compute `(p+1)/2` as `1/2`.
         // This is cheaper than `P::BaseField::one().double().inverse()`
-        let mut two_inv = P::BasePrimeField::modulus();
+        let mut two_inv = P::BasePrimeField::MODULUS;
 
         two_inv.add_nocarry(&1u64.into());
         two_inv.div2();
@@ -576,23 +575,6 @@ impl<P: QuadExtParameters> From<i8> for QuadExtField<P> {
 impl<P: QuadExtParameters> From<bool> for QuadExtField<P> {
     fn from(other: bool) -> Self {
         Self::new(u8::from(other).into(), P::BaseField::zero())
-    }
-}
-
-impl<P: QuadExtParameters> ToBytes for QuadExtField<P> {
-    #[inline]
-    fn write<W: Write>(&self, mut writer: W) -> IoResult<()> {
-        self.c0.write(&mut writer)?;
-        self.c1.write(writer)
-    }
-}
-
-impl<P: QuadExtParameters> FromBytes for QuadExtField<P> {
-    #[inline]
-    fn read<R: Read>(mut reader: R) -> IoResult<Self> {
-        let c0 = P::BaseField::read(&mut reader)?;
-        let c1 = P::BaseField::read(reader)?;
-        Ok(QuadExtField::new(c0, c1))
     }
 }
 

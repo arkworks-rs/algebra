@@ -29,6 +29,8 @@ pub use self::biginteger::*;
 pub mod fields;
 pub use self::fields::*;
 
+pub(crate) mod const_helpers;
+
 pub use ark_std::UniformRand;
 
 mod to_field_vec;
@@ -41,7 +43,7 @@ pub use ark_std::vec;
 pub mod prelude {
     pub use crate::biginteger::BigInteger;
 
-    pub use crate::fields::{Field, FpParameters, PrimeField, SquareRootField};
+    pub use crate::fields::{Field, PrimeField, SquareRootField};
 
     pub use ark_std::UniformRand;
 
