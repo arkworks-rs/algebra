@@ -91,7 +91,7 @@ macro_rules! impl_Fp {
         /// Trait for prime field parameters of size at most
         #[doc = $field_size]
         /// bits.
-        pub trait $FpParameters: FpParameters<BigInt = $BigIntegerType> {}
+        pub trait $FpParameters: FpParameters<BigInt = BigInt<$limbs>> {}
 
         /// Represents an element of the prime field F_p, where `p == P::MODULUS`.
         /// This type can represent elements in any field of size at most
@@ -103,7 +103,6 @@ macro_rules! impl_Fp {
             Hash(bound = ""),
             Clone(bound = ""),
             Copy(bound = ""),
-            Debug(bound = ""),
             PartialEq(bound = ""),
             Eq(bound = "")
         )]
@@ -146,7 +145,7 @@ macro_rules! impl_Fp {
             /// of this method
             #[doc(hidden)]
             pub const fn const_from_str(limbs: &[u64], is_positive: bool, r2: $BigIntegerType, modulus: $BigIntegerType, inv: u64) -> Self {
-                let mut repr = $BigInteger([0; $limbs]);
+                let mut repr = BigInt::<$limbs>([0; $limbs]);
                 let mut i = 0;
                 while i < limbs.len() {
                     repr.0[i] = limbs[i];
@@ -253,6 +252,12 @@ macro_rules! impl_Fp {
                 if !self.is_valid() {
                     self.0.sub_noborrow(&P::MODULUS);
                 }
+            }
+        }
+
+        impl<P> ark_std::fmt::Debug for $Fp<P> {
+            fn fmt(&self, f: &mut ark_std::fmt::Formatter<'_>) -> ark_std::fmt::Result {
+                ark_std::fmt::Debug::fmt(&self.0, f)
             }
         }
 
