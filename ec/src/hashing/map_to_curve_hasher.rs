@@ -8,7 +8,7 @@ pub trait MapToCurve<T: AffineCurve> {
     fn new_map_to_curve() -> Result<Self, HashToCurveError>
     where
         Self: Sized;
-    /// Map random field point to a random curve point
+    /// Map an arbitary field element to a corresponding curve point.
     fn map_to_curve(&self, point: T::BaseField) -> Result<T, HashToCurveError>;
 }
 
