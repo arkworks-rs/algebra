@@ -14,12 +14,12 @@ use crate::{
 ///
 /// - [\[WB2019\]] <https://eprint.iacr.org/2019/403>
 pub trait SWUParams: SWModelParameters {
-    /// An element of the base field that is not a square root see \[WB2019, Section 4\]. 
+    /// An element of the base field that is not a square root see \[WB2019, Section 4\].
     /// It is also convenient to have $g(b/xi * a)$ to be square. In general
     /// we use a `XI` with low absolute value coefficients when they are
     /// represented as integers.
     const XI: Self::BaseField;
-    /// An arbitrary root of unity in the base field.
+    /// An arbitrary nonsquare conviniently chosen to be a primitve element of the base field
     const ZETA: Self::BaseField;
     /// Square root of `THETA = Self::XI/Self::ZETA`.
     const XI_ON_ZETA_SQRT: Self::BaseField;
