@@ -282,10 +282,15 @@ macro_rules! impl_Fp {
 
         impl<P: $FpParameters> Field for $Fp<P> {
             type BasePrimeField = Self;
+            type BasePrimeFieldIter = iter::Once<Self::BasePrimeField>;
 
             fn extension_degree() -> u64 {
                 1
             }
+
+	        fn to_base_prime_field_elements(&self) -> Self::BasePrimeFieldIter {
+		        iter::once(*self)
+	        }
 
             fn from_base_prime_field_elems(elems: &[Self::BasePrimeField]) -> Option<Self> {
                 if elems.len() != (Self::extension_degree() as usize) {

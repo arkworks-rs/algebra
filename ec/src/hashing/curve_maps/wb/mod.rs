@@ -1,7 +1,7 @@
 use core::marker::PhantomData;
 
 use crate::{models::SWModelParameters, ModelParameters};
-use ark_ff::{batch_inversion, vec::Vec};
+use ark_ff::batch_inversion;
 use ark_poly::{univariate::DensePolynomial, Polynomial, UVPolynomial};
 
 use crate::{
