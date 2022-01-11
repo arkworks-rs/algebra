@@ -178,11 +178,11 @@ fn checking_the_hashing_parameters() {
 /// simple hash
 #[test]
 fn hash_arbitary_string_to_curve_swu() {
-    use blake2::VarBlake2b;
+    use blake2::Blake2bVar;
 
     let test_swu_to_curve_hasher = MapToCurveBasedHasher::<
         GroupAffine<TestSWUMapToCurveParams>,
-        DefaultFieldHasher<VarBlake2b>,
+        DefaultFieldHasher<Blake2bVar>,
         SWUMap<TestSWUMapToCurveParams>,
     >::new(&[1])
     .unwrap();
@@ -401,11 +401,11 @@ impl WBParams for TestWBF127MapToCurveParams {
 /// and make simple hash
 #[test]
 fn hash_arbitary_string_to_curve_wb() {
-    use blake2::VarBlake2b;
+    use blake2::Blake2bVar;
 
     let test_wb_to_curve_hasher = MapToCurveBasedHasher::<
         GroupAffine<TestWBF127MapToCurveParams>,
-        DefaultFieldHasher<VarBlake2b>,
+        DefaultFieldHasher<Blake2bVar>,
         WBMap<TestWBF127MapToCurveParams>,
     >::new(&[1])
     .unwrap();

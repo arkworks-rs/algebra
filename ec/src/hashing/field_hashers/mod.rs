@@ -70,7 +70,10 @@ impl<F: Field, H: VariableOutput + Update + Sized + Clone> HashToField<F>
         };
 
         domain_hasher.update(domain);
-        domain_hasher.finalize_variable(|res| hashed_domain.copy_from_slice(res));
+        match domain_hasher.finalize_variable(&mut hashed_domain) {
+            Err(err) => return Err(HashToCurveError::DomainError(err.to_string())),
+            _ => (),
+        }
 
         // Prefix the 32 byte hashed domain to our hasher
         hasher.update(&hashed_domain);
@@ -84,8 +87,11 @@ impl<F: Field, H: VariableOutput + Update + Sized + Clone> HashToField<F>
         // Clone the hasher, and hash our message
         let mut cur_hasher = self.domain_seperated_hasher.clone();
         cur_hasher.update(msg);
-        let mut hashed_bytes = Vec::new();
-        cur_hasher.finalize_variable(|res| hashed_bytes.extend_from_slice(res));
+        let mut hashed_bytes = vec![0u8; cur_hasher.output_size()];
+        match cur_hasher.finalize_variable(&mut hashed_bytes) {
+            Err(err) => return Err(HashToCurveError::DomainError(err.to_string())),
+            _ => (),
+        }
         // Now separate the hashed bytes according to each field element.
         let mut result = Vec::with_capacity(self.count);
         let len_per_elem = hashed_bytes.len() / self.count;
