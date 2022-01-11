@@ -1,7 +1,7 @@
 use crate::{
     bytes::{FromBytes, ToBytes},
     fields::{BitIteratorBE, BitIteratorLE},
-    UniformRand,
+    UniformRand, const_for,
 };
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, SerializationError};
 use ark_std::{
@@ -32,6 +32,172 @@ impl<const N: usize> Default for BigInt<N> {
 impl<const N: usize> BigInt<N> {
     pub const fn new(value: [u64; N]) -> Self {
         Self(value)
+    }
+}
+/// Divide self by another bignum, overwriting `q` with the quotient and `r` with the
+/// remainder.
+#[doc(hidden)]
+macro_rules! const_modulo {
+    ($a:ident, $divisor:ident) => {{        
+        // Stupid slow base-2 long division taken from
+        // https://en.wikipedia.org/wiki/Division_algorithm
+        assert!(!$divisor.const_is_zero());
+        let digit_bits = 64;
+        let mut quotient = Self::new([0u64; N]);
+        let mut remainder = Self::new([0u64; N]);
+        let end = $a.num_bits();
+        let mut i = (end - 1) as isize;
+        while i >= 0 {
+            remainder = remainder.const_mul2();
+            remainder.0[0] |= $a.get_bit(i as usize) as u64;
+            if remainder.const_geq($divisor) {
+                let (r, borrow) = remainder.const_sub_noborrow($divisor);
+                remainder = r;
+                assert!(!borrow);
+                // Set bit `i` of q to 1.
+                let digit_idx = i / digit_bits;
+                let bit_idx = i % digit_bits;
+                quotient.0[digit_idx as usize] |= 1 << bit_idx;
+            }
+            i -= 1;
+        }
+        remainder
+    }};
+} 
+impl<const N: usize> BigInt<N> {
+    #[doc(hidden)]
+    pub const fn const_is_even(&self) -> bool {
+        self.0[0] % 2 == 0
+    }
+
+    #[doc(hidden)]
+    pub const fn const_is_odd(&self) -> bool {
+        self.0[0] % 2 == 1
+    }
+
+    /// Compute a right shift of `self`
+    /// This is equivalent to a (saturating) division by 2.
+    #[doc(hidden)]
+    pub const fn const_shr(&self) -> Self {
+        let mut result = *self;
+        let mut t = 0;
+        crate::const_for!((i in 0..N) {
+            let a = result.0[N - i - 1];
+            let t2 = a << 63;
+            result.0[N - i - 1] >>= 1;
+            result.0[N - i - 1] |= t;
+            t = t2;
+        });
+        result
+    }
+
+    const fn const_geq(&self, other: &Self) -> bool {
+        const_for!((i in 0..N) {
+            let a = self.0[N - i - 1];
+            let b = other.0[N - i - 1];
+            if a < b {
+                return false;
+            } else if a > b {
+                return true;
+            }
+        });
+        true
+    }
+
+    /// Compute the largest integer `s` such that `self = 2**s * t` for odd `t`.
+    #[doc(hidden)]
+    pub const fn two_adic_valuation(mut self) -> u32 {
+        let mut two_adicity = 0;
+        assert!(self.const_is_odd());
+        // Since `self` is odd, we can always subtract one 
+        // without a borrow
+        self.0[0] -= 1;
+        while self.const_is_even() {
+            self = self.const_shr();
+            two_adicity += 1;
+        }
+        two_adicity
+    }
+
+    /// Compute the smallest odd integer `t` such that `self = 2**s * t` for some 
+    /// integer `s = self.two_adic_valuation()`.
+    #[doc(hidden)]
+    pub const fn two_adic_coefficient(mut self) -> Self {
+        assert!(self.const_is_odd());
+        // Since `self` is odd, we can always subtract one 
+        // without a borrow
+        self.0[0] -= 1;
+        while self.const_is_even() {
+            self = self.const_shr();
+        }
+        assert!(self.const_is_odd());
+        self
+    }
+
+    /// Divide `self` by 2, rounding down if necessary.
+    /// That is, if `self.is_odd()`, compute `(self - 1)/2`.
+    /// Else, compute `self/2`.
+    #[doc(hidden)]
+    pub const fn divide_by_2_round_down(mut self) -> Self {
+        if self.const_is_odd() {
+            self.0[0] -= 1;
+        }
+        self.const_shr()
+    }
+
+    /// Find the number of bits in the binary decomposition of `self`.
+    #[doc(hidden)]
+    pub const fn const_num_bits(self) -> u32 {
+        ((N - 1) * 64) as u32 + (64 - self.0[N-1].leading_zeros())
+    }
+
+    #[inline]
+    #[ark_ff_asm::unroll_for_loops]
+    pub(crate) const fn const_sub_noborrow(mut self, other: &Self) -> (Self, bool) {
+        let mut borrow = 0;
+
+        const_for!((i in 0..N) {
+            self.0[i] = sbb!(self.0[i], other.0[i], &mut borrow);
+        });
+
+        (self, borrow != 0)
+    }
+
+    const fn const_mul2(mut self) -> Self {
+        let mut last = 0;
+        crate::const_for!((i in 0..N) {
+            let a = self.0[i];
+            let tmp = a >> 63;
+            self.0[i] <<= 1;
+            self.0[i] |= last;
+            last = tmp;
+        });
+        self
+    }
+
+    #[ark_ff_asm::unroll_for_loops]
+    pub(crate) const fn const_is_zero(&self) -> bool {
+        let mut is_zero = true;
+        crate::const_for!((i in 0..N) {
+            is_zero &= self.0[i] == 0;
+        });
+        is_zero
+    }
+
+    
+
+    /// Computes the Montgomery R constant modulo `self`.
+    #[doc(hidden)]
+    pub const fn montgomery_r(&self) -> Self {
+        let two_pow_n_times_64 = crate::const_helpers::RBuffer::<N>([0u64; N], 1);
+        const_modulo!(two_pow_n_times_64, self)
+    }
+
+    /// Computes the Montgomery R2 constant modulo `self`.
+    #[doc(hidden)]
+    pub const fn montgomery_r2(&self) -> Self {
+        let two_pow_n_times_64_square = crate::const_helpers::R2Buffer::<N>([0u64; N], [0u64; N], 1);
+        const_modulo!(two_pow_n_times_64_square, self)
     }
 }
 

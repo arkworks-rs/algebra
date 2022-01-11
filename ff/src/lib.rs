@@ -7,9 +7,8 @@
     rust_2021_compatibility
 )]
 #![allow(clippy::op_ref, clippy::suspicious_op_assign_impl)]
-#![cfg_attr(not(feature = "asm"), forbid(unsafe_code))]
+#![deny(unsafe_code)]
 #![cfg_attr(use_asm, feature(llvm_asm))]
-#![cfg_attr(feature = "asm", deny(unsafe_code))]
 
 #[macro_use]
 extern crate ark_std;

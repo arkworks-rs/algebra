@@ -3,7 +3,7 @@ use crate::fields::PrimeField;
 use core::marker::PhantomData;
 
 /// Parameters for defining degree-two extension fields.
-pub trait Fp2Parameters: 'static + Send + Sync {
+pub trait Fp2Parameters: 'static + Send + Sync + Sized {
     /// Base prime field underlying this extension.
     type Fp: PrimeField;
 
@@ -13,7 +13,7 @@ pub trait Fp2Parameters: 'static + Send + Sync {
     const NONRESIDUE: Self::Fp;
 
     /// A quadratic nonresidue in Fp2, used for calculating square roots in Fp2.
-    const QUADRATIC_NONRESIDUE: (Self::Fp, Self::Fp);
+    const QUADRATIC_NONRESIDUE: Fp2<Self>;
 
     /// Coefficients for the Frobenius automorphism.
     const FROBENIUS_COEFF_FP2_C1: &'static [Self::Fp];

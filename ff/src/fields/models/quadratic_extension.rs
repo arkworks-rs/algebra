@@ -5,7 +5,7 @@ use ark_serialize::{
 use ark_std::{
     cmp::{Ord, Ordering, PartialOrd},
     fmt,
-    io::{Read, Write},
+    io::{Read, Result as IoResult, Write},
     ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign},
     vec::Vec,
 };
@@ -19,6 +19,7 @@ use ark_std::rand::{
 };
 
 use crate::{
+    bytes::{FromBytes, ToBytes},
     biginteger::BigInteger,
     fields::{Field, LegendreSymbol, PrimeField, SquareRootField},
     ToConstraintField, UniformRand,
@@ -139,6 +140,13 @@ pub struct QuadExtField<P: QuadExtParameters> {
     pub c0: P::BaseField,
     /// Coefficient `c1` in the representation of the field element `c = c0 + c1 * X`
     pub c1: P::BaseField,
+}
+
+#[macro_export]
+macro_rules! QuadExt {
+    ($name:ident, $c0:expr, $c1:expr $(,)?) => {
+        $name { c0: $c0, c1: $c1 }
+    };
 }
 
 impl<P: QuadExtParameters> QuadExtField<P> {
@@ -748,6 +756,23 @@ where
         res.append(&mut c1_elems);
 
         Some(res)
+    }
+}
+
+impl<P: QuadExtParameters> ToBytes for QuadExtField<P> {
+    #[inline]
+    fn write<W: Write>(&self, mut writer: W) -> IoResult<()> {
+        self.c0.write(&mut writer)?;
+        self.c1.write(writer)
+    }
+}
+
+impl<P: QuadExtParameters> FromBytes for QuadExtField<P> {
+    #[inline]
+    fn read<R: Read>(mut reader: R) -> IoResult<Self> {
+        let c0 = P::BaseField::read(&mut reader)?;
+        let c1 = P::BaseField::read(reader)?;
+        Ok(QuadExtField::new(c0, c1))
     }
 }
 

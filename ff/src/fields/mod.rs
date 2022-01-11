@@ -1,4 +1,4 @@
-use crate::{biginteger::BigInteger, fields::utils::k_adicity, UniformRand};
+use crate::{biginteger::BigInteger, fields::utils::k_adicity, UniformRand, ToBytes, FromBytes};
 use ark_serialize::{
     CanonicalDeserialize, CanonicalDeserializeWithFlags, CanonicalSerialize,
     CanonicalSerializeWithFlags, EmptyFlags, Flags,
@@ -31,7 +31,7 @@ use ark_std::cmp::max;
 use rayon::prelude::*;
 
 #[macro_export]
-macro_rules! field_new {
+macro_rules! Fp {
     ($name:ident, $c0:expr) => {{
         use $crate::FpConfig;
         type Params = <$name as $crate::PrimeField>::Params;
@@ -40,20 +40,10 @@ macro_rules! field_new {
             &limbs,
             is_positive,
             Params::R2,
-            Params::MODULUS,
+            $name::MODULUS,
             Params::INV,
         )
     }};
-    ($name:ident, $c0:expr, $c1:expr $(,)?) => {
-        $name { c0: $c0, c1: $c1 }
-    };
-    ($name:ident, $c0:expr, $c1:expr, $c2:expr $(,)?) => {
-        $name {
-            c0: $c0,
-            c1: $c1,
-            c2: $c2,
-        }
-    };
 }
 
 /// The interface for a generic field.
@@ -79,6 +69,8 @@ pub trait Field:
     + CanonicalSerializeWithFlags
     + CanonicalDeserialize
     + CanonicalDeserializeWithFlags
+    + ToBytes
+    + FromBytes
     + Add<Self, Output = Self>
     + Sub<Self, Output = Self>
     + Mul<Self, Output = Self>
@@ -312,7 +304,11 @@ pub trait PrimeField:
     /// The value `(p - 1)/ 2`.
     const MODULUS_MINUS_ONE_DIV_TWO: Self::BigInt;
     /// The size of the modulus in bits.
-    const MODULUS_BIT_SIZE: u16;
+    const MODULUS_BIT_SIZE: u32;
+
+    /// The multiplicative generator of this field.
+    const GENERATOR: Self;
+
     /// The trace of the field is defined as the smallest integer `t` such that by
     /// `2^s * t = p - 1`, and `t` is coprime to 2.
     const TRACE: Self::BigInt;

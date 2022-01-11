@@ -2,7 +2,7 @@ use super::cubic_extension::*;
 use crate::fields::*;
 use core::marker::PhantomData;
 
-pub trait Fp3Parameters: 'static + Send + Sync {
+pub trait Fp3Parameters: 'static + Send + Sync + Sized {
     type Fp: PrimeField + SquareRootField;
 
     const NONRESIDUE: Self::Fp;
@@ -12,9 +12,9 @@ pub trait Fp3Parameters: 'static + Send + Sync {
 
     /// p^3 - 1 = 2^s * t, where t is odd.
     const TWO_ADICITY: u32;
-    const T_MINUS_ONE_DIV_TWO: &'static [u64];
+    const TRACE_MINUS_ONE_DIV_TWO: &'static [u64];
     /// t-th power of a quadratic nonresidue in Fp3.
-    const QUADRATIC_NONRESIDUE_TO_T: (Self::Fp, Self::Fp, Self::Fp);
+    const QUADRATIC_NONRESIDUE_TO_T: Fp3<Self>;
 
     #[inline(always)]
     fn mul_fp_by_nonresidue(fe: &Self::Fp) -> Self::Fp {
@@ -63,11 +63,7 @@ impl<P: Fp3Parameters> Fp3<P> {
     /// Returns the value of QNR^T.
     #[inline]
     pub fn qnr_to_t() -> Self {
-        Self::new(
-            P::QUADRATIC_NONRESIDUE_TO_T.0,
-            P::QUADRATIC_NONRESIDUE_TO_T.1,
-            P::QUADRATIC_NONRESIDUE_TO_T.2,
-        )
+        P::QUADRATIC_NONRESIDUE_TO_T
     }
 }
 

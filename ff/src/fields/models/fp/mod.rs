@@ -12,20 +12,15 @@ use ark_std::{
     One, Zero,
 };
 
-mod buffer_helpers;
-
 mod montgomery_backend;
 pub use montgomery_backend::*;
 
-use crate::{BigInt, BigInteger, FftField, Field, LegendreSymbol, PrimeField, SquareRootField};
+use crate::{BigInt, BigInteger, FftField, Field, LegendreSymbol, PrimeField, SquareRootField, FromBytes, ToBytes};
 /// A trait that specifies the configuration of a prime field.
 /// Also specifies how to perform arithmetic on field elements.
 pub trait FpConfig<const N: usize>: crate::FftConfig<Field = Fp<Self, N>> {
     /// The modulus of the field.
     const MODULUS: crate::BigInt<N>;
-
-    /// The number of bits needed to represent the `Self::MODULUS`.
-    const MODULUS_BIT_SIZE: u16;
 
     /// A multiplicative generator of the field.
     /// `Self::GENERATOR` is an element having multiplicative order
@@ -39,21 +34,6 @@ pub trait FpConfig<const N: usize>: crate::FftConfig<Field = Fp<Self, N>> {
     /// Multiplicative identity of the field, i.e. the element `e`
     /// such that, for all elements `f` of the field, `e * f = f`.
     const ONE: Fp<Self, N>;
-
-    /// t for 2^s * t = MODULUS - 1, and t coprime to 2.
-    // TODO: compute this directly from `MODULUS` once
-    // const fns in traits are stable.
-    const T: crate::BigInt<N>;
-
-    /// (t - 1) / 2
-    // TODO: compute this directly from `T` once
-    // const fns in traits are stable.
-    const T_MINUS_ONE_DIV_TWO: crate::BigInt<N>;
-
-    /// (Self::MODULUS - 1) / 2
-    // TODO: compute this directly from `MODULUS` once
-    // const fns in traits are stable.
-    const MODULUS_MINUS_ONE_DIV_TWO: crate::BigInt<N>;
 
     /// Set a += b.
     fn add_assign(a: &mut Fp<Self, N>, b: &Fp<Self, N>);
@@ -70,8 +50,70 @@ pub trait FpConfig<const N: usize>: crate::FftConfig<Field = Fp<Self, N>> {
     /// Set a *= b.
     fn square_in_place(a: &mut Fp<Self, N>);
 
-    /// Compute a^{-1} if it exists.
+    /// Compute a^{-1} if `a` is not zero.
     fn inverse(a: &Fp<Self, N>) -> Option<Fp<Self, N>>;
+
+    /// Compute the square root of a, if it exists.
+    fn square_root(a: &Fp<Self, N>) -> Option<Fp<Self, N>> {
+        // https://eprint.iacr.org/2012/685.pdf (page 12, algorithm 5)
+        // Actually this is just normal Tonelli-Shanks; since `P::Generator`
+        // is a quadratic non-residue, `P::ROOT_OF_UNITY = P::GENERATOR ^ t`
+        // is also a quadratic non-residue (since `t` is odd).
+        if a.is_zero() {
+            return Some(Fp::zero());
+        }
+        // Try computing the square root (x at the end of the algorithm)
+        // Check at the end of the algorithm if x was a square root
+        // Begin Tonelli-Shanks
+        let mut z = Fp::qnr_to_t();
+        let mut w = a.pow(Fp::<Self, N>::TRACE_MINUS_ONE_DIV_TWO);
+        let mut x = w * a;
+        let mut b = x * &w;
+
+        let mut v = Self::TWO_ADICITY as usize;
+
+        while !b.is_one() {
+            let mut k = 0usize;
+
+            let mut b2k = b;
+            while !b2k.is_one() {
+                // invariant: b2k = b^(2^k) after entering this loop
+                b2k.square_in_place();
+                k += 1;
+            }
+
+            if k == (Self::TWO_ADICITY as usize) {
+                // We are in the case where self^(T * 2^k) = x^(P::MODULUS - 1) = 1,
+                // which means that no square root exists.
+                return None;
+            }
+            let j = v - k;
+            w = z;
+            for _ in 1..j {
+                w.square_in_place();
+            }
+
+            z = w.square();
+            b *= &z;
+            x *= &w;
+            v = k;
+        }
+        // Is x the square root? If so, return it.
+        if x.square() == *a {
+            return Some(x);
+        } else {
+            // Consistency check that if no square root is found,
+            // it is because none exists.
+            #[cfg(debug_assertions)]
+            {
+                use crate::fields::LegendreSymbol::*;
+                if a.legendre() != QuadraticNonResidue {
+                    panic!("Input has a square root per its Legendre symbol, but it was not found")
+                }
+            }
+            None
+        }
+    }
 
     /// Construct a field element from an integer in the range `0..(Self::MODULUS - 1)`.
     /// Returns `None` if the integer is outside this range.
@@ -110,19 +152,19 @@ impl<P, const N: usize> Fp<P, N> {
 
 impl<P: FpConfig<N>, const N: usize> Fp<P, N> {
     #[inline(always)]
-    pub(crate) fn is_valid(&self) -> bool {
+    pub(crate) fn is_less_than_modulus(&self) -> bool {
         self.0 < P::MODULUS
     }
 
     #[inline]
-    fn reduce(&mut self) {
-        if !self.is_valid() {
-            self.0.sub_noborrow(&P::MODULUS);
+    fn subtract_modulus(&mut self) {
+        if !self.is_less_than_modulus() {
+            self.0.sub_noborrow(&Self::MODULUS);
         }
     }
 
-    fn shave_bits() -> usize {
-        64 * N - usize::from(P::MODULUS_BIT_SIZE)
+    fn num_bits_to_shave() -> usize {
+        64 * N - (Self::MODULUS_BIT_SIZE as usize)
     }
 }
 
@@ -193,8 +235,8 @@ impl<P: FpConfig<N>, const N: usize> Field for Fp<P, N> {
         if F::BIT_SIZE > 8 {
             return None;
         } else {
-            let shave_bits = Self::shave_bits();
-            let mut result_bytes = buffer_helpers::SerBuffer::zeroed();
+            let shave_bits = Self::num_bits_to_shave();
+            let mut result_bytes = crate::const_helpers::SerBuffer::<N>::zeroed();
             // Copy the input into a temporary buffer.
             result_bytes.copy_from_u8_slice(bytes);
             // This mask retains everything in the last limb
@@ -204,7 +246,7 @@ impl<P: FpConfig<N>, const N: usize> Field for Fp<P, N> {
             last_bytes_mask[..8].copy_from_slice(&last_limb_mask);
 
             // Length of the buffer containing the field element and the flag.
-            let output_byte_size = buffer_byte_size(P::MODULUS_BIT_SIZE as usize + F::BIT_SIZE);
+            let output_byte_size = buffer_byte_size(Self::MODULUS_BIT_SIZE as usize + F::BIT_SIZE);
             // Location of the flag is the last byte of the serialized
             // form of the field element.
             let flag_location = output_byte_size - 1;
@@ -227,7 +269,7 @@ impl<P: FpConfig<N>, const N: usize> Field for Fp<P, N> {
                 }
                 *b &= m;
             }
-            Self::deserialize(&result_bytes[..(N * 8)])
+            Self::deserialize(&result_bytes.as_slice()[..(N * 8)])
                 .ok()
                 .and_then(|f| F::from_u8(flags).map(|flag| (f, flag)))
         }
@@ -267,10 +309,11 @@ impl<P: FpConfig<N>, const N: usize> Field for Fp<P, N> {
 impl<P: FpConfig<N>, const N: usize> PrimeField for Fp<P, N> {
     type BigInt = BigInt<N>;
     const MODULUS: Self::BigInt = P::MODULUS;
-    const MODULUS_MINUS_ONE_DIV_TWO: Self::BigInt = P::MODULUS_MINUS_ONE_DIV_TWO;
-    const TRACE: Self::BigInt = P::T;
-    const TRACE_MINUS_ONE_DIV_TWO: Self::BigInt = P::T_MINUS_ONE_DIV_TWO;
-    const MODULUS_BIT_SIZE: u16 = P::MODULUS_BIT_SIZE;
+    const GENERATOR: Self = P::GENERATOR;
+    const MODULUS_MINUS_ONE_DIV_TWO: Self::BigInt = Self::MODULUS.divide_by_2_round_down();
+    const MODULUS_BIT_SIZE: u32 = Self::MODULUS.const_num_bits();
+    const TRACE: Self::BigInt = Self::MODULUS.two_adic_coefficient();
+    const TRACE_MINUS_ONE_DIV_TWO: Self::BigInt = Self::TRACE.divide_by_2_round_down();
 
     #[inline]
     fn from_bigint(r: BigInt<N>) -> Option<Self> {
@@ -307,7 +350,7 @@ impl<P: FpConfig<N>, const N: usize> SquareRootField for Fp<P, N> {
         use crate::fields::LegendreSymbol::*;
 
         // s = self^((MODULUS - 1) // 2)
-        let s = self.pow(P::MODULUS_MINUS_ONE_DIV_TWO);
+        let s = self.pow(Self::MODULUS_MINUS_ONE_DIV_TWO);
         if s.is_zero() {
             Zero
         } else if s.is_one() {
@@ -319,7 +362,7 @@ impl<P: FpConfig<N>, const N: usize> SquareRootField for Fp<P, N> {
 
     #[inline]
     fn sqrt(&self) -> Option<Self> {
-        sqrt_impl!(Self, P, self)
+        P::square_root(self)
     }
 
     fn sqrt_in_place(&mut self) -> Option<&mut Self> {
@@ -488,7 +531,7 @@ impl<P: FpConfig<N>, const N: usize> ark_std::rand::distributions::Distribution<
     fn sample<R: ark_std::rand::Rng + ?Sized>(&self, rng: &mut R) -> Fp<P, N> {
         loop {
             let mut tmp = Fp::new(rng.sample(ark_std::rand::distributions::Standard));
-            let shave_bits = Fp::<P, N>::shave_bits();
+            let shave_bits = Fp::<P, N>::num_bits_to_shave();
             // Mask away the unused bits at the beginning.
             assert!(shave_bits <= 64);
             let mask = if shave_bits == 64 {
@@ -498,7 +541,7 @@ impl<P: FpConfig<N>, const N: usize> ark_std::rand::distributions::Distribution<
             };
             tmp.0 .0.last_mut().map(|val| *val &= mask);
 
-            if tmp.is_valid() {
+            if tmp.is_less_than_modulus() {
                 return tmp;
             }
         }
@@ -508,10 +551,9 @@ impl<P: FpConfig<N>, const N: usize> ark_std::rand::distributions::Distribution<
 impl<P: FpConfig<N>, const N: usize> CanonicalSerializeWithFlags for Fp<P, N> {
     fn serialize_with_flags<W: ark_std::io::Write, F: Flags>(
         &self,
-        mut writer: W,
+        writer: W,
         flags: F,
     ) -> Result<(), SerializationError> {
-        let bigint_byte_size = N * 8;
         // All reasonable `Flags` should be less than 8 bits in size
         // (256 values are enough for anyone!)
         if F::BIT_SIZE > 8 {
@@ -521,12 +563,12 @@ impl<P: FpConfig<N>, const N: usize> CanonicalSerializeWithFlags for Fp<P, N> {
         // Calculate the number of bytes required to represent a field element
         // serialized with `flags`. If `F::BIT_SIZE < 8`,
         // this is at most `N * 8 + 1`
-        let output_byte_size = buffer_byte_size(P::MODULUS_BIT_SIZE as usize + F::BIT_SIZE);
+        let output_byte_size = buffer_byte_size(Self::MODULUS_BIT_SIZE as usize + F::BIT_SIZE);
 
         // Write out `self` to a temporary buffer.
         // The size of the buffer is $byte_size + 1 because `F::BIT_SIZE`
         // is at most 8 bits.
-        let mut bytes = buffer_helpers::SerBuffer::zeroed();
+        let mut bytes = crate::const_helpers::SerBuffer::zeroed();
         bytes.copy_from_u64_slice(&self.into_bigint().0);
         // Mask out the bits of the last byte that correspond to the flag.
         bytes[output_byte_size - 1] |= flags.u8_bitmask();
@@ -540,7 +582,7 @@ impl<P: FpConfig<N>, const N: usize> CanonicalSerializeWithFlags for Fp<P, N> {
     // If `(m - P::MODULUS_BIT_SIZE) >= F::BIT_SIZE` , then this method returns `n`;
     // otherwise, it returns `n + 1`.
     fn serialized_size_with_flags<F: Flags>(&self) -> usize {
-        buffer_byte_size(P::MODULUS_BIT_SIZE as usize + F::BIT_SIZE)
+        buffer_byte_size(Self::MODULUS_BIT_SIZE as usize + F::BIT_SIZE)
     }
 }
 
@@ -558,7 +600,7 @@ impl<P: FpConfig<N>, const N: usize> CanonicalSerialize for Fp<P, N> {
 
 impl<P: FpConfig<N>, const N: usize> CanonicalDeserializeWithFlags for Fp<P, N> {
     fn deserialize_with_flags<R: ark_std::io::Read, F: Flags>(
-        mut reader: R,
+        reader: R,
     ) -> Result<(Self, F), SerializationError> {
         // All reasonable `Flags` should be less than 8 bits in size
         // (256 values are enough for anyone!)
@@ -568,10 +610,10 @@ impl<P: FpConfig<N>, const N: usize> CanonicalDeserializeWithFlags for Fp<P, N> 
         // Calculate the number of bytes required to represent a field element
         // serialized with `flags`. If `F::BIT_SIZE < 8`,
         // this is at most `$byte_size + 1`
-        let output_byte_size = buffer_byte_size(P::MODULUS_BIT_SIZE as usize + F::BIT_SIZE);
+        let output_byte_size = buffer_byte_size(Self::MODULUS_BIT_SIZE as usize + F::BIT_SIZE);
 
-        let mut masked_bytes = buffer_helpers::SerBuffer::zeroed();
-        masked_bytes.read_exact_up_to(reader, output_byte_size);
+        let mut masked_bytes = crate::const_helpers::SerBuffer::zeroed();
+        masked_bytes.read_exact_up_to(reader, output_byte_size)?;
         let flags = F::from_u8_remove_flags(&mut masked_bytes[output_byte_size - 1])
             .ok_or(SerializationError::UnexpectedFlags)?;
 
@@ -585,6 +627,20 @@ impl<P: FpConfig<N>, const N: usize> CanonicalDeserializeWithFlags for Fp<P, N> 
 impl<P: FpConfig<N>, const N: usize> CanonicalDeserialize for Fp<P, N> {
     fn deserialize<R: ark_std::io::Read>(reader: R) -> Result<Self, SerializationError> {
         Self::deserialize_with_flags::<R, EmptyFlags>(reader).map(|(r, _)| r)
+    }
+}
+
+impl<P: FpConfig<N>, const N: usize> ToBytes for Fp<P, N> {
+    #[inline]
+    fn write<W: Write>(&self, writer: W) -> IoResult<()> {
+        self.into_bigint().write(writer)
+    }
+}
+
+impl<P: FpConfig<N>, const N: usize> FromBytes for Fp<P, N> {
+    #[inline]
+    fn read<R: Read>(r: R) -> IoResult<Self> {
+        BigInt::read(r).and_then(|b| Fp::from_bigint(b).ok_or(crate::error("FromBytes::read failed")))
     }
 }
 
@@ -628,7 +684,7 @@ impl<P: FpConfig<N>, const N: usize> FromStr for Fp<P, N> {
                 }
             }
         }
-        if !res.is_valid() {
+        if !res.is_less_than_modulus() {
             Err(())
         } else {
             Ok(res)
@@ -743,7 +799,7 @@ impl<P: FpConfig<N>, const N: usize> core::ops::Sub<Self> for Fp<P, N> {
     type Output = Self;
 
     #[inline]
-    fn sub(self, other: Self) -> Self {
+    fn sub(mut self, other: Self) -> Self {
         self.sub_assign(&other);
         self
     }

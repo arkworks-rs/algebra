@@ -5,7 +5,7 @@ use ark_serialize::{
 use ark_std::{
     cmp::{Ord, Ordering, PartialOrd},
     fmt,
-    io::{Read, Write},
+    io::{Read, Result as IoResult, Write},
     ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign},
     vec::Vec,
 };
@@ -19,6 +19,7 @@ use ark_std::rand::{
 };
 
 use crate::{
+    bytes::{ToBytes, FromBytes},
     fields::{Field, PrimeField},
     ToConstraintField, UniformRand,
 };
@@ -79,6 +80,18 @@ pub struct CubicExtField<P: CubicExtParameters> {
     pub c0: P::BaseField,
     pub c1: P::BaseField,
     pub c2: P::BaseField,
+}
+
+/// Construct a `CubicExtension` element from elements of the base field.
+#[macro_export]
+macro_rules! CubixExt {
+    ($name:ident, $c0:expr, $c1:expr, $c2:expr $(,)?) => {
+        $name {
+            c0: $c0,
+            c1: $c1,
+            c2: $c2,
+        }
+    };
 }
 
 impl<P: CubicExtParameters> CubicExtField<P> {
@@ -627,6 +640,25 @@ where
         res.append(&mut c2_elems);
 
         Some(res)
+    }
+}
+
+impl<P: CubicExtParameters> ToBytes for CubicExtField<P> {
+    #[inline]
+    fn write<W: Write>(&self, mut writer: W) -> IoResult<()> {
+        self.c0.write(&mut writer)?;
+        self.c1.write(&mut writer)?;
+        self.c2.write(writer)
+    }
+}
+
+impl<P: CubicExtParameters> FromBytes for CubicExtField<P> {
+    #[inline]
+    fn read<R: Read>(mut reader: R) -> IoResult<Self> {
+        let c0 = P::BaseField::read(&mut reader)?;
+        let c1 = P::BaseField::read(&mut reader)?;
+        let c2 = P::BaseField::read(reader)?;
+        Ok(CubicExtField::new(c0, c1, c2))
     }
 }
 
