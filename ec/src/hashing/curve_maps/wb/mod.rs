@@ -83,7 +83,7 @@ impl<P: WBParams> MapToCurve<GroupAffine<P>> for WBMap<P> {
 
     /// Map random field point to a random curve point
     /// inspired from
-    /// https://github.com/zcash/pasta_curves/blob/main/src/hashtocurve.rs
+    /// <https://github.com/zcash/pasta_curves/blob/main/src/hashtocurve.rs>
     fn map_to_curve(
         &self,
         element: <GroupAffine<P> as AffineCurve>::BaseField,

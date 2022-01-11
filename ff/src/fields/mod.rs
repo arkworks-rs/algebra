@@ -245,7 +245,7 @@ pub trait FpParameters: FftParameters {
     /// the representation when randomly sampling.
     const REPR_SHAVE_BITS: u32;
 
-    /// Let `M` be the nearest greater power of 2^64 to `Self::MODULUS_BITS`. Then
+    /// Let `M` be the nearest power of 2^64 greater than `Self::MODULUS`. Then
     /// `R = M % Self::MODULUS`.
     const R: Self::BigInt;
 
