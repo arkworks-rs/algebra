@@ -52,7 +52,7 @@ impl WnafContext {
         if 1 << (self.window_size - 1) > base_table.len() {
             return None;
         }
-        let scalar_wnaf = scalar.into_repr().find_wnaf(self.window_size).unwrap();
+        let scalar_wnaf = scalar.into_bigint().find_wnaf(self.window_size).unwrap();
 
         let mut result = G::zero();
 
