@@ -70,18 +70,23 @@ impl<P: Fp3Config> Fp3<P> {
     /// # Examples
     ///
     /// ```
+    ///
+    /// # use ark_test_curves::CubicExt;
     /// # use ark_std::test_rng;
-    /// # use ark_test_curves::bls12_381::{Fq as Fp, Fq2 as Fp2};
     /// # use ark_std::UniformRand;
+    /// # use ark_test_curves::mnt6_753 as ark_mnt6_753;
+    /// use ark_mnt6_753::{Fq as Fp, Fq3 as Fp3};
     /// let c0: Fp = Fp::rand(&mut test_rng());
     /// let c1: Fp = Fp::rand(&mut test_rng());
-    /// let mut ext_element: Fp2 = Fp2::new(c0, c1);
+    /// let c2: Fp = Fp::rand(&mut test_rng());
+    /// let mut ext_element: Fp3 = Fp3::new(c0, c1, c2);
     ///
     /// let base_field_element: Fp = Fp::rand(&mut test_rng());
     /// ext_element.mul_assign_by_fp(&base_field_element);
     ///
-    /// assert_eq!(ext_element.c0, c0*base_field_element);
-    /// assert_eq!(ext_element.c1, c1*base_field_element);
+    /// assert_eq!(ext_element.c0, c0 * base_field_element);
+    /// assert_eq!(ext_element.c1, c1 * base_field_element);
+    /// assert_eq!(ext_element.c2, c2 * base_field_element);
     /// ```
     pub fn mul_assign_by_fp(&mut self, value: &P::Fp) {
         self.c0.mul_assign(value);

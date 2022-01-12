@@ -122,8 +122,8 @@ impl<P: Fp2Config> Fp2<P> {
     /// let base_field_element: Fp = Fp::rand(&mut test_rng());
     /// ext_element.mul_assign_by_fp(&base_field_element);
     ///
-    /// assert_eq!(ext_element.c0, c0*base_field_element);
-    /// assert_eq!(ext_element.c1, c1*base_field_element);
+    /// assert_eq!(ext_element.c0, c0 * base_field_element);
+    /// assert_eq!(ext_element.c1, c1 * base_field_element);
     /// ```
     pub fn mul_assign_by_fp(&mut self, other: &P::Fp) {
         self.c0 *= other;
