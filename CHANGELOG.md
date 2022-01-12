@@ -18,13 +18,13 @@
     - Remove duplicate function `scale_by_cofactor()` from `short_weierstrass_jacobian::GroupAffine` and `twisted_edwards_extended::GroupAffine`
 - [\#370](https://github.com/arkworks-rs/algebra/pull/370) (all) Set the minimum `rust-version = 1.56` in the manifests of all crates.
 - [\#379](https://github.com/arkworks-rs/algebra/pull/379) (`ark-ff`) Refactor `Field` implementation and `PrimeField` trait:
-    - Switches from hardcoded `FpXYZ` to `Fp<N>` based on `const` generics.
-    - Moves Montgomery arithmetic to an optional backend.
+    - Switch from hardcoded `FpXYZ` to `Fp<N>` based on `const` generics.
+    - Move Montgomery arithmetic to an optional backend.
     - Rename `field_new` macros to `MontFp`, `QuadExt` and `CubicExt` macros.
     - Introduce `const fn`s for generating many constants.
     - Add default associated constants to reduce boilerplate.
     - Rename `Fp*Parameters` to `Fp*Config`.
-    - Adds `From<u32>`, `From<u16>`, and `From<u8>` `impl`s for `BigInt<N>`.
+    - Add `From<u32>`, `From<u16>`, and `From<u8>` `impl`s for `BigInt<N>`.
 
 ### Features
 
