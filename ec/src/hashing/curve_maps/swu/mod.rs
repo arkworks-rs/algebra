@@ -30,15 +30,18 @@ pub struct SWUMap<P: SWUParams> {
     curve_params: PhantomData<fn() -> P>,
 }
 
-/// Trait defining a parity method on the Field elements.
+/// Trait defining a parity method on the Field elements based on [\[1\]] Section 4.1
+///
+/// - [\[1\]] <https://datatracker.ietf.org/doc/draft-irtf-cfrg-hash-to-curve/>
 trait ElementParity<F: Field> {
     fn parity(element: &F) -> bool {
-        element
+        match element
             .to_base_prime_field_elements()
-            .next()
-            .unwrap()
-            .into_repr()
-            .is_odd()
+            .find(|&x| !x.is_zero())
+        {
+            Some(x) => x.into_repr().is_odd(),
+            _ => false,
+        }
     }
 }
 
@@ -188,34 +191,45 @@ mod tests {
     impl ElementParity<Fq6> for Fq6 {}
 
     #[test]
-    fn test_parity() {
-        let a1 = Fq2::new(Fq::from(0), Fq::from(0));
-        let a2 = Fq2::new(Fq::from(0), Fq::from(1));
-        let a3 = Fq2::new(Fq::from(1), Fq::from(0));
-        let a4 = Fq2::new(Fq::from(1), Fq::from(1));
-        let element_test1 = Fq6::new(a1, a2, a3);
-        let element_test2 = Fq6::new(a2, a3, a4);
-        let element_test3 = Fq6::new(a3, a4, a1);
-        let element_test4 = Fq6::new(a4, a1, a2);
-        assert_eq!(Fq6::parity(&element_test1), false);
-        assert_eq!(Fq6::parity(&element_test2), false);
-        assert_eq!(Fq6::parity(&element_test3), true);
-        assert_eq!(Fq6::parity(&element_test4), true);
-
-        let element_test1 = Fq2::new(Fq::from(0), Fq::from(1));
-        let element_test2 = Fq2::new(Fq::from(1), Fq::from(0));
-        let element_test3 = Fq2::new(Fq::from(10), Fq::from(5));
-        let element_test4 = Fq2::new(Fq::from(5), Fq::from(10));
-        assert_eq!(Fq2::parity(&element_test1), false);
-        assert_eq!(Fq2::parity(&element_test2), true);
-        assert_eq!(Fq2::parity(&element_test3), false);
-        assert_eq!(Fq2::parity(&element_test4), true);
-
+    fn test_parity_of_prime_field_elements() {
         let a1 = Fq::from(0);
         let a2 = Fq::from(1);
         let a3 = Fq::from(10);
         assert_eq!(Fq::parity(&a1), false);
         assert_eq!(Fq::parity(&a2), true);
         assert_eq!(Fq::parity(&a3), false);
+    }
+
+    #[test]
+    fn test_parity_of_quadratic_extension_elements() {
+        let element_test1 = Fq2::new(Fq::from(0), Fq::from(1));
+        let element_test2 = Fq2::new(Fq::from(1), Fq::from(0));
+        let element_test3 = Fq2::new(Fq::from(10), Fq::from(5));
+        let element_test4 = Fq2::new(Fq::from(5), Fq::from(10));
+        assert_eq!(Fq2::parity(&element_test1), true, "parity is the oddness of first none-zero coefficient of element represented over the prime field" );
+        assert_eq!(Fq2::parity(&element_test2), true);
+        assert_eq!(Fq2::parity(&element_test3), false);
+        assert_eq!(Fq2::parity(&element_test4), true);
+    }
+
+    #[test]
+    fn test_parity_of_cubic_extension_elements() {
+        let a1 = Fq2::new(Fq::from(0), Fq::from(0));
+        let a2 = Fq2::new(Fq::from(0), Fq::from(1));
+        let a3 = Fq2::new(Fq::from(1), Fq::from(0));
+        let a4 = Fq2::new(Fq::from(1), Fq::from(1));
+        let a5 = Fq2::new(Fq::from(0), Fq::from(2));
+
+        let element_test1 = Fq6::new(a1, a2, a3);
+        let element_test2 = Fq6::new(a2, a3, a4);
+        let element_test3 = Fq6::new(a3, a4, a1);
+        let element_test4 = Fq6::new(a4, a1, a2);
+        let element_test5 = Fq6::new(a1, a5, a2);
+
+        assert_eq!(Fq6::parity(&element_test1), true, "parity is the oddness of first none-zero coefficient of element represented over the prime field");
+        assert_eq!(Fq6::parity(&element_test2), true, "parity is the oddness of first none-zero coefficient of element represented over the prime field");
+        assert_eq!(Fq6::parity(&element_test3), true);
+        assert_eq!(Fq6::parity(&element_test4), true);
+        assert_eq!(Fq6::parity(&element_test5), false);
     }
 }
