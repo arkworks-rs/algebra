@@ -296,7 +296,7 @@ fn generate_impl(num_limbs: usize, is_mul: bool) -> String {
     }
     ctx.add_declaration("modulus", DeclType::Register, "&Self::MODULUS.0");
     ctx.add_declaration("zero", DeclType::Constant, "0u64");
-    ctx.add_declaration("mod_inv", DeclType::Constant, "Self::INV");
+    ctx.add_declaration("mod_inv", DeclType::Register, "Self::INV");
 
     if num_limbs > MAX_REGS {
         ctx.add_buffer(2 * num_limbs);
