@@ -116,7 +116,8 @@ jobs:
             command: test
             args: "--workspace \
                    --package ark-test-curves \
-                   --all-features"
+                   --all-features\
+                   -- -Z macro-backtrace"
         if: matrix.rust == 'nightly'
 
   check_no_std:
