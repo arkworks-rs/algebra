@@ -145,7 +145,7 @@ pub struct QuadExtField<P: QuadExtConfig> {
 /// Construct a [`QuadExtField`] element from elements of the base field. This should
 /// be used primarily for constructing constant field elements; in a non-const
 /// context, [`QuadExtField::new`] is preferable.
-/// 
+///
 /// # Usage
 /// ```rust
 /// # use ark_test_curves::QuadExt;

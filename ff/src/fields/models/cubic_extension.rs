@@ -85,7 +85,7 @@ pub struct CubicExtField<P: CubicExtConfig> {
 /// Construct a [`CubicExtField`] element from elements of the base field. This should
 /// be used primarily for constructing constant field elements; in a non-const
 /// context, [`CubicExtField::new`] is preferable.
-/// 
+///
 /// # Usage
 /// ```rust
 /// # use ark_test_curves::CubicExt;

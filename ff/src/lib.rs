@@ -37,6 +37,7 @@ pub use to_field_vec::ToConstraintField;
 
 pub use num_traits::{One, Zero};
 
+#[doc(hidden)]
 pub use ark_std::vec;
 
 pub mod prelude {

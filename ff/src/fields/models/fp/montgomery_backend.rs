@@ -313,16 +313,16 @@ pub const fn can_use_no_carry_optimization<const N: usize>(modulus: &BigInt<N>) 
 /// Construct a [`Fp<MontBackend<T, N>, N>`] element from a literal string. This should
 /// be used primarily for constructing constant field elements; in a non-const
 /// context, [`Fp::from_str`](std::str::FromStr::from_str) is preferable.
-/// 
+///
 /// # Panics
-/// 
+///
 /// If the integer represented by the string cannot fit in the number
-/// of limbs of the `Fp`, this macro results in a 
+/// of limbs of the `Fp`, this macro results in a
 /// * compile-time error if used in a const context
 /// * run-time error otherwise.
-/// 
+///
 /// # Usage
-/// 
+///
 /// ```rust
 /// # use ark_test_curves::{MontFp, One};
 /// # use ark_test_curves::bls12_381 as ark_bls12_381;
@@ -330,7 +330,7 @@ pub const fn can_use_no_carry_optimization<const N: usize>(modulus: &BigInt<N>) 
 /// use ark_bls12_381::Fq;
 /// const ONE: Fq = MontFp!(Fq, "1");
 /// const NEG_ONE: Fq = MontFp!(Fq, "-1");
-/// 
+///
 /// fn check_correctness() {
 ///     assert_eq!(ONE, Fq::one());
 ///     assert_eq!(Fq::from_str("1").unwrap(), ONE);
