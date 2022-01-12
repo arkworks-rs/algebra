@@ -105,9 +105,8 @@ impl<P: Fp2Config> QuadExtConfig for Fp2ParamsWrapper<P> {
 pub type Fp2<P> = QuadExtField<Fp2ParamsWrapper<P>>;
 
 impl<P: Fp2Config> Fp2<P> {
-    /// In-place multiply both coefficients `c0` and `c1` of an
-    /// [`Fp2`] element by an element from [`P::Fp`]. The coefficients themselves
-    /// are elements of [`P::Fp`].
+    /// In-place multiply both coefficients `c0` and `c1` of `self`
+    /// by an element from [`Fp`](`Fp2Config::Fp`).
     ///
     /// # Examples
     ///

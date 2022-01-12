@@ -63,9 +63,8 @@ impl<P: Fp3Config> CubicExtConfig for Fp3ParamsWrapper<P> {
 pub type Fp3<P> = CubicExtField<Fp3ParamsWrapper<P>>;
 
 impl<P: Fp3Config> Fp3<P> {
-    /// In-place multiply both coefficients `c0`, `c1`, `c2` of an
-    /// [`Fp3`] element by an element from [`P::Fp`]. The coefficients themselves
-    /// are elements of [`P::Fp`].
+    /// In-place multiply all coefficients `c0`, `c1`, and `c2` of `self`
+    /// by an element from [`Fp`](`Fp3Config::Fp`).
     ///
     /// # Examples
     ///
