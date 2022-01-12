@@ -4,12 +4,12 @@
 
 ### Breaking changes
 
-- [\#300](https://github.com/arkworks-rs/algebra/pull/300) (ark-ec) Change the implementation of `Hash` trait of `GroupProjective` to use the affine coordinates.
+- [\#300](https://github.com/arkworks-rs/algebra/pull/300) (ark-ec) Change the implementation of `Hash` trait of `GroupProjective` to use the affine co-ordinates.
 - [\#310](https://github.com/arkworks-rs/algebra/pull/310) (ark-ec, ark-ff) Remove unnecessary internal `PhantomData`.
 - [\#333](https://github.com/arkworks-rs/algebra/pull/333) (ark-poly) Expose more properties of `EvaluationDomain`s.
 - [\#338](https://github.com/arkworks-rs/algebra/pull/338) (ark-ec) Add missing `UniformRand` trait bound to `GroupAffine`.
 - [\#338](https://github.com/arkworks-rs/algebra/pull/338) (workspace) Change to Rust 2021 edition.
-- [\#345](https://github.com/arkworks-rs/algebra/pull/345) (ark-ec, ark-serialize) Change the serialization format for Twisted Edwards Curves. We now encode the Y coordinate and take the sign bit of the X co-ordinate, the default flag is also now the Positive X value. The old methods for backwards compatibility are located [here](https://github.com/arkworks-rs/algebra/pull/345/files#diff-3621a48bb33f469144044d8d5fc663f767e103132a764812cda6be6c25877494R860)
+- [\#345](https://github.com/arkworks-rs/algebra/pull/345) (ark-ec, ark-serialize) Change the serialization format for Twisted Edwards Curves. We now encode the Y co-ordinate and take the sign bit of the X co-ordinate, the default flag is also now the Positive X value. The old methods for backwards compatibility are located [here](https://github.com/arkworks-rs/algebra/pull/345/files#diff-3621a48bb33f469144044d8d5fc663f767e103132a764812cda6be6c25877494R860)
 - [\#348](https://github.com/arkworks-rs/algebra/pull/348) (ark-ec) Rename `msm:{Fixed,Variable}BaseMSM:multi_scalar_mul` to `msm:{Fixed,Variable}:msm` to avoid redundancy.
 - [\#359](https://github.com/arkworks-rs/algebra/pull/359) (ark-test-templates) Simplify the field and curve test macros.
 - [\#365](https://github.com/arkworks-rs/algebra/pull/365) (ark-ec)
@@ -17,6 +17,13 @@
   - Add `mul_bits()` to `AffineCurve` and provide a default implementation of `mul()` using this.
   - Remove duplicate function `scale_by_cofactor()` from `short_weierstrass_jacobian::GroupAffine` and `twisted_edwards_extended::GroupAffine`
 - [\#370](https://github.com/arkworks-rs/algebra/pull/370) (all) Set the minimum `rust-version = 1.56` in the manifests of all crates.
+- [\#379](https://github.com/arkworks-rs/algebra/pull/379) (ff) Refactor `Field` implementation and `PrimeField` trait:
+  - Switches from hardcoded `FpXYZ` to `Fp<N>` based on `const` generics.
+  - Moves Montgomery arithmetic to an optional backend.
+  - Rename `field_new` macros to `MontFp`, `QuadExt` and `CubicExt` macros.
+  - Introduce `const fn`s for generating many constants.
+  - Add default associated constants to reduce boilerplate.
+  - Rename `Fp*Parameters` to `Fp*Config`.
 
 ### Features
 
@@ -35,7 +42,7 @@
 
 ### Bugfixes
 
-- [\#350](https://github.com/arkworks-rs/algebra/pull/350) (ark-serialize) Fix issues with santiation whenever a non-standard `Result` type is in scope.
+- [\#350](https://github.com/arkworks-rs/algebra/pull/350) (ark-serialize) Fix issues with hygiene whenever a non-standard `Result` type is in scope.
 - [\#358](https://github.com/arkworks-rs/algebra/pull/358) (ark-ff) Fix the bug for `QuadExtField::sqrt` when `c1 = 0 && c0.legendre.is_qnr()`
 - [\#366](https://github.com/arkworks-rs/algebra/pull/366) (ark-ff) Fix `norm()` for cubic extension field towers.
 
@@ -103,11 +110,11 @@ The main features of this release are:
     Importing these from `ark-ff` is still possible, but is deprecated and will be removed in the following release.
 - [\#144](https://github.com/arkworks-rs/algebra/pull/144) (ark-poly) Add `CanonicalSerialize` and `CanonicalDeserialize` trait bounds for `Polynomial`.
 - [\#160](https://github.com/arkworks-rs/algebra/pull/160) (ark-serialize, ark-ff, ark-ec)
-    - Remove `ConstantSerializedSize`; users should use `serialized_size*` (see next).
-    - Add `serialized_size_with_flags` method to `CanonicalSerializeWithFlags`.
-    - Change `from_random_bytes_with_flags` to output `ark_serialize::Flags`.
-    - Change signatures of `Flags::from_u8*` to output `Option`.
-    - Change `Flags::from_u8*` to be more strict about the inputs they accept:
+  - Remove `ConstantSerializedSize`; users should use `serialized_size*` (see next).
+  - Add `serialized_size_with_flags` method to `CanonicalSerializeWithFlags`.
+  - Change `from_random_bytes_with_flags` to output `ark_serialize::Flags`.
+  - Change signatures of `Flags::from_u8*` to output `Option`.
+  - Change `Flags::from_u8*` to be more strict about the inputs it accepts:
       if the top bits of the `u8` value do *not* correspond to one of the possible outputs of `Flags::u8_bitmask`, then these methods output `None`, whereas before they output
       a default value.
     Downstream users other than `ark-curves` should not see breakage unless they rely on these methods/traits explicitly.
@@ -122,7 +129,7 @@ The main features of this release are:
 - [\#117](https://github.com/arkworks-rs/algebra/pull/117) (ark-poly) Add operations to `SparsePolynomial`, so it implements `Polynomial`.
 - [\#140](https://github.com/arkworks-rs/algebra/pull/140) (ark-poly) Add support for multilinear extensions in dense and sparse evaluation form.
 - [\#164](https://github.com/arkworks-rs/algebra/pull/164) (ark-ff) Add methods `from_{be, le}_bytes_mod_order` to the `PrimeField` trait.
-- [\#197](https://github.com/arkworks-rs/algebra/pull/197) (ark-test-curves) Add a BN384 curve with low two-arity for mixed-radix testing.
+- [\#197](https://github.com/arkworks-rs/algebra/pull/197) (ark-test-curves) Add a BN384 curve with low two-adicity for mixed-radix testing.
 
 ### Improvements
 
