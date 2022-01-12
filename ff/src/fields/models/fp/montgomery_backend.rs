@@ -92,7 +92,7 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
                     4 => ark_ff_asm::x86_64_asm_mul!(4, (a.0).0, (b.0).0),
                     5 => ark_ff_asm::x86_64_asm_mul!(5, (a.0).0, (b.0).0),
                     6 => ark_ff_asm::x86_64_asm_mul!(6, (a.0).0, (b.0).0),
-                }
+                };
             } else {
                 let mut r = [0u64; N];
                 let mut carry1 = 0u64;
@@ -140,9 +140,15 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
             let no_carry: bool = !(first_bit_set || all_bits_set);
 
             if N <= 6 && no_carry {
-                ark_ff_asm::x86_64_asm_square!(N, (a.0).0);
+                match N {
+                    2 => ark_ff_asm::x86_64_asm_square!(2, (a.0).0),
+                    3 => ark_ff_asm::x86_64_asm_square!(3, (a.0).0),
+                    4 => ark_ff_asm::x86_64_asm_square!(4, (a.0).0),
+                    5 => ark_ff_asm::x86_64_asm_square!(5, (a.0).0),
+                    6 => ark_ff_asm::x86_64_asm_square!(6, (a.0).0),
+                };
                 a.subtract_modulus();
-                return a;
+                return;
             }
         }
         let mut r = crate::const_helpers::MulBuffer::<N>::zeroed();
