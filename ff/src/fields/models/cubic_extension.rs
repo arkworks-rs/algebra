@@ -19,7 +19,7 @@ use ark_std::rand::{
 };
 
 use crate::{
-    bytes::{ToBytes, FromBytes},
+    bytes::{FromBytes, ToBytes},
     fields::{Field, PrimeField},
     ToConstraintField, UniformRand,
 };
@@ -84,7 +84,7 @@ pub struct CubicExtField<P: CubicExtParameters> {
 
 /// Construct a `CubicExtension` element from elements of the base field.
 #[macro_export]
-macro_rules! CubixExt {
+macro_rules! CubicExt {
     ($name:ident, $c0:expr, $c1:expr, $c2:expr $(,)?) => {
         $name {
             c0: $c0,

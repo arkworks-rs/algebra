@@ -12,10 +12,14 @@ use ark_std::{
     One, Zero,
 };
 
+#[macro_use]
 mod montgomery_backend;
 pub use montgomery_backend::*;
 
-use crate::{BigInt, BigInteger, FftField, Field, LegendreSymbol, PrimeField, SquareRootField, FromBytes, ToBytes};
+use crate::{
+    BigInt, BigInteger, FftField, Field, FromBytes, LegendreSymbol, PrimeField, SquareRootField,
+    ToBytes,
+};
 /// A trait that specifies the configuration of a prime field.
 /// Also specifies how to perform arithmetic on field elements.
 pub trait FpConfig<const N: usize>: crate::FftConfig<Field = Fp<Self, N>> {
@@ -140,6 +144,20 @@ pub struct Fp<P, const N: usize>(
     #[doc(hidden)]
     pub PhantomData<P>,
 );
+
+pub type Fp64<P> = Fp<P, 1>;
+pub type Fp128<P> = Fp<P, 2>;
+pub type Fp192<P> = Fp<P, 3>;
+pub type Fp256<P> = Fp<P, 4>;
+pub type Fp320<P> = Fp<P, 5>;
+pub type Fp384<P> = Fp<P, 6>;
+pub type Fp448<P> = Fp<P, 7>;
+pub type Fp512<P> = Fp<P, 8>;
+pub type Fp576<P> = Fp<P, 9>;
+pub type Fp640<P> = Fp<P, 10>;
+pub type Fp704<P> = Fp<P, 11>;
+pub type Fp768<P> = Fp<P, 12>;
+pub type Fp832<P> = Fp<P, 13>;
 
 impl<P, const N: usize> Fp<P, N> {
     /// Construct a new prime element directly from its underlying
@@ -640,7 +658,8 @@ impl<P: FpConfig<N>, const N: usize> ToBytes for Fp<P, N> {
 impl<P: FpConfig<N>, const N: usize> FromBytes for Fp<P, N> {
     #[inline]
     fn read<R: Read>(r: R) -> IoResult<Self> {
-        BigInt::read(r).and_then(|b| Fp::from_bigint(b).ok_or(crate::error("FromBytes::read failed")))
+        BigInt::read(r)
+            .and_then(|b| Fp::from_bigint(b).ok_or(crate::error("FromBytes::read failed")))
     }
 }
 

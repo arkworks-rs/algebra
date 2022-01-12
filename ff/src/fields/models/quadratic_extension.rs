@@ -19,8 +19,8 @@ use ark_std::rand::{
 };
 
 use crate::{
-    bytes::{FromBytes, ToBytes},
     biginteger::BigInteger,
+    bytes::{FromBytes, ToBytes},
     fields::{Field, LegendreSymbol, PrimeField, SquareRootField},
     ToConstraintField, UniformRand,
 };

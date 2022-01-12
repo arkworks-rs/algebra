@@ -1,4 +1,4 @@
-use crate::{biginteger::BigInteger, fields::utils::k_adicity, UniformRand, ToBytes, FromBytes};
+use crate::{biginteger::BigInteger, fields::utils::k_adicity, FromBytes, ToBytes, UniformRand};
 use ark_serialize::{
     CanonicalDeserialize, CanonicalDeserializeWithFlags, CanonicalSerialize,
     CanonicalSerializeWithFlags, EmptyFlags, Flags,
@@ -22,6 +22,7 @@ pub mod utils;
 #[macro_use]
 pub mod arithmetic;
 
+#[macro_use]
 pub mod models;
 pub use self::models::*;
 
@@ -29,22 +30,6 @@ pub use self::models::*;
 use ark_std::cmp::max;
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
-
-#[macro_export]
-macro_rules! Fp {
-    ($name:ident, $c0:expr) => {{
-        use $crate::FpConfig;
-        type Params = <$name as $crate::PrimeField>::Params;
-        let (is_positive, limbs) = $crate::ark_ff_macros::to_sign_and_limbs!($c0);
-        $name::const_from_str(
-            &limbs,
-            is_positive,
-            Params::R2,
-            $name::MODULUS,
-            Params::INV,
-        )
-    }};
-}
 
 /// The interface for a generic field.
 pub trait Field:
@@ -621,11 +606,7 @@ mod no_std_tests {
     // TODO: only Fr & FrConfig should need to be imported.
     // The rest of imports are caused by cargo not resolving the deps properly
     // from this crate and from ark_test_curves
-    use ark_test_curves::{
-        batch_inversion, batch_inversion_and_mul,
-        bls12_381::{Fr, FrConfig},
-        BigInteger, FpConfig, PrimeField,
-    };
+    use ark_test_curves::{batch_inversion, batch_inversion_and_mul, bls12_381::Fr, PrimeField};
 
     #[test]
     fn test_batch_inversion() {
@@ -656,8 +637,8 @@ mod no_std_tests {
     fn test_from_into_biguint() {
         let mut rng = ark_std::test_rng();
 
-        let modulus_bits = FrConfig::MODULUS_BITS;
-        let modulus: num_bigint::BigUint = FrConfig::MODULUS.into();
+        let modulus_bits = Fr::MODULUS_BIT_SIZE;
+        let modulus: num_bigint::BigUint = Fr::MODULUS.into();
 
         let mut rand_bytes = Vec::new();
         for _ in 0..(2 * modulus_bits / 8) {
@@ -680,10 +661,10 @@ mod no_std_tests {
         // TODO: Eventually generate all the test vector bytes via computation with the
         // modulus
         use ark_std::{rand::Rng, string::ToString};
+        use ark_test_curves::BigInteger;
         use num_bigint::BigUint;
 
-        let ref_modulus =
-            BigUint::from_bytes_be(&<Fr as PrimeField>::Params::MODULUS.to_bytes_be());
+        let ref_modulus = BigUint::from_bytes_be(&Fr::MODULUS.to_bytes_be());
 
         let mut test_vectors = vec![
             // 0

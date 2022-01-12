@@ -4,7 +4,7 @@ use super::{Fp, FpConfig};
 use crate::{biginteger::arithmetic as fa, BigInt, BigInteger, FftConfig};
 
 /// A trait that defines parameters for a prime field.
-pub trait MontConfig<const N: usize>: 'static + Copy + Sync + Send {
+pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
     /// The modulus of the field.
     const MODULUS: BigInt<N>;
 
@@ -38,57 +38,16 @@ pub trait MontConfig<const N: usize>: 'static + Copy + Sync + Send {
     /// SMALL_SUBGROUP_BASE^SMALL_SUBGROUP_BASE_ADICITY)) Used for mixed-radix
     /// FFT.
     const LARGE_SUBGROUP_ROOT_OF_UNITY: Option<Fp<MontBackend<Self, N>, N>> = None;
-}
-
-/// Compute -M^{-1} mod 2^64.
-const fn inv<const N: usize>(m: BigInt<N>) -> u64 {
-    let mut inv = 1u64;
-    crate::const_for!((_i in 0..63) {
-        inv = inv.wrapping_mul(inv);
-        inv = inv.wrapping_mul(m.0[0]);
-    });
-    inv.wrapping_neg()
-}
-
-
-pub struct MontBackend<T, const N: usize>(PhantomData<T>);
-
-impl<T: MontConfig<N>, const N: usize> FftConfig for MontBackend<T, N> {
-    type Field = Fp<Self, N>;
-    const TWO_ADICITY: u32 = Self::MODULUS.two_adic_valuation();
-    const TWO_ADIC_ROOT_OF_UNITY: Self::Field = T::TWO_ADIC_ROOT_OF_UNITY;
-    const SMALL_SUBGROUP_BASE: Option<u32> = T::SMALL_SUBGROUP_BASE;
-    const SMALL_SUBGROUP_BASE_ADICITY: Option<u32> = T::SMALL_SUBGROUP_BASE_ADICITY;
-    const LARGE_SUBGROUP_ROOT_OF_UNITY: Option<Self::Field> = T::LARGE_SUBGROUP_ROOT_OF_UNITY;
-}
-
-impl<T: MontConfig<N>, const N: usize> FpConfig<N> for MontBackend<T, N> {
-    /// The modulus of the field.
-    const MODULUS: crate::BigInt<N> = Self::MODULUS;
-
-    /// A multiplicative generator of the field.
-    /// `Self::GENERATOR` is an element having multiplicative order
-    /// `Self::MODULUS - 1`.
-    const GENERATOR: Fp<Self, N> = Self::GENERATOR;
-
-    /// Additive identity of the field, i.e. the element `e`
-    /// such that, for all elements `f` of the field, `e + f = f`.
-    const ZERO: Fp<Self, N> = Fp::new(BigInt([0u64; N]));
-
-    /// Multiplicative identity of the field, i.e. the element `e`
-    /// such that, for all elements `f` of the field, `e * f = f`.
-    const ONE: Fp<Self, N> = Fp::new(T::R);
-
 
     /// Set a += b;
-    fn add_assign(a: &mut Fp<Self, N>, b: &Fp<Self, N>) {
+    fn add_assign(a: &mut Fp<MontBackend<Self, N>, N>, b: &Fp<MontBackend<Self, N>, N>) {
         // This cannot exceed the backing capacity.
         a.0.add_nocarry(&b.0);
         // However, it may need to be reduced
         a.subtract_modulus();
     }
 
-    fn sub_assign(a: &mut Fp<Self, N>, b: &Fp<Self, N>) {
+    fn sub_assign(a: &mut Fp<MontBackend<Self, N>, N>, b: &Fp<MontBackend<Self, N>, N>) {
         // If `other` is larger than `self`, add the modulus to self first.
         if b.0 > a.0 {
             a.0.add_nocarry(&Self::MODULUS);
@@ -96,7 +55,7 @@ impl<T: MontConfig<N>, const N: usize> FpConfig<N> for MontBackend<T, N> {
         a.0.sub_noborrow(&b.0);
     }
 
-    fn double_in_place(a: &mut Fp<Self, N>) {
+    fn double_in_place(a: &mut Fp<MontBackend<Self, N>, N>) {
         // This cannot exceed the backing capacity.
         a.0.mul2();
         // However, it may need to be reduced.
@@ -111,7 +70,7 @@ impl<T: MontConfig<N>, const N: usize> FpConfig<N> for MontBackend<T, N> {
     /// zero bit in the rest of the modulus.
     #[inline]
     #[ark_ff_asm::unroll_for_loops]
-    fn mul_assign(a: &mut Fp<Self, N>, b: &Fp<Self, N>) {
+    fn mul_assign(a: &mut Fp<MontBackend<Self, N>, N>, b: &Fp<MontBackend<Self, N>, N>) {
         // Checking the modulus at compile time
         let first_bit_set = Self::MODULUS.0[N - 1] >> 63 != 0;
         // N can be 1, hence we can run into a case with an unused mut.
@@ -141,7 +100,7 @@ impl<T: MontConfig<N>, const N: usize> FpConfig<N> for MontBackend<T, N> {
 
                 for i in 0..N {
                     r[0] = fa::mac(r[0], (a.0).0[0], (b.0).0[i], &mut carry1);
-                    let k = r[0].wrapping_mul(T::INV);
+                    let k = r[0].wrapping_mul(Self::INV);
                     fa::mac_discard(r[0], k, Self::MODULUS.0[0], &mut carry2);
                     for j in 1..N {
                         r[j] = fa::mac_with_carry(r[j], (a.0).0[j], (b.0).0[i], &mut carry1);
@@ -153,7 +112,7 @@ impl<T: MontConfig<N>, const N: usize> FpConfig<N> for MontBackend<T, N> {
             }
         } else {
             // Alternative implementation
-            *a = a.mul_without_reduce(b, Self::MODULUS, T::INV);
+            *a = a.mul_without_reduce(b, Self::MODULUS, Self::INV);
         }
         a.subtract_modulus();
     }
@@ -161,7 +120,7 @@ impl<T: MontConfig<N>, const N: usize> FpConfig<N> for MontBackend<T, N> {
     #[inline]
     #[ark_ff_asm::unroll_for_loops]
     #[allow(unused_braces, clippy::absurd_extreme_comparisons)]
-    fn square_in_place(a: &mut Fp<Self, N>) {
+    fn square_in_place(a: &mut Fp<MontBackend<Self, N>, N>) {
         if N == 1 {
             // We default to multiplying with `a` using the `Mul` impl
             // for the N == 1 case
@@ -173,10 +132,10 @@ impl<T: MontConfig<N>, const N: usize> FpConfig<N> for MontBackend<T, N> {
         #[allow(unsafe_code, unused_mut)]
         {
             // Checking the modulus at compile time
-            let first_bit_set = T::MODULUS.0[N - 1] >> 63 != 0;
-            let mut all_bits_set = T::MODULUS.0[N - 1] == !0 - (1 << 63);
+            let first_bit_set = Self::MODULUS.0[N - 1] >> 63 != 0;
+            let mut all_bits_set = Self::MODULUS.0[N - 1] == !0 - (1 << 63);
             for i in 1..N {
-                all_bits_set &= T::MODULUS.0[N - i - 1] == core::u64::MAX;
+                all_bits_set &= Self::MODULUS.0[N - i - 1] == core::u64::MAX;
             }
             let no_carry: bool = !(first_bit_set || all_bits_set);
 
@@ -221,7 +180,7 @@ impl<T: MontConfig<N>, const N: usize> FpConfig<N> for MontBackend<T, N> {
         // Montgomery reduction
         let mut carry2 = 0;
         for i in 0..N {
-            let k = r[i].wrapping_mul(T::INV);
+            let k = r[i].wrapping_mul(Self::INV);
             let mut carry = 0;
             fa::mac_with_carry(r[i], k, Self::MODULUS.0[0], &mut carry);
             for j in 1..N {
@@ -234,7 +193,7 @@ impl<T: MontConfig<N>, const N: usize> FpConfig<N> for MontBackend<T, N> {
         a.subtract_modulus();
     }
 
-    fn inverse(a: &Fp<Self, N>) -> Option<Fp<Self, N>> {
+    fn inverse(a: &Fp<MontBackend<Self, N>, N>) -> Option<Fp<MontBackend<Self, N>, N>> {
         if a.is_zero() {
             None
         } else {
@@ -247,7 +206,7 @@ impl<T: MontConfig<N>, const N: usize> FpConfig<N> for MontBackend<T, N> {
 
             let mut u = a.0;
             let mut v = Self::MODULUS;
-            let mut b = Fp::new(T::R2); // Avoids unnecessary reduction step.
+            let mut b = Fp::new(Self::R2); // Avoids unnecessary reduction step.
             let mut c = Fp::zero();
 
             while u != one && v != one {
@@ -290,12 +249,12 @@ impl<T: MontConfig<N>, const N: usize> FpConfig<N> for MontBackend<T, N> {
         }
     }
 
-    fn from_bigint(r: BigInt<N>) -> Option<Fp<Self, N>> {
+    fn from_bigint(r: BigInt<N>) -> Option<Fp<MontBackend<Self, N>, N>> {
         let mut r = Fp::new(r);
         if r.is_zero() {
             return Some(r);
         } else if r.is_less_than_modulus() {
-            r *= &Fp::new(T::R2);
+            r *= &Fp::new(Self::R2);
             Some(r)
         } else {
             None
@@ -305,22 +264,119 @@ impl<T: MontConfig<N>, const N: usize> FpConfig<N> for MontBackend<T, N> {
     #[inline]
     #[ark_ff_asm::unroll_for_loops]
     #[allow(clippy::modulo_one)]
-    fn into_bigint(a: Fp<Self, N>) -> BigInt<N> {
+    fn into_bigint(a: Fp<MontBackend<Self, N>, N>) -> BigInt<N> {
         let mut tmp = a.0;
         let mut r = tmp.0;
         // Montgomery Reduction
         for i in 0..N {
-            let k = r[i].wrapping_mul(T::INV);
+            let k = r[i].wrapping_mul(Self::INV);
             let mut carry = 0;
 
             fa::mac_with_carry(r[i], k, Self::MODULUS.0[0], &mut carry);
             for j in 1..N {
-                r[(j + i) % N] = fa::mac_with_carry(r[(j + i) % N], k, Self::MODULUS.0[j], &mut carry);
+                r[(j + i) % N] =
+                    fa::mac_with_carry(r[(j + i) % N], k, Self::MODULUS.0[j], &mut carry);
             }
             r[i % N] = carry;
         }
         tmp.0 = r;
         tmp
+    }
+}
+
+/// Compute -M^{-1} mod 2^64.
+pub const fn inv<const N: usize>(m: BigInt<N>) -> u64 {
+    let mut inv = 1u64;
+    crate::const_for!((_i in 0..63) {
+        inv = inv.wrapping_mul(inv);
+        inv = inv.wrapping_mul(m.0[0]);
+    });
+    inv.wrapping_neg()
+}
+
+#[macro_export]
+macro_rules! MontFp {
+    ($name:ident, $c0:expr) => {{
+        use $crate::PrimeField;
+        let (is_positive, limbs) = $crate::ark_ff_macros::to_sign_and_limbs!($c0);
+        <$name>::const_from_str(&limbs, is_positive, $name::R2, $name::MODULUS)
+    }};
+}
+
+pub use MontFp;
+
+pub struct MontBackend<T, const N: usize>(PhantomData<T>);
+
+impl<T: MontConfig<N>, const N: usize> FftConfig for MontBackend<T, N> {
+    type Field = Fp<Self, N>;
+    const TWO_ADICITY: u32 = Self::MODULUS.two_adic_valuation();
+    const TWO_ADIC_ROOT_OF_UNITY: Self::Field = T::TWO_ADIC_ROOT_OF_UNITY;
+    const SMALL_SUBGROUP_BASE: Option<u32> = T::SMALL_SUBGROUP_BASE;
+    const SMALL_SUBGROUP_BASE_ADICITY: Option<u32> = T::SMALL_SUBGROUP_BASE_ADICITY;
+    const LARGE_SUBGROUP_ROOT_OF_UNITY: Option<Self::Field> = T::LARGE_SUBGROUP_ROOT_OF_UNITY;
+}
+
+impl<T: MontConfig<N>, const N: usize> FpConfig<N> for MontBackend<T, N> {
+    /// The modulus of the field.
+    const MODULUS: crate::BigInt<N> = T::MODULUS;
+
+    /// A multiplicative generator of the field.
+    /// `Self::GENERATOR` is an element having multiplicative order
+    /// `Self::MODULUS - 1`.
+    const GENERATOR: Fp<Self, N> = T::GENERATOR;
+
+    /// Additive identity of the field, i.e. the element `e`
+    /// such that, for all elements `f` of the field, `e + f = f`.
+    const ZERO: Fp<Self, N> = Fp::new(BigInt([0u64; N]));
+
+    /// Multiplicative identity of the field, i.e. the element `e`
+    /// such that, for all elements `f` of the field, `e * f = f`.
+    const ONE: Fp<Self, N> = Fp::new(T::R);
+
+    fn add_assign(a: &mut Fp<Self, N>, b: &Fp<Self, N>) {
+        T::add_assign(a, b)
+    }
+
+    fn sub_assign(a: &mut Fp<Self, N>, b: &Fp<Self, N>) {
+        T::sub_assign(a, b)
+    }
+
+    fn double_in_place(a: &mut Fp<Self, N>) {
+        T::double_in_place(a)
+    }
+
+    /// This modular multiplication algorithm uses Montgomery
+    /// reduction for efficient implementation. It also additionally
+    /// uses the "no-carry optimization" outlined
+    /// [here](https://hackmd.io/@zkteam/modular_multiplication) if
+    /// `P::MODULUS` has (a) a non-zero MSB, and (b) at least one
+    /// zero bit in the rest of the modulus.
+    #[inline]
+    #[ark_ff_asm::unroll_for_loops]
+    fn mul_assign(a: &mut Fp<Self, N>, b: &Fp<Self, N>) {
+        T::mul_assign(a, b)
+    }
+
+    #[inline]
+    #[ark_ff_asm::unroll_for_loops]
+    #[allow(unused_braces, clippy::absurd_extreme_comparisons)]
+    fn square_in_place(a: &mut Fp<Self, N>) {
+        T::square_in_place(a)
+    }
+
+    fn inverse(a: &Fp<Self, N>) -> Option<Fp<Self, N>> {
+        T::inverse(a)
+    }
+
+    fn from_bigint(r: BigInt<N>) -> Option<Fp<Self, N>> {
+        T::from_bigint(r)
+    }
+
+    #[inline]
+    #[ark_ff_asm::unroll_for_loops]
+    #[allow(clippy::modulo_one)]
+    fn into_bigint(a: Fp<Self, N>) -> BigInt<N> {
+        T::into_bigint(a)
     }
 }
 
@@ -340,7 +396,7 @@ impl<T, const N: usize> Fp<MontBackend<T, N>, N> {
 
     /// Interpret a string of decimal numbers as a prime field element.
     /// Does not accept unnecessary leading zeroes or a blank string.
-    /// For *internal* use only; please use the `field_new` macro instead
+    /// For *internal* use only; please use the `ark_ff::MontFp` macro instead
     /// of this method
     #[doc(hidden)]
     pub const fn const_from_str(
@@ -450,4 +506,11 @@ impl<T, const N: usize> Fp<MontBackend<T, N>, N> {
     const fn sub_noborrow(a: &BigInt<N>, b: &BigInt<N>) -> BigInt<N> {
         a.const_sub_noborrow(b).0
     }
+}
+
+impl<T: MontConfig<N>, const N: usize> Fp<MontBackend<T, N>, N> {
+    #[doc(hidden)]
+    pub const R2: BigInt<N> = T::R2;
+    #[doc(hidden)]
+    pub const INV: u64 = T::INV;
 }

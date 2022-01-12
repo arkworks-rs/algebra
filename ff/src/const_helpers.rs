@@ -3,7 +3,6 @@ use ark_std::ops::{Index, IndexMut};
 
 use crate::BigInt;
 
-
 #[macro_export]
 macro_rules! const_for {
     (($i:ident in $start:tt..$end:tt)  $code:expr ) => {{
@@ -39,7 +38,7 @@ impl<const N: usize> MulBuffer<N> {
         if index < N {
             &self.b0[index]
         } else {
-            &self.b1[index + N]
+            &self.b1[index - N]
         }
     }
 
@@ -48,11 +47,10 @@ impl<const N: usize> MulBuffer<N> {
         if index < N {
             &mut self.b0[index]
         } else {
-            &mut self.b1[index + N]
+            &mut self.b1[index - N]
         }
     }
 }
-
 
 impl<const N: usize> Index<usize> for MulBuffer<N> {
     type Output = u64;
@@ -110,12 +108,7 @@ impl<const N: usize> SerBuffer<N> {
 
     #[allow(unsafe_code)]
     pub(super) fn as_slice(&self) -> &[u8] {
-        unsafe {
-            ark_std::slice::from_raw_parts(
-                (self as *const Self) as *const u8,
-                8 * N + 1,
-            )
-        }
+        unsafe { ark_std::slice::from_raw_parts((self as *const Self) as *const u8, 8 * N + 1) }
     }
 
     #[inline(always)]
@@ -129,7 +122,9 @@ impl<const N: usize> SerBuffer<N> {
     pub(super) fn copy_from_u8_slice(&mut self, other: &[u8]) {
         other.chunks(8).enumerate().for_each(|(i, chunk)| {
             if i < N {
-                self.buffers[i].copy_from_slice(chunk)
+                for j in 0..chunk.len() {
+                    self.buffers[i][j] = chunk[j]
+                }
             } else {
                 self.last = chunk[0]
             }
@@ -175,7 +170,7 @@ impl<const N: usize> SerBuffer<N> {
         let remaining_bytes = num_bytes - (8 * (N - 1));
         let write_last_byte = remaining_bytes > 8;
         let num_last_limb_bytes = ark_std::cmp::min(8, remaining_bytes);
-        other.write_all(&self.buffers[N][..num_last_limb_bytes])?;
+        other.write_all(&self.buffers[N - 1][..num_last_limb_bytes])?;
         if write_last_byte {
             other.write_all(&[self.last])?;
         }
@@ -202,7 +197,7 @@ impl<const N: usize> SerBuffer<N> {
         let remaining_bytes = num_bytes - (8 * (N - 1));
         let write_last_byte = remaining_bytes > 8;
         let num_last_limb_bytes = ark_std::cmp::min(8, remaining_bytes);
-        other.read_exact(&mut self.buffers[N][..num_last_limb_bytes])?;
+        other.read_exact(&mut self.buffers[N - 1][..num_last_limb_bytes])?;
         if write_last_byte {
             other.read_exact(&mut [self.last])?;
         }
@@ -225,17 +220,17 @@ impl<const N: usize> IndexMut<usize> for SerBuffer<N> {
     }
 }
 
-pub(in super) struct RBuffer<const N: usize>(pub [u64; N], pub u64);
+pub(super) struct RBuffer<const N: usize>(pub [u64; N], pub u64);
 
 impl<const N: usize> RBuffer<N> {
     /// Find the number of bits in the binary decomposition of `self`.
-    pub(in super) const fn num_bits(&self) -> u32 {
+    pub(super) const fn num_bits(&self) -> u32 {
         (N * 64) as u32 + (64 - self.1.leading_zeros())
     }
 
     /// Returns the `i`-th bit where bit 0 is the least significant one.
     /// In other words, the bit with weight `2^i`.
-    pub(in super) const fn get_bit(&self, i: usize) -> bool {
+    pub(super) const fn get_bit(&self, i: usize) -> bool {
         let d = i / 64;
         let b = i % 64;
         if d == N {
@@ -244,24 +239,23 @@ impl<const N: usize> RBuffer<N> {
             (self.0[d] >> b) & 1 == 1
         }
     }
-
 }
 
-pub(in super) struct R2Buffer<const N: usize>(pub [u64; N], pub [u64; N], pub u64);
+pub(super) struct R2Buffer<const N: usize>(pub [u64; N], pub [u64; N], pub u64);
 
 impl<const N: usize> R2Buffer<N> {
     /// Find the number of bits in the binary decomposition of `self`.
-    pub(in super) const fn num_bits(&self) -> u32 {
+    pub(super) const fn num_bits(&self) -> u32 {
         ((2 * N) * 64) as u32 + (64 - self.2.leading_zeros())
     }
 
     /// Returns the `i`-th bit where bit 0 is the least significant one.
     /// In other words, the bit with weight `2^i`.
-    pub(in super) const fn get_bit(&self, i: usize) -> bool {
+    pub(super) const fn get_bit(&self, i: usize) -> bool {
         let d = i / 64;
         let b = i % 64;
         if d == 2 * N {
-            (self.2 >> b ) & 1 == 1
+            (self.2 >> b) & 1 == 1
         } else if d >= N {
             (self.1[d - N] >> b) & 1 == 1
         } else {
@@ -270,11 +264,10 @@ impl<const N: usize> R2Buffer<N> {
     }
 }
 
-
-
 mod tests {
     #[test]
     fn test_mul_buffer_correctness() {
+        use super::*;
         type Buf = MulBuffer<10>;
         let temp = Buf::new([10u64; 10], [20u64; 10]);
 
@@ -287,10 +280,10 @@ mod tests {
         }
     }
 
-    
     #[test]
     #[should_panic]
     fn test_mul_buffer_soundness() {
+        use super::*;
         type Buf = MulBuffer<10>;
         let temp = Buf::new([10u64; 10], [10u64; 10]);
 

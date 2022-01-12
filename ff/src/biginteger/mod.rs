@@ -1,7 +1,8 @@
 use crate::{
     bytes::{FromBytes, ToBytes},
+    const_for,
     fields::{BitIteratorBE, BitIteratorLE},
-    UniformRand, const_for,
+    UniformRand,
 };
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, SerializationError};
 use ark_std::{
@@ -34,16 +35,12 @@ impl<const N: usize> BigInt<N> {
         Self(value)
     }
 }
-/// Divide self by another bignum, overwriting `q` with the quotient and `r` with the
-/// remainder.
 #[doc(hidden)]
 macro_rules! const_modulo {
-    ($a:ident, $divisor:ident) => {{        
+    ($a:ident, $divisor:ident) => {{
         // Stupid slow base-2 long division taken from
         // https://en.wikipedia.org/wiki/Division_algorithm
         assert!(!$divisor.const_is_zero());
-        let digit_bits = 64;
-        let mut quotient = Self::new([0u64; N]);
         let mut remainder = Self::new([0u64; N]);
         let end = $a.num_bits();
         let mut i = (end - 1) as isize;
@@ -54,16 +51,12 @@ macro_rules! const_modulo {
                 let (r, borrow) = remainder.const_sub_noborrow($divisor);
                 remainder = r;
                 assert!(!borrow);
-                // Set bit `i` of q to 1.
-                let digit_idx = i / digit_bits;
-                let bit_idx = i % digit_bits;
-                quotient.0[digit_idx as usize] |= 1 << bit_idx;
             }
             i -= 1;
         }
         remainder
     }};
-} 
+}
 impl<const N: usize> BigInt<N> {
     #[doc(hidden)]
     pub const fn const_is_even(&self) -> bool {
@@ -109,7 +102,7 @@ impl<const N: usize> BigInt<N> {
     pub const fn two_adic_valuation(mut self) -> u32 {
         let mut two_adicity = 0;
         assert!(self.const_is_odd());
-        // Since `self` is odd, we can always subtract one 
+        // Since `self` is odd, we can always subtract one
         // without a borrow
         self.0[0] -= 1;
         while self.const_is_even() {
@@ -119,12 +112,12 @@ impl<const N: usize> BigInt<N> {
         two_adicity
     }
 
-    /// Compute the smallest odd integer `t` such that `self = 2**s * t` for some 
+    /// Compute the smallest odd integer `t` such that `self = 2**s * t` for some
     /// integer `s = self.two_adic_valuation()`.
     #[doc(hidden)]
     pub const fn two_adic_coefficient(mut self) -> Self {
         assert!(self.const_is_odd());
-        // Since `self` is odd, we can always subtract one 
+        // Since `self` is odd, we can always subtract one
         // without a borrow
         self.0[0] -= 1;
         while self.const_is_even() {
@@ -148,7 +141,7 @@ impl<const N: usize> BigInt<N> {
     /// Find the number of bits in the binary decomposition of `self`.
     #[doc(hidden)]
     pub const fn const_num_bits(self) -> u32 {
-        ((N - 1) * 64) as u32 + (64 - self.0[N-1].leading_zeros())
+        ((N - 1) * 64) as u32 + (64 - self.0[N - 1].leading_zeros())
     }
 
     #[inline]
@@ -184,8 +177,6 @@ impl<const N: usize> BigInt<N> {
         is_zero
     }
 
-    
-
     /// Computes the Montgomery R constant modulo `self`.
     #[doc(hidden)]
     pub const fn montgomery_r(&self) -> Self {
@@ -196,7 +187,8 @@ impl<const N: usize> BigInt<N> {
     /// Computes the Montgomery R2 constant modulo `self`.
     #[doc(hidden)]
     pub const fn montgomery_r2(&self) -> Self {
-        let two_pow_n_times_64_square = crate::const_helpers::R2Buffer::<N>([0u64; N], [0u64; N], 1);
+        let two_pow_n_times_64_square =
+            crate::const_helpers::R2Buffer::<N>([0u64; N], [0u64; N], 1);
         const_modulo!(two_pow_n_times_64_square, self)
     }
 }

@@ -14,7 +14,7 @@ use crate::domain::{
     utils::{best_fft, bitreverse},
     DomainCoeff, EvaluationDomain,
 };
-use ark_ff::{fields::utils::k_adicity, FftField, FftConfig};
+use ark_ff::{fields::utils::k_adicity, FftConfig, FftField};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, SerializationError};
 use ark_std::{
     cmp::min,
