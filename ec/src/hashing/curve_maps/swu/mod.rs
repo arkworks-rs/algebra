@@ -35,13 +35,10 @@ pub struct SWUMap<P: SWUParams> {
 /// - [\[1\]] <https://datatracker.ietf.org/doc/draft-irtf-cfrg-hash-to-curve/>
 trait ElementParity<F: Field> {
     fn parity(element: &F) -> bool {
-        match element
+        element
             .to_base_prime_field_elements()
             .find(|&x| !x.is_zero())
-        {
-            Some(x) => x.into_repr().is_odd(),
-            _ => false,
-        }
+            .map_or(false, |x| x.into_repr().is_odd())
     }
 }
 
