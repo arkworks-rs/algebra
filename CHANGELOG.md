@@ -13,18 +13,18 @@
 - [\#348](https://github.com/arkworks-rs/algebra/pull/348) (`ark-ec`) Rename `msm:{Fixed,Variable}BaseMSM:multi_scalar_mul` to `msm:{Fixed,Variable}:msm` to avoid redundancy.
 - [\#359](https://github.com/arkworks-rs/algebra/pull/359) (ark-test-templates) Simplify the field and curve test macros.
 - [\#365](https://github.com/arkworks-rs/algebra/pull/365) (`ark-ec`)
-  - Move `COFACTOR`, `COFACTOR_INV`, and `is_in_correct_subgroup_assuming_on_curve()` from `{SW,TE}ModelParameters` to `ModelParameters`.
-  - Add `mul_bits()` to `AffineCurve` and provide a default implementation of `mul()` using this.
-  - Remove duplicate function `scale_by_cofactor()` from `short_weierstrass_jacobian::GroupAffine` and `twisted_edwards_extended::GroupAffine`
+    - Move `COFACTOR`, `COFACTOR_INV`, and `is_in_correct_subgroup_assuming_on_curve()` from `{SW,TE}ModelParameters` to `ModelParameters`.
+    - Add `mul_bits()` to `AffineCurve` and provide a default implementation of `mul()` using this.
+    - Remove duplicate function `scale_by_cofactor()` from `short_weierstrass_jacobian::GroupAffine` and `twisted_edwards_extended::GroupAffine`
 - [\#370](https://github.com/arkworks-rs/algebra/pull/370) (all) Set the minimum `rust-version = 1.56` in the manifests of all crates.
 - [\#379](https://github.com/arkworks-rs/algebra/pull/379) (`ark-ff`) Refactor `Field` implementation and `PrimeField` trait:
-  - Switches from hardcoded `FpXYZ` to `Fp<N>` based on `const` generics.
-  - Moves Montgomery arithmetic to an optional backend.
-  - Rename `field_new` macros to `MontFp`, `QuadExt` and `CubicExt` macros.
-  - Introduce `const fn`s for generating many constants.
-  - Add default associated constants to reduce boilerplate.
-  - Rename `Fp*Parameters` to `Fp*Config`.
-  - Adds `From<u32>`, `From<u16>`, and `From<u8>` `impl`s for `BigInt<N>`.
+    - Switches from hardcoded `FpXYZ` to `Fp<N>` based on `const` generics.
+    - Moves Montgomery arithmetic to an optional backend.
+    - Rename `field_new` macros to `MontFp`, `QuadExt` and `CubicExt` macros.
+    - Introduce `const fn`s for generating many constants.
+    - Add default associated constants to reduce boilerplate.
+    - Rename `Fp*Parameters` to `Fp*Config`.
+    - Adds `From<u32>`, `From<u16>`, and `From<u8>` `impl`s for `BigInt<N>`.
 
 ### Features
 
@@ -111,11 +111,11 @@ The main features of this release are:
     Importing these from `ark-ff` is still possible, but is deprecated and will be removed in the following release.
 - [\#144](https://github.com/arkworks-rs/algebra/pull/144) (`ark-poly`) Add `CanonicalSerialize` and `CanonicalDeserialize` trait bounds for `Polynomial`.
 - [\#160](https://github.com/arkworks-rs/algebra/pull/160) (`ark-serialize`, `ark-ff`, `ark-ec`)
-  - Remove `ConstantSerializedSize`; users should use `serialized_size*` (see next).
-  - Add `serialized_size_with_flags` method to `CanonicalSerializeWithFlags`.
-  - Change `from_random_bytes_with_flags` to output `ark_serialize::Flags`.
-  - Change signatures of `Flags::from_u8*` to output `Option`.
-  - Change `Flags::from_u8*` to be more strict about the inputs it accepts:
+    - Remove `ConstantSerializedSize`; users should use `serialized_size*` (see next).
+    - Add `serialized_size_with_flags` method to `CanonicalSerializeWithFlags`.
+    - Change `from_random_bytes_with_flags` to output `ark_serialize::Flags`.
+    - Change signatures of `Flags::from_u8*` to output `Option`.
+    - Change `Flags::from_u8*` to be more strict about the inputs it accepts:
       if the top bits of the `u8` value do *not* correspond to one of the possible outputs of `Flags::u8_bitmask`, then these methods output `None`, whereas before they output
       a default value.
     Downstream users other than `ark-curves` should not see breakage unless they rely on these methods/traits explicitly.
