@@ -206,7 +206,7 @@ mod tests {
         let element_test2 = Fq2::new(Fq::from(1), Fq::from(0));
         let element_test3 = Fq2::new(Fq::from(10), Fq::from(5));
         let element_test4 = Fq2::new(Fq::from(5), Fq::from(10));
-        assert_eq!(Fq2::parity(&element_test1), true, "parity is the oddness of first none-zero coefficient of element represented over the prime field" );
+        assert_eq!(Fq2::parity(&element_test1), true, "parity is the oddness of first non-zero coefficient of element represented over the prime field" );
         assert_eq!(Fq2::parity(&element_test2), true);
         assert_eq!(Fq2::parity(&element_test3), false);
         assert_eq!(Fq2::parity(&element_test4), true);
@@ -226,8 +226,8 @@ mod tests {
         let element_test4 = Fq6::new(a4, a1, a2);
         let element_test5 = Fq6::new(a1, a5, a2);
 
-        assert_eq!(Fq6::parity(&element_test1), true, "parity is the oddness of first none-zero coefficient of element represented over the prime field");
-        assert_eq!(Fq6::parity(&element_test2), true, "parity is the oddness of first none-zero coefficient of element represented over the prime field");
+        assert_eq!(Fq6::parity(&element_test1), true, "parity is the oddness of first non-zero coefficient of element represented over the prime field");
+        assert_eq!(Fq6::parity(&element_test2), true, "parity is the oddness of first non-zero coefficient of element represented over the prime field");
         assert_eq!(Fq6::parity(&element_test3), true);
         assert_eq!(Fq6::parity(&element_test4), true);
         assert_eq!(Fq6::parity(&element_test5), false);
