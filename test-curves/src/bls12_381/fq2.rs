@@ -14,7 +14,7 @@ impl Fp2Config for Fq2Config {
 
     /// QUADRATIC_NONRESIDUE = (U + 1)
     #[rustfmt::skip]
-    const QUADRATIC_NONRESIDUE: Fq2 = QuadExt!(Fq2, FQ_ONE, FQ_ONE);
+    const QUADRATIC_NONRESIDUE: Fq2 = QuadExt!(FQ_ONE, FQ_ONE);
 
     /// Coefficients for the Frobenius automorphism.
     #[rustfmt::skip]
@@ -31,5 +31,5 @@ impl Fp2Config for Fq2Config {
     }
 }
 
-pub const FQ2_ZERO: Fq2 = QuadExt!(Fq2, FQ_ZERO, FQ_ZERO);
-pub const FQ2_ONE: Fq2 = QuadExt!(Fq2, FQ_ONE, FQ_ZERO);
+pub const FQ2_ZERO: Fq2 = QuadExt!(FQ_ZERO, FQ_ZERO);
+pub const FQ2_ONE: Fq2 = QuadExt!(FQ_ONE, FQ_ZERO);

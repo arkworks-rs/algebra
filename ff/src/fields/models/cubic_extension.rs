@@ -85,8 +85,8 @@ pub struct CubicExtField<P: CubicExtConfig> {
 /// Construct a `CubicExtension` element from elements of the base field.
 #[macro_export]
 macro_rules! CubicExt {
-    ($name:ident, $c0:expr, $c1:expr, $c2:expr $(,)?) => {
-        $name {
+    ($c0:expr, $c1:expr, $c2:expr $(,)?) => {
+        $crate::CubicExtField {
             c0: $c0,
             c1: $c1,
             c2: $c2,

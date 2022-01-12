@@ -144,8 +144,8 @@ pub struct QuadExtField<P: QuadExtConfig> {
 
 #[macro_export]
 macro_rules! QuadExt {
-    ($name:ident, $c0:expr, $c1:expr $(,)?) => {
-        $name { c0: $c0, c1: $c1 }
+    ($c0:expr, $c1:expr $(,)?) => {
+        $crate::QuadExtField { c0: $c0, c1: $c1 }
     };
 }
 
