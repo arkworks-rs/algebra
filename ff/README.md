@@ -12,7 +12,7 @@ Implementations of concrete finite fields for some popular elliptic curves can b
 This crate contains two types of traits:
 
 - `Field` traits: These define interfaces for manipulating field elements, such as addition, multiplication, inverses, square roots, and more.
-- Field Parameters: holds the parameters defining the field in question. For extension fields, it also provides additional functionality required for the field, such as operations involving a (cubic or quadratic) non-residue used for constructing the field (`NONRESIDUE`).
+- Field `Config`s: specifies the parameters defining the field in question. For extension fields, it also provides additional functionality required for the field, such as operations involving a (cubic or quadratic) non-residue used for constructing the field (`NONRESIDUE`).
 
 The available field traits are:
 

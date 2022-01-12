@@ -2,9 +2,14 @@ use super::cubic_extension::*;
 use crate::fields::*;
 use core::marker::PhantomData;
 
+/// Trait that specifies constants and methods for defining degree-three extension fields.
 pub trait Fp3Config: 'static + Send + Sync + Sized {
+    /// Base prime field underlying this extension.
     type Fp: PrimeField + SquareRootField;
 
+    /// Cubic non-residue in `Self::Fp` used to construct the extension
+    /// field. That is, `NONRESIDUE` is such that the quadratic polynomial
+    /// `f(X) = X^3 - Self::NONRESIDUE` in Fp\[X\] is irreducible in `Self::Fp`.
     const NONRESIDUE: Self::Fp;
 
     const FROBENIUS_COEFF_FP3_C1: &'static [Self::Fp];
@@ -16,12 +21,16 @@ pub trait Fp3Config: 'static + Send + Sync + Sized {
     /// t-th power of a quadratic nonresidue in Fp3.
     const QUADRATIC_NONRESIDUE_TO_T: Fp3<Self>;
 
+    /// Return `fe * Self::NONRESIDUE`.
+    /// The default implementation can be specialized if [`Self::NONRESIDUE`] has a special
+    /// structure that can speed up multiplication
     #[inline(always)]
     fn mul_fp_by_nonresidue(fe: &Self::Fp) -> Self::Fp {
         Self::NONRESIDUE * fe
     }
 }
 
+/// Wrapper for [`Fp3Config`], allowing combination of the [`Fp3Config`] and [`CubicExtConfig`] traits.
 pub struct Fp3ParamsWrapper<P: Fp3Config>(PhantomData<P>);
 
 impl<P: Fp3Config> CubicExtConfig for Fp3ParamsWrapper<P> {

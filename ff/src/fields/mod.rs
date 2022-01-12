@@ -173,7 +173,7 @@ pub trait Field:
     }
 }
 
-/// A trait that defines parameters for a field that can be used for FFTs.
+/// A trait that specifies the configuration for a field that supports efficient FFTs.
 pub trait FftConfig: 'static + Send + Sync + Sized {
     type Field: Field;
 

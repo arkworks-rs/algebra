@@ -2,12 +2,12 @@ use super::quadratic_extension::*;
 use crate::fields::PrimeField;
 use core::marker::PhantomData;
 
-/// Parameters for defining degree-two extension fields.
+/// Trait that specifies constants and methods for defining degree-two extension fields.
 pub trait Fp2Config: 'static + Send + Sync + Sized {
     /// Base prime field underlying this extension.
     type Fp: PrimeField;
 
-    /// Quadratic non-residue in `Self::Fp` used to construct the extension
+    /// Quadratic non-residue in [`Self::Fp`] used to construct the extension
     /// field. That is, `NONRESIDUE` is such that the quadratic polynomial
     /// `f(X) = X^2 - Self::NONRESIDUE` in Fp\[X\] is irreducible in `Self::Fp`.
     const NONRESIDUE: Self::Fp;
@@ -19,13 +19,15 @@ pub trait Fp2Config: 'static + Send + Sync + Sized {
     const FROBENIUS_COEFF_FP2_C1: &'static [Self::Fp];
 
     /// Return `fe * Self::NONRESIDUE`.
+    /// Intended for specialization when [`Self::NONRESIDUE`] has a special
+    /// structure that can speed up multiplication
     #[inline(always)]
     fn mul_fp_by_nonresidue(fe: &Self::Fp) -> Self::Fp {
         Self::NONRESIDUE * fe
     }
 
     /// A specializable method for computing `x + mul_base_field_by_nonresidue(y)`
-    /// This allows for optimizations when the non-residue is
+    /// This allows for optimizations when [`Self::NONRESIDUE`] is
     /// canonically negative in the field.
     #[inline(always)]
     fn add_and_mul_fp_by_nonresidue(x: &Self::Fp, y: &Self::Fp) -> Self::Fp {
@@ -33,7 +35,7 @@ pub trait Fp2Config: 'static + Send + Sync + Sized {
     }
 
     /// A specializable method for computing `x + y + mul_base_field_by_nonresidue(y)`
-    /// This allows for optimizations when the non-residue is not `-1`.
+    /// This allows for optimizations when the [`Self::NONRESIDUE`] is not `-1`.
     #[inline(always)]
     fn add_and_mul_fp_by_nonresidue_plus_one(x: &Self::Fp, y: &Self::Fp) -> Self::Fp {
         let mut tmp = *x;
@@ -42,7 +44,7 @@ pub trait Fp2Config: 'static + Send + Sync + Sized {
     }
 
     /// A specializable method for computing `x - mul_base_field_by_nonresidue(y)`
-    /// This allows for optimizations when the non-residue is
+    /// This allows for optimizations when the [`Self::NONRESIDUE`] is
     /// canonically negative in the field.
     #[inline(always)]
     fn sub_and_mul_fp_by_nonresidue(x: &Self::Fp, y: &Self::Fp) -> Self::Fp {
@@ -50,7 +52,7 @@ pub trait Fp2Config: 'static + Send + Sync + Sized {
     }
 }
 
-/// Wrapper for Fp2Config, allowing combination of Fp2Config & QuadExtConfig traits
+/// Wrapper for [`Fp2Config`], allowing combination of the [`Fp2Config`] and [`QuadExtConfig`] traits.
 pub struct Fp2ParamsWrapper<P: Fp2Config>(PhantomData<P>);
 
 impl<P: Fp2Config> QuadExtConfig for Fp2ParamsWrapper<P> {
@@ -103,9 +105,9 @@ impl<P: Fp2Config> QuadExtConfig for Fp2ParamsWrapper<P> {
 pub type Fp2<P> = QuadExtField<Fp2ParamsWrapper<P>>;
 
 impl<P: Fp2Config> Fp2<P> {
-    /// In-place multiply both coefficients `c0` & `c1` of the extension field
-    /// `Fp2` by an element from `Fp`. The coefficients themselves
-    /// are elements of `Fp`.
+    /// In-place multiply both coefficients `c0` and `c1` of an
+    /// [`Fp2`] element by an element from [`P::Fp`]. The coefficients themselves
+    /// are elements of [`P::Fp`].
     ///
     /// # Examples
     ///
