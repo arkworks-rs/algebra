@@ -310,6 +310,33 @@ pub const fn can_use_no_carry_optimization<const N: usize>(modulus: &BigInt<N>) 
     !(first_bit_set || all_bits_set)
 }
 
+/// Construct a [`Fp<MontBackend<T, N>, N>`] element from a literal string. This should
+/// be used primarily for constructing constant field elements; in a non-const
+/// context, [`Fp::from_str`](std::str::FromStr::from_str) is preferable.
+/// 
+/// # Panics
+/// 
+/// If the integer represented by the string cannot fit in the number
+/// of limbs of the `Fp`, this macro results in a 
+/// * compile-time error if used in a const context
+/// * run-time error otherwise.
+/// 
+/// # Usage
+/// 
+/// ```rust
+/// # use ark_test_curves::{MontFp, One};
+/// # use ark_test_curves::bls12_381 as ark_bls12_381;
+/// # use ark_std::str::FromStr;
+/// use ark_bls12_381::Fq;
+/// const ONE: Fq = MontFp!(Fq, "1");
+/// const NEG_ONE: Fq = MontFp!(Fq, "-1");
+/// 
+/// fn check_correctness() {
+///     assert_eq!(ONE, Fq::one());
+///     assert_eq!(Fq::from_str("1").unwrap(), ONE);
+///     assert_eq!(NEG_ONE, -Fq::one());
+/// }
+/// ```
 #[macro_export]
 macro_rules! MontFp {
     ($name:ident, $c0:expr) => {{
@@ -422,6 +449,7 @@ impl<T, const N: usize> Fp<MontBackend<T, N>, N> {
         modulus: BigInt<N>,
     ) -> Self {
         let mut repr = BigInt::<N>([0; N]);
+        assert!(repr.0.len() == N);
         crate::const_for!((i in 0..(limbs.len())) {
             repr.0[i] = limbs[i];
         });

@@ -82,7 +82,17 @@ pub struct CubicExtField<P: CubicExtConfig> {
     pub c2: P::BaseField,
 }
 
-/// Construct a `CubicExtension` element from elements of the base field.
+/// Construct a [`CubicExtField`] element from elements of the base field. This should
+/// be used primarily for constructing constant field elements; in a non-const
+/// context, [`CubicExtField::new`] is preferable.
+/// 
+/// # Usage
+/// ```rust
+/// # use ark_test_curves::CubicExt;
+/// # use ark_test_curves::mnt6_753 as ark_mnt6_753;
+/// use ark_mnt6_753::{FQ_ZERO, FQ_ONE, Fq3};
+/// const ONE: Fq3 = CubicExt!(FQ_ONE, FQ_ZERO, FQ_ZERO);
+/// ```
 #[macro_export]
 macro_rules! CubicExt {
     ($c0:expr, $c1:expr, $c2:expr $(,)?) => {

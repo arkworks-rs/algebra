@@ -142,6 +142,17 @@ pub struct QuadExtField<P: QuadExtConfig> {
     pub c1: P::BaseField,
 }
 
+/// Construct a [`QuadExtField`] element from elements of the base field. This should
+/// be used primarily for constructing constant field elements; in a non-const
+/// context, [`QuadExtField::new`] is preferable.
+/// 
+/// # Usage
+/// ```rust
+/// # use ark_test_curves::QuadExt;
+/// # use ark_test_curves::bls12_381 as ark_bls12_381;
+/// use ark_bls12_381::{FQ_ZERO, FQ_ONE, Fq2};
+/// const ONE: Fq2 = QuadExt!(FQ_ONE, FQ_ZERO);
+/// ```
 #[macro_export]
 macro_rules! QuadExt {
     ($c0:expr, $c1:expr $(,)?) => {

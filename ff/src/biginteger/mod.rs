@@ -40,6 +40,24 @@ impl<const N: usize> BigInt<N> {
     }
 }
 
+/// Construct a [`struct@BigInt<N>`] element from a literal string.
+/// 
+/// # Panics
+/// 
+/// If the integer represented by the string cannot fit in the number
+/// of limbs of the `BigInt`, this macro results in a 
+/// * compile-time error if used in a const context
+/// * run-time error otherwise.
+/// 
+/// # Usage
+/// ```rust
+/// # use ark_ff::BigInt;
+/// const ONE: BigInt<6> = BigInt!("1");
+/// 
+/// fn check_correctness() {
+///     assert_eq!(ONE, BigInt::from(1u8));
+/// }
+/// ```
 #[macro_export]
 macro_rules! BigInt {
     ($c0:expr) => {{
@@ -47,7 +65,7 @@ macro_rules! BigInt {
         assert!(is_positive);
         let mut integer = $crate::BigInt::zero();
         assert!(integer.0.len() >= limbs.len());
-        crate::const_for!((i in 0..(limbs.len())) {
+        $crate::const_for!((i in 0..(limbs.len())) {
             integer.0[i] = limbs[i];
         });
         integer
