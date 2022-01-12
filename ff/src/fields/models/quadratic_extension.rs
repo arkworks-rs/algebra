@@ -26,7 +26,7 @@ use crate::{
 };
 
 /// Defines a Quadratic extension field from a quadratic non-residue.
-pub trait QuadExtParameters: 'static + Send + Sync + Sized {
+pub trait QuadExtConfig: 'static + Send + Sync + Sized {
     /// The prime field that this quadratic extension is eventually an extension of.
     type BasePrimeField: PrimeField;
     /// The base field that this field is a quadratic extension of.
@@ -127,22 +127,40 @@ pub trait QuadExtParameters: 'static + Send + Sync + Sized {
 /// represented as c0 + c1 * X, for c0, c1 in `P::BaseField`.
 #[derive(Derivative)]
 #[derivative(
-    Default(bound = "P: QuadExtParameters"),
-    Hash(bound = "P: QuadExtParameters"),
-    Clone(bound = "P: QuadExtParameters"),
-    Copy(bound = "P: QuadExtParameters"),
-    Debug(bound = "P: QuadExtParameters"),
-    PartialEq(bound = "P: QuadExtParameters"),
-    Eq(bound = "P: QuadExtParameters")
+    Default(bound = "P: QuadExtConfig"),
+    Hash(bound = "P: QuadExtConfig"),
+    Clone(bound = "P: QuadExtConfig"),
+    Copy(bound = "P: QuadExtConfig"),
+    Debug(bound = "P: QuadExtConfig"),
+    PartialEq(bound = "P: QuadExtConfig"),
+    Eq(bound = "P: QuadExtConfig")
 )]
-pub struct QuadExtField<P: QuadExtParameters> {
+pub struct QuadExtField<P: QuadExtConfig> {
     /// Coefficient `c0` in the representation of the field element `c = c0 + c1 * X`
     pub c0: P::BaseField,
     /// Coefficient `c1` in the representation of the field element `c = c0 + c1 * X`
     pub c1: P::BaseField,
 }
 
-impl<P: QuadExtParameters> QuadExtField<P> {
+/// Construct a [`QuadExtField`] element from elements of the base field. This should
+/// be used primarily for constructing constant field elements; in a non-const
+/// context, [`QuadExtField::new`] is preferable.
+///
+/// # Usage
+/// ```rust
+/// # use ark_test_curves::QuadExt;
+/// # use ark_test_curves::bls12_381 as ark_bls12_381;
+/// use ark_bls12_381::{FQ_ZERO, FQ_ONE, Fq2};
+/// const ONE: Fq2 = QuadExt!(FQ_ONE, FQ_ZERO);
+/// ```
+#[macro_export]
+macro_rules! QuadExt {
+    ($c0:expr, $c1:expr $(,)?) => {
+        $crate::QuadExtField { c0: $c0, c1: $c1 }
+    };
+}
+
+impl<P: QuadExtConfig> QuadExtField<P> {
     /// Create a new field element from coefficients `c0` and `c1`,
     /// so that the result is of the form `c0 + c1 * X`.
     ///
@@ -211,7 +229,7 @@ impl<P: QuadExtParameters> QuadExtField<P> {
     }
 }
 
-impl<P: QuadExtParameters> Zero for QuadExtField<P> {
+impl<P: QuadExtConfig> Zero for QuadExtField<P> {
     fn zero() -> Self {
         QuadExtField::new(P::BaseField::zero(), P::BaseField::zero())
     }
@@ -221,7 +239,7 @@ impl<P: QuadExtParameters> Zero for QuadExtField<P> {
     }
 }
 
-impl<P: QuadExtParameters> One for QuadExtField<P> {
+impl<P: QuadExtConfig> One for QuadExtField<P> {
     fn one() -> Self {
         QuadExtField::new(P::BaseField::one(), P::BaseField::zero())
     }
@@ -231,7 +249,7 @@ impl<P: QuadExtParameters> One for QuadExtField<P> {
     }
 }
 
-impl<P: QuadExtParameters> Field for QuadExtField<P> {
+impl<P: QuadExtConfig> Field for QuadExtField<P> {
     type BasePrimeField = P::BasePrimeField;
 
     fn extension_degree() -> u64 {
@@ -369,7 +387,7 @@ impl<P: QuadExtParameters> Field for QuadExtField<P> {
     }
 }
 
-impl<'a, P: QuadExtParameters> SquareRootField for QuadExtField<P>
+impl<'a, P: QuadExtConfig> SquareRootField for QuadExtField<P>
 where
     P::BaseField: SquareRootField + From<P::BasePrimeField>,
 {
@@ -412,7 +430,7 @@ where
 
         // Compute `(p+1)/2` as `1/2`.
         // This is cheaper than `P::BaseField::one().double().inverse()`
-        let mut two_inv = P::BasePrimeField::modulus();
+        let mut two_inv = P::BasePrimeField::MODULUS;
 
         two_inv.add_nocarry(&1u64.into());
         two_inv.div2();
@@ -456,7 +474,7 @@ where
 }
 
 /// `QuadExtField` elements are ordered lexicographically.
-impl<P: QuadExtParameters> Ord for QuadExtField<P> {
+impl<P: QuadExtConfig> Ord for QuadExtField<P> {
     #[inline(always)]
     fn cmp(&self, other: &Self) -> Ordering {
         match self.c1.cmp(&other.c1) {
@@ -467,14 +485,14 @@ impl<P: QuadExtParameters> Ord for QuadExtField<P> {
     }
 }
 
-impl<P: QuadExtParameters> PartialOrd for QuadExtField<P> {
+impl<P: QuadExtConfig> PartialOrd for QuadExtField<P> {
     #[inline(always)]
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }
 
-impl<P: QuadExtParameters> Zeroize for QuadExtField<P> {
+impl<P: QuadExtConfig> Zeroize for QuadExtField<P> {
     // The phantom data does not contain element-specific data
     // and thus does not need to be zeroized.
     fn zeroize(&mut self) {
@@ -483,13 +501,13 @@ impl<P: QuadExtParameters> Zeroize for QuadExtField<P> {
     }
 }
 
-impl<P: QuadExtParameters> From<u128> for QuadExtField<P> {
+impl<P: QuadExtConfig> From<u128> for QuadExtField<P> {
     fn from(other: u128) -> Self {
         Self::new(other.into(), P::BaseField::zero())
     }
 }
 
-impl<P: QuadExtParameters> From<i128> for QuadExtField<P> {
+impl<P: QuadExtConfig> From<i128> for QuadExtField<P> {
     #[inline]
     fn from(val: i128) -> Self {
         let abs = Self::from(val.unsigned_abs());
@@ -501,13 +519,13 @@ impl<P: QuadExtParameters> From<i128> for QuadExtField<P> {
     }
 }
 
-impl<P: QuadExtParameters> From<u64> for QuadExtField<P> {
+impl<P: QuadExtConfig> From<u64> for QuadExtField<P> {
     fn from(other: u64) -> Self {
         Self::new(other.into(), P::BaseField::zero())
     }
 }
 
-impl<P: QuadExtParameters> From<i64> for QuadExtField<P> {
+impl<P: QuadExtConfig> From<i64> for QuadExtField<P> {
     #[inline]
     fn from(val: i64) -> Self {
         let abs = Self::from(val.unsigned_abs());
@@ -519,13 +537,13 @@ impl<P: QuadExtParameters> From<i64> for QuadExtField<P> {
     }
 }
 
-impl<P: QuadExtParameters> From<u32> for QuadExtField<P> {
+impl<P: QuadExtConfig> From<u32> for QuadExtField<P> {
     fn from(other: u32) -> Self {
         Self::new(other.into(), P::BaseField::zero())
     }
 }
 
-impl<P: QuadExtParameters> From<i32> for QuadExtField<P> {
+impl<P: QuadExtConfig> From<i32> for QuadExtField<P> {
     #[inline]
     fn from(val: i32) -> Self {
         let abs = Self::from(val.unsigned_abs());
@@ -537,13 +555,13 @@ impl<P: QuadExtParameters> From<i32> for QuadExtField<P> {
     }
 }
 
-impl<P: QuadExtParameters> From<u16> for QuadExtField<P> {
+impl<P: QuadExtConfig> From<u16> for QuadExtField<P> {
     fn from(other: u16) -> Self {
         Self::new(other.into(), P::BaseField::zero())
     }
 }
 
-impl<P: QuadExtParameters> From<i16> for QuadExtField<P> {
+impl<P: QuadExtConfig> From<i16> for QuadExtField<P> {
     #[inline]
     fn from(val: i16) -> Self {
         let abs = Self::from(val.unsigned_abs());
@@ -555,13 +573,13 @@ impl<P: QuadExtParameters> From<i16> for QuadExtField<P> {
     }
 }
 
-impl<P: QuadExtParameters> From<u8> for QuadExtField<P> {
+impl<P: QuadExtConfig> From<u8> for QuadExtField<P> {
     fn from(other: u8) -> Self {
         Self::new(other.into(), P::BaseField::zero())
     }
 }
 
-impl<P: QuadExtParameters> From<i8> for QuadExtField<P> {
+impl<P: QuadExtConfig> From<i8> for QuadExtField<P> {
     #[inline]
     fn from(val: i8) -> Self {
         let abs = Self::from(val.unsigned_abs());
@@ -573,30 +591,13 @@ impl<P: QuadExtParameters> From<i8> for QuadExtField<P> {
     }
 }
 
-impl<P: QuadExtParameters> From<bool> for QuadExtField<P> {
+impl<P: QuadExtConfig> From<bool> for QuadExtField<P> {
     fn from(other: bool) -> Self {
         Self::new(u8::from(other).into(), P::BaseField::zero())
     }
 }
 
-impl<P: QuadExtParameters> ToBytes for QuadExtField<P> {
-    #[inline]
-    fn write<W: Write>(&self, mut writer: W) -> IoResult<()> {
-        self.c0.write(&mut writer)?;
-        self.c1.write(writer)
-    }
-}
-
-impl<P: QuadExtParameters> FromBytes for QuadExtField<P> {
-    #[inline]
-    fn read<R: Read>(mut reader: R) -> IoResult<Self> {
-        let c0 = P::BaseField::read(&mut reader)?;
-        let c1 = P::BaseField::read(reader)?;
-        Ok(QuadExtField::new(c0, c1))
-    }
-}
-
-impl<P: QuadExtParameters> Neg for QuadExtField<P> {
+impl<P: QuadExtConfig> Neg for QuadExtField<P> {
     type Output = Self;
     #[inline]
     #[must_use]
@@ -607,14 +608,14 @@ impl<P: QuadExtParameters> Neg for QuadExtField<P> {
     }
 }
 
-impl<P: QuadExtParameters> Distribution<QuadExtField<P>> for Standard {
+impl<P: QuadExtConfig> Distribution<QuadExtField<P>> for Standard {
     #[inline]
     fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> QuadExtField<P> {
         QuadExtField::new(UniformRand::rand(rng), UniformRand::rand(rng))
     }
 }
 
-impl<'a, P: QuadExtParameters> Add<&'a QuadExtField<P>> for QuadExtField<P> {
+impl<'a, P: QuadExtConfig> Add<&'a QuadExtField<P>> for QuadExtField<P> {
     type Output = Self;
 
     #[inline]
@@ -624,7 +625,7 @@ impl<'a, P: QuadExtParameters> Add<&'a QuadExtField<P>> for QuadExtField<P> {
     }
 }
 
-impl<'a, P: QuadExtParameters> Sub<&'a QuadExtField<P>> for QuadExtField<P> {
+impl<'a, P: QuadExtConfig> Sub<&'a QuadExtField<P>> for QuadExtField<P> {
     type Output = Self;
 
     #[inline]
@@ -634,7 +635,7 @@ impl<'a, P: QuadExtParameters> Sub<&'a QuadExtField<P>> for QuadExtField<P> {
     }
 }
 
-impl<'a, P: QuadExtParameters> Mul<&'a QuadExtField<P>> for QuadExtField<P> {
+impl<'a, P: QuadExtConfig> Mul<&'a QuadExtField<P>> for QuadExtField<P> {
     type Output = Self;
 
     #[inline]
@@ -644,7 +645,7 @@ impl<'a, P: QuadExtParameters> Mul<&'a QuadExtField<P>> for QuadExtField<P> {
     }
 }
 
-impl<'a, P: QuadExtParameters> Div<&'a QuadExtField<P>> for QuadExtField<P> {
+impl<'a, P: QuadExtConfig> Div<&'a QuadExtField<P>> for QuadExtField<P> {
     type Output = Self;
 
     #[inline]
@@ -654,7 +655,7 @@ impl<'a, P: QuadExtParameters> Div<&'a QuadExtField<P>> for QuadExtField<P> {
     }
 }
 
-impl<'a, P: QuadExtParameters> AddAssign<&'a Self> for QuadExtField<P> {
+impl<'a, P: QuadExtConfig> AddAssign<&'a Self> for QuadExtField<P> {
     #[inline]
     fn add_assign(&mut self, other: &Self) {
         self.c0 += &other.c0;
@@ -662,7 +663,7 @@ impl<'a, P: QuadExtParameters> AddAssign<&'a Self> for QuadExtField<P> {
     }
 }
 
-impl<'a, P: QuadExtParameters> SubAssign<&'a Self> for QuadExtField<P> {
+impl<'a, P: QuadExtConfig> SubAssign<&'a Self> for QuadExtField<P> {
     #[inline]
     fn sub_assign(&mut self, other: &Self) {
         self.c0 -= &other.c0;
@@ -670,10 +671,10 @@ impl<'a, P: QuadExtParameters> SubAssign<&'a Self> for QuadExtField<P> {
     }
 }
 
-impl_additive_ops_from_ref!(QuadExtField, QuadExtParameters);
-impl_multiplicative_ops_from_ref!(QuadExtField, QuadExtParameters);
+impl_additive_ops_from_ref!(QuadExtField, QuadExtConfig);
+impl_multiplicative_ops_from_ref!(QuadExtField, QuadExtConfig);
 
-impl<'a, P: QuadExtParameters> MulAssign<&'a Self> for QuadExtField<P> {
+impl<'a, P: QuadExtConfig> MulAssign<&'a Self> for QuadExtField<P> {
     #[inline]
     fn mul_assign(&mut self, other: &Self) {
         // Karatsuba multiplication;
@@ -689,20 +690,20 @@ impl<'a, P: QuadExtParameters> MulAssign<&'a Self> for QuadExtField<P> {
     }
 }
 
-impl<'a, P: QuadExtParameters> DivAssign<&'a Self> for QuadExtField<P> {
+impl<'a, P: QuadExtConfig> DivAssign<&'a Self> for QuadExtField<P> {
     #[inline]
     fn div_assign(&mut self, other: &Self) {
         self.mul_assign(&other.inverse().unwrap());
     }
 }
 
-impl<P: QuadExtParameters> fmt::Display for QuadExtField<P> {
+impl<P: QuadExtConfig> fmt::Display for QuadExtField<P> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "QuadExtField({} + {} * u)", self.c0, self.c1)
     }
 }
 
-impl<P: QuadExtParameters> CanonicalSerializeWithFlags for QuadExtField<P> {
+impl<P: QuadExtConfig> CanonicalSerializeWithFlags for QuadExtField<P> {
     #[inline]
     fn serialize_with_flags<W: Write, F: Flags>(
         &self,
@@ -720,7 +721,7 @@ impl<P: QuadExtParameters> CanonicalSerializeWithFlags for QuadExtField<P> {
     }
 }
 
-impl<P: QuadExtParameters> CanonicalSerialize for QuadExtField<P> {
+impl<P: QuadExtConfig> CanonicalSerialize for QuadExtField<P> {
     #[inline]
     fn serialize<W: Write>(&self, writer: W) -> Result<(), SerializationError> {
         self.serialize_with_flags(writer, EmptyFlags)
@@ -732,7 +733,7 @@ impl<P: QuadExtParameters> CanonicalSerialize for QuadExtField<P> {
     }
 }
 
-impl<P: QuadExtParameters> CanonicalDeserializeWithFlags for QuadExtField<P> {
+impl<P: QuadExtConfig> CanonicalDeserializeWithFlags for QuadExtField<P> {
     #[inline]
     fn deserialize_with_flags<R: Read, F: Flags>(
         mut reader: R,
@@ -744,7 +745,7 @@ impl<P: QuadExtParameters> CanonicalDeserializeWithFlags for QuadExtField<P> {
     }
 }
 
-impl<P: QuadExtParameters> CanonicalDeserialize for QuadExtField<P> {
+impl<P: QuadExtConfig> CanonicalDeserialize for QuadExtField<P> {
     #[inline]
     fn deserialize<R: Read>(mut reader: R) -> Result<Self, SerializationError> {
         let c0: P::BaseField = CanonicalDeserialize::deserialize(&mut reader)?;
@@ -753,7 +754,7 @@ impl<P: QuadExtParameters> CanonicalDeserialize for QuadExtField<P> {
     }
 }
 
-impl<P: QuadExtParameters> ToConstraintField<P::BasePrimeField> for QuadExtField<P>
+impl<P: QuadExtConfig> ToConstraintField<P::BasePrimeField> for QuadExtField<P>
 where
     P::BaseField: ToConstraintField<P::BasePrimeField>,
 {
@@ -766,6 +767,23 @@ where
         res.append(&mut c1_elems);
 
         Some(res)
+    }
+}
+
+impl<P: QuadExtConfig> ToBytes for QuadExtField<P> {
+    #[inline]
+    fn write<W: Write>(&self, mut writer: W) -> IoResult<()> {
+        self.c0.write(&mut writer)?;
+        self.c1.write(writer)
+    }
+}
+
+impl<P: QuadExtConfig> FromBytes for QuadExtField<P> {
+    #[inline]
+    fn read<R: Read>(mut reader: R) -> IoResult<Self> {
+        let c0 = P::BaseField::read(&mut reader)?;
+        let c1 = P::BaseField::read(reader)?;
+        Ok(QuadExtField::new(c0, c1))
     }
 }
 

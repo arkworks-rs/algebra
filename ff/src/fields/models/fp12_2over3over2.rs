@@ -1,6 +1,6 @@
 use super::quadratic_extension::*;
 use crate::{
-    fields::{fp6_3over2::*, Field, Fp2, Fp2Parameters},
+    fields::{fp6_3over2::*, Field, Fp2, Fp2Config},
     One,
 };
 use core::{
@@ -8,10 +8,10 @@ use core::{
     ops::{AddAssign, SubAssign},
 };
 
-type Fp2Params<P> = <<P as Fp12Parameters>::Fp6Params as Fp6Parameters>::Fp2Params;
+type Fp2Params<P> = <<P as Fp12Parameters>::Fp6Params as Fp6Config>::Fp2Params;
 
 pub trait Fp12Parameters: 'static + Send + Sync + Copy {
-    type Fp6Params: Fp6Parameters;
+    type Fp6Params: Fp6Config;
 
     /// This *must* equal (0, 1, 0);
     /// see [[DESD06, Section 6.1]](https://eprint.iacr.org/2006/471.pdf).
@@ -33,8 +33,8 @@ pub trait Fp12Parameters: 'static + Send + Sync + Copy {
 
 pub struct Fp12ParamsWrapper<P: Fp12Parameters>(PhantomData<P>);
 
-impl<P: Fp12Parameters> QuadExtParameters for Fp12ParamsWrapper<P> {
-    type BasePrimeField = <Fp2Params<P> as Fp2Parameters>::Fp;
+impl<P: Fp12Parameters> QuadExtConfig for Fp12ParamsWrapper<P> {
+    type BasePrimeField = <Fp2Params<P> as Fp2Config>::Fp;
     type BaseField = Fp6<P::Fp6Params>;
     type FrobCoeff = Fp2<Fp2Params<P>>;
 
@@ -85,7 +85,7 @@ pub type Fp12<P> = QuadExtField<Fp12ParamsWrapper<P>>;
 impl<P: Fp12Parameters> Fp12<P> {
     pub fn mul_by_fp(
         &mut self,
-        element: &<<P::Fp6Params as Fp6Parameters>::Fp2Params as Fp2Parameters>::Fp,
+        element: &<<P::Fp6Params as Fp6Config>::Fp2Params as Fp2Config>::Fp,
     ) {
         self.c0.mul_by_fp(&element);
         self.c1.mul_by_fp(&element);
@@ -138,7 +138,7 @@ impl<P: Fp12Parameters> Fp12<P> {
         // - Robert Granger and Michael Scott
         //
         if characteristic_square_mod_6_is_one(Self::characteristic()) {
-            let fp2_nr = <P::Fp6Params as Fp6Parameters>::mul_fp2_by_nonresidue;
+            let fp2_nr = <P::Fp6Params as Fp6Config>::mul_fp2_by_nonresidue;
 
             let r0 = &self.c0.c0;
             let r4 = &self.c0.c1;

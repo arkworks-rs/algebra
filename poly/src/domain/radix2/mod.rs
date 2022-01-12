@@ -5,7 +5,7 @@
 
 pub use crate::domain::utils::Elements;
 use crate::domain::{DomainCoeff, EvaluationDomain};
-use ark_ff::{FftField, FftParameters};
+use ark_ff::{FftConfig, FftField};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, SerializationError};
 use ark_std::{
     convert::TryFrom,
@@ -58,7 +58,7 @@ impl<F: FftField> EvaluationDomain<F> for Radix2EvaluationDomain<F> {
         let log_size_of_group = size.trailing_zeros();
 
         // libfqfft uses > https://github.com/scipr-lab/libfqfft/blob/e0183b2cef7d4c5deb21a6eaf3fe3b586d738fe0/libfqfft/evaluation_domain/domains/basic_radix2_domain.tcc#L33
-        if log_size_of_group > F::FftParams::TWO_ADICITY {
+        if log_size_of_group > F::FftConfig::TWO_ADICITY {
             return None;
         }
 
@@ -83,7 +83,7 @@ impl<F: FftField> EvaluationDomain<F> for Radix2EvaluationDomain<F> {
 
     fn compute_size_of_domain(num_coeffs: usize) -> Option<usize> {
         let size = num_coeffs.checked_next_power_of_two()?;
-        if size.trailing_zeros() > F::FftParams::TWO_ADICITY {
+        if size.trailing_zeros() > F::FftConfig::TWO_ADICITY {
             None
         } else {
             Some(size)
