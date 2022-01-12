@@ -2,7 +2,7 @@ use super::cubic_extension::*;
 use crate::fields::*;
 use core::marker::PhantomData;
 
-pub trait Fp3Parameters: 'static + Send + Sync + Sized {
+pub trait Fp3Config: 'static + Send + Sync + Sized {
     type Fp: PrimeField + SquareRootField;
 
     const NONRESIDUE: Self::Fp;
@@ -22,9 +22,9 @@ pub trait Fp3Parameters: 'static + Send + Sync + Sized {
     }
 }
 
-pub struct Fp3ParamsWrapper<P: Fp3Parameters>(PhantomData<P>);
+pub struct Fp3ParamsWrapper<P: Fp3Config>(PhantomData<P>);
 
-impl<P: Fp3Parameters> CubicExtParameters for Fp3ParamsWrapper<P> {
+impl<P: Fp3Config> CubicExtConfig for Fp3ParamsWrapper<P> {
     type BasePrimeField = P::Fp;
     type BaseField = P::Fp;
     type FrobCoeff = P::Fp;
@@ -53,7 +53,7 @@ impl<P: Fp3Parameters> CubicExtParameters for Fp3ParamsWrapper<P> {
 
 pub type Fp3<P> = CubicExtField<Fp3ParamsWrapper<P>>;
 
-impl<P: Fp3Parameters> Fp3<P> {
+impl<P: Fp3Config> Fp3<P> {
     pub fn mul_assign_by_fp(&mut self, value: &P::Fp) {
         self.c0.mul_assign(value);
         self.c1.mul_assign(value);
@@ -67,7 +67,7 @@ impl<P: Fp3Parameters> Fp3<P> {
     }
 }
 
-impl<P: Fp3Parameters> SquareRootField for Fp3<P> {
+impl<P: Fp3Config> SquareRootField for Fp3<P> {
     /// Returns the Legendre symbol.
     fn legendre(&self) -> LegendreSymbol {
         self.norm().legendre()

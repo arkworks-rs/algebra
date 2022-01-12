@@ -328,9 +328,9 @@ impl<P: FpConfig<N>, const N: usize> PrimeField for Fp<P, N> {
     type BigInt = BigInt<N>;
     const MODULUS: Self::BigInt = P::MODULUS;
     const GENERATOR: Self = P::GENERATOR;
-    const MODULUS_MINUS_ONE_DIV_TWO: Self::BigInt = Self::MODULUS.divide_by_2_round_down();
-    const MODULUS_BIT_SIZE: u32 = Self::MODULUS.const_num_bits();
-    const TRACE: Self::BigInt = Self::MODULUS.two_adic_coefficient();
+    const MODULUS_MINUS_ONE_DIV_TWO: Self::BigInt = P::MODULUS.divide_by_2_round_down();
+    const MODULUS_BIT_SIZE: u32 = P::MODULUS.const_num_bits();
+    const TRACE: Self::BigInt = P::MODULUS.two_adic_coefficient();
     const TRACE_MINUS_ONE_DIV_TWO: Self::BigInt = Self::TRACE.divide_by_2_round_down();
 
     #[inline]

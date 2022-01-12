@@ -3,7 +3,7 @@ use crate::fields::PrimeField;
 use core::marker::PhantomData;
 
 /// Parameters for defining degree-two extension fields.
-pub trait Fp2Parameters: 'static + Send + Sync + Sized {
+pub trait Fp2Config: 'static + Send + Sync + Sized {
     /// Base prime field underlying this extension.
     type Fp: PrimeField;
 
@@ -50,10 +50,10 @@ pub trait Fp2Parameters: 'static + Send + Sync + Sized {
     }
 }
 
-/// Wrapper for Fp2Parameters, allowing combination of Fp2Parameters & QuadExtParameters traits
-pub struct Fp2ParamsWrapper<P: Fp2Parameters>(PhantomData<P>);
+/// Wrapper for Fp2Config, allowing combination of Fp2Config & QuadExtConfig traits
+pub struct Fp2ParamsWrapper<P: Fp2Config>(PhantomData<P>);
 
-impl<P: Fp2Parameters> QuadExtParameters for Fp2ParamsWrapper<P> {
+impl<P: Fp2Config> QuadExtConfig for Fp2ParamsWrapper<P> {
     type BasePrimeField = P::Fp;
     type BaseField = P::Fp;
     type FrobCoeff = P::Fp;
@@ -102,7 +102,7 @@ impl<P: Fp2Parameters> QuadExtParameters for Fp2ParamsWrapper<P> {
 /// instantiations involving `Fp2ParamsWrapper`.
 pub type Fp2<P> = QuadExtField<Fp2ParamsWrapper<P>>;
 
-impl<P: Fp2Parameters> Fp2<P> {
+impl<P: Fp2Config> Fp2<P> {
     /// In-place multiply both coefficients `c0` & `c1` of the extension field
     /// `Fp2` by an element from `Fp`. The coefficients themselves
     /// are elements of `Fp`.

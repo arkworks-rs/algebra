@@ -3,8 +3,8 @@ use crate::{
     PairingEngine,
 };
 use ark_ff::{
-    fp3::{Fp3, Fp3Parameters},
-    fp6_2over3::{Fp6, Fp6Parameters},
+    fp3::{Fp3, Fp3Config},
+    fp6_2over3::{Fp6, Fp6Config},
     BitIteratorBE, Field, PrimeField, SquareRootField,
 };
 use num_traits::{One, Zero};
@@ -32,8 +32,8 @@ pub trait MNT6Parameters: 'static {
     const FINAL_EXPONENT_LAST_CHUNK_ABS_OF_W0: <Self::Fp as PrimeField>::BigInt;
     type Fp: PrimeField + SquareRootField + Into<<Self::Fp as PrimeField>::BigInt>;
     type Fr: PrimeField + SquareRootField + Into<<Self::Fr as PrimeField>::BigInt>;
-    type Fp3Params: Fp3Parameters<Fp = Self::Fp>;
-    type Fp6Params: Fp6Parameters<Fp3Params = Self::Fp3Params>;
+    type Fp3Params: Fp3Config<Fp = Self::Fp>;
+    type Fp6Params: Fp6Config<Fp3Params = Self::Fp3Params>;
     type G1Parameters: SWModelParameters<BaseField = Self::Fp, ScalarField = Self::Fr>;
     type G2Parameters: SWModelParameters<
         BaseField = Fp3<Self::Fp3Params>,

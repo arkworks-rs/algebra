@@ -353,9 +353,10 @@ pub trait PrimeField:
 /// The interface for a field that supports an efficient square-root operation.
 pub trait SquareRootField: Field {
     /// Returns a `LegendreSymbol`, which indicates whether this field element
-    /// is  1 : a quadratic residue
-    ///  0 : equal to 0
-    /// -1 : a quadratic non-residue
+    /// is  
+    /// - 1: a quadratic residue
+    /// - 0: equal to 0
+    /// - -1: a quadratic non-residue
     fn legendre(&self) -> LegendreSymbol;
 
     /// Returns the square root of self, if it exists.
@@ -371,9 +372,8 @@ pub trait SquareRootField: Field {
 /// # Examples
 /// ```
 /// # use ark_std::test_rng;
-/// # use ark_test_curves::bls12_381::Fq as Fp;
 /// # use ark_std::UniformRand;
-/// # use ark_ff::{LegendreSymbol, Field, SquareRootField};
+/// # use ark_test_curves::{LegendreSymbol, Field, SquareRootField, bls12_381::Fq as Fp};
 /// let a: Fp = Fp::rand(&mut test_rng());
 /// let b = a.square();
 /// assert_eq!(b.legendre(), LegendreSymbol::QuadraticResidue);
@@ -391,9 +391,8 @@ impl LegendreSymbol {
     /// # Examples
     /// ```
     /// # use ark_std::test_rng;
-    /// # use ark_test_curves::bls12_381::Fq as Fp;
     /// # use ark_std::UniformRand;
-    /// # use ark_ff::{LegendreSymbol, Field, SquareRootField};
+    /// # use ark_test_curves::{LegendreSymbol, Field, SquareRootField, bls12_381::Fq as Fp};
     /// let a: Fp = Fp::rand(&mut test_rng());
     /// let b: Fp = a.square();
     /// assert!(!b.legendre().is_zero());
@@ -406,9 +405,7 @@ impl LegendreSymbol {
     ///
     /// # Examples
     /// ```
-    /// # use ark_test_curves::bls12_381::{Fq, Fq2Config};
-    /// # use ark_ff::{LegendreSymbol, SquareRootField};
-    /// # use ark_ff::Fp2Config;
+    /// # use ark_test_curves::{Fp2Config, LegendreSymbol, SquareRootField, bls12_381::{Fq, Fq2Config}};
     /// let a: Fq = Fq2Config::NONRESIDUE;
     /// assert!(a.legendre().is_qnr());
     /// ```
