@@ -24,11 +24,11 @@ The available field traits are:
 The models implemented are:
 
 - [`Quadratic Extension`](https://github.com/arkworks-rs/algebra/blob/master/ff/src/fields/models/quadratic_extension.rs)
-  - [`QuadExtField`](https://github.com/arkworks-rs/algebra/blob/master/ff/src/fields/models/quadratic_extension.rs#L140) - Struct representing a quadratic extension field, in this case holding two base field elements
-  - [`QuadExtConfig`](https://github.com/arkworks-rs/algebra/blob/master/ff/src/fields/models/quadratic_extension.rs#L27) - Trait defining the necessary parameters needed to instantiate a Quadratic Extension Field
+    - [`QuadExtField`](https://github.com/arkworks-rs/algebra/blob/master/ff/src/fields/models/quadratic_extension.rs#L140) - Struct representing a quadratic extension field, in this case holding two base field elements
+    - [`QuadExtConfig`](https://github.com/arkworks-rs/algebra/blob/master/ff/src/fields/models/quadratic_extension.rs#L27) - Trait defining the necessary parameters needed to instantiate a Quadratic Extension Field
 - [`Cubic Extension`](https://github.com/arkworks-rs/algebra/blob/master/ff/src/fields/models/cubic_extension.rs)
-  - [`CubicExtField`](https://github.com/arkworks-rs/algebra/blob/master/ff/src/fields/models/cubic_extension.rs#L72) - Struct representing a cubic extension field, holds three base field elements
-  - [`CubicExtConfig`](https://github.com/arkworks-rs/algebra/blob/master/ff/src/fields/models/cubic_extension.rs#L27) - Trait defining the necessary parameters needed to instantiate a Cubic Extension Field
+    - [`CubicExtField`](https://github.com/arkworks-rs/algebra/blob/master/ff/src/fields/models/cubic_extension.rs#L72) - Struct representing a cubic extension field, holds three base field elements
+    - [`CubicExtConfig`](https://github.com/arkworks-rs/algebra/blob/master/ff/src/fields/models/cubic_extension.rs#L27) - Trait defining the necessary parameters needed to instantiate a Cubic Extension Field
   
 The above two models serve as abstractions for constructing the extension fields `Fp^m` directly (i.e. `m` equal 2 or 3) or for creating extension towers to arrive at higher `m`. The latter is done by applying the extensions iteratively, e.g. cubic extension over a quadratic extension field.
 
