@@ -23,6 +23,15 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
     /// `Self::MODULUS - 1`.
     const GENERATOR: Fp<MontBackend<Self, N>, N>;
 
+    /// Can we use the no-carry optimization for multiplication and squaring
+    /// outlined [here](https://hackmd.io/@zkteam/modular_multiplication)?
+    ///
+    /// This optimization applies if
+    /// `Self::MODULUS` has (a) a non-zero MSB, and (b) at least one
+    /// zero bit in the rest of the modulus.
+    #[doc(hidden)]
+    const CAN_USE_NO_CARRY_OPT: bool = can_use_no_carry_optimization(&Self::MODULUS);
+
     /// 2^s root of unity computed by GENERATOR^t
     const TWO_ADIC_ROOT_OF_UNITY: Fp<MontBackend<Self, N>, N>;
 
@@ -66,22 +75,13 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
     /// reduction for efficient implementation. It also additionally
     /// uses the "no-carry optimization" outlined
     /// [here](https://hackmd.io/@zkteam/modular_multiplication) if
-    /// `P::MODULUS` has (a) a non-zero MSB, and (b) at least one
+    /// `Self::MODULUS` has (a) a non-zero MSB, and (b) at least one
     /// zero bit in the rest of the modulus.
     #[inline]
     #[ark_ff_asm::unroll_for_loops]
     fn mul_assign(a: &mut Fp<MontBackend<Self, N>, N>, b: &Fp<MontBackend<Self, N>, N>) {
-        // Checking the modulus at compile time
-        let first_bit_set = Self::MODULUS.0[N - 1] >> 63 != 0;
-        // N can be 1, hence we can run into a case with an unused mut.
-        let mut all_bits_set = Self::MODULUS.0[N - 1] == !0 - (1 << 63);
-        for i in 1..N {
-            all_bits_set &= Self::MODULUS.0[N - i - 1] == !0u64;
-        }
-        let no_carry = !(first_bit_set || all_bits_set);
-
         // No-carry optimisation applied to CIOS
-        if no_carry {
+        if Self::CAN_USE_NO_CARRY_OPT {
             if N <= 6 && N > 1 && cfg!(use_asm) {
                 #[cfg(use_asm)]
                 #[allow(unsafe_code, unused_mut)]
@@ -93,7 +93,7 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
                     4 => { ark_ff_asm::x86_64_asm_mul!(4, (a.0).0, (b.0).0); },
                     5 => { ark_ff_asm::x86_64_asm_mul!(5, (a.0).0, (b.0).0); },
                     6 => { ark_ff_asm::x86_64_asm_mul!(6, (a.0).0, (b.0).0); },
-                    _ => ark_std::hint::unreachable_unchecked(),
+                    _ => unsafe { ark_std::hint::unreachable_unchecked() },
                 };
             } else {
                 let mut r = [0u64; N];
@@ -134,14 +134,7 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
         #[allow(unsafe_code, unused_mut)]
         {
             // Checking the modulus at compile time
-            let first_bit_set = Self::MODULUS.0[N - 1] >> 63 != 0;
-            let mut all_bits_set = Self::MODULUS.0[N - 1] == !0 - (1 << 63);
-            for i in 1..N {
-                all_bits_set &= Self::MODULUS.0[N - i - 1] == core::u64::MAX;
-            }
-            let no_carry: bool = !(first_bit_set || all_bits_set);
-
-            if N <= 6 && no_carry {
+            if N <= 6 && Self::CAN_USE_NO_CARRY_OPT {
                 #[rustfmt::skip]
                 match N {
                     2 => { ark_ff_asm::x86_64_asm_square!(2, (a.0).0); },
@@ -149,7 +142,7 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
                     4 => { ark_ff_asm::x86_64_asm_square!(4, (a.0).0); },
                     5 => { ark_ff_asm::x86_64_asm_square!(5, (a.0).0); },
                     6 => { ark_ff_asm::x86_64_asm_square!(6, (a.0).0); },
-                    _ => ark_std::hint::unreachable_unchecked(),
+                    _ => unsafe { ark_std::hint::unreachable_unchecked() },
                 };
                 a.subtract_modulus();
                 return;
@@ -302,6 +295,18 @@ pub const fn inv<const N: usize>(m: BigInt<N>) -> u64 {
         inv = inv.wrapping_mul(m.0[0]);
     });
     inv.wrapping_neg()
+}
+
+#[inline]
+pub const fn can_use_no_carry_optimization<const N: usize>(modulus: &BigInt<N>) -> bool {
+    // Checking the modulus at compile time
+    let first_bit_set = modulus.0[N - 1] >> 63 != 0;
+    // N can be 1, hence we can run into a case with an unused mut.
+    let mut all_bits_set = modulus.0[N - 1] == !0 - (1 << 63);
+    crate::const_for!((i in 1..N) {
+        all_bits_set &= modulus.0[N - i - 1] == !0u64;
+    });
+    !(first_bit_set || all_bits_set)
 }
 
 #[macro_export]
