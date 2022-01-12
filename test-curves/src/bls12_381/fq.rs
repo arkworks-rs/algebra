@@ -1,8 +1,7 @@
 use ark_ff::{
-    biginteger::BigInt,
     biginteger::BigInteger384 as BigInteger,
     fields::{Fp384, MontBackend},
-    MontFp,
+    BigInt, MontFp,
 };
 
 pub struct FqConfig;
@@ -10,21 +9,11 @@ pub type Fq = Fp384<MontBackend<FqConfig, 6>>;
 
 impl ark_ff::MontConfig<6> for FqConfig {
     /// MODULUS = 4002409555221667393417789825735904156556882819939007885332058136124031650490837864442687629129015664037894272559787
-    #[rustfmt::skip]
-    const MODULUS: BigInteger = BigInt::<6>([
-        0xb9feffffffffaaab,
-        0x1eabfffeb153ffff,
-        0x6730d2a0f6b0f624,
-        0x64774b84f38512bf,
-        0x4b1ba7b6434bacd7,
-        0x1a0111ea397fe69a,
-    ]);
+    const MODULUS: BigInteger = BigInt!("4002409555221667393417789825735904156556882819939007885332058136124031650490837864442687629129015664037894272559787");
 
     /// GENERATOR = 2
-    #[rustfmt::skip]
     const GENERATOR: Fq = ark_ff::MontFp!(Fq, "2");
 
-    #[rustfmt::skip]
     const TWO_ADIC_ROOT_OF_UNITY: Fq = MontFp!(Fq, "4002409555221667393417789825735904156556882819939007885332058136124031650490837864442687629129015664037894272559786");
 }
 

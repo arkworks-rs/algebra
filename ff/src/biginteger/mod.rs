@@ -34,7 +34,26 @@ impl<const N: usize> BigInt<N> {
     pub const fn new(value: [u64; N]) -> Self {
         Self(value)
     }
+
+    pub const fn zero() -> Self {
+        Self([0u64; N])
+    }
 }
+
+#[macro_export]
+macro_rules! BigInt {
+    ($c0:expr) => {{
+        let (is_positive, limbs) = $crate::ark_ff_macros::to_sign_and_limbs!($c0);
+        assert!(is_positive);
+        let mut integer = $crate::BigInt::zero();
+        assert!(integer.0.len() >= limbs.len());
+        crate::const_for!((i in 0..(limbs.len())) {
+            integer.0[i] = limbs[i];
+        });
+        integer
+    }};
+}
+
 #[doc(hidden)]
 macro_rules! const_modulo {
     ($a:ident, $divisor:ident) => {{

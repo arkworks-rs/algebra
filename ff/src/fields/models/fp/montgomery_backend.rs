@@ -3,7 +3,8 @@ use ark_std::{marker::PhantomData, Zero};
 use super::{Fp, FpConfig};
 use crate::{biginteger::arithmetic as fa, BigInt, BigInteger, FftConfig};
 
-/// A trait that defines parameters for a prime field.
+/// A trait that specifies the constants and arithmetic procedures
+/// for Montgomery arithmetic over the prime field defined by `MODULUS`.
 pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
     /// The modulus of the field.
     const MODULUS: BigInt<N>;
@@ -314,7 +315,7 @@ macro_rules! MontFp {
     ($name:ident, $c0:expr) => {{
         use $crate::PrimeField;
         let (is_positive, limbs) = $crate::ark_ff_macros::to_sign_and_limbs!($c0);
-        <$name>::const_from_str(&limbs, is_positive, $name::R2, $name::MODULUS)
+        $crate::Fp::const_from_str(&limbs, is_positive, $name::R2, $name::MODULUS)
     }};
 }
 
