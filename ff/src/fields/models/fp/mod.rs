@@ -22,7 +22,7 @@ use crate::{
 };
 /// A trait that specifies the configuration of a prime field.
 /// Also specifies how to perform arithmetic on field elements.
-pub trait FpConfig<const N: usize>: crate::FftConfig<Field = Fp<Self, N>> {
+pub trait FpConfig<const N: usize>: Send + Sync + 'static + Sized {
     /// The modulus of the field.
     const MODULUS: crate::BigInt<N>;
 
@@ -38,6 +38,27 @@ pub trait FpConfig<const N: usize>: crate::FftConfig<Field = Fp<Self, N>> {
     /// Multiplicative identity of the field, i.e. the element `e`
     /// such that, for all elements `f` of the field, `e * f = f`.
     const ONE: Fp<Self, N>;
+
+    /// Let `N` be the size of the multiplicative group defined by the field.
+    /// Then `TWO_ADICITY` is the two-adicity of `N`, i.e. the integer `s`
+    /// such that `N = 2^s * t` for some odd integer `t`.
+    const TWO_ADICITY: u32;
+
+    /// 2^s root of unity computed by GENERATOR^t
+    const TWO_ADIC_ROOT_OF_UNITY: Fp<Self, N>;
+
+    /// An integer `b` such that there exists a multiplicative subgroup
+    /// of size `b^k` for some integer `k`.
+    const SMALL_SUBGROUP_BASE: Option<u32> = None;
+
+    /// The integer `k` such that there exists a multiplicative subgroup
+    /// of size `Self::SMALL_SUBGROUP_BASE^k`.
+    const SMALL_SUBGROUP_BASE_ADICITY: Option<u32> = None;
+
+    /// GENERATOR^((MODULUS-1) / (2^s *
+    /// SMALL_SUBGROUP_BASE^SMALL_SUBGROUP_BASE_ADICITY)) Used for mixed-radix
+    /// FFT.
+    const LARGE_SUBGROUP_ROOT_OF_UNITY: Option<Fp<Self, N>> = None;
 
     /// Set a += b.
     fn add_assign(a: &mut Fp<Self, N>, b: &Fp<Self, N>);
@@ -69,7 +90,7 @@ pub trait FpConfig<const N: usize>: crate::FftConfig<Field = Fp<Self, N>> {
         // Try computing the square root (x at the end of the algorithm)
         // Check at the end of the algorithm if x was a square root
         // Begin Tonelli-Shanks
-        let mut z = Fp::qnr_to_t();
+        let mut z = Fp::TWO_ADIC_ROOT_OF_UNITY;
         let mut w = a.pow(Fp::<Self, N>::TRACE_MINUS_ONE_DIV_TWO);
         let mut x = w * a;
         let mut b = x * &w;
@@ -344,22 +365,12 @@ impl<P: FpConfig<N>, const N: usize> PrimeField for Fp<P, N> {
 }
 
 impl<P: FpConfig<N>, const N: usize> FftField for Fp<P, N> {
-    type FftConfig = P;
-
-    #[inline]
-    fn two_adic_root_of_unity() -> Self {
-        P::TWO_ADIC_ROOT_OF_UNITY
-    }
-
-    #[inline]
-    fn large_subgroup_root_of_unity() -> Option<Self> {
-        P::LARGE_SUBGROUP_ROOT_OF_UNITY
-    }
-
-    #[inline]
-    fn multiplicative_generator() -> Self {
-        P::GENERATOR
-    }
+    const GENERATOR: Self = P::GENERATOR;
+    const TWO_ADICITY: u32 = P::TWO_ADICITY;
+    const TWO_ADIC_ROOT_OF_UNITY: Self = P::TWO_ADIC_ROOT_OF_UNITY;
+    const SMALL_SUBGROUP_BASE: Option<u32> = P::SMALL_SUBGROUP_BASE;
+    const SMALL_SUBGROUP_BASE_ADICITY: Option<u32> = P::SMALL_SUBGROUP_BASE_ADICITY;
+    const LARGE_SUBGROUP_ROOT_OF_UNITY: Option<Self> = P::LARGE_SUBGROUP_ROOT_OF_UNITY;
 }
 
 impl<P: FpConfig<N>, const N: usize> SquareRootField for Fp<P, N> {

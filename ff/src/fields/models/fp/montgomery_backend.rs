@@ -1,7 +1,7 @@
 use ark_std::{marker::PhantomData, Zero};
 
 use super::{Fp, FpConfig};
-use crate::{biginteger::arithmetic as fa, BigInt, BigInteger, FftConfig};
+use crate::{biginteger::arithmetic as fa, BigInt, BigInteger};
 
 /// A trait that specifies the constants and arithmetic procedures
 /// for Montgomery arithmetic over the prime field defined by `MODULUS`.
@@ -350,15 +350,6 @@ pub use MontFp;
 
 pub struct MontBackend<T, const N: usize>(PhantomData<T>);
 
-impl<T: MontConfig<N>, const N: usize> FftConfig for MontBackend<T, N> {
-    type Field = Fp<Self, N>;
-    const TWO_ADICITY: u32 = Self::MODULUS.two_adic_valuation();
-    const TWO_ADIC_ROOT_OF_UNITY: Self::Field = T::TWO_ADIC_ROOT_OF_UNITY;
-    const SMALL_SUBGROUP_BASE: Option<u32> = T::SMALL_SUBGROUP_BASE;
-    const SMALL_SUBGROUP_BASE_ADICITY: Option<u32> = T::SMALL_SUBGROUP_BASE_ADICITY;
-    const LARGE_SUBGROUP_ROOT_OF_UNITY: Option<Self::Field> = T::LARGE_SUBGROUP_ROOT_OF_UNITY;
-}
-
 impl<T: MontConfig<N>, const N: usize> FpConfig<N> for MontBackend<T, N> {
     /// The modulus of the field.
     const MODULUS: crate::BigInt<N> = T::MODULUS;
@@ -375,6 +366,12 @@ impl<T: MontConfig<N>, const N: usize> FpConfig<N> for MontBackend<T, N> {
     /// Multiplicative identity of the field, i.e. the element `e`
     /// such that, for all elements `f` of the field, `e * f = f`.
     const ONE: Fp<Self, N> = Fp::new(T::R);
+
+    const TWO_ADICITY: u32 = Self::MODULUS.two_adic_valuation();
+    const TWO_ADIC_ROOT_OF_UNITY: Fp<Self, N> = T::TWO_ADIC_ROOT_OF_UNITY;
+    const SMALL_SUBGROUP_BASE: Option<u32> = T::SMALL_SUBGROUP_BASE;
+    const SMALL_SUBGROUP_BASE_ADICITY: Option<u32> = T::SMALL_SUBGROUP_BASE_ADICITY;
+    const LARGE_SUBGROUP_ROOT_OF_UNITY: Option<Fp<Self, N>> = T::LARGE_SUBGROUP_ROOT_OF_UNITY;
 
     fn add_assign(a: &mut Fp<Self, N>, b: &Fp<Self, N>) {
         T::add_assign(a, b)
