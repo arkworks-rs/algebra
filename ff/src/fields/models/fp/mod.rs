@@ -60,7 +60,7 @@ pub trait FpConfig<const N: usize>: crate::FftConfig<Field = Fp<Self, N>> {
     /// Compute the square root of a, if it exists.
     fn square_root(a: &Fp<Self, N>) -> Option<Fp<Self, N>> {
         // https://eprint.iacr.org/2012/685.pdf (page 12, algorithm 5)
-        // Actually this is just normal Tonelli-Shanks; since `P::Generator`
+        // Actually this is just normal Tonelli-Shanks; since [`Self::GENERATOR`]
         // is a quadratic non-residue, `P::ROOT_OF_UNITY = P::GENERATOR ^ t`
         // is also a quadratic non-residue (since `t` is odd).
         if a.is_zero() {
@@ -161,7 +161,7 @@ pub type Fp832<P> = Fp<P, 13>;
 
 impl<P, const N: usize> Fp<P, N> {
     /// Construct a new prime element directly from its underlying
-    /// `BigInteger` data type.
+    /// [`BigInt`] data type.
     #[inline]
     pub const fn new(element: BigInt<N>) -> Self {
         Self(element, PhantomData)
@@ -425,13 +425,8 @@ impl<P: FpConfig<N>, const N: usize> From<u128> for Fp<P, N> {
         } else {
             let upper = (other >> 64) as u64;
             let lower = ((other << 64) >> 64) as u64;
-            // This is equivalent to the following, but satisfying the compiler:
-            // default_int.0[0] = lower;
-            // default_int.0[1] = upper;
-            let limbs = [lower, upper];
-            for (cur, other) in default_int.0.iter_mut().zip(&limbs) {
-                *cur = *other;
-            }
+            default_int.0[0] = lower;
+            default_int.0[1] = upper;
         }
         Self::from_bigint(default_int).unwrap()
     }
