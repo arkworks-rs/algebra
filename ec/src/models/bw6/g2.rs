@@ -112,10 +112,10 @@ impl<P: BW6Parameters> From<G2Affine<P>> for G2Prepared<P> {
             match bit {
                 1 => {
                     ell_coeffs_2.push(addition_step::<P>(&mut r, &q));
-                }
+                },
                 -1 => {
                     ell_coeffs_2.push(addition_step::<P>(&mut r, &negq));
-                }
+                },
                 _ => continue,
             }
         }

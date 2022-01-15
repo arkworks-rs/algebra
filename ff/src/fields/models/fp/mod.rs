@@ -692,10 +692,10 @@ impl<P: FpConfig<N>, const N: usize> FromStr for Fp<P, N> {
                     res.mul_assign(&ten);
                     let digit = Self::from(u64::from(c));
                     res.add_assign(&digit);
-                }
+                },
                 None => {
                     return Err(());
-                }
+                },
             }
         }
         if !res.is_less_than_modulus() {
