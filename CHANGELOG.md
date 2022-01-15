@@ -25,6 +25,7 @@
     - Add default associated constants to reduce boilerplate.
     - Rename `Fp*Parameters` to `Fp*Config`.
     - Add `From<u32>`, `From<u16>`, and `From<u8>` `impl`s for `BigInt<N>`.
+    - Remove `FftConfig`; move its contents to `FftField`.
 
 ### Features
 
