@@ -343,7 +343,7 @@ pub trait PrimeField:
         Self::from_be_bytes_mod_order(&bytes_copy)
     }
 
-    /// Return QNR^t,  and t coprime to 2, and for
+    /// Return QNR^t,  for t coprime to 2, and for
     /// a given quadratic non-residue.
     fn qnr_to_t() -> Self {
         Self::two_adic_root_of_unity()
