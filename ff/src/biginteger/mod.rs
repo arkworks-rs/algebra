@@ -1,5 +1,6 @@
 use crate::{
     bytes::{FromBytes, ToBytes},
+    const_for,
     fields::{BitIteratorBE, BitIteratorLE},
     UniformRand,
 };
@@ -33,6 +34,200 @@ impl<const N: usize> BigInt<N> {
     pub const fn new(value: [u64; N]) -> Self {
         Self(value)
     }
+
+    pub const fn zero() -> Self {
+        Self([0u64; N])
+    }
+}
+
+/// Construct a [`struct@BigInt<N>`] element from a literal string.
+///
+/// # Panics
+///
+/// If the integer represented by the string cannot fit in the number
+/// of limbs of the `BigInt`, this macro results in a
+/// * compile-time error if used in a const context
+/// * run-time error otherwise.
+///
+/// # Usage
+/// ```rust
+/// # use ark_ff::BigInt;
+/// const ONE: BigInt<6> = BigInt!("1");
+///
+/// fn check_correctness() {
+///     assert_eq!(ONE, BigInt::from(1u8));
+/// }
+/// ```
+#[macro_export]
+macro_rules! BigInt {
+    ($c0:expr) => {{
+        let (is_positive, limbs) = $crate::ark_ff_macros::to_sign_and_limbs!($c0);
+        assert!(is_positive);
+        let mut integer = $crate::BigInt::zero();
+        assert!(integer.0.len() >= limbs.len());
+        $crate::const_for!((i in 0..(limbs.len())) {
+            integer.0[i] = limbs[i];
+        });
+        integer
+    }};
+}
+
+#[doc(hidden)]
+macro_rules! const_modulo {
+    ($a:ident, $divisor:ident) => {{
+        // Stupid slow base-2 long division taken from
+        // https://en.wikipedia.org/wiki/Division_algorithm
+        assert!(!$divisor.const_is_zero());
+        let mut remainder = Self::new([0u64; N]);
+        let end = $a.num_bits();
+        let mut i = (end - 1) as isize;
+        while i >= 0 {
+            remainder = remainder.const_mul2();
+            remainder.0[0] |= $a.get_bit(i as usize) as u64;
+            if remainder.const_geq($divisor) {
+                let (r, borrow) = remainder.const_sub_noborrow($divisor);
+                remainder = r;
+                assert!(!borrow);
+            }
+            i -= 1;
+        }
+        remainder
+    }};
+}
+impl<const N: usize> BigInt<N> {
+    #[doc(hidden)]
+    pub const fn const_is_even(&self) -> bool {
+        self.0[0] % 2 == 0
+    }
+
+    #[doc(hidden)]
+    pub const fn const_is_odd(&self) -> bool {
+        self.0[0] % 2 == 1
+    }
+
+    /// Compute a right shift of `self`
+    /// This is equivalent to a (saturating) division by 2.
+    #[doc(hidden)]
+    pub const fn const_shr(&self) -> Self {
+        let mut result = *self;
+        let mut t = 0;
+        crate::const_for!((i in 0..N) {
+            let a = result.0[N - i - 1];
+            let t2 = a << 63;
+            result.0[N - i - 1] >>= 1;
+            result.0[N - i - 1] |= t;
+            t = t2;
+        });
+        result
+    }
+
+    const fn const_geq(&self, other: &Self) -> bool {
+        const_for!((i in 0..N) {
+            let a = self.0[N - i - 1];
+            let b = other.0[N - i - 1];
+            if a < b {
+                return false;
+            } else if a > b {
+                return true;
+            }
+        });
+        true
+    }
+
+    /// Compute the largest integer `s` such that `self = 2**s * t` for odd `t`.
+    #[doc(hidden)]
+    pub const fn two_adic_valuation(mut self) -> u32 {
+        let mut two_adicity = 0;
+        assert!(self.const_is_odd());
+        // Since `self` is odd, we can always subtract one
+        // without a borrow
+        self.0[0] -= 1;
+        while self.const_is_even() {
+            self = self.const_shr();
+            two_adicity += 1;
+        }
+        two_adicity
+    }
+
+    /// Compute the smallest odd integer `t` such that `self = 2**s * t` for some
+    /// integer `s = self.two_adic_valuation()`.
+    #[doc(hidden)]
+    pub const fn two_adic_coefficient(mut self) -> Self {
+        assert!(self.const_is_odd());
+        // Since `self` is odd, we can always subtract one
+        // without a borrow
+        self.0[0] -= 1;
+        while self.const_is_even() {
+            self = self.const_shr();
+        }
+        assert!(self.const_is_odd());
+        self
+    }
+
+    /// Divide `self` by 2, rounding down if necessary.
+    /// That is, if `self.is_odd()`, compute `(self - 1)/2`.
+    /// Else, compute `self/2`.
+    #[doc(hidden)]
+    pub const fn divide_by_2_round_down(mut self) -> Self {
+        if self.const_is_odd() {
+            self.0[0] -= 1;
+        }
+        self.const_shr()
+    }
+
+    /// Find the number of bits in the binary decomposition of `self`.
+    #[doc(hidden)]
+    pub const fn const_num_bits(self) -> u32 {
+        ((N - 1) * 64) as u32 + (64 - self.0[N - 1].leading_zeros())
+    }
+
+    #[inline]
+    #[ark_ff_asm::unroll_for_loops]
+    pub(crate) const fn const_sub_noborrow(mut self, other: &Self) -> (Self, bool) {
+        let mut borrow = 0;
+
+        const_for!((i in 0..N) {
+            self.0[i] = sbb!(self.0[i], other.0[i], &mut borrow);
+        });
+
+        (self, borrow != 0)
+    }
+
+    const fn const_mul2(mut self) -> Self {
+        let mut last = 0;
+        crate::const_for!((i in 0..N) {
+            let a = self.0[i];
+            let tmp = a >> 63;
+            self.0[i] <<= 1;
+            self.0[i] |= last;
+            last = tmp;
+        });
+        self
+    }
+
+    #[ark_ff_asm::unroll_for_loops]
+    pub(crate) const fn const_is_zero(&self) -> bool {
+        let mut is_zero = true;
+        crate::const_for!((i in 0..N) {
+            is_zero &= self.0[i] == 0;
+        });
+        is_zero
+    }
+
+    /// Computes the Montgomery R constant modulo `self`.
+    #[doc(hidden)]
+    pub const fn montgomery_r(&self) -> Self {
+        let two_pow_n_times_64 = crate::const_helpers::RBuffer::<N>([0u64; N], 1);
+        const_modulo!(two_pow_n_times_64, self)
+    }
+
+    /// Computes the Montgomery R2 constant modulo `self`.
+    #[doc(hidden)]
+    pub const fn montgomery_r2(&self) -> Self {
+        let two_pow_n_times_64_square =
+            crate::const_helpers::R2Buffer::<N>([0u64; N], [0u64; N], 1);
+        const_modulo!(two_pow_n_times_64_square, self)
+    }
 }
 
 impl<const N: usize> BigInteger for BigInt<N> {
@@ -53,12 +248,13 @@ impl<const N: usize> BigInteger for BigInt<N> {
 
             #[cfg(not(all(target_arch = "x86_64", feature = "asm")))]
             {
-                self.0[i] = adc!(self.0[i], other.0[i], &mut carry);
+                self.0[i] = arithmetic::adc(self.0[i], other.0[i], &mut carry);
             }
         }
 
         carry != 0
     }
+
     #[inline]
     #[ark_ff_asm::unroll_for_loops]
     fn sub_noborrow(&mut self, other: &Self) -> bool {
@@ -74,7 +270,7 @@ impl<const N: usize> BigInteger for BigInt<N> {
 
             #[cfg(not(all(target_arch = "x86_64", feature = "asm")))]
             {
-                self.0[i] = sbb!(self.0[i], other.0[i], &mut borrow);
+                self.0[i] = arithmetic::sbb(self.0[i], other.0[i], &mut borrow);
             }
         }
 
@@ -115,7 +311,7 @@ impl<const N: usize> BigInteger for BigInt<N> {
     #[ark_ff_asm::unroll_for_loops]
     fn muln(&mut self, mut n: u32) {
         if n >= (64 * N) as u32 {
-            *self = Self::from(0);
+            *self = Self::from(0u64);
             return;
         }
 
@@ -158,7 +354,7 @@ impl<const N: usize> BigInteger for BigInt<N> {
     #[ark_ff_asm::unroll_for_loops]
     fn divn(&mut self, mut n: u32) {
         if n >= (64 * N) as u32 {
-            *self = Self::from(0);
+            *self = Self::from(0u64);
             return;
         }
 
@@ -381,19 +577,44 @@ impl<const N: usize> From<u64> for BigInt<N> {
         repr
     }
 }
-impl<const N: usize> TryFrom<BigUint> for BigInt<N> {
-    type Error = ark_std::string::String;
 
+impl<const N: usize> From<u32> for BigInt<N> {
+    #[inline]
+    fn from(val: u32) -> BigInt<N> {
+        let mut repr = Self::default();
+        repr.0[0] = u64::from(val);
+        repr
+    }
+}
+
+impl<const N: usize> From<u16> for BigInt<N> {
+    #[inline]
+    fn from(val: u16) -> BigInt<N> {
+        let mut repr = Self::default();
+        repr.0[0] = u64::from(val);
+        repr
+    }
+}
+
+impl<const N: usize> From<u8> for BigInt<N> {
+    #[inline]
+    fn from(val: u8) -> BigInt<N> {
+        let mut repr = Self::default();
+        repr.0[0] = u64::from(val);
+        repr
+    }
+}
+
+impl<const N: usize> TryFrom<BigUint> for BigInt<N> {
+    type Error = ();
+
+    /// Returns `Err(())` if the bit size of `val` is more than `N * 64`.
     #[inline]
     fn try_from(val: num_bigint::BigUint) -> Result<BigInt<N>, Self::Error> {
         let bytes = val.to_bytes_le();
 
         if bytes.len() > N * 8 {
-            Err(format!(
-                "A BigUint of {} bytes cannot fit into {} limbs.",
-                bytes.len(),
-                N
-            ))
+            Err(())
         } else {
             let mut limbs = [0u64; N];
 
@@ -418,6 +639,7 @@ impl<const N: usize> From<BigInt<N>> for BigUint {
         BigUint::from_bytes_le(&val.to_bytes_le())
     }
 }
+
 /// Compute the signed modulo operation on a u64 representation, returning the result.
 /// If n % modulus > modulus / 2, return modulus - n
 /// # Example
@@ -470,7 +692,10 @@ pub trait BigInteger:
     + AsMut<[u64]>
     + AsRef<[u64]>
     + From<u64>
-    + TryFrom<BigUint>
+    + From<u32>
+    + From<u16>
+    + From<u8>
+    + TryFrom<BigUint, Error = ()>
     + Into<BigUint>
 {
     /// Number of 64-bit limbs representing `Self`.

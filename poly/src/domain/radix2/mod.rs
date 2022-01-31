@@ -5,7 +5,7 @@
 
 pub use crate::domain::utils::Elements;
 use crate::domain::{DomainCoeff, EvaluationDomain};
-use ark_ff::{FftField, FftParameters};
+use ark_ff::FftField;
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, SerializationError};
 use ark_std::{
     convert::TryFrom,
@@ -58,13 +58,13 @@ impl<F: FftField> EvaluationDomain<F> for Radix2EvaluationDomain<F> {
         let log_size_of_group = size.trailing_zeros();
 
         // libfqfft uses > https://github.com/scipr-lab/libfqfft/blob/e0183b2cef7d4c5deb21a6eaf3fe3b586d738fe0/libfqfft/evaluation_domain/domains/basic_radix2_domain.tcc#L33
-        if log_size_of_group > F::FftParams::TWO_ADICITY {
+        if log_size_of_group > F::TWO_ADICITY {
             return None;
         }
 
         // Compute the generator for the multiplicative subgroup.
         // It should be the 2^(log_size_of_group) root of unity.
-        let group_gen = F::get_root_of_unity(usize::try_from(size).unwrap())?;
+        let group_gen = F::get_root_of_unity(size)?;
         // Check that it is indeed the 2^(log_size_of_group) root of unity.
         debug_assert_eq!(group_gen.pow([size]), F::one());
         let size_as_field_element = F::from(size);
@@ -77,13 +77,13 @@ impl<F: FftField> EvaluationDomain<F> for Radix2EvaluationDomain<F> {
             size_inv,
             group_gen,
             group_gen_inv: group_gen.inverse()?,
-            generator_inv: F::multiplicative_generator().inverse()?,
+            generator_inv: F::GENERATOR.inverse()?,
         })
     }
 
     fn compute_size_of_domain(num_coeffs: usize) -> Option<usize> {
         let size = num_coeffs.checked_next_power_of_two()?;
-        if size.trailing_zeros() > F::FftParams::TWO_ADICITY {
+        if size.trailing_zeros() > F::TWO_ADICITY {
             None
         } else {
             Some(size)
@@ -362,7 +362,7 @@ mod tests {
             let poly_evals = domain.fft(&rand_poly.coeffs);
             let poly_coset_evals = domain.coset_fft(&rand_poly.coeffs);
             for (i, x) in domain.elements().enumerate() {
-                let coset_x = Fr::multiplicative_generator() * x;
+                let coset_x = Fr::GENERATOR * x;
 
                 assert_eq!(poly_evals[i], rand_poly.evaluate(&x));
                 assert_eq!(poly_coset_evals[i], rand_poly.evaluate(&coset_x));
@@ -462,7 +462,7 @@ mod tests {
         }
 
         fn serial_radix2_coset_fft(a: &mut [Fr], omega: Fr, log_n: u32) {
-            let coset_shift = Fr::multiplicative_generator();
+            let coset_shift = Fr::GENERATOR;
             let mut cur_pow = Fr::one();
             for coeff in a.iter_mut() {
                 *coeff *= cur_pow;
@@ -473,7 +473,7 @@ mod tests {
 
         fn serial_radix2_coset_ifft(a: &mut [Fr], omega: Fr, log_n: u32) {
             serial_radix2_ifft(a, omega, log_n);
-            let coset_shift = Fr::multiplicative_generator().inverse().unwrap();
+            let coset_shift = Fr::GENERATOR.inverse().unwrap();
             let mut cur_pow = Fr::one();
             for coeff in a.iter_mut() {
                 *coeff *= cur_pow;

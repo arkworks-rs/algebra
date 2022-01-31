@@ -2,8 +2,8 @@ use super::cubic_extension::*;
 use crate::fields::*;
 use core::marker::PhantomData;
 
-pub trait Fp6Parameters: 'static + Send + Sync + Copy {
-    type Fp2Params: Fp2Parameters;
+pub trait Fp6Config: 'static + Send + Sync + Copy {
+    type Fp2Params: Fp2Config;
 
     const NONRESIDUE: Fp2<Self::Fp2Params>;
 
@@ -17,10 +17,10 @@ pub trait Fp6Parameters: 'static + Send + Sync + Copy {
     }
 }
 
-pub struct Fp6ParamsWrapper<P: Fp6Parameters>(PhantomData<P>);
+pub struct Fp6ParamsWrapper<P: Fp6Config>(PhantomData<P>);
 
-impl<P: Fp6Parameters> CubicExtParameters for Fp6ParamsWrapper<P> {
-    type BasePrimeField = <P::Fp2Params as Fp2Parameters>::Fp;
+impl<P: Fp6Config> CubicExtConfig for Fp6ParamsWrapper<P> {
+    type BasePrimeField = <P::Fp2Params as Fp2Config>::Fp;
     type BaseField = Fp2<P::Fp2Params>;
     type FrobCoeff = Fp2<P::Fp2Params>;
 
@@ -48,14 +48,14 @@ impl<P: Fp6Parameters> CubicExtParameters for Fp6ParamsWrapper<P> {
 
 pub type Fp6<P> = CubicExtField<Fp6ParamsWrapper<P>>;
 
-impl<P: Fp6Parameters> Fp6<P> {
+impl<P: Fp6Config> Fp6<P> {
     pub fn mul_assign_by_fp2(&mut self, other: Fp2<P::Fp2Params>) {
         self.c0 *= &other;
         self.c1 *= &other;
         self.c2 *= &other;
     }
 
-    pub fn mul_by_fp(&mut self, element: &<P::Fp2Params as Fp2Parameters>::Fp) {
+    pub fn mul_by_fp(&mut self, element: &<P::Fp2Params as Fp2Config>::Fp) {
         self.c0.mul_assign_by_fp(&element);
         self.c1.mul_assign_by_fp(&element);
         self.c2.mul_assign_by_fp(&element);
