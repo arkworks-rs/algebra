@@ -14,25 +14,29 @@ fn biginteger_arithmetic_test<B: BigInteger>(a: B, b: B, zero: B) {
 
     // a + 0 = a
     let mut a0_add = a.clone();
-    a0_add.add_with_carry(&zero);
+    let carry = a0_add.add_with_carry(&zero);
     assert_eq!(a0_add, a);
+    assert_eq!(carry, false);
 
     // a - 0 = a
     let mut a0_sub = a.clone();
-    a0_sub.sub_with_borrow(&zero);
+    let borrow = a0_sub.sub_with_borrow(&zero);
     assert_eq!(a0_sub, a);
+    assert_eq!(borrow, false);
 
     // a - a = 0
     let mut aa_sub = a.clone();
-    aa_sub.sub_with_borrow(&a);
+    let borrow = aa_sub.sub_with_borrow(&a);
     assert_eq!(aa_sub, zero);
+    assert_eq!(borrow, false);
 
     // a + b = b + a
     let mut ab_add = a.clone();
-    ab_add.add_with_carry(&b);
+    let ab_carry = ab_add.add_with_carry(&b);
     let mut ba_add = b.clone();
-    ba_add.add_with_carry(&a);
+    let ba_carry = ba_add.add_with_carry(&a);
     assert_eq!(ab_add, ba_add);
+    assert_eq!(ab_carry, ba_carry);
 }
 
 // Test correctness of BigInteger's bit values

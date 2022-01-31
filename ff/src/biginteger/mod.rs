@@ -708,14 +708,15 @@ pub trait BigInteger:
     /// use ark_ff::{biginteger::BigInteger64 as B, BigInteger as _};
     ///
     /// // Basic
-    /// let (mut one, mut two_add) = (B::from(1u64), B::from(2u64));
-    /// two_add.add_with_carry(&one);
-    /// assert_eq!(two_add, B::from(3u64));
+    /// let (mut one, mut x) = (B::from(1u64), B::from(2u64));
+    /// let carry = x.add_with_carry(&one);
+    /// assert_eq!(x, B::from(3u64));
+    /// assert_eq!(carry, false);
     ///
     /// // Edge-Case
-    /// let mut max_one = B::from(u64::MAX);
-    /// let carry = max_one.add_with_carry(&one);
-    /// assert_eq!(max_one, B::from(0u64));
+    /// let mut x = B::from(u64::MAX);
+    /// let carry = x.add_with_carry(&one);
+    /// assert_eq!(x, B::from(0u64));
     /// assert_eq!(carry, true)
     /// ```
     fn add_with_carry(&mut self, other: &Self) -> bool;
@@ -728,14 +729,15 @@ pub trait BigInteger:
     /// use ark_ff::{biginteger::BigInteger64 as B, BigInteger as _};
     ///
     /// // Basic
-    /// let (mut one, mut two, mut three_sub) = (B::from(1u64), B::from(2u64), B::from(3u64));
-    /// three_sub.sub_with_borrow(&two);
-    /// assert_eq!(three_sub, one);
+    /// let (mut one_sub, two, mut three_sub) = (B::from(1u64), B::from(2u64), B::from(3u64));
+    /// let borrow = three_sub.sub_with_borrow(&two);
+    /// assert_eq!(three_sub, one_sub);
+    /// assert_eq!(borrow, false);
     ///
     /// // Edge-Case
-    /// let borrow = one.sub_with_borrow(&two);
+    /// let borrow = one_sub.sub_with_borrow(&two);
+    /// assert_eq!(one_sub, B::from(u64::MAX));
     /// assert_eq!(borrow, true);
-    /// assert_eq!(one, B::from(u64::MAX));
     /// ```
     fn sub_with_borrow(&mut self, other: &Self) -> bool;
 
