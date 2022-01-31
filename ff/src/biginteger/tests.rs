@@ -37,6 +37,18 @@ fn biginteger_arithmetic_test<B: BigInteger>(a: B, b: B, zero: B) {
     let ba_carry = ba_add.add_with_carry(&a);
     assert_eq!(ab_add, ba_add);
     assert_eq!(ab_carry, ba_carry);
+
+    // a * 1 = a
+    let mut a_mul1 = a.clone();
+    a_mul1.muln(0);
+    assert_eq!(a_mul1, a);
+
+    // a * 2 = a + a
+    let mut a_mul2 = a.clone();
+    a_mul2.mul2();
+    let mut a_plus_a = a.clone();
+    a_plus_a.add_with_carry(&a); // Won't assert anything about carry bit.
+    assert_eq!(a_mul2, a_plus_a);
 }
 
 // Test correctness of BigInteger's bit values
