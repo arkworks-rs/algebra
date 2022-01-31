@@ -533,6 +533,19 @@ macro_rules! generate_field_test {
 
         generate_field_test!($($tail)*);
     };
+    (mont($fq_num_limbs:expr, $fr_num_limbs:expr); $($tail:tt)*) => {
+        #[test]
+        fn test_fq_mont() {
+            montgomery_primefield_test::<FqConfig, $fq_num_limbs>();
+        }
+
+        #[test]
+        fn test_fr_mont() {
+            montgomery_primefield_test::<FrConfig, $fr_num_limbs>();
+        }
+
+        generate_field_test!($($tail)*);
+    }
 }
 
 #[macro_export]

@@ -1,9 +1,4 @@
-use crate::{
-    biginteger::BigInteger,
-    bytes::{FromBytes, ToBytes},
-    fields::utils::k_adicity,
-    UniformRand,
-};
+use crate::{biginteger::BigInteger, fields::utils::k_adicity, FromBytes, ToBytes, UniformRand};
 use ark_serialize::{
     CanonicalDeserialize, CanonicalDeserializeWithFlags, CanonicalSerialize,
     CanonicalSerializeWithFlags, EmptyFlags, Flags,
@@ -18,16 +13,16 @@ use ark_std::{
 };
 
 pub use ark_ff_macros;
+use num_bigint::BigUint;
 use num_traits::{One, Zero};
 use zeroize::Zeroize;
 
-#[macro_use]
-pub mod macros;
 pub mod utils;
 
 #[macro_use]
 pub mod arithmetic;
 
+#[macro_use]
 pub mod models;
 pub use self::models::*;
 
@@ -36,37 +31,9 @@ use ark_std::cmp::max;
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
 
-#[macro_export]
-macro_rules! field_new {
-    ($name:ident, $c0:expr) => {{
-        use $crate::FpParameters;
-        type Params = <$name as $crate::PrimeField>::Params;
-        let (is_positive, limbs) = $crate::ark_ff_macros::to_sign_and_limbs!($c0);
-        $name::const_from_str(
-            &limbs,
-            is_positive,
-            Params::R2,
-            Params::MODULUS,
-            Params::INV,
-        )
-    }};
-    ($name:ident, $c0:expr, $c1:expr $(,)?) => {
-        $name { c0: $c0, c1: $c1 }
-    };
-    ($name:ident, $c0:expr, $c1:expr, $c2:expr $(,)?) => {
-        $name {
-            c0: $c0,
-            c1: $c1,
-            c2: $c2,
-        }
-    };
-}
-
 /// The interface for a generic field.
 pub trait Field:
-    ToBytes
-    + 'static
-    + FromBytes
+    'static
     + Copy
     + Clone
     + Debug
@@ -87,6 +54,8 @@ pub trait Field:
     + CanonicalSerializeWithFlags
     + CanonicalDeserialize
     + CanonicalDeserializeWithFlags
+    + ToBytes
+    + FromBytes
     + Add<Self, Output = Self>
     + Sub<Self, Output = Self>
     + Mul<Self, Output = Self>
@@ -204,9 +173,10 @@ pub trait Field:
     }
 }
 
-/// A trait that defines parameters for a field that can be used for FFTs.
-pub trait FftParameters: 'static + Send + Sync + Sized {
-    type BigInt: BigInteger;
+/// The interface for fields that are able to be used in FFTs.
+pub trait FftField: Field {
+    /// The generator of the multiplicative group of the field
+    const GENERATOR: Self;
 
     /// Let `N` be the size of the multiplicative group defined by the field.
     /// Then `TWO_ADICITY` is the two-adicity of `N`, i.e. the integer `s`
@@ -214,7 +184,7 @@ pub trait FftParameters: 'static + Send + Sync + Sized {
     const TWO_ADICITY: u32;
 
     /// 2^s root of unity computed by GENERATOR^t
-    const TWO_ADIC_ROOT_OF_UNITY: Self::BigInt;
+    const TWO_ADIC_ROOT_OF_UNITY: Self;
 
     /// An integer `b` such that there exists a multiplicative subgroup
     /// of size `b^k` for some integer `k`.
@@ -227,89 +197,33 @@ pub trait FftParameters: 'static + Send + Sync + Sized {
     /// GENERATOR^((MODULUS-1) / (2^s *
     /// SMALL_SUBGROUP_BASE^SMALL_SUBGROUP_BASE_ADICITY)) Used for mixed-radix
     /// FFT.
-    const LARGE_SUBGROUP_ROOT_OF_UNITY: Option<Self::BigInt> = None;
-}
-
-/// A trait that defines parameters for a prime field.
-pub trait FpParameters: FftParameters {
-    /// The modulus of the field.
-    const MODULUS: Self::BigInt;
-
-    /// The number of bits needed to represent the `Self::MODULUS`.
-    const MODULUS_BITS: u32;
-
-    /// The number of bits that must be shaved from the beginning of
-    /// the representation when randomly sampling.
-    const REPR_SHAVE_BITS: u32;
-
-    /// Let `M` be the power of 2^64 nearest to `Self::MODULUS_BITS`. Then
-    /// `R = M % Self::MODULUS`.
-    const R: Self::BigInt;
-
-    /// R2 = R^2 % Self::MODULUS
-    const R2: Self::BigInt;
-
-    /// INV = -MODULUS^{-1} mod 2^64
-    const INV: u64;
-
-    /// A multiplicative generator of the field.
-    /// `Self::GENERATOR` is an element having multiplicative order
-    /// `Self::MODULUS - 1`.
-    const GENERATOR: Self::BigInt;
-
-    /// The number of bits that can be reliably stored.
-    /// (Should equal `SELF::MODULUS_BITS - 1`)
-    const CAPACITY: u32;
-
-    /// t for 2^s * t = MODULUS - 1, and t coprime to 2.
-    const T: Self::BigInt;
-
-    /// (t - 1) / 2
-    const T_MINUS_ONE_DIV_TWO: Self::BigInt;
-
-    /// (Self::MODULUS - 1) / 2
-    const MODULUS_MINUS_ONE_DIV_TWO: Self::BigInt;
-}
-
-/// The interface for fields that are able to be used in FFTs.
-pub trait FftField: Field {
-    type FftParams: FftParameters;
-
-    /// Returns the 2^s root of unity.
-    fn two_adic_root_of_unity() -> Self;
-
-    /// Returns the 2^s * small_subgroup_base^small_subgroup_base_adicity root
-    /// of unity if a small subgroup is defined.
-    fn large_subgroup_root_of_unity() -> Option<Self>;
-
-    /// Returns the multiplicative generator of `char()` - 1 order.
-    fn multiplicative_generator() -> Self;
+    const LARGE_SUBGROUP_ROOT_OF_UNITY: Option<Self> = None;
 
     /// Returns the root of unity of order n, if one exists.
     /// If no small multiplicative subgroup is defined, this is the 2-adic root
     /// of unity of order n (for n a power of 2).
     /// If a small multiplicative subgroup is defined, this is the root of unity
     /// of order n for the larger subgroup generated by
-    /// `FftParams::LARGE_SUBGROUP_ROOT_OF_UNITY`
-    /// (for n = 2^i * FftParams::SMALL_SUBGROUP_BASE^j for some i, j).
-    fn get_root_of_unity(n: usize) -> Option<Self> {
+    /// `FftConfig::LARGE_SUBGROUP_ROOT_OF_UNITY`
+    /// (for n = 2^i * FftConfig::SMALL_SUBGROUP_BASE^j for some i, j).
+    fn get_root_of_unity(n: u64) -> Option<Self> {
         let mut omega: Self;
-        if let Some(large_subgroup_root_of_unity) = Self::large_subgroup_root_of_unity() {
-            let q = Self::FftParams::SMALL_SUBGROUP_BASE.expect(
+        if let Some(large_subgroup_root_of_unity) = Self::LARGE_SUBGROUP_ROOT_OF_UNITY {
+            let q = Self::SMALL_SUBGROUP_BASE.expect(
                 "LARGE_SUBGROUP_ROOT_OF_UNITY should only be set in conjunction with SMALL_SUBGROUP_BASE",
-            ) as usize;
-            let small_subgroup_base_adicity = Self::FftParams::SMALL_SUBGROUP_BASE_ADICITY.expect(
+            ) as u64;
+            let small_subgroup_base_adicity = Self::SMALL_SUBGROUP_BASE_ADICITY.expect(
                 "LARGE_SUBGROUP_ROOT_OF_UNITY should only be set in conjunction with SMALL_SUBGROUP_BASE_ADICITY",
             );
 
             let q_adicity = k_adicity(q, n);
-            let q_part = q.pow(q_adicity);
+            let q_part = q.checked_pow(q_adicity)?;
 
             let two_adicity = k_adicity(2, n);
-            let two_part = 1 << two_adicity;
+            let two_part = 2u64.checked_pow(two_adicity)?;
 
             if n != two_part * q_part
-                || (two_adicity > Self::FftParams::TWO_ADICITY)
+                || (two_adicity > Self::TWO_ADICITY)
                 || (q_adicity > small_subgroup_base_adicity)
             {
                 return None;
@@ -320,7 +234,7 @@ pub trait FftField: Field {
                 omega = omega.pow(&[q as u64]);
             }
 
-            for _ in two_adicity..Self::FftParams::TWO_ADICITY {
+            for _ in two_adicity..Self::TWO_ADICITY {
                 omega.square_in_place();
             }
         } else {
@@ -328,14 +242,14 @@ pub trait FftField: Field {
             let size = n.next_power_of_two() as u64;
             let log_size_of_group = ark_std::log2(usize::try_from(size).expect("too large"));
 
-            if n != size as usize || log_size_of_group > Self::FftParams::TWO_ADICITY {
+            if n != size || log_size_of_group > Self::TWO_ADICITY {
                 return None;
             }
 
             // Compute the generator for the multiplicative subgroup.
             // It should be 2^(log_size_of_group) root of unity.
-            omega = Self::two_adic_root_of_unity();
-            for _ in log_size_of_group..Self::FftParams::TWO_ADICITY {
+            omega = Self::TWO_ADIC_ROOT_OF_UNITY;
+            for _ in log_size_of_group..Self::TWO_ADICITY {
                 omega.square_in_place();
             }
         }
@@ -343,32 +257,46 @@ pub trait FftField: Field {
     }
 }
 
-/// The interface for a prime field.
+/// The interface for a prime field, i.e. the field of integers modulo a prime p.
 pub trait PrimeField:
     Field<BasePrimeField = Self>
-    + FftField<FftParams = <Self as PrimeField>::Params>
+    + FftField
     + FromStr
     + From<<Self as PrimeField>::BigInt>
     + Into<<Self as PrimeField>::BigInt>
     + From<BigUint>
     + Into<BigUint>
 {
-    /// Associated `FpParameters` that define this field.
-    type Params: FpParameters<BigInt = Self::BigInt>;
-
     /// A `BigInteger` type that can represent elements of this field.
     type BigInt: BigInteger;
 
-    /// Returns a prime field element from its underlying representation.
-    fn from_repr(repr: Self::BigInt) -> Option<Self>;
+    /// The modulus `p`.
+    const MODULUS: Self::BigInt;
+    /// The value `(p - 1)/ 2`.
+    const MODULUS_MINUS_ONE_DIV_TWO: Self::BigInt;
+    /// The size of the modulus in bits.
+    const MODULUS_BIT_SIZE: u32;
 
-    /// Returns the underlying representation of the prime field element.
-    fn into_repr(&self) -> Self::BigInt;
+    /// The multiplicative generator of this field.
+    const GENERATOR: Self;
+
+    /// The trace of the field is defined as the smallest integer `t` such that by
+    /// `2^s * t = p - 1`, and `t` is coprime to 2.
+    const TRACE: Self::BigInt;
+    /// The value `(t - 1)/ 2`.
+    const TRACE_MINUS_ONE_DIV_TWO: Self::BigInt;
+
+    /// Construct a prime field element from an integer in the range 0..(p - 1).
+    fn from_bigint(repr: Self::BigInt) -> Option<Self>;
+
+    /// Converts an element of the prime field into an integer in the range 0..(p - 1).
+    fn into_bigint(&self) -> Self::BigInt;
 
     /// Reads bytes in big-endian, and converts them to a field element.
-    /// If the bytes are larger than the modulus, it will reduce them.
+    /// If the integer represented by `bytes` is larger than the modulus `p`, this method
+    /// performs the appropriate reduction.
     fn from_be_bytes_mod_order(bytes: &[u8]) -> Self {
-        let num_modulus_bytes = ((Self::Params::MODULUS_BITS + 7) / 8) as usize;
+        let num_modulus_bytes = ((Self::MODULUS_BIT_SIZE + 7) / 8) as usize;
         let num_bytes_to_directly_convert = min(num_modulus_bytes - 1, bytes.len());
         // Copy the leading big-endian bytes directly into a field element.
         // The number of bytes directly converted must be less than the
@@ -393,51 +321,22 @@ pub trait PrimeField:
     }
 
     /// Reads bytes in little-endian, and converts them to a field element.
-    /// If the bytes are larger than the modulus, it will reduce them.
+    /// If the integer represented by `bytes` is larger than the modulus `p`, this method
+    /// performs the appropriate reduction.
     fn from_le_bytes_mod_order(bytes: &[u8]) -> Self {
         let mut bytes_copy = bytes.to_vec();
         bytes_copy.reverse();
         Self::from_be_bytes_mod_order(&bytes_copy)
-    }
-
-    /// Return the QNR^t, for t defined by
-    /// `2^s * t = MODULUS - 1`, and t coprime to 2.
-    fn qnr_to_t() -> Self {
-        Self::two_adic_root_of_unity()
-    }
-
-    /// Returns the field size in bits.
-    fn size_in_bits() -> usize {
-        Self::Params::MODULUS_BITS as usize
-    }
-
-    /// Returns the trace.
-    fn trace() -> Self::BigInt {
-        Self::Params::T
-    }
-
-    /// Returns the trace minus one divided by two.
-    fn trace_minus_one_div_two() -> Self::BigInt {
-        Self::Params::T_MINUS_ONE_DIV_TWO
-    }
-
-    /// Returns the modulus.
-    fn modulus() -> Self::BigInt {
-        Self::Params::MODULUS
-    }
-
-    /// Returns the modulus minus one divided by two.
-    fn modulus_minus_one_div_two() -> Self::BigInt {
-        Self::Params::MODULUS_MINUS_ONE_DIV_TWO
     }
 }
 
 /// The interface for a field that supports an efficient square-root operation.
 pub trait SquareRootField: Field {
     /// Returns a `LegendreSymbol`, which indicates whether this field element
-    /// is  1 : a quadratic residue
-    ///  0 : equal to 0
-    /// -1 : a quadratic non-residue
+    /// is  
+    /// - 1: a quadratic residue
+    /// - 0: equal to 0
+    /// - -1: a quadratic non-residue
     fn legendre(&self) -> LegendreSymbol;
 
     /// Returns the square root of self, if it exists.
@@ -453,9 +352,8 @@ pub trait SquareRootField: Field {
 /// # Examples
 /// ```
 /// # use ark_std::test_rng;
-/// # use ark_test_curves::bls12_381::Fq as Fp;
 /// # use ark_std::UniformRand;
-/// # use ark_ff::{LegendreSymbol, Field, SquareRootField};
+/// # use ark_test_curves::{LegendreSymbol, Field, SquareRootField, bls12_381::Fq as Fp};
 /// let a: Fp = Fp::rand(&mut test_rng());
 /// let b = a.square();
 /// assert_eq!(b.legendre(), LegendreSymbol::QuadraticResidue);
@@ -473,9 +371,8 @@ impl LegendreSymbol {
     /// # Examples
     /// ```
     /// # use ark_std::test_rng;
-    /// # use ark_test_curves::bls12_381::Fq as Fp;
     /// # use ark_std::UniformRand;
-    /// # use ark_ff::{LegendreSymbol, Field, SquareRootField};
+    /// # use ark_test_curves::{LegendreSymbol, Field, SquareRootField, bls12_381::Fq as Fp};
     /// let a: Fp = Fp::rand(&mut test_rng());
     /// let b: Fp = a.square();
     /// assert!(!b.legendre().is_zero());
@@ -488,10 +385,8 @@ impl LegendreSymbol {
     ///
     /// # Examples
     /// ```
-    /// # use ark_test_curves::bls12_381::{Fq, Fq2Parameters};
-    /// # use ark_ff::{LegendreSymbol, SquareRootField};
-    /// # use ark_ff::Fp2Parameters;
-    /// let a: Fq = Fq2Parameters::NONRESIDUE;
+    /// # use ark_test_curves::{Fp2Config, LegendreSymbol, SquareRootField, bls12_381::{Fq, Fq2Config}};
+    /// let a: Fq = Fq2Config::NONRESIDUE;
     /// assert!(a.legendre().is_qnr());
     /// ```
     pub fn is_qnr(&self) -> bool {
@@ -597,20 +492,6 @@ impl<Slice: AsRef<[u64]>> Iterator for BitIteratorLE<Slice> {
     }
 }
 
-use crate::biginteger::{
-    BigInteger256, BigInteger320, BigInteger384, BigInteger448, BigInteger64, BigInteger768,
-    BigInteger832,
-};
-use num_bigint::BigUint;
-
-impl_field_bigint_conv!(Fp64, BigInteger64, Fp64Parameters);
-impl_field_bigint_conv!(Fp256, BigInteger256, Fp256Parameters);
-impl_field_bigint_conv!(Fp320, BigInteger320, Fp320Parameters);
-impl_field_bigint_conv!(Fp384, BigInteger384, Fp384Parameters);
-impl_field_bigint_conv!(Fp448, BigInteger448, Fp448Parameters);
-impl_field_bigint_conv!(Fp768, BigInteger768, Fp768Parameters);
-impl_field_bigint_conv!(Fp832, BigInteger832, Fp832Parameters);
-
 // Given a vector of field elements {v_i}, compute the vector {v_i^(-1)}
 pub fn batch_inversion<F: Field>(v: &mut [F]) {
     batch_inversion_and_mul(v, &F::one());
@@ -699,14 +580,10 @@ mod std_tests {
 mod no_std_tests {
     use super::*;
     use ark_std::test_rng;
-    // TODO: only Fr & FrParameters should need to be imported.
+    // TODO: only Fr & FrConfig should need to be imported.
     // The rest of imports are caused by cargo not resolving the deps properly
     // from this crate and from ark_test_curves
-    use ark_test_curves::{
-        batch_inversion, batch_inversion_and_mul,
-        bls12_381::{Fr, FrParameters},
-        BigInteger, FpParameters, PrimeField,
-    };
+    use ark_test_curves::{batch_inversion, batch_inversion_and_mul, bls12_381::Fr, PrimeField};
 
     #[test]
     fn test_batch_inversion() {
@@ -737,8 +614,8 @@ mod no_std_tests {
     fn test_from_into_biguint() {
         let mut rng = ark_std::test_rng();
 
-        let modulus_bits = FrParameters::MODULUS_BITS;
-        let modulus: num_bigint::BigUint = FrParameters::MODULUS.into();
+        let modulus_bits = Fr::MODULUS_BIT_SIZE;
+        let modulus: num_bigint::BigUint = Fr::MODULUS.into();
 
         let mut rand_bytes = Vec::new();
         for _ in 0..(2 * modulus_bits / 8) {
@@ -761,10 +638,10 @@ mod no_std_tests {
         // TODO: Eventually generate all the test vector bytes via computation with the
         // modulus
         use ark_std::{rand::Rng, string::ToString};
+        use ark_test_curves::BigInteger;
         use num_bigint::BigUint;
 
-        let ref_modulus =
-            BigUint::from_bytes_be(&<Fr as PrimeField>::Params::MODULUS.to_bytes_be());
+        let ref_modulus = BigUint::from_bytes_be(&Fr::MODULUS.to_bytes_be());
 
         let mut test_vectors = vec![
             // 0
