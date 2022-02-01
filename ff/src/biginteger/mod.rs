@@ -701,7 +701,8 @@ pub trait BigInteger:
     /// Number of 64-bit limbs representing `Self`.
     const NUM_LIMBS: usize;
 
-    /// Mutably add another bigint representation to this one, returning the carry bit.
+    /// Add another [`BigInteger`] to `self`. This method stores the result in `self`,
+    /// and returns a carry bit.
     /// # Example
     ///
     /// ```
@@ -721,7 +722,8 @@ pub trait BigInteger:
     /// ```
     fn add_with_carry(&mut self, other: &Self) -> bool;
 
-    /// Mutably subtract another bigint representation from this one, returning
+    /// Subtract another [`BigInteger`] from this one. This method stores the result in
+    /// `self`, and returns a borrow.
     /// the borrow bit.
     /// # Example
     ///
