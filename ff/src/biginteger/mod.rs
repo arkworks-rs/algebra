@@ -85,7 +85,7 @@ macro_rules! const_modulo {
             remainder = remainder.const_mul2();
             remainder.0[0] |= $a.get_bit(i as usize) as u64;
             if remainder.const_geq($divisor) {
-                let (r, borrow) = remainder.const_sub_noborrow($divisor);
+                let (r, borrow) = remainder.const_sub_with_borrow($divisor);
                 remainder = r;
                 assert!(!borrow);
             }
@@ -183,7 +183,7 @@ impl<const N: usize> BigInt<N> {
 
     #[inline]
     #[ark_ff_asm::unroll_for_loops]
-    pub(crate) const fn const_sub_noborrow(mut self, other: &Self) -> (Self, bool) {
+    pub(crate) const fn const_sub_with_borrow(mut self, other: &Self) -> (Self, bool) {
         let mut borrow = 0;
 
         const_for!((i in 0..N) {

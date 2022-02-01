@@ -198,7 +198,7 @@ impl<P: FpConfig<N>, const N: usize> Fp<P, N> {
     #[inline]
     fn subtract_modulus(&mut self) {
         if !self.is_less_than_modulus() {
-            self.0.sub_noborrow(&Self::MODULUS);
+            self.0.sub_with_borrow(&Self::MODULUS);
         }
     }
 
@@ -733,7 +733,7 @@ impl<P: FpConfig<N>, const N: usize> Neg for Fp<P, N> {
     fn neg(self) -> Self {
         if !self.is_zero() {
             let mut tmp = P::MODULUS;
-            tmp.sub_noborrow(&self.0);
+            tmp.sub_with_borrow(&self.0);
             Fp::new(tmp)
         } else {
             self
