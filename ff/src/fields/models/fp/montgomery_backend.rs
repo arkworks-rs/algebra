@@ -52,7 +52,7 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
     /// Set a += b;
     fn add_assign(a: &mut Fp<MontBackend<Self, N>, N>, b: &Fp<MontBackend<Self, N>, N>) {
         // This cannot exceed the backing capacity.
-        a.0.add_nocarry(&b.0);
+        a.0.add_with_carry(&b.0);
         // However, it may need to be reduced
         a.subtract_modulus();
     }
@@ -60,9 +60,9 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
     fn sub_assign(a: &mut Fp<MontBackend<Self, N>, N>, b: &Fp<MontBackend<Self, N>, N>) {
         // If `other` is larger than `self`, add the modulus to self first.
         if b.0 > a.0 {
-            a.0.add_nocarry(&Self::MODULUS);
+            a.0.add_with_carry(&Self::MODULUS);
         }
-        a.0.sub_noborrow(&b.0);
+        a.0.sub_with_borrow(&b.0);
     }
 
     fn double_in_place(a: &mut Fp<MontBackend<Self, N>, N>) {
@@ -220,7 +220,7 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
                     if b.0.is_even() {
                         b.0.div2();
                     } else {
-                        b.0.add_nocarry(&Self::MODULUS);
+                        b.0.add_with_carry(&Self::MODULUS);
                         b.0.div2();
                     }
                 }
@@ -231,16 +231,16 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
                     if c.0.is_even() {
                         c.0.div2();
                     } else {
-                        c.0.add_nocarry(&Self::MODULUS);
+                        c.0.add_with_carry(&Self::MODULUS);
                         c.0.div2();
                     }
                 }
 
                 if v < u {
-                    u.sub_noborrow(&v);
+                    u.sub_with_borrow(&v);
                     b -= &c;
                 } else {
-                    v.sub_noborrow(&u);
+                    v.sub_with_borrow(&u);
                     c -= &b;
                 }
             }
@@ -428,7 +428,7 @@ impl<T, const N: usize> Fp<MontBackend<T, N>, N> {
 
     const fn const_neg(self, modulus: BigInt<N>) -> Self {
         if !self.const_is_zero() {
-            Self::new(Self::sub_noborrow(&modulus, &self.0))
+            Self::new(Self::sub_with_borrow(&modulus, &self.0))
         } else {
             self
         }
@@ -539,13 +539,13 @@ impl<T, const N: usize> Fp<MontBackend<T, N>, N> {
     #[inline]
     const fn const_reduce(mut self, modulus: BigInt<N>) -> Self {
         if !self.const_is_valid(modulus) {
-            self.0 = Self::sub_noborrow(&self.0, &modulus);
+            self.0 = Self::sub_with_borrow(&self.0, &modulus);
         }
         self
     }
 
-    const fn sub_noborrow(a: &BigInt<N>, b: &BigInt<N>) -> BigInt<N> {
-        a.const_sub_noborrow(b).0
+    const fn sub_with_borrow(a: &BigInt<N>, b: &BigInt<N>) -> BigInt<N> {
+        a.const_sub_with_borrow(b).0
     }
 }
 

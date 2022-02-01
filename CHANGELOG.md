@@ -26,6 +26,8 @@
     - Rename `Fp*Parameters` to `Fp*Config`.
     - Add `From<u32>`, `From<u16>`, and `From<u8>` `impl`s for `BigInt<N>`.
     - Remove `FftConfig`; move its contents to `FftField`.
+- [\#383](https://github.com/arkworks-rs/algebra/pull/383) (arc-ff) Rename `BigInteger::add_nocarry` to `add_with_carry` and `sub_noborrow` to `sub_with_borrow`.
+
 
 ### Features
 
