@@ -124,7 +124,7 @@ fn hash_arbitary_string_to_curve_swu() {
 
     let test_swu_to_curve_hasher = MapToCurveBasedHasher::<
         GroupAffine<TestSWUMapToCurveParams>,
-        DefaultFieldHasher<Blake2bVar>,
+        DefaultFieldHasher<Blake2bVar, 128>,
         SWUMap<TestSWUMapToCurveParams>,
     >::new(&[1])
     .unwrap();
@@ -347,7 +347,7 @@ fn hash_arbitary_string_to_curve_wb() {
 
     let test_wb_to_curve_hasher = MapToCurveBasedHasher::<
         GroupAffine<TestWBF127MapToCurveParams>,
-        DefaultFieldHasher<Blake2bVar>,
+        DefaultFieldHasher<Blake2bVar, 128>,
         WBMap<TestWBF127MapToCurveParams>,
     >::new(&[1])
     .unwrap();
