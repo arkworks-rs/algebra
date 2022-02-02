@@ -11,7 +11,7 @@ use digest::{Update, VariableOutput};
 // [IETF hash standardization draft](https://tools.ietf.org/html/draft-irtf-cfrg-hash-to-curve-10)
 fn hash_len_in_bytes<F: Field, const SEC_PARAM: usize>(count: usize) -> usize {
     // ceil(log(p))
-    let base_field_size_in_bits = F::BasePrimeField::size_in_bits();
+    let base_field_size_in_bits = F::BasePrimeField::MODULUS_BIT_SIZE as usize;
     // ceil(log(p)) + security_parameter
     let base_field_size_with_security_padding_in_bits = base_field_size_in_bits + SEC_PARAM;
     // ceil( (ceil(log(p)) + security_parameter) / 8)

@@ -47,8 +47,8 @@ impl VariableBase {
             super::ln_without_floats(size) + 2
         };
 
-        let num_bits = <G::ScalarField as PrimeField>::Params::MODULUS_BITS as usize;
-        let fr_one = G::ScalarField::one().into_repr();
+        let num_bits = G::ScalarField::MODULUS_BIT_SIZE as usize;
+        let fr_one = G::ScalarField::one().into_bigint();
 
         let zero = G::Projective::zero();
         let window_starts: Vec<_> = (0..num_bits).step_by(c).collect();

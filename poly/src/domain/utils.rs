@@ -129,7 +129,7 @@ pub(crate) fn parallel_fft<T: DomainCoeff<F>, F: FftField>(
     // These are cosets with generator g^{num_cosets}, and varying shifts.
     let mut tmp = vec![vec![T::zero(); coset_size]; num_cosets];
     let new_omega = omega.pow(&[num_cosets as u64]);
-    let new_two_adicity = ark_ff::utils::k_adicity(2, coset_size);
+    let new_two_adicity = ark_ff::utils::k_adicity(2, coset_size as u64);
 
     // For each coset, we first build a polynomial of degree |coset size|,
     // whose evaluations over coset k will agree with the evaluations of a over the coset.

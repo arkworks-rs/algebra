@@ -14,7 +14,7 @@ use crate::domain::{
     utils::{best_fft, bitreverse},
     DomainCoeff, EvaluationDomain,
 };
-use ark_ff::{fields::utils::k_adicity, FftField, FftParameters};
+use ark_ff::{fields::utils::k_adicity, FftField};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, SerializationError};
 use ark_std::{
     cmp::min,
@@ -63,18 +63,18 @@ impl<F: FftField> EvaluationDomain<F> for MixedRadixEvaluationDomain<F> {
     /// Construct a domain that is large enough for evaluations of a polynomial
     /// having `num_coeffs` coefficients.
     fn new(num_coeffs: usize) -> Option<Self> {
-        let small_subgroup_base = F::FftParams::SMALL_SUBGROUP_BASE?;
+        let small_subgroup_base = F::SMALL_SUBGROUP_BASE?;
 
         // Compute the best size of our evaluation domain.
-        let num_coeffs = best_mixed_domain_size::<F>(num_coeffs);
+        let num_coeffs = best_mixed_domain_size::<F>(num_coeffs) as u64;
 
         // Compute the size of our evaluation domain
-        let q = usize::try_from(small_subgroup_base).unwrap();
+        let q = u64::from(small_subgroup_base);
         let q_adicity = k_adicity(q, num_coeffs);
-        let q_part = q.pow(q_adicity);
+        let q_part = q.checked_pow(q_adicity)?;
 
         let two_adicity = k_adicity(2, num_coeffs);
-        let two_part = 1 << two_adicity;
+        let two_part = 2u64.checked_pow(two_adicity)?;
 
         let size = u64::try_from(num_coeffs).unwrap();
         let log_size_of_group = two_adicity;
@@ -98,25 +98,25 @@ impl<F: FftField> EvaluationDomain<F> for MixedRadixEvaluationDomain<F> {
             size_inv,
             group_gen,
             group_gen_inv: group_gen.inverse()?,
-            generator_inv: F::multiplicative_generator().inverse()?,
+            generator_inv: F::GENERATOR.inverse()?,
         })
     }
 
     fn compute_size_of_domain(num_coeffs: usize) -> Option<usize> {
-        let small_subgroup_base = F::FftParams::SMALL_SUBGROUP_BASE?;
+        let small_subgroup_base = F::SMALL_SUBGROUP_BASE?;
 
         // Compute the best size of our evaluation domain.
-        let num_coeffs = best_mixed_domain_size::<F>(num_coeffs);
+        let num_coeffs = best_mixed_domain_size::<F>(num_coeffs) as u64;
 
-        let q = usize::try_from(small_subgroup_base).unwrap();
+        let q = u64::from(small_subgroup_base);
         let q_adicity = k_adicity(q, num_coeffs);
-        let q_part = q.pow(q_adicity);
+        let q_part = q.checked_pow(q_adicity)?;
 
         let two_adicity = k_adicity(2, num_coeffs);
-        let two_part = 1 << two_adicity;
+        let two_part = 2u64.checked_pow(two_adicity)?;
 
         if num_coeffs == q_part * two_part {
-            Some(num_coeffs)
+            Some(num_coeffs as usize)
         } else {
             None
         }
@@ -290,8 +290,8 @@ fn mixed_radix_fft_permute(
 
 fn best_mixed_domain_size<F: FftField>(min_size: usize) -> usize {
     let mut best = usize::max_value();
-    let small_subgroup_base_adicity = F::FftParams::SMALL_SUBGROUP_BASE_ADICITY.unwrap();
-    let small_subgroup_base = usize::try_from(F::FftParams::SMALL_SUBGROUP_BASE.unwrap()).unwrap();
+    let small_subgroup_base_adicity = F::SMALL_SUBGROUP_BASE_ADICITY.unwrap();
+    let small_subgroup_base = usize::try_from(F::SMALL_SUBGROUP_BASE.unwrap()).unwrap();
 
     for b in 0..=small_subgroup_base_adicity {
         let mut r = small_subgroup_base.pow(b);
@@ -302,7 +302,7 @@ fn best_mixed_domain_size<F: FftField>(min_size: usize) -> usize {
             two_adicity += 1;
         }
 
-        if two_adicity <= F::FftParams::TWO_ADICITY {
+        if two_adicity <= F::TWO_ADICITY {
             best = min(best, r);
         }
     }
@@ -319,13 +319,15 @@ pub(crate) fn serial_mixed_radix_fft<T: DomainCoeff<F>, F: FftField>(
     // and then splits into q sub-arrays q_adicity many times.
 
     let n = a.len();
-    let q = usize::try_from(F::FftParams::SMALL_SUBGROUP_BASE.unwrap()).unwrap();
+    let q = usize::try_from(F::SMALL_SUBGROUP_BASE.unwrap()).unwrap();
+    let q_u64 = u64::from(F::SMALL_SUBGROUP_BASE.unwrap());
+    let n_u64 = n as u64;
 
-    let q_adicity = k_adicity(q, n);
-    let q_part = q.pow(q_adicity);
-    let two_part = 1 << two_adicity;
+    let q_adicity = k_adicity(q_u64, n_u64);
+    let q_part = q_u64.checked_pow(q_adicity).unwrap();
+    let two_part = 2u64.checked_pow(two_adicity).unwrap();
 
-    assert_eq!(n, q_part * two_part);
+    assert_eq!(n_u64, q_part * two_part);
 
     let mut m = 1; // invariant: m = 2^{s-1}
 

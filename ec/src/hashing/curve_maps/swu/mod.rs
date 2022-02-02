@@ -37,7 +37,7 @@ pub fn parity<F: Field>(element: &F) -> bool {
     element
         .to_base_prime_field_elements()
         .find(|&x| !x.is_zero())
-        .map_or(false, |x| x.into_repr().is_odd())
+        .map_or(false, |x| x.into_bigint().is_odd())
 }
 
 impl<P: SWUParams> MapToCurve<GroupAffine<P>> for SWUMap<P> {
@@ -60,12 +60,12 @@ impl<P: SWUParams> MapToCurve<GroupAffine<P>> for SWUMap<P> {
                             .to_string(),
                     ));
                 }
-            }
+            },
             None => {
                 panic!(
                     "`xi_on_zeta` was expected to have a sqrt, since the numerator and denominator are non-residues and Legendre symbol is multiplicative. Q.E.D"
                 );
-            }
+            },
         }
 
         // Verifying the prerequisite for applicability  of SWU map

@@ -143,7 +143,7 @@ pub trait EvaluationDomain<F: FftField>:
     /// in place.
     #[inline]
     fn coset_fft_in_place<T: DomainCoeff<F>>(&self, coeffs: &mut Vec<T>) {
-        Self::distribute_powers(coeffs, F::multiplicative_generator());
+        Self::distribute_powers(coeffs, F::GENERATOR);
         self.fft_in_place(coeffs);
     }
 
@@ -160,7 +160,7 @@ pub trait EvaluationDomain<F: FftField>:
     #[inline]
     fn coset_ifft_in_place<T: DomainCoeff<F>>(&self, evals: &mut Vec<T>) {
         self.ifft_in_place(evals);
-        Self::distribute_powers(evals, F::multiplicative_generator().inverse().unwrap());
+        Self::distribute_powers(evals, self.generator_inv());
     }
 
     /// Evaluate all the lagrange polynomials defined by this domain at the
@@ -189,7 +189,7 @@ pub trait EvaluationDomain<F: FftField>:
     /// a coset.
     fn divide_by_vanishing_poly_on_coset_in_place(&self, evals: &mut [F]) {
         let i = self
-            .evaluate_vanishing_polynomial(F::multiplicative_generator())
+            .evaluate_vanishing_polynomial(F::GENERATOR)
             .inverse()
             .unwrap();
 
