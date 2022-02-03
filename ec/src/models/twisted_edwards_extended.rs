@@ -42,7 +42,9 @@ use rayon::prelude::*;
 )]
 #[must_use]
 pub struct GroupAffine<P: Parameters> {
+    /// X coordinate of the point represented as a field element
     pub x: P::BaseField,
+    /// Y coordinate of the point represented as a field element
     pub y: P::BaseField,
 }
 
