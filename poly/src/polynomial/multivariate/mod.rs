@@ -68,8 +68,8 @@ impl SparseTerm {
                         prev.1 += pow;
                         continue;
                     }
-                }
-                _ => {}
+                },
+                _ => {},
             };
             term_dedup.push((*var, *pow));
         }

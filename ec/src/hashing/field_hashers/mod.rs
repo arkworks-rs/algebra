@@ -11,7 +11,7 @@ use digest::{Update, VariableOutput};
 // [IETF hash standardization draft](https://tools.ietf.org/html/draft-irtf-cfrg-hash-to-curve-10)
 fn hash_len_in_bytes<F: Field, const SEC_PARAM: usize>(count: usize) -> usize {
     // ceil(log(p))
-    let base_field_size_in_bits = F::BasePrimeField::size_in_bits();
+    let base_field_size_in_bits = F::BasePrimeField::MODULUS_BIT_SIZE as usize;
     // ceil(log(p)) + security_parameter
     let base_field_size_with_security_padding_in_bits = base_field_size_in_bits + SEC_PARAM;
     // ceil( (ceil(log(p)) + security_parameter) / 8)
@@ -37,19 +37,19 @@ fn map_bytes_to_field_elem<F: Field>(bz: &[u8]) -> Option<F> {
 // function. It handles domains by hashing the input domain into 256 bits, and
 // prefixes these bits to every message it computes the hash of.
 // The state after prefixing the domain is cached.
-pub struct DefaultFieldHasher<H: VariableOutput + Update + Sized + Clone> {
+pub struct DefaultFieldHasher<H: VariableOutput + Update + Sized + Clone, const SEC_PARAM: usize> {
     // This hasher should already have the domain applied to it.
     domain_seperated_hasher: H,
     count: usize,
 }
 
 // Implement HashToField from F and a variable output hash
-impl<F: Field, H: VariableOutput + Update + Sized + Clone> HashToField<F>
-    for DefaultFieldHasher<H>
+impl<F: Field, H: VariableOutput + Update + Sized + Clone, const SEC_PARAM: usize> HashToField<F>
+    for DefaultFieldHasher<H, SEC_PARAM>
 {
     fn new_hash_to_field(domain: &[u8], count: usize) -> Result<Self, HashToCurveError> {
         // Hardcode security parameter
-        let bytes_per_base_field_elem = hash_len_in_bytes::<F, 128>(count);
+        let bytes_per_base_field_elem = hash_len_in_bytes::<F, SEC_PARAM>(count);
         // Create hasher and map the error type
         let wrapped_hasher = H::new(bytes_per_base_field_elem);
         let mut hasher = match wrapped_hasher {

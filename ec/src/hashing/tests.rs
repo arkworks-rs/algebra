@@ -1,7 +1,7 @@
 use crate::{
     hashing::{
         curve_maps::{
-            swu::{SWUMap, SWUParams},
+            swu::{parity, SWUMap, SWUParams},
             wb::{WBMap, WBParams},
         },
         field_hashers::DefaultFieldHasher,
@@ -12,97 +12,39 @@ use crate::{
     short_weierstrass_jacobian::GroupAffine,
     ModelParameters,
 };
-use ark_ff::{
-    biginteger::BigInt,
-    biginteger::BigInteger64,
-    field_new,
-    fields::{FftParameters, Fp64, Fp64Parameters, FpParameters},
-};
+use ark_ff::{biginteger::BigInteger64, fields::Fp64, BigInt, MontBackend, MontFp};
 
 use ark_ff::SquareRootField;
 use ark_std::vec::Vec;
+use ark_test_curves::bls12_381::{Fq, Fq2, Fq6};
 use hashbrown::HashMap;
 
-pub type F127 = Fp64<F127Parameters>;
+pub struct F127Config;
+pub type F127 = Fp64<MontBackend<F127Config, 1>>;
 
-pub struct F127Parameters;
-
-impl Fp64Parameters for F127Parameters {}
-impl FftParameters for F127Parameters {
-    type BigInt = BigInteger64;
-
-    // N = 126 => s = 1
-    const TWO_ADICITY: u32 = 1;
-
+impl ark_ff::MontConfig<1> for F127Config {
     // sage: FF(3)^63
     // 126
     #[rustfmt::skip]
-    const TWO_ADIC_ROOT_OF_UNITY: BigInteger64 = BigInt::new([126]);
-}
+    const TWO_ADIC_ROOT_OF_UNITY: F127 = MontFp!(F127, "126");
 
-impl FpParameters for F127Parameters {
     /// MODULUS = 127
     #[rustfmt::skip]
-    const MODULUS: BigInteger64 = BigInt::new([127]);
-
-    const MODULUS_BITS: u32 = 7;
-
-    const CAPACITY: u32 = Self::MODULUS_BITS - 1;
-
-    const REPR_SHAVE_BITS: u32 = 64 - Self::MODULUS_BITS;
-
-    // Nearst greater power of 2^64 (2^64R) to 127 is 0 so R = 1
-    // sage: FF(2^64)
-    // 2
-    #[rustfmt::skip]
-    const R: BigInteger64 = BigInt::new([2]);
-
-    /// R2 = R^2 % Self::MODULUS
-    #[rustfmt::skip]
-    const R2: BigInteger64 = BigInt::new([4]);
-
-    /// INV = -MODULUS^{-1} mod 2^64
-    // sage: R = Integers(2^64)
-    // sage: R
-    // Ring of integers modulo 18446744073709551616
-    // sage: m = R(127)
-    // sage: m^(-1)
-    // 9150747060186627967
-    // sage: -m^(-1)
-    // 9295997013522923649
-    const INV: u64 = 9295997013522923649;
+    const MODULUS: BigInteger64 = BigInt!("127");
 
     // sage: FF(3).multiplicative_order()
     // 126
     // Montgomery conversion 3 * 2 = 6 % 127
     /// GENERATOR = 3
     #[rustfmt::skip]
-    const GENERATOR: BigInteger64 = BigInt::new([6]);
-
-    /// (Self::MODULUS - 1) / 2
-    #[rustfmt::skip]
-    const MODULUS_MINUS_ONE_DIV_TWO: BigInteger64 = BigInt::new([63]);
+    const GENERATOR: F127 = MontFp!(F127, "6");
 
     // T and T_MINUS_ONE_DIV_TWO, where MODULUS - 1 = 2^S * T
     // For T coprime to 2
-
-    /// t for 2^s * t = MODULUS - 1
-    // T = (MODULUS - 1) / 2^S =
-    // 12208678567578594777604504606729831043093128246378069236549469339647
-    // sage: factor(127-1)
-    // 2 * 3^2 * 7
-    // sage: (127-1)/2
-    // 63
-    #[rustfmt::skip]
-    const T: BigInteger64 = BigInt::new([63]);
-
-    // (T - 1) / 2 = (63 - 1)/2
-    #[rustfmt::skip]
-    const T_MINUS_ONE_DIV_TWO: BigInteger64 = BigInt::new([31]);
 }
 
-const F127_ZERO: F127 = field_new!(F127, "0");
-const F127_ONE: F127 = field_new!(F127, "1");
+const F127_ZERO: F127 = MontFp!(F127, "0");
+const F127_ONE: F127 = MontFp!(F127, "1");
 
 struct TestSWUMapToCurveParams;
 
@@ -135,20 +77,20 @@ impl SWModelParameters for TestSWUMapToCurveParams {
 
     /// COEFF_B = 1
     #[rustfmt::skip]
-    const COEFF_B: F127 = field_new!(F127, "63");
+    const COEFF_B: F127 = MontFp!(F127, "63");
 
     /// AFFINE_GENERATOR_COEFFS = (G1_GENERATOR_X, G1_GENERATOR_Y)
     const AFFINE_GENERATOR_COEFFS: (Self::BaseField, Self::BaseField) =
-        (field_new!(F127, "62"), field_new!(F127, "70"));
+        (MontFp!(F127, "62"), MontFp!(F127, "70"));
 }
 
 impl SWUParams for TestSWUMapToCurveParams {
-    const XI: F127 = field_new!(F127, "-1");
-    const ZETA: F127 = field_new!(F127, "3");
-    const XI_ON_ZETA_SQRT: F127 = field_new!(F127, "13");
+    const XI: F127 = MontFp!(F127, "-1");
+    const ZETA: F127 = MontFp!(F127, "3");
+    const XI_ON_ZETA_SQRT: F127 = MontFp!(F127, "13");
 }
 
-/// test that field_new make a none zero element out of 1
+/// test that MontFp make a none zero element out of 1
 #[test]
 fn test_field_element_construction() {
     let a1 = F127::from(1);
@@ -182,7 +124,7 @@ fn hash_arbitary_string_to_curve_swu() {
 
     let test_swu_to_curve_hasher = MapToCurveBasedHasher::<
         GroupAffine<TestSWUMapToCurveParams>,
-        DefaultFieldHasher<Blake2bVar>,
+        DefaultFieldHasher<Blake2bVar, 128>,
         SWUMap<TestSWUMapToCurveParams>,
     >::new(&[1])
     .unwrap();
@@ -252,25 +194,25 @@ impl ModelParameters for TestSWU127MapToIsogenousCurveParams {
 /// Field of size 127
 impl SWModelParameters for TestSWU127MapToIsogenousCurveParams {
     /// COEFF_A = 109
-    const COEFF_A: F127 = field_new!(F127, "109");
+    const COEFF_A: F127 = MontFp!(F127, "109");
 
     /// COEFF_B = 124
     #[rustfmt::skip]
-    const COEFF_B: F127 = field_new!(F127, "124");
+    const COEFF_B: F127 = MontFp!(F127, "124");
 
     /// AFFINE_GENERATOR_COEFFS = (G1_GENERATOR_X, G1_GENERATOR_Y)
     const AFFINE_GENERATOR_COEFFS: (Self::BaseField, Self::BaseField) =
-        (field_new!(F127, "84"), field_new!(F127, "2"));
+        (MontFp!(F127, "84"), MontFp!(F127, "2"));
 }
 
 /// SWU parameters for E_isogenous
 impl SWUParams for TestSWU127MapToIsogenousCurveParams {
     /// NON-SQUARE = - 1
-    const XI: F127 = field_new!(F127, "-1");
+    const XI: F127 = MontFp!(F127, "-1");
     /// A Primitive Root of unity = 3
-    const ZETA: F127 = field_new!(F127, "3");
+    const ZETA: F127 = MontFp!(F127, "3");
     /// sqrt(Xi/Zeta)
-    const XI_ON_ZETA_SQRT: F127 = field_new!(F127, "13");
+    const XI_ON_ZETA_SQRT: F127 = MontFp!(F127, "13");
 }
 
 /// The struct defining our parameters for the target curve of hashing
@@ -294,11 +236,11 @@ impl SWModelParameters for TestWBF127MapToCurveParams {
 
     /// COEFF_B = 3
     #[rustfmt::skip]
-    const COEFF_B: F127 = field_new!(F127, "3");
+    const COEFF_B: F127 = MontFp!(F127, "3");
 
     /// AFFINE_GENERATOR_COEFFS = (G1_GENERATOR_X, G1_GENERATOR_Y)
     const AFFINE_GENERATOR_COEFFS: (Self::BaseField, Self::BaseField) =
-        (field_new!(F127, "62"), field_new!(F127, "70"));
+        (MontFp!(F127, "62"), MontFp!(F127, "70"));
 }
 
 /// E_isogenous : Elliptic Curve defined by y^2 = x^3 + 109*x + 124 over Finite
@@ -320,80 +262,80 @@ impl WBParams for TestWBF127MapToCurveParams {
     type IsogenousCurve = TestSWU127MapToIsogenousCurveParams;
 
     const PHI_X_NOM: &'static [<Self::IsogenousCurve as ModelParameters>::BaseField] = &[
-        field_new!(F127, "4"),
-        field_new!(F127, "63"),
-        field_new!(F127, "23"),
-        field_new!(F127, "39"),
-        field_new!(F127, "-14"),
-        field_new!(F127, "23"),
-        field_new!(F127, "-32"),
-        field_new!(F127, "32"),
-        field_new!(F127, "-13"),
-        field_new!(F127, "40"),
-        field_new!(F127, "34"),
-        field_new!(F127, "10"),
-        field_new!(F127, "-21"),
-        field_new!(F127, "-57"),
+        MontFp!(F127, "4"),
+        MontFp!(F127, "63"),
+        MontFp!(F127, "23"),
+        MontFp!(F127, "39"),
+        MontFp!(F127, "-14"),
+        MontFp!(F127, "23"),
+        MontFp!(F127, "-32"),
+        MontFp!(F127, "32"),
+        MontFp!(F127, "-13"),
+        MontFp!(F127, "40"),
+        MontFp!(F127, "34"),
+        MontFp!(F127, "10"),
+        MontFp!(F127, "-21"),
+        MontFp!(F127, "-57"),
     ];
 
     const PHI_X_DEN: &'static [<Self::IsogenousCurve as ModelParameters>::BaseField] = &[
-        field_new!(F127, "2"),
-        field_new!(F127, "31"),
-        field_new!(F127, "-10"),
-        field_new!(F127, "-20"),
-        field_new!(F127, "63"),
-        field_new!(F127, "-44"),
-        field_new!(F127, "34"),
-        field_new!(F127, "30"),
-        field_new!(F127, "-30"),
-        field_new!(F127, "-33"),
-        field_new!(F127, "11"),
-        field_new!(F127, "-13"),
-        field_new!(F127, "1"),
+        MontFp!(F127, "2"),
+        MontFp!(F127, "31"),
+        MontFp!(F127, "-10"),
+        MontFp!(F127, "-20"),
+        MontFp!(F127, "63"),
+        MontFp!(F127, "-44"),
+        MontFp!(F127, "34"),
+        MontFp!(F127, "30"),
+        MontFp!(F127, "-30"),
+        MontFp!(F127, "-33"),
+        MontFp!(F127, "11"),
+        MontFp!(F127, "-13"),
+        MontFp!(F127, "1"),
     ];
 
     const PHI_Y_NOM: &'static [<Self::IsogenousCurve as ModelParameters>::BaseField] = &[
-        field_new!(F127, "-34"),
-        field_new!(F127, "-57"),
-        field_new!(F127, "30"),
-        field_new!(F127, "-18"),
-        field_new!(F127, "-60"),
-        field_new!(F127, "-43"),
-        field_new!(F127, "-63"),
-        field_new!(F127, "-18"),
-        field_new!(F127, "-49"),
-        field_new!(F127, "36"),
-        field_new!(F127, "12"),
-        field_new!(F127, "62"),
-        field_new!(F127, "5"),
-        field_new!(F127, "6"),
-        field_new!(F127, "-7"),
-        field_new!(F127, "48"),
-        field_new!(F127, "41"),
-        field_new!(F127, "59"),
-        field_new!(F127, "10"),
+        MontFp!(F127, "-34"),
+        MontFp!(F127, "-57"),
+        MontFp!(F127, "30"),
+        MontFp!(F127, "-18"),
+        MontFp!(F127, "-60"),
+        MontFp!(F127, "-43"),
+        MontFp!(F127, "-63"),
+        MontFp!(F127, "-18"),
+        MontFp!(F127, "-49"),
+        MontFp!(F127, "36"),
+        MontFp!(F127, "12"),
+        MontFp!(F127, "62"),
+        MontFp!(F127, "5"),
+        MontFp!(F127, "6"),
+        MontFp!(F127, "-7"),
+        MontFp!(F127, "48"),
+        MontFp!(F127, "41"),
+        MontFp!(F127, "59"),
+        MontFp!(F127, "10"),
     ];
 
     const PHI_Y_DEN: &'static [<Self::IsogenousCurve as ModelParameters>::BaseField] = &[
-        field_new!(F127, "32"),
-        field_new!(F127, "-18"),
-        field_new!(F127, "-24"),
-        field_new!(F127, "23"),
-        field_new!(F127, "18"),
-        field_new!(F127, "-55"),
-        field_new!(F127, "-16"),
-        field_new!(F127, "-61"),
-        field_new!(F127, "-46"),
-        field_new!(F127, "-13"),
-        field_new!(F127, "-42"),
-        field_new!(F127, "11"),
-        field_new!(F127, "-30"),
-        field_new!(F127, "38"),
-        field_new!(F127, "3"),
-        field_new!(F127, "52"),
-        field_new!(F127, "-63"),
-        field_new!(F127, "44"),
-        field_new!(F127, "1"),
+        MontFp!(F127, "32"),
+        MontFp!(F127, "-18"),
+        MontFp!(F127, "-24"),
+        MontFp!(F127, "23"),
+        MontFp!(F127, "18"),
+        MontFp!(F127, "-55"),
+        MontFp!(F127, "-16"),
+        MontFp!(F127, "-61"),
+        MontFp!(F127, "-46"),
+        MontFp!(F127, "-13"),
+        MontFp!(F127, "-42"),
+        MontFp!(F127, "11"),
+        MontFp!(F127, "-30"),
+        MontFp!(F127, "38"),
+        MontFp!(F127, "3"),
+        MontFp!(F127, "52"),
+        MontFp!(F127, "-63"),
+        MontFp!(F127, "44"),
+        MontFp!(F127, "1"),
     ];
 }
 
@@ -405,7 +347,7 @@ fn hash_arbitary_string_to_curve_wb() {
 
     let test_wb_to_curve_hasher = MapToCurveBasedHasher::<
         GroupAffine<TestWBF127MapToCurveParams>,
-        DefaultFieldHasher<Blake2bVar>,
+        DefaultFieldHasher<Blake2bVar, 128>,
         WBMap<TestWBF127MapToCurveParams>,
     >::new(&[1])
     .unwrap();
@@ -421,4 +363,47 @@ fn hash_arbitary_string_to_curve_wb() {
         hash_result.is_on_curve(),
         "hash results into a point off the curve"
     );
+}
+
+#[test]
+fn test_parity_of_prime_field_elements() {
+    let a1 = Fq::from(0);
+    let a2 = Fq::from(1);
+    let a3 = Fq::from(10);
+    assert_eq!(parity(&a1), false);
+    assert_eq!(parity(&a2), true);
+    assert_eq!(parity(&a3), false);
+}
+
+#[test]
+fn test_parity_of_quadratic_extension_elements() {
+    let element_test1 = Fq2::new(Fq::from(0), Fq::from(1));
+    let element_test2 = Fq2::new(Fq::from(1), Fq::from(0));
+    let element_test3 = Fq2::new(Fq::from(10), Fq::from(5));
+    let element_test4 = Fq2::new(Fq::from(5), Fq::from(10));
+    assert_eq!(parity(&element_test1), true, "parity is the oddness of first non-zero coefficient of element represented over the prime field" );
+    assert_eq!(parity(&element_test2), true);
+    assert_eq!(parity(&element_test3), false);
+    assert_eq!(parity(&element_test4), true);
+}
+
+#[test]
+fn test_parity_of_cubic_extension_elements() {
+    let a1 = Fq2::new(Fq::from(0), Fq::from(0));
+    let a2 = Fq2::new(Fq::from(0), Fq::from(1));
+    let a3 = Fq2::new(Fq::from(1), Fq::from(0));
+    let a4 = Fq2::new(Fq::from(1), Fq::from(1));
+    let a5 = Fq2::new(Fq::from(0), Fq::from(2));
+
+    let element_test1 = Fq6::new(a1, a2, a3);
+    let element_test2 = Fq6::new(a2, a3, a4);
+    let element_test3 = Fq6::new(a3, a4, a1);
+    let element_test4 = Fq6::new(a4, a1, a2);
+    let element_test5 = Fq6::new(a1, a5, a2);
+
+    assert_eq!(parity(&element_test1), true, "parity is the oddness of first non-zero coefficient of element represented over the prime field");
+    assert_eq!(parity(&element_test2), true, "parity is the oddness of first non-zero coefficient of element represented over the prime field");
+    assert_eq!(parity(&element_test3), true);
+    assert_eq!(parity(&element_test4), true);
+    assert_eq!(parity(&element_test5), false);
 }
