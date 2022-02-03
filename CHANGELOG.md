@@ -28,7 +28,6 @@
     - Remove `FftConfig`; move its contents to `FftField`.
 - [\#383](https://github.com/arkworks-rs/algebra/pull/383) (arc-ff) Rename `BigInteger::add_nocarry` to `add_with_carry` and `sub_noborrow` to `sub_with_borrow`.
 
-
 ### Features
 
 - [\#321](https://github.com/arkworks-rs/algebra/pull/321) (`ark-ff`) Change bigint conversions to impl `From` instead of `Into`.
@@ -38,6 +37,7 @@
 - [\#348](https://github.com/arkworks-rs/algebra/pull/348) (`ark-ec`) Add `msm:{Fixed,Variable}Base:msm_checked_len`.
 - [\#364](https://github.com/arkworks-rs/algebra/pull/364) (`ark-ec`) Add `ChunkedPippenger` to variable-base MSM.
 - [\#371](https://github.com/arkworks-rs/algebra/pull/371) (`ark-serialize`) Add serialization impls for arrays
+
 ### Improvements
 
 - [\#339](https://github.com/arkworks-rs/algebra/pull/339) (`ark-ff`) Remove duplicated code from `test_field` module and replace its usage with `ark-test-curves` crate.
