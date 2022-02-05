@@ -432,7 +432,7 @@ where
         // This is cheaper than `P::BaseField::one().double().inverse()`
         let mut two_inv = P::BasePrimeField::MODULUS;
 
-        two_inv.add_nocarry(&1u64.into());
+        two_inv.add_with_carry(&1u64.into());
         two_inv.div2();
 
         let two_inv = P::BasePrimeField::from(two_inv);

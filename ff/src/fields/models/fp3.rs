@@ -8,7 +8,7 @@ pub trait Fp3Config: 'static + Send + Sync + Sized {
     type Fp: PrimeField + SquareRootField;
 
     /// Cubic non-residue in `Self::Fp` used to construct the extension
-    /// field. That is, `NONRESIDUE` is such that the quadratic polynomial
+    /// field. That is, `NONRESIDUE` is such that the cubic polynomial
     /// `f(X) = X^3 - Self::NONRESIDUE` in Fp\[X\] is irreducible in `Self::Fp`.
     const NONRESIDUE: Self::Fp;
 

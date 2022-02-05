@@ -58,12 +58,12 @@ impl<P: BW6Parameters> BW6<P> {
                 c2 *= &p.y;
                 c1 *= &p.x;
                 f.mul_by_014(&c0, &c1, &c2);
-            }
+            },
             TwistType::D => {
                 c0 *= &p.y;
                 c1 *= &p.x;
                 f.mul_by_034(&c0, &c1, &c2);
-            }
+            },
         }
     }
 
@@ -274,12 +274,12 @@ impl<P: BW6Parameters> PairingEngine for BW6<P> {
                     for &mut (p, ref mut coeffs) in &mut pairs_2 {
                         Self::ell(&mut f_2, coeffs.next().unwrap(), &p.0);
                     }
-                }
+                },
                 -1 => {
                     for &mut (p, ref mut coeffs) in &mut pairs_2 {
                         Self::ell(&mut f_2, coeffs.next().unwrap(), &p.0);
                     }
-                }
+                },
                 _ => continue,
             }
         }

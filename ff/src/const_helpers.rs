@@ -167,7 +167,7 @@ impl<const N: usize> SerBuffer<N> {
 
     #[inline(always)]
     /// Write up to `num_bytes` bytes from `self` to `other`.
-    /// `num_bytes` is allowed to range from `8 * (N - 1)` to `8 * N + 1`.
+    /// `num_bytes` is allowed to range from `8 * (N - 1) + 1` to `8 * N + 1`.
     pub(super) fn write_up_to(
         &self,
         mut other: impl Write,
@@ -181,7 +181,6 @@ impl<const N: usize> SerBuffer<N> {
         }
         // for the `N`-th limb, depending on `index`, we can write anywhere from
         // 1 to all bytes.
-        // If `index % N == `
         let remaining_bytes = num_bytes - (8 * (N - 1));
         let write_last_byte = remaining_bytes > 8;
         let num_last_limb_bytes = ark_std::cmp::min(8, remaining_bytes);
@@ -208,7 +207,6 @@ impl<const N: usize> SerBuffer<N> {
         }
         // for the `N`-th limb, depending on `index`, we can write anywhere from
         // 1 to all bytes.
-        // If `index % N == `
         let remaining_bytes = num_bytes - (8 * (N - 1));
         let write_last_byte = remaining_bytes > 8;
         let num_last_limb_bytes = ark_std::cmp::min(8, remaining_bytes);

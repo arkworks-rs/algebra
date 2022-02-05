@@ -22,7 +22,7 @@ use crate::{
 };
 /// A trait that specifies the configuration of a prime field.
 /// Also specifies how to perform arithmetic on field elements.
-pub trait FpConfig<const N: usize>: crate::FftConfig<Field = Fp<Self, N>> {
+pub trait FpConfig<const N: usize>: Send + Sync + 'static + Sized {
     /// The modulus of the field.
     const MODULUS: crate::BigInt<N>;
 
@@ -38,6 +38,27 @@ pub trait FpConfig<const N: usize>: crate::FftConfig<Field = Fp<Self, N>> {
     /// Multiplicative identity of the field, i.e. the element `e`
     /// such that, for all elements `f` of the field, `e * f = f`.
     const ONE: Fp<Self, N>;
+
+    /// Let `N` be the size of the multiplicative group defined by the field.
+    /// Then `TWO_ADICITY` is the two-adicity of `N`, i.e. the integer `s`
+    /// such that `N = 2^s * t` for some odd integer `t`.
+    const TWO_ADICITY: u32;
+
+    /// 2^s root of unity computed by GENERATOR^t
+    const TWO_ADIC_ROOT_OF_UNITY: Fp<Self, N>;
+
+    /// An integer `b` such that there exists a multiplicative subgroup
+    /// of size `b^k` for some integer `k`.
+    const SMALL_SUBGROUP_BASE: Option<u32> = None;
+
+    /// The integer `k` such that there exists a multiplicative subgroup
+    /// of size `Self::SMALL_SUBGROUP_BASE^k`.
+    const SMALL_SUBGROUP_BASE_ADICITY: Option<u32> = None;
+
+    /// GENERATOR^((MODULUS-1) / (2^s *
+    /// SMALL_SUBGROUP_BASE^SMALL_SUBGROUP_BASE_ADICITY)) Used for mixed-radix
+    /// FFT.
+    const LARGE_SUBGROUP_ROOT_OF_UNITY: Option<Fp<Self, N>> = None;
 
     /// Set a += b.
     fn add_assign(a: &mut Fp<Self, N>, b: &Fp<Self, N>);
@@ -60,7 +81,7 @@ pub trait FpConfig<const N: usize>: crate::FftConfig<Field = Fp<Self, N>> {
     /// Compute the square root of a, if it exists.
     fn square_root(a: &Fp<Self, N>) -> Option<Fp<Self, N>> {
         // https://eprint.iacr.org/2012/685.pdf (page 12, algorithm 5)
-        // Actually this is just normal Tonelli-Shanks; since `P::Generator`
+        // Actually this is just normal Tonelli-Shanks; since [`Self::GENERATOR`]
         // is a quadratic non-residue, `P::ROOT_OF_UNITY = P::GENERATOR ^ t`
         // is also a quadratic non-residue (since `t` is odd).
         if a.is_zero() {
@@ -69,7 +90,7 @@ pub trait FpConfig<const N: usize>: crate::FftConfig<Field = Fp<Self, N>> {
         // Try computing the square root (x at the end of the algorithm)
         // Check at the end of the algorithm if x was a square root
         // Begin Tonelli-Shanks
-        let mut z = Fp::qnr_to_t();
+        let mut z = Fp::TWO_ADIC_ROOT_OF_UNITY;
         let mut w = a.pow(Fp::<Self, N>::TRACE_MINUS_ONE_DIV_TWO);
         let mut x = w * a;
         let mut b = x * &w;
@@ -161,7 +182,7 @@ pub type Fp832<P> = Fp<P, 13>;
 
 impl<P, const N: usize> Fp<P, N> {
     /// Construct a new prime element directly from its underlying
-    /// `BigInteger` data type.
+    /// [`BigInt`] data type.
     #[inline]
     pub const fn new(element: BigInt<N>) -> Self {
         Self(element, PhantomData)
@@ -177,7 +198,7 @@ impl<P: FpConfig<N>, const N: usize> Fp<P, N> {
     #[inline]
     fn subtract_modulus(&mut self) {
         if !self.is_less_than_modulus() {
-            self.0.sub_noborrow(&Self::MODULUS);
+            self.0.sub_with_borrow(&Self::MODULUS);
         }
     }
 
@@ -344,22 +365,12 @@ impl<P: FpConfig<N>, const N: usize> PrimeField for Fp<P, N> {
 }
 
 impl<P: FpConfig<N>, const N: usize> FftField for Fp<P, N> {
-    type FftConfig = P;
-
-    #[inline]
-    fn two_adic_root_of_unity() -> Self {
-        P::TWO_ADIC_ROOT_OF_UNITY
-    }
-
-    #[inline]
-    fn large_subgroup_root_of_unity() -> Option<Self> {
-        P::LARGE_SUBGROUP_ROOT_OF_UNITY
-    }
-
-    #[inline]
-    fn multiplicative_generator() -> Self {
-        P::GENERATOR
-    }
+    const GENERATOR: Self = P::GENERATOR;
+    const TWO_ADICITY: u32 = P::TWO_ADICITY;
+    const TWO_ADIC_ROOT_OF_UNITY: Self = P::TWO_ADIC_ROOT_OF_UNITY;
+    const SMALL_SUBGROUP_BASE: Option<u32> = P::SMALL_SUBGROUP_BASE;
+    const SMALL_SUBGROUP_BASE_ADICITY: Option<u32> = P::SMALL_SUBGROUP_BASE_ADICITY;
+    const LARGE_SUBGROUP_ROOT_OF_UNITY: Option<Self> = P::LARGE_SUBGROUP_ROOT_OF_UNITY;
 }
 
 impl<P: FpConfig<N>, const N: usize> SquareRootField for Fp<P, N> {
@@ -425,13 +436,8 @@ impl<P: FpConfig<N>, const N: usize> From<u128> for Fp<P, N> {
         } else {
             let upper = (other >> 64) as u64;
             let lower = ((other << 64) >> 64) as u64;
-            // This is equivalent to the following, but satisfying the compiler:
-            // default_int.0[0] = lower;
-            // default_int.0[1] = upper;
-            let limbs = [lower, upper];
-            for (cur, other) in default_int.0.iter_mut().zip(&limbs) {
-                *cur = *other;
-            }
+            default_int.0[0] = lower;
+            default_int.0[1] = upper;
         }
         Self::from_bigint(default_int).unwrap()
     }
@@ -697,11 +703,11 @@ impl<P: FpConfig<N>, const N: usize> FromStr for Fp<P, N> {
                     res.mul_assign(&ten);
                     let digit = Self::from(u64::from(c));
                     res.add_assign(&digit);
-                }
+                },
                 None => {
                     return Err(());
-                }
-            }
+                },
+          }
         }
         if !res.is_less_than_modulus() {
             Err(())
@@ -727,7 +733,7 @@ impl<P: FpConfig<N>, const N: usize> Neg for Fp<P, N> {
     fn neg(self) -> Self {
         if !self.is_zero() {
             let mut tmp = P::MODULUS;
-            tmp.sub_noborrow(&self.0);
+            tmp.sub_with_borrow(&self.0);
             Fp::new(tmp)
         } else {
             self

@@ -1,7 +1,7 @@
 #![allow(unused)]
 #![allow(clippy::eq_op)]
 use ark_ff::{
-    fields::{FftConfig, FftField, Field, LegendreSymbol, PrimeField, SquareRootField},
+    fields::{FftField, Field, LegendreSymbol, PrimeField, SquareRootField},
     Fp, MontBackend, MontConfig,
 };
 use ark_serialize::{buffer_bit_byte_size, Flags, SWFlags};
@@ -309,28 +309,28 @@ pub fn field_test<F: Field>(a: F, b: F) {
 
 pub fn fft_field_test<F: FftField>() {
     assert_eq!(
-        F::two_adic_root_of_unity().pow([1 << F::FftConfig::TWO_ADICITY]),
+        F::TWO_ADIC_ROOT_OF_UNITY.pow([1 << F::TWO_ADICITY]),
         F::one()
     );
 
-    if let Some(small_subgroup_base) = F::FftConfig::SMALL_SUBGROUP_BASE {
-        let small_subgroup_base_adicity = F::FftConfig::SMALL_SUBGROUP_BASE_ADICITY.unwrap();
-        let large_subgroup_root_of_unity = F::large_subgroup_root_of_unity().unwrap();
-        let pow = (1 << F::FftConfig::TWO_ADICITY)
-            * (small_subgroup_base as u64).pow(small_subgroup_base_adicity);
+    if let Some(small_subgroup_base) = F::SMALL_SUBGROUP_BASE {
+        let small_subgroup_base_adicity = F::SMALL_SUBGROUP_BASE_ADICITY.unwrap();
+        let large_subgroup_root_of_unity = F::LARGE_SUBGROUP_ROOT_OF_UNITY.unwrap();
+        let pow =
+            (1 << F::TWO_ADICITY) * (small_subgroup_base as u64).pow(small_subgroup_base_adicity);
         assert_eq!(large_subgroup_root_of_unity.pow([pow]), F::one());
 
-        for i in 0..F::FftConfig::TWO_ADICITY {
+        for i in 0..F::TWO_ADICITY {
             for j in 0..small_subgroup_base_adicity {
                 use core::convert::TryFrom;
                 let size = usize::try_from(1 << i as usize).unwrap()
                     * usize::try_from((small_subgroup_base as u64).pow(j)).unwrap();
-                let root = F::get_root_of_unity(size).unwrap();
+                let root = F::get_root_of_unity(size as u64).unwrap();
                 assert_eq!(root.pow([size as u64]), F::one());
             }
         }
     } else {
-        for i in 0..F::FftConfig::TWO_ADICITY {
+        for i in 0..F::TWO_ADICITY {
             let size = 1 << i;
             let root = F::get_root_of_unity(size).unwrap();
             assert_eq!(root.pow([size as u64]), F::one());
@@ -347,6 +347,7 @@ pub fn primefield_test<F: PrimeField>() {
 }
 
 pub fn montgomery_primefield_test<T: MontConfig<N>, const N: usize>() {
+    use ark_ff::FpConfig;
     use num_bigint::BigUint;
     use num_integer::Integer;
     let modulus: BigUint = T::MODULUS.into();
@@ -379,9 +380,8 @@ pub fn montgomery_primefield_test<T: MontConfig<N>, const N: usize>() {
         trace_minus_one_div_two
     );
 
-    let two_adic_root_of_unity: BigUint =
-        Fp::<MontBackend<T, N>, N>::two_adic_root_of_unity().into();
-    let generator: BigUint = Fp::<MontBackend<T, N>, N>::GENERATOR.into_bigint().into();
+    let two_adic_root_of_unity: BigUint = <MontBackend<T, N>>::TWO_ADIC_ROOT_OF_UNITY.into();
+    let generator: BigUint = <MontBackend<T, N>>::GENERATOR.into_bigint().into();
     assert_eq!(two_adic_root_of_unity, generator.modpow(&trace, &modulus));
 }
 
