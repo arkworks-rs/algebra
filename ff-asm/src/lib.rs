@@ -158,7 +158,6 @@ fn construct_asm_mul<'a>(ctx: &Context<'a>, limbs: usize) -> Vec<String> {
     let a: AssemblyVar = ctx.get_decl("a").into();
     let b: AssemblyVar = ctx.get_decl_with_fallback("b", "a").into(); // "b" is not available during squaring.
     let modulus: AssemblyVar = ctx.get_decl("modulus").into();
-    let zero: AssemblyVar = ctx.get_decl("zero").into();
     let mod_inv: AssemblyVar = ctx.get_decl("mod_inv").into();
 
     let asm_instructions = RefCell::new(Vec::new());
@@ -209,8 +208,16 @@ fn construct_asm_mul<'a>(ctx: &Context<'a>, limbs: usize) -> Vec<String> {
         };
     }
 
+    macro_rules! movq_zero {
+        ($a: expr) => {
+            asm_instructions
+                .borrow_mut()
+                .push(format!("movq $0, {}", &$a))
+        };
+    }
+
     macro_rules! mul_1 {
-        ($a:expr, $b:ident, $zero:ident, $limbs:expr) => {
+        ($a:expr, $b:ident, $limbs:expr) => {
             comment("Mul 1 start");
             movq!($a, rdx);
             mulxq!($b[0], r[0], r[1]);
@@ -219,7 +226,7 @@ fn construct_asm_mul<'a>(ctx: &Context<'a>, limbs: usize) -> Vec<String> {
                 adcxq!(rax, r[j]);
             }
             mulxq!($b[$limbs - 1], rax, rcx);
-            movq!($zero, rsi);
+            movq_zero!(rsi);
             adcxq!(rax, r[$limbs - 1]);
             adcxq!(rsi, rcx);
             comment("Mul 1 end")
@@ -227,7 +234,7 @@ fn construct_asm_mul<'a>(ctx: &Context<'a>, limbs: usize) -> Vec<String> {
     }
 
     macro_rules! mul_add_1 {
-        ($a:ident, $b:ident, $zero:ident, $i:ident, $limbs:expr) => {
+        ($a:ident, $b:ident, $i:ident, $limbs:expr) => {
             comment(&format!("mul_add_1 start for iteration {}", $i));
             movq!($a[$i], rdx);
             for j in 0..$limbs - 1 {
@@ -236,7 +243,7 @@ fn construct_asm_mul<'a>(ctx: &Context<'a>, limbs: usize) -> Vec<String> {
                 adoxq!(rsi, r[(j + $i + 1) % $limbs]);
             }
             mulxq!($b[$limbs - 1], rax, rcx);
-            movq!($zero, rsi);
+            movq_zero!(rsi);
             adcxq!(rax, r[($i + $limbs - 1) % $limbs]);
             adoxq!(rsi, rcx);
             adcxq!(rsi, rcx);
@@ -245,7 +252,7 @@ fn construct_asm_mul<'a>(ctx: &Context<'a>, limbs: usize) -> Vec<String> {
     }
 
     macro_rules! mul_add_shift_1 {
-        ($a:ident, $mod_inv:ident, $zero:ident, $i:ident, $limbs:expr) => {
+        ($a:ident, $mod_inv:ident, $i:ident, $limbs:expr) => {
             comment(&format!("mul_add_shift_1 start for iteration {}", $i));
             movq!($mod_inv, rdx);
             mulxq!(r[$i], rdx, rax);
@@ -258,7 +265,7 @@ fn construct_asm_mul<'a>(ctx: &Context<'a>, limbs: usize) -> Vec<String> {
                 adoxq!(rsi, r[(j + $i + 1) % $limbs]);
             }
             mulxq!($a[$limbs - 1], rax, r[$i % $limbs]);
-            movq!($zero, rsi);
+            movq_zero!(rsi);
             adcxq!(rax, r[($i + $limbs - 1) % $limbs]);
             adoxq!(rcx, r[$i % $limbs]);
             adcxq!(rsi, r[$i % $limbs]);
@@ -273,11 +280,11 @@ fn construct_asm_mul<'a>(ctx: &Context<'a>, limbs: usize) -> Vec<String> {
         xorq!(rcx, rcx);
         for i in 0..limbs {
             if i == 0 {
-                mul_1!(a1[0], b1, zero, limbs);
+                mul_1!(a1[0], b1, limbs);
             } else {
-                mul_add_1!(a1, b1, zero, i, limbs);
+                mul_add_1!(a1, b1, i, limbs);
             }
-            mul_add_shift_1!(m1, mod_inv, zero, i, limbs);
+            mul_add_shift_1!(m1, mod_inv, i, limbs);
         }
 
         comment("Moving results into `a`");
@@ -295,7 +302,6 @@ fn generate_impl(num_limbs: usize, is_mul: bool) -> String {
         ctx.add_declaration("b", DeclType::Register, "b");
     }
     ctx.add_declaration("modulus", DeclType::Register, "&Self::MODULUS.0");
-    ctx.add_declaration("zero", DeclType::Constant, "0u64");
     ctx.add_declaration("mod_inv", DeclType::Register, "Self::INV");
 
     if num_limbs > MAX_REGS {

@@ -54,6 +54,7 @@ impl fmt::Display for Register<'_> {
 }
 
 #[derive(Copy, Clone, Eq, PartialEq)]
+#[allow(unused)]
 pub enum DeclType {
     Constant,
     Register,
