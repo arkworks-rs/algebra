@@ -5,6 +5,7 @@
 ### Breaking changes
 
 - [\#300](https://github.com/arkworks-rs/algebra/pull/300) (`ark-ec`) Change the implementation of `Hash` trait of `GroupProjective` to use the affine co-ordinates.
+- [\#306](https://github.com/arkworks-rs/algebra/pull/306) (`ark-ff`) Remove `asm` feature flag.
 - [\#310](https://github.com/arkworks-rs/algebra/pull/310) (`ark-ec`, `ark-ff`) Remove unnecessary internal `PhantomData`.
 - [\#333](https://github.com/arkworks-rs/algebra/pull/333) (`ark-poly`) Expose more properties of `EvaluationDomain`s.
 - [\#338](https://github.com/arkworks-rs/algebra/pull/338) (`ark-ec`) Add missing `UniformRand` trait bound to `GroupAffine`.
@@ -30,15 +31,16 @@
 
 ### Features
 
-- [\#321](https://github.com/arkworks-rs/algebra/pull/321) (`ark-ff`) Change bigint conversions to impl `From` instead of `Into`.
 - [\#301](https://github.com/arkworks-rs/algebra/pull/301) (`ark-ec`) Add `GLVParameters` trait definition.
 - [\#312](https://github.com/arkworks-rs/algebra/pull/312) (`ark-ec`) Add `is_in_correct_subgroup_assuming_on_curve` for all `SWModelParameters`.
+- [\#321](https://github.com/arkworks-rs/algebra/pull/321) (`ark-ff`) Change bigint conversions to impl `From` instead of `Into`.
 - [\#348](https://github.com/arkworks-rs/algebra/pull/348) (`ark-ec`) Add `msm:{Fixed,Variable}Base:msm_checked_len`.
 - [\#364](https://github.com/arkworks-rs/algebra/pull/364) (`ark-ec`) Add `ChunkedPippenger` to variable-base MSM.
 - [\#371](https://github.com/arkworks-rs/algebra/pull/371) (`ark-serialize`) Add serialization impls for arrays
 
 ### Improvements
 
+- [\#306](https://github.com/arkworks-rs/algebra/pull/306) (`ark-ff`, `ark-ff-asm`) Automatically use inline assembly from `asm!` when available.
 - [\#339](https://github.com/arkworks-rs/algebra/pull/339) (`ark-ff`) Remove duplicated code from `test_field` module and replace its usage with `ark-test-curves` crate.
 - [\#352](https://github.com/arkworks-rs/algebra/pull/352) (`ark-ff`) Update `QuadExtField::sqrt` for better performance.
 - [\#357](https://github.com/arkworks-rs/algebra/pull/357) (`ark-poly`) Speedup division by vanishing polynomials for dense polynomials.
