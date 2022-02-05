@@ -16,7 +16,6 @@ rust-version = "1.57"
 [dependencies]
 quote = "1.0.0"
 syn = { version = "1.0.0", features = ["full", "parsing", "extra-traits"]}
-const_format = { version = "0.2" }
 
 [lib]
 proc-macro = true

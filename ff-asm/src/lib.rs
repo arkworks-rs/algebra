@@ -297,16 +297,16 @@ fn construct_asm_mul<'a>(ctx: &Context<'a>, limbs: usize) -> Vec<String> {
 
 fn generate_impl(num_limbs: usize, is_mul: bool) -> String {
     let mut ctx = Context::new();
-    ctx.add_declaration("a", DeclType::Register, "a");
+    ctx.add_declaration("a", "a");
     if is_mul {
-        ctx.add_declaration("b", DeclType::Register, "b");
+        ctx.add_declaration("b", "b");
     }
-    ctx.add_declaration("modulus", DeclType::Register, "&Self::MODULUS.0");
-    ctx.add_declaration("mod_inv", DeclType::Register, "Self::INV");
+    ctx.add_declaration("modulus", "&Self::MODULUS.0");
+    ctx.add_declaration("mod_inv", "Self::INV");
 
     if num_limbs > MAX_REGS {
         ctx.add_buffer(2 * num_limbs);
-        ctx.add_declaration("buf", DeclType::Register, "&mut spill_buffer");
+        ctx.add_declaration("buf", "&mut spill_buffer");
     }
 
     let asm_instructions = construct_asm_mul(&ctx, num_limbs);

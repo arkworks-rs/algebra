@@ -59,8 +59,8 @@ impl<'a> Context<'a> {
             .unwrap_or_else(|| self.get_decl(fallback_name))
     }
 
-    pub fn add_declaration(&mut self, name: &'a str, ty: DeclType, expr: &'a str) {
-        let declaration = Declaration { ty, name, expr };
+    pub fn add_declaration(&mut self, name: &'a str, expr: &'a str) {
+        let declaration = Declaration { name, expr };
         self.declarations.push(declaration);
     }
 

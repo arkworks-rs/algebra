@@ -53,28 +53,16 @@ impl fmt::Display for Register<'_> {
     }
 }
 
-#[derive(Copy, Clone, Eq, PartialEq)]
-#[allow(unused)]
-pub enum DeclType {
-    Constant,
-    Register,
-}
-
 #[derive(Copy, Clone)]
 pub struct Declaration<'a> {
     /// Name of the assembly template variable declared by `self`.
     pub name: &'a str,
     /// Rust expression whose value is declared in `self`.
     pub expr: &'a str,
-    /// Type of declaration: Constant (~ immediate) or variable.
-    pub ty: DeclType,
 }
 
 impl fmt::Display for Declaration<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
-        match self.ty {
-            DeclType::Constant => write!(f, "{} = const {},", self.name, self.expr),
-            DeclType::Register => write!(f, "{} = in(reg) {},", self.name, self.expr),
-        }
+        write!(f, "{} = in(reg) {},", self.name, self.expr)
     }
 }

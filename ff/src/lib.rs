@@ -8,7 +8,6 @@
 )]
 #![allow(clippy::op_ref, clippy::suspicious_op_assign_impl)]
 #![deny(unsafe_code)]
-#![cfg_attr(use_asm, feature(asm_const))]
 
 #[macro_use]
 extern crate ark_std;
