@@ -64,7 +64,7 @@ impl<F: FftField> EvaluationDomain<F> for MixedRadixEvaluationDomain<F> {
     /// having `num_coeffs` coefficients.
     fn new(num_coeffs: usize) -> Option<Self> {
         let small_subgroup_base = F::SMALL_SUBGROUP_BASE?;
-      
+
         // Compute the best size of our evaluation domain.
         let num_coeffs = best_mixed_domain_size::<F>(num_coeffs) as u64;
 
