@@ -75,7 +75,7 @@ impl<F: FftField> CanonicalSerialize for GeneralEvaluationDomain<F> {
             GeneralEvaluationDomain::Radix2(domain) => domain.serialize_uncompressed(&mut writer),
             GeneralEvaluationDomain::MixedRadix(domain) => {
                 domain.serialize_uncompressed(&mut writer)
-            }
+            },
         }
     }
 
