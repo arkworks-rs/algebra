@@ -29,7 +29,15 @@ const MAX_REGS: usize = 6;
 
 /// Attribute used to unroll for loops found inside a function block.
 #[proc_macro_attribute]
-pub fn unroll_for_loops(_meta: TokenStream, input: TokenStream) -> TokenStream {
+pub fn unroll_for_loops(args: TokenStream, input: TokenStream) -> TokenStream {
+    let unroll_by = if !args.is_empty() {
+        match syn::parse2::<syn::Lit>(args.into()) {
+            Ok(syn::Lit::Int(unroll_by)) => unroll_by.base10_parse().ok(),
+            _ => None
+        }
+    } else {
+        None
+    };
     let item: Item = syn::parse(input).expect("Failed to parse input.");
 
     if let Item::Fn(item_fn) = item {
@@ -38,7 +46,7 @@ pub fn unroll_for_loops(_meta: TokenStream, input: TokenStream) -> TokenStream {
                 block: ref box_block,
                 ..
             } = &item_fn;
-            unroll::unroll_in_block(&**box_block)
+            unroll::unroll_in_block(&**box_block, unroll_by)
         };
         let new_item = Item::Fn(ItemFn {
             block: Box::new(new_block),
