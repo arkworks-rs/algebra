@@ -25,6 +25,8 @@ ark-algebra-test-templates = { version = "^0.3.0", path = "../test-templates", d
 [features]
 default = []
 
+asm = [ "ark-ff/asm" ]
+
 parallel = [ "ark-ff/parallel", "ark-ec/parallel", "ark-std/parallel" ]
 
 bls12_381_scalar_field = []
