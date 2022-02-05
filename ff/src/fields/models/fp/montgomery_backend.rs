@@ -83,8 +83,17 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
     fn mul_assign(a: &mut Fp<MontBackend<Self, N>, N>, b: &Fp<MontBackend<Self, N>, N>) {
         // No-carry optimisation applied to CIOS
         if Self::CAN_USE_NO_CARRY_OPT {
-            if N <= 6 && N > 1 && cfg!(use_asm) {
-                #[cfg(use_asm)]
+            if N <= 6
+                && N > 1
+                && cfg!(all(
+                    feature = "asm",
+                    inline_asm_stable,
+                    target_feature = "bmi2",
+                    target_feature = "adx",
+                    target_arch = "x86_64"
+                ))
+            {
+                #[cfg(all(feature = "asm", inline_asm_stable, target_feature = "bmi2", target_feature = "adx", target_arch = "x86_64"))]
                 #[allow(unsafe_code, unused_mut)]
                 // Tentatively avoid using assembly for `N == 1`.
                 #[rustfmt::skip]
@@ -131,7 +140,13 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
             Self::mul_assign(a, &temp);
             return;
         }
-        #[cfg(use_asm)]
+        #[cfg(all(
+            feature = "asm",
+            inline_asm_stable,
+            target_feature = "bmi2",
+            target_feature = "adx",
+            target_arch = "x86_64"
+        ))]
         #[allow(unsafe_code, unused_mut)]
         {
             // Checking the modulus at compile time
