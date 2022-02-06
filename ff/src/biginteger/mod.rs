@@ -705,6 +705,7 @@ pub trait BigInteger:
 
     /// Add another [`BigInteger`] to `self`. This method stores the result in `self`,
     /// and returns a carry bit.
+    /// 
     /// # Example
     ///
     /// ```
@@ -726,7 +727,7 @@ pub trait BigInteger:
 
     /// Subtract another [`BigInteger`] from this one. This method stores the result in
     /// `self`, and returns a borrow.
-    /// the borrow bit.
+    ///
     /// # Example
     ///
     /// ```
