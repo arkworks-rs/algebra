@@ -1,26 +1,18 @@
-use ark_ff::{
-    biginteger::BigInteger384 as BigInteger,
-    fields::{Fp384, MontBackend},
-    BigInt, MontFp,
-};
+use ark_ff::fields::{Fp384, MontBackend};
 
+#[derive(ark_ff::MontConfig)]
+#[modulus = "4002409555221667393417789825735904156556882819939007885332058136124031650490837864442687629129015664037894272559787"]
+#[generator = "2"]
 pub struct FqConfig;
 pub type Fq = Fp384<MontBackend<FqConfig, 6>>;
 
-impl ark_ff::MontConfig<6> for FqConfig {
-    /// MODULUS = 4002409555221667393417789825735904156556882819939007885332058136124031650490837864442687629129015664037894272559787
-    const MODULUS: BigInteger = BigInt!("4002409555221667393417789825735904156556882819939007885332058136124031650490837864442687629129015664037894272559787");
-
-    /// GENERATOR = 2
-    const GENERATOR: Fq = ark_ff::MontFp!(Fq, "2");
-}
-
-pub const FQ_ONE: Fq = MontFp!(Fq, "1");
-pub const FQ_ZERO: Fq = MontFp!(Fq, "0");
+pub const FQ_ONE: Fq = ark_ff::MontFp!(Fq, "1");
+pub const FQ_ZERO: Fq = ark_ff::MontFp!(Fq, "0");
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use ark_ff::BigInt;
     #[test]
     fn test_constants() {
         use ark_ff::{MontConfig, PrimeField};

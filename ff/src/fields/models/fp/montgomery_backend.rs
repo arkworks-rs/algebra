@@ -5,6 +5,11 @@ use crate::{biginteger::arithmetic as fa, BigInt, BigInteger};
 
 /// A trait that specifies the constants and arithmetic procedures
 /// for Montgomery arithmetic over the prime field defined by `MODULUS`.
+///
+/// # Note
+/// Manual implementation of this trait is not recommended unless one wishes
+/// to special arithmetic methods. Instead, the [`MontConfig`][`ark_ff_macros::MontConfig`]
+/// derive macro should be used.
 pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
     /// The modulus of the field.
     const MODULUS: BigInt<N>;
@@ -34,7 +39,7 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
     const CAN_USE_NO_CARRY_OPT: bool = can_use_no_carry_optimization(&Self::MODULUS);
 
     /// 2^s root of unity computed by GENERATOR^t
-    const TWO_ADIC_ROOT_OF_UNITY: Fp<MontBackend<Self, N>, N> = Self::GENERATOR.const_pow(&Self::MODULUS.two_adic_coefficient().0, &Self::MODULUS, &Self::R);
+    const TWO_ADIC_ROOT_OF_UNITY: Fp<MontBackend<Self, N>, N>;
 
     /// An integer `b` such that there exists a multiplicative subgroup
     /// of size `b^k` for some integer `k`.
@@ -45,8 +50,8 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
     const SMALL_SUBGROUP_BASE_ADICITY: Option<u32> = None;
 
     /// GENERATOR^((MODULUS-1) / (2^s *
-    /// SMALL_SUBGROUP_BASE^SMALL_SUBGROUP_BASE_ADICITY)) Used for mixed-radix
-    /// FFT.
+    /// SMALL_SUBGROUP_BASE^SMALL_SUBGROUP_BASE_ADICITY)).
+    /// Used for mixed-radix FFT.
     const LARGE_SUBGROUP_ROOT_OF_UNITY: Option<Fp<MontBackend<Self, N>, N>> = None;
 
     /// Set a += b;
@@ -354,12 +359,19 @@ pub const fn can_use_no_carry_optimization<const N: usize>(modulus: &BigInt<N>) 
 /// ```
 #[macro_export]
 macro_rules! MontFp {
-    ($name:ident, $c0:expr) => {{
+    ($name:ty, $c0:expr) => {{
         use $crate::PrimeField;
         let (is_positive, limbs) = $crate::ark_ff_macros::to_sign_and_limbs!($c0);
-        $crate::Fp::const_from_str(&limbs, is_positive, $name::R2, &$name::MODULUS)
+        $crate::Fp::const_from_str(
+            &limbs,
+            is_positive,
+            <$name>::R2,
+            &<$name as PrimeField>::MODULUS,
+        )
     }};
 }
+
+pub use ark_ff_macros::MontConfig;
 
 pub use MontFp;
 
@@ -437,10 +449,12 @@ impl<T: MontConfig<N>, const N: usize> FpConfig<N> for MontBackend<T, N> {
 
 impl<T, const N: usize> Fp<MontBackend<T, N>, N> {
     #[ark_ff_asm::unroll_for_loops]
+    #[doc(hidden)]
     const fn const_is_zero(&self) -> bool {
         self.0.const_is_zero()
     }
 
+    #[doc(hidden)]
     const fn const_neg(self, modulus: &BigInt<N>) -> Self {
         if !self.const_is_zero() {
             Self::new(Self::sub_with_borrow(modulus, &self.0))
@@ -489,6 +503,7 @@ impl<T, const N: usize> Fp<MontBackend<T, N>, N> {
     }
 
     #[ark_ff_asm::unroll_for_loops]
+    #[doc(hidden)]
     const fn mul_without_reduce(mut self, other: &Self, modulus: &BigInt<N>, inv: u64) -> Self {
         let (mut lo, mut hi) = ([0u64; N], [0u64; N]);
         crate::const_for!((i in 0..N) {
@@ -527,20 +542,55 @@ impl<T, const N: usize> Fp<MontBackend<T, N>, N> {
         self
     }
 
-    const fn const_pow(self, exp: &[u64], modulus: &BigInt<N>, r: &BigInt<N>) -> Self {
+    #[doc(hidden)]
+    pub const fn compute_large_two_adic_root_of_unity(
+        self,
+        base: Option<u32>,
+        power: Option<u32>,
+        modulus: &BigInt<N>,
+        r: &BigInt<N>,
+    ) -> Option<Self> {
+        match (base, power) {
+            (Some(base), Some(power)) => {
+                let exponent = modulus
+                    .two_adic_coefficient()
+                    .div_by_base_power(base as u64, power);
+                Some(self.const_pow(&exponent.0, modulus, r))
+            },
+            (None, None) => None,
+            (_, _) => panic!(
+                "Should specify both `SMALL_SUBGROUP_BASE` and `SMALL_SUBGROUP_BASE_ADICITY`"
+            ),
+        }
+    }
+
+    #[doc(hidden)]
+    pub const fn const_pow(self, exp: &[u64], modulus: &BigInt<N>, r: &BigInt<N>) -> Self {
         /// Iterates over a slice of `u64` in *big-endian* order.
-        #[derive(Debug)]
         struct BitIteratorBE<'a> {
             s: &'a [u64],
             n: usize,
         }
-        
+
         impl<'a> BitIteratorBE<'a> {
-            const fn new(s: &'a[u64]) -> Self {
+            const fn new(s: &'a [u64]) -> Self {
                 let n = s.len() * 64;
                 BitIteratorBE { s, n }
             }
-            
+
+            const fn skip_leading_zeros(s: &'a [u64]) -> Self {
+                let mut result = Self::new(s);
+                loop {
+                    let (b, new_result) = result.next();
+                    result = new_result;
+                    match b {
+                        Some(false) => continue,
+                        _ => break,
+                    }
+                }
+                result
+            }
+
             const fn next(mut self) -> (Option<bool>, Self) {
                 if self.n == 0 {
                     (None, self)
@@ -548,20 +598,21 @@ impl<T, const N: usize> Fp<MontBackend<T, N>, N> {
                     self.n -= 1;
                     let part = self.n / 64;
                     let bit = self.n - (64 * part);
-                    
+
                     (Some(self.s[part] & (1 << bit) > 0), self)
                 }
             }
         }
 
         let mut res = Self::new(*r);
-        let mut bits = BitIteratorBE::new(exp);
+        let mut bits = BitIteratorBE::skip_leading_zeros(exp);
         loop {
             let (i, new_bits) = bits.next();
             bits = new_bits;
+
             if let Some(i) = i {
                 res = res.const_mul(&res, modulus); // square_in_place
-                
+
                 if i {
                     res = res.const_mul(&self, modulus); // res = res * self;
                 }

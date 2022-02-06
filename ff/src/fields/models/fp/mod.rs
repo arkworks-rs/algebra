@@ -182,7 +182,7 @@ pub type Fp832<P> = Fp<P, 13>;
 
 impl<P, const N: usize> Fp<P, N> {
     /// Construct a new prime element directly from its underlying
-    /// [`BigInt`] data type.
+    /// [`struct@BigInt`] data type.
     #[inline]
     pub const fn new(element: BigInt<N>) -> Self {
         Self(element, PhantomData)

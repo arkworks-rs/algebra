@@ -74,7 +74,7 @@ macro_rules! BigInt {
 
 #[doc(hidden)]
 macro_rules! const_modulo {
-    ($a:ident, $divisor:ident) => {{
+    ($a:expr, $divisor:expr) => {{
         // Stupid slow base-2 long division taken from
         // https://en.wikipedia.org/wiki/Division_algorithm
         assert!(!$divisor.const_is_zero());
@@ -94,6 +94,32 @@ macro_rules! const_modulo {
         remainder
     }};
 }
+
+#[doc(hidden)]
+macro_rules! const_div {
+    ($a:expr, $divisor:expr) => {{
+        // Stupid slow base-2 long division taken from
+        // https://en.wikipedia.org/wiki/Division_algorithm
+        assert!(!$divisor.const_is_zero());
+        let mut remainder = Self::new([0u64; N]);
+        let mut quotient = Self::new([0u64; N]);
+        let end = $a.num_bits();
+        let mut i = (end - 1) as isize;
+        while i >= 0 {
+            remainder = remainder.const_mul2();
+            remainder.0[0] |= $a.const_get_bit(i as usize) as u64;
+            if remainder.const_geq($divisor) {
+                let (r, borrow) = remainder.const_sub_with_borrow($divisor);
+                remainder = r;
+                quotient = quotient.set_bit(i as usize, true);
+                assert!(!borrow);
+            }
+            i -= 1;
+        }
+        (quotient, remainder)
+    }};
+}
+
 impl<const N: usize> BigInt<N> {
     #[doc(hidden)]
     pub const fn const_is_even(&self) -> bool {
@@ -134,7 +160,40 @@ impl<const N: usize> BigInt<N> {
         true
     }
 
-    /// Compute the largest integer `s` such that `self = 2**s * t` for odd `t`.
+    const fn const_get_bit(self, i: usize) -> bool {
+        if i >= 64 * N {
+            false
+        } else {
+            let limb = i / 64;
+            let bit = i - (64 * limb);
+            (self.0[limb] & (1 << bit)) != 0
+        }
+    }
+
+    #[inline]
+    const fn num_bits(&self) -> u32 {
+        let mut ret = N as u32 * 64;
+        const_for!((i in 0..N) {
+            let i = N - i - 1;
+            let leading = self.0[i].leading_zeros();
+            ret -= leading;
+            if leading != 64 {
+                break;
+            }
+        });
+
+        ret
+    }
+
+    const fn set_bit(mut self, i: usize, bit: bool) -> Self {
+        assert!(i <= 64 * N);
+        let limb = i / 64;
+        let bit_loc = i - (64 * limb);
+        self.0[limb] |= (bit as u64) << bit_loc;
+        self
+    }
+
+    /// Compute the largest integer `s` such that `self = 2**s * t + 1` for odd `t`.
     #[doc(hidden)]
     pub const fn two_adic_valuation(mut self) -> u32 {
         let mut two_adicity = 0;
@@ -149,7 +208,7 @@ impl<const N: usize> BigInt<N> {
         two_adicity
     }
 
-    /// Compute the smallest odd integer `t` such that `self = 2**s * t` for some
+    /// Compute the smallest odd integer `t` such that `self = 2**s * t + 1` for some
     /// integer `s = self.two_adic_valuation()`.
     #[doc(hidden)]
     pub const fn two_adic_coefficient(mut self) -> Self {
@@ -227,6 +286,33 @@ impl<const N: usize> BigInt<N> {
         let two_pow_n_times_64_square =
             crate::const_helpers::R2Buffer::<N>([0u64; N], [0u64; N], 1);
         const_modulo!(two_pow_n_times_64_square, self)
+    }
+
+    /// Divides self by base^power
+    #[doc(hidden)]
+    pub const fn div_by_base_power(&self, base: u64, power: u32) -> Self {
+        match base.checked_pow(power) {
+            Some(exp) => {
+                let mut exp_bigint = Self([0u64; N]);
+                exp_bigint.0[0] = exp;
+                let (q, r) = const_div!(self, &exp_bigint);
+                assert!(r.const_is_zero());
+                q
+            },
+            None => {
+                let mut largest_power = power;
+                while base.checked_pow(largest_power).is_none() {
+                    largest_power -= 1;
+                }
+                let num_loops = power / largest_power;
+                let remainder = power % largest_power;
+                let mut quotient = *self;
+                const_for!((i in 0..num_loops) {
+                    quotient = quotient.div_by_base_power(base, largest_power);
+                });
+                quotient.div_by_base_power(base, remainder)
+            },
+        }
     }
 }
 
@@ -671,6 +757,7 @@ mod tests;
 
 /// This defines a `BigInteger`, a smart wrapper around a
 /// sequence of `u64` limbs, least-significant limb first.
+// TODO: get rid of this trait once we can use associated constants in const generics.
 pub trait BigInteger:
     ToBytes
     + FromBytes
