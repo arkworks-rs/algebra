@@ -185,7 +185,6 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
         for i in 0..N {
             r[2 * i] = fa::mac_with_carry(r[2 * i], (a.0).0[i], (a.0).0[i], &mut carry);
             r[2 * i + 1] = fa::adc(r[2 * i + 1], 0, &mut carry);
-            
         }
         // Montgomery reduction
         let mut carry2 = 0;

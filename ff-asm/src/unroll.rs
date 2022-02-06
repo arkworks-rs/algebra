@@ -34,7 +34,7 @@
 //!     }
 //!     out
 //! }
-//! 
+//!
 //! fn mtx_vec_mul_2(mtx: &[[f64; 5]; 5], vec: &[f64; 5]) -> [f64; 5] {
 //!     let mut out = [0.0; 5];
 //!     for col in 0..5 {
@@ -54,8 +54,8 @@
 use std::borrow::Borrow;
 
 use syn::{
-    parse_quote, token::Brace, Block, Expr, ExprBlock, ExprForLoop, ExprIf, ExprLet,
-    ExprRange, Pat, PatIdent, RangeLimits, Stmt,
+    parse_quote, token::Brace, Block, Expr, ExprBlock, ExprForLoop, ExprIf, ExprLet, ExprRange,
+    Pat, PatIdent, RangeLimits, Stmt,
 };
 
 /// Routine to unroll for loops within a block
@@ -118,10 +118,7 @@ fn unroll(expr: &Expr, unroll_by: usize) -> Expr {
             let idx = ident; // got the index variable name
 
             if let Expr::Range(ExprRange {
-                from,
-                limits,
-                to,
-                ..
+                from, limits, to, ..
             }) = range.borrow()
             {
                 // Parse `from` in `from..to`.
@@ -135,27 +132,26 @@ fn unroll(expr: &Expr, unroll_by: usize) -> Expr {
                 };
                 let end_is_closed = if let RangeLimits::Closed(_) = limits {
                     1usize
-                } else { 
-                    0 
+                } else {
+                    0
                 };
                 let end: Expr = parse_quote!(#end + #end_is_closed);
 
-                
-                let preamble: Vec<Stmt> = parse_quote!{ 
-                    let total_iters: usize = (#end).checked_sub(#begin).unwrap_or(0); 
-                    let num_loops = total_iters / #unroll_by; 
+                let preamble: Vec<Stmt> = parse_quote! {
+                    let total_iters: usize = (#end).checked_sub(#begin).unwrap_or(0);
+                    let num_loops = total_iters / #unroll_by;
                     let remainder = total_iters % #unroll_by;
                 };
                 let mut block = Block {
                     brace_token: Brace::default(),
                     stmts: preamble,
                 };
-                let mut loop_expr: ExprForLoop = parse_quote! { 
+                let mut loop_expr: ExprForLoop = parse_quote! {
                     for #idx in (0..num_loops) {
                         let mut #idx = #begin + #idx * #unroll_by;
                     }
                 };
-                let loop_block: Vec<Stmt> = parse_quote!{
+                let loop_block: Vec<Stmt> = parse_quote! {
                     if #idx < #end {
                         #new_body
                     }
@@ -166,7 +162,9 @@ fn unroll(expr: &Expr, unroll_by: usize) -> Expr {
                 block.stmts.push(Stmt::Expr(Expr::ForLoop(loop_expr)));
 
                 // idx = num_loops * unroll_by;
-                block.stmts.push(parse_quote!{ let mut #idx = #begin + num_loops * #unroll_by; });
+                block
+                    .stmts
+                    .push(parse_quote! { let mut #idx = #begin + num_loops * #unroll_by; });
                 // if idx < remainder + num_loops * unroll_by { ... }
                 let post_loop_block: Vec<Stmt> = parse_quote! {
                     if #idx < #end {
@@ -200,7 +198,9 @@ fn unroll(expr: &Expr, unroll_by: usize) -> Expr {
         Expr::If(ExprIf {
             cond: Box::new(unroll(&**cond, unroll_by)),
             then_branch: unroll_in_block(&*then_branch, unroll_by),
-            else_branch: else_branch.as_ref().map(|x| (x.0, Box::new(unroll(&*x.1, unroll_by)))),
+            else_branch: else_branch
+                .as_ref()
+                .map(|x| (x.0, Box::new(unroll(&*x.1, unroll_by)))),
             ..(*if_expr).clone()
         })
     } else if let Expr::Let(let_expr) = expr {
@@ -220,7 +220,7 @@ fn unroll(expr: &Expr, unroll_by: usize) -> Expr {
     }
 }
 
-#[test] 
+#[test]
 fn test_expand() {
     use quote::ToTokens;
     let for_loop: Block = parse_quote! {{

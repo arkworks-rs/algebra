@@ -28,11 +28,11 @@ const ARG_MSG: &'static str = "Failed to parse unroll threshold; must be a posit
 /// Attribute used to unroll for loops found inside a function block.
 #[proc_macro_attribute]
 pub fn unroll_for_loops(args: TokenStream, input: TokenStream) -> TokenStream {
-    let unroll_by = match syn::parse2::<syn::Lit>(args.into()).expect(ARG_MSG)  {
+    let unroll_by = match syn::parse2::<syn::Lit>(args.into()).expect(ARG_MSG) {
         Lit::Int(int) => int.base10_parse().expect(ARG_MSG),
         _ => panic!("{}", ARG_MSG),
     };
-        
+
     let item: Item = syn::parse(input).expect("Failed to parse input.");
 
     if let Item::Fn(item_fn) = item {
