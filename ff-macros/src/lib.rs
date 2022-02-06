@@ -130,32 +130,32 @@ pub fn prime_field(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
         quote::quote! {
             #[automatically_derived]
             impl ark_ff::fields::MontConfig<#limbs> for #name {
-                
+
                 const MODULUS: ark_ff::BigInt<#limbs> = ark_ff::BigInt!(#modulus);
-                
+
                 const GENERATOR: ark_ff::fields::Fp<ark_ff::fields::MontBackend<Self, #limbs>, #limbs> = ark_ff::MontFp!(ark_ff::fields::Fp<ark_ff::fields::MontBackend<Self, #limbs>, #limbs>, #generator);
-                
+
                 const TWO_ADIC_ROOT_OF_UNITY: ark_ff::fields::Fp<ark_ff::fields::MontBackend<Self, #limbs>, #limbs> = ark_ff::MontFp!(ark_ff::fields::Fp<ark_ff::fields::MontBackend<Self, #limbs>, #limbs>, #two_adic_root_of_unity);
 
                 const SMALL_SUBGROUP_BASE: Option<u32> = Some(#small_subgroup_base);
 
                 const SMALL_SUBGROUP_BASE_ADICITY: Option<u32> = Some(#small_subgroup_power);
 
-                const LARGE_SUBGROUP_ROOT_OF_UNITY: Option<ark_ff::fields::Fp<ark_ff::fields::MontBackend<Self, #limbs>, #limbs>> = Some(ark_ff::MontFp!(ark_ff::fields::Fp<ark_ff::fields::MontBackend<Self, #limbs>, #limbs>, #large_subgroup_generator));        
+                const LARGE_SUBGROUP_ROOT_OF_UNITY: Option<ark_ff::fields::Fp<ark_ff::fields::MontBackend<Self, #limbs>, #limbs>> = Some(ark_ff::MontFp!(ark_ff::fields::Fp<ark_ff::fields::MontBackend<Self, #limbs>, #limbs>, #large_subgroup_generator));
             }
         }
     } else {
         quote::quote! {
             #[automatically_derived]
             impl ark_ff::fields::MontConfig<#limbs> for #name {
-                
+
                 const MODULUS: ark_ff::BigInt<#limbs> = ark_ff::BigInt!(#modulus);
-                
+
                 const GENERATOR: ark_ff::fields::Fp<ark_ff::fields::MontBackend<Self, #limbs>, #limbs> = ark_ff::MontFp!(ark_ff::fields::Fp<ark_ff::fields::MontBackend<Self, #limbs>, #limbs>, #generator);
-                
+
                 const TWO_ADIC_ROOT_OF_UNITY: ark_ff::fields::Fp<ark_ff::fields::MontBackend<Self, #limbs>, #limbs> = ark_ff::MontFp!(ark_ff::fields::Fp<ark_ff::fields::MontBackend<Self, #limbs>, #limbs>, #two_adic_root_of_unity);
             }
-        } 
+        }
     }.into()
 }
 

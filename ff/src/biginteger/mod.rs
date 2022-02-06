@@ -705,7 +705,7 @@ pub trait BigInteger:
 
     /// Add another [`BigInteger`] to `self`. This method stores the result in `self`,
     /// and returns a carry bit.
-    /// 
+    ///
     /// # Example
     ///
     /// ```
