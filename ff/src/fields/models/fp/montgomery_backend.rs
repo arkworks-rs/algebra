@@ -17,7 +17,7 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
     const R2: BigInt<N> = Self::MODULUS.montgomery_r2();
 
     /// INV = -MODULUS^{-1} mod 2^64
-    const INV: u64 = inv(Self::MODULUS);
+    const INV: u64 = inv(&Self::MODULUS);
 
     /// A multiplicative generator of the field.
     /// `Self::GENERATOR` is an element having multiplicative order
@@ -34,7 +34,7 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
     const CAN_USE_NO_CARRY_OPT: bool = can_use_no_carry_optimization(&Self::MODULUS);
 
     /// 2^s root of unity computed by GENERATOR^t
-    const TWO_ADIC_ROOT_OF_UNITY: Fp<MontBackend<Self, N>, N>;
+    const TWO_ADIC_ROOT_OF_UNITY: Fp<MontBackend<Self, N>, N> = Self::GENERATOR.const_pow(&Self::MODULUS.two_adic_coefficient().0, &Self::MODULUS, &Self::R);
 
     /// An integer `b` such that there exists a multiplicative subgroup
     /// of size `b^k` for some integer `k`.
@@ -124,7 +124,7 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
             }
         } else {
             // Alternative implementation
-            *a = a.mul_without_reduce(b, Self::MODULUS, Self::INV);
+            *a = a.mul_without_reduce(b, &Self::MODULUS, Self::INV);
         }
         a.subtract_modulus();
     }
@@ -304,7 +304,7 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
 }
 
 /// Compute -M^{-1} mod 2^64.
-pub const fn inv<const N: usize>(m: BigInt<N>) -> u64 {
+pub const fn inv<const N: usize>(m: &BigInt<N>) -> u64 {
     let mut inv = 1u64;
     crate::const_for!((_i in 0..63) {
         inv = inv.wrapping_mul(inv);
@@ -357,7 +357,7 @@ macro_rules! MontFp {
     ($name:ident, $c0:expr) => {{
         use $crate::PrimeField;
         let (is_positive, limbs) = $crate::ark_ff_macros::to_sign_and_limbs!($c0);
-        $crate::Fp::const_from_str(&limbs, is_positive, $name::R2, $name::MODULUS)
+        $crate::Fp::const_from_str(&limbs, is_positive, $name::R2, &$name::MODULUS)
     }};
 }
 
@@ -441,9 +441,9 @@ impl<T, const N: usize> Fp<MontBackend<T, N>, N> {
         self.0.const_is_zero()
     }
 
-    const fn const_neg(self, modulus: BigInt<N>) -> Self {
+    const fn const_neg(self, modulus: &BigInt<N>) -> Self {
         if !self.const_is_zero() {
-            Self::new(Self::sub_with_borrow(&modulus, &self.0))
+            Self::new(Self::sub_with_borrow(modulus, &self.0))
         } else {
             self
         }
@@ -458,7 +458,7 @@ impl<T, const N: usize> Fp<MontBackend<T, N>, N> {
         limbs: &[u64],
         is_positive: bool,
         r2: BigInt<N>,
-        modulus: BigInt<N>,
+        modulus: &BigInt<N>,
     ) -> Self {
         let mut repr = BigInt::<N>([0; N]);
         assert!(repr.0.len() == N);
@@ -477,7 +477,7 @@ impl<T, const N: usize> Fp<MontBackend<T, N>, N> {
     pub(crate) const fn const_from_bigint(
         repr: BigInt<N>,
         r2: BigInt<N>,
-        modulus: BigInt<N>,
+        modulus: &BigInt<N>,
     ) -> Self {
         let mut r = Self::new(repr);
         if r.const_is_zero() {
@@ -489,7 +489,7 @@ impl<T, const N: usize> Fp<MontBackend<T, N>, N> {
     }
 
     #[ark_ff_asm::unroll_for_loops]
-    const fn mul_without_reduce(mut self, other: &Self, modulus: BigInt<N>, inv: u64) -> Self {
+    const fn mul_without_reduce(mut self, other: &Self, modulus: &BigInt<N>, inv: u64) -> Self {
         let (mut lo, mut hi) = ([0u64; N], [0u64; N]);
         crate::const_for!((i in 0..N) {
             let mut carry = 0;
@@ -527,20 +527,65 @@ impl<T, const N: usize> Fp<MontBackend<T, N>, N> {
         self
     }
 
+    const fn const_pow(self, exp: &[u64], modulus: &BigInt<N>, r: &BigInt<N>) -> Self {
+        /// Iterates over a slice of `u64` in *big-endian* order.
+        #[derive(Debug)]
+        struct BitIteratorBE<'a> {
+            s: &'a [u64],
+            n: usize,
+        }
+        
+        impl<'a> BitIteratorBE<'a> {
+            const fn new(s: &'a[u64]) -> Self {
+                let n = s.len() * 64;
+                BitIteratorBE { s, n }
+            }
+            
+            const fn next(mut self) -> (Option<bool>, Self) {
+                if self.n == 0 {
+                    (None, self)
+                } else {
+                    self.n -= 1;
+                    let part = self.n / 64;
+                    let bit = self.n - (64 * part);
+                    
+                    (Some(self.s[part] & (1 << bit) > 0), self)
+                }
+            }
+        }
+
+        let mut res = Self::new(*r);
+        let mut bits = BitIteratorBE::new(exp);
+        loop {
+            let (i, new_bits) = bits.next();
+            bits = new_bits;
+            if let Some(i) = i {
+                res = res.const_mul(&res, modulus); // square_in_place
+                
+                if i {
+                    res = res.const_mul(&self, modulus); // res = res * self;
+                }
+            } else {
+                break;
+            }
+        }
+        res
+    }
+
     #[ark_ff_asm::unroll_for_loops]
-    const fn const_mul_without_reduce(self, other: &Self, modulus: BigInt<N>) -> Self {
+    const fn const_mul_without_reduce(self, other: &Self, modulus: &BigInt<N>) -> Self {
         let inv = inv(modulus);
         self.mul_without_reduce(other, modulus, inv)
     }
 
     #[ark_ff_asm::unroll_for_loops]
-    const fn const_mul(mut self, other: &Self, modulus: BigInt<N>) -> Self {
+    const fn const_mul(mut self, other: &Self, modulus: &BigInt<N>) -> Self {
         self = self.const_mul_without_reduce(other, modulus);
         self.const_reduce(modulus)
     }
 
     #[ark_ff_asm::unroll_for_loops]
-    const fn const_is_valid(&self, modulus: BigInt<N>) -> bool {
+    const fn const_is_valid(&self, modulus: &BigInt<N>) -> bool {
         crate::const_for!((i in 0..N) {
             if (self.0).0[(N - i - 1)] < modulus.0[(N - i - 1)] {
                 return true
@@ -552,9 +597,9 @@ impl<T, const N: usize> Fp<MontBackend<T, N>, N> {
     }
 
     #[inline]
-    const fn const_reduce(mut self, modulus: BigInt<N>) -> Self {
+    const fn const_reduce(mut self, modulus: &BigInt<N>) -> Self {
         if !self.const_is_valid(modulus) {
-            self.0 = Self::sub_with_borrow(&self.0, &modulus);
+            self.0 = Self::sub_with_borrow(&self.0, modulus);
         }
         self
     }

@@ -14,9 +14,4 @@ impl MontConfig<4> for FrConfig {
 
     /// GENERATOR = 7
     const GENERATOR: Fr = MontFp!(Fr, "7");
-
-    const TWO_ADIC_ROOT_OF_UNITY: Fr = MontFp!(
-        Fr,
-        "10238227357739495823651030575849232062558860180284477541189508159991286009131"
-    );
 }
