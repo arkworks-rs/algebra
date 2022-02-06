@@ -65,7 +65,7 @@ pub fn to_sign_and_limbs(input: TokenStream) -> TokenStream {
 /// * `modulus`: Specify the prime modulus underlying this prime field.
 /// * `generator`: Specify the generator of the multiplicative subgroup of this prime field. This value must be a quadratic non-residue in the field.
 /// * `small_subgroup_base` and `small_subgroup_power` (optional): If the field has insufficient two-adicity, specify an additional subgroup of size `small_subgroup_base.pow(small_subgroup_power)`.
-// 
+//
 // This code was adapted from the `PrimeField` Derive Macro in ff-derive.
 #[proc_macro_derive(
     MontConfig,
