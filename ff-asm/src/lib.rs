@@ -11,7 +11,7 @@
 use proc_macro::TokenStream;
 use syn::{
     parse::{Parse, ParseStream},
-    Expr, Item, ItemFn,
+    Expr, Item, ItemFn, Lit,
 };
 
 #[macro_use]
@@ -27,17 +27,16 @@ use std::cell::RefCell;
 
 const MAX_REGS: usize = 6;
 
+const ARG_MSG: &'static str = "Failed to parse unroll threshold; must be a positive integer";
+
 /// Attribute used to unroll for loops found inside a function block.
 #[proc_macro_attribute]
 pub fn unroll_for_loops(args: TokenStream, input: TokenStream) -> TokenStream {
-    let unroll_by = if !args.is_empty() {
-        match syn::parse2::<syn::Lit>(args.into()) {
-            Ok(syn::Lit::Int(unroll_by)) => unroll_by.base10_parse().ok(),
-            _ => None
-        }
-    } else {
-        None
+    let unroll_by = match syn::parse2::<syn::Lit>(args.into()).expect(ARG_MSG)  {
+        Lit::Int(int) => int.base10_parse().expect(ARG_MSG),
+        _ => panic!("{}", ARG_MSG),
     };
+        
     let item: Item = syn::parse(input).expect("Failed to parse input.");
 
     if let Item::Fn(item_fn) = item {

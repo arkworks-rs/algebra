@@ -24,7 +24,7 @@
 //! ```rust
 //! use ark_ff_asm::unroll_for_loops;
 //!
-//! #[unroll_for_loops]
+//! #[unroll_for_loops(12)]
 //! fn mtx_vec_mul(mtx: &[[f64; 5]; 5], vec: &[f64; 5]) -> [f64; 5] {
 //!     let mut out = [0.0; 5];
 //!     for col in 0..5 {
@@ -34,17 +34,32 @@
 //!     }
 //!     out
 //! }
+//! 
+//! fn mtx_vec_mul_2(mtx: &[[f64; 5]; 5], vec: &[f64; 5]) -> [f64; 5] {
+//!     let mut out = [0.0; 5];
+//!     for col in 0..5 {
+//!         for row in 0..5 {
+//!             out[row] += mtx[col][row] * vec[col];
+//!         }
+//!     }
+//!     out
+//! }
+//! let a = [[1.0, 2.0, 3.0, 4.0, 5.0]; 5];
+//! let b = [7.9, 4.8, 3.8, 4.22, 5.2];
+//! assert_eq!(mtx_vec_mul(&a, &b), mtx_vec_mul_2(&a, &b));
 //! ```
 //!
 //! This code was adapted from the [`unroll`](https://crates.io/crates/unroll) crate.
 
+use std::borrow::Borrow;
+
 use syn::{
-    parse_quote, token::Brace, Block, Expr, ExprBlock, ExprForLoop, ExprIf, ExprLet, ExprLit,
-    ExprRange, Lit, Pat, PatIdent, RangeLimits, Stmt,
+    parse_quote, token::Brace, Block, Expr, ExprBlock, ExprForLoop, ExprIf, ExprLet,
+    ExprRange, Pat, PatIdent, RangeLimits, Stmt,
 };
 
 /// Routine to unroll for loops within a block
-pub(crate) fn unroll_in_block(block: &Block, unroll_by: Option<usize>) -> Block {
+pub(crate) fn unroll_in_block(block: &Block, unroll_by: usize) -> Block {
     let &Block {
         ref brace_token,
         ref stmts,
@@ -67,14 +82,14 @@ pub(crate) fn unroll_in_block(block: &Block, unroll_by: Option<usize>) -> Block 
 
 /// Routine to unroll a for loop statement, or return the statement unchanged if
 /// it's not a for loop.
-fn unroll(expr: &Expr, unroll_by: Option<usize>) -> Expr {
+fn unroll(expr: &Expr, unroll_by: usize) -> Expr {
     // impose a scope that we can break out of so we can return stmt without copying it.
     if let Expr::ForLoop(for_loop) = expr {
         let ExprForLoop {
             ref attrs,
             ref label,
             ref pat,
-            expr: ref range_expr,
+            expr: ref range,
             ref body,
             ..
         } = *for_loop;
@@ -89,12 +104,12 @@ fn unroll(expr: &Expr, unroll_by: Option<usize>) -> Expr {
         };
 
         if let Pat::Ident(PatIdent {
-            ref by_ref,
-            ref mutability,
-            ref ident,
-            ref subpat,
+            by_ref,
+            mutability,
+            ident,
+            subpat,
             ..
-        }) = *pat
+        }) = pat
         {
             // Don't know how to deal with these so skip and return the original.
             if !by_ref.is_none() || !mutability.is_none() || !subpat.is_none() {
@@ -103,63 +118,69 @@ fn unroll(expr: &Expr, unroll_by: Option<usize>) -> Expr {
             let idx = ident; // got the index variable name
 
             if let Expr::Range(ExprRange {
-                from: ref mb_box_from,
-                ref limits,
-                to: ref mb_box_to,
+                from,
+                limits,
+                to,
                 ..
-            }) = **range_expr
+            }) = range.borrow()
             {
-                // Parse mb_box_from
-                let begin = if let Some(ref box_from) = *mb_box_from {
-                    if let Expr::Lit(ExprLit {
-                        lit: Lit::Int(ref lit_int),
-                        ..
-                    }) = **box_from
-                    {
-                        lit_int.base10_parse::<usize>().unwrap()
-                    } else {
-                        return forloop_with_body(new_body);
-                    }
-                } else {
-                    0
+                // Parse `from` in `from..to`.
+                let begin = match from {
+                    Some(e) => e.clone(),
+                    _ => Box::new(parse_quote!(0usize)),
                 };
-
-                // Parse mb_box_to
-                let end = if let Some(ref box_to) = *mb_box_to {
-                    if let Expr::Lit(ExprLit {
-                        lit: Lit::Int(ref lit_int),
-                        ..
-                    }) = **box_to
-                    {
-                        lit_int.base10_parse::<usize>().unwrap()
-                    } else {
-                        return forloop_with_body(new_body);
-                    }
-                } else {
-                    // we need to know where the limit is to know how much to unroll by.
-                    return forloop_with_body(new_body);
-                } + if let RangeLimits::Closed(_) = limits {
-                    1
-                } else {
-                    0
+                let end = match to {
+                    Some(e) => e.clone(),
+                    _ => return forloop_with_body(new_body),
                 };
+                let end_is_closed = if let RangeLimits::Closed(_) = limits {
+                    1usize
+                } else { 
+                    0 
+                };
+                let end: Expr = parse_quote!(#end + #end_is_closed);
 
-                let mut stmts = Vec::new();
-                for i in begin..end {
-                    let declare_i: Stmt = parse_quote! {
-                        #[allow(non_upper_case_globals)]
-                        const #idx: usize = #i;
-                    };
-                    let mut augmented_body = new_body.clone();
-                    augmented_body.stmts.insert(0, declare_i);
-                    stmts.push(parse_quote! { #augmented_body });
-                }
-                let block = Block {
+                
+                let preamble: Vec<Stmt> = parse_quote!{ 
+                    let total_iters: usize = (#end).checked_sub(#begin).unwrap_or(0); 
+                    let num_loops = total_iters / #unroll_by; 
+                    let remainder = total_iters % #unroll_by;
+                };
+                let mut block = Block {
                     brace_token: Brace::default(),
-                    stmts,
+                    stmts: preamble,
                 };
+                let mut loop_expr: ExprForLoop = parse_quote! { 
+                    for #idx in (0..num_loops) {
+                        let mut #idx = #begin + #idx * #unroll_by;
+                    }
+                };
+                let loop_block: Vec<Stmt> = parse_quote!{
+                    if #idx < #end {
+                        #new_body
+                    }
+                    #idx += 1;
+                };
+                let loop_body = (0..unroll_by).flat_map(|_| loop_block.clone());
+                loop_expr.body.stmts.extend(loop_body);
+                block.stmts.push(Stmt::Expr(Expr::ForLoop(loop_expr)));
+
+                // idx = num_loops * unroll_by;
+                block.stmts.push(parse_quote!{ let mut #idx = #begin + num_loops * #unroll_by; });
+                // if idx < remainder + num_loops * unroll_by { ... }
+                let post_loop_block: Vec<Stmt> = parse_quote! {
+                    if #idx < #end {
+                        #new_body
+                    }
+                    #idx += 1;
+                };
+                let post_loop = (0..unroll_by).flat_map(|_| post_loop_block.clone());
+                block.stmts.extend(post_loop);
+
+                let mut attrs = attrs.clone();
+                attrs.extend(vec![parse_quote!(#[allow(unused)])]);
                 Expr::Block(ExprBlock {
-                    attrs: attrs.clone(),
+                    attrs,
                     label: label.clone(),
                     block,
                 })
@@ -197,4 +218,16 @@ fn unroll(expr: &Expr, unroll_by: Option<usize>) -> Expr {
     } else {
         (*expr).clone()
     }
+}
+
+#[test] 
+fn test_expand() {
+    use quote::ToTokens;
+    let for_loop: Block = parse_quote! {{
+        let mut sum = 0;
+        for i in 0..8 {
+            sum += i;
+        }
+    }};
+    println!("{}", unroll_in_block(&for_loop, 12).to_token_stream());
 }

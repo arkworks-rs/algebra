@@ -79,7 +79,7 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
     /// `Self::MODULUS` has (a) a non-zero MSB, and (b) at least one
     /// zero bit in the rest of the modulus.
     #[inline]
-    #[ark_ff_asm::unroll_for_loops]
+    #[ark_ff_asm::unroll_for_loops(12)]
     fn mul_assign(a: &mut Fp<MontBackend<Self, N>, N>, b: &Fp<MontBackend<Self, N>, N>) {
         // No-carry optimisation applied to CIOS
         if Self::CAN_USE_NO_CARRY_OPT {
@@ -121,8 +121,7 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
     }
 
     #[inline]
-    #[ark_ff_asm::unroll_for_loops]
-    #[allow(unused_braces, clippy::absurd_extreme_comparisons)]
+    #[ark_ff_asm::unroll_for_loops(12)]
     fn square_in_place(a: &mut Fp<MontBackend<Self, N>, N>) {
         if N == 1 {
             // We default to multiplying with `a` using the `Mul` impl
@@ -152,16 +151,12 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
         let mut r = crate::const_helpers::MulBuffer::<N>::zeroed();
 
         let mut carry = 0;
-        for i in 0..N {
-            if i < N - 1 {
-                for j in 0..N {
-                    if j > i {
-                        r[i + j] = fa::mac_with_carry(r[i + j], (a.0).0[i], (a.0).0[j], &mut carry);
-                    }
-                }
-                r.b1[i] = carry;
-                carry = 0;
+        for i in 0..(N - 1) {
+            for j in (i + 1)..N {
+                r[i + j] = fa::mac_with_carry(r[i + j], (a.0).0[i], (a.0).0[j], &mut carry);
             }
+            r.b1[i] = carry;
+            carry = 0;
         }
         r.b1[N - 1] >>= 63;
         for i in 0..N {
@@ -174,12 +169,8 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
 
         for i in 0..N {
             r[2 * i] = fa::mac_with_carry(r[2 * i], (a.0).0[i], (a.0).0[i], &mut carry);
-            // need unused assignment because the last iteration of the loop produces an
-            // assignment to `carry` that is unused.
-            #[allow(unused_assignments)]
-            {
-                r[2 * i + 1] = fa::adc(r[2 * i + 1], 0, &mut carry);
-            }
+            r[2 * i + 1] = fa::adc(r[2 * i + 1], 0, &mut carry);
+            
         }
         // Montgomery reduction
         let mut carry2 = 0;
@@ -266,7 +257,7 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
     }
 
     #[inline]
-    #[ark_ff_asm::unroll_for_loops]
+    #[ark_ff_asm::unroll_for_loops(12)]
     #[allow(clippy::modulo_one)]
     fn into_bigint(a: Fp<MontBackend<Self, N>, N>) -> BigInt<N> {
         let mut tmp = a.0;
@@ -392,13 +383,11 @@ impl<T: MontConfig<N>, const N: usize> FpConfig<N> for MontBackend<T, N> {
     /// `P::MODULUS` has (a) a non-zero MSB, and (b) at least one
     /// zero bit in the rest of the modulus.
     #[inline]
-    #[ark_ff_asm::unroll_for_loops]
     fn mul_assign(a: &mut Fp<Self, N>, b: &Fp<Self, N>) {
         T::mul_assign(a, b)
     }
 
     #[inline]
-    #[ark_ff_asm::unroll_for_loops]
     #[allow(unused_braces, clippy::absurd_extreme_comparisons)]
     fn square_in_place(a: &mut Fp<Self, N>) {
         T::square_in_place(a)
@@ -413,7 +402,6 @@ impl<T: MontConfig<N>, const N: usize> FpConfig<N> for MontBackend<T, N> {
     }
 
     #[inline]
-    #[ark_ff_asm::unroll_for_loops]
     #[allow(clippy::modulo_one)]
     fn into_bigint(a: Fp<Self, N>) -> BigInt<N> {
         T::into_bigint(a)
@@ -421,7 +409,6 @@ impl<T: MontConfig<N>, const N: usize> FpConfig<N> for MontBackend<T, N> {
 }
 
 impl<T, const N: usize> Fp<MontBackend<T, N>, N> {
-    #[ark_ff_asm::unroll_for_loops]
     const fn const_is_zero(&self) -> bool {
         self.0.const_is_zero()
     }
@@ -473,7 +460,6 @@ impl<T, const N: usize> Fp<MontBackend<T, N>, N> {
         }
     }
 
-    #[ark_ff_asm::unroll_for_loops]
     const fn mul_without_reduce(mut self, other: &Self, modulus: BigInt<N>, inv: u64) -> Self {
         let (mut lo, mut hi) = ([0u64; N], [0u64; N]);
         crate::const_for!((i in 0..N) {
@@ -512,19 +498,16 @@ impl<T, const N: usize> Fp<MontBackend<T, N>, N> {
         self
     }
 
-    #[ark_ff_asm::unroll_for_loops]
     const fn const_mul_without_reduce(self, other: &Self, modulus: BigInt<N>) -> Self {
         let inv = inv(modulus);
         self.mul_without_reduce(other, modulus, inv)
     }
 
-    #[ark_ff_asm::unroll_for_loops]
     const fn const_mul(mut self, other: &Self, modulus: BigInt<N>) -> Self {
         self = self.const_mul_without_reduce(other, modulus);
         self.const_reduce(modulus)
     }
 
-    #[ark_ff_asm::unroll_for_loops]
     const fn const_is_valid(&self, modulus: BigInt<N>) -> bool {
         crate::const_for!((i in 0..N) {
             if (self.0).0[(N - i - 1)] < modulus.0[(N - i - 1)] {
