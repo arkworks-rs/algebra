@@ -8,7 +8,7 @@ use crate::{biginteger::arithmetic as fa, BigInt, BigInteger};
 ///
 /// # Note
 /// Manual implementation of this trait is not recommended unless one wishes
-/// to special arithmetic methods. Instead, the [`MontConfig`][`ark_ff_macros::MontConfig`]
+/// to specialize arithmetic methods. Instead, the [`MontConfig`][`ark_ff_macros::MontConfig`]
 /// derive macro should be used.
 pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
     /// The modulus of the field.
