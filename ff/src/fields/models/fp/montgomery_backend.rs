@@ -5,6 +5,11 @@ use crate::{biginteger::arithmetic as fa, BigInt, BigInteger};
 
 /// A trait that specifies the constants and arithmetic procedures
 /// for Montgomery arithmetic over the prime field defined by `MODULUS`.
+///
+/// # Note
+/// Manual implementation of this trait is not recommended unless one wishes
+/// to specialize arithmetic methods. Instead, the [`MontConfig`][`ark_ff_macros::MontConfig`]
+/// derive macro should be used.
 pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
     /// The modulus of the field.
     const MODULUS: BigInt<N>;
@@ -17,7 +22,7 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
     const R2: BigInt<N> = Self::MODULUS.montgomery_r2();
 
     /// INV = -MODULUS^{-1} mod 2^64
-    const INV: u64 = inv(Self::MODULUS);
+    const INV: u64 = inv(&Self::MODULUS);
 
     /// A multiplicative generator of the field.
     /// `Self::GENERATOR` is an element having multiplicative order
@@ -45,8 +50,8 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
     const SMALL_SUBGROUP_BASE_ADICITY: Option<u32> = None;
 
     /// GENERATOR^((MODULUS-1) / (2^s *
-    /// SMALL_SUBGROUP_BASE^SMALL_SUBGROUP_BASE_ADICITY)) Used for mixed-radix
-    /// FFT.
+    /// SMALL_SUBGROUP_BASE^SMALL_SUBGROUP_BASE_ADICITY)).
+    /// Used for mixed-radix FFT.
     const LARGE_SUBGROUP_ROOT_OF_UNITY: Option<Fp<MontBackend<Self, N>, N>> = None;
 
     /// Set a += b;
@@ -124,7 +129,7 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
             }
         } else {
             // Alternative implementation
-            *a = a.mul_without_reduce(b, Self::MODULUS, Self::INV);
+            *a = a.mul_without_reduce(b, &Self::MODULUS, Self::INV);
         }
         a.subtract_modulus();
     }
@@ -304,7 +309,7 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
 }
 
 /// Compute -M^{-1} mod 2^64.
-pub const fn inv<const N: usize>(m: BigInt<N>) -> u64 {
+pub const fn inv<const N: usize>(m: &BigInt<N>) -> u64 {
     let mut inv = 1u64;
     crate::const_for!((_i in 0..63) {
         inv = inv.wrapping_mul(inv);
@@ -354,12 +359,19 @@ pub const fn can_use_no_carry_optimization<const N: usize>(modulus: &BigInt<N>) 
 /// ```
 #[macro_export]
 macro_rules! MontFp {
-    ($name:ident, $c0:expr) => {{
+    ($name:ty, $c0:expr) => {{
         use $crate::PrimeField;
         let (is_positive, limbs) = $crate::ark_ff_macros::to_sign_and_limbs!($c0);
-        $crate::Fp::const_from_str(&limbs, is_positive, $name::R2, $name::MODULUS)
+        $crate::Fp::const_from_str(
+            &limbs,
+            is_positive,
+            <$name>::R2,
+            &<$name as PrimeField>::MODULUS,
+        )
     }};
 }
+
+pub use ark_ff_macros::MontConfig;
 
 pub use MontFp;
 
@@ -437,13 +449,15 @@ impl<T: MontConfig<N>, const N: usize> FpConfig<N> for MontBackend<T, N> {
 
 impl<T, const N: usize> Fp<MontBackend<T, N>, N> {
     #[ark_ff_asm::unroll_for_loops]
+    #[doc(hidden)]
     const fn const_is_zero(&self) -> bool {
         self.0.const_is_zero()
     }
 
-    const fn const_neg(self, modulus: BigInt<N>) -> Self {
+    #[doc(hidden)]
+    const fn const_neg(self, modulus: &BigInt<N>) -> Self {
         if !self.const_is_zero() {
-            Self::new(Self::sub_with_borrow(&modulus, &self.0))
+            Self::new(Self::sub_with_borrow(modulus, &self.0))
         } else {
             self
         }
@@ -458,7 +472,7 @@ impl<T, const N: usize> Fp<MontBackend<T, N>, N> {
         limbs: &[u64],
         is_positive: bool,
         r2: BigInt<N>,
-        modulus: BigInt<N>,
+        modulus: &BigInt<N>,
     ) -> Self {
         let mut repr = BigInt::<N>([0; N]);
         assert!(repr.0.len() == N);
@@ -477,7 +491,7 @@ impl<T, const N: usize> Fp<MontBackend<T, N>, N> {
     pub(crate) const fn const_from_bigint(
         repr: BigInt<N>,
         r2: BigInt<N>,
-        modulus: BigInt<N>,
+        modulus: &BigInt<N>,
     ) -> Self {
         let mut r = Self::new(repr);
         if r.const_is_zero() {
@@ -489,7 +503,8 @@ impl<T, const N: usize> Fp<MontBackend<T, N>, N> {
     }
 
     #[ark_ff_asm::unroll_for_loops]
-    const fn mul_without_reduce(mut self, other: &Self, modulus: BigInt<N>, inv: u64) -> Self {
+    #[doc(hidden)]
+    const fn mul_without_reduce(mut self, other: &Self, modulus: &BigInt<N>, inv: u64) -> Self {
         let (mut lo, mut hi) = ([0u64; N], [0u64; N]);
         crate::const_for!((i in 0..N) {
             let mut carry = 0;
@@ -528,19 +543,19 @@ impl<T, const N: usize> Fp<MontBackend<T, N>, N> {
     }
 
     #[ark_ff_asm::unroll_for_loops]
-    const fn const_mul_without_reduce(self, other: &Self, modulus: BigInt<N>) -> Self {
+    const fn const_mul_without_reduce(self, other: &Self, modulus: &BigInt<N>) -> Self {
         let inv = inv(modulus);
         self.mul_without_reduce(other, modulus, inv)
     }
 
     #[ark_ff_asm::unroll_for_loops]
-    const fn const_mul(mut self, other: &Self, modulus: BigInt<N>) -> Self {
+    const fn const_mul(mut self, other: &Self, modulus: &BigInt<N>) -> Self {
         self = self.const_mul_without_reduce(other, modulus);
         self.const_reduce(modulus)
     }
 
     #[ark_ff_asm::unroll_for_loops]
-    const fn const_is_valid(&self, modulus: BigInt<N>) -> bool {
+    const fn const_is_valid(&self, modulus: &BigInt<N>) -> bool {
         crate::const_for!((i in 0..N) {
             if (self.0).0[(N - i - 1)] < modulus.0[(N - i - 1)] {
                 return true
@@ -552,9 +567,9 @@ impl<T, const N: usize> Fp<MontBackend<T, N>, N> {
     }
 
     #[inline]
-    const fn const_reduce(mut self, modulus: BigInt<N>) -> Self {
+    const fn const_reduce(mut self, modulus: &BigInt<N>) -> Self {
         if !self.const_is_valid(modulus) {
-            self.0 = Self::sub_with_borrow(&self.0, &modulus);
+            self.0 = Self::sub_with_borrow(&self.0, modulus);
         }
         self
     }

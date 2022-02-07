@@ -74,7 +74,7 @@ macro_rules! BigInt {
 
 #[doc(hidden)]
 macro_rules! const_modulo {
-    ($a:ident, $divisor:ident) => {{
+    ($a:expr, $divisor:expr) => {{
         // Stupid slow base-2 long division taken from
         // https://en.wikipedia.org/wiki/Division_algorithm
         assert!(!$divisor.const_is_zero());
@@ -94,6 +94,7 @@ macro_rules! const_modulo {
         remainder
     }};
 }
+
 impl<const N: usize> BigInt<N> {
     #[doc(hidden)]
     pub const fn const_is_even(&self) -> bool {
@@ -134,7 +135,7 @@ impl<const N: usize> BigInt<N> {
         true
     }
 
-    /// Compute the largest integer `s` such that `self = 2**s * t` for odd `t`.
+    /// Compute the largest integer `s` such that `self = 2**s * t + 1` for odd `t`.
     #[doc(hidden)]
     pub const fn two_adic_valuation(mut self) -> u32 {
         let mut two_adicity = 0;
@@ -149,7 +150,7 @@ impl<const N: usize> BigInt<N> {
         two_adicity
     }
 
-    /// Compute the smallest odd integer `t` such that `self = 2**s * t` for some
+    /// Compute the smallest odd integer `t` such that `self = 2**s * t + 1` for some
     /// integer `s = self.two_adic_valuation()`.
     #[doc(hidden)]
     pub const fn two_adic_coefficient(mut self) -> Self {
@@ -671,6 +672,7 @@ mod tests;
 
 /// This defines a `BigInteger`, a smart wrapper around a
 /// sequence of `u64` limbs, least-significant limb first.
+// TODO: get rid of this trait once we can use associated constants in const generics.
 pub trait BigInteger:
     ToBytes
     + FromBytes
@@ -703,6 +705,7 @@ pub trait BigInteger:
 
     /// Add another [`BigInteger`] to `self`. This method stores the result in `self`,
     /// and returns a carry bit.
+    ///
     /// # Example
     ///
     /// ```
@@ -724,7 +727,7 @@ pub trait BigInteger:
 
     /// Subtract another [`BigInteger`] from this one. This method stores the result in
     /// `self`, and returns a borrow.
-    /// the borrow bit.
+    ///
     /// # Example
     ///
     /// ```
