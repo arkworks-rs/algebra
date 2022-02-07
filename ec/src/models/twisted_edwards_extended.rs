@@ -200,7 +200,7 @@ impl<'a, P: Parameters> SubAssign<&'a Self> for GroupAffine<P> {
 
 impl<P: Parameters> MulAssign<P::ScalarField> for GroupAffine<P> {
     fn mul_assign(&mut self, other: P::ScalarField) {
-        *self = self.mul(other.into_repr()).into()
+        *self = self.mul(other.into_bigint()).into()
     }
 }
 
@@ -583,7 +583,7 @@ impl<'a, P: Parameters> SubAssign<&'a Self> for GroupProjective<P> {
 
 impl<P: Parameters> MulAssign<P::ScalarField> for GroupProjective<P> {
     fn mul_assign(&mut self, other: P::ScalarField) {
-        *self = self.mul(other.into_repr())
+        *self = self.mul(other.into_bigint())
     }
 }
 

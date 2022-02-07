@@ -1,1 +1,1 @@
-pub use crate::mnt4_753::{Fq as Fr, FqParameters as FrParameters};
+pub use crate::mnt4_753::{Fq as Fr, FqConfig as FrConfig};

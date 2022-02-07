@@ -1,5 +1,5 @@
 use crate::{AffineCurve, ProjectiveCurve};
-use ark_ff::{BigInteger, FpParameters, PrimeField};
+use ark_ff::{BigInteger, PrimeField};
 use ark_std::{cfg_iter, cfg_iter_mut, vec::Vec};
 
 #[cfg(feature = "parallel")]
@@ -63,8 +63,8 @@ impl FixedBase {
         multiples_of_g: &[Vec<T::Affine>],
         scalar: &T::ScalarField,
     ) -> T {
-        let modulus_size = <T::ScalarField as PrimeField>::Params::MODULUS_BITS as usize;
-        let scalar_val = scalar.into_repr().to_bits_le();
+        let modulus_size = T::ScalarField::MODULUS_BIT_SIZE as usize;
+        let scalar_val = scalar.into_bigint().to_bits_le();
 
         let mut res = multiples_of_g[0][0].into_projective();
         for outer in 0..outerc {
