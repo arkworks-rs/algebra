@@ -368,6 +368,33 @@ macro_rules! impl_Fp {
             }
 
             #[inline]
+            fn legendre(&self) -> LegendreSymbol {
+                use crate::fields::LegendreSymbol::*;
+
+                // s = self^((MODULUS - 1) // 2)
+                let s = self.pow(P::MODULUS_MINUS_ONE_DIV_TWO);
+                if s.is_zero() {
+                    Zero
+                } else if s.is_one() {
+                    QuadraticResidue
+                } else {
+                    QuadraticNonResidue
+                }
+            }
+
+            #[inline]
+            fn sqrt(&self) -> Option<Self> {
+                sqrt_impl!(Self, P, self)
+            }
+
+            fn sqrt_in_place(&mut self) -> Option<&mut Self> {
+                (*self).sqrt().map(|sqrt| {
+                    *self = sqrt;
+                    self
+                })
+            }
+            
+            #[inline]
             fn square(&self) -> Self {
                 let mut temp = self.clone();
                 temp.square_in_place();
@@ -483,35 +510,6 @@ macro_rules! impl_Fp {
             #[inline]
             fn multiplicative_generator() -> Self {
                 $Fp::<P>(P::GENERATOR, PhantomData)
-            }
-        }
-
-        impl<P: $FpParameters> SquareRootField for $Fp<P> {
-            #[inline]
-            fn legendre(&self) -> LegendreSymbol {
-                use crate::fields::LegendreSymbol::*;
-
-                // s = self^((MODULUS - 1) // 2)
-                let s = self.pow(P::MODULUS_MINUS_ONE_DIV_TWO);
-                if s.is_zero() {
-                    Zero
-                } else if s.is_one() {
-                    QuadraticResidue
-                } else {
-                    QuadraticNonResidue
-                }
-            }
-
-            #[inline]
-            fn sqrt(&self) -> Option<Self> {
-                sqrt_impl!(Self, P, self)
-            }
-
-            fn sqrt_in_place(&mut self) -> Option<&mut Self> {
-                (*self).sqrt().map(|sqrt| {
-                    *self = sqrt;
-                    self
-                })
             }
         }
 

@@ -150,6 +150,19 @@ pub trait Field:
     /// random field elements from a hash-function or RNG output.
     fn from_random_bytes_with_flags<F: Flags>(bytes: &[u8]) -> Option<(Self, F)>;
 
+    /// Returns a `LegendreSymbol`, which indicates whether this field element
+    /// is  1 : a quadratic residue
+    ///  0 : equal to 0
+    /// -1 : a quadratic non-residue
+    fn legendre(&self) -> LegendreSymbol;
+
+    /// Returns the square root of self, if it exists.
+    #[must_use]
+    fn sqrt(&self) -> Option<Self>;
+
+    /// Sets `self` to be the square root of `self`, if it exists.
+    fn sqrt_in_place(&mut self) -> Option<&mut Self>;
+
     /// Returns `self * self`.
     #[must_use]
     fn square(&self) -> Self;
@@ -432,22 +445,6 @@ pub trait PrimeField:
     }
 }
 
-/// The interface for a field that supports an efficient square-root operation.
-pub trait SquareRootField: Field {
-    /// Returns a `LegendreSymbol`, which indicates whether this field element
-    /// is  1 : a quadratic residue
-    ///  0 : equal to 0
-    /// -1 : a quadratic non-residue
-    fn legendre(&self) -> LegendreSymbol;
-
-    /// Returns the square root of self, if it exists.
-    #[must_use]
-    fn sqrt(&self) -> Option<Self>;
-
-    /// Sets `self` to be the square root of `self`, if it exists.
-    fn sqrt_in_place(&mut self) -> Option<&mut Self>;
-}
-
 /// Indication of the field element's quadratic residuosity
 ///
 /// # Examples
@@ -455,7 +452,7 @@ pub trait SquareRootField: Field {
 /// # use ark_std::test_rng;
 /// # use ark_test_curves::bls12_381::Fq as Fp;
 /// # use ark_std::UniformRand;
-/// # use ark_ff::{LegendreSymbol, Field, SquareRootField};
+/// # use ark_ff::{LegendreSymbol, Field};
 /// let a: Fp = Fp::rand(&mut test_rng());
 /// let b = a.square();
 /// assert_eq!(b.legendre(), LegendreSymbol::QuadraticResidue);
@@ -475,7 +472,7 @@ impl LegendreSymbol {
     /// # use ark_std::test_rng;
     /// # use ark_test_curves::bls12_381::Fq as Fp;
     /// # use ark_std::UniformRand;
-    /// # use ark_ff::{LegendreSymbol, Field, SquareRootField};
+    /// # use ark_ff::{LegendreSymbol, Field};
     /// let a: Fp = Fp::rand(&mut test_rng());
     /// let b: Fp = a.square();
     /// assert!(!b.legendre().is_zero());
@@ -489,7 +486,7 @@ impl LegendreSymbol {
     /// # Examples
     /// ```
     /// # use ark_test_curves::bls12_381::{Fq, Fq2Parameters};
-    /// # use ark_ff::{LegendreSymbol, SquareRootField};
+    /// # use ark_ff::LegendreSymbol;
     /// # use ark_ff::Fp2Parameters;
     /// let a: Fq = Fq2Parameters::NONRESIDUE;
     /// assert!(a.legendre().is_qnr());
@@ -504,7 +501,7 @@ impl LegendreSymbol {
     /// # use ark_std::test_rng;
     /// # use ark_test_curves::bls12_381::Fq as Fp;
     /// # use ark_std::UniformRand;
-    /// # use ark_ff::{LegendreSymbol, Field, SquareRootField};
+    /// # use ark_ff::{LegendreSymbol, Field};
     /// let a: Fp = Fp::rand(&mut test_rng());
     /// let b: Fp = a.square();
     /// assert!(b.legendre().is_qr());

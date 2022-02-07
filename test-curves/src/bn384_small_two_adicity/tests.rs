@@ -1,6 +1,6 @@
 #![allow(unused_imports)]
 use ark_ec::{models::SWModelParameters, AffineCurve, PairingEngine, ProjectiveCurve};
-use ark_ff::{Field, One, SquareRootField, UniformRand, Zero};
+use ark_ff::{Field, One, UniformRand, Zero};
 use ark_std::{rand::Rng, test_rng};
 
 use crate::bn384_small_two_adicity::{g1, Fq, FqParameters, Fr, G1Affine, G1Projective};

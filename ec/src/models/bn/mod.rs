@@ -6,7 +6,7 @@ use ark_ff::fields::{
     fp12_2over3over2::{Fp12, Fp12Parameters},
     fp2::Fp2Parameters,
     fp6_3over2::Fp6Parameters,
-    Field, Fp2, PrimeField, SquareRootField,
+    Field, Fp2, PrimeField,
 };
 use num_traits::One;
 
@@ -31,7 +31,7 @@ pub trait BnParameters: 'static {
     const TWIST_TYPE: TwistType;
     const TWIST_MUL_BY_Q_X: Fp2<Self::Fp2Params>;
     const TWIST_MUL_BY_Q_Y: Fp2<Self::Fp2Params>;
-    type Fp: PrimeField + SquareRootField + Into<<Self::Fp as PrimeField>::BigInt>;
+    type Fp: PrimeField + Into<<Self::Fp as PrimeField>::BigInt>;
     type Fp2Params: Fp2Parameters<Fp = Self::Fp>;
     type Fp6Params: Fp6Parameters<Fp2Params = Self::Fp2Params>;
     type Fp12Params: Fp12Parameters<Fp6Params = Self::Fp6Params>;

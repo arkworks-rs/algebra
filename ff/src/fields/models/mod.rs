@@ -14,7 +14,7 @@ use crate::{
         BigInteger384, BigInteger448, BigInteger64, BigInteger768, BigInteger832,
     },
     bytes::{FromBytes, ToBytes},
-    fields::{FftField, Field, FpParameters, LegendreSymbol, PrimeField, SquareRootField},
+    fields::{FftField, Field, FpParameters, LegendreSymbol, PrimeField},
 };
 use ark_serialize::*;
 

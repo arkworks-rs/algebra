@@ -21,7 +21,7 @@ use ark_std::rand::{
 use crate::{
     biginteger::BigInteger,
     bytes::{FromBytes, ToBytes},
-    fields::{Field, LegendreSymbol, PrimeField, SquareRootField},
+    fields::{Field, LegendreSymbol, PrimeField},
     ToConstraintField, UniformRand,
 };
 
@@ -369,9 +369,9 @@ impl<P: QuadExtParameters> Field for QuadExtField<P> {
     }
 }
 
-impl<'a, P: QuadExtParameters> SquareRootField for QuadExtField<P>
+impl<'a, P: QuadExtParameters> Field for QuadExtField<P>
 where
-    P::BaseField: SquareRootField + From<P::BasePrimeField>,
+    P::BaseField: Field + From<P::BasePrimeField>,
 {
     fn legendre(&self) -> LegendreSymbol {
         // The LegendreSymbol in a field of order q for an element x can be

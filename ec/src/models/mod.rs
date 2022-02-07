@@ -1,5 +1,5 @@
 use crate::AffineCurve;
-use ark_ff::{fields::BitIteratorBE, Field, PrimeField, SquareRootField, Zero};
+use ark_ff::{fields::BitIteratorBE, Field, PrimeField, Zero};
 
 pub mod bls12;
 pub mod bn;
@@ -11,8 +11,8 @@ pub mod twisted_edwards_extended;
 
 /// Model parameters for an elliptic curve.
 pub trait ModelParameters: Send + Sync + Sized + 'static {
-    type BaseField: Field + SquareRootField;
-    type ScalarField: PrimeField + SquareRootField + Into<<Self::ScalarField as PrimeField>::BigInt>;
+    type BaseField: Field;
+    type ScalarField: PrimeField + Into<<Self::ScalarField as PrimeField>::BigInt>;
 
     const COFACTOR: &'static [u64];
     const COFACTOR_INV: Self::ScalarField;

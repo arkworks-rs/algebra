@@ -12,7 +12,7 @@ use ark_std::{
 
 use ark_ff::{
     bytes::{FromBytes, ToBytes},
-    fields::{Field, PrimeField, SquareRootField},
+    fields::{Field, PrimeField},
     ToConstraintField, UniformRand,
 };
 

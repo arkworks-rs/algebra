@@ -3,7 +3,7 @@ use crate::fields::*;
 use core::marker::PhantomData;
 
 pub trait Fp3Parameters: 'static + Send + Sync {
-    type Fp: PrimeField + SquareRootField;
+    type Fp: PrimeField;
 
     const NONRESIDUE: Self::Fp;
 
@@ -71,7 +71,7 @@ impl<P: Fp3Parameters> Fp3<P> {
     }
 }
 
-impl<P: Fp3Parameters> SquareRootField for Fp3<P> {
+impl<P: Fp3Parameters> Field for Fp3<P> {
     /// Returns the Legendre symbol.
     fn legendre(&self) -> LegendreSymbol {
         self.norm().legendre()

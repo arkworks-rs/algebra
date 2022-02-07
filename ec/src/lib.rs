@@ -21,7 +21,7 @@ extern crate ark_std;
 
 use ark_ff::{
     bytes::{FromBytes, ToBytes},
-    fields::{BitIteratorBE, Field, PrimeField, SquareRootField},
+    fields::{BitIteratorBE, Field, PrimeField},
     UniformRand,
 };
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
@@ -47,7 +47,7 @@ pub mod wnaf;
 
 pub trait PairingEngine: Sized + 'static + Copy + Debug + Sync + Send + Eq + PartialEq {
     /// This is the scalar field of the G1/G2 groups.
-    type Fr: PrimeField + SquareRootField;
+    type Fr: PrimeField;
 
     /// The projective representation of an element in G1.
     type G1Projective: ProjectiveCurve<BaseField = Self::Fq, ScalarField = Self::Fr, Affine = Self::G1Affine>
@@ -80,10 +80,10 @@ pub trait PairingEngine: Sized + 'static + Copy + Debug + Sync + Send + Eq + Par
     type G2Prepared: ToBytes + Default + Clone + Send + Sync + Debug + From<Self::G2Affine>;
 
     /// The base field that hosts G1.
-    type Fq: PrimeField + SquareRootField;
+    type Fq: PrimeField;
 
     /// The extension field that hosts G2.
-    type Fqe: SquareRootField;
+    type Fqe: Field;
 
     /// The extension field that hosts the target group of the pairing.
     type Fqk: Field;
@@ -156,7 +156,7 @@ pub trait ProjectiveCurve:
     + From<<Self as ProjectiveCurve>::Affine>
 {
     type Parameters: ModelParameters<ScalarField = Self::ScalarField, BaseField = Self::BaseField>;
-    type ScalarField: PrimeField + SquareRootField;
+    type ScalarField: PrimeField;
     type BaseField: Field;
     type Affine: AffineCurve<
             Parameters = Self::Parameters,
@@ -256,7 +256,7 @@ pub trait AffineCurve:
     + From<<Self as AffineCurve>::Projective>
 {
     type Parameters: ModelParameters<ScalarField = Self::ScalarField, BaseField = Self::BaseField>;
-    type ScalarField: PrimeField + SquareRootField + Into<<Self::ScalarField as PrimeField>::BigInt>;
+    type ScalarField: PrimeField + Into<<Self::ScalarField as PrimeField>::BigInt>;
     type BaseField: Field;
     type Projective: ProjectiveCurve<
             Parameters = Self::Parameters,

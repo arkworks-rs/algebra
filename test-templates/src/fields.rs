@@ -1,6 +1,6 @@
 #![allow(unused)]
 #![allow(clippy::eq_op)]
-use ark_ff::fields::{FftField, FftParameters, Field, LegendreSymbol, PrimeField, SquareRootField};
+use ark_ff::fields::{FftField, FftParameters, Field, LegendreSymbol, PrimeField};
 use ark_serialize::{buffer_bit_byte_size, Flags, SWFlags};
 use ark_std::{io::Cursor, rand::Rng};
 
@@ -187,7 +187,7 @@ fn random_field_tests<F: Field>() {
     }
 }
 
-fn random_sqrt_tests<F: SquareRootField>() {
+fn random_sqrt_tests<F: Field>() {
     let mut rng = ark_std::test_rng();
 
     for _ in 0..ITERATIONS {
@@ -343,7 +343,7 @@ pub fn primefield_test<F: PrimeField>() {
     fft_field_test::<F>();
 }
 
-pub fn sqrt_field_test<F: SquareRootField>(elem: F) {
+pub fn sqrt_field_test<F: Field>(elem: F) {
     let square = elem.square();
     let sqrt = square.sqrt().unwrap();
     assert!(sqrt == elem || sqrt == -elem);
