@@ -3,15 +3,9 @@ use crate::{
     PairingEngine,
 };
 use ark_ff::fields::{
-<<<<<<< HEAD
     fp3::Fp3Parameters,
     fp6_2over3::{Fp6, Fp6Parameters},
     BitIteratorBE, Field, PrimeField,
-=======
-    fp3::Fp3Config,
-    fp6_2over3::{Fp6, Fp6Config},
-    BitIteratorBE, Field, PrimeField, SquareRootField,
->>>>>>> master
 };
 use num_traits::One;
 
@@ -30,15 +24,9 @@ pub trait BW6Parameters: 'static + Eq + PartialEq {
     const ATE_LOOP_COUNT_2: &'static [i8];
     const ATE_LOOP_COUNT_2_IS_NEGATIVE: bool;
     const TWIST_TYPE: TwistType;
-<<<<<<< HEAD
     type Fp: PrimeField + Into<<Self::Fp as PrimeField>::BigInt>;
     type Fp3Params: Fp3Parameters<Fp = Self::Fp>;
     type Fp6Params: Fp6Parameters<Fp3Params = Self::Fp3Params>;
-=======
-    type Fp: PrimeField + SquareRootField + Into<<Self::Fp as PrimeField>::BigInt>;
-    type Fp3Params: Fp3Config<Fp = Self::Fp>;
-    type Fp6Params: Fp6Config<Fp3Params = Self::Fp3Params>;
->>>>>>> master
     type G1Parameters: SWModelParameters<BaseField = Self::Fp>;
     type G2Parameters: SWModelParameters<
         BaseField = Self::Fp,

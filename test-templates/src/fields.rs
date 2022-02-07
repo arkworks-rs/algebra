@@ -1,13 +1,9 @@
 #![allow(unused)]
 #![allow(clippy::eq_op)]
-<<<<<<< HEAD
-use ark_ff::fields::{FftField, FftParameters, Field, LegendreSymbol, PrimeField};
-=======
 use ark_ff::{
-    fields::{FftField, Field, LegendreSymbol, PrimeField, SquareRootField},
+    fields::{FftField, Field, LegendreSymbol, PrimeField},
     Fp, MontBackend, MontConfig,
 };
->>>>>>> master
 use ark_serialize::{buffer_bit_byte_size, Flags, SWFlags};
 use ark_std::{io::Cursor, rand::Rng};
 
