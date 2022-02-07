@@ -1,28 +1,18 @@
-use ark_ff::{
-    biginteger::BigInteger384 as BigInteger,
-    fields::{Fp384, MontBackend},
-    BigInt, MontFp,
-};
+use ark_ff::fields::{Fp384, MontBackend};
 
+#[derive(ark_ff::MontConfig)]
+#[modulus = "4002409555221667393417789825735904156556882819939007885332058136124031650490837864442687629129015664037894272559787"]
+#[generator = "2"]
 pub struct FqConfig;
 pub type Fq = Fp384<MontBackend<FqConfig, 6>>;
 
-impl ark_ff::MontConfig<6> for FqConfig {
-    /// MODULUS = 4002409555221667393417789825735904156556882819939007885332058136124031650490837864442687629129015664037894272559787
-    const MODULUS: BigInteger = BigInt!("4002409555221667393417789825735904156556882819939007885332058136124031650490837864442687629129015664037894272559787");
-
-    /// GENERATOR = 2
-    const GENERATOR: Fq = ark_ff::MontFp!(Fq, "2");
-
-    const TWO_ADIC_ROOT_OF_UNITY: Fq = MontFp!(Fq, "4002409555221667393417789825735904156556882819939007885332058136124031650490837864442687629129015664037894272559786");
-}
-
-pub const FQ_ONE: Fq = MontFp!(Fq, "1");
-pub const FQ_ZERO: Fq = MontFp!(Fq, "0");
+pub const FQ_ONE: Fq = ark_ff::MontFp!(Fq, "1");
+pub const FQ_ZERO: Fq = ark_ff::MontFp!(Fq, "0");
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use ark_ff::BigInt;
     #[test]
     fn test_constants() {
         use ark_ff::{MontConfig, PrimeField};
@@ -91,7 +81,8 @@ mod tests {
         );
         // GENERATOR = 2
         // Encoded in Montgomery form, so the value is
-        // 2 * R % q = 2758230843577277949620073511305048635578704962089743514587482222134842183668501798417467556318533664893264801977679
+        // 2 * R % q =
+        // 2758230843577277949620073511305048635578704962089743514587482222134842183668501798417467556318533664893264801977679
         assert_eq!(
             FqConfig::GENERATOR,
             Fq::new(BigInt::new([
