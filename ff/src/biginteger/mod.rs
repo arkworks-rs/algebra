@@ -4,6 +4,7 @@ use crate::{
     fields::{BitIteratorBE, BitIteratorLE},
     UniformRand,
 };
+use ark_ff_macros::unroll_for_loops;
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, SerializationError};
 use ark_std::{
     convert::TryFrom,
@@ -183,7 +184,7 @@ impl<const N: usize> BigInt<N> {
     }
 
     #[inline]
-    #[ark_ff_asm::unroll_for_loops]
+    #[unroll_for_loops(12)]
     pub(crate) const fn const_sub_with_borrow(mut self, other: &Self) -> (Self, bool) {
         let mut borrow = 0;
 
@@ -206,7 +207,7 @@ impl<const N: usize> BigInt<N> {
         self
     }
 
-    #[ark_ff_asm::unroll_for_loops]
+    #[unroll_for_loops(12)]
     pub(crate) const fn const_is_zero(&self) -> bool {
         let mut is_zero = true;
         crate::const_for!((i in 0..N) {
@@ -235,7 +236,7 @@ impl<const N: usize> BigInteger for BigInt<N> {
     const NUM_LIMBS: usize = N;
 
     #[inline]
-    #[ark_ff_asm::unroll_for_loops]
+    #[unroll_for_loops(12)]
     fn add_with_carry(&mut self, other: &Self) -> bool {
         let mut carry = 0;
 
@@ -257,7 +258,7 @@ impl<const N: usize> BigInteger for BigInt<N> {
     }
 
     #[inline]
-    #[ark_ff_asm::unroll_for_loops]
+    #[unroll_for_loops(12)]
     fn sub_with_borrow(&mut self, other: &Self) -> bool {
         let mut borrow = 0;
 
@@ -279,7 +280,7 @@ impl<const N: usize> BigInteger for BigInt<N> {
     }
 
     #[inline]
-    #[ark_ff_asm::unroll_for_loops]
+    #[unroll_for_loops(12)]
     #[allow(unused)]
     fn mul2(&mut self) {
         #[cfg(all(target_arch = "x86_64", feature = "asm"))]
@@ -309,7 +310,7 @@ impl<const N: usize> BigInteger for BigInt<N> {
     }
 
     #[inline]
-    #[ark_ff_asm::unroll_for_loops]
+    #[unroll_for_loops(12)]
     fn muln(&mut self, mut n: u32) {
         if n >= (64 * N) as u32 {
             *self = Self::from(0u64);
@@ -338,7 +339,7 @@ impl<const N: usize> BigInteger for BigInt<N> {
     }
 
     #[inline]
-    #[ark_ff_asm::unroll_for_loops]
+    #[unroll_for_loops(12)]
     #[allow(unused)]
     fn div2(&mut self) {
         let mut t = 0;
@@ -352,7 +353,7 @@ impl<const N: usize> BigInteger for BigInt<N> {
     }
 
     #[inline]
-    #[ark_ff_asm::unroll_for_loops]
+    #[unroll_for_loops(12)]
     fn divn(&mut self, mut n: u32) {
         if n >= (64 * N) as u32 {
             *self = Self::from(0u64);
@@ -523,7 +524,7 @@ impl<const N: usize> Display for BigInt<N> {
 
 impl<const N: usize> Ord for BigInt<N> {
     #[inline]
-    #[ark_ff_asm::unroll_for_loops]
+    #[unroll_for_loops(12)]
     fn cmp(&self, other: &Self) -> ::core::cmp::Ordering {
         use core::cmp::Ordering;
         for i in 0..N {
