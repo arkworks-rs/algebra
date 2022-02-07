@@ -22,7 +22,7 @@
 //! `#[unroll_for_loops]` is applied.
 //!
 //! ```rust
-//! use ark_ff_asm::unroll_for_loops;
+//! use ark_ff_macros::unroll_for_loops;
 //!
 //! #[unroll_for_loops(12)]
 //! fn mtx_vec_mul(mtx: &[[f64; 5]; 5], vec: &[f64; 5]) -> [f64; 5] {
