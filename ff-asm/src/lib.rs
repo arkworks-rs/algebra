@@ -11,47 +11,15 @@
 use proc_macro::TokenStream;
 use syn::{
     parse::{Parse, ParseStream},
-    Expr, Item, ItemFn, Lit,
+    Expr,
 };
 
 mod context;
 use context::*;
 
-mod unroll;
-
 use std::cell::RefCell;
 
 const MAX_REGS: usize = 6;
-
-const ARG_MSG: &'static str = "Failed to parse unroll threshold; must be a positive integer";
-
-/// Attribute used to unroll for loops found inside a function block.
-#[proc_macro_attribute]
-pub fn unroll_for_loops(args: TokenStream, input: TokenStream) -> TokenStream {
-    let unroll_by = match syn::parse2::<syn::Lit>(args.into()).expect(ARG_MSG) {
-        Lit::Int(int) => int.base10_parse().expect(ARG_MSG),
-        _ => panic!("{}", ARG_MSG),
-    };
-
-    let item: Item = syn::parse(input).expect("Failed to parse input.");
-
-    if let Item::Fn(item_fn) = item {
-        let new_block = {
-            let &ItemFn {
-                block: ref box_block,
-                ..
-            } = &item_fn;
-            unroll::unroll_in_block(&**box_block, unroll_by)
-        };
-        let new_item = Item::Fn(ItemFn {
-            block: Box::new(new_block),
-            ..item_fn
-        });
-        quote::quote! ( #new_item ).into()
-    } else {
-        quote::quote! ( #item ).into()
-    }
-}
 
 struct AsmMulInput {
     num_limbs: Box<Expr>,
