@@ -2,9 +2,15 @@ use ark_std::{marker::PhantomData, Zero};
 
 use super::{Fp, FpConfig};
 use crate::{biginteger::arithmetic as fa, BigInt, BigInteger};
+use ark_ff_macros::unroll_for_loops;
 
 /// A trait that specifies the constants and arithmetic procedures
 /// for Montgomery arithmetic over the prime field defined by `MODULUS`.
+///
+/// # Note
+/// Manual implementation of this trait is not recommended unless one wishes
+/// to specialize arithmetic methods. Instead, the [`MontConfig`][`ark_ff_macros::MontConfig`]
+/// derive macro should be used.
 pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
     /// The modulus of the field.
     const MODULUS: BigInt<N>;
@@ -17,7 +23,7 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
     const R2: BigInt<N> = Self::MODULUS.montgomery_r2();
 
     /// INV = -MODULUS^{-1} mod 2^64
-    const INV: u64 = inv(Self::MODULUS);
+    const INV: u64 = inv(&Self::MODULUS);
 
     /// A multiplicative generator of the field.
     /// `Self::GENERATOR` is an element having multiplicative order
@@ -45,14 +51,14 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
     const SMALL_SUBGROUP_BASE_ADICITY: Option<u32> = None;
 
     /// GENERATOR^((MODULUS-1) / (2^s *
-    /// SMALL_SUBGROUP_BASE^SMALL_SUBGROUP_BASE_ADICITY)) Used for mixed-radix
-    /// FFT.
+    /// SMALL_SUBGROUP_BASE^SMALL_SUBGROUP_BASE_ADICITY)).
+    /// Used for mixed-radix FFT.
     const LARGE_SUBGROUP_ROOT_OF_UNITY: Option<Fp<MontBackend<Self, N>, N>> = None;
 
     /// Set a += b;
     fn add_assign(a: &mut Fp<MontBackend<Self, N>, N>, b: &Fp<MontBackend<Self, N>, N>) {
         // This cannot exceed the backing capacity.
-        a.0.add_nocarry(&b.0);
+        a.0.add_with_carry(&b.0);
         // However, it may need to be reduced
         a.subtract_modulus();
     }
@@ -60,9 +66,9 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
     fn sub_assign(a: &mut Fp<MontBackend<Self, N>, N>, b: &Fp<MontBackend<Self, N>, N>) {
         // If `other` is larger than `self`, add the modulus to self first.
         if b.0 > a.0 {
-            a.0.add_nocarry(&Self::MODULUS);
+            a.0.add_with_carry(&Self::MODULUS);
         }
-        a.0.sub_noborrow(&b.0);
+        a.0.sub_with_borrow(&b.0);
     }
 
     fn double_in_place(a: &mut Fp<MontBackend<Self, N>, N>) {
@@ -79,12 +85,21 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
     /// `Self::MODULUS` has (a) a non-zero MSB, and (b) at least one
     /// zero bit in the rest of the modulus.
     #[inline]
-    #[ark_ff_asm::unroll_for_loops]
+    #[unroll_for_loops(12)]
     fn mul_assign(a: &mut Fp<MontBackend<Self, N>, N>, b: &Fp<MontBackend<Self, N>, N>) {
         // No-carry optimisation applied to CIOS
         if Self::CAN_USE_NO_CARRY_OPT {
-            if N <= 6 && N > 1 && cfg!(use_asm) {
-                #[cfg(use_asm)]
+            if N <= 6
+                && N > 1
+                && cfg!(all(
+                    feature = "asm",
+                    inline_asm_stable,
+                    target_feature = "bmi2",
+                    target_feature = "adx",
+                    target_arch = "x86_64"
+                ))
+            {
+                #[cfg(all(feature = "asm", inline_asm_stable, target_feature = "bmi2", target_feature = "adx", target_arch = "x86_64"))]
                 #[allow(unsafe_code, unused_mut)]
                 // Tentatively avoid using assembly for `N == 1`.
                 #[rustfmt::skip]
@@ -115,14 +130,13 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
             }
         } else {
             // Alternative implementation
-            *a = a.mul_without_reduce(b, Self::MODULUS, Self::INV);
+            *a = a.mul_without_reduce(b, &Self::MODULUS, Self::INV);
         }
         a.subtract_modulus();
     }
 
     #[inline]
-    #[ark_ff_asm::unroll_for_loops]
-    #[allow(unused_braces, clippy::absurd_extreme_comparisons)]
+    #[unroll_for_loops(12)]
     fn square_in_place(a: &mut Fp<MontBackend<Self, N>, N>) {
         if N == 1 {
             // We default to multiplying with `a` using the `Mul` impl
@@ -131,7 +145,13 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
             Self::mul_assign(a, &temp);
             return;
         }
-        #[cfg(use_asm)]
+        #[cfg(all(
+            feature = "asm",
+            inline_asm_stable,
+            target_feature = "bmi2",
+            target_feature = "adx",
+            target_arch = "x86_64"
+        ))]
         #[allow(unsafe_code, unused_mut)]
         {
             // Checking the modulus at compile time
@@ -152,16 +172,12 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
         let mut r = crate::const_helpers::MulBuffer::<N>::zeroed();
 
         let mut carry = 0;
-        for i in 0..N {
-            if i < N - 1 {
-                for j in 0..N {
-                    if j > i {
-                        r[i + j] = fa::mac_with_carry(r[i + j], (a.0).0[i], (a.0).0[j], &mut carry);
-                    }
-                }
-                r.b1[i] = carry;
-                carry = 0;
+        for i in 0..(N - 1) {
+            for j in (i + 1)..N {
+                r[i + j] = fa::mac_with_carry(r[i + j], (a.0).0[i], (a.0).0[j], &mut carry);
             }
+            r.b1[i] = carry;
+            carry = 0;
         }
         r.b1[N - 1] >>= 63;
         for i in 0..N {
@@ -174,12 +190,7 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
 
         for i in 0..N {
             r[2 * i] = fa::mac_with_carry(r[2 * i], (a.0).0[i], (a.0).0[i], &mut carry);
-            // need unused assignment because the last iteration of the loop produces an
-            // assignment to `carry` that is unused.
-            #[allow(unused_assignments)]
-            {
-                r[2 * i + 1] = fa::adc(r[2 * i + 1], 0, &mut carry);
-            }
+            r[2 * i + 1] = fa::adc(r[2 * i + 1], 0, &mut carry);
         }
         // Montgomery reduction
         let mut carry2 = 0;
@@ -220,7 +231,7 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
                     if b.0.is_even() {
                         b.0.div2();
                     } else {
-                        b.0.add_nocarry(&Self::MODULUS);
+                        b.0.add_with_carry(&Self::MODULUS);
                         b.0.div2();
                     }
                 }
@@ -231,16 +242,16 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
                     if c.0.is_even() {
                         c.0.div2();
                     } else {
-                        c.0.add_nocarry(&Self::MODULUS);
+                        c.0.add_with_carry(&Self::MODULUS);
                         c.0.div2();
                     }
                 }
 
                 if v < u {
-                    u.sub_noborrow(&v);
+                    u.sub_with_borrow(&v);
                     b -= &c;
                 } else {
-                    v.sub_noborrow(&u);
+                    v.sub_with_borrow(&u);
                     c -= &b;
                 }
             }
@@ -266,7 +277,7 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
     }
 
     #[inline]
-    #[ark_ff_asm::unroll_for_loops]
+    #[unroll_for_loops(12)]
     #[allow(clippy::modulo_one)]
     fn into_bigint(a: Fp<MontBackend<Self, N>, N>) -> BigInt<N> {
         let mut tmp = a.0;
@@ -289,7 +300,7 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
 }
 
 /// Compute -M^{-1} mod 2^64.
-pub const fn inv<const N: usize>(m: BigInt<N>) -> u64 {
+pub const fn inv<const N: usize>(m: &BigInt<N>) -> u64 {
     let mut inv = 1u64;
     crate::const_for!((_i in 0..63) {
         inv = inv.wrapping_mul(inv);
@@ -339,12 +350,19 @@ pub const fn can_use_no_carry_optimization<const N: usize>(modulus: &BigInt<N>) 
 /// ```
 #[macro_export]
 macro_rules! MontFp {
-    ($name:ident, $c0:expr) => {{
+    ($name:ty, $c0:expr) => {{
         use $crate::PrimeField;
         let (is_positive, limbs) = $crate::ark_ff_macros::to_sign_and_limbs!($c0);
-        $crate::Fp::const_from_str(&limbs, is_positive, $name::R2, $name::MODULUS)
+        $crate::Fp::const_from_str(
+            &limbs,
+            is_positive,
+            <$name>::R2,
+            &<$name as PrimeField>::MODULUS,
+        )
     }};
 }
+
+pub use ark_ff_macros::MontConfig;
 
 pub use MontFp;
 
@@ -392,13 +410,11 @@ impl<T: MontConfig<N>, const N: usize> FpConfig<N> for MontBackend<T, N> {
     /// `P::MODULUS` has (a) a non-zero MSB, and (b) at least one
     /// zero bit in the rest of the modulus.
     #[inline]
-    #[ark_ff_asm::unroll_for_loops]
     fn mul_assign(a: &mut Fp<Self, N>, b: &Fp<Self, N>) {
         T::mul_assign(a, b)
     }
 
     #[inline]
-    #[ark_ff_asm::unroll_for_loops]
     #[allow(unused_braces, clippy::absurd_extreme_comparisons)]
     fn square_in_place(a: &mut Fp<Self, N>) {
         T::square_in_place(a)
@@ -413,7 +429,6 @@ impl<T: MontConfig<N>, const N: usize> FpConfig<N> for MontBackend<T, N> {
     }
 
     #[inline]
-    #[ark_ff_asm::unroll_for_loops]
     #[allow(clippy::modulo_one)]
     fn into_bigint(a: Fp<Self, N>) -> BigInt<N> {
         T::into_bigint(a)
@@ -421,14 +436,14 @@ impl<T: MontConfig<N>, const N: usize> FpConfig<N> for MontBackend<T, N> {
 }
 
 impl<T, const N: usize> Fp<MontBackend<T, N>, N> {
-    #[ark_ff_asm::unroll_for_loops]
     const fn const_is_zero(&self) -> bool {
         self.0.const_is_zero()
     }
 
-    const fn const_neg(self, modulus: BigInt<N>) -> Self {
+    #[doc(hidden)]
+    const fn const_neg(self, modulus: &BigInt<N>) -> Self {
         if !self.const_is_zero() {
-            Self::new(Self::sub_noborrow(&modulus, &self.0))
+            Self::new(Self::sub_with_borrow(modulus, &self.0))
         } else {
             self
         }
@@ -443,7 +458,7 @@ impl<T, const N: usize> Fp<MontBackend<T, N>, N> {
         limbs: &[u64],
         is_positive: bool,
         r2: BigInt<N>,
-        modulus: BigInt<N>,
+        modulus: &BigInt<N>,
     ) -> Self {
         let mut repr = BigInt::<N>([0; N]);
         assert!(repr.0.len() == N);
@@ -462,7 +477,7 @@ impl<T, const N: usize> Fp<MontBackend<T, N>, N> {
     pub(crate) const fn const_from_bigint(
         repr: BigInt<N>,
         r2: BigInt<N>,
-        modulus: BigInt<N>,
+        modulus: &BigInt<N>,
     ) -> Self {
         let mut r = Self::new(repr);
         if r.const_is_zero() {
@@ -473,8 +488,7 @@ impl<T, const N: usize> Fp<MontBackend<T, N>, N> {
         }
     }
 
-    #[ark_ff_asm::unroll_for_loops]
-    const fn mul_without_reduce(mut self, other: &Self, modulus: BigInt<N>, inv: u64) -> Self {
+    const fn mul_without_reduce(mut self, other: &Self, modulus: &BigInt<N>, inv: u64) -> Self {
         let (mut lo, mut hi) = ([0u64; N], [0u64; N]);
         crate::const_for!((i in 0..N) {
             let mut carry = 0;
@@ -512,20 +526,17 @@ impl<T, const N: usize> Fp<MontBackend<T, N>, N> {
         self
     }
 
-    #[ark_ff_asm::unroll_for_loops]
-    const fn const_mul_without_reduce(self, other: &Self, modulus: BigInt<N>) -> Self {
+    const fn const_mul_without_reduce(self, other: &Self, modulus: &BigInt<N>) -> Self {
         let inv = inv(modulus);
         self.mul_without_reduce(other, modulus, inv)
     }
 
-    #[ark_ff_asm::unroll_for_loops]
-    const fn const_mul(mut self, other: &Self, modulus: BigInt<N>) -> Self {
+    const fn const_mul(mut self, other: &Self, modulus: &BigInt<N>) -> Self {
         self = self.const_mul_without_reduce(other, modulus);
         self.const_reduce(modulus)
     }
 
-    #[ark_ff_asm::unroll_for_loops]
-    const fn const_is_valid(&self, modulus: BigInt<N>) -> bool {
+    const fn const_is_valid(&self, modulus: &BigInt<N>) -> bool {
         crate::const_for!((i in 0..N) {
             if (self.0).0[(N - i - 1)] < modulus.0[(N - i - 1)] {
                 return true
@@ -537,15 +548,15 @@ impl<T, const N: usize> Fp<MontBackend<T, N>, N> {
     }
 
     #[inline]
-    const fn const_reduce(mut self, modulus: BigInt<N>) -> Self {
+    const fn const_reduce(mut self, modulus: &BigInt<N>) -> Self {
         if !self.const_is_valid(modulus) {
-            self.0 = Self::sub_noborrow(&self.0, &modulus);
+            self.0 = Self::sub_with_borrow(&self.0, modulus);
         }
         self
     }
 
-    const fn sub_noborrow(a: &BigInt<N>, b: &BigInt<N>) -> BigInt<N> {
-        a.const_sub_noborrow(b).0
+    const fn sub_with_borrow(a: &BigInt<N>, b: &BigInt<N>) -> BigInt<N> {
+        a.const_sub_with_borrow(b).0
     }
 }
 

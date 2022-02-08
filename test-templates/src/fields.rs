@@ -383,6 +383,18 @@ pub fn montgomery_primefield_test<T: MontConfig<N>, const N: usize>() {
     let two_adic_root_of_unity: BigUint = <MontBackend<T, N>>::TWO_ADIC_ROOT_OF_UNITY.into();
     let generator: BigUint = <MontBackend<T, N>>::GENERATOR.into_bigint().into();
     assert_eq!(two_adic_root_of_unity, generator.modpow(&trace, &modulus));
+    match (T::SMALL_SUBGROUP_BASE, T::SMALL_SUBGROUP_BASE_ADICITY) {
+        (Some(base), Some(adicity)) => {
+            let mut e = generator.clone();
+            for _i in 0..adicity {
+                e = e.modpow(&base.into(), &modulus)
+            }
+        },
+        (None, None) => {},
+        (_, _) => {
+            panic!("Should specify both `SMALL_SUBGROUP_BASE` and `SMALL_SUBGROUP_BASE_ADICITY`")
+        },
+    }
 }
 
 pub fn sqrt_field_test<F: SquareRootField>(elem: F) {

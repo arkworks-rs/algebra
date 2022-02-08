@@ -1,3 +1,5 @@
+use core::iter;
+
 use ark_serialize::{
     buffer_byte_size, CanonicalDeserialize, CanonicalDeserializeWithFlags, CanonicalSerialize,
     CanonicalSerializeWithFlags, EmptyFlags, Flags, SerializationError,
@@ -182,7 +184,7 @@ pub type Fp832<P> = Fp<P, 13>;
 
 impl<P, const N: usize> Fp<P, N> {
     /// Construct a new prime element directly from its underlying
-    /// [`BigInt`] data type.
+    /// [`struct@BigInt`] data type.
     #[inline]
     pub const fn new(element: BigInt<N>) -> Self {
         Self(element, PhantomData)
@@ -198,7 +200,7 @@ impl<P: FpConfig<N>, const N: usize> Fp<P, N> {
     #[inline]
     fn subtract_modulus(&mut self) {
         if !self.is_less_than_modulus() {
-            self.0.sub_noborrow(&Self::MODULUS);
+            self.0.sub_with_borrow(&Self::MODULUS);
         }
     }
 
@@ -239,9 +241,14 @@ impl<P: FpConfig<N>, const N: usize> One for Fp<P, N> {
 
 impl<P: FpConfig<N>, const N: usize> Field for Fp<P, N> {
     type BasePrimeField = Self;
+    type BasePrimeFieldIter = iter::Once<Self::BasePrimeField>;
 
     fn extension_degree() -> u64 {
         1
+    }
+
+    fn to_base_prime_field_elements(&self) -> Self::BasePrimeFieldIter {
+        iter::once(*self)
     }
 
     fn from_base_prime_field_elems(elems: &[Self::BasePrimeField]) -> Option<Self> {
@@ -348,7 +355,6 @@ impl<P: FpConfig<N>, const N: usize> Field for Fp<P, N> {
 impl<P: FpConfig<N>, const N: usize> PrimeField for Fp<P, N> {
     type BigInt = BigInt<N>;
     const MODULUS: Self::BigInt = P::MODULUS;
-    const GENERATOR: Self = P::GENERATOR;
     const MODULUS_MINUS_ONE_DIV_TWO: Self::BigInt = P::MODULUS.divide_by_2_round_down();
     const MODULUS_BIT_SIZE: u32 = P::MODULUS.const_num_bits();
     const TRACE: Self::BigInt = P::MODULUS.two_adic_coefficient();
@@ -733,7 +739,7 @@ impl<P: FpConfig<N>, const N: usize> Neg for Fp<P, N> {
     fn neg(self) -> Self {
         if !self.is_zero() {
             let mut tmp = P::MODULUS;
-            tmp.sub_noborrow(&self.0);
+            tmp.sub_with_borrow(&self.0);
             Fp::new(tmp)
         } else {
             self

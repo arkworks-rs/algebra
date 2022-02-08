@@ -6,6 +6,7 @@ use ark_std::{
     cmp::{Ord, Ordering, PartialOrd},
     fmt,
     io::{Read, Result as IoResult, Write},
+    iter::Chain,
     ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign},
     vec::Vec,
 };
@@ -249,11 +250,20 @@ impl<P: QuadExtConfig> One for QuadExtField<P> {
     }
 }
 
+type BaseFieldIter<P> = <<P as QuadExtConfig>::BaseField as Field>::BasePrimeFieldIter;
 impl<P: QuadExtConfig> Field for QuadExtField<P> {
     type BasePrimeField = P::BasePrimeField;
 
+    type BasePrimeFieldIter = Chain<BaseFieldIter<P>, BaseFieldIter<P>>;
+
     fn extension_degree() -> u64 {
         2 * P::BaseField::extension_degree()
+    }
+
+    fn to_base_prime_field_elements(&self) -> Self::BasePrimeFieldIter {
+        self.c0
+            .to_base_prime_field_elements()
+            .chain(self.c1.to_base_prime_field_elements())
     }
 
     fn from_base_prime_field_elems(elems: &[Self::BasePrimeField]) -> Option<Self> {
@@ -432,7 +442,7 @@ where
         // This is cheaper than `P::BaseField::one().double().inverse()`
         let mut two_inv = P::BasePrimeField::MODULUS;
 
-        two_inv.add_nocarry(&1u64.into());
+        two_inv.add_with_carry(&1u64.into());
         two_inv.div2();
 
         let two_inv = P::BasePrimeField::from(two_inv);
