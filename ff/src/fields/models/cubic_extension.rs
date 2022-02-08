@@ -371,7 +371,7 @@ fn tonelli_shanks<P: CubicExtConfig>(f: &CubicExtField<P>) -> Option<CubicExtFie
         #[cfg(debug_assertions)]
         {
             use crate::fields::LegendreSymbol::*;
-            if (f.legendre() != QuadraticNonResidue) {
+            if f.legendre() != QuadraticNonResidue {
                 panic!("Input has a square root per its legendre symbol, but it was not found")
             }
         }
@@ -384,7 +384,7 @@ fn shanks<P: CubicExtConfig>(f: &CubicExtField<P>) -> Option<CubicExtField<P>> {
     // Using decomposition of (q-3)/ 4 = alpha + p[p(alpha) + (3a + 2)]*sum_i^((m-3)/2) p^{2i}
 
     // t1 = f^alpha
-    let t1 = f.pow(\alpha);
+    let t1 = f.pow(alpha);
     // t2 = f^p
     let t2 = f.frobenius(1);
     // t3 = f^((p^2)alpha) * f^(3p(alpha) + 2p)
@@ -404,7 +404,7 @@ fn shanks<P: CubicExtConfig>(f: &CubicExtField<P>) -> Option<CubicExtField<P>> {
 }
 
 /// `CubicExtField` elements are ordered lexicographically.
-impl<P: CubicExtConfig> Ord for CubicExtField<P> -> {
+impl<P: CubicExtConfig> Ord for CubicExtField<P> {
     #[inline(always)]
     fn cmp(&self, other: &Self) -> Ordering {
         let c2_cmp = self.c2.cmp(&other.c2);
