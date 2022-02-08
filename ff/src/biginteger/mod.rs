@@ -4,6 +4,7 @@ use crate::{
     fields::{BitIteratorBE, BitIteratorLE},
     UniformRand,
 };
+use ark_ff_macros::unroll_for_loops;
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, SerializationError};
 use ark_std::{
     convert::TryFrom,
@@ -74,7 +75,7 @@ macro_rules! BigInt {
 
 #[doc(hidden)]
 macro_rules! const_modulo {
-    ($a:ident, $divisor:ident) => {{
+    ($a:expr, $divisor:expr) => {{
         // Stupid slow base-2 long division taken from
         // https://en.wikipedia.org/wiki/Division_algorithm
         assert!(!$divisor.const_is_zero());
@@ -94,6 +95,7 @@ macro_rules! const_modulo {
         remainder
     }};
 }
+
 impl<const N: usize> BigInt<N> {
     #[doc(hidden)]
     pub const fn const_is_even(&self) -> bool {
@@ -134,7 +136,7 @@ impl<const N: usize> BigInt<N> {
         true
     }
 
-    /// Compute the largest integer `s` such that `self = 2**s * t` for odd `t`.
+    /// Compute the largest integer `s` such that `self = 2**s * t + 1` for odd `t`.
     #[doc(hidden)]
     pub const fn two_adic_valuation(mut self) -> u32 {
         let mut two_adicity = 0;
@@ -149,7 +151,7 @@ impl<const N: usize> BigInt<N> {
         two_adicity
     }
 
-    /// Compute the smallest odd integer `t` such that `self = 2**s * t` for some
+    /// Compute the smallest odd integer `t` such that `self = 2**s * t + 1` for some
     /// integer `s = self.two_adic_valuation()`.
     #[doc(hidden)]
     pub const fn two_adic_coefficient(mut self) -> Self {
@@ -182,7 +184,7 @@ impl<const N: usize> BigInt<N> {
     }
 
     #[inline]
-    #[ark_ff_asm::unroll_for_loops]
+    #[unroll_for_loops(12)]
     pub(crate) const fn const_sub_with_borrow(mut self, other: &Self) -> (Self, bool) {
         let mut borrow = 0;
 
@@ -205,7 +207,7 @@ impl<const N: usize> BigInt<N> {
         self
     }
 
-    #[ark_ff_asm::unroll_for_loops]
+    #[unroll_for_loops(12)]
     pub(crate) const fn const_is_zero(&self) -> bool {
         let mut is_zero = true;
         crate::const_for!((i in 0..N) {
@@ -234,7 +236,7 @@ impl<const N: usize> BigInteger for BigInt<N> {
     const NUM_LIMBS: usize = N;
 
     #[inline]
-    #[ark_ff_asm::unroll_for_loops]
+    #[unroll_for_loops(12)]
     fn add_with_carry(&mut self, other: &Self) -> bool {
         let mut carry = 0;
 
@@ -256,7 +258,7 @@ impl<const N: usize> BigInteger for BigInt<N> {
     }
 
     #[inline]
-    #[ark_ff_asm::unroll_for_loops]
+    #[unroll_for_loops(12)]
     fn sub_with_borrow(&mut self, other: &Self) -> bool {
         let mut borrow = 0;
 
@@ -278,7 +280,7 @@ impl<const N: usize> BigInteger for BigInt<N> {
     }
 
     #[inline]
-    #[ark_ff_asm::unroll_for_loops]
+    #[unroll_for_loops(12)]
     #[allow(unused)]
     fn mul2(&mut self) {
         #[cfg(all(target_arch = "x86_64", feature = "asm"))]
@@ -308,7 +310,7 @@ impl<const N: usize> BigInteger for BigInt<N> {
     }
 
     #[inline]
-    #[ark_ff_asm::unroll_for_loops]
+    #[unroll_for_loops(12)]
     fn muln(&mut self, mut n: u32) {
         if n >= (64 * N) as u32 {
             *self = Self::from(0u64);
@@ -337,7 +339,7 @@ impl<const N: usize> BigInteger for BigInt<N> {
     }
 
     #[inline]
-    #[ark_ff_asm::unroll_for_loops]
+    #[unroll_for_loops(12)]
     #[allow(unused)]
     fn div2(&mut self) {
         let mut t = 0;
@@ -351,7 +353,7 @@ impl<const N: usize> BigInteger for BigInt<N> {
     }
 
     #[inline]
-    #[ark_ff_asm::unroll_for_loops]
+    #[unroll_for_loops(12)]
     fn divn(&mut self, mut n: u32) {
         if n >= (64 * N) as u32 {
             *self = Self::from(0u64);
@@ -522,7 +524,7 @@ impl<const N: usize> Display for BigInt<N> {
 
 impl<const N: usize> Ord for BigInt<N> {
     #[inline]
-    #[ark_ff_asm::unroll_for_loops]
+    #[unroll_for_loops(12)]
     fn cmp(&self, other: &Self) -> ::core::cmp::Ordering {
         use core::cmp::Ordering;
         for i in 0..N {
@@ -671,6 +673,7 @@ mod tests;
 
 /// This defines a `BigInteger`, a smart wrapper around a
 /// sequence of `u64` limbs, least-significant limb first.
+// TODO: get rid of this trait once we can use associated constants in const generics.
 pub trait BigInteger:
     ToBytes
     + FromBytes
@@ -703,6 +706,7 @@ pub trait BigInteger:
 
     /// Add another [`BigInteger`] to `self`. This method stores the result in `self`,
     /// and returns a carry bit.
+    ///
     /// # Example
     ///
     /// ```
@@ -724,7 +728,7 @@ pub trait BigInteger:
 
     /// Subtract another [`BigInteger`] from this one. This method stores the result in
     /// `self`, and returns a borrow.
-    /// the borrow bit.
+    ///
     /// # Example
     ///
     /// ```
