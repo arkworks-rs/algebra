@@ -2,9 +2,10 @@ use super::cubic_extension::*;
 use crate::fields::*;
 use core::marker::PhantomData;
 
-pub trait Fp3Parameters: 'static + Send + Sync {
+/// Trait that specifies constants and methods for defining degree-three extension fields.
+pub trait Fp3Config: 'static + Send + Sync + Sized {
+    /// Base prime field underlying this extension.
     type Fp: PrimeField;
-
     /// Cubic non-residue in `Self::Fp` used to construct the extension
     /// field. That is, `NONRESIDUE` is such that the cubic polynomial
     /// `f(X) = X^3 - Self::NONRESIDUE` in Fp\[X\] is irreducible in `Self::Fp`.
@@ -98,7 +99,7 @@ impl<P: Fp3Config> Fp3<P> {
     }
 }
 
-impl<P: Fp3Parameters> Field for Fp3<P> {
+impl<P: Fp3Config> Field for Fp3<P> {
     /// Returns the Legendre symbol.
     fn legendre(&self) -> LegendreSymbol {
         self.norm().legendre()

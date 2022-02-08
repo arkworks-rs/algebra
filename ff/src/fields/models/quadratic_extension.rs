@@ -387,7 +387,7 @@ impl<P: QuadExtConfig> Field for QuadExtField<P> {
     }
 }
 
-impl<'a, P: QuadExtParameters> Field for QuadExtField<P>
+impl<'a, P: QuadExtConfig> Field for QuadExtField<P>
 where
     P::BaseField: Field + From<P::BasePrimeField>,
 {
