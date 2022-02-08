@@ -263,6 +263,10 @@ impl<P: CubicExtConfig> Field for CubicExtField<P> {
         self
     }
 
+    fn sqrt(&self) -> Option<Self> {
+        tonelli_shanks(self)
+    }
+
     fn inverse(&self) -> Option<Self> {
         if self.is_zero() {
             None
@@ -314,8 +318,93 @@ impl<P: CubicExtConfig> Field for CubicExtField<P> {
     }
 }
 
+fn tonelli_shanks<P: CubicExtConfig>(f: &CubicExtField<P>) -> Option<CubicExtField<P>> {
+    // https://eprint.iacr.org/2012/685.pdf (page 12, algorithm 5)
+    // Actually this is just normal Tonelli-Shanks; since `P::Generator`
+    // is a quadratic non-residue, `P::ROOT_OF_UNITY = P::GENERATOR ^ t`
+    // is also a quadratic non-residue (since `t` is odd).
+    if f.is_zero() {
+        return Some(CubicExtField::zero());
+    }
+    // Try computing the square root (x at the end of the algorithm)
+    // Check at the end of the algorithm if x was a square root
+    // Begin Tonelli-Shanks
+    let mut z = CubicExtField::qnr_to_t();
+    let mut w = f.pow(P::TRACE_MINUS_ONE_DIV_TWO);
+    let mut x = w * f;
+    let mut b = x * &w;
+
+    let mut v = P::TWO_ADICITY as usize;
+
+    while !b.is_one() {
+        let mut k = 0usize;
+
+        let mut b2k = b;
+        while !b2k.is_one() {
+            // invariant: b2k = b^(2^k) after entering this loop
+            b2k.square_in_place();
+            k += 1;
+        }
+
+        if k == (P::TWO_ADICITY as usize) {
+            // We are in the case where self^(T * 2^k) = x^(P::MODULUS - 1) = 1,
+            // which means that no square root exists.
+            return None;
+        }
+        let j = v - k;
+        w = z;
+        for _ in 1..j {
+            w.square_in_place();
+        }
+
+        z = w.square();
+        b *= &z;
+        x *= &w;
+        v = k;
+    }
+    // Is x the square root? If so, return it.
+    if (x.square() == *f) {
+        return Some(x);
+    } else {
+        // Consistency check that if no square root is found,
+        // it is because none exists.
+        #[cfg(debug_assertions)]
+        {
+            use crate::fields::LegendreSymbol::*;
+            if (f.legendre() != QuadraticNonResidue) {
+                panic!("Input has a square root per its legendre symbol, but it was not found")
+            }
+        }
+        None
+    }
+}
+
+fn shanks<P: CubicExtConfig>(f: &CubicExtField<P>) -> Option<CubicExtField<P>> {
+    // https://eprint.iacr.org/2012/685.pdf (page 9, algorithm 2)
+    // Using decomposition of (q-3)/ 4 = alpha + p[p(alpha) + (3a + 2)]*sum_i^((m-3)/2) p^{2i}
+
+    // t1 = f^alpha
+    let t1 = f.pow(\alpha);
+    // t2 = f^p
+    let t2 = f.frobenius(1);
+    // t3 = f^((p^2)alpha) * f^(3p(alpha) + 2p)
+    let t3 = t2.frobenius(1).pow(alpha) * (t2.pow(3).pow(alpha) + t2.square());
+    let mut r = CubicExtField::one();
+    let n = (CubicExtField::extension_degree() - 3)/2;
+    for i in 1..(n+1) {
+        r *= t3.frobenius(2 * i);
+    
+    let mut a_1 = t1 * r;
+    let mut x = a_1 * f;
+    let mut a_0 = a_1 * x;
+    if (a_0 == -CubicExtField::one()) {
+        return None;
+    }
+    x
+}
+
 /// `CubicExtField` elements are ordered lexicographically.
-impl<P: CubicExtConfig> Ord for CubicExtField<P> {
+impl<P: CubicExtConfig> Ord for CubicExtField<P> -> {
     #[inline(always)]
     fn cmp(&self, other: &Self) -> Ordering {
         let c2_cmp = self.c2.cmp(&other.c2);
