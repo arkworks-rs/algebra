@@ -18,7 +18,7 @@ type BaseField<MP> = <MP as ModelParameters>::BaseField;
 /// of y^2 = x^3 + a*x + b where b != 0 but `a` can be zero like BLS-381 curve.
 /// From [\[WB2019\]]
 ///
-/// - [\[WB19\]] <http://dx.doi.org/10.46586/tches.v2019.i4.154-179>
+/// - [\[WB2019\]] <http://dx.doi.org/10.46586/tches.v2019.i4.154-179>
 pub trait WBParams: SWModelParameters + Sized {
     // The isogenous curve should be defined over the same base field but it can have
     // different scalar field type IsogenousCurveScalarField :

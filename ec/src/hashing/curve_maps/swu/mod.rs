@@ -19,7 +19,7 @@ pub trait SWUParams: SWModelParameters {
     /// we use a `XI` with low absolute value coefficients when they are
     /// represented as integers.
     const XI: Self::BaseField;
-    /// An arbitrary nonsquare conviniently chosen to be a primitve element of the base field
+    /// An arbitrary nonsquare conveniently chosen to be a primitive element of the base field
     const ZETA: Self::BaseField;
     /// Square root of `THETA = Self::XI/Self::ZETA`.
     const XI_ON_ZETA_SQRT: Self::BaseField;
