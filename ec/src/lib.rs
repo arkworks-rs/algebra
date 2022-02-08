@@ -43,6 +43,9 @@ pub mod group;
 
 pub mod msm;
 
+/// Provides a `HashToCurve` trait and implementations of this trait via
+/// different hashing strategies.
+pub mod hashing;
 pub mod wnaf;
 
 pub trait PairingEngine: Sized + 'static + Copy + Debug + Sync + Send + Eq + PartialEq {

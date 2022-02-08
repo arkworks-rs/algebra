@@ -84,6 +84,7 @@ pub trait Field:
     + From<bool>
 {
     type BasePrimeField: PrimeField;
+    type BasePrimeFieldIter: Iterator<Item = Self::BasePrimeField>;
 
     /// Returns the characteristic of the field,
     /// in little-endian representation.
@@ -94,6 +95,8 @@ pub trait Field:
     /// Returns the extension degree of this field with respect
     /// to `Self::BasePrimeField`.
     fn extension_degree() -> u64;
+
+    fn to_base_prime_field_elements(&self) -> Self::BasePrimeFieldIter;
 
     /// Convert a slice of base prime field elements into a field element.
     /// If the slice length != Self::extension_degree(), must return None.

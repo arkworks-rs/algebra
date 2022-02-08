@@ -1,3 +1,5 @@
+use core::iter;
+
 use ark_serialize::{
     buffer_byte_size, CanonicalDeserialize, CanonicalDeserializeWithFlags, CanonicalSerialize,
     CanonicalSerializeWithFlags, EmptyFlags, Flags, SerializationError,
@@ -239,9 +241,14 @@ impl<P: FpConfig<N>, const N: usize> One for Fp<P, N> {
 
 impl<P: FpConfig<N>, const N: usize> Field for Fp<P, N> {
     type BasePrimeField = Self;
+    type BasePrimeFieldIter = iter::Once<Self::BasePrimeField>;
 
     fn extension_degree() -> u64 {
         1
+    }
+
+    fn to_base_prime_field_elements(&self) -> Self::BasePrimeFieldIter {
+        iter::once(*self)
     }
 
     fn from_base_prime_field_elems(elems: &[Self::BasePrimeField]) -> Option<Self> {
