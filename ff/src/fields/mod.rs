@@ -84,6 +84,7 @@ pub trait Field:
     + From<bool>
 {
     type BasePrimeField: PrimeField;
+    type BasePrimeFieldIter: Iterator<Item = Self::BasePrimeField>;
 
     /// Returns the characteristic of the field,
     /// in little-endian representation.
@@ -94,6 +95,8 @@ pub trait Field:
     /// Returns the extension degree of this field with respect
     /// to `Self::BasePrimeField`.
     fn extension_degree() -> u64;
+
+    fn to_base_prime_field_elements(&self) -> Self::BasePrimeFieldIter;
 
     /// Convert a slice of base prime field elements into a field element.
     /// If the slice length != Self::extension_degree(), must return None.
@@ -276,13 +279,12 @@ pub trait PrimeField:
 
     /// The modulus `p`.
     const MODULUS: Self::BigInt;
+
     /// The value `(p - 1)/ 2`.
     const MODULUS_MINUS_ONE_DIV_TWO: Self::BigInt;
+
     /// The size of the modulus in bits.
     const MODULUS_BIT_SIZE: u32;
-
-    /// The multiplicative generator of this field.
-    const GENERATOR: Self;
 
     /// The trace of the field is defined as the smallest integer `t` such that by
     /// `2^s * t = p - 1`, and `t` is coprime to 2.
