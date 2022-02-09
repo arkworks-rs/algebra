@@ -2,24 +2,32 @@ use super::quadratic_extension::*;
 use crate::fields::PrimeField;
 use core::marker::PhantomData;
 
-pub trait Fp2Parameters: 'static + Send + Sync {
+/// Trait that specifies constants and methods for defining degree-two extension fields.
+pub trait Fp2Config: 'static + Send + Sync + Sized {
+    /// Base prime field underlying this extension.
     type Fp: PrimeField;
 
+    /// Quadratic non-residue in [`Self::Fp`] used to construct the extension
+    /// field. That is, `NONRESIDUE` is such that the quadratic polynomial
+    /// `f(X) = X^2 - Self::NONRESIDUE` in Fp\[X\] is irreducible in `Self::Fp`.
     const NONRESIDUE: Self::Fp;
 
-    const QUADRATIC_NONRESIDUE: (Self::Fp, Self::Fp);
+    /// A quadratic nonresidue in Fp2, used for calculating square roots in Fp2.
+    const QUADRATIC_NONRESIDUE: Fp2<Self>;
 
     /// Coefficients for the Frobenius automorphism.
     const FROBENIUS_COEFF_FP2_C1: &'static [Self::Fp];
 
     /// Return `fe * Self::NONRESIDUE`.
+    /// Intended for specialization when [`Self::NONRESIDUE`] has a special
+    /// structure that can speed up multiplication
     #[inline(always)]
     fn mul_fp_by_nonresidue(fe: &Self::Fp) -> Self::Fp {
         Self::NONRESIDUE * fe
     }
 
     /// A specializable method for computing `x + mul_base_field_by_nonresidue(y)`
-    /// This allows for optimizations when the non-residue is
+    /// This allows for optimizations when [`Self::NONRESIDUE`] is
     /// canonically negative in the field.
     #[inline(always)]
     fn add_and_mul_fp_by_nonresidue(x: &Self::Fp, y: &Self::Fp) -> Self::Fp {
@@ -27,7 +35,7 @@ pub trait Fp2Parameters: 'static + Send + Sync {
     }
 
     /// A specializable method for computing `x + y + mul_base_field_by_nonresidue(y)`
-    /// This allows for optimizations when the non-residue is not `-1`.
+    /// This allows for optimizations when the [`Self::NONRESIDUE`] is not `-1`.
     #[inline(always)]
     fn add_and_mul_fp_by_nonresidue_plus_one(x: &Self::Fp, y: &Self::Fp) -> Self::Fp {
         let mut tmp = *x;
@@ -36,7 +44,7 @@ pub trait Fp2Parameters: 'static + Send + Sync {
     }
 
     /// A specializable method for computing `x - mul_base_field_by_nonresidue(y)`
-    /// This allows for optimizations when the non-residue is
+    /// This allows for optimizations when the [`Self::NONRESIDUE`] is
     /// canonically negative in the field.
     #[inline(always)]
     fn sub_and_mul_fp_by_nonresidue(x: &Self::Fp, y: &Self::Fp) -> Self::Fp {
@@ -44,9 +52,10 @@ pub trait Fp2Parameters: 'static + Send + Sync {
     }
 }
 
-pub struct Fp2ParamsWrapper<P: Fp2Parameters>(PhantomData<P>);
+/// Wrapper for [`Fp2Config`], allowing combination of the [`Fp2Config`] and [`QuadExtConfig`] traits.
+pub struct Fp2ParamsWrapper<P: Fp2Config>(PhantomData<P>);
 
-impl<P: Fp2Parameters> QuadExtParameters for Fp2ParamsWrapper<P> {
+impl<P: Fp2Config> QuadExtConfig for Fp2ParamsWrapper<P> {
     type BasePrimeField = P::Fp;
     type BaseField = P::Fp;
     type FrobCoeff = P::Fp;
@@ -91,9 +100,30 @@ impl<P: Fp2Parameters> QuadExtParameters for Fp2ParamsWrapper<P> {
     }
 }
 
+/// Alias for instances of quadratic extension fields. Helpful for omitting verbose
+/// instantiations involving `Fp2ParamsWrapper`.
 pub type Fp2<P> = QuadExtField<Fp2ParamsWrapper<P>>;
 
-impl<P: Fp2Parameters> Fp2<P> {
+impl<P: Fp2Config> Fp2<P> {
+    /// In-place multiply both coefficients `c0` and `c1` of `self`
+    /// by an element from [`Fp`](`Fp2Config::Fp`).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use ark_std::test_rng;
+    /// # use ark_test_curves::bls12_381::{Fq as Fp, Fq2 as Fp2};
+    /// # use ark_std::UniformRand;
+    /// let c0: Fp = Fp::rand(&mut test_rng());
+    /// let c1: Fp = Fp::rand(&mut test_rng());
+    /// let mut ext_element: Fp2 = Fp2::new(c0, c1);
+    ///
+    /// let base_field_element: Fp = Fp::rand(&mut test_rng());
+    /// ext_element.mul_assign_by_fp(&base_field_element);
+    ///
+    /// assert_eq!(ext_element.c0, c0 * base_field_element);
+    /// assert_eq!(ext_element.c1, c1 * base_field_element);
+    /// ```
     pub fn mul_assign_by_fp(&mut self, other: &P::Fp) {
         self.c0 *= other;
         self.c1 *= other;

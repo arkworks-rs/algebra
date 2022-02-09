@@ -1,5 +1,11 @@
 #![cfg_attr(not(feature = "std"), no_std)]
-#![warn(unused, future_incompatible, nonstandard_style, rust_2018_idioms)]
+#![warn(
+    unused,
+    future_incompatible,
+    nonstandard_style,
+    rust_2018_idioms,
+    rust_2021_compatibility
+)]
 #![forbid(unsafe_code)]
 mod error;
 mod flags;
@@ -20,7 +26,7 @@ pub use flags::*;
 #[doc(hidden)]
 pub use ark_serialize_derive::*;
 
-use digest::{generic_array::GenericArray, Digest};
+use digest::{generic_array::GenericArray, Digest, OutputSizeUser};
 
 /// Serializer in little endian format allowing to encode flags.
 pub trait CanonicalSerializeWithFlags: CanonicalSerialize {
@@ -38,8 +44,8 @@ pub trait CanonicalSerializeWithFlags: CanonicalSerialize {
 /// Serializer in little endian format.
 /// The serialization format must be 'length-extension' safe.
 /// e.g. if T implements Canonical Serialize and Deserialize,
-/// then for all strings `x, y`, if `a = T::deserialize(Reader(x))` and `a` is not an error,
-/// then it must be the case that `a = T::deserialize(Reader(x || y))`,
+/// then for all strings `x, y`, if `a = T::deserialize(Reader(x))` and `a` is
+/// not an error, then it must be the case that `a = T::deserialize(Reader(x || y))`,
 /// and that both readers read the same number of bytes.
 ///
 /// This trait can be derived if all fields of a struct implement
@@ -64,8 +70,9 @@ pub trait CanonicalSerialize {
     /// Serializes `self` into `writer`.
     /// It is left up to a particular type for how it strikes the
     /// serialization efficiency vs compression tradeoff.
-    /// For standard types (e.g. `bool`, lengths, etc.) typically an uncompressed
-    /// form is used, whereas for algebraic types compressed forms are used.
+    /// For standard types (e.g. `bool`, lengths, etc.) typically an
+    /// uncompressed form is used, whereas for algebraic types compressed
+    /// forms are used.
     ///
     /// Particular examples of interest:
     /// `bool` - 1 byte encoding
@@ -116,14 +123,14 @@ impl<'a, H: Digest> ark_std::io::Write for HashMarshaller<'a, H> {
 /// The CanonicalSerialize induces a natural way to hash the
 /// corresponding value, of which this is the convenience trait.
 pub trait CanonicalSerializeHashExt: CanonicalSerialize {
-    fn hash<H: Digest>(&self) -> GenericArray<u8, <H as Digest>::OutputSize> {
+    fn hash<H: Digest>(&self) -> GenericArray<u8, <H as OutputSizeUser>::OutputSize> {
         let mut hasher = H::new();
         self.serialize(HashMarshaller(&mut hasher))
             .expect("HashMarshaller::flush should be infaillible!");
         hasher.finalize()
     }
 
-    fn hash_uncompressed<H: Digest>(&self) -> GenericArray<u8, <H as Digest>::OutputSize> {
+    fn hash_uncompressed<H: Digest>(&self) -> GenericArray<u8, <H as OutputSizeUser>::OutputSize> {
         let mut hasher = H::new();
         self.serialize_uncompressed(HashMarshaller(&mut hasher))
             .expect("HashMarshaller::flush should be infaillible!");
@@ -303,6 +310,64 @@ impl<T: CanonicalSerialize> CanonicalSerialize for [T] {
             .iter()
             .map(|item| item.uncompressed_size())
             .sum::<usize>()
+    }
+}
+
+impl<T: CanonicalSerialize, const N: usize> CanonicalSerialize for [T; N] {
+    #[inline]
+    fn serialize<W: Write>(&self, mut writer: W) -> Result<(), SerializationError> {
+        for item in self.iter() {
+            item.serialize(&mut writer)?;
+        }
+        Ok(())
+    }
+
+    #[inline]
+    fn serialized_size(&self) -> usize {
+        self.iter()
+            .map(|item| item.serialized_size())
+            .sum::<usize>()
+    }
+
+    #[inline]
+    fn serialize_uncompressed<W: Write>(&self, mut writer: W) -> Result<(), SerializationError> {
+        for item in self.iter() {
+            item.serialize_uncompressed(&mut writer)?;
+        }
+        Ok(())
+    }
+
+    #[inline]
+    fn serialize_unchecked<W: Write>(&self, mut writer: W) -> Result<(), SerializationError> {
+        for item in self.iter() {
+            item.serialize_unchecked(&mut writer)?;
+        }
+        Ok(())
+    }
+
+    #[inline]
+    fn uncompressed_size(&self) -> usize {
+        self.iter()
+            .map(|item| item.uncompressed_size())
+            .sum::<usize>()
+    }
+}
+
+// TODO: Update once feature #89379 (array_from_fn) is stabilized
+impl<T: CanonicalDeserialize, const N: usize> CanonicalDeserialize for [T; N] {
+    #[inline]
+    fn deserialize<R: Read>(mut reader: R) -> Result<Self, SerializationError> {
+        Ok([(); N].map(|_| T::deserialize(&mut reader).unwrap()))
+    }
+
+    #[inline]
+    fn deserialize_uncompressed<R: Read>(mut reader: R) -> Result<Self, SerializationError> {
+        Ok([(); N].map(|_| T::deserialize_uncompressed(&mut reader).unwrap()))
+    }
+
+    #[inline]
+    fn deserialize_unchecked<R: Read>(mut reader: R) -> Result<Self, SerializationError> {
+        Ok([(); N].map(|_| T::deserialize_unchecked(&mut reader).unwrap()))
     }
 }
 
@@ -856,8 +921,7 @@ impl<T: CanonicalDeserialize + Ord> CanonicalDeserialize for BTreeSet<T> {
 #[cfg(test)]
 mod test {
     use super::*;
-    use ark_std::rand::RngCore;
-    use ark_std::vec;
+    use ark_std::{rand::RngCore, vec};
 
     #[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Debug)]
     struct Dummy;
@@ -878,17 +942,17 @@ mod test {
             &self,
             mut writer: W,
         ) -> Result<(), SerializationError> {
-            (&[100u8, 200u8]).serialize_uncompressed(&mut writer)
+            [100u8, 200u8].serialize_uncompressed(&mut writer)
         }
 
         #[inline]
         fn uncompressed_size(&self) -> usize {
-            (&[100u8, 200u8]).uncompressed_size()
+            [100u8, 200u8].uncompressed_size()
         }
 
         #[inline]
         fn serialize_unchecked<W: Write>(&self, mut writer: W) -> Result<(), SerializationError> {
-            (&[100u8, 200u8]).serialize_unchecked(&mut writer)
+            [100u8, 200u8].serialize_unchecked(&mut writer)
         }
     }
 
@@ -902,16 +966,16 @@ mod test {
 
         #[inline]
         fn deserialize_uncompressed<R: Read>(mut reader: R) -> Result<Self, SerializationError> {
-            let result = Vec::<u8>::deserialize_uncompressed(&mut reader)?;
-            assert_eq!(result.as_slice(), &[100u8, 200u8]);
+            let result = <[u8; 2]>::deserialize_uncompressed(&mut reader)?;
+            assert_eq!(result, [100u8, 200u8]);
 
             Ok(Dummy)
         }
 
         #[inline]
         fn deserialize_unchecked<R: Read>(mut reader: R) -> Result<Self, SerializationError> {
-            let result = Vec::<u8>::deserialize_unchecked(&mut reader)?;
-            assert_eq!(result.as_slice(), &[100u8, 200u8]);
+            let result = <[u8; 2]>::deserialize_unchecked(&mut reader)?;
+            assert_eq!(result, [100u8, 200u8]);
 
             Ok(Dummy)
         }
@@ -988,6 +1052,12 @@ mod test {
         }
         let de = T::deserialize_uncompressed(&serialized[..]);
         assert!(de.is_err());
+    }
+
+    #[test]
+    fn test_array() {
+        test_serialize([1u64, 2, 3, 4, 5]);
+        test_serialize([1u8; 33]);
     }
 
     #[test]
@@ -1096,8 +1166,8 @@ mod test {
 
     #[test]
     fn test_blake2() {
-        test_hash::<_, blake2::Blake2b>(Dummy);
-        test_hash::<_, blake2::Blake2s>(Dummy);
+        test_hash::<_, blake2::Blake2b512>(Dummy);
+        test_hash::<_, blake2::Blake2s256>(Dummy);
     }
 
     #[test]

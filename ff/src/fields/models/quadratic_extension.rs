@@ -6,7 +6,7 @@ use ark_std::{
     cmp::{Ord, Ordering, PartialOrd},
     fmt,
     io::{Read, Result as IoResult, Write},
-    marker::PhantomData,
+    iter::Chain,
     ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign},
     vec::Vec,
 };
@@ -20,16 +20,21 @@ use ark_std::rand::{
 };
 
 use crate::{
+    biginteger::BigInteger,
     bytes::{FromBytes, ToBytes},
     fields::{Field, LegendreSymbol, PrimeField, SquareRootField},
     ToConstraintField, UniformRand,
 };
 
 /// Defines a Quadratic extension field from a quadratic non-residue.
-pub trait QuadExtParameters: 'static + Send + Sync + Sized {
+pub trait QuadExtConfig: 'static + Send + Sync + Sized {
     /// The prime field that this quadratic extension is eventually an extension of.
     type BasePrimeField: PrimeField;
     /// The base field that this field is a quadratic extension of.
+    ///
+    /// Note: while for simple instances of quadratic extensions such as `Fp2`
+    /// we might see `BaseField == BasePrimeField`, it won't always hold true.
+    /// E.g. for an extension tower: `BasePrimeField == Fp`, but `BaseField == Fp3`.
     type BaseField: Field<BasePrimeField = Self::BasePrimeField>;
     /// The type of the coefficients for an efficient implemntation of the
     /// Frobenius endomorphism.
@@ -123,37 +128,66 @@ pub trait QuadExtParameters: 'static + Send + Sync + Sized {
 /// represented as c0 + c1 * X, for c0, c1 in `P::BaseField`.
 #[derive(Derivative)]
 #[derivative(
-    Default(bound = "P: QuadExtParameters"),
-    Hash(bound = "P: QuadExtParameters"),
-    Clone(bound = "P: QuadExtParameters"),
-    Copy(bound = "P: QuadExtParameters"),
-    Debug(bound = "P: QuadExtParameters"),
-    PartialEq(bound = "P: QuadExtParameters"),
-    Eq(bound = "P: QuadExtParameters")
+    Default(bound = "P: QuadExtConfig"),
+    Hash(bound = "P: QuadExtConfig"),
+    Clone(bound = "P: QuadExtConfig"),
+    Copy(bound = "P: QuadExtConfig"),
+    Debug(bound = "P: QuadExtConfig"),
+    PartialEq(bound = "P: QuadExtConfig"),
+    Eq(bound = "P: QuadExtConfig")
 )]
-pub struct QuadExtField<P: QuadExtParameters> {
+pub struct QuadExtField<P: QuadExtConfig> {
+    /// Coefficient `c0` in the representation of the field element `c = c0 + c1 * X`
     pub c0: P::BaseField,
+    /// Coefficient `c1` in the representation of the field element `c = c0 + c1 * X`
     pub c1: P::BaseField,
-    #[derivative(Debug = "ignore")]
-    #[doc(hidden)]
-    pub _parameters: PhantomData<P>,
 }
 
-impl<P: QuadExtParameters> QuadExtField<P> {
+/// Construct a [`QuadExtField`] element from elements of the base field. This should
+/// be used primarily for constructing constant field elements; in a non-const
+/// context, [`QuadExtField::new`] is preferable.
+///
+/// # Usage
+/// ```rust
+/// # use ark_test_curves::QuadExt;
+/// # use ark_test_curves::bls12_381 as ark_bls12_381;
+/// use ark_bls12_381::{FQ_ZERO, FQ_ONE, Fq2};
+/// const ONE: Fq2 = QuadExt!(FQ_ONE, FQ_ZERO);
+/// ```
+#[macro_export]
+macro_rules! QuadExt {
+    ($c0:expr, $c1:expr $(,)?) => {
+        $crate::QuadExtField { c0: $c0, c1: $c1 }
+    };
+}
+
+impl<P: QuadExtConfig> QuadExtField<P> {
+    /// Create a new field element from coefficients `c0` and `c1`,
+    /// so that the result is of the form `c0 + c1 * X`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use ark_std::test_rng;
+    /// # use ark_test_curves::bls12_381::{Fq as Fp, Fq2 as Fp2};
+    /// # use ark_std::UniformRand;
+    /// let c0: Fp = Fp::rand(&mut test_rng());
+    /// let c1: Fp = Fp::rand(&mut test_rng());
+    /// // `Fp2` a degree-2 extension over `Fp`.
+    /// let c: Fp2 = Fp2::new(c0, c1);
+    /// ```
     pub fn new(c0: P::BaseField, c1: P::BaseField) -> Self {
-        QuadExtField {
-            c0,
-            c1,
-            _parameters: PhantomData,
-        }
+        Self { c0, c1 }
     }
 
-    /// This is only to be used when the element is *known* to be in the cyclotomic subgroup.
+    /// This is only to be used when the element is *known* to be in the
+    /// cyclotomic subgroup.
     pub fn conjugate(&mut self) {
         self.c1 = -self.c1;
     }
 
-    /// This is only to be used when the element is *known* to be in the cyclotomic subgroup.
+    /// This is only to be used when the element is *known* to be in the
+    /// cyclotomic subgroup.
     pub fn cyclotomic_exp(&self, exponent: impl AsRef<[u64]>) -> Self {
         P::cyclotomic_exp(self, exponent)
     }
@@ -161,6 +195,25 @@ impl<P: QuadExtParameters> QuadExtField<P> {
     /// Norm of QuadExtField over `P::BaseField`:`Norm(a) = a * a.conjugate()`.
     /// This simplifies to: `Norm(a) = a.x^2 - P::NON_RESIDUE * a.y^2`.
     /// This is alternatively expressed as `Norm(a) = a^(1 + p)`.
+    ///
+    /// # Examples
+    /// ```
+    /// # use ark_std::test_rng;
+    /// # use ark_std::{UniformRand, Zero};
+    /// # use ark_test_curves::{Field, bls12_381::Fq2 as Fp2};
+    /// let c: Fp2 = Fp2::rand(&mut test_rng());
+    /// let norm = c.norm();
+    /// // We now compute the norm using the `a * a.conjugate()` approach.
+    /// // A Frobenius map sends an element of `Fp2` to one of its p_th powers:
+    /// // `a.frobenius_map(1) -> a^p` and `a^p` is also `a`'s Galois conjugate.
+    /// let mut c_conjugate = c;
+    /// c_conjugate.frobenius_map(1);
+    /// let norm2 = c * c_conjugate;
+    /// // Computing the norm of an `Fp2` element should result in an element
+    /// // in BaseField `Fp`, i.e. `c1 == 0`
+    /// assert!(norm2.c1.is_zero());
+    /// assert_eq!(norm, norm2.c0);
+    /// ```
     pub fn norm(&self) -> P::BaseField {
         let t0 = self.c0.square();
         // t1 = t0 - P::NON_RESIDUE * c1^2
@@ -169,13 +222,15 @@ impl<P: QuadExtParameters> QuadExtField<P> {
         t1
     }
 
+    /// In-place multiply both coefficients `c0` & `c1` of the quadratic
+    /// extension field by an element from the base field.
     pub fn mul_assign_by_basefield(&mut self, element: &P::BaseField) {
         self.c0.mul_assign(element);
         self.c1.mul_assign(element);
     }
 }
 
-impl<P: QuadExtParameters> Zero for QuadExtField<P> {
+impl<P: QuadExtConfig> Zero for QuadExtField<P> {
     fn zero() -> Self {
         QuadExtField::new(P::BaseField::zero(), P::BaseField::zero())
     }
@@ -185,7 +240,7 @@ impl<P: QuadExtParameters> Zero for QuadExtField<P> {
     }
 }
 
-impl<P: QuadExtParameters> One for QuadExtField<P> {
+impl<P: QuadExtConfig> One for QuadExtField<P> {
     fn one() -> Self {
         QuadExtField::new(P::BaseField::one(), P::BaseField::zero())
     }
@@ -195,11 +250,20 @@ impl<P: QuadExtParameters> One for QuadExtField<P> {
     }
 }
 
-impl<P: QuadExtParameters> Field for QuadExtField<P> {
+type BaseFieldIter<P> = <<P as QuadExtConfig>::BaseField as Field>::BasePrimeFieldIter;
+impl<P: QuadExtConfig> Field for QuadExtField<P> {
     type BasePrimeField = P::BasePrimeField;
+
+    type BasePrimeFieldIter = Chain<BaseFieldIter<P>, BaseFieldIter<P>>;
 
     fn extension_degree() -> u64 {
         2 * P::BaseField::extension_degree()
+    }
+
+    fn to_base_prime_field_elements(&self) -> Self::BasePrimeFieldIter {
+        self.c0
+            .to_base_prime_field_elements()
+            .chain(self.c1.to_base_prime_field_elements())
     }
 
     fn from_base_prime_field_elems(elems: &[Self::BasePrimeField]) -> Option<Self> {
@@ -290,7 +354,6 @@ impl<P: QuadExtParameters> Field for QuadExtField<P> {
 
             // result.c1 = 2 * c0 * c1
             self.c1 = v2.double();
-            // result.c0 = (v0) + ((beta + 1) * v2)
             // result.c0 = (c0^2 - beta * c0 * c1 - c0 * c1 + beta * c1^2) + ((beta + 1) c0 * c1)
             // result.c0 = (c0^2 - beta * c0 * c1 + beta * c1^2) + (beta * c0 * c1)
             // result.c0 = c0^2 + beta * c1^2
@@ -334,9 +397,9 @@ impl<P: QuadExtParameters> Field for QuadExtField<P> {
     }
 }
 
-impl<'a, P: QuadExtParameters> SquareRootField for QuadExtField<P>
+impl<'a, P: QuadExtConfig> SquareRootField for QuadExtField<P>
 where
-    P::BaseField: SquareRootField,
+    P::BaseField: SquareRootField + From<P::BasePrimeField>,
 {
     fn legendre(&self) -> LegendreSymbol {
         // The LegendreSymbol in a field of order q for an element x can be
@@ -356,16 +419,35 @@ where
         // Square root based on the complex method. See
         // https://eprint.iacr.org/2012/685.pdf (page 15, algorithm 8)
         if self.c1.is_zero() {
-            return self.c0.sqrt().map(|c0| Self::new(c0, P::BaseField::zero()));
+            // for c = c0 + c1 * x, we have c1 = 0
+            // sqrt(c) == sqrt(c0) is an element of Fp2, i.e. sqrt(c0) = a = a0 + a1 * x for some a0, a1 in Fp
+            // squaring both sides: c0 = a0^2 + a1^2 * x^2 + (2 * a0 * a1 * x) = a0^2 + (a1^2 * P::NONRESIDUE)
+            // since there are no `x` terms on LHS, a0 * a1 = 0
+            // so either a0 = sqrt(c0) or a1 = sqrt(c0/P::NONRESIDUE)
+            if self.c0.legendre().is_qr() {
+                // either c0 is a valid sqrt in the base field
+                return self.c0.sqrt().map(|c0| Self::new(c0, P::BaseField::zero()));
+            } else {
+                // or we need to compute sqrt(c0/P::NONRESIDUE)
+                return (self.c0.div(P::NONRESIDUE))
+                    .sqrt()
+                    .map(|res| Self::new(P::BaseField::zero(), res));
+            }
         }
         // Try computing the square root
         // Check at the end of the algorithm if it was a square root
         let alpha = self.norm();
-        // TODO: Precompute this
-        let two_inv = P::BaseField::one()
-            .double()
-            .inverse()
-            .expect("Two should always have an inverse");
+
+        // Compute `(p+1)/2` as `1/2`.
+        // This is cheaper than `P::BaseField::one().double().inverse()`
+        let mut two_inv = P::BasePrimeField::MODULUS;
+
+        two_inv.add_with_carry(&1u64.into());
+        two_inv.div2();
+
+        let two_inv = P::BasePrimeField::from(two_inv);
+        let two_inv = P::BaseField::from(two_inv);
+
         alpha.sqrt().and_then(|alpha| {
             let mut delta = (alpha + &self.c0) * &two_inv;
             if delta.legendre().is_qnr() {
@@ -402,7 +484,7 @@ where
 }
 
 /// `QuadExtField` elements are ordered lexicographically.
-impl<P: QuadExtParameters> Ord for QuadExtField<P> {
+impl<P: QuadExtConfig> Ord for QuadExtField<P> {
     #[inline(always)]
     fn cmp(&self, other: &Self) -> Ordering {
         match self.c1.cmp(&other.c1) {
@@ -413,14 +495,14 @@ impl<P: QuadExtParameters> Ord for QuadExtField<P> {
     }
 }
 
-impl<P: QuadExtParameters> PartialOrd for QuadExtField<P> {
+impl<P: QuadExtConfig> PartialOrd for QuadExtField<P> {
     #[inline(always)]
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }
 
-impl<P: QuadExtParameters> Zeroize for QuadExtField<P> {
+impl<P: QuadExtConfig> Zeroize for QuadExtField<P> {
     // The phantom data does not contain element-specific data
     // and thus does not need to be zeroized.
     fn zeroize(&mut self) {
@@ -429,13 +511,13 @@ impl<P: QuadExtParameters> Zeroize for QuadExtField<P> {
     }
 }
 
-impl<P: QuadExtParameters> From<u128> for QuadExtField<P> {
+impl<P: QuadExtConfig> From<u128> for QuadExtField<P> {
     fn from(other: u128) -> Self {
         Self::new(other.into(), P::BaseField::zero())
     }
 }
 
-impl<P: QuadExtParameters> From<i128> for QuadExtField<P> {
+impl<P: QuadExtConfig> From<i128> for QuadExtField<P> {
     #[inline]
     fn from(val: i128) -> Self {
         let abs = Self::from(val.unsigned_abs());
@@ -447,13 +529,13 @@ impl<P: QuadExtParameters> From<i128> for QuadExtField<P> {
     }
 }
 
-impl<P: QuadExtParameters> From<u64> for QuadExtField<P> {
+impl<P: QuadExtConfig> From<u64> for QuadExtField<P> {
     fn from(other: u64) -> Self {
         Self::new(other.into(), P::BaseField::zero())
     }
 }
 
-impl<P: QuadExtParameters> From<i64> for QuadExtField<P> {
+impl<P: QuadExtConfig> From<i64> for QuadExtField<P> {
     #[inline]
     fn from(val: i64) -> Self {
         let abs = Self::from(val.unsigned_abs());
@@ -465,13 +547,13 @@ impl<P: QuadExtParameters> From<i64> for QuadExtField<P> {
     }
 }
 
-impl<P: QuadExtParameters> From<u32> for QuadExtField<P> {
+impl<P: QuadExtConfig> From<u32> for QuadExtField<P> {
     fn from(other: u32) -> Self {
         Self::new(other.into(), P::BaseField::zero())
     }
 }
 
-impl<P: QuadExtParameters> From<i32> for QuadExtField<P> {
+impl<P: QuadExtConfig> From<i32> for QuadExtField<P> {
     #[inline]
     fn from(val: i32) -> Self {
         let abs = Self::from(val.unsigned_abs());
@@ -483,13 +565,13 @@ impl<P: QuadExtParameters> From<i32> for QuadExtField<P> {
     }
 }
 
-impl<P: QuadExtParameters> From<u16> for QuadExtField<P> {
+impl<P: QuadExtConfig> From<u16> for QuadExtField<P> {
     fn from(other: u16) -> Self {
         Self::new(other.into(), P::BaseField::zero())
     }
 }
 
-impl<P: QuadExtParameters> From<i16> for QuadExtField<P> {
+impl<P: QuadExtConfig> From<i16> for QuadExtField<P> {
     #[inline]
     fn from(val: i16) -> Self {
         let abs = Self::from(val.unsigned_abs());
@@ -501,13 +583,13 @@ impl<P: QuadExtParameters> From<i16> for QuadExtField<P> {
     }
 }
 
-impl<P: QuadExtParameters> From<u8> for QuadExtField<P> {
+impl<P: QuadExtConfig> From<u8> for QuadExtField<P> {
     fn from(other: u8) -> Self {
         Self::new(other.into(), P::BaseField::zero())
     }
 }
 
-impl<P: QuadExtParameters> From<i8> for QuadExtField<P> {
+impl<P: QuadExtConfig> From<i8> for QuadExtField<P> {
     #[inline]
     fn from(val: i8) -> Self {
         let abs = Self::from(val.unsigned_abs());
@@ -519,30 +601,13 @@ impl<P: QuadExtParameters> From<i8> for QuadExtField<P> {
     }
 }
 
-impl<P: QuadExtParameters> From<bool> for QuadExtField<P> {
+impl<P: QuadExtConfig> From<bool> for QuadExtField<P> {
     fn from(other: bool) -> Self {
         Self::new(u8::from(other).into(), P::BaseField::zero())
     }
 }
 
-impl<P: QuadExtParameters> ToBytes for QuadExtField<P> {
-    #[inline]
-    fn write<W: Write>(&self, mut writer: W) -> IoResult<()> {
-        self.c0.write(&mut writer)?;
-        self.c1.write(writer)
-    }
-}
-
-impl<P: QuadExtParameters> FromBytes for QuadExtField<P> {
-    #[inline]
-    fn read<R: Read>(mut reader: R) -> IoResult<Self> {
-        let c0 = P::BaseField::read(&mut reader)?;
-        let c1 = P::BaseField::read(reader)?;
-        Ok(QuadExtField::new(c0, c1))
-    }
-}
-
-impl<P: QuadExtParameters> Neg for QuadExtField<P> {
+impl<P: QuadExtConfig> Neg for QuadExtField<P> {
     type Output = Self;
     #[inline]
     #[must_use]
@@ -553,14 +618,14 @@ impl<P: QuadExtParameters> Neg for QuadExtField<P> {
     }
 }
 
-impl<P: QuadExtParameters> Distribution<QuadExtField<P>> for Standard {
+impl<P: QuadExtConfig> Distribution<QuadExtField<P>> for Standard {
     #[inline]
     fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> QuadExtField<P> {
         QuadExtField::new(UniformRand::rand(rng), UniformRand::rand(rng))
     }
 }
 
-impl<'a, P: QuadExtParameters> Add<&'a QuadExtField<P>> for QuadExtField<P> {
+impl<'a, P: QuadExtConfig> Add<&'a QuadExtField<P>> for QuadExtField<P> {
     type Output = Self;
 
     #[inline]
@@ -570,7 +635,7 @@ impl<'a, P: QuadExtParameters> Add<&'a QuadExtField<P>> for QuadExtField<P> {
     }
 }
 
-impl<'a, P: QuadExtParameters> Sub<&'a QuadExtField<P>> for QuadExtField<P> {
+impl<'a, P: QuadExtConfig> Sub<&'a QuadExtField<P>> for QuadExtField<P> {
     type Output = Self;
 
     #[inline]
@@ -580,7 +645,7 @@ impl<'a, P: QuadExtParameters> Sub<&'a QuadExtField<P>> for QuadExtField<P> {
     }
 }
 
-impl<'a, P: QuadExtParameters> Mul<&'a QuadExtField<P>> for QuadExtField<P> {
+impl<'a, P: QuadExtConfig> Mul<&'a QuadExtField<P>> for QuadExtField<P> {
     type Output = Self;
 
     #[inline]
@@ -590,7 +655,7 @@ impl<'a, P: QuadExtParameters> Mul<&'a QuadExtField<P>> for QuadExtField<P> {
     }
 }
 
-impl<'a, P: QuadExtParameters> Div<&'a QuadExtField<P>> for QuadExtField<P> {
+impl<'a, P: QuadExtConfig> Div<&'a QuadExtField<P>> for QuadExtField<P> {
     type Output = Self;
 
     #[inline]
@@ -600,7 +665,7 @@ impl<'a, P: QuadExtParameters> Div<&'a QuadExtField<P>> for QuadExtField<P> {
     }
 }
 
-impl<'a, P: QuadExtParameters> AddAssign<&'a Self> for QuadExtField<P> {
+impl<'a, P: QuadExtConfig> AddAssign<&'a Self> for QuadExtField<P> {
     #[inline]
     fn add_assign(&mut self, other: &Self) {
         self.c0 += &other.c0;
@@ -608,7 +673,7 @@ impl<'a, P: QuadExtParameters> AddAssign<&'a Self> for QuadExtField<P> {
     }
 }
 
-impl<'a, P: QuadExtParameters> SubAssign<&'a Self> for QuadExtField<P> {
+impl<'a, P: QuadExtConfig> SubAssign<&'a Self> for QuadExtField<P> {
     #[inline]
     fn sub_assign(&mut self, other: &Self) {
         self.c0 -= &other.c0;
@@ -616,10 +681,10 @@ impl<'a, P: QuadExtParameters> SubAssign<&'a Self> for QuadExtField<P> {
     }
 }
 
-impl_additive_ops_from_ref!(QuadExtField, QuadExtParameters);
-impl_multiplicative_ops_from_ref!(QuadExtField, QuadExtParameters);
+impl_additive_ops_from_ref!(QuadExtField, QuadExtConfig);
+impl_multiplicative_ops_from_ref!(QuadExtField, QuadExtConfig);
 
-impl<'a, P: QuadExtParameters> MulAssign<&'a Self> for QuadExtField<P> {
+impl<'a, P: QuadExtConfig> MulAssign<&'a Self> for QuadExtField<P> {
     #[inline]
     fn mul_assign(&mut self, other: &Self) {
         // Karatsuba multiplication;
@@ -635,20 +700,20 @@ impl<'a, P: QuadExtParameters> MulAssign<&'a Self> for QuadExtField<P> {
     }
 }
 
-impl<'a, P: QuadExtParameters> DivAssign<&'a Self> for QuadExtField<P> {
+impl<'a, P: QuadExtConfig> DivAssign<&'a Self> for QuadExtField<P> {
     #[inline]
     fn div_assign(&mut self, other: &Self) {
         self.mul_assign(&other.inverse().unwrap());
     }
 }
 
-impl<P: QuadExtParameters> fmt::Display for QuadExtField<P> {
+impl<P: QuadExtConfig> fmt::Display for QuadExtField<P> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "QuadExtField({} + {} * u)", self.c0, self.c1)
     }
 }
 
-impl<P: QuadExtParameters> CanonicalSerializeWithFlags for QuadExtField<P> {
+impl<P: QuadExtConfig> CanonicalSerializeWithFlags for QuadExtField<P> {
     #[inline]
     fn serialize_with_flags<W: Write, F: Flags>(
         &self,
@@ -666,7 +731,7 @@ impl<P: QuadExtParameters> CanonicalSerializeWithFlags for QuadExtField<P> {
     }
 }
 
-impl<P: QuadExtParameters> CanonicalSerialize for QuadExtField<P> {
+impl<P: QuadExtConfig> CanonicalSerialize for QuadExtField<P> {
     #[inline]
     fn serialize<W: Write>(&self, writer: W) -> Result<(), SerializationError> {
         self.serialize_with_flags(writer, EmptyFlags)
@@ -678,7 +743,7 @@ impl<P: QuadExtParameters> CanonicalSerialize for QuadExtField<P> {
     }
 }
 
-impl<P: QuadExtParameters> CanonicalDeserializeWithFlags for QuadExtField<P> {
+impl<P: QuadExtConfig> CanonicalDeserializeWithFlags for QuadExtField<P> {
     #[inline]
     fn deserialize_with_flags<R: Read, F: Flags>(
         mut reader: R,
@@ -690,7 +755,7 @@ impl<P: QuadExtParameters> CanonicalDeserializeWithFlags for QuadExtField<P> {
     }
 }
 
-impl<P: QuadExtParameters> CanonicalDeserialize for QuadExtField<P> {
+impl<P: QuadExtConfig> CanonicalDeserialize for QuadExtField<P> {
     #[inline]
     fn deserialize<R: Read>(mut reader: R) -> Result<Self, SerializationError> {
         let c0: P::BaseField = CanonicalDeserialize::deserialize(&mut reader)?;
@@ -699,7 +764,7 @@ impl<P: QuadExtParameters> CanonicalDeserialize for QuadExtField<P> {
     }
 }
 
-impl<P: QuadExtParameters> ToConstraintField<P::BasePrimeField> for QuadExtField<P>
+impl<P: QuadExtConfig> ToConstraintField<P::BasePrimeField> for QuadExtField<P>
 where
     P::BaseField: ToConstraintField<P::BasePrimeField>,
 {
@@ -715,11 +780,31 @@ where
     }
 }
 
+impl<P: QuadExtConfig> ToBytes for QuadExtField<P> {
+    #[inline]
+    fn write<W: Write>(&self, mut writer: W) -> IoResult<()> {
+        self.c0.write(&mut writer)?;
+        self.c1.write(writer)
+    }
+}
+
+impl<P: QuadExtConfig> FromBytes for QuadExtField<P> {
+    #[inline]
+    fn read<R: Read>(mut reader: R) -> IoResult<Self> {
+        let c0 = P::BaseField::read(&mut reader)?;
+        let c1 = P::BaseField::read(reader)?;
+        Ok(QuadExtField::new(c0, c1))
+    }
+}
+
 #[cfg(test)]
 mod quad_ext_tests {
     use super::*;
-    use crate::test_field::{Fq, Fq2};
     use ark_std::test_rng;
+    use ark_test_curves::{
+        bls12_381::{Fq, Fq2},
+        Field,
+    };
 
     #[test]
     fn test_from_base_prime_field_elements() {

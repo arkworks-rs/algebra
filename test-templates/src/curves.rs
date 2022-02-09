@@ -1,8 +1,7 @@
 #![allow(unused)]
-use ark_ec::twisted_edwards_extended::GroupProjective;
-use ark_ec::wnaf::WnafContext;
 use ark_ec::{
-    AffineCurve, MontgomeryModelParameters, ProjectiveCurve, SWModelParameters, TEModelParameters,
+    twisted_edwards_extended::GroupProjective, wnaf::WnafContext, AffineCurve,
+    MontgomeryModelParameters, ProjectiveCurve, SWModelParameters, TEModelParameters,
 };
 use ark_ff::{Field, One, PrimeField, UniformRand, Zero};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, SWFlags, SerializationError};
@@ -126,8 +125,8 @@ fn random_multiplication_test<G: ProjectiveCurve>() {
         tmp2.add_assign(&b);
 
         // Affine multiplication
-        let mut tmp3 = a_affine.mul(s.into_repr());
-        tmp3.add_assign(&b_affine.mul(s.into_repr()));
+        let mut tmp3 = a_affine.mul(s.into_bigint());
+        tmp3.add_assign(&b_affine.mul(s.into_bigint()));
 
         assert_eq!(tmp1, tmp2);
         assert_eq!(tmp1, tmp3);

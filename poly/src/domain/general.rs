@@ -10,7 +10,7 @@ pub use crate::domain::utils::Elements;
 use crate::domain::{
     DomainCoeff, EvaluationDomain, MixedRadixEvaluationDomain, Radix2EvaluationDomain,
 };
-use ark_ff::{FftField, FftParameters};
+use ark_ff::FftField;
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, SerializationError};
 use ark_std::{
     io::{Read, Write},
@@ -75,7 +75,7 @@ impl<F: FftField> CanonicalSerialize for GeneralEvaluationDomain<F> {
             GeneralEvaluationDomain::Radix2(domain) => domain.serialize_uncompressed(&mut writer),
             GeneralEvaluationDomain::MixedRadix(domain) => {
                 domain.serialize_uncompressed(&mut writer)
-            }
+            },
         }
     }
 
@@ -171,7 +171,7 @@ impl<F: FftField> EvaluationDomain<F> for GeneralEvaluationDomain<F> {
             return Some(GeneralEvaluationDomain::Radix2(domain));
         }
 
-        if F::FftParams::SMALL_SUBGROUP_BASE.is_some() {
+        if F::SMALL_SUBGROUP_BASE.is_some() {
             return Some(GeneralEvaluationDomain::MixedRadix(
                 MixedRadixEvaluationDomain::new(num_coeffs)?,
             ));
@@ -186,7 +186,7 @@ impl<F: FftField> EvaluationDomain<F> for GeneralEvaluationDomain<F> {
             return Some(domain_size);
         }
 
-        if F::FftParams::SMALL_SUBGROUP_BASE.is_some() {
+        if F::SMALL_SUBGROUP_BASE.is_some() {
             return Some(MixedRadixEvaluationDomain::<F>::compute_size_of_domain(
                 num_coeffs,
             )?);
@@ -198,6 +198,31 @@ impl<F: FftField> EvaluationDomain<F> for GeneralEvaluationDomain<F> {
     #[inline]
     fn size(&self) -> usize {
         map!(self, size)
+    }
+
+    #[inline]
+    fn log_size_of_group(&self) -> u64 {
+        map!(self, log_size_of_group) as u64
+    }
+
+    #[inline]
+    fn size_inv(&self) -> F {
+        map!(self, size_inv)
+    }
+
+    #[inline]
+    fn group_gen(&self) -> F {
+        map!(self, group_gen)
+    }
+
+    #[inline]
+    fn group_gen_inv(&self) -> F {
+        map!(self, group_gen_inv)
+    }
+
+    #[inline]
+    fn generator_inv(&self) -> F {
+        map!(self, generator_inv)
     }
 
     #[inline]
@@ -260,13 +285,10 @@ impl<F: FftField> Iterator for GeneralElements<F> {
 
 #[cfg(test)]
 mod tests {
-    use crate::polynomial::Polynomial;
-    use crate::{EvaluationDomain, GeneralEvaluationDomain};
+    use crate::{polynomial::Polynomial, EvaluationDomain, GeneralEvaluationDomain};
     use ark_ff::Zero;
-    use ark_std::rand::Rng;
-    use ark_std::test_rng;
-    use ark_test_curves::bls12_381::Fr;
-    use ark_test_curves::bn384_small_two_adicity::Fr as BNFr;
+    use ark_std::{rand::Rng, test_rng};
+    use ark_test_curves::{bls12_381::Fr, bn384_small_two_adicity::Fr as BNFr};
 
     #[test]
     fn vanishing_polynomial_evaluation() {

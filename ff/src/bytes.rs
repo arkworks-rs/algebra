@@ -133,6 +133,7 @@ macro_rules! to_bytes {
     });
 }
 
+#[doc(hidden)]
 #[macro_export]
 macro_rules! push_to_vec {
     ($buf:expr, $y:expr, $($x:expr),*) => ({

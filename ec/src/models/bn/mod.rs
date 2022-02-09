@@ -4,8 +4,8 @@ use crate::{
 };
 use ark_ff::fields::{
     fp12_2over3over2::{Fp12, Fp12Parameters},
-    fp2::Fp2Parameters,
-    fp6_3over2::Fp6Parameters,
+    fp2::Fp2Config,
+    fp6_3over2::Fp6Config,
     Field, Fp2, PrimeField, SquareRootField,
 };
 use num_traits::One;
@@ -18,20 +18,22 @@ pub enum TwistType {
 }
 
 pub trait BnParameters: 'static {
-    // The absolute value of the BN curve parameter `X` (as in `q = 36 X^4 + 36 X^3 + 24 X^2 + 6 X + 1`).
+    /// The absolute value of the BN curve parameter `X`
+    /// (as in `q = 36 X^4 + 36 X^3 + 24 X^2 + 6 X + 1`).
     const X: &'static [u64];
-    // Whether or not `X` is negative.
+
+    /// Whether or not `X` is negative.
     const X_IS_NEGATIVE: bool;
 
-    // The absolute value of `6X + 2`.
+    /// The absolute value of `6X + 2`.
     const ATE_LOOP_COUNT: &'static [i8];
 
     const TWIST_TYPE: TwistType;
     const TWIST_MUL_BY_Q_X: Fp2<Self::Fp2Params>;
     const TWIST_MUL_BY_Q_Y: Fp2<Self::Fp2Params>;
     type Fp: PrimeField + SquareRootField + Into<<Self::Fp as PrimeField>::BigInt>;
-    type Fp2Params: Fp2Parameters<Fp = Self::Fp>;
-    type Fp6Params: Fp6Parameters<Fp2Params = Self::Fp2Params>;
+    type Fp2Params: Fp2Config<Fp = Self::Fp>;
+    type Fp6Params: Fp6Config<Fp2Params = Self::Fp2Params>;
     type Fp12Params: Fp12Parameters<Fp6Params = Self::Fp6Params>;
     type G1Parameters: SWModelParameters<BaseField = Self::Fp>;
     type G2Parameters: SWModelParameters<
@@ -53,7 +55,7 @@ pub use self::{
 pub struct Bn<P: BnParameters>(PhantomData<fn() -> P>);
 
 impl<P: BnParameters> Bn<P> {
-    // Evaluate the line function at point p.
+    /// Evaluates the line function at point p.
     fn ell(f: &mut Fp12<P::Fp12Params>, coeffs: &g2::EllCoeff<Fp2<P::Fp2Params>>, p: &G1Affine<P>) {
         let mut c0 = coeffs.0;
         let mut c1 = coeffs.1;
@@ -64,12 +66,12 @@ impl<P: BnParameters> Bn<P> {
                 c2.mul_assign_by_fp(&p.y);
                 c1.mul_assign_by_fp(&p.x);
                 f.mul_by_014(&c0, &c1, &c2);
-            }
+            },
             TwistType::D => {
                 c0.mul_assign_by_fp(&p.y);
                 c1.mul_assign_by_fp(&p.x);
                 f.mul_by_034(&c0, &c1, &c2);
-            }
+            },
         }
     }
 
@@ -122,12 +124,12 @@ impl<P: BnParameters> PairingEngine for Bn<P> {
                     for &mut (p, ref mut coeffs) in &mut pairs {
                         Self::ell(&mut f, coeffs.next().unwrap(), &p.0);
                     }
-                }
+                },
                 -1 => {
                     for &mut (p, ref mut coeffs) in &mut pairs {
                         Self::ell(&mut f, coeffs.next().unwrap(), &p.0);
                     }
-                }
+                },
                 _ => continue,
             }
         }

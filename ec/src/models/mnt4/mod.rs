@@ -1,15 +1,13 @@
-use {
-    crate::{
-        models::{ModelParameters, SWModelParameters},
-        PairingEngine,
-    },
-    ark_ff::{
-        fp2::{Fp2, Fp2Parameters},
-        fp4::{Fp4, Fp4Parameters},
-        BitIteratorBE, Field, PrimeField, SquareRootField,
-    },
-    num_traits::{One, Zero},
+use crate::{
+    models::{ModelParameters, SWModelParameters},
+    PairingEngine,
 };
+use ark_ff::{
+    fp2::{Fp2, Fp2Config},
+    fp4::{Fp4, Fp4Config},
+    BitIteratorBE, Field, PrimeField, SquareRootField,
+};
+use num_traits::{One, Zero};
 
 use core::marker::PhantomData;
 
@@ -34,8 +32,8 @@ pub trait MNT4Parameters: 'static {
     const FINAL_EXPONENT_LAST_CHUNK_ABS_OF_W0: <Self::Fp as PrimeField>::BigInt;
     type Fp: PrimeField + SquareRootField + Into<<Self::Fp as PrimeField>::BigInt>;
     type Fr: PrimeField + SquareRootField + Into<<Self::Fr as PrimeField>::BigInt>;
-    type Fp2Params: Fp2Parameters<Fp = Self::Fp>;
-    type Fp4Params: Fp4Parameters<Fp2Params = Self::Fp2Params>;
+    type Fp2Params: Fp2Config<Fp = Self::Fp>;
+    type Fp4Params: Fp4Config<Fp2Params = Self::Fp2Params>;
     type G1Parameters: SWModelParameters<BaseField = Self::Fp, ScalarField = Self::Fr>;
     type G2Parameters: SWModelParameters<
         BaseField = Fp2<Self::Fp2Params>,

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-if rustfmt --version &>/dev/null; then
+if ! command -v rustfmt &> /dev/null; then
         printf "[pre_commit] \033[0;31merror\033[0m: \"rustfmt\" not available. \n"
         printf "[pre_commit] \033[0;31merror\033[0m: rustfmt can be installed via - \n"
         printf "[pre_commit] $ rustup component add rustfmt \n"

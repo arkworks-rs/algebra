@@ -126,14 +126,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
-      - name: Install Rust (${{ matrix.rust }})
+      - name: Install Rust
         uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
           target: thumbv6m-none-eabi
           override: true
 
-      - name: Install Rust ARM64 (${{ matrix.rust }})
+      - name: Install Rust ARM64
         uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
@@ -185,7 +185,6 @@ jobs:
       - name: Checkout algebra
         uses: actions/checkout@v2
         with:
-          repository: arkworks-rs/algebra
           path: algebra
 
       - name: Install Rust
@@ -197,14 +196,27 @@ jobs:
 
       - name: Patch cargo.toml
         run: |
-          echo                                                                             >> Cargo.toml
-          echo      "[patch.crates-io]"                                                    >> Cargo.toml
-          echo      "ark-ff = { path = 'algebra/ff' }"                                     >> Cargo.toml
-          echo      "ark-serialize = { path = 'algebra/serialize' }"                       >> Cargo.toml
-          echo      "ark-ff-macros = { path = 'algebra/ff-macros' }"                       >> Cargo.toml
-          echo      "ark-ff-asm = { path = 'algebra/ff-asm' }"                             >> Cargo.toml
-          echo      "ark-ec = { path = 'algebra/ec' }"                                     >> Cargo.toml
-          echo      "ark-algebra-test-templates = { path = 'algebra/test-templates' }"     >> Cargo.toml
+          if  grep -q "\[patch.crates-io\]" Cargo.toml ; then
+              MATCH=$(awk '/\[patch.crates-io\]/{ print NR; exit }' Cargo.toml); 
+              sed -i "$MATCH,\$d" Cargo.toml
+          fi
+          {
+            echo      "[patch.crates-io]";
+            echo      "ark-ff = { path = 'algebra/ff' }";
+            echo      "ark-serialize = { path = 'algebra/serialize' }";
+            echo      "ark-ff-macros = { path = 'algebra/ff-macros' }";
+            echo      "ark-ff-asm = { path = 'algebra/ff-asm' }";
+            echo      "ark-ec = { path = 'algebra/ec' }";
+            echo      "ark-algebra-test-templates = { path = 'algebra/test-templates' }"
+            echo      "ark-bls12-377 = { git = 'https://github.com/arkworks-rs/curves' }"
+            echo      "ark-bls12-381 = { git = 'https://github.com/arkworks-rs/curves' }"
+            echo      "ark-bn254 = { git = 'https://github.com/arkworks-rs/curves' }"
+            echo      "ark-pallas = { git = 'https://github.com/arkworks-rs/curves' }"
+            echo      "ark-bw6-761 = { git = 'https://github.com/arkworks-rs/curves' }"
+            echo      "ark-mnt4-298 = { git = 'https://github.com/arkworks-rs/curves' }"
+            echo      "ark-mnt6-298 = { git = 'https://github.com/arkworks-rs/curves' }"
+            echo      "ark-ed-on-bls12-377 = { git = 'https://github.com/arkworks-rs/curves' }"
+          } >> Cargo.toml
 
       - name: Test on ${{ matrix.curve }}
         run: "cd ${{ matrix.curve }} && cargo test --all-features"

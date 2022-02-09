@@ -1,8 +1,10 @@
 use crate::domain::*;
 use ark_ff::{PrimeField, UniformRand};
 use ark_std::test_rng;
-use ark_test_curves::bls12_381::{Fr, G1Projective};
-use ark_test_curves::bn384_small_two_adicity::Fr as BNFr;
+use ark_test_curves::{
+    bls12_381::{Fr, G1Projective},
+    bn384_small_two_adicity::Fr as BNFr,
+};
 
 // Test multiplying various (low degree) polynomials together and
 // comparing with naive evaluations.

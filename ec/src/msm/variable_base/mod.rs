@@ -6,10 +6,33 @@ use crate::{AffineCurve, ProjectiveCurve};
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
 
-pub struct VariableBaseMSM;
+pub mod stream_pippenger;
+pub use stream_pippenger::*;
 
-impl VariableBaseMSM {
-    pub fn multi_scalar_mul<G: AffineCurve>(
+pub struct VariableBase;
+
+impl VariableBase {
+    /// Optimized implementation of multi-scalar multiplication.
+    ///
+    /// Will return `None` if `bases` and `scalar` have different lengths.
+    ///
+    /// Reference: [`VariableBase::msm`]
+    pub fn msm_checked_len<G: AffineCurve>(
+        bases: &[G],
+        scalars: &[<G::ScalarField as PrimeField>::BigInt],
+    ) -> Option<G::Projective> {
+        (bases.len() == scalars.len()).then(|| Self::msm(bases, scalars))
+    }
+
+    /// Optimized implementation of multi-scalar multiplication.
+    ///
+    /// Will multiply the tuples of the diagonal product of `bases × scalars`
+    /// and sum the resulting set. Will iterate only for the elements of the
+    /// smallest of the two sets, ignoring the remaining elements of the biggest
+    /// set.
+    ///
+    /// ∑i (Bi · Si)
+    pub fn msm<G: AffineCurve>(
         bases: &[G],
         scalars: &[<G::ScalarField as PrimeField>::BigInt],
     ) -> G::Projective {
@@ -24,8 +47,8 @@ impl VariableBaseMSM {
             super::ln_without_floats(size) + 2
         };
 
-        let num_bits = <G::ScalarField as PrimeField>::Params::MODULUS_BITS as usize;
-        let fr_one = G::ScalarField::one().into_repr();
+        let num_bits = G::ScalarField::MODULUS_BIT_SIZE as usize;
+        let fr_one = G::ScalarField::one().into_bigint();
 
         let zero = G::Projective::zero();
         let window_starts: Vec<_> = (0..num_bits).step_by(c).collect();

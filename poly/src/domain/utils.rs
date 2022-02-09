@@ -129,7 +129,7 @@ pub(crate) fn parallel_fft<T: DomainCoeff<F>, F: FftField>(
     // These are cosets with generator g^{num_cosets}, and varying shifts.
     let mut tmp = vec![vec![T::zero(); coset_size]; num_cosets];
     let new_omega = omega.pow(&[num_cosets as u64]);
-    let new_two_adicity = ark_ff::utils::k_adicity(2, coset_size);
+    let new_two_adicity = ark_ff::utils::k_adicity(2, coset_size as u64);
 
     // For each coset, we first build a polynomial of degree |coset size|,
     // whose evaluations over coset k will agree with the evaluations of a over the coset.
@@ -148,16 +148,17 @@ pub(crate) fn parallel_fft<T: DomainCoeff<F>, F: FftField>(
             // Where c represents the index of the coset being considered.
             // multiplying by g^{k*i} corresponds to the shift for just being in a different coset.
             //
-            // TODO: Come back and improve the speed, and make this a more 'normal' Cooley-Tukey.
-            // This appears to be an FFT of the polynomial
+            // TODO: Come back and improve the speed, and make this a more 'normal'
+            // Cooley-Tukey. This appears to be an FFT of the polynomial
             // `P(x) = sum_{c in |coset|} a[i + c |coset|] * x^c`
             // onto this coset.
-            // However this is being evaluated in time O(N) instead of time O(|coset|log(|coset|)).
-            // If this understanding is the case, its not doing standard Cooley-Tukey.
-            // At the moment, this has time complexity of at least 2*N field mul's per thread,
-            // so we will be getting pretty bad parallelism.
-            // Exact complexity per thread atm is `2N + (N/num threads)log(N/num threads)` field muls
-            // Compare to the time complexity of serial is Nlog(N) field muls), with log(N) in [15, 25]
+            // However this is being evaluated in time O(N) instead of time
+            // O(|coset|log(|coset|)). If this understanding is the case, its not
+            // doing standard Cooley-Tukey. At the moment, this has time complexity
+            // of at least 2*N field mul's per thread, so we will be getting
+            // pretty bad parallelism. Exact complexity per thread atm is
+            // `2N + (N/num threads)log(N/num threads)` field muls Compare to the time
+            // complexity of serial is Nlog(N) field muls), with log(N) in [15, 25]
             for i in 0..coset_size {
                 for c in 0..num_threads {
                     let idx = i + (c * coset_size);

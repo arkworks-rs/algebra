@@ -1,6 +1,6 @@
-<h1 align="center">arkworks::algebra</h1>
+<h1 style="text-align: center;">arkworks::algebra</h1>
 
-<p align="center">
+<p style="text-align: center;">
     <img src="https://github.com/arkworks-rs/algebra/workflows/CI/badge.svg?branch=master">
     <a href="https://github.com/arkworks-rs/algebra/blob/master/LICENSE-APACHE"><img src="https://img.shields.io/badge/license-APACHE-blue.svg"></a>
     <a href="https://github.com/arkworks-rs/algebra/blob/master/LICENSE-MIT"><img src="https://img.shields.io/badge/license-MIT-blue.svg"></a>
@@ -61,20 +61,20 @@ cargo +nightly bench
 The `ark-ff` crate contains (off-by-default) optimized assembly implementations of field arithmetic that rely on the `adcxq`, `adoxq` and `mulxq` instructions. These are available on most `x86_64` platforms (Broadwell onwards for Intel and Ryzen onwards for AMD). Using this backend can lead to a 30-70% speedup in finite field and elliptic curve arithmetic. To build with this backend enabled, run the following command:
 
 ```bash
-RUSTFLAGS="-C target-feature=+bmi2,+adx" cargo +nightly test/build/bench --features asm
+RUSTFLAGS="-C target-feature=+bmi2,+adx" cargo +nightly [test/build/bench] --features asm
 ```
 
 To enable this in the `Cargo.toml` of your own projects, enable the `asm` feature flag:
 
 ```toml
-ark-ff = { version = "0.1", features = [ "asm" ] }
+ark-ff = { version = "0.3.0", features = [ "asm" ] }
 ```
 
 Note that because inline assembly support in Rust is currently unstable, using this backend requires using the Nightly compiler at the moment.
 
 ## License
 
-The crates in this repo are licensed under either of the following licenses, at your discretion.
+The crates in this repository are licensed under either of the following licenses, at your discretion.
 
 * Apache License Version 2.0 ([LICENSE-APACHE](LICENSE-APACHE) or [apache.org license link](http://www.apache.org/licenses/LICENSE-2.0))
 * MIT license ([LICENSE-MIT](LICENSE-MIT) or [opensource.org license link](http://opensource.org/licenses/MIT))

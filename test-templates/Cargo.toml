@@ -10,13 +10,16 @@ keywords = ["cryptography", "finite-fields", "elliptic-curves" ]
 categories = ["cryptography"]
 include = ["Cargo.toml", "src", "README.md", "LICENSE-APACHE", "LICENSE-MIT"]
 license = "MIT/Apache-2.0"
-edition = "2018"
+edition = "2021"
+rust-version = "1.56"
 
 [dependencies]
 ark-std = { version = "^0.3.0", default-features = false }
 ark-serialize = { version = "^0.3.0", path = "../serialize", default-features = false }
 ark-ff = { version = "^0.3.0", path = "../ff", default-features = false }
 ark-ec = { version = "^0.3.0", path = "../ec", default-features = false }
+num-bigint = { version = "0.4", default-features = false }
+num-integer = { version = "0.1", default-features = false }
 
 [features]
 default = []

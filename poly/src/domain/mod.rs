@@ -9,8 +9,7 @@
 
 use ark_ff::FftField;
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
-use ark_std::rand::Rng;
-use ark_std::{fmt, hash, vec::Vec};
+use ark_std::{fmt, hash, rand::Rng, vec::Vec};
 
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
@@ -58,6 +57,21 @@ pub trait EvaluationDomain<F: FftField>:
     fn size_as_field_element(&self) -> F {
         F::from(self.size() as u64)
     }
+
+    /// Return log_2(size) of `self`.
+    fn log_size_of_group(&self) -> u64;
+
+    /// Return the inverse of `self.size_as_field_element()`.
+    fn size_inv(&self) -> F;
+
+    /// Return the generator for the multiplicative subgroup that defines this domain.
+    fn group_gen(&self) -> F;
+
+    /// Return the group inverse of `self.group_gen()`.
+    fn group_gen_inv(&self) -> F;
+
+    /// Return the inverse of the multiplicative generator of `F`.
+    fn generator_inv(&self) -> F;
 
     /// Compute a FFT.
     #[inline]
@@ -129,7 +143,7 @@ pub trait EvaluationDomain<F: FftField>:
     /// in place.
     #[inline]
     fn coset_fft_in_place<T: DomainCoeff<F>>(&self, coeffs: &mut Vec<T>) {
-        Self::distribute_powers(coeffs, F::multiplicative_generator());
+        Self::distribute_powers(coeffs, F::GENERATOR);
         self.fft_in_place(coeffs);
     }
 
@@ -146,7 +160,7 @@ pub trait EvaluationDomain<F: FftField>:
     #[inline]
     fn coset_ifft_in_place<T: DomainCoeff<F>>(&self, evals: &mut Vec<T>) {
         self.ifft_in_place(evals);
-        Self::distribute_powers(evals, F::multiplicative_generator().inverse().unwrap());
+        Self::distribute_powers(evals, self.generator_inv());
     }
 
     /// Evaluate all the lagrange polynomials defined by this domain at the
@@ -175,7 +189,7 @@ pub trait EvaluationDomain<F: FftField>:
     /// a coset.
     fn divide_by_vanishing_poly_on_coset_in_place(&self, evals: &mut [F]) {
         let i = self
-            .evaluate_vanishing_polynomial(F::multiplicative_generator())
+            .evaluate_vanishing_polynomial(F::GENERATOR)
             .inverse()
             .unwrap();
 

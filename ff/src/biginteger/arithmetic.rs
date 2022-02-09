@@ -1,41 +1,53 @@
 use ark_std::{vec, vec::Vec};
 
-/// Calculate a + b + carry, returning the sum and modifying the
-/// carry value.
 macro_rules! adc {
     ($a:expr, $b:expr, &mut $carry:expr$(,)?) => {{
         let tmp = ($a as u128) + ($b as u128) + ($carry as u128);
-
         $carry = (tmp >> 64) as u64;
+        tmp as u64
+    }};
+}
 
+/// Calculate a + b + carry, returning the sum and modifying the
+/// carry value.
+#[inline(always)]
+pub(crate) fn adc(a: u64, b: u64, carry: &mut u64) -> u64 {
+    adc!(a, b, &mut *carry)
+}
+
+macro_rules! mac_with_carry {
+    ($a:expr, $b:expr, $c:expr, &mut $carry:expr$(,)?) => {{
+        let tmp = ($a as u128) + ($b as u128 * $c as u128) + ($carry as u128);
+        $carry = (tmp >> 64) as u64;
         tmp as u64
     }};
 }
 
 /// Calculate a + (b * c) + carry, returning the least significant digit
 /// and setting carry to the most significant digit.
-macro_rules! mac_with_carry {
-    ($a:expr, $b:expr, $c:expr, &mut $carry:expr$(,)?) => {{
-        let tmp = ($a as u128) + ($b as u128 * $c as u128) + ($carry as u128);
+#[inline(always)]
+pub(crate) fn mac_with_carry(a: u64, b: u64, c: u64, carry: &mut u64) -> u64 {
+    mac_with_carry!(a, b, c, &mut *carry)
+}
 
-        $carry = (tmp >> 64) as u64;
-
+#[macro_export]
+macro_rules! sbb {
+    ($a:expr, $b:expr, &mut $borrow:expr$(,)?) => {{
+        let tmp = (1u128 << 64) + ($a as u128) - ($b as u128) - ($borrow as u128);
+        $borrow = if tmp >> 64 == 0 { 1 } else { 0 };
         tmp as u64
     }};
 }
 
 /// Calculate a - b - borrow, returning the result and modifying
 /// the borrow value.
-macro_rules! sbb {
-    ($a:expr, $b:expr, &mut $borrow:expr$(,)?) => {{
-        let tmp = (1u128 << 64) + ($a as u128) - ($b as u128) - ($borrow as u128);
-
-        $borrow = if tmp >> 64 == 0 { 1 } else { 0 };
-
-        tmp as u64
-    }};
+#[inline(always)]
+pub(crate) fn sbb(a: u64, b: u64, borrow: &mut u64) -> u64 {
+    sbb!(a, b, &mut *borrow)
 }
 
+/// Calculate a + b * c, returning the lower 64 bits of the result and setting
+/// `carry` to the upper 64 bits.
 #[inline(always)]
 pub(crate) fn mac(a: u64, b: u64, c: u64, carry: &mut u64) -> u64 {
     let tmp = (u128::from(a)) + u128::from(b) * u128::from(c);
@@ -45,6 +57,8 @@ pub(crate) fn mac(a: u64, b: u64, c: u64, carry: &mut u64) -> u64 {
     tmp as u64
 }
 
+/// Calculate a + b * c, discarding the lower 64 bits of the result and setting
+/// `carry` to the upper 64 bits.
 #[inline(always)]
 pub(crate) fn mac_discard(a: u64, b: u64, c: u64, carry: &mut u64) {
     let tmp = (u128::from(a)) + u128::from(b) * u128::from(c);
@@ -52,6 +66,7 @@ pub(crate) fn mac_discard(a: u64, b: u64, c: u64, carry: &mut u64) {
     *carry = (tmp >> 64) as u64;
 }
 
+/// Compute the Window NAF (non-adjacent form) of num
 pub fn find_wnaf(num: &[u64]) -> Vec<i64> {
     let is_zero = |num: &[u64]| num.iter().all(|x| *x == 0u64);
     let is_odd = |num: &[u64]| num[0] & 1 == 1;
@@ -61,7 +76,7 @@ pub fn find_wnaf(num: &[u64]) -> Vec<i64> {
         let mut borrow = 0;
 
         for (a, b) in num.iter_mut().zip(other) {
-            *a = sbb!(*a, b, &mut borrow);
+            *a = sbb(*a, b, &mut borrow);
         }
     };
     let add_nocarry = |num: &mut [u64], z: u64| {
@@ -70,7 +85,7 @@ pub fn find_wnaf(num: &[u64]) -> Vec<i64> {
         let mut carry = 0;
 
         for (a, b) in num.iter_mut().zip(other) {
-            *a = adc!(*a, b, &mut carry);
+            *a = adc(*a, b, &mut carry);
         }
     };
     let div2 = |num: &mut [u64]| {

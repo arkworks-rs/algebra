@@ -92,10 +92,10 @@ impl<P: BnParameters> From<G2Affine<P>> for G2Prepared<P> {
             match bit {
                 1 => {
                     ell_coeffs.push(addition_step::<P>(&mut r, &q));
-                }
+                },
                 -1 => {
                     ell_coeffs.push(addition_step::<P>(&mut r, &negq));
-                }
+                },
                 _ => continue,
             }
         }

@@ -4,15 +4,13 @@ use crate::{
 };
 use ark_ff::fields::{
     fp12_2over3over2::{Fp12, Fp12Parameters},
-    fp2::Fp2Parameters,
-    fp6_3over2::Fp6Parameters,
+    fp2::Fp2Config,
+    fp6_3over2::Fp6Config,
     BitIteratorBE, Field, Fp2, PrimeField, SquareRootField,
 };
 use core::marker::PhantomData;
 use num_traits::{One, Zero};
 
-#[cfg(feature = "parallel")]
-use ark_ff::{Fp12ParamsWrapper, Fp2ParamsWrapper, QuadExtField};
 #[cfg(feature = "parallel")]
 use ark_std::cfg_iter;
 #[cfg(feature = "parallel")]
@@ -36,8 +34,8 @@ pub trait Bls12Parameters: 'static {
     const TWIST_TYPE: TwistType;
 
     type Fp: PrimeField + SquareRootField + Into<<Self::Fp as PrimeField>::BigInt>;
-    type Fp2Params: Fp2Parameters<Fp = Self::Fp>;
-    type Fp6Params: Fp6Parameters<Fp2Params = Self::Fp2Params>;
+    type Fp2Params: Fp2Config<Fp = Self::Fp>;
+    type Fp6Params: Fp6Config<Fp2Params = Self::Fp2Params>;
     type Fp12Params: Fp12Parameters<Fp6Params = Self::Fp6Params>;
     type G1Parameters: SWModelParameters<BaseField = Self::Fp>;
     type G2Parameters: SWModelParameters<
@@ -70,12 +68,12 @@ impl<P: Bls12Parameters> Bls12<P> {
                 c2.mul_assign_by_fp(&p.y);
                 c1.mul_assign_by_fp(&p.x);
                 f.mul_by_014(&c0, &c1, &c2);
-            }
+            },
             TwistType::D => {
                 c0.mul_assign_by_fp(&p.y);
                 c1.mul_assign_by_fp(&p.x);
                 f.mul_by_034(&c0, &c1, &c2);
-            }
+            },
         }
     }
 
@@ -150,13 +148,13 @@ impl<P: Bls12Parameters> PairingEngine for Bls12<P> {
                  coeffs: &Iter<
             '_,
             (
-                QuadExtField<Fp2ParamsWrapper<<P as Bls12Parameters>::Fp2Params>>,
-                QuadExtField<Fp2ParamsWrapper<<P as Bls12Parameters>::Fp2Params>>,
-                QuadExtField<Fp2ParamsWrapper<<P as Bls12Parameters>::Fp2Params>>,
+                Fp2<<P as Bls12Parameters>::Fp2Params>,
+                Fp2<<P as Bls12Parameters>::Fp2Params>,
+                Fp2<<P as Bls12Parameters>::Fp2Params>,
             ),
         >,
-                 mut f: QuadExtField<Fp12ParamsWrapper<<P as Bls12Parameters>::Fp12Params>>|
-         -> QuadExtField<Fp12ParamsWrapper<<P as Bls12Parameters>::Fp12Params>> {
+                 mut f: Fp12<<P as Bls12Parameters>::Fp12Params>|
+         -> Fp12<<P as Bls12Parameters>::Fp12Params> {
             let coeffs = coeffs.as_slice();
             let mut j = 0;
             for i in BitIteratorBE::new(P::X).skip(1) {

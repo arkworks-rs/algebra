@@ -5,12 +5,12 @@ use crate::{
 };
 use ark_ff::{Field, Zero};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, SerializationError};
-use ark_std::rand::Rng;
 use ark_std::{
     cmp::Ordering,
     fmt,
     io::{Read, Write},
     ops::{Add, AddAssign, Neg, Sub, SubAssign},
+    rand::Rng,
     vec::Vec,
 };
 
@@ -146,7 +146,7 @@ impl<'a, 'b, F: Field, T: Term> Add<&'a SparsePolynomial<F, T>> for &'b SparsePo
                     let other = other_iter.next().unwrap();
                     let cur = cur_iter.next().unwrap();
                     (cur.0 + other.0, cur.1.clone())
-                }
+                },
                 Some(Ordering::Greater) => other_iter.next().unwrap().clone(),
                 None => break,
             };
