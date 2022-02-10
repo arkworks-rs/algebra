@@ -120,19 +120,19 @@ pub fn find_naf(num: &[u64]) -> Vec<i64> {
     res
 }
 
-// We define relaxed NAF as a variant of NAF with a very small tweak.
-//
-// Note that the cost of scalar multiplication grows with the length of the sequence (for doubling)
-// plus the Hamming weight of the sequence (for addition, or subtraction).
-//
-// NAF is optimizing for the Hamming weight only and therefore can be suboptimal.
-// For example, NAF may generate a sequence (in little-endian) of the form ...0 -1 0 1.
-//
-// This can be rewritten as ...0 1 1 to avoid one doubling, at the cost that we are making an
-// exception of non-adjacence for the most significant bit.
-//
-// Since this representation is no longer a strict NAF, we call it ``relaxed NAF''.
-//
+/// We define relaxed NAF as a variant of NAF with a very small tweak.
+///
+/// Note that the cost of scalar multiplication grows with the length of the sequence (for doubling)
+/// plus the Hamming weight of the sequence (for addition, or subtraction).
+///
+/// NAF is optimizing for the Hamming weight only and therefore can be suboptimal.
+/// For example, NAF may generate a sequence (in little-endian) of the form ...0 -1 0 1.
+///
+/// This can be rewritten as ...0 1 1 to avoid one doubling, at the cost that we are making an
+/// exception of non-adjacence for the most significant bit.
+///
+/// Since this representation is no longer a strict NAF, we call it ``relaxed NAF''.
+///
 pub fn find_relaxed_naf(num: &[u64]) -> Vec<i64> {
     let mut res = find_naf(num);
 
@@ -148,6 +148,9 @@ pub fn find_relaxed_naf(num: &[u64]) -> Vec<i64> {
 
 #[test]
 fn test_find_relaxed_naf_usefulness() {
+    let vec = find_naf(&[12u64]);
+    assert_eq!(vec.len(), 5);
+
     let vec = find_relaxed_naf(&[12u64]);
     assert_eq!(vec.len(), 4);
 }
