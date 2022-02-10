@@ -103,7 +103,7 @@ pub trait QuadExtConfig: 'static + Send + Sync + Sized {
         self_inverse.conjugate();
 
         let mut found_nonzero = false;
-        let naf = crate::biginteger::arithmetic::find_wnaf(exponent.as_ref());
+        let naf = crate::biginteger::arithmetic::find_naf(exponent.as_ref());
 
         for &value in naf.iter().rev() {
             if found_nonzero {
