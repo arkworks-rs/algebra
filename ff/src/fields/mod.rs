@@ -109,17 +109,21 @@ pub trait Field:
     /// Doubles `self` in place.
     fn double_in_place(&mut self) -> &mut Self;
 
-    /// Returns a field element if the set of bytes forms a valid field element,
-    /// otherwise returns None. This function is primarily intended for sampling
-    /// random field elements from a hash-function or RNG output.
+    /// Attempt to deserialize a field element. Returns `None` if the
+    /// deserialization fails.
+    ///
+    /// This function is primarily intended for sampling random field elements
+    /// from a hash-function or RNG output.
     fn from_random_bytes(bytes: &[u8]) -> Option<Self> {
         Self::from_random_bytes_with_flags::<EmptyFlags>(bytes).map(|f| f.0)
     }
 
-    /// Returns a field element with an extra sign bit used for group parsing if
-    /// the set of bytes forms a valid field element, otherwise returns
-    /// None. This function is primarily intended for sampling
-    /// random field elements from a hash-function or RNG output.
+    /// Attempt to deserialize a field element, splitting the bitflags metadata
+    /// according to `F` specification. Returns `None` if the deserialization
+    /// fails.
+    ///
+    /// This function is primarily intended for sampling random field elements
+    /// from a hash-function or RNG output.
     fn from_random_bytes_with_flags<F: Flags>(bytes: &[u8]) -> Option<(Self, F)>;
 
     /// Returns `self * self`.
