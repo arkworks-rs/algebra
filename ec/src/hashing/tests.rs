@@ -1,12 +1,12 @@
+use crate::hashing::HashToCurve;
 use crate::{
     hashing::{
         curve_maps::{
             swu::{parity, SWUMap, SWUParams},
             wb::{WBMap, WBParams},
         },
-        field_hashers::DefaultFieldHasher,
+        field_hashers::IETFHasher,
         map_to_curve_hasher::{MapToCurve, MapToCurveBasedHasher},
-        HashToCurve,
     },
     models::SWModelParameters,
     short_weierstrass_jacobian::GroupAffine,
@@ -120,11 +120,11 @@ fn checking_the_hashing_parameters() {
 /// simple hash
 #[test]
 fn hash_arbitary_string_to_curve_swu() {
-    use blake2::Blake2bVar;
+    use sha2::Sha256;
 
     let test_swu_to_curve_hasher = MapToCurveBasedHasher::<
         GroupAffine<TestSWUMapToCurveParams>,
-        DefaultFieldHasher<Blake2bVar, 128>,
+        IETFHasher<Sha256, 128>,
         SWUMap<TestSWUMapToCurveParams>,
     >::new(&[1])
     .unwrap();
@@ -343,11 +343,10 @@ impl WBParams for TestWBF127MapToCurveParams {
 /// and make simple hash
 #[test]
 fn hash_arbitary_string_to_curve_wb() {
-    use blake2::Blake2bVar;
-
+    use sha2::Sha256;
     let test_wb_to_curve_hasher = MapToCurveBasedHasher::<
         GroupAffine<TestWBF127MapToCurveParams>,
-        DefaultFieldHasher<Blake2bVar, 128>,
+        IETFHasher<Sha256, 128>,
         WBMap<TestWBF127MapToCurveParams>,
     >::new(&[1])
     .unwrap();

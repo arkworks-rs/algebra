@@ -20,10 +20,10 @@ pub trait HashToField<F: Field>: Sized {
     ///
     /// * `domain` - bytes that get concatenated with the `msg` during hashing, in order to separate potentially interfering instantiations of the hasher.
     /// * `count` - number of elements in field `F` to output.
-    fn new_hash_to_field(domain: &[u8], count: usize) -> Result<Self, HashToCurveError>;
+    fn new_hash_to_field(domain: &[u8]) -> Result<Self, HashToCurveError>;
 
     /// Hash an arbitrary `msg` to #`count` elements from field `F`.
-    fn hash_to_field(&self, msg: &[u8]) -> Result<Vec<F>, HashToCurveError>;
+    fn hash_to_field(&self, msg: &[u8], count: usize) -> Result<Vec<F>, HashToCurveError>;
 }
 
 /// Helper struct that can be used to construct elements on the elliptic curve
@@ -47,7 +47,7 @@ where
     M2C: MapToCurve<T>,
 {
     fn new(domain: &[u8]) -> Result<Self, HashToCurveError> {
-        let field_hasher = H2F::new_hash_to_field(domain, 2)?;
+        let field_hasher = H2F::new_hash_to_field(domain)?;
         let curve_mapper = M2C::new_map_to_curve()?;
         let _params_t = PhantomData;
         Ok(MapToCurveBasedHasher {
@@ -71,7 +71,7 @@ where
         // 5. P = clear_cofactor(R)
         // 6. return P
 
-        let rand_field_elems = self.field_hasher.hash_to_field(msg)?;
+        let rand_field_elems = self.field_hasher.hash_to_field(msg, 2)?;
 
         let rand_curve_elem_0 = self.curve_mapper.map_to_curve(rand_field_elems[0])?;
         let rand_curve_elem_1 = self.curve_mapper.map_to_curve(rand_field_elems[1])?;
