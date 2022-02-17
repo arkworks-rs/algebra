@@ -137,7 +137,7 @@ macro_rules! generate_bilinearity_test {
 
             let ans1 = $curve_name::pairing(sa, b);
             let ans2 = $curve_name::pairing(a, sb);
-            let ans3 = $curve_name::pairing(a, b).pow(s.into_repr());
+            let ans3 = $curve_name::pairing(a, b).pow(s.into_bigint());
 
             assert_eq!(ans1, ans2);
             assert_eq!(ans2, ans3);
