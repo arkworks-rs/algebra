@@ -594,7 +594,7 @@ macro_rules! generate_field_serialization_test {
                 field_serialization_test::<Fr>(byte_size);
 
                 let byte_size = b.serialized_size();
-                let (_, buffer_size) = buffer_bit_byte_size(Fq::size_in_bits());
+                let (_, buffer_size) = buffer_bit_byte_size(Fq::MODULUS_BIT_SIZE as usize);
                 assert_eq!(byte_size, buffer_size);
                 field_serialization_test::<Fq>(byte_size);
             }
