@@ -212,7 +212,9 @@ impl<const N: usize> SerBuffer<N> {
         let num_last_limb_bytes = ark_std::cmp::min(8, remaining_bytes);
         other.read_exact(&mut self.buffers[N - 1][..num_last_limb_bytes])?;
         if write_last_byte {
-            other.read_exact(&mut [self.last])?;
+            let mut last = [0u8; 1];
+            other.read_exact(&mut last)?;
+            self.last = last[0];
         }
         Ok(())
     }
