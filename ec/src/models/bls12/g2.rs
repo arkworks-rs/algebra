@@ -30,7 +30,7 @@ pub type G2Projective<P> = GroupProjective<<P as Bls12Parameters>::G2Parameters>
 pub struct G2Prepared<P: Bls12Parameters> {
     // Stores the coefficients of the line evaluations as calculated in
     // https://eprint.iacr.org/2013/722.pdf
-    pub ell_coeffs: Vec<EllCoeff<Fp2<P::Fp2Params>>>,
+    pub ell_coeffs: Vec<EllCoeff<Fp2<P::Fp2Config>>>,
     pub infinity: bool,
 }
 
@@ -43,9 +43,9 @@ pub(crate) type EllCoeff<F> = (F, F, F);
     Debug(bound = "P: Bls12Parameters")
 )]
 struct G2HomProjective<P: Bls12Parameters> {
-    x: Fp2<P::Fp2Params>,
-    y: Fp2<P::Fp2Params>,
-    z: Fp2<P::Fp2Params>,
+    x: Fp2<P::Fp2Config>,
+    y: Fp2<P::Fp2Config>,
+    z: Fp2<P::Fp2Config>,
 }
 
 impl<P: Bls12Parameters> Default for G2Prepared<P> {
@@ -105,7 +105,7 @@ impl<P: Bls12Parameters> G2Prepared<P> {
 fn doubling_step<B: Bls12Parameters>(
     r: &mut G2HomProjective<B>,
     two_inv: &B::Fp,
-) -> EllCoeff<Fp2<B::Fp2Params>> {
+) -> EllCoeff<Fp2<B::Fp2Config>> {
     // Formula for line function when working with
     // homogeneous projective coordinates.
 
@@ -134,7 +134,7 @@ fn doubling_step<B: Bls12Parameters>(
 fn addition_step<B: Bls12Parameters>(
     r: &mut G2HomProjective<B>,
     q: &G2Affine<B>,
-) -> EllCoeff<Fp2<B::Fp2Params>> {
+) -> EllCoeff<Fp2<B::Fp2Config>> {
     // Formula for line function when working with
     // homogeneous projective coordinates.
     let theta = r.y - &(q.y * &r.z);

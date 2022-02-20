@@ -454,7 +454,7 @@ pub fn field_serialization_test<F: Field>(buf_size: usize) {
         }
 
         {
-            let mut serialized = vec![0u8; buf_size];
+            let mut serialized = vec![0u8; buf_size + 1];
             let mut cursor = Cursor::new(&mut serialized[..]);
             a.serialize_with_flags(&mut cursor, SWFlags::from_y_sign(true))
                 .unwrap();
