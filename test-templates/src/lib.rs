@@ -292,6 +292,8 @@ macro_rules! generate_field_test {
             }
             frobenius_test::<Fq12, _>(Fq::characteristic(), 13);
         }
+
+        generate_field_test!($($tail)*);
     };
 
     ($curve_name: ident; $($tail:tt)*) => {
