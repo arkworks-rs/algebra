@@ -31,9 +31,9 @@ pub trait Fp3Config: 'static + Send + Sync + Sized {
 }
 
 /// Wrapper for [`Fp3Config`], allowing combination of the [`Fp3Config`] and [`CubicExtConfig`] traits.
-pub struct Fp3ParamsWrapper<P: Fp3Config>(PhantomData<P>);
+pub struct Fp3ConfigWrapper<P: Fp3Config>(PhantomData<P>);
 
-impl<P: Fp3Config> CubicExtConfig for Fp3ParamsWrapper<P> {
+impl<P: Fp3Config> CubicExtConfig for Fp3ConfigWrapper<P> {
     type BasePrimeField = P::Fp;
     type BaseField = P::Fp;
     type FrobCoeff = P::Fp;
@@ -60,7 +60,7 @@ impl<P: Fp3Config> CubicExtConfig for Fp3ParamsWrapper<P> {
     }
 }
 
-pub type Fp3<P> = CubicExtField<Fp3ParamsWrapper<P>>;
+pub type Fp3<P> = CubicExtField<Fp3ConfigWrapper<P>>;
 
 impl<P: Fp3Config> Fp3<P> {
     /// In-place multiply all coefficients `c0`, `c1`, and `c2` of `self`

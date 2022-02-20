@@ -3,7 +3,7 @@ use crate::{
     PairingEngine,
 };
 use ark_ff::fields::{
-    fp12_2over3over2::{Fp12, Fp12Parameters},
+    fp12_2over3over2::{Fp12, Fp12Config},
     fp2::Fp2Config,
     fp6_3over2::Fp6Config,
     BitIteratorBE, Field, Fp2, PrimeField, SquareRootField,
@@ -34,12 +34,12 @@ pub trait Bls12Parameters: 'static {
     const TWIST_TYPE: TwistType;
 
     type Fp: PrimeField + SquareRootField + Into<<Self::Fp as PrimeField>::BigInt>;
-    type Fp2Params: Fp2Config<Fp = Self::Fp>;
-    type Fp6Params: Fp6Config<Fp2Params = Self::Fp2Params>;
-    type Fp12Params: Fp12Parameters<Fp6Params = Self::Fp6Params>;
+    type Fp2Config: Fp2Config<Fp = Self::Fp>;
+    type Fp6Config: Fp6Config<Fp2Config = Self::Fp2Config>;
+    type Fp12Config: Fp12Config<Fp6Config = Self::Fp6Config>;
     type G1Parameters: SWModelParameters<BaseField = Self::Fp>;
     type G2Parameters: SWModelParameters<
-        BaseField = Fp2<Self::Fp2Params>,
+        BaseField = Fp2<Self::Fp2Config>,
         ScalarField = <Self::G1Parameters as ModelParameters>::ScalarField,
     >;
 }
@@ -58,7 +58,7 @@ pub struct Bls12<P: Bls12Parameters>(PhantomData<fn() -> P>);
 
 impl<P: Bls12Parameters> Bls12<P> {
     // Evaluate the line function at point p.
-    fn ell(f: &mut Fp12<P::Fp12Params>, coeffs: &g2::EllCoeff<Fp2<P::Fp2Params>>, p: &G1Affine<P>) {
+    fn ell(f: &mut Fp12<P::Fp12Config>, coeffs: &g2::EllCoeff<Fp2<P::Fp2Config>>, p: &G1Affine<P>) {
         let mut c0 = coeffs.0;
         let mut c1 = coeffs.1;
         let mut c2 = coeffs.2;
@@ -78,7 +78,7 @@ impl<P: Bls12Parameters> Bls12<P> {
     }
 
     // Exponentiates `f` by `Self::X`, and stores the result in `result`.
-    fn exp_by_x(f: &Fp12<P::Fp12Params>, result: &mut Fp12<P::Fp12Params>) {
+    fn exp_by_x(f: &Fp12<P::Fp12Config>, result: &mut Fp12<P::Fp12Config>) {
         *result = f.cyclotomic_exp(P::X);
         if P::X_IS_NEGATIVE {
             result.conjugate();
@@ -95,8 +95,8 @@ impl<P: Bls12Parameters> PairingEngine for Bls12<P> {
     type G2Affine = G2Affine<P>;
     type G2Prepared = G2Prepared<P>;
     type Fq = P::Fp;
-    type Fqe = Fp2<P::Fp2Params>;
-    type Fqk = Fp12<P::Fp12Params>;
+    type Fqe = Fp2<P::Fp2Config>;
+    type Fqk = Fp12<P::Fp12Config>;
 
     #[cfg(not(feature = "parallel"))]
     fn miller_loop<'a, I>(i: I) -> Self::Fqk
@@ -148,13 +148,13 @@ impl<P: Bls12Parameters> PairingEngine for Bls12<P> {
                  coeffs: &Iter<
             '_,
             (
-                Fp2<<P as Bls12Parameters>::Fp2Params>,
-                Fp2<<P as Bls12Parameters>::Fp2Params>,
-                Fp2<<P as Bls12Parameters>::Fp2Params>,
+                Fp2<<P as Bls12Parameters>::Fp2Config>,
+                Fp2<<P as Bls12Parameters>::Fp2Config>,
+                Fp2<<P as Bls12Parameters>::Fp2Config>,
             ),
         >,
-                 mut f: Fp12<<P as Bls12Parameters>::Fp12Params>|
-         -> Fp12<<P as Bls12Parameters>::Fp12Params> {
+                 mut f: Fp12<<P as Bls12Parameters>::Fp12Config>|
+         -> Fp12<<P as Bls12Parameters>::Fp12Config> {
             let coeffs = coeffs.as_slice();
             let mut j = 0;
             for i in BitIteratorBE::new(P::X).skip(1) {

@@ -116,13 +116,13 @@ impl<P: CubicExtConfig> CubicExtField<P> {
     /// # use ark_test_curves::bls12_381::{Fq2 as Fp2, Fq6 as Fp6};
     /// # use ark_test_curves::bls12_381::Fq6Config;
     /// # use ark_std::UniformRand;
-    /// # use ark_ff::models::fp6_3over2::Fp6ParamsWrapper;
+    /// # use ark_ff::models::fp6_3over2::Fp6ConfigWrapper;
     /// use ark_ff::models::cubic_extension::CubicExtField;
     ///
     /// let c0: Fp2 = Fp2::rand(&mut test_rng());
     /// let c1: Fp2 = Fp2::rand(&mut test_rng());
     /// let c2: Fp2 = Fp2::rand(&mut test_rng());
-    /// # type Params = Fp6ParamsWrapper<Fq6Config>;
+    /// # type Params = Fp6ConfigWrapper<Fq6Config>;
     /// // `Fp6` a degree-3 extension over `Fp2`.
     /// let c: CubicExtField<Params> = Fp6::new(c0, c1, c2);
     /// ```

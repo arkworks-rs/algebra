@@ -3,7 +3,7 @@ use crate::{
     PairingEngine,
 };
 use ark_ff::fields::{
-    fp12_2over3over2::{Fp12, Fp12Parameters},
+    fp12_2over3over2::{Fp12, Fp12Config},
     fp2::Fp2Config,
     fp6_3over2::Fp6Config,
     Field, Fp2, PrimeField, SquareRootField,
@@ -29,15 +29,15 @@ pub trait BnParameters: 'static {
     const ATE_LOOP_COUNT: &'static [i8];
 
     const TWIST_TYPE: TwistType;
-    const TWIST_MUL_BY_Q_X: Fp2<Self::Fp2Params>;
-    const TWIST_MUL_BY_Q_Y: Fp2<Self::Fp2Params>;
+    const TWIST_MUL_BY_Q_X: Fp2<Self::Fp2Config>;
+    const TWIST_MUL_BY_Q_Y: Fp2<Self::Fp2Config>;
     type Fp: PrimeField + SquareRootField + Into<<Self::Fp as PrimeField>::BigInt>;
-    type Fp2Params: Fp2Config<Fp = Self::Fp>;
-    type Fp6Params: Fp6Config<Fp2Params = Self::Fp2Params>;
-    type Fp12Params: Fp12Parameters<Fp6Params = Self::Fp6Params>;
+    type Fp2Config: Fp2Config<Fp = Self::Fp>;
+    type Fp6Config: Fp6Config<Fp2Config = Self::Fp2Config>;
+    type Fp12Config: Fp12Config<Fp6Config = Self::Fp6Config>;
     type G1Parameters: SWModelParameters<BaseField = Self::Fp>;
     type G2Parameters: SWModelParameters<
-        BaseField = Fp2<Self::Fp2Params>,
+        BaseField = Fp2<Self::Fp2Config>,
         ScalarField = <Self::G1Parameters as ModelParameters>::ScalarField,
     >;
 }
@@ -56,7 +56,7 @@ pub struct Bn<P: BnParameters>(PhantomData<fn() -> P>);
 
 impl<P: BnParameters> Bn<P> {
     /// Evaluates the line function at point p.
-    fn ell(f: &mut Fp12<P::Fp12Params>, coeffs: &g2::EllCoeff<Fp2<P::Fp2Params>>, p: &G1Affine<P>) {
+    fn ell(f: &mut Fp12<P::Fp12Config>, coeffs: &g2::EllCoeff<Fp2<P::Fp2Config>>, p: &G1Affine<P>) {
         let mut c0 = coeffs.0;
         let mut c1 = coeffs.1;
         let mut c2 = coeffs.2;
@@ -75,7 +75,7 @@ impl<P: BnParameters> Bn<P> {
         }
     }
 
-    fn exp_by_neg_x(mut f: Fp12<P::Fp12Params>) -> Fp12<P::Fp12Params> {
+    fn exp_by_neg_x(mut f: Fp12<P::Fp12Config>) -> Fp12<P::Fp12Config> {
         f = f.cyclotomic_exp(&P::X);
         if !P::X_IS_NEGATIVE {
             f.conjugate();
@@ -93,8 +93,8 @@ impl<P: BnParameters> PairingEngine for Bn<P> {
     type G2Affine = G2Affine<P>;
     type G2Prepared = G2Prepared<P>;
     type Fq = P::Fp;
-    type Fqe = Fp2<P::Fp2Params>;
-    type Fqk = Fp12<P::Fp12Params>;
+    type Fqe = Fp2<P::Fp2Config>;
+    type Fqk = Fp12<P::Fp12Config>;
 
     fn miller_loop<'a, I>(i: I) -> Self::Fqk
     where
