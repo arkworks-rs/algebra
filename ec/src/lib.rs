@@ -220,18 +220,7 @@ pub trait ProjectiveCurve:
     fn add_assign_mixed(&mut self, other: &Self::Affine);
 
     /// Performs scalar multiplication of this element.
-    fn mul<S: AsRef<[u64]>>(mut self, other: S) -> Self {
-        let mut res = Self::zero();
-        for b in ark_ff::BitIteratorBE::without_leading_zeros(other) {
-            res.double_in_place();
-            if b {
-                res += self;
-            }
-        }
-
-        self = res;
-        self
-    }
+    fn mul<S: AsRef<[u64]>>(self, other: S) -> Self;
 }
 
 /// Affine representation of an elliptic curve point guaranteed to be
@@ -262,8 +251,8 @@ pub trait AffineCurve:
 {
     type Parameters: ModelParameters<ScalarField = Self::ScalarField, BaseField = Self::BaseField>;
 
-    /// The group defined by this curve has order `h * r` where `r` is a large prime.
-    /// `Self::ScalarField` is the prime field defined by `r`
+    /// The group defined by this curve has order `h * r` where `r` is a large
+    /// prime. `Self::ScalarField` is the prime field defined by `r`
     type ScalarField: PrimeField + SquareRootField + Into<<Self::ScalarField as PrimeField>::BigInt>;
 
     /// The finite field over which this curve is defined.
@@ -334,6 +323,7 @@ pub trait AffineCurve:
     fn mul_by_cofactor_inv(&self) -> Self {
         self.mul(Self::Parameters::COFACTOR_INV).into()
     }
+
 }
 
 impl<C: ProjectiveCurve> crate::group::Group for C {

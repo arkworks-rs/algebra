@@ -590,6 +590,11 @@ impl<P: Parameters> ProjectiveCurve for GroupProjective<P> {
             self.z -= &hh;
         }
     }
+
+    #[inline]
+    fn mul<S: AsRef<[u64]>>(self, other: S) -> Self{
+        P::mul_projective(&self, other.as_ref())
+    }
 }
 
 impl<P: Parameters> Neg for GroupProjective<P> {
