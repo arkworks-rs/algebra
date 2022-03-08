@@ -82,7 +82,7 @@ impl<const N: usize> IndexMut<usize> for MulBuffer<N> {
     }
 }
 
-/// A buffer to hold values of size 2 * N. This is mostly
+/// A buffer to hold values of size 8 * N + 1 bytes. This is mostly
 /// a hack that's necessary until `generic_const_exprs` is stable.
 #[derive(Copy, Clone)]
 #[repr(C, align(1))]

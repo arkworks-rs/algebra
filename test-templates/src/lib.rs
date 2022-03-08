@@ -593,6 +593,8 @@ macro_rules! generate_field_serialization_test {
                 let b: Fq = rng.gen();
 
                 let byte_size = a.serialized_size();
+                let (_, buffer_size) = buffer_bit_byte_size(Fr::MODULUS_BIT_SIZE as usize);
+                assert_eq!(byte_size, buffer_size);
                 field_serialization_test::<Fr>(byte_size);
 
                 let byte_size = b.serialized_size();

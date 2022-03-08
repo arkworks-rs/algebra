@@ -638,9 +638,8 @@ impl<P: FpConfig<N>, const N: usize> CanonicalDeserializeWithFlags for Fp<P, N> 
             return Err(SerializationError::NotEnoughSpace);
         }
         // Calculate the number of bytes required to represent a field element
-        // serialized with `flags`. If `F::BIT_SIZE < 8`,
-        // this is at most `$byte_size + 1`
-        let output_byte_size = buffer_byte_size(Self::MODULUS_BIT_SIZE as usize + F::BIT_SIZE);
+        // serialized with `flags`.
+        let output_byte_size = Self::zero().serialized_size_with_flags::<F>();
 
         let mut masked_bytes = crate::const_helpers::SerBuffer::zeroed();
         masked_bytes.read_exact_up_to(reader, output_byte_size)?;
