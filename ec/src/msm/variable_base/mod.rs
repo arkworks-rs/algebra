@@ -1,5 +1,6 @@
 use ark_ff::prelude::*;
-use ark_std::vec::Vec;
+use ark_std::{borrow::Borrow, iterable::Iterable, vec::Vec};
+use core::ops::AddAssign;
 
 use crate::{AffineCurve, ProjectiveCurve};
 
@@ -126,5 +127,44 @@ impl VariableBase {
                     }
                     total
                 })
+    }
+    /// Steaming multi-scalar multiplication algorithm with hard-coded chunk
+    /// size.
+    pub fn msm_chunks<G, F, I: ?Sized, J>(bases_stream: &J, scalars_stream: &I) -> G::Projective
+    where
+        G: AffineCurve<ScalarField = F>,
+        I: Iterable,
+        F: PrimeField,
+        I::Item: Borrow<F>,
+        J: Iterable,
+        J::Item: Borrow<G>,
+    {
+        assert!(scalars_stream.len() <= bases_stream.len());
+
+        // remove offset
+        let mut bases = bases_stream.iter();
+        let mut scalars = scalars_stream.iter();
+
+        // align the streams
+        bases
+            .advance_by(bases_stream.len() - scalars_stream.len())
+            .expect("bases not long enough");
+        let step: usize = 1 << 20;
+        let mut result = G::Projective::zero();
+        for _ in 0..(scalars_stream.len() + step - 1) / step {
+            let bases_step = (&mut bases)
+                .take(step)
+                .map(|b| *b.borrow())
+                .collect::<Vec<_>>();
+            let scalars_step = (&mut scalars)
+                .take(step)
+                .map(|s| s.borrow().into_repr())
+                .collect::<Vec<_>>();
+            result.add_assign(crate::msm::VariableBase::msm(
+                bases_step.as_slice(),
+                scalars_step.as_slice(),
+            ));
+        }
+        result
     }
 }

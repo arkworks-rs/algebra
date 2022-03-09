@@ -12,6 +12,7 @@
     clippy::suspicious_op_assign_impl,
     clippy::many_single_char_names
 )]
+#![feature(iter_advance_by)]
 
 #[macro_use]
 extern crate derivative;
