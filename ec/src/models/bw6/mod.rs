@@ -3,8 +3,8 @@ use crate::{
     PairingEngine,
 };
 use ark_ff::fields::{
-    fp3::Fp3Parameters,
-    fp6_2over3::{Fp6, Fp6Parameters},
+    fp3::Fp3Config,
+    fp6_2over3::{Fp6, Fp6Config},
     BitIteratorBE, Field, PrimeField, SquareRootField,
 };
 use num_traits::One;
@@ -25,8 +25,8 @@ pub trait BW6Parameters: 'static + Eq + PartialEq {
     const ATE_LOOP_COUNT_2_IS_NEGATIVE: bool;
     const TWIST_TYPE: TwistType;
     type Fp: PrimeField + SquareRootField + Into<<Self::Fp as PrimeField>::BigInt>;
-    type Fp3Params: Fp3Parameters<Fp = Self::Fp>;
-    type Fp6Params: Fp6Parameters<Fp3Params = Self::Fp3Params>;
+    type Fp3Config: Fp3Config<Fp = Self::Fp>;
+    type Fp6Config: Fp6Config<Fp3Config = Self::Fp3Config>;
     type G1Parameters: SWModelParameters<BaseField = Self::Fp>;
     type G2Parameters: SWModelParameters<
         BaseField = Self::Fp,
@@ -48,7 +48,7 @@ pub struct BW6<P: BW6Parameters>(PhantomData<fn() -> P>);
 
 impl<P: BW6Parameters> BW6<P> {
     // Evaluate the line function at point p.
-    fn ell(f: &mut Fp6<P::Fp6Params>, coeffs: &(P::Fp, P::Fp, P::Fp), p: &G1Affine<P>) {
+    fn ell(f: &mut Fp6<P::Fp6Config>, coeffs: &(P::Fp, P::Fp, P::Fp), p: &G1Affine<P>) {
         let mut c0 = coeffs.0;
         let mut c1 = coeffs.1;
         let mut c2 = coeffs.2;
@@ -58,16 +58,16 @@ impl<P: BW6Parameters> BW6<P> {
                 c2 *= &p.y;
                 c1 *= &p.x;
                 f.mul_by_014(&c0, &c1, &c2);
-            }
+            },
             TwistType::D => {
                 c0 *= &p.y;
                 c1 *= &p.x;
                 f.mul_by_034(&c0, &c1, &c2);
-            }
+            },
         }
     }
 
-    fn exp_by_x(mut f: Fp6<P::Fp6Params>) -> Fp6<P::Fp6Params> {
+    fn exp_by_x(mut f: Fp6<P::Fp6Config>) -> Fp6<P::Fp6Config> {
         f = f.cyclotomic_exp(&P::X);
         if P::X_IS_NEGATIVE {
             f.conjugate();
@@ -75,16 +75,16 @@ impl<P: BW6Parameters> BW6<P> {
         f
     }
 
-    pub fn final_exponentiation(value: &Fp6<P::Fp6Params>) -> Fp6<P::Fp6Params> {
+    pub fn final_exponentiation(value: &Fp6<P::Fp6Config>) -> Fp6<P::Fp6Config> {
         let value_inv = value.inverse().unwrap();
         let value_to_first_chunk = Self::final_exponentiation_first_chunk(value, &value_inv);
         Self::final_exponentiation_last_chunk(&value_to_first_chunk)
     }
 
     fn final_exponentiation_first_chunk(
-        elt: &Fp6<P::Fp6Params>,
-        elt_inv: &Fp6<P::Fp6Params>,
-    ) -> Fp6<P::Fp6Params> {
+        elt: &Fp6<P::Fp6Config>,
+        elt_inv: &Fp6<P::Fp6Config>,
+    ) -> Fp6<P::Fp6Config> {
         // (q^3-1)*(q+1)
 
         // elt_q3 = elt^(q^3)
@@ -100,7 +100,7 @@ impl<P: BW6Parameters> BW6<P> {
     }
 
     #[allow(clippy::let_and_return)]
-    fn final_exponentiation_last_chunk(f: &Fp6<P::Fp6Params>) -> Fp6<P::Fp6Params> {
+    fn final_exponentiation_last_chunk(f: &Fp6<P::Fp6Config>) -> Fp6<P::Fp6Config> {
         // hard_part
         // From https://eprint.iacr.org/2020/351.pdf, Alg.6
 
@@ -219,7 +219,7 @@ impl<P: BW6Parameters> PairingEngine for BW6<P> {
     type G2Prepared = G2Prepared<P>;
     type Fq = P::Fp;
     type Fqe = P::Fp;
-    type Fqk = Fp6<P::Fp6Params>;
+    type Fqk = Fp6<P::Fp6Config>;
 
     fn miller_loop<'a, I>(i: I) -> Self::Fqk
     where
@@ -274,12 +274,12 @@ impl<P: BW6Parameters> PairingEngine for BW6<P> {
                     for &mut (p, ref mut coeffs) in &mut pairs_2 {
                         Self::ell(&mut f_2, coeffs.next().unwrap(), &p.0);
                     }
-                }
+                },
                 -1 => {
                     for &mut (p, ref mut coeffs) in &mut pairs_2 {
                         Self::ell(&mut f_2, coeffs.next().unwrap(), &p.0);
                     }
-                }
+                },
                 _ => continue,
             }
         }

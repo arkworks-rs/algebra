@@ -1,6 +1,6 @@
 use super::quadratic_extension::*;
 use crate::{
-    fields::{fp6_3over2::*, Field, Fp2, Fp2Parameters},
+    fields::{fp6_3over2::*, Field, Fp2, Fp2Config as Fp2ConfigTrait},
     One,
 };
 use core::{
@@ -8,35 +8,35 @@ use core::{
     ops::{AddAssign, SubAssign},
 };
 
-type Fp2Params<P> = <<P as Fp12Parameters>::Fp6Params as Fp6Parameters>::Fp2Params;
+type Fp2Config<P> = <<P as Fp12Config>::Fp6Config as Fp6Config>::Fp2Config;
 
-pub trait Fp12Parameters: 'static + Send + Sync + Copy {
-    type Fp6Params: Fp6Parameters;
+pub trait Fp12Config: 'static + Send + Sync + Copy {
+    type Fp6Config: Fp6Config;
 
     /// This *must* equal (0, 1, 0);
     /// see [[DESD06, Section 6.1]](https://eprint.iacr.org/2006/471.pdf).
-    const NONRESIDUE: Fp6<Self::Fp6Params>;
+    const NONRESIDUE: Fp6<Self::Fp6Config>;
 
     /// Coefficients for the Frobenius automorphism.
-    const FROBENIUS_COEFF_FP12_C1: &'static [Fp2<Fp2Params<Self>>];
+    const FROBENIUS_COEFF_FP12_C1: &'static [Fp2<Fp2Config<Self>>];
 
     /// Multiply by quadratic nonresidue v.
     #[inline(always)]
-    fn mul_fp6_by_nonresidue(fe: &Fp6<Self::Fp6Params>) -> Fp6<Self::Fp6Params> {
+    fn mul_fp6_by_nonresidue(fe: &Fp6<Self::Fp6Config>) -> Fp6<Self::Fp6Config> {
         // see [[DESD06, Section 6.1]](https://eprint.iacr.org/2006/471.pdf).
-        let new_c0 = Self::Fp6Params::mul_fp2_by_nonresidue(&fe.c2);
+        let new_c0 = Self::Fp6Config::mul_fp2_by_nonresidue(&fe.c2);
         let new_c1 = fe.c0;
         let new_c2 = fe.c1;
         Fp6::new(new_c0, new_c1, new_c2)
     }
 }
 
-pub struct Fp12ParamsWrapper<P: Fp12Parameters>(PhantomData<P>);
+pub struct Fp12ConfigWrapper<P: Fp12Config>(PhantomData<P>);
 
-impl<P: Fp12Parameters> QuadExtParameters for Fp12ParamsWrapper<P> {
-    type BasePrimeField = <Fp2Params<P> as Fp2Parameters>::Fp;
-    type BaseField = Fp6<P::Fp6Params>;
-    type FrobCoeff = Fp2<Fp2Params<P>>;
+impl<P: Fp12Config> QuadExtConfig for Fp12ConfigWrapper<P> {
+    type BasePrimeField = <Fp2Config<P> as Fp2ConfigTrait>::Fp;
+    type BaseField = Fp6<P::Fp6Config>;
+    type FrobCoeff = Fp2<Fp2Config<P>>;
 
     const DEGREE_OVER_BASE_PRIME_FIELD: usize = 12;
 
@@ -59,7 +59,7 @@ impl<P: Fp12Parameters> QuadExtParameters for Fp12ParamsWrapper<P> {
         fe_inverse.conjugate();
 
         let mut found_nonzero = false;
-        let naf = crate::biginteger::arithmetic::find_wnaf(exponent.as_ref());
+        let naf = crate::biginteger::arithmetic::find_naf(exponent.as_ref());
 
         for &value in naf.iter().rev() {
             if found_nonzero {
@@ -80,22 +80,19 @@ impl<P: Fp12Parameters> QuadExtParameters for Fp12ParamsWrapper<P> {
     }
 }
 
-pub type Fp12<P> = QuadExtField<Fp12ParamsWrapper<P>>;
+pub type Fp12<P> = QuadExtField<Fp12ConfigWrapper<P>>;
 
-impl<P: Fp12Parameters> Fp12<P> {
-    pub fn mul_by_fp(
-        &mut self,
-        element: &<<P::Fp6Params as Fp6Parameters>::Fp2Params as Fp2Parameters>::Fp,
-    ) {
+impl<P: Fp12Config> Fp12<P> {
+    pub fn mul_by_fp(&mut self, element: &<Self as Field>::BasePrimeField) {
         self.c0.mul_by_fp(&element);
         self.c1.mul_by_fp(&element);
     }
 
     pub fn mul_by_034(
         &mut self,
-        c0: &Fp2<Fp2Params<P>>,
-        c3: &Fp2<Fp2Params<P>>,
-        c4: &Fp2<Fp2Params<P>>,
+        c0: &Fp2<Fp2Config<P>>,
+        c3: &Fp2<Fp2Config<P>>,
+        c4: &Fp2<Fp2Config<P>>,
     ) {
         let a0 = self.c0.c0 * c0;
         let a1 = self.c0.c1 * c0;
@@ -114,9 +111,9 @@ impl<P: Fp12Parameters> Fp12<P> {
 
     pub fn mul_by_014(
         &mut self,
-        c0: &Fp2<Fp2Params<P>>,
-        c1: &Fp2<Fp2Params<P>>,
-        c4: &Fp2<Fp2Params<P>>,
+        c0: &Fp2<Fp2Config<P>>,
+        c1: &Fp2<Fp2Config<P>>,
+        c4: &Fp2<Fp2Config<P>>,
     ) {
         let mut aa = self.c0;
         aa.mul_by_01(c0, c1);
@@ -138,7 +135,7 @@ impl<P: Fp12Parameters> Fp12<P> {
         // - Robert Granger and Michael Scott
         //
         if characteristic_square_mod_6_is_one(Self::characteristic()) {
-            let fp2_nr = <P::Fp6Params as Fp6Parameters>::mul_fp2_by_nonresidue;
+            let fp2_nr = <P::Fp6Config as Fp6Config>::mul_fp2_by_nonresidue;
 
             let r0 = &self.c0.c0;
             let r4 = &self.c0.c1;

@@ -1,32 +1,32 @@
 use super::quadratic_extension::*;
 use core::{marker::PhantomData, ops::MulAssign};
 
-use crate::fields::{Fp3, Fp3Parameters};
+use crate::fields::{Fp3, Fp3Config};
 
-pub trait Fp6Parameters: 'static + Send + Sync {
-    type Fp3Params: Fp3Parameters;
+pub trait Fp6Config: 'static + Send + Sync {
+    type Fp3Config: Fp3Config;
 
-    const NONRESIDUE: Fp3<Self::Fp3Params>;
+    const NONRESIDUE: Fp3<Self::Fp3Config>;
 
     /// Coefficients for the Frobenius automorphism.
-    const FROBENIUS_COEFF_FP6_C1: &'static [<Self::Fp3Params as Fp3Parameters>::Fp];
+    const FROBENIUS_COEFF_FP6_C1: &'static [<Self::Fp3Config as Fp3Config>::Fp];
 
     #[inline(always)]
-    fn mul_fp3_by_nonresidue(fe: &Fp3<Self::Fp3Params>) -> Fp3<Self::Fp3Params> {
+    fn mul_fp3_by_nonresidue(fe: &Fp3<Self::Fp3Config>) -> Fp3<Self::Fp3Config> {
         let mut res = *fe;
         res.c0 = fe.c2;
         res.c1 = fe.c0;
         res.c2 = fe.c1;
-        res.c0 = <Self::Fp3Params as Fp3Parameters>::mul_fp_by_nonresidue(&res.c0);
+        res.c0 = <Self::Fp3Config as Fp3Config>::mul_fp_by_nonresidue(&res.c0);
         res
     }
 }
 
-pub struct Fp6ParamsWrapper<P: Fp6Parameters>(PhantomData<P>);
+pub struct Fp6ConfigWrapper<P: Fp6Config>(PhantomData<P>);
 
-impl<P: Fp6Parameters> QuadExtParameters for Fp6ParamsWrapper<P> {
-    type BasePrimeField = <P::Fp3Params as Fp3Parameters>::Fp;
-    type BaseField = Fp3<P::Fp3Params>;
+impl<P: Fp6Config> QuadExtConfig for Fp6ConfigWrapper<P> {
+    type BasePrimeField = <P::Fp3Config as Fp3Config>::Fp;
+    type BaseField = Fp3<P::Fp3Config>;
     type FrobCoeff = Self::BasePrimeField;
 
     const DEGREE_OVER_BASE_PRIME_FIELD: usize = 6;
@@ -45,14 +45,14 @@ impl<P: Fp6Parameters> QuadExtParameters for Fp6ParamsWrapper<P> {
     }
 }
 
-pub type Fp6<P> = QuadExtField<Fp6ParamsWrapper<P>>;
+pub type Fp6<P> = QuadExtField<Fp6ConfigWrapper<P>>;
 
-impl<P: Fp6Parameters> Fp6<P> {
+impl<P: Fp6Config> Fp6<P> {
     pub fn mul_by_034(
         &mut self,
-        c0: &<P::Fp3Params as Fp3Parameters>::Fp,
-        c3: &<P::Fp3Params as Fp3Parameters>::Fp,
-        c4: &<P::Fp3Params as Fp3Parameters>::Fp,
+        c0: &<P::Fp3Config as Fp3Config>::Fp,
+        c3: &<P::Fp3Config as Fp3Config>::Fp,
+        c4: &<P::Fp3Config as Fp3Config>::Fp,
     ) {
         let z0 = self.c0.c0;
         let z1 = self.c0.c1;
@@ -66,9 +66,9 @@ impl<P: Fp6Parameters> Fp6<P> {
         let x4 = *c4;
 
         let mut tmp1 = x3;
-        tmp1.mul_assign(&<P::Fp3Params as Fp3Parameters>::NONRESIDUE);
+        tmp1.mul_assign(&<P::Fp3Config as Fp3Config>::NONRESIDUE);
         let mut tmp2 = x4;
-        tmp2.mul_assign(&<P::Fp3Params as Fp3Parameters>::NONRESIDUE);
+        tmp2.mul_assign(&<P::Fp3Config as Fp3Config>::NONRESIDUE);
 
         self.c0.c0 = x0 * &z0 + &(tmp1 * &z5) + &(tmp2 * &z4);
         self.c0.c1 = x0 * &z1 + &(x3 * &z3) + &(tmp2 * &z5);
@@ -80,9 +80,9 @@ impl<P: Fp6Parameters> Fp6<P> {
 
     pub fn mul_by_014(
         &mut self,
-        c0: &<P::Fp3Params as Fp3Parameters>::Fp,
-        c1: &<P::Fp3Params as Fp3Parameters>::Fp,
-        c4: &<P::Fp3Params as Fp3Parameters>::Fp,
+        c0: &<P::Fp3Config as Fp3Config>::Fp,
+        c1: &<P::Fp3Config as Fp3Config>::Fp,
+        c4: &<P::Fp3Config as Fp3Config>::Fp,
     ) {
         let z0 = self.c0.c0;
         let z1 = self.c0.c1;
@@ -96,9 +96,9 @@ impl<P: Fp6Parameters> Fp6<P> {
         let x4 = *c4;
 
         let mut tmp1 = x1;
-        tmp1.mul_assign(&<P::Fp3Params as Fp3Parameters>::NONRESIDUE);
+        tmp1.mul_assign(&<P::Fp3Config as Fp3Config>::NONRESIDUE);
         let mut tmp2 = x4;
-        tmp2.mul_assign(&<P::Fp3Params as Fp3Parameters>::NONRESIDUE);
+        tmp2.mul_assign(&<P::Fp3Config as Fp3Config>::NONRESIDUE);
 
         self.c0.c0 = x0 * &z0 + &(tmp1 * &z2) + &(tmp2 * &z4);
         self.c0.c1 = x0 * &z1 + &(x1 * &z0) + &(tmp2 * &z5);

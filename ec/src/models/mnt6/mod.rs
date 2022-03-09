@@ -3,8 +3,8 @@ use crate::{
     PairingEngine,
 };
 use ark_ff::{
-    fp3::{Fp3, Fp3Parameters},
-    fp6_2over3::{Fp6, Fp6Parameters},
+    fp3::{Fp3, Fp3Config},
+    fp6_2over3::{Fp6, Fp6Config},
     BitIteratorBE, Field, PrimeField, SquareRootField,
 };
 use num_traits::{One, Zero};
@@ -23,8 +23,8 @@ pub use self::{
 pub type GT<P> = Fp6<P>;
 
 pub trait MNT6Parameters: 'static {
-    const TWIST: Fp3<Self::Fp3Params>;
-    const TWIST_COEFF_A: Fp3<Self::Fp3Params>;
+    const TWIST: Fp3<Self::Fp3Config>;
+    const TWIST_COEFF_A: Fp3<Self::Fp3Config>;
     const ATE_LOOP_COUNT: &'static [u64];
     const ATE_IS_LOOP_COUNT_NEG: bool;
     const FINAL_EXPONENT_LAST_CHUNK_1: <Self::Fp as PrimeField>::BigInt;
@@ -32,11 +32,11 @@ pub trait MNT6Parameters: 'static {
     const FINAL_EXPONENT_LAST_CHUNK_ABS_OF_W0: <Self::Fp as PrimeField>::BigInt;
     type Fp: PrimeField + SquareRootField + Into<<Self::Fp as PrimeField>::BigInt>;
     type Fr: PrimeField + SquareRootField + Into<<Self::Fr as PrimeField>::BigInt>;
-    type Fp3Params: Fp3Parameters<Fp = Self::Fp>;
-    type Fp6Params: Fp6Parameters<Fp3Params = Self::Fp3Params>;
+    type Fp3Config: Fp3Config<Fp = Self::Fp>;
+    type Fp6Config: Fp6Config<Fp3Config = Self::Fp3Config>;
     type G1Parameters: SWModelParameters<BaseField = Self::Fp, ScalarField = Self::Fr>;
     type G2Parameters: SWModelParameters<
-        BaseField = Fp3<Self::Fp3Params>,
+        BaseField = Fp3<Self::Fp3Config>,
         ScalarField = <Self::G1Parameters as ModelParameters>::ScalarField,
     >;
 }
@@ -77,8 +77,8 @@ impl<P: MNT6Parameters> MNT6<P> {
     }
 
     fn mixed_addition_step_for_flipped_miller_loop(
-        x: &Fp3<P::Fp3Params>,
-        y: &Fp3<P::Fp3Params>,
+        x: &Fp3<P::Fp3Config>,
+        y: &Fp3<P::Fp3Config>,
         r: &G2ProjectiveExtended<P>,
     ) -> (G2ProjectiveExtended<P>, AteAdditionCoefficients<P>) {
         let a = y.square();
@@ -103,10 +103,10 @@ impl<P: MNT6Parameters> MNT6<P> {
         (r2, coeff)
     }
 
-    pub fn ate_miller_loop(p: &G1Prepared<P>, q: &G2Prepared<P>) -> Fp6<P::Fp6Params> {
+    pub fn ate_miller_loop(p: &G1Prepared<P>, q: &G2Prepared<P>) -> Fp6<P::Fp6Config> {
         let l1_coeff = Fp3::new(p.x, P::Fp::zero(), P::Fp::zero()) - &q.x_over_twist;
 
-        let mut f = <Fp6<P::Fp6Params>>::one();
+        let mut f = <Fp6<P::Fp6Config>>::one();
 
         let mut add_idx: usize = 0;
 
@@ -148,7 +148,7 @@ impl<P: MNT6Parameters> MNT6<P> {
         f
     }
 
-    pub fn final_exponentiation(value: &Fp6<P::Fp6Params>) -> GT<P::Fp6Params> {
+    pub fn final_exponentiation(value: &Fp6<P::Fp6Config>) -> GT<P::Fp6Config> {
         let value_inv = value.inverse().unwrap();
         let value_to_first_chunk = Self::final_exponentiation_first_chunk(value, &value_inv);
         let value_inv_to_first_chunk = Self::final_exponentiation_first_chunk(&value_inv, value);
@@ -156,9 +156,9 @@ impl<P: MNT6Parameters> MNT6<P> {
     }
 
     fn final_exponentiation_first_chunk(
-        elt: &Fp6<P::Fp6Params>,
-        elt_inv: &Fp6<P::Fp6Params>,
-    ) -> Fp6<P::Fp6Params> {
+        elt: &Fp6<P::Fp6Config>,
+        elt_inv: &Fp6<P::Fp6Config>,
+    ) -> Fp6<P::Fp6Config> {
         // (q^3-1)*(q+1)
 
         // elt_q3 = elt^(q^3)
@@ -174,9 +174,9 @@ impl<P: MNT6Parameters> MNT6<P> {
     }
 
     fn final_exponentiation_last_chunk(
-        elt: &Fp6<P::Fp6Params>,
-        elt_inv: &Fp6<P::Fp6Params>,
-    ) -> Fp6<P::Fp6Params> {
+        elt: &Fp6<P::Fp6Config>,
+        elt_inv: &Fp6<P::Fp6Config>,
+    ) -> Fp6<P::Fp6Config> {
         let elt_clone = *elt;
         let elt_inv_clone = *elt_inv;
 
@@ -203,8 +203,8 @@ impl<P: MNT6Parameters> PairingEngine for MNT6<P> {
     type G2Affine = G2Affine<P>;
     type G2Prepared = G2Prepared<P>;
     type Fq = P::Fp;
-    type Fqe = Fp3<P::Fp3Params>;
-    type Fqk = Fp6<P::Fp6Params>;
+    type Fqe = Fp3<P::Fp3Config>;
+    type Fqk = Fp6<P::Fp6Config>;
 
     fn miller_loop<'a, I>(i: I) -> Self::Fqk
     where

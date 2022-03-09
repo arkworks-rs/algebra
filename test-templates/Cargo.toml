@@ -18,6 +18,8 @@ ark-std = { version = "^0.3.0", default-features = false }
 ark-serialize = { version = "^0.3.0", path = "../serialize", default-features = false }
 ark-ff = { version = "^0.3.0", path = "../ff", default-features = false }
 ark-ec = { version = "^0.3.0", path = "../ec", default-features = false }
+num-bigint = { version = "0.4", default-features = false }
+num-integer = { version = "0.1", default-features = false }
 
 [features]
 default = []

@@ -1,6 +1,9 @@
 #![allow(unused)]
 #![allow(clippy::eq_op)]
-use ark_ff::fields::{FftField, FftParameters, Field, LegendreSymbol, PrimeField, SquareRootField};
+use ark_ff::{
+    fields::{FftField, Field, LegendreSymbol, PrimeField, SquareRootField},
+    Fp, MontBackend, MontConfig,
+};
 use ark_serialize::{buffer_bit_byte_size, Flags, SWFlags};
 use ark_std::{io::Cursor, rand::Rng};
 
@@ -306,28 +309,28 @@ pub fn field_test<F: Field>(a: F, b: F) {
 
 pub fn fft_field_test<F: FftField>() {
     assert_eq!(
-        F::two_adic_root_of_unity().pow([1 << F::FftParams::TWO_ADICITY]),
+        F::TWO_ADIC_ROOT_OF_UNITY.pow([1 << F::TWO_ADICITY]),
         F::one()
     );
 
-    if let Some(small_subgroup_base) = F::FftParams::SMALL_SUBGROUP_BASE {
-        let small_subgroup_base_adicity = F::FftParams::SMALL_SUBGROUP_BASE_ADICITY.unwrap();
-        let large_subgroup_root_of_unity = F::large_subgroup_root_of_unity().unwrap();
-        let pow = (1 << F::FftParams::TWO_ADICITY)
-            * (small_subgroup_base as u64).pow(small_subgroup_base_adicity);
+    if let Some(small_subgroup_base) = F::SMALL_SUBGROUP_BASE {
+        let small_subgroup_base_adicity = F::SMALL_SUBGROUP_BASE_ADICITY.unwrap();
+        let large_subgroup_root_of_unity = F::LARGE_SUBGROUP_ROOT_OF_UNITY.unwrap();
+        let pow =
+            (1 << F::TWO_ADICITY) * (small_subgroup_base as u64).pow(small_subgroup_base_adicity);
         assert_eq!(large_subgroup_root_of_unity.pow([pow]), F::one());
 
-        for i in 0..F::FftParams::TWO_ADICITY {
+        for i in 0..F::TWO_ADICITY {
             for j in 0..small_subgroup_base_adicity {
                 use core::convert::TryFrom;
                 let size = usize::try_from(1 << i as usize).unwrap()
                     * usize::try_from((small_subgroup_base as u64).pow(j)).unwrap();
-                let root = F::get_root_of_unity(size).unwrap();
+                let root = F::get_root_of_unity(size as u64).unwrap();
                 assert_eq!(root.pow([size as u64]), F::one());
             }
         }
     } else {
-        for i in 0..F::FftParams::TWO_ADICITY {
+        for i in 0..F::TWO_ADICITY {
             let size = 1 << i;
             let root = F::get_root_of_unity(size).unwrap();
             assert_eq!(root.pow([size as u64]), F::one());
@@ -338,9 +341,60 @@ pub fn fft_field_test<F: FftField>() {
 pub fn primefield_test<F: PrimeField>() {
     from_str_test::<F>();
     let one = F::one();
-    assert_eq!(F::from(one.into_repr()), one);
+    assert_eq!(F::from(one.into_bigint()), one);
 
     fft_field_test::<F>();
+}
+
+pub fn montgomery_primefield_test<T: MontConfig<N>, const N: usize>() {
+    use ark_ff::FpConfig;
+    use num_bigint::BigUint;
+    use num_integer::Integer;
+    let modulus: BigUint = T::MODULUS.into();
+    let r = BigUint::from(2u8).modpow(&((N * 64) as u64).into(), &modulus);
+    let r2 = (&r * &r) % &modulus;
+    assert_eq!(r, T::R.into());
+    assert_eq!(r2, T::R2.into());
+    assert_eq!(
+        Fp::<MontBackend<T, N>, N>::MODULUS_BIT_SIZE as u64,
+        modulus.bits()
+    );
+
+    let modulus_minus_one = &modulus - 1u8;
+    assert_eq!(
+        BigUint::from(Fp::<MontBackend<T, N>, N>::MODULUS_MINUS_ONE_DIV_TWO),
+        &modulus_minus_one / 2u32
+    );
+
+    let mut two_adicity = 0;
+    let mut trace = modulus_minus_one.clone();
+    while trace.is_even() {
+        trace /= 2u8;
+        two_adicity += 1;
+    }
+    assert_eq!(two_adicity, MontBackend::<T, N>::TWO_ADICITY);
+    assert_eq!(BigUint::from(Fp::<MontBackend<T, N>, N>::TRACE), trace);
+    let trace_minus_one_div_two = (&trace - 1u8) / 2u8;
+    assert_eq!(
+        BigUint::from(Fp::<MontBackend<T, N>, N>::TRACE_MINUS_ONE_DIV_TWO),
+        trace_minus_one_div_two
+    );
+
+    let two_adic_root_of_unity: BigUint = <MontBackend<T, N>>::TWO_ADIC_ROOT_OF_UNITY.into();
+    let generator: BigUint = <MontBackend<T, N>>::GENERATOR.into_bigint().into();
+    assert_eq!(two_adic_root_of_unity, generator.modpow(&trace, &modulus));
+    match (T::SMALL_SUBGROUP_BASE, T::SMALL_SUBGROUP_BASE_ADICITY) {
+        (Some(base), Some(adicity)) => {
+            let mut e = generator.clone();
+            for _i in 0..adicity {
+                e = e.modpow(&base.into(), &modulus)
+            }
+        },
+        (None, None) => {},
+        (_, _) => {
+            panic!("Should specify both `SMALL_SUBGROUP_BASE` and `SMALL_SUBGROUP_BASE_ADICITY`")
+        },
+    }
 }
 
 pub fn sqrt_field_test<F: SquareRootField>(elem: F) {
@@ -400,7 +454,7 @@ pub fn field_serialization_test<F: Field>(buf_size: usize) {
         }
 
         {
-            let mut serialized = vec![0u8; buf_size];
+            let mut serialized = vec![0u8; buf_size + 1];
             let mut cursor = Cursor::new(&mut serialized[..]);
             a.serialize_with_flags(&mut cursor, SWFlags::from_y_sign(true))
                 .unwrap();

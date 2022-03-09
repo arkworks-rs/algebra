@@ -137,7 +137,7 @@ macro_rules! generate_bilinearity_test {
 
             let ans1 = $curve_name::pairing(sa, b);
             let ans2 = $curve_name::pairing(a, sb);
-            let ans3 = $curve_name::pairing(a, b).pow(s.into_repr());
+            let ans3 = $curve_name::pairing(a, b).pow(s.into_bigint());
 
             assert_eq!(ans1, ans2);
             assert_eq!(ans2, ans3);
@@ -292,6 +292,8 @@ macro_rules! generate_field_test {
             }
             frobenius_test::<Fq12, _>(Fq::characteristic(), 13);
         }
+
+        generate_field_test!($($tail)*);
     };
 
     ($curve_name: ident; $($tail:tt)*) => {
@@ -533,6 +535,19 @@ macro_rules! generate_field_test {
 
         generate_field_test!($($tail)*);
     };
+    (mont($fq_num_limbs:expr, $fr_num_limbs:expr); $($tail:tt)*) => {
+        #[test]
+        fn test_fq_mont() {
+            montgomery_primefield_test::<FqConfig, $fq_num_limbs>();
+        }
+
+        #[test]
+        fn test_fr_mont() {
+            montgomery_primefield_test::<FrConfig, $fr_num_limbs>();
+        }
+
+        generate_field_test!($($tail)*);
+    }
 }
 
 #[macro_export]
@@ -578,10 +593,12 @@ macro_rules! generate_field_serialization_test {
                 let b: Fq = rng.gen();
 
                 let byte_size = a.serialized_size();
+                let (_, buffer_size) = buffer_bit_byte_size(Fr::MODULUS_BIT_SIZE as usize);
+                assert_eq!(byte_size, buffer_size);
                 field_serialization_test::<Fr>(byte_size);
 
                 let byte_size = b.serialized_size();
-                let (_, buffer_size) = buffer_bit_byte_size(Fq::size_in_bits());
+                let (_, buffer_size) = buffer_bit_byte_size(Fq::MODULUS_BIT_SIZE as usize);
                 assert_eq!(byte_size, buffer_size);
                 field_serialization_test::<Fq>(byte_size);
             }

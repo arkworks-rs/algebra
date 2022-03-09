@@ -3,8 +3,8 @@ use crate::{
     PairingEngine,
 };
 use ark_ff::{
-    fp2::{Fp2, Fp2Parameters},
-    fp4::{Fp4, Fp4Parameters},
+    fp2::{Fp2, Fp2Config},
+    fp4::{Fp4, Fp4Config},
     BitIteratorBE, Field, PrimeField, SquareRootField,
 };
 use num_traits::{One, Zero};
@@ -23,8 +23,8 @@ pub use self::{
 pub type GT<P> = Fp4<P>;
 
 pub trait MNT4Parameters: 'static {
-    const TWIST: Fp2<Self::Fp2Params>;
-    const TWIST_COEFF_A: Fp2<Self::Fp2Params>;
+    const TWIST: Fp2<Self::Fp2Config>;
+    const TWIST_COEFF_A: Fp2<Self::Fp2Config>;
     const ATE_LOOP_COUNT: &'static [u64];
     const ATE_IS_LOOP_COUNT_NEG: bool;
     const FINAL_EXPONENT_LAST_CHUNK_1: <Self::Fp as PrimeField>::BigInt;
@@ -32,11 +32,11 @@ pub trait MNT4Parameters: 'static {
     const FINAL_EXPONENT_LAST_CHUNK_ABS_OF_W0: <Self::Fp as PrimeField>::BigInt;
     type Fp: PrimeField + SquareRootField + Into<<Self::Fp as PrimeField>::BigInt>;
     type Fr: PrimeField + SquareRootField + Into<<Self::Fr as PrimeField>::BigInt>;
-    type Fp2Params: Fp2Parameters<Fp = Self::Fp>;
-    type Fp4Params: Fp4Parameters<Fp2Params = Self::Fp2Params>;
+    type Fp2Config: Fp2Config<Fp = Self::Fp>;
+    type Fp4Config: Fp4Config<Fp2Config = Self::Fp2Config>;
     type G1Parameters: SWModelParameters<BaseField = Self::Fp, ScalarField = Self::Fr>;
     type G2Parameters: SWModelParameters<
-        BaseField = Fp2<Self::Fp2Params>,
+        BaseField = Fp2<Self::Fp2Config>,
         ScalarField = <Self::G1Parameters as ModelParameters>::ScalarField,
     >;
 }
@@ -76,8 +76,8 @@ impl<P: MNT4Parameters> MNT4<P> {
     }
 
     fn mixed_addition_step_for_flipped_miller_loop(
-        x: &Fp2<P::Fp2Params>,
-        y: &Fp2<P::Fp2Params>,
+        x: &Fp2<P::Fp2Config>,
+        y: &Fp2<P::Fp2Config>,
         r: &G2ProjectiveExtended<P>,
     ) -> (G2ProjectiveExtended<P>, AteAdditionCoefficients<P>) {
         let a = y.square();
@@ -101,10 +101,10 @@ impl<P: MNT4Parameters> MNT4<P> {
         (r2, coeff)
     }
 
-    pub fn ate_miller_loop(p: &G1Prepared<P>, q: &G2Prepared<P>) -> Fp4<P::Fp4Params> {
+    pub fn ate_miller_loop(p: &G1Prepared<P>, q: &G2Prepared<P>) -> Fp4<P::Fp4Config> {
         let l1_coeff = Fp2::new(p.x, P::Fp::zero()) - &q.x_over_twist;
 
-        let mut f = <Fp4<P::Fp4Params>>::one();
+        let mut f = <Fp4<P::Fp4Config>>::one();
 
         let mut add_idx: usize = 0;
 
@@ -147,7 +147,7 @@ impl<P: MNT4Parameters> MNT4<P> {
         f
     }
 
-    pub fn final_exponentiation(value: &Fp4<P::Fp4Params>) -> GT<P::Fp4Params> {
+    pub fn final_exponentiation(value: &Fp4<P::Fp4Config>) -> GT<P::Fp4Config> {
         let value_inv = value.inverse().unwrap();
         let value_to_first_chunk = Self::final_exponentiation_first_chunk(value, &value_inv);
         let value_inv_to_first_chunk = Self::final_exponentiation_first_chunk(&value_inv, value);
@@ -155,9 +155,9 @@ impl<P: MNT4Parameters> MNT4<P> {
     }
 
     fn final_exponentiation_first_chunk(
-        elt: &Fp4<P::Fp4Params>,
-        elt_inv: &Fp4<P::Fp4Params>,
-    ) -> Fp4<P::Fp4Params> {
+        elt: &Fp4<P::Fp4Config>,
+        elt_inv: &Fp4<P::Fp4Config>,
+    ) -> Fp4<P::Fp4Config> {
         // (q^2-1)
 
         // elt_q2 = elt^(q^2)
@@ -168,9 +168,9 @@ impl<P: MNT4Parameters> MNT4<P> {
     }
 
     fn final_exponentiation_last_chunk(
-        elt: &Fp4<P::Fp4Params>,
-        elt_inv: &Fp4<P::Fp4Params>,
-    ) -> Fp4<P::Fp4Params> {
+        elt: &Fp4<P::Fp4Config>,
+        elt_inv: &Fp4<P::Fp4Config>,
+    ) -> Fp4<P::Fp4Config> {
         let elt_clone = *elt;
         let elt_inv_clone = *elt_inv;
 
@@ -197,8 +197,8 @@ impl<P: MNT4Parameters> PairingEngine for MNT4<P> {
     type G2Affine = G2Affine<P>;
     type G2Prepared = G2Prepared<P>;
     type Fq = P::Fp;
-    type Fqe = Fp2<P::Fp2Params>;
-    type Fqk = Fp4<P::Fp4Params>;
+    type Fqe = Fp2<P::Fp2Config>;
+    type Fqk = Fp4<P::Fp4Config>;
 
     fn miller_loop<'a, I>(i: I) -> Self::Fqk
     where

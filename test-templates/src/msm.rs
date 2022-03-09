@@ -22,7 +22,7 @@ pub fn test_var_base_msm<G: AffineCurve>() {
     let mut rng = ark_std::test_rng();
 
     let v = (0..SAMPLES - 1)
-        .map(|_| G::ScalarField::rand(&mut rng).into_repr())
+        .map(|_| G::ScalarField::rand(&mut rng).into_bigint())
         .collect::<Vec<_>>();
     let g = (0..SAMPLES)
         .map(|_| G::Projective::rand(&mut rng))
@@ -41,7 +41,7 @@ pub fn test_chunked_pippenger<G: AffineCurve>() {
     let mut rng = ark_std::test_rng();
 
     let v = (0..SAMPLES)
-        .map(|_| G::ScalarField::rand(&mut rng).into_repr())
+        .map(|_| G::ScalarField::rand(&mut rng).into_bigint())
         .collect::<Vec<_>>();
     let g = (0..SAMPLES)
         .map(|_| G::Projective::rand(&mut rng))

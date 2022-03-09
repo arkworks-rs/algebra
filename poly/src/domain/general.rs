@@ -10,7 +10,7 @@ pub use crate::domain::utils::Elements;
 use crate::domain::{
     DomainCoeff, EvaluationDomain, MixedRadixEvaluationDomain, Radix2EvaluationDomain,
 };
-use ark_ff::{FftField, FftParameters};
+use ark_ff::FftField;
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, SerializationError};
 use ark_std::{
     io::{Read, Write},
@@ -75,7 +75,7 @@ impl<F: FftField> CanonicalSerialize for GeneralEvaluationDomain<F> {
             GeneralEvaluationDomain::Radix2(domain) => domain.serialize_uncompressed(&mut writer),
             GeneralEvaluationDomain::MixedRadix(domain) => {
                 domain.serialize_uncompressed(&mut writer)
-            }
+            },
         }
     }
 
@@ -171,7 +171,7 @@ impl<F: FftField> EvaluationDomain<F> for GeneralEvaluationDomain<F> {
             return Some(GeneralEvaluationDomain::Radix2(domain));
         }
 
-        if F::FftParams::SMALL_SUBGROUP_BASE.is_some() {
+        if F::SMALL_SUBGROUP_BASE.is_some() {
             return Some(GeneralEvaluationDomain::MixedRadix(
                 MixedRadixEvaluationDomain::new(num_coeffs)?,
             ));
@@ -186,7 +186,7 @@ impl<F: FftField> EvaluationDomain<F> for GeneralEvaluationDomain<F> {
             return Some(domain_size);
         }
 
-        if F::FftParams::SMALL_SUBGROUP_BASE.is_some() {
+        if F::SMALL_SUBGROUP_BASE.is_some() {
             return Some(MixedRadixEvaluationDomain::<F>::compute_size_of_domain(
                 num_coeffs,
             )?);

@@ -10,6 +10,10 @@ pub struct WnafContext {
 
 impl WnafContext {
     /// Constructs a new context for a window of size `window_size`.
+    ///
+    /// # Panics
+    ///
+    /// This function will panic if not `2 <= window_size < 64`
     pub fn new(window_size: usize) -> Self {
         assert!(window_size >= 2);
         assert!(window_size < 64);
@@ -52,7 +56,7 @@ impl WnafContext {
         if 1 << (self.window_size - 1) > base_table.len() {
             return None;
         }
-        let scalar_wnaf = scalar.into_repr().find_wnaf(self.window_size).unwrap();
+        let scalar_wnaf = scalar.into_bigint().find_wnaf(self.window_size).unwrap();
 
         let mut result = G::zero();
 
