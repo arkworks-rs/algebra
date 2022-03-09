@@ -25,10 +25,10 @@ pub type G2Projective<P> = GroupProjective<<P as MNT6Parameters>::G2Parameters>;
     Eq(bound = "P: MNT6Parameters")
 )]
 pub struct G2Prepared<P: MNT6Parameters> {
-    pub x: Fp3<P::Fp3Params>,
-    pub y: Fp3<P::Fp3Params>,
-    pub x_over_twist: Fp3<P::Fp3Params>,
-    pub y_over_twist: Fp3<P::Fp3Params>,
+    pub x: Fp3<P::Fp3Config>,
+    pub y: Fp3<P::Fp3Config>,
+    pub x_over_twist: Fp3<P::Fp3Config>,
+    pub y_over_twist: Fp3<P::Fp3Config>,
     pub double_coefficients: Vec<AteDoubleCoefficients<P>>,
     pub addition_coefficients: Vec<AteAdditionCoefficients<P>>,
 }
@@ -61,8 +61,8 @@ impl<P: MNT6Parameters> From<G2Affine<P>> for G2Prepared<P> {
         let mut r = G2ProjectiveExtended {
             x: g2.x,
             y: g2.y,
-            z: <Fp3<P::Fp3Params>>::one(),
-            t: <Fp3<P::Fp3Params>>::one(),
+            z: <Fp3<P::Fp3Config>>::one(),
+            t: <Fp3<P::Fp3Config>>::one(),
         };
 
         for (idx, value) in P::ATE_LOOP_COUNT.iter().rev().enumerate() {
@@ -114,10 +114,10 @@ impl<P: MNT6Parameters> From<G2Affine<P>> for G2Prepared<P> {
 }
 
 pub(super) struct G2ProjectiveExtended<P: MNT6Parameters> {
-    pub(crate) x: Fp3<P::Fp3Params>,
-    pub(crate) y: Fp3<P::Fp3Params>,
-    pub(crate) z: Fp3<P::Fp3Params>,
-    pub(crate) t: Fp3<P::Fp3Params>,
+    pub(crate) x: Fp3<P::Fp3Config>,
+    pub(crate) y: Fp3<P::Fp3Config>,
+    pub(crate) z: Fp3<P::Fp3Config>,
+    pub(crate) t: Fp3<P::Fp3Config>,
 }
 
 #[derive(Derivative)]
@@ -128,10 +128,10 @@ pub(super) struct G2ProjectiveExtended<P: MNT6Parameters> {
     Eq(bound = "P: MNT6Parameters")
 )]
 pub struct AteDoubleCoefficients<P: MNT6Parameters> {
-    pub c_h: Fp3<P::Fp3Params>,
-    pub c_4c: Fp3<P::Fp3Params>,
-    pub c_j: Fp3<P::Fp3Params>,
-    pub c_l: Fp3<P::Fp3Params>,
+    pub c_h: Fp3<P::Fp3Config>,
+    pub c_4c: Fp3<P::Fp3Config>,
+    pub c_j: Fp3<P::Fp3Config>,
+    pub c_l: Fp3<P::Fp3Config>,
 }
 
 #[derive(Derivative)]
@@ -142,6 +142,6 @@ pub struct AteDoubleCoefficients<P: MNT6Parameters> {
     Eq(bound = "P: MNT6Parameters")
 )]
 pub struct AteAdditionCoefficients<P: MNT6Parameters> {
-    pub c_l1: Fp3<P::Fp3Params>,
-    pub c_rz: Fp3<P::Fp3Params>,
+    pub c_l1: Fp3<P::Fp3Config>,
+    pub c_rz: Fp3<P::Fp3Config>,
 }

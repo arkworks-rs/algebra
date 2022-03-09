@@ -82,7 +82,7 @@ impl<const N: usize> IndexMut<usize> for MulBuffer<N> {
     }
 }
 
-/// A buffer to hold values of size 2 * N. This is mostly
+/// A buffer to hold values of size 8 * N + 1 bytes. This is mostly
 /// a hack that's necessary until `generic_const_exprs` is stable.
 #[derive(Copy, Clone)]
 #[repr(C, align(1))]
@@ -212,7 +212,9 @@ impl<const N: usize> SerBuffer<N> {
         let num_last_limb_bytes = ark_std::cmp::min(8, remaining_bytes);
         other.read_exact(&mut self.buffers[N - 1][..num_last_limb_bytes])?;
         if write_last_byte {
-            other.read_exact(&mut [self.last])?;
+            let mut last = [0u8; 1];
+            other.read_exact(&mut last)?;
+            self.last = last[0];
         }
         Ok(())
     }

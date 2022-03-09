@@ -25,10 +25,10 @@ pub type G2Projective<P> = GroupProjective<<P as MNT4Parameters>::G2Parameters>;
     Eq(bound = "P: MNT4Parameters")
 )]
 pub struct G2Prepared<P: MNT4Parameters> {
-    pub x: Fp2<P::Fp2Params>,
-    pub y: Fp2<P::Fp2Params>,
-    pub x_over_twist: Fp2<P::Fp2Params>,
-    pub y_over_twist: Fp2<P::Fp2Params>,
+    pub x: Fp2<P::Fp2Config>,
+    pub y: Fp2<P::Fp2Config>,
+    pub x_over_twist: Fp2<P::Fp2Config>,
+    pub y_over_twist: Fp2<P::Fp2Config>,
     pub double_coefficients: Vec<AteDoubleCoefficients<P>>,
     pub addition_coefficients: Vec<AteAdditionCoefficients<P>>,
 }
@@ -61,8 +61,8 @@ impl<P: MNT4Parameters> From<G2Affine<P>> for G2Prepared<P> {
         let mut r = G2ProjectiveExtended {
             x: g2.x,
             y: g2.y,
-            z: <Fp2<P::Fp2Params>>::one(),
-            t: <Fp2<P::Fp2Params>>::one(),
+            z: <Fp2<P::Fp2Config>>::one(),
+            t: <Fp2<P::Fp2Config>>::one(),
         };
 
         for (idx, value) in P::ATE_LOOP_COUNT.iter().rev().enumerate() {
@@ -114,10 +114,10 @@ impl<P: MNT4Parameters> From<G2Affine<P>> for G2Prepared<P> {
 }
 
 pub(super) struct G2ProjectiveExtended<P: MNT4Parameters> {
-    pub(crate) x: Fp2<P::Fp2Params>,
-    pub(crate) y: Fp2<P::Fp2Params>,
-    pub(crate) z: Fp2<P::Fp2Params>,
-    pub(crate) t: Fp2<P::Fp2Params>,
+    pub(crate) x: Fp2<P::Fp2Config>,
+    pub(crate) y: Fp2<P::Fp2Config>,
+    pub(crate) z: Fp2<P::Fp2Config>,
+    pub(crate) t: Fp2<P::Fp2Config>,
 }
 
 #[derive(Derivative)]
@@ -128,10 +128,10 @@ pub(super) struct G2ProjectiveExtended<P: MNT4Parameters> {
     Eq(bound = "P: MNT4Parameters")
 )]
 pub struct AteDoubleCoefficients<P: MNT4Parameters> {
-    pub c_h: Fp2<P::Fp2Params>,
-    pub c_4c: Fp2<P::Fp2Params>,
-    pub c_j: Fp2<P::Fp2Params>,
-    pub c_l: Fp2<P::Fp2Params>,
+    pub c_h: Fp2<P::Fp2Config>,
+    pub c_4c: Fp2<P::Fp2Config>,
+    pub c_j: Fp2<P::Fp2Config>,
+    pub c_l: Fp2<P::Fp2Config>,
 }
 
 #[derive(Derivative)]
@@ -142,6 +142,6 @@ pub struct AteDoubleCoefficients<P: MNT4Parameters> {
     Eq(bound = "P: MNT4Parameters")
 )]
 pub struct AteAdditionCoefficients<P: MNT4Parameters> {
-    pub c_l1: Fp2<P::Fp2Params>,
-    pub c_rz: Fp2<P::Fp2Params>,
+    pub c_l1: Fp2<P::Fp2Config>,
+    pub c_rz: Fp2<P::Fp2Config>,
 }
