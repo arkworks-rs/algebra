@@ -39,11 +39,11 @@ fn suites() {
         let dst = u.dst.as_bytes();
         let hasher;
         match u.curve.as_str() {
-            "BLS12-381 G2" => {
+            "BLS12-381 G1" => {
                 hasher =
                     <IETFHasher<Sha256, 128> as HashToField<Fq>>::new_hash_to_field(dst).unwrap();
             },
-            "BLS12-381 G1" => {
+            "BLS12-381 G2" => {
                 hasher =
                     <IETFHasher<Sha256, 128> as HashToField<Fq2>>::new_hash_to_field(dst).unwrap();
             },
