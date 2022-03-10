@@ -16,22 +16,22 @@ use expander::Expander;
 ///
 /// ```
 /// use ark_test_curves::bls12_381::Fq;
-/// use ark_ec::hashing::field_hashers::DefaultHasher;
+/// use ark_ec::hashing::field_hashers::DefaultFieldHasher;
 /// use sha2::Sha256;
 /// use crate::ark_ec::hashing::map_to_curve_hasher::HashToField;
 ///
-/// let hasher = <DefaultHasher<Sha256, 128> as HashToField<Fq>>::new_hash_to_field(&[1, 2, 3]).unwrap();
+/// let hasher = <DefaultFieldHasher<Sha256, 128> as HashToField<Fq>>::new_hash_to_field(&[1, 2, 3]).unwrap();
 /// let field_elements: Vec<Fq> = hasher.hash_to_field(b"Hello, World!", 2).unwrap();
 ///
 /// assert_eq!(field_elements.len(), 2);
 /// ```
-pub struct DefaultHasher<H: Default + DynDigest + Clone, const SEC_PARAM: usize> {
+pub struct DefaultFieldHasher<H: Default + DynDigest + Clone, const SEC_PARAM: usize> {
     expander: ExpanderXmd<H>,
     len_per_base_elem: usize,
 }
 
 impl<F: Field, H: Default + DynDigest + Clone, const SEC_PARAM: usize> HashToField<F>
-    for DefaultHasher<H, SEC_PARAM>
+    for DefaultFieldHasher<H, SEC_PARAM>
 {
     fn new_hash_to_field(dst: &[u8]) -> Result<Self, HashToCurveError> {
         // The final output of `hash_to_field` will be an array of field
@@ -44,7 +44,7 @@ impl<F: Field, H: Default + DynDigest + Clone, const SEC_PARAM: usize> HashToFie
             block_size: len_per_base_elem,
         };
 
-        Ok(DefaultHasher {
+        Ok(DefaultFieldHasher {
             expander,
             len_per_base_elem,
         })

@@ -5,7 +5,7 @@ use crate::{
             swu::{parity, SWUMap, SWUParams},
             wb::{WBMap, WBParams},
         },
-        field_hashers::DefaultHasher,
+        field_hashers::DefaultFieldHasher,
         map_to_curve_hasher::{MapToCurve, MapToCurveBasedHasher},
     },
     models::SWModelParameters,
@@ -129,7 +129,7 @@ fn hash_arbitary_string_to_curve_swu() {
 
     let test_swu_to_curve_hasher = MapToCurveBasedHasher::<
         GroupAffine<TestSWUMapToCurveParams>,
-        DefaultHasher<Sha256, 128>,
+        DefaultFieldHasher<Sha256, 128>,
         SWUMap<TestSWUMapToCurveParams>,
     >::new(&[1])
     .unwrap();
@@ -351,7 +351,7 @@ fn hash_arbitary_string_to_curve_wb() {
     use sha2::Sha256;
     let test_wb_to_curve_hasher = MapToCurveBasedHasher::<
         GroupAffine<TestWBF127MapToCurveParams>,
-        DefaultHasher<Sha256, 128>,
+        DefaultFieldHasher<Sha256, 128>,
         WBMap<TestWBF127MapToCurveParams>,
     >::new(&[1])
     .unwrap();
