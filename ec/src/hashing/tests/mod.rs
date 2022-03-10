@@ -19,6 +19,11 @@ use ark_std::vec::Vec;
 use ark_test_curves::bls12_381::{Fq, Fq2, Fq6};
 use hashbrown::HashMap;
 
+#[cfg(all(test, feature = "std"))]
+mod json;
+#[cfg(all(test, feature = "std"))]
+mod suites;
+
 pub struct F127Config;
 pub type F127 = Fp64<MontBackend<F127Config, 1>>;
 
