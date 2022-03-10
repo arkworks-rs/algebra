@@ -30,6 +30,7 @@ pub struct Vector {
     #[serde(rename = "P")]
     pub p: P,
     pub msg: String,
+    pub u: Vec<String>,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, serde_derive::Serialize, serde_derive::Deserialize)]

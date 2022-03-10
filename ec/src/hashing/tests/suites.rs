@@ -4,6 +4,13 @@ use std::io::BufReader;
 use super::json::SuiteVector;
 use libtest_mimic::{run_tests, Arguments, Outcome, Test};
 
+use crate::hashing::map_to_curve_hasher::HashToField;
+use crate::hashing::tests::IETFHasher;
+use ark_ff::PrimeField;
+use ark_test_curves::bls12_381::Fq;
+use ark_test_curves::bls12_381::Fq2;
+use sha2::Sha256;
+
 #[test]
 fn suites() {
     let args = Arguments::from_args();
@@ -28,30 +35,36 @@ fn suites() {
     }
 
     fn tt(u: &SuiteVector) -> Outcome {
+        assert_eq!(u.hash, "sha256");
+        let dst = u.dst.as_bytes();
+        let hasher;
         match u.curve.as_str() {
-            "BLS12-381 G1" => {
-                assert_eq!(u.hash, "sha256");
-                // let h2c = suite.get(u.dst.as_bytes());
-                // let curve = h2c.get_curve();
-                // let f = curve.get_field();
-                for v in u.vectors.iter() {
-                    // let got = h2c.hash(v.msg.as_bytes());
-                    // let x = f.from(&v.p.x);
-                    // let y = f.from(&v.p.y);
-                    // let want = curve.new_point(x, y);
-                    // if got != want {
-                    //     return Outcome::Failed {
-                    //         msg: Some(format!(
-                    //             "Suite: {}\ngot:  {}\nwant: {}",
-                    //             u.ciphersuite, got, want
-                    //         )),
-                    //     };
-                    // }
-                }
-                Outcome::Passed
+            "BLS12-381 G2" => {
+                hasher =
+                    <IETFHasher<Sha256, 128> as HashToField<Fq>>::new_hash_to_field(dst).unwrap();
             },
-            "BLS12-381 G2" => Outcome::Ignored,
-            _ => Outcome::Ignored,
+            "BLS12-381 G1" => {
+                hasher =
+                    <IETFHasher<Sha256, 128> as HashToField<Fq2>>::new_hash_to_field(dst).unwrap();
+            },
+            _ => return Outcome::Ignored,
         }
+
+        for v in u.vectors.iter() {
+            let got: Vec<Fq> = hasher.hash_to_field(&v.msg.as_bytes(), 2).unwrap();
+            let want: Vec<Fq> = (&v.u)
+                .into_iter()
+                .map(|x| Fq::from_be_bytes_mod_order(x.as_bytes()))
+                .collect();
+            if got != want {
+                return Outcome::Failed {
+                    msg: Some(format!(
+                        "Suite: {:?}\ngot:  {:?}\nwant: {:?}",
+                        u.ciphersuite, got, want
+                    )),
+                };
+            }
+        }
+        Outcome::Passed
     }
 }
