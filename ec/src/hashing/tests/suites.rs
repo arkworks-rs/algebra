@@ -38,13 +38,16 @@ fn suites() {
         assert_eq!(u.hash, "sha256");
         let dst = u.dst.as_bytes();
         let hasher;
+        let m;
         match u.curve.as_str() {
             "BLS12-381 G1" => {
+                m = 1;
                 hasher =
                     <DefaultFieldHasher<Sha256, 128> as HashToField<Fq>>::new_hash_to_field(dst)
                         .unwrap();
             },
             "BLS12-381 G2" => {
+                m = 2;
                 hasher =
                     <DefaultFieldHasher<Sha256, 128> as HashToField<Fq2>>::new_hash_to_field(dst)
                         .unwrap();
@@ -53,16 +56,25 @@ fn suites() {
         }
 
         for v in u.vectors.iter() {
-            let got: Vec<Fq> = hasher.hash_to_field(&v.msg.as_bytes(), 2).unwrap();
+            let got: Vec<Fq> = hasher.hash_to_field(&v.msg.as_bytes(), 2 * m).unwrap();
             let want: Vec<Fq> = (&v.u)
                 .into_iter()
-                .map(|x| Fq::from_be_bytes_mod_order(x.as_bytes()))
+                .map(|x| {
+                    x.split(",").map(|f| {
+                        Fq::from_be_bytes_mod_order(
+                            &hex::decode(f.trim_start_matches("0x")).unwrap(),
+                        )
+                    })
+                })
+                .flatten()
                 .collect();
             if got != want {
                 return Outcome::Failed {
                     msg: Some(format!(
                         "Suite: {:?}\ngot:  {:?}\nwant: {:?}",
-                        u.ciphersuite, got, want
+                        u.ciphersuite,
+                        got[0].to_string(),
+                        want[0].to_string()
                     )),
                 };
             }

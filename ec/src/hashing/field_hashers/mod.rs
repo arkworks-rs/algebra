@@ -64,7 +64,7 @@ impl<F: Field, H: Default + DynDigest + Clone, const SEC_PARAM: usize> HashToFie
             for j in 0..m {
                 let elm_offset = self.len_per_base_elem * (j + i * m);
                 let val: F::BasePrimeField = F::BasePrimeField::from_be_bytes_mod_order(
-                    &uniform_bytes[elm_offset..elm_offset + self.len_per_base_elem],
+                    &uniform_bytes[elm_offset..(elm_offset + self.len_per_base_elem)],
                 );
                 base_prime_field_elems.push(val);
             }
