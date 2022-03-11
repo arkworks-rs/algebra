@@ -1,9 +1,9 @@
 //! A space-efficient implementation of Pippenger's algorithm.
-//!
 use crate::AffineCurve;
 use ark_ff::{PrimeField, Zero};
 
 use ark_std::{borrow::Borrow, ops::AddAssign, vec::Vec};
+use hashbrown::HashMap;
 
 /// Struct for the chunked Pippenger algorithm.
 pub struct ChunkedPippenger<G: AffineCurve> {
@@ -61,6 +61,69 @@ impl<G: AffineCurve> ChunkedPippenger<G> {
                 self.bases_buffer.as_slice(),
                 self.scalars_buffer.as_slice(),
             ));
+        }
+        self.result
+    }
+}
+
+/// Hash map struct for Pippenger algorithm.
+pub struct HashMapPippenger<G: AffineCurve> {
+    pub buffer: HashMap<G, G::ScalarField>,
+    pub result: G::Projective,
+}
+
+impl<G: AffineCurve> HashMapPippenger<G> {
+    /// Producce a new hash map with the maximum msm buffer size.
+    pub fn new(max_msm_buffer: usize) -> Self {
+        Self {
+            buffer: HashMap::with_capacity(max_msm_buffer),
+            result: G::Projective::zero(),
+        }
+    }
+
+    /// Add a new (base, scalar) pair into the hash map.
+    #[inline(always)]
+    pub fn add<B, S>(&mut self, base: B, scalar: S)
+    where
+        B: Borrow<G>,
+        S: Borrow<G::ScalarField>,
+    {
+        // update the entry, guarding the possibility that it has been already set.
+        let entry = self
+            .buffer
+            .entry(*base.borrow())
+            .or_insert(G::ScalarField::zero());
+        *entry += *scalar.borrow();
+        if self.buffer.len() == self.buffer.capacity() {
+            let bases = self.buffer.keys().cloned().collect::<Vec<_>>();
+            let scalars = self
+                .buffer
+                .values()
+                .map(|s| s.into_bigint())
+                .collect::<Vec<_>>();
+            self.result
+                .add_assign(crate::msm::variable_base::VariableBase::msm(
+                    &bases, &scalars,
+                ));
+            self.buffer.clear();
+        }
+    }
+
+    /// Update the final result with (base, scalar) pairs in the hash map.
+    #[inline(always)]
+    pub fn finalize(mut self) -> G::Projective {
+        if !self.buffer.is_empty() {
+            let bases = self.buffer.keys().cloned().collect::<Vec<_>>();
+            let scalars = self
+                .buffer
+                .values()
+                .map(|s| s.into_bigint())
+                .collect::<Vec<_>>();
+
+            self.result
+                .add_assign(crate::msm::variable_base::VariableBase::msm(
+                    &bases, &scalars,
+                ));
         }
         self.result
     }

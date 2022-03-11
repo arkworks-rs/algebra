@@ -1,4 +1,4 @@
-use ark_ff::prelude::*;
+use ark_ff::{prelude::*, PrimeField};
 use ark_std::{borrow::Borrow, iterable::Iterable, vec::Vec};
 use core::ops::AddAssign;
 
@@ -158,7 +158,7 @@ impl VariableBase {
                 .collect::<Vec<_>>();
             let scalars_step = (&mut scalars)
                 .take(step)
-                .map(|s| s.borrow().into_repr())
+                .map(|s| s.borrow().into_bigint())
                 .collect::<Vec<_>>();
             result.add_assign(crate::msm::VariableBase::msm(
                 bases_step.as_slice(),
