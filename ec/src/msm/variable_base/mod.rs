@@ -142,13 +142,12 @@ impl VariableBase {
         assert!(scalars_stream.len() <= bases_stream.len());
 
         // remove offset
-        let mut bases = bases_stream.iter();
+        let bases_init = bases_stream.iter();
         let mut scalars = scalars_stream.iter();
 
         // align the streams
-        bases
-            .advance_by(bases_stream.len() - scalars_stream.len())
-            .expect("bases not long enough");
+        let mut bases = bases_init.skip(bases_stream.len() - scalars_stream.len());
+        // .expect("bases not long enough");
         let step: usize = 1 << 20;
         let mut result = G::Projective::zero();
         for _ in 0..(scalars_stream.len() + step - 1) / step {

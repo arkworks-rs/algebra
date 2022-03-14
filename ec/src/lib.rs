@@ -12,7 +12,6 @@
     clippy::suspicious_op_assign_impl,
     clippy::many_single_char_names
 )]
-#![feature(iter_advance_by)]
 
 #[macro_use]
 extern crate derivative;
@@ -263,8 +262,8 @@ pub trait AffineCurve:
 {
     type Parameters: ModelParameters<ScalarField = Self::ScalarField, BaseField = Self::BaseField>;
 
-    /// The group defined by this curve has order `h * r` where `r` is a large prime.
-    /// `Self::ScalarField` is the prime field defined by `r`
+    /// The group defined by this curve has order `h * r` where `r` is a large
+    /// prime. `Self::ScalarField` is the prime field defined by `r`
     type ScalarField: PrimeField + SquareRootField + Into<<Self::ScalarField as PrimeField>::BigInt>;
 
     /// The finite field over which this curve is defined.
