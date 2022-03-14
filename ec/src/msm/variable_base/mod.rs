@@ -146,6 +146,7 @@ impl VariableBase {
         let mut scalars = scalars_stream.iter();
 
         // align the streams
+        // NOTE: Change skip() to iter_advance_by() when it becomes stable.
         let mut bases = bases_init.skip(bases_stream.len() - scalars_stream.len());
         // .expect("bases not long enough");
         let step: usize = 1 << 20;
