@@ -73,7 +73,7 @@ pub struct HashMapPippenger<G: AffineCurve> {
 }
 
 impl<G: AffineCurve> HashMapPippenger<G> {
-    /// Producce a new hash map with the maximum msm buffer size.
+    /// Produce a new hash map with the maximum msm buffer size.
     pub fn new(max_msm_buffer: usize) -> Self {
         Self {
             buffer: HashMap::with_capacity(max_msm_buffer),
