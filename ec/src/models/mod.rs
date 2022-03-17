@@ -1,5 +1,5 @@
-use crate::{AffineCurve, ProjectiveCurve};
-use ark_ff::{fields::BitIteratorBE, Field, PrimeField, SquareRootField, Zero};
+use crate::ProjectiveCurve;
+use ark_ff::{Field, PrimeField, SquareRootField, Zero};
 
 pub mod bls12;
 pub mod bn;
@@ -75,8 +75,7 @@ pub trait SWModelParameters: ModelParameters {
     fn is_in_correct_subgroup_assuming_on_curve(
         item: &short_weierstrass_jacobian::GroupAffine<Self>,
     ) -> bool {
-        item.mul_bits(BitIteratorBE::new(Self::ScalarField::characteristic()))
-            .is_zero()
+        Self::mul_affine(item, Self::ScalarField::characteristic()).is_zero()
     }
 
     /// Default implementation of group multiplication for projective
@@ -97,12 +96,20 @@ pub trait SWModelParameters: ModelParameters {
     }
 
     /// Default implementation of group multiplication for affine
-    /// coordinates
+    /// coordinates.
     fn mul_affine(
         base: &short_weierstrass_jacobian::GroupAffine<Self>,
         scalar: &[u64],
     ) -> short_weierstrass_jacobian::GroupProjective<Self> {
-        Self::mul_projective(&base.into_projective(), scalar)
+        let mut res = short_weierstrass_jacobian::GroupProjective::<Self>::zero();
+        for b in ark_ff::BitIteratorBE::without_leading_zeros(scalar) {
+            res.double_in_place();
+            if b {
+                res.add_assign_mixed(base)
+            }
+        }
+
+        res
     }
 
 }
@@ -139,8 +146,7 @@ pub trait TEModelParameters: ModelParameters {
     fn is_in_correct_subgroup_assuming_on_curve(
         item: &twisted_edwards_extended::GroupAffine<Self>,
     ) -> bool {
-        item.mul_bits(BitIteratorBE::new(Self::ScalarField::characteristic()))
-            .is_zero()
+        Self::mul_affine(item, Self::ScalarField::characteristic()).is_zero()
     }
 
     /// Default implementation of group multiplication for projective
@@ -166,7 +172,15 @@ pub trait TEModelParameters: ModelParameters {
         base: &twisted_edwards_extended::GroupAffine<Self>,
         scalar: &[u64],
     ) -> twisted_edwards_extended::GroupProjective<Self> {
-        Self::mul_projective(&base.into_projective(), scalar)
+        let mut res = twisted_edwards_extended::GroupProjective::<Self>::zero();
+        for b in ark_ff::BitIteratorBE::without_leading_zeros(scalar) {
+            res.double_in_place();
+            if b {
+                res.add_assign_mixed(base)
+            }
+        }
+
+        res
     }
 }
 
