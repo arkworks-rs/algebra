@@ -218,6 +218,17 @@ impl<P: Parameters> AffineCurve for GroupAffine<P> {
             }
         })
     }
+
+    fn mul<S: Into<<Self::ScalarField as PrimeField>::BigInt>>(&self, by: S) -> Self::Projective {
+        P::mul_affine(self, by.into().as_ref())
+    }
+
+    /// Multiplies this element by the cofactor and output the
+    /// resulting projective element.
+    #[must_use]
+    fn mul_by_cofactor_to_projective(&self) -> Self::Projective {
+        P::mul_affine(self, Self::Parameters::COFACTOR)
+    }
 }
 
 impl<P: Parameters> Neg for GroupAffine<P> {
@@ -589,6 +600,11 @@ impl<P: Parameters> ProjectiveCurve for GroupProjective<P> {
             self.z -= &z1z1;
             self.z -= &hh;
         }
+    }
+
+    #[inline]
+    fn mul<S: AsRef<[u64]>>(self, other: S) -> Self {
+        P::mul_projective(&self, other.as_ref())
     }
 }
 
