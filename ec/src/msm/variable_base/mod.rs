@@ -149,7 +149,6 @@ impl VariableBase {
         // TODO: change `skip` to `advance_by` once rust-lang/rust#7774 is fixed. 
         // See <https://github.com/rust-lang/rust/issues/77404>
         let mut bases = bases_init.skip(bases_stream.len() - scalars_stream.len());
-        // .expect("bases not long enough");
         let step: usize = 1 << 20;
         let mut result = G::Projective::zero();
         for _ in 0..(scalars_stream.len() + step - 1) / step {
