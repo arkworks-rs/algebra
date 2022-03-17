@@ -30,6 +30,7 @@
 - [\#383](https://github.com/arkworks-rs/algebra/pull/383) (`ark-ff`) Rename `BigInteger::add_nocarry` to `add_with_carry` and `sub_noborrow` to `sub_with_borrow`.
 - [\#386](https://github.com/arkworks-rs/algebra/pull/386) (`ark-ff`) Remove `PrimeField::GENERATOR`, since it already exists on `FftField`.
 - [\#393](https://github.com/arkworks-rs/algebra/pull/393) (`ark-ec`, `ark-ff`) Rename `FpXParams` to `FpXConfig` and `FpXParamsWrapper` to `FpXConfigWrapper`.
+- [\#396](https://github.com/arkworks-rs/algebra/pull/396) (`ark-ec`) Remove `mul_bits` feature, and remove default implementations of `mul` and `mul_by_cofactor_to_projective`.
 
 ### Features
 
@@ -41,6 +42,7 @@
 - [\#364](https://github.com/arkworks-rs/algebra/pull/364) (`ark-ec`) Add `ChunkedPippenger` to variable-base MSM.
 - [\#371](https://github.com/arkworks-rs/algebra/pull/371) (`ark-serialize`) Add serialization impls for arrays
 - [\#386](https://github.com/arkworks-rs/algebra/pull/386) (`ark-ff-macros`, `ark-ff`) Add a macro to derive `MontConfig`.
+- [\#396](https://github.com/arkworks-rs/algebra/pull/396) (`ark-ec`) Add a default `mul` function to `{TE,SW}ModelParameters` trait definition.
 
 ### Improvements
 

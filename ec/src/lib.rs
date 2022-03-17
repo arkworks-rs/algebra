@@ -21,7 +21,7 @@ extern crate ark_std;
 
 use ark_ff::{
     bytes::{FromBytes, ToBytes},
-    fields::{BitIteratorBE, Field, PrimeField, SquareRootField},
+    fields::{Field, PrimeField, SquareRootField},
     UniformRand,
 };
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
@@ -220,18 +220,7 @@ pub trait ProjectiveCurve:
     fn add_assign_mixed(&mut self, other: &Self::Affine);
 
     /// Performs scalar multiplication of this element.
-    fn mul<S: AsRef<[u64]>>(mut self, other: S) -> Self {
-        let mut res = Self::zero();
-        for b in ark_ff::BitIteratorBE::without_leading_zeros(other) {
-            res.double_in_place();
-            if b {
-                res += self;
-            }
-        }
-
-        self = res;
-        self
-    }
+    fn mul<S: AsRef<[u64]>>(self, other: S) -> Self;
 }
 
 /// Affine representation of an elliptic curve point guaranteed to be
@@ -262,8 +251,8 @@ pub trait AffineCurve:
 {
     type Parameters: ModelParameters<ScalarField = Self::ScalarField, BaseField = Self::BaseField>;
 
-    /// The group defined by this curve has order `h * r` where `r` is a large prime.
-    /// `Self::ScalarField` is the prime field defined by `r`
+    /// The group defined by this curve has order `h * r` where `r` is a large
+    /// prime. `Self::ScalarField` is the prime field defined by `r`
     type ScalarField: PrimeField + SquareRootField + Into<<Self::ScalarField as PrimeField>::BigInt>;
 
     /// The finite field over which this curve is defined.
@@ -293,34 +282,14 @@ pub trait AffineCurve:
     /// random group elements from a hash-function or RNG output.
     fn from_random_bytes(bytes: &[u8]) -> Option<Self>;
 
-    /// Multiplies `self` by the scalar represented by `bits`. `bits` must be a
-    /// big-endian bit-wise decomposition of the scalar.
-    fn mul_bits(&self, bits: impl Iterator<Item = bool>) -> Self::Projective {
-        let mut res = Self::Projective::zero();
-        // Skip leading zeros.
-        for i in bits.skip_while(|b| !b) {
-            res.double_in_place();
-            if i {
-                res.add_assign_mixed(&self)
-            }
-        }
-        res
-    }
-
     /// Performs scalar multiplication of this element with mixed addition.
     #[must_use]
-    #[inline]
-    fn mul<S: Into<<Self::ScalarField as PrimeField>::BigInt>>(&self, by: S) -> Self::Projective {
-        self.mul_bits(BitIteratorBE::without_leading_zeros(by.into()))
-    }
+    fn mul<S: Into<<Self::ScalarField as PrimeField>::BigInt>>(&self, by: S) -> Self::Projective;
 
     /// Multiplies this element by the cofactor and output the
     /// resulting projective element.
     #[must_use]
-    #[inline]
-    fn mul_by_cofactor_to_projective(&self) -> Self::Projective {
-        self.mul_bits(BitIteratorBE::new(Self::Parameters::COFACTOR))
-    }
+    fn mul_by_cofactor_to_projective(&self) -> Self::Projective;
 
     /// Multiplies this element by the cofactor.
     #[must_use]
