@@ -603,7 +603,7 @@ impl<P: Parameters> ProjectiveCurve for GroupProjective<P> {
     }
 
     #[inline]
-    fn mul<S: AsRef<[u64]>>(self, other: S) -> Self{
+    fn mul<S: AsRef<[u64]>>(self, other: S) -> Self {
         P::mul_projective(&self, other.as_ref())
     }
 }

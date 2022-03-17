@@ -303,7 +303,6 @@ pub trait AffineCurve:
     fn mul_by_cofactor_inv(&self) -> Self {
         self.mul(Self::Parameters::COFACTOR_INV).into()
     }
-
 }
 
 impl<C: ProjectiveCurve> crate::group::Group for C {
