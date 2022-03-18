@@ -146,7 +146,7 @@ impl VariableBase {
         let mut scalars = scalars_stream.iter();
 
         // align the streams
-        // TODO: change `skip` to `advance_by` once rust-lang/rust#7774 is fixed. 
+        // TODO: change `skip` to `advance_by` once rust-lang/rust#7774 is fixed.
         // See <https://github.com/rust-lang/rust/issues/77404>
         let mut bases = bases_init.skip(bases_stream.len() - scalars_stream.len());
         let step: usize = 1 << 20;
