@@ -7,10 +7,10 @@ use hashbrown::HashMap;
 
 /// Struct for the chunked Pippenger algorithm.
 pub struct ChunkedPippenger<G: AffineCurve> {
-    pub scalars_buffer: Vec<<G::ScalarField as PrimeField>::BigInt>,
-    pub bases_buffer: Vec<G>,
-    pub result: G::Projective,
-    pub buf_size: usize,
+    scalars_buffer: Vec<<G::ScalarField as PrimeField>::BigInt>,
+    bases_buffer: Vec<G>,
+    result: G::Projective,
+    buf_size: usize,
 }
 
 impl<G: AffineCurve> ChunkedPippenger<G> {
