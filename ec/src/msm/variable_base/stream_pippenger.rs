@@ -68,8 +68,9 @@ impl<G: AffineCurve> ChunkedPippenger<G> {
 
 /// Hash map struct for Pippenger algorithm.
 pub struct HashMapPippenger<G: AffineCurve> {
-    pub buffer: HashMap<G, G::ScalarField>,
-    pub result: G::Projective,
+    buffer: HashMap<G, G::ScalarField>,
+    result: G::Projective,
+    buf_size: usize,
 }
 
 impl<G: AffineCurve> HashMapPippenger<G> {
@@ -78,6 +79,7 @@ impl<G: AffineCurve> HashMapPippenger<G> {
         Self {
             buffer: HashMap::with_capacity(max_msm_buffer),
             result: G::Projective::zero(),
+            buf_size: max_msm_buffer,
         }
     }
 
@@ -94,7 +96,7 @@ impl<G: AffineCurve> HashMapPippenger<G> {
             .entry(*base.borrow())
             .or_insert(G::ScalarField::zero());
         *entry += *scalar.borrow();
-        if self.buffer.len() == self.buffer.capacity() {
+        if self.buffer.len() == self.buf_size {
             let bases = self.buffer.keys().cloned().collect::<Vec<_>>();
             let scalars = self
                 .buffer
