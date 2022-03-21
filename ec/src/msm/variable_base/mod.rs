@@ -127,7 +127,7 @@ impl VariableBase {
                     total
                 })
     }
-    /// Steaming multi-scalar multiplication algorithm with hard-coded chunk
+    /// Streaming multi-scalar multiplication algorithm with hard-coded chunk
     /// size.
     pub fn msm_chunks<G, F, I: ?Sized, J>(bases_stream: &J, scalars_stream: &I) -> G::Projective
     where
