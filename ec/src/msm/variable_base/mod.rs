@@ -1,6 +1,5 @@
 use ark_ff::{prelude::*, PrimeField};
-use ark_std::{borrow::Borrow, iterable::Iterable, vec::Vec};
-use core::ops::AddAssign;
+use ark_std::{borrow::Borrow, iterable::Iterable, ops::AddAssign, vec::Vec};
 
 use crate::{AffineCurve, ProjectiveCurve};
 
