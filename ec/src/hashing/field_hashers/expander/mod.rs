@@ -3,19 +3,17 @@
 
 use ark_std::vec::Vec;
 use digest::{DynDigest, ExtendableOutput, Update};
-use lazy_static::lazy_static;
 pub trait Expander {
     fn construct_dst_prime(&self) -> Vec<u8>;
     fn expand(&self, msg: &[u8], length: usize) -> Vec<u8>;
 }
 const MAX_DST_LENGTH: usize = 255;
 
-lazy_static! {
-static ref LONG_DST_PREFIX: Vec<u8> = vec![
+const LONG_DST_PREFIX: [u8; 17] = [
     //'H', '2', 'C', '-', 'O', 'V', 'E', 'R', 'S', 'I', 'Z', 'E', '-', 'D', 'S', 'T', '-',
-    0x48, 0x32, 0x43, 0x2d, 0x4f, 0x56, 0x45, 0x52, 0x53, 0x49, 0x5a, 0x45, 0x2d, 0x44, 0x53, 0x54, 0x2d,
+    0x48, 0x32, 0x43, 0x2d, 0x4f, 0x56, 0x45, 0x52, 0x53, 0x49, 0x5a, 0x45, 0x2d, 0x44, 0x53, 0x54,
+    0x2d,
 ];
-}
 
 pub(super) struct ExpanderXof<T: Update + Clone + ExtendableOutput> {
     pub(super) xofer: T,
