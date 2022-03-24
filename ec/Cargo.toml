@@ -26,7 +26,7 @@ zeroize = { version = "1", default-features = false, features = ["zeroize_derive
 
 [dev-dependencies]
 hashbrown = { version = "0.11.1" }
-ark-test-curves = { version = "^0.3.0", path = "../test-curves", default-features = false, features = [ "bls12_381_curve"] }
+ark-test-curves = { version = "^0.3.0", path = "../test-curves", default-features = false, features = ["bls12_381_curve"] }
 sha3 = "0.10"
 sha2 = "0.10"
 libtest-mimic = "0.3.0"
