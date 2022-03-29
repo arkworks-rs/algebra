@@ -84,7 +84,7 @@ pub trait Field:
     + From<bool>
 {
     type BasePrimeField: PrimeField;
-
+    const SqrtPrecomp: SqrtPrecomputation<Self>;
     /// Returns the characteristic of the field,
     /// in little-endian representation.
     fn characteristic() -> &'static [u64] {

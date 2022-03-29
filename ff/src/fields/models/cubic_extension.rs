@@ -38,6 +38,7 @@ pub trait CubicExtConfig: 'static + Send + Sync {
     /// Frobenius endomorphism.
     type FrobCoeff: Field;
 
+    const PRECOMP : SqrtPrecomputation;
     /// The degree of the extension over the base prime field.
     const DEGREE_OVER_BASE_PRIME_FIELD: usize;
 
@@ -183,6 +184,7 @@ impl<P: CubicExtConfig> One for CubicExtField<P> {
 }
 
 impl<P: CubicExtConfig> Field for CubicExtField<P> {
+    const SqrtPrecomp: SqrtPrecomputation = P::PRECOMP;
     type BasePrimeField = P::BasePrimeField;
 
     fn extension_degree() -> u64 {
@@ -318,7 +320,33 @@ impl<P: CubicExtConfig> Field for CubicExtField<P> {
     }
 }
 
-fn tonelli_shanks<P: CubicExtConfig>(f: &CubicExtField<P>) -> Option<CubicExtField<P>> {
+public enum SqrtPrecomputation<F: Field> {
+    ThreeModFour,
+    FiveModEight{TRACE: F::BigInt},
+    NineModSixteen{TRACE: F::BigInt, d: F::BigInt, e: F::BigInt, c: F::BigInt},
+    OneModSixteen{TRACE: F::BigInt, TRACE_MINUS_ONE_DIV_TWO: F::BigInt},
+}
+
+impl<F: Field> SqrtPrecomputation<F> {
+    fn sqrt(&self) -> Option<F> {
+        match self {
+            SqrtPrecomputation::ThreeModFour => {
+                shanks(self)
+            },
+            SqrtPrecomputation::FiveModEight{TRACE: F::BigInt} => {
+                atkin(self, TRACE)
+            },
+            SqrtPrecomputation::NineModSixteen{TRACE: F::BigInt, d: F::BigInt, e: F::BigInt, c: F::BigInt} => {
+                kong(self, TRACE, d, e, c)
+            },
+            SqrtPrecomputation::OneModSixteen{TRACE: F::BigInt, TRACE_MINUS_ONE_DIV_TWO: F::BigInt} => {
+                tonelli_shanks(self, TRACE, TRACE_MINUS_ONE_DIV_TWO)
+            }
+        }
+    }
+}
+
+fn tonelli_shanks<P: CubicExtConfig>(f: &CubicExtField<P>, TRACE: F::BigInt, TRACE_MINUS_ONE_DIV_TWO: F::BigInt) -> Option<CubicExtField<P>> {
     // https://eprint.iacr.org/2012/685.pdf (page 12, algorithm 5)
     // Actually this is just normal Tonelli-Shanks; since `P::Generator`
     // is a quadratic non-residue, `P::ROOT_OF_UNITY = P::GENERATOR ^ t`
@@ -330,7 +358,7 @@ fn tonelli_shanks<P: CubicExtConfig>(f: &CubicExtField<P>) -> Option<CubicExtFie
     // Check at the end of the algorithm if x was a square root
     // Begin Tonelli-Shanks
     let mut z = CubicExtField::qnr_to_t();
-    let mut w = f.pow(P::TRACE_MINUS_ONE_DIV_TWO);
+    let mut w = f.pow(TRACE_MINUS_ONE_DIV_TWO);
     let mut x = w * f;
     let mut b = x * &w;
 
@@ -383,24 +411,91 @@ fn shanks<P: CubicExtConfig>(f: &CubicExtField<P>) -> Option<CubicExtField<P>> {
     // https://eprint.iacr.org/2012/685.pdf (page 9, algorithm 2)
     // Using decomposition of (q-3)/ 4 = alpha + p[p(alpha) + (3a + 2)]*sum_i^((m-3)/2) p^{2i}
 
+    // alpha = (p - 3) / 4;
+    let alpha = (f.characteristic() - 3) / 4;
     // t1 = f^alpha
-    let t1 = f.pow(\alpha);
+    let t1 = f.pow(alpha);
     // t2 = f^p
-    let t2 = f.frobenius(1);
+    let t2 = f.frobenius_map(1);
     // t3 = f^((p^2)alpha) * f^(3p(alpha) + 2p)
-    let t3 = t2.frobenius(1).pow(alpha) * (t2.pow(3).pow(alpha) + t2.square());
+    let t3 = t2.frobenius_map(1).pow(alpha) * (t2.pow(3).pow(alpha) + t2.square());
     let mut r = CubicExtField::one();
     let n = (CubicExtField::extension_degree() - 3)/2;
     for i in 1..(n+1) {
-        r *= t3.frobenius(2 * i);
+        r *= t3.frobenius_map(2 * i);
     
     let mut a_1 = t1 * r;
-    let mut x = a_1 * f;
-    let mut a_0 = a_1 * x;
+    let mut a_0 = a_1 * a_1 * f;
     if (a_0 == -CubicExtField::one()) {
         return None;
     }
     x
+}
+
+fn atkin<P: CubicExtConfig>(f: &CubicExtField<P>, TRACE: F::BigInt) -> Option<CubicExtField<P>> {
+    // https://eprint.iacr.org/2012/685.pdf (page 9, algorithm 3)
+    // Using decomposition of (q-5)/ 8 = alpha + p[p(alpha) + (5a + 3)]*sum_i^((m-3)/2) p^{2i}
+    // Precomputation 
+    let t = TRACE;
+    // alpha = (p - 5) / 8
+    let alpha = (f.characteristic() - 5) / 8;
+    // t1 = f^alpha
+    let t1 = f.pow(alpha);
+    // t2 = f^p
+    let t2 = f.frobenius_map(1);
+    // t3 = f^((p^2)alpha) * f^(5p(alpha) + 3p)
+    let t3 = t2.frobenius_map(1).pow(alpha) * (t2.pow(5).pow(alpha) + t2.pow(3));
+    let mut r = CubicExtField::one();
+    let n = (CubicExtField::extension_degree() - 3)/2;
+    for i in 1..(n+1) {
+        r *= t3.frobenius_map(2 * i);
+    let mut a_1 = t1 * r;
+    let mut a_0 = a_1 * a_1 * f;
+    a_0 *= a_0;
+    if (a_0 == -CubicExtField::one()) {
+        return None;
+    }
+    let b = t * a_1;
+    let i = 2 * b * f * b;
+    let x = a * b * (i - 1);
+    x
+}
+
+fn kong<P: CubicExtConfig>(f: &CubicExtField<P>, TRACE: F::BigInt, d: F::BigInt, e: F::BigInt, c: F::BigInt) -> Option<CubicExtField<P>> {
+    // https://eprint.iacr.org/2012/685.pdf (page 11, algorithm 4)
+    // Using decomposition of (q-9)/16 = alpha + p[p(alpha) + (9a + 5)]*sum_i^((m-3)/2) p^{2i}
+    // Precomputation 
+    let t = TRACE;
+    // alpha = (p - 9) / 16
+    let alpha = (f.characteristic() - 9) / 16;
+    // t1 = f^alpha
+    let t1 = f.pow(alpha);
+    // t2 = f^p
+    let t2 = f.frobenius_map(1);
+    // t3 = f^((p^2)alpha) * f^(9p(alpha) + 5p)
+    let t3 = t2.frobenius_map(1).pow(alpha) * (t2.pow(9).pow(alpha) + t2.pow(5));
+    let mut r = CubicExtField::one();
+    let n = (CubicExtField::extension_degree() - 3)/2;
+    for i in 1..(n+1) {
+        r *= t3.frobenius_map(2 * i);
+    let mut a_1 = t1 * r;
+    let mut a_0 = a_1 * a_1 * f;
+    a_0 = a_0.pow(4);
+    if (a_0 == -CubicExtField::one()) {
+        return None;
+    }
+    let b = t * a_1;
+    let i = 2 * b * f * b;
+    let r = i * i;
+    if (r == -CubicExtField::one()) {
+        let x = a * b * (i - 1);
+        return x;
+    } else {
+        let u = b * d;
+        let i = 2 * u * u * e * f;
+        let x = u * c * f * (i - 1);
+        return x;
+    }
 }
 
 /// `CubicExtField` elements are ordered lexicographically.
