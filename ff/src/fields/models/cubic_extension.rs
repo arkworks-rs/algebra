@@ -399,7 +399,7 @@ fn tonelli_shanks<P: CubicExtConfig>(f: &CubicExtField<P>, TRACE: F::BigInt, TRA
         #[cfg(debug_assertions)]
         {
             use crate::fields::LegendreSymbol::*;
-            if (f.legendre() != QuadraticNonResidue) {
+            if f.legendre() != QuadraticNonResidue {
                 panic!("Input has a square root per its legendre symbol, but it was not found")
             }
         }
@@ -499,7 +499,7 @@ fn kong<P: CubicExtConfig>(f: &CubicExtField<P>, TRACE: F::BigInt, d: F::BigInt,
 }
 
 /// `CubicExtField` elements are ordered lexicographically.
-impl<P: CubicExtConfig> Ord for CubicExtField<P> -> {
+impl<P: CubicExtConfig> Ord for CubicExtField<P> {
     #[inline(always)]
     fn cmp(&self, other: &Self) -> Ordering {
         let c2_cmp = self.c2.cmp(&other.c2);
