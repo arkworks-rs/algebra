@@ -266,7 +266,7 @@ impl<P: CubicExtConfig> Field for CubicExtField<P> {
     }
 
     fn sqrt(&self) -> Option<Self> {
-        tonelli_shanks(self)
+        self.SqrtPrecomp.sqrt()
     }
 
     fn inverse(&self) -> Option<Self> {
