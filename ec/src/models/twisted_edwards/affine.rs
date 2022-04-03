@@ -260,16 +260,10 @@ impl<P: TECurveConfig> Default for Affine<P> {
 }
 
 impl<P: TECurveConfig> Distribution<Affine<P>> for Standard {
+    /// Generates a uniformly random instance of the curve.
     #[inline]
     fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> Affine<P> {
-        loop {
-            let y = P::BaseField::rand(rng);
-            let greatest = rng.gen();
-
-            if let Some(p) = Affine::get_point_from_y_unchecked(y, greatest) {
-                return p.mul_by_cofactor();
-            }
-        }
+        Projective::sample(self, rng).into()
     }
 }
 
