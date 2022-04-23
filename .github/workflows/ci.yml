@@ -216,6 +216,7 @@ jobs:
             echo      "ark-mnt4-298 = { git = 'https://github.com/arkworks-rs/curves' }"
             echo      "ark-mnt6-298 = { git = 'https://github.com/arkworks-rs/curves' }"
             echo      "ark-ed-on-bls12-377 = { git = 'https://github.com/arkworks-rs/curves' }"
+            echo      "ark-std = { git = 'https://github.com/arkworks-rs/std' }"
             echo      "ark-r1cs-std = { git = 'https://github.com/arkworks-rs/r1cs-std' }"
           } >> Cargo.toml
 
