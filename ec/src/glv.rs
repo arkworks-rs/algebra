@@ -82,15 +82,15 @@ pub trait GLVParameters: Send + Sync + 'static + ModelParameters {
 
     }
 
-    /// Performs GLV multiplication.
-    fn glv_mul(base: &Self::CurveAffine, scalar: &Self::ScalarField) -> Self::CurveProjective {
-        let (k1, k2, is_k2_positive) = Self::scalar_decomposition(scalar);
-        VariableBase::two_scalar_mul::<Self::CurveAffine>(
-            *base,
-            k1.into_bigint(),
-            Self::endomorphism(base),
-            k2.into_bigint(),
-            is_k2_positive,
-        )
-    }
+    // /// Performs GLV multiplication.
+    // fn glv_mul(base: &Self::CurveAffine, scalar: &Self::ScalarField) -> Self::CurveProjective {
+    //     let (k1, k2, is_k2_positive) = Self::scalar_decomposition(scalar);
+    //     VariableBase::two_scalar_mul::<Self::CurveAffine>(
+    //         *base,
+    //         k1.into_bigint(),
+    //         Self::endomorphism(base),
+    //         k2.into_bigint(),
+    //         is_k2_positive,
+    //     )
+    // }
 }
