@@ -169,7 +169,6 @@ impl VariableBase {
         result
     }
 
-
     /// return the highest non-zero bits of a bit string.
     pub(crate) fn get_bits(a: &[bool]) -> u16 {
         let mut res = 256;
@@ -189,7 +188,7 @@ impl VariableBase {
         k1: <G::ScalarField as PrimeField>::BigInt,
         p2: G,
         k2: <G::ScalarField as PrimeField>::BigInt,
-        is_k2_positive:bool
+        is_k2_positive: bool,
     ) -> G::Projective {
         let b1 = p1.into_projective();
         let mut b2 = p2.into_projective();

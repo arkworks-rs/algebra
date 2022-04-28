@@ -33,7 +33,8 @@ pub trait CubicExtConfig: 'static + Send + Sync {
     ///
     /// Note: while for simple instances of cubic extensions such as `Fp3`
     /// we might see `BaseField == BasePrimeField`, it won't always hold true.
-    /// E.g. for an extension tower: `BasePrimeField == Fp`, but `BaseField == Fp2`.
+    /// E.g. for an extension tower: `BasePrimeField == Fp`, but `BaseField ==
+    /// Fp2`.
     type BaseField: Field<BasePrimeField = Self::BasePrimeField>;
     /// The type of the coefficients for an efficient implemntation of the
     /// Frobenius endomorphism.
@@ -83,9 +84,9 @@ pub struct CubicExtField<P: CubicExtConfig> {
     pub c2: P::BaseField,
 }
 
-/// Construct a [`CubicExtField`] element from elements of the base field. This should
-/// be used primarily for constructing constant field elements; in a non-const
-/// context, [`CubicExtField::new`] is preferable.
+/// Construct a [`CubicExtField`] element from elements of the base field. This
+/// should be used primarily for constructing constant field elements; in a
+/// non-const context, [`CubicExtField::new`] is preferable.
 ///
 /// # Usage
 /// ```rust

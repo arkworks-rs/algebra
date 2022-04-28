@@ -1,7 +1,7 @@
-use crate::{ModelParameters, AffineCurve};
-use ark_ff::{BigInteger256, PrimeField};
+use crate::{AffineCurve, ModelParameters};
+use ark_ff::PrimeField;
 use num_bigint::BigUint;
-use crate::msm::VariableBase;
+// use crate::msm::VariableBase;
 
 /// The GLV parameters for computing the endomorphism and scalar decomposition.
 pub trait GLVParameters: Send + Sync + 'static + ModelParameters {
@@ -47,14 +47,13 @@ pub trait GLVParameters: Send + Sync + 'static + ModelParameters {
     fn endomorphism(base: &Self::CurveAffine) -> Self::CurveAffine;
 
     /// Decomposes a scalar s into k1, k2, s.t. s = k1 + lambda k2,
-    fn scalar_decomposition(k: &Self::ScalarField) -> (Self::ScalarField, Self::ScalarField, bool){
- 
+    fn scalar_decomposition(k: &Self::ScalarField) -> (Self::ScalarField, Self::ScalarField, bool) {
         let scalar: BigUint = (*k).into_bigint().into();
         let n11: BigUint = Self::COEFF_N11.into_bigint().into();
         let n12: BigUint = Self::COEFF_N12.into_bigint().into();
         let n21: BigUint = Self::COEFF_N21.into_bigint().into();
         let n22: BigUint = Self::COEFF_N22.into_bigint().into();
-        
+
         let r: BigUint = Self::ScalarField::MODULUS.into();
         let r_over_2 = &r / BigUint::from(2u8);
 
@@ -79,14 +78,13 @@ pub trait GLVParameters: Send + Sync + 'static + ModelParameters {
         };
 
         (k1, k2, is_k2_pos)
-
     }
 
     // /// Performs GLV multiplication.
-    // fn glv_mul(base: &Self::CurveAffine, scalar: &Self::ScalarField) -> Self::CurveProjective {
-    //     let (k1, k2, is_k2_positive) = Self::scalar_decomposition(scalar);
-    //     VariableBase::two_scalar_mul::<Self::CurveAffine>(
-    //         *base,
+    // fn glv_mul(base: &Self::CurveAffine, scalar: &Self::ScalarField) ->
+    // Self::CurveProjective {     let (k1, k2, is_k2_positive) =
+    // Self::scalar_decomposition(scalar);     VariableBase::two_scalar_mul::
+    // <Self::CurveAffine>(         *base,
     //         k1.into_bigint(),
     //         Self::endomorphism(base),
     //         k2.into_bigint(),

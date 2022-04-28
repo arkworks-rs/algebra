@@ -136,7 +136,8 @@ impl<const N: usize> BigInt<N> {
         true
     }
 
-    /// Compute the largest integer `s` such that `self = 2**s * t + 1` for odd `t`.
+    /// Compute the largest integer `s` such that `self = 2**s * t + 1` for odd
+    /// `t`.
     #[doc(hidden)]
     pub const fn two_adic_valuation(mut self) -> u32 {
         let mut two_adicity = 0;
@@ -151,8 +152,8 @@ impl<const N: usize> BigInt<N> {
         two_adicity
     }
 
-    /// Compute the smallest odd integer `t` such that `self = 2**s * t + 1` for some
-    /// integer `s = self.two_adic_valuation()`.
+    /// Compute the smallest odd integer `t` such that `self = 2**s * t + 1` for
+    /// some integer `s = self.two_adic_valuation()`.
     #[doc(hidden)]
     pub const fn two_adic_coefficient(mut self) -> Self {
         assert!(self.const_is_odd());
@@ -642,8 +643,8 @@ impl<const N: usize> From<BigInt<N>> for BigUint {
     }
 }
 
-/// Compute the signed modulo operation on a u64 representation, returning the result.
-/// If n % modulus > modulus / 2, return modulus - n
+/// Compute the signed modulo operation on a u64 representation, returning the
+/// result. If n % modulus > modulus / 2, return modulus - n
 /// # Example
 /// ```
 /// use ark_ff::signed_mod_reduction;
@@ -673,7 +674,8 @@ mod tests;
 
 /// This defines a `BigInteger`, a smart wrapper around a
 /// sequence of `u64` limbs, least-significant limb first.
-// TODO: get rid of this trait once we can use associated constants in const generics.
+// TODO: get rid of this trait once we can use associated constants in const
+// generics.
 pub trait BigInteger:
     ToBytes
     + FromBytes
@@ -704,8 +706,8 @@ pub trait BigInteger:
     /// Number of 64-bit limbs representing `Self`.
     const NUM_LIMBS: usize;
 
-    /// Add another [`BigInteger`] to `self`. This method stores the result in `self`,
-    /// and returns a carry bit.
+    /// Add another [`BigInteger`] to `self`. This method stores the result in
+    /// `self`, and returns a carry bit.
     ///
     /// # Example
     ///
@@ -726,8 +728,8 @@ pub trait BigInteger:
     /// ```
     fn add_with_carry(&mut self, other: &Self) -> bool;
 
-    /// Subtract another [`BigInteger`] from this one. This method stores the result in
-    /// `self`, and returns a borrow.
+    /// Subtract another [`BigInteger`] from this one. This method stores the
+    /// result in `self`, and returns a borrow.
     ///
     /// # Example
     ///
@@ -772,8 +774,8 @@ pub trait BigInteger:
     /// ```
     fn mul2(&mut self);
 
-    /// Performs a leftwise bitshift of this number by n bits, effectively multiplying
-    /// it by 2^n. Overflow is ignored.
+    /// Performs a leftwise bitshift of this number by n bits, effectively
+    /// multiplying it by 2^n. Overflow is ignored.
     /// # Example
     ///
     /// ```
@@ -993,7 +995,8 @@ pub trait BigInteger:
     /// ```
     fn to_bytes_le(&self) -> Vec<u8>;
 
-    /// Returns the windowed non-adjacent form of `self`, for a window of size `w`.
+    /// Returns the windowed non-adjacent form of `self`, for a window of size
+    /// `w`.
     fn find_wnaf(&self, w: usize) -> Option<Vec<i64>> {
         // w > 2 due to definition of wNAF, and w < 64 to make sure that `i64`
         // can fit each signed digit

@@ -65,9 +65,11 @@ pub fn to_sign_and_limbs(input: TokenStream) -> TokenStream {
 ///
 /// The attributes available to this macro are
 /// * `modulus`: Specify the prime modulus underlying this prime field.
-/// * `generator`: Specify the generator of the multiplicative subgroup of this prime field. This value must be a quadratic non-residue in the field.
-/// * `small_subgroup_base` and `small_subgroup_power` (optional): If the field has insufficient two-adicity, specify an additional subgroup of size `small_subgroup_base.pow(small_subgroup_power)`.
-//
+/// * `generator`: Specify the generator of the multiplicative subgroup of this
+///   prime field. This value must be a quadratic non-residue in the field.
+/// * `small_subgroup_base` and `small_subgroup_power` (optional): If the field
+///   has insufficient two-adicity, specify an additional subgroup of size
+///   `small_subgroup_base.pow(small_subgroup_power)`.
 // This code was adapted from the `PrimeField` Derive Macro in ff-derive.
 #[proc_macro_derive(
     MontConfig,
@@ -83,8 +85,8 @@ pub fn prime_field(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
         .parse()
         .expect("Modulus should be a number");
 
-    // We may be provided with a generator of p - 1 order. It is required that this generator be quadratic
-    // nonresidue.
+    // We may be provided with a generator of p - 1 order. It is required that this
+    // generator be quadratic nonresidue.
     let generator: BigUint = fetch_attr("generator", &ast.attrs)
         .expect("Please supply a generator attribute")
         .parse()
@@ -96,8 +98,8 @@ pub fn prime_field(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let small_subgroup_power: Option<u32> = fetch_attr("small_subgroup_power", &ast.attrs)
         .map(|s| s.parse().expect("small_subgroup_power should be a number"));
 
-    // The arithmetic in this library only works if the modulus*2 is smaller than the backing
-    // representation. Compute the number of limbs we need.
+    // The arithmetic in this library only works if the modulus*2 is smaller than
+    // the backing representation. Compute the number of limbs we need.
     let mut limbs = 1usize;
     {
         let mod2 = (&modulus) << 1; // modulus * 2
@@ -118,7 +120,7 @@ pub fn prime_field(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let remaining_subgroup_size = match (small_subgroup_base, small_subgroup_power) {
         (Some(base), Some(power)) => Some(&trace / BigUint::from(base).pow(power)),
         (None, None) => None,
-        (_, _) => panic!("Must specify both `small_subgroup_base` and `small_subgroup_power`"),
+        (..) => panic!("Must specify both `small_subgroup_base` and `small_subgroup_power`"),
     };
     let two_adic_root_of_unity = generator.modpow(&trace, &modulus);
     let large_subgroup_generator = remaining_subgroup_size

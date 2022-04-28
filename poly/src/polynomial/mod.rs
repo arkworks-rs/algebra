@@ -60,21 +60,25 @@ pub trait MVPolynomial<F: Field>: Polynomial<F> {
     /// The type of the terms of `self`
     type Term: multivariate::Term;
 
-    /// Constructs a new polynomial from a list of tuples of the form `(Self::Term, coeff)`
+    /// Constructs a new polynomial from a list of tuples of the form
+    /// `(Self::Term, coeff)`
     fn from_coefficients_slice(num_vars: usize, terms: &[(F, Self::Term)]) -> Self {
         Self::from_coefficients_vec(num_vars, terms.to_vec())
     }
 
-    /// Constructs a new polynomial from a list of tuples of the form `(Self::Term, coeff)`
+    /// Constructs a new polynomial from a list of tuples of the form
+    /// `(Self::Term, coeff)`
     fn from_coefficients_vec(num_vars: usize, terms: Vec<(F, Self::Term)>) -> Self;
 
-    /// Returns the terms of a `self` as a list of tuples of the form `(Self::Term, coeff)`
+    /// Returns the terms of a `self` as a list of tuples of the form
+    /// `(Self::Term, coeff)`
     fn terms(&self) -> &[(F, Self::Term)];
 
     /// Returns the number of variables in `self`
     fn num_vars(&self) -> usize;
 
-    /// Outputs an `l`-variate polynomial which is the sum of `l` `d`-degree univariate
-    /// polynomials where each coefficient is sampled uniformly at random.
+    /// Outputs an `l`-variate polynomial which is the sum of `l` `d`-degree
+    /// univariate polynomials where each coefficient is sampled uniformly
+    /// at random.
     fn rand<R: Rng>(d: usize, num_vars: usize, rng: &mut R) -> Self;
 }

@@ -137,8 +137,8 @@ pub trait Field:
     #[must_use]
     fn inverse(&self) -> Option<Self>;
 
-    /// If `self.inverse().is_none()`, this just returns `None`. Otherwise, it sets
-    /// `self` to `self.inverse().unwrap()`.
+    /// If `self.inverse().is_none()`, this just returns `None`. Otherwise, it
+    /// sets `self` to `self.inverse().unwrap()`.
     fn inverse_in_place(&mut self) -> Option<&mut Self>;
 
     /// Exponentiates this element by a power of the base prime modulus via
@@ -264,7 +264,8 @@ pub trait FftField: Field {
     }
 }
 
-/// The interface for a prime field, i.e. the field of integers modulo a prime p.
+/// The interface for a prime field, i.e. the field of integers modulo a prime
+/// p.
 pub trait PrimeField:
     Field<BasePrimeField = Self>
     + FftField
@@ -286,8 +287,8 @@ pub trait PrimeField:
     /// The size of the modulus in bits.
     const MODULUS_BIT_SIZE: u32;
 
-    /// The trace of the field is defined as the smallest integer `t` such that by
-    /// `2^s * t = p - 1`, and `t` is coprime to 2.
+    /// The trace of the field is defined as the smallest integer `t` such that
+    /// by `2^s * t = p - 1`, and `t` is coprime to 2.
     const TRACE: Self::BigInt;
     /// The value `(t - 1)/ 2`.
     const TRACE_MINUS_ONE_DIV_TWO: Self::BigInt;
@@ -295,12 +296,13 @@ pub trait PrimeField:
     /// Construct a prime field element from an integer in the range 0..(p - 1).
     fn from_bigint(repr: Self::BigInt) -> Option<Self>;
 
-    /// Converts an element of the prime field into an integer in the range 0..(p - 1).
+    /// Converts an element of the prime field into an integer in the range
+    /// 0..(p - 1).
     fn into_bigint(&self) -> Self::BigInt;
 
     /// Reads bytes in big-endian, and converts them to a field element.
-    /// If the integer represented by `bytes` is larger than the modulus `p`, this method
-    /// performs the appropriate reduction.
+    /// If the integer represented by `bytes` is larger than the modulus `p`,
+    /// this method performs the appropriate reduction.
     fn from_be_bytes_mod_order(bytes: &[u8]) -> Self {
         let num_modulus_bytes = ((Self::MODULUS_BIT_SIZE + 7) / 8) as usize;
         let num_bytes_to_directly_convert = min(num_modulus_bytes - 1, bytes.len());
@@ -327,8 +329,8 @@ pub trait PrimeField:
     }
 
     /// Reads bytes in little-endian, and converts them to a field element.
-    /// If the integer represented by `bytes` is larger than the modulus `p`, this method
-    /// performs the appropriate reduction.
+    /// If the integer represented by `bytes` is larger than the modulus `p`,
+    /// this method performs the appropriate reduction.
     fn from_le_bytes_mod_order(bytes: &[u8]) -> Self {
         let mut bytes_copy = bytes.to_vec();
         bytes_copy.reverse();
@@ -524,8 +526,8 @@ pub fn batch_inversion_and_mul<F: Field>(v: &mut [F], coeff: &F) {
     });
 }
 
-/// Given a vector of field elements {v_i}, compute the vector {coeff * v_i^(-1)}.
-/// This method is explicitly single-threaded.
+/// Given a vector of field elements {v_i}, compute the vector {coeff *
+/// v_i^(-1)}. This method is explicitly single-threaded.
 fn serial_batch_inversion_and_mul<F: Field>(v: &mut [F], coeff: &F) {
     // Montgomery’s Trick and Fast Implementation of Masked AES
     // Genelle, Prouff and Quisquater

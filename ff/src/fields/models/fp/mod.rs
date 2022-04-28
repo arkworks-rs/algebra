@@ -142,11 +142,13 @@ pub trait FpConfig<const N: usize>: Send + Sync + 'static + Sized {
         }
     }
 
-    /// Construct a field element from an integer in the range `0..(Self::MODULUS - 1)`.
-    /// Returns `None` if the integer is outside this range.
+    /// Construct a field element from an integer in the range
+    /// `0..(Self::MODULUS - 1)`. Returns `None` if the integer is outside
+    /// this range.
     fn from_bigint(other: BigInt<N>) -> Option<Fp<Self, N>>;
 
-    /// Convert a field element to an integer in the range `0..(Self::MODULUS - 1)`.
+    /// Convert a field element to an integer in the range `0..(Self::MODULUS -
+    /// 1)`.
     fn into_bigint(other: Fp<Self, N>) -> BigInt<N>;
 }
 
@@ -421,9 +423,9 @@ impl<P: FpConfig<N>, const N: usize> Ord for Fp<P, N> {
     }
 }
 
-/// Note that this implementation of `PartialOrd` compares field elements viewing
-/// them as integers in the range 0, 1, ..., `P::MODULUS` - 1. However, other
-/// implementations of `PrimeField` might choose a different ordering, and
+/// Note that this implementation of `PartialOrd` compares field elements
+/// viewing them as integers in the range 0, 1, ..., `P::MODULUS` - 1. However,
+/// other implementations of `PrimeField` might choose a different ordering, and
 /// as such, users should use this `PartialOrd` for applications where
 /// any ordering suffices (like in a BTreeMap), and not in applications
 /// where a particular ordering is required.

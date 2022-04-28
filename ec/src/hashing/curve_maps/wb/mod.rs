@@ -20,8 +20,8 @@ type BaseField<MP> = <MP as ModelParameters>::BaseField;
 ///
 /// - [\[WB2019\]] <http://dx.doi.org/10.46586/tches.v2019.i4.154-179>
 pub trait WBParams: SWModelParameters + Sized {
-    // The isogenous curve should be defined over the same base field but it can have
-    // different scalar field type IsogenousCurveScalarField :
+    // The isogenous curve should be defined over the same base field but it can
+    // have different scalar field type IsogenousCurveScalarField :
     type IsogenousCurve: SWUParams<BaseField = BaseField<Self>>;
 
     const PHI_X_NOM: &'static [BaseField<Self>];

@@ -55,8 +55,9 @@ pub trait MultilinearExtension<F: Field>:
     /// positions `b..b+k`, and from position `b..b+k` to position `a..a+k`
     /// in vector.
     ///
-    /// This function turns `P(x_1,...,x_a,...,x_{a+k - 1},...,x_b,...,x_{b+k - 1},...,x_n)`
-    /// to `P(x_1,...,x_b,...,x_{b+k - 1},...,x_a,...,x_{a+k - 1},...,x_n)`
+    /// This function turns `P(x_1,...,x_a,...,x_{a+k - 1},...,x_b,...,x_{b+k -
+    /// 1},...,x_n)` to `P(x_1,...,x_b,...,x_{b+k - 1},...,x_a,...,x_{a+k -
+    /// 1},...,x_n)`
     fn relabel(&self, a: usize, b: usize, k: usize) -> Self;
 
     /// Reduce the number of variables of `self` by fixing the
@@ -68,7 +69,8 @@ pub trait MultilinearExtension<F: Field>:
     fn to_evaluations(&self) -> Vec<F>;
 }
 
-/// swap the bits of `x` from position `a..a+n` to `b..b+n` and from `b..b+n` to `a..a+n` in little endian order
+/// swap the bits of `x` from position `a..a+n` to `b..b+n` and from `b..b+n` to
+/// `a..a+n` in little endian order
 pub(crate) fn swap_bits(x: usize, a: usize, b: usize, n: usize) -> usize {
     let a_bits = (x >> a) & ((1usize << n) - 1);
     let b_bits = (x >> b) & ((1usize << n) - 1);

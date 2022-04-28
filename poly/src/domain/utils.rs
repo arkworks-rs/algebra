@@ -56,7 +56,8 @@ pub(crate) fn compute_powers<F: Field>(size: usize, g: F) -> Vec<F> {
         .flat_map(|i| {
             let offset = g.pow(&[(i * num_elem_per_thread) as u64]);
             // Compute the size that this chunks' output should be
-            // (num_elem_per_thread, unless there are less than num_elem_per_thread elements remaining)
+            // (num_elem_per_thread, unless there are less than num_elem_per_thread elements
+            // remaining)
             let num_elements_to_compute = min(size - i * num_elem_per_thread, num_elem_per_thread);
             let res = compute_powers_and_mul_by_const_serial(num_elements_to_compute, g, offset);
             res
@@ -123,17 +124,17 @@ pub(crate) fn parallel_fft<T: DomainCoeff<F>, F: FftField>(
 
     // We compute the FFT non-mutatively first in tmp first,
     // and then shuffle it back into a.
-    // The evaluations are going to be arranged in cosets, each of size |a| / num_threads.
-    // so the first coset is (1, g^{num_cosets}, g^{2*num_cosets}, etc.)
-    // the second coset is (g, g^{1 + num_cosets}, g^{1 + 2*num_cosets}, etc.)
-    // These are cosets with generator g^{num_cosets}, and varying shifts.
+    // The evaluations are going to be arranged in cosets, each of size |a| /
+    // num_threads. so the first coset is (1, g^{num_cosets}, g^{2*num_cosets},
+    // etc.) the second coset is (g, g^{1 + num_cosets}, g^{1 + 2*num_cosets},
+    // etc.) These are cosets with generator g^{num_cosets}, and varying shifts.
     let mut tmp = vec![vec![T::zero(); coset_size]; num_cosets];
     let new_omega = omega.pow(&[num_cosets as u64]);
     let new_two_adicity = ark_ff::utils::k_adicity(2, coset_size as u64);
 
     // For each coset, we first build a polynomial of degree |coset size|,
-    // whose evaluations over coset k will agree with the evaluations of a over the coset.
-    // Denote the kth such polynomial as poly_k
+    // whose evaluations over coset k will agree with the evaluations of a over the
+    // coset. Denote the kth such polynomial as poly_k
     tmp.par_iter_mut()
         .enumerate()
         .for_each(|(k, kth_poly_coeffs)| {
@@ -142,11 +143,12 @@ pub(crate) fn parallel_fft<T: DomainCoeff<F>, F: FftField>(
             let omega_step = omega.pow(&[(k * coset_size) as u64]);
 
             let mut elt = F::one();
-            // Construct kth_poly_coeffs, which is a polynomial whose evaluations on this coset
-            // should equal the evaluations of a on this coset.
-            // `kth_poly_coeffs[i] = sum_{c in num_cosets} g^{k * (i + c * |coset|)} * a[i + c * |coset|]`
-            // Where c represents the index of the coset being considered.
-            // multiplying by g^{k*i} corresponds to the shift for just being in a different coset.
+            // Construct kth_poly_coeffs, which is a polynomial whose evaluations on this
+            // coset should equal the evaluations of a on this coset.
+            // `kth_poly_coeffs[i] = sum_{c in num_cosets} g^{k * (i + c * |coset|)} * a[i +
+            // c * |coset|]` Where c represents the index of the coset being
+            // considered. multiplying by g^{k*i} corresponds to the shift for
+            // just being in a different coset.
             //
             // TODO: Come back and improve the speed, and make this a more 'normal'
             // Cooley-Tukey. This appears to be an FFT of the polynomial

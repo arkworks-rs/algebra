@@ -9,8 +9,8 @@ use ark_ff_macros::unroll_for_loops;
 ///
 /// # Note
 /// Manual implementation of this trait is not recommended unless one wishes
-/// to specialize arithmetic methods. Instead, the [`MontConfig`][`ark_ff_macros::MontConfig`]
-/// derive macro should be used.
+/// to specialize arithmetic methods. Instead, the
+/// [`MontConfig`][`ark_ff_macros::MontConfig`] derive macro should be used.
 pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
     /// The modulus of the field.
     const MODULUS: BigInt<N>;
@@ -321,9 +321,10 @@ pub const fn can_use_no_carry_optimization<const N: usize>(modulus: &BigInt<N>) 
     !(first_bit_set || all_bits_set)
 }
 
-/// Construct a [`Fp<MontBackend<T, N>, N>`] element from a literal string. This should
-/// be used primarily for constructing constant field elements; in a non-const
-/// context, [`Fp::from_str`](`ark_std::str::FromStr::from_str`) is preferable.
+/// Construct a [`Fp<MontBackend<T, N>, N>`] element from a literal string. This
+/// should be used primarily for constructing constant field elements; in a
+/// non-const context, [`Fp::from_str`](`ark_std::str::FromStr::from_str`) is
+/// preferable.
 ///
 /// # Panics
 ///

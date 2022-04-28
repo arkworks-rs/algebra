@@ -18,7 +18,9 @@ pub trait HashToField<F: Field>: Sized {
     ///
     /// # Arguments
     ///
-    /// * `domain` - bytes that get concatenated with the `msg` during hashing, in order to separate potentially interfering instantiations of the hasher.
+    /// * `domain` - bytes that get concatenated with the `msg` during hashing,
+    ///   in order to separate potentially interfering instantiations of the
+    ///   hasher.
     /// * `count` - number of elements in field `F` to output.
     fn new_hash_to_field(domain: &[u8], count: usize) -> Result<Self, HashToCurveError>;
 
