@@ -1,3 +1,5 @@
+use core::cmp::max;
+
 use ark_ff::{prelude::*, PrimeField};
 use ark_std::{borrow::Borrow, iterable::Iterable, ops::AddAssign, vec::Vec};
 
@@ -165,5 +167,59 @@ impl VariableBase {
             ));
         }
         result
+    }
+
+
+    /// return the highest non-zero bits of a bit string.
+    pub(crate) fn get_bits(a: &[bool]) -> u16 {
+        let mut res = 256;
+        for e in a.iter().rev() {
+            if !e {
+                res -= 1;
+            } else {
+                return res;
+            }
+        }
+        res
+    }
+
+    // Customized MSM for the GLV scalar multiplication
+    pub fn two_scalar_mul<G: AffineCurve>(
+        p1: G,
+        k1: <G::ScalarField as PrimeField>::BigInt,
+        p2: G,
+        k2: <G::ScalarField as PrimeField>::BigInt,
+        is_k2_positive:bool
+    ) -> G::Projective {
+        let b1 = p1.into_projective();
+        let mut b2 = p2.into_projective();
+
+        if !is_k2_positive {
+            b2 = -b2;
+        }
+
+        let b1b2 = b1 + b2;
+
+        let k1_bits = k1.to_bits_le();
+        let k2_bits = k2.to_bits_le();
+        let k1_len = Self::get_bits(&k1_bits);
+        let k2_len = Self::get_bits(&k2_bits);
+
+        let len = max(k1_len, k2_len) as usize;
+
+        let mut res = G::Projective::zero();
+        for i in 0..len {
+            res = res.double();
+            if k1_bits[len - i - 1] && !k2_bits[len - i - 1] {
+                res += b1
+            }
+            if !k1_bits[len - i - 1] && k2_bits[len - i - 1] {
+                res += b2
+            }
+            if k1_bits[len - i - 1] && k2_bits[len - i - 1] {
+                res += b1b2
+            }
+        }
+        res
     }
 }
