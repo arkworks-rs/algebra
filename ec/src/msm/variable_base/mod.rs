@@ -3,7 +3,7 @@ use core::cmp::max;
 use ark_ff::{prelude::*, PrimeField};
 use ark_std::{borrow::Borrow, iterable::Iterable, ops::AddAssign, vec::Vec};
 
-use crate::{AffineCurve, ProjectiveCurve};
+use crate::{AffineCurve, ModelParameters, ProjectiveCurve};
 
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
@@ -183,13 +183,13 @@ impl VariableBase {
     }
 
     // Customized MSM for the GLV scalar multiplication
-    pub fn two_scalar_mul<G: AffineCurve>(
-        p1: G,
-        k1: <G::ScalarField as PrimeField>::BigInt,
-        p2: G,
-        k2: <G::ScalarField as PrimeField>::BigInt,
+    pub fn two_scalar_mul<G: ScalarMul>(
+        p1: G::CurveAffine,
+        k1: <<G as ModelParameters>::ScalarField as PrimeField>::BigInt,
+        p2: G::CurveAffine,
+        k2: <<G as ModelParameters>::ScalarField as PrimeField>::BigInt,
         is_k2_positive: bool,
-    ) -> G::Projective {
+    ) -> <<G as ScalarMul>::CurveAffine as AffineCurve>::Projective {
         let b1 = p1.into_projective();
         let mut b2 = p2.into_projective();
 
@@ -206,7 +206,7 @@ impl VariableBase {
 
         let len = max(k1_len, k2_len) as usize;
 
-        let mut res = G::Projective::zero();
+        let mut res = <G::CurveAffine as AffineCurve>::Projective::zero();
         for i in 0..len {
             res = res.double();
             if k1_bits[len - i - 1] && !k2_bits[len - i - 1] {
@@ -221,4 +221,8 @@ impl VariableBase {
         }
         res
     }
+}
+
+pub trait ScalarMul: ModelParameters {
+    type CurveAffine: AffineCurve;
 }

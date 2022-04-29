@@ -1,12 +1,12 @@
-use crate::{AffineCurve, ModelParameters};
+use crate::{
+    msm::{ScalarMul, VariableBase},
+    AffineCurve, ModelParameters,
+};
 use ark_ff::PrimeField;
 use num_bigint::BigUint;
-// use crate::msm::VariableBase;
 
 /// The GLV parameters for computing the endomorphism and scalar decomposition.
-pub trait GLVParameters: Send + Sync + 'static + ModelParameters {
-    /// Affine representation of curve points.
-    type CurveAffine: AffineCurve;
+pub trait GLVParameters: Send + Sync + 'static + ModelParameters + ScalarMul {
     /// A representation of curve points that enables efficient arithmetic by
     /// avoiding inversions.
     type CurveProjective;
@@ -80,15 +80,21 @@ pub trait GLVParameters: Send + Sync + 'static + ModelParameters {
         (k1, k2, is_k2_pos)
     }
 
-    // /// Performs GLV multiplication.
-    // fn glv_mul(base: &Self::CurveAffine, scalar: &Self::ScalarField) ->
-    // Self::CurveProjective {     let (k1, k2, is_k2_positive) =
-    // Self::scalar_decomposition(scalar);     VariableBase::two_scalar_mul::
-    // <Self::CurveAffine>(         *base,
-    //         k1.into_bigint(),
-    //         Self::endomorphism(base),
-    //         k2.into_bigint(),
-    //         is_k2_positive,
-    //     )
-    // }
+    /// Performs GLV multiplication.
+    fn glv_mul(
+        base: &Self::CurveAffine,
+        scalar: &Self::ScalarField,
+    ) -> <<Self as ScalarMul>::CurveAffine as AffineCurve>::Projective
+    where
+        <Self as ScalarMul>::CurveAffine: AffineCurve,
+    {
+        let (k1, k2, is_k2_positive) = Self::scalar_decomposition(scalar);
+        VariableBase::two_scalar_mul::<Self>(
+            *base,
+            k1.into_bigint(),
+            Self::endomorphism(base),
+            k2.into_bigint(),
+            is_k2_positive,
+        )
+    }
 }
