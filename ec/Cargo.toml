@@ -25,6 +25,7 @@ rayon = { version = "1", optional = true }
 zeroize = { version = "1", default-features = false, features = ["zeroize_derive"] }
 hashbrown = "0.11.2"
 num-bigint = "0.4.3"
+num-integer = "0.1.44"
 
 [dev-dependencies]
 blake2 = { version = "0.10", default-features = false }
