@@ -4,7 +4,6 @@ use crate::{
 };
 use ark_ff::PrimeField;
 use num_bigint::BigUint;
-use num_integer::Integer;
 
 /// The GLV parameters for computing the endomorphism and scalar decomposition.
 pub trait GLVParameters: Send + Sync + 'static + ModelParameters + ScalarMul {
@@ -48,8 +47,9 @@ pub trait GLVParameters: Send + Sync + 'static + ModelParameters + ScalarMul {
     fn endomorphism(base: &Self::CurveAffine) -> Self::CurveAffine;
 
     /// Decomposes a scalar s into k1, k2, s.t. s = k1 + lambda k2,
-    fn scalar_decomposition(k: &Self::ScalarField) -> (Self::ScalarField, Self::ScalarField, bool) {
-
+    fn scalar_decomposition(
+        k: &Self::ScalarField,
+    ) -> (Self::ScalarField, bool, Self::ScalarField, bool) {
         // check this algorithm because seems to not work...
         let scalar: BigUint = (*k).into_bigint().into();
         let n11: BigUint = Self::COEFF_N11.into_bigint().into();
@@ -58,49 +58,29 @@ pub trait GLVParameters: Send + Sync + 'static + ModelParameters + ScalarMul {
         let n22: BigUint = Self::COEFF_N22.into_bigint().into();
 
         let r: BigUint = Self::ScalarField::MODULUS.into();
-        let r_over_2 = &r / BigUint::from(2u8);
-
-        let (quo,rem) = n11.div_rem(&r);
-        println!("quo = {}", quo);
-        println!("rem = {}", rem);
-        let tmp2 = &quo * &r;
-        println!("tmp * r = {}", tmp2);
-        println!("n11 = {}", n11);
 
         // beta = vector([k,0]) * self.curve.N_inv
         // The inverse of N is 1/r * Matrix([[n22, -n12], [-n21, n11]]).
         // so β = (k*n22, -k*n12)/r
         let beta_1 = &scalar * &n22;
         let beta_2 = &scalar * &n12; // (the negative will be done after)
-        println!("β1 = {}", beta_1);
-        println!("β2 = {}", beta_2);
-        println!("r={}", r);
 
         let beta_1 = &beta_1 / &r;
         let beta_2 = &beta_2 / &r;
-        println!("β1 = {}", beta_1);
-        println!("β2 = {}", beta_2);
-        println!("β1*r = {}", &beta_1 * &r);
 
         // b = vector([int(beta[0]), int(beta[1])]) * self.curve.N
         let b1: BigUint = &beta_1 * &n11 - &beta_2 * &n21;
         let b2: BigUint = (&beta_1 * &n12 - &beta_2 * &n22) % r;
 
-        println!("b1={}", b1);
-        println!("b2={}", b2);
-
-        let k1 = Self::ScalarField::from(scalar - b1);
-        let is_k2_pos = b2 < r_over_2;
-
-        let k2 = if is_k2_pos {
-            Self::ScalarField::from(b2)
+        let is_k1_pos = scalar > b1;
+        let k1 = if is_k1_pos {
+            Self::ScalarField::from(scalar - b1)
         } else {
-            -Self::ScalarField::from(b2)
+            Self::ScalarField::from(b1 - scalar)
         };
-
-        println!("k1={}", k1);
-        println!("k2={}", k2);
-        (k1, k2, is_k2_pos)
+        let is_k2_pos = false;
+        let k2 = Self::ScalarField::from(b2);
+        (k1, is_k1_pos, k2, is_k2_pos)
     }
 
     /// Performs GLV multiplication.
@@ -108,10 +88,11 @@ pub trait GLVParameters: Send + Sync + 'static + ModelParameters + ScalarMul {
         base: &Self::CurveAffine,
         scalar: &Self::ScalarField,
     ) -> <<Self as ScalarMul>::CurveAffine as AffineCurve>::Projective {
-        let (k1, k2, is_k2_positive) = Self::scalar_decomposition(scalar);
+        let (k1, is_k1_positive, k2, is_k2_positive) = Self::scalar_decomposition(scalar);
         VariableBase::two_scalar_mul::<Self>(
             *base,
             k1.into_bigint(),
+            is_k1_positive,
             Self::endomorphism(base),
             k2.into_bigint(),
             is_k2_positive,
