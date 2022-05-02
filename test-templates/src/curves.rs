@@ -134,25 +134,6 @@ fn random_multiplication_test<G: ProjectiveCurve>() {
     }
 }
 
-fn glv_scalar_multiplication<P: GLVParameters>()
-where
-    <<<P as ScalarMul>::CurveAffine as AffineCurve>::ScalarField as PrimeField>::BigInt:
-        From<<<P as ModelParameters>::ScalarField as PrimeField>::BigInt>,
-{
-    // check that glv_mul indeed computes the scalar multiplication
-    let mut rng = ark_std::test_rng();
-    use ark_ec::{
-        short_weierstrass_jacobian::GroupAffine, AffineCurve, ModelParameters, ProjectiveCurve,
-    };
-    let g = <P as ScalarMul>::CurveAffine::prime_subgroup_generator();
-    for _i in 0..100 {
-        let k = <P as ModelParameters>::ScalarField::rand(&mut rng);
-        let k_g = <P as GLVParameters>::glv_mul(&g, &k).into_affine();
-        let k_g_2 = g.mul(k.into_bigint()); //.mul(k.into()).into_affine();
-        assert_eq!(k_g, k_g_2.into_affine());
-    }
-}
-
 fn random_doubling_test<G: ProjectiveCurve>() {
     let mut rng = ark_std::test_rng();
 
@@ -578,4 +559,62 @@ pub fn edwards_curve_serialization_test<P: TEModelParameters>() {
             assert_eq!(a, b);
         }
     }
+}
+
+fn glv_scalar_decomposition<P: GLVParameters>()
+where
+    <<<P as ScalarMul>::CurveAffine as AffineCurve>::ScalarField as PrimeField>::BigInt:
+        From<<<P as ModelParameters>::ScalarField as PrimeField>::BigInt>,
+{
+    use ark_ec::ModelParameters;
+    use ark_ff::{One, MontFp};
+    use ark_std::UniformRand;
+
+    let mut rng = ark_std::test_rng();
+    for _i in 0..100 {
+        let k = <P as ModelParameters>::ScalarField::rand(&mut rng);
+        let (k1, is_k1_positive, k2, is_k2_positive) =
+            <P as GLVParameters>::scalar_decomposition(&k);
+        if is_k1_positive && is_k2_positive {
+            assert_eq!(k1 + k2 * P::LAMBDA, k);
+        }
+        if is_k1_positive && !is_k2_positive {
+            assert_eq!(k1 - k2 * P::LAMBDA, k);
+        }
+        if !is_k1_positive && is_k2_positive {
+            assert_eq!(-k1 + k2 * P::LAMBDA, k);
+        }
+        if !is_k1_positive && !is_k2_positive {
+            assert_eq!(-k1 - k2 * P::LAMBDA, k);
+        }
+        // could be nice to check if k1 and k2 are indeed small.
+    }
+}
+
+fn glv_scalar_multiplication<P: GLVParameters>()
+where
+    <<<P as ScalarMul>::CurveAffine as AffineCurve>::ScalarField as PrimeField>::BigInt:
+        From<<<P as ModelParameters>::ScalarField as PrimeField>::BigInt>,
+{
+    // check that glv_mul indeed computes the scalar multiplication
+    let mut rng = ark_std::test_rng();
+    use ark_ec::{
+        short_weierstrass_jacobian::GroupAffine, AffineCurve, ModelParameters, ProjectiveCurve,
+    };
+    let g = <P as ScalarMul>::CurveAffine::prime_subgroup_generator();
+    for _i in 0..100 {
+        let k = <P as ModelParameters>::ScalarField::rand(&mut rng);
+        let k_g = <P as GLVParameters>::glv_mul(&g, &k).into_affine();
+        let k_g_2 = g.mul(k.into_bigint());
+        assert_eq!(k_g, k_g_2.into_affine());
+    }
+}
+
+pub fn glv_tests<P: GLVParameters>()
+where
+    <<<P as ScalarMul>::CurveAffine as AffineCurve>::ScalarField as PrimeField>::BigInt:
+        From<<<P as ModelParameters>::ScalarField as PrimeField>::BigInt>,
+{
+    glv_scalar_decomposition::<P>();
+    glv_scalar_multiplication::<P>();
 }
