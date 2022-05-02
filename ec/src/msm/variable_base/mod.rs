@@ -186,13 +186,17 @@ impl VariableBase {
     pub fn two_scalar_mul<G: ScalarMul>(
         p1: G::CurveAffine,
         k1: <<G as ModelParameters>::ScalarField as PrimeField>::BigInt,
+        is_k1_positive: bool,
         p2: G::CurveAffine,
         k2: <<G as ModelParameters>::ScalarField as PrimeField>::BigInt,
         is_k2_positive: bool,
     ) -> <<G as ScalarMul>::CurveAffine as AffineCurve>::Projective {
-        let b1 = p1.into_projective();
+        let mut b1 = p1.into_projective();
         let mut b2 = p2.into_projective();
 
+        if !is_k1_positive {
+            b1 = -b1;
+        }
         if !is_k2_positive {
             b2 = -b2;
         }
