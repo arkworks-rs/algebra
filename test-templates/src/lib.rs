@@ -613,10 +613,10 @@ macro_rules! generate_field_serialization_test {
 macro_rules! generate_glv_test {
     () => {};
 
-    ($curve_name: ident) => {
+    ($parameters_name: ident) => {
         #[test]
         fn test_glv() {
-            glv_tests::<g1::Parameters>();
+            glv_tests::<$parameters_name>();
         }
     };
 }

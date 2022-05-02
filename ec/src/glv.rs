@@ -46,6 +46,8 @@ pub trait GLVParameters: Send + Sync + 'static + ModelParameters + ScalarMul {
     const COEFF_N21: Self::ScalarField;
     /// The forth element of the matrix for the scalar decomposition.
     const COEFF_N22: Self::ScalarField;
+    /// the sign of the coefficients of the matrix N.
+    const SGN_N: [bool;4];
 
     fn endomorphism(base: &Self::CurveAffine) -> Self::CurveAffine;
 
@@ -62,6 +64,11 @@ pub trait GLVParameters: Send + Sync + 'static + ModelParameters + ScalarMul {
 
         let r: BigUint = Self::ScalarField::MODULUS.into();
 
+
+        // issue with the sign for Bandersnatch, when n22 is negative... 
+        
+        println!("n22={}", n22);
+
         // beta = vector([k,0]) * self.curve.N_inv
         // The inverse of N is 1/r * Matrix([[n22, -n12], [-n21, n11]]).
         // so β = (k*n22, -k*n12)/r
@@ -70,10 +77,16 @@ pub trait GLVParameters: Send + Sync + 'static + ModelParameters + ScalarMul {
 
         let beta_1 = &beta_1 / &r;
         let beta_2 = &beta_2 / &r;
+        println!("β1={}", beta_1);
+        println!("β2={}", beta_2);
 
         // b = vector([int(beta[0]), int(beta[1])]) * self.curve.N
+        // b = 1/r * (β1N11 - β2N21, β1N12 - β2N22)
+        
         let b1: BigUint = &beta_1 * &n11 - &beta_2 * &n21;
         let b2: BigUint = (&beta_1 * &n12 - &beta_2 * &n22) % r;
+        println!("b1={}", b1);
+        println!("b2={}", b2);
 
         let is_k1_pos = scalar > b1;
         let k1 = if is_k1_pos {

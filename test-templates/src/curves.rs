@@ -575,6 +575,10 @@ where
         let k = <P as ModelParameters>::ScalarField::rand(&mut rng);
         let (k1, is_k1_positive, k2, is_k2_positive) =
             <P as GLVParameters>::scalar_decomposition(&k);
+        println!("k ={}", k);
+        println!("k1={}", k1);
+        println!("k2={}", k2);
+        
         if is_k1_positive && is_k2_positive {
             assert_eq!(k1 + k2 * P::LAMBDA, k);
         }
@@ -589,6 +593,16 @@ where
         }
         // could be nice to check if k1 and k2 are indeed small.
     }
+}
+
+fn glv_endomorphism_eigenvalue<P: GLVParameters>()
+where
+    <<<P as ScalarMul>::CurveAffine as AffineCurve>::ScalarField as PrimeField>::BigInt:
+        From<<<P as ModelParameters>::ScalarField as PrimeField>::BigInt>,
+{
+    let g = <P as ScalarMul>::CurveAffine::prime_subgroup_generator();
+    let endo_g = <P as GLVParameters>::endomorphism(&g);
+    assert_eq!(endo_g, g.mul(P::LAMBDA.into_bigint()).into_affine());
 }
 
 fn glv_scalar_multiplication<P: GLVParameters>()
@@ -616,5 +630,6 @@ where
         From<<<P as ModelParameters>::ScalarField as PrimeField>::BigInt>,
 {
     glv_scalar_decomposition::<P>();
+    glv_endomorphism_eigenvalue::<P>();
     glv_scalar_multiplication::<P>();
 }
