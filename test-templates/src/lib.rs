@@ -608,3 +608,15 @@ macro_rules! generate_field_serialization_test {
         generate_field_serialization_test!($($tail)*);
     };
 }
+
+#[macro_export]
+macro_rules! generate_glv_test {
+    () => {};
+
+    ($curve_name: ident) => {
+        #[test]
+        fn test_glv() {
+            glv_tests::<g1::Parameters>();
+        }
+    };
+}
