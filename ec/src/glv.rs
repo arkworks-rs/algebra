@@ -32,6 +32,9 @@ pub trait GLVParameters: Send + Sync + 'static + ModelParameters + ScalarMul {
     /// Coefficient `c_2` of `h(y) = (y + c_1) * (y + c_2)`.
     const COEFF_C2: Self::BaseField;
 
+    /// LAMBDA the eigenvalue corresponding to the endomorphism
+    const LAMBDA: Self::ScalarField;
+
     // Constants for scalar decomposition.
     // This is a 2x2 matrix, which is practically the LLL-reduced bases.
 
