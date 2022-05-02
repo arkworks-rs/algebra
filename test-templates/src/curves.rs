@@ -1,9 +1,10 @@
 #![allow(unused)]
 use ark_ec::{
-    twisted_edwards_extended::GroupProjective, wnaf::WnafContext, AffineCurve,
-    MontgomeryModelParameters, ProjectiveCurve, SWModelParameters, TEModelParameters,
+    glv::GLVParameters, msm::ScalarMul, twisted_edwards_extended::GroupProjective,
+    wnaf::WnafContext, AffineCurve, ModelParameters, MontgomeryModelParameters, ProjectiveCurve,
+    SWModelParameters, TEModelParameters,
 };
-use ark_ff::{Field, One, PrimeField, UniformRand, Zero};
+use ark_ff::{BigInteger256, Field, One, PrimeField, UniformRand, Zero};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, SWFlags, SerializationError};
 use ark_std::{io::Cursor, vec::Vec};
 
@@ -130,6 +131,25 @@ fn random_multiplication_test<G: ProjectiveCurve>() {
 
         assert_eq!(tmp1, tmp2);
         assert_eq!(tmp1, tmp3);
+    }
+}
+
+fn glv_scalar_multiplication<P: GLVParameters>()
+where
+    <<<P as ScalarMul>::CurveAffine as AffineCurve>::ScalarField as PrimeField>::BigInt:
+        From<<<P as ModelParameters>::ScalarField as PrimeField>::BigInt>,
+{
+    // check that glv_mul indeed computes the scalar multiplication
+    let mut rng = ark_std::test_rng();
+    use ark_ec::{
+        short_weierstrass_jacobian::GroupAffine, AffineCurve, ModelParameters, ProjectiveCurve,
+    };
+    let g = <P as ScalarMul>::CurveAffine::prime_subgroup_generator();
+    for _i in 0..100 {
+        let k = <P as ModelParameters>::ScalarField::rand(&mut rng);
+        let k_g = <P as GLVParameters>::glv_mul(&g, &k).into_affine();
+        let k_g_2 = g.mul(k.into_bigint()); //.mul(k.into()).into_affine();
+        assert_eq!(k_g, k_g_2.into_affine());
     }
 }
 
