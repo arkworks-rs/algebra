@@ -1,9 +1,10 @@
 use crate::{
     msm::{ScalarMul, VariableBase},
-    AffineCurve, ModelParameters,
+    AffineCurve, ModelParameters, models,
 };
 use ark_ff::PrimeField;
-use num_bigint::BigUint;
+use num_bigint::{BigInt, BigUint, Sign};
+use num_traits::Signed;
 
 /// The GLV parameters for computing the endomorphism and scalar decomposition.
 pub trait GLVParameters: Send + Sync + 'static + ModelParameters + ScalarMul {
@@ -39,79 +40,71 @@ pub trait GLVParameters: Send + Sync + 'static + ModelParameters + ScalarMul {
     // This is a 2x2 matrix, which is practically the LLL-reduced bases.
 
     /// The first element of the matrix for scalar decomposition.
-    const COEFF_N11: Self::ScalarField;
-    /// The second element of the matrix for scalar decomposition.
-    const COEFF_N12: Self::ScalarField;
-    /// The third element of the matrix for scalar decomposition.
-    const COEFF_N21: Self::ScalarField;
-    /// The forth element of the matrix for the scalar decomposition.
-    const COEFF_N22: Self::ScalarField;
-    /// the sign of the coefficients of the matrix N.
-    const SGN_N: [bool;4];
+    const COEFF_N: [[u32; 4]; 4];
+    const SGN_N: [Sign; 4];
 
     fn endomorphism(base: &Self::CurveAffine) -> Self::CurveAffine;
 
     /// Decomposes a scalar s into k1, k2, s.t. s = k1 + lambda k2,
     fn scalar_decomposition(
-        k: &Self::ScalarField,
-    ) -> (Self::ScalarField, bool, Self::ScalarField, bool) {
-        // check this algorithm because seems to not work...
-        let scalar: BigUint = (*k).into_bigint().into();
-        let n11: BigUint = Self::COEFF_N11.into_bigint().into();
-        let n12: BigUint = Self::COEFF_N12.into_bigint().into();
-        let n21: BigUint = Self::COEFF_N21.into_bigint().into();
-        let n22: BigUint = Self::COEFF_N22.into_bigint().into();
+        k: BigInt,
+    ) -> 
+    (
+        <<Self as ModelParameters>::ScalarField as PrimeField>::BigInt,
+        bool,
+        <<Self as ModelParameters>::ScalarField as PrimeField>::BigInt,
+        bool,
+    ) 
+    where <Self as models::ModelParameters>::ScalarField: From<num_bigint::BigInt>
+    {
+        let scalar: BigInt = k;
+        
+        let n11 = BigInt::new(Self::SGN_N[0], Self::COEFF_N[0].to_vec());
+        let n12 = BigInt::new(Self::SGN_N[1], Self::COEFF_N[1].to_vec());
+        let n21 = BigInt::new(Self::SGN_N[2], Self::COEFF_N[2].to_vec());
+        let n22 = BigInt::new(Self::SGN_N[3], Self::COEFF_N[3].to_vec());
 
         let r: BigUint = Self::ScalarField::MODULUS.into();
-
-
-        // issue with the sign for Bandersnatch, when n22 is negative... 
-        
-        println!("n22={}", n22);
+        let r: BigInt = r.into();
 
         // beta = vector([k,0]) * self.curve.N_inv
         // The inverse of N is 1/r * Matrix([[n22, -n12], [-n21, n11]]).
         // so β = (k*n22, -k*n12)/r
-        let beta_1 = &scalar * &n22;
-        let beta_2 = &scalar * &n12; // (the negative will be done after)
-
-        let beta_1 = &beta_1 / &r;
-        let beta_2 = &beta_2 / &r;
-        println!("β1={}", beta_1);
-        println!("β2={}", beta_2);
+        let beta_1 = &scalar * &n22 / &r;
+        let beta_2 = &scalar * &n12 / &r;
 
         // b = vector([int(beta[0]), int(beta[1])]) * self.curve.N
         // b = 1/r * (β1N11 - β2N21, β1N12 - β2N22)
-        
-        let b1: BigUint = &beta_1 * &n11 - &beta_2 * &n21;
-        let b2: BigUint = (&beta_1 * &n12 - &beta_2 * &n22) % r;
-        println!("b1={}", b1);
-        println!("b2={}", b2);
+        let b1 = (&beta_1 * &n11 - &beta_2 * &n21) % &r;
+        let b2 = (&beta_1 * &n12 - &beta_2 * &n22) % &r;
 
-        let is_k1_pos = scalar > b1;
-        let k1 = if is_k1_pos {
-            Self::ScalarField::from(scalar - b1)
-        } else {
-            Self::ScalarField::from(b1 - scalar)
-        };
-        let is_k2_pos = false;
-        let k2 = Self::ScalarField::from(b2);
-        (k1, is_k1_pos, k2, is_k2_pos)
+        let k1 = scalar-b1;
+        let k2 = -b2;
+
+        (
+            Self::ScalarField::from(k1.abs()).into_bigint(),
+            k1.is_positive(),
+            Self::ScalarField::from(k2.abs()).into_bigint(),
+            k2.is_positive(),
+        )
     }
 
     /// Performs GLV multiplication.
     fn glv_mul(
         base: &Self::CurveAffine,
-        scalar: &Self::ScalarField,
-    ) -> <<Self as ScalarMul>::CurveAffine as AffineCurve>::Projective {
-        let (k1, is_k1_positive, k2, is_k2_positive) = Self::scalar_decomposition(scalar);
+        scalar: BigInt,
+    ) -> <<Self as ScalarMul>::CurveAffine as AffineCurve>::Projective
+    where <Self as models::ModelParameters>::ScalarField: From<num_bigint::BigInt> 
+    {
+        // let (k1, is_k1_positive, k2, is_k2_positive) = Self::scalar_decomposition(scalar);
+        let (k1, k1_sgn, k2, k2_sgn) = Self::scalar_decomposition(scalar);
         VariableBase::two_scalar_mul::<Self>(
             *base,
-            k1.into_bigint(),
-            is_k1_positive,
+            k1,
+            k1_sgn,
             Self::endomorphism(base),
-            k2.into_bigint(),
-            is_k2_positive,
+            k2,
+            k2_sgn,
         )
     }
 }

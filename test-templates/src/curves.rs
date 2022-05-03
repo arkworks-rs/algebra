@@ -7,6 +7,7 @@ use ark_ec::{
 use ark_ff::{BigInteger256, Field, One, PrimeField, UniformRand, Zero};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, SWFlags, SerializationError};
 use ark_std::{io::Cursor, vec::Vec};
+use num_bigint::{BigInt, BigUint};
 
 pub const ITERATIONS: usize = 10;
 
@@ -565,31 +566,37 @@ fn glv_scalar_decomposition<P: GLVParameters>()
 where
     <<<P as ScalarMul>::CurveAffine as AffineCurve>::ScalarField as PrimeField>::BigInt:
         From<<<P as ModelParameters>::ScalarField as PrimeField>::BigInt>,
+    <P as ModelParameters>::ScalarField: From<num_bigint::BigInt>
 {
     use ark_ec::ModelParameters;
     use ark_ff::{One, MontFp};
     use ark_std::UniformRand;
+    use num_bigint::Sign::Plus;
 
     let mut rng = ark_std::test_rng();
     for _i in 0..100 {
-        let k = <P as ModelParameters>::ScalarField::rand(&mut rng);
-        let (k1, is_k1_positive, k2, is_k2_positive) =
-            <P as GLVParameters>::scalar_decomposition(&k);
-        println!("k ={}", k);
-        println!("k1={}", k1);
-        println!("k2={}", k2);
-        
+        let _k = <P as ModelParameters>::ScalarField::rand(&mut rng);
+        let k: BigInt = BigInt::from_biguint(Plus, _k.into_bigint().into());
+
+        let (_k1, is_k1_positive, _k2, is_k2_positive) =
+            <P as GLVParameters>::scalar_decomposition(k);
+
+        let kk1: BigUint = _k1.into();
+        let k1 = <P::ScalarField>::from(kk1.into());
+        let kk2: BigUint = _k2.into();
+        let k2 = <P::ScalarField>::from(kk2.into());
+                
         if is_k1_positive && is_k2_positive {
-            assert_eq!(k1 + k2 * P::LAMBDA, k);
+            assert_eq!(k1 + k2 * P::LAMBDA, _k);
         }
         if is_k1_positive && !is_k2_positive {
-            assert_eq!(k1 - k2 * P::LAMBDA, k);
+            assert_eq!(k1 - k2 * P::LAMBDA, _k);
         }
         if !is_k1_positive && is_k2_positive {
-            assert_eq!(-k1 + k2 * P::LAMBDA, k);
+            assert_eq!(-k1 + k2 * P::LAMBDA, _k);
         }
         if !is_k1_positive && !is_k2_positive {
-            assert_eq!(-k1 - k2 * P::LAMBDA, k);
+            assert_eq!(-k1 - k2 * P::LAMBDA, _k);
         }
         // could be nice to check if k1 and k2 are indeed small.
     }
@@ -609,17 +616,22 @@ fn glv_scalar_multiplication<P: GLVParameters>()
 where
     <<<P as ScalarMul>::CurveAffine as AffineCurve>::ScalarField as PrimeField>::BigInt:
         From<<<P as ModelParameters>::ScalarField as PrimeField>::BigInt>,
+    <P as ModelParameters>::ScalarField: From<num_bigint::BigInt>
 {
     // check that glv_mul indeed computes the scalar multiplication
     let mut rng = ark_std::test_rng();
     use ark_ec::{
         short_weierstrass_jacobian::GroupAffine, AffineCurve, ModelParameters, ProjectiveCurve,
     };
+    use num_bigint::Sign::Plus;
+
     let g = <P as ScalarMul>::CurveAffine::prime_subgroup_generator();
     for _i in 0..100 {
-        let k = <P as ModelParameters>::ScalarField::rand(&mut rng);
-        let k_g = <P as GLVParameters>::glv_mul(&g, &k).into_affine();
-        let k_g_2 = g.mul(k.into_bigint());
+        let _k = <P as ModelParameters>::ScalarField::rand(&mut rng);
+        let k: BigInt = BigInt::from_biguint(Plus, _k.into_bigint().into());
+
+        let k_g = <P as GLVParameters>::glv_mul(&g, k).into_affine();
+        let k_g_2 = g.mul(_k.into_bigint());
         assert_eq!(k_g, k_g_2.into_affine());
     }
 }
@@ -628,6 +640,7 @@ pub fn glv_tests<P: GLVParameters>()
 where
     <<<P as ScalarMul>::CurveAffine as AffineCurve>::ScalarField as PrimeField>::BigInt:
         From<<<P as ModelParameters>::ScalarField as PrimeField>::BigInt>,
+    <P as ModelParameters>::ScalarField: From<num_bigint::BigInt>
 {
     glv_scalar_decomposition::<P>();
     glv_endomorphism_eigenvalue::<P>();
