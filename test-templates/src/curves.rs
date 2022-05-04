@@ -600,10 +600,7 @@ where
         From<<<P as ModelParameters>::ScalarField as PrimeField>::BigInt>,
 {
     let g = <P as ScalarMul>::CurveAffine::prime_subgroup_generator();
-    println!("g = {}", g);
     let endo_g = <P as GLVParameters>::endomorphism(&g);
-    println!("φ(g) = {}", endo_g);
-    println!("λg = {}", g.mul(P::LAMBDA.into_bigint()).into_affine());
     assert_eq!(endo_g, g.mul(P::LAMBDA.into_bigint()).into_affine());
 }
 
