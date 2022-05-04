@@ -4,11 +4,20 @@ use std::io::BufReader;
 use super::json::SuiteVector;
 use libtest_mimic::{run_tests, Arguments, Outcome, Test};
 
-use crate::hashing::map_to_curve_hasher::HashToField;
-use crate::hashing::tests::DefaultFieldHasher;
+use ark_test_curves::{
+    hashing::{
+        curve_maps::swu::{parity, SWUMap, SWUParams},
+        field_hashers::DefaultFieldHasher,
+        map_to_curve_hasher::{HashToField, MapToCurve, MapToCurveBasedHasher},
+        HashToCurve,
+    },
+    short_weierstrass_jacobian::GroupAffine,
+    ModelParameters, SWModelParameters,
+};
+
 use ark_ff::PrimeField;
-use ark_test_curves::bls12_381::Fq;
 use ark_test_curves::bls12_381::Fq2;
+use ark_test_curves::bls12_381::{Fq, SwuIsoParameters};
 use sha2::Sha256;
 
 #[test]
@@ -34,8 +43,16 @@ fn suites() {
 fn run_test_w(Test { data, .. }: &Test<SuiteVector>) -> Outcome {
     assert_eq!(data.hash, "sha256");
     let dst = data.dst.as_bytes();
+    let mapper;
     let hasher;
     let m;
+    // TODO: differentiate between G1 and G2 Params!
+    mapper = MapToCurveBasedHasher::<
+        GroupAffine<SwuIsoParameters>,
+        DefaultFieldHasher<Sha256, 128>,
+        SWUMap<SwuIsoParameters>,
+    >::new(dst)
+    .unwrap();
     match data.curve.as_str() {
         "BLS12-381 G1" => {
             m = 1;
@@ -51,6 +68,7 @@ fn run_test_w(Test { data, .. }: &Test<SuiteVector>) -> Outcome {
     }
 
     for v in data.vectors.iter() {
+        // first, test field elements
         let got: Vec<Fq> = hasher.hash_to_field(&v.msg.as_bytes(), 2 * m).unwrap();
         let want: Vec<Fq> = (&v.u)
             .into_iter()
@@ -68,6 +86,30 @@ fn run_test_w(Test { data, .. }: &Test<SuiteVector>) -> Outcome {
                     data.ciphersuite,
                     got[0].to_string(),
                     want[0].to_string()
+                )),
+            };
+        }
+        // then, test curve points
+        let got: GroupAffine<SwuIsoParameters> = mapper.hash(&v.msg.as_bytes()).unwrap();
+        assert!(got.is_on_curve());
+        let x: Vec<Fq> = (&v.p.x)
+            .split(",")
+            .map(|f| Fq::from_be_bytes_mod_order(&hex::decode(f.trim_start_matches("0x")).unwrap()))
+            .collect();
+        let y: Vec<Fq> = (&v.p.y)
+            .split(",")
+            .map(|f| Fq::from_be_bytes_mod_order(&hex::decode(f.trim_start_matches("0x")).unwrap()))
+            .collect();
+        let want: GroupAffine<SwuIsoParameters> =
+            GroupAffine::<SwuIsoParameters>::new(x[0], y[0], false);
+        assert!(want.is_on_curve());
+        if got != want {
+            return Outcome::Failed {
+                msg: Some(format!(
+                    "Suite: {:?}\ngot:  {:?}\nwant: {:?}",
+                    data.ciphersuite,
+                    got.to_string(),
+                    want.to_string()
                 )),
             };
         }
