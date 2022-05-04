@@ -12,25 +12,7 @@ pub trait GLVParameters: Send + Sync + 'static + ModelParameters + ScalarMul {
     type CurveProjective;
 
     // Constants that are used to calculate `phi(G) := lambda*G`.
-
-    /// Coefficient `a_1` of `f(y) = a_1 * (y + a_2) * (y + a_3)`.
-    const COEFF_A1: Self::BaseField;
-    /// Coefficient `a_2` of `f(y) = a_1 * (y + a_2) * (y + a_3)`.
-    const COEFF_A2: Self::BaseField;
-    /// Coefficient `a_3` of `f(y) = a_1 * (y + a_2) * (y + a_3)`.
-    const COEFF_A3: Self::BaseField;
-
-    /// Coefficient `b_1` of `g(y) = b_1 * (y + b_2) * (y + b_3)`.
-    const COEFF_B1: Self::BaseField;
-    /// Coefficient `b_2` of `g(y) = b_1 * (y + b_2) * (y + b_3)`.
-    const COEFF_B2: Self::BaseField;
-    /// Coefficient `b_3` of `g(y) = b_1 * (y + b_2) * (y + b_3)`.
-    const COEFF_B3: Self::BaseField;
-
-    /// Coefficient `c_1` of `h(y) = (y + c_1) * (y + c_2)`.
-    const COEFF_C1: Self::BaseField;
-    /// Coefficient `c_2` of `h(y) = (y + c_1) * (y + c_2)`.
-    const COEFF_C2: Self::BaseField;
+    const COEFFS_ENDOMORPHISM: &'static[Self::BaseField];
 
     /// LAMBDA the eigenvalue corresponding to the endomorphism
     const LAMBDA: Self::ScalarField;
