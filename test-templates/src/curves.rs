@@ -568,7 +568,7 @@ where
         From<<<P as ModelParameters>::ScalarField as PrimeField>::BigInt>,
 {
     use ark_ec::ModelParameters;
-    use ark_ff::{One, MontFp};
+    use ark_ff::{MontFp, One};
     use ark_std::UniformRand;
 
     let mut rng = ark_std::test_rng();
@@ -577,11 +577,15 @@ where
 
         let (k1, is_k1_positive, k2, is_k2_positive) =
             <P as GLVParameters>::scalar_decomposition(k);
-                
+
         if is_k1_positive && is_k2_positive {
             assert_eq!(k1 + k2 * P::LAMBDA, k);
         }
         if is_k1_positive && !is_k2_positive {
+            println!("lhs={}", k1 - k2 * P::LAMBDA);
+            println!("λ={}", P::LAMBDA);
+            println!("λ*k2 = {}", k2 * P::LAMBDA);
+            println!("rhs={}", k);
             assert_eq!(k1 - k2 * P::LAMBDA, k);
         }
         if !is_k1_positive && is_k2_positive {
@@ -600,7 +604,10 @@ where
         From<<<P as ModelParameters>::ScalarField as PrimeField>::BigInt>,
 {
     let g = <P as ScalarMul>::CurveAffine::prime_subgroup_generator();
+    println!("g = {}", g);
     let endo_g = <P as GLVParameters>::endomorphism(&g);
+    println!("φ(g) = {}", endo_g);
+    println!("λg = {}", g.mul(P::LAMBDA.into_bigint()).into_affine());
     assert_eq!(endo_g, g.mul(P::LAMBDA.into_bigint()).into_affine());
 }
 
@@ -630,7 +637,6 @@ pub fn glv_tests<P: GLVParameters>()
 where
     <<<P as ScalarMul>::CurveAffine as AffineCurve>::ScalarField as PrimeField>::BigInt:
         From<<<P as ModelParameters>::ScalarField as PrimeField>::BigInt>,
-    <P as ModelParameters>::ScalarField: From<num_bigint::BigInt>
 {
     glv_scalar_decomposition::<P>();
     glv_endomorphism_eigenvalue::<P>();
