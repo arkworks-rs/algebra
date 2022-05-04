@@ -582,10 +582,6 @@ where
             assert_eq!(k1 + k2 * P::LAMBDA, k);
         }
         if is_k1_positive && !is_k2_positive {
-            println!("lhs={}", k1 - k2 * P::LAMBDA);
-            println!("λ={}", P::LAMBDA);
-            println!("λ*k2 = {}", k2 * P::LAMBDA);
-            println!("rhs={}", k);
             assert_eq!(k1 - k2 * P::LAMBDA, k);
         }
         if !is_k1_positive && is_k2_positive {

@@ -95,7 +95,7 @@ pub trait GLVParameters: Send + Sync + 'static + ModelParameters + ScalarMul {
         let sgn_b21 = sgn_beta_1 == sgn_n12;
         let b22 = &beta_2 * &n22;
         let sgn_b22 = sgn_beta_2 == sgn_n22;
-        
+
         let (b2, sgn_b2) = if sgn_b21 == sgn_b22 {
             ((b21 + b22) % &r, sgn_b21)
         } else {
