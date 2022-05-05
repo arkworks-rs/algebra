@@ -19,6 +19,7 @@ pub trait GLVParameters: Send + Sync + 'static + ModelParameters + ScalarMul {
 
     // Constants for scalar decomposition.
     // This is a 2x2 matrix, which is practically the LLL-reduced bases.
+    // We require this matrix N to satisfy det(N) = ScalarField::characteristic().
 
     /// The first element of the matrix for scalar decomposition.
     const COEFF_N: [<Self as ModelParameters>::ScalarField; 4];

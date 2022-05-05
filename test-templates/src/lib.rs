@@ -619,4 +619,16 @@ macro_rules! generate_glv_test {
             glv_tests::<$parameters_name>();
         }
     };
+
+    ($parameters_name1: ident, $parameters_name2: ident) => {
+        #[test]
+        fn test_glv_g1() {
+            glv_tests::<$parameters_name1>();
+        }
+
+        #[test]
+        fn test_glv_g2() {
+            glv_tests::<$parameters_name2>();
+        }
+    };
 }
