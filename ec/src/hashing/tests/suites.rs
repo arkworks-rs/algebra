@@ -6,18 +6,16 @@ use libtest_mimic::{run_tests, Arguments, Outcome, Test};
 
 use ark_test_curves::{
     hashing::{
-        curve_maps::swu::{parity, SWUMap, SWUParams},
+        curve_maps::wb::WBMap,
         field_hashers::DefaultFieldHasher,
-        map_to_curve_hasher::{HashToField, MapToCurve, MapToCurveBasedHasher},
+        map_to_curve_hasher::{HashToField, MapToCurveBasedHasher},
         HashToCurve,
     },
     short_weierstrass_jacobian::GroupAffine,
-    ModelParameters, SWModelParameters,
 };
 
 use ark_ff::PrimeField;
-use ark_test_curves::bls12_381::Fq2;
-use ark_test_curves::bls12_381::{Fq, SwuIsoParameters};
+use ark_test_curves::bls12_381::{Fq, Fq2, Parameters};
 use sha2::Sha256;
 
 #[test]
@@ -48,9 +46,9 @@ fn run_test_w(Test { data, .. }: &Test<SuiteVector>) -> Outcome {
     let m;
     // TODO: differentiate between G1 and G2 Params!
     mapper = MapToCurveBasedHasher::<
-        GroupAffine<SwuIsoParameters>,
+        GroupAffine<Parameters>,
         DefaultFieldHasher<Sha256, 128>,
-        SWUMap<SwuIsoParameters>,
+        WBMap<Parameters>,
     >::new(dst)
     .unwrap();
     match data.curve.as_str() {
@@ -90,7 +88,7 @@ fn run_test_w(Test { data, .. }: &Test<SuiteVector>) -> Outcome {
             };
         }
         // then, test curve points
-        let got: GroupAffine<SwuIsoParameters> = mapper.hash(&v.msg.as_bytes()).unwrap();
+        let got: GroupAffine<Parameters> = mapper.hash(&v.msg.as_bytes()).unwrap();
         assert!(got.is_on_curve());
         let x: Vec<Fq> = (&v.p.x)
             .split(",")
@@ -100,8 +98,7 @@ fn run_test_w(Test { data, .. }: &Test<SuiteVector>) -> Outcome {
             .split(",")
             .map(|f| Fq::from_be_bytes_mod_order(&hex::decode(f.trim_start_matches("0x")).unwrap()))
             .collect();
-        let want: GroupAffine<SwuIsoParameters> =
-            GroupAffine::<SwuIsoParameters>::new(x[0], y[0], false);
+        let want: GroupAffine<Parameters> = GroupAffine::<Parameters>::new(x[0], y[0], false);
         assert!(want.is_on_curve());
         if got != want {
             return Outcome::Failed {
