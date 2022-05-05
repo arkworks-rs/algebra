@@ -8,7 +8,7 @@ use ark_ff_macros::unroll_for_loops;
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, SerializationError};
 use ark_std::{
     convert::TryFrom,
-    fmt::{Debug, Display},
+    fmt::{Debug, Display, UpperHex},
     io::{Read, Result as IoResult, Write},
     rand::{
         distributions::{Distribution, Standard},
@@ -513,10 +513,19 @@ impl<const N: usize> FromBytes for BigInt<N> {
     }
 }
 
-impl<const N: usize> Display for BigInt<N> {
+impl<const N: usize> UpperHex for BigInt<N> {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
         for i in self.0.iter().rev() {
             write!(f, "{:016X}", *i)?;
+        }
+        Ok(())
+    }
+}
+
+impl<const N: usize> Display for BigInt<N> {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
+        for i in self.0.iter().rev() {
+            write!(f, "{}", *i)?;
         }
         Ok(())
     }

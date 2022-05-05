@@ -232,6 +232,10 @@ pub fn from_str_test<F: PrimeField>() {
             let b = F::from(n);
 
             assert_eq!(a, b);
+            let c = F::from_str(&ark_std::format!("{}", a))
+                .map_err(|_| ())
+                .unwrap();
+            assert_eq!(a, c);
         }
     }
 
@@ -239,6 +243,7 @@ pub fn from_str_test<F: PrimeField>() {
     assert!(F::from_str("0").map_err(|_| ()).unwrap().is_zero());
     assert!(F::from_str("00").is_err());
     assert!(F::from_str("00000000000").is_err());
+    assert!(F::from_str("000000000007").is_err());
 }
 
 pub fn field_test<F: Field>(a: F, b: F) {
