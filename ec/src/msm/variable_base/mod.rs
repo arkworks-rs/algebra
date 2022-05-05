@@ -170,8 +170,8 @@ impl VariableBase {
     }
 
     /// return the highest non-zero bits of a bit string.
-    pub(crate) fn get_bits(a: &[bool]) -> u16 {
-        let mut res = 256;
+    pub(crate) fn get_bits(a: &[bool]) -> usize {
+        let mut res = a.len();
         for e in a.iter().rev() {
             if !e {
                 res -= 1;

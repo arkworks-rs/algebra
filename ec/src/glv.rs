@@ -12,7 +12,7 @@ pub trait GLVParameters: Send + Sync + 'static + ModelParameters + ScalarMul {
     type CurveProjective;
 
     // Constants that are used to calculate `phi(G) := lambda*G`.
-    const COEFFS_ENDOMORPHISM: &'static[Self::BaseField];
+    const COEFFS_ENDOMORPHISM: &'static [Self::BaseField];
 
     /// LAMBDA the eigenvalue corresponding to the endomorphism
     const LAMBDA: Self::ScalarField;
