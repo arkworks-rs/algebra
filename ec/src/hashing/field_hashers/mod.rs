@@ -20,12 +20,12 @@ use expander::Expander;
 /// use sha2::Sha256;
 /// use crate::ark_ec::hashing::map_to_curve_hasher::HashToField;
 ///
-/// let hasher = <DefaultFieldHasher<Sha256, 128> as HashToField<Fq>>::new(&[1, 2, 3]).unwrap();
+/// let hasher = <DefaultFieldHasher<Sha256> as HashToField<Fq>>::new(&[1, 2, 3]).unwrap();
 /// let field_elements: Vec<Fq> = hasher.hash_to_field(b"Hello, World!", 2).unwrap();
 ///
 /// assert_eq!(field_elements.len(), 2);
 /// ```
-pub struct DefaultFieldHasher<H: Default + DynDigest + Clone, const SEC_PARAM: usize> {
+pub struct DefaultFieldHasher<H: Default + DynDigest + Clone, const SEC_PARAM: usize = 128> {
     expander: ExpanderXmd<H>,
     len_per_base_elem: usize,
 }
