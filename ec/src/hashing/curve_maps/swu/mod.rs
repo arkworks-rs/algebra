@@ -42,7 +42,7 @@ pub fn parity<F: Field>(element: &F) -> bool {
 
 impl<P: SWUParams> MapToCurve<GroupAffine<P>> for SWUMap<P> {
     /// Constructs a new map if `P` represents a valid map.
-    fn new_map_to_curve() -> Result<Self, HashToCurveError> {
+    fn new() -> Result<Self, HashToCurveError> {
         // Verifying that both XI and ZETA are non-squares
         if P::XI.legendre().is_qr() || P::ZETA.legendre().is_qr() {
             return Err(HashToCurveError::MapToCurveError(

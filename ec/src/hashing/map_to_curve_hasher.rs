@@ -5,7 +5,7 @@ use ark_std::{marker::PhantomData, vec::Vec};
 /// Trait for mapping a random field element to a random curve point.
 pub trait MapToCurve<T: AffineCurve> {
     /// Constructs a new mapping.
-    fn new_map_to_curve() -> Result<Self, HashToCurveError>
+    fn new() -> Result<Self, HashToCurveError>
     where
         Self: Sized;
     /// Map an arbitary field element to a corresponding curve point.
@@ -20,7 +20,7 @@ pub trait HashToField<F: Field>: Sized {
     ///
     /// * `domain` - bytes that get concatenated with the `msg` during hashing, in order to separate potentially interfering instantiations of the hasher.
     /// * `count` - number of elements in field `F` to output.
-    fn new_hash_to_field(domain: &[u8]) -> Result<Self, HashToCurveError>;
+    fn new(domain: &[u8]) -> Result<Self, HashToCurveError>;
 
     /// Hash an arbitrary `msg` to #`count` elements from field `F`.
     fn hash_to_field(&self, msg: &[u8], count: usize) -> Result<Vec<F>, HashToCurveError>;
@@ -47,8 +47,8 @@ where
     M2C: MapToCurve<T>,
 {
     fn new(domain: &[u8]) -> Result<Self, HashToCurveError> {
-        let field_hasher = H2F::new_hash_to_field(domain)?;
-        let curve_mapper = M2C::new_map_to_curve()?;
+        let field_hasher = H2F::new(domain)?;
+        let curve_mapper = M2C::new()?;
         let _params_t = PhantomData;
         Ok(MapToCurveBasedHasher {
             field_hasher,

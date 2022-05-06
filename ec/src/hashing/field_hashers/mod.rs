@@ -20,7 +20,7 @@ use expander::Expander;
 /// use sha2::Sha256;
 /// use crate::ark_ec::hashing::map_to_curve_hasher::HashToField;
 ///
-/// let hasher = <DefaultFieldHasher<Sha256, 128> as HashToField<Fq>>::new_hash_to_field(&[1, 2, 3]).unwrap();
+/// let hasher = <DefaultFieldHasher<Sha256, 128> as HashToField<Fq>>::new(&[1, 2, 3]).unwrap();
 /// let field_elements: Vec<Fq> = hasher.hash_to_field(b"Hello, World!", 2).unwrap();
 ///
 /// assert_eq!(field_elements.len(), 2);
@@ -33,7 +33,7 @@ pub struct DefaultFieldHasher<H: Default + DynDigest + Clone, const SEC_PARAM: u
 impl<F: Field, H: Default + DynDigest + Clone, const SEC_PARAM: usize> HashToField<F>
     for DefaultFieldHasher<H, SEC_PARAM>
 {
-    fn new_hash_to_field(dst: &[u8]) -> Result<Self, HashToCurveError> {
+    fn new(dst: &[u8]) -> Result<Self, HashToCurveError> {
         // The final output of `hash_to_field` will be an array of field
         // elements from F::BaseField, each of size `len_per_elem`.
         let len_per_base_elem = get_len_per_elem::<F, SEC_PARAM>();

@@ -39,13 +39,11 @@ fn run_test_w(Test { data, .. }: &Test<SuiteVector>) -> Outcome {
     match data.curve.as_str() {
         "BLS12-381 G1" => {
             m = 1;
-            hasher = <DefaultFieldHasher<Sha256, 128> as HashToField<Fq>>::new_hash_to_field(dst)
-                .unwrap();
+            hasher = <DefaultFieldHasher<Sha256, 128> as HashToField<Fq>>::new(dst).unwrap();
         },
         "BLS12-381 G2" => {
             m = 2;
-            hasher = <DefaultFieldHasher<Sha256, 128> as HashToField<Fq2>>::new_hash_to_field(dst)
-                .unwrap();
+            hasher = <DefaultFieldHasher<Sha256, 128> as HashToField<Fq2>>::new(dst).unwrap();
         },
         _ => return Outcome::Ignored,
     }
