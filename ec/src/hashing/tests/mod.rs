@@ -125,11 +125,10 @@ fn checking_the_hashing_parameters() {
 /// simple hash
 #[test]
 fn hash_arbitary_string_to_curve_swu() {
-    use sha2::Sha256;
 
     let test_swu_to_curve_hasher = MapToCurveBasedHasher::<
         GroupAffine<TestSWUMapToCurveParams>,
-        DefaultFieldHasher<Sha256, 128>,
+        DefaultFieldHasher<sha256::Sha256, 128>,
         SWUMap<TestSWUMapToCurveParams>,
     >::new(&[1])
     .unwrap();
@@ -348,10 +347,9 @@ impl WBParams for TestWBF127MapToCurveParams {
 /// and make simple hash
 #[test]
 fn hash_arbitary_string_to_curve_wb() {
-    use sha2::Sha256;
     let test_wb_to_curve_hasher = MapToCurveBasedHasher::<
         GroupAffine<TestWBF127MapToCurveParams>,
-        DefaultFieldHasher<Sha256, 128>,
+        DefaultFieldHasher<sha256::Sha256, 128>,
         WBMap<TestWBF127MapToCurveParams>,
     >::new(&[1])
     .unwrap();

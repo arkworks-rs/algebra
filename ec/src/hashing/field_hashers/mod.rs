@@ -58,17 +58,18 @@ impl<F: Field, H: Default + DynDigest + Clone, const SEC_PARAM: usize> HashToFie
         let len_in_bytes = count * m * self.len_per_base_elem;
         let uniform_bytes = self.expander.expand(message, len_in_bytes);
 
-        let mut output: Vec<F> = Vec::with_capacity(count);
+        let mut output = Vec::with_capacity(count);
+        let mut base_prime_field_elems = Vec::with_capacity(m);
         for i in 0..count {
-            let mut base_prime_field_elems: Vec<F::BasePrimeField> = Vec::new();
+            base_prime_field_elems.clear();
             for j in 0..m {
                 let elm_offset = self.len_per_base_elem * (j + i * m);
-                let val: F::BasePrimeField = F::BasePrimeField::from_be_bytes_mod_order(
-                    &uniform_bytes[elm_offset..(elm_offset + self.len_per_base_elem)],
+                let val = F::BasePrimeField::from_be_bytes_mod_order(
+                    &uniform_bytes[elm_offset..][..self.len_per_base_elem],
                 );
                 base_prime_field_elems.push(val);
             }
-            let f: F = F::from_base_prime_field_elems(&base_prime_field_elems).unwrap();
+            let f = F::from_base_prime_field_elems(&base_prime_field_elems).unwrap();
             output.push(f);
         }
 
