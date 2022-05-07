@@ -1,7 +1,7 @@
 //! A sparse multivariate polynomial represented in coefficient form.
 use crate::{
     multivariate::{SparseTerm, Term},
-    MVPolynomial, Polynomial,
+    DenseMVPolynomial, Polynomial,
 };
 use ark_ff::{Field, Zero};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, SerializationError};
@@ -58,7 +58,7 @@ impl<F: Field> Polynomial<F> for SparsePolynomial<F, SparseTerm> {
     }
 }
 
-impl<F: Field> MVPolynomial<F> for SparsePolynomial<F, SparseTerm> {
+impl<F: Field> DenseMVPolynomial<F> for SparsePolynomial<F, SparseTerm> {
     /// Returns the number of variables in `self`
     fn num_vars(&self) -> usize {
         self.num_vars

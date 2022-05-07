@@ -35,7 +35,7 @@ pub use evaluations::{
     },
     univariate::Evaluations,
 };
-pub use polynomial::{multivariate, univariate, MVPolynomial, Polynomial, UVPolynomial};
+pub use polynomial::{multivariate, univariate, DenseMVPolynomial, DenseUVPolynomial, Polynomial};
 
 #[cfg(test)]
 mod test;

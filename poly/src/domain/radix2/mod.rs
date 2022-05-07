@@ -239,7 +239,7 @@ impl<F: FftField> EvaluationDomain<F> for Radix2EvaluationDomain<F> {
 mod tests {
     use crate::{
         domain::Vec,
-        polynomial::{univariate::*, Polynomial, UVPolynomial},
+        polynomial::{univariate::*, DenseUVPolynomial, Polynomial},
         EvaluationDomain, Radix2EvaluationDomain,
     };
     use ark_ff::{FftField, Field, One, UniformRand, Zero};
