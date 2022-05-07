@@ -195,6 +195,9 @@ impl<P: Parameters> AffineCurve for GroupAffine<P> {
     type ScalarField = P::ScalarField;
     type Projective = GroupProjective<P>;
 
+    fn xy(&self) -> (Self::BaseField, Self::BaseField) {
+        (self.x, self.y)
+    }
     #[inline]
     fn prime_subgroup_generator() -> Self {
         Self::new(

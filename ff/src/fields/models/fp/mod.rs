@@ -11,6 +11,7 @@ use ark_std::{
     marker::PhantomData,
     ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign},
     str::FromStr,
+    string::ToString,
     One, Zero,
 };
 
@@ -722,12 +723,13 @@ impl<P: FpConfig<N>, const N: usize> FromStr for Fp<P, N> {
     }
 }
 
-/// Outputs a string containing the value of `self`, chunked up into
-/// 64-bit limbs.
+/// Outputs a string containing the value of `self`,
+/// represented as a decimal without leading zeroes.
 impl<P: FpConfig<N>, const N: usize> Display for Fp<P, N> {
     #[inline]
     fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
-        write!(f, stringify!(Fp "({})"), self.into_bigint())
+        let string = self.into_bigint().to_string();
+        write!(f, "{}", string.trim_start_matches('0'))
     }
 }
 
