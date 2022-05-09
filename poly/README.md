@@ -16,21 +16,21 @@ The `polynomial` module provides the following traits for defining polynomials i
 Requires implementors to support common operations on polynomials,
 such as `Add`, `Sub`, `Zero`, evaluation at a point, degree, etc,
 and defines methods to serialize to and from the coefficient representation of the polynomial.
-- [`UVPolynomial`](./src/polynomial/mod.rs#L43) :
+- [`DenseUVPolynomial`](./src/polynomial/mod.rs#L43) :
 Specifies that a `Polynomial` is actually a *univariate* polynomial.
-- [`MVPolynomial`](./src/polynomial/mod.rs#L59):
+- [`DenseMVPolynomial`](./src/polynomial/mod.rs#L59):
 Specifies that a `Polynomial` is actually a *multivariate* polynomial.
 
 This crate also provides the following data structures that implement these traits:
 
 - [`univariate/DensePolynomial`](./src/polynomial/univariate/dense.rs#L22):
 Represents degree `d` univariate polynomials via a list of `d + 1` coefficients.
-This struct implements the [`UVPolynomial`](./src/polynomial/mod.rs#L43) trait.
+This struct implements the [`DenseUVPolynomial`](./src/polynomial/mod.rs#L43) trait.
 - [`univariate/SparsePolynomial`](./src/polynomial/univariate/sparse.rs#L15):
 Represents degree `d` univariate polynomials via a list containing all non-zero monomials.
 This should only be used when most coefficients of the polynomial are zero.
 This struct implements the [`Polynomial`](./src/polynomial/mod.rs#L16) trait
-(but *not* the `UVPolynomial` trait).
+(but *not* the `DenseUVPolynomial` trait).
 - [`multivariate/SparsePolynomial`](./src/polynomial/multivariate/sparse.rs#L21):
 Represents multivariate polynomials via a list containing all non-zero monomials.
 

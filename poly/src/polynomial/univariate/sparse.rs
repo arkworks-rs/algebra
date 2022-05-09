@@ -2,7 +2,7 @@
 use crate::{
     polynomial::Polynomial,
     univariate::{DenseOrSparsePolynomial, DensePolynomial},
-    EvaluationDomain, Evaluations, UVPolynomial,
+    DenseUVPolynomial, EvaluationDomain, Evaluations,
 };
 use ark_ff::{FftField, Field, Zero};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, SerializationError};

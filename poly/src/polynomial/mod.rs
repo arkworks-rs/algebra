@@ -40,7 +40,7 @@ pub trait Polynomial<F: Field>:
 }
 
 /// Describes the interface for univariate polynomials
-pub trait UVPolynomial<F: Field>: Polynomial<F, Point = F> {
+pub trait DenseUVPolynomial<F: Field>: Polynomial<F, Point = F> {
     /// Constructs a new polynomial from a list of coefficients.
     fn from_coefficients_slice(coeffs: &[F]) -> Self;
 
@@ -56,7 +56,7 @@ pub trait UVPolynomial<F: Field>: Polynomial<F, Point = F> {
 }
 
 /// Describes the interface for multivariate polynomials
-pub trait MVPolynomial<F: Field>: Polynomial<F> {
+pub trait DenseMVPolynomial<F: Field>: Polynomial<F> {
     /// The type of the terms of `self`
     type Term: multivariate::Term;
 
