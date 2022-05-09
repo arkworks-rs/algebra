@@ -1,7 +1,7 @@
 //! A dense univariate polynomial represented in coefficient form.
 use crate::{
     univariate::{DenseOrSparsePolynomial, SparsePolynomial},
-    EvaluationDomain, Evaluations, GeneralEvaluationDomain, Polynomial, UVPolynomial,
+    DenseUVPolynomial, EvaluationDomain, Evaluations, GeneralEvaluationDomain, Polynomial,
 };
 use ark_ff::{FftField, Field, Zero};
 use ark_serialize::*;
@@ -94,7 +94,7 @@ impl<F: Field> DensePolynomial<F> {
     }
 }
 
-impl<F: Field> UVPolynomial<F> for DensePolynomial<F> {
+impl<F: Field> DenseUVPolynomial<F> for DensePolynomial<F> {
     /// Constructs a new polynomial from a list of coefficients.
     fn from_coefficients_slice(coeffs: &[F]) -> Self {
         Self::from_coefficients_vec(coeffs.to_vec())
