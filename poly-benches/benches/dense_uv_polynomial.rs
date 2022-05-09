@@ -3,7 +3,7 @@ extern crate criterion;
 use ark_ff::{FftField, Field};
 use ark_poly::{
     polynomial::univariate::{DensePolynomial, SparsePolynomial},
-    EvaluationDomain, GeneralEvaluationDomain, Polynomial, UVPolynomial,
+    DenseUVPolynomial, EvaluationDomain, GeneralEvaluationDomain, Polynomial,
 };
 use ark_poly_benches::size_range;
 use ark_std::rand::Rng;
