@@ -1,6 +1,6 @@
 use crate::{hashing::*, AffineCurve};
-use ark_ff::Field;
-use ark_std::{marker::PhantomData, vec::Vec};
+use ark_ff::field_hashers::HashToField;
+use ark_std::marker::PhantomData;
 
 /// Trait for mapping a random field element to a random curve point.
 pub trait MapToCurve<T: AffineCurve> {
@@ -10,20 +10,6 @@ pub trait MapToCurve<T: AffineCurve> {
         Self: Sized;
     /// Map an arbitary field element to a corresponding curve point.
     fn map_to_curve(&self, point: T::BaseField) -> Result<T, HashToCurveError>;
-}
-
-/// Trait for hashing messages to field elements.
-pub trait HashToField<F: Field>: Sized {
-    /// Initialises a new hash-to-field helper struct.
-    ///
-    /// # Arguments
-    ///
-    /// * `domain` - bytes that get concatenated with the `msg` during hashing, in order to separate potentially interfering instantiations of the hasher.
-    /// * `count` - number of elements in field `F` to output.
-    fn new(domain: &[u8]) -> Result<Self, HashToCurveError>;
-
-    /// Hash an arbitrary `msg` to #`count` elements from field `F`.
-    fn hash_to_field(&self, msg: &[u8], count: usize) -> Result<Vec<F>, HashToCurveError>;
 }
 
 /// Helper struct that can be used to construct elements on the elliptic curve
@@ -47,7 +33,7 @@ where
     M2C: MapToCurve<T>,
 {
     fn new(domain: &[u8]) -> Result<Self, HashToCurveError> {
-        let field_hasher = H2F::new(domain)?;
+        let field_hasher = H2F::new(domain);
         let curve_mapper = M2C::new()?;
         let _params_t = PhantomData;
         Ok(MapToCurveBasedHasher {
@@ -71,7 +57,7 @@ where
         // 5. P = clear_cofactor(R)
         // 6. return P
 
-        let rand_field_elems = self.field_hasher.hash_to_field(msg, 2)?;
+        let rand_field_elems = self.field_hasher.hash_to_field(msg, 2);
 
         let rand_curve_elem_0 = self.curve_mapper.map_to_curve(rand_field_elems[0])?;
         let rand_curve_elem_1 = self.curve_mapper.map_to_curve(rand_field_elems[1])?;

@@ -33,7 +33,7 @@ fn expander() {
     let args = Arguments::from_args();
     let mut tests = Vec::<Test<ExpanderVector>>::new();
 
-    for filename in read_dir("./src/hashing/field_hashers/expander/testdata").unwrap() {
+    for filename in read_dir("./src/fields/field_hashers/expander/testdata").unwrap() {
         let ff = filename.unwrap();
         let file = File::open(ff.path()).unwrap();
         let u: ExpanderVector = serde_json::from_reader(BufReader::new(file)).unwrap();

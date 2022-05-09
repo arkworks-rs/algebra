@@ -5,13 +5,13 @@ use crate::{
             swu::{parity, SWUMap, SWUParams},
             wb::{WBMap, WBParams},
         },
-        field_hashers::DefaultFieldHasher,
         map_to_curve_hasher::{MapToCurve, MapToCurveBasedHasher},
     },
     models::SWModelParameters,
     short_weierstrass_jacobian::GroupAffine,
     ModelParameters,
 };
+use ark_ff::field_hashers::DefaultFieldHasher;
 use ark_ff::{biginteger::BigInteger64, fields::Fp64, BigInt, MontBackend, MontFp};
 
 use ark_ff::SquareRootField;
