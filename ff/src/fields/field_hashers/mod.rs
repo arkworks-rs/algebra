@@ -91,9 +91,9 @@ impl<F: Field, H: Default + DynDigest + Clone, const SEC_PARAM: usize> HashToFie
 }
 
 /// This function computes the length in bytes that a hash function should output
-/// for hashing `count` field elements.
+/// for hashing an element of type `Field`.
 /// See section 5.1 and 5.3 of the
-/// [IETF hash standardization draft](https://tools.ietf.org/html/draft-irtf-cfrg-hash-to-curve-10)
+/// [IETF hash standardization draft](https://datatracker.ietf.org/doc/draft-irtf-cfrg-hash-to-curve/14/)
 fn get_len_per_elem<F: Field, const SEC_PARAM: usize>() -> usize {
     // ceil(log(p))
     let base_field_size_in_bits = F::BasePrimeField::MODULUS_BIT_SIZE as usize;
