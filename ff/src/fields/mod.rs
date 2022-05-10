@@ -26,6 +26,8 @@ pub mod arithmetic;
 pub mod models;
 pub use self::models::*;
 
+pub mod field_hashers;
+
 #[cfg(feature = "parallel")]
 use ark_std::cmp::max;
 #[cfg(feature = "parallel")]
