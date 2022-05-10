@@ -1,23 +1,28 @@
+use crate::hashing::HashToCurve;
 use crate::{
     hashing::{
         curve_maps::{
             swu::{parity, SWUMap, SWUParams},
             wb::{WBMap, WBParams},
         },
-        field_hashers::DefaultFieldHasher,
         map_to_curve_hasher::{MapToCurve, MapToCurveBasedHasher},
-        HashToCurve,
     },
     models::SWModelParameters,
     short_weierstrass_jacobian::GroupAffine,
     ModelParameters,
 };
+use ark_ff::field_hashers::DefaultFieldHasher;
 use ark_ff::{biginteger::BigInteger64, fields::Fp64, BigInt, MontBackend, MontFp};
 
 use ark_ff::SquareRootField;
 use ark_std::vec::Vec;
 use ark_test_curves::bls12_381::{Fq, Fq2, Fq6};
 use hashbrown::HashMap;
+
+#[cfg(all(test, feature = "std"))]
+mod json;
+#[cfg(all(test, feature = "std"))]
+mod suites;
 
 pub struct F127Config;
 pub type F127 = Fp64<MontBackend<F127Config, 1>>;
@@ -120,11 +125,9 @@ fn checking_the_hashing_parameters() {
 /// simple hash
 #[test]
 fn hash_arbitary_string_to_curve_swu() {
-    use blake2::Blake2bVar;
-
     let test_swu_to_curve_hasher = MapToCurveBasedHasher::<
         GroupAffine<TestSWUMapToCurveParams>,
-        DefaultFieldHasher<Blake2bVar, 128>,
+        DefaultFieldHasher<sha2::Sha256, 128>,
         SWUMap<TestSWUMapToCurveParams>,
     >::new(&[1])
     .unwrap();
@@ -142,7 +145,7 @@ fn hash_arbitary_string_to_curve_swu() {
 /// elements should be mapped to curve successfully. everything can be mapped
 #[test]
 fn map_field_to_curve_swu() {
-    let test_map_to_curve = SWUMap::<TestSWUMapToCurveParams>::new_map_to_curve().unwrap();
+    let test_map_to_curve = SWUMap::<TestSWUMapToCurveParams>::new().unwrap();
 
     let mut map_range: Vec<GroupAffine<TestSWUMapToCurveParams>> = vec![];
     for current_field_element in 0..127 {
@@ -343,11 +346,9 @@ impl WBParams for TestWBF127MapToCurveParams {
 /// and make simple hash
 #[test]
 fn hash_arbitary_string_to_curve_wb() {
-    use blake2::Blake2bVar;
-
     let test_wb_to_curve_hasher = MapToCurveBasedHasher::<
         GroupAffine<TestWBF127MapToCurveParams>,
-        DefaultFieldHasher<Blake2bVar, 128>,
+        DefaultFieldHasher<sha2::Sha256, 128>,
         WBMap<TestWBF127MapToCurveParams>,
     >::new(&[1])
     .unwrap();

@@ -58,7 +58,7 @@ pub struct WBMap<P: WBParams> {
 
 impl<P: WBParams> MapToCurve<GroupAffine<P>> for WBMap<P> {
     /// Constructs a new map if `P` represents a valid map.
-    fn new_map_to_curve() -> Result<Self, HashToCurveError> {
+    fn new() -> Result<Self, HashToCurveError> {
         // Verifying that the isogeny maps the generator of the SWU curve into us
         let isogenous_curve_generator = GroupAffine::<P::IsogenousCurve>::new(
             P::IsogenousCurve::AFFINE_GENERATOR_COEFFS.0,
@@ -76,7 +76,7 @@ impl<P: WBParams> MapToCurve<GroupAffine<P>> for WBMap<P> {
         }
 
         Ok(WBMap {
-            swu_field_curve_hasher: SWUMap::<P::IsogenousCurve>::new_map_to_curve().unwrap(),
+            swu_field_curve_hasher: SWUMap::<P::IsogenousCurve>::new().unwrap(),
             curve_params: PhantomData,
         })
     }
