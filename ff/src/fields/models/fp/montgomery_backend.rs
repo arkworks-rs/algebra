@@ -561,8 +561,6 @@ impl<T, const N: usize> Fp<MontBackend<T, N>, N> {
 }
 
 impl<T: MontConfig<N>, const N: usize> Fp<MontBackend<T, N>, N> {
-    #[doc(hidden)]
     pub const R2: BigInt<N> = T::R2;
-    #[doc(hidden)]
     pub const INV: u64 = T::INV;
 }
