@@ -2,7 +2,7 @@ extern crate criterion;
 
 use ark_ff::FftField;
 use ark_poly::{
-    polynomial::{univariate::DensePolynomial, UVPolynomial},
+    polynomial::{univariate::DensePolynomial, DenseUVPolynomial},
     EvaluationDomain, MixedRadixEvaluationDomain, Radix2EvaluationDomain,
 };
 use ark_poly_benches::size_range;

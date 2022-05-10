@@ -1,6 +1,6 @@
 //! Work with sparse and dense polynomials.
 
-use crate::{EvaluationDomain, Evaluations, Polynomial, UVPolynomial};
+use crate::{DenseUVPolynomial, EvaluationDomain, Evaluations, Polynomial};
 use ark_ff::{FftField, Field, Zero};
 use ark_std::{borrow::Cow, convert::TryInto, vec::Vec};
 use DenseOrSparsePolynomial::*;
