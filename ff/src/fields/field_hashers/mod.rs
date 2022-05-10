@@ -15,7 +15,6 @@ pub trait HashToField<F: Field>: Sized {
     /// # Arguments
     ///
     /// * `domain` - bytes that get concatenated with the `msg` during hashing, in order to separate potentially interfering instantiations of the hasher.
-    /// * `count` - number of elements in field `F` to output.
     fn new(domain: &[u8]) -> Self;
 
     /// Hash an arbitrary `msg` to #`count` elements from field `F`.
