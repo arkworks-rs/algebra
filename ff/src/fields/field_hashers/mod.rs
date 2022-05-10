@@ -1,12 +1,26 @@
 mod expander;
-use ark_ff::{Field, PrimeField};
 
-use crate::hashing::{
-    field_hashers::expander::ExpanderXmd, map_to_curve_hasher::*, HashToCurveError,
-};
+use crate::{Field, PrimeField};
+
 use ark_std::vec::Vec;
 use digest::DynDigest;
 use expander::Expander;
+
+use self::expander::ExpanderXmd;
+
+/// Trait for hashing messages to field elements.
+pub trait HashToField<F: Field>: Sized {
+    /// Initialises a new hash-to-field helper struct.
+    ///
+    /// # Arguments
+    ///
+    /// * `domain` - bytes that get concatenated with the `msg` during hashing, in order to separate potentially interfering instantiations of the hasher.
+    /// * `count` - number of elements in field `F` to output.
+    fn new(domain: &[u8]) -> Self;
+
+    /// Hash an arbitrary `msg` to #`count` elements from field `F`.
+    fn hash_to_field(&self, msg: &[u8], count: usize) -> Vec<F>;
+}
 
 /// This field hasher constructs a Hash-To-Field based on a fixed-output hash function,
 /// like SHA2, SHA3 or Blake2.
@@ -16,16 +30,15 @@ use expander::Expander;
 ///
 /// ```
 /// use ark_test_curves::bls12_381::Fq;
-/// use ark_ec::hashing::field_hashers::DefaultFieldHasher;
+/// use ark_ff::fields::field_hashers::{DefaultFieldHasher, HashToField};
 /// use sha2::Sha256;
-/// use crate::ark_ec::hashing::map_to_curve_hasher::HashToField;
 ///
-/// let hasher = <DefaultFieldHasher<Sha256, 128> as HashToField<Fq>>::new_hash_to_field(&[1, 2, 3]).unwrap();
-/// let field_elements: Vec<Fq> = hasher.hash_to_field(b"Hello, World!", 2).unwrap();
+/// let hasher = <DefaultFieldHasher<Sha256> as HashToField<Fq>>::new(&[1, 2, 3]);
+/// let field_elements: Vec<Fq> = hasher.hash_to_field(b"Hello, World!", 2);
 ///
 /// assert_eq!(field_elements.len(), 2);
 /// ```
-pub struct DefaultFieldHasher<H: Default + DynDigest + Clone, const SEC_PARAM: usize> {
+pub struct DefaultFieldHasher<H: Default + DynDigest + Clone, const SEC_PARAM: usize = 128> {
     expander: ExpanderXmd<H>,
     len_per_base_elem: usize,
 }
@@ -33,7 +46,7 @@ pub struct DefaultFieldHasher<H: Default + DynDigest + Clone, const SEC_PARAM: u
 impl<F: Field, H: Default + DynDigest + Clone, const SEC_PARAM: usize> HashToField<F>
     for DefaultFieldHasher<H, SEC_PARAM>
 {
-    fn new_hash_to_field(dst: &[u8]) -> Result<Self, HashToCurveError> {
+    fn new(dst: &[u8]) -> Self {
         // The final output of `hash_to_field` will be an array of field
         // elements from F::BaseField, each of size `len_per_elem`.
         let len_per_base_elem = get_len_per_elem::<F, SEC_PARAM>();
@@ -44,13 +57,13 @@ impl<F: Field, H: Default + DynDigest + Clone, const SEC_PARAM: usize> HashToFie
             block_size: len_per_base_elem,
         };
 
-        Ok(DefaultFieldHasher {
+        DefaultFieldHasher {
             expander,
             len_per_base_elem,
-        })
+        }
     }
 
-    fn hash_to_field(&self, message: &[u8], count: usize) -> Result<Vec<F>, HashToCurveError> {
+    fn hash_to_field(&self, message: &[u8], count: usize) -> Vec<F> {
         let m = F::extension_degree() as usize;
 
         // The user imposes a `count` of elements of F_p^m to output per input msg,
@@ -58,28 +71,29 @@ impl<F: Field, H: Default + DynDigest + Clone, const SEC_PARAM: usize> HashToFie
         let len_in_bytes = count * m * self.len_per_base_elem;
         let uniform_bytes = self.expander.expand(message, len_in_bytes);
 
-        let mut output: Vec<F> = Vec::with_capacity(count);
+        let mut output = Vec::with_capacity(count);
+        let mut base_prime_field_elems = Vec::with_capacity(m);
         for i in 0..count {
-            let mut base_prime_field_elems: Vec<F::BasePrimeField> = Vec::new();
+            base_prime_field_elems.clear();
             for j in 0..m {
                 let elm_offset = self.len_per_base_elem * (j + i * m);
-                let val: F::BasePrimeField = F::BasePrimeField::from_be_bytes_mod_order(
-                    &uniform_bytes[elm_offset..(elm_offset + self.len_per_base_elem)],
+                let val = F::BasePrimeField::from_be_bytes_mod_order(
+                    &uniform_bytes[elm_offset..][..self.len_per_base_elem],
                 );
                 base_prime_field_elems.push(val);
             }
-            let f: F = F::from_base_prime_field_elems(&base_prime_field_elems).unwrap();
+            let f = F::from_base_prime_field_elems(&base_prime_field_elems).unwrap();
             output.push(f);
         }
 
-        Ok(output)
+        output
     }
 }
 
-// This function computes the length in bytes that a hash function should output
-// for hashing `count` field elements.
-// See section 5.1 and 5.3 of the
-// [IETF hash standardization draft](https://tools.ietf.org/html/draft-irtf-cfrg-hash-to-curve-10)
+/// This function computes the length in bytes that a hash function should output
+/// for hashing an element of type `Field`.
+/// See section 5.1 and 5.3 of the
+/// [IETF hash standardization draft](https://datatracker.ietf.org/doc/draft-irtf-cfrg-hash-to-curve/14/)
 fn get_len_per_elem<F: Field, const SEC_PARAM: usize>() -> usize {
     // ceil(log(p))
     let base_field_size_in_bits = F::BasePrimeField::MODULUS_BIT_SIZE as usize;
@@ -89,18 +103,4 @@ fn get_len_per_elem<F: Field, const SEC_PARAM: usize>() -> usize {
     let bytes_per_base_field_elem =
         ((base_field_size_with_security_padding_in_bits + 7) / 8) as u64;
     bytes_per_base_field_elem as usize
-}
-
-#[cfg(test)]
-mod hasher_tests {
-    use super::*;
-    use ark_test_curves::bls12_381::{Fq, Fq2};
-
-    #[test]
-    fn test_get_len_per_elem() {
-        let fq_len = get_len_per_elem::<Fq, 128>();
-        let fq2_len = get_len_per_elem::<Fq2, 128>();
-        assert_eq!(fq_len, fq2_len);
-        assert_eq!(fq_len, 64);
-    }
 }

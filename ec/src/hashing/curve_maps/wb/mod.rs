@@ -2,7 +2,7 @@ use core::marker::PhantomData;
 
 use crate::{models::SWModelParameters, ModelParameters};
 use ark_ff::batch_inversion;
-use ark_poly::{univariate::DensePolynomial, Polynomial, UVPolynomial};
+use ark_poly::{univariate::DensePolynomial, DenseUVPolynomial, Polynomial};
 
 use crate::{
     hashing::{map_to_curve_hasher::MapToCurve, HashToCurveError},
@@ -58,7 +58,7 @@ pub struct WBMap<P: WBParams> {
 
 impl<P: WBParams> MapToCurve<GroupAffine<P>> for WBMap<P> {
     /// Constructs a new map if `P` represents a valid map.
-    fn new_map_to_curve() -> Result<Self, HashToCurveError> {
+    fn new() -> Result<Self, HashToCurveError> {
         // Verifying that the isogeny maps the generator of the SWU curve into us
         let isogenous_curve_generator = GroupAffine::<P::IsogenousCurve>::new(
             P::IsogenousCurve::AFFINE_GENERATOR_COEFFS.0,
@@ -76,7 +76,7 @@ impl<P: WBParams> MapToCurve<GroupAffine<P>> for WBMap<P> {
         }
 
         Ok(WBMap {
-            swu_field_curve_hasher: SWUMap::<P::IsogenousCurve>::new_map_to_curve().unwrap(),
+            swu_field_curve_hasher: SWUMap::<P::IsogenousCurve>::new().unwrap(),
             curve_params: PhantomData,
         })
     }
@@ -103,13 +103,13 @@ mod test {
                 swu::SWUParams,
                 wb::{WBMap, WBParams},
             },
-            field_hashers::DefaultFieldHasher,
             map_to_curve_hasher::MapToCurveBasedHasher,
         },
         models::SWModelParameters,
         short_weierstrass_jacobian::GroupAffine,
         ModelParameters,
     };
+    use ark_ff::field_hashers::DefaultFieldHasher;
     use ark_ff::{fields::Fp64, MontBackend, MontFp};
 
     #[derive(ark_ff::MontConfig)]

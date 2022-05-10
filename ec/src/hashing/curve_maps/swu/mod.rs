@@ -42,7 +42,7 @@ pub fn parity<F: Field>(element: &F) -> bool {
 
 impl<P: SWUParams> MapToCurve<GroupAffine<P>> for SWUMap<P> {
     /// Constructs a new map if `P` represents a valid map.
-    fn new_map_to_curve() -> Result<Self, HashToCurveError> {
+    fn new() -> Result<Self, HashToCurveError> {
         // Verifying that both XI and ZETA are non-squares
         if P::XI.legendre().is_qr() || P::ZETA.legendre().is_qr() {
             return Err(HashToCurveError::MapToCurveError(
@@ -176,10 +176,10 @@ impl<P: SWUParams> MapToCurve<GroupAffine<P>> for SWUMap<P> {
 
 #[cfg(test)]
 mod test {
-    use crate::hashing::field_hashers::DefaultFieldHasher;
     use crate::hashing::map_to_curve_hasher::MapToCurveBasedHasher;
     use crate::hashing::HashToCurve;
     use crate::ModelParameters;
+    use ark_ff::field_hashers::DefaultFieldHasher;
     use ark_std::vec::Vec;
 
     use super::*;
@@ -290,7 +290,7 @@ mod test {
     /// elements should be mapped to curve successfully. everything can be mapped
     #[test]
     fn map_field_to_curve_swu() {
-        let test_map_to_curve = SWUMap::<TestSWUMapToCurveParams>::new_map_to_curve().unwrap();
+        let test_map_to_curve = SWUMap::<TestSWUMapToCurveParams>::new().unwrap();
 
         let mut map_range: Vec<GroupAffine<TestSWUMapToCurveParams>> = vec![];
         for current_field_element in 0..127 {

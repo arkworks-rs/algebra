@@ -2,15 +2,11 @@ use std::fs::{read_dir, File};
 use std::io::BufReader;
 
 use super::json::SuiteVector;
+use ark_ff::field_hashers::{DefaultFieldHasher, HashToField};
 use libtest_mimic::{run_tests, Arguments, Outcome, Test};
 
 use ark_test_curves::{
-    hashing::{
-        curve_maps::wb::WBMap,
-        field_hashers::DefaultFieldHasher,
-        map_to_curve_hasher::{HashToField, MapToCurveBasedHasher},
-        HashToCurve,
-    },
+    hashing::{curve_maps::wb::WBMap, map_to_curve_hasher::MapToCurveBasedHasher, HashToCurve},
     short_weierstrass_jacobian::GroupAffine,
 };
 
@@ -54,20 +50,17 @@ fn run_test_w(Test { data, .. }: &Test<SuiteVector>) -> Outcome {
     match data.curve.as_str() {
         "BLS12-381 G1" => {
             m = 1;
-            hasher = <DefaultFieldHasher<Sha256, 128> as HashToField<Fq>>::new_hash_to_field(dst)
-                .unwrap();
+            hasher = <DefaultFieldHasher<Sha256, 128> as HashToField<Fq>>::new(dst);
         },
         "BLS12-381 G2" => {
             m = 2;
-            hasher = <DefaultFieldHasher<Sha256, 128> as HashToField<Fq2>>::new_hash_to_field(dst)
-                .unwrap();
+            hasher = <DefaultFieldHasher<Sha256, 128> as HashToField<Fq2>>::new(dst);
         },
         _ => return Outcome::Ignored,
     }
 
     for v in data.vectors.iter() {
-        // first, test field elements
-        let got: Vec<Fq> = hasher.hash_to_field(&v.msg.as_bytes(), 2 * m).unwrap();
+        let got: Vec<Fq> = hasher.hash_to_field(&v.msg.as_bytes(), 2 * m);
         let want: Vec<Fq> = (&v.u)
             .into_iter()
             .map(|x| {
