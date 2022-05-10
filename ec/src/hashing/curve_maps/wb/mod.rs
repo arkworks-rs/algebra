@@ -65,6 +65,10 @@ impl<P: WBParams> MapToCurve<GroupAffine<P>> for WBMap<P> {
             P::IsogenousCurve::AFFINE_GENERATOR_COEFFS.1,
             false,
         );
+        assert!(
+            isogenous_curve_generator.is_on_curve(),
+            "generator not on curve"
+        );
 
         match P::isogeny_map(isogenous_curve_generator) {
             Ok(point_on_curve) => {
