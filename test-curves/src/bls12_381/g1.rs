@@ -17,7 +17,7 @@ impl ModelParameters for Parameters {
     type ScalarField = Fr;
 
     /// COFACTOR = (x - 1)^2 / 3  = 76329603384216526031706109802092473003
-    const COFACTOR: &'static [u64] = &[0x8c00aaab0000aaab, 0x396c8c005555e156];
+    const COFACTOR: &'static [u64] = &[0xd201000000010001];
 
     /// COFACTOR_INV = COFACTOR^{-1} mod r
     /// = 52435875175126190458656871551744051925719901746859129887267498875565241663483
