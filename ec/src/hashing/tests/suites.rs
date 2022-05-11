@@ -135,7 +135,8 @@ fn run_test_w(Test { data, .. }: &Test<SuiteVector>) -> Outcome {
 }
 
 fn read_fq_vec(input: &String) -> Vec<Fq> {
-    input.split(",")
-    .map(|f| Fq::from_be_bytes_mod_order(&hex::decode(f.trim_start_matches("0x")).unwrap()))
-    .collect()
+    input
+        .split(",")
+        .map(|f| Fq::from_be_bytes_mod_order(&hex::decode(f.trim_start_matches("0x")).unwrap()))
+        .collect()
 }
