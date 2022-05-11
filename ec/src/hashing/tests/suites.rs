@@ -64,9 +64,7 @@ fn run_test_w(Test { data, .. }: &Test<SuiteVector>) -> Outcome {
         let want: Vec<Fq> = (&v.u)
             .into_iter()
             .map(|x| {
-                x.split(",").map(|f| {
-                    Fq::from_be_bytes_mod_order(&hex::decode(f.trim_start_matches("0x")).unwrap())
-                })
+               read_fq_vec(x) 
             })
             .flatten()
             .collect();
@@ -83,14 +81,8 @@ fn run_test_w(Test { data, .. }: &Test<SuiteVector>) -> Outcome {
         // then, test curve points
         let got: GroupAffine<Parameters> = mapper.hash(&v.msg.as_bytes()).unwrap();
         assert!(got.is_on_curve());
-        let x: Vec<Fq> = (&v.p.x)
-            .split(",")
-            .map(|f| Fq::from_be_bytes_mod_order(&hex::decode(f.trim_start_matches("0x")).unwrap()))
-            .collect();
-        let y: Vec<Fq> = (&v.p.y)
-            .split(",")
-            .map(|f| Fq::from_be_bytes_mod_order(&hex::decode(f.trim_start_matches("0x")).unwrap()))
-            .collect();
+        let x: Vec<Fq> = read_fq_vec(&v.p.x);
+        let y: Vec<Fq> = read_fq_vec(&v.p.y);
         let want: GroupAffine<Parameters> = GroupAffine::<Parameters>::new(x[0], y[0], false);
         assert!(want.is_on_curve());
         if got != want {
@@ -105,4 +97,10 @@ fn run_test_w(Test { data, .. }: &Test<SuiteVector>) -> Outcome {
         }
     }
     Outcome::Passed
+}
+
+fn read_fq_vec(input: &String) -> Vec<Fq> {
+    input.split(",")
+    .map(|f| Fq::from_be_bytes_mod_order(&hex::decode(f.trim_start_matches("0x")).unwrap()))
+    .collect()
 }
