@@ -10,8 +10,10 @@ use ark_test_curves::{
     short_weierstrass_jacobian::GroupAffine,
 };
 
-use ark_ff::PrimeField;
-use ark_test_curves::bls12_381::{Fq, Fq2, Parameters};
+use ark_ff::{Field, PrimeField};
+use ark_test_curves::bls12_381::{
+    g1::Parameters as G1Parameters, g2::Parameters as G2Parameters, Fq, Fq2,
+};
 use sha2::Sha256;
 
 #[test]
@@ -37,14 +39,18 @@ fn suites() {
 fn run_test_w(Test { data, .. }: &Test<SuiteVector>) -> Outcome {
     assert_eq!(data.hash, "sha256");
     let dst = data.dst.as_bytes();
-    let mapper;
     let hasher;
     let m;
-    // TODO: differentiate between G1 and G2 Params!
-    mapper = MapToCurveBasedHasher::<
-        GroupAffine<Parameters>,
+    let g1_mapper = MapToCurveBasedHasher::<
+        GroupAffine<G1Parameters>,
         DefaultFieldHasher<Sha256, 128>,
-        WBMap<Parameters>,
+        WBMap<G1Parameters>,
+    >::new(dst)
+    .unwrap();
+    let g2_mapper = MapToCurveBasedHasher::<
+        GroupAffine<G2Parameters>,
+        DefaultFieldHasher<Sha256, 128>,
+        WBMap<G2Parameters>,
     >::new(dst)
     .unwrap();
     match data.curve.as_str() {
@@ -60,12 +66,11 @@ fn run_test_w(Test { data, .. }: &Test<SuiteVector>) -> Outcome {
     }
 
     for v in data.vectors.iter() {
+        // first, hash-to-field tests
         let got: Vec<Fq> = hasher.hash_to_field(&v.msg.as_bytes(), 2 * m);
         let want: Vec<Fq> = (&v.u)
             .into_iter()
-            .map(|x| {
-               read_fq_vec(x) 
-            })
+            .map(|x| read_fq_vec(x))
             .flatten()
             .collect();
         if got != want {
@@ -78,22 +83,52 @@ fn run_test_w(Test { data, .. }: &Test<SuiteVector>) -> Outcome {
                 )),
             };
         }
+
         // then, test curve points
-        let got: GroupAffine<Parameters> = mapper.hash(&v.msg.as_bytes()).unwrap();
-        assert!(got.is_on_curve());
         let x: Vec<Fq> = read_fq_vec(&v.p.x);
         let y: Vec<Fq> = read_fq_vec(&v.p.y);
-        let want: GroupAffine<Parameters> = GroupAffine::<Parameters>::new(x[0], y[0], false);
-        assert!(want.is_on_curve());
-        if got != want {
-            return Outcome::Failed {
-                msg: Some(format!(
-                    "Suite: {:?}\ngot:  {:?}\nwant: {:?}",
-                    data.ciphersuite,
-                    got.to_string(),
-                    want.to_string()
-                )),
-            };
+        match data.curve.as_str() {
+            "BLS12-381 G1" => {
+                let got = g1_mapper.hash(&v.msg.as_bytes()).unwrap();
+                let want = GroupAffine::<G1Parameters>::new(
+                    Fq::from_base_prime_field_elems(&x[..]).unwrap(),
+                    Fq::from_base_prime_field_elems(&y[..]).unwrap(),
+                    false,
+                );
+                assert!(got.is_on_curve());
+                assert!(want.is_on_curve());
+                if got != want {
+                    return Outcome::Failed {
+                        msg: Some(format!(
+                            "Suite: {:?}\ngot:  {:?}\nwant: {:?}",
+                            data.ciphersuite,
+                            got.to_string(),
+                            want.to_string()
+                        )),
+                    };
+                }
+            },
+            "BLS12-381 G2" => {
+                let got = g2_mapper.hash(&v.msg.as_bytes()).unwrap();
+                let want = GroupAffine::<G2Parameters>::new(
+                    Fq2::from_base_prime_field_elems(&x[..]).unwrap(),
+                    Fq2::from_base_prime_field_elems(&y[..]).unwrap(),
+                    false,
+                );
+                assert!(got.is_on_curve());
+                assert!(want.is_on_curve());
+                if got != want {
+                    return Outcome::Failed {
+                        msg: Some(format!(
+                            "Suite: {:?}\ngot:  {:?}\nwant: {:?}",
+                            data.ciphersuite,
+                            got.to_string(),
+                            want.to_string()
+                        )),
+                    };
+                }
+            },
+            _ => return Outcome::Ignored,
         }
     }
     Outcome::Passed
