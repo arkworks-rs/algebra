@@ -19,7 +19,7 @@ pub mod g2;
 #[cfg(feature = "bls12_381_curve")]
 pub mod g2_swu_iso;
 #[cfg(feature = "bls12_381_curve")]
-pub use {fq::*, fq2::*, fq6::*, g1::*, g1_swu_iso::*, g2_swu_iso::*};
+pub use {fq::*, fq2::*, fq6::*, fq12::*, g1::*, g1_swu_iso::*, g2_swu_iso::*};
 
 #[cfg(test)]
 mod tests;
