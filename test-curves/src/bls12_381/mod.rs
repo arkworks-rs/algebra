@@ -1,22 +1,22 @@
 pub mod fr;
-pub use fr::*;
 use ark_ec::bls12::{Bls12, Bls12Parameters, TwistType};
+pub use fr::*;
 
 #[cfg(feature = "bls12_381_curve")]
 pub mod fq;
 #[cfg(feature = "bls12_381_curve")]
+pub mod fq12;
+#[cfg(feature = "bls12_381_curve")]
 pub mod fq2;
 #[cfg(feature = "bls12_381_curve")]
 pub mod fq6;
-#[cfg(feature = "bls12_381_curve")]
-pub mod fq12;
 #[cfg(feature = "bls12_381_curve")]
 pub mod g1;
 #[cfg(feature = "bls12_381_curve")]
 pub mod g2;
 
 #[cfg(feature = "bls12_381_curve")]
-pub use {fq::*, fq2::*, fq6::*, fq12::*, g1::*, g2::*};
+pub use {fq::*, fq12::*, fq2::*, fq6::*, g1::*, g2::*};
 #[cfg(test)]
 mod tests;
 
