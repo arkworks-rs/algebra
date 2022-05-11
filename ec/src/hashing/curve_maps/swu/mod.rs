@@ -34,10 +34,15 @@ pub struct SWUMap<P: SWUParams> {
 ///
 /// - [\[1\]] <https://datatracker.ietf.org/doc/draft-irtf-cfrg-hash-to-curve/>
 pub fn parity<F: Field>(element: &F) -> bool {
-    element
-        .to_base_prime_field_elements()
-        .find(|&x| !x.is_zero())
-        .map_or(false, |x| x.into_bigint().is_odd())
+    let mut sign = false;
+    let mut zero = true;
+    for elem in element.to_base_prime_field_elements() {
+        let sign_i = elem.into_bigint().is_odd();
+        let zero_i = elem.is_zero();
+        sign = sign || (zero && sign_i);
+        zero = zero && zero_i;
+    }
+    sign
 }
 
 impl<P: SWUParams> MapToCurve<GroupAffine<P>> for SWUMap<P> {
