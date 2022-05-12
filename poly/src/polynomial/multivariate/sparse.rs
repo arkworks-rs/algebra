@@ -65,7 +65,8 @@ impl<F: Field> DenseMVPolynomial<F> for SparsePolynomial<F, SparseTerm> {
     }
 
     /// Outputs an `l`-variate polynomial which is the sum of `l` `d`-degree
-    /// univariate polynomials where each coefficient is sampled uniformly at random.
+    /// univariate polynomials where each coefficient is sampled uniformly at
+    /// random.
     fn rand<R: Rng>(d: usize, l: usize, rng: &mut R) -> Self {
         let mut random_terms = Vec::new();
         random_terms.push((F::rand(rng), SparseTerm::new(vec![])));
@@ -79,7 +80,8 @@ impl<F: Field> DenseMVPolynomial<F> for SparsePolynomial<F, SparseTerm> {
 
     type Term = SparseTerm;
 
-    /// Constructs a new polynomial from a list of tuples of the form `(coeff, Self::Term)`
+    /// Constructs a new polynomial from a list of tuples of the form `(coeff,
+    /// Self::Term)`
     fn from_coefficients_vec(num_vars: usize, mut terms: Vec<(F, SparseTerm)>) -> Self {
         // Ensure that terms are in ascending order.
         terms.sort_by(|(_, t1), (_, t2)| t1.cmp(t2));
@@ -108,7 +110,8 @@ impl<F: Field> DenseMVPolynomial<F> for SparsePolynomial<F, SparseTerm> {
         result
     }
 
-    /// Returns the terms of a `self` as a list of tuples of the form `(coeff, Self::Term)`
+    /// Returns the terms of a `self` as a list of tuples of the form `(coeff,
+    /// Self::Term)`
     fn terms(&self) -> &[(F, Self::Term)] {
         self.terms.as_slice()
     }

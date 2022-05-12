@@ -1,13 +1,14 @@
-use std::fs::{read_dir, File};
-use std::io::BufReader;
+use std::{
+    fs::{read_dir, File},
+    io::BufReader,
+};
 
 use super::json::SuiteVector;
 use ark_ff::field_hashers::{DefaultFieldHasher, HashToField};
 use libtest_mimic::{run_tests, Arguments, Outcome, Test};
 
 use ark_ff::PrimeField;
-use ark_test_curves::bls12_381::Fq;
-use ark_test_curves::bls12_381::Fq2;
+use ark_test_curves::bls12_381::{Fq, Fq2};
 use sha2::Sha256;
 
 #[test]

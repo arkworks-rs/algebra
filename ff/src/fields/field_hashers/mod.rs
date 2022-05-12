@@ -14,15 +14,17 @@ pub trait HashToField<F: Field>: Sized {
     ///
     /// # Arguments
     ///
-    /// * `domain` - bytes that get concatenated with the `msg` during hashing, in order to separate potentially interfering instantiations of the hasher.
+    /// * `domain` - bytes that get concatenated with the `msg` during hashing,
+    ///   in order to separate potentially interfering instantiations of the
+    ///   hasher.
     fn new(domain: &[u8]) -> Self;
 
     /// Hash an arbitrary `msg` to #`count` elements from field `F`.
     fn hash_to_field(&self, msg: &[u8], count: usize) -> Vec<F>;
 }
 
-/// This field hasher constructs a Hash-To-Field based on a fixed-output hash function,
-/// like SHA2, SHA3 or Blake2.
+/// This field hasher constructs a Hash-To-Field based on a fixed-output hash
+/// function, like SHA2, SHA3 or Blake2.
 /// The implementation aims to follow the specification in [Hashing to Elliptic Curves (draft)](https://tools.ietf.org/pdf/draft-irtf-cfrg-hash-to-curve-13.pdf).
 ///
 /// # Examples
@@ -89,8 +91,8 @@ impl<F: Field, H: Default + DynDigest + Clone, const SEC_PARAM: usize> HashToFie
     }
 }
 
-/// This function computes the length in bytes that a hash function should output
-/// for hashing an element of type `Field`.
+/// This function computes the length in bytes that a hash function should
+/// output for hashing an element of type `Field`.
 /// See section 5.1 and 5.3 of the
 /// [IETF hash standardization draft](https://datatracker.ietf.org/doc/draft-irtf-cfrg-hash-to-curve/14/)
 fn get_len_per_elem<F: Field, const SEC_PARAM: usize>() -> usize {

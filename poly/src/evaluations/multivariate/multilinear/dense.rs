@@ -50,8 +50,9 @@ impl<F: Field> DenseMultilinearExtension<F> {
     /// Relabel the point inplace by switching `k` scalars from position `a` to
     /// position `b`, and from position `b` to position `a` in vector.
     ///
-    /// This function turns `P(x_1,...,x_a,...,x_{a+k - 1},...,x_b,...,x_{b+k - 1},...,x_n)`
-    /// to `P(x_1,...,x_b,...,x_{b+k - 1},...,x_a,...,x_{a+k - 1},...,x_n)`
+    /// This function turns `P(x_1,...,x_a,...,x_{a+k - 1},...,x_b,...,x_{b+k -
+    /// 1},...,x_n)` to `P(x_1,...,x_b,...,x_{b+k - 1},...,x_a,...,x_{a+k -
+    /// 1},...,x_n)`
     pub fn relabel_inplace(&mut self, mut a: usize, mut b: usize, k: usize) {
         // enforce order of a and b
         if a > b {
@@ -73,12 +74,14 @@ impl<F: Field> DenseMultilinearExtension<F> {
         }
     }
 
-    /// Returns an iterator that iterates over the evaluations over {0,1}^`num_vars`
+    /// Returns an iterator that iterates over the evaluations over
+    /// {0,1}^`num_vars`
     pub fn iter(&self) -> Iter<'_, F> {
         self.evaluations.iter()
     }
 
-    /// Returns a mutable iterator that iterates over the evaluations over {0,1}^`num_vars`
+    /// Returns a mutable iterator that iterates over the evaluations over
+    /// {0,1}^`num_vars`
     pub fn iter_mut(&mut self) -> IterMut<'_, F> {
         self.evaluations.iter_mut()
     }
@@ -136,7 +139,8 @@ impl<F: Field> MultilinearExtension<F> for DenseMultilinearExtension<F> {
 impl<F: Field> Index<usize> for DenseMultilinearExtension<F> {
     type Output = F;
 
-    /// Returns the evaluation of the polynomial at a point represented by index.
+    /// Returns the evaluation of the polynomial at a point represented by
+    /// index.
     ///
     /// Index represents a vector in {0,1}^`num_vars` in little endian form. For
     /// example, `0b1011` represents `P(1,1,0,1)`
@@ -278,7 +282,8 @@ mod tests {
     use ark_std::{ops::Neg, test_rng, vec::Vec, UniformRand};
     use ark_test_curves::bls12_381::Fr;
 
-    /// utility: evaluate multilinear extension (in form of data array) at a random point
+    /// utility: evaluate multilinear extension (in form of data array) at a
+    /// random point
     fn evaluate_data_array<F: Field>(data: &[F], point: &[F]) -> F {
         if data.len() != (1 << point.len()) {
             panic!("Data size mismatch with number of variables. ")

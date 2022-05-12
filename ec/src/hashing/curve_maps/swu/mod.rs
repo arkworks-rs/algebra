@@ -14,12 +14,13 @@ use crate::{
 ///
 /// - [\[WB2019\]] <https://eprint.iacr.org/2019/403>
 pub trait SWUParams: SWModelParameters {
-    /// An element of the base field that is not a square root see \[WB2019, Section 4\].
-    /// It is also convenient to have $g(b/xi * a)$ to be square. In general
-    /// we use a `XI` with low absolute value coefficients when they are
-    /// represented as integers.
+    /// An element of the base field that is not a square root see \[WB2019,
+    /// Section 4\]. It is also convenient to have $g(b/xi * a)$ to be
+    /// square. In general we use a `XI` with low absolute value
+    /// coefficients when they are represented as integers.
     const XI: Self::BaseField;
-    /// An arbitrary nonsquare conveniently chosen to be a primitive element of the base field
+    /// An arbitrary nonsquare conveniently chosen to be a primitive element of
+    /// the base field
     const ZETA: Self::BaseField;
     /// Square root of `THETA = Self::XI/Self::ZETA`.
     const XI_ON_ZETA_SQRT: Self::BaseField;
@@ -30,7 +31,8 @@ pub struct SWUMap<P: SWUParams> {
     curve_params: PhantomData<fn() -> P>,
 }
 
-/// Trait defining a parity method on the Field elements based on [\[1\]] Section 4.1
+/// Trait defining a parity method on the Field elements based on [\[1\]]
+/// Section 4.1
 ///
 /// - [\[1\]] <https://datatracker.ietf.org/doc/draft-irtf-cfrg-hash-to-curve/>
 pub fn parity<F: Field>(element: &F) -> bool {
@@ -101,8 +103,9 @@ impl<P: SWUParams> MapToCurve<GroupAffine<P>> for SWUMap<P> {
         //   gx2        g(X_1(t))
         //
         // Using the "here" names:
-        //    x1 = num_x1/div      = [B*(Z^2 * u^4 + Z * u^2 + 1)] / [-A*(Z^2 * u^4 + Z * u^2]
-        //   gx1 = num_gx1/div_gx1 = [num_x1^3 + A * num_x1 * div^2 + B * div^3] / div^3
+        //    x1 = num_x1/div      = [B*(Z^2 * u^4 + Z * u^2 + 1)] / [-A*(Z^2 * u^4 + Z
+        // * u^2]   gx1 = num_gx1/div_gx1 = [num_x1^3 + A * num_x1 * div^2 + B *
+        // div^3] / div^3
         let a = P::COEFF_A;
         let b = P::COEFF_B;
         let xi_t2 = P::XI * point.square();

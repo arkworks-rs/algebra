@@ -148,7 +148,8 @@ impl<F: FftField> DensePolynomial<F> {
         let domain_size = domain.size();
 
         if self.coeffs.len() < domain_size {
-            // If degree(self) < len(Domain), then the quotient is zero, and the entire polynomial is the remainder
+            // If degree(self) < len(Domain), then the quotient is zero, and the entire
+            // polynomial is the remainder
             Some((DensePolynomial::<F>::zero(), self.clone()))
         } else {
             // Compute the quotient
@@ -156,8 +157,9 @@ impl<F: FftField> DensePolynomial<F> {
             // If `self.len() <= 2 * domain_size`
             //    then quotient is simply `self.coeffs[domain_size..]`
             // Otherwise
-            //    during the division by `x^domain_size - 1`, some of `self.coeffs[domain_size..]` will be updated as well
-            //    which can be computed using the following algorithm.
+            //    during the division by `x^domain_size - 1`, some of
+            // `self.coeffs[domain_size..]` will be updated as well    which can
+            // be computed using the following algorithm.
             //
             let mut quotient_vec = self.coeffs[domain_size..].to_vec();
             for i in 1..(self.len() / domain_size) {

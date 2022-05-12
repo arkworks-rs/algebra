@@ -64,7 +64,8 @@ pub trait EvaluationDomain<F: FftField>:
     /// Return the inverse of `self.size_as_field_element()`.
     fn size_inv(&self) -> F;
 
-    /// Return the generator for the multiplicative subgroup that defines this domain.
+    /// Return the generator for the multiplicative subgroup that defines this
+    /// domain.
     fn group_gen(&self) -> F;
 
     /// Return the group inverse of `self.group_gen()`.

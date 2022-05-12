@@ -396,7 +396,7 @@ pub fn montgomery_primefield_test<T: MontConfig<N>, const N: usize>() {
             }
         },
         (None, None) => {},
-        (_, _) => {
+        (..) => {
             panic!("Should specify both `SMALL_SUBGROUP_BASE` and `SMALL_SUBGROUP_BASE_ADICITY`")
         },
     }

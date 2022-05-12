@@ -28,13 +28,15 @@ use crate::{
 
 /// Defines a Quadratic extension field from a quadratic non-residue.
 pub trait QuadExtConfig: 'static + Send + Sync + Sized {
-    /// The prime field that this quadratic extension is eventually an extension of.
+    /// The prime field that this quadratic extension is eventually an extension
+    /// of.
     type BasePrimeField: PrimeField;
     /// The base field that this field is a quadratic extension of.
     ///
     /// Note: while for simple instances of quadratic extensions such as `Fp2`
     /// we might see `BaseField == BasePrimeField`, it won't always hold true.
-    /// E.g. for an extension tower: `BasePrimeField == Fp`, but `BaseField == Fp3`.
+    /// E.g. for an extension tower: `BasePrimeField == Fp`, but `BaseField ==
+    /// Fp3`.
     type BaseField: Field<BasePrimeField = Self::BasePrimeField>;
     /// The type of the coefficients for an efficient implemntation of the
     /// Frobenius endomorphism.
@@ -68,8 +70,8 @@ pub trait QuadExtConfig: 'static + Send + Sync + Sized {
         *x + Self::mul_base_field_by_nonresidue(y)
     }
 
-    /// A specializable method for computing x + mul_base_field_by_nonresidue(y) + y
-    /// This allows for optimizations when the non-residue is not -1.
+    /// A specializable method for computing x + mul_base_field_by_nonresidue(y)
+    /// + y This allows for optimizations when the non-residue is not -1.
     #[inline(always)]
     fn add_and_mul_base_field_by_nonresidue_plus_one(
         x: &Self::BaseField,
@@ -137,15 +139,17 @@ pub trait QuadExtConfig: 'static + Send + Sync + Sized {
     Eq(bound = "P: QuadExtConfig")
 )]
 pub struct QuadExtField<P: QuadExtConfig> {
-    /// Coefficient `c0` in the representation of the field element `c = c0 + c1 * X`
+    /// Coefficient `c0` in the representation of the field element `c = c0 + c1
+    /// * X`
     pub c0: P::BaseField,
-    /// Coefficient `c1` in the representation of the field element `c = c0 + c1 * X`
+    /// Coefficient `c1` in the representation of the field element `c = c0 + c1
+    /// * X`
     pub c1: P::BaseField,
 }
 
-/// Construct a [`QuadExtField`] element from elements of the base field. This should
-/// be used primarily for constructing constant field elements; in a non-const
-/// context, [`QuadExtField::new`] is preferable.
+/// Construct a [`QuadExtField`] element from elements of the base field. This
+/// should be used primarily for constructing constant field elements; in a
+/// non-const context, [`QuadExtField::new`] is preferable.
 ///
 /// # Usage
 /// ```rust
@@ -354,9 +358,9 @@ impl<P: QuadExtConfig> Field for QuadExtField<P> {
 
             // result.c1 = 2 * c0 * c1
             self.c1 = v2.double();
-            // result.c0 = (c0^2 - beta * c0 * c1 - c0 * c1 + beta * c1^2) + ((beta + 1) c0 * c1)
-            // result.c0 = (c0^2 - beta * c0 * c1 + beta * c1^2) + (beta * c0 * c1)
-            // result.c0 = c0^2 + beta * c1^2
+            // result.c0 = (c0^2 - beta * c0 * c1 - c0 * c1 + beta * c1^2) + ((beta + 1) c0
+            // * c1) result.c0 = (c0^2 - beta * c0 * c1 + beta * c1^2) + (beta *
+            // c0 * c1) result.c0 = c0^2 + beta * c1^2
             self.c0 = P::add_and_mul_base_field_by_nonresidue_plus_one(&v0, &v2);
 
             self
@@ -420,10 +424,11 @@ where
         // https://eprint.iacr.org/2012/685.pdf (page 15, algorithm 8)
         if self.c1.is_zero() {
             // for c = c0 + c1 * x, we have c1 = 0
-            // sqrt(c) == sqrt(c0) is an element of Fp2, i.e. sqrt(c0) = a = a0 + a1 * x for some a0, a1 in Fp
-            // squaring both sides: c0 = a0^2 + a1^2 * x^2 + (2 * a0 * a1 * x) = a0^2 + (a1^2 * P::NONRESIDUE)
-            // since there are no `x` terms on LHS, a0 * a1 = 0
-            // so either a0 = sqrt(c0) or a1 = sqrt(c0/P::NONRESIDUE)
+            // sqrt(c) == sqrt(c0) is an element of Fp2, i.e. sqrt(c0) = a = a0 + a1 * x for
+            // some a0, a1 in Fp squaring both sides: c0 = a0^2 + a1^2 * x^2 +
+            // (2 * a0 * a1 * x) = a0^2 + (a1^2 * P::NONRESIDUE) since there are
+            // no `x` terms on LHS, a0 * a1 = 0 so either a0 = sqrt(c0) or a1 =
+            // sqrt(c0/P::NONRESIDUE)
             if self.c0.legendre().is_qr() {
                 // either c0 is a valid sqrt in the base field
                 return self.c0.sqrt().map(|c0| Self::new(c0, P::BaseField::zero()));

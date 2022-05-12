@@ -2,7 +2,8 @@ use super::cubic_extension::*;
 use crate::fields::*;
 use core::marker::PhantomData;
 
-/// Trait that specifies constants and methods for defining degree-three extension fields.
+/// Trait that specifies constants and methods for defining degree-three
+/// extension fields.
 pub trait Fp3Config: 'static + Send + Sync + Sized {
     /// Base prime field underlying this extension.
     type Fp: PrimeField + SquareRootField;
@@ -22,15 +23,16 @@ pub trait Fp3Config: 'static + Send + Sync + Sized {
     const QUADRATIC_NONRESIDUE_TO_T: Fp3<Self>;
 
     /// Return `fe * Self::NONRESIDUE`.
-    /// The default implementation can be specialized if [`Self::NONRESIDUE`] has a special
-    /// structure that can speed up multiplication
+    /// The default implementation can be specialized if [`Self::NONRESIDUE`]
+    /// has a special structure that can speed up multiplication
     #[inline(always)]
     fn mul_fp_by_nonresidue(fe: &Self::Fp) -> Self::Fp {
         Self::NONRESIDUE * fe
     }
 }
 
-/// Wrapper for [`Fp3Config`], allowing combination of the [`Fp3Config`] and [`CubicExtConfig`] traits.
+/// Wrapper for [`Fp3Config`], allowing combination of the [`Fp3Config`] and
+/// [`CubicExtConfig`] traits.
 pub struct Fp3ConfigWrapper<P: Fp3Config>(PhantomData<P>);
 
 impl<P: Fp3Config> CubicExtConfig for Fp3ConfigWrapper<P> {
@@ -69,7 +71,7 @@ impl<P: Fp3Config> Fp3<P> {
     /// # Examples
     ///
     /// ```
-    ///
+    /// 
     /// # use ark_test_curves::CubicExt;
     /// # use ark_std::test_rng;
     /// # use ark_std::UniformRand;

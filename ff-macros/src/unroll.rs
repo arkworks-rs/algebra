@@ -83,7 +83,8 @@ pub(crate) fn unroll_in_block(block: &Block, unroll_by: usize) -> Block {
 /// Routine to unroll a for loop statement, or return the statement unchanged if
 /// it's not a for loop.
 fn unroll(expr: &Expr, unroll_by: usize) -> Expr {
-    // impose a scope that we can break out of so we can return stmt without copying it.
+    // impose a scope that we can break out of so we can return stmt without copying
+    // it.
     if let Expr::ForLoop(for_loop) = expr {
         let ExprForLoop {
             ref attrs,
