@@ -1,10 +1,8 @@
 use ark_std::{
-    io::{Result as IoResult, Write},
     vec::Vec,
 };
 
 use ark_ff::{
-    bytes::ToBytes,
     fields::{BitIteratorBE, Field},
 };
 
@@ -50,22 +48,6 @@ struct G2HomProjective<P: BW6Parameters> {
 impl<P: BW6Parameters> Default for G2Prepared<P> {
     fn default() -> Self {
         Self::from(G2Affine::<P>::prime_subgroup_generator())
-    }
-}
-
-impl<P: BW6Parameters> ToBytes for G2Prepared<P> {
-    fn write<W: Write>(&self, mut writer: W) -> IoResult<()> {
-        for coeff_1 in &self.ell_coeffs_1 {
-            coeff_1.0.write(&mut writer)?;
-            coeff_1.1.write(&mut writer)?;
-            coeff_1.2.write(&mut writer)?;
-        }
-        for coeff_2 in &self.ell_coeffs_2 {
-            coeff_2.0.write(&mut writer)?;
-            coeff_2.1.write(&mut writer)?;
-            coeff_2.2.write(&mut writer)?;
-        }
-        self.infinity.write(writer)
     }
 }
 

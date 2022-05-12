@@ -5,7 +5,7 @@ use ark_serialize::{
 use ark_std::{
     cmp::{Ord, Ordering, PartialOrd},
     fmt,
-    io::{Read, Result as IoResult, Write},
+    io::{Read, Write},
     iter::Chain,
     ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign},
     vec::Vec,
@@ -20,7 +20,6 @@ use ark_std::rand::{
 };
 
 use crate::{
-    bytes::{FromBytes, ToBytes},
     fields::{Field, PrimeField},
     ToConstraintField, UniformRand,
 };
@@ -661,25 +660,6 @@ where
         res.append(&mut c2_elems);
 
         Some(res)
-    }
-}
-
-impl<P: CubicExtConfig> ToBytes for CubicExtField<P> {
-    #[inline]
-    fn write<W: Write>(&self, mut writer: W) -> IoResult<()> {
-        self.c0.write(&mut writer)?;
-        self.c1.write(&mut writer)?;
-        self.c2.write(writer)
-    }
-}
-
-impl<P: CubicExtConfig> FromBytes for CubicExtField<P> {
-    #[inline]
-    fn read<R: Read>(mut reader: R) -> IoResult<Self> {
-        let c0 = P::BaseField::read(&mut reader)?;
-        let c1 = P::BaseField::read(&mut reader)?;
-        let c2 = P::BaseField::read(reader)?;
-        Ok(CubicExtField::new(c0, c1, c2))
     }
 }
 
