@@ -1,10 +1,6 @@
-use ark_std::{
-    vec::Vec,
-};
+use ark_std::vec::Vec;
 
-use ark_ff::{
-    fields::{Field, Fp2},
-};
+use ark_ff::fields::{Field, Fp2};
 
 use num_traits::{One, Zero};
 

@@ -4,12 +4,8 @@ use crate::{
     short_weierstrass_jacobian::{GroupAffine, GroupProjective},
     AffineCurve,
 };
-use ark_ff::{
-    fields::{Field, Fp3},
-};
-use ark_std::{
-    vec::Vec,
-};
+use ark_ff::fields::{Field, Fp3};
+use ark_std::vec::Vec;
 use num_traits::One;
 
 pub type G2Affine<P> = GroupAffine<<P as MNT6Parameters>::G2Parameters>;

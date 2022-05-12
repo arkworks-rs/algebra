@@ -18,9 +18,7 @@ use ark_std::{
 mod montgomery_backend;
 pub use montgomery_backend::*;
 
-use crate::{
-    BigInt, BigInteger, FftField, Field, LegendreSymbol, PrimeField, SquareRootField,
-};
+use crate::{BigInt, BigInteger, FftField, Field, LegendreSymbol, PrimeField, SquareRootField};
 /// A trait that specifies the configuration of a prime field.
 /// Also specifies how to perform arithmetic on field elements.
 pub trait FpConfig<const N: usize>: Send + Sync + 'static + Sized {

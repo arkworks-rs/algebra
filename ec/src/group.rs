@@ -5,10 +5,7 @@ use core::{
 };
 use num_traits::Zero;
 
-use ark_ff::{
-    fields::PrimeField,
-    UniformRand,
-};
+use ark_ff::{fields::PrimeField, UniformRand};
 
 pub trait Group:
     'static

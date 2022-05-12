@@ -486,7 +486,9 @@ where
             <<GroupAffine<P> as AffineCurve>::BaseField as PrimeField>::BigInt::rand(&mut rng);
         let mut bytes = {
             let mut result = vec![0u8; biginteger.serialized_size()];
-            biginteger.serialize(&mut Cursor::new(&mut result[..])).unwrap();
+            biginteger
+                .serialize(&mut Cursor::new(&mut result[..]))
+                .unwrap();
             result
         };
         let mut g = GroupAffine::<P>::from_random_bytes(&bytes);

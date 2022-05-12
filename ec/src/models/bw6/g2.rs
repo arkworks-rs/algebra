@@ -1,10 +1,6 @@
-use ark_std::{
-    vec::Vec,
-};
+use ark_std::vec::Vec;
 
-use ark_ff::{
-    fields::{BitIteratorBE, Field},
-};
+use ark_ff::fields::{BitIteratorBE, Field};
 
 use num_traits::{One, Zero};
 
