@@ -306,6 +306,53 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
         tmp.0 = r;
         tmp
     }
+
+
+    fn sum_of_products(a: &[Fp<MontBackend<Self, N>, N>], b: &[Fp<MontBackend<Self, N>, N>]) -> Fp<MontBackend<Self, N>, N> {
+        assert_eq!(a.len(), b.len());
+        // Adapted from zkcrypto/bls12_381.
+
+        // For a single `a x b` multiplication, operand scanning (schoolbook) takes each
+        // limb of `a` in turn, and multiplies it by all of the limbs of `b` to compute
+        // the result as a double-width intermediate representation, which is then fully
+        // reduced at the end. Here however we have pairs of multiplications (a_i, b_i),
+        // the results of which are summed.
+        //
+        // The intuition for this algorithm is two-fold:
+        // - We can interleave the operand scanning for each pair, by processing the jth
+        //   limb of each `a_i` together. As these have the same offset within the overall
+        //   operand scanning flow, their results can be summed directly.
+        // - We can interleave the multiplication and reduction steps, resulting in a
+        //   single bitshift by the limb size after each iteration. This means we only
+        //   need to store a single extra limb overall, instead of keeping around all the
+        //   intermediate results and eventually having twice as many limbs.
+
+        // Algorithm 2, line 2
+        let mut result = (0..N).fold(Fp::zero(), |mut result, j| {
+            // Algorithm 2, line 3
+            let (temp, end) = a.iter().zip(b).fold(
+                (result, 0),
+                |(mut temp, end), (a, b)| {
+                    let mut carry = 0;
+                    temp.0.0[0] = fa::mac(temp.0.0[0], a.0.0[j], b.0.0[0], &mut carry);
+                    for k in 1..N {
+                        temp.0.0[k] = fa::mac_with_carry(temp.0.0[k], a.0.0[j], b.0.0[k], &mut carry);
+                    }
+                    (temp, fa::adc(end, 0, &mut carry))
+                });
+
+            let mut carry = 0;
+            let k = temp.0.0[0].wrapping_mul(Self::INV);
+            fa::mac_discard(temp.0.0[0], k, Self::MODULUS.0[0], &mut carry);
+            for i in 1..N {
+                result.0.0[i - 1] = fa::mac_with_carry(temp.0.0[i], k, Self::MODULUS.0[i], &mut carry);
+            }
+            result.0.0[N - 1] = fa::adc(end, 0, &mut carry);
+            result
+        });
+        result.subtract_modulus();
+        result
+    }
 }
 
 /// Compute -M^{-1} mod 2^64.
@@ -417,6 +464,11 @@ impl<T: MontConfig<N>, const N: usize> FpConfig<N> for MontBackend<T, N> {
     #[inline]
     fn mul_assign(a: &mut Fp<Self, N>, b: &Fp<Self, N>) {
         T::mul_assign(a, b)
+    }
+
+
+    fn sum_of_products(a: &[Fp<Self, N>], b: &[Fp<Self, N>]) -> Fp<Self, N> {
+        T::sum_of_products(a, b)
     }
 
     #[inline]

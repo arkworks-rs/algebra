@@ -229,6 +229,19 @@ pub trait Field:
     /// `self` to `self.inverse().unwrap()`.
     fn inverse_in_place(&mut self) -> Option<&mut Self>;
 
+    /// Returns `sum([a_i * b_i])`.
+    #[inline]
+    fn sum_of_products(a: &[Self], b: &[Self]) -> Self {
+        #[cfg(not(feature = "parallel"))]
+        {
+            a.iter().zip(b).fold(Self::zero(), |acc, (a, b)| acc + *a * b)
+        }
+        #[cfg(feature = "parallel")]
+        {
+            cfg_iter!(a).zip(b).fold(|| Self::zero(), |acc, (a, b)| acc + *a * b).sum()
+        }
+    }
+
     /// Exponentiates this element by a power of the base prime modulus via
     /// the Frobenius automorphism.
     fn frobenius_map(&mut self, power: usize);

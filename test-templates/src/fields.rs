@@ -76,6 +76,16 @@ fn random_multiplication_tests<F: Field, R: Rng>(rng: &mut R) {
     }
 }
 
+fn random_sum_of_products_tests<F: Field, R: Rng>(rng: &mut R) {
+    for _ in 0..ITERATIONS {
+        let a = (0..10).map(|_| F::rand(rng)).collect::<Vec<_>>();
+        let b = (0..10).map(|_| F::rand(rng)).collect::<Vec<_>>();
+        let result_1 = F::sum_of_products(&a, &b);
+        let result_2 = a.into_iter().zip(b).map(|(a, b)| a * b).sum::<F>();
+        assert_eq!(result_1, result_2);
+    }
+}
+
 fn random_inversion_tests<F: Field, R: Rng>(rng: &mut R) {
     assert!(F::zero().inverse().is_none());
 
@@ -162,6 +172,7 @@ fn random_field_tests<F: Field>() {
     random_addition_tests::<F, _>(&mut rng);
     random_subtraction_tests::<F, _>(&mut rng);
     random_multiplication_tests::<F, _>(&mut rng);
+    random_sum_of_products_tests::<F, _>(&mut rng);
     random_inversion_tests::<F, _>(&mut rng);
     random_doubling_tests::<F, _>(&mut rng);
     random_squaring_tests::<F, _>(&mut rng);

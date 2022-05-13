@@ -15,21 +15,6 @@ pub(crate) fn adc(a: u64, b: u64, carry: &mut u64) -> u64 {
     adc!(a, b, &mut *carry)
 }
 
-macro_rules! mac_with_carry {
-    ($a:expr, $b:expr, $c:expr, &mut $carry:expr$(,)?) => {{
-        let tmp = ($a as u128) + ($b as u128 * $c as u128) + ($carry as u128);
-        $carry = (tmp >> 64) as u64;
-        tmp as u64
-    }};
-}
-
-/// Calculate a + (b * c) + carry, returning the least significant digit
-/// and setting carry to the most significant digit.
-#[inline(always)]
-pub(crate) fn mac_with_carry(a: u64, b: u64, c: u64, carry: &mut u64) -> u64 {
-    mac_with_carry!(a, b, c, &mut *carry)
-}
-
 #[macro_export]
 macro_rules! sbb {
     ($a:expr, $b:expr, &mut $borrow:expr$(,)?) => {{
@@ -64,6 +49,21 @@ pub(crate) fn mac_discard(a: u64, b: u64, c: u64, carry: &mut u64) {
     let tmp = (u128::from(a)) + u128::from(b) * u128::from(c);
 
     *carry = (tmp >> 64) as u64;
+}
+
+macro_rules! mac_with_carry {
+    ($a:expr, $b:expr, $c:expr, &mut $carry:expr$(,)?) => {{
+        let tmp = ($a as u128) + ($b as u128 * $c as u128) + ($carry as u128);
+        $carry = (tmp >> 64) as u64;
+        tmp as u64
+    }};
+}
+
+/// Calculate a + (b * c) + carry, returning the least significant digit
+/// and setting carry to the most significant digit.
+#[inline(always)]
+pub(crate) fn mac_with_carry(a: u64, b: u64, c: u64, carry: &mut u64) -> u64 {
+    mac_with_carry!(a, b, c, &mut *carry)
 }
 
 /// Compute the NAF (non-adjacent form) of num
