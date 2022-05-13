@@ -332,25 +332,23 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
         // Algorithm 2, line 2
         let result = (0..N).fold(BigInt::zero(), |mut result, j| {
             // Algorithm 2, line 3
-            let (temp, end) = a
-                .iter()
-                .zip(b)
-                .fold((result, 0), |(mut temp, end), (a, b)| {
-                    let mut carry = 0;
-                    temp.0[0] = fa::mac(temp.0[0], a.0.0[j], b.0.0[0], &mut carry);
-                    for k in 1..N {
-                        temp.0[k] =
-                            fa::mac_with_carry(temp.0[k], a.0.0[j], b.0.0[k], &mut carry);
-                    }
-                    (temp, fa::adc(end, 0, &mut carry))
-                });
+            let (temp, end) =
+                a.iter()
+                    .zip(b)
+                    .fold((result, 0), |(mut temp, end), (Fp(a, _), Fp(b, _))| {
+                        let mut carry = 0;
+                        temp.0[0] = fa::mac(temp.0[0], a.0[j], b.0[0], &mut carry);
+                        for k in 1..N {
+                            temp.0[k] = fa::mac_with_carry(temp.0[k], a.0[j], b.0[k], &mut carry);
+                        }
+                        (temp, fa::adc(end, 0, &mut carry))
+                    });
 
             let mut carry = 0;
             let k = temp.0[0].wrapping_mul(Self::INV);
             fa::mac_discard(temp.0[0], k, Self::MODULUS.0[0], &mut carry);
             for i in 1..N {
-                result.0[i - 1] =
-                    fa::mac_with_carry(temp.0[i], k, Self::MODULUS.0[i], &mut carry);
+                result.0[i - 1] = fa::mac_with_carry(temp.0[i], k, Self::MODULUS.0[i], &mut carry);
             }
             result.0[N - 1] = fa::adc(end, 0, &mut carry);
             result
