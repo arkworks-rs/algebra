@@ -312,7 +312,7 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
         b: &[Fp<MontBackend<Self, N>, N>],
     ) -> Fp<MontBackend<Self, N>, N> {
         assert_eq!(a.len(), b.len());
-        // Adapted from zkcrypto/bls12_381.
+        // Adapted from https://github.com/zkcrypto/bls12_381/pull/84 by @str4d.
 
         // For a single `a x b` multiplication, operand scanning (schoolbook) takes each
         // limb of `a` in turn, and multiplies it by all of the limbs of `b` to compute
