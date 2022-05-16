@@ -87,9 +87,14 @@ fn run_test_w(Test { data, .. }: &Test<SuiteVector>) -> Outcome {
         // then, test curve points
         let x: Vec<Fq> = read_fq_vec(&v.p.x);
         let y: Vec<Fq> = read_fq_vec(&v.p.y);
+        let x_q0: Vec<Fq> = read_fq_vec(&v.q0.x);
+        let x_q1: Vec<Fq> = read_fq_vec(&v.q1.x);
+        let y_q0: Vec<Fq> = read_fq_vec(&v.q0.y);
+        let y_q1: Vec<Fq> = read_fq_vec(&v.q1.y);
         match data.curve.as_str() {
             "BLS12-381 G1" => {
-                let got = g1_mapper.hash(&v.msg.as_bytes()).unwrap();
+                let out = g1_mapper.hash(&v.msg.as_bytes()).unwrap();
+                let got = out.0;
                 let want = GroupAffine::<G1Parameters>::new(
                     Fq::from_base_prime_field_elems(&x[..]).unwrap(),
                     Fq::from_base_prime_field_elems(&y[..]).unwrap(),
@@ -109,7 +114,20 @@ fn run_test_w(Test { data, .. }: &Test<SuiteVector>) -> Outcome {
                 }
             },
             "BLS12-381 G2" => {
-                let got = g2_mapper.hash(&v.msg.as_bytes()).unwrap();
+                let out = g2_mapper.hash(&v.msg.as_bytes()).unwrap();
+                let q0 = out.1;
+                let q1 = out.2;
+                let got = out.0;
+                let want_q0 = GroupAffine::<G2Parameters>::new(
+                    Fq2::from_base_prime_field_elems(&x_q0[..]).unwrap(),
+                    Fq2::from_base_prime_field_elems(&y_q0[..]).unwrap(),
+                    false,
+                );
+                let want_q1 = GroupAffine::<G2Parameters>::new(
+                    Fq2::from_base_prime_field_elems(&x_q1[..]).unwrap(),
+                    Fq2::from_base_prime_field_elems(&y_q1[..]).unwrap(),
+                    false,
+                );
                 let want = GroupAffine::<G2Parameters>::new(
                     Fq2::from_base_prime_field_elems(&x[..]).unwrap(),
                     Fq2::from_base_prime_field_elems(&y[..]).unwrap(),
@@ -120,10 +138,15 @@ fn run_test_w(Test { data, .. }: &Test<SuiteVector>) -> Outcome {
                 if got != want {
                     return Outcome::Failed {
                         msg: Some(format!(
-                            "Suite: {:?}\ngot:  {:?}\nwant: {:?}",
+                            "Suite: {:?}\nmsg: {}\n\ngot: {:?}\nwant: {:?}\n\ngot Q0: {}\nwant Q0: {}\n\ngot Q1: {}\nwant Q1: {}",
                             data.ciphersuite,
+                            v.msg,
                             got.to_string(),
-                            want.to_string()
+                            want.to_string(),
+                            q0.to_string(),
+                            want_q0.to_string(),
+                            q1.to_string(),
+                            want_q1.to_string(),
                         )),
                     };
                 }
