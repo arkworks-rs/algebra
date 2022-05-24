@@ -39,7 +39,6 @@ impl SWModelParameters for Parameters {
     #[inline(always)]
     fn mul_by_a(_: &Self::BaseField) -> Self::BaseField {
         Self::BaseField::zero()
-
     }
 
     #[inline]

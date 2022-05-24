@@ -291,7 +291,7 @@ pub trait AffineCurve:
 
     /// Performs cofactor clearing.
     /// The default method is simply to multiply by the cofactor.
-    /// For some curve families more efficient methods exist. 
+    /// For some curve families more efficient methods exist.
     #[must_use]
     fn clear_cofactor(&self) -> Self;
 
