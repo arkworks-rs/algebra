@@ -80,8 +80,7 @@ pub trait SWModelParameters: ModelParameters {
 
     /// Performs cofactor clearing.
     /// The default method is simply to multiply by the cofactor.
-    /// For some curve families though, it is sufficient to multiply
-    /// by a smaller scalar.
+    /// Some curves can implement a more efficient algorithm.
     fn clear_cofactor(
         item: &short_weierstrass_jacobian::GroupAffine<Self>,
     ) -> short_weierstrass_jacobian::GroupAffine<Self> {

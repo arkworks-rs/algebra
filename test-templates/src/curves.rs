@@ -440,7 +440,6 @@ fn sw_cofactor_clearing_test<P: SWModelParameters>() {
 
     for _ in 0..ITERATIONS {
         let a = GroupAffine::<P>::rand(&mut rng);
-        // let a_affine = a.into_affine();
         let b = a.clear_cofactor();
         assert!(b.is_in_correct_subgroup_assuming_on_curve());
     }

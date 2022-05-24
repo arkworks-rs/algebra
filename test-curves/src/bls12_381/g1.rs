@@ -41,6 +41,7 @@ impl SWModelParameters for Parameters {
         Self::BaseField::zero()
 
     }
+
     #[inline]
     fn clear_cofactor(p: &G1Affine) -> G1Affine {
         // Using the effective cofactor, as explained in
