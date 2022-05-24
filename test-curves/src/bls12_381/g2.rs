@@ -6,7 +6,7 @@ use ark_ec::{
     AffineCurve,
     hashing::curve_maps::wb::WBParams,
 };
-use ark_ff::{MontFp, QuadExt, Field, Zero, BigInt};
+use ark_ff::{BigInt, Field, MontFp, QuadExt, Zero};
 
 pub type G2Affine = bls12::G2Affine<crate::bls12_381::Parameters>;
 pub type G2Projective = bls12::G2Projective<crate::bls12_381::Parameters>;
@@ -23,23 +23,21 @@ impl ModelParameters for Parameters {
     /// = 305502333931268344200999753193121504214466019254188142667664032982267604182971884026507427359259977847832272839041616661285803823378372096355777062779109
     #[rustfmt::skip]
     const COFACTOR: &'static [u64] = &[
-        0xbc69f08f2ee75b35,
-        0x84c6a0ea91b35288,
-        0x8e2a8e9145ad7689,
-        0x986ff031508ffe13,
-        0x29c2f178731db956,
-        0xd82bf015d1212b02,
-        0xec0ec69d7477c1ae,
-        0x954cbc06689f6a35,
-        0x9894c0adebbf6b4e,
-        0x8020005aaa95551
+        0xcf1c38e31c7238e5,
+        0x1616ec6e786f0c70,
+        0x21537e293a6691ae,
+        0xa628f1cb4d9e82ef,
+        0xa68a205b2e5a7ddf,
+        0xcd91de4547085aba,
+        0x91d50792876a202,
+        0x5d543a95414e7f1,
     ];
 
     /// COFACTOR_INV = COFACTOR^{-1} mod r
     /// 26652489039290660355457965112010883481355318854675681319708643586776743290055
     #[rustfmt::skip]
     const COFACTOR_INV: Fr = MontFp!(
-        Fr, 
+        Fr,
         "26652489039290660355457965112010883481355318854675681319708643586776743290055"
     );
 }
@@ -65,7 +63,8 @@ impl SWModelParameters for Parameters {
         //
         // Checks that [p]P = [X]P
 
-        let mut x_times_point = point.mul(BigInt::new([crate::bls12_381::Parameters::X[0], 0, 0, 0]));
+        let mut x_times_point =
+            point.mul(BigInt::new([crate::bls12_381::Parameters::X[0], 0, 0, 0]));
         if crate::bls12_381::Parameters::X_IS_NEGATIVE {
             x_times_point = -x_times_point;
         }

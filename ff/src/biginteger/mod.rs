@@ -515,19 +515,13 @@ impl<const N: usize> FromBytes for BigInt<N> {
 
 impl<const N: usize> UpperHex for BigInt<N> {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        for i in self.0.iter().rev() {
-            write!(f, "{:016X}", *i)?;
-        }
-        Ok(())
+        write!(f, "{:016X}", BigUint::from(*self))
     }
 }
 
 impl<const N: usize> Display for BigInt<N> {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        for i in self.0.iter().rev() {
-            write!(f, "{}", *i)?;
-        }
-        Ok(())
+        write!(f, "{}", BigUint::from(*self))
     }
 }
 
