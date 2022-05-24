@@ -1,4 +1,4 @@
-use crate::{ProjectiveCurve, AffineCurve};
+use crate::{AffineCurve, ProjectiveCurve};
 use ark_ff::{Field, PrimeField, SquareRootField, Zero};
 
 pub mod bls12;
@@ -84,8 +84,8 @@ pub trait SWModelParameters: ModelParameters {
     /// by a smaller scalar.
     fn clear_cofactor(
         item: &short_weierstrass_jacobian::GroupAffine<Self>,
-     ) -> short_weierstrass_jacobian::GroupAffine<Self> {
-        item.clear_cofactor()
+    ) -> short_weierstrass_jacobian::GroupAffine<Self> {
+        item.mul_by_cofactor()
     }
 
     /// Default implementation of group multiplication for projective
@@ -156,6 +156,16 @@ pub trait TEModelParameters: ModelParameters {
         item: &twisted_edwards_extended::GroupAffine<Self>,
     ) -> bool {
         Self::mul_affine(item, Self::ScalarField::characteristic()).is_zero()
+    }
+
+    /// Performs cofactor clearing.
+    /// The default method is simply to multiply by the cofactor.
+    /// For some curve families though, it is sufficient to multiply
+    /// by a smaller scalar.
+    fn clear_cofactor(
+        item: &twisted_edwards_extended::GroupAffine<Self>,
+    ) -> twisted_edwards_extended::GroupAffine<Self> {
+        item.mul_by_cofactor()
     }
 
     /// Default implementation of group multiplication for projective

@@ -293,9 +293,7 @@ pub trait AffineCurve:
     /// The default method is simply to multiply by the cofactor.
     /// For some curve families more efficient methods exist. 
     #[must_use]
-    fn clear_cofactor(&self) -> Self {
-        self.mul_by_cofactor()
-    }
+    fn clear_cofactor(&self) -> Self;
 
     /// Multiplies this element by the cofactor and output the
     /// resulting projective element.

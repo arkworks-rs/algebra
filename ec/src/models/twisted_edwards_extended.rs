@@ -152,6 +152,11 @@ impl<P: Parameters> AffineCurve for GroupAffine<P> {
     fn mul_by_cofactor_to_projective(&self) -> Self::Projective {
         P::mul_affine(self, Self::Parameters::COFACTOR)
     }
+
+    #[must_use]
+    fn clear_cofactor(&self) -> Self {
+        P::clear_cofactor(&self)
+    }
 }
 
 impl<P: Parameters> Zeroize for GroupAffine<P> {
