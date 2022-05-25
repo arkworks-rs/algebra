@@ -1,4 +1,3 @@
-use crate::AffineCurve;
 use crate::ProjectiveCurve;
 use ark_ff::{Field, PrimeField, Zero};
 
