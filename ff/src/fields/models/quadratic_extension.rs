@@ -251,7 +251,10 @@ impl<P: QuadExtConfig> One for QuadExtField<P> {
 }
 
 type BaseFieldIter<P> = <<P as QuadExtConfig>::BaseField as Field>::BasePrimeFieldIter;
-impl<P: QuadExtConfig> Field for QuadExtField<P> {
+impl<P: QuadExtConfig> Field for QuadExtField<P>
+// where
+//     P::BaseField: From<P::BasePrimeField>,
+{
     type BasePrimeField = P::BasePrimeField;
 
     type BasePrimeFieldIter = Chain<BaseFieldIter<P>, BaseFieldIter<P>>;
@@ -363,44 +366,6 @@ impl<P: QuadExtConfig> Field for QuadExtField<P> {
         }
     }
 
-    fn inverse(&self) -> Option<Self> {
-        if self.is_zero() {
-            None
-        } else {
-            // Guide to Pairing-based Cryptography, Algorithm 5.19.
-            // v1 = c1.square()
-            let v1 = self.c1.square();
-            // v0 = c0.square() - beta * v1
-            let v0 = P::sub_and_mul_base_field_by_nonresidue(&self.c0.square(), &v1);
-
-            v0.inverse().map(|v1| {
-                let c0 = self.c0 * &v1;
-                let c1 = -(self.c1 * &v1);
-                Self::new(c0, c1)
-            })
-        }
-    }
-
-    fn inverse_in_place(&mut self) -> Option<&mut Self> {
-        if let Some(inverse) = self.inverse() {
-            *self = inverse;
-            Some(self)
-        } else {
-            None
-        }
-    }
-
-    fn frobenius_map(&mut self, power: usize) {
-        self.c0.frobenius_map(power);
-        self.c1.frobenius_map(power);
-        P::mul_base_field_by_frob_coeff(&mut self.c1, power);
-    }
-}
-
-impl<'a, P: QuadExtConfig> Field for QuadExtField<P>
-where
-    P::BaseField: Field + From<P::BasePrimeField>,
-{
     fn legendre(&self) -> LegendreSymbol {
         // The LegendreSymbol in a field of order q for an element x can be
         // computed as x^((q-1)/2).
@@ -446,7 +411,7 @@ where
         two_inv.div2();
 
         let two_inv = P::BasePrimeField::from(two_inv);
-        let two_inv = P::BaseField::from(two_inv);
+        let two_inv = P::BaseField::from_base_prime_field_elems(&[two_inv]).unwrap();
 
         alpha.sqrt().and_then(|alpha| {
             let mut delta = (alpha + &self.c0) * &two_inv;
@@ -480,6 +445,38 @@ where
             *self = sqrt;
             self
         })
+    }
+    fn inverse(&self) -> Option<Self> {
+        if self.is_zero() {
+            None
+        } else {
+            // Guide to Pairing-based Cryptography, Algorithm 5.19.
+            // v1 = c1.square()
+            let v1 = self.c1.square();
+            // v0 = c0.square() - beta * v1
+            let v0 = P::sub_and_mul_base_field_by_nonresidue(&self.c0.square(), &v1);
+
+            v0.inverse().map(|v1| {
+                let c0 = self.c0 * &v1;
+                let c1 = -(self.c1 * &v1);
+                Self::new(c0, c1)
+            })
+        }
+    }
+
+    fn inverse_in_place(&mut self) -> Option<&mut Self> {
+        if let Some(inverse) = self.inverse() {
+            *self = inverse;
+            Some(self)
+        } else {
+            None
+        }
+    }
+
+    fn frobenius_map(&mut self, power: usize) {
+        self.c0.frobenius_map(power);
+        self.c1.frobenius_map(power);
+        P::mul_base_field_by_frob_coeff(&mut self.c1, power);
     }
 }
 

@@ -98,23 +98,3 @@ impl<P: Fp3Config> Fp3<P> {
         P::QUADRATIC_NONRESIDUE_TO_T
     }
 }
-
-impl<P: Fp3Config> Field for Fp3<P> {
-    /// Returns the Legendre symbol.
-    fn legendre(&self) -> LegendreSymbol {
-        self.norm().legendre()
-    }
-
-    /// Returns the square root of self, if it exists.
-    fn sqrt(&self) -> Option<Self> {
-        sqrt_impl!(Self, P, self)
-    }
-
-    /// Sets `self` to be the square root of `self`, if it exists.
-    fn sqrt_in_place(&mut self) -> Option<&mut Self> {
-        (*self).sqrt().map(|sqrt| {
-            *self = sqrt;
-            self
-        })
-    }
-}

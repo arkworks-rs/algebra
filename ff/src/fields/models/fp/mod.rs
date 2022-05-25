@@ -20,7 +20,7 @@ mod montgomery_backend;
 pub use montgomery_backend::*;
 
 use crate::{
-    BigInt, BigInteger, FftField, Field, FromBytes, LegendreSymbol, PrimeField, SquareRootField,
+    BigInt, BigInteger, FftField, Field, FromBytes, LegendreSymbol, PrimeField,
     ToBytes,
 };
 /// A trait that specifies the configuration of a prime field.
@@ -351,6 +351,33 @@ impl<P: FpConfig<N>, const N: usize> Field for Fp<P, N> {
     /// The Frobenius map has no effect in a prime field.
     #[inline]
     fn frobenius_map(&mut self, _: usize) {}
+
+    #[inline]
+    fn legendre(&self) -> LegendreSymbol {
+        use crate::fields::LegendreSymbol::*;
+
+        // s = self^((MODULUS - 1) // 2)
+        let s = self.pow(Self::MODULUS_MINUS_ONE_DIV_TWO);
+        if s.is_zero() {
+            Zero
+        } else if s.is_one() {
+            QuadraticResidue
+        } else {
+            QuadraticNonResidue
+        }
+    }
+
+    #[inline]
+    fn sqrt(&self) -> Option<Self> {
+        P::square_root(self)
+    }
+
+    fn sqrt_in_place(&mut self) -> Option<&mut Self> {
+        (*self).sqrt().map(|sqrt| {
+            *self = sqrt;
+            self
+        })
+    }
 }
 
 impl<P: FpConfig<N>, const N: usize> PrimeField for Fp<P, N> {
@@ -378,35 +405,6 @@ impl<P: FpConfig<N>, const N: usize> FftField for Fp<P, N> {
     const SMALL_SUBGROUP_BASE: Option<u32> = P::SMALL_SUBGROUP_BASE;
     const SMALL_SUBGROUP_BASE_ADICITY: Option<u32> = P::SMALL_SUBGROUP_BASE_ADICITY;
     const LARGE_SUBGROUP_ROOT_OF_UNITY: Option<Self> = P::LARGE_SUBGROUP_ROOT_OF_UNITY;
-}
-
-impl<P: FpConfig<N>, const N: usize> SquareRootField for Fp<P, N> {
-    #[inline]
-    fn legendre(&self) -> LegendreSymbol {
-        use crate::fields::LegendreSymbol::*;
-
-        // s = self^((MODULUS - 1) // 2)
-        let s = self.pow(Self::MODULUS_MINUS_ONE_DIV_TWO);
-        if s.is_zero() {
-            Zero
-        } else if s.is_one() {
-            QuadraticResidue
-        } else {
-            QuadraticNonResidue
-        }
-    }
-
-    #[inline]
-    fn sqrt(&self) -> Option<Self> {
-        P::square_root(self)
-    }
-
-    fn sqrt_in_place(&mut self) -> Option<&mut Self> {
-        (*self).sqrt().map(|sqrt| {
-            *self = sqrt;
-            self
-        })
-    }
 }
 
 /// Note that this implementation of `Ord` compares field elements viewing

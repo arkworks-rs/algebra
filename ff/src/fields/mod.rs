@@ -87,8 +87,6 @@ pub trait Field:
 {
     type BasePrimeField: PrimeField;
 
-    const SqrtPrecomp: SqrtPrecomputation<Self>;
-
     type BasePrimeFieldIter: Iterator<Item = Self::BasePrimeField>;
 
     /// Returns the characteristic of the field,
