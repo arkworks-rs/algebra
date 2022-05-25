@@ -41,9 +41,14 @@ use rayon::prelude::*;
     Hash(bound = "P: Parameters")
 )]
 #[must_use]
+// DISCUSS these shouldn't be public and instead we should have functions
+// encapsulating the attributes
 pub struct GroupAffine<P: Parameters> {
+    /// X coordinate of the point represented as a field element
     pub x: P::BaseField,
+    /// Y coordinate of the point represented as a field element
     pub y: P::BaseField,
+    /// Flag determining if the point is in infinity
     pub infinity: bool,
 }
 
@@ -70,6 +75,9 @@ impl<P: Parameters> Display for GroupAffine<P> {
 }
 
 impl<P: Parameters> GroupAffine<P> {
+    // DISCUSS The function shouldn't take infinity as parameter but instead accept
+    // only `(x,y)` so we have another const function `GroupAffine::infinity`
+    // that takes no parameters
     pub fn new(x: P::BaseField, y: P::BaseField, infinity: bool) -> Self {
         Self { x, y, infinity }
     }
@@ -116,8 +124,9 @@ impl<P: Parameters> GroupAffine<P> {
 }
 
 impl<P: Parameters> GroupAffine<P> {
-    /// Checks if `self` is in the subgroup having order equaling that of
-    /// `P::ScalarField` given it is on the curve.
+    /// Checks if `self` is in the subgroup having order that equaling that of
+    /// `P::ScalarField`.
+    // DISCUSS Maybe these function names are too verbose?
     pub fn is_in_correct_subgroup_assuming_on_curve(&self) -> bool {
         P::is_in_correct_subgroup_assuming_on_curve(self)
     }
@@ -186,6 +195,9 @@ impl<P: Parameters> AffineCurve for GroupAffine<P> {
     type ScalarField = P::ScalarField;
     type Projective = GroupProjective<P>;
 
+    fn xy(&self) -> (Self::BaseField, Self::BaseField) {
+        (self.x, self.y)
+    }
     #[inline]
     fn prime_subgroup_generator() -> Self {
         Self::new(
@@ -208,6 +220,17 @@ impl<P: Parameters> AffineCurve for GroupAffine<P> {
                 None
             }
         })
+    }
+
+    fn mul<S: Into<<Self::ScalarField as PrimeField>::BigInt>>(&self, by: S) -> Self::Projective {
+        P::mul_affine(self, by.into().as_ref())
+    }
+
+    /// Multiplies this element by the cofactor and output the
+    /// resulting projective element.
+    #[must_use]
+    fn mul_by_cofactor_to_projective(&self) -> Self::Projective {
+        P::mul_affine(self, Self::Parameters::COFACTOR)
     }
 }
 
@@ -277,8 +300,11 @@ impl<'a, P: Parameters> core::iter::Sum<&'a Self> for GroupAffine<P> {
 )]
 #[must_use]
 pub struct GroupProjective<P: Parameters> {
+    /// `X / Z` projection of the affine `X`
     pub x: P::BaseField,
+    /// `Y / Z` projection of the affine `Y`
     pub y: P::BaseField,
+    /// Projective multiplicative inverse. Will be `0` only at infinity.
     pub z: P::BaseField,
 }
 
@@ -577,6 +603,11 @@ impl<P: Parameters> ProjectiveCurve for GroupProjective<P> {
             self.z -= &z1z1;
             self.z -= &hh;
         }
+    }
+
+    #[inline]
+    fn mul<S: AsRef<[u64]>>(self, other: S) -> Self {
+        P::mul_projective(&self, other.as_ref())
     }
 }
 

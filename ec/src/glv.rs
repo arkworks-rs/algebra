@@ -2,7 +2,10 @@ use crate::ModelParameters;
 
 /// The GLV parameters for computing the endomorphism and scalar decomposition.
 pub trait GLVParameters: Send + Sync + 'static + ModelParameters {
+    /// Affine representation of curve points.
     type CurveAffine;
+    /// A representation of curve points that enables efficient arithmetic by
+    /// avoiding inversions.
     type CurveProjective;
 
     // Constants that are used to calculate `phi(G) := lambda*G`.

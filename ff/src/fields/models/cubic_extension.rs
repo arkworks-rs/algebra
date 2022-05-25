@@ -6,6 +6,7 @@ use ark_std::{
     cmp::{Ord, Ordering, PartialOrd},
     fmt,
     io::{Read, Result as IoResult, Write},
+    iter::Chain,
     ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign},
     vec::Vec,
 };
@@ -116,13 +117,13 @@ impl<P: CubicExtConfig> CubicExtField<P> {
     /// # use ark_test_curves::bls12_381::{Fq2 as Fp2, Fq6 as Fp6};
     /// # use ark_test_curves::bls12_381::Fq6Config;
     /// # use ark_std::UniformRand;
-    /// # use ark_ff::models::fp6_3over2::Fp6ParamsWrapper;
+    /// # use ark_ff::models::fp6_3over2::Fp6ConfigWrapper;
     /// use ark_ff::models::cubic_extension::CubicExtField;
     ///
     /// let c0: Fp2 = Fp2::rand(&mut test_rng());
     /// let c1: Fp2 = Fp2::rand(&mut test_rng());
     /// let c2: Fp2 = Fp2::rand(&mut test_rng());
-    /// # type Params = Fp6ParamsWrapper<Fq6Config>;
+    /// # type Params = Fp6ConfigWrapper<Fq6Config>;
     /// // `Fp6` a degree-3 extension over `Fp2`.
     /// let c: CubicExtField<Params> = Fp6::new(c0, c1, c2);
     /// ```
@@ -183,12 +184,22 @@ impl<P: CubicExtConfig> One for CubicExtField<P> {
     }
 }
 
+type BaseFieldIter<P> = <<P as CubicExtConfig>::BaseField as Field>::BasePrimeFieldIter;
 impl<P: CubicExtConfig> Field for CubicExtField<P> {
     const SqrtPrecomp: SqrtPrecomputation = P::PRECOMP;
     type BasePrimeField = P::BasePrimeField;
+    type BasePrimeFieldIter = Chain<BaseFieldIter<P>, Chain<BaseFieldIter<P>, BaseFieldIter<P>>>;
 
     fn extension_degree() -> u64 {
         3 * P::BaseField::extension_degree()
+    }
+
+    fn to_base_prime_field_elements(&self) -> Self::BasePrimeFieldIter {
+        self.c0.to_base_prime_field_elements().chain(
+            self.c1
+                .to_base_prime_field_elements()
+                .chain(self.c2.to_base_prime_field_elements()),
+        )
     }
 
     fn from_base_prime_field_elems(elems: &[Self::BasePrimeField]) -> Option<Self> {
@@ -320,7 +331,7 @@ impl<P: CubicExtConfig> Field for CubicExtField<P> {
     }
 }
 
-public enum SqrtPrecomputation<F: Field> {
+pub enum SqrtPrecomputation<F: Field> {
     ThreeModFour,
     FiveModEight{TRACE: F::BigInt},
     NineModSixteen{TRACE: F::BigInt, d: F::BigInt, e: F::BigInt, c: F::BigInt},

@@ -48,6 +48,7 @@ macro_rules! generate_g1_test {
         fn test_g1_affine_curve() {
             test_var_base_msm::<G1Affine>();
             ark_algebra_test_templates::msm::test_chunked_pippenger::<G1Affine>();
+            ark_algebra_test_templates::msm::test_hashmap_pippenger::<G1Affine>();
         }
 
         #[test]
@@ -137,7 +138,7 @@ macro_rules! generate_bilinearity_test {
 
             let ans1 = $curve_name::pairing(sa, b);
             let ans2 = $curve_name::pairing(a, sb);
-            let ans3 = $curve_name::pairing(a, b).pow(s.into_repr());
+            let ans3 = $curve_name::pairing(a, b).pow(s.into_bigint());
 
             assert_eq!(ans1, ans2);
             assert_eq!(ans2, ans3);
@@ -292,6 +293,8 @@ macro_rules! generate_field_test {
             }
             frobenius_test::<Fq12, _>(Fq::characteristic(), 13);
         }
+
+        generate_field_test!($($tail)*);
     };
 
     ($curve_name: ident; $($tail:tt)*) => {
@@ -591,10 +594,12 @@ macro_rules! generate_field_serialization_test {
                 let b: Fq = rng.gen();
 
                 let byte_size = a.serialized_size();
+                let (_, buffer_size) = buffer_bit_byte_size(Fr::MODULUS_BIT_SIZE as usize);
+                assert_eq!(byte_size, buffer_size);
                 field_serialization_test::<Fr>(byte_size);
 
                 let byte_size = b.serialized_size();
-                let (_, buffer_size) = buffer_bit_byte_size(Fq::size_in_bits());
+                let (_, buffer_size) = buffer_bit_byte_size(Fq::MODULUS_BIT_SIZE as usize);
                 assert_eq!(byte_size, buffer_size);
                 field_serialization_test::<Fq>(byte_size);
             }

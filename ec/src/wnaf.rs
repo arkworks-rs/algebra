@@ -10,6 +10,10 @@ pub struct WnafContext {
 
 impl WnafContext {
     /// Constructs a new context for a window of size `window_size`.
+    ///
+    /// # Panics
+    ///
+    /// This function will panic if not `2 <= window_size < 64`
     pub fn new(window_size: usize) -> Self {
         assert!(window_size >= 2);
         assert!(window_size < 64);

@@ -5,13 +5,14 @@
 ### Breaking changes
 
 - [\#300](https://github.com/arkworks-rs/algebra/pull/300) (`ark-ec`) Change the implementation of `Hash` trait of `GroupProjective` to use the affine co-ordinates.
+- [\#302](https://github.com/arkworks-rs/algebra/pull/302) (`ark-ff`) Rename `find_wnaf` to `find_naf`.
 - [\#310](https://github.com/arkworks-rs/algebra/pull/310) (`ark-ec`, `ark-ff`) Remove unnecessary internal `PhantomData`.
 - [\#333](https://github.com/arkworks-rs/algebra/pull/333) (`ark-poly`) Expose more properties of `EvaluationDomain`s.
 - [\#338](https://github.com/arkworks-rs/algebra/pull/338) (`ark-ec`) Add missing `UniformRand` trait bound to `GroupAffine`.
 - [\#338](https://github.com/arkworks-rs/algebra/pull/338) (workspace) Change to Rust 2021 edition.
 - [\#345](https://github.com/arkworks-rs/algebra/pull/345) (`ark-ec`, `ark-serialize`) Change the serialization format for Twisted Edwards Curves. We now encode the Y co-ordinate and take the sign bit of the X co-ordinate, the default flag is also now the Positive X value. The old methods for backwards compatibility are located [here](https://github.com/arkworks-rs/algebra/pull/345/files#diff-3621a48bb33f469144044d8d5fc663f767e103132a764812cda6be6c25877494R860)
 - [\#348](https://github.com/arkworks-rs/algebra/pull/348) (`ark-ec`) Rename `msm:{Fixed,Variable}BaseMSM:multi_scalar_mul` to `msm:{Fixed,Variable}:msm` to avoid redundancy.
-- [\#359](https://github.com/arkworks-rs/algebra/pull/359) (ark-test-templates) Simplify the field and curve test macros.
+- [\#359](https://github.com/arkworks-rs/algebra/pull/359) (`ark-test-templates`) Simplify the field and curve test macros.
 - [\#365](https://github.com/arkworks-rs/algebra/pull/365) (`ark-ec`)
     - Move `COFACTOR`, `COFACTOR_INV`, and `is_in_correct_subgroup_assuming_on_curve()` from `{SW,TE}ModelParameters` to `ModelParameters`.
     - Add `mul_bits()` to `AffineCurve` and provide a default implementation of `mul()` using this.
@@ -28,19 +29,27 @@
     - Remove `FftConfig`; move its contents to `FftField`.
 - [\#383](https://github.com/arkworks-rs/algebra/pull/383) (`ark-ff`) Rename `BigInteger::add_nocarry` to `add_with_carry` and `sub_noborrow` to `sub_with_borrow`.
 - [\#386](https://github.com/arkworks-rs/algebra/pull/386) (`ark-ff`) Remove `PrimeField::GENERATOR`, since it already exists on `FftField`.
+- [\#393](https://github.com/arkworks-rs/algebra/pull/393) (`ark-ec`, `ark-ff`) Rename `FpXParams` to `FpXConfig` and `FpXParamsWrapper` to `FpXConfigWrapper`.
+- [\#396](https://github.com/arkworks-rs/algebra/pull/396) (`ark-ec`) Remove `mul_bits` feature, and remove default implementations of `mul` and `mul_by_cofactor_to_projective`.
+- [\#408](https://github.com/arkworks-rs/algebra/pull/408) (`ark-ff`) Change the output of `Display` formatting for BigInt & Fp from hex to decimal.
+- [\#412](https://github.com/arkworks-rs/algebra/pull/412) (`ark-poly`) rename UV/MVPolynomial to DenseUV/MVPolynomial
 
 ### Features
 
 - [\#301](https://github.com/arkworks-rs/algebra/pull/301) (`ark-ec`) Add `GLVParameters` trait definition.
 - [\#312](https://github.com/arkworks-rs/algebra/pull/312) (`ark-ec`) Add `is_in_correct_subgroup_assuming_on_curve` for all `SWModelParameters`.
 - [\#321](https://github.com/arkworks-rs/algebra/pull/321) (`ark-ff`) Change bigint conversions to impl `From` instead of `Into`.
+- [\#343](https://github.com/arkworks-rs/algebra/pull/343) (`ark-ec`) Add WB and SWU hash-to-curve maps.
 - [\#348](https://github.com/arkworks-rs/algebra/pull/348) (`ark-ec`) Add `msm:{Fixed,Variable}Base:msm_checked_len`.
 - [\#364](https://github.com/arkworks-rs/algebra/pull/364) (`ark-ec`) Add `ChunkedPippenger` to variable-base MSM.
 - [\#371](https://github.com/arkworks-rs/algebra/pull/371) (`ark-serialize`) Add serialization impls for arrays
 - [\#386](https://github.com/arkworks-rs/algebra/pull/386) (`ark-ff-macros`, `ark-ff`) Add a macro to derive `MontConfig`.
+- [\#396](https://github.com/arkworks-rs/algebra/pull/396) (`ark-ec`) Add a default `mul` function to `{TE,SW}ModelParameters` trait definition.
+- [\#397](https://github.com/arkworks-rs/algebra/pull/397) (`ark-ec`) Add `HashMapPippenger` to variable-base MSM.
 
 ### Improvements
 
+- [\#302](https://github.com/arkworks-rs/algebra/pull/302) (`ark-ff`) Add the relaxed NAF computation.
 - [\#306](https://github.com/arkworks-rs/algebra/pull/306) (`ark-ff`, `ark-ff-asm`) Make the assembly backend available on `stable`.
 - [\#339](https://github.com/arkworks-rs/algebra/pull/339) (`ark-ff`) Remove duplicated code from `test_field` module and replace its usage with `ark-test-curves` crate.
 - [\#352](https://github.com/arkworks-rs/algebra/pull/352) (`ark-ff`) Update `QuadExtField::sqrt` for better performance.

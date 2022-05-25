@@ -1,3 +1,5 @@
+use core::iter;
+
 use ark_serialize::{
     buffer_byte_size, CanonicalDeserialize, CanonicalDeserializeWithFlags, CanonicalSerialize,
     CanonicalSerializeWithFlags, EmptyFlags, Flags, SerializationError,
@@ -9,6 +11,7 @@ use ark_std::{
     marker::PhantomData,
     ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign},
     str::FromStr,
+    string::ToString,
     One, Zero,
 };
 
@@ -239,9 +242,14 @@ impl<P: FpConfig<N>, const N: usize> One for Fp<P, N> {
 
 impl<P: FpConfig<N>, const N: usize> Field for Fp<P, N> {
     type BasePrimeField = Self;
+    type BasePrimeFieldIter = iter::Once<Self::BasePrimeField>;
 
     fn extension_degree() -> u64 {
         1
+    }
+
+    fn to_base_prime_field_elements(&self) -> Self::BasePrimeFieldIter {
+        iter::once(*self)
     }
 
     fn from_base_prime_field_elems(elems: &[Self::BasePrimeField]) -> Option<Self> {
@@ -631,9 +639,8 @@ impl<P: FpConfig<N>, const N: usize> CanonicalDeserializeWithFlags for Fp<P, N> 
             return Err(SerializationError::NotEnoughSpace);
         }
         // Calculate the number of bytes required to represent a field element
-        // serialized with `flags`. If `F::BIT_SIZE < 8`,
-        // this is at most `$byte_size + 1`
-        let output_byte_size = buffer_byte_size(Self::MODULUS_BIT_SIZE as usize + F::BIT_SIZE);
+        // serialized with `flags`.
+        let output_byte_size = Self::zero().serialized_size_with_flags::<F>();
 
         let mut masked_bytes = crate::const_helpers::SerBuffer::zeroed();
         masked_bytes.read_exact_up_to(reader, output_byte_size)?;
@@ -716,12 +723,13 @@ impl<P: FpConfig<N>, const N: usize> FromStr for Fp<P, N> {
     }
 }
 
-/// Outputs a string containing the value of `self`, chunked up into
-/// 64-bit limbs.
+/// Outputs a string containing the value of `self`,
+/// represented as a decimal without leading zeroes.
 impl<P: FpConfig<N>, const N: usize> Display for Fp<P, N> {
     #[inline]
     fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
-        write!(f, stringify!(Fp "({})"), self.into_bigint())
+        let string = self.into_bigint().to_string();
+        write!(f, "{}", string.trim_start_matches('0'))
     }
 }
 

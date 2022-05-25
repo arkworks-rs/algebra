@@ -53,9 +53,9 @@ pub trait Fp2Config: 'static + Send + Sync + Sized {
 }
 
 /// Wrapper for [`Fp2Config`], allowing combination of the [`Fp2Config`] and [`QuadExtConfig`] traits.
-pub struct Fp2ParamsWrapper<P: Fp2Config>(PhantomData<P>);
+pub struct Fp2ConfigWrapper<P: Fp2Config>(PhantomData<P>);
 
-impl<P: Fp2Config> QuadExtConfig for Fp2ParamsWrapper<P> {
+impl<P: Fp2Config> QuadExtConfig for Fp2ConfigWrapper<P> {
     type BasePrimeField = P::Fp;
     type BaseField = P::Fp;
     type FrobCoeff = P::Fp;
@@ -101,8 +101,8 @@ impl<P: Fp2Config> QuadExtConfig for Fp2ParamsWrapper<P> {
 }
 
 /// Alias for instances of quadratic extension fields. Helpful for omitting verbose
-/// instantiations involving `Fp2ParamsWrapper`.
-pub type Fp2<P> = QuadExtField<Fp2ParamsWrapper<P>>;
+/// instantiations involving `Fp2ConfigWrapper`.
+pub type Fp2<P> = QuadExtField<Fp2ConfigWrapper<P>>;
 
 impl<P: Fp2Config> Fp2<P> {
     /// In-place multiply both coefficients `c0` and `c1` of `self`

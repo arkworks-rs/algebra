@@ -26,6 +26,8 @@ pub mod arithmetic;
 pub mod models;
 pub use self::models::*;
 
+pub mod field_hashers;
+
 #[cfg(feature = "parallel")]
 use ark_std::cmp::max;
 #[cfg(feature = "parallel")]
@@ -84,7 +86,11 @@ pub trait Field:
     + From<bool>
 {
     type BasePrimeField: PrimeField;
+
     const SqrtPrecomp: SqrtPrecomputation<Self>;
+
+    type BasePrimeFieldIter: Iterator<Item = Self::BasePrimeField>;
+
     /// Returns the characteristic of the field,
     /// in little-endian representation.
     fn characteristic() -> &'static [u64] {
@@ -94,6 +100,8 @@ pub trait Field:
     /// Returns the extension degree of this field with respect
     /// to `Self::BasePrimeField`.
     fn extension_degree() -> u64;
+
+    fn to_base_prime_field_elements(&self) -> Self::BasePrimeFieldIter;
 
     /// Convert a slice of base prime field elements into a field element.
     /// If the slice length != Self::extension_degree(), must return None.
@@ -106,17 +114,21 @@ pub trait Field:
     /// Doubles `self` in place.
     fn double_in_place(&mut self) -> &mut Self;
 
-    /// Returns a field element if the set of bytes forms a valid field element,
-    /// otherwise returns None. This function is primarily intended for sampling
-    /// random field elements from a hash-function or RNG output.
+    /// Attempt to deserialize a field element. Returns `None` if the
+    /// deserialization fails.
+    ///
+    /// This function is primarily intended for sampling random field elements
+    /// from a hash-function or RNG output.
     fn from_random_bytes(bytes: &[u8]) -> Option<Self> {
         Self::from_random_bytes_with_flags::<EmptyFlags>(bytes).map(|f| f.0)
     }
 
-    /// Returns a field element with an extra sign bit used for group parsing if
-    /// the set of bytes forms a valid field element, otherwise returns
-    /// None. This function is primarily intended for sampling
-    /// random field elements from a hash-function or RNG output.
+    /// Attempt to deserialize a field element, splitting the bitflags metadata
+    /// according to `F` specification. Returns `None` if the deserialization
+    /// fails.
+    ///
+    /// This function is primarily intended for sampling random field elements
+    /// from a hash-function or RNG output.
     fn from_random_bytes_with_flags<F: Flags>(bytes: &[u8]) -> Option<(Self, F)>;
 
     /// Returns a `LegendreSymbol`, which indicates whether this field element
