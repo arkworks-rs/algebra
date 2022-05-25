@@ -26,7 +26,7 @@ use crate::{
 };
 
 /// Defines a Cubic extension field from a cubic non-residue.
-pub trait CubicExtConfig: 'static + Send + Sync {
+pub trait CubicExtConfig: 'static + Send + Sync + Sized {
     /// The prime field that this cubic extension is eventually an extension of.
     type BasePrimeField: PrimeField;
     /// The base field that this field is a cubic extension of.
@@ -41,6 +41,12 @@ pub trait CubicExtConfig: 'static + Send + Sync {
 
     /// The degree of the extension over the base prime field.
     const DEGREE_OVER_BASE_PRIME_FIELD: usize;
+
+    /// p^3 - 1 = 2^s * t, where t is odd.
+    const TWO_ADICITY: u32;
+    const TRACE_MINUS_ONE_DIV_TWO: &'static [u64];
+    /// t-th power of a quadratic nonresidue in Fp3.
+    const QUADRATIC_NONRESIDUE_TO_T: CubicExtField<Self>;
 
     /// The cubic non-residue used to construct the extension.
     const NONRESIDUE: Self::BaseField;

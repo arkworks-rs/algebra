@@ -10,7 +10,7 @@ macro_rules! sqrt_impl {
         // Try computing the square root (x at the end of the algorithm)
         // Check at the end of the algorithm if x was a square root
         // Begin Tonelli-Shanks
-        let mut z = $Self::qnr_to_t();
+        let mut z = $P::QUADRATIC_NONRESIDUE_TO_T;
         let mut w = $self.pow($P::TRACE_MINUS_ONE_DIV_TWO);
         let mut x = w * $self;
         let mut b = x * &w;

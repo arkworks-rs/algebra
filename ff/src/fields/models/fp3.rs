@@ -40,6 +40,9 @@ impl<P: Fp3Config> CubicExtConfig for Fp3ConfigWrapper<P> {
     const DEGREE_OVER_BASE_PRIME_FIELD: usize = 3;
 
     const NONRESIDUE: Self::BaseField = P::NONRESIDUE;
+    const TWO_ADICITY: u32 = P::TWO_ADICITY;
+    const TRACE_MINUS_ONE_DIV_TWO: &'static [u64] = P::TRACE_MINUS_ONE_DIV_TWO;
+    const QUADRATIC_NONRESIDUE_TO_T: CubicExtField<Self> = P::QUADRATIC_NONRESIDUE_TO_T;
 
     const FROBENIUS_COEFF_C1: &'static [Self::FrobCoeff] = P::FROBENIUS_COEFF_FP3_C1;
     const FROBENIUS_COEFF_C2: &'static [Self::FrobCoeff] = P::FROBENIUS_COEFF_FP3_C2;
@@ -90,11 +93,5 @@ impl<P: Fp3Config> Fp3<P> {
         self.c0.mul_assign(value);
         self.c1.mul_assign(value);
         self.c2.mul_assign(value);
-    }
-
-    /// Returns the value of QNR^T.
-    #[inline]
-    pub fn qnr_to_t() -> Self {
-        P::QUADRATIC_NONRESIDUE_TO_T
     }
 }
