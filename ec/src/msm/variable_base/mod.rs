@@ -17,7 +17,7 @@ pub use stream_pippenger::*;
 /// set.
 ///
 /// ∑i (Bi · Si)
-pub fn msm<G: AffineCurve>(
+pub(crate) fn msm<G: AffineCurve>(
     bases: &[G],
     scalars: &[<G::ScalarField as PrimeField>::BigInt],
 ) -> G::Projective {
@@ -114,7 +114,7 @@ pub fn msm<G: AffineCurve>(
 }
 /// Streaming multi-scalar multiplication algorithm with hard-coded chunk
 /// size.
-pub fn msm_chunks<G, F, I: ?Sized, J>(bases_stream: &J, scalars_stream: &I) -> G::Projective
+pub(crate) fn msm_chunks<G, F, I: ?Sized, J>(bases_stream: &J, scalars_stream: &I) -> G::Projective
 where
     G: AffineCurve<ScalarField = F>,
     I: Iterable,
