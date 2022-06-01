@@ -5,15 +5,7 @@ use ark_std::{cfg_iter, cfg_iter_mut, vec::Vec};
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
 
-pub fn get_mul_window_size(num_scalars: usize) -> usize {
-    if num_scalars < 32 {
-        3
-    } else {
-        super::ln_without_floats(num_scalars)
-    }
-}
-
-pub fn get_window_table<T: ProjectiveCurve>(
+pub(crate) fn get_window_table<T: ProjectiveCurve>(
     scalar_size: usize,
     window: usize,
     g: T,

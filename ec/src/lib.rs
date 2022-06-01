@@ -38,7 +38,7 @@ use ark_std::{
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
 
-use msm::{msm, msm_chunks};
+use msm::{get_window_table, ln_without_floats, msm, msm_chunks};
 use num_traits::Zero;
 use zeroize::Zeroize;
 
@@ -246,6 +246,18 @@ pub trait ProjectiveCurve:
         cfg_iter!(v)
             .map(|e| windowed_mul::<Self>(outerc, window, table, e))
             .collect::<Vec<_>>()
+    }
+
+    fn get_msm_window_table(scalar_size: usize, window: usize, g: Self) -> Vec<Vec<Self::Affine>> {
+        get_window_table(scalar_size, window, g)
+    }
+
+    fn get_msm_window_size(num_scalars: usize) -> usize {
+        if num_scalars < 32 {
+            3
+        } else {
+            ln_without_floats(num_scalars)
+        }
     }
 }
 
