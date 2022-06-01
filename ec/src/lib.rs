@@ -27,17 +27,24 @@ use ark_ff::{
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use ark_std::{
     borrow::Borrow,
+    cfg_iter,
     fmt::{Debug, Display},
     hash::Hash,
     iterable::Iterable,
     ops::{Add, AddAssign, MulAssign, Neg, Sub, SubAssign},
     vec::Vec,
 };
+
+#[cfg(feature = "parallel")]
+use rayon::prelude::*;
+
 use msm::{msm, msm_chunks};
 use num_traits::Zero;
 use zeroize::Zeroize;
 
 pub mod models;
+use crate::msm::windowed_mul;
+
 pub use self::models::*;
 
 pub mod glv;
@@ -224,6 +231,22 @@ pub trait ProjectiveCurve:
 
     /// Performs scalar multiplication of this element.
     fn mul<S: AsRef<[u64]>>(self, other: S) -> Self;
+
+    // TODO use const-generics for the scalar size and window
+    // TODO use iterators of iterators of T::Affine instead of taking owned Vec
+    fn fixed_base_msm(
+        scalar_size: usize,
+        window: usize,
+        table: &[Vec<Self::Affine>],
+        v: &[Self::ScalarField],
+    ) -> Vec<Self> {
+        let outerc = (scalar_size + window - 1) / window;
+        assert!(outerc <= table.len());
+
+        cfg_iter!(v)
+            .map(|e| windowed_mul::<Self>(outerc, window, table, e))
+            .collect::<Vec<_>>()
+    }
 }
 
 /// Affine representation of an elliptic curve point guaranteed to be
