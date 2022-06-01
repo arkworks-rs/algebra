@@ -31,6 +31,7 @@ use ark_std::{
     ops::{Add, AddAssign, MulAssign, Neg, Sub, SubAssign},
     vec::Vec,
 };
+use msm::VariableBase;
 use num_traits::Zero;
 use zeroize::Zeroize;
 
@@ -305,6 +306,21 @@ pub trait AffineCurve:
     #[must_use]
     fn mul_by_cofactor_inv(&self) -> Self {
         self.mul(Self::Parameters::COFACTOR_INV).into()
+    }
+
+    /// Optimized implementation of multi-scalar multiplication.
+    ///
+    /// Will multiply the tuples of the diagonal product of `bases × scalars`
+    /// and sum the resulting set. Will iterate only for the elements of the
+    /// smallest of the two sets, ignoring the remaining elements of the biggest
+    /// set.
+    ///
+    /// ∑i (Bi · Si)
+    fn variable_base_msm(
+        bases: &[Self],
+        scalars: &[<Self::ScalarField as PrimeField>::BigInt],
+    ) -> Self::Projective {
+        VariableBase::msm(bases, scalars)
     }
 }
 

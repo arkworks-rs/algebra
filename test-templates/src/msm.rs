@@ -1,5 +1,5 @@
 use ark_ec::{
-    msm::{ChunkedPippenger, HashMapPippenger, VariableBase},
+    msm::{ChunkedPippenger, HashMapPippenger},
     AffineCurve, ProjectiveCurve,
 };
 use ark_ff::{PrimeField, UniformRand, Zero};
@@ -30,7 +30,7 @@ pub fn test_var_base_msm<G: AffineCurve>() {
     let g = <G::Projective as ProjectiveCurve>::batch_normalization_into_affine(&g);
 
     let naive = naive_var_base_msm(g.as_slice(), v.as_slice());
-    let fast = VariableBase::msm(g.as_slice(), v.as_slice());
+    let fast = G::variable_base_msm(g.as_slice(), v.as_slice());
 
     assert_eq!(naive.into_affine(), fast.into_affine());
 }
@@ -48,7 +48,7 @@ pub fn test_chunked_pippenger<G: AffineCurve>() {
         .collect::<Vec<_>>();
     let g = <G::Projective as ProjectiveCurve>::batch_normalization_into_affine(&g);
 
-    let arkworks = VariableBase::msm(g.as_slice(), v.as_slice());
+    let arkworks = G::variable_base_msm(g.as_slice(), v.as_slice());
 
     let mut p = ChunkedPippenger::<G>::new(1 << 20);
     for (s, g) in v.iter().zip(g) {
@@ -76,7 +76,7 @@ pub fn test_hashmap_pippenger<G: AffineCurve>() {
         .collect::<Vec<_>>();
     let g = <G::Projective as ProjectiveCurve>::batch_normalization_into_affine(&g);
 
-    let arkworks = VariableBase::msm(g.as_slice(), v.as_slice());
+    let arkworks = G::variable_base_msm(g.as_slice(), v.as_slice());
 
     let mut p = HashMapPippenger::<G>::new(1 << 20);
     for (s, g) in v_scal.iter().zip(g) {
