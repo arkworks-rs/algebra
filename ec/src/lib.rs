@@ -26,12 +26,14 @@ use ark_ff::{
 };
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use ark_std::{
+    borrow::Borrow,
     fmt::{Debug, Display},
     hash::Hash,
+    iterable::Iterable,
     ops::{Add, AddAssign, MulAssign, Neg, Sub, SubAssign},
     vec::Vec,
 };
-use msm::VariableBase;
+use msm::{msm, msm_chunks};
 use num_traits::Zero;
 use zeroize::Zeroize;
 
@@ -320,7 +322,34 @@ pub trait AffineCurve:
         bases: &[Self],
         scalars: &[<Self::ScalarField as PrimeField>::BigInt],
     ) -> Self::Projective {
-        VariableBase::msm(bases, scalars)
+        msm(bases, scalars)
+    }
+
+    /// Optimized implementation of multi-scalar multiplication.
+    ///
+    /// Will return `None` if `bases` and `scalar` have different lengths.
+    ///
+    /// Reference: [`VariableBase::msm`]
+    fn variable_base_msm_checked_len(
+        bases: &[Self],
+        scalars: &[<Self::ScalarField as PrimeField>::BigInt],
+    ) -> Option<Self::Projective> {
+        (bases.len() == scalars.len()).then(|| Self::variable_base_msm(bases, scalars))
+    }
+
+    fn variable_base_msm_chunks<G, F, I: ?Sized, J>(
+        bases_stream: &J,
+        scalars_stream: &I,
+    ) -> G::Projective
+    where
+        G: AffineCurve<ScalarField = F>,
+        I: Iterable,
+        F: PrimeField,
+        I::Item: Borrow<F>,
+        J: Iterable,
+        J::Item: Borrow<G>,
+    {
+        msm_chunks(bases_stream, scalars_stream)
     }
 }
 

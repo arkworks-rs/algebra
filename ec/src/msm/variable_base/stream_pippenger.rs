@@ -44,7 +44,7 @@ impl<G: AffineCurve> ChunkedPippenger<G> {
         self.scalars_buffer.push(*scalar.borrow());
         self.bases_buffer.push(*base.borrow());
         if self.scalars_buffer.len() == self.buf_size {
-            self.result.add_assign(crate::msm::VariableBase::msm(
+            self.result.add_assign(G::variable_base_msm(
                 self.bases_buffer.as_slice(),
                 self.scalars_buffer.as_slice(),
             ));
@@ -57,7 +57,7 @@ impl<G: AffineCurve> ChunkedPippenger<G> {
     #[inline(always)]
     pub fn finalize(mut self) -> G::Projective {
         if !self.scalars_buffer.is_empty() {
-            self.result.add_assign(crate::msm::VariableBase::msm(
+            self.result.add_assign(G::variable_base_msm(
                 self.bases_buffer.as_slice(),
                 self.scalars_buffer.as_slice(),
             ));
@@ -104,9 +104,7 @@ impl<G: AffineCurve> HashMapPippenger<G> {
                 .map(|s| s.into_bigint())
                 .collect::<Vec<_>>();
             self.result
-                .add_assign(crate::msm::variable_base::VariableBase::msm(
-                    &bases, &scalars,
-                ));
+                .add_assign(G::variable_base_msm(&bases, &scalars));
             self.buffer.clear();
         }
     }
@@ -123,9 +121,7 @@ impl<G: AffineCurve> HashMapPippenger<G> {
                 .collect::<Vec<_>>();
 
             self.result
-                .add_assign(crate::msm::variable_base::VariableBase::msm(
-                    &bases, &scalars,
-                ));
+                .add_assign(G::variable_base_msm(&bases, &scalars));
         }
         self.result
     }
