@@ -6,8 +6,6 @@ use ark_std::{
     vec::Vec,
 };
 
-use crate::AffineCurve;
-
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
 
@@ -21,10 +19,12 @@ pub trait VariableBaseMSM:
     + Zero
     + Clone
     + Send
+    + AddAssign<Self>
     + for<'a> AddAssign<&'a Self>
     + for<'a> Add<&'a Self, Output = Self>
 {
     type MSMBase: Sync;
+
     type Scalar: PrimeField;
 
     fn double_in_place(&mut self) -> &mut Self;
@@ -36,12 +36,12 @@ pub trait VariableBaseMSM:
     /// Will return `None` if `bases` and `scalar` have different lengths.
     ///
     /// Reference: [`VariableBase::msm`]
-    // fn msm_checked_len<G: AffineCurve>(
-    //     bases: &[G],
-    //     scalars: &[<G::ScalarField as PrimeField>::BigInt],
-    // ) -> Option<G::Projective> {
-    //     (bases.len() == scalars.len()).then(|| Self::msm(bases, scalars))
-    // }
+    fn msm_checked_len(
+        bases: &[Self::MSMBase],
+        scalars: &[<Self::Scalar as PrimeField>::BigInt]
+    ) -> Option<Self> {
+        (bases.len() == scalars.len()).then(|| Self::msm(bases, scalars))
+    }
 
     /// Optimized implementation of multi-scalar multiplication.
     ///
@@ -145,14 +145,12 @@ pub trait VariableBaseMSM:
     }
     /// Streaming multi-scalar multiplication algorithm with hard-coded chunk
     /// size.
-    fn msm_chunks<G, F, I: ?Sized, J>(bases_stream: &J, scalars_stream: &I) -> G::Projective
+    fn msm_chunks<I: ?Sized, J>(bases_stream: &J, scalars_stream: &I) -> Self
     where
-        G: AffineCurve<ScalarField = F>,
         I: Iterable,
-        F: PrimeField,
-        I::Item: Borrow<F>,
+        I::Item: Borrow<Self::Scalar>,
         J: Iterable,
-        J::Item: Borrow<G>,
+        J::Item: Borrow<Self::MSMBase>,
     {
         assert!(scalars_stream.len() <= bases_stream.len());
 
@@ -165,7 +163,7 @@ pub trait VariableBaseMSM:
         // See <https://github.com/rust-lang/rust/issues/77404>
         let mut bases = bases_init.skip(bases_stream.len() - scalars_stream.len());
         let step: usize = 1 << 20;
-        let mut result = G::Projective::zero();
+        let mut result = Self::zero();
         for _ in 0..(scalars_stream.len() + step - 1) / step {
             let bases_step = (&mut bases)
                 .take(step)
@@ -175,10 +173,7 @@ pub trait VariableBaseMSM:
                 .take(step)
                 .map(|s| s.borrow().into_bigint())
                 .collect::<Vec<_>>();
-            result.add_assign(crate::msm::VariableBase::msm(
-                bases_step.as_slice(),
-                scalars_step.as_slice(),
-            ));
+            result.add_assign(Self::msm(bases_step.as_slice(), scalars_step.as_slice()));
         }
         result
     }
