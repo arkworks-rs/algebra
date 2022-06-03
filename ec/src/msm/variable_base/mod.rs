@@ -18,12 +18,13 @@ pub trait VariableBaseMSM:
     + Sync
     + Zero
     + Clone
+    + Copy
     + Send
     + AddAssign<Self>
     + for<'a> AddAssign<&'a Self>
     + for<'a> Add<&'a Self, Output = Self>
 {
-    type MSMBase: Sync;
+    type MSMBase: Sync + Copy;
 
     type Scalar: PrimeField;
 
