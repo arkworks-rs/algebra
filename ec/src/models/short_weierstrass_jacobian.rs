@@ -16,7 +16,7 @@ use ark_ff::{
     ToConstraintField, UniformRand,
 };
 
-use crate::{models::SWModelParameters as Parameters, AffineCurve, ProjectiveCurve};
+use crate::{models::SWModelParameters as Parameters, AffineCurve, ProjectiveCurve, msm::VariableBaseMSM};
 
 use num_traits::{One, Zero};
 use zeroize::Zeroize;
@@ -909,5 +909,19 @@ where
     #[inline]
     fn to_field_elements(&self) -> Option<Vec<ConstraintF>> {
         GroupAffine::from(*self).to_field_elements()
+    }
+}
+
+impl<P: Parameters> VariableBaseMSM for GroupProjective<P> {
+    type MSMBase = <Self as ProjectiveCurve>::Affine;
+
+    type Scalar = <Self as ProjectiveCurve>::ScalarField;
+
+    fn double_in_place(&mut self) -> &mut Self {
+        self.double_in_place()
+    }
+
+    fn add_assign_mixed(&mut self, other: &Self::MSMBase) {
+        self.add_assign_mixed(other)
     }
 }
