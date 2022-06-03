@@ -5,6 +5,8 @@ use ark_ff::{PrimeField, Zero};
 use ark_std::{borrow::Borrow, ops::AddAssign, vec::Vec};
 use hashbrown::HashMap;
 
+use super::VariableBaseMSM;
+
 /// Struct for the chunked Pippenger algorithm.
 pub struct ChunkedPippenger<G: AffineCurve> {
     scalars_buffer: Vec<<G::ScalarField as PrimeField>::BigInt>,
@@ -13,7 +15,7 @@ pub struct ChunkedPippenger<G: AffineCurve> {
     buf_size: usize,
 }
 
-impl<G: AffineCurve> ChunkedPippenger<G> {
+impl<G> ChunkedPippenger<G> where G: AffineCurve, G::Projective: VariableBaseMSM<MSMBase = G, Scalar = G::ScalarField> {
     /// Initialize a chunked Pippenger instance with default parameters.
     pub fn new(max_msm_buffer: usize) -> Self {
         Self {
@@ -40,11 +42,12 @@ impl<G: AffineCurve> ChunkedPippenger<G> {
     where
         B: Borrow<G>,
         S: Borrow<<G::ScalarField as PrimeField>::BigInt>,
+        
     {
         self.scalars_buffer.push(*scalar.borrow());
         self.bases_buffer.push(*base.borrow());
         if self.scalars_buffer.len() == self.buf_size {
-            self.result.add_assign(crate::msm::VariableBase::msm(
+            self.result.add_assign(<G::Projective as VariableBaseMSM>::msm(
                 self.bases_buffer.as_slice(),
                 self.scalars_buffer.as_slice(),
             ));
@@ -57,7 +60,7 @@ impl<G: AffineCurve> ChunkedPippenger<G> {
     #[inline(always)]
     pub fn finalize(mut self) -> G::Projective {
         if !self.scalars_buffer.is_empty() {
-            self.result.add_assign(crate::msm::VariableBase::msm(
+            self.result.add_assign(<G::Projective as VariableBaseMSM>::msm(
                 self.bases_buffer.as_slice(),
                 self.scalars_buffer.as_slice(),
             ));
@@ -73,7 +76,7 @@ pub struct HashMapPippenger<G: AffineCurve> {
     buf_size: usize,
 }
 
-impl<G: AffineCurve> HashMapPippenger<G> {
+impl<G> HashMapPippenger<G> where G: AffineCurve, G::Projective: VariableBaseMSM<MSMBase = G, Scalar = G::ScalarField> {
     /// Produce a new hash map with the maximum msm buffer size.
     pub fn new(max_msm_buffer: usize) -> Self {
         Self {
@@ -104,7 +107,7 @@ impl<G: AffineCurve> HashMapPippenger<G> {
                 .map(|s| s.into_bigint())
                 .collect::<Vec<_>>();
             self.result
-                .add_assign(crate::msm::variable_base::VariableBase::msm(
+                .add_assign(G::Projective::msm(
                     &bases, &scalars,
                 ));
             self.buffer.clear();
@@ -123,7 +126,7 @@ impl<G: AffineCurve> HashMapPippenger<G> {
                 .collect::<Vec<_>>();
 
             self.result
-                .add_assign(crate::msm::variable_base::VariableBase::msm(
+                .add_assign(G::Projective::msm(
                     &bases, &scalars,
                 ));
         }
