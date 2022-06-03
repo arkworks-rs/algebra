@@ -913,7 +913,7 @@ where
 }
 
 impl<P: Parameters> VariableBaseMSM for GroupProjective<P> {
-    type MSMBase = <Self as ProjectiveCurve>::Affine;
+    type MSMBase = GroupAffine<P>;
 
     type Scalar = <Self as ProjectiveCurve>::ScalarField;
 
