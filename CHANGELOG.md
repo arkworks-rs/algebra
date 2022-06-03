@@ -33,7 +33,7 @@
 - [\#396](https://github.com/arkworks-rs/algebra/pull/396) (`ark-ec`) Remove `mul_bits` feature, and remove default implementations of `mul` and `mul_by_cofactor_to_projective`.
 - [\#408](https://github.com/arkworks-rs/algebra/pull/408) (`ark-ff`) Change the output of `Display` formatting for BigInt & Fp from hex to decimal.
 - [\#412](https://github.com/arkworks-rs/algebra/pull/412) (`ark-poly`) Rename UV/MVPolynomial to DenseUV/MVPolynomial.
-- [\#423](https://github.com/arkworks-rs/algebra/pull/412) (`ark-ec`) Refactor `{FixedBase,VariableBase}` structs to `{Fixed,Variable}BaseMSM` traits and implement these for `GroupProjective`.
+- [\#425](https://github.com/arkworks-rs/algebra/pull/425) (`ark-ec`) Refactor `{FixedBase,VariableBase}` structs to `{Fixed,Variable}BaseMSM` traits and implement these for `GroupProjective`.
 
 ### Features
 
