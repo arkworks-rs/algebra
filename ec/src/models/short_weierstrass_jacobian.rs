@@ -16,7 +16,9 @@ use ark_ff::{
     ToConstraintField, UniformRand,
 };
 
-use crate::{models::SWModelParameters as Parameters, AffineCurve, ProjectiveCurve, msm::VariableBaseMSM};
+use crate::{
+    models::SWModelParameters as Parameters, msm::VariableBaseMSM, AffineCurve, ProjectiveCurve,
+};
 
 use num_traits::{One, Zero};
 use zeroize::Zeroize;

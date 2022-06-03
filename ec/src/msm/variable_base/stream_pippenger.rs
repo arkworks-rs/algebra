@@ -15,7 +15,11 @@ pub struct ChunkedPippenger<G: AffineCurve> {
     buf_size: usize,
 }
 
-impl<G> ChunkedPippenger<G> where G: AffineCurve, G::Projective: VariableBaseMSM<MSMBase = G, Scalar = G::ScalarField> {
+impl<G> ChunkedPippenger<G>
+where
+    G: AffineCurve,
+    G::Projective: VariableBaseMSM<MSMBase = G, Scalar = G::ScalarField>,
+{
     /// Initialize a chunked Pippenger instance with default parameters.
     pub fn new(max_msm_buffer: usize) -> Self {
         Self {
@@ -42,15 +46,15 @@ impl<G> ChunkedPippenger<G> where G: AffineCurve, G::Projective: VariableBaseMSM
     where
         B: Borrow<G>,
         S: Borrow<<G::ScalarField as PrimeField>::BigInt>,
-        
     {
         self.scalars_buffer.push(*scalar.borrow());
         self.bases_buffer.push(*base.borrow());
         if self.scalars_buffer.len() == self.buf_size {
-            self.result.add_assign(<G::Projective as VariableBaseMSM>::msm(
-                self.bases_buffer.as_slice(),
-                self.scalars_buffer.as_slice(),
-            ));
+            self.result
+                .add_assign(<G::Projective as VariableBaseMSM>::msm(
+                    self.bases_buffer.as_slice(),
+                    self.scalars_buffer.as_slice(),
+                ));
             self.scalars_buffer.clear();
             self.bases_buffer.clear();
         }
@@ -60,10 +64,11 @@ impl<G> ChunkedPippenger<G> where G: AffineCurve, G::Projective: VariableBaseMSM
     #[inline(always)]
     pub fn finalize(mut self) -> G::Projective {
         if !self.scalars_buffer.is_empty() {
-            self.result.add_assign(<G::Projective as VariableBaseMSM>::msm(
-                self.bases_buffer.as_slice(),
-                self.scalars_buffer.as_slice(),
-            ));
+            self.result
+                .add_assign(<G::Projective as VariableBaseMSM>::msm(
+                    self.bases_buffer.as_slice(),
+                    self.scalars_buffer.as_slice(),
+                ));
         }
         self.result
     }
@@ -76,7 +81,11 @@ pub struct HashMapPippenger<G: AffineCurve> {
     buf_size: usize,
 }
 
-impl<G> HashMapPippenger<G> where G: AffineCurve, G::Projective: VariableBaseMSM<MSMBase = G, Scalar = G::ScalarField> {
+impl<G> HashMapPippenger<G>
+where
+    G: AffineCurve,
+    G::Projective: VariableBaseMSM<MSMBase = G, Scalar = G::ScalarField>,
+{
     /// Produce a new hash map with the maximum msm buffer size.
     pub fn new(max_msm_buffer: usize) -> Self {
         Self {
@@ -106,10 +115,7 @@ impl<G> HashMapPippenger<G> where G: AffineCurve, G::Projective: VariableBaseMSM
                 .values()
                 .map(|s| s.into_bigint())
                 .collect::<Vec<_>>();
-            self.result
-                .add_assign(G::Projective::msm(
-                    &bases, &scalars,
-                ));
+            self.result.add_assign(G::Projective::msm(&bases, &scalars));
             self.buffer.clear();
         }
     }
@@ -125,10 +131,7 @@ impl<G> HashMapPippenger<G> where G: AffineCurve, G::Projective: VariableBaseMSM
                 .map(|s| s.into_bigint())
                 .collect::<Vec<_>>();
 
-            self.result
-                .add_assign(G::Projective::msm(
-                    &bases, &scalars,
-                ));
+            self.result.add_assign(G::Projective::msm(&bases, &scalars));
         }
         self.result
     }

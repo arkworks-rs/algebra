@@ -39,7 +39,7 @@ pub trait VariableBaseMSM:
     /// Reference: [`VariableBase::msm`]
     fn msm_checked_len(
         bases: &[Self::MSMBase],
-        scalars: &[<Self::Scalar as PrimeField>::BigInt]
+        scalars: &[<Self::Scalar as PrimeField>::BigInt],
     ) -> Option<Self> {
         (bases.len() == scalars.len()).then(|| Self::msm(bases, scalars))
     }

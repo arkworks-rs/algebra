@@ -16,7 +16,11 @@ fn naive_var_base_msm<G: AffineCurve>(
     acc
 }
 
-pub fn test_var_base_msm<G> () where G: AffineCurve, G::Projective: VariableBaseMSM<MSMBase = G, Scalar = G::ScalarField> {
+pub fn test_var_base_msm<G>()
+where
+    G: AffineCurve,
+    G::Projective: VariableBaseMSM<MSMBase = G, Scalar = G::ScalarField>,
+{
     const SAMPLES: usize = 1 << 10;
 
     let mut rng = ark_std::test_rng();
@@ -35,7 +39,11 @@ pub fn test_var_base_msm<G> () where G: AffineCurve, G::Projective: VariableBase
     assert_eq!(naive.into_affine(), fast.into_affine());
 }
 
-pub fn test_chunked_pippenger<G> () where G: AffineCurve, G::Projective: VariableBaseMSM<MSMBase = G, Scalar = G::ScalarField> {
+pub fn test_chunked_pippenger<G>()
+where
+    G: AffineCurve,
+    G::Projective: VariableBaseMSM<MSMBase = G, Scalar = G::ScalarField>,
+{
     const SAMPLES: usize = 1 << 10;
 
     let mut rng = ark_std::test_rng();
@@ -58,7 +66,11 @@ pub fn test_chunked_pippenger<G> () where G: AffineCurve, G::Projective: Variabl
     assert_eq!(arkworks.into_affine(), mine.into_affine());
 }
 
-pub fn test_hashmap_pippenger<G>() where G: AffineCurve, G::Projective: VariableBaseMSM<MSMBase = G, Scalar = G::ScalarField> {
+pub fn test_hashmap_pippenger<G>()
+where
+    G: AffineCurve,
+    G::Projective: VariableBaseMSM<MSMBase = G, Scalar = G::ScalarField>,
+{
     const SAMPLES: usize = 1 << 10;
 
     let mut rng = ark_std::test_rng();
