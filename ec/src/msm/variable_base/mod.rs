@@ -1,7 +1,12 @@
 use ark_ff::{prelude::*, PrimeField};
-use ark_std::{borrow::Borrow, iterable::Iterable, ops::AddAssign, vec::Vec};
+use ark_std::{
+    borrow::Borrow,
+    iterable::Iterable,
+    ops::{Add, AddAssign},
+    vec::Vec,
+};
 
-use crate::{AffineCurve, ProjectiveCurve};
+use crate::AffineCurve;
 
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
@@ -9,20 +14,34 @@ use rayon::prelude::*;
 pub mod stream_pippenger;
 pub use stream_pippenger::*;
 
-pub struct VariableBase;
+pub trait VariableBaseMSM:
+    Eq
+    + Sized
+    + Sync
+    + Zero
+    + Clone
+    + Send
+    + for<'a> AddAssign<&'a Self>
+    + for<'a> Add<&'a Self, Output = Self>
+{
+    type MSMBase: Sync;
+    type Scalar: PrimeField;
 
-impl VariableBase {
+    fn double_in_place(&mut self) -> &mut Self;
+
+    fn add_assign_mixed(&mut self, other: &Self::MSMBase);
+
     /// Optimized implementation of multi-scalar multiplication.
     ///
     /// Will return `None` if `bases` and `scalar` have different lengths.
     ///
     /// Reference: [`VariableBase::msm`]
-    pub fn msm_checked_len<G: AffineCurve>(
-        bases: &[G],
-        scalars: &[<G::ScalarField as PrimeField>::BigInt],
-    ) -> Option<G::Projective> {
-        (bases.len() == scalars.len()).then(|| Self::msm(bases, scalars))
-    }
+    // fn msm_checked_len<G: AffineCurve>(
+    //     bases: &[G],
+    //     scalars: &[<G::ScalarField as PrimeField>::BigInt],
+    // ) -> Option<G::Projective> {
+    //     (bases.len() == scalars.len()).then(|| Self::msm(bases, scalars))
+    // }
 
     /// Optimized implementation of multi-scalar multiplication.
     ///
@@ -32,10 +51,7 @@ impl VariableBase {
     /// set.
     ///
     /// ∑i (Bi · Si)
-    pub fn msm<G: AffineCurve>(
-        bases: &[G],
-        scalars: &[<G::ScalarField as PrimeField>::BigInt],
-    ) -> G::Projective {
+    fn msm(bases: &[Self::MSMBase], scalars: &[<Self::Scalar as PrimeField>::BigInt]) -> Self {
         let size = ark_std::cmp::min(bases.len(), scalars.len());
         let scalars = &scalars[..size];
         let bases = &bases[..size];
@@ -47,10 +63,10 @@ impl VariableBase {
             super::ln_without_floats(size) + 2
         };
 
-        let num_bits = G::ScalarField::MODULUS_BIT_SIZE as usize;
-        let fr_one = G::ScalarField::one().into_bigint();
+        let num_bits = Self::Scalar::MODULUS_BIT_SIZE as usize;
+        let fr_one = Self::Scalar::one().into_bigint();
 
-        let zero = G::Projective::zero();
+        let zero = Self::zero();
         let window_starts: Vec<_> = (0..num_bits).step_by(c).collect();
 
         // Each window is of size `c`.
@@ -102,7 +118,7 @@ impl VariableBase {
 
                 // `running_sum` = sum_{j in i..num_buckets} bucket[j],
                 // where we iterate backward from i = num_buckets to 0.
-                let mut running_sum = G::Projective::zero();
+                let mut running_sum = Self::zero();
                 buckets.into_iter().rev().for_each(|b| {
                     running_sum += &b;
                     res += &running_sum;
@@ -129,7 +145,7 @@ impl VariableBase {
     }
     /// Streaming multi-scalar multiplication algorithm with hard-coded chunk
     /// size.
-    pub fn msm_chunks<G, F, I: ?Sized, J>(bases_stream: &J, scalars_stream: &I) -> G::Projective
+    fn msm_chunks<G, F, I: ?Sized, J>(bases_stream: &J, scalars_stream: &I) -> G::Projective
     where
         G: AffineCurve<ScalarField = F>,
         I: Iterable,
