@@ -51,7 +51,7 @@ where
         self.bases_buffer.push(*base.borrow());
         if self.scalars_buffer.len() == self.buf_size {
             self.result
-                .add_assign(<G::Projective as VariableBaseMSM>::msm(
+                .add_assign(<G::Projective as VariableBaseMSM>::msm_bigint(
                     self.bases_buffer.as_slice(),
                     self.scalars_buffer.as_slice(),
                 ));
@@ -65,7 +65,7 @@ where
     pub fn finalize(mut self) -> G::Projective {
         if !self.scalars_buffer.is_empty() {
             self.result
-                .add_assign(<G::Projective as VariableBaseMSM>::msm(
+                .add_assign(<G::Projective as VariableBaseMSM>::msm_bigint(
                     self.bases_buffer.as_slice(),
                     self.scalars_buffer.as_slice(),
                 ));
@@ -115,7 +115,8 @@ where
                 .values()
                 .map(|s| s.into_bigint())
                 .collect::<Vec<_>>();
-            self.result.add_assign(G::Projective::msm(&bases, &scalars));
+            self.result
+                .add_assign(G::Projective::msm_bigint(&bases, &scalars));
             self.buffer.clear();
         }
     }
@@ -131,7 +132,8 @@ where
                 .map(|s| s.into_bigint())
                 .collect::<Vec<_>>();
 
-            self.result.add_assign(G::Projective::msm(&bases, &scalars));
+            self.result
+                .add_assign(G::Projective::msm_bigint(&bases, &scalars));
         }
         self.result
     }

@@ -34,27 +34,41 @@ pub trait VariableBaseMSM:
 
     /// Optimized implementation of multi-scalar multiplication.
     ///
-    /// Will return `None` if `bases` and `scalar` have different lengths.
+    /// Multiply the [`ScalarField::BigInt`] elements in `scalars` with the
+    /// respective group elements in `bases` and sum the resulting set.
+    ///
+    /// <section class="warning">
+    ///
+    /// If the elements have different length, it will chop the slices to the
+    /// shortest length between `scalars.len()` and `bases.len()`.
+    ///
+    /// </section>
+    fn msm(bases: &[Self::MSMBase], scalars: &[Self::Scalar]) -> Self {
+        let bigints = cfg_into_iter!(scalars)
+            .map(|s| s.into_bigint())
+            .collect::<Vec<_>>();
+        Self::msm_bigint(bases, &bigints)
+    }
+
+    /// Optimized implementation of multi-scalar multiplication, that checks bounds.
+    ///
+    /// Performs `Self::msm`, checking that `bases` and `scalars` have the same length.
+    /// If the length are not equal, returns an error containing the shortest legth over which msm can be performed.
     ///
     /// Reference: [`VariableBase::msm`]
-    fn msm_checked_len(
-        bases: &[Self::MSMBase],
-        scalars: &[<Self::Scalar as PrimeField>::BigInt],
-    ) -> Option<Self> {
-        (bases.len() == scalars.len()).then(|| Self::msm(bases, scalars))
+    fn msm_checked(bases: &[Self::MSMBase], scalars: &[Self::Scalar]) -> Result<Self, usize> {
+        (bases.len() == scalars.len())
+            .then(|| Self::msm(bases, scalars))
+            .ok_or(usize::min(bases.len(), scalars.len()))
     }
 
     /// Optimized implementation of multi-scalar multiplication.
-    ///
-    /// Will multiply the tuples of the diagonal product of `bases × scalars`
-    /// and sum the resulting set. Will iterate only for the elements of the
-    /// smallest of the two sets, ignoring the remaining elements of the biggest
-    /// set.
-    ///
-    /// ∑i (Bi · Si)
-    fn msm(bases: &[Self::MSMBase], scalars: &[<Self::Scalar as PrimeField>::BigInt]) -> Self {
-        let size = ark_std::cmp::min(bases.len(), scalars.len());
-        let scalars = &scalars[..size];
+    fn msm_bigint(
+        bases: &[Self::MSMBase],
+        bigints: &[<Self::Scalar as PrimeField>::BigInt],
+    ) -> Self {
+        let size = ark_std::cmp::min(bases.len(), bigints.len());
+        let scalars = &bigints[..size];
         let bases = &bases[..size];
         let scalars_and_bases_iter = scalars.iter().zip(bases).filter(|(s, _)| !s.is_zero());
 
@@ -174,7 +188,10 @@ pub trait VariableBaseMSM:
                 .take(step)
                 .map(|s| s.borrow().into_bigint())
                 .collect::<Vec<_>>();
-            result.add_assign(Self::msm(bases_step.as_slice(), scalars_step.as_slice()));
+            result.add_assign(Self::msm_bigint(
+                bases_step.as_slice(),
+                scalars_step.as_slice(),
+            ));
         }
         result
     }
