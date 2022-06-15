@@ -6,15 +6,16 @@ use ark_ff::{PrimeField, UniformRand, Zero};
 
 fn naive_var_base_msm<G: AffineCurve>(
     bases: &[G],
-    scalars: &[<G::ScalarField as PrimeField>::BigInt],
+    scalars: &[G::ScalarField],
 ) -> G::Projective {
     let mut acc = G::Projective::zero();
 
     for (base, scalar) in bases.iter().zip(scalars.iter()) {
-        acc += &base.mul(*scalar);
+        acc += &base.mul(scalar.into_bigint());
     }
     acc
 }
+
 
 pub fn test_var_base_msm<G>()
 where
@@ -25,8 +26,8 @@ where
 
     let mut rng = ark_std::test_rng();
 
-    let v = (0..SAMPLES - 1)
-        .map(|_| G::ScalarField::rand(&mut rng).into_bigint())
+    let v = (0..SAMPLES)
+        .map(|_| G::ScalarField::rand(&mut rng))
         .collect::<Vec<_>>();
     let g = (0..SAMPLES)
         .map(|_| G::Projective::rand(&mut rng))
@@ -36,6 +37,7 @@ where
     let naive = naive_var_base_msm(g.as_slice(), v.as_slice());
     let fast = <G::Projective as VariableBaseMSM>::msm(g.as_slice(), v.as_slice());
 
+    // assert!(ark_std::panic::catch_unwind(||  <G::Projective as VariableBaseMSM>::msm(&g[.. SAMPLES], &v[.. SAMPLES-1])).is_err());
     assert_eq!(naive.into_affine(), fast.into_affine());
 }
 
@@ -56,7 +58,7 @@ where
         .collect::<Vec<_>>();
     let g = <G::Projective as ProjectiveCurve>::batch_normalization_into_affine(&g);
 
-    let arkworks = <G::Projective as VariableBaseMSM>::msm(g.as_slice(), v.as_slice());
+    let arkworks = <G::Projective as VariableBaseMSM>::msm_bigint(g.as_slice(), v.as_slice());
 
     let mut p = ChunkedPippenger::<G>::new(1 << 20);
     for (s, g) in v.iter().zip(g) {
@@ -88,7 +90,7 @@ where
         .collect::<Vec<_>>();
     let g = <G::Projective as ProjectiveCurve>::batch_normalization_into_affine(&g);
 
-    let arkworks = <G::Projective as VariableBaseMSM>::msm(g.as_slice(), v.as_slice());
+    let arkworks = <G::Projective as VariableBaseMSM>::msm_bigint(g.as_slice(), v.as_slice());
 
     let mut p = HashMapPippenger::<G>::new(1 << 20);
     for (s, g) in v_scal.iter().zip(g) {
