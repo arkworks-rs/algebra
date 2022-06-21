@@ -52,6 +52,7 @@ impl<F: Field> Polynomial<F> for SparsePolynomial<F, SparseTerm> {
     /// // Create a multivariate polynomial of degree 7
     /// let poly: SparsePolynomial<Fq, SparseTerm> = SparsePolynomial::rand(7, 2, rng);
     /// assert_eq!(poly.degree(), 7);
+    /// ```
     fn degree(&self) -> usize {
         self.terms
             .iter()
