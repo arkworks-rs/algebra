@@ -4,10 +4,7 @@ use ark_ec::{
 };
 use ark_ff::{PrimeField, UniformRand, Zero};
 
-fn naive_var_base_msm<G: AffineCurve>(
-    bases: &[G],
-    scalars: &[G::ScalarField],
-) -> G::Projective {
+fn naive_var_base_msm<G: AffineCurve>(bases: &[G], scalars: &[G::ScalarField]) -> G::Projective {
     let mut acc = G::Projective::zero();
 
     for (base, scalar) in bases.iter().zip(scalars.iter()) {
@@ -15,7 +12,6 @@ fn naive_var_base_msm<G: AffineCurve>(
     }
     acc
 }
-
 
 pub fn test_var_base_msm<G>()
 where
