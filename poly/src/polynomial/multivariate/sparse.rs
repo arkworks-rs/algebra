@@ -80,6 +80,27 @@ impl<F: Field> DenseMVPolynomial<F> for SparsePolynomial<F, SparseTerm> {
     type Term = SparseTerm;
 
     /// Constructs a new polynomial from a list of tuples of the form `(coeff, Self::Term)`
+    ///
+    /// # Examples
+    /// ```
+    /// use ark_poly::{
+    ///     polynomial::multivariate::{SparsePolynomial, SparseTerm, Term},
+    ///     DenseMVPolynomial, Polynomial,
+    /// };
+    /// use ark_test_curves::bls12_381::Fq;
+    ///
+    /// // Create a multivariate polynomial in 3 variables, with 4 terms:
+    /// // 2*x_0^3 + x_0*x_2 + x_1*x_2 + 5
+    /// let poly = SparsePolynomial::from_coefficients_vec(
+    ///     3,
+    ///     vec![
+    ///         (Fq::from(2), SparseTerm::new(vec![(0, 3)])),
+    ///         (Fq::from(1), SparseTerm::new(vec![(0, 1), (2, 1)])),
+    ///         (Fq::from(1), SparseTerm::new(vec![(1, 1), (2, 1)])),
+    ///         (Fq::from(5), SparseTerm::new(vec![])),
+    ///     ],
+    /// );
+    /// ```
     fn from_coefficients_vec(num_vars: usize, mut terms: Vec<(F, SparseTerm)>) -> Self {
         // Ensure that terms are in ascending order.
         terms.sort_by(|(_, t1), (_, t2)| t1.cmp(t2));
