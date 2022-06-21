@@ -47,6 +47,23 @@ impl<F: Field> Polynomial<F> for SparsePolynomial<F, SparseTerm> {
     }
 
     /// Evaluates `self` at the given `point` in `Self::Point`.
+    ///
+    /// # Examples
+    /// ```
+    /// use ark_poly::{
+    ///     polynomial::multivariate::{SparsePolynomial, SparseTerm, Term},
+    ///     DenseMVPolynomial, Polynomial,
+    /// };
+    /// use ark_ff::UniformRand;
+    /// use ark_std::test_rng;
+    /// use ark_test_curves::bls12_381::Fq;
+    ///
+    /// let rng = &mut test_rng();
+    /// let poly = SparsePolynomial::rand(4, 3, rng);
+    /// let random_point = vec![Fq::rand(rng); 3];
+    /// // The result will be a single element in the field.
+    /// let result: Fq = poly.evaluate(&random_point);
+    /// ```
     fn evaluate(&self, point: &Vec<F>) -> F {
         assert!(point.len() >= self.num_vars, "Invalid evaluation domain");
         if self.is_zero() {
