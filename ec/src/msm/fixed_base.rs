@@ -1,6 +1,6 @@
 use crate::{AffineCurve, ProjectiveCurve};
 use ark_ff::{BigInteger, PrimeField};
-use ark_std::{borrow::Borrow, cfg_iter, cfg_iter_mut, vec::Vec};
+use ark_std::{cfg_iter, cfg_iter_mut, vec::Vec};
 
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
@@ -81,17 +81,17 @@ impl FixedBase {
 
     // TODO use const-generics for the scalar size and window
     // TODO use iterators of iterators of T::Affine instead of taking owned Vec
-    pub fn msm<C, I>(scalar_size: usize, window: usize, table: &[Vec<C::Affine>], v: I) -> Vec<C>
-    where
-        C: ProjectiveCurve,
-        I: IntoIterator,
-        I::Item: Borrow<C::ScalarField>,
-    {
+    pub fn msm<T: ProjectiveCurve>(
+        scalar_size: usize,
+        window: usize,
+        table: &[Vec<T::Affine>],
+        v: &[T::ScalarField],
+    ) -> Vec<T> {
         let outerc = (scalar_size + window - 1) / window;
         assert!(outerc <= table.len());
 
-        cfg_into_iter!(v)
-            .map(|e| Self::windowed_mul::<C>(outerc, window, table, e.borrow()))
+        cfg_iter!(v)
+            .map(|e| Self::windowed_mul::<T>(outerc, window, table, e))
             .collect::<Vec<_>>()
     }
 }
