@@ -172,7 +172,7 @@ impl<P: Parameters> Add<Self> for GroupAffine<P> {
 impl<'a, P: Parameters> AddAssign<&'a Self> for GroupAffine<P> {
     fn add_assign(&mut self, other: &'a Self) {
         let mut s_proj = GroupProjective::from(*self);
-        ProjectiveCurve::add_assign_mixed(&mut s_proj, other);
+        s_proj.add_assign_mixed(other);
         *self = s_proj.into();
     }
 }
@@ -563,7 +563,7 @@ impl<P: Parameters> ProjectiveCurve for GroupProjective<P> {
 
         if self.x == u2 && self.y == s2 {
             // The two points are equal, so we double.
-            ProjectiveCurve::double_in_place(self);
+            self.double_in_place();
         } else {
             // If we're adding -a and a together, self.z becomes zero as H becomes zero.
 
@@ -672,7 +672,7 @@ impl<'a, P: Parameters> AddAssign<&'a Self> for GroupProjective<P> {
 
         if u1 == u2 && s1 == s2 {
             // The two points are equal, so we double.
-            ProjectiveCurve::double_in_place(self);
+            self.double_in_place();
         } else {
             // If we're adding -a and a together, self.z becomes zero as H becomes zero.
 
@@ -919,11 +919,13 @@ impl<P: Parameters> VariableBaseMSM for GroupProjective<P> {
 
     type Scalar = <Self as ProjectiveCurve>::ScalarField;
 
-    fn double_in_place(&mut self) -> &mut Self {
-        ProjectiveCurve::double_in_place(self)
+    #[inline]
+    fn _double_in_place(&mut self) -> &mut Self {
+        self.double_in_place()
     }
 
-    fn add_assign_mixed(&mut self, other: &Self::MSMBase) {
-        ProjectiveCurve::add_assign_mixed(self, other)
+    #[inline]
+    fn _add_assign_mixed(&mut self, other: &Self::MSMBase) {
+        self.add_assign_mixed(other)
     }
 }

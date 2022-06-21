@@ -28,9 +28,11 @@ pub trait VariableBaseMSM:
 
     type Scalar: PrimeField;
 
-    fn double_in_place(&mut self) -> &mut Self;
+    #[doc(hidden)]
+    fn _double_in_place(&mut self) -> &mut Self;
 
-    fn add_assign_mixed(&mut self, other: &Self::MSMBase);
+    #[doc(hidden)]
+    fn _add_assign_mixed(&mut self, other: &Self::MSMBase);
 
     /// Optimized implementation of multi-scalar multiplication.
     ///
@@ -98,7 +100,7 @@ pub trait VariableBaseMSM:
                     if scalar == fr_one {
                         // We only process unit scalars once in the first window.
                         if w_start == 0 {
-                            res.add_assign_mixed(base);
+                            res._add_assign_mixed(base);
                         }
                     } else {
                         let mut scalar = scalar;
@@ -114,7 +116,7 @@ pub trait VariableBaseMSM:
                         // bucket.
                         // (Recall that `buckets` doesn't have a zero bucket.)
                         if scalar != 0 {
-                            buckets[(scalar - 1) as usize].add_assign_mixed(base);
+                            buckets[(scalar - 1) as usize]._add_assign_mixed(base);
                         }
                     }
                 });
@@ -153,7 +155,7 @@ pub trait VariableBaseMSM:
                 .fold(zero, |mut total, sum_i| {
                     total += sum_i;
                     for _ in 0..c {
-                        total.double_in_place();
+                        total._double_in_place();
                     }
                     total
                 })
