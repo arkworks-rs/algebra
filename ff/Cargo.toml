@@ -46,3 +46,7 @@ default = []
 std = [ "ark-std/std", "ark-serialize/std" ]
 parallel = [ "std", "rayon", "ark-std/parallel" ]
 asm = []
+
+
+[package.metadata.docs.rs]
+rustdoc-args = ["--html-in-header", "../doc/katex-header.html"]
