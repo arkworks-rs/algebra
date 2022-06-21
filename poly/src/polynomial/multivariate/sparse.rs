@@ -38,6 +38,20 @@ impl<F: Field> Polynomial<F> for SparsePolynomial<F, SparseTerm> {
     type Point = Vec<F>;
 
     /// Returns the total degree of the polynomial
+    ///
+    /// # Examples
+    /// ```
+    /// use ark_poly::{
+    ///     polynomial::multivariate::{SparsePolynomial, SparseTerm},
+    ///     DenseMVPolynomial, Polynomial,
+    /// };
+    /// use ark_std::test_rng;
+    /// use ark_test_curves::bls12_381::Fq;
+    ///
+    /// let rng = &mut test_rng();
+    /// // Create a multivariate polynomial of degree 7
+    /// let poly: SparsePolynomial<Fq, SparseTerm> = SparsePolynomial::rand(7, 2, rng);
+    /// assert_eq!(poly.degree(), 7);
     fn degree(&self) -> usize {
         self.terms
             .iter()
