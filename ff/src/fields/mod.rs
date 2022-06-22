@@ -34,6 +34,52 @@ use ark_std::cmp::max;
 use rayon::prelude::*;
 
 /// The interface for a generic field.
+/// Types implementing [`Field`] support common field operations such as addition, subtraction, multiplication, and inverses.
+///
+/// ## Defining your own field
+/// To demonstrate the various field operations, we can first define a prime ordered field $\mathbb{F}_{p}$ with $p = 17$. When defining a field $\mathbb{F}_p$, we need to provide the modulus(the $p$ in $\mathbb{F}_p$) and a generator. Recall that a generator $g \in \mathbb{F}_p$ is a field element whose powers comprise the entire field: $\mathbb{F}_p =\\{g, g^1, \ldots, g^{p-1}\\}$.
+/// We can then manually construct the field element associated with an integer by calling `Fp::from` and perform addition, subtraction, multiplication, and inversion.
+/// ```rust
+/// use ark_ff::fields::{Field, Fp64, MontBackend, MontConfig};
+///
+/// #[derive(MontConfig)]
+/// #[modulus = "17"]
+/// #[generator = "3"]
+/// pub struct FqConfig;
+/// pub type Fq = Fp64<MontBackend<FqConfig, 1>>;
+///
+/// let a = Fq::from(9);
+/// let b = Fq::from(10);
+///
+/// assert_eq!(a, Fq::from(26));          // 26 =  9 mod 17
+/// assert_eq!(a - b, Fq::from(16));      // -1 = 16 mod 17
+/// assert_eq!(a + b, Fq::from(2));       // 19 =  2 mod 17
+/// assert_eq!(a * b, Fq::from(5));       // 90 =  5 mod 17
+/// assert_eq!(a.square(), Fq::from(13)); // 81 = 13 mod 17
+/// assert_eq!(b.double(), Fq::from(3));  // 20 =  3 mod 17
+/// assert_eq!(a / b, a * b.inverse().unwrap()); // need to unwrap since `b` could be 0 which is not invertible
+/// ```
+///
+/// ## Using pre-defined fields
+/// In the following example, we’ll use the field associated with the BLS12-381 pairing-friendly group which we access from [`ark_bls12_381`](https://docs.rs/ark-bls12-381/0.3.0/ark_bls12_381/).
+/// ```rust
+/// use ark_ff::Field;
+/// use ark_bls12_381::Fq2 as F;
+/// use ark_std::{One, UniformRand};
+///
+/// let mut rng = ark_std::rand::thread_rng();
+/// // Let's sample uniformly random field elements:
+/// let a = F::rand(&mut rng);
+/// let b = F::rand(&mut rng);
+///
+/// let c = a + b;
+/// let d = a - b;
+/// assert_eq!(c + d, a.double());
+///
+/// let e = c * d;
+/// assert_eq!(e, a.square() - b.square());         // (a + b)(a - c) = a^2 - b^2
+/// assert_eq!(a.inverse().unwrap() * a, F::one()); // Euler-Fermat theorem tells us: a * a^{-1} = 1 mod p
+/// ```
 pub trait Field:
     'static
     + Copy
@@ -266,7 +312,27 @@ pub trait FftField: Field {
     }
 }
 
-/// The interface for a prime field, i.e. the field of integers modulo a prime p.
+/// The interface for a prime field, i.e. the field of integers modulo a prime $p$.
+/// In the following example we'll use the prime field underlying the BLS12-381 G1 curve.
+/// ```rust
+/// use ark_ff::{Field, PrimeField, FpParameters, BigInteger};
+/// use ark_bls12_381::Fq as F;
+/// use ark_std::{One, Zero, UniformRand};
+///
+/// let mut rng = ark_std::rand::thread_rng();
+/// let a = F::rand(&mut rng);
+/// // We can access the prime modulus associated with `F`:
+/// let modulus = <F as PrimeField>::MODULUS;
+/// assert_eq!(a.pow(&modulus), a); // the Euler-Fermat theorem tells us: a^{p-1} = 1 mod p
+///
+/// // We can convert field elements to integers in the range [0, MODULUS - 1]:
+/// let one: num_bigint::BigUint = F::one().into();
+/// assert_eq!(one, num_bigint::BigUint::one());
+///
+/// // We can construct field elements from an arbitrary sequence of bytes:
+/// let n = F::from_le_bytes_mod_order(&modulus.to_bytes_le());
+/// assert_eq!(n, F::zero());
+/// ```
 pub trait PrimeField:
     Field<BasePrimeField = Self>
     + FftField
