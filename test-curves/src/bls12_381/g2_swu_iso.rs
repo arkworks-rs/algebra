@@ -99,17 +99,17 @@ pub const G2_GENERATOR_Y_C1: Fq = MontFp!(Fq, "347020557560111175564150279686487
 // Finite Field in X of size 4002409555221667393417789825735904156556882819939007885332058136124031650490837864442687629129015664037894272559787^2
 // sage: Fq2.primitive_element()
 // X + 2
-// sage: Zeta = _
-// sage: Zeta
+// sage: XI = _
+// sage: XI
 // X + 2
-// sage: Xi = Fq2(-Fq2.gens()[0] - 2)
-// sage: Xi == -Zeta
+// sage: ZETA = Fq2(-Fq2.gens()[0] - 2)
+// sage: ZETA == -XI
 // True
-// sage: (Xi/Zeta).square_root()
+// sage: (ZETA/XI).square_root()
 //X
 impl SWUParams for SwuIsoParameters {    
-    const XI : Fq2 = QuadExt!(MontFp!(Fq, "-2"), MontFp!(Fq, "-1"),); //a nonsquare in Fq ietf standard
-    const ZETA: Fq2 = QuadExt!(MontFp!(Fq, "2"), MontFp!(Fq, "1"),);  //arbitatry primitive root of unity (element)
-    const XI_ON_ZETA_SQRT: Fq2 = QuadExt!(MontFp!(Fq, "0"), MontFp!(Fq, "1"),); ////square root of THETA=Xi/Zeta
+    const ZETA : Fq2 = QuadExt!(MontFp!(Fq, "-2"), MontFp!(Fq, "-1"),); //a nonsquare in Fq ietf standard
+    const XI: Fq2 = QuadExt!(MontFp!(Fq, "2"), MontFp!(Fq, "1"),);  //arbitatry primitive root of unity (element)
+    const ZETA_ON_XI_SQRT: Fq2 = QuadExt!(MontFp!(Fq, "0"), MontFp!(Fq, "1"),); ////square root of THETA=ZETA/XI
 
 }

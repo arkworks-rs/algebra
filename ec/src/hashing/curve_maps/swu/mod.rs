@@ -15,14 +15,14 @@ use crate::{
 /// - [\[WB2019\]] <https://eprint.iacr.org/2019/403>
 pub trait SWUParams: SWModelParameters {
     /// An element of the base field that is not a square root see \[WB2019, Section 4\].
-    /// It is also convenient to have $g(b/xi * a)$ to be square. In general
-    /// we use a `XI` with low absolute value coefficients when they are
+    /// It is also convenient to have $g(b/ZETA * a)$ to be square. In general
+    /// we use a `ZETA` with low absolute value coefficients when they are
     /// represented as integers.
-    const XI: Self::BaseField;
-    /// An arbitrary nonsquare conveniently chosen to be a primitive element of the base field
     const ZETA: Self::BaseField;
-    /// Square root of `THETA = Self::XI/Self::ZETA`.
-    const XI_ON_ZETA_SQRT: Self::BaseField;
+    /// An arbitrary nonsquare conveniently chosen to be a primitive element of the base field
+    const XI: Self::BaseField;
+    /// Square root of `THETA = Self::ZETA/Self::XI`.
+    const ZETA_ON_XI_SQRT: Self::BaseField;
 }
 
 /// Represents the SWU hash-to-curve map defined by `P`.
@@ -43,27 +43,27 @@ pub fn parity<F: Field>(element: &F) -> bool {
 impl<P: SWUParams> MapToCurve<GroupAffine<P>> for SWUMap<P> {
     /// Constructs a new map if `P` represents a valid map.
     fn new() -> Result<Self, HashToCurveError> {
-        // Verifying that both XI and ZETA are non-squares
-        if P::XI.legendre().is_qr() || P::ZETA.legendre().is_qr() {
+        // Verifying that both ZETA and XI are non-squares
+        if P::ZETA.legendre().is_qr() || P::XI.legendre().is_qr() {
             return Err(HashToCurveError::MapToCurveError(
-                "both xi and zeta should be quadratic non-residues for the SWU map".to_string(),
+                "both ZETA and XI should be quadratic non-residues for the SWU map".to_string(),
             ));
         }
 
         // Verifying precomupted values
-        let xi_on_zeta = P::XI / P::ZETA;
-        match xi_on_zeta.sqrt() {
-            Some(xi_on_zeta_sqrt) => {
-                if xi_on_zeta_sqrt != P::XI_ON_ZETA_SQRT && xi_on_zeta_sqrt != -P::XI_ON_ZETA_SQRT {
+        let zeta_on_xi = P::ZETA / P::XI;
+        match zeta_on_xi.sqrt() {
+            Some(zeta_on_xi_sqrt) => {
+                if zeta_on_xi_sqrt != P::ZETA_ON_XI_SQRT && zeta_on_xi_sqrt != -P::ZETA_ON_XI_SQRT {
                     return Err(HashToCurveError::MapToCurveError(
-                        "precomputed P::XI_ON_ZETA_SQRT is not what it is supposed to be"
+                        "precomputed P::ZETA_ON_XI_SQRT is not what it is supposed to be"
                             .to_string(),
                     ));
                 }
             },
             None => {
                 panic!(
-                    "`xi_on_zeta` was expected to have a sqrt, since the numerator and denominator are non-residues and Legendre symbol is multiplicative. Q.E.D"
+                    "`ZETA_ON_XI` was expected to have a sqrt, since the numerator and denominator are non-residues and Legendre symbol is multiplicative. Q.E.D"
                 );
             },
         }
@@ -105,40 +105,41 @@ impl<P: SWUParams> MapToCurve<GroupAffine<P>> for SWUMap<P> {
         //   gx1 = num_gx1/div_gx1 = [num_x1^3 + A * num_x1 * div^2 + B * div^3] / div^3
         let a = P::COEFF_A;
         let b = P::COEFF_B;
-        let xi_t2 = P::XI * point.square();
-        let ta = xi_t2.square() + xi_t2;
+
+        let zeta_u2 = P::ZETA * point.square();
+        let ta = zeta_u2.square() + zeta_u2;
         let num_x1 = b * (ta + <P::BaseField as One>::one());
-        let div = a * if ta.is_zero() { P::XI } else { -ta };
+        let div = a * if ta.is_zero() { P::ZETA } else { -ta };
+
         let num2_x1 = num_x1.square();
         let div2 = div.square();
         let div3 = div2 * div;
         let num_gx1 = (num2_x1 + a * div2) * num_x1 + b * div3;
 
         // 5. x2 = Z * u^2 * x1
-        let num_x2 = xi_t2 * num_x1; // same div
+        let num_x2 = zeta_u2 * num_x1; // same div
 
         // 6. gx2 = x2^3 + A * x2 + B  [optimized out; see below]
         // 7. If is_square(gx1), set x = x1 and y = sqrt(gx1)
         // 8. Else set x = x2 and y = sqrt(gx2)
         let gx1_square;
         let gx1;
-        let zeta_gx1;
 
         assert!(
             !div3.is_zero(),
-            "we have checked that neither a or xi are zero. Q.E.D."
+            "we have checked that neither a or ZETA are zero. Q.E.D."
         );
         let y1: P::BaseField = {
             gx1 = num_gx1 / div3;
-            zeta_gx1 = P::ZETA * gx1;
             if gx1.legendre().is_qr() {
                 gx1_square = true;
                 gx1.sqrt()
                     .expect("We have checked that gx1 is a quadratic residue. Q.E.D")
             } else {
+                let zeta_gx1 = P::ZETA * gx1;
                 gx1_square = false;
                 zeta_gx1.sqrt().expect(
-                    "zeta * gx1 is a quadratic residue because legard is multiplicative. Q.E.D",
+                    "ZETA * gx1 is a quadratic residue because legard is multiplicative. Q.E.D",
                 )
             }
         };
@@ -159,8 +160,9 @@ impl<P: SWUParams> MapToCurve<GroupAffine<P>> for SWUMap<P> {
         // u^3 * y1 is a square root of gx2. Note that we don't actually need to
         // compute gx2.
 
-        let y2 = P::XI_ON_ZETA_SQRT * xi_t2 * point * y1;
+        let y2 = zeta_u2 * point * y1;
         let num_x = if gx1_square { num_x1 } else { num_x2 };
+        println!("gx1_square = {}", gx1_square);
         let y = if gx1_square { y1 } else { y2 };
 
         let x_affine = num_x / div;
@@ -235,9 +237,9 @@ mod test {
     }
 
     impl SWUParams for TestSWUMapToCurveParams {
-        const XI: F127 = MontFp!(F127, "-1");
-        const ZETA: F127 = MontFp!(F127, "3");
-        const XI_ON_ZETA_SQRT: F127 = MontFp!(F127, "13");
+        const ZETA: F127 = MontFp!(F127, "-1");
+        const XI: F127 = MontFp!(F127, "3");
+        const ZETA_ON_XI_SQRT: F127 = MontFp!(F127, "13");
     }
 
     /// test that MontFp make a none zero element out of 1
@@ -260,10 +262,10 @@ mod test {
         assert!(num / den == num_on_den);
     }
 
-    /// Check that the hashing parameters are sane: zeta should be a non-square
+    /// Check that the hashing parameters are sane: XI should be a non-square
     #[test]
     fn checking_the_hashing_parameters() {
-        assert!(SquareRootField::legendre(&TestSWUMapToCurveParams::ZETA).is_qr() == false);
+        assert!(SquareRootField::legendre(&TestSWUMapToCurveParams::XI).is_qr() == false);
     }
 
     /// The point of the test is to get a simple SWU compatible curve and make

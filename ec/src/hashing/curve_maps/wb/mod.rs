@@ -190,11 +190,11 @@ mod test {
     /// SWU parameters for E_isogenous
     impl SWUParams for TestSWU127MapToIsogenousCurveParams {
         /// NON-SQUARE = - 1
-        const XI: F127 = MontFp!(F127, "-1");
+        const ZETA: F127 = MontFp!(F127, "-1");
         /// A Primitive Root of unity = 3
-        const ZETA: F127 = MontFp!(F127, "3");
-        /// sqrt(Xi/Zeta)
-        const XI_ON_ZETA_SQRT: F127 = MontFp!(F127, "13");
+        const XI: F127 = MontFp!(F127, "3");
+        /// sqrt(ZETA/XI)
+        const ZETA_ON_XI_SQRT: F127 = MontFp!(F127, "13");
     }
 
     /// E_isogenous : Elliptic Curve defined by y^2 = x^3 + 109*x + 124 over Finite

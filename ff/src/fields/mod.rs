@@ -86,7 +86,7 @@ pub trait Field:
     + From<bool>
 {
     type BasePrimeField: PrimeField;
-    type BasePrimeFieldIter: Iterator<Item = Self::BasePrimeField>;
+    type BasePrimeFieldIter: Iterator<Item = Self::BasePrimeField> + DoubleEndedIterator;
 
     /// Returns the characteristic of the field,
     /// in little-endian representation.
