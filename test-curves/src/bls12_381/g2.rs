@@ -23,16 +23,16 @@ impl ModelParameters for Parameters {
     /// = 305502333931268344200999753193121504214466019254188142667664032982267604182971884026507427359259977847832272839041616661285803823378372096355777062779109
     #[rustfmt::skip]
     const COFACTOR: &'static [u64] = &[
-        0xbc69f08f2ee75b35,
-        0x84c6a0ea91b35288,
-        0x8e2a8e9145ad7689,
-        0x986ff031508ffe13,
-        0x29c2f178731db956,
-        0xd82bf015d1212b02,
-        0xec0ec69d7477c1ae,
-        0x954cbc06689f6a35,
-        0x9894c0adebbf6b4e,
-        0x8020005aaa95551
+        0xe8020005aaa95551,
+        0x59894c0adebbf6b4,
+        0xe954cbc06689f6a3,
+        0x2ec0ec69d7477c1a,
+        0x6d82bf015d1212b0,
+        0x329c2f178731db95,
+        0x9986ff031508ffe1,
+        0x88e2a8e9145ad768,
+        0x584c6a0ea91b3528,
+        0xbc69f08f2ee75b3,
     ];
 
     /// COFACTOR_INV = COFACTOR^{-1} mod r
