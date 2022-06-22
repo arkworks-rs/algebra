@@ -162,7 +162,6 @@ impl<P: SWUParams> MapToCurve<GroupAffine<P>> for SWUMap<P> {
 
         let y2 = zeta_u2 * point * y1;
         let num_x = if gx1_square { num_x1 } else { num_x2 };
-        println!("gx1_square = {}", gx1_square);
         let y = if gx1_square { y1 } else { y2 };
 
         let x_affine = num_x / div;

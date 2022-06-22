@@ -64,7 +64,6 @@ where
 
         let rand_curve_elem = rand_curve_elem_0 + rand_curve_elem_1;
         let rand_subgroup_elem = rand_curve_elem.mul_by_cofactor();
-        // let rand_subgroup_elem = rand_curve_elem;
 
         Ok((rand_subgroup_elem, rand_curve_elem_0, rand_curve_elem_1))
     }
