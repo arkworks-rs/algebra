@@ -47,7 +47,7 @@ where
     // traits. This uses the IETF hash to curve's specification for Random
     // oracle encoding (hash_to_curve) defined by combining these components.
     // See https://tools.ietf.org/html/draft-irtf-cfrg-hash-to-curve-09#section-3
-    fn hash(&self, msg: &[u8]) -> Result<(T, T, T), HashToCurveError> {
+    fn hash(&self, msg: &[u8]) -> Result<T, HashToCurveError> {
         // IETF spec of hash_to_curve, from hash_to_field and map_to_curve
         // sub-components
         // 1. u = hash_to_field(msg, 2)
@@ -65,6 +65,6 @@ where
         let rand_curve_elem = rand_curve_elem_0 + rand_curve_elem_1;
         let rand_subgroup_elem = rand_curve_elem.mul_by_cofactor();
 
-        Ok((rand_subgroup_elem, rand_curve_elem_0, rand_curve_elem_1))
+        Ok(rand_subgroup_elem)
     }
 }

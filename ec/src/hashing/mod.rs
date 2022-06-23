@@ -13,7 +13,7 @@ pub trait HashToCurve<T: AffineCurve>: Sized {
     /// Produce a hash of the message, which also depends on the domain.
     /// The output of the hash is a curve point in the prime order subgroup
     /// of the given elliptic curve.
-    fn hash(&self, message: &[u8]) -> Result<(T, T, T), HashToCurveError>;
+    fn hash(&self, message: &[u8]) -> Result<T, HashToCurveError>;
 }
 
 /// This is an error that could occur during the hash to curve process

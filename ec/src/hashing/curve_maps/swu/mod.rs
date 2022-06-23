@@ -250,7 +250,7 @@ mod test {
         let hash_result = test_swu_to_curve_hasher.hash(b"if you stick a Babel fish in your ear you can instantly understand anything said to you in any form of language.").expect("fail to hash the string to curve");
 
         assert!(
-            hash_result.0.is_on_curve(),
+            hash_result.is_on_curve(),
             "hash results into a point off the curve"
         );
     }
