@@ -29,10 +29,6 @@ pub struct Map {
 pub struct Vector {
     #[serde(rename = "P")]
     pub p: P,
-    #[serde(rename = "Q0")]
-    pub q0: P,
-    #[serde(rename = "Q1")]
-    pub q1: P,
     pub msg: String,
     pub u: Vec<String>,
 }
