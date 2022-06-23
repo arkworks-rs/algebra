@@ -38,7 +38,7 @@ use rayon::prelude::*;
 ///
 /// ## Defining your own field
 /// To demonstrate the various field operations, we can first define a prime ordered field $\mathbb{F}_{p}$ with $p = 17$. When defining a field $\mathbb{F}_p$, we need to provide the modulus(the $p$ in $\mathbb{F}_p$) and a generator. Recall that a generator $g \in \mathbb{F}_p$ is a field element whose powers comprise the entire field: $\mathbb{F}_p =\\{g, g^1, \ldots, g^{p-1}\\}$.
-/// We can then manually construct the field element associated with an integer by calling `Fp::from` and perform addition, subtraction, multiplication, and inversion.
+/// We can then manually construct the field element associated with an integer with `Fp::from` and perform field addition, subtraction, multiplication, and inversion on it.
 /// ```rust
 /// use ark_ff::fields::{Field, Fp64, MontBackend, MontConfig};
 ///
@@ -61,13 +61,13 @@ use rayon::prelude::*;
 /// ```
 ///
 /// ## Using pre-defined fields
-/// In the following example, we’ll use the field associated with the BLS12-381 pairing-friendly group which we access from [`ark_bls12_381`](https://docs.rs/ark-bls12-381/0.3.0/ark_bls12_381/).
+/// In the following example, we’ll use the field associated with the BLS12-381 pairing-friendly group.
 /// ```rust
 /// use ark_ff::Field;
-/// use ark_bls12_381::Fq2 as F;
-/// use ark_std::{One, UniformRand};
+/// use ark_test_curves::bls12_381::Fq as F;
+/// use ark_std::{One, UniformRand, test_rng};
 ///
-/// let mut rng = ark_std::rand::thread_rng();
+/// let mut rng = test_rng();
 /// // Let's sample uniformly random field elements:
 /// let a = F::rand(&mut rng);
 /// let b = F::rand(&mut rng);
@@ -315,11 +315,11 @@ pub trait FftField: Field {
 /// The interface for a prime field, i.e. the field of integers modulo a prime $p$.
 /// In the following example we'll use the prime field underlying the BLS12-381 G1 curve.
 /// ```rust
-/// use ark_ff::{Field, PrimeField, FpParameters, BigInteger};
-/// use ark_bls12_381::Fq as F;
-/// use ark_std::{One, Zero, UniformRand};
+/// use ark_ff::{Field, PrimeField, BigInteger};
+/// use ark_test_curves::bls12_381::Fq as F;
+/// use ark_std::{One, Zero, UniformRand, test_rng};
 ///
-/// let mut rng = ark_std::rand::thread_rng();
+/// let mut rng = test_rng();
 /// let a = F::rand(&mut rng);
 /// // We can access the prime modulus associated with `F`:
 /// let modulus = <F as PrimeField>::MODULUS;
