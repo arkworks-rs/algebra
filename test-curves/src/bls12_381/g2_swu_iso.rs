@@ -2,7 +2,7 @@ use crate::bls12_381::*;
 use ark_ec::models::{ModelParameters, SWModelParameters};
 use ark_ff::{MontFp, QuadExt};
 
-use ark_ec::hashing::curve_maps::swu::{SWUParams};
+use ark_ec::hashing::curve_maps::swu::SWUParams;
 
 #[derive(Clone, Default, PartialEq, Eq)]
 pub struct SwuIsoParameters;
@@ -44,7 +44,6 @@ impl ModelParameters for SwuIsoParameters {
     /// 26652489039290660355457965112010883481355318854675681319708643586776743290055
     #[rustfmt::skip]
     const COFACTOR_INV: Fr = MontFp!(Fr, "26652489039290660355457965112010883481355318854675681319708643586776743290055");
-
 }
 
 // https://datatracker.ietf.org/doc/draft-irtf-cfrg-hash-to-curve/
@@ -68,7 +67,6 @@ impl SWModelParameters for SwuIsoParameters {
     /// AFFINE_GENERATOR_COEFFS = (G2_GENERATOR_X, G2_GENERATOR_Y)
     const AFFINE_GENERATOR_COEFFS: (Self::BaseField, Self::BaseField) =
         (G2_GENERATOR_X, G2_GENERATOR_Y);
-
 }
 
 pub const G2_GENERATOR_X: Fq2 = QuadExt!(G2_GENERATOR_X_C0, G2_GENERATOR_X_C1);
@@ -94,8 +92,7 @@ pub const G2_GENERATOR_Y_C0: Fq = MontFp!(Fq, "300275008528995056215639197196930
 #[rustfmt::skip]
 pub const G2_GENERATOR_Y_C1: Fq = MontFp!(Fq, "347020557560111175564150279686487416538085532798697633906066128669670325197422119639641125873165591545442034801173");
 
-impl SWUParams for SwuIsoParameters {    
+impl SWUParams for SwuIsoParameters {
     // ZETA = -(2 + u) as per IETF draft.
-    const ZETA : Fq2 = QuadExt!(MontFp!(Fq, "-2"), MontFp!(Fq, "-1"),);
-
+    const ZETA: Fq2 = QuadExt!(MontFp!(Fq, "-2"), MontFp!(Fq, "-1"),);
 }

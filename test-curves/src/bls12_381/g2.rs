@@ -1,10 +1,10 @@
 use crate::bls12_381::*;
 use ark_ec::{
     bls12,
+    hashing::curve_maps::wb::WBParams,
     models::{ModelParameters, SWModelParameters},
     short_weierstrass_jacobian::GroupAffine,
     AffineCurve,
-    hashing::curve_maps::wb::WBParams,
 };
 use ark_ff::{BigInt, Field, MontFp, QuadExt, Zero};
 
@@ -147,8 +147,7 @@ pub fn p_power_endomorphism(p: &GroupAffine<Parameters>) -> GroupAffine<Paramete
     res
 }
 
-impl WBParams for Parameters
-{
+impl WBParams for Parameters {
     type IsogenousCurve = g2_swu_iso::SwuIsoParameters;
 
     const PHI_X_NOM: &'static [<Self::IsogenousCurve as ModelParameters>::BaseField] = &[
@@ -165,7 +164,7 @@ impl WBParams for Parameters
                    MontFp!(Fq, "3557697382419259905260257622876359250272784728834673675850718343221361467102966990615722337003569479144794908942033"), 
                    MontFp!(Fq, "0")),
     ];
-    
+
     const PHI_X_DEN: &'static [<Self::IsogenousCurve as ModelParameters>::BaseField] = &[
         QuadExt!(
                    MontFp!(Fq, "0"), 
@@ -177,7 +176,7 @@ impl WBParams for Parameters
                    MontFp!(Fq, "1"), 
                    MontFp!(Fq, "0")),
     ];
-    
+
     const PHI_Y_NOM: &'static [<Self::IsogenousCurve as ModelParameters>::BaseField] = &[
         QuadExt!(
                    MontFp!(Fq, "3261222600550988246488569487636662646083386001431784202863158481286248011511053074731078808919938689216061999863558"), 
@@ -192,7 +191,7 @@ impl WBParams for Parameters
                    MontFp!(Fq, "2816510427748580758331037284777117739799287910327449993381818688383577828123182200904113516794492504322962636245776"), 
                    MontFp!(Fq, "0")),
     ];
-    
+
     const PHI_Y_DEN: &'static [<Self::IsogenousCurve as ModelParameters>::BaseField] = &[
         QuadExt!(
                    MontFp!(Fq, "4002409555221667393417789825735904156556882819939007885332058136124031650490837864442687629129015664037894272559355"), 
