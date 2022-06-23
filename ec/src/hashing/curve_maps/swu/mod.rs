@@ -19,10 +19,6 @@ pub trait SWUParams: SWModelParameters {
     /// we use a `ZETA` with low absolute value coefficients when they are
     /// represented as integers.
     const ZETA: Self::BaseField;
-    /// An arbitrary nonsquare conveniently chosen to be a primitive element of the base field
-    const XI: Self::BaseField;
-    /// Square root of `THETA = Self::ZETA/Self::XI`.
-    const ZETA_ON_XI_SQRT: Self::BaseField;
 }
 
 /// Represents the SWU hash-to-curve map defined by `P`.
@@ -43,29 +39,11 @@ pub fn parity<F: Field>(element: &F) -> bool {
 impl<P: SWUParams> MapToCurve<GroupAffine<P>> for SWUMap<P> {
     /// Constructs a new map if `P` represents a valid map.
     fn new() -> Result<Self, HashToCurveError> {
-        // Verifying that both ZETA and XI are non-squares
-        if P::ZETA.legendre().is_qr() || P::XI.legendre().is_qr() {
+        // Verifying that ZETA is a non-square
+        if P::ZETA.legendre().is_qr() {
             return Err(HashToCurveError::MapToCurveError(
-                "both ZETA and XI should be quadratic non-residues for the SWU map".to_string(),
+                "ZETA should be a quadratic non-residue for the SWU map".to_string(),
             ));
-        }
-
-        // Verifying precomupted values
-        let zeta_on_xi = P::ZETA / P::XI;
-        match zeta_on_xi.sqrt() {
-            Some(zeta_on_xi_sqrt) => {
-                if zeta_on_xi_sqrt != P::ZETA_ON_XI_SQRT && zeta_on_xi_sqrt != -P::ZETA_ON_XI_SQRT {
-                    return Err(HashToCurveError::MapToCurveError(
-                        "precomputed P::ZETA_ON_XI_SQRT is not what it is supposed to be"
-                            .to_string(),
-                    ));
-                }
-            },
-            None => {
-                panic!(
-                    "`ZETA_ON_XI` was expected to have a sqrt, since the numerator and denominator are non-residues and Legendre symbol is multiplicative. Q.E.D"
-                );
-            },
         }
 
         // Verifying the prerequisite for applicability  of SWU map
@@ -184,7 +162,6 @@ mod test {
     use ark_std::vec::Vec;
 
     use super::*;
-    use ark_ff::SquareRootField;
     use ark_ff::{fields::Fp64, MontBackend, MontFp};
     use hashbrown::HashMap;
     use sha2::Sha256;
@@ -237,8 +214,6 @@ mod test {
 
     impl SWUParams for TestSWUMapToCurveParams {
         const ZETA: F127 = MontFp!(F127, "-1");
-        const XI: F127 = MontFp!(F127, "3");
-        const ZETA_ON_XI_SQRT: F127 = MontFp!(F127, "13");
     }
 
     /// test that MontFp make a none zero element out of 1
@@ -259,12 +234,6 @@ mod test {
         let num_on_den = F127::from(0x50);
 
         assert!(num / den == num_on_den);
-    }
-
-    /// Check that the hashing parameters are sane: XI should be a non-square
-    #[test]
-    fn checking_the_hashing_parameters() {
-        assert!(SquareRootField::legendre(&TestSWUMapToCurveParams::XI).is_qr() == false);
     }
 
     /// The point of the test is to get a simple SWU compatible curve and make
