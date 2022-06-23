@@ -33,7 +33,7 @@ use ark_std::cmp::max;
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
 
-/// The interface for a generic field.
+/// The interface for a generic field.  
 /// Types implementing [`Field`] support common field operations such as addition, subtraction, multiplication, and inverses.
 ///
 /// ## Defining your own field
@@ -312,7 +312,7 @@ pub trait FftField: Field {
     }
 }
 
-/// The interface for a prime field, i.e. the field of integers modulo a prime $p$.
+/// The interface for a prime field, i.e. the field of integers modulo a prime $p$.  
 /// In the following example we'll use the prime field underlying the BLS12-381 G1 curve.
 /// ```rust
 /// use ark_ff::{Field, PrimeField, BigInteger};
