@@ -36,7 +36,7 @@ pub trait VariableBaseMSM:
 
     /// Optimized implementation of multi-scalar multiplication.
     ///
-    /// Multiply the [`ScalarField::BigInt`] elements in `scalars` with the
+    /// Multiply the [`PrimeField`] elements in `scalars` with the
     /// respective group elements in `bases` and sum the resulting set.
     ///
     /// <section class="warning">
@@ -57,7 +57,7 @@ pub trait VariableBaseMSM:
     /// Performs `Self::msm`, checking that `bases` and `scalars` have the same length.
     /// If the length are not equal, returns an error containing the shortest legth over which msm can be performed.
     ///
-    /// Reference: [`VariableBase::msm`]
+    /// Reference: [`VariableBaseMSM::msm`]
     fn msm_checked(bases: &[Self::MSMBase], scalars: &[Self::Scalar]) -> Result<Self, usize> {
         (bases.len() == scalars.len())
             .then(|| Self::msm(bases, scalars))
