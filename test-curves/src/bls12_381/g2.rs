@@ -23,16 +23,14 @@ impl ModelParameters for Parameters {
     /// = 305502333931268344200999753193121504214466019254188142667664032982267604182971884026507427359259977847832272839041616661285803823378372096355777062779109
     #[rustfmt::skip]
     const COFACTOR: &'static [u64] = &[
-        0xe8020005aaa95551,
-        0x59894c0adebbf6b4,
-        0xe954cbc06689f6a3,
-        0x2ec0ec69d7477c1a,
-        0x6d82bf015d1212b0,
-        0x329c2f178731db95,
-        0x9986ff031508ffe1,
-        0x88e2a8e9145ad768,
-        0x584c6a0ea91b3528,
-        0xbc69f08f2ee75b3,
+        0xcf1c38e31c7238e5,
+        0x1616ec6e786f0c70,
+        0x21537e293a6691ae,
+        0xa628f1cb4d9e82ef,
+        0xa68a205b2e5a7ddf,
+        0xcd91de4547085aba,
+        0x91d50792876a202,
+        0x5d543a95414e7f1,
     ];
 
     /// COFACTOR_INV = COFACTOR^{-1} mod r
@@ -74,6 +72,25 @@ impl SWModelParameters for Parameters {
         let p_times_point = p_power_endomorphism(point);
 
         x_times_point.eq(&p_times_point)
+    }
+
+    #[inline]
+    fn clear_cofactor(p: &G2Affine) -> G2Affine {
+        // Using the effective cofactor, as explained in
+        // Section 5 of https://eprint.iacr.org/2019/403.pdf.
+        let h_eff: &'static [u64] = &[
+            0xe8020005aaa95551,
+            0x59894c0adebbf6b4,
+            0xe954cbc06689f6a3,
+            0x2ec0ec69d7477c1a,
+            0x6d82bf015d1212b0,
+            0x329c2f178731db95,
+            0x9986ff031508ffe1,
+            0x88e2a8e9145ad768,
+            0x584c6a0ea91b3528,
+            0xbc69f08f2ee75b3,
+        ];
+        Parameters::mul_affine(&p, h_eff).into()
     }
 }
 
