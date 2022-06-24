@@ -12,10 +12,6 @@ impl Fp2Config for Fq2Config {
     #[rustfmt::skip]
     const NONRESIDUE: Fq = MontFp!(Fq, "-1");
 
-    /// QUADRATIC_NONRESIDUE = (U + 1)
-    #[rustfmt::skip]
-    const QUADRATIC_NONRESIDUE: Fq2 = QuadExt!(FQ_ONE, FQ_ONE);
-
     /// Coefficients for the Frobenius automorphism.
     #[rustfmt::skip]
     const FROBENIUS_COEFF_FP2_C1: &'static [Fq] = &[
