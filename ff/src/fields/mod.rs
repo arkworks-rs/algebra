@@ -77,7 +77,7 @@ use rayon::prelude::*;
 /// assert_eq!(c + d, a.double());
 ///
 /// let e = c * d;
-/// assert_eq!(e, a.square() - b.square());         // (a + b)(a - c) = a^2 - b^2
+/// assert_eq!(e, a.square() - b.square());         // (a + b)(a - b) = a^2 - b^2
 /// assert_eq!(a.inverse().unwrap() * a, F::one()); // Euler-Fermat theorem tells us: a * a^{-1} = 1 mod p
 /// ```
 pub trait Field:
