@@ -232,6 +232,14 @@ impl<P: Parameters> AffineCurve for GroupAffine<P> {
     fn mul_by_cofactor_to_projective(&self) -> Self::Projective {
         P::mul_affine(self, Self::Parameters::COFACTOR)
     }
+
+    /// Performs cofactor clearing.
+    /// The default method is simply to multiply by the cofactor.
+    /// Some curves can implement a more efficient algorithm.
+    #[must_use]
+    fn clear_cofactor(&self) -> Self {
+        P::clear_cofactor(&self)
+    }
 }
 
 impl<P: Parameters> Neg for GroupAffine<P> {

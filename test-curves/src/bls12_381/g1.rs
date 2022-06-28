@@ -40,6 +40,17 @@ impl SWModelParameters for Parameters {
     fn mul_by_a(_: &Self::BaseField) -> Self::BaseField {
         Self::BaseField::zero()
     }
+
+    #[inline]
+    fn clear_cofactor(p: &G1Affine) -> G1Affine {
+        // Using the effective cofactor, as explained in
+        // Section 5 of https://eprint.iacr.org/2019/403.pdf.
+        //
+        // It is enough to multiply by (x - 1), instead of (x - 1)^2 / 3
+        // sqrt(76329603384216526031706109802092473003*3) = 15132376222941642753
+        let h_eff: &[u64] = &[0xd201000000010001];
+        Parameters::mul_affine(&p, h_eff).into()
+    }
 }
 
 /// G1_GENERATOR_X =

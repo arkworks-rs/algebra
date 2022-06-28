@@ -46,6 +46,7 @@
 - [\#386](https://github.com/arkworks-rs/algebra/pull/386) (`ark-ff-macros`, `ark-ff`) Add a macro to derive `MontConfig`.
 - [\#396](https://github.com/arkworks-rs/algebra/pull/396) (`ark-ec`) Add a default `mul` function to `{TE,SW}ModelParameters` trait definition.
 - [\#397](https://github.com/arkworks-rs/algebra/pull/397) (`ark-ec`) Add `HashMapPippenger` to variable-base MSM.
+- [\#420](https://github.com/arkworks-rs/algebra/pull/420) (`ark-ec`) Add a `clear_cofactor` method to `AffineCurve`.
 
 ### Improvements
 
