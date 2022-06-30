@@ -1,7 +1,8 @@
 #![allow(unused)]
 use ark_ec::{
-    twisted_edwards_extended::GroupProjective, wnaf::WnafContext, AffineCurve,
-    MontgomeryModelParameters, ProjectiveCurve, SWModelParameters, TEModelParameters,
+    short_weierstrass_jacobian::GroupAffine, twisted_edwards_extended::GroupProjective,
+    wnaf::WnafContext, AffineCurve, MontgomeryModelParameters, ProjectiveCurve, SWModelParameters,
+    TEModelParameters,
 };
 use ark_ff::{Field, One, PrimeField, UniformRand, Zero};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, SWFlags, SerializationError};
@@ -302,6 +303,7 @@ pub fn sw_tests<P: SWModelParameters>() {
     sw_curve_serialization_test::<P>();
     sw_from_random_bytes::<P>();
     sw_affine_sum_test::<P>();
+    sw_cofactor_clearing_test::<P>();
 }
 
 pub fn sw_from_random_bytes<P: SWModelParameters>() {
@@ -433,6 +435,16 @@ pub fn sw_affine_sum_test<P: SWModelParameters>() {
     }
 }
 
+fn sw_cofactor_clearing_test<P: SWModelParameters>() {
+    let mut rng = ark_std::test_rng();
+
+    for _ in 0..ITERATIONS {
+        let a = GroupAffine::<P>::rand(&mut rng);
+        let b = a.clear_cofactor();
+        assert!(b.is_in_correct_subgroup_assuming_on_curve());
+    }
+}
+
 pub fn montgomery_conversion_test<P>()
 where
     P: TEModelParameters,
@@ -454,6 +466,7 @@ where
 {
     edwards_curve_serialization_test::<P>();
     edwards_from_random_bytes::<P>();
+    edwards_cofactor_clearing_test::<P>();
 }
 
 pub fn edwards_from_random_bytes<P: TEModelParameters>()
@@ -557,5 +570,15 @@ pub fn edwards_curve_serialization_test<P: TEModelParameters>() {
             let b = GroupAffine::<P>::deserialize_uncompressed(&mut cursor).unwrap();
             assert_eq!(a, b);
         }
+    }
+}
+
+fn edwards_cofactor_clearing_test<P: TEModelParameters>() {
+    let mut rng = ark_std::test_rng();
+
+    for _ in 0..ITERATIONS {
+        let a = GroupProjective::<P>::rand(&mut rng).into_affine();
+        let b = a.clear_cofactor();
+        assert!(b.is_in_correct_subgroup_assuming_on_curve());
     }
 }
