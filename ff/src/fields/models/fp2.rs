@@ -12,9 +12,6 @@ pub trait Fp2Config: 'static + Send + Sync + Sized {
     /// `f(X) = X^2 - Self::NONRESIDUE` in Fp\[X\] is irreducible in `Self::Fp`.
     const NONRESIDUE: Self::Fp;
 
-    /// A quadratic nonresidue in Fp2, used for calculating square roots in Fp2.
-    const QUADRATIC_NONRESIDUE: Fp2<Self>;
-
     /// Coefficients for the Frobenius automorphism.
     const FROBENIUS_COEFF_FP2_C1: &'static [Self::Fp];
 

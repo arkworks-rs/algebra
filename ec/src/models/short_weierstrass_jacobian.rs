@@ -15,7 +15,9 @@ use ark_ff::{
     ToConstraintField, UniformRand,
 };
 
-use crate::{models::SWModelParameters as Parameters, AffineCurve, ProjectiveCurve};
+use crate::{
+    models::SWModelParameters as Parameters, msm::VariableBaseMSM, AffineCurve, ProjectiveCurve,
+};
 
 use num_traits::{One, Zero};
 use zeroize::Zeroize;
@@ -230,6 +232,14 @@ impl<P: Parameters> AffineCurve for GroupAffine<P> {
     #[must_use]
     fn mul_by_cofactor_to_projective(&self) -> Self::Projective {
         P::mul_affine(self, Self::Parameters::COFACTOR)
+    }
+
+    /// Performs cofactor clearing.
+    /// The default method is simply to multiply by the cofactor.
+    /// Some curves can implement a more efficient algorithm.
+    #[must_use]
+    fn clear_cofactor(&self) -> Self {
+        P::clear_cofactor(&self)
     }
 }
 
@@ -870,5 +880,21 @@ where
     #[inline]
     fn to_field_elements(&self) -> Option<Vec<ConstraintF>> {
         GroupAffine::from(*self).to_field_elements()
+    }
+}
+
+impl<P: Parameters> VariableBaseMSM for GroupProjective<P> {
+    type MSMBase = GroupAffine<P>;
+
+    type Scalar = <Self as ProjectiveCurve>::ScalarField;
+
+    #[inline]
+    fn _double_in_place(&mut self) -> &mut Self {
+        self.double_in_place()
+    }
+
+    #[inline]
+    fn _add_assign_mixed(&mut self, other: &Self::MSMBase) {
+        self.add_assign_mixed(other)
     }
 }
