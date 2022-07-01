@@ -1,7 +1,10 @@
 use ark_ff::{prelude::*, PrimeField};
-use ark_std::{borrow::Borrow, iterable::Iterable, ops::AddAssign, vec::Vec};
-
-use crate::{AffineCurve, ProjectiveCurve};
+use ark_std::{
+    borrow::Borrow,
+    iterable::Iterable,
+    ops::{Add, AddAssign},
+    vec::Vec,
+};
 
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
@@ -9,35 +12,65 @@ use rayon::prelude::*;
 pub mod stream_pippenger;
 pub use stream_pippenger::*;
 
-pub struct VariableBase;
+pub trait VariableBaseMSM:
+    Eq
+    + Sized
+    + Sync
+    + Zero
+    + Clone
+    + Copy
+    + Send
+    + AddAssign<Self>
+    + for<'a> AddAssign<&'a Self>
+    + for<'a> Add<&'a Self, Output = Self>
+{
+    type MSMBase: Sync + Copy;
 
-impl VariableBase {
+    type Scalar: PrimeField;
+
+    #[doc(hidden)]
+    fn _double_in_place(&mut self) -> &mut Self;
+
+    #[doc(hidden)]
+    fn _add_assign_mixed(&mut self, other: &Self::MSMBase);
+
     /// Optimized implementation of multi-scalar multiplication.
     ///
-    /// Will return `None` if `bases` and `scalar` have different lengths.
+    /// Multiply the [`PrimeField`] elements in `scalars` with the
+    /// respective group elements in `bases` and sum the resulting set.
     ///
-    /// Reference: [`VariableBase::msm`]
-    pub fn msm_checked_len<G: AffineCurve>(
-        bases: &[G],
-        scalars: &[<G::ScalarField as PrimeField>::BigInt],
-    ) -> Option<G::Projective> {
-        (bases.len() == scalars.len()).then(|| Self::msm(bases, scalars))
+    /// <section class="warning">
+    ///
+    /// If the elements have different length, it will chop the slices to the
+    /// shortest length between `scalars.len()` and `bases.len()`.
+    ///
+    /// </section>
+    fn msm(bases: &[Self::MSMBase], scalars: &[Self::Scalar]) -> Self {
+        let bigints = cfg_into_iter!(scalars)
+            .map(|s| s.into_bigint())
+            .collect::<Vec<_>>();
+        Self::msm_bigint(bases, &bigints)
+    }
+
+    /// Optimized implementation of multi-scalar multiplication, that checks bounds.
+    ///
+    /// Performs `Self::msm`, checking that `bases` and `scalars` have the same length.
+    /// If the length are not equal, returns an error containing the shortest legth over which msm can be performed.
+    ///
+    /// Reference: [`VariableBaseMSM::msm`]
+    fn msm_checked(bases: &[Self::MSMBase], scalars: &[Self::Scalar]) -> Result<Self, usize> {
+        (bases.len() == scalars.len())
+            .then(|| Self::msm(bases, scalars))
+            .ok_or(usize::min(bases.len(), scalars.len()))
     }
 
     /// Optimized implementation of multi-scalar multiplication.
-    ///
-    /// Will multiply the tuples of the diagonal product of `bases × scalars`
-    /// and sum the resulting set. Will iterate only for the elements of the
-    /// smallest of the two sets, ignoring the remaining elements of the biggest
-    /// set.
-    ///
-    /// ∑i (Bi · Si)
-    pub fn msm<G: AffineCurve>(
-        bases: &[G],
-        scalars: &[<G::ScalarField as PrimeField>::BigInt],
-    ) -> G::Projective {
-        let size = ark_std::cmp::min(bases.len(), scalars.len());
-        let scalars = &scalars[..size];
+    fn msm_bigint(
+        bases: &[Self::MSMBase],
+        bigints: &[<Self::Scalar as PrimeField>::BigInt],
+    ) -> Self {
+        let size = ark_std::cmp::min(bases.len(), bigints.len());
+        let scalars = &bigints[..size];
         let bases = &bases[..size];
         let scalars_and_bases_iter = scalars.iter().zip(bases).filter(|(s, _)| !s.is_zero());
 
@@ -47,10 +80,10 @@ impl VariableBase {
             super::ln_without_floats(size) + 2
         };
 
-        let num_bits = G::ScalarField::MODULUS_BIT_SIZE as usize;
-        let fr_one = G::ScalarField::one().into_bigint();
+        let num_bits = Self::Scalar::MODULUS_BIT_SIZE as usize;
+        let fr_one = Self::Scalar::one().into_bigint();
 
-        let zero = G::Projective::zero();
+        let zero = Self::zero();
         let window_starts: Vec<_> = (0..num_bits).step_by(c).collect();
 
         // Each window is of size `c`.
@@ -67,7 +100,7 @@ impl VariableBase {
                     if scalar == fr_one {
                         // We only process unit scalars once in the first window.
                         if w_start == 0 {
-                            res.add_assign_mixed(base);
+                            res._add_assign_mixed(base);
                         }
                     } else {
                         let mut scalar = scalar;
@@ -83,7 +116,7 @@ impl VariableBase {
                         // bucket.
                         // (Recall that `buckets` doesn't have a zero bucket.)
                         if scalar != 0 {
-                            buckets[(scalar - 1) as usize].add_assign_mixed(base);
+                            buckets[(scalar - 1) as usize]._add_assign_mixed(base);
                         }
                     }
                 });
@@ -102,7 +135,7 @@ impl VariableBase {
 
                 // `running_sum` = sum_{j in i..num_buckets} bucket[j],
                 // where we iterate backward from i = num_buckets to 0.
-                let mut running_sum = G::Projective::zero();
+                let mut running_sum = Self::zero();
                 buckets.into_iter().rev().for_each(|b| {
                     running_sum += &b;
                     res += &running_sum;
@@ -122,21 +155,19 @@ impl VariableBase {
                 .fold(zero, |mut total, sum_i| {
                     total += sum_i;
                     for _ in 0..c {
-                        total.double_in_place();
+                        total._double_in_place();
                     }
                     total
                 })
     }
     /// Streaming multi-scalar multiplication algorithm with hard-coded chunk
     /// size.
-    pub fn msm_chunks<G, F, I: ?Sized, J>(bases_stream: &J, scalars_stream: &I) -> G::Projective
+    fn msm_chunks<I: ?Sized, J>(bases_stream: &J, scalars_stream: &I) -> Self
     where
-        G: AffineCurve<ScalarField = F>,
         I: Iterable,
-        F: PrimeField,
-        I::Item: Borrow<F>,
+        I::Item: Borrow<Self::Scalar>,
         J: Iterable,
-        J::Item: Borrow<G>,
+        J::Item: Borrow<Self::MSMBase>,
     {
         assert!(scalars_stream.len() <= bases_stream.len());
 
@@ -149,7 +180,7 @@ impl VariableBase {
         // See <https://github.com/rust-lang/rust/issues/77404>
         let mut bases = bases_init.skip(bases_stream.len() - scalars_stream.len());
         let step: usize = 1 << 20;
-        let mut result = G::Projective::zero();
+        let mut result = Self::zero();
         for _ in 0..(scalars_stream.len() + step - 1) / step {
             let bases_step = (&mut bases)
                 .take(step)
@@ -159,7 +190,7 @@ impl VariableBase {
                 .take(step)
                 .map(|s| s.borrow().into_bigint())
                 .collect::<Vec<_>>();
-            result.add_assign(crate::msm::VariableBase::msm(
+            result.add_assign(Self::msm_bigint(
                 bases_step.as_slice(),
                 scalars_step.as_slice(),
             ));
