@@ -240,7 +240,7 @@ impl<P: Parameters> AffineCurve for GroupAffine<P> {
     /// Some curves can implement a more efficient algorithm.
     #[must_use]
     fn clear_cofactor(&self) -> Self {
-        P::clear_cofactor(&self)
+        P::clear_cofactor(self)
     }
 }
 
@@ -294,7 +294,7 @@ impl<P: Parameters> core::iter::Sum<Self> for GroupAffine<P> {
 
 impl<'a, P: Parameters> core::iter::Sum<&'a Self> for GroupAffine<P> {
     fn sum<I: Iterator<Item = &'a Self>>(iter: I) -> Self {
-        iter.fold(GroupProjective::<P>::zero(), |sum, x| sum.add_mixed(&x))
+        iter.fold(GroupProjective::<P>::zero(), |sum, x| sum.add_mixed(x))
             .into()
     }
 }
@@ -814,26 +814,26 @@ impl<P: Parameters> CanonicalSerialize for GroupProjective<P> {
     #[allow(unused_qualifications)]
     #[inline]
     fn serialize<W: Write>(&self, writer: W) -> Result<(), SerializationError> {
-        let aff = GroupAffine::<P>::from(self.clone());
+        let aff = GroupAffine::<P>::from(*self);
         aff.serialize(writer)
     }
 
     #[inline]
     fn serialized_size(&self) -> usize {
-        let aff = GroupAffine::<P>::from(self.clone());
+        let aff = GroupAffine::<P>::from(*self);
         aff.serialized_size()
     }
 
     #[allow(unused_qualifications)]
     #[inline]
     fn serialize_uncompressed<W: Write>(&self, writer: W) -> Result<(), SerializationError> {
-        let aff = GroupAffine::<P>::from(self.clone());
+        let aff = GroupAffine::<P>::from(*self);
         aff.serialize_uncompressed(writer)
     }
 
     #[inline]
     fn uncompressed_size(&self) -> usize {
-        let aff = GroupAffine::<P>::from(self.clone());
+        let aff = GroupAffine::<P>::from(*self);
         aff.uncompressed_size()
     }
 }

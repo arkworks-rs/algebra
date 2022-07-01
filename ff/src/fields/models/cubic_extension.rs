@@ -146,7 +146,7 @@ impl<P: CubicExtConfig> CubicExtField<P> {
         // indexed w.r.t. to BasePrimeField, we need to calculate the correct index.
         let index_multiplier = P::BaseField::extension_degree() as usize;
         let mut self_to_p = *self;
-        self_to_p.frobenius_map(1 * index_multiplier);
+        self_to_p.frobenius_map(index_multiplier);
         let mut self_to_p2 = *self;
         self_to_p2.frobenius_map(2 * index_multiplier);
         self_to_p *= &(self_to_p2 * self);

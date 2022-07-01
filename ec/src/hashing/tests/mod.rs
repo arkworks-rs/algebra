@@ -118,7 +118,7 @@ fn test_field_division() {
 /// Check that the hashing parameters are sane: zeta should be a non-square
 #[test]
 fn checking_the_hashing_parameters() {
-    assert!(SquareRootField::legendre(&TestSWUMapToCurveParams::ZETA).is_qr() == false);
+    assert!(!SquareRootField::legendre(&TestSWUMapToCurveParams::ZETA).is_qr());
 }
 
 /// The point of the test is to get a simple SWU compatible curve and make

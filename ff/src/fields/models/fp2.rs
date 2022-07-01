@@ -37,7 +37,7 @@ pub trait Fp2Config: 'static + Send + Sync + Sized {
     fn add_and_mul_fp_by_nonresidue_plus_one(x: &Self::Fp, y: &Self::Fp) -> Self::Fp {
         let mut tmp = *x;
         tmp += y;
-        Self::add_and_mul_fp_by_nonresidue(&tmp, &y)
+        Self::add_and_mul_fp_by_nonresidue(&tmp, y)
     }
 
     /// A specializable method for computing `x - mul_base_field_by_nonresidue(y)`
