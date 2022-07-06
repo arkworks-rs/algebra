@@ -45,13 +45,14 @@ use rayon::prelude::*;
 #[must_use]
 // DISCUSS these shouldn't be public and instead we should have functions
 // encapsulating the attributes
-pub struct GroupAffine<P: Parameters> {
-    /// X coordinate of the point represented as a field element
-    pub x: P::BaseField,
-    /// Y coordinate of the point represented as a field element
-    pub y: P::BaseField,
-    /// Flag determining if the point is in infinity
-    pub infinity: bool,
+pub enum GroupAffine<P: Parameters> {
+    Point {
+        /// The x coordinate of the point.
+        x: P::BaseField,
+        /// The y coordinate of the point.
+        y: P::BaseField,
+    },
+    Infinity,
 }
 
 impl<P: Parameters> PartialEq<GroupProjective<P>> for GroupAffine<P> {
@@ -68,20 +69,35 @@ impl<P: Parameters> PartialEq<GroupAffine<P>> for GroupProjective<P> {
 
 impl<P: Parameters> Display for GroupAffine<P> {
     fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
-        if self.infinity {
-            write!(f, "GroupAffine(Infinity)")
-        } else {
-            write!(f, "GroupAffine(x={}, y={})", self.x, self.y)
+        match self {
+            GroupAffine::Point { x, y } => write!(f, "({}, {})", x, y),
+            GroupAffine::Infinity => write!(f, "infinity"),
         }
     }
 }
 
 impl<P: Parameters> GroupAffine<P> {
-    // DISCUSS The function shouldn't take infinity as parameter but instead accept
-    // only `(x,y)` so we have another const function `GroupAffine::infinity`
-    // that takes no parameters
-    pub fn new(x: P::BaseField, y: P::BaseField, infinity: bool) -> Self {
-        Self { x, y, infinity }
+    /// Constructs a group element from x and y coordinates.
+    /// Performs checks to ensure that the point is on the curve and is in the right subgroup.
+    pub fn new(x: P::BaseField, y: P::BaseField) -> Self {
+        let point = Self::Point { x, y };
+        assert!(point.is_on_curve());
+        assert!(point.is_in_correct_subgroup_assuming_on_curve());
+        point
+    }
+
+    /// Constructs a group element from x and y coordinates.
+    /// 
+    /// # Warning
+    /// 
+    /// Does *not* perform any checks to ensure the point is in the curve or
+    /// is in the right subgroup.
+    pub const fn new_unchecked(x: P::BaseField, y: P::BaseField) -> Self {
+        Self::Point { x, y }
+    }
+
+    pub const fn identity() -> Self {
+        Self::Infinity
     }
 
     /// Attempts to construct an affine point given an x-coordinate. The
@@ -103,24 +119,22 @@ impl<P: Parameters> GroupAffine<P> {
             let negy = -y;
 
             let y = if (y < negy) ^ greatest { y } else { negy };
-            Self::new(x, y, false)
+            Self::new_unchecked(x, y)
         })
     }
 
     /// Checks if `self` is a valid point on the curve.
     pub fn is_on_curve(&self) -> bool {
-        if self.is_zero() {
-            true
-        } else {
-            // Check that the point is on the curve
-            let y2 = self.y.square();
-            // Rust does not optimise away addition with zero
-            let x3b = if P::COEFF_A.is_zero() {
-                P::add_b(&(self.x.square() * &self.x))
-            } else {
-                P::add_b(&((self.x.square() * &self.x) + &P::mul_by_a(&self.x)))
-            };
-            y2 == x3b
+        match self {
+            GroupAffine::Point { x, y } => {
+                // Rust does not optimise away addition with zero
+                let mut x3b = P::add_b(&(x.square() * x));
+                if !P::COEFF_A.is_zero() {
+                    x3b += &P::mul_by_a(&x);
+                };
+                y.square() == x3b
+            }
+            GroupAffine::Infinity => true,
         }
     }
 }
@@ -138,9 +152,10 @@ impl<P: Parameters> Zeroize for GroupAffine<P> {
     // The phantom data does not contain element-specific data
     // and thus does not need to be zeroized.
     fn zeroize(&mut self) {
-        self.x.zeroize();
-        self.y.zeroize();
-        self.infinity.zeroize();
+        if let GroupAffine::Point { x, y } = self {
+            x.zeroize();
+            y.zeroize();
+        }
     }
 }
 
@@ -150,13 +165,13 @@ impl<P: Parameters> Zero for GroupAffine<P> {
     /// by setting the `infinity` flag to true.
     #[inline]
     fn zero() -> Self {
-        Self::new(P::BaseField::zero(), P::BaseField::one(), true)
+        Self::Infinity
     }
 
     /// Checks if `self` is the point at infinity.
     #[inline]
     fn is_zero(&self) -> bool {
-        self.infinity
+        self == &Self::zero()
     }
 }
 
@@ -197,16 +212,16 @@ impl<P: Parameters> AffineCurve for GroupAffine<P> {
     type ScalarField = P::ScalarField;
     type Projective = GroupProjective<P>;
 
-    fn xy(&self) -> (Self::BaseField, Self::BaseField) {
-        (self.x, self.y)
+    fn xy(&self) -> Option<(&Self::BaseField, &Self::BaseField)> {
+        match self {
+            GroupAffine::Point { x, y } => Some((x, y)),
+            GroupAffine::Infinity => None,
+        }
     }
+
     #[inline]
     fn prime_subgroup_generator() -> Self {
-        Self::new(
-            P::AFFINE_GENERATOR_COEFFS.0,
-            P::AFFINE_GENERATOR_COEFFS.1,
-            false,
-        )
+        P::GENERATOR
     }
 
     fn from_random_bytes(bytes: &[u8]) -> Option<Self> {
@@ -251,10 +266,9 @@ impl<P: Parameters> Neg for GroupAffine<P> {
     /// Else, returns `(x, -y)`, where `self = (x, y)`.
     #[inline]
     fn neg(self) -> Self {
-        if !self.is_zero() {
-            Self::new(self.x, -self.y, false)
-        } else {
-            self
+        match self {
+            Self::Point { x, y } => GroupAffine::Point { x, y: -y },
+            Self::Infinity => self,
         }
     }
 }
@@ -274,7 +288,10 @@ impl<P: Parameters> FromBytes for GroupAffine<P> {
         let x = P::BaseField::read(&mut reader)?;
         let y = P::BaseField::read(&mut reader)?;
         let infinity = bool::read(reader)?;
-        Ok(Self::new(x, y, infinity))
+        match infinity {
+            true => Ok(Self::zero()),
+            false => Ok(Self::new_unchecked(x, y)),
+        }
     }
 }
 
@@ -755,7 +772,7 @@ impl<P: Parameters> From<GroupProjective<P>> for GroupAffine<P> {
             GroupAffine::zero()
         } else if p.z.is_one() {
             // If Z is one, the point is already normalized.
-            GroupAffine::new(p.x, p.y, false)
+            GroupAffine::new_unchecked(p.x, p.y)
         } else {
             // Z is nonzero, so it must have an inverse in a field.
             let zinv = p.z.inverse().unwrap();
@@ -767,7 +784,7 @@ impl<P: Parameters> From<GroupProjective<P>> for GroupAffine<P> {
             // Y/Z^3
             let y = p.y * &(zinv_squared * &zinv);
 
-            GroupAffine::new(x, y, false)
+            GroupAffine::new_unchecked(x, y)
         }
     }
 }
@@ -872,8 +889,10 @@ impl<P: Parameters> CanonicalDeserialize for GroupAffine<P> {
         let x: P::BaseField = CanonicalDeserialize::deserialize(&mut reader)?;
         let (y, flags): (P::BaseField, SWFlags) =
             CanonicalDeserializeWithFlags::deserialize_with_flags(&mut reader)?;
-        let p = GroupAffine::<P>::new(x, y, flags.is_infinity());
-        Ok(p)
+        match flags.is_infinity() {
+            true => Ok(Self::zero()),
+            false => Ok(Self::new_unchecked(x, y)),
+        }
     }
 }
 

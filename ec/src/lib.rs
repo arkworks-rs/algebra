@@ -269,7 +269,7 @@ pub trait AffineCurve:
         + MulAssign<Self::ScalarField>; // needed due to https://github.com/rust-lang/rust/issues/69640
 
     /// Returns the x and y coordinates of this affine point
-    fn xy(&self) -> (Self::BaseField, Self::BaseField);
+    fn xy(&self) -> Option<(&Self::BaseField, &Self::BaseField)>;
 
     /// Returns a fixed generator of unknown exponent.
     #[must_use]

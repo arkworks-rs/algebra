@@ -35,7 +35,7 @@ pub trait SWModelParameters: ModelParameters {
     /// Coefficient `b` of the curve equation.
     const COEFF_B: Self::BaseField;
     /// Coefficients of the base point of the curve
-    const AFFINE_GENERATOR_COEFFS: (Self::BaseField, Self::BaseField);
+    const GENERATOR: short_weierstrass_jacobian::GroupAffine<Self>;
 
     /// Helper method for computing `elem * Self::COEFF_A`.
     ///
@@ -131,7 +131,7 @@ pub trait TEModelParameters: ModelParameters {
     /// Coefficient `d` of the curve equation.
     const COEFF_D: Self::BaseField;
     /// Coefficients of the base point of the curve
-    const AFFINE_GENERATOR_COEFFS: (Self::BaseField, Self::BaseField);
+    const GENERATOR: twisted_edwards_extended::GroupAffine<Self>;
 
     /// Model parameters for the Montgomery curve that is birationally
     /// equivalent to this curve.

@@ -123,11 +123,13 @@ impl<P: Parameters> AffineCurve for GroupAffine<P> {
     type ScalarField = P::ScalarField;
     type Projective = GroupProjective<P>;
 
-    fn xy(&self) -> (Self::BaseField, Self::BaseField) {
-        (self.x, self.y)
+
+    fn xy(&self) -> Option<(&Self::BaseField, &Self::BaseField)> {
+        (!self.is_zero()).then(|| (&self.x, &self.y))
     }
+
     fn prime_subgroup_generator() -> Self {
-        Self::new(P::AFFINE_GENERATOR_COEFFS.0, P::AFFINE_GENERATOR_COEFFS.1)
+        P::GENERATOR
     }
 
     fn from_random_bytes(bytes: &[u8]) -> Option<Self> {
