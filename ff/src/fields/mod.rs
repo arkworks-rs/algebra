@@ -132,6 +132,11 @@ pub trait Field:
     type BasePrimeField: PrimeField;
     type BasePrimeFieldIter: Iterator<Item = Self::BasePrimeField>;
 
+    /// The additive identity of the field.
+    const ZERO: Self;
+    /// The multiplicative identity of the field.
+    const ONE: Self;
+
     /// Returns the characteristic of the field,
     /// in little-endian representation.
     fn characteristic() -> &'static [u64] {

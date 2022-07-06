@@ -87,8 +87,7 @@ impl SWModelParameters for TestSWUMapToCurveParams {
     const COEFF_B: F127 = MontFp!("63");
 
     /// AFFINE_GENERATOR_COEFFS = (G1_GENERATOR_X, G1_GENERATOR_Y)
-    const AFFINE_GENERATOR_COEFFS: (Self::BaseField, Self::BaseField) =
-        (MontFp!("62"), MontFp!("70"));
+    const GENERATOR: GroupAffine<Self> = GroupAffine::new_unchecked(MontFp!("62"), MontFp!("70"));
 }
 
 impl SWUParams for TestSWUMapToCurveParams {
@@ -206,8 +205,7 @@ impl SWModelParameters for TestSWU127MapToIsogenousCurveParams {
     const COEFF_B: F127 = MontFp!("124");
 
     /// AFFINE_GENERATOR_COEFFS = (G1_GENERATOR_X, G1_GENERATOR_Y)
-    const AFFINE_GENERATOR_COEFFS: (Self::BaseField, Self::BaseField) =
-        (MontFp!("84"), MontFp!("2"));
+    const GENERATOR: GroupAffine<Self> = GroupAffine::new_unchecked(MontFp!("84"), MontFp!("2"));
 }
 
 /// SWU parameters for E_isogenous
@@ -244,8 +242,7 @@ impl SWModelParameters for TestWBF127MapToCurveParams {
     const COEFF_B: F127 = MontFp!("3");
 
     /// AFFINE_GENERATOR_COEFFS = (G1_GENERATOR_X, G1_GENERATOR_Y)
-    const AFFINE_GENERATOR_COEFFS: (Self::BaseField, Self::BaseField) =
-        (MontFp!("62"), MontFp!("70"));
+    const GENERATOR: GroupAffine<Self> = GroupAffine::new_unchecked(MontFp!("62"), MontFp!("70"));
 }
 
 /// E_isogenous : Elliptic Curve defined by y^2 = x^3 + 109*x + 124 over Finite

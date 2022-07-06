@@ -1,5 +1,5 @@
 use crate::bls12_381::*;
-use ark_ff::{fields::*, MontFp, QuadExt};
+use ark_ff::{fields::*, MontFp};
 
 pub type Fq2 = Fp2<Fq2Config>;
 
@@ -27,5 +27,5 @@ impl Fp2Config for Fq2Config {
     }
 }
 
-pub const FQ2_ZERO: Fq2 = QuadExt!(FQ_ZERO, FQ_ZERO);
-pub const FQ2_ONE: Fq2 = QuadExt!(FQ_ONE, FQ_ZERO);
+pub const FQ2_ZERO: Fq2 = Fq2::new(FQ_ZERO, FQ_ZERO);
+pub const FQ2_ONE: Fq2 = Fq2::new(FQ_ONE, FQ_ZERO);

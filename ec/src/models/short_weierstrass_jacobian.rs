@@ -42,16 +42,13 @@ use rayon::prelude::*;
     Hash(bound = "P: Parameters")
 )]
 #[must_use]
-// DISCUSS these shouldn't be public and instead we should have functions
-// encapsulating the attributes
-pub enum GroupAffine<P: Parameters> {
-    Point {
-        /// The x coordinate of the point.
-        x: P::BaseField,
-        /// The y coordinate of the point.
-        y: P::BaseField,
-    },
-    Infinity,
+pub struct GroupAffine<P: Parameters> {
+    #[doc(hidden)]
+    pub x: P::BaseField,
+    #[doc(hidden)]
+    pub y: P::BaseField,
+    #[doc(hidden)]
+    pub infinity: bool
 }
 
 impl<P: Parameters> PartialEq<GroupProjective<P>> for GroupAffine<P> {
@@ -68,9 +65,9 @@ impl<P: Parameters> PartialEq<GroupAffine<P>> for GroupProjective<P> {
 
 impl<P: Parameters> Display for GroupAffine<P> {
     fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
-        match self {
-            GroupAffine::Point { x, y } => write!(f, "({}, {})", x, y),
-            GroupAffine::Infinity => write!(f, "infinity"),
+        match self.infinity {
+            true => write!(f, "infinity"),
+            false => write!(f, "({}, {})", self.x, self.y),
         }
     }
 }
@@ -79,7 +76,7 @@ impl<P: Parameters> GroupAffine<P> {
     /// Constructs a group element from x and y coordinates.
     /// Performs checks to ensure that the point is on the curve and is in the right subgroup.
     pub fn new(x: P::BaseField, y: P::BaseField) -> Self {
-        let point = Self::Point { x, y };
+        let point = Self { x, y, infinity: false };
         assert!(point.is_on_curve());
         assert!(point.is_in_correct_subgroup_assuming_on_curve());
         point
@@ -92,11 +89,11 @@ impl<P: Parameters> GroupAffine<P> {
     /// Does *not* perform any checks to ensure the point is in the curve or
     /// is in the right subgroup.
     pub const fn new_unchecked(x: P::BaseField, y: P::BaseField) -> Self {
-        Self::Point { x, y }
+        Self { x, y, infinity: false }
     }
 
     pub const fn identity() -> Self {
-        Self::Infinity
+        Self { x: P::BaseField::ZERO, y: P::BaseField::ZERO, infinity: true }
     }
 
     /// Attempts to construct an affine point given an x-coordinate. The
@@ -124,16 +121,15 @@ impl<P: Parameters> GroupAffine<P> {
 
     /// Checks if `self` is a valid point on the curve.
     pub fn is_on_curve(&self) -> bool {
-        match self {
-            GroupAffine::Point { x, y } => {
-                // Rust does not optimise away addition with zero
-                let mut x3b = P::add_b(&(x.square() * x));
-                if !P::COEFF_A.is_zero() {
-                    x3b += &P::mul_by_a(&x);
-                };
-                y.square() == x3b
-            }
-            GroupAffine::Infinity => true,
+        if self.infinity {
+            // Rust does not optimise away addition with zero
+            let mut x3b = P::add_b(&(self.x.square() * self.x));
+            if !P::COEFF_A.is_zero() {
+                x3b += &P::mul_by_a(&self.x);
+            };
+            self.y.square() == x3b
+        } else {
+            true
         }
     }
 }
@@ -151,10 +147,9 @@ impl<P: Parameters> Zeroize for GroupAffine<P> {
     // The phantom data does not contain element-specific data
     // and thus does not need to be zeroized.
     fn zeroize(&mut self) {
-        if let GroupAffine::Point { x, y } = self {
-            x.zeroize();
-            y.zeroize();
-        }
+        self.x.zeroize();
+        self.y.zeroize();
+        self.infinity.zeroize();
     }
 }
 
@@ -164,7 +159,7 @@ impl<P: Parameters> Zero for GroupAffine<P> {
     /// by setting the `infinity` flag to true.
     #[inline]
     fn zero() -> Self {
-        Self::Infinity
+        Self::identity()
     }
 
     /// Checks if `self` is the point at infinity.
@@ -212,10 +207,7 @@ impl<P: Parameters> AffineCurve for GroupAffine<P> {
     type Projective = GroupProjective<P>;
 
     fn xy(&self) -> Option<(&Self::BaseField, &Self::BaseField)> {
-        match self {
-            GroupAffine::Point { x, y } => Some((x, y)),
-            GroupAffine::Infinity => None,
-        }
+        (!self.infinity).then(|| (&self.x, &self.y))
     }
 
     #[inline]
@@ -264,11 +256,9 @@ impl<P: Parameters> Neg for GroupAffine<P> {
     /// If `self.is_zero()`, returns `self` (`== Self::zero()`).
     /// Else, returns `(x, -y)`, where `self = (x, y)`.
     #[inline]
-    fn neg(self) -> Self {
-        match self {
-            Self::Point { x, y } => GroupAffine::Point { x, y: -y },
-            Self::Infinity => self,
-        }
+    fn neg(mut self) -> Self {
+        self.y = -self.y;
+        self
     }
 }
 
@@ -371,8 +361,15 @@ impl<P: Parameters> Default for GroupProjective<P> {
 }
 
 impl<P: Parameters> GroupProjective<P> {
-    pub fn new(x: P::BaseField, y: P::BaseField, z: P::BaseField) -> Self {
+    pub const fn new_unchecked(x: P::BaseField, y: P::BaseField, z: P::BaseField) -> Self {
         Self { x, y, z }
+    }
+
+    pub fn new(x: P::BaseField, y: P::BaseField, z: P::BaseField) -> Self {
+        let p = Self::new_unchecked(x, y, z).into_affine();
+        assert!(p.is_on_curve());
+        assert!(p.is_in_correct_subgroup_assuming_on_curve());
+        p.into()
     }
 }
 
@@ -524,70 +521,72 @@ impl<P: Parameters> ProjectiveCurve for GroupProjective<P> {
     /// efficient [formula](http://www.hyperelliptic.org/EFD/g1p/auto-shortw-jacobian-0.html#addition-madd-2007-bl)
     /// to compute `self + other`.
     fn add_assign_mixed(&mut self, other: &GroupAffine<P>) {
-        if other.is_zero() {
-            return;
+        match other.is_zero() {
+            true => {},
+            false => {
+                if self.is_zero() {
+                    self.x = other.x;
+                    self.y = other.y;
+                    self.z = P::BaseField::one();
+                    return;
+                }
+                
+                // Z1Z1 = Z1^2
+                let z1z1 = self.z.square();
+                
+                // U2 = X2*Z1Z1
+                let u2 = z1z1 * other.x;
+                
+                // S2 = Y2*Z1*Z1Z1
+                let s2 = (self.z * other.y) * &z1z1;
+                
+                if self.x == u2 && self.y == s2 {
+                    // The two points are equal, so we double.
+                    self.double_in_place();
+                } else {
+                    // If we're adding -a and a together, self.z becomes zero as H becomes zero.
+                    
+                    // H = U2-X1
+                    let h = u2 - &self.x;
+                    
+                    // HH = H^2
+                    let hh = h.square();
+                    
+                    // I = 4*HH
+                    let mut i = hh;
+                    i.double_in_place().double_in_place();
+                    
+                    // J = H*I
+                    let mut j = h * &i;
+                    
+                    // r = 2*(S2-Y1)
+                    let r = (s2 - &self.y).double();
+                    
+                    // V = X1*I
+                    let v = self.x * &i;
+                    
+                    // X3 = r^2 - J - 2*V
+                    self.x = r.square();
+                    self.x -= &j;
+                    self.x -= &v;
+                    self.x -= &v;
+                    
+                    // Y3 = r*(V-X3)-2*Y1*J
+                    j *= &self.y; // J = 2*Y1*J
+                    j.double_in_place();
+                    self.y = v - &self.x;
+                    self.y *= &r;
+                    self.y -= &j;
+                    
+                    // Z3 = (Z1+H)^2-Z1Z1-HH
+                    self.z += &h;
+                    self.z.square_in_place();
+                    self.z -= &z1z1;
+                    self.z -= &hh;
+                }
+            }
         }
-
-        if self.is_zero() {
-            self.x = other.x;
-            self.y = other.y;
-            self.z = P::BaseField::one();
-            return;
-        }
-
-        // Z1Z1 = Z1^2
-        let z1z1 = self.z.square();
-
-        // U2 = X2*Z1Z1
-        let u2 = other.x * &z1z1;
-
-        // S2 = Y2*Z1*Z1Z1
-        let s2 = (other.y * &self.z) * &z1z1;
-
-        if self.x == u2 && self.y == s2 {
-            // The two points are equal, so we double.
-            self.double_in_place();
-        } else {
-            // If we're adding -a and a together, self.z becomes zero as H becomes zero.
-
-            // H = U2-X1
-            let h = u2 - &self.x;
-
-            // HH = H^2
-            let hh = h.square();
-
-            // I = 4*HH
-            let mut i = hh;
-            i.double_in_place().double_in_place();
-
-            // J = H*I
-            let mut j = h * &i;
-
-            // r = 2*(S2-Y1)
-            let r = (s2 - &self.y).double();
-
-            // V = X1*I
-            let v = self.x * &i;
-
-            // X3 = r^2 - J - 2*V
-            self.x = r.square();
-            self.x -= &j;
-            self.x -= &v;
-            self.x -= &v;
-
-            // Y3 = r*(V-X3)-2*Y1*J
-            j *= &self.y; // J = 2*Y1*J
-            j.double_in_place();
-            self.y = v - &self.x;
-            self.y *= &r;
-            self.y -= &j;
-
-            // Z3 = (Z1+H)^2-Z1Z1-HH
-            self.z += &h;
-            self.z.square_in_place();
-            self.z -= &z1z1;
-            self.z -= &hh;
-        }
+        
     }
 
     #[inline]
@@ -713,10 +712,13 @@ impl<P: Parameters> MulAssign<P::ScalarField> for GroupProjective<P> {
 impl<P: Parameters> From<GroupAffine<P>> for GroupProjective<P> {
     #[inline]
     fn from(p: GroupAffine<P>) -> GroupProjective<P> {
-        if p.is_zero() {
-            Self::zero()
-        } else {
-            Self::new(p.x, p.y, P::BaseField::one())
+        match p.infinity {
+            true => Self::zero(),
+            false => Self {
+                x: p.x,
+                y: p.y,
+                z: P::BaseField::one(),
+            },
         }
     }
 }
@@ -751,14 +753,11 @@ impl<P: Parameters> CanonicalSerialize for GroupAffine<P> {
     #[allow(unused_qualifications)]
     #[inline]
     fn serialize<W: Write>(&self, writer: W) -> Result<(), SerializationError> {
-        if self.is_zero() {
-            let flags = SWFlags::infinity();
-            // Serialize 0.
-            P::BaseField::zero().serialize_with_flags(writer, flags)
-        } else {
-            let flags = SWFlags::from_y_sign(self.y > -self.y);
-            self.x.serialize_with_flags(writer, flags)
-        }
+        let (x, flags) = match self.infinity {
+            true => (P::BaseField::zero(), SWFlags::infinity()),
+            false => (self.x, SWFlags::from_y_sign(self.y > -self.y)),
+        };
+        x.serialize_with_flags(writer, flags)
     }
 
     #[inline]
@@ -769,19 +768,18 @@ impl<P: Parameters> CanonicalSerialize for GroupAffine<P> {
     #[allow(unused_qualifications)]
     #[inline]
     fn serialize_uncompressed<W: Write>(&self, mut writer: W) -> Result<(), SerializationError> {
-        let flags = if self.is_zero() {
-            SWFlags::infinity()
-        } else {
-            SWFlags::default()
+        let (x, y, flags) = match self.infinity {
+            true => (P::BaseField::zero(), P::BaseField::zero(), SWFlags::infinity()),
+            false => (self.x, self.y, SWFlags::from_y_sign(self.y > -self.y))
         };
-        self.x.serialize(&mut writer)?;
-        self.y.serialize_with_flags(&mut writer, flags)?;
+        x.serialize(&mut writer)?;
+        y.serialize_with_flags(&mut writer, flags)?;
         Ok(())
     }
 
     #[inline]
     fn uncompressed_size(&self) -> usize {
-        self.x.serialized_size() + self.y.serialized_size_with_flags::<SWFlags>()
+        P::BaseField::zero().serialized_size() + P::BaseField::zero().serialized_size_with_flags::<SWFlags>()
     }
 }
 
@@ -880,12 +878,12 @@ where
 {
     #[inline]
     fn to_field_elements(&self) -> Option<Vec<ConstraintF>> {
-        let mut x_fe = self.x.to_field_elements()?;
-        let y_fe = self.y.to_field_elements()?;
-        let infinity_fe = self.infinity.to_field_elements()?;
-        x_fe.extend_from_slice(&y_fe);
-        x_fe.extend_from_slice(&infinity_fe);
-        Some(x_fe)
+        let mut x = self.x.to_field_elements()?;
+        let y = self.y.to_field_elements()?;
+        let infinity = self.infinity.to_field_elements()?;
+        x.extend_from_slice(&y);
+        x.extend_from_slice(&infinity);
+        Some(x)
     }
 }
 
