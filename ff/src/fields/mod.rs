@@ -1,4 +1,4 @@
-use crate::{biginteger::BigInteger, fields::utils::k_adicity, FromBytes, ToBytes, UniformRand};
+use crate::{biginteger::BigInteger, fields::utils::k_adicity, UniformRand};
 use ark_serialize::{
     CanonicalDeserialize, CanonicalDeserializeWithFlags, CanonicalSerialize,
     CanonicalSerializeWithFlags, EmptyFlags, Flags,
@@ -102,8 +102,6 @@ pub trait Field:
     + CanonicalSerializeWithFlags
     + CanonicalDeserialize
     + CanonicalDeserializeWithFlags
-    + ToBytes
-    + FromBytes
     + Add<Self, Output = Self>
     + Sub<Self, Output = Self>
     + Mul<Self, Output = Self>
@@ -364,7 +362,7 @@ pub trait PrimeField:
     fn from_bigint(repr: Self::BigInt) -> Option<Self>;
 
     /// Converts an element of the prime field into an integer in the range 0..(p - 1).
-    fn into_bigint(&self) -> Self::BigInt;
+    fn into_bigint(self) -> Self::BigInt;
 
     /// Reads bytes in big-endian, and converts them to a field element.
     /// If the integer represented by `bytes` is larger than the modulus `p`, this method

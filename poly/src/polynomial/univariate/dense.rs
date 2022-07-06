@@ -396,9 +396,7 @@ impl<'a, F: Field> AddAssign<&'a SparsePolynomial<F>> for DensePolynomial<F> {
             for (i, coeff) in other.iter() {
                 self.coeffs[*i] = *coeff;
             }
-            return;
         } else if other.is_zero() {
-            return;
         } else {
             // If `other` has higher degree than `self`, create a dense vector
             // storing the upper coefficients of the addition
@@ -531,9 +529,7 @@ impl<'a, F: Field> SubAssign<&'a SparsePolynomial<F>> for DensePolynomial<F> {
             for (i, coeff) in other.iter() {
                 self.coeffs[*i] = (*coeff).neg();
             }
-            return;
         } else if other.is_zero() {
-            return;
         } else {
             // If `other` has higher degree than `self`, create a dense vector
             // storing the upper coefficients of the subtraction

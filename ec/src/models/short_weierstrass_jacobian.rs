@@ -5,13 +5,12 @@ use ark_serialize::{
 use ark_std::{
     fmt::{Display, Formatter, Result as FmtResult},
     hash::{Hash, Hasher},
-    io::{Read, Result as IoResult, Write},
+    io::{Read, Write},
     ops::{Add, AddAssign, MulAssign, Neg, Sub, SubAssign},
     vec::Vec,
 };
 
 use ark_ff::{
-    bytes::{FromBytes, ToBytes},
     fields::{Field, PrimeField, SquareRootField},
     ToConstraintField, UniformRand,
 };
@@ -240,7 +239,7 @@ impl<P: Parameters> AffineCurve for GroupAffine<P> {
     /// Some curves can implement a more efficient algorithm.
     #[must_use]
     fn clear_cofactor(&self) -> Self {
-        P::clear_cofactor(&self)
+        P::clear_cofactor(self)
     }
 }
 
@@ -256,25 +255,6 @@ impl<P: Parameters> Neg for GroupAffine<P> {
         } else {
             self
         }
-    }
-}
-
-impl<P: Parameters> ToBytes for GroupAffine<P> {
-    #[inline]
-    fn write<W: Write>(&self, mut writer: W) -> IoResult<()> {
-        self.x.write(&mut writer)?;
-        self.y.write(&mut writer)?;
-        self.infinity.write(&mut writer)
-    }
-}
-
-impl<P: Parameters> FromBytes for GroupAffine<P> {
-    #[inline]
-    fn read<R: Read>(mut reader: R) -> IoResult<Self> {
-        let x = P::BaseField::read(&mut reader)?;
-        let y = P::BaseField::read(&mut reader)?;
-        let infinity = bool::read(reader)?;
-        Ok(Self::new(x, y, infinity))
     }
 }
 
@@ -294,7 +274,7 @@ impl<P: Parameters> core::iter::Sum<Self> for GroupAffine<P> {
 
 impl<'a, P: Parameters> core::iter::Sum<&'a Self> for GroupAffine<P> {
     fn sum<I: Iterator<Item = &'a Self>>(iter: I) -> Self {
-        iter.fold(GroupProjective::<P>::zero(), |sum, x| sum.add_mixed(&x))
+        iter.fold(GroupProjective::<P>::zero(), |sum, x| sum.add_mixed(x))
             .into()
     }
 }
@@ -366,25 +346,6 @@ impl<P: Parameters> Distribution<GroupProjective<P>> for Standard {
                 return p.mul_by_cofactor_to_projective();
             }
         }
-    }
-}
-
-impl<P: Parameters> ToBytes for GroupProjective<P> {
-    #[inline]
-    fn write<W: Write>(&self, mut writer: W) -> IoResult<()> {
-        self.x.write(&mut writer)?;
-        self.y.write(&mut writer)?;
-        self.z.write(writer)
-    }
-}
-
-impl<P: Parameters> FromBytes for GroupProjective<P> {
-    #[inline]
-    fn read<R: Read>(mut reader: R) -> IoResult<Self> {
-        let x = P::BaseField::read(&mut reader)?;
-        let y = P::BaseField::read(&mut reader)?;
-        let z = P::BaseField::read(reader)?;
-        Ok(Self::new(x, y, z))
     }
 }
 
@@ -814,26 +775,26 @@ impl<P: Parameters> CanonicalSerialize for GroupProjective<P> {
     #[allow(unused_qualifications)]
     #[inline]
     fn serialize<W: Write>(&self, writer: W) -> Result<(), SerializationError> {
-        let aff = GroupAffine::<P>::from(self.clone());
+        let aff = GroupAffine::<P>::from(*self);
         aff.serialize(writer)
     }
 
     #[inline]
     fn serialized_size(&self) -> usize {
-        let aff = GroupAffine::<P>::from(self.clone());
+        let aff = GroupAffine::<P>::from(*self);
         aff.serialized_size()
     }
 
     #[allow(unused_qualifications)]
     #[inline]
     fn serialize_uncompressed<W: Write>(&self, writer: W) -> Result<(), SerializationError> {
-        let aff = GroupAffine::<P>::from(self.clone());
+        let aff = GroupAffine::<P>::from(*self);
         aff.serialize_uncompressed(writer)
     }
 
     #[inline]
     fn uncompressed_size(&self) -> usize {
-        let aff = GroupAffine::<P>::from(self.clone());
+        let aff = GroupAffine::<P>::from(*self);
         aff.uncompressed_size()
     }
 }

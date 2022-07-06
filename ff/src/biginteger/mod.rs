@@ -1,5 +1,4 @@
 use crate::{
-    bytes::{FromBytes, ToBytes},
     const_for,
     fields::{BitIteratorBE, BitIteratorLE},
     UniformRand,
@@ -9,7 +8,7 @@ use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, SerializationError
 use ark_std::{
     convert::TryFrom,
     fmt::{Debug, Display, UpperHex},
-    io::{Read, Result as IoResult, Write},
+    io::{Read, Write},
     rand::{
         distributions::{Distribution, Standard},
         Rng,
@@ -480,8 +479,10 @@ impl<const N: usize> BigInteger for BigInt<N> {
 
 impl<const N: usize> CanonicalSerialize for BigInt<N> {
     #[inline]
-    fn serialize<W: Write>(&self, writer: W) -> Result<(), SerializationError> {
-        self.write(writer)?;
+    fn serialize<W: Write>(&self, mut writer: W) -> Result<(), SerializationError> {
+        for num in self.0 {
+            writer.write_all(&num.to_le_bytes())?;
+        }
         Ok(())
     }
 
@@ -493,23 +494,14 @@ impl<const N: usize> CanonicalSerialize for BigInt<N> {
 
 impl<const N: usize> CanonicalDeserialize for BigInt<N> {
     #[inline]
-    fn deserialize<R: Read>(reader: R) -> Result<Self, SerializationError> {
-        let value = Self::read(reader)?;
-        Ok(value)
-    }
-}
-
-impl<const N: usize> ToBytes for BigInt<N> {
-    #[inline]
-    fn write<W: Write>(&self, writer: W) -> IoResult<()> {
-        self.0.write(writer)
-    }
-}
-
-impl<const N: usize> FromBytes for BigInt<N> {
-    #[inline]
-    fn read<R: Read>(reader: R) -> IoResult<Self> {
-        <[u64; N]>::read(reader).map(Self::new)
+    fn deserialize<R: Read>(mut reader: R) -> Result<Self, SerializationError> {
+        let mut res = [0u64; N];
+        for num in res.iter_mut() {
+            let mut bytes = [0u8; 8];
+            reader.read_exact(&mut bytes)?;
+            *num = u64::from_le_bytes(bytes);
+        }
+        Ok(Self::new(res))
     }
 }
 
@@ -533,11 +525,10 @@ impl<const N: usize> Ord for BigInt<N> {
         for i in 0..N {
             let a = &self.0[N - i - 1];
             let b = &other.0[N - i - 1];
-            if a < b {
-                return Ordering::Less;
-            } else if a > b {
-                return Ordering::Greater;
-            }
+            match a.cmp(b) {
+                Ordering::Equal => {},
+                order => return order,
+            };
         }
         Ordering::Equal
     }
@@ -553,8 +544,8 @@ impl<const N: usize> PartialOrd for BigInt<N> {
 impl<const N: usize> Distribution<BigInt<N>> for Standard {
     fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> BigInt<N> {
         let mut res = [0u64; N];
-        for i in 0..N {
-            res[i] = rng.gen();
+        for item in res.iter_mut() {
+            *item = rng.gen();
         }
         BigInt::<N>(res)
     }
@@ -678,9 +669,7 @@ mod tests;
 /// sequence of `u64` limbs, least-significant limb first.
 // TODO: get rid of this trait once we can use associated constants in const generics.
 pub trait BigInteger:
-    ToBytes
-    + FromBytes
-    + CanonicalSerialize
+    CanonicalSerialize
     + CanonicalDeserialize
     + Copy
     + Clone
@@ -1000,7 +989,7 @@ pub trait BigInteger:
     fn find_wnaf(&self, w: usize) -> Option<Vec<i64>> {
         // w > 2 due to definition of wNAF, and w < 64 to make sure that `i64`
         // can fit each signed digit
-        if w >= 2 && w < 64 {
+        if (2..64).contains(&w) {
             let mut res = vec![];
             let mut e = *self;
 
@@ -1024,18 +1013,5 @@ pub trait BigInteger:
         } else {
             None
         }
-    }
-
-    /// Writes this `BigInteger` as a big endian integer. Always writes
-    /// `NUM_LIMBS * 8` bytes.
-    fn write_le<W: Write>(&self, writer: &mut W) -> IoResult<()> {
-        self.write(writer)
-    }
-
-    /// Reads a big endian integer occupying
-    /// `NUM_LIMBS * 8` bytes into this representation.
-    fn read_le<R: Read>(&mut self, reader: &mut R) -> IoResult<()> {
-        *self = Self::read(reader)?;
-        Ok(())
     }
 }
