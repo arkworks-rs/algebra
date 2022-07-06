@@ -1,12 +1,6 @@
-use ark_std::{
-    io::{Result as IoResult, Write},
-    vec::Vec,
-};
+use ark_std::vec::Vec;
 
-use ark_ff::{
-    bytes::ToBytes,
-    fields::{Field, Fp2},
-};
+use ark_ff::fields::{Field, Fp2};
 
 use num_traits::{One, Zero};
 
@@ -51,17 +45,6 @@ struct G2HomProjective<P: BnParameters> {
 impl<P: BnParameters> Default for G2Prepared<P> {
     fn default() -> Self {
         Self::from(G2Affine::<P>::prime_subgroup_generator())
-    }
-}
-
-impl<P: BnParameters> ToBytes for G2Prepared<P> {
-    fn write<W: Write>(&self, mut writer: W) -> IoResult<()> {
-        for coeff in &self.ell_coeffs {
-            coeff.0.write(&mut writer)?;
-            coeff.1.write(&mut writer)?;
-            coeff.2.write(&mut writer)?;
-        }
-        self.infinity.write(writer)
     }
 }
 

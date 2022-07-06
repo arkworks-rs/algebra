@@ -319,8 +319,7 @@ mod tests {
                         None
                     }
                 })
-                .filter(|t| t.is_some())
-                .map(|t| t.unwrap())
+                .flatten()
                 .collect();
             let coeff = Fr::rand(rng);
             random_terms.push((coeff, SparseTerm::new(term)));

@@ -267,7 +267,7 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
     fn from_bigint(r: BigInt<N>) -> Option<Fp<MontBackend<Self, N>, N>> {
         let mut r = Fp::new(r);
         if r.is_zero() {
-            return Some(r);
+            Some(r)
         } else if r.is_less_than_modulus() {
             r *= &Fp::new(Self::R2);
             Some(r)
