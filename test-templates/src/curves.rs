@@ -474,7 +474,6 @@ where
     P::BaseField: PrimeField,
 {
     use ark_ec::models::twisted_edwards_extended::{GroupAffine, GroupProjective};
-    use ark_ff::{to_bytes, ToBytes};
 
     let buf_size = GroupAffine::<P>::zero().serialized_size();
 
@@ -498,7 +497,13 @@ where
     for _ in 0..ITERATIONS {
         let mut biginteger =
             <<GroupAffine<P> as AffineCurve>::BaseField as PrimeField>::BigInt::rand(&mut rng);
-        let mut bytes = to_bytes![biginteger].unwrap();
+        let mut bytes = {
+            let mut result = vec![0u8; biginteger.serialized_size()];
+            biginteger
+                .serialize(&mut Cursor::new(&mut result[..]))
+                .unwrap();
+            result
+        };
         let mut g = GroupAffine::<P>::from_random_bytes(&bytes);
         while g.is_none() {
             bytes.iter_mut().for_each(|i| *i = i.wrapping_sub(1));

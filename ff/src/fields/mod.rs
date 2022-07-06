@@ -1,4 +1,4 @@
-use crate::{biginteger::BigInteger, fields::utils::k_adicity, FromBytes, ToBytes, UniformRand};
+use crate::{biginteger::BigInteger, fields::utils::k_adicity, UniformRand};
 use ark_serialize::{
     CanonicalDeserialize, CanonicalDeserializeWithFlags, CanonicalSerialize,
     CanonicalSerializeWithFlags, EmptyFlags, Flags,
@@ -102,8 +102,6 @@ pub trait Field:
     + CanonicalSerializeWithFlags
     + CanonicalDeserialize
     + CanonicalDeserializeWithFlags
-    + ToBytes
-    + FromBytes
     + Add<Self, Output = Self>
     + Sub<Self, Output = Self>
     + Mul<Self, Output = Self>

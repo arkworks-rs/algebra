@@ -4,14 +4,8 @@ use crate::{
     short_weierstrass_jacobian::{GroupAffine, GroupProjective},
     AffineCurve,
 };
-use ark_ff::{
-    bytes::ToBytes,
-    fields::{Field, Fp2},
-};
-use ark_std::{
-    io::{Result as IoResult, Write},
-    vec::Vec,
-};
+use ark_ff::fields::{Field, Fp2};
+use ark_std::vec::Vec;
 use num_traits::One;
 
 pub type G2Affine<P> = GroupAffine<<P as MNT4Parameters>::G2Parameters>;
@@ -36,12 +30,6 @@ pub struct G2Prepared<P: MNT4Parameters> {
 impl<P: MNT4Parameters> Default for G2Prepared<P> {
     fn default() -> Self {
         Self::from(G2Affine::<P>::prime_subgroup_generator())
-    }
-}
-
-impl<P: MNT4Parameters> ToBytes for G2Prepared<P> {
-    fn write<W: Write>(&self, _writer: W) -> IoResult<()> {
-        unimplemented!()
     }
 }
 

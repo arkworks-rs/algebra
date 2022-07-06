@@ -7,7 +7,6 @@ use ark_serialize::{
 use ark_std::{
     cmp::{Ord, Ordering, PartialOrd},
     fmt::{Display, Formatter, Result as FmtResult},
-    io::{Read, Result as IoResult, Write},
     marker::PhantomData,
     ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign},
     str::FromStr,
@@ -19,10 +18,7 @@ use ark_std::{
 mod montgomery_backend;
 pub use montgomery_backend::*;
 
-use crate::{
-    BigInt, BigInteger, FftField, Field, FromBytes, LegendreSymbol, PrimeField, SquareRootField,
-    ToBytes,
-};
+use crate::{BigInt, BigInteger, FftField, Field, LegendreSymbol, PrimeField, SquareRootField};
 /// A trait that specifies the configuration of a prime field.
 /// Also specifies how to perform arithmetic on field elements.
 pub trait FpConfig<const N: usize>: Send + Sync + 'static + Sized {
@@ -660,21 +656,6 @@ impl<P: FpConfig<N>, const N: usize> CanonicalDeserializeWithFlags for Fp<P, N> 
 impl<P: FpConfig<N>, const N: usize> CanonicalDeserialize for Fp<P, N> {
     fn deserialize<R: ark_std::io::Read>(reader: R) -> Result<Self, SerializationError> {
         Self::deserialize_with_flags::<R, EmptyFlags>(reader).map(|(r, _)| r)
-    }
-}
-
-impl<P: FpConfig<N>, const N: usize> ToBytes for Fp<P, N> {
-    #[inline]
-    fn write<W: Write>(&self, writer: W) -> IoResult<()> {
-        self.into_bigint().write(writer)
-    }
-}
-
-impl<P: FpConfig<N>, const N: usize> FromBytes for Fp<P, N> {
-    #[inline]
-    fn read<R: Read>(r: R) -> IoResult<Self> {
-        BigInt::read(r)
-            .and_then(|b| Fp::from_bigint(b).ok_or_else(|| crate::error("FromBytes::read failed")))
     }
 }
 

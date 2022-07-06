@@ -5,13 +5,12 @@ use ark_serialize::{
 use ark_std::{
     fmt::{Display, Formatter, Result as FmtResult},
     hash::{Hash, Hasher},
-    io::{Read, Result as IoResult, Write},
+    io::{Read, Write},
     ops::{Add, AddAssign, MulAssign, Neg, Sub, SubAssign},
     vec::Vec,
 };
 
 use ark_ff::{
-    bytes::{FromBytes, ToBytes},
     fields::{Field, PrimeField, SquareRootField},
     ToConstraintField, UniformRand,
 };
@@ -259,25 +258,6 @@ impl<P: Parameters> Neg for GroupAffine<P> {
     }
 }
 
-impl<P: Parameters> ToBytes for GroupAffine<P> {
-    #[inline]
-    fn write<W: Write>(&self, mut writer: W) -> IoResult<()> {
-        self.x.write(&mut writer)?;
-        self.y.write(&mut writer)?;
-        self.infinity.write(&mut writer)
-    }
-}
-
-impl<P: Parameters> FromBytes for GroupAffine<P> {
-    #[inline]
-    fn read<R: Read>(mut reader: R) -> IoResult<Self> {
-        let x = P::BaseField::read(&mut reader)?;
-        let y = P::BaseField::read(&mut reader)?;
-        let infinity = bool::read(reader)?;
-        Ok(Self::new(x, y, infinity))
-    }
-}
-
 impl<P: Parameters> Default for GroupAffine<P> {
     #[inline]
     fn default() -> Self {
@@ -366,25 +346,6 @@ impl<P: Parameters> Distribution<GroupProjective<P>> for Standard {
                 return p.mul_by_cofactor_to_projective();
             }
         }
-    }
-}
-
-impl<P: Parameters> ToBytes for GroupProjective<P> {
-    #[inline]
-    fn write<W: Write>(&self, mut writer: W) -> IoResult<()> {
-        self.x.write(&mut writer)?;
-        self.y.write(&mut writer)?;
-        self.z.write(writer)
-    }
-}
-
-impl<P: Parameters> FromBytes for GroupProjective<P> {
-    #[inline]
-    fn read<R: Read>(mut reader: R) -> IoResult<Self> {
-        let x = P::BaseField::read(&mut reader)?;
-        let y = P::BaseField::read(&mut reader)?;
-        let z = P::BaseField::read(reader)?;
-        Ok(Self::new(x, y, z))
     }
 }
 

@@ -5,7 +5,7 @@ use ark_serialize::{
 use ark_std::{
     cmp::{Ord, Ordering, PartialOrd},
     fmt,
-    io::{Read, Result as IoResult, Write},
+    io::{Read, Write},
     iter::Chain,
     ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign},
     vec::Vec,
@@ -21,7 +21,6 @@ use ark_std::rand::{
 
 use crate::{
     biginteger::BigInteger,
-    bytes::{FromBytes, ToBytes},
     fields::{Field, LegendreSymbol, PrimeField, SquareRootField},
     ToConstraintField, UniformRand,
 };
@@ -777,23 +776,6 @@ where
         res.append(&mut c1_elems);
 
         Some(res)
-    }
-}
-
-impl<P: QuadExtConfig> ToBytes for QuadExtField<P> {
-    #[inline]
-    fn write<W: Write>(&self, mut writer: W) -> IoResult<()> {
-        self.c0.write(&mut writer)?;
-        self.c1.write(writer)
-    }
-}
-
-impl<P: QuadExtConfig> FromBytes for QuadExtField<P> {
-    #[inline]
-    fn read<R: Read>(mut reader: R) -> IoResult<Self> {
-        let c0 = P::BaseField::read(&mut reader)?;
-        let c1 = P::BaseField::read(reader)?;
-        Ok(QuadExtField::new(c0, c1))
     }
 }
 
