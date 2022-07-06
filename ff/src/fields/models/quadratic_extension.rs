@@ -77,7 +77,7 @@ pub trait QuadExtConfig: 'static + Send + Sync + Sized {
     ) -> Self::BaseField {
         let mut tmp = *x;
         tmp += y;
-        Self::add_and_mul_base_field_by_nonresidue(&tmp, &y)
+        Self::add_and_mul_base_field_by_nonresidue(&tmp, y)
     }
 
     /// A specializable method for computing x - mul_base_field_by_nonresidue(y)
@@ -99,7 +99,7 @@ pub trait QuadExtConfig: 'static + Send + Sync + Sized {
     /// *only* when `fe` is known to be in the cyclotommic subgroup.
     fn cyclotomic_exp(fe: &QuadExtField<Self>, exponent: impl AsRef<[u64]>) -> QuadExtField<Self> {
         let mut res = QuadExtField::one();
-        let mut self_inverse = fe.clone();
+        let mut self_inverse = *fe;
         self_inverse.conjugate();
 
         let mut found_nonzero = false;
@@ -397,7 +397,7 @@ impl<P: QuadExtConfig> Field for QuadExtField<P> {
     }
 }
 
-impl<'a, P: QuadExtConfig> SquareRootField for QuadExtField<P>
+impl<P: QuadExtConfig> SquareRootField for QuadExtField<P>
 where
     P::BaseField: SquareRootField + From<P::BasePrimeField>,
 {

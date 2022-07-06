@@ -428,7 +428,7 @@ pub fn sw_affine_sum_test<P: SWModelParameters>() {
         let sum_computed: GroupAffine<P> = test_vec.iter().sum();
         let mut sum_expected = GroupAffine::zero();
         for p in test_vec.iter() {
-            sum_expected += &p;
+            sum_expected += p;
         }
 
         assert_eq!(sum_computed, sum_expected);

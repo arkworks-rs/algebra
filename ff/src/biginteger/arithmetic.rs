@@ -176,7 +176,7 @@ fn test_find_relaxed_naf_correctness() {
             let mut cur = BigInt::one();
             for v in relaxed_naf {
                 sum += cur.clone() * v;
-                cur = cur * 2;
+                cur *= 2;
             }
             sum
         };
@@ -186,7 +186,7 @@ fn test_find_relaxed_naf_correctness() {
             let mut cur = BigInt::one();
             for v in num.iter() {
                 sum += cur.clone() * v;
-                cur = cur << 64;
+                cur <<= 64;
             }
             sum
         };

@@ -533,11 +533,10 @@ impl<const N: usize> Ord for BigInt<N> {
         for i in 0..N {
             let a = &self.0[N - i - 1];
             let b = &other.0[N - i - 1];
-            if a < b {
-                return Ordering::Less;
-            } else if a > b {
-                return Ordering::Greater;
-            }
+            match a.cmp(b) {
+                Ordering::Equal => {},
+                order => return order,
+            };
         }
         Ordering::Equal
     }
@@ -553,8 +552,8 @@ impl<const N: usize> PartialOrd for BigInt<N> {
 impl<const N: usize> Distribution<BigInt<N>> for Standard {
     fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> BigInt<N> {
         let mut res = [0u64; N];
-        for i in 0..N {
-            res[i] = rng.gen();
+        for item in res.iter_mut() {
+            *item = rng.gen();
         }
         BigInt::<N>(res)
     }
@@ -1000,7 +999,7 @@ pub trait BigInteger:
     fn find_wnaf(&self, w: usize) -> Option<Vec<i64>> {
         // w > 2 due to definition of wNAF, and w < 64 to make sure that `i64`
         // can fit each signed digit
-        if w >= 2 && w < 64 {
+        if (2..64).contains(&w) {
             let mut res = vec![];
             let mut e = *self;
 
