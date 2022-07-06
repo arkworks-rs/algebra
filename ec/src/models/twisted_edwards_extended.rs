@@ -1,5 +1,6 @@
 use crate::{
     models::{MontgomeryModelParameters as MontgomeryParameters, TEModelParameters as Parameters},
+    msm::VariableBaseMSM,
     AffineCurve, ProjectiveCurve,
 };
 use ark_serialize::{
@@ -931,5 +932,21 @@ impl<P: Parameters> GroupProjective<P> {
     pub fn deserialize_old<R: Read>(reader: R) -> Result<Self, SerializationError> {
         let aff = GroupAffine::<P>::deserialize_old(reader)?;
         Ok(aff.into())
+    }
+}
+
+impl<P: Parameters> VariableBaseMSM for GroupProjective<P> {
+    type MSMBase = GroupAffine<P>;
+
+    type Scalar = <Self as ProjectiveCurve>::ScalarField;
+
+    #[inline]
+    fn _double_in_place(&mut self) -> &mut Self {
+        self.double_in_place()
+    }
+
+    #[inline]
+    fn _add_assign_mixed(&mut self, other: &Self::MSMBase) {
+        self.add_assign_mixed(other)
     }
 }
