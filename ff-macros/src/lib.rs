@@ -110,7 +110,7 @@ pub fn prime_field(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
 
     // modulus - 1 = 2^s * t
     let mut trace = &modulus - BigUint::from_str("1").unwrap();
-    while trace.bit(0) == false {
+    while !trace.bit(0) {
         trace >>= 1u8;
     }
 
@@ -161,7 +161,7 @@ pub fn prime_field(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     }.into()
 }
 
-const ARG_MSG: &'static str = "Failed to parse unroll threshold; must be a positive integer";
+const ARG_MSG: &str = "Failed to parse unroll threshold; must be a positive integer";
 
 /// Attribute used to unroll for loops found inside a function block.
 #[proc_macro_attribute]
@@ -232,7 +232,7 @@ fn test_str_to_limbs() {
     assert_eq!(&limbs, &["101234001234u64".to_string(), "1u64".to_string()]);
 
     let num = "80949648264912719408558363140637477264845294720710499478137287262712535938301461879813459410946";
-    let (is_positive, limbs) = str_to_limbs(&num.to_string());
+    let (is_positive, limbs) = str_to_limbs(num);
     assert!(is_positive);
     let expected_limbs = [
         format!("{}u64", 0x8508c00000000002u64),

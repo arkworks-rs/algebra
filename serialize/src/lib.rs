@@ -1120,9 +1120,7 @@ mod test {
         test_serialize(true);
         test_serialize(false);
 
-        let valid_mutation = |data: &[u8]| -> bool {
-            return data.len() == 1 && data[0] > 1;
-        };
+        let valid_mutation = |data: &[u8]| -> bool { data.len() == 1 && data[0] > 1 };
         for _ in 0..10 {
             ensure_non_malleable_encoding(true, valid_mutation);
             ensure_non_malleable_encoding(false, valid_mutation);

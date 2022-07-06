@@ -5,7 +5,7 @@ use ark_serialize::{
 use ark_std::{
     cmp::{Ord, Ordering, PartialOrd},
     fmt,
-    io::{Read, Result as IoResult, Write},
+    io::{Read, Write},
     iter::Chain,
     ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign},
     vec::Vec,
@@ -21,7 +21,6 @@ use ark_std::rand::{
 
 use crate::{
     biginteger::BigInteger,
-    bytes::{FromBytes, ToBytes},
     fields::{Field, LegendreSymbol, PrimeField, SquareRootField},
     ToConstraintField, UniformRand,
 };
@@ -77,7 +76,7 @@ pub trait QuadExtConfig: 'static + Send + Sync + Sized {
     ) -> Self::BaseField {
         let mut tmp = *x;
         tmp += y;
-        Self::add_and_mul_base_field_by_nonresidue(&tmp, &y)
+        Self::add_and_mul_base_field_by_nonresidue(&tmp, y)
     }
 
     /// A specializable method for computing x - mul_base_field_by_nonresidue(y)
@@ -99,7 +98,7 @@ pub trait QuadExtConfig: 'static + Send + Sync + Sized {
     /// *only* when `fe` is known to be in the cyclotommic subgroup.
     fn cyclotomic_exp(fe: &QuadExtField<Self>, exponent: impl AsRef<[u64]>) -> QuadExtField<Self> {
         let mut res = QuadExtField::one();
-        let mut self_inverse = fe.clone();
+        let mut self_inverse = *fe;
         self_inverse.conjugate();
 
         let mut found_nonzero = false;
@@ -397,7 +396,7 @@ impl<P: QuadExtConfig> Field for QuadExtField<P> {
     }
 }
 
-impl<'a, P: QuadExtConfig> SquareRootField for QuadExtField<P>
+impl<P: QuadExtConfig> SquareRootField for QuadExtField<P>
 where
     P::BaseField: SquareRootField + From<P::BasePrimeField>,
 {
@@ -777,23 +776,6 @@ where
         res.append(&mut c1_elems);
 
         Some(res)
-    }
-}
-
-impl<P: QuadExtConfig> ToBytes for QuadExtField<P> {
-    #[inline]
-    fn write<W: Write>(&self, mut writer: W) -> IoResult<()> {
-        self.c0.write(&mut writer)?;
-        self.c1.write(writer)
-    }
-}
-
-impl<P: QuadExtConfig> FromBytes for QuadExtField<P> {
-    #[inline]
-    fn read<R: Read>(mut reader: R) -> IoResult<Self> {
-        let c0 = P::BaseField::read(&mut reader)?;
-        let c1 = P::BaseField::read(reader)?;
-        Ok(QuadExtField::new(c0, c1))
     }
 }
 

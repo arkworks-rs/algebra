@@ -20,7 +20,6 @@ extern crate derivative;
 extern crate ark_std;
 
 use ark_ff::{
-    bytes::{FromBytes, ToBytes},
     fields::{Field, PrimeField, SquareRootField},
     UniformRand,
 };
@@ -31,6 +30,7 @@ use ark_std::{
     ops::{Add, AddAssign, MulAssign, Neg, Sub, SubAssign},
     vec::Vec,
 };
+use msm::VariableBaseMSM;
 use num_traits::Zero;
 use zeroize::Zeroize;
 
@@ -58,7 +58,9 @@ pub trait PairingEngine: Sized + 'static + Copy + Debug + Sync + Send + Eq + Par
     type G1Projective: ProjectiveCurve<BaseField = Self::Fq, ScalarField = Self::Fr, Affine = Self::G1Affine>
         + From<Self::G1Affine>
         + Into<Self::G1Affine>
-        + MulAssign<Self::Fr>; // needed due to https://github.com/rust-lang/rust/issues/69640
+        // needed due to https://github.com/rust-lang/rust/issues/69640
+        + MulAssign<Self::Fr>
+        + VariableBaseMSM<MSMBase = Self::G1Affine, Scalar = Self::Fr>;
 
     /// The affine representation of an element in G1.
     type G1Affine: AffineCurve<BaseField = Self::Fq, ScalarField = Self::Fr, Projective = Self::G1Projective>
@@ -67,13 +69,15 @@ pub trait PairingEngine: Sized + 'static + Copy + Debug + Sync + Send + Eq + Par
         + Into<Self::G1Prepared>;
 
     /// A G1 element that has been preprocessed for use in a pairing.
-    type G1Prepared: ToBytes + Default + Clone + Send + Sync + Debug + From<Self::G1Affine>;
+    type G1Prepared: Default + Clone + Send + Sync + Debug + From<Self::G1Affine>;
 
     /// The projective representation of an element in G2.
     type G2Projective: ProjectiveCurve<BaseField = Self::Fqe, ScalarField = Self::Fr, Affine = Self::G2Affine>
         + From<Self::G2Affine>
         + Into<Self::G2Affine>
-        + MulAssign<Self::Fr>; // needed due to https://github.com/rust-lang/rust/issues/69640
+        // needed due to https://github.com/rust-lang/rust/issues/69640
+        + MulAssign<Self::Fr>
+        + VariableBaseMSM<MSMBase = Self::G2Affine, Scalar = Self::Fr>;
 
     /// The affine representation of an element in G2.
     type G2Affine: AffineCurve<BaseField = Self::Fqe, ScalarField = Self::Fr, Projective = Self::G2Projective>
@@ -82,7 +86,7 @@ pub trait PairingEngine: Sized + 'static + Copy + Debug + Sync + Send + Eq + Par
         + Into<Self::G2Prepared>;
 
     /// A G2 element that has been preprocessed for use in a pairing.
-    type G2Prepared: ToBytes + Default + Clone + Send + Sync + Debug + From<Self::G2Affine>;
+    type G2Prepared: Default + Clone + Send + Sync + Debug + From<Self::G2Affine>;
 
     /// The base field that hosts G1.
     type Fq: PrimeField + SquareRootField;
@@ -131,8 +135,6 @@ pub trait ProjectiveCurve:
     Eq
     + 'static
     + Sized
-    + ToBytes
-    + FromBytes
     + CanonicalSerialize
     + CanonicalDeserialize
     + Copy
@@ -229,8 +231,6 @@ pub trait AffineCurve:
     Eq
     + 'static
     + Sized
-    + ToBytes
-    + FromBytes
     + CanonicalSerialize
     + CanonicalDeserialize
     + Copy

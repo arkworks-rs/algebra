@@ -53,7 +53,7 @@ impl FixedBase {
                 }
             });
         cfg_iter!(multiples_of_g)
-            .map(|s| T::batch_normalization_into_affine(&s))
+            .map(|s| T::batch_normalization_into_affine(s))
             .collect()
     }
 

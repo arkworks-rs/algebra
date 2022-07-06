@@ -187,9 +187,7 @@ impl<F: FftField> EvaluationDomain<F> for GeneralEvaluationDomain<F> {
         }
 
         if F::SMALL_SUBGROUP_BASE.is_some() {
-            return Some(MixedRadixEvaluationDomain::<F>::compute_size_of_domain(
-                num_coeffs,
-            )?);
+            return MixedRadixEvaluationDomain::<F>::compute_size_of_domain(num_coeffs);
         }
 
         None

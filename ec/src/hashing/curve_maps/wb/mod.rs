@@ -33,11 +33,11 @@ pub trait WBParams: SWModelParameters + Sized {
     fn isogeny_map(
         domain_point: GroupAffine<Self::IsogenousCurve>,
     ) -> Result<GroupAffine<Self>, HashToCurveError> {
-        let x_num = DensePolynomial::from_coefficients_slice(&Self::PHI_X_NOM[..]);
-        let x_den = DensePolynomial::from_coefficients_slice(&Self::PHI_X_DEN[..]);
+        let x_num = DensePolynomial::from_coefficients_slice(Self::PHI_X_NOM);
+        let x_den = DensePolynomial::from_coefficients_slice(Self::PHI_X_DEN);
 
-        let y_num = DensePolynomial::from_coefficients_slice(&Self::PHI_Y_NOM[..]);
-        let y_den = DensePolynomial::from_coefficients_slice(&Self::PHI_Y_DEN[..]);
+        let y_num = DensePolynomial::from_coefficients_slice(Self::PHI_Y_NOM);
+        let y_den = DensePolynomial::from_coefficients_slice(Self::PHI_Y_DEN);
 
         let mut v: [BaseField<Self>; 2] = [
             x_den.evaluate(&domain_point.x),
