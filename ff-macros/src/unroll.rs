@@ -67,9 +67,9 @@ pub(crate) fn unroll_in_block(block: &Block, unroll_by: usize) -> Block {
     let mut new_stmts = Vec::new();
     for stmt in stmts.iter() {
         if let Stmt::Expr(expr) = stmt {
-            new_stmts.push(Stmt::Expr(unroll(&expr, unroll_by)));
+            new_stmts.push(Stmt::Expr(unroll(expr, unroll_by)));
         } else if let Stmt::Semi(expr, semi) = stmt {
-            new_stmts.push(Stmt::Semi(unroll(&expr, unroll_by), *semi));
+            new_stmts.push(Stmt::Semi(unroll(expr, unroll_by), *semi));
         } else {
             new_stmts.push((*stmt).clone());
         }

@@ -137,9 +137,7 @@ impl<const N: usize> SerBuffer<N> {
     pub(super) fn copy_from_u8_slice(&mut self, other: &[u8]) {
         other.chunks(8).enumerate().for_each(|(i, chunk)| {
             if i < N {
-                for j in 0..chunk.len() {
-                    self.buffers[i][j] = chunk[j]
-                }
+                self.buffers[i][..chunk.len()].copy_from_slice(chunk);
             } else {
                 self.last = chunk[0]
             }
@@ -155,7 +153,7 @@ impl<const N: usize> SerBuffer<N> {
     }
 
     #[inline(always)]
-    pub(super) fn to_bigint(&self) -> BigInt<N> {
+    pub(super) fn to_bigint(self) -> BigInt<N> {
         let mut self_integer = BigInt::from(0u64);
         self_integer
             .0
