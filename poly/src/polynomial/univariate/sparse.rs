@@ -270,7 +270,7 @@ impl<F: Field> SparsePolynomial<F> {
     // Correctness relies on the lowest degree term in append_coeffs
     // being higher than self.degree()
     fn append_coeffs(&mut self, append_coeffs: &[(usize, F)]) {
-        assert!(append_coeffs.len() == 0 || self.degree() < append_coeffs[0].0);
+        assert!(append_coeffs.is_empty() || self.degree() < append_coeffs[0].0);
         for (i, elem) in append_coeffs.iter() {
             self.coeffs.push((*i, *elem));
         }

@@ -124,7 +124,7 @@ pub fn x86_64_asm_square(input: TokenStream) -> TokenStream {
     }
 }
 
-fn construct_asm_mul<'a>(ctx: &Context<'a>, limbs: usize) -> Vec<String> {
+fn construct_asm_mul(ctx: &Context<'_>, limbs: usize) -> Vec<String> {
     let r: Vec<AssemblyVar> = Context::R.iter().map(|r| (*r).into()).collect();
     let rax: AssemblyVar = Context::RAX.into();
     let rcx: AssemblyVar = Context::RCX.into();

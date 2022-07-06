@@ -84,8 +84,8 @@ pub type Fp12<P> = QuadExtField<Fp12ConfigWrapper<P>>;
 
 impl<P: Fp12Config> Fp12<P> {
     pub fn mul_by_fp(&mut self, element: &<Self as Field>::BasePrimeField) {
-        self.c0.mul_by_fp(&element);
-        self.c1.mul_by_fp(&element);
+        self.c0.mul_by_fp(element);
+        self.c1.mul_by_fp(element);
     }
 
     pub fn mul_by_034(
@@ -99,12 +99,12 @@ impl<P: Fp12Config> Fp12<P> {
         let a2 = self.c0.c2 * c0;
         let a = Fp6::new(a0, a1, a2);
         let mut b = self.c1;
-        b.mul_by_01(&c3, &c4);
+        b.mul_by_01(c3, c4);
 
         let c0 = *c0 + c3;
         let c1 = c4;
         let mut e = self.c0 + &self.c1;
-        e.mul_by_01(&c0, &c1);
+        e.mul_by_01(&c0, c1);
         self.c1 = e - &(a + &b);
         self.c0 = a + &P::mul_fp6_by_nonresidue(&b);
     }
@@ -146,17 +146,17 @@ impl<P: Fp12Config> Fp12<P> {
 
             // t0 + t1*y = (z0 + z1*y)^2 = a^2
             let mut tmp = *r0 * r1;
-            let t0 = (*r0 + r1) * &(fp2_nr(&r1) + r0) - &tmp - &fp2_nr(&tmp);
+            let t0 = (*r0 + r1) * &(fp2_nr(r1) + r0) - &tmp - &fp2_nr(&tmp);
             let t1 = tmp.double();
 
             // t2 + t3*y = (z2 + z3*y)^2 = b^2
             tmp = *r2 * r3;
-            let t2 = (*r2 + r3) * &(fp2_nr(&r3) + r2) - &tmp - &fp2_nr(&tmp);
+            let t2 = (*r2 + r3) * &(fp2_nr(r3) + r2) - &tmp - &fp2_nr(&tmp);
             let t3 = tmp.double();
 
             // t4 + t5*y = (z4 + z5*y)^2 = c^2
             tmp = *r4 * r5;
-            let t4 = (*r4 + r5) * &(fp2_nr(&r5) + r4) - &tmp - &fp2_nr(&tmp);
+            let t4 = (*r4 + r5) * &(fp2_nr(r5) + r4) - &tmp - &fp2_nr(&tmp);
             let t5 = tmp.double();
 
             let z0 = &mut self.c0.c0;

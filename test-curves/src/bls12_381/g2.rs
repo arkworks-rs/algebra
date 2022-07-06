@@ -136,7 +136,7 @@ pub fn p_power_endomorphism(p: &GroupAffine<Parameters>) -> GroupAffine<Paramete
     res.x.frobenius_map(1);
     res.y.frobenius_map(1);
 
-    let tmp_x = res.x.clone();
+    let tmp_x = res.x;
     res.x.c0 = -P_POWER_ENDOMORPHISM_COEFF_0.c1 * &tmp_x.c1;
     res.x.c1 = P_POWER_ENDOMORPHISM_COEFF_0.c1 * &tmp_x.c0;
     res.y *= P_POWER_ENDOMORPHISM_COEFF_1;
