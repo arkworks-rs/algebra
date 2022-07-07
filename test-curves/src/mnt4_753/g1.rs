@@ -1,13 +1,13 @@
 use ark_ec::{
     models::{ModelParameters, SWModelParameters},
-    short_weierstrass_jacobian::*,
+    short_weierstrass::*,
 };
 use ark_ff::MontFp;
 
 use crate::mnt4_753::{Fq, Fr, FR_ONE};
 
-pub type G1Affine = GroupAffine<Parameters>;
-pub type G1Projective = GroupProjective<Parameters>;
+pub type G1Affine = Affine<Parameters>;
+pub type G1Projective = Projective<Parameters>;
 
 #[derive(Clone, Default, PartialEq, Eq)]
 pub struct Parameters;

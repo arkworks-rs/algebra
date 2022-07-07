@@ -8,7 +8,7 @@ use crate::{
         map_to_curve_hasher::{MapToCurve, MapToCurveBasedHasher},
     },
     models::SWModelParameters,
-    short_weierstrass_jacobian::GroupAffine,
+    short_weierstrass::Affine,
     ModelParameters,
 };
 use ark_ff::field_hashers::DefaultFieldHasher;
@@ -126,7 +126,7 @@ fn checking_the_hashing_parameters() {
 #[test]
 fn hash_arbitary_string_to_curve_swu() {
     let test_swu_to_curve_hasher = MapToCurveBasedHasher::<
-        GroupAffine<TestSWUMapToCurveParams>,
+        Affine<TestSWUMapToCurveParams>,
         DefaultFieldHasher<sha2::Sha256, 128>,
         SWUMap<TestSWUMapToCurveParams>,
     >::new(&[1])
@@ -147,7 +147,7 @@ fn hash_arbitary_string_to_curve_swu() {
 fn map_field_to_curve_swu() {
     let test_map_to_curve = SWUMap::<TestSWUMapToCurveParams>::new().unwrap();
 
-    let mut map_range: Vec<GroupAffine<TestSWUMapToCurveParams>> = vec![];
+    let mut map_range: Vec<Affine<TestSWUMapToCurveParams>> = vec![];
     for current_field_element in 0..127 {
         map_range.push(
             test_map_to_curve
@@ -347,7 +347,7 @@ impl WBParams for TestWBF127MapToCurveParams {
 #[test]
 fn hash_arbitary_string_to_curve_wb() {
     let test_wb_to_curve_hasher = MapToCurveBasedHasher::<
-        GroupAffine<TestWBF127MapToCurveParams>,
+        Affine<TestWBF127MapToCurveParams>,
         DefaultFieldHasher<sha2::Sha256, 128>,
         WBMap<TestWBF127MapToCurveParams>,
     >::new(&[1])

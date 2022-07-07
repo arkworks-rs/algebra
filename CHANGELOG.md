@@ -16,7 +16,7 @@
 - [\#365](https://github.com/arkworks-rs/algebra/pull/365) (`ark-ec`)
     - Move `COFACTOR`, `COFACTOR_INV`, and `is_in_correct_subgroup_assuming_on_curve()` from `{SW,TE}ModelParameters` to `ModelParameters`.
     - Add `mul_bits()` to `AffineCurve` and provide a default implementation of `mul()` using this.
-    - Remove duplicate function `scale_by_cofactor()` from `short_weierstrass_jacobian::GroupAffine` and `twisted_edwards_extended::GroupAffine`
+    - Remove duplicate function `scale_by_cofactor()` from `short_weierstrass::GroupAffine` and `twisted_edwards_extended::GroupAffine`
 - [\#370](https://github.com/arkworks-rs/algebra/pull/370) (all) Set the minimum `rust-version = 1.56` in the manifests of all crates.
 - [\#379](https://github.com/arkworks-rs/algebra/pull/379) (`ark-ff`) Refactor `Field` implementation and `PrimeField` trait:
     - Switch from hardcoded `FpXYZ` to `Fp<N>` based on `const` generics.

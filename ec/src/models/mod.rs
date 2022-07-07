@@ -6,8 +6,8 @@ pub mod bn;
 pub mod bw6;
 pub mod mnt4;
 pub mod mnt6;
-pub mod short_weierstrass_jacobian;
-pub mod twisted_edwards_extended;
+pub mod short_weierstrass;
+pub mod twisted_edwards;
 
 /// Elliptic curves can be represented via different "models" with varying
 /// efficiency properties.
@@ -73,7 +73,7 @@ pub trait SWModelParameters: ModelParameters {
     /// for performing this check (for example, via leveraging curve
     /// isomorphisms).
     fn is_in_correct_subgroup_assuming_on_curve(
-        item: &short_weierstrass_jacobian::GroupAffine<Self>,
+        item: &short_weierstrass::Affine<Self>,
     ) -> bool {
         Self::mul_affine(item, Self::ScalarField::characteristic()).is_zero()
     }
@@ -82,18 +82,18 @@ pub trait SWModelParameters: ModelParameters {
     /// The default method is simply to multiply by the cofactor.
     /// Some curves can implement a more efficient algorithm.
     fn clear_cofactor(
-        item: &short_weierstrass_jacobian::GroupAffine<Self>,
-    ) -> short_weierstrass_jacobian::GroupAffine<Self> {
+        item: &short_weierstrass::Affine<Self>,
+    ) -> short_weierstrass::Affine<Self> {
         item.mul_by_cofactor()
     }
 
     /// Default implementation of group multiplication for projective
     /// coordinates
     fn mul_projective(
-        base: &short_weierstrass_jacobian::GroupProjective<Self>,
+        base: &short_weierstrass::Projective<Self>,
         scalar: &[u64],
-    ) -> short_weierstrass_jacobian::GroupProjective<Self> {
-        let mut res = short_weierstrass_jacobian::GroupProjective::<Self>::zero();
+    ) -> short_weierstrass::Projective<Self> {
+        let mut res = short_weierstrass::Projective::<Self>::zero();
         for b in ark_ff::BitIteratorBE::without_leading_zeros(scalar) {
             res.double_in_place();
             if b {
@@ -107,10 +107,10 @@ pub trait SWModelParameters: ModelParameters {
     /// Default implementation of group multiplication for affine
     /// coordinates.
     fn mul_affine(
-        base: &short_weierstrass_jacobian::GroupAffine<Self>,
+        base: &short_weierstrass::Affine<Self>,
         scalar: &[u64],
-    ) -> short_weierstrass_jacobian::GroupProjective<Self> {
-        let mut res = short_weierstrass_jacobian::GroupProjective::<Self>::zero();
+    ) -> short_weierstrass::Projective<Self> {
+        let mut res = short_weierstrass::Projective::<Self>::zero();
         for b in ark_ff::BitIteratorBE::without_leading_zeros(scalar) {
             res.double_in_place();
             if b {
@@ -152,7 +152,7 @@ pub trait TEModelParameters: ModelParameters {
     /// Checks that the current point is in the prime order subgroup given
     /// the point on the curve.
     fn is_in_correct_subgroup_assuming_on_curve(
-        item: &twisted_edwards_extended::GroupAffine<Self>,
+        item: &twisted_edwards::Affine<Self>,
     ) -> bool {
         Self::mul_affine(item, Self::ScalarField::characteristic()).is_zero()
     }
@@ -162,18 +162,18 @@ pub trait TEModelParameters: ModelParameters {
     /// For some curve families though, it is sufficient to multiply
     /// by a smaller scalar.
     fn clear_cofactor(
-        item: &twisted_edwards_extended::GroupAffine<Self>,
-    ) -> twisted_edwards_extended::GroupAffine<Self> {
+        item: &twisted_edwards::Affine<Self>,
+    ) -> twisted_edwards::Affine<Self> {
         item.mul_by_cofactor()
     }
 
     /// Default implementation of group multiplication for projective
     /// coordinates
     fn mul_projective(
-        base: &twisted_edwards_extended::GroupProjective<Self>,
+        base: &twisted_edwards::Projective<Self>,
         scalar: &[u64],
-    ) -> twisted_edwards_extended::GroupProjective<Self> {
-        let mut res = twisted_edwards_extended::GroupProjective::<Self>::zero();
+    ) -> twisted_edwards::Projective<Self> {
+        let mut res = twisted_edwards::Projective::<Self>::zero();
         for b in ark_ff::BitIteratorBE::without_leading_zeros(scalar) {
             res.double_in_place();
             if b {
@@ -187,10 +187,10 @@ pub trait TEModelParameters: ModelParameters {
     /// Default implementation of group multiplication for affine
     /// coordinates
     fn mul_affine(
-        base: &twisted_edwards_extended::GroupAffine<Self>,
+        base: &twisted_edwards::Affine<Self>,
         scalar: &[u64],
-    ) -> twisted_edwards_extended::GroupProjective<Self> {
-        let mut res = twisted_edwards_extended::GroupProjective::<Self>::zero();
+    ) -> twisted_edwards::Projective<Self> {
+        let mut res = twisted_edwards::Projective::<Self>::zero();
         for b in ark_ff::BitIteratorBE::without_leading_zeros(scalar) {
             res.double_in_place();
             if b {
