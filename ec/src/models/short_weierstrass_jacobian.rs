@@ -389,7 +389,7 @@ impl<P: Parameters> Zero for GroupProjective<P> {
     /// Returns the point at infinity, which always has Z = 0.
     #[inline]
     fn zero() -> Self {
-        Self::new(
+        Self::new_unchecked(
             P::BaseField::one(),
             P::BaseField::one(),
             P::BaseField::zero(),
@@ -605,7 +605,7 @@ impl<P: Parameters> Neg for GroupProjective<P> {
     #[inline]
     fn neg(self) -> Self {
         if !self.is_zero() {
-            Self::new(self.x, -self.y, self.z)
+            Self::new_unchecked(self.x, -self.y, self.z)
         } else {
             self
         }
