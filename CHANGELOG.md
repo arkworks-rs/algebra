@@ -35,6 +35,15 @@
 - [\#412](https://github.com/arkworks-rs/algebra/pull/412) (`ark-poly`) Rename UV/MVPolynomial to DenseUV/MVPolynomial.
 - [\#417](https://github.com/arkworks-rs/algebra/pull/417) (`ark-ff`) Remove `ToBytes` and `FromBytes`.
 - [\#425](https://github.com/arkworks-rs/algebra/pull/425) (`ark-ec`) Refactor `VariableBase` struct to `VariableBaseMSM` trait and implement it for `GroupProjective`.
+- [\#438](https://github.com/arkworks-rs/algebra/pull/438) (`ark-ec`) Rename modules, structs, and traits related to `ec`.
+    - `short_weierstrass_jacobian` → `short_weierstrass`
+    - `twisted_edwards_extend` → `twisted_edwards`
+    - `GroupAffine` → `Affine`
+    - `GroupProjective` → `Projective`
+    - `ModelParameters` → `CurveConfig`
+    - `SWModelParameters` → `SWCurveConfig`
+    - `TEModelParameters` → `TECurveConfig`
+    - `MontgomeryModelParameters` → `MontCurveConfig`
 
 ### Features
 
