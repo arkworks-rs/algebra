@@ -1,6 +1,6 @@
 use ark_ec::{
-    models::{ModelParameters, SWModelParameters},
-    short_weierstrass::*,
+    models::CurveConfig,
+    short_weierstrass::{self, *},
 };
 use ark_ff::Zero;
 
@@ -12,7 +12,7 @@ pub type G1Projective = Projective<Parameters>;
 #[derive(Clone, Default, PartialEq, Eq)]
 pub struct Parameters;
 
-impl ModelParameters for Parameters {
+impl CurveConfig for Parameters {
     type BaseField = Fq;
     type ScalarField = Fr;
 
@@ -23,7 +23,7 @@ impl ModelParameters for Parameters {
     const COFACTOR_INV: Fr = FR_ONE;
 }
 
-impl SWModelParameters for Parameters {
+impl short_weierstrass::SWCurveConfig for Parameters {
     /// COEFF_A = 0
     const COEFF_A: Fq = ark_ff::MontFp!(Fq, "0");
 

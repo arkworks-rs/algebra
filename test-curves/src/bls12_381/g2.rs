@@ -1,8 +1,8 @@
 use crate::bls12_381::*;
 use ark_ec::{
     bls12,
-    models::{ModelParameters, SWModelParameters},
-    short_weierstrass::Affine,
+    models::CurveConfig,
+    short_weierstrass::{self, Affine},
     AffineCurve,
 };
 use ark_ff::{BigInt, Field, MontFp, QuadExt, Zero};
@@ -13,7 +13,7 @@ pub type G2Projective = bls12::G2Projective<crate::bls12_381::Parameters>;
 #[derive(Clone, Default, PartialEq, Eq)]
 pub struct Parameters;
 
-impl ModelParameters for Parameters {
+impl CurveConfig for Parameters {
     type BaseField = Fq2;
     type ScalarField = Fr;
 
@@ -41,7 +41,7 @@ impl ModelParameters for Parameters {
     );
 }
 
-impl SWModelParameters for Parameters {
+impl short_weierstrass::SWCurveConfig for Parameters {
     /// COEFF_A = [0, 0]
     const COEFF_A: Fq2 = QuadExt!(g1::Parameters::COEFF_A, g1::Parameters::COEFF_A,);
 

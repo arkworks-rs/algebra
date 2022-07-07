@@ -1,6 +1,6 @@
 use core::marker::PhantomData;
 
-use crate::{models::SWModelParameters, ModelParameters};
+use crate::{models::short_weierstrass::SWCurveConfig, CurveConfig};
 use ark_ff::batch_inversion;
 use ark_poly::{univariate::DensePolynomial, DenseUVPolynomial, Polynomial};
 
@@ -11,7 +11,7 @@ use crate::{
 };
 
 use super::swu::{SWUMap, SWUParams};
-type BaseField<MP> = <MP as ModelParameters>::BaseField;
+type BaseField<MP> = <MP as CurveConfig>::BaseField;
 
 /// Trait defining the necessary parameters for the WB hash-to-curve method
 /// for the curves of Weierstrass form of:
@@ -19,7 +19,7 @@ type BaseField<MP> = <MP as ModelParameters>::BaseField;
 /// From [\[WB2019\]]
 ///
 /// - [\[WB2019\]] <http://dx.doi.org/10.46586/tches.v2019.i4.154-179>
-pub trait WBParams: SWModelParameters + Sized {
+pub trait WBParams: SWCurveConfig + Sized {
     // The isogenous curve should be defined over the same base field but it can have
     // different scalar field type IsogenousCurveScalarField :
     type IsogenousCurve: SWUParams<BaseField = BaseField<Self>>;

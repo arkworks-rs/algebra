@@ -1,4 +1,4 @@
-use crate::models::SWModelParameters;
+use crate::models::short_weierstrass::SWCurveConfig;
 use ark_ff::{BigInteger, Field, One, PrimeField, SquareRootField, Zero};
 use ark_std::string::ToString;
 use core::marker::PhantomData;
@@ -13,7 +13,7 @@ use crate::{
 /// y^2 = x^3 + a*x + b where ab != 0. From [\[WB2019\]]
 ///
 /// - [\[WB2019\]] <https://eprint.iacr.org/2019/403>
-pub trait SWUParams: SWModelParameters {
+pub trait SWUParams: SWCurveConfig {
     /// An element of the base field that is not a square root see \[WB2019, Section 4\].
     /// It is also convenient to have $g(b/xi * a)$ to be square. In general
     /// we use a `XI` with low absolute value coefficients when they are

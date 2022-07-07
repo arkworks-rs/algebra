@@ -1,5 +1,5 @@
 use crate::{
-    models::{ModelParameters, SWModelParameters},
+    models::{short_weierstrass::SWCurveConfig, CurveConfig},
     PairingEngine,
 };
 use ark_ff::{
@@ -34,10 +34,10 @@ pub trait MNT4Parameters: 'static {
     type Fr: PrimeField + SquareRootField + Into<<Self::Fr as PrimeField>::BigInt>;
     type Fp2Config: Fp2Config<Fp = Self::Fp>;
     type Fp4Config: Fp4Config<Fp2Config = Self::Fp2Config>;
-    type G1Parameters: SWModelParameters<BaseField = Self::Fp, ScalarField = Self::Fr>;
-    type G2Parameters: SWModelParameters<
+    type G1Parameters: SWCurveConfig<BaseField = Self::Fp, ScalarField = Self::Fr>;
+    type G2Parameters: SWCurveConfig<
         BaseField = Fp2<Self::Fp2Config>,
-        ScalarField = <Self::G1Parameters as ModelParameters>::ScalarField,
+        ScalarField = <Self::G1Parameters as CurveConfig>::ScalarField,
     >;
 }
 
@@ -189,7 +189,7 @@ impl<P: MNT4Parameters> MNT4<P> {
 }
 
 impl<P: MNT4Parameters> PairingEngine for MNT4<P> {
-    type Fr = <P::G1Parameters as ModelParameters>::ScalarField;
+    type Fr = <P::G1Parameters as CurveConfig>::ScalarField;
     type G1Projective = G1Projective<P>;
     type G1Affine = G1Affine<P>;
     type G1Prepared = G1Prepared<P>;

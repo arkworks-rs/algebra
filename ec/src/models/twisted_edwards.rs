@@ -1,8 +1,4 @@
-use crate::{
-    models::{MontgomeryModelParameters as MontgomeryParameters, TEModelParameters as Parameters},
-    msm::VariableBaseMSM,
-    AffineCurve, ProjectiveCurve,
-};
+use crate::{msm::VariableBaseMSM, AffineCurve, ProjectiveCurve};
 use ark_serialize::{
     CanonicalDeserialize, CanonicalDeserializeWithFlags, CanonicalSerialize,
     CanonicalSerializeWithFlags, EdwardsFlags, SerializationError,
@@ -29,32 +25,116 @@ use ark_ff::{
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
 
+/// Constants and convenience functions that collectively define the [Twisted Edwards model](https://www.hyperelliptic.org/EFD/g1p/auto-twisted.html)
+/// of the curve. In this model, the curve equation is
+/// `a * x² + y² = 1 + d * x² * y²`, for constants `a` and `d`.
+pub trait TECurveConfig: super::CurveConfig {
+    /// Coefficient `a` of the curve equation.
+    const COEFF_A: Self::BaseField;
+    /// Coefficient `d` of the curve equation.
+    const COEFF_D: Self::BaseField;
+    /// Coefficients of the base point of the curve
+    const AFFINE_GENERATOR_COEFFS: (Self::BaseField, Self::BaseField);
+
+    /// Model parameters for the Montgomery curve that is birationally
+    /// equivalent to this curve.
+    type MontCurveConfig: MontCurveConfig<BaseField = Self::BaseField>;
+
+    /// Helper method for computing `elem * Self::COEFF_A`.
+    ///
+    /// The default implementation should be overridden only if
+    /// the product can be computed faster than standard field multiplication
+    /// (eg: via doubling if `COEFF_A == 2`, or if `COEFF_A.is_zero()`).
+    #[inline(always)]
+    fn mul_by_a(elem: &Self::BaseField) -> Self::BaseField {
+        let mut copy = *elem;
+        copy *= &Self::COEFF_A;
+        copy
+    }
+
+    /// Checks that the current point is in the prime order subgroup given
+    /// the point on the curve.
+    fn is_in_correct_subgroup_assuming_on_curve(item: &Affine<Self>) -> bool {
+        Self::mul_affine(item, Self::ScalarField::characteristic()).is_zero()
+    }
+
+    /// Performs cofactor clearing.
+    /// The default method is simply to multiply by the cofactor.
+    /// For some curve families though, it is sufficient to multiply
+    /// by a smaller scalar.
+    fn clear_cofactor(item: &Affine<Self>) -> Affine<Self> {
+        item.mul_by_cofactor()
+    }
+
+    /// Default implementation of group multiplication for projective
+    /// coordinates
+    fn mul_projective(base: &Projective<Self>, scalar: &[u64]) -> Projective<Self> {
+        let mut res = Projective::<Self>::zero();
+        for b in ark_ff::BitIteratorBE::without_leading_zeros(scalar) {
+            res.double_in_place();
+            if b {
+                res += base;
+            }
+        }
+
+        res
+    }
+
+    /// Default implementation of group multiplication for affine
+    /// coordinates
+    fn mul_affine(base: &Affine<Self>, scalar: &[u64]) -> Projective<Self> {
+        let mut res = Projective::<Self>::zero();
+        for b in ark_ff::BitIteratorBE::without_leading_zeros(scalar) {
+            res.double_in_place();
+            if b {
+                res.add_assign_mixed(base)
+            }
+        }
+
+        res
+    }
+}
+
+/// Constants and convenience functions that collectively define the [Montgomery model](https://www.hyperelliptic.org/EFD/g1p/auto-montgom.html)
+/// of the curve. In this model, the curve equation is
+/// `b * y² = x³ + a * x² + x`, for constants `a` and `b`.
+pub trait MontCurveConfig: super::CurveConfig {
+    /// Coefficient `a` of the curve equation.
+    const COEFF_A: Self::BaseField;
+    /// Coefficient `b` of the curve equation.
+    const COEFF_B: Self::BaseField;
+
+    /// Model parameters for the Twisted Edwards curve that is birationally
+    /// equivalent to this curve.
+    type TECurveConfig: TECurveConfig<BaseField = Self::BaseField>;
+}
+
 /// Affine coordinates for a point on a twisted Edwards curve, over the
 /// base field `P::BaseField`.
 #[derive(Derivative)]
 #[derivative(
-    Copy(bound = "P: Parameters"),
-    Clone(bound = "P: Parameters"),
-    PartialEq(bound = "P: Parameters"),
-    Eq(bound = "P: Parameters"),
-    Debug(bound = "P: Parameters"),
-    Hash(bound = "P: Parameters")
+    Copy(bound = "P: TECurveConfig"),
+    Clone(bound = "P: TECurveConfig"),
+    PartialEq(bound = "P: TECurveConfig"),
+    Eq(bound = "P: TECurveConfig"),
+    Debug(bound = "P: TECurveConfig"),
+    Hash(bound = "P: TECurveConfig")
 )]
 #[must_use]
-pub struct Affine<P: Parameters> {
+pub struct Affine<P: TECurveConfig> {
     /// X coordinate of the point represented as a field element
     pub x: P::BaseField,
     /// Y coordinate of the point represented as a field element
     pub y: P::BaseField,
 }
 
-impl<P: Parameters> Display for Affine<P> {
+impl<P: TECurveConfig> Display for Affine<P> {
     fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
         write!(f, "Affine(x={}, y={})", self.x, self.y)
     }
 }
 
-impl<P: Parameters> Affine<P> {
+impl<P: TECurveConfig> Affine<P> {
     pub fn new(x: P::BaseField, y: P::BaseField) -> Self {
         Self { x, y }
     }
@@ -99,7 +179,7 @@ impl<P: Parameters> Affine<P> {
     }
 }
 
-impl<P: Parameters> Affine<P> {
+impl<P: TECurveConfig> Affine<P> {
     /// Checks if `self` is in the subgroup having order equaling that of
     /// `P::ScalarField` given it is on the curve.
     pub fn is_in_correct_subgroup_assuming_on_curve(&self) -> bool {
@@ -107,7 +187,7 @@ impl<P: Parameters> Affine<P> {
     }
 }
 
-impl<P: Parameters> Zero for Affine<P> {
+impl<P: TECurveConfig> Zero for Affine<P> {
     fn zero() -> Self {
         Self::new(P::BaseField::zero(), P::BaseField::one())
     }
@@ -117,8 +197,8 @@ impl<P: Parameters> Zero for Affine<P> {
     }
 }
 
-impl<P: Parameters> AffineCurve for Affine<P> {
-    type Parameters = P;
+impl<P: TECurveConfig> AffineCurve for Affine<P> {
+    type Config = P;
     type BaseField = P::BaseField;
     type ScalarField = P::ScalarField;
     type Projective = Projective<P>;
@@ -150,7 +230,7 @@ impl<P: Parameters> AffineCurve for Affine<P> {
     /// resulting projective element.
     #[must_use]
     fn mul_by_cofactor_to_projective(&self) -> Self::Projective {
-        P::mul_affine(self, Self::Parameters::COFACTOR)
+        P::mul_affine(self, Self::Config::COFACTOR)
     }
 
     /// Performs cofactor clearing.
@@ -162,7 +242,7 @@ impl<P: Parameters> AffineCurve for Affine<P> {
     }
 }
 
-impl<P: Parameters> Zeroize for Affine<P> {
+impl<P: TECurveConfig> Zeroize for Affine<P> {
     // The phantom data does not contain element-specific data
     // and thus does not need to be zeroized.
     fn zeroize(&mut self) {
@@ -171,7 +251,7 @@ impl<P: Parameters> Zeroize for Affine<P> {
     }
 }
 
-impl<P: Parameters> Neg for Affine<P> {
+impl<P: TECurveConfig> Neg for Affine<P> {
     type Output = Self;
 
     fn neg(self) -> Self {
@@ -179,9 +259,9 @@ impl<P: Parameters> Neg for Affine<P> {
     }
 }
 
-ark_ff::impl_additive_ops_from_ref!(Affine, Parameters);
+ark_ff::impl_additive_ops_from_ref!(Affine, TECurveConfig);
 
-impl<'a, P: Parameters> Add<&'a Self> for Affine<P> {
+impl<'a, P: TECurveConfig> Add<&'a Self> for Affine<P> {
     type Output = Self;
     fn add(self, other: &'a Self) -> Self {
         let mut copy = self;
@@ -190,7 +270,7 @@ impl<'a, P: Parameters> Add<&'a Self> for Affine<P> {
     }
 }
 
-impl<'a, P: Parameters> AddAssign<&'a Self> for Affine<P> {
+impl<'a, P: TECurveConfig> AddAssign<&'a Self> for Affine<P> {
     fn add_assign(&mut self, other: &'a Self) {
         let y1y2 = self.y * &other.y;
         let x1x2 = self.x * &other.x;
@@ -207,7 +287,7 @@ impl<'a, P: Parameters> AddAssign<&'a Self> for Affine<P> {
     }
 }
 
-impl<'a, P: Parameters> Sub<&'a Self> for Affine<P> {
+impl<'a, P: TECurveConfig> Sub<&'a Self> for Affine<P> {
     type Output = Self;
     fn sub(self, other: &'a Self) -> Self {
         let mut copy = self;
@@ -216,26 +296,26 @@ impl<'a, P: Parameters> Sub<&'a Self> for Affine<P> {
     }
 }
 
-impl<'a, P: Parameters> SubAssign<&'a Self> for Affine<P> {
+impl<'a, P: TECurveConfig> SubAssign<&'a Self> for Affine<P> {
     fn sub_assign(&mut self, other: &'a Self) {
         *self += &(-(*other));
     }
 }
 
-impl<P: Parameters> MulAssign<P::ScalarField> for Affine<P> {
+impl<P: TECurveConfig> MulAssign<P::ScalarField> for Affine<P> {
     fn mul_assign(&mut self, other: P::ScalarField) {
         *self = self.mul(other.into_bigint()).into()
     }
 }
 
-impl<P: Parameters> Default for Affine<P> {
+impl<P: TECurveConfig> Default for Affine<P> {
     #[inline]
     fn default() -> Self {
         Self::zero()
     }
 }
 
-impl<P: Parameters> Distribution<Affine<P>> for Standard {
+impl<P: TECurveConfig> Distribution<Affine<P>> for Standard {
     #[inline]
     fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> Affine<P> {
         loop {
@@ -253,7 +333,7 @@ mod group_impl {
     use super::*;
     use crate::group::Group;
 
-    impl<P: Parameters> Group for Affine<P> {
+    impl<P: TECurveConfig> Group for Affine<P> {
         type ScalarField = P::ScalarField;
 
         #[inline]
@@ -282,38 +362,38 @@ mod group_impl {
 /// Section 3.1).
 #[derive(Derivative)]
 #[derivative(
-    Copy(bound = "P: Parameters"),
-    Clone(bound = "P: Parameters"),
-    Eq(bound = "P: Parameters"),
-    Debug(bound = "P: Parameters")
+    Copy(bound = "P: TECurveConfig"),
+    Clone(bound = "P: TECurveConfig"),
+    Eq(bound = "P: TECurveConfig"),
+    Debug(bound = "P: TECurveConfig")
 )]
 #[must_use]
-pub struct Projective<P: Parameters> {
+pub struct Projective<P: TECurveConfig> {
     pub x: P::BaseField,
     pub y: P::BaseField,
     pub t: P::BaseField,
     pub z: P::BaseField,
 }
 
-impl<P: Parameters> PartialEq<Projective<P>> for Affine<P> {
+impl<P: TECurveConfig> PartialEq<Projective<P>> for Affine<P> {
     fn eq(&self, other: &Projective<P>) -> bool {
         self.into_projective() == *other
     }
 }
 
-impl<P: Parameters> PartialEq<Affine<P>> for Projective<P> {
+impl<P: TECurveConfig> PartialEq<Affine<P>> for Projective<P> {
     fn eq(&self, other: &Affine<P>) -> bool {
         *self == other.into_projective()
     }
 }
 
-impl<P: Parameters> Display for Projective<P> {
+impl<P: TECurveConfig> Display for Projective<P> {
     fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
         write!(f, "{}", Affine::from(*self))
     }
 }
 
-impl<P: Parameters> PartialEq for Projective<P> {
+impl<P: TECurveConfig> PartialEq for Projective<P> {
     fn eq(&self, other: &Self) -> bool {
         if self.is_zero() {
             return other.is_zero();
@@ -328,13 +408,13 @@ impl<P: Parameters> PartialEq for Projective<P> {
     }
 }
 
-impl<P: Parameters> Hash for Projective<P> {
+impl<P: TECurveConfig> Hash for Projective<P> {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.into_affine().hash(state)
     }
 }
 
-impl<P: Parameters> Distribution<Projective<P>> for Standard {
+impl<P: TECurveConfig> Distribution<Projective<P>> for Standard {
     #[inline]
     fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> Projective<P> {
         loop {
@@ -348,19 +428,19 @@ impl<P: Parameters> Distribution<Projective<P>> for Standard {
     }
 }
 
-impl<P: Parameters> Default for Projective<P> {
+impl<P: TECurveConfig> Default for Projective<P> {
     #[inline]
     fn default() -> Self {
         Self::zero()
     }
 }
 
-impl<P: Parameters> Projective<P> {
+impl<P: TECurveConfig> Projective<P> {
     pub fn new(x: P::BaseField, y: P::BaseField, t: P::BaseField, z: P::BaseField) -> Self {
         Self { x, y, t, z }
     }
 }
-impl<P: Parameters> Zeroize for Projective<P> {
+impl<P: TECurveConfig> Zeroize for Projective<P> {
     // The phantom data does not contain element-specific data
     // and thus does not need to be zeroized.
     fn zeroize(&mut self) {
@@ -371,7 +451,7 @@ impl<P: Parameters> Zeroize for Projective<P> {
     }
 }
 
-impl<P: Parameters> Zero for Projective<P> {
+impl<P: TECurveConfig> Zero for Projective<P> {
     fn zero() -> Self {
         Self::new(
             P::BaseField::zero(),
@@ -386,8 +466,8 @@ impl<P: Parameters> Zero for Projective<P> {
     }
 }
 
-impl<P: Parameters> ProjectiveCurve for Projective<P> {
-    type Parameters = P;
+impl<P: TECurveConfig> ProjectiveCurve for Projective<P> {
+    type Config = P;
     type BaseField = P::BaseField;
     type ScalarField = P::ScalarField;
     type Affine = Affine<P>;
@@ -495,7 +575,7 @@ impl<P: Parameters> ProjectiveCurve for Projective<P> {
     }
 }
 
-impl<P: Parameters> Neg for Projective<P> {
+impl<P: TECurveConfig> Neg for Projective<P> {
     type Output = Self;
     fn neg(mut self) -> Self {
         self.x = -self.x;
@@ -504,9 +584,9 @@ impl<P: Parameters> Neg for Projective<P> {
     }
 }
 
-ark_ff::impl_additive_ops_from_ref!(Projective, Parameters);
+ark_ff::impl_additive_ops_from_ref!(Projective, TECurveConfig);
 
-impl<'a, P: Parameters> Add<&'a Self> for Projective<P> {
+impl<'a, P: TECurveConfig> Add<&'a Self> for Projective<P> {
     type Output = Self;
     fn add(mut self, other: &'a Self) -> Self {
         self += other;
@@ -514,7 +594,7 @@ impl<'a, P: Parameters> Add<&'a Self> for Projective<P> {
     }
 }
 
-impl<'a, P: Parameters> AddAssign<&'a Self> for Projective<P> {
+impl<'a, P: TECurveConfig> AddAssign<&'a Self> for Projective<P> {
     fn add_assign(&mut self, other: &'a Self) {
         // See "Twisted Edwards Curves Revisited" (https://eprint.iacr.org/2008/522.pdf)
         // by Huseyin Hisil, Kenneth Koon-Ho Wong, Gary Carter, and Ed Dawson
@@ -558,7 +638,7 @@ impl<'a, P: Parameters> AddAssign<&'a Self> for Projective<P> {
     }
 }
 
-impl<'a, P: Parameters> Sub<&'a Self> for Projective<P> {
+impl<'a, P: TECurveConfig> Sub<&'a Self> for Projective<P> {
     type Output = Self;
     fn sub(mut self, other: &'a Self) -> Self {
         self -= other;
@@ -566,13 +646,13 @@ impl<'a, P: Parameters> Sub<&'a Self> for Projective<P> {
     }
 }
 
-impl<'a, P: Parameters> SubAssign<&'a Self> for Projective<P> {
+impl<'a, P: TECurveConfig> SubAssign<&'a Self> for Projective<P> {
     fn sub_assign(&mut self, other: &'a Self) {
         *self += &(-(*other));
     }
 }
 
-impl<P: Parameters> MulAssign<P::ScalarField> for Projective<P> {
+impl<P: TECurveConfig> MulAssign<P::ScalarField> for Projective<P> {
     fn mul_assign(&mut self, other: P::ScalarField) {
         *self = self.mul(other.into_bigint())
     }
@@ -580,7 +660,7 @@ impl<P: Parameters> MulAssign<P::ScalarField> for Projective<P> {
 
 // The affine point (X, Y) is represented in the Extended Projective coordinates
 // with Z = 1.
-impl<P: Parameters> From<Affine<P>> for Projective<P> {
+impl<P: TECurveConfig> From<Affine<P>> for Projective<P> {
     fn from(p: Affine<P>) -> Projective<P> {
         Self::new(p.x, p.y, p.x * &p.y, P::BaseField::one())
     }
@@ -588,7 +668,7 @@ impl<P: Parameters> From<Affine<P>> for Projective<P> {
 
 // The projective point X, Y, T, Z is represented in the affine
 // coordinates as X/Z, Y/Z.
-impl<P: Parameters> From<Projective<P>> for Affine<P> {
+impl<P: TECurveConfig> From<Projective<P>> for Affine<P> {
     fn from(p: Projective<P>) -> Affine<P> {
         if p.is_zero() {
             Affine::zero()
@@ -605,7 +685,7 @@ impl<P: Parameters> From<Projective<P>> for Affine<P> {
     }
 }
 
-impl<P: Parameters> core::str::FromStr for Affine<P>
+impl<P: TECurveConfig> core::str::FromStr for Affine<P>
 where
     P::BaseField: core::str::FromStr<Err = ()>,
 {
@@ -643,31 +723,31 @@ where
 
 #[derive(Derivative)]
 #[derivative(
-    Copy(bound = "P: MontgomeryParameters"),
-    Clone(bound = "P: MontgomeryParameters"),
-    PartialEq(bound = "P: MontgomeryParameters"),
-    Eq(bound = "P: MontgomeryParameters"),
-    Debug(bound = "P: MontgomeryParameters"),
-    Hash(bound = "P: MontgomeryParameters")
+    Copy(bound = "P: MontCurveConfig"),
+    Clone(bound = "P: MontCurveConfig"),
+    PartialEq(bound = "P: MontCurveConfig"),
+    Eq(bound = "P: MontCurveConfig"),
+    Debug(bound = "P: MontCurveConfig"),
+    Hash(bound = "P: MontCurveConfig")
 )]
-pub struct MontgomeryAffine<P: MontgomeryParameters> {
+pub struct MontgomeryAffine<P: MontCurveConfig> {
     pub x: P::BaseField,
     pub y: P::BaseField,
 }
 
-impl<P: MontgomeryParameters> Display for MontgomeryAffine<P> {
+impl<P: MontCurveConfig> Display for MontgomeryAffine<P> {
     fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
         write!(f, "MontgomeryAffine(x={}, y={})", self.x, self.y)
     }
 }
 
-impl<P: MontgomeryParameters> MontgomeryAffine<P> {
+impl<P: MontCurveConfig> MontgomeryAffine<P> {
     pub fn new(x: P::BaseField, y: P::BaseField) -> Self {
         Self { x, y }
     }
 }
 
-impl<P: Parameters> CanonicalSerialize for Affine<P> {
+impl<P: TECurveConfig> CanonicalSerialize for Affine<P> {
     #[allow(unused_qualifications)]
     #[inline]
     fn serialize<W: Write>(&self, writer: W) -> Result<(), SerializationError> {
@@ -701,7 +781,7 @@ impl<P: Parameters> CanonicalSerialize for Affine<P> {
     }
 }
 
-impl<P: Parameters> CanonicalSerialize for Projective<P> {
+impl<P: TECurveConfig> CanonicalSerialize for Projective<P> {
     #[allow(unused_qualifications)]
     #[inline]
     fn serialize<W: Write>(&self, writer: W) -> Result<(), SerializationError> {
@@ -729,7 +809,7 @@ impl<P: Parameters> CanonicalSerialize for Projective<P> {
     }
 }
 
-impl<P: Parameters> CanonicalDeserialize for Affine<P> {
+impl<P: TECurveConfig> CanonicalDeserialize for Affine<P> {
     #[allow(unused_qualifications)]
     fn deserialize<R: Read>(mut reader: R) -> Result<Self, SerializationError> {
         let (y, flags): (P::BaseField, EdwardsFlags) =
@@ -766,7 +846,7 @@ impl<P: Parameters> CanonicalDeserialize for Affine<P> {
     }
 }
 
-impl<P: Parameters> CanonicalDeserialize for Projective<P> {
+impl<P: TECurveConfig> CanonicalDeserialize for Projective<P> {
     #[allow(unused_qualifications)]
     fn deserialize<R: Read>(reader: R) -> Result<Self, SerializationError> {
         let aff = Affine::<P>::deserialize(reader)?;
@@ -786,7 +866,7 @@ impl<P: Parameters> CanonicalDeserialize for Projective<P> {
     }
 }
 
-impl<M: Parameters, ConstraintF: Field> ToConstraintField<ConstraintF> for Affine<M>
+impl<M: TECurveConfig, ConstraintF: Field> ToConstraintField<ConstraintF> for Affine<M>
 where
     M::BaseField: ToConstraintField<ConstraintF>,
 {
@@ -799,7 +879,7 @@ where
     }
 }
 
-impl<M: Parameters, ConstraintF: Field> ToConstraintField<ConstraintF> for Projective<M>
+impl<M: TECurveConfig, ConstraintF: Field> ToConstraintField<ConstraintF> for Projective<M>
 where
     M::BaseField: ToConstraintField<ConstraintF>,
 {
@@ -813,7 +893,7 @@ where
 // the methods that are needed for backwards compatibility with the old
 // serialization format
 // See Issue #330
-impl<P: Parameters> Affine<P> {
+impl<P: TECurveConfig> Affine<P> {
     /// Attempts to construct an affine point given an x-coordinate. The
     /// point is not guaranteed to be in the prime order subgroup.
     ///
@@ -896,7 +976,7 @@ impl<P: Parameters> Affine<P> {
         }
     }
 }
-impl<P: Parameters> Projective<P> {
+impl<P: TECurveConfig> Projective<P> {
     /// This method is implemented for backwards compatibility with the old
     /// serialization format and will be deprecated and then removed in a
     /// future version.
@@ -935,7 +1015,7 @@ impl<P: Parameters> Projective<P> {
     }
 }
 
-impl<P: Parameters> VariableBaseMSM for Projective<P> {
+impl<P: TECurveConfig> VariableBaseMSM for Projective<P> {
     type MSMBase = Affine<P>;
 
     type Scalar = <Self as ProjectiveCurve>::ScalarField;

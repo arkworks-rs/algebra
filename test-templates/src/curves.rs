@@ -1,8 +1,9 @@
 #![allow(unused)]
 use ark_ec::{
-    short_weierstrass::Affine, twisted_edwards::Projective,
-    wnaf::WnafContext, AffineCurve, MontgomeryModelParameters, ProjectiveCurve, SWModelParameters,
-    TEModelParameters,
+    short_weierstrass::{Affine, SWCurveConfig},
+    twisted_edwards::{MontCurveConfig, Projective, TECurveConfig},
+    wnaf::WnafContext,
+    AffineCurve, ProjectiveCurve,
 };
 use ark_ff::{Field, One, PrimeField, UniformRand, Zero};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, SWFlags, SerializationError};
@@ -299,14 +300,14 @@ pub fn curve_tests<G: ProjectiveCurve>() {
     random_transformation_test::<G>();
 }
 
-pub fn sw_tests<P: SWModelParameters>() {
+pub fn sw_tests<P: SWCurveConfig>() {
     sw_curve_serialization_test::<P>();
     sw_from_random_bytes::<P>();
     sw_affine_sum_test::<P>();
     sw_cofactor_clearing_test::<P>();
 }
 
-pub fn sw_from_random_bytes<P: SWModelParameters>() {
+pub fn sw_from_random_bytes<P: SWCurveConfig>() {
     use ark_ec::models::short_weierstrass::{Affine, Projective};
 
     let buf_size = Affine::<P>::zero().serialized_size();
@@ -329,7 +330,7 @@ pub fn sw_from_random_bytes<P: SWModelParameters>() {
     }
 }
 
-pub fn sw_curve_serialization_test<P: SWModelParameters>() {
+pub fn sw_curve_serialization_test<P: SWCurveConfig>() {
     use ark_ec::models::short_weierstrass::{Affine, Projective};
 
     let buf_size = Affine::<P>::zero().serialized_size();
@@ -414,7 +415,7 @@ pub fn sw_curve_serialization_test<P: SWModelParameters>() {
     }
 }
 
-pub fn sw_affine_sum_test<P: SWModelParameters>() {
+pub fn sw_affine_sum_test<P: SWCurveConfig>() {
     use ark_ec::models::short_weierstrass::{Affine, Projective};
 
     let mut rng = ark_std::test_rng();
@@ -435,7 +436,7 @@ pub fn sw_affine_sum_test<P: SWModelParameters>() {
     }
 }
 
-fn sw_cofactor_clearing_test<P: SWModelParameters>() {
+fn sw_cofactor_clearing_test<P: SWCurveConfig>() {
     let mut rng = ark_std::test_rng();
 
     for _ in 0..ITERATIONS {
@@ -447,7 +448,7 @@ fn sw_cofactor_clearing_test<P: SWModelParameters>() {
 
 pub fn montgomery_conversion_test<P>()
 where
-    P: TEModelParameters,
+    P: TECurveConfig,
 {
     // A = 2 * (a + d) / (a - d)
     let a = P::BaseField::one().double()
@@ -456,11 +457,11 @@ where
     // B = 4 / (a - d)
     let b = P::BaseField::one().double().double() * &(P::COEFF_A - &P::COEFF_D).inverse().unwrap();
 
-    assert_eq!(a, P::MontgomeryModelParameters::COEFF_A);
-    assert_eq!(b, P::MontgomeryModelParameters::COEFF_B);
+    assert_eq!(a, P::MontCurveConfig::COEFF_A);
+    assert_eq!(b, P::MontCurveConfig::COEFF_B);
 }
 
-pub fn edwards_tests<P: TEModelParameters>()
+pub fn edwards_tests<P: TECurveConfig>()
 where
     P::BaseField: PrimeField,
 {
@@ -469,7 +470,7 @@ where
     edwards_cofactor_clearing_test::<P>();
 }
 
-pub fn edwards_from_random_bytes<P: TEModelParameters>()
+pub fn edwards_from_random_bytes<P: TECurveConfig>()
 where
     P::BaseField: PrimeField,
 {
@@ -513,7 +514,7 @@ where
     }
 }
 
-pub fn edwards_curve_serialization_test<P: TEModelParameters>() {
+pub fn edwards_curve_serialization_test<P: TECurveConfig>() {
     use ark_ec::models::twisted_edwards::{Affine, Projective};
 
     let buf_size = Affine::<P>::zero().serialized_size();
@@ -578,7 +579,7 @@ pub fn edwards_curve_serialization_test<P: TEModelParameters>() {
     }
 }
 
-fn edwards_cofactor_clearing_test<P: TEModelParameters>() {
+fn edwards_cofactor_clearing_test<P: TECurveConfig>() {
     let mut rng = ark_std::test_rng();
 
     for _ in 0..ITERATIONS {

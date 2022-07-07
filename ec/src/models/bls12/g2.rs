@@ -6,7 +6,7 @@ use num_traits::{One, Zero};
 
 use crate::{
     bls12::{Bls12Parameters, TwistType},
-    models::SWModelParameters,
+    models::short_weierstrass::SWCurveConfig,
     short_weierstrass::{Affine, Projective},
     AffineCurve,
 };
