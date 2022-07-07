@@ -361,10 +361,14 @@ impl<P: Parameters> Default for GroupProjective<P> {
 }
 
 impl<P: Parameters> GroupProjective<P> {
+    /// Construct a new group element without checking whether the coordinates 
+    /// specify a point in the subgroup. 
     pub const fn new_unchecked(x: P::BaseField, y: P::BaseField, z: P::BaseField) -> Self {
         Self { x, y, z }
     }
 
+    /// Construct a new group element in a way while enforcing that points are in 
+    /// the prime-order subgroup.
     pub fn new(x: P::BaseField, y: P::BaseField, z: P::BaseField) -> Self {
         let p = Self::new_unchecked(x, y, z).into_affine();
         assert!(p.is_on_curve());

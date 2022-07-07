@@ -54,8 +54,19 @@ impl<P: Parameters> Display for GroupAffine<P> {
 }
 
 impl<P: Parameters> GroupAffine<P> {
-    pub fn new(x: P::BaseField, y: P::BaseField) -> Self {
+    /// Construct a new group element without checking whether the coordinates 
+    /// specify a point in the subgroup. 
+    pub const fn new_unchecked(x: P::BaseField, y: P::BaseField) -> Self {
         Self { x, y }
+    }
+
+    /// Construct a new group element in a way while enforcing that points are in 
+    /// the prime-order subgroup.
+    pub fn new(x: P::BaseField, y: P::BaseField) -> Self {
+        let p = Self::new_unchecked(x, y);
+        assert!(p.is_on_curve());
+        assert!(p.is_in_correct_subgroup_assuming_on_curve());
+        p.into()
     }
 
     /// Attempts to construct an affine point given an y-coordinate. The
@@ -82,7 +93,7 @@ impl<P: Parameters> GroupAffine<P> {
             .map(|x| {
                 let negx = -x;
                 let x = if (x < negx) ^ greatest { x } else { negx };
-                Self::new(x, y)
+                Self::new_unchecked(x, y)
             })
     }
 
@@ -108,7 +119,7 @@ impl<P: Parameters> GroupAffine<P> {
 
 impl<P: Parameters> Zero for GroupAffine<P> {
     fn zero() -> Self {
-        Self::new(P::BaseField::zero(), P::BaseField::one())
+        Self::new_unchecked(P::BaseField::zero(), P::BaseField::one())
     }
 
     fn is_zero(&self) -> bool {
@@ -176,7 +187,7 @@ impl<P: Parameters> Neg for GroupAffine<P> {
     type Output = Self;
 
     fn neg(self) -> Self {
-        Self::new(-self.x, self.y)
+        Self::new_unchecked(-self.x, self.y)
     }
 }
 
@@ -357,8 +368,20 @@ impl<P: Parameters> Default for GroupProjective<P> {
 }
 
 impl<P: Parameters> GroupProjective<P> {
-    pub fn new(x: P::BaseField, y: P::BaseField, t: P::BaseField, z: P::BaseField) -> Self {
+
+    /// Construct a new group element without checking whether the coordinates 
+    /// specify a point in the subgroup. 
+    pub const fn new_unchecked(x: P::BaseField, y: P::BaseField, t: P::BaseField, z: P::BaseField) -> Self {
         Self { x, y, t, z }
+    }
+
+    /// Construct a new group element in a way while enforcing that points are in 
+    /// the prime-order subgroup.
+    pub fn new(x: P::BaseField, y: P::BaseField, t: P::BaseField, z: P::BaseField) -> Self {
+        let p = Self::new_unchecked(x, y, t, z).into_affine();
+        assert!(p.is_on_curve());
+        assert!(p.is_in_correct_subgroup_assuming_on_curve());
+        p.into()
     }
 }
 impl<P: Parameters> Zeroize for GroupProjective<P> {
@@ -374,7 +397,7 @@ impl<P: Parameters> Zeroize for GroupProjective<P> {
 
 impl<P: Parameters> Zero for GroupProjective<P> {
     fn zero() -> Self {
-        Self::new(
+        Self::new_unchecked(
             P::BaseField::zero(),
             P::BaseField::one(),
             P::BaseField::zero(),
@@ -583,7 +606,7 @@ impl<P: Parameters> MulAssign<P::ScalarField> for GroupProjective<P> {
 // with Z = 1.
 impl<P: Parameters> From<GroupAffine<P>> for GroupProjective<P> {
     fn from(p: GroupAffine<P>) -> GroupProjective<P> {
-        Self::new(p.x, p.y, p.x * &p.y, P::BaseField::one())
+        Self::new_unchecked(p.x, p.y, p.x * &p.y, P::BaseField::one())
     }
 }
 
@@ -595,13 +618,13 @@ impl<P: Parameters> From<GroupProjective<P>> for GroupAffine<P> {
             GroupAffine::zero()
         } else if p.z.is_one() {
             // If Z is one, the point is already normalized.
-            GroupAffine::new(p.x, p.y)
+            GroupAffine::new_unchecked(p.x, p.y)
         } else {
             // Z is nonzero, so it must have an inverse in a field.
             let z_inv = p.z.inverse().unwrap();
             let x = p.x * &z_inv;
             let y = p.y * &z_inv;
-            GroupAffine::new(x, y)
+            GroupAffine::new_unchecked(x, y)
         }
     }
 }
@@ -632,7 +655,7 @@ where
         if point.len() != 2 {
             return Err(());
         }
-        let point = Self::new(point[0], point[1]);
+        let point = Self::new_unchecked(point[0], point[1]);
 
         if !point.is_on_curve() {
             Err(())
@@ -762,7 +785,7 @@ impl<P: Parameters> CanonicalDeserialize for GroupAffine<P> {
         let x: P::BaseField = CanonicalDeserialize::deserialize(&mut reader)?;
         let y: P::BaseField = CanonicalDeserialize::deserialize(&mut reader)?;
 
-        let p = GroupAffine::<P>::new(x, y);
+        let p = GroupAffine::<P>::new_unchecked(x, y);
         Ok(p)
     }
 }
@@ -834,7 +857,7 @@ impl<P: Parameters> GroupAffine<P> {
         y2.and_then(|y2| y2.sqrt()).map(|y| {
             let negy = -y;
             let y = if (y < negy) ^ greatest { y } else { negy };
-            Self::new(x, y)
+            Self::new_unchecked(x, y)
         })
     }
     /// This method is implemented for backwards compatibility with the old

@@ -353,7 +353,7 @@ pub const fn can_use_no_carry_optimization<const N: usize>(modulus: &BigInt<N>) 
 macro_rules! MontFp {
     ($c0:expr) => {{
         let (is_positive, limbs) = $crate::ark_ff_macros::to_sign_and_limbs!($c0);
-        $crate::Fp::const_from_str(&limbs, is_positive)
+        $crate::Fp::from_sign_and_limbs(is_positive, &limbs)
     }};
 }
 
@@ -361,7 +361,7 @@ pub use ark_ff_macros::MontConfig;
 
 pub use MontFp;
 
-pub struct MontBackend<T, const N: usize>(PhantomData<T>);
+pub struct MontBackend<T: MontConfig<N>, const N: usize>(PhantomData<T>);
 
 impl<T: MontConfig<N>, const N: usize> FpConfig<N> for MontBackend<T, N> {
     /// The modulus of the field.
@@ -457,12 +457,11 @@ impl<T: MontConfig<N>, const N: usize> Fp<MontBackend<T, N>, N> {
         }
     }
 
-    /// Interpret a string of decimal numbers as a prime field element.
-    /// Does not accept unnecessary leading zeroes or a blank string.
+    /// Interpret a set of limbs (along with a sign) as a field element.
     /// For *internal* use only; please use the `ark_ff::MontFp` macro instead
     /// of this method
     #[doc(hidden)]
-    pub const fn const_from_str(limbs: &[u64], is_positive: bool) -> Self {
+    pub const fn from_sign_and_limbs(is_positive: bool, limbs: &[u64]) -> Self {
         let mut repr = BigInt::<N>([0; N]);
         assert!(repr.0.len() == N);
         crate::const_for!((i in 0..(limbs.len())) {
