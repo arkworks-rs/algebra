@@ -1,5 +1,8 @@
+use ark_ff::{
+    fields::{BitIteratorBE, Field, Fp2},
+    Zero,
+};
 use ark_std::{vec::Vec, One};
-use ark_ff::{fields::{BitIteratorBE, Field, Fp2}, Zero};
 
 use crate::{
     bls12::{Bls12Parameters, TwistType},
@@ -55,22 +58,25 @@ impl<P: Bls12Parameters> From<G2Affine<P>> for G2Prepared<P> {
             },
             false => {
                 let mut ell_coeffs = vec![];
-                let mut r = G2HomProjective { x: q.x, y: q.y, z: Fp2::one()};
-                
+                let mut r = G2HomProjective {
+                    x: q.x,
+                    y: q.y,
+                    z: Fp2::one(),
+                };
+
                 for i in BitIteratorBE::new(P::X).skip(1) {
                     ell_coeffs.push(doubling_step::<P>(&mut r, &two_inv));
-                    
+
                     if i {
                         ell_coeffs.push(addition_step::<P>(&mut r, &q));
                     }
                 }
-                
+
                 Self {
                     ell_coeffs,
                     infinity: false,
                 }
-                
-            }
+            },
         }
     }
 }

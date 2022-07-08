@@ -63,14 +63,14 @@ impl<P: BnParameters> From<G2Affine<P>> for G2Prepared<P> {
                     y: q.y,
                     z: Fp2::one(),
                 };
-                
+
                 let negq = -q;
-                
+
                 for i in (1..P::ATE_LOOP_COUNT.len()).rev() {
                     ell_coeffs.push(doubling_step::<P>(&mut r, &two_inv));
-                    
+
                     let bit = P::ATE_LOOP_COUNT[i - 1];
-                    
+
                     match bit {
                         1 => {
                             ell_coeffs.push(addition_step::<P>(&mut r, &q));
@@ -81,25 +81,24 @@ impl<P: BnParameters> From<G2Affine<P>> for G2Prepared<P> {
                         _ => continue,
                     }
                 }
-                
+
                 let q1 = mul_by_char::<P>(q);
                 let mut q2 = mul_by_char::<P>(q1);
-                
+
                 if P::X_IS_NEGATIVE {
                     r.y = -r.y;
                 }
-                
+
                 q2.y = -q2.y;
-                
+
                 ell_coeffs.push(addition_step::<P>(&mut r, &q1));
                 ell_coeffs.push(addition_step::<P>(&mut r, &q2));
-                
+
                 Self {
                     ell_coeffs,
                     infinity: false,
                 }
-                
-            }
+            },
         }
     }
 }

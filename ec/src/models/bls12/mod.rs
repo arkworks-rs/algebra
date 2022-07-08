@@ -1,6 +1,6 @@
 use crate::{
     models::{ModelParameters, SWModelParameters},
-    PairingEngine, AffineCurve,
+    AffineCurve, PairingEngine,
 };
 use ark_ff::fields::{
     fp12_2over3over2::{Fp12, Fp12Config},

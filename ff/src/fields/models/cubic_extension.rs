@@ -164,17 +164,9 @@ type BaseFieldIter<P> = <<P as CubicExtConfig>::BaseField as Field>::BasePrimeFi
 impl<P: CubicExtConfig> Field for CubicExtField<P> {
     type BasePrimeField = P::BasePrimeField;
     type BasePrimeFieldIter = Chain<BaseFieldIter<P>, Chain<BaseFieldIter<P>, BaseFieldIter<P>>>;
-    const ZERO: Self = Self::new(
-        P::BaseField::ZERO,
-        P::BaseField::ZERO,
-        P::BaseField::ZERO
-    );
+    const ZERO: Self = Self::new(P::BaseField::ZERO, P::BaseField::ZERO, P::BaseField::ZERO);
 
-    const ONE: Self = Self::new(
-        P::BaseField::ONE,
-        P::BaseField::ZERO,
-        P::BaseField::ZERO
-    );
+    const ONE: Self = Self::new(P::BaseField::ONE, P::BaseField::ZERO, P::BaseField::ZERO);
 
     fn extension_degree() -> u64 {
         3 * P::BaseField::extension_degree()

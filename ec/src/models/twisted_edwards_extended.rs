@@ -55,13 +55,13 @@ impl<P: Parameters> Display for GroupAffine<P> {
 }
 
 impl<P: Parameters> GroupAffine<P> {
-    /// Construct a new group element without checking whether the coordinates 
-    /// specify a point in the subgroup. 
+    /// Construct a new group element without checking whether the coordinates
+    /// specify a point in the subgroup.
     pub const fn new_unchecked(x: P::BaseField, y: P::BaseField) -> Self {
         Self { x, y }
     }
 
-    /// Construct a new group element in a way while enforcing that points are in 
+    /// Construct a new group element in a way while enforcing that points are in
     /// the prime-order subgroup.
     pub fn new(x: P::BaseField, y: P::BaseField) -> Self {
         let p = Self::new_unchecked(x, y);
@@ -133,7 +133,6 @@ impl<P: Parameters> AffineCurve for GroupAffine<P> {
     type BaseField = P::BaseField;
     type ScalarField = P::ScalarField;
     type Projective = GroupProjective<P>;
-
 
     fn xy(&self) -> Option<(&Self::BaseField, &Self::BaseField)> {
         (!self.is_zero()).then(|| (&self.x, &self.y))
@@ -369,14 +368,18 @@ impl<P: Parameters> Default for GroupProjective<P> {
 }
 
 impl<P: Parameters> GroupProjective<P> {
-
-    /// Construct a new group element without checking whether the coordinates 
-    /// specify a point in the subgroup. 
-    pub const fn new_unchecked(x: P::BaseField, y: P::BaseField, t: P::BaseField, z: P::BaseField) -> Self {
+    /// Construct a new group element without checking whether the coordinates
+    /// specify a point in the subgroup.
+    pub const fn new_unchecked(
+        x: P::BaseField,
+        y: P::BaseField,
+        t: P::BaseField,
+        z: P::BaseField,
+    ) -> Self {
         Self { x, y, t, z }
     }
 
-    /// Construct a new group element in a way while enforcing that points are in 
+    /// Construct a new group element in a way while enforcing that points are in
     /// the prime-order subgroup.
     pub fn new(x: P::BaseField, y: P::BaseField, t: P::BaseField, z: P::BaseField) -> Self {
         let p = Self::new_unchecked(x, y, t, z).into_affine();

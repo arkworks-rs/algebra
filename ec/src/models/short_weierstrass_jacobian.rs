@@ -48,7 +48,7 @@ pub struct GroupAffine<P: Parameters> {
     #[doc(hidden)]
     pub y: P::BaseField,
     #[doc(hidden)]
-    pub infinity: bool
+    pub infinity: bool,
 }
 
 impl<P: Parameters> PartialEq<GroupProjective<P>> for GroupAffine<P> {
@@ -76,24 +76,36 @@ impl<P: Parameters> GroupAffine<P> {
     /// Constructs a group element from x and y coordinates.
     /// Performs checks to ensure that the point is on the curve and is in the right subgroup.
     pub fn new(x: P::BaseField, y: P::BaseField) -> Self {
-        let point = Self { x, y, infinity: false };
+        let point = Self {
+            x,
+            y,
+            infinity: false,
+        };
         assert!(point.is_on_curve());
         assert!(point.is_in_correct_subgroup_assuming_on_curve());
         point
     }
 
     /// Constructs a group element from x and y coordinates.
-    /// 
+    ///
     /// # Warning
-    /// 
+    ///
     /// Does *not* perform any checks to ensure the point is in the curve or
     /// is in the right subgroup.
     pub const fn new_unchecked(x: P::BaseField, y: P::BaseField) -> Self {
-        Self { x, y, infinity: false }
+        Self {
+            x,
+            y,
+            infinity: false,
+        }
     }
 
     pub const fn identity() -> Self {
-        Self { x: P::BaseField::ZERO, y: P::BaseField::ZERO, infinity: true }
+        Self {
+            x: P::BaseField::ZERO,
+            y: P::BaseField::ZERO,
+            infinity: true,
+        }
     }
 
     /// Attempts to construct an affine point given an x-coordinate. The
@@ -361,13 +373,13 @@ impl<P: Parameters> Default for GroupProjective<P> {
 }
 
 impl<P: Parameters> GroupProjective<P> {
-    /// Construct a new group element without checking whether the coordinates 
-    /// specify a point in the subgroup. 
+    /// Construct a new group element without checking whether the coordinates
+    /// specify a point in the subgroup.
     pub const fn new_unchecked(x: P::BaseField, y: P::BaseField, z: P::BaseField) -> Self {
         Self { x, y, z }
     }
 
-    /// Construct a new group element in a way while enforcing that points are in 
+    /// Construct a new group element in a way while enforcing that points are in
     /// the prime-order subgroup.
     pub fn new(x: P::BaseField, y: P::BaseField, z: P::BaseField) -> Self {
         let p = Self::new_unchecked(x, y, z).into_affine();
@@ -534,63 +546,62 @@ impl<P: Parameters> ProjectiveCurve for GroupProjective<P> {
                     self.z = P::BaseField::one();
                     return;
                 }
-                
+
                 // Z1Z1 = Z1^2
                 let z1z1 = self.z.square();
-                
+
                 // U2 = X2*Z1Z1
                 let u2 = z1z1 * other.x;
-                
+
                 // S2 = Y2*Z1*Z1Z1
                 let s2 = (self.z * other.y) * &z1z1;
-                
+
                 if self.x == u2 && self.y == s2 {
                     // The two points are equal, so we double.
                     self.double_in_place();
                 } else {
                     // If we're adding -a and a together, self.z becomes zero as H becomes zero.
-                    
+
                     // H = U2-X1
                     let h = u2 - &self.x;
-                    
+
                     // HH = H^2
                     let hh = h.square();
-                    
+
                     // I = 4*HH
                     let mut i = hh;
                     i.double_in_place().double_in_place();
-                    
+
                     // J = H*I
                     let mut j = h * &i;
-                    
+
                     // r = 2*(S2-Y1)
                     let r = (s2 - &self.y).double();
-                    
+
                     // V = X1*I
                     let v = self.x * &i;
-                    
+
                     // X3 = r^2 - J - 2*V
                     self.x = r.square();
                     self.x -= &j;
                     self.x -= &v;
                     self.x -= &v;
-                    
+
                     // Y3 = r*(V-X3)-2*Y1*J
                     j *= &self.y; // J = 2*Y1*J
                     j.double_in_place();
                     self.y = v - &self.x;
                     self.y *= &r;
                     self.y -= &j;
-                    
+
                     // Z3 = (Z1+H)^2-Z1Z1-HH
                     self.z += &h;
                     self.z.square_in_place();
                     self.z -= &z1z1;
                     self.z -= &hh;
                 }
-            }
+            },
         }
-        
     }
 
     #[inline]
@@ -773,8 +784,12 @@ impl<P: Parameters> CanonicalSerialize for GroupAffine<P> {
     #[inline]
     fn serialize_uncompressed<W: Write>(&self, mut writer: W) -> Result<(), SerializationError> {
         let (x, y, flags) = match self.infinity {
-            true => (P::BaseField::zero(), P::BaseField::zero(), SWFlags::infinity()),
-            false => (self.x, self.y, SWFlags::from_y_sign(self.y > -self.y))
+            true => (
+                P::BaseField::zero(),
+                P::BaseField::zero(),
+                SWFlags::infinity(),
+            ),
+            false => (self.x, self.y, SWFlags::from_y_sign(self.y > -self.y)),
         };
         x.serialize(&mut writer)?;
         y.serialize_with_flags(&mut writer, flags)?;
@@ -783,7 +798,8 @@ impl<P: Parameters> CanonicalSerialize for GroupAffine<P> {
 
     #[inline]
     fn uncompressed_size(&self) -> usize {
-        P::BaseField::zero().serialized_size() + P::BaseField::zero().serialized_size_with_flags::<SWFlags>()
+        P::BaseField::zero().serialized_size()
+            + P::BaseField::zero().serialized_size_with_flags::<SWFlags>()
     }
 }
 
