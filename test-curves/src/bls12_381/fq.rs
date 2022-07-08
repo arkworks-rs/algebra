@@ -100,7 +100,7 @@ mod tests {
                 PhantomData
             )
         );
-    
+
         assert_eq!(FQ_ONE, Fq::one());
         assert_eq!(FQ_ONE, <MontBackend<FqConfig, 6>>::ONE);
     }

@@ -445,8 +445,8 @@ impl<T: MontConfig<N>, const N: usize> Fp<MontBackend<T, N>, N> {
     }
 
     /// Construct a new field element from its underlying
-    /// [`struct@BigInt`] data type. 
-    /// 
+    /// [`struct@BigInt`] data type.
+    ///
     /// Unlike [`Self::new`], this method does not perform Montgomery reduction.
     #[inline]
     pub const fn new_unchecked(element: BigInt<N>) -> Self {
