@@ -1,7 +1,7 @@
-use crate::ModelParameters;
+use crate::CurveConfig;
 
 /// The GLV parameters for computing the endomorphism and scalar decomposition.
-pub trait GLVParameters: Send + Sync + 'static + ModelParameters {
+pub trait GLVParameters: Send + Sync + 'static + CurveConfig {
     /// Affine representation of curve points.
     type CurveAffine;
     /// A representation of curve points that enables efficient arithmetic by

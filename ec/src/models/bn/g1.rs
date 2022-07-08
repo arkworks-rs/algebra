@@ -1,12 +1,12 @@
 use crate::{
     bn::BnParameters,
-    short_weierstrass_jacobian::{GroupAffine, GroupProjective},
+    short_weierstrass::{Affine, Projective},
     AffineCurve,
 };
 use num_traits::Zero;
 
-pub type G1Affine<P> = GroupAffine<<P as BnParameters>::G1Parameters>;
-pub type G1Projective<P> = GroupProjective<<P as BnParameters>::G1Parameters>;
+pub type G1Affine<P> = Affine<<P as BnParameters>::G1Parameters>;
+pub type G1Projective<P> = Projective<<P as BnParameters>::G1Parameters>;
 
 #[derive(Derivative)]
 #[derivative(

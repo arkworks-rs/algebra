@@ -1,8 +1,8 @@
 use crate::bls12_381::*;
 use ark_ec::{
     bls12,
-    models::{ModelParameters, SWModelParameters},
-    short_weierstrass_jacobian::GroupAffine,
+    models::CurveConfig,
+    short_weierstrass::{self, Affine},
     AffineCurve,
 };
 use ark_ff::{BigInt, Field, MontFp, Zero};
@@ -13,7 +13,7 @@ pub type G2Projective = bls12::G2Projective<crate::bls12_381::Parameters>;
 #[derive(Clone, Default, PartialEq, Eq)]
 pub struct Parameters;
 
-impl ModelParameters for Parameters {
+impl CurveConfig for Parameters {
     type BaseField = Fq2;
     type ScalarField = Fr;
 
@@ -40,7 +40,7 @@ impl ModelParameters for Parameters {
     );
 }
 
-impl SWModelParameters for Parameters {
+impl short_weierstrass::SWCurveConfig for Parameters {
     /// COEFF_A = [0, 0]
     const COEFF_A: Fq2 = Fq2::new(g1::Parameters::COEFF_A, g1::Parameters::COEFF_A);
 
@@ -114,7 +114,7 @@ pub const P_POWER_ENDOMORPHISM_COEFF_1: Fq2 = Fq2::new(
        "1028732146235106349975324479215795277384839936929757896155643118032610843298655225875571310552543014690878354869257")
 );
 
-pub fn p_power_endomorphism(p: &GroupAffine<Parameters>) -> GroupAffine<Parameters> {
+pub fn p_power_endomorphism(p: &Affine<Parameters>) -> Affine<Parameters> {
     // The p-power endomorphism for G2 is defined as follows:
     // 1. Note that G2 is defined on curve E': y^2 = x^3 + 4(u+1). To map a point
     // (x, y) in E' to (s, t) in E,    one set s = x / ((u+1) ^ (1/3)), t = y /

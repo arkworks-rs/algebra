@@ -1,12 +1,12 @@
 use crate::{
     mnt6::MNT6Parameters,
-    short_weierstrass_jacobian::{GroupAffine, GroupProjective},
+    short_weierstrass::{Affine, Projective},
     AffineCurve,
 };
 use ark_ff::Fp3;
 
-pub type G1Affine<P> = GroupAffine<<P as MNT6Parameters>::G1Parameters>;
-pub type G1Projective<P> = GroupProjective<<P as MNT6Parameters>::G1Parameters>;
+pub type G1Affine<P> = Affine<<P as MNT6Parameters>::G1Parameters>;
+pub type G1Projective<P> = Projective<<P as MNT6Parameters>::G1Parameters>;
 
 #[derive(Derivative)]
 #[derivative(

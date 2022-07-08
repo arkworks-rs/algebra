@@ -1,5 +1,7 @@
 #![allow(unused_imports)]
-use ark_ec::{models::SWModelParameters, AffineCurve, PairingEngine, ProjectiveCurve};
+use ark_ec::{
+    models::short_weierstrass::SWCurveConfig, AffineCurve, PairingEngine, ProjectiveCurve,
+};
 use ark_ff::{Field, One, SquareRootField, UniformRand, Zero};
 use ark_std::{rand::Rng, test_rng};
 

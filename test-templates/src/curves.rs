@@ -1,8 +1,9 @@
 #![allow(unused)]
 use ark_ec::{
-    short_weierstrass_jacobian::GroupAffine, twisted_edwards_extended::GroupProjective,
-    wnaf::WnafContext, AffineCurve, MontgomeryModelParameters, ProjectiveCurve, SWModelParameters,
-    TEModelParameters,
+    short_weierstrass::{Affine, SWCurveConfig},
+    twisted_edwards::{MontCurveConfig, Projective, TECurveConfig},
+    wnaf::WnafContext,
+    AffineCurve, ProjectiveCurve,
 };
 use ark_ff::{Field, One, PrimeField, UniformRand, Zero};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, SWFlags, SerializationError};
@@ -299,22 +300,22 @@ pub fn curve_tests<G: ProjectiveCurve>() {
     random_transformation_test::<G>();
 }
 
-pub fn sw_tests<P: SWModelParameters>() {
+pub fn sw_tests<P: SWCurveConfig>() {
     sw_curve_serialization_test::<P>();
     sw_from_random_bytes::<P>();
     sw_affine_sum_test::<P>();
     sw_cofactor_clearing_test::<P>();
 }
 
-pub fn sw_from_random_bytes<P: SWModelParameters>() {
-    use ark_ec::models::short_weierstrass_jacobian::{GroupAffine, GroupProjective};
+pub fn sw_from_random_bytes<P: SWCurveConfig>() {
+    use ark_ec::models::short_weierstrass::{Affine, Projective};
 
-    let buf_size = GroupAffine::<P>::zero().serialized_size();
+    let buf_size = Affine::<P>::zero().serialized_size();
 
     let mut rng = ark_std::test_rng();
 
     for _ in 0..ITERATIONS {
-        let a = GroupProjective::<P>::rand(&mut rng);
+        let a = Projective::<P>::rand(&mut rng);
         let mut a = a.into_affine();
         {
             let mut serialized = vec![0; buf_size];
@@ -322,22 +323,22 @@ pub fn sw_from_random_bytes<P: SWModelParameters>() {
             a.serialize(&mut cursor).unwrap();
 
             let mut cursor = Cursor::new(&serialized[..]);
-            let p1 = GroupAffine::<P>::deserialize(&mut cursor).unwrap();
-            let p2 = GroupAffine::<P>::from_random_bytes(&serialized).unwrap();
+            let p1 = Affine::<P>::deserialize(&mut cursor).unwrap();
+            let p2 = Affine::<P>::from_random_bytes(&serialized).unwrap();
             assert_eq!(p1, p2);
         }
     }
 }
 
-pub fn sw_curve_serialization_test<P: SWModelParameters>() {
-    use ark_ec::models::short_weierstrass_jacobian::{GroupAffine, GroupProjective};
+pub fn sw_curve_serialization_test<P: SWCurveConfig>() {
+    use ark_ec::models::short_weierstrass::{Affine, Projective};
 
-    let buf_size = GroupAffine::<P>::zero().serialized_size();
+    let buf_size = Affine::<P>::zero().serialized_size();
 
     let mut rng = ark_std::test_rng();
 
     for _ in 0..ITERATIONS {
-        let a = GroupProjective::<P>::rand(&mut rng);
+        let a = Projective::<P>::rand(&mut rng);
         let mut a = a.into_affine();
         {
             let mut serialized = vec![0; buf_size];
@@ -345,7 +346,7 @@ pub fn sw_curve_serialization_test<P: SWModelParameters>() {
             a.serialize(&mut cursor).unwrap();
 
             let mut cursor = Cursor::new(&serialized[..]);
-            let b = GroupAffine::<P>::deserialize(&mut cursor).unwrap();
+            let b = Affine::<P>::deserialize(&mut cursor).unwrap();
             assert_eq!(a, b);
         }
 
@@ -355,22 +356,22 @@ pub fn sw_curve_serialization_test<P: SWModelParameters>() {
             let mut cursor = Cursor::new(&mut serialized[..]);
             a.serialize(&mut cursor).unwrap();
             let mut cursor = Cursor::new(&serialized[..]);
-            let b = GroupAffine::<P>::deserialize(&mut cursor).unwrap();
+            let b = Affine::<P>::deserialize(&mut cursor).unwrap();
             assert_eq!(a, b);
         }
 
         {
-            let a = GroupAffine::<P>::zero();
+            let a = Affine::<P>::zero();
             let mut serialized = vec![0; buf_size];
             let mut cursor = Cursor::new(&mut serialized[..]);
             a.serialize(&mut cursor).unwrap();
             let mut cursor = Cursor::new(&serialized[..]);
-            let b = GroupAffine::<P>::deserialize(&mut cursor).unwrap();
+            let b = Affine::<P>::deserialize(&mut cursor).unwrap();
             assert_eq!(a, b);
         }
 
         {
-            let a = GroupAffine::<P>::zero();
+            let a = Affine::<P>::zero();
             let mut serialized = vec![0; buf_size - 1];
             let mut cursor = Cursor::new(&mut serialized[..]);
             a.serialize(&mut cursor).unwrap_err();
@@ -379,7 +380,7 @@ pub fn sw_curve_serialization_test<P: SWModelParameters>() {
         {
             let serialized = vec![0; buf_size - 1];
             let mut cursor = Cursor::new(&serialized[..]);
-            GroupAffine::<P>::deserialize(&mut cursor).unwrap_err();
+            Affine::<P>::deserialize(&mut cursor).unwrap_err();
         }
 
         {
@@ -388,7 +389,7 @@ pub fn sw_curve_serialization_test<P: SWModelParameters>() {
             a.serialize_uncompressed(&mut cursor).unwrap();
 
             let mut cursor = Cursor::new(&serialized[..]);
-            let b = GroupAffine::<P>::deserialize_uncompressed(&mut cursor).unwrap();
+            let b = Affine::<P>::deserialize_uncompressed(&mut cursor).unwrap();
             assert_eq!(a, b);
         }
 
@@ -398,35 +399,35 @@ pub fn sw_curve_serialization_test<P: SWModelParameters>() {
             let mut cursor = Cursor::new(&mut serialized[..]);
             a.serialize_uncompressed(&mut cursor).unwrap();
             let mut cursor = Cursor::new(&serialized[..]);
-            let b = GroupAffine::<P>::deserialize_uncompressed(&mut cursor).unwrap();
+            let b = Affine::<P>::deserialize_uncompressed(&mut cursor).unwrap();
             assert_eq!(a, b);
         }
 
         {
-            let a = GroupAffine::<P>::zero();
+            let a = Affine::<P>::zero();
             let mut serialized = vec![0; a.uncompressed_size()];
             let mut cursor = Cursor::new(&mut serialized[..]);
             a.serialize_uncompressed(&mut cursor).unwrap();
             let mut cursor = Cursor::new(&serialized[..]);
-            let b = GroupAffine::<P>::deserialize_uncompressed(&mut cursor).unwrap();
+            let b = Affine::<P>::deserialize_uncompressed(&mut cursor).unwrap();
             assert_eq!(a, b);
         }
     }
 }
 
-pub fn sw_affine_sum_test<P: SWModelParameters>() {
-    use ark_ec::models::short_weierstrass_jacobian::{GroupAffine, GroupProjective};
+pub fn sw_affine_sum_test<P: SWCurveConfig>() {
+    use ark_ec::models::short_weierstrass::{Affine, Projective};
 
     let mut rng = ark_std::test_rng();
 
     for _ in 0..ITERATIONS {
         let mut test_vec = Vec::new();
         for _ in 0..10 {
-            test_vec.push(GroupProjective::<P>::rand(&mut rng).into_affine());
+            test_vec.push(Projective::<P>::rand(&mut rng).into_affine());
         }
 
-        let sum_computed: GroupAffine<P> = test_vec.iter().sum();
-        let mut sum_expected = GroupAffine::zero();
+        let sum_computed: Affine<P> = test_vec.iter().sum();
+        let mut sum_expected = Affine::zero();
         for p in test_vec.iter() {
             sum_expected += p;
         }
@@ -435,11 +436,11 @@ pub fn sw_affine_sum_test<P: SWModelParameters>() {
     }
 }
 
-fn sw_cofactor_clearing_test<P: SWModelParameters>() {
+fn sw_cofactor_clearing_test<P: SWCurveConfig>() {
     let mut rng = ark_std::test_rng();
 
     for _ in 0..ITERATIONS {
-        let a = GroupAffine::<P>::rand(&mut rng);
+        let a = Affine::<P>::rand(&mut rng);
         let b = a.clear_cofactor();
         assert!(b.is_in_correct_subgroup_assuming_on_curve());
     }
@@ -447,7 +448,7 @@ fn sw_cofactor_clearing_test<P: SWModelParameters>() {
 
 pub fn montgomery_conversion_test<P>()
 where
-    P: TEModelParameters,
+    P: TECurveConfig,
 {
     // A = 2 * (a + d) / (a - d)
     let a = P::BaseField::one().double()
@@ -456,11 +457,11 @@ where
     // B = 4 / (a - d)
     let b = P::BaseField::one().double().double() * &(P::COEFF_A - &P::COEFF_D).inverse().unwrap();
 
-    assert_eq!(a, P::MontgomeryModelParameters::COEFF_A);
-    assert_eq!(b, P::MontgomeryModelParameters::COEFF_B);
+    assert_eq!(a, P::MontCurveConfig::COEFF_A);
+    assert_eq!(b, P::MontCurveConfig::COEFF_B);
 }
 
-pub fn edwards_tests<P: TEModelParameters>()
+pub fn edwards_tests<P: TECurveConfig>()
 where
     P::BaseField: PrimeField,
 {
@@ -469,18 +470,18 @@ where
     edwards_cofactor_clearing_test::<P>();
 }
 
-pub fn edwards_from_random_bytes<P: TEModelParameters>()
+pub fn edwards_from_random_bytes<P: TECurveConfig>()
 where
     P::BaseField: PrimeField,
 {
-    use ark_ec::models::twisted_edwards_extended::{GroupAffine, GroupProjective};
+    use ark_ec::models::twisted_edwards::{Affine, Projective};
 
-    let buf_size = GroupAffine::<P>::zero().serialized_size();
+    let buf_size = Affine::<P>::zero().serialized_size();
 
     let mut rng = ark_std::test_rng();
 
     for _ in 0..ITERATIONS {
-        let a = GroupProjective::<P>::rand(&mut rng);
+        let a = Projective::<P>::rand(&mut rng);
         let mut a = a.into_affine();
         {
             let mut serialized = vec![0; buf_size];
@@ -488,15 +489,15 @@ where
             a.serialize(&mut cursor).unwrap();
 
             let mut cursor = Cursor::new(&serialized[..]);
-            let p1 = GroupAffine::<P>::deserialize(&mut cursor).unwrap();
-            let p2 = GroupAffine::<P>::from_random_bytes(&serialized).unwrap();
+            let p1 = Affine::<P>::deserialize(&mut cursor).unwrap();
+            let p2 = Affine::<P>::from_random_bytes(&serialized).unwrap();
             assert_eq!(p1, p2);
         }
     }
 
     for _ in 0..ITERATIONS {
         let mut biginteger =
-            <<GroupAffine<P> as AffineCurve>::BaseField as PrimeField>::BigInt::rand(&mut rng);
+            <<Affine<P> as AffineCurve>::BaseField as PrimeField>::BigInt::rand(&mut rng);
         let mut bytes = {
             let mut result = vec![0u8; biginteger.serialized_size()];
             biginteger
@@ -504,24 +505,24 @@ where
                 .unwrap();
             result
         };
-        let mut g = GroupAffine::<P>::from_random_bytes(&bytes);
+        let mut g = Affine::<P>::from_random_bytes(&bytes);
         while g.is_none() {
             bytes.iter_mut().for_each(|i| *i = i.wrapping_sub(1));
-            g = GroupAffine::<P>::from_random_bytes(&bytes);
+            g = Affine::<P>::from_random_bytes(&bytes);
         }
         let _g = g.unwrap();
     }
 }
 
-pub fn edwards_curve_serialization_test<P: TEModelParameters>() {
-    use ark_ec::models::twisted_edwards_extended::{GroupAffine, GroupProjective};
+pub fn edwards_curve_serialization_test<P: TECurveConfig>() {
+    use ark_ec::models::twisted_edwards::{Affine, Projective};
 
-    let buf_size = GroupAffine::<P>::zero().serialized_size();
+    let buf_size = Affine::<P>::zero().serialized_size();
 
     let mut rng = ark_std::test_rng();
 
     for _ in 0..ITERATIONS {
-        let a = GroupProjective::<P>::rand(&mut rng);
+        let a = Projective::<P>::rand(&mut rng);
         let a = a.into_affine();
         {
             let mut serialized = vec![0; buf_size];
@@ -529,22 +530,22 @@ pub fn edwards_curve_serialization_test<P: TEModelParameters>() {
             a.serialize(&mut cursor).unwrap();
 
             let mut cursor = Cursor::new(&serialized[..]);
-            let b = GroupAffine::<P>::deserialize(&mut cursor).unwrap();
+            let b = Affine::<P>::deserialize(&mut cursor).unwrap();
             assert_eq!(a, b);
         }
 
         {
-            let a = GroupAffine::<P>::zero();
+            let a = Affine::<P>::zero();
             let mut serialized = vec![0; buf_size];
             let mut cursor = Cursor::new(&mut serialized[..]);
             a.serialize(&mut cursor).unwrap();
             let mut cursor = Cursor::new(&serialized[..]);
-            let b = GroupAffine::<P>::deserialize(&mut cursor).unwrap();
+            let b = Affine::<P>::deserialize(&mut cursor).unwrap();
             assert_eq!(a, b);
         }
 
         {
-            let a = GroupAffine::<P>::zero();
+            let a = Affine::<P>::zero();
             let mut serialized = vec![0; buf_size - 1];
             let mut cursor = Cursor::new(&mut serialized[..]);
             a.serialize(&mut cursor).unwrap_err();
@@ -553,7 +554,7 @@ pub fn edwards_curve_serialization_test<P: TEModelParameters>() {
         {
             let serialized = vec![0; buf_size - 1];
             let mut cursor = Cursor::new(&serialized[..]);
-            GroupAffine::<P>::deserialize(&mut cursor).unwrap_err();
+            Affine::<P>::deserialize(&mut cursor).unwrap_err();
         }
 
         {
@@ -562,27 +563,27 @@ pub fn edwards_curve_serialization_test<P: TEModelParameters>() {
             a.serialize_uncompressed(&mut cursor).unwrap();
 
             let mut cursor = Cursor::new(&serialized[..]);
-            let b = GroupAffine::<P>::deserialize_uncompressed(&mut cursor).unwrap();
+            let b = Affine::<P>::deserialize_uncompressed(&mut cursor).unwrap();
             assert_eq!(a, b);
         }
 
         {
-            let a = GroupAffine::<P>::zero();
+            let a = Affine::<P>::zero();
             let mut serialized = vec![0; a.uncompressed_size()];
             let mut cursor = Cursor::new(&mut serialized[..]);
             a.serialize_uncompressed(&mut cursor).unwrap();
             let mut cursor = Cursor::new(&serialized[..]);
-            let b = GroupAffine::<P>::deserialize_uncompressed(&mut cursor).unwrap();
+            let b = Affine::<P>::deserialize_uncompressed(&mut cursor).unwrap();
             assert_eq!(a, b);
         }
     }
 }
 
-fn edwards_cofactor_clearing_test<P: TEModelParameters>() {
+fn edwards_cofactor_clearing_test<P: TECurveConfig>() {
     let mut rng = ark_std::test_rng();
 
     for _ in 0..ITERATIONS {
-        let a = GroupProjective::<P>::rand(&mut rng).into_affine();
+        let a = Projective::<P>::rand(&mut rng).into_affine();
         let b = a.clear_cofactor();
         assert!(b.is_in_correct_subgroup_assuming_on_curve());
     }
