@@ -206,8 +206,8 @@ pub trait ProjectiveCurve:
     fn double_in_place(&mut self) -> &mut Self;
 
     /// Converts self into the affine representation.
-    fn into_affine(&self) -> Self::Affine {
-        (*self).into()
+    fn into_affine(self) -> Self::Affine {
+        self.into()
     }
 
     /// Sets `self` to be `self + other`, where `other: Self::Affine`.
@@ -276,8 +276,8 @@ pub trait AffineCurve:
     fn prime_subgroup_generator() -> Self;
 
     /// Converts self into the projective representation.
-    fn into_projective(&self) -> Self::Projective {
-        (*self).into()
+    fn into_projective(self) -> Self::Projective {
+        self.into()
     }
 
     /// Returns a group element if the set of bytes forms a valid group element,

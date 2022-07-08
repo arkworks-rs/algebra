@@ -340,7 +340,6 @@ impl<P: SWCurveConfig> AffineCurve for Affine<P> {
     /// Performs cofactor clearing.
     /// The default method is simply to multiply by the cofactor.
     /// Some curves can implement a more efficient algorithm.
-    #[must_use]
     fn clear_cofactor(&self) -> Self {
         P::clear_cofactor(self)
     }

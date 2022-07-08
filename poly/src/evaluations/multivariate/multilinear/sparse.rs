@@ -278,15 +278,13 @@ impl<F: Field> AddAssign for SparseMultilinearExtension<F> {
     }
 }
 
-impl<'a, 'b, F: Field> AddAssign<&'a SparseMultilinearExtension<F>>
-    for SparseMultilinearExtension<F>
-{
+impl<'a, F: Field> AddAssign<&'a SparseMultilinearExtension<F>> for SparseMultilinearExtension<F> {
     fn add_assign(&mut self, other: &'a SparseMultilinearExtension<F>) {
         *self = &*self + other;
     }
 }
 
-impl<'a, 'b, F: Field> AddAssign<(F, &'a SparseMultilinearExtension<F>)>
+impl<'a, F: Field> AddAssign<(F, &'a SparseMultilinearExtension<F>)>
     for SparseMultilinearExtension<F>
 {
     fn add_assign(&mut self, (f, other): (F, &'a SparseMultilinearExtension<F>)) {
@@ -347,9 +345,7 @@ impl<F: Field> SubAssign for SparseMultilinearExtension<F> {
     }
 }
 
-impl<'a, 'b, F: Field> SubAssign<&'a SparseMultilinearExtension<F>>
-    for SparseMultilinearExtension<F>
-{
+impl<'a, F: Field> SubAssign<&'a SparseMultilinearExtension<F>> for SparseMultilinearExtension<F> {
     fn sub_assign(&mut self, other: &'a SparseMultilinearExtension<F>) {
         *self = &*self - other;
     }

@@ -43,7 +43,7 @@ pub trait Group:
     fn double_in_place(&mut self) -> &mut Self;
 
     #[must_use]
-    fn mul<'a>(&self, other: &'a Self::ScalarField) -> Self {
+    fn mul(&self, other: &Self::ScalarField) -> Self {
         let mut copy = *self;
         copy *= *other;
         copy

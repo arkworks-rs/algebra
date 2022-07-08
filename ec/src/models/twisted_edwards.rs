@@ -147,7 +147,7 @@ impl<P: TECurveConfig> Affine<P> {
         let p = Self::new_unchecked(x, y);
         assert!(p.is_on_curve());
         assert!(p.is_in_correct_subgroup_assuming_on_curve());
-        p.into()
+        p
     }
 
     /// Attempts to construct an affine point given an y-coordinate. The
@@ -248,7 +248,6 @@ impl<P: TECurveConfig> AffineCurve for Affine<P> {
     /// Performs cofactor clearing.
     /// The default method is simply to multiply by the cofactor.
     /// Some curves can implement a more efficient algorithm.
-    #[must_use]
     fn clear_cofactor(&self) -> Self {
         P::clear_cofactor(self)
     }

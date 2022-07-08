@@ -188,9 +188,9 @@ impl<F: FftField> EvaluationDomain<F> for Radix2EvaluationDomain<F> {
             let mut l_i = z_h_at_tau.inverse().unwrap() * v_0_inv;
             let mut negative_cur_elem = -domain_offset;
             let mut lagrange_coefficients_inverse = vec![F::zero(); size];
-            for i in 0..size {
+            for coeff in &mut lagrange_coefficients_inverse {
                 let r_i = tau + negative_cur_elem;
-                lagrange_coefficients_inverse[i] = l_i * r_i;
+                *coeff = l_i * r_i;
                 // Increment l_i and negative_cur_elem
                 l_i *= &self.group_gen_inv;
                 negative_cur_elem *= &self.group_gen;
