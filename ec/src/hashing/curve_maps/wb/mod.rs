@@ -1,17 +1,17 @@
 use core::marker::PhantomData;
 
-use crate::{models::SWModelParameters, ModelParameters};
+use crate::{models::short_weierstrass::SWCurveConfig, CurveConfig};
 use ark_ff::batch_inversion;
 use ark_poly::{univariate::DensePolynomial, DenseUVPolynomial, Polynomial};
 
 use crate::{
     hashing::{map_to_curve_hasher::MapToCurve, HashToCurveError},
-    models::short_weierstrass_jacobian::GroupAffine,
+    models::short_weierstrass::Affine,
     AffineCurve,
 };
 
 use super::swu::{SWUMap, SWUParams};
-type BaseField<MP> = <MP as ModelParameters>::BaseField;
+type BaseField<MP> = <MP as CurveConfig>::BaseField;
 
 /// Trait defining the necessary parameters for the WB hash-to-curve method
 /// for the curves of Weierstrass form of:
@@ -19,7 +19,7 @@ type BaseField<MP> = <MP as ModelParameters>::BaseField;
 /// From [\[WB2019\]]
 ///
 /// - [\[WB2019\]] <http://dx.doi.org/10.46586/tches.v2019.i4.154-179>
-pub trait WBParams: SWModelParameters + Sized {
+pub trait WBParams: SWCurveConfig + Sized {
     // The isogenous curve should be defined over the same base field but it can have
     // different scalar field type IsogenousCurveScalarField :
     type IsogenousCurve: SWUParams<BaseField = BaseField<Self>>;
@@ -31,8 +31,8 @@ pub trait WBParams: SWModelParameters + Sized {
     const PHI_Y_DEN: &'static [BaseField<Self>];
 
     fn isogeny_map(
-        domain_point: GroupAffine<Self::IsogenousCurve>,
-    ) -> Result<GroupAffine<Self>, HashToCurveError> {
+        domain_point: Affine<Self::IsogenousCurve>,
+    ) -> Result<Affine<Self>, HashToCurveError> {
         let x_num = DensePolynomial::from_coefficients_slice(Self::PHI_X_NOM);
         let x_den = DensePolynomial::from_coefficients_slice(Self::PHI_X_DEN);
 
@@ -47,7 +47,7 @@ pub trait WBParams: SWModelParameters + Sized {
         let img_x = x_num.evaluate(&domain_point.x) * v[0];
         let img_y = (y_num.evaluate(&domain_point.x) * domain_point.y) * v[1];
 
-        Ok(GroupAffine::new(img_x, img_y, false))
+        Ok(Affine::new(img_x, img_y, false))
     }
 }
 
@@ -56,11 +56,11 @@ pub struct WBMap<P: WBParams> {
     curve_params: PhantomData<fn() -> P>,
 }
 
-impl<P: WBParams> MapToCurve<GroupAffine<P>> for WBMap<P> {
+impl<P: WBParams> MapToCurve<Affine<P>> for WBMap<P> {
     /// Constructs a new map if `P` represents a valid map.
     fn new() -> Result<Self, HashToCurveError> {
         // Verifying that the isogeny maps the generator of the SWU curve into us
-        let isogenous_curve_generator = GroupAffine::<P::IsogenousCurve>::new(
+        let isogenous_curve_generator = Affine::<P::IsogenousCurve>::new(
             P::IsogenousCurve::AFFINE_GENERATOR_COEFFS.0,
             P::IsogenousCurve::AFFINE_GENERATOR_COEFFS.1,
             false,
@@ -86,8 +86,8 @@ impl<P: WBParams> MapToCurve<GroupAffine<P>> for WBMap<P> {
     /// <https://github.com/zcash/pasta_curves/blob/main/src/hashtocurve.rs>
     fn map_to_curve(
         &self,
-        element: <GroupAffine<P> as AffineCurve>::BaseField,
-    ) -> Result<GroupAffine<P>, HashToCurveError> {
+        element: <Affine<P> as AffineCurve>::BaseField,
+    ) -> Result<Affine<P>, HashToCurveError> {
         // first we need to map the field point to the isogenous curve
         let point_on_isogenious_curve = self.swu_field_curve_hasher.map_to_curve(element).unwrap();
         P::isogeny_map(point_on_isogenious_curve)

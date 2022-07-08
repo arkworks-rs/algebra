@@ -1,11 +1,11 @@
-use crate::models::SWModelParameters;
+use crate::models::short_weierstrass::SWCurveConfig;
 use ark_ff::{BigInteger, Field, One, PrimeField, SquareRootField, Zero};
 use ark_std::string::ToString;
 use core::marker::PhantomData;
 
 use crate::{
     hashing::{map_to_curve_hasher::MapToCurve, HashToCurveError},
-    models::short_weierstrass_jacobian::GroupAffine,
+    models::short_weierstrass::Affine,
 };
 
 /// Trait defining the necessary parameters for the SWU hash-to-curve method
@@ -13,7 +13,7 @@ use crate::{
 /// y^2 = x^3 + a*x + b where ab != 0. From [\[WB2019\]]
 ///
 /// - [\[WB2019\]] <https://eprint.iacr.org/2019/403>
-pub trait SWUParams: SWModelParameters {
+pub trait SWUParams: SWCurveConfig {
     /// An element of the base field that is not a square root see \[WB2019, Section 4\].
     /// It is also convenient to have $g(b/xi * a)$ to be square. In general
     /// we use a `XI` with low absolute value coefficients when they are
@@ -40,7 +40,7 @@ pub fn parity<F: Field>(element: &F) -> bool {
         .map_or(false, |x| x.into_bigint().is_odd())
 }
 
-impl<P: SWUParams> MapToCurve<GroupAffine<P>> for SWUMap<P> {
+impl<P: SWUParams> MapToCurve<Affine<P>> for SWUMap<P> {
     /// Constructs a new map if `P` represents a valid map.
     fn new() -> Result<Self, HashToCurveError> {
         // Verifying that both XI and ZETA are non-squares
@@ -81,7 +81,7 @@ impl<P: SWUParams> MapToCurve<GroupAffine<P>> for SWUMap<P> {
     /// Map an arbitrary base field element to a curve point.
     /// Based on
     /// <https://github.com/zcash/pasta_curves/blob/main/src/hashtocurve.rs>.
-    fn map_to_curve(&self, point: P::BaseField) -> Result<GroupAffine<P>, HashToCurveError> {
+    fn map_to_curve(&self, point: P::BaseField) -> Result<Affine<P>, HashToCurveError> {
         // 1. tv1 = inv0(Z^2 * u^4 + Z * u^2)
         // 2. x1 = (-B / A) * (1 + tv1)
         // 3. If tv1 == 0, set x1 = B / (Z * A)
@@ -165,7 +165,7 @@ impl<P: SWUParams> MapToCurve<GroupAffine<P>> for SWUMap<P> {
 
         let x_affine = num_x / div;
         let y_affine = if parity(&y) { -y } else { y };
-        let point_on_curve = GroupAffine::<P>::new(x_affine, y_affine, false);
+        let point_on_curve = Affine::<P>::new(x_affine, y_affine, false);
         assert!(
             point_on_curve.is_on_curve(),
             "swu mapped to a point off the curve"

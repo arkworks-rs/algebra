@@ -7,9 +7,9 @@ use crate::{
         },
         map_to_curve_hasher::{MapToCurve, MapToCurveBasedHasher},
     },
-    models::SWModelParameters,
-    short_weierstrass_jacobian::GroupAffine,
-    ModelParameters,
+    models::short_weierstrass::SWCurveConfig,
+    short_weierstrass::Affine,
+    CurveConfig,
 };
 use ark_ff::field_hashers::DefaultFieldHasher;
 use ark_ff::{biginteger::BigInteger64, fields::Fp64, BigInt, MontBackend, MontFp};
@@ -53,7 +53,7 @@ const F127_ONE: F127 = MontFp!(F127, "1");
 
 struct TestSWUMapToCurveParams;
 
-impl ModelParameters for TestSWUMapToCurveParams {
+impl CurveConfig for TestSWUMapToCurveParams {
     const COFACTOR: &'static [u64] = &[1];
 
     #[rustfmt::skip]
@@ -76,7 +76,7 @@ impl ModelParameters for TestSWUMapToCurveParams {
 ///         pass
 ///
 /// y^2 = x^3 + x + 63
-impl SWModelParameters for TestSWUMapToCurveParams {
+impl SWCurveConfig for TestSWUMapToCurveParams {
     /// COEFF_A = 1
     const COEFF_A: F127 = F127_ONE;
 
@@ -126,7 +126,7 @@ fn checking_the_hashing_parameters() {
 #[test]
 fn hash_arbitary_string_to_curve_swu() {
     let test_swu_to_curve_hasher = MapToCurveBasedHasher::<
-        GroupAffine<TestSWUMapToCurveParams>,
+        Affine<TestSWUMapToCurveParams>,
         DefaultFieldHasher<sha2::Sha256, 128>,
         SWUMap<TestSWUMapToCurveParams>,
     >::new(&[1])
@@ -147,7 +147,7 @@ fn hash_arbitary_string_to_curve_swu() {
 fn map_field_to_curve_swu() {
     let test_map_to_curve = SWUMap::<TestSWUMapToCurveParams>::new().unwrap();
 
-    let mut map_range: Vec<GroupAffine<TestSWUMapToCurveParams>> = vec![];
+    let mut map_range: Vec<Affine<TestSWUMapToCurveParams>> = vec![];
     for current_field_element in 0..127 {
         map_range.push(
             test_map_to_curve
@@ -183,7 +183,7 @@ struct TestSWU127MapToIsogenousCurveParams;
 /// First we define the isogenous curve
 /// sage: E_isogenous.order()
 /// 127
-impl ModelParameters for TestSWU127MapToIsogenousCurveParams {
+impl CurveConfig for TestSWU127MapToIsogenousCurveParams {
     const COFACTOR: &'static [u64] = &[1];
 
     #[rustfmt::skip]
@@ -195,7 +195,7 @@ impl ModelParameters for TestSWU127MapToIsogenousCurveParams {
 
 /// E_isogenous : Elliptic Curve defined by y^2 = x^3 + 109*x + 124 over Finite
 /// Field of size 127
-impl SWModelParameters for TestSWU127MapToIsogenousCurveParams {
+impl SWCurveConfig for TestSWU127MapToIsogenousCurveParams {
     /// COEFF_A = 109
     const COEFF_A: F127 = MontFp!(F127, "109");
 
@@ -221,7 +221,7 @@ impl SWUParams for TestSWU127MapToIsogenousCurveParams {
 /// The struct defining our parameters for the target curve of hashing
 struct TestWBF127MapToCurveParams;
 
-impl ModelParameters for TestWBF127MapToCurveParams {
+impl CurveConfig for TestWBF127MapToCurveParams {
     const COFACTOR: &'static [u64] = &[1];
 
     #[rustfmt::skip]
@@ -233,7 +233,7 @@ impl ModelParameters for TestWBF127MapToCurveParams {
 
 /// E: Elliptic Curve defined by y^2 = x^3 + 3 over Finite
 /// Field of size 127
-impl SWModelParameters for TestWBF127MapToCurveParams {
+impl SWCurveConfig for TestWBF127MapToCurveParams {
     /// COEFF_A = 0
     const COEFF_A: F127 = F127_ZERO;
 
@@ -264,7 +264,7 @@ impl SWModelParameters for TestWBF127MapToCurveParams {
 impl WBParams for TestWBF127MapToCurveParams {
     type IsogenousCurve = TestSWU127MapToIsogenousCurveParams;
 
-    const PHI_X_NOM: &'static [<Self::IsogenousCurve as ModelParameters>::BaseField] = &[
+    const PHI_X_NOM: &'static [<Self::IsogenousCurve as CurveConfig>::BaseField] = &[
         MontFp!(F127, "4"),
         MontFp!(F127, "63"),
         MontFp!(F127, "23"),
@@ -281,7 +281,7 @@ impl WBParams for TestWBF127MapToCurveParams {
         MontFp!(F127, "-57"),
     ];
 
-    const PHI_X_DEN: &'static [<Self::IsogenousCurve as ModelParameters>::BaseField] = &[
+    const PHI_X_DEN: &'static [<Self::IsogenousCurve as CurveConfig>::BaseField] = &[
         MontFp!(F127, "2"),
         MontFp!(F127, "31"),
         MontFp!(F127, "-10"),
@@ -297,7 +297,7 @@ impl WBParams for TestWBF127MapToCurveParams {
         MontFp!(F127, "1"),
     ];
 
-    const PHI_Y_NOM: &'static [<Self::IsogenousCurve as ModelParameters>::BaseField] = &[
+    const PHI_Y_NOM: &'static [<Self::IsogenousCurve as CurveConfig>::BaseField] = &[
         MontFp!(F127, "-34"),
         MontFp!(F127, "-57"),
         MontFp!(F127, "30"),
@@ -319,7 +319,7 @@ impl WBParams for TestWBF127MapToCurveParams {
         MontFp!(F127, "10"),
     ];
 
-    const PHI_Y_DEN: &'static [<Self::IsogenousCurve as ModelParameters>::BaseField] = &[
+    const PHI_Y_DEN: &'static [<Self::IsogenousCurve as CurveConfig>::BaseField] = &[
         MontFp!(F127, "32"),
         MontFp!(F127, "-18"),
         MontFp!(F127, "-24"),
@@ -347,7 +347,7 @@ impl WBParams for TestWBF127MapToCurveParams {
 #[test]
 fn hash_arbitary_string_to_curve_wb() {
     let test_wb_to_curve_hasher = MapToCurveBasedHasher::<
-        GroupAffine<TestWBF127MapToCurveParams>,
+        Affine<TestWBF127MapToCurveParams>,
         DefaultFieldHasher<sha2::Sha256, 128>,
         WBMap<TestWBF127MapToCurveParams>,
     >::new(&[1])
