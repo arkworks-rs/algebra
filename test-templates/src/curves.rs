@@ -347,7 +347,11 @@ pub fn curve_tests<G: ProjectiveCurve>() {
         let a_two = a.mul(&fr_two.into_bigint());
         assert_eq!(a_two, a.double(), "(a * 2)  != a.double()");
         let a_six = a.mul(&(fr_three * &fr_two).into_bigint());
-        assert_eq!(a_two.mul(&fr_three.into_bigint()), a_six, "(a * 2) * 3 != a * (2 * 3)");
+        assert_eq!(
+            a_two.mul(&fr_three.into_bigint()),
+            a_six,
+            "(a * 2) * 3 != a * (2 * 3)"
+        );
 
         assert_eq!(
             a_rand1.mul(&fr_rand2.into_bigint()),
