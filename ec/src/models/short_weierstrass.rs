@@ -697,12 +697,9 @@ impl<P: SWCurveConfig> Neg for Projective<P> {
     type Output = Self;
 
     #[inline]
-    fn neg(self) -> Self {
-        if !self.is_zero() {
-            Self::new_unchecked(self.x, -self.y, self.z)
-        } else {
-            self
-        }
+    fn neg(mut self) -> Self {
+        self.y = -self.y;
+        self
     }
 }
 

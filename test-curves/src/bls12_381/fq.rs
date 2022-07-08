@@ -14,7 +14,8 @@ mod tests {
     use core::marker::PhantomData;
 
     use super::*;
-    use ark_ff::BigInt;
+    use ark_ff::{BigInt, FpConfig, One};
+
     #[test]
     fn test_constants() {
         use ark_ff::{MontConfig, PrimeField};
@@ -99,5 +100,8 @@ mod tests {
                 PhantomData
             )
         );
+    
+        assert_eq!(FQ_ONE, Fq::one());
+        assert_eq!(FQ_ONE, <MontBackend<FqConfig, 6>>::ONE);
     }
 }

@@ -221,7 +221,7 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
 
             let mut u = a.0;
             let mut v = Self::MODULUS;
-            let mut b = Fp::new(Self::R2); // Avoids unnecessary reduction step.
+            let mut b = Fp::new_unchecked(Self::R2); // Avoids unnecessary reduction step.
             let mut c = Fp::zero();
 
             while u != one && v != one {
@@ -265,11 +265,11 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
     }
 
     fn from_bigint(r: BigInt<N>) -> Option<Fp<MontBackend<Self, N>, N>> {
-        let mut r = Fp::new(r);
+        let mut r = Fp::new_unchecked(r);
         if r.is_zero() {
             Some(r)
         } else if r.is_less_than_modulus() {
-            r *= &Fp::new(Self::R2);
+            r *= &Fp::new_unchecked(Self::R2);
             Some(r)
         } else {
             None
@@ -374,11 +374,11 @@ impl<T: MontConfig<N>, const N: usize> FpConfig<N> for MontBackend<T, N> {
 
     /// Additive identity of the field, i.e. the element `e`
     /// such that, for all elements `f` of the field, `e + f = f`.
-    const ZERO: Fp<Self, N> = Fp::new(BigInt([0u64; N]));
+    const ZERO: Fp<Self, N> = Fp::new_unchecked(BigInt([0u64; N]));
 
     /// Multiplicative identity of the field, i.e. the element `e`
     /// such that, for all elements `f` of the field, `e * f = f`.
-    const ONE: Fp<Self, N> = Fp::new(T::R);
+    const ONE: Fp<Self, N> = Fp::new_unchecked(T::R);
 
     const TWO_ADICITY: u32 = Self::MODULUS.two_adic_valuation();
     const TWO_ADIC_ROOT_OF_UNITY: Fp<Self, N> = T::TWO_ADIC_ROOT_OF_UNITY;
@@ -444,6 +444,15 @@ impl<T: MontConfig<N>, const N: usize> Fp<MontBackend<T, N>, N> {
         }
     }
 
+    /// Construct a new field element from its underlying
+    /// [`struct@BigInt`] data type. 
+    /// 
+    /// Unlike [`Self::new`], this method does not perform Montgomery reduction.
+    #[inline]
+    pub const fn new_unchecked(element: BigInt<N>) -> Self {
+        Self(element, PhantomData)
+    }
+
     const fn const_is_zero(&self) -> bool {
         self.0.const_is_zero()
     }
@@ -451,7 +460,7 @@ impl<T: MontConfig<N>, const N: usize> Fp<MontBackend<T, N>, N> {
     #[doc(hidden)]
     const fn const_neg(self) -> Self {
         if !self.const_is_zero() {
-            Self::new(Self::sub_with_borrow(&T::MODULUS, &self.0))
+            Self::new_unchecked(Self::sub_with_borrow(&T::MODULUS, &self.0))
         } else {
             self
         }
@@ -463,7 +472,7 @@ impl<T: MontConfig<N>, const N: usize> Fp<MontBackend<T, N>, N> {
     #[doc(hidden)]
     pub const fn from_sign_and_limbs(is_positive: bool, limbs: &[u64]) -> Self {
         let mut repr = BigInt::<N>([0; N]);
-        assert!(repr.0.len() == N);
+        assert!(limbs.len() <= N);
         crate::const_for!((i in 0..(limbs.len())) {
             repr.0[i] = limbs[i];
         });
