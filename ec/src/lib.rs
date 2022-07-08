@@ -39,8 +39,6 @@ pub use self::models::*;
 
 pub mod glv;
 
-pub mod group;
-
 pub mod msm;
 
 /// Provides a `HashToCurve` trait and implementations of this trait via
@@ -311,23 +309,6 @@ pub trait AffineCurve:
     #[must_use]
     fn mul_by_cofactor_inv(&self) -> Self {
         self.mul(Self::Config::COFACTOR_INV).into()
-    }
-}
-
-impl<C: ProjectiveCurve> crate::group::Group for C {
-    type ScalarField = C::ScalarField;
-
-    #[inline]
-    #[must_use]
-    fn double(&self) -> Self {
-        let mut tmp = *self;
-        tmp += self;
-        tmp
-    }
-
-    #[inline]
-    fn double_in_place(&mut self) -> &mut Self {
-        <C as ProjectiveCurve>::double_in_place(self)
     }
 }
 
