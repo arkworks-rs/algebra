@@ -121,7 +121,7 @@ impl<P: Parameters> GroupAffine<P> {
 
     /// Checks if `self` is a valid point on the curve.
     pub fn is_on_curve(&self) -> bool {
-        if self.infinity {
+        if !self.infinity {
             // Rust does not optimise away addition with zero
             let mut x3b = P::add_b(&(self.x.square() * self.x));
             if !P::COEFF_A.is_zero() {
