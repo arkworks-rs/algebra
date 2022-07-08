@@ -329,30 +329,6 @@ impl<P: TECurveConfig> Distribution<Affine<P>> for Standard {
     }
 }
 
-mod group_impl {
-    use super::*;
-    use crate::group::Group;
-
-    impl<P: TECurveConfig> Group for Affine<P> {
-        type ScalarField = P::ScalarField;
-
-        #[inline]
-        fn double(&self) -> Self {
-            let mut tmp = *self;
-            tmp += self;
-            tmp
-        }
-
-        #[inline]
-        fn double_in_place(&mut self) -> &mut Self {
-            let mut tmp = *self;
-            tmp += &*self;
-            *self = tmp;
-            self
-        }
-    }
-}
-
 //////////////////////////////////////////////////////////////////////////////
 
 /// `Projective` implements Extended Twisted Edwards Coordinates
