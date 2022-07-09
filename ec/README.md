@@ -19,5 +19,5 @@ The available elliptic curve traits are:
 
 The elliptic curve models implemented are:
 
-* [*Short Weierstrass*](https://github.com/arkworks-rs/algebra/blob/master/ec/src/models/short_weierstrass_jacobian.rs) curves. The `AffineCurve` in this case is in typical Short Weierstrass point representation, and the `ProjectiveCurve` is using points in [Jacobian Coordinates](https://en.wikibooks.org/wiki/Cryptography/Prime_Curve/Jacobian_Coordinates).
-* [*Twisted Edwards*](https://github.com/arkworks-rs/algebra/blob/master/ec/src/models/twisted_edwards_extended.rs) curves. The `AffineCurve` in this case is in standard Twisted Edwards curve representation, whereas the `ProjectiveCurve` uses points in [Extended Twisted Edwards Coordinates](https://eprint.iacr.org/2008/522.pdf).
+* [*Short Weierstrass*](https://github.com/arkworks-rs/algebra/blob/master/ec/src/models/short_weierstrass.rs) curves. The `AffineCurve` in this case is in typical Short Weierstrass point representation, and the `ProjectiveCurve` is using points in [Jacobian Coordinates](https://en.wikibooks.org/wiki/Cryptography/Prime_Curve/Jacobian_Coordinates).
+* [*Twisted Edwards*](https://github.com/arkworks-rs/algebra/blob/master/ec/src/models/twisted_edwards.rs) curves. The `AffineCurve` in this case is in standard Twisted Edwards curve representation, whereas the `ProjectiveCurve` uses points in [Extended Twisted Edwards Coordinates](https://eprint.iacr.org/2008/522.pdf).

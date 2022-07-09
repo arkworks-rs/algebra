@@ -1,5 +1,5 @@
 use crate::{
-    models::{ModelParameters, SWModelParameters},
+    models::{short_weierstrass::SWCurveConfig, CurveConfig},
     PairingEngine,
 };
 use ark_ff::fields::{
@@ -37,10 +37,10 @@ pub trait Bls12Parameters: 'static {
     type Fp2Config: Fp2Config<Fp = Self::Fp>;
     type Fp6Config: Fp6Config<Fp2Config = Self::Fp2Config>;
     type Fp12Config: Fp12Config<Fp6Config = Self::Fp6Config>;
-    type G1Parameters: SWModelParameters<BaseField = Self::Fp>;
-    type G2Parameters: SWModelParameters<
+    type G1Parameters: SWCurveConfig<BaseField = Self::Fp>;
+    type G2Parameters: SWCurveConfig<
         BaseField = Fp2<Self::Fp2Config>,
-        ScalarField = <Self::G1Parameters as ModelParameters>::ScalarField,
+        ScalarField = <Self::G1Parameters as CurveConfig>::ScalarField,
     >;
 }
 
@@ -87,7 +87,7 @@ impl<P: Bls12Parameters> Bls12<P> {
 }
 
 impl<P: Bls12Parameters> PairingEngine for Bls12<P> {
-    type Fr = <P::G1Parameters as ModelParameters>::ScalarField;
+    type Fr = <P::G1Parameters as CurveConfig>::ScalarField;
     type G1Projective = G1Projective<P>;
     type G1Affine = G1Affine<P>;
     type G1Prepared = G1Prepared<P>;

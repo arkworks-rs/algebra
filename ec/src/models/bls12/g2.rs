@@ -6,13 +6,13 @@ use num_traits::{One, Zero};
 
 use crate::{
     bls12::{Bls12Parameters, TwistType},
-    models::SWModelParameters,
-    short_weierstrass_jacobian::{GroupAffine, GroupProjective},
+    models::short_weierstrass::SWCurveConfig,
+    short_weierstrass::{Affine, Projective},
     AffineCurve,
 };
 
-pub type G2Affine<P> = GroupAffine<<P as Bls12Parameters>::G2Parameters>;
-pub type G2Projective<P> = GroupProjective<<P as Bls12Parameters>::G2Parameters>;
+pub type G2Affine<P> = Affine<<P as Bls12Parameters>::G2Parameters>;
+pub type G2Projective<P> = Projective<<P as Bls12Parameters>::G2Parameters>;
 
 #[derive(Derivative)]
 #[derivative(

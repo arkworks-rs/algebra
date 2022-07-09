@@ -1,15 +1,15 @@
 use crate::{
     mnt4::MNT4Parameters,
     models::mnt4::MNT4,
-    short_weierstrass_jacobian::{GroupAffine, GroupProjective},
+    short_weierstrass::{Affine, Projective},
     AffineCurve,
 };
 use ark_ff::fields::{Field, Fp2};
 use ark_std::vec::Vec;
 use num_traits::One;
 
-pub type G2Affine<P> = GroupAffine<<P as MNT4Parameters>::G2Parameters>;
-pub type G2Projective<P> = GroupProjective<<P as MNT4Parameters>::G2Parameters>;
+pub type G2Affine<P> = Affine<<P as MNT4Parameters>::G2Parameters>;
+pub type G2Projective<P> = Projective<<P as MNT4Parameters>::G2Parameters>;
 
 #[derive(Derivative)]
 #[derivative(

@@ -39,8 +39,6 @@ pub use self::models::*;
 
 pub mod glv;
 
-pub mod group;
-
 pub mod msm;
 
 /// Provides a `HashToCurve` trait and implementations of this trait via
@@ -162,11 +160,11 @@ pub trait ProjectiveCurve:
     + for<'a> core::iter::Sum<&'a Self>
     + From<<Self as ProjectiveCurve>::Affine>
 {
-    type Parameters: ModelParameters<ScalarField = Self::ScalarField, BaseField = Self::BaseField>;
+    type Config: CurveConfig<ScalarField = Self::ScalarField, BaseField = Self::BaseField>;
     type ScalarField: PrimeField + SquareRootField;
     type BaseField: Field;
     type Affine: AffineCurve<
-            Parameters = Self::Parameters,
+            Config = Self::Config,
             Projective = Self,
             ScalarField = Self::ScalarField,
             BaseField = Self::BaseField,
@@ -249,7 +247,7 @@ pub trait AffineCurve:
     + for<'a> core::iter::Sum<&'a Self>
     + From<<Self as AffineCurve>::Projective>
 {
-    type Parameters: ModelParameters<ScalarField = Self::ScalarField, BaseField = Self::BaseField>;
+    type Config: CurveConfig<ScalarField = Self::ScalarField, BaseField = Self::BaseField>;
 
     /// The group defined by this curve has order `h * r` where `r` is a large
     /// prime. `Self::ScalarField` is the prime field defined by `r`
@@ -260,7 +258,7 @@ pub trait AffineCurve:
 
     /// The projective representation of points on this curve.
     type Projective: ProjectiveCurve<
-            Parameters = Self::Parameters,
+            Config = Self::Config,
             Affine = Self,
             ScalarField = Self::ScalarField,
             BaseField = Self::BaseField,
@@ -310,24 +308,7 @@ pub trait AffineCurve:
     /// `Self::ScalarField`.
     #[must_use]
     fn mul_by_cofactor_inv(&self) -> Self {
-        self.mul(Self::Parameters::COFACTOR_INV).into()
-    }
-}
-
-impl<C: ProjectiveCurve> crate::group::Group for C {
-    type ScalarField = C::ScalarField;
-
-    #[inline]
-    #[must_use]
-    fn double(&self) -> Self {
-        let mut tmp = *self;
-        tmp += self;
-        tmp
-    }
-
-    #[inline]
-    fn double_in_place(&mut self) -> &mut Self {
-        <C as ProjectiveCurve>::double_in_place(self)
+        self.mul(Self::Config::COFACTOR_INV).into()
     }
 }
 
