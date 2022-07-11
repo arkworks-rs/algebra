@@ -448,6 +448,9 @@ impl<T: MontConfig<N>, const N: usize> Fp<MontBackend<T, N>, N> {
     /// [`struct@BigInt`] data type.
     ///
     /// Unlike [`Self::new`], this method does not perform Montgomery reduction.
+    /// Thus, this method should be used only when constructing
+    /// an element from an integer that has already been put in
+    /// Montgomery form.
     #[inline]
     pub const fn new_unchecked(element: BigInt<N>) -> Self {
         Self(element, PhantomData)
