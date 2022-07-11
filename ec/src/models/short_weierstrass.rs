@@ -878,6 +878,8 @@ impl<P: SWCurveConfig> CanonicalSerialize for Affine<P> {
 
     #[inline]
     fn uncompressed_size(&self) -> usize {
+        // The size of the serialization is independent of the values
+        // of `x` and `y`, and depends only on the size of the modulus.
         P::BaseField::zero().serialized_size()
             + P::BaseField::zero().serialized_size_with_flags::<SWFlags>()
     }
