@@ -23,7 +23,7 @@ use crate::{
     biginteger::BigInteger,
     bytes::{FromBytes, ToBytes},
     fields::{Field, LegendreSymbol, PrimeField},
-    ToConstraintField, UniformRand,
+    SqrtPrecomputation, ToConstraintField, UniformRand,
 };
 
 /// Defines a Quadratic extension field from a quadratic non-residue.
@@ -256,6 +256,8 @@ impl<P: QuadExtConfig> Field for QuadExtField<P>
 //     P::BaseField: From<P::BasePrimeField>,
 {
     type BasePrimeField = P::BasePrimeField;
+
+    const SQRT_PRECOMP: Option<SqrtPrecomputation<Self>> = None;
 
     type BasePrimeFieldIter = Chain<BaseFieldIter<P>, BaseFieldIter<P>>;
 

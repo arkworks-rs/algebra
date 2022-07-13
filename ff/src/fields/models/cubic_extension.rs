@@ -22,7 +22,7 @@ use ark_std::rand::{
 use crate::{
     bytes::{FromBytes, ToBytes},
     fields::{Field, PrimeField},
-    ToConstraintField, UniformRand, LegendreSymbol,
+    LegendreSymbol, SqrtPrecomputation, ToConstraintField, UniformRand,
 };
 
 /// Defines a Cubic extension field from a cubic non-residue.
@@ -39,14 +39,10 @@ pub trait CubicExtConfig: 'static + Send + Sync + Sized {
     /// Frobenius endomorphism.
     type FrobCoeff: Field;
 
+    const PRECOMP: Option<SqrtPrecomputation<CubicExtField<Self>>>;
+
     /// The degree of the extension over the base prime field.
     const DEGREE_OVER_BASE_PRIME_FIELD: usize;
-
-    /// p^3 - 1 = 2^s * t, where t is odd.
-    const TWO_ADICITY: u32;
-    const TRACE_MINUS_ONE_DIV_TWO: &'static [u64];
-    /// t-th power of a quadratic nonresidue in Fp3.
-    const QUADRATIC_NONRESIDUE_TO_T: CubicExtField<Self>;
 
     /// The cubic non-residue used to construct the extension.
     const NONRESIDUE: Self::BaseField;
@@ -192,6 +188,7 @@ impl<P: CubicExtConfig> One for CubicExtField<P> {
 type BaseFieldIter<P> = <<P as CubicExtConfig>::BaseField as Field>::BasePrimeFieldIter;
 impl<P: CubicExtConfig> Field for CubicExtField<P> {
     type BasePrimeField = P::BasePrimeField;
+    const SQRT_PRECOMP: Option<SqrtPrecomputation<Self>> = P::PRECOMP;
     type BasePrimeFieldIter = Chain<BaseFieldIter<P>, Chain<BaseFieldIter<P>, BaseFieldIter<P>>>;
 
     fn extension_degree() -> u64 {
@@ -287,7 +284,12 @@ impl<P: CubicExtConfig> Field for CubicExtField<P> {
 
     /// Returns the square root of self, if it exists.
     fn sqrt(&self) -> Option<Self> {
-        sqrt_impl!(Self, P, self)
+        // sqrt computation needs certain params to be defined, like
+        // `TRACE_MINUS_ONE_DIV_TWO`
+        match Self::SQRT_PRECOMP {
+            Some(tv) => tv.sqrt(self),
+            None => unimplemented!(),
+        }
     }
 
     /// Sets `self` to be the square root of `self`, if it exists.
@@ -348,6 +350,7 @@ impl<P: CubicExtConfig> Field for CubicExtField<P> {
         P::mul_base_field_by_frob_coeff(&mut self.c1, &mut self.c2, power);
     }
 }
+
 /// `CubicExtField` elements are ordered lexicographically.
 impl<P: CubicExtConfig> Ord for CubicExtField<P> {
     #[inline(always)]

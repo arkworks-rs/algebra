@@ -11,12 +11,6 @@ pub trait Fp6Config: 'static + Send + Sync + Copy {
     const FROBENIUS_COEFF_FP6_C1: &'static [Fp2<Self::Fp2Config>];
     const FROBENIUS_COEFF_FP6_C2: &'static [Fp2<Self::Fp2Config>];
 
-    /// p^3 - 1 = 2^s * t, where t is odd.
-    const TWO_ADICITY: u32;
-    const TRACE_MINUS_ONE_DIV_TWO: &'static [u64];
-    /// t-th power of a quadratic nonresidue in Fp3.
-    const QUADRATIC_NONRESIDUE_TO_T: Fp6<Self>;
-
     #[inline(always)]
     fn mul_fp2_by_nonresidue(fe: &Fp2<Self::Fp2Config>) -> Fp2<Self::Fp2Config> {
         Self::NONRESIDUE * fe
@@ -30,12 +24,11 @@ impl<P: Fp6Config> CubicExtConfig for Fp6ConfigWrapper<P> {
     type BaseField = Fp2<P::Fp2Config>;
     type FrobCoeff = Fp2<P::Fp2Config>;
 
+    const PRECOMP: Option<SqrtPrecomputation<CubicExtField<Self>>> = None;
+
     const DEGREE_OVER_BASE_PRIME_FIELD: usize = 6;
 
     const NONRESIDUE: Self::BaseField = P::NONRESIDUE;
-    const TWO_ADICITY: u32 = P::TWO_ADICITY;
-    const TRACE_MINUS_ONE_DIV_TWO: &'static [u64] = P::TRACE_MINUS_ONE_DIV_TWO;
-    const QUADRATIC_NONRESIDUE_TO_T: CubicExtField<Self> = P::QUADRATIC_NONRESIDUE_TO_T;
 
     const FROBENIUS_COEFF_C1: &'static [Self::FrobCoeff] = P::FROBENIUS_COEFF_FP6_C1;
     const FROBENIUS_COEFF_C2: &'static [Self::FrobCoeff] = P::FROBENIUS_COEFF_FP6_C2;

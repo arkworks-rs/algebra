@@ -19,10 +19,7 @@ use ark_std::{
 mod montgomery_backend;
 pub use montgomery_backend::*;
 
-use crate::{
-    BigInt, BigInteger, FftField, Field, FromBytes, LegendreSymbol, PrimeField,
-    ToBytes,
-};
+use crate::{BigInt, BigInteger, FftField, Field, FromBytes, LegendreSymbol, PrimeField, ToBytes};
 /// A trait that specifies the configuration of a prime field.
 /// Also specifies how to perform arithmetic on field elements.
 pub trait FpConfig<const N: usize>: Send + Sync + 'static + Sized {
@@ -243,6 +240,8 @@ impl<P: FpConfig<N>, const N: usize> One for Fp<P, N> {
 impl<P: FpConfig<N>, const N: usize> Field for Fp<P, N> {
     type BasePrimeField = Self;
     type BasePrimeFieldIter = iter::Once<Self::BasePrimeField>;
+
+    const SQRT_PRECOMP: Option<crate::SqrtPrecomputation<Self>> = None;
 
     fn extension_degree() -> u64 {
         1

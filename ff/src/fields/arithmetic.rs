@@ -1,5 +1,5 @@
 macro_rules! sqrt_impl {
-    ($Self:ident, $P:tt, $self:expr) => {{
+    ($Self:ident, $self:expr, $two_adicity:tt, $trace:tt, $quad:tt) => {{
         // https://eprint.iacr.org/2012/685.pdf (page 12, algorithm 5)
         // Actually this is just normal Tonelli-Shanks; since `P::Generator`
         // is a quadratic non-residue, `P::ROOT_OF_UNITY = P::GENERATOR ^ t`
@@ -10,12 +10,15 @@ macro_rules! sqrt_impl {
         // Try computing the square root (x at the end of the algorithm)
         // Check at the end of the algorithm if x was a square root
         // Begin Tonelli-Shanks
-        let mut z = $P::QUADRATIC_NONRESIDUE_TO_T;
-        let mut w = $self.pow($P::TRACE_MINUS_ONE_DIV_TWO);
+        // let mut z = $P::QUADRATIC_NONRESIDUE_TO_T;
+        let mut z = *$quad;
+        // let mut w = $self.pow($P::TRACE_MINUS_ONE_DIV_TWO);
+        let mut w = $self.pow($trace);
         let mut x = w * $self;
         let mut b = x * &w;
 
-        let mut v = $P::TWO_ADICITY as usize;
+        // let mut v = $P::TWO_ADICITY as usize;
+        let mut v = *$two_adicity as usize;
 
         while !b.is_one() {
             let mut k = 0usize;
@@ -27,7 +30,7 @@ macro_rules! sqrt_impl {
                 k += 1;
             }
 
-            if k == ($P::TWO_ADICITY as usize) {
+            if k == (*$two_adicity as usize) {
                 // We are in the case where self^(T * 2^k) = x^(P::MODULUS - 1) = 1,
                 // which means that no square root exists.
                 return None;

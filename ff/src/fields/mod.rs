@@ -87,6 +87,8 @@ pub trait Field:
 {
     type BasePrimeField: PrimeField;
 
+    const SQRT_PRECOMP: Option<SqrtPrecomputation<Self>>;
+
     type BasePrimeFieldIter: Iterator<Item = Self::BasePrimeField>;
 
     /// Returns the characteristic of the field,
@@ -411,6 +413,31 @@ impl LegendreSymbol {
     /// ```
     pub fn is_qr(&self) -> bool {
         *self == LegendreSymbol::QuadraticResidue
+    }
+}
+
+pub enum SqrtPrecomputation<F: Field> {
+    // Tonelli-Shanks algorithm works for all elements, no matter what the modulus is.
+    TonelliShanks(u32, &'static [u64], F),
+}
+
+impl<F: Field> SqrtPrecomputation<F> {
+    fn sqrt(&self, elem: &F) -> Option<F> {
+        match self {
+            SqrtPrecomputation::TonelliShanks(
+                two_adicity,
+                trace_minus_one_div_two,
+                quad_non_residue_to_t,
+            ) => {
+                sqrt_impl!(
+                    F,
+                    elem,
+                    two_adicity,
+                    trace_minus_one_div_two,
+                    quad_non_residue_to_t
+                )
+            },
+        }
     }
 }
 
