@@ -1,6 +1,6 @@
 use crate::{
-    models::{ModelParameters, SWModelParameters},
-    PairingEngine,
+    models::{short_weierstrass::SWCurveConfig, CurveConfig},
+    AffineCurve, PairingEngine,
 };
 use ark_ff::fields::{
     fp12_2over3over2::{Fp12, Fp12Config},
@@ -37,10 +37,10 @@ pub trait Bls12Parameters: 'static {
     type Fp2Config: Fp2Config<Fp = Self::Fp>;
     type Fp6Config: Fp6Config<Fp2Config = Self::Fp2Config>;
     type Fp12Config: Fp12Config<Fp6Config = Self::Fp6Config>;
-    type G1Parameters: SWModelParameters<BaseField = Self::Fp>;
-    type G2Parameters: SWModelParameters<
+    type G1Parameters: SWCurveConfig<BaseField = Self::Fp>;
+    type G2Parameters: SWCurveConfig<
         BaseField = Fp2<Self::Fp2Config>,
-        ScalarField = <Self::G1Parameters as ModelParameters>::ScalarField,
+        ScalarField = <Self::G1Parameters as CurveConfig>::ScalarField,
     >;
 }
 
@@ -62,16 +62,17 @@ impl<P: Bls12Parameters> Bls12<P> {
         let mut c0 = coeffs.0;
         let mut c1 = coeffs.1;
         let mut c2 = coeffs.2;
+        let (px, py) = p.xy().unwrap();
 
         match P::TWIST_TYPE {
             TwistType::M => {
-                c2.mul_assign_by_fp(&p.y);
-                c1.mul_assign_by_fp(&p.x);
+                c2.mul_assign_by_fp(py);
+                c1.mul_assign_by_fp(px);
                 f.mul_by_014(&c0, &c1, &c2);
             },
             TwistType::D => {
-                c0.mul_assign_by_fp(&p.y);
-                c1.mul_assign_by_fp(&p.x);
+                c0.mul_assign_by_fp(py);
+                c1.mul_assign_by_fp(px);
                 f.mul_by_034(&c0, &c1, &c2);
             },
         }
@@ -87,7 +88,7 @@ impl<P: Bls12Parameters> Bls12<P> {
 }
 
 impl<P: Bls12Parameters> PairingEngine for Bls12<P> {
-    type Fr = <P::G1Parameters as ModelParameters>::ScalarField;
+    type Fr = <P::G1Parameters as CurveConfig>::ScalarField;
     type G1Projective = G1Projective<P>;
     type G1Affine = G1Affine<P>;
     type G1Prepared = G1Prepared<P>;

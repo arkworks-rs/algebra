@@ -62,15 +62,12 @@ impl SparseTerm {
     fn combine(term: &[(usize, usize)]) -> Vec<(usize, usize)> {
         let mut term_dedup: Vec<(usize, usize)> = Vec::new();
         for (var, pow) in term {
-            match term_dedup.last_mut() {
-                Some(prev) => {
-                    if prev.0 == *var {
-                        prev.1 += pow;
-                        continue;
-                    }
-                },
-                _ => {},
-            };
+            if let Some(prev) = term_dedup.last_mut() {
+                if prev.0 == *var {
+                    prev.1 += pow;
+                    continue;
+                }
+            }
             term_dedup.push((*var, *pow));
         }
         term_dedup

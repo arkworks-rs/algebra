@@ -8,4 +8,4 @@ pub type Fr = Fp768<MontBackend<FrConfig, 12>>;
 #[small_subgroup_power = "2"]
 pub struct FrConfig;
 
-pub const FR_ONE: Fr = ark_ff::MontFp!(Fr, "1");
+pub const FR_ONE: Fr = ark_ff::MontFp!("1");

@@ -1,24 +1,18 @@
-use ark_std::{
-    io::{Result as IoResult, Write},
-    vec::Vec,
-};
+use ark_std::vec::Vec;
 
-use ark_ff::{
-    bytes::ToBytes,
-    fields::{BitIteratorBE, Field},
-};
+use ark_ff::fields::{BitIteratorBE, Field};
 
 use num_traits::{One, Zero};
 
 use crate::{
     bw6::{BW6Parameters, TwistType},
-    models::SWModelParameters,
-    short_weierstrass_jacobian::{GroupAffine, GroupProjective},
+    models::short_weierstrass::SWCurveConfig,
+    short_weierstrass::{Affine, Projective},
     AffineCurve,
 };
 
-pub type G2Affine<P> = GroupAffine<<P as BW6Parameters>::G2Parameters>;
-pub type G2Projective<P> = GroupProjective<<P as BW6Parameters>::G2Parameters>;
+pub type G2Affine<P> = Affine<<P as BW6Parameters>::G2Parameters>;
+pub type G2Projective<P> = Projective<<P as BW6Parameters>::G2Parameters>;
 
 #[derive(Derivative)]
 #[derivative(
@@ -50,22 +44,6 @@ struct G2HomProjective<P: BW6Parameters> {
 impl<P: BW6Parameters> Default for G2Prepared<P> {
     fn default() -> Self {
         Self::from(G2Affine::<P>::prime_subgroup_generator())
-    }
-}
-
-impl<P: BW6Parameters> ToBytes for G2Prepared<P> {
-    fn write<W: Write>(&self, mut writer: W) -> IoResult<()> {
-        for coeff_1 in &self.ell_coeffs_1 {
-            coeff_1.0.write(&mut writer)?;
-            coeff_1.1.write(&mut writer)?;
-            coeff_1.2.write(&mut writer)?;
-        }
-        for coeff_2 in &self.ell_coeffs_2 {
-            coeff_2.0.write(&mut writer)?;
-            coeff_2.1.write(&mut writer)?;
-            coeff_2.2.write(&mut writer)?;
-        }
-        self.infinity.write(writer)
     }
 }
 

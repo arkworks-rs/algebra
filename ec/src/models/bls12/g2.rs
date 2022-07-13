@@ -1,24 +1,18 @@
-use ark_std::{
-    io::{Result as IoResult, Write},
-    vec::Vec,
-};
-
 use ark_ff::{
-    bytes::ToBytes,
     fields::{BitIteratorBE, Field, Fp2},
+    Zero,
 };
-
-use num_traits::{One, Zero};
+use ark_std::{vec::Vec, One};
 
 use crate::{
     bls12::{Bls12Parameters, TwistType},
-    models::SWModelParameters,
-    short_weierstrass_jacobian::{GroupAffine, GroupProjective},
+    models::short_weierstrass::SWCurveConfig,
+    short_weierstrass::{Affine, Projective},
     AffineCurve,
 };
 
-pub type G2Affine<P> = GroupAffine<<P as Bls12Parameters>::G2Parameters>;
-pub type G2Projective<P> = GroupProjective<<P as Bls12Parameters>::G2Parameters>;
+pub type G2Affine<P> = Affine<<P as Bls12Parameters>::G2Parameters>;
+pub type G2Projective<P> = Projective<<P as Bls12Parameters>::G2Parameters>;
 
 #[derive(Derivative)]
 #[derivative(
@@ -54,48 +48,39 @@ impl<P: Bls12Parameters> Default for G2Prepared<P> {
     }
 }
 
-impl<P: Bls12Parameters> ToBytes for G2Prepared<P> {
-    fn write<W: Write>(&self, mut writer: W) -> IoResult<()> {
-        for coeff in &self.ell_coeffs {
-            coeff.0.write(&mut writer)?;
-            coeff.1.write(&mut writer)?;
-            coeff.2.write(&mut writer)?;
-        }
-        self.infinity.write(writer)
-    }
-}
-
 impl<P: Bls12Parameters> From<G2Affine<P>> for G2Prepared<P> {
     fn from(q: G2Affine<P>) -> Self {
         let two_inv = P::Fp::one().double().inverse().unwrap();
-        if q.is_zero() {
-            return Self {
+        match q.is_zero() {
+            true => G2Prepared {
                 ell_coeffs: vec![],
                 infinity: true,
-            };
-        }
+            },
+            false => {
+                let mut ell_coeffs = vec![];
+                let mut r = G2HomProjective {
+                    x: q.x,
+                    y: q.y,
+                    z: Fp2::one(),
+                };
 
-        let mut ell_coeffs = vec![];
-        let mut r = G2HomProjective {
-            x: q.x,
-            y: q.y,
-            z: Fp2::one(),
-        };
+                for i in BitIteratorBE::new(P::X).skip(1) {
+                    ell_coeffs.push(doubling_step::<P>(&mut r, &two_inv));
 
-        for i in BitIteratorBE::new(P::X).skip(1) {
-            ell_coeffs.push(doubling_step::<P>(&mut r, &two_inv));
+                    if i {
+                        ell_coeffs.push(addition_step::<P>(&mut r, &q));
+                    }
+                }
 
-            if i {
-                ell_coeffs.push(addition_step::<P>(&mut r, &q));
-            }
-        }
-
-        Self {
-            ell_coeffs,
-            infinity: false,
+                Self {
+                    ell_coeffs,
+                    infinity: false,
+                }
+            },
         }
     }
 }
+
 impl<P: Bls12Parameters> G2Prepared<P> {
     pub fn is_zero(&self) -> bool {
         self.infinity
@@ -135,10 +120,11 @@ fn addition_step<B: Bls12Parameters>(
     r: &mut G2HomProjective<B>,
     q: &G2Affine<B>,
 ) -> EllCoeff<Fp2<B::Fp2Config>> {
+    let (&qx, &qy) = q.xy().unwrap();
     // Formula for line function when working with
     // homogeneous projective coordinates.
-    let theta = r.y - &(q.y * &r.z);
-    let lambda = r.x - &(q.x * &r.z);
+    let theta = r.y - &(qy * &r.z);
+    let lambda = r.x - &(qx * &r.z);
     let c = theta.square();
     let d = lambda.square();
     let e = lambda * &d;
@@ -148,7 +134,7 @@ fn addition_step<B: Bls12Parameters>(
     r.x = lambda * &h;
     r.y = theta * &(g - &h) - &(e * &r.y);
     r.z *= &e;
-    let j = theta * &q.x - &(lambda * &q.y);
+    let j = theta * &qx - &(lambda * &qy);
 
     match B::TWIST_TYPE {
         TwistType::M => (j, -theta, lambda),

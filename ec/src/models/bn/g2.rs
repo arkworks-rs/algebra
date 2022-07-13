@@ -1,24 +1,18 @@
-use ark_std::{
-    io::{Result as IoResult, Write},
-    vec::Vec,
-};
+use ark_std::vec::Vec;
 
-use ark_ff::{
-    bytes::ToBytes,
-    fields::{Field, Fp2},
-};
+use ark_ff::fields::{Field, Fp2};
 
 use num_traits::{One, Zero};
 
 use crate::{
     bn::{BnParameters, TwistType},
-    models::SWModelParameters,
-    short_weierstrass_jacobian::{GroupAffine, GroupProjective},
+    models::short_weierstrass::SWCurveConfig,
+    short_weierstrass::{Affine, Projective},
     AffineCurve,
 };
 
-pub type G2Affine<P> = GroupAffine<<P as BnParameters>::G2Parameters>;
-pub type G2Projective<P> = GroupProjective<<P as BnParameters>::G2Parameters>;
+pub type G2Affine<P> = Affine<<P as BnParameters>::G2Parameters>;
+pub type G2Projective<P> = Projective<<P as BnParameters>::G2Parameters>;
 
 #[derive(Derivative)]
 #[derivative(
@@ -54,70 +48,61 @@ impl<P: BnParameters> Default for G2Prepared<P> {
     }
 }
 
-impl<P: BnParameters> ToBytes for G2Prepared<P> {
-    fn write<W: Write>(&self, mut writer: W) -> IoResult<()> {
-        for coeff in &self.ell_coeffs {
-            coeff.0.write(&mut writer)?;
-            coeff.1.write(&mut writer)?;
-            coeff.2.write(&mut writer)?;
-        }
-        self.infinity.write(writer)
-    }
-}
-
 impl<P: BnParameters> From<G2Affine<P>> for G2Prepared<P> {
     fn from(q: G2Affine<P>) -> Self {
         let two_inv = P::Fp::one().double().inverse().unwrap();
-        if q.is_zero() {
-            return Self {
+        match q.is_zero() {
+            true => G2Prepared {
                 ell_coeffs: vec![],
                 infinity: true,
-            };
-        }
+            },
+            false => {
+                let mut ell_coeffs = vec![];
+                let mut r = G2HomProjective {
+                    x: q.x,
+                    y: q.y,
+                    z: Fp2::one(),
+                };
 
-        let mut ell_coeffs = vec![];
-        let mut r = G2HomProjective {
-            x: q.x,
-            y: q.y,
-            z: Fp2::one(),
-        };
+                let negq = -q;
 
-        let negq = -q;
+                for i in (1..P::ATE_LOOP_COUNT.len()).rev() {
+                    ell_coeffs.push(doubling_step::<P>(&mut r, &two_inv));
 
-        for i in (1..P::ATE_LOOP_COUNT.len()).rev() {
-            ell_coeffs.push(doubling_step::<P>(&mut r, &two_inv));
+                    let bit = P::ATE_LOOP_COUNT[i - 1];
 
-            let bit = P::ATE_LOOP_COUNT[i - 1];
+                    match bit {
+                        1 => {
+                            ell_coeffs.push(addition_step::<P>(&mut r, &q));
+                        },
+                        -1 => {
+                            ell_coeffs.push(addition_step::<P>(&mut r, &negq));
+                        },
+                        _ => continue,
+                    }
+                }
 
-            match bit {
-                1 => {
-                    ell_coeffs.push(addition_step::<P>(&mut r, &q));
-                },
-                -1 => {
-                    ell_coeffs.push(addition_step::<P>(&mut r, &negq));
-                },
-                _ => continue,
-            }
-        }
+                let q1 = mul_by_char::<P>(q);
+                let mut q2 = mul_by_char::<P>(q1);
 
-        let q1 = mul_by_char::<P>(q);
-        let mut q2 = mul_by_char::<P>(q1);
+                if P::X_IS_NEGATIVE {
+                    r.y = -r.y;
+                }
 
-        if P::X_IS_NEGATIVE {
-            r.y = -r.y;
-        }
+                q2.y = -q2.y;
 
-        q2.y = -q2.y;
+                ell_coeffs.push(addition_step::<P>(&mut r, &q1));
+                ell_coeffs.push(addition_step::<P>(&mut r, &q2));
 
-        ell_coeffs.push(addition_step::<P>(&mut r, &q1));
-        ell_coeffs.push(addition_step::<P>(&mut r, &q2));
-
-        Self {
-            ell_coeffs,
-            infinity: false,
+                Self {
+                    ell_coeffs,
+                    infinity: false,
+                }
+            },
         }
     }
 }
+
 impl<P: BnParameters> G2Prepared<P> {
     pub fn is_zero(&self) -> bool {
         self.infinity

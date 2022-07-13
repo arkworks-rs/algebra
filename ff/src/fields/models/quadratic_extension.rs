@@ -5,7 +5,7 @@ use ark_serialize::{
 use ark_std::{
     cmp::{Ord, Ordering, PartialOrd},
     fmt,
-    io::{Read, Result as IoResult, Write},
+    io::{Read, Write},
     iter::Chain,
     ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign},
     vec::Vec,
@@ -21,7 +21,6 @@ use ark_std::rand::{
 
 use crate::{
     biginteger::BigInteger,
-    bytes::{FromBytes, ToBytes},
     fields::{Field, LegendreSymbol, PrimeField},
     SqrtPrecomputation, ToConstraintField, UniformRand,
 };
@@ -77,7 +76,7 @@ pub trait QuadExtConfig: 'static + Send + Sync + Sized {
     ) -> Self::BaseField {
         let mut tmp = *x;
         tmp += y;
-        Self::add_and_mul_base_field_by_nonresidue(&tmp, &y)
+        Self::add_and_mul_base_field_by_nonresidue(&tmp, y)
     }
 
     /// A specializable method for computing x - mul_base_field_by_nonresidue(y)
@@ -99,7 +98,7 @@ pub trait QuadExtConfig: 'static + Send + Sync + Sized {
     /// *only* when `fe` is known to be in the cyclotommic subgroup.
     fn cyclotomic_exp(fe: &QuadExtField<Self>, exponent: impl AsRef<[u64]>) -> QuadExtField<Self> {
         let mut res = QuadExtField::one();
-        let mut self_inverse = fe.clone();
+        let mut self_inverse = *fe;
         self_inverse.conjugate();
 
         let mut found_nonzero = false;
@@ -143,24 +142,6 @@ pub struct QuadExtField<P: QuadExtConfig> {
     pub c1: P::BaseField,
 }
 
-/// Construct a [`QuadExtField`] element from elements of the base field. This should
-/// be used primarily for constructing constant field elements; in a non-const
-/// context, [`QuadExtField::new`] is preferable.
-///
-/// # Usage
-/// ```rust
-/// # use ark_test_curves::QuadExt;
-/// # use ark_test_curves::bls12_381 as ark_bls12_381;
-/// use ark_bls12_381::{FQ_ZERO, FQ_ONE, Fq2};
-/// const ONE: Fq2 = QuadExt!(FQ_ONE, FQ_ZERO);
-/// ```
-#[macro_export]
-macro_rules! QuadExt {
-    ($c0:expr, $c1:expr $(,)?) => {
-        $crate::QuadExtField { c0: $c0, c1: $c1 }
-    };
-}
-
 impl<P: QuadExtConfig> QuadExtField<P> {
     /// Create a new field element from coefficients `c0` and `c1`,
     /// so that the result is of the form `c0 + c1 * X`.
@@ -176,7 +157,7 @@ impl<P: QuadExtConfig> QuadExtField<P> {
     /// // `Fp2` a degree-2 extension over `Fp`.
     /// let c: Fp2 = Fp2::new(c0, c1);
     /// ```
-    pub fn new(c0: P::BaseField, c1: P::BaseField) -> Self {
+    pub const fn new(c0: P::BaseField, c1: P::BaseField) -> Self {
         Self { c0, c1 }
     }
 
@@ -251,15 +232,15 @@ impl<P: QuadExtConfig> One for QuadExtField<P> {
 }
 
 type BaseFieldIter<P> = <<P as QuadExtConfig>::BaseField as Field>::BasePrimeFieldIter;
-impl<P: QuadExtConfig> Field for QuadExtField<P>
-// where
-//     P::BaseField: From<P::BasePrimeField>,
-{
+impl<P: QuadExtConfig> Field for QuadExtField<P> {
     type BasePrimeField = P::BasePrimeField;
 
     const SQRT_PRECOMP: Option<SqrtPrecomputation<Self>> = None;
 
     type BasePrimeFieldIter = Chain<BaseFieldIter<P>, BaseFieldIter<P>>;
+
+    const ZERO: Self = Self::new(P::BaseField::ZERO, P::BaseField::ZERO);
+    const ONE: Self = Self::new(P::BaseField::ONE, P::BaseField::ZERO);
 
     fn extension_degree() -> u64 {
         2 * P::BaseField::extension_degree()
@@ -368,6 +349,39 @@ impl<P: QuadExtConfig> Field for QuadExtField<P>
         }
     }
 
+    fn inverse(&self) -> Option<Self> {
+        if self.is_zero() {
+            None
+        } else {
+            // Guide to Pairing-based Cryptography, Algorithm 5.19.
+            // v1 = c1.square()
+            let v1 = self.c1.square();
+            // v0 = c0.square() - beta * v1
+            let v0 = P::sub_and_mul_base_field_by_nonresidue(&self.c0.square(), &v1);
+
+            v0.inverse().map(|v1| {
+                let c0 = self.c0 * &v1;
+                let c1 = -(self.c1 * &v1);
+                Self::new(c0, c1)
+            })
+        }
+    }
+
+    fn inverse_in_place(&mut self) -> Option<&mut Self> {
+        if let Some(inverse) = self.inverse() {
+            *self = inverse;
+            Some(self)
+        } else {
+            None
+        }
+    }
+
+    fn frobenius_map(&mut self, power: usize) {
+        self.c0.frobenius_map(power);
+        self.c1.frobenius_map(power);
+        P::mul_base_field_by_frob_coeff(&mut self.c1, power);
+    }
+
     fn legendre(&self) -> LegendreSymbol {
         // The LegendreSymbol in a field of order q for an element x can be
         // computed as x^((q-1)/2).
@@ -447,38 +461,6 @@ impl<P: QuadExtConfig> Field for QuadExtField<P>
             *self = sqrt;
             self
         })
-    }
-    fn inverse(&self) -> Option<Self> {
-        if self.is_zero() {
-            None
-        } else {
-            // Guide to Pairing-based Cryptography, Algorithm 5.19.
-            // v1 = c1.square()
-            let v1 = self.c1.square();
-            // v0 = c0.square() - beta * v1
-            let v0 = P::sub_and_mul_base_field_by_nonresidue(&self.c0.square(), &v1);
-
-            v0.inverse().map(|v1| {
-                let c0 = self.c0 * &v1;
-                let c1 = -(self.c1 * &v1);
-                Self::new(c0, c1)
-            })
-        }
-    }
-
-    fn inverse_in_place(&mut self) -> Option<&mut Self> {
-        if let Some(inverse) = self.inverse() {
-            *self = inverse;
-            Some(self)
-        } else {
-            None
-        }
-    }
-
-    fn frobenius_map(&mut self, power: usize) {
-        self.c0.frobenius_map(power);
-        self.c1.frobenius_map(power);
-        P::mul_base_field_by_frob_coeff(&mut self.c1, power);
     }
 }
 
@@ -776,23 +758,6 @@ where
         res.append(&mut c1_elems);
 
         Some(res)
-    }
-}
-
-impl<P: QuadExtConfig> ToBytes for QuadExtField<P> {
-    #[inline]
-    fn write<W: Write>(&self, mut writer: W) -> IoResult<()> {
-        self.c0.write(&mut writer)?;
-        self.c1.write(writer)
-    }
-}
-
-impl<P: QuadExtConfig> FromBytes for QuadExtField<P> {
-    #[inline]
-    fn read<R: Read>(mut reader: R) -> IoResult<Self> {
-        let c0 = P::BaseField::read(&mut reader)?;
-        let c1 = P::BaseField::read(reader)?;
-        Ok(QuadExtField::new(c0, c1))
     }
 }
 

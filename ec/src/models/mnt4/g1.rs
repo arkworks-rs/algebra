@@ -1,13 +1,12 @@
 use crate::{
     mnt4::MNT4Parameters,
-    short_weierstrass_jacobian::{GroupAffine, GroupProjective},
+    short_weierstrass::{Affine, Projective},
     AffineCurve,
 };
-use ark_ff::{bytes::ToBytes, Fp2};
-use ark_std::io::{Result as IoResult, Write};
+use ark_ff::Fp2;
 
-pub type G1Affine<P> = GroupAffine<<P as MNT4Parameters>::G1Parameters>;
-pub type G1Projective<P> = GroupProjective<<P as MNT4Parameters>::G1Parameters>;
+pub type G1Affine<P> = Affine<<P as MNT4Parameters>::G1Parameters>;
+pub type G1Projective<P> = Projective<<P as MNT4Parameters>::G1Parameters>;
 
 #[derive(Derivative)]
 #[derivative(
@@ -44,14 +43,5 @@ impl<P: MNT4Parameters> From<G1Affine<P>> for G1Prepared<P> {
 impl<P: MNT4Parameters> Default for G1Prepared<P> {
     fn default() -> Self {
         Self::from(G1Affine::<P>::prime_subgroup_generator())
-    }
-}
-
-impl<P: MNT4Parameters> ToBytes for G1Prepared<P> {
-    fn write<W: Write>(&self, mut writer: W) -> IoResult<()> {
-        self.x.write(&mut writer)?;
-        self.y.write(&mut writer)?;
-        self.x_twist.write(&mut writer)?;
-        self.y_twist.write(&mut writer)
     }
 }

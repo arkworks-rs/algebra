@@ -372,7 +372,7 @@ pub fn montgomery_primefield_test<T: MontConfig<N>, const N: usize>() {
     );
 
     let mut two_adicity = 0;
-    let mut trace = modulus_minus_one.clone();
+    let mut trace = modulus_minus_one;
     while trace.is_even() {
         trace /= 2u8;
         two_adicity += 1;
@@ -390,7 +390,7 @@ pub fn montgomery_primefield_test<T: MontConfig<N>, const N: usize>() {
     assert_eq!(two_adic_root_of_unity, generator.modpow(&trace, &modulus));
     match (T::SMALL_SUBGROUP_BASE, T::SMALL_SUBGROUP_BASE_ADICITY) {
         (Some(base), Some(adicity)) => {
-            let mut e = generator.clone();
+            let mut e = generator;
             for _i in 0..adicity {
                 e = e.modpow(&base.into(), &modulus)
             }

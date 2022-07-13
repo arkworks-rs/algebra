@@ -1,3 +1,7 @@
+//! Utilities for a field $\FF$.
+//!
+//!
+
 #![cfg_attr(not(feature = "std"), no_std)]
 #![warn(
     unused,
@@ -14,10 +18,6 @@ extern crate ark_std;
 
 #[macro_use]
 extern crate derivative;
-
-#[cfg_attr(test, macro_use)]
-pub mod bytes;
-pub use self::bytes::*;
 
 #[macro_use]
 pub mod biginteger;
@@ -47,8 +47,4 @@ pub mod prelude {
     pub use ark_std::UniformRand;
 
     pub use num_traits::{One, Zero};
-}
-
-fn error(msg: &'static str) -> ark_std::io::Error {
-    ark_std::io::Error::new(ark_std::io::ErrorKind::Other, msg)
 }

@@ -1,6 +1,5 @@
 pub mod curves;
 pub mod fields;
-pub mod groups;
 pub mod msm;
 
 #[macro_export]
@@ -56,7 +55,6 @@ macro_rules! generate_g1_test {
             let mut rng = ark_std::test_rng();
             let a: G1Projective = rng.gen();
             let b: G1Projective = rng.gen();
-            group_test(a, b);
         }
 
         #[test]

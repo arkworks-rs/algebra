@@ -8,5 +8,5 @@ use ark_ff::fields::{Fp384, MontBackend};
 pub struct FrConfig;
 pub type Fr = Fp384<MontBackend<FrConfig, 6>>;
 
-pub const FR_ONE: Fr = ark_ff::MontFp!(Fr, "1");
-pub const FR_ZERO: Fr = ark_ff::MontFp!(Fr, "0");
+pub const FR_ONE: Fr = ark_ff::MontFp!("1");
+pub const FR_ZERO: Fr = ark_ff::MontFp!("0");

@@ -7,7 +7,6 @@ use ark_serialize::{
 use ark_std::{
     cmp::{Ord, Ordering, PartialOrd},
     fmt::{Display, Formatter, Result as FmtResult},
-    io::{Read, Result as IoResult, Write},
     marker::PhantomData,
     ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign},
     str::FromStr,
@@ -19,7 +18,7 @@ use ark_std::{
 mod montgomery_backend;
 pub use montgomery_backend::*;
 
-use crate::{BigInt, BigInteger, FftField, Field, FromBytes, LegendreSymbol, PrimeField, ToBytes};
+use crate::{BigInt, BigInteger, FftField, Field, LegendreSymbol, PrimeField};
 /// A trait that specifies the configuration of a prime field.
 /// Also specifies how to perform arithmetic on field elements.
 pub trait FpConfig<const N: usize>: Send + Sync + 'static + Sized {
@@ -90,11 +89,13 @@ pub trait FpConfig<const N: usize>: Send + Sync + 'static + Sized {
         )
     }
 
-    /// Construct a field element from an integer in the range `0..(Self::MODULUS - 1)`.
-    /// Returns `None` if the integer is outside this range.
+    /// Construct a field element from an integer in the range
+    /// `0..(Self::MODULUS - 1)`. Returns `None` if the integer is outside
+    /// this range.
     fn from_bigint(other: BigInt<N>) -> Option<Fp<Self, N>>;
 
-    /// Convert a field element to an integer in the range `0..(Self::MODULUS - 1)`.
+    /// Convert a field element to an integer in the range `0..(Self::MODULUS -
+    /// 1)`.
     fn into_bigint(other: Fp<Self, N>) -> BigInt<N>;
 }
 
@@ -129,15 +130,6 @@ pub type Fp640<P> = Fp<P, 10>;
 pub type Fp704<P> = Fp<P, 11>;
 pub type Fp768<P> = Fp<P, 12>;
 pub type Fp832<P> = Fp<P, 13>;
-
-impl<P, const N: usize> Fp<P, N> {
-    /// Construct a new prime element directly from its underlying
-    /// [`struct@BigInt`] data type.
-    #[inline]
-    pub const fn new(element: BigInt<N>) -> Self {
-        Self(element, PhantomData)
-    }
-}
 
 impl<P: FpConfig<N>, const N: usize> Fp<P, N> {
     #[inline(always)]
@@ -192,6 +184,8 @@ impl<P: FpConfig<N>, const N: usize> Field for Fp<P, N> {
     type BasePrimeFieldIter = iter::Once<Self::BasePrimeField>;
 
     const SQRT_PRECOMP: Option<crate::SqrtPrecomputation<Self>> = None;
+    const ZERO: Self = P::ZERO;
+    const ONE: Self = P::ONE;
 
     fn extension_degree() -> u64 {
         1
@@ -229,7 +223,7 @@ impl<P: FpConfig<N>, const N: usize> Field for Fp<P, N> {
     #[inline]
     fn from_random_bytes_with_flags<F: Flags>(bytes: &[u8]) -> Option<(Self, F)> {
         if F::BIT_SIZE > 8 {
-            return None;
+            None
         } else {
             let shave_bits = Self::num_bits_to_shave();
             let mut result_bytes = crate::const_helpers::SerBuffer::<N>::zeroed();
@@ -273,7 +267,7 @@ impl<P: FpConfig<N>, const N: usize> Field for Fp<P, N> {
 
     #[inline]
     fn square(&self) -> Self {
-        let mut temp = self.clone();
+        let mut temp = *self;
         temp.square_in_place();
         temp
     }
@@ -285,7 +279,7 @@ impl<P: FpConfig<N>, const N: usize> Field for Fp<P, N> {
 
     #[inline]
     fn inverse(&self) -> Option<Self> {
-        P::inverse(&self)
+        P::inverse(self)
     }
 
     fn inverse_in_place(&mut self) -> Option<&mut Self> {
@@ -342,8 +336,8 @@ impl<P: FpConfig<N>, const N: usize> PrimeField for Fp<P, N> {
         P::from_bigint(r)
     }
 
-    fn into_bigint(&self) -> BigInt<N> {
-        P::into_bigint(*self)
+    fn into_bigint(self) -> BigInt<N> {
+        P::into_bigint(self)
     }
 }
 
@@ -369,9 +363,9 @@ impl<P: FpConfig<N>, const N: usize> Ord for Fp<P, N> {
     }
 }
 
-/// Note that this implementation of `PartialOrd` compares field elements viewing
-/// them as integers in the range 0, 1, ..., `P::MODULUS` - 1. However, other
-/// implementations of `PrimeField` might choose a different ordering, and
+/// Note that this implementation of `PartialOrd` compares field elements
+/// viewing them as integers in the range 0, 1, ..., `P::MODULUS` - 1. However,
+/// other implementations of `PrimeField` might choose a different ordering, and
 /// as such, users should use this `PartialOrd` for applications where
 /// any ordering suffices (like in a BTreeMap), and not in applications
 /// where a particular ordering is required.
@@ -421,9 +415,9 @@ impl<P: FpConfig<N>, const N: usize> From<bool> for Fp<P, N> {
 impl<P: FpConfig<N>, const N: usize> From<u64> for Fp<P, N> {
     fn from(other: u64) -> Self {
         if N == 1 {
-            Self::from_bigint(BigInt::from(u64::from(other) % P::MODULUS.0[0])).unwrap()
+            Self::from_bigint(BigInt::from(other % P::MODULUS.0[0])).unwrap()
         } else {
-            Self::from_bigint(BigInt::from(u64::from(other))).unwrap()
+            Self::from_bigint(BigInt::from(other)).unwrap()
         }
     }
 }
@@ -444,7 +438,7 @@ impl<P: FpConfig<N>, const N: usize> From<u32> for Fp<P, N> {
         if N == 1 {
             Self::from_bigint(BigInt::from(u64::from(other) % P::MODULUS.0[0])).unwrap()
         } else {
-            Self::from_bigint(BigInt::from(u32::from(other))).unwrap()
+            Self::from_bigint(BigInt::from(other)).unwrap()
         }
     }
 }
@@ -465,7 +459,7 @@ impl<P: FpConfig<N>, const N: usize> From<u16> for Fp<P, N> {
         if N == 1 {
             Self::from_bigint(BigInt::from(u64::from(other) % P::MODULUS.0[0])).unwrap()
         } else {
-            Self::from_bigint(BigInt::from(u16::from(other))).unwrap()
+            Self::from_bigint(BigInt::from(other)).unwrap()
         }
     }
 }
@@ -486,7 +480,7 @@ impl<P: FpConfig<N>, const N: usize> From<u8> for Fp<P, N> {
         if N == 1 {
             Self::from_bigint(BigInt::from(u64::from(other) % P::MODULUS.0[0])).unwrap()
         } else {
-            Self::from_bigint(BigInt::from(u8::from(other))).unwrap()
+            Self::from_bigint(BigInt::from(other)).unwrap()
         }
     }
 }
@@ -508,7 +502,10 @@ impl<P: FpConfig<N>, const N: usize> ark_std::rand::distributions::Distribution<
     #[inline]
     fn sample<R: ark_std::rand::Rng + ?Sized>(&self, rng: &mut R) -> Fp<P, N> {
         loop {
-            let mut tmp = Fp::new(rng.sample(ark_std::rand::distributions::Standard));
+            let mut tmp = Fp(
+                rng.sample(ark_std::rand::distributions::Standard),
+                PhantomData,
+            );
             let shave_bits = Fp::<P, N>::num_bits_to_shave();
             // Mask away the unused bits at the beginning.
             assert!(shave_bits <= 64);
@@ -517,7 +514,10 @@ impl<P: FpConfig<N>, const N: usize> ark_std::rand::distributions::Distribution<
             } else {
                 core::u64::MAX >> shave_bits
             };
-            tmp.0 .0.last_mut().map(|val| *val &= mask);
+
+            if let Some(val) = tmp.0 .0.last_mut() {
+                *val &= mask
+            }
 
             if tmp.is_less_than_modulus() {
                 return tmp;
@@ -607,21 +607,6 @@ impl<P: FpConfig<N>, const N: usize> CanonicalDeserialize for Fp<P, N> {
     }
 }
 
-impl<P: FpConfig<N>, const N: usize> ToBytes for Fp<P, N> {
-    #[inline]
-    fn write<W: Write>(&self, writer: W) -> IoResult<()> {
-        self.into_bigint().write(writer)
-    }
-}
-
-impl<P: FpConfig<N>, const N: usize> FromBytes for Fp<P, N> {
-    #[inline]
-    fn read<R: Read>(r: R) -> IoResult<Self> {
-        BigInt::read(r)
-            .and_then(|b| Fp::from_bigint(b).ok_or(crate::error("FromBytes::read failed")))
-    }
-}
-
 impl<P: FpConfig<N>, const N: usize> FromStr for Fp<P, N> {
     type Err = ();
 
@@ -688,7 +673,7 @@ impl<P: FpConfig<N>, const N: usize> Neg for Fp<P, N> {
         if !self.is_zero() {
             let mut tmp = P::MODULUS;
             tmp.sub_with_borrow(&self.0);
-            Fp::new(tmp)
+            Fp(tmp, PhantomData)
         } else {
             self
         }
@@ -961,9 +946,9 @@ impl<P: FpConfig<N>, const N: usize> From<Fp<P, N>> for num_bigint::BigUint {
     }
 }
 
-impl<P: FpConfig<N>, const N: usize> Into<BigInt<N>> for Fp<P, N> {
-    fn into(self) -> BigInt<N> {
-        self.into_bigint()
+impl<P: FpConfig<N>, const N: usize> From<Fp<P, N>> for BigInt<N> {
+    fn from(fp: Fp<P, N>) -> Self {
+        fp.into_bigint()
     }
 }
 

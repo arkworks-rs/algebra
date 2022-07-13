@@ -38,6 +38,21 @@ impl<F: Field> Polynomial<F> for SparsePolynomial<F, SparseTerm> {
     type Point = Vec<F>;
 
     /// Returns the total degree of the polynomial
+    ///
+    /// # Examples
+    /// ```
+    /// use ark_poly::{
+    ///     polynomial::multivariate::{SparsePolynomial, SparseTerm},
+    ///     DenseMVPolynomial, Polynomial,
+    /// };
+    /// use ark_std::test_rng;
+    /// use ark_test_curves::bls12_381::Fq;
+    ///
+    /// let rng = &mut test_rng();
+    /// // Create a multivariate polynomial of degree 7
+    /// let poly: SparsePolynomial<Fq, SparseTerm> = SparsePolynomial::rand(7, 2, rng);
+    /// assert_eq!(poly.degree(), 7);
+    /// ```
     fn degree(&self) -> usize {
         self.terms
             .iter()
@@ -47,6 +62,23 @@ impl<F: Field> Polynomial<F> for SparsePolynomial<F, SparseTerm> {
     }
 
     /// Evaluates `self` at the given `point` in `Self::Point`.
+    ///
+    /// # Examples
+    /// ```
+    /// use ark_poly::{
+    ///     polynomial::multivariate::{SparsePolynomial, SparseTerm, Term},
+    ///     DenseMVPolynomial, Polynomial,
+    /// };
+    /// use ark_ff::UniformRand;
+    /// use ark_std::test_rng;
+    /// use ark_test_curves::bls12_381::Fq;
+    ///
+    /// let rng = &mut test_rng();
+    /// let poly = SparsePolynomial::rand(4, 3, rng);
+    /// let random_point = vec![Fq::rand(rng); 3];
+    /// // The result will be a single element in the field.
+    /// let result: Fq = poly.evaluate(&random_point);
+    /// ```
     fn evaluate(&self, point: &Vec<F>) -> F {
         assert!(point.len() >= self.num_vars, "Invalid evaluation domain");
         if self.is_zero() {
@@ -67,8 +99,7 @@ impl<F: Field> DenseMVPolynomial<F> for SparsePolynomial<F, SparseTerm> {
     /// Outputs an `l`-variate polynomial which is the sum of `l` `d`-degree
     /// univariate polynomials where each coefficient is sampled uniformly at random.
     fn rand<R: Rng>(d: usize, l: usize, rng: &mut R) -> Self {
-        let mut random_terms = Vec::new();
-        random_terms.push((F::rand(rng), SparseTerm::new(vec![])));
+        let mut random_terms = vec![(F::rand(rng), SparseTerm::new(vec![]))];
         for var in 0..l {
             for deg in 1..=d {
                 random_terms.push((F::rand(rng), SparseTerm::new(vec![(var, deg)])));
@@ -80,6 +111,27 @@ impl<F: Field> DenseMVPolynomial<F> for SparsePolynomial<F, SparseTerm> {
     type Term = SparseTerm;
 
     /// Constructs a new polynomial from a list of tuples of the form `(coeff, Self::Term)`
+    ///
+    /// # Examples
+    /// ```
+    /// use ark_poly::{
+    ///     polynomial::multivariate::{SparsePolynomial, SparseTerm, Term},
+    ///     DenseMVPolynomial, Polynomial,
+    /// };
+    /// use ark_test_curves::bls12_381::Fq;
+    ///
+    /// // Create a multivariate polynomial in 3 variables, with 4 terms:
+    /// // 2*x_0^3 + x_0*x_2 + x_1*x_2 + 5
+    /// let poly = SparsePolynomial::from_coefficients_vec(
+    ///     3,
+    ///     vec![
+    ///         (Fq::from(2), SparseTerm::new(vec![(0, 3)])),
+    ///         (Fq::from(1), SparseTerm::new(vec![(0, 1), (2, 1)])),
+    ///         (Fq::from(1), SparseTerm::new(vec![(1, 1), (2, 1)])),
+    ///         (Fq::from(5), SparseTerm::new(vec![])),
+    ///     ],
+    /// );
+    /// ```
     fn from_coefficients_vec(num_vars: usize, mut terms: Vec<(F, SparseTerm)>) -> Self {
         // Ensure that terms are in ascending order.
         terms.sort_by(|(_, t1), (_, t2)| t1.cmp(t2));
@@ -161,22 +213,20 @@ impl<'a, 'b, F: Field, T: Term> Add<&'a SparsePolynomial<F, T>> for &'b SparsePo
     }
 }
 
-impl<'a, 'b, F: Field, T: Term> AddAssign<&'a SparsePolynomial<F, T>> for SparsePolynomial<F, T> {
+impl<'a, F: Field, T: Term> AddAssign<&'a SparsePolynomial<F, T>> for SparsePolynomial<F, T> {
     fn add_assign(&mut self, other: &'a SparsePolynomial<F, T>) {
         *self = &*self + other;
     }
 }
 
-impl<'a, 'b, F: Field, T: Term> AddAssign<(F, &'a SparsePolynomial<F, T>)>
-    for SparsePolynomial<F, T>
-{
+impl<'a, F: Field, T: Term> AddAssign<(F, &'a SparsePolynomial<F, T>)> for SparsePolynomial<F, T> {
     fn add_assign(&mut self, (f, other): (F, &'a SparsePolynomial<F, T>)) {
         let other = Self {
             num_vars: other.num_vars,
             terms: other
                 .terms
                 .iter()
-                .map(|(coeff, term)| (*coeff * &f, term.clone()))
+                .map(|(coeff, term)| (*coeff * f, term.clone()))
                 .collect(),
         };
         // Note the call to `Add` will remove also any duplicates
@@ -206,7 +256,7 @@ impl<'a, 'b, F: Field, T: Term> Sub<&'a SparsePolynomial<F, T>> for &'b SparsePo
     }
 }
 
-impl<'a, 'b, F: Field, T: Term> SubAssign<&'a SparsePolynomial<F, T>> for SparsePolynomial<F, T> {
+impl<'a, F: Field, T: Term> SubAssign<&'a SparsePolynomial<F, T>> for SparsePolynomial<F, T> {
     #[inline]
     fn sub_assign(&mut self, other: &'a SparsePolynomial<F, T>) {
         *self = &*self - other;
@@ -266,8 +316,7 @@ mod tests {
                         None
                     }
                 })
-                .filter(|t| t.is_some())
-                .map(|t| t.unwrap())
+                .flatten()
                 .collect();
             let coeff = Fr::rand(rng);
             random_terms.push((coeff, SparseTerm::new(term)));

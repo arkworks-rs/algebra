@@ -1,7 +1,4 @@
-use crate::{
-    models::{MontgomeryModelParameters as MontgomeryParameters, TEModelParameters as Parameters},
-    AffineCurve, ProjectiveCurve,
-};
+use crate::{msm::VariableBaseMSM, AffineCurve, ProjectiveCurve};
 use ark_serialize::{
     CanonicalDeserialize, CanonicalDeserializeWithFlags, CanonicalSerialize,
     CanonicalSerializeWithFlags, EdwardsFlags, SerializationError,
@@ -9,7 +6,7 @@ use ark_serialize::{
 use ark_std::{
     fmt::{Display, Formatter, Result as FmtResult},
     hash::{Hash, Hasher},
-    io::{Read, Result as IoResult, Write},
+    io::{Read, Write},
     ops::{Add, AddAssign, MulAssign, Neg, Sub, SubAssign},
     rand::{
         distributions::{Distribution, Standard},
@@ -21,7 +18,6 @@ use num_traits::{One, Zero};
 use zeroize::Zeroize;
 
 use ark_ff::{
-    bytes::{FromBytes, ToBytes},
     fields::{Field, PrimeField},
     ToConstraintField, UniformRand,
 };
@@ -29,34 +25,129 @@ use ark_ff::{
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
 
+/// Constants and convenience functions that collectively define the [Twisted Edwards model](https://www.hyperelliptic.org/EFD/g1p/auto-twisted.html)
+/// of the curve. In this model, the curve equation is
+/// `a * x² + y² = 1 + d * x² * y²`, for constants `a` and `d`.
+pub trait TECurveConfig: super::CurveConfig {
+    /// Coefficient `a` of the curve equation.
+    const COEFF_A: Self::BaseField;
+    /// Coefficient `d` of the curve equation.
+    const COEFF_D: Self::BaseField;
+    /// Generator of the prime-order subgroup.
+    const GENERATOR: Affine<Self>;
+
+    /// Model parameters for the Montgomery curve that is birationally
+    /// equivalent to this curve.
+    type MontCurveConfig: MontCurveConfig<BaseField = Self::BaseField>;
+
+    /// Helper method for computing `elem * Self::COEFF_A`.
+    ///
+    /// The default implementation should be overridden only if
+    /// the product can be computed faster than standard field multiplication
+    /// (eg: via doubling if `COEFF_A == 2`, or if `COEFF_A.is_zero()`).
+    #[inline(always)]
+    fn mul_by_a(elem: &Self::BaseField) -> Self::BaseField {
+        let mut copy = *elem;
+        copy *= &Self::COEFF_A;
+        copy
+    }
+
+    /// Checks that the current point is in the prime order subgroup given
+    /// the point on the curve.
+    fn is_in_correct_subgroup_assuming_on_curve(item: &Affine<Self>) -> bool {
+        Self::mul_affine(item, Self::ScalarField::characteristic()).is_zero()
+    }
+
+    /// Performs cofactor clearing.
+    /// The default method is simply to multiply by the cofactor.
+    /// For some curve families though, it is sufficient to multiply
+    /// by a smaller scalar.
+    fn clear_cofactor(item: &Affine<Self>) -> Affine<Self> {
+        item.mul_by_cofactor()
+    }
+
+    /// Default implementation of group multiplication for projective
+    /// coordinates
+    fn mul_projective(base: &Projective<Self>, scalar: &[u64]) -> Projective<Self> {
+        let mut res = Projective::<Self>::zero();
+        for b in ark_ff::BitIteratorBE::without_leading_zeros(scalar) {
+            res.double_in_place();
+            if b {
+                res += base;
+            }
+        }
+
+        res
+    }
+
+    /// Default implementation of group multiplication for affine
+    /// coordinates
+    fn mul_affine(base: &Affine<Self>, scalar: &[u64]) -> Projective<Self> {
+        let mut res = Projective::<Self>::zero();
+        for b in ark_ff::BitIteratorBE::without_leading_zeros(scalar) {
+            res.double_in_place();
+            if b {
+                res.add_assign_mixed(base)
+            }
+        }
+
+        res
+    }
+}
+
+/// Constants and convenience functions that collectively define the [Montgomery model](https://www.hyperelliptic.org/EFD/g1p/auto-montgom.html)
+/// of the curve. In this model, the curve equation is
+/// `b * y² = x³ + a * x² + x`, for constants `a` and `b`.
+pub trait MontCurveConfig: super::CurveConfig {
+    /// Coefficient `a` of the curve equation.
+    const COEFF_A: Self::BaseField;
+    /// Coefficient `b` of the curve equation.
+    const COEFF_B: Self::BaseField;
+
+    /// Model parameters for the Twisted Edwards curve that is birationally
+    /// equivalent to this curve.
+    type TECurveConfig: TECurveConfig<BaseField = Self::BaseField>;
+}
+
 /// Affine coordinates for a point on a twisted Edwards curve, over the
 /// base field `P::BaseField`.
 #[derive(Derivative)]
 #[derivative(
-    Copy(bound = "P: Parameters"),
-    Clone(bound = "P: Parameters"),
-    PartialEq(bound = "P: Parameters"),
-    Eq(bound = "P: Parameters"),
-    Debug(bound = "P: Parameters"),
-    Hash(bound = "P: Parameters")
+    Copy(bound = "P: TECurveConfig"),
+    Clone(bound = "P: TECurveConfig"),
+    PartialEq(bound = "P: TECurveConfig"),
+    Eq(bound = "P: TECurveConfig"),
+    Debug(bound = "P: TECurveConfig"),
+    Hash(bound = "P: TECurveConfig")
 )]
 #[must_use]
-pub struct GroupAffine<P: Parameters> {
+pub struct Affine<P: TECurveConfig> {
     /// X coordinate of the point represented as a field element
     pub x: P::BaseField,
     /// Y coordinate of the point represented as a field element
     pub y: P::BaseField,
 }
 
-impl<P: Parameters> Display for GroupAffine<P> {
+impl<P: TECurveConfig> Display for Affine<P> {
     fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
-        write!(f, "GroupAffine(x={}, y={})", self.x, self.y)
+        write!(f, "Affine(x={}, y={})", self.x, self.y)
     }
 }
 
-impl<P: Parameters> GroupAffine<P> {
-    pub fn new(x: P::BaseField, y: P::BaseField) -> Self {
+impl<P: TECurveConfig> Affine<P> {
+    /// Construct a new group element without checking whether the coordinates
+    /// specify a point in the subgroup.
+    pub const fn new_unchecked(x: P::BaseField, y: P::BaseField) -> Self {
         Self { x, y }
+    }
+
+    /// Construct a new group element in a way while enforcing that points are in
+    /// the prime-order subgroup.
+    pub fn new(x: P::BaseField, y: P::BaseField) -> Self {
+        let p = Self::new_unchecked(x, y);
+        assert!(p.is_on_curve());
+        assert!(p.is_in_correct_subgroup_assuming_on_curve());
+        p
     }
 
     /// Attempts to construct an affine point given an y-coordinate. The
@@ -83,7 +174,7 @@ impl<P: Parameters> GroupAffine<P> {
             .map(|x| {
                 let negx = -x;
                 let x = if (x < negx) ^ greatest { x } else { negx };
-                Self::new(x, y)
+                Self::new_unchecked(x, y)
             })
     }
 
@@ -99,7 +190,7 @@ impl<P: Parameters> GroupAffine<P> {
     }
 }
 
-impl<P: Parameters> GroupAffine<P> {
+impl<P: TECurveConfig> Affine<P> {
     /// Checks if `self` is in the subgroup having order equaling that of
     /// `P::ScalarField` given it is on the curve.
     pub fn is_in_correct_subgroup_assuming_on_curve(&self) -> bool {
@@ -107,9 +198,9 @@ impl<P: Parameters> GroupAffine<P> {
     }
 }
 
-impl<P: Parameters> Zero for GroupAffine<P> {
+impl<P: TECurveConfig> Zero for Affine<P> {
     fn zero() -> Self {
-        Self::new(P::BaseField::zero(), P::BaseField::one())
+        Self::new_unchecked(P::BaseField::zero(), P::BaseField::one())
     }
 
     fn is_zero(&self) -> bool {
@@ -117,17 +208,18 @@ impl<P: Parameters> Zero for GroupAffine<P> {
     }
 }
 
-impl<P: Parameters> AffineCurve for GroupAffine<P> {
-    type Parameters = P;
+impl<P: TECurveConfig> AffineCurve for Affine<P> {
+    type Config = P;
     type BaseField = P::BaseField;
     type ScalarField = P::ScalarField;
-    type Projective = GroupProjective<P>;
+    type Projective = Projective<P>;
 
-    fn xy(&self) -> (Self::BaseField, Self::BaseField) {
-        (self.x, self.y)
+    fn xy(&self) -> Option<(&Self::BaseField, &Self::BaseField)> {
+        (!self.is_zero()).then(|| (&self.x, &self.y))
     }
+
     fn prime_subgroup_generator() -> Self {
-        Self::new(P::AFFINE_GENERATOR_COEFFS.0, P::AFFINE_GENERATOR_COEFFS.1)
+        P::GENERATOR
     }
 
     fn from_random_bytes(bytes: &[u8]) -> Option<Self> {
@@ -150,11 +242,18 @@ impl<P: Parameters> AffineCurve for GroupAffine<P> {
     /// resulting projective element.
     #[must_use]
     fn mul_by_cofactor_to_projective(&self) -> Self::Projective {
-        P::mul_affine(self, Self::Parameters::COFACTOR)
+        P::mul_affine(self, Self::Config::COFACTOR)
+    }
+
+    /// Performs cofactor clearing.
+    /// The default method is simply to multiply by the cofactor.
+    /// Some curves can implement a more efficient algorithm.
+    fn clear_cofactor(&self) -> Self {
+        P::clear_cofactor(self)
     }
 }
 
-impl<P: Parameters> Zeroize for GroupAffine<P> {
+impl<P: TECurveConfig> Zeroize for Affine<P> {
     // The phantom data does not contain element-specific data
     // and thus does not need to be zeroized.
     fn zeroize(&mut self) {
@@ -163,17 +262,17 @@ impl<P: Parameters> Zeroize for GroupAffine<P> {
     }
 }
 
-impl<P: Parameters> Neg for GroupAffine<P> {
+impl<P: TECurveConfig> Neg for Affine<P> {
     type Output = Self;
 
     fn neg(self) -> Self {
-        Self::new(-self.x, self.y)
+        Self::new_unchecked(-self.x, self.y)
     }
 }
 
-ark_ff::impl_additive_ops_from_ref!(GroupAffine, Parameters);
+ark_ff::impl_additive_ops_from_ref!(Affine, TECurveConfig);
 
-impl<'a, P: Parameters> Add<&'a Self> for GroupAffine<P> {
+impl<'a, P: TECurveConfig> Add<&'a Self> for Affine<P> {
     type Output = Self;
     fn add(self, other: &'a Self) -> Self {
         let mut copy = self;
@@ -182,7 +281,7 @@ impl<'a, P: Parameters> Add<&'a Self> for GroupAffine<P> {
     }
 }
 
-impl<'a, P: Parameters> AddAssign<&'a Self> for GroupAffine<P> {
+impl<'a, P: TECurveConfig> AddAssign<&'a Self> for Affine<P> {
     fn add_assign(&mut self, other: &'a Self) {
         let y1y2 = self.y * &other.y;
         let x1x2 = self.x * &other.x;
@@ -199,7 +298,7 @@ impl<'a, P: Parameters> AddAssign<&'a Self> for GroupAffine<P> {
     }
 }
 
-impl<'a, P: Parameters> Sub<&'a Self> for GroupAffine<P> {
+impl<'a, P: TECurveConfig> Sub<&'a Self> for Affine<P> {
     type Output = Self;
     fn sub(self, other: &'a Self) -> Self {
         let mut copy = self;
@@ -208,121 +307,80 @@ impl<'a, P: Parameters> Sub<&'a Self> for GroupAffine<P> {
     }
 }
 
-impl<'a, P: Parameters> SubAssign<&'a Self> for GroupAffine<P> {
+impl<'a, P: TECurveConfig> SubAssign<&'a Self> for Affine<P> {
     fn sub_assign(&mut self, other: &'a Self) {
         *self += &(-(*other));
     }
 }
 
-impl<P: Parameters> MulAssign<P::ScalarField> for GroupAffine<P> {
+impl<P: TECurveConfig> MulAssign<P::ScalarField> for Affine<P> {
     fn mul_assign(&mut self, other: P::ScalarField) {
         *self = self.mul(other.into_bigint()).into()
     }
 }
 
-impl<P: Parameters> ToBytes for GroupAffine<P> {
-    #[inline]
-    fn write<W: Write>(&self, mut writer: W) -> IoResult<()> {
-        self.x.write(&mut writer)?;
-        self.y.write(&mut writer)
-    }
-}
-
-impl<P: Parameters> FromBytes for GroupAffine<P> {
-    #[inline]
-    fn read<R: Read>(mut reader: R) -> IoResult<Self> {
-        let x = P::BaseField::read(&mut reader)?;
-        let y = P::BaseField::read(&mut reader)?;
-        Ok(Self::new(x, y))
-    }
-}
-
-impl<P: Parameters> Default for GroupAffine<P> {
+impl<P: TECurveConfig> Default for Affine<P> {
     #[inline]
     fn default() -> Self {
         Self::zero()
     }
 }
 
-impl<P: Parameters> Distribution<GroupAffine<P>> for Standard {
+impl<P: TECurveConfig> Distribution<Affine<P>> for Standard {
     #[inline]
-    fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> GroupAffine<P> {
+    fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> Affine<P> {
         loop {
             let y = P::BaseField::rand(rng);
             let greatest = rng.gen();
 
-            if let Some(p) = GroupAffine::get_point_from_y(y, greatest) {
+            if let Some(p) = Affine::get_point_from_y(y, greatest) {
                 return p.mul_by_cofactor();
             }
         }
     }
 }
 
-mod group_impl {
-    use super::*;
-    use crate::group::Group;
-
-    impl<P: Parameters> Group for GroupAffine<P> {
-        type ScalarField = P::ScalarField;
-
-        #[inline]
-        fn double(&self) -> Self {
-            let mut tmp = *self;
-            tmp += self;
-            tmp
-        }
-
-        #[inline]
-        fn double_in_place(&mut self) -> &mut Self {
-            let mut tmp = *self;
-            tmp += &*self;
-            *self = tmp;
-            self
-        }
-    }
-}
-
 //////////////////////////////////////////////////////////////////////////////
 
-/// `GroupProjective` implements Extended Twisted Edwards Coordinates
+/// `Projective` implements Extended Twisted Edwards Coordinates
 /// as described in [\[HKCD08\]](https://eprint.iacr.org/2008/522.pdf).
 ///
 /// This implementation uses the unified addition formulae from that paper (see
 /// Section 3.1).
 #[derive(Derivative)]
 #[derivative(
-    Copy(bound = "P: Parameters"),
-    Clone(bound = "P: Parameters"),
-    Eq(bound = "P: Parameters"),
-    Debug(bound = "P: Parameters")
+    Copy(bound = "P: TECurveConfig"),
+    Clone(bound = "P: TECurveConfig"),
+    Eq(bound = "P: TECurveConfig"),
+    Debug(bound = "P: TECurveConfig")
 )]
 #[must_use]
-pub struct GroupProjective<P: Parameters> {
+pub struct Projective<P: TECurveConfig> {
     pub x: P::BaseField,
     pub y: P::BaseField,
     pub t: P::BaseField,
     pub z: P::BaseField,
 }
 
-impl<P: Parameters> PartialEq<GroupProjective<P>> for GroupAffine<P> {
-    fn eq(&self, other: &GroupProjective<P>) -> bool {
+impl<P: TECurveConfig> PartialEq<Projective<P>> for Affine<P> {
+    fn eq(&self, other: &Projective<P>) -> bool {
         self.into_projective() == *other
     }
 }
 
-impl<P: Parameters> PartialEq<GroupAffine<P>> for GroupProjective<P> {
-    fn eq(&self, other: &GroupAffine<P>) -> bool {
+impl<P: TECurveConfig> PartialEq<Affine<P>> for Projective<P> {
+    fn eq(&self, other: &Affine<P>) -> bool {
         *self == other.into_projective()
     }
 }
 
-impl<P: Parameters> Display for GroupProjective<P> {
+impl<P: TECurveConfig> Display for Projective<P> {
     fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
-        write!(f, "{}", GroupAffine::from(*self))
+        write!(f, "{}", Affine::from(*self))
     }
 }
 
-impl<P: Parameters> PartialEq for GroupProjective<P> {
+impl<P: TECurveConfig> PartialEq for Projective<P> {
     fn eq(&self, other: &Self) -> bool {
         if self.is_zero() {
             return other.is_zero();
@@ -337,60 +395,55 @@ impl<P: Parameters> PartialEq for GroupProjective<P> {
     }
 }
 
-impl<P: Parameters> Hash for GroupProjective<P> {
+impl<P: TECurveConfig> Hash for Projective<P> {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.into_affine().hash(state)
     }
 }
 
-impl<P: Parameters> Distribution<GroupProjective<P>> for Standard {
+impl<P: TECurveConfig> Distribution<Projective<P>> for Standard {
     #[inline]
-    fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> GroupProjective<P> {
+    fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> Projective<P> {
         loop {
             let y = P::BaseField::rand(rng);
             let greatest = rng.gen();
 
-            if let Some(p) = GroupAffine::get_point_from_y(y, greatest) {
+            if let Some(p) = Affine::get_point_from_y(y, greatest) {
                 return p.mul_by_cofactor_to_projective();
             }
         }
     }
 }
 
-impl<P: Parameters> ToBytes for GroupProjective<P> {
-    #[inline]
-    fn write<W: Write>(&self, mut writer: W) -> IoResult<()> {
-        self.x.write(&mut writer)?;
-        self.y.write(&mut writer)?;
-        self.t.write(&mut writer)?;
-        self.z.write(writer)
-    }
-}
-
-impl<P: Parameters> FromBytes for GroupProjective<P> {
-    #[inline]
-    fn read<R: Read>(mut reader: R) -> IoResult<Self> {
-        let x = P::BaseField::read(&mut reader)?;
-        let y = P::BaseField::read(&mut reader)?;
-        let t = P::BaseField::read(&mut reader)?;
-        let z = P::BaseField::read(reader)?;
-        Ok(Self::new(x, y, t, z))
-    }
-}
-
-impl<P: Parameters> Default for GroupProjective<P> {
+impl<P: TECurveConfig> Default for Projective<P> {
     #[inline]
     fn default() -> Self {
         Self::zero()
     }
 }
 
-impl<P: Parameters> GroupProjective<P> {
-    pub fn new(x: P::BaseField, y: P::BaseField, t: P::BaseField, z: P::BaseField) -> Self {
+impl<P: TECurveConfig> Projective<P> {
+    /// Construct a new group element without checking whether the coordinates
+    /// specify a point in the subgroup.
+    pub const fn new_unchecked(
+        x: P::BaseField,
+        y: P::BaseField,
+        t: P::BaseField,
+        z: P::BaseField,
+    ) -> Self {
         Self { x, y, t, z }
     }
+
+    /// Construct a new group element in a way while enforcing that points are in
+    /// the prime-order subgroup.
+    pub fn new(x: P::BaseField, y: P::BaseField, t: P::BaseField, z: P::BaseField) -> Self {
+        let p = Self::new_unchecked(x, y, t, z).into_affine();
+        assert!(p.is_on_curve());
+        assert!(p.is_in_correct_subgroup_assuming_on_curve());
+        p.into()
+    }
 }
-impl<P: Parameters> Zeroize for GroupProjective<P> {
+impl<P: TECurveConfig> Zeroize for Projective<P> {
     // The phantom data does not contain element-specific data
     // and thus does not need to be zeroized.
     fn zeroize(&mut self) {
@@ -401,9 +454,9 @@ impl<P: Parameters> Zeroize for GroupProjective<P> {
     }
 }
 
-impl<P: Parameters> Zero for GroupProjective<P> {
+impl<P: TECurveConfig> Zero for Projective<P> {
     fn zero() -> Self {
-        Self::new(
+        Self::new_unchecked(
             P::BaseField::zero(),
             P::BaseField::one(),
             P::BaseField::zero(),
@@ -416,14 +469,14 @@ impl<P: Parameters> Zero for GroupProjective<P> {
     }
 }
 
-impl<P: Parameters> ProjectiveCurve for GroupProjective<P> {
-    type Parameters = P;
+impl<P: TECurveConfig> ProjectiveCurve for Projective<P> {
+    type Config = P;
     type BaseField = P::BaseField;
     type ScalarField = P::ScalarField;
-    type Affine = GroupAffine<P>;
+    type Affine = Affine<P>;
 
     fn prime_subgroup_generator() -> Self {
-        GroupAffine::prime_subgroup_generator().into()
+        Affine::prime_subgroup_generator().into()
     }
 
     fn is_normalized(&self) -> bool {
@@ -486,7 +539,7 @@ impl<P: Parameters> ProjectiveCurve for GroupProjective<P> {
         self
     }
 
-    fn add_assign_mixed(&mut self, other: &GroupAffine<P>) {
+    fn add_assign_mixed(&mut self, other: &Affine<P>) {
         // See "Twisted Edwards Curves Revisited"
         // Huseyin Hisil, Kenneth Koon-Ho Wong, Gary Carter, and Ed Dawson
         // 3.1 Unified Addition in E^e
@@ -525,7 +578,7 @@ impl<P: Parameters> ProjectiveCurve for GroupProjective<P> {
     }
 }
 
-impl<P: Parameters> Neg for GroupProjective<P> {
+impl<P: TECurveConfig> Neg for Projective<P> {
     type Output = Self;
     fn neg(mut self) -> Self {
         self.x = -self.x;
@@ -534,9 +587,9 @@ impl<P: Parameters> Neg for GroupProjective<P> {
     }
 }
 
-ark_ff::impl_additive_ops_from_ref!(GroupProjective, Parameters);
+ark_ff::impl_additive_ops_from_ref!(Projective, TECurveConfig);
 
-impl<'a, P: Parameters> Add<&'a Self> for GroupProjective<P> {
+impl<'a, P: TECurveConfig> Add<&'a Self> for Projective<P> {
     type Output = Self;
     fn add(mut self, other: &'a Self) -> Self {
         self += other;
@@ -544,7 +597,7 @@ impl<'a, P: Parameters> Add<&'a Self> for GroupProjective<P> {
     }
 }
 
-impl<'a, P: Parameters> AddAssign<&'a Self> for GroupProjective<P> {
+impl<'a, P: TECurveConfig> AddAssign<&'a Self> for Projective<P> {
     fn add_assign(&mut self, other: &'a Self) {
         // See "Twisted Edwards Curves Revisited" (https://eprint.iacr.org/2008/522.pdf)
         // by Huseyin Hisil, Kenneth Koon-Ho Wong, Gary Carter, and Ed Dawson
@@ -588,7 +641,7 @@ impl<'a, P: Parameters> AddAssign<&'a Self> for GroupProjective<P> {
     }
 }
 
-impl<'a, P: Parameters> Sub<&'a Self> for GroupProjective<P> {
+impl<'a, P: TECurveConfig> Sub<&'a Self> for Projective<P> {
     type Output = Self;
     fn sub(mut self, other: &'a Self) -> Self {
         self -= other;
@@ -596,13 +649,13 @@ impl<'a, P: Parameters> Sub<&'a Self> for GroupProjective<P> {
     }
 }
 
-impl<'a, P: Parameters> SubAssign<&'a Self> for GroupProjective<P> {
+impl<'a, P: TECurveConfig> SubAssign<&'a Self> for Projective<P> {
     fn sub_assign(&mut self, other: &'a Self) {
         *self += &(-(*other));
     }
 }
 
-impl<P: Parameters> MulAssign<P::ScalarField> for GroupProjective<P> {
+impl<P: TECurveConfig> MulAssign<P::ScalarField> for Projective<P> {
     fn mul_assign(&mut self, other: P::ScalarField) {
         *self = self.mul(other.into_bigint())
     }
@@ -610,32 +663,32 @@ impl<P: Parameters> MulAssign<P::ScalarField> for GroupProjective<P> {
 
 // The affine point (X, Y) is represented in the Extended Projective coordinates
 // with Z = 1.
-impl<P: Parameters> From<GroupAffine<P>> for GroupProjective<P> {
-    fn from(p: GroupAffine<P>) -> GroupProjective<P> {
-        Self::new(p.x, p.y, p.x * &p.y, P::BaseField::one())
+impl<P: TECurveConfig> From<Affine<P>> for Projective<P> {
+    fn from(p: Affine<P>) -> Projective<P> {
+        Self::new_unchecked(p.x, p.y, p.x * &p.y, P::BaseField::one())
     }
 }
 
 // The projective point X, Y, T, Z is represented in the affine
 // coordinates as X/Z, Y/Z.
-impl<P: Parameters> From<GroupProjective<P>> for GroupAffine<P> {
-    fn from(p: GroupProjective<P>) -> GroupAffine<P> {
+impl<P: TECurveConfig> From<Projective<P>> for Affine<P> {
+    fn from(p: Projective<P>) -> Affine<P> {
         if p.is_zero() {
-            GroupAffine::zero()
+            Affine::zero()
         } else if p.z.is_one() {
             // If Z is one, the point is already normalized.
-            GroupAffine::new(p.x, p.y)
+            Affine::new_unchecked(p.x, p.y)
         } else {
             // Z is nonzero, so it must have an inverse in a field.
             let z_inv = p.z.inverse().unwrap();
             let x = p.x * &z_inv;
             let y = p.y * &z_inv;
-            GroupAffine::new(x, y)
+            Affine::new_unchecked(x, y)
         }
     }
 }
 
-impl<P: Parameters> core::str::FromStr for GroupAffine<P>
+impl<P: TECurveConfig> core::str::FromStr for Affine<P>
 where
     P::BaseField: core::str::FromStr<Err = ()>,
 {
@@ -661,7 +714,7 @@ where
         if point.len() != 2 {
             return Err(());
         }
-        let point = Self::new(point[0], point[1]);
+        let point = Self::new_unchecked(point[0], point[1]);
 
         if !point.is_on_curve() {
             Err(())
@@ -673,31 +726,31 @@ where
 
 #[derive(Derivative)]
 #[derivative(
-    Copy(bound = "P: MontgomeryParameters"),
-    Clone(bound = "P: MontgomeryParameters"),
-    PartialEq(bound = "P: MontgomeryParameters"),
-    Eq(bound = "P: MontgomeryParameters"),
-    Debug(bound = "P: MontgomeryParameters"),
-    Hash(bound = "P: MontgomeryParameters")
+    Copy(bound = "P: MontCurveConfig"),
+    Clone(bound = "P: MontCurveConfig"),
+    PartialEq(bound = "P: MontCurveConfig"),
+    Eq(bound = "P: MontCurveConfig"),
+    Debug(bound = "P: MontCurveConfig"),
+    Hash(bound = "P: MontCurveConfig")
 )]
-pub struct MontgomeryGroupAffine<P: MontgomeryParameters> {
+pub struct MontgomeryAffine<P: MontCurveConfig> {
     pub x: P::BaseField,
     pub y: P::BaseField,
 }
 
-impl<P: MontgomeryParameters> Display for MontgomeryGroupAffine<P> {
+impl<P: MontCurveConfig> Display for MontgomeryAffine<P> {
     fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
-        write!(f, "MontgomeryGroupAffine(x={}, y={})", self.x, self.y)
+        write!(f, "MontgomeryAffine(x={}, y={})", self.x, self.y)
     }
 }
 
-impl<P: MontgomeryParameters> MontgomeryGroupAffine<P> {
+impl<P: MontCurveConfig> MontgomeryAffine<P> {
     pub fn new(x: P::BaseField, y: P::BaseField) -> Self {
         Self { x, y }
     }
 }
 
-impl<P: Parameters> CanonicalSerialize for GroupAffine<P> {
+impl<P: TECurveConfig> CanonicalSerialize for Affine<P> {
     #[allow(unused_qualifications)]
     #[inline]
     fn serialize<W: Write>(&self, writer: W) -> Result<(), SerializationError> {
@@ -731,35 +784,35 @@ impl<P: Parameters> CanonicalSerialize for GroupAffine<P> {
     }
 }
 
-impl<P: Parameters> CanonicalSerialize for GroupProjective<P> {
+impl<P: TECurveConfig> CanonicalSerialize for Projective<P> {
     #[allow(unused_qualifications)]
     #[inline]
     fn serialize<W: Write>(&self, writer: W) -> Result<(), SerializationError> {
-        let aff = GroupAffine::<P>::from(self.clone());
+        let aff = Affine::<P>::from(*self);
         aff.serialize(writer)
     }
 
     #[inline]
     fn serialized_size(&self) -> usize {
-        let aff = GroupAffine::<P>::from(self.clone());
+        let aff = Affine::<P>::from(*self);
         aff.serialized_size()
     }
 
     #[allow(unused_qualifications)]
     #[inline]
     fn serialize_uncompressed<W: Write>(&self, writer: W) -> Result<(), SerializationError> {
-        let aff = GroupAffine::<P>::from(self.clone());
+        let aff = Affine::<P>::from(*self);
         aff.serialize_uncompressed(writer)
     }
 
     #[inline]
     fn uncompressed_size(&self) -> usize {
-        let aff = GroupAffine::<P>::from(self.clone());
+        let aff = Affine::<P>::from(*self);
         aff.uncompressed_size()
     }
 }
 
-impl<P: Parameters> CanonicalDeserialize for GroupAffine<P> {
+impl<P: TECurveConfig> CanonicalDeserialize for Affine<P> {
     #[allow(unused_qualifications)]
     fn deserialize<R: Read>(mut reader: R) -> Result<Self, SerializationError> {
         let (y, flags): (P::BaseField, EdwardsFlags) =
@@ -767,7 +820,7 @@ impl<P: Parameters> CanonicalDeserialize for GroupAffine<P> {
         if y == P::BaseField::zero() {
             Ok(Self::zero())
         } else {
-            let p = GroupAffine::<P>::get_point_from_y(y, flags.is_positive())
+            let p = Affine::<P>::get_point_from_y(y, flags.is_positive())
                 .ok_or(SerializationError::InvalidData)?;
             if !p.is_in_correct_subgroup_assuming_on_curve() {
                 return Err(SerializationError::InvalidData);
@@ -791,32 +844,32 @@ impl<P: Parameters> CanonicalDeserialize for GroupAffine<P> {
         let x: P::BaseField = CanonicalDeserialize::deserialize(&mut reader)?;
         let y: P::BaseField = CanonicalDeserialize::deserialize(&mut reader)?;
 
-        let p = GroupAffine::<P>::new(x, y);
+        let p = Affine::<P>::new_unchecked(x, y);
         Ok(p)
     }
 }
 
-impl<P: Parameters> CanonicalDeserialize for GroupProjective<P> {
+impl<P: TECurveConfig> CanonicalDeserialize for Projective<P> {
     #[allow(unused_qualifications)]
     fn deserialize<R: Read>(reader: R) -> Result<Self, SerializationError> {
-        let aff = GroupAffine::<P>::deserialize(reader)?;
+        let aff = Affine::<P>::deserialize(reader)?;
         Ok(aff.into())
     }
 
     #[allow(unused_qualifications)]
     fn deserialize_uncompressed<R: Read>(reader: R) -> Result<Self, SerializationError> {
-        let aff = GroupAffine::<P>::deserialize_uncompressed(reader)?;
+        let aff = Affine::<P>::deserialize_uncompressed(reader)?;
         Ok(aff.into())
     }
 
     #[allow(unused_qualifications)]
     fn deserialize_unchecked<R: Read>(reader: R) -> Result<Self, SerializationError> {
-        let aff = GroupAffine::<P>::deserialize_unchecked(reader)?;
+        let aff = Affine::<P>::deserialize_unchecked(reader)?;
         Ok(aff.into())
     }
 }
 
-impl<M: Parameters, ConstraintF: Field> ToConstraintField<ConstraintF> for GroupAffine<M>
+impl<M: TECurveConfig, ConstraintF: Field> ToConstraintField<ConstraintF> for Affine<M>
 where
     M::BaseField: ToConstraintField<ConstraintF>,
 {
@@ -829,13 +882,13 @@ where
     }
 }
 
-impl<M: Parameters, ConstraintF: Field> ToConstraintField<ConstraintF> for GroupProjective<M>
+impl<M: TECurveConfig, ConstraintF: Field> ToConstraintField<ConstraintF> for Projective<M>
 where
     M::BaseField: ToConstraintField<ConstraintF>,
 {
     #[inline]
     fn to_field_elements(&self) -> Option<Vec<ConstraintF>> {
-        GroupAffine::from(*self).to_field_elements()
+        Affine::from(*self).to_field_elements()
     }
 }
 
@@ -843,7 +896,7 @@ where
 // the methods that are needed for backwards compatibility with the old
 // serialization format
 // See Issue #330
-impl<P: Parameters> GroupAffine<P> {
+impl<P: TECurveConfig> Affine<P> {
     /// Attempts to construct an affine point given an x-coordinate. The
     /// point is not guaranteed to be in the prime order subgroup.
     ///
@@ -863,7 +916,7 @@ impl<P: Parameters> GroupAffine<P> {
         y2.and_then(|y2| y2.sqrt()).map(|y| {
             let negy = -y;
             let y = if (y < negy) ^ greatest { y } else { negy };
-            Self::new(x, y)
+            Self::new_unchecked(x, y)
         })
     }
     /// This method is implemented for backwards compatibility with the old
@@ -917,7 +970,7 @@ impl<P: Parameters> GroupAffine<P> {
         if x == P::BaseField::zero() {
             Ok(Self::zero())
         } else {
-            let p = GroupAffine::<P>::get_point_from_x_old(x, flags.is_positive())
+            let p = Affine::<P>::get_point_from_x_old(x, flags.is_positive())
                 .ok_or(SerializationError::InvalidData)?;
             if !p.is_in_correct_subgroup_assuming_on_curve() {
                 return Err(SerializationError::InvalidData);
@@ -926,12 +979,12 @@ impl<P: Parameters> GroupAffine<P> {
         }
     }
 }
-impl<P: Parameters> GroupProjective<P> {
+impl<P: TECurveConfig> Projective<P> {
     /// This method is implemented for backwards compatibility with the old
     /// serialization format and will be deprecated and then removed in a
     /// future version.
     pub fn serialize_old<W: Write>(&self, writer: W) -> Result<(), SerializationError> {
-        let aff = GroupAffine::<P>::from(self.clone());
+        let aff = Affine::<P>::from(*self);
         aff.serialize_old(writer)
     }
 
@@ -944,7 +997,7 @@ impl<P: Parameters> GroupProjective<P> {
         &self,
         writer: W,
     ) -> Result<(), SerializationError> {
-        let aff = GroupAffine::<P>::from(self.clone());
+        let aff = Affine::<P>::from(*self);
         aff.serialize_uncompressed(writer)
     }
 
@@ -953,14 +1006,30 @@ impl<P: Parameters> GroupProjective<P> {
     /// serialization format and will be deprecated and then removed in a
     /// future version.
     pub fn deserialize_uncompressed_old<R: Read>(reader: R) -> Result<Self, SerializationError> {
-        let aff = GroupAffine::<P>::deserialize_uncompressed(reader)?;
+        let aff = Affine::<P>::deserialize_uncompressed(reader)?;
         Ok(aff.into())
     }
     /// This method is implemented for backwards compatibility with the old
     /// serialization format and will be deprecated and then removed in a
     /// future version.
     pub fn deserialize_old<R: Read>(reader: R) -> Result<Self, SerializationError> {
-        let aff = GroupAffine::<P>::deserialize_old(reader)?;
+        let aff = Affine::<P>::deserialize_old(reader)?;
         Ok(aff.into())
+    }
+}
+
+impl<P: TECurveConfig> VariableBaseMSM for Projective<P> {
+    type MSMBase = Affine<P>;
+
+    type Scalar = <Self as ProjectiveCurve>::ScalarField;
+
+    #[inline]
+    fn _double_in_place(&mut self) -> &mut Self {
+        self.double_in_place()
+    }
+
+    #[inline]
+    fn _add_assign_mixed(&mut self, other: &Self::MSMBase) {
+        self.add_assign_mixed(other)
     }
 }

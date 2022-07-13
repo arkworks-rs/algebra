@@ -70,7 +70,7 @@ impl<F: Field> SparseMultilinearExtension<F> {
         let mut map = HashMap::new();
         for _ in 0..num_nonzero_entries {
             let mut index = usize::rand(rng) & ((1 << num_vars) - 1);
-            while let Some(_) = map.get(&index) {
+            while map.get(&index).is_some() {
                 index = usize::rand(rng) & ((1 << num_vars) - 1);
             }
             map.entry(index).or_insert(F::rand(rng));
@@ -123,7 +123,7 @@ impl<F: Field> MultilinearExtension<F> for SparseMultilinearExtension<F> {
 
     fn evaluate(&self, point: &[F]) -> Option<F> {
         if point.len() == self.num_vars {
-            Some(self.fix_variables(&point)[0])
+            Some(self.fix_variables(point)[0])
         } else {
             None
         }
@@ -140,9 +140,7 @@ impl<F: Field> MultilinearExtension<F> for SparseMultilinearExtension<F> {
     fn relabel(&self, mut a: usize, mut b: usize, k: usize) -> Self {
         if a > b {
             // swap
-            let t = a;
-            a = b;
-            b = t;
+            core::mem::swap(&mut a, &mut b);
         }
         // sanity check
         assert!(
@@ -280,15 +278,13 @@ impl<F: Field> AddAssign for SparseMultilinearExtension<F> {
     }
 }
 
-impl<'a, 'b, F: Field> AddAssign<&'a SparseMultilinearExtension<F>>
-    for SparseMultilinearExtension<F>
-{
+impl<'a, F: Field> AddAssign<&'a SparseMultilinearExtension<F>> for SparseMultilinearExtension<F> {
     fn add_assign(&mut self, other: &'a SparseMultilinearExtension<F>) {
         *self = &*self + other;
     }
 }
 
-impl<'a, 'b, F: Field> AddAssign<(F, &'a SparseMultilinearExtension<F>)>
+impl<'a, F: Field> AddAssign<(F, &'a SparseMultilinearExtension<F>)>
     for SparseMultilinearExtension<F>
 {
     fn add_assign(&mut self, (f, other): (F, &'a SparseMultilinearExtension<F>)) {
@@ -349,9 +345,7 @@ impl<F: Field> SubAssign for SparseMultilinearExtension<F> {
     }
 }
 
-impl<'a, 'b, F: Field> SubAssign<&'a SparseMultilinearExtension<F>>
-    for SparseMultilinearExtension<F>
-{
+impl<'a, F: Field> SubAssign<&'a SparseMultilinearExtension<F>> for SparseMultilinearExtension<F> {
     fn sub_assign(&mut self, other: &'a SparseMultilinearExtension<F>) {
         *self = &*self - other;
     }
@@ -460,7 +454,7 @@ mod tests {
         let mut rng = test_rng();
         let ev1 = Fr::rand(&mut rng);
         let poly1 = SparseMultilinearExtension::from_evaluations(0, &vec![(0, ev1)]);
-        assert_eq!(poly1.evaluate(&vec![]).unwrap(), ev1);
+        assert_eq!(poly1.evaluate(&[]).unwrap(), ev1);
 
         // test single-variate polynomial
         let ev2 = vec![Fr::rand(&mut rng), Fr::rand(&mut rng)];
@@ -469,7 +463,7 @@ mod tests {
 
         let x = Fr::rand(&mut rng);
         assert_eq!(
-            poly2.evaluate(&vec![x]).unwrap(),
+            poly2.evaluate(&[x]).unwrap(),
             x * ev2[1] + (Fr::one() - x) * ev2[0]
         );
 
@@ -478,7 +472,7 @@ mod tests {
         let poly2 = SparseMultilinearExtension::from_evaluations(1, &vec![(1, ev3)]);
 
         let x = Fr::rand(&mut rng);
-        assert_eq!(poly2.evaluate(&vec![x]).unwrap(), x * ev3);
+        assert_eq!(poly2.evaluate(&[x]).unwrap(), x * ev3);
     }
 
     #[test]

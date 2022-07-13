@@ -49,7 +49,7 @@ impl<ConstraintF: PrimeField> ToConstraintField<ConstraintF> for [u8] {
             .map(|chunk| {
                 let mut bigint = vec![0u8; bigint_size];
                 bigint.iter_mut().zip(chunk).for_each(|(a, b)| *a = *b);
-                ConstraintF::read(bigint.as_slice()).ok()
+                ConstraintF::deserialize(bigint.as_slice()).ok()
             })
             .collect::<Option<Vec<_>>>()?;
         Some(fes)

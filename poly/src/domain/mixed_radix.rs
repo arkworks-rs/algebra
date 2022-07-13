@@ -76,7 +76,7 @@ impl<F: FftField> EvaluationDomain<F> for MixedRadixEvaluationDomain<F> {
         let two_adicity = k_adicity(2, num_coeffs);
         let two_part = 2u64.checked_pow(two_adicity)?;
 
-        let size = u64::try_from(num_coeffs).unwrap();
+        let size = num_coeffs;
         let log_size_of_group = two_adicity;
 
         if num_coeffs != q_part * two_part {
