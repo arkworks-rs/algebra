@@ -1,5 +1,5 @@
 macro_rules! sqrt_impl {
-    ($Self:ident, $self:expr, $two_adicity:tt, $trace:tt, $quad:tt) => {{
+    ($Self:ident, $self:expr, $two_adicity:expr, $trace_minus_one_div_two:expr, $quadratic_nonresidue:expr) => {{
         // https://eprint.iacr.org/2012/685.pdf (page 12, algorithm 5)
         // Actually this is just normal Tonelli-Shanks; since `P::Generator`
         // is a quadratic non-residue, `P::ROOT_OF_UNITY = P::GENERATOR ^ t`
@@ -10,10 +10,8 @@ macro_rules! sqrt_impl {
         // Try computing the square root (x at the end of the algorithm)
         // Check at the end of the algorithm if x was a square root
         // Begin Tonelli-Shanks
-        // let mut z = $P::QUADRATIC_NONRESIDUE_TO_T;
-        let mut z = *$quad;
-        // let mut w = $self.pow($P::TRACE_MINUS_ONE_DIV_TWO);
-        let mut w = $self.pow($trace);
+        let mut z = *$quadratic_nonresidue;
+        let mut w = $self.pow($trace_minus_one_div_two);
         let mut x = w * $self;
         let mut b = x * &w;
 
