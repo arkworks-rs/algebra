@@ -69,8 +69,6 @@ impl<P: Fp3Config> Fp3<P> {
     /// # Examples
     ///
     /// ```
-    ///
-    /// # use ark_test_curves::CubicExt;
     /// # use ark_std::test_rng;
     /// # use ark_std::UniformRand;
     /// # use ark_test_curves::mnt6_753 as ark_mnt6_753;

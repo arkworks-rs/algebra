@@ -142,24 +142,6 @@ pub struct QuadExtField<P: QuadExtConfig> {
     pub c1: P::BaseField,
 }
 
-/// Construct a [`QuadExtField`] element from elements of the base field. This should
-/// be used primarily for constructing constant field elements; in a non-const
-/// context, [`QuadExtField::new`] is preferable.
-///
-/// # Usage
-/// ```rust
-/// # use ark_test_curves::QuadExt;
-/// # use ark_test_curves::bls12_381 as ark_bls12_381;
-/// use ark_bls12_381::{FQ_ZERO, FQ_ONE, Fq2};
-/// const ONE: Fq2 = QuadExt!(FQ_ONE, FQ_ZERO);
-/// ```
-#[macro_export]
-macro_rules! QuadExt {
-    ($c0:expr, $c1:expr $(,)?) => {
-        $crate::QuadExtField { c0: $c0, c1: $c1 }
-    };
-}
-
 impl<P: QuadExtConfig> QuadExtField<P> {
     /// Create a new field element from coefficients `c0` and `c1`,
     /// so that the result is of the form `c0 + c1 * X`.
@@ -175,7 +157,7 @@ impl<P: QuadExtConfig> QuadExtField<P> {
     /// // `Fp2` a degree-2 extension over `Fp`.
     /// let c: Fp2 = Fp2::new(c0, c1);
     /// ```
-    pub fn new(c0: P::BaseField, c1: P::BaseField) -> Self {
+    pub const fn new(c0: P::BaseField, c1: P::BaseField) -> Self {
         Self { c0, c1 }
     }
 
@@ -250,10 +232,13 @@ impl<P: QuadExtConfig> One for QuadExtField<P> {
 }
 
 type BaseFieldIter<P> = <<P as QuadExtConfig>::BaseField as Field>::BasePrimeFieldIter;
+
 impl<P: QuadExtConfig> Field for QuadExtField<P> {
     type BasePrimeField = P::BasePrimeField;
-
     type BasePrimeFieldIter = Chain<BaseFieldIter<P>, BaseFieldIter<P>>;
+
+    const ZERO: Self = Self::new(P::BaseField::ZERO, P::BaseField::ZERO);
+    const ONE: Self = Self::new(P::BaseField::ONE, P::BaseField::ZERO);
 
     fn extension_degree() -> u64 {
         2 * P::BaseField::extension_degree()

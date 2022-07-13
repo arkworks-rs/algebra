@@ -139,11 +139,13 @@ pub trait FpConfig<const N: usize>: Send + Sync + 'static + Sized {
         }
     }
 
-    /// Construct a field element from an integer in the range `0..(Self::MODULUS - 1)`.
-    /// Returns `None` if the integer is outside this range.
+    /// Construct a field element from an integer in the range
+    /// `0..(Self::MODULUS - 1)`. Returns `None` if the integer is outside
+    /// this range.
     fn from_bigint(other: BigInt<N>) -> Option<Fp<Self, N>>;
 
-    /// Convert a field element to an integer in the range `0..(Self::MODULUS - 1)`.
+    /// Convert a field element to an integer in the range `0..(Self::MODULUS -
+    /// 1)`.
     fn into_bigint(other: Fp<Self, N>) -> BigInt<N>;
 }
 
@@ -178,15 +180,6 @@ pub type Fp640<P> = Fp<P, 10>;
 pub type Fp704<P> = Fp<P, 11>;
 pub type Fp768<P> = Fp<P, 12>;
 pub type Fp832<P> = Fp<P, 13>;
-
-impl<P, const N: usize> Fp<P, N> {
-    /// Construct a new prime element directly from its underlying
-    /// [`struct@BigInt`] data type.
-    #[inline]
-    pub const fn new(element: BigInt<N>) -> Self {
-        Self(element, PhantomData)
-    }
-}
 
 impl<P: FpConfig<N>, const N: usize> Fp<P, N> {
     #[inline(always)]
@@ -239,6 +232,9 @@ impl<P: FpConfig<N>, const N: usize> One for Fp<P, N> {
 impl<P: FpConfig<N>, const N: usize> Field for Fp<P, N> {
     type BasePrimeField = Self;
     type BasePrimeFieldIter = iter::Once<Self::BasePrimeField>;
+
+    const ZERO: Self = P::ZERO;
+    const ONE: Self = P::ONE;
 
     fn extension_degree() -> u64 {
         1
@@ -418,9 +414,9 @@ impl<P: FpConfig<N>, const N: usize> Ord for Fp<P, N> {
     }
 }
 
-/// Note that this implementation of `PartialOrd` compares field elements viewing
-/// them as integers in the range 0, 1, ..., `P::MODULUS` - 1. However, other
-/// implementations of `PrimeField` might choose a different ordering, and
+/// Note that this implementation of `PartialOrd` compares field elements
+/// viewing them as integers in the range 0, 1, ..., `P::MODULUS` - 1. However,
+/// other implementations of `PrimeField` might choose a different ordering, and
 /// as such, users should use this `PartialOrd` for applications where
 /// any ordering suffices (like in a BTreeMap), and not in applications
 /// where a particular ordering is required.
@@ -557,7 +553,10 @@ impl<P: FpConfig<N>, const N: usize> ark_std::rand::distributions::Distribution<
     #[inline]
     fn sample<R: ark_std::rand::Rng + ?Sized>(&self, rng: &mut R) -> Fp<P, N> {
         loop {
-            let mut tmp = Fp::new(rng.sample(ark_std::rand::distributions::Standard));
+            let mut tmp = Fp(
+                rng.sample(ark_std::rand::distributions::Standard),
+                PhantomData,
+            );
             let shave_bits = Fp::<P, N>::num_bits_to_shave();
             // Mask away the unused bits at the beginning.
             assert!(shave_bits <= 64);
@@ -725,7 +724,7 @@ impl<P: FpConfig<N>, const N: usize> Neg for Fp<P, N> {
         if !self.is_zero() {
             let mut tmp = P::MODULUS;
             tmp.sub_with_borrow(&self.0);
-            Fp::new(tmp)
+            Fp(tmp, PhantomData)
         } else {
             self
         }

@@ -82,28 +82,6 @@ pub struct CubicExtField<P: CubicExtConfig> {
     pub c2: P::BaseField,
 }
 
-/// Construct a [`CubicExtField`] element from elements of the base field. This should
-/// be used primarily for constructing constant field elements; in a non-const
-/// context, [`CubicExtField::new`] is preferable.
-///
-/// # Usage
-/// ```rust
-/// # use ark_test_curves::CubicExt;
-/// # use ark_test_curves::mnt6_753 as ark_mnt6_753;
-/// use ark_mnt6_753::{FQ_ZERO, FQ_ONE, Fq3};
-/// const ONE: Fq3 = CubicExt!(FQ_ONE, FQ_ZERO, FQ_ZERO);
-/// ```
-#[macro_export]
-macro_rules! CubicExt {
-    ($c0:expr, $c1:expr, $c2:expr $(,)?) => {
-        $crate::CubicExtField {
-            c0: $c0,
-            c1: $c1,
-            c2: $c2,
-        }
-    };
-}
-
 impl<P: CubicExtConfig> CubicExtField<P> {
     /// Create a new field element from coefficients `c0`, `c1` and `c2`
     /// so that the result is of the form `c0 + c1 * X + c2 * X^2`.
@@ -125,7 +103,7 @@ impl<P: CubicExtConfig> CubicExtField<P> {
     /// // `Fp6` a degree-3 extension over `Fp2`.
     /// let c: CubicExtField<Params> = Fp6::new(c0, c1, c2);
     /// ```
-    pub fn new(c0: P::BaseField, c1: P::BaseField, c2: P::BaseField) -> Self {
+    pub const fn new(c0: P::BaseField, c1: P::BaseField, c2: P::BaseField) -> Self {
         Self { c0, c1, c2 }
     }
 
@@ -186,6 +164,9 @@ type BaseFieldIter<P> = <<P as CubicExtConfig>::BaseField as Field>::BasePrimeFi
 impl<P: CubicExtConfig> Field for CubicExtField<P> {
     type BasePrimeField = P::BasePrimeField;
     type BasePrimeFieldIter = Chain<BaseFieldIter<P>, Chain<BaseFieldIter<P>, BaseFieldIter<P>>>;
+    const ZERO: Self = Self::new(P::BaseField::ZERO, P::BaseField::ZERO, P::BaseField::ZERO);
+
+    const ONE: Self = Self::new(P::BaseField::ONE, P::BaseField::ZERO, P::BaseField::ZERO);
 
     fn extension_degree() -> u64 {
         3 * P::BaseField::extension_degree()

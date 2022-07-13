@@ -99,8 +99,7 @@ impl<F: Field> DenseMVPolynomial<F> for SparsePolynomial<F, SparseTerm> {
     /// Outputs an `l`-variate polynomial which is the sum of `l` `d`-degree
     /// univariate polynomials where each coefficient is sampled uniformly at random.
     fn rand<R: Rng>(d: usize, l: usize, rng: &mut R) -> Self {
-        let mut random_terms = Vec::new();
-        random_terms.push((F::rand(rng), SparseTerm::new(vec![])));
+        let mut random_terms = vec![(F::rand(rng), SparseTerm::new(vec![]))];
         for var in 0..l {
             for deg in 1..=d {
                 random_terms.push((F::rand(rng), SparseTerm::new(vec![(var, deg)])));
@@ -214,22 +213,20 @@ impl<'a, 'b, F: Field, T: Term> Add<&'a SparsePolynomial<F, T>> for &'b SparsePo
     }
 }
 
-impl<'a, 'b, F: Field, T: Term> AddAssign<&'a SparsePolynomial<F, T>> for SparsePolynomial<F, T> {
+impl<'a, F: Field, T: Term> AddAssign<&'a SparsePolynomial<F, T>> for SparsePolynomial<F, T> {
     fn add_assign(&mut self, other: &'a SparsePolynomial<F, T>) {
         *self = &*self + other;
     }
 }
 
-impl<'a, 'b, F: Field, T: Term> AddAssign<(F, &'a SparsePolynomial<F, T>)>
-    for SparsePolynomial<F, T>
-{
+impl<'a, F: Field, T: Term> AddAssign<(F, &'a SparsePolynomial<F, T>)> for SparsePolynomial<F, T> {
     fn add_assign(&mut self, (f, other): (F, &'a SparsePolynomial<F, T>)) {
         let other = Self {
             num_vars: other.num_vars,
             terms: other
                 .terms
                 .iter()
-                .map(|(coeff, term)| (*coeff * &f, term.clone()))
+                .map(|(coeff, term)| (*coeff * f, term.clone()))
                 .collect(),
         };
         // Note the call to `Add` will remove also any duplicates
@@ -259,7 +256,7 @@ impl<'a, 'b, F: Field, T: Term> Sub<&'a SparsePolynomial<F, T>> for &'b SparsePo
     }
 }
 
-impl<'a, 'b, F: Field, T: Term> SubAssign<&'a SparsePolynomial<F, T>> for SparsePolynomial<F, T> {
+impl<'a, F: Field, T: Term> SubAssign<&'a SparsePolynomial<F, T>> for SparsePolynomial<F, T> {
     #[inline]
     fn sub_assign(&mut self, other: &'a SparsePolynomial<F, T>) {
         *self = &*self - other;

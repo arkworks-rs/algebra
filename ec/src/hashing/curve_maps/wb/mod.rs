@@ -47,7 +47,7 @@ pub trait WBParams: SWCurveConfig + Sized {
         let img_x = x_num.evaluate(&domain_point.x) * v[0];
         let img_y = (y_num.evaluate(&domain_point.x) * domain_point.y) * v[1];
 
-        Ok(Affine::new(img_x, img_y, false))
+        Ok(Affine::new_unchecked(img_x, img_y))
     }
 }
 
@@ -59,17 +59,10 @@ pub struct WBMap<P: WBParams> {
 impl<P: WBParams> MapToCurve<Affine<P>> for WBMap<P> {
     /// Constructs a new map if `P` represents a valid map.
     fn new() -> Result<Self, HashToCurveError> {
-        // Verifying that the isogeny maps the generator of the SWU curve into us
-        let isogenous_curve_generator = Affine::<P::IsogenousCurve>::new(
-            P::IsogenousCurve::AFFINE_GENERATOR_COEFFS.0,
-            P::IsogenousCurve::AFFINE_GENERATOR_COEFFS.1,
-            false,
-        );
-
-        match P::isogeny_map(isogenous_curve_generator) {
+        match P::isogeny_map(P::IsogenousCurve::GENERATOR) {
             Ok(point_on_curve) => {
                 if !point_on_curve.is_on_curve() {
-                    return Err(HashToCurveError::MapToCurveError(format!("the isogeny maps the generator of its domain: {} into {} which does not belong to its codomain.",isogenous_curve_generator, point_on_curve)));
+                    return Err(HashToCurveError::MapToCurveError(format!("the isogeny maps the generator of its domain: {} into {} which does not belong to its codomain.",P::IsogenousCurve::GENERATOR, point_on_curve)));
                 }
             },
             Err(e) => return Err(e),

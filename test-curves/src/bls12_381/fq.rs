@@ -6,13 +6,16 @@ use ark_ff::fields::{Fp384, MontBackend};
 pub struct FqConfig;
 pub type Fq = Fp384<MontBackend<FqConfig, 6>>;
 
-pub const FQ_ONE: Fq = ark_ff::MontFp!(Fq, "1");
-pub const FQ_ZERO: Fq = ark_ff::MontFp!(Fq, "0");
+pub const FQ_ONE: Fq = ark_ff::MontFp!("1");
+pub const FQ_ZERO: Fq = ark_ff::MontFp!("0");
 
 #[cfg(test)]
 mod tests {
+    use core::marker::PhantomData;
+
     use super::*;
-    use ark_ff::BigInt;
+    use ark_ff::{BigInt, FpConfig, One};
+
     #[test]
     fn test_constants() {
         use ark_ff::{MontConfig, PrimeField};
@@ -85,14 +88,20 @@ mod tests {
         // 2758230843577277949620073511305048635578704962089743514587482222134842183668501798417467556318533664893264801977679
         assert_eq!(
             FqConfig::GENERATOR,
-            Fq::new(BigInt::new([
-                0x321300000006554f,
-                0xb93c0018d6c40005,
-                0x57605e0db0ddbb51,
-                0x8b256521ed1f9bcb,
-                0x6cf28d7901622c03,
-                0x11ebab9dbb81e28c,
-            ]))
+            ark_ff::Fp(
+                BigInt::new([
+                    0x321300000006554f,
+                    0xb93c0018d6c40005,
+                    0x57605e0db0ddbb51,
+                    0x8b256521ed1f9bcb,
+                    0x6cf28d7901622c03,
+                    0x11ebab9dbb81e28c,
+                ]),
+                PhantomData
+            )
         );
+
+        assert_eq!(FQ_ONE, Fq::one());
+        assert_eq!(FQ_ONE, <MontBackend<FqConfig, 6>>::ONE);
     }
 }

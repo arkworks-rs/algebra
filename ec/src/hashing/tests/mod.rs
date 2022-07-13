@@ -1,4 +1,3 @@
-use crate::hashing::HashToCurve;
 use crate::{
     hashing::{
         curve_maps::{
@@ -6,13 +5,16 @@ use crate::{
             wb::{WBMap, WBParams},
         },
         map_to_curve_hasher::{MapToCurve, MapToCurveBasedHasher},
+        HashToCurve,
     },
     models::short_weierstrass::SWCurveConfig,
     short_weierstrass::Affine,
     CurveConfig,
 };
-use ark_ff::field_hashers::DefaultFieldHasher;
-use ark_ff::{biginteger::BigInteger64, fields::Fp64, BigInt, MontBackend, MontFp};
+use ark_ff::{
+    biginteger::BigInteger64, field_hashers::DefaultFieldHasher, fields::Fp64, BigInt, MontBackend,
+    MontFp,
+};
 
 use ark_ff::SquareRootField;
 use ark_std::vec::Vec;
@@ -31,7 +33,7 @@ impl ark_ff::MontConfig<1> for F127Config {
     // sage: FF(3)^63
     // 126
     #[rustfmt::skip]
-    const TWO_ADIC_ROOT_OF_UNITY: F127 = MontFp!(F127, "126");
+    const TWO_ADIC_ROOT_OF_UNITY: F127 = MontFp!("126");
 
     /// MODULUS = 127
     #[rustfmt::skip]
@@ -42,14 +44,14 @@ impl ark_ff::MontConfig<1> for F127Config {
     // Montgomery conversion 3 * 2 = 6 % 127
     /// GENERATOR = 3
     #[rustfmt::skip]
-    const GENERATOR: F127 = MontFp!(F127, "6");
+    const GENERATOR: F127 = MontFp!("6");
 
     // T and T_MINUS_ONE_DIV_TWO, where MODULUS - 1 = 2^S * T
     // For T coprime to 2
 }
 
-const F127_ZERO: F127 = MontFp!(F127, "0");
-const F127_ONE: F127 = MontFp!(F127, "1");
+const F127_ZERO: F127 = MontFp!("0");
+const F127_ONE: F127 = MontFp!("1");
 
 struct TestSWUMapToCurveParams;
 
@@ -82,17 +84,16 @@ impl SWCurveConfig for TestSWUMapToCurveParams {
 
     /// COEFF_B = 1
     #[rustfmt::skip]
-    const COEFF_B: F127 = MontFp!(F127, "63");
+    const COEFF_B: F127 = MontFp!("63");
 
     /// AFFINE_GENERATOR_COEFFS = (G1_GENERATOR_X, G1_GENERATOR_Y)
-    const AFFINE_GENERATOR_COEFFS: (Self::BaseField, Self::BaseField) =
-        (MontFp!(F127, "62"), MontFp!(F127, "70"));
+    const GENERATOR: Affine<Self> = Affine::new_unchecked(MontFp!("62"), MontFp!("70"));
 }
 
 impl SWUParams for TestSWUMapToCurveParams {
-    const XI: F127 = MontFp!(F127, "-1");
-    const ZETA: F127 = MontFp!(F127, "3");
-    const XI_ON_ZETA_SQRT: F127 = MontFp!(F127, "13");
+    const XI: F127 = MontFp!("-1");
+    const ZETA: F127 = MontFp!("3");
+    const XI_ON_ZETA_SQRT: F127 = MontFp!("13");
 }
 
 /// test that MontFp make a none zero element out of 1
@@ -197,25 +198,24 @@ impl CurveConfig for TestSWU127MapToIsogenousCurveParams {
 /// Field of size 127
 impl SWCurveConfig for TestSWU127MapToIsogenousCurveParams {
     /// COEFF_A = 109
-    const COEFF_A: F127 = MontFp!(F127, "109");
+    const COEFF_A: F127 = MontFp!("109");
 
     /// COEFF_B = 124
     #[rustfmt::skip]
-    const COEFF_B: F127 = MontFp!(F127, "124");
+    const COEFF_B: F127 = MontFp!("124");
 
     /// AFFINE_GENERATOR_COEFFS = (G1_GENERATOR_X, G1_GENERATOR_Y)
-    const AFFINE_GENERATOR_COEFFS: (Self::BaseField, Self::BaseField) =
-        (MontFp!(F127, "84"), MontFp!(F127, "2"));
+    const GENERATOR: Affine<Self> = Affine::new_unchecked(MontFp!("84"), MontFp!("2"));
 }
 
 /// SWU parameters for E_isogenous
 impl SWUParams for TestSWU127MapToIsogenousCurveParams {
     /// NON-SQUARE = - 1
-    const XI: F127 = MontFp!(F127, "-1");
+    const XI: F127 = MontFp!("-1");
     /// A Primitive Root of unity = 3
-    const ZETA: F127 = MontFp!(F127, "3");
+    const ZETA: F127 = MontFp!("3");
     /// sqrt(Xi/Zeta)
-    const XI_ON_ZETA_SQRT: F127 = MontFp!(F127, "13");
+    const XI_ON_ZETA_SQRT: F127 = MontFp!("13");
 }
 
 /// The struct defining our parameters for the target curve of hashing
@@ -239,11 +239,10 @@ impl SWCurveConfig for TestWBF127MapToCurveParams {
 
     /// COEFF_B = 3
     #[rustfmt::skip]
-    const COEFF_B: F127 = MontFp!(F127, "3");
+    const COEFF_B: F127 = MontFp!("3");
 
     /// AFFINE_GENERATOR_COEFFS = (G1_GENERATOR_X, G1_GENERATOR_Y)
-    const AFFINE_GENERATOR_COEFFS: (Self::BaseField, Self::BaseField) =
-        (MontFp!(F127, "62"), MontFp!(F127, "70"));
+    const GENERATOR: Affine<Self> = Affine::new_unchecked(MontFp!("62"), MontFp!("70"));
 }
 
 /// E_isogenous : Elliptic Curve defined by y^2 = x^3 + 109*x + 124 over Finite
@@ -256,89 +255,91 @@ impl SWCurveConfig for TestWBF127MapToCurveParams {
 /// 4)/(x^12 - 13*x^11 + 11*x^10 - 33*x^9 - 30*x^8 + 30*x^7 + 34*x^6 - 44*x^5 +
 /// 63*x^4 - 20*x^3 - 10*x^2 + 31*x + 2)
 ///
-/// psi_y: (10*x^18*y + 59*x^17*y + 41*x^16*y + 48*x^15*y - 7*x^14*y + 6*x^13*y +
-/// 5*x^12*y + 62*x^11*y + 12*x^10*y + 36*x^9*y - 49*x^8*y - 18*x^7*y - 63*x^6*y
+/// psi_y: (10*x^18*y + 59*x^17*y + 41*x^16*y + 48*x^15*y - 7*x^14*y + 6*x^13*y
+/// + 5*x^12*y + 62*x^11*y + 12*x^10*y + 36*x^9*y - 49*x^8*y - 18*x^7*y -
+/// 63*x^6*y
 /// - 43*x^5*y - 60*x^4*y - 18*x^3*y + 30*x^2*y - 57*x*y - 34*y)/(x^18 + 44*x^17
-/// - 63*x^16 + 52*x^15 + 3*x^14 + 38*x^13 - 30*x^12 + 11*x^11 - 42*x^10 - 13*x^9
+/// - 63*x^16 + 52*x^15 + 3*x^14 + 38*x^13 - 30*x^12 + 11*x^11 - 42*x^10 -
+///   13*x^9
 /// - 46*x^8 - 61*x^7 - 16*x^6 - 55*x^5 + 18*x^4 + 23*x^3 - 24*x^2 - 18*x + 32)
 impl WBParams for TestWBF127MapToCurveParams {
     type IsogenousCurve = TestSWU127MapToIsogenousCurveParams;
 
     const PHI_X_NOM: &'static [<Self::IsogenousCurve as CurveConfig>::BaseField] = &[
-        MontFp!(F127, "4"),
-        MontFp!(F127, "63"),
-        MontFp!(F127, "23"),
-        MontFp!(F127, "39"),
-        MontFp!(F127, "-14"),
-        MontFp!(F127, "23"),
-        MontFp!(F127, "-32"),
-        MontFp!(F127, "32"),
-        MontFp!(F127, "-13"),
-        MontFp!(F127, "40"),
-        MontFp!(F127, "34"),
-        MontFp!(F127, "10"),
-        MontFp!(F127, "-21"),
-        MontFp!(F127, "-57"),
+        MontFp!("4"),
+        MontFp!("63"),
+        MontFp!("23"),
+        MontFp!("39"),
+        MontFp!("-14"),
+        MontFp!("23"),
+        MontFp!("-32"),
+        MontFp!("32"),
+        MontFp!("-13"),
+        MontFp!("40"),
+        MontFp!("34"),
+        MontFp!("10"),
+        MontFp!("-21"),
+        MontFp!("-57"),
     ];
 
     const PHI_X_DEN: &'static [<Self::IsogenousCurve as CurveConfig>::BaseField] = &[
-        MontFp!(F127, "2"),
-        MontFp!(F127, "31"),
-        MontFp!(F127, "-10"),
-        MontFp!(F127, "-20"),
-        MontFp!(F127, "63"),
-        MontFp!(F127, "-44"),
-        MontFp!(F127, "34"),
-        MontFp!(F127, "30"),
-        MontFp!(F127, "-30"),
-        MontFp!(F127, "-33"),
-        MontFp!(F127, "11"),
-        MontFp!(F127, "-13"),
-        MontFp!(F127, "1"),
+        MontFp!("2"),
+        MontFp!("31"),
+        MontFp!("-10"),
+        MontFp!("-20"),
+        MontFp!("63"),
+        MontFp!("-44"),
+        MontFp!("34"),
+        MontFp!("30"),
+        MontFp!("-30"),
+        MontFp!("-33"),
+        MontFp!("11"),
+        MontFp!("-13"),
+        MontFp!("1"),
     ];
 
     const PHI_Y_NOM: &'static [<Self::IsogenousCurve as CurveConfig>::BaseField] = &[
-        MontFp!(F127, "-34"),
-        MontFp!(F127, "-57"),
-        MontFp!(F127, "30"),
-        MontFp!(F127, "-18"),
-        MontFp!(F127, "-60"),
-        MontFp!(F127, "-43"),
-        MontFp!(F127, "-63"),
-        MontFp!(F127, "-18"),
-        MontFp!(F127, "-49"),
-        MontFp!(F127, "36"),
-        MontFp!(F127, "12"),
-        MontFp!(F127, "62"),
-        MontFp!(F127, "5"),
-        MontFp!(F127, "6"),
-        MontFp!(F127, "-7"),
-        MontFp!(F127, "48"),
-        MontFp!(F127, "41"),
-        MontFp!(F127, "59"),
-        MontFp!(F127, "10"),
+        MontFp!("-34"),
+        MontFp!("-57"),
+        MontFp!("30"),
+        MontFp!("-18"),
+        MontFp!("-60"),
+        MontFp!("-43"),
+        MontFp!("-63"),
+        MontFp!("-18"),
+        MontFp!("-49"),
+        MontFp!("36"),
+        MontFp!("12"),
+        MontFp!("62"),
+        MontFp!("5"),
+        MontFp!("6"),
+        MontFp!("-7"),
+        MontFp!("48"),
+        MontFp!("41"),
+        MontFp!("59"),
+        MontFp!("10"),
     ];
 
     const PHI_Y_DEN: &'static [<Self::IsogenousCurve as CurveConfig>::BaseField] = &[
-        MontFp!(F127, "32"),
-        MontFp!(F127, "-18"),
-        MontFp!(F127, "-24"),
-        MontFp!(F127, "23"),
-        MontFp!(F127, "18"),
-        MontFp!(F127, "-55"),
-        MontFp!(F127, "-16"),
-        MontFp!(F127, "-61"),
-        MontFp!(F127, "-46"),
-        MontFp!(F127, "-13"),
-        MontFp!(F127, "-42"),
-        MontFp!(F127, "11"),
-        MontFp!(F127, "-30"),
-        MontFp!(F127, "38"),
-        MontFp!(F127, "3"),
-        MontFp!(F127, "52"),
-        MontFp!(F127, "-63"),
-        MontFp!(F127, "44"),
-        MontFp!(F127, "1"),
+        MontFp!("32"),
+        MontFp!("-18"),
+        MontFp!("-24"),
+        MontFp!("23"),
+        MontFp!("18"),
+        MontFp!("-55"),
+        MontFp!("-16"),
+        MontFp!("-61"),
+        MontFp!("-46"),
+        MontFp!("-13"),
+        MontFp!("-42"),
+        MontFp!("11"),
+        MontFp!("-30"),
+        MontFp!("38"),
+        MontFp!("3"),
+        MontFp!("52"),
+        MontFp!("-63"),
+        MontFp!("44"),
+        MontFp!("1"),
     ];
 }
 

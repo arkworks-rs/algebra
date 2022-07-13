@@ -9,8 +9,8 @@ use ark_ff_macros::unroll_for_loops;
 ///
 /// # Note
 /// Manual implementation of this trait is not recommended unless one wishes
-/// to specialize arithmetic methods. Instead, the [`MontConfig`][`ark_ff_macros::MontConfig`]
-/// derive macro should be used.
+/// to specialize arithmetic methods. Instead, the
+/// [`MontConfig`][`ark_ff_macros::MontConfig`] derive macro should be used.
 pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
     /// The modulus of the field.
     const MODULUS: BigInt<N>;
@@ -130,7 +130,7 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
             }
         } else {
             // Alternative implementation
-            *a = a.mul_without_reduce(b, &Self::MODULUS, Self::INV);
+            *a = a.mul_without_reduce(b);
         }
         a.subtract_modulus();
     }
@@ -221,7 +221,7 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
 
             let mut u = a.0;
             let mut v = Self::MODULUS;
-            let mut b = Fp::new(Self::R2); // Avoids unnecessary reduction step.
+            let mut b = Fp::new_unchecked(Self::R2); // Avoids unnecessary reduction step.
             let mut c = Fp::zero();
 
             while u != one && v != one {
@@ -265,11 +265,11 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
     }
 
     fn from_bigint(r: BigInt<N>) -> Option<Fp<MontBackend<Self, N>, N>> {
-        let mut r = Fp::new(r);
+        let mut r = Fp::new_unchecked(r);
         if r.is_zero() {
             Some(r)
         } else if r.is_less_than_modulus() {
-            r *= &Fp::new(Self::R2);
+            r *= &Fp::new_unchecked(Self::R2);
             Some(r)
         } else {
             None
@@ -321,9 +321,10 @@ pub const fn can_use_no_carry_optimization<const N: usize>(modulus: &BigInt<N>) 
     !(first_bit_set || all_bits_set)
 }
 
-/// Construct a [`Fp<MontBackend<T, N>, N>`] element from a literal string. This should
-/// be used primarily for constructing constant field elements; in a non-const
-/// context, [`Fp::from_str`](`ark_std::str::FromStr::from_str`) is preferable.
+/// Construct a [`Fp<MontBackend<T, N>, N>`] element from a literal string. This
+/// should be used primarily for constructing constant field elements; in a
+/// non-const context, [`Fp::from_str`](`ark_std::str::FromStr::from_str`) is
+/// preferable.
 ///
 /// # Panics
 ///
@@ -339,8 +340,8 @@ pub const fn can_use_no_carry_optimization<const N: usize>(modulus: &BigInt<N>) 
 /// # use ark_test_curves::bls12_381 as ark_bls12_381;
 /// # use ark_std::str::FromStr;
 /// use ark_bls12_381::Fq;
-/// const ONE: Fq = MontFp!(Fq, "1");
-/// const NEG_ONE: Fq = MontFp!(Fq, "-1");
+/// const ONE: Fq = MontFp!("1");
+/// const NEG_ONE: Fq = MontFp!("-1");
 ///
 /// fn check_correctness() {
 ///     assert_eq!(ONE, Fq::one());
@@ -350,15 +351,9 @@ pub const fn can_use_no_carry_optimization<const N: usize>(modulus: &BigInt<N>) 
 /// ```
 #[macro_export]
 macro_rules! MontFp {
-    ($name:ty, $c0:expr) => {{
-        use $crate::PrimeField;
+    ($c0:expr) => {{
         let (is_positive, limbs) = $crate::ark_ff_macros::to_sign_and_limbs!($c0);
-        $crate::Fp::const_from_str(
-            &limbs,
-            is_positive,
-            <$name>::R2,
-            &<$name as PrimeField>::MODULUS,
-        )
+        $crate::Fp::from_sign_and_limbs(is_positive, &limbs)
     }};
 }
 
@@ -366,7 +361,7 @@ pub use ark_ff_macros::MontConfig;
 
 pub use MontFp;
 
-pub struct MontBackend<T, const N: usize>(PhantomData<T>);
+pub struct MontBackend<T: MontConfig<N>, const N: usize>(PhantomData<T>);
 
 impl<T: MontConfig<N>, const N: usize> FpConfig<N> for MontBackend<T, N> {
     /// The modulus of the field.
@@ -379,11 +374,11 @@ impl<T: MontConfig<N>, const N: usize> FpConfig<N> for MontBackend<T, N> {
 
     /// Additive identity of the field, i.e. the element `e`
     /// such that, for all elements `f` of the field, `e + f = f`.
-    const ZERO: Fp<Self, N> = Fp::new(BigInt([0u64; N]));
+    const ZERO: Fp<Self, N> = Fp::new_unchecked(BigInt([0u64; N]));
 
     /// Multiplicative identity of the field, i.e. the element `e`
     /// such that, for all elements `f` of the field, `e * f = f`.
-    const ONE: Fp<Self, N> = Fp::new(T::R);
+    const ONE: Fp<Self, N> = Fp::new_unchecked(T::R);
 
     const TWO_ADICITY: u32 = Self::MODULUS.two_adic_valuation();
     const TWO_ADIC_ROOT_OF_UNITY: Fp<Self, N> = T::TWO_ADIC_ROOT_OF_UNITY;
@@ -435,60 +430,64 @@ impl<T: MontConfig<N>, const N: usize> FpConfig<N> for MontBackend<T, N> {
     }
 }
 
-impl<T, const N: usize> Fp<MontBackend<T, N>, N> {
+impl<T: MontConfig<N>, const N: usize> Fp<MontBackend<T, N>, N> {
+    /// Construct a new field element from its underlying
+    /// [`struct@BigInt`] data type.
+    #[inline]
+    pub const fn new(element: BigInt<N>) -> Self {
+        let mut r = Self(element, PhantomData);
+        if r.const_is_zero() {
+            r
+        } else {
+            r = r.mul(&Fp(T::R2, PhantomData));
+            r
+        }
+    }
+
+    /// Construct a new field element from its underlying
+    /// [`struct@BigInt`] data type.
+    ///
+    /// Unlike [`Self::new`], this method does not perform Montgomery reduction.
+    /// Thus, this method should be used only when constructing
+    /// an element from an integer that has already been put in
+    /// Montgomery form.
+    #[inline]
+    pub const fn new_unchecked(element: BigInt<N>) -> Self {
+        Self(element, PhantomData)
+    }
+
     const fn const_is_zero(&self) -> bool {
         self.0.const_is_zero()
     }
 
     #[doc(hidden)]
-    const fn const_neg(self, modulus: &BigInt<N>) -> Self {
+    const fn const_neg(self) -> Self {
         if !self.const_is_zero() {
-            Self::new(Self::sub_with_borrow(modulus, &self.0))
+            Self::new_unchecked(Self::sub_with_borrow(&T::MODULUS, &self.0))
         } else {
             self
         }
     }
 
-    /// Interpret a string of decimal numbers as a prime field element.
-    /// Does not accept unnecessary leading zeroes or a blank string.
+    /// Interpret a set of limbs (along with a sign) as a field element.
     /// For *internal* use only; please use the `ark_ff::MontFp` macro instead
     /// of this method
     #[doc(hidden)]
-    pub const fn const_from_str(
-        limbs: &[u64],
-        is_positive: bool,
-        r2: BigInt<N>,
-        modulus: &BigInt<N>,
-    ) -> Self {
+    pub const fn from_sign_and_limbs(is_positive: bool, limbs: &[u64]) -> Self {
         let mut repr = BigInt::<N>([0; N]);
-        assert!(repr.0.len() == N);
+        assert!(limbs.len() <= N);
         crate::const_for!((i in 0..(limbs.len())) {
             repr.0[i] = limbs[i];
         });
-        let res = Self::const_from_bigint(repr, r2, modulus);
+        let res = Self::new(repr);
         if is_positive {
             res
         } else {
-            res.const_neg(modulus)
+            res.const_neg()
         }
     }
 
-    #[inline]
-    pub(crate) const fn const_from_bigint(
-        repr: BigInt<N>,
-        r2: BigInt<N>,
-        modulus: &BigInt<N>,
-    ) -> Self {
-        let mut r = Self::new(repr);
-        if r.const_is_zero() {
-            r
-        } else {
-            r = r.const_mul(&Fp(r2, PhantomData), modulus);
-            r
-        }
-    }
-
-    const fn mul_without_reduce(mut self, other: &Self, modulus: &BigInt<N>, inv: u64) -> Self {
+    const fn mul_without_reduce(mut self, other: &Self) -> Self {
         let (mut lo, mut hi) = ([0u64; N], [0u64; N]);
         crate::const_for!((i in 0..N) {
             let mut carry = 0;
@@ -505,15 +504,15 @@ impl<T, const N: usize> Fp<MontBackend<T, N>, N> {
         // Montgomery reduction
         let mut carry2 = 0;
         crate::const_for!((i in 0..N) {
-            let tmp = lo[i].wrapping_mul(inv);
+            let tmp = lo[i].wrapping_mul(T::INV);
             let mut carry = 0;
-            mac_with_carry!(lo[i], tmp, modulus.0[0], &mut carry);
+            mac_with_carry!(lo[i], tmp, T::MODULUS.0[0], &mut carry);
             crate::const_for!((j in 1..N) {
                 let k = i + j;
                 if k >= N {
-                    hi[k - N] = mac_with_carry!(hi[k - N], tmp, modulus.0[j], &mut carry);
+                    hi[k - N] = mac_with_carry!(hi[k - N], tmp, T::MODULUS.0[j], &mut carry);
                 }  else {
-                    lo[k] = mac_with_carry!(lo[k], tmp, modulus.0[j], &mut carry);
+                    lo[k] = mac_with_carry!(lo[k], tmp, T::MODULUS.0[j], &mut carry);
                 }
             });
             hi[i] = adc!(hi[i], carry2, &mut carry);
@@ -526,21 +525,16 @@ impl<T, const N: usize> Fp<MontBackend<T, N>, N> {
         self
     }
 
-    const fn const_mul_without_reduce(self, other: &Self, modulus: &BigInt<N>) -> Self {
-        let inv = inv(modulus);
-        self.mul_without_reduce(other, modulus, inv)
+    const fn mul(mut self, other: &Self) -> Self {
+        self = self.mul_without_reduce(other);
+        self.const_reduce()
     }
 
-    const fn const_mul(mut self, other: &Self, modulus: &BigInt<N>) -> Self {
-        self = self.const_mul_without_reduce(other, modulus);
-        self.const_reduce(modulus)
-    }
-
-    const fn const_is_valid(&self, modulus: &BigInt<N>) -> bool {
+    const fn const_is_valid(&self) -> bool {
         crate::const_for!((i in 0..N) {
-            if (self.0).0[(N - i - 1)] < modulus.0[(N - i - 1)] {
+            if (self.0).0[(N - i - 1)] < T::MODULUS.0[(N - i - 1)] {
                 return true
-            } else if (self.0).0[(N - i - 1)] > modulus.0[(N - i - 1)] {
+            } else if (self.0).0[(N - i - 1)] > T::MODULUS.0[(N - i - 1)] {
                 return false
             }
         });
@@ -548,9 +542,9 @@ impl<T, const N: usize> Fp<MontBackend<T, N>, N> {
     }
 
     #[inline]
-    const fn const_reduce(mut self, modulus: &BigInt<N>) -> Self {
-        if !self.const_is_valid(modulus) {
-            self.0 = Self::sub_with_borrow(&self.0, modulus);
+    const fn const_reduce(mut self) -> Self {
+        if !self.const_is_valid() {
+            self.0 = Self::sub_with_borrow(&self.0, &T::MODULUS);
         }
         self
     }

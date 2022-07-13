@@ -165,7 +165,7 @@ impl<P: SWUParams> MapToCurve<Affine<P>> for SWUMap<P> {
 
         let x_affine = num_x / div;
         let y_affine = if parity(&y) { -y } else { y };
-        let point_on_curve = Affine::<P>::new(x_affine, y_affine, false);
+        let point_on_curve = Affine::<P>::new_unchecked(x_affine, y_affine);
         assert!(
             point_on_curve.is_on_curve(),
             "swu mapped to a point off the curve"

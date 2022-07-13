@@ -160,14 +160,14 @@ impl<'a, 'b, F: Field> Add<&'a SparsePolynomial<F>> for &'b SparsePolynomial<F> 
     }
 }
 
-impl<'a, 'b, F: Field> AddAssign<&'a SparsePolynomial<F>> for SparsePolynomial<F> {
+impl<'a, F: Field> AddAssign<&'a SparsePolynomial<F>> for SparsePolynomial<F> {
     // TODO: Reduce number of clones
     fn add_assign(&mut self, other: &'a SparsePolynomial<F>) {
         self.coeffs = (self.clone() + other.clone()).coeffs;
     }
 }
 
-impl<'a, 'b, F: Field> AddAssign<(F, &'a SparsePolynomial<F>)> for SparsePolynomial<F> {
+impl<'a, F: Field> AddAssign<(F, &'a SparsePolynomial<F>)> for SparsePolynomial<F> {
     // TODO: Reduce number of clones
     fn add_assign(&mut self, (f, other): (F, &'a SparsePolynomial<F>)) {
         self.coeffs = (self.clone() + other.clone()).coeffs;
@@ -189,7 +189,7 @@ impl<F: Field> Neg for SparsePolynomial<F> {
     }
 }
 
-impl<'a, 'b, F: Field> SubAssign<&'a SparsePolynomial<F>> for SparsePolynomial<F> {
+impl<'a, F: Field> SubAssign<&'a SparsePolynomial<F>> for SparsePolynomial<F> {
     // TODO: Reduce number of clones
     #[inline]
     fn sub_assign(&mut self, other: &'a SparsePolynomial<F>) {
@@ -198,7 +198,7 @@ impl<'a, 'b, F: Field> SubAssign<&'a SparsePolynomial<F>> for SparsePolynomial<F
     }
 }
 
-impl<'a, 'b, F: Field> Mul<F> for &'b SparsePolynomial<F> {
+impl<'b, F: Field> Mul<F> for &'b SparsePolynomial<F> {
     type Output = SparsePolynomial<F>;
 
     #[inline]
@@ -294,13 +294,13 @@ impl<F: FftField> SparsePolynomial<F> {
     }
 }
 
-impl<F: Field> Into<DensePolynomial<F>> for SparsePolynomial<F> {
-    fn into(self) -> DensePolynomial<F> {
-        let mut other = vec![F::zero(); self.degree() + 1];
-        for (i, coeff) in self.coeffs {
-            other[i] = coeff;
+impl<F: Field> From<SparsePolynomial<F>> for DensePolynomial<F> {
+    fn from(other: SparsePolynomial<F>) -> Self {
+        let mut result = vec![F::zero(); other.degree() + 1];
+        for (i, coeff) in other.coeffs {
+            result[i] = coeff;
         }
-        DensePolynomial::from_coefficients_vec(other)
+        DensePolynomial::from_coefficients_vec(result)
     }
 }
 
@@ -308,9 +308,9 @@ impl<F: Field> From<DensePolynomial<F>> for SparsePolynomial<F> {
     fn from(dense_poly: DensePolynomial<F>) -> SparsePolynomial<F> {
         let coeffs = dense_poly.coeffs();
         let mut sparse_coeffs = Vec::<(usize, F)>::new();
-        for i in 0..coeffs.len() {
-            if !coeffs[i].is_zero() {
-                sparse_coeffs.push((i, coeffs[i]));
+        for (i, coeff) in coeffs.iter().enumerate() {
+            if !coeff.is_zero() {
+                sparse_coeffs.push((i, *coeff));
             }
         }
         SparsePolynomial::from_coefficients_vec(sparse_coeffs)
