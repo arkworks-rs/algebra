@@ -246,7 +246,7 @@ impl<P: QuadExtConfig> Field for QuadExtField<P> {
 
     fn from_base_prime_field(elem: Self::BasePrimeField) -> Self {
         let fe = P::BaseField::from_base_prime_field(elem);
-        Self::new(fe,  P::BaseField::ZERO)
+        Self::new(fe, P::BaseField::ZERO)
     }
 
     fn to_base_prime_field_elements(&self) -> Self::BasePrimeFieldIter {
@@ -817,7 +817,10 @@ mod quad_ext_tests {
             let random_coeff = Fq::rand(&mut test_rng());
             let res = Fq2::from_base_prime_field(random_coeff);
             random_coeffs[0] = random_coeff;
-            assert_eq!(res, Fq2::from_base_prime_field_elems(&random_coeffs).unwrap());
+            assert_eq!(
+                res,
+                Fq2::from_base_prime_field_elems(&random_coeffs).unwrap()
+            );
         }
     }
 }

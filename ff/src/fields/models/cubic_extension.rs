@@ -134,11 +134,7 @@ impl<P: CubicExtConfig> CubicExtField<P> {
 
 impl<P: CubicExtConfig> Zero for CubicExtField<P> {
     fn zero() -> Self {
-        Self::new(
-            P::BaseField::ZERO,
-            P::BaseField::ZERO,
-            P::BaseField::ZERO,
-        )
+        Self::new(P::BaseField::ZERO, P::BaseField::ZERO, P::BaseField::ZERO)
     }
 
     fn is_zero(&self) -> bool {
@@ -148,11 +144,7 @@ impl<P: CubicExtConfig> Zero for CubicExtField<P> {
 
 impl<P: CubicExtConfig> One for CubicExtField<P> {
     fn one() -> Self {
-        Self::new(
-            P::BaseField::ONE,
-            P::BaseField::ZERO,
-            P::BaseField::ZERO,
-        )
+        Self::new(P::BaseField::ONE, P::BaseField::ZERO, P::BaseField::ZERO)
     }
 
     fn is_one(&self) -> bool {
@@ -174,7 +166,7 @@ impl<P: CubicExtConfig> Field for CubicExtField<P> {
 
     fn from_base_prime_field(elem: Self::BasePrimeField) -> Self {
         let fe = P::BaseField::from_base_prime_field(elem);
-        Self::new(fe,  P::BaseField::ZERO, P::BaseField::ZERO)
+        Self::new(fe, P::BaseField::ZERO, P::BaseField::ZERO)
     }
 
     fn to_base_prime_field_elements(&self) -> Self::BasePrimeFieldIter {
@@ -443,7 +435,11 @@ impl<P: CubicExtConfig> From<i8> for CubicExtField<P> {
 
 impl<P: CubicExtConfig> From<bool> for CubicExtField<P> {
     fn from(other: bool) -> Self {
-        Self::new(u8::from(other).into(), P::BaseField::ZERO, P::BaseField::ZERO)
+        Self::new(
+            u8::from(other).into(),
+            P::BaseField::ZERO,
+            P::BaseField::ZERO,
+        )
     }
 }
 
@@ -710,7 +706,10 @@ mod cube_ext_tests {
             let random_coeff = Fq::rand(&mut test_rng());
             let res = Fq6::from_base_prime_field(random_coeff);
             random_coeffs[0] = random_coeff;
-            assert_eq!(res, Fq6::from_base_prime_field_elems(&random_coeffs).unwrap());
+            assert_eq!(
+                res,
+                Fq6::from_base_prime_field_elems(&random_coeffs).unwrap()
+            );
         }
     }
 }
