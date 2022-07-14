@@ -59,15 +59,10 @@ pub trait FpConfig<const N: usize>: Send + Sync + 'static + Sized {
     /// FFT.
     const LARGE_SUBGROUP_ROOT_OF_UNITY: Option<Fp<Self, N>> = None;
 
-    /// Determines the algorithm for computing square roots.
+    /// Precomputed material for use when computing square roots.
     /// Currently uses the generic Tonelli-Shanks,
     /// which works for every modulus.
-    const SQRT_PRECOMP: Option<SqrtPrecomputation<Fp<Self, N>>> =
-        Some(SqrtPrecomputation::TonelliShanks(
-            Self::TWO_ADICITY,
-            &Fp::<Self, N>::TRACE_MINUS_ONE_DIV_TWO,
-            Self::TWO_ADIC_ROOT_OF_UNITY,
-        ));
+    const SQRT_PRECOMP: Option<SqrtPrecomputation<Fp<Self, N>>>;
 
     /// Set a += b.
     fn add_assign(a: &mut Fp<Self, N>, b: &Fp<Self, N>);
@@ -181,7 +176,7 @@ impl<P: FpConfig<N>, const N: usize> Field for Fp<P, N> {
     type BasePrimeField = Self;
     type BasePrimeFieldIter = iter::Once<Self::BasePrimeField>;
 
-    const SQRT_PRECOMP: Option<crate::SqrtPrecomputation<Self>> = P::SQRT_PRECOMP;
+    const SQRT_PRECOMP: Option<SqrtPrecomputation<Self>> = P::SQRT_PRECOMP;
     const ZERO: Self = P::ZERO;
     const ONE: Self = P::ONE;
 
