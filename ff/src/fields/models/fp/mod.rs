@@ -18,7 +18,7 @@ use ark_std::{
 mod montgomery_backend;
 pub use montgomery_backend::*;
 
-use crate::{BigInt, BigInteger, FftField, Field, LegendreSymbol, PrimeField, SquareRootField};
+use crate::{BigInt, BigInteger, FftField, Field, LegendreSymbol, PrimeField, SqrtPrecomputation};
 /// A trait that specifies the configuration of a prime field.
 /// Also specifies how to perform arithmetic on field elements.
 pub trait FpConfig<const N: usize>: Send + Sync + 'static + Sized {
@@ -59,6 +59,11 @@ pub trait FpConfig<const N: usize>: Send + Sync + 'static + Sized {
     /// FFT.
     const LARGE_SUBGROUP_ROOT_OF_UNITY: Option<Fp<Self, N>> = None;
 
+    /// Precomputed material for use when computing square roots.
+    /// Currently uses the generic Tonelli-Shanks,
+    /// which works for every modulus.
+    const SQRT_PRECOMP: Option<SqrtPrecomputation<Fp<Self, N>>>;
+
     /// Set a += b.
     fn add_assign(a: &mut Fp<Self, N>, b: &Fp<Self, N>);
 
@@ -76,68 +81,6 @@ pub trait FpConfig<const N: usize>: Send + Sync + 'static + Sized {
 
     /// Compute a^{-1} if `a` is not zero.
     fn inverse(a: &Fp<Self, N>) -> Option<Fp<Self, N>>;
-
-    /// Compute the square root of a, if it exists.
-    fn square_root(a: &Fp<Self, N>) -> Option<Fp<Self, N>> {
-        // https://eprint.iacr.org/2012/685.pdf (page 12, algorithm 5)
-        // Actually this is just normal Tonelli-Shanks; since [`Self::GENERATOR`]
-        // is a quadratic non-residue, `P::ROOT_OF_UNITY = P::GENERATOR ^ t`
-        // is also a quadratic non-residue (since `t` is odd).
-        if a.is_zero() {
-            return Some(Fp::zero());
-        }
-        // Try computing the square root (x at the end of the algorithm)
-        // Check at the end of the algorithm if x was a square root
-        // Begin Tonelli-Shanks
-        let mut z = Fp::TWO_ADIC_ROOT_OF_UNITY;
-        let mut w = a.pow(Fp::<Self, N>::TRACE_MINUS_ONE_DIV_TWO);
-        let mut x = w * a;
-        let mut b = x * &w;
-
-        let mut v = Self::TWO_ADICITY as usize;
-
-        while !b.is_one() {
-            let mut k = 0usize;
-
-            let mut b2k = b;
-            while !b2k.is_one() {
-                // invariant: b2k = b^(2^k) after entering this loop
-                b2k.square_in_place();
-                k += 1;
-            }
-
-            if k == (Self::TWO_ADICITY as usize) {
-                // We are in the case where self^(T * 2^k) = x^(P::MODULUS - 1) = 1,
-                // which means that no square root exists.
-                return None;
-            }
-            let j = v - k;
-            w = z;
-            for _ in 1..j {
-                w.square_in_place();
-            }
-
-            z = w.square();
-            b *= &z;
-            x *= &w;
-            v = k;
-        }
-        // Is x the square root? If so, return it.
-        if x.square() == *a {
-            Some(x)
-        } else {
-            // Consistency check that if no square root is found,
-            // it is because none exists.
-            #[cfg(debug_assertions)]
-            {
-                use crate::fields::LegendreSymbol::*;
-                if a.legendre() != QuadraticNonResidue {
-                    panic!("Input has a square root per its Legendre symbol, but it was not found")
-                }
-            }
-            None
-        }
-    }
 
     /// Construct a field element from an integer in the range
     /// `0..(Self::MODULUS - 1)`. Returns `None` if the integer is outside
@@ -233,6 +176,7 @@ impl<P: FpConfig<N>, const N: usize> Field for Fp<P, N> {
     type BasePrimeField = Self;
     type BasePrimeFieldIter = iter::Once<Self::BasePrimeField>;
 
+    const SQRT_PRECOMP: Option<SqrtPrecomputation<Self>> = P::SQRT_PRECOMP;
     const ZERO: Self = P::ZERO;
     const ONE: Self = P::ONE;
 
@@ -347,6 +291,21 @@ impl<P: FpConfig<N>, const N: usize> Field for Fp<P, N> {
     /// The Frobenius map has no effect in a prime field.
     #[inline]
     fn frobenius_map(&mut self, _: usize) {}
+
+    #[inline]
+    fn legendre(&self) -> LegendreSymbol {
+        use crate::fields::LegendreSymbol::*;
+
+        // s = self^((MODULUS - 1) // 2)
+        let s = self.pow(Self::MODULUS_MINUS_ONE_DIV_TWO);
+        if s.is_zero() {
+            Zero
+        } else if s.is_one() {
+            QuadraticResidue
+        } else {
+            QuadraticNonResidue
+        }
+    }
 }
 
 impl<P: FpConfig<N>, const N: usize> PrimeField for Fp<P, N> {
@@ -374,35 +333,6 @@ impl<P: FpConfig<N>, const N: usize> FftField for Fp<P, N> {
     const SMALL_SUBGROUP_BASE: Option<u32> = P::SMALL_SUBGROUP_BASE;
     const SMALL_SUBGROUP_BASE_ADICITY: Option<u32> = P::SMALL_SUBGROUP_BASE_ADICITY;
     const LARGE_SUBGROUP_ROOT_OF_UNITY: Option<Self> = P::LARGE_SUBGROUP_ROOT_OF_UNITY;
-}
-
-impl<P: FpConfig<N>, const N: usize> SquareRootField for Fp<P, N> {
-    #[inline]
-    fn legendre(&self) -> LegendreSymbol {
-        use crate::fields::LegendreSymbol::*;
-
-        // s = self^((MODULUS - 1) // 2)
-        let s = self.pow(Self::MODULUS_MINUS_ONE_DIV_TWO);
-        if s.is_zero() {
-            Zero
-        } else if s.is_one() {
-            QuadraticResidue
-        } else {
-            QuadraticNonResidue
-        }
-    }
-
-    #[inline]
-    fn sqrt(&self) -> Option<Self> {
-        P::square_root(self)
-    }
-
-    fn sqrt_in_place(&mut self) -> Option<&mut Self> {
-        (*self).sqrt().map(|sqrt| {
-            *self = sqrt;
-            self
-        })
-    }
 }
 
 /// Note that this implementation of `Ord` compares field elements viewing

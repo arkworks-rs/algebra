@@ -12,11 +12,10 @@ use crate::{
     CurveConfig,
 };
 use ark_ff::{
-    biginteger::BigInteger64, field_hashers::DefaultFieldHasher, fields::Fp64, BigInt, MontBackend,
-    MontFp,
+    biginteger::BigInteger64, field_hashers::DefaultFieldHasher, fields::Fp64, BigInt, Field,
+    MontBackend, MontFp,
 };
 
-use ark_ff::SquareRootField;
 use ark_std::vec::Vec;
 use ark_test_curves::bls12_381::{Fq, Fq2, Fq6};
 use hashbrown::HashMap;
@@ -119,7 +118,7 @@ fn test_field_division() {
 /// Check that the hashing parameters are sane: zeta should be a non-square
 #[test]
 fn checking_the_hashing_parameters() {
-    assert!(!SquareRootField::legendre(&TestSWUMapToCurveParams::ZETA).is_qr());
+    assert!(!Field::legendre(&TestSWUMapToCurveParams::ZETA).is_qr());
 }
 
 /// The point of the test is to get a simple SWU compatible curve and make

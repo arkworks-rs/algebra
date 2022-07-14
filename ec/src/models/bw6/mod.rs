@@ -5,7 +5,7 @@ use crate::{
 use ark_ff::fields::{
     fp3::Fp3Config,
     fp6_2over3::{Fp6, Fp6Config},
-    BitIteratorBE, Field, PrimeField, SquareRootField,
+    BitIteratorBE, Field, PrimeField,
 };
 use num_traits::One;
 
@@ -24,7 +24,7 @@ pub trait BW6Parameters: 'static + Eq + PartialEq {
     const ATE_LOOP_COUNT_2: &'static [i8];
     const ATE_LOOP_COUNT_2_IS_NEGATIVE: bool;
     const TWIST_TYPE: TwistType;
-    type Fp: PrimeField + SquareRootField + Into<<Self::Fp as PrimeField>::BigInt>;
+    type Fp: PrimeField + Into<<Self::Fp as PrimeField>::BigInt>;
     type Fp3Config: Fp3Config<Fp = Self::Fp>;
     type Fp6Config: Fp6Config<Fp3Config = Self::Fp3Config>;
     type G1Parameters: SWCurveConfig<BaseField = Self::Fp>;

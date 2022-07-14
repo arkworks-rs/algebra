@@ -42,7 +42,7 @@ pub use ark_std::vec;
 pub mod prelude {
     pub use crate::biginteger::BigInteger;
 
-    pub use crate::fields::{Field, PrimeField, SquareRootField};
+    pub use crate::fields::{Field, PrimeField};
 
     pub use ark_std::UniformRand;
 

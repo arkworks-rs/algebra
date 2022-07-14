@@ -21,11 +21,11 @@ use ark_std::rand::{
 
 use crate::{
     fields::{Field, PrimeField},
-    ToConstraintField, UniformRand,
+    LegendreSymbol, SqrtPrecomputation, ToConstraintField, UniformRand,
 };
 
 /// Defines a Cubic extension field from a cubic non-residue.
-pub trait CubicExtConfig: 'static + Send + Sync {
+pub trait CubicExtConfig: 'static + Send + Sync + Sized {
     /// The prime field that this cubic extension is eventually an extension of.
     type BasePrimeField: PrimeField;
     /// The base field that this field is a cubic extension of.
@@ -37,6 +37,9 @@ pub trait CubicExtConfig: 'static + Send + Sync {
     /// The type of the coefficients for an efficient implemntation of the
     /// Frobenius endomorphism.
     type FrobCoeff: Field;
+
+    /// Determines the algorithm for computing square roots.
+    const SQRT_PRECOMP: Option<SqrtPrecomputation<CubicExtField<Self>>>;
 
     /// The degree of the extension over the base prime field.
     const DEGREE_OVER_BASE_PRIME_FIELD: usize;
@@ -156,6 +159,9 @@ type BaseFieldIter<P> = <<P as CubicExtConfig>::BaseField as Field>::BasePrimeFi
 impl<P: CubicExtConfig> Field for CubicExtField<P> {
     type BasePrimeField = P::BasePrimeField;
     type BasePrimeFieldIter = Chain<BaseFieldIter<P>, Chain<BaseFieldIter<P>, BaseFieldIter<P>>>;
+
+    const SQRT_PRECOMP: Option<SqrtPrecomputation<Self>> = P::SQRT_PRECOMP;
+
     const ZERO: Self = Self::new(P::BaseField::ZERO, P::BaseField::ZERO, P::BaseField::ZERO);
 
     const ONE: Self = Self::new(P::BaseField::ONE, P::BaseField::ZERO, P::BaseField::ZERO);
@@ -249,6 +255,11 @@ impl<P: CubicExtConfig> Field for CubicExtField<P> {
         self.c1 = s1 + &P::mul_base_field_by_nonresidue(&s4);
         self.c2 = s1 + &s2 + &s3 - &s0 - &s4;
         self
+    }
+
+    /// Returns the Legendre symbol.
+    fn legendre(&self) -> LegendreSymbol {
+        self.norm().legendre()
     }
 
     fn inverse(&self) -> Option<Self> {

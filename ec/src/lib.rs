@@ -20,7 +20,7 @@ extern crate derivative;
 extern crate ark_std;
 
 use ark_ff::{
-    fields::{Field, PrimeField, SquareRootField},
+    fields::{Field, PrimeField},
     UniformRand,
 };
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
@@ -50,7 +50,7 @@ pub mod wnaf;
 /// how to compute a pairing over a pairing-friendly curve.
 pub trait PairingEngine: Sized + 'static + Copy + Debug + Sync + Send + Eq + PartialEq {
     /// This is the scalar field of the G1/G2 groups.
-    type Fr: PrimeField + SquareRootField;
+    type Fr: PrimeField;
 
     /// The projective representation of an element in G1.
     type G1Projective: ProjectiveCurve<BaseField = Self::Fq, ScalarField = Self::Fr, Affine = Self::G1Affine>
@@ -87,10 +87,10 @@ pub trait PairingEngine: Sized + 'static + Copy + Debug + Sync + Send + Eq + Par
     type G2Prepared: Default + Clone + Send + Sync + Debug + From<Self::G2Affine>;
 
     /// The base field that hosts G1.
-    type Fq: PrimeField + SquareRootField;
+    type Fq: PrimeField;
 
     /// The extension field that hosts G2.
-    type Fqe: SquareRootField;
+    type Fqe: Field;
 
     /// The extension field that hosts the target group of the pairing.
     type Fqk: Field;
@@ -161,7 +161,7 @@ pub trait ProjectiveCurve:
     + From<<Self as ProjectiveCurve>::Affine>
 {
     type Config: CurveConfig<ScalarField = Self::ScalarField, BaseField = Self::BaseField>;
-    type ScalarField: PrimeField + SquareRootField;
+    type ScalarField: PrimeField;
     type BaseField: Field;
     type Affine: AffineCurve<
             Config = Self::Config,
@@ -251,7 +251,7 @@ pub trait AffineCurve:
 
     /// The group defined by this curve has order `h * r` where `r` is a large
     /// prime. `Self::ScalarField` is the prime field defined by `r`
-    type ScalarField: PrimeField + SquareRootField + Into<<Self::ScalarField as PrimeField>::BigInt>;
+    type ScalarField: PrimeField + Into<<Self::ScalarField as PrimeField>::BigInt>;
 
     /// The finite field over which this curve is defined.
     type BaseField: Field;

@@ -1,7 +1,7 @@
 use ark_std::{marker::PhantomData, Zero};
 
 use super::{Fp, FpConfig};
-use crate::{biginteger::arithmetic as fa, BigInt, BigInteger};
+use crate::{biginteger::arithmetic as fa, BigInt, BigInteger, PrimeField, SqrtPrecomputation};
 use ark_ff_macros::unroll_for_loops;
 
 /// A trait that specifies the constants and arithmetic procedures
@@ -54,6 +54,15 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
     /// SMALL_SUBGROUP_BASE^SMALL_SUBGROUP_BASE_ADICITY)).
     /// Used for mixed-radix FFT.
     const LARGE_SUBGROUP_ROOT_OF_UNITY: Option<Fp<MontBackend<Self, N>, N>> = None;
+
+    /// Precomputed material for use when computing square roots.
+    /// The default is to use the standard Tonelli-Shanks algorithm.
+    const SQRT_PRECOMP: Option<SqrtPrecomputation<Fp<MontBackend<Self, N>, N>>> =
+        Some(SqrtPrecomputation::TonelliShanks(
+            <MontBackend<Self, N>>::TWO_ADICITY,
+            &<Fp<MontBackend<Self, N>, N>>::TRACE_MINUS_ONE_DIV_TWO,
+            Self::TWO_ADIC_ROOT_OF_UNITY,
+        ));
 
     /// Set a += b;
     fn add_assign(a: &mut Fp<MontBackend<Self, N>, N>, b: &Fp<MontBackend<Self, N>, N>) {
@@ -385,6 +394,7 @@ impl<T: MontConfig<N>, const N: usize> FpConfig<N> for MontBackend<T, N> {
     const SMALL_SUBGROUP_BASE: Option<u32> = T::SMALL_SUBGROUP_BASE;
     const SMALL_SUBGROUP_BASE_ADICITY: Option<u32> = T::SMALL_SUBGROUP_BASE_ADICITY;
     const LARGE_SUBGROUP_ROOT_OF_UNITY: Option<Fp<Self, N>> = T::LARGE_SUBGROUP_ROOT_OF_UNITY;
+    const SQRT_PRECOMP: Option<crate::SqrtPrecomputation<Fp<Self, N>>> = T::SQRT_PRECOMP;
 
     fn add_assign(a: &mut Fp<Self, N>, b: &Fp<Self, N>) {
         T::add_assign(a, b)

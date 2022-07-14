@@ -277,6 +277,14 @@ macro_rules! generate_field_test {
             frobenius_test::<Fq6, _>(Fq::characteristic(), 13);
         }
 
+        #[test]
+        #[should_panic(expected = "not implemented")]
+        fn test_fq6_sqrt() {
+            let mut rng = ark_std::test_rng();
+            let g: Fq6 = UniformRand::rand(&mut rng);
+            sqrt_field_test(g);
+        }
+
         generate_field_test!($($tail)*);
     };
 

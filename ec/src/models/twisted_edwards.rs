@@ -18,7 +18,7 @@ use num_traits::{One, Zero};
 use zeroize::Zeroize;
 
 use ark_ff::{
-    fields::{Field, PrimeField, SquareRootField},
+    fields::{Field, PrimeField},
     ToConstraintField, UniformRand,
 };
 

@@ -21,8 +21,8 @@ use ark_std::rand::{
 
 use crate::{
     biginteger::BigInteger,
-    fields::{Field, LegendreSymbol, PrimeField, SquareRootField},
-    ToConstraintField, UniformRand,
+    fields::{Field, LegendreSymbol, PrimeField},
+    SqrtPrecomputation, ToConstraintField, UniformRand,
 };
 
 /// Defines a Quadratic extension field from a quadratic non-residue.
@@ -232,10 +232,12 @@ impl<P: QuadExtConfig> One for QuadExtField<P> {
 }
 
 type BaseFieldIter<P> = <<P as QuadExtConfig>::BaseField as Field>::BasePrimeFieldIter;
-
 impl<P: QuadExtConfig> Field for QuadExtField<P> {
     type BasePrimeField = P::BasePrimeField;
+
     type BasePrimeFieldIter = Chain<BaseFieldIter<P>, BaseFieldIter<P>>;
+
+    const SQRT_PRECOMP: Option<SqrtPrecomputation<Self>> = None;
 
     const ZERO: Self = Self::new(P::BaseField::ZERO, P::BaseField::ZERO);
     const ONE: Self = Self::new(P::BaseField::ONE, P::BaseField::ZERO);
@@ -384,12 +386,7 @@ impl<P: QuadExtConfig> Field for QuadExtField<P> {
         self.c1.frobenius_map(power);
         P::mul_base_field_by_frob_coeff(&mut self.c1, power);
     }
-}
 
-impl<P: QuadExtConfig> SquareRootField for QuadExtField<P>
-where
-    P::BaseField: SquareRootField + From<P::BasePrimeField>,
-{
     fn legendre(&self) -> LegendreSymbol {
         // The LegendreSymbol in a field of order q for an element x can be
         // computed as x^((q-1)/2).
@@ -435,7 +432,7 @@ where
         two_inv.div2();
 
         let two_inv = P::BasePrimeField::from(two_inv);
-        let two_inv = P::BaseField::from(two_inv);
+        let two_inv = P::BaseField::from_base_prime_field(two_inv);
 
         alpha.sqrt().and_then(|alpha| {
             let mut delta = (alpha + &self.c0) * &two_inv;
