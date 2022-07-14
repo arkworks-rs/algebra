@@ -565,10 +565,7 @@ impl<F: Field> SqrtPrecomputation<F> {
                 } else {
                     // Consistency check that if no square root is found,
                     // it is because none exists.
-                    debug_assert!(!matches!(
-                        elem.legendre(),
-                        LegendreSymbol::QuadraticResidue
-                    ));
+                    debug_assert!(!matches!(elem.legendre(), LegendreSymbol::QuadraticResidue));
                     None
                 }
             },
