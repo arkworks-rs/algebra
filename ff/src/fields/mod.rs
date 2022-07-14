@@ -485,6 +485,7 @@ impl LegendreSymbol {
     }
 }
 
+#[non_exhaustive]
 pub enum SqrtPrecomputation<F: Field> {
     // Tonelli-Shanks algorithm works for all elements, no matter what the modulus is.
     TonelliShanks(u32, &'static [u64], F),
