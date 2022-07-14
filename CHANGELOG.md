@@ -44,6 +44,7 @@
     - `SWModelParameters` → `SWCurveConfig`
     - `TEModelParameters` → `TECurveConfig`
     - `MontgomeryModelParameters` → `MontCurveConfig`
+- [\#440](https://github.com/arkworks-rs/algebra/pull/440) (`ark-ff`) Add a method to construct a field element from an element of the underlying base prime field.
 
 ### Features
 
