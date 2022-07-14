@@ -259,24 +259,6 @@ impl<P: CubicExtConfig> Field for CubicExtField<P> {
         self.norm().legendre()
     }
 
-    /// Returns the square root of self, if it exists.
-    fn sqrt(&self) -> Option<Self> {
-        // sqrt computation needs certain params to be defined, like
-        // `TRACE_MINUS_ONE_DIV_TWO`
-        match Self::SQRT_PRECOMP {
-            Some(tv) => tv.sqrt(self),
-            None => unimplemented!(),
-        }
-    }
-
-    /// Sets `self` to be the square root of `self`, if it exists.
-    fn sqrt_in_place(&mut self) -> Option<&mut Self> {
-        (*self).sqrt().map(|sqrt| {
-            *self = sqrt;
-            self
-        })
-    }
-
     fn inverse(&self) -> Option<Self> {
         if self.is_zero() {
             None
