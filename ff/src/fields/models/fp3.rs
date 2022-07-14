@@ -40,7 +40,7 @@ impl<P: Fp3Config> CubicExtConfig for Fp3ConfigWrapper<P> {
     const DEGREE_OVER_BASE_PRIME_FIELD: usize = 3;
 
     const NONRESIDUE: Self::BaseField = P::NONRESIDUE;
-    const PRECOMP: Option<SqrtPrecomputation<CubicExtField<Self>>> =
+    const SQRT_PRECOMP: Option<SqrtPrecomputation<CubicExtField<Self>>> =
         Some(SqrtPrecomputation::TonelliShanks(
             P::TWO_ADICITY,
             P::TRACE_MINUS_ONE_DIV_TWO,
