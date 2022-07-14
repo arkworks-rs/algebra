@@ -135,9 +135,9 @@ impl<P: CubicExtConfig> CubicExtField<P> {
 impl<P: CubicExtConfig> Zero for CubicExtField<P> {
     fn zero() -> Self {
         Self::new(
-            P::BaseField::zero(),
-            P::BaseField::zero(),
-            P::BaseField::zero(),
+            P::BaseField::ZERO,
+            P::BaseField::ZERO,
+            P::BaseField::ZERO,
         )
     }
 
@@ -149,9 +149,9 @@ impl<P: CubicExtConfig> Zero for CubicExtField<P> {
 impl<P: CubicExtConfig> One for CubicExtField<P> {
     fn one() -> Self {
         Self::new(
-            P::BaseField::one(),
-            P::BaseField::zero(),
-            P::BaseField::zero(),
+            P::BaseField::ONE,
+            P::BaseField::ZERO,
+            P::BaseField::ZERO,
         )
     }
 
@@ -170,6 +170,11 @@ impl<P: CubicExtConfig> Field for CubicExtField<P> {
 
     fn extension_degree() -> u64 {
         3 * P::BaseField::extension_degree()
+    }
+
+    fn from_base_prime_field(elem: Self::BasePrimeField) -> Self {
+        let fe = P::BaseField::from_base_prime_field(elem);
+        Self::new(fe,  P::BaseField::ZERO, P::BaseField::ZERO)
     }
 
     fn to_base_prime_field_elements(&self) -> Self::BasePrimeFieldIter {
@@ -344,7 +349,7 @@ impl<P: CubicExtConfig> Zeroize for CubicExtField<P> {
 impl<P: CubicExtConfig> From<u128> for CubicExtField<P> {
     fn from(other: u128) -> Self {
         let fe: P::BaseField = other.into();
-        Self::new(fe, P::BaseField::zero(), P::BaseField::zero())
+        Self::new(fe, P::BaseField::ZERO, P::BaseField::ZERO)
     }
 }
 
@@ -363,7 +368,7 @@ impl<P: CubicExtConfig> From<i128> for CubicExtField<P> {
 impl<P: CubicExtConfig> From<u64> for CubicExtField<P> {
     fn from(other: u64) -> Self {
         let fe: P::BaseField = other.into();
-        Self::new(fe, P::BaseField::zero(), P::BaseField::zero())
+        Self::new(fe, P::BaseField::ZERO, P::BaseField::ZERO)
     }
 }
 
@@ -382,7 +387,7 @@ impl<P: CubicExtConfig> From<i64> for CubicExtField<P> {
 impl<P: CubicExtConfig> From<u32> for CubicExtField<P> {
     fn from(other: u32) -> Self {
         let fe: P::BaseField = other.into();
-        Self::new(fe, P::BaseField::zero(), P::BaseField::zero())
+        Self::new(fe, P::BaseField::ZERO, P::BaseField::ZERO)
     }
 }
 
@@ -401,7 +406,7 @@ impl<P: CubicExtConfig> From<i32> for CubicExtField<P> {
 impl<P: CubicExtConfig> From<u16> for CubicExtField<P> {
     fn from(other: u16) -> Self {
         let fe: P::BaseField = other.into();
-        Self::new(fe, P::BaseField::zero(), P::BaseField::zero())
+        Self::new(fe, P::BaseField::ZERO, P::BaseField::ZERO)
     }
 }
 
@@ -420,7 +425,7 @@ impl<P: CubicExtConfig> From<i16> for CubicExtField<P> {
 impl<P: CubicExtConfig> From<u8> for CubicExtField<P> {
     fn from(other: u8) -> Self {
         let fe: P::BaseField = other.into();
-        Self::new(fe, P::BaseField::zero(), P::BaseField::zero())
+        Self::new(fe, P::BaseField::ZERO, P::BaseField::ZERO)
     }
 }
 
@@ -438,11 +443,7 @@ impl<P: CubicExtConfig> From<i8> for CubicExtField<P> {
 
 impl<P: CubicExtConfig> From<bool> for CubicExtField<P> {
     fn from(other: bool) -> Self {
-        Self::new(
-            u8::from(other).into(),
-            P::BaseField::zero(),
-            P::BaseField::zero(),
-        )
+        Self::new(u8::from(other).into(), P::BaseField::ZERO, P::BaseField::ZERO)
     }
 }
 

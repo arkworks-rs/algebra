@@ -153,6 +153,9 @@ pub trait Field:
     /// If the slice length != Self::extension_degree(), must return None.
     fn from_base_prime_field_elems(elems: &[Self::BasePrimeField]) -> Option<Self>;
 
+    /// Constructs a field element from a single base prime field elements.
+    fn from_base_prime_field(elem: Self::BasePrimeField) -> Self;
+
     /// Returns `self + self`.
     #[must_use]
     fn double(&self) -> Self;

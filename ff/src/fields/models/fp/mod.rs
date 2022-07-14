@@ -240,6 +240,10 @@ impl<P: FpConfig<N>, const N: usize> Field for Fp<P, N> {
         1
     }
 
+    fn from_base_prime_field(elem: Self::BasePrimeField) -> Self {
+        elem
+    }
+
     fn to_base_prime_field_elements(&self) -> Self::BasePrimeFieldIter {
         iter::once(*self)
     }
