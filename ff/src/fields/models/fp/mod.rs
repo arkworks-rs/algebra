@@ -59,6 +59,9 @@ pub trait FpConfig<const N: usize>: Send + Sync + 'static + Sized {
     /// FFT.
     const LARGE_SUBGROUP_ROOT_OF_UNITY: Option<Fp<Self, N>> = None;
 
+    /// Determines the algorithm for computing square roots.
+    /// Currently uses the generic Tonelli-Shanks,
+    /// which works for every modulus.
     const SQRT_PRECOMP: Option<SqrtPrecomputation<Fp<Self, N>>> =
         Some(SqrtPrecomputation::TonelliShanks(
             Self::TWO_ADICITY,

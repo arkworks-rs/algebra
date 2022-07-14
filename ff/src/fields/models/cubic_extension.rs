@@ -38,6 +38,7 @@ pub trait CubicExtConfig: 'static + Send + Sync + Sized {
     /// Frobenius endomorphism.
     type FrobCoeff: Field;
 
+    /// Determines the algorithm for computing square roots.
     const SQRT_PRECOMP: Option<SqrtPrecomputation<CubicExtField<Self>>>;
 
     /// The degree of the extension over the base prime field.
@@ -157,8 +158,10 @@ impl<P: CubicExtConfig> One for CubicExtField<P> {
 type BaseFieldIter<P> = <<P as CubicExtConfig>::BaseField as Field>::BasePrimeFieldIter;
 impl<P: CubicExtConfig> Field for CubicExtField<P> {
     type BasePrimeField = P::BasePrimeField;
-    const SQRT_PRECOMP: Option<SqrtPrecomputation<Self>> = P::SQRT_PRECOMP;
     type BasePrimeFieldIter = Chain<BaseFieldIter<P>, Chain<BaseFieldIter<P>, BaseFieldIter<P>>>;
+
+    const SQRT_PRECOMP: Option<SqrtPrecomputation<Self>> = P::SQRT_PRECOMP;
+
     const ZERO: Self = Self::new(P::BaseField::ZERO, P::BaseField::ZERO, P::BaseField::ZERO);
 
     const ONE: Self = Self::new(P::BaseField::ONE, P::BaseField::ZERO, P::BaseField::ZERO);

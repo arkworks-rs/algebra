@@ -131,9 +131,10 @@ pub trait Field:
 {
     type BasePrimeField: PrimeField;
 
-    const SQRT_PRECOMP: Option<SqrtPrecomputation<Self>>;
-
     type BasePrimeFieldIter: Iterator<Item = Self::BasePrimeField>;
+
+    /// Determines the algorithm for computing square roots.
+    const SQRT_PRECOMP: Option<SqrtPrecomputation<Self>>;
 
     /// The additive identity of the field.
     const ZERO: Self;

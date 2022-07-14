@@ -7,6 +7,7 @@ pub trait Fp6Config: 'static + Send + Sync + Copy {
 
     const NONRESIDUE: Fp2<Self::Fp2Config>;
 
+    /// Determines the algorithm for computing square roots.
     const SQRT_PRECOMP: Option<SqrtPrecomputation<Fp6<Self>>> = None;
 
     /// Coefficients for the Frobenius automorphism.

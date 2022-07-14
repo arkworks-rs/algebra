@@ -235,9 +235,9 @@ type BaseFieldIter<P> = <<P as QuadExtConfig>::BaseField as Field>::BasePrimeFie
 impl<P: QuadExtConfig> Field for QuadExtField<P> {
     type BasePrimeField = P::BasePrimeField;
 
-    const SQRT_PRECOMP: Option<SqrtPrecomputation<Self>> = None;
-
     type BasePrimeFieldIter = Chain<BaseFieldIter<P>, BaseFieldIter<P>>;
+
+    const SQRT_PRECOMP: Option<SqrtPrecomputation<Self>> = None;
 
     const ZERO: Self = Self::new(P::BaseField::ZERO, P::BaseField::ZERO);
     const ONE: Self = Self::new(P::BaseField::ONE, P::BaseField::ZERO);
