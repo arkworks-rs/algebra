@@ -432,7 +432,7 @@ impl<P: QuadExtConfig> Field for QuadExtField<P> {
         two_inv.div2();
 
         let two_inv = P::BasePrimeField::from(two_inv);
-        let two_inv = P::BaseField::from_base_prime_field_elems(&[two_inv]).unwrap();
+        let two_inv = P::BaseField::from_base_prime_field(two_inv);
 
         alpha.sqrt().and_then(|alpha| {
             let mut delta = (alpha + &self.c0) * &two_inv;
