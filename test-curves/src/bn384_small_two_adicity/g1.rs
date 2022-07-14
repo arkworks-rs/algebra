@@ -25,14 +25,13 @@ impl CurveConfig for Parameters {
 
 impl short_weierstrass::SWCurveConfig for Parameters {
     /// COEFF_A = 0
-    const COEFF_A: Fq = ark_ff::MontFp!(Fq, "0");
+    const COEFF_A: Fq = ark_ff::MontFp!("0");
 
     /// COEFF_B = 17
-    const COEFF_B: Fq = ark_ff::MontFp!(Fq, "17");
+    const COEFF_B: Fq = ark_ff::MontFp!("17");
 
     /// AFFINE_GENERATOR_COEFFS = (G1_GENERATOR_X, G1_GENERATOR_Y)
-    const AFFINE_GENERATOR_COEFFS: (Self::BaseField, Self::BaseField) =
-        (G1_GENERATOR_X, G1_GENERATOR_Y);
+    const GENERATOR: G1Affine = G1Affine::new_unchecked(G1_GENERATOR_X, G1_GENERATOR_Y);
 
     #[inline(always)]
     fn mul_by_a(_: &Self::BaseField) -> Self::BaseField {
@@ -41,7 +40,7 @@ impl short_weierstrass::SWCurveConfig for Parameters {
 }
 
 /// G1_GENERATOR_X = -1
-pub const G1_GENERATOR_X: Fq = ark_ff::MontFp!(Fq, "-1");
+pub const G1_GENERATOR_X: Fq = ark_ff::MontFp!("-1");
 
 /// G1_GENERATOR_Y = 4
-pub const G1_GENERATOR_Y: Fq = ark_ff::MontFp!(Fq, "4");
+pub const G1_GENERATOR_Y: Fq = ark_ff::MontFp!("4");

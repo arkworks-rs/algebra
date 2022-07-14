@@ -51,56 +51,58 @@ impl<P: BnParameters> Default for G2Prepared<P> {
 impl<P: BnParameters> From<G2Affine<P>> for G2Prepared<P> {
     fn from(q: G2Affine<P>) -> Self {
         let two_inv = P::Fp::one().double().inverse().unwrap();
-        if q.is_zero() {
-            return Self {
+        match q.is_zero() {
+            true => G2Prepared {
                 ell_coeffs: vec![],
                 infinity: true,
-            };
-        }
+            },
+            false => {
+                let mut ell_coeffs = vec![];
+                let mut r = G2HomProjective {
+                    x: q.x,
+                    y: q.y,
+                    z: Fp2::one(),
+                };
 
-        let mut ell_coeffs = vec![];
-        let mut r = G2HomProjective {
-            x: q.x,
-            y: q.y,
-            z: Fp2::one(),
-        };
+                let negq = -q;
 
-        let negq = -q;
+                for i in (1..P::ATE_LOOP_COUNT.len()).rev() {
+                    ell_coeffs.push(doubling_step::<P>(&mut r, &two_inv));
 
-        for i in (1..P::ATE_LOOP_COUNT.len()).rev() {
-            ell_coeffs.push(doubling_step::<P>(&mut r, &two_inv));
+                    let bit = P::ATE_LOOP_COUNT[i - 1];
 
-            let bit = P::ATE_LOOP_COUNT[i - 1];
+                    match bit {
+                        1 => {
+                            ell_coeffs.push(addition_step::<P>(&mut r, &q));
+                        },
+                        -1 => {
+                            ell_coeffs.push(addition_step::<P>(&mut r, &negq));
+                        },
+                        _ => continue,
+                    }
+                }
 
-            match bit {
-                1 => {
-                    ell_coeffs.push(addition_step::<P>(&mut r, &q));
-                },
-                -1 => {
-                    ell_coeffs.push(addition_step::<P>(&mut r, &negq));
-                },
-                _ => continue,
-            }
-        }
+                let q1 = mul_by_char::<P>(q);
+                let mut q2 = mul_by_char::<P>(q1);
 
-        let q1 = mul_by_char::<P>(q);
-        let mut q2 = mul_by_char::<P>(q1);
+                if P::X_IS_NEGATIVE {
+                    r.y = -r.y;
+                }
 
-        if P::X_IS_NEGATIVE {
-            r.y = -r.y;
-        }
+                q2.y = -q2.y;
 
-        q2.y = -q2.y;
+                ell_coeffs.push(addition_step::<P>(&mut r, &q1));
+                ell_coeffs.push(addition_step::<P>(&mut r, &q2));
 
-        ell_coeffs.push(addition_step::<P>(&mut r, &q1));
-        ell_coeffs.push(addition_step::<P>(&mut r, &q2));
-
-        Self {
-            ell_coeffs,
-            infinity: false,
+                Self {
+                    ell_coeffs,
+                    infinity: false,
+                }
+            },
         }
     }
 }
+
 impl<P: BnParameters> G2Prepared<P> {
     pub fn is_zero(&self) -> bool {
         self.infinity

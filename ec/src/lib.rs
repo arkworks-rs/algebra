@@ -204,8 +204,8 @@ pub trait ProjectiveCurve:
     fn double_in_place(&mut self) -> &mut Self;
 
     /// Converts self into the affine representation.
-    fn into_affine(&self) -> Self::Affine {
-        (*self).into()
+    fn into_affine(self) -> Self::Affine {
+        self.into()
     }
 
     /// Sets `self` to be `self + other`, where `other: Self::Affine`.
@@ -267,15 +267,15 @@ pub trait AffineCurve:
         + MulAssign<Self::ScalarField>; // needed due to https://github.com/rust-lang/rust/issues/69640
 
     /// Returns the x and y coordinates of this affine point
-    fn xy(&self) -> (Self::BaseField, Self::BaseField);
+    fn xy(&self) -> Option<(&Self::BaseField, &Self::BaseField)>;
 
     /// Returns a fixed generator of unknown exponent.
     #[must_use]
     fn prime_subgroup_generator() -> Self;
 
     /// Converts self into the projective representation.
-    fn into_projective(&self) -> Self::Projective {
-        (*self).into()
+    fn into_projective(self) -> Self::Projective {
+        self.into()
     }
 
     /// Returns a group element if the set of bytes forms a valid group element,

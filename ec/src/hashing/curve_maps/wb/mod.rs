@@ -47,7 +47,7 @@ pub trait WBParams: SWCurveConfig + Sized {
         let img_x = x_num.evaluate(&domain_point.x) * v[0];
         let img_y = (y_num.evaluate(&domain_point.x) * domain_point.y) * v[1];
 
-        Ok(Affine::new(img_x, img_y, false))
+        Ok(Affine::new_unchecked(img_x, img_y))
     }
 }
 
@@ -59,21 +59,10 @@ pub struct WBMap<P: WBParams> {
 impl<P: WBParams> MapToCurve<Affine<P>> for WBMap<P> {
     /// Constructs a new map if `P` represents a valid map.
     fn new() -> Result<Self, HashToCurveError> {
-        // Verifying that the isogeny maps the generator of the SWU curve into us
-        let isogenous_curve_generator = Affine::<P::IsogenousCurve>::new(
-            P::IsogenousCurve::AFFINE_GENERATOR_COEFFS.0,
-            P::IsogenousCurve::AFFINE_GENERATOR_COEFFS.1,
-            false,
-        );
-        assert!(
-            isogenous_curve_generator.is_on_curve(),
-            "generator not on curve"
-        );
-
-        match P::isogeny_map(isogenous_curve_generator) {
+        match P::isogeny_map(P::IsogenousCurve::GENERATOR) {
             Ok(point_on_curve) => {
                 if !point_on_curve.is_on_curve() {
-                    return Err(HashToCurveError::MapToCurveError(format!("the isogeny maps the generator of its domain: {} into {} which does not belong to its codomain.",isogenous_curve_generator, point_on_curve)));
+                    return Err(HashToCurveError::MapToCurveError(format!("the isogeny maps the generator of its domain: {} into {} which does not belong to its codomain.",P::IsogenousCurve::GENERATOR, point_on_curve)));
                 }
             },
             Err(e) => return Err(e),
@@ -109,9 +98,9 @@ mod test {
             },
             map_to_curve_hasher::MapToCurveBasedHasher,
         },
-        models::SWModelParameters,
-        short_weierstrass_jacobian::GroupAffine,
-        ModelParameters,
+        models::short_weierstrass::SWCurveConfig,
+        short_weierstrass::Affine,
+        CurveConfig,
     };
     use ark_ff::field_hashers::DefaultFieldHasher;
     use ark_ff::{fields::Fp64, MontBackend, MontFp};
@@ -122,13 +111,13 @@ mod test {
     pub struct F127Config;
     pub type F127 = Fp64<MontBackend<F127Config, 1>>;
 
-    const F127_ZERO: F127 = MontFp!(F127, "0");
-    const F127_ONE: F127 = MontFp!(F127, "1");
+    const F127_ZERO: F127 = MontFp!("0");
+    const F127_ONE: F127 = MontFp!("1");
 
     /// The struct defining our parameters for the target curve of hashing
     struct TestWBF127MapToCurveParams;
 
-    impl ModelParameters for TestWBF127MapToCurveParams {
+    impl CurveConfig for TestWBF127MapToCurveParams {
         const COFACTOR: &'static [u64] = &[1];
 
     #[rustfmt::skip]
@@ -140,17 +129,16 @@ mod test {
 
     /// E: Elliptic Curve defined by y^2 = x^3 + 3 over Finite
     /// Field of size 127
-    impl SWModelParameters for TestWBF127MapToCurveParams {
+    impl SWCurveConfig for TestWBF127MapToCurveParams {
         /// COEFF_A = 0
         const COEFF_A: F127 = F127_ZERO;
 
         /// COEFF_B = 3
     #[rustfmt::skip]
-        const COEFF_B: F127 = MontFp!(F127, "3");
+        const COEFF_B: F127 = MontFp!("3");
 
         /// AFFINE_GENERATOR_COEFFS = (G1_GENERATOR_X, G1_GENERATOR_Y)
-        const AFFINE_GENERATOR_COEFFS: (Self::BaseField, Self::BaseField) =
-            (MontFp!(F127, "62"), MontFp!(F127, "70"));
+        const GENERATOR: Affine<Self> = Affine::new_unchecked(MontFp!("62"), MontFp!("70"));
     }
 
     /// Testing WB19 hashing on a small curve
@@ -162,7 +150,7 @@ mod test {
     /// First we define the isogenous curve
     /// sage: E_isogenous.order()
     /// 127
-    impl ModelParameters for TestSWU127MapToIsogenousCurveParams {
+    impl CurveConfig for TestSWU127MapToIsogenousCurveParams {
         const COFACTOR: &'static [u64] = &[1];
 
     #[rustfmt::skip]
@@ -174,23 +162,22 @@ mod test {
 
     /// E_isogenous : Elliptic Curve defined by y^2 = x^3 + 109*x + 124 over Finite
     /// Field of size 127
-    impl SWModelParameters for TestSWU127MapToIsogenousCurveParams {
+    impl SWCurveConfig for TestSWU127MapToIsogenousCurveParams {
         /// COEFF_A = 109
-        const COEFF_A: F127 = MontFp!(F127, "109");
+        const COEFF_A: F127 = MontFp!("109");
 
         /// COEFF_B = 124
     #[rustfmt::skip]
-        const COEFF_B: F127 = MontFp!(F127, "124");
+        const COEFF_B: F127 = MontFp!("124");
 
         /// AFFINE_GENERATOR_COEFFS = (G1_GENERATOR_X, G1_GENERATOR_Y)
-        const AFFINE_GENERATOR_COEFFS: (Self::BaseField, Self::BaseField) =
-            (MontFp!(F127, "84"), MontFp!(F127, "2"));
+        const GENERATOR: Affine<Self> = Affine::new_unchecked(MontFp!("84"), MontFp!("2"));
     }
 
     /// SWU parameters for E_isogenous
     impl SWUParams for TestSWU127MapToIsogenousCurveParams {
         /// NON-SQUARE = - 1
-        const ZETA: F127 = MontFp!(F127, "-1");
+        const ZETA: F127 = MontFp!("-1");
     }
 
     /// E_isogenous : Elliptic Curve defined by y^2 = x^3 + 109*x + 124 over Finite
@@ -211,81 +198,81 @@ mod test {
     impl WBParams for TestWBF127MapToCurveParams {
         type IsogenousCurve = TestSWU127MapToIsogenousCurveParams;
 
-        const PHI_X_NOM: &'static [<Self::IsogenousCurve as ModelParameters>::BaseField] = &[
-            MontFp!(F127, "4"),
-            MontFp!(F127, "63"),
-            MontFp!(F127, "23"),
-            MontFp!(F127, "39"),
-            MontFp!(F127, "-14"),
-            MontFp!(F127, "23"),
-            MontFp!(F127, "-32"),
-            MontFp!(F127, "32"),
-            MontFp!(F127, "-13"),
-            MontFp!(F127, "40"),
-            MontFp!(F127, "34"),
-            MontFp!(F127, "10"),
-            MontFp!(F127, "-21"),
-            MontFp!(F127, "-57"),
+        const PHI_X_NOM: &'static [<Self::IsogenousCurve as CurveConfig>::BaseField] = &[
+            MontFp!("4"),
+            MontFp!("63"),
+            MontFp!("23"),
+            MontFp!("39"),
+            MontFp!("-14"),
+            MontFp!("23"),
+            MontFp!("-32"),
+            MontFp!("32"),
+            MontFp!("-13"),
+            MontFp!("40"),
+            MontFp!("34"),
+            MontFp!("10"),
+            MontFp!("-21"),
+            MontFp!("-57"),
         ];
 
-        const PHI_X_DEN: &'static [<Self::IsogenousCurve as ModelParameters>::BaseField] = &[
-            MontFp!(F127, "2"),
-            MontFp!(F127, "31"),
-            MontFp!(F127, "-10"),
-            MontFp!(F127, "-20"),
-            MontFp!(F127, "63"),
-            MontFp!(F127, "-44"),
-            MontFp!(F127, "34"),
-            MontFp!(F127, "30"),
-            MontFp!(F127, "-30"),
-            MontFp!(F127, "-33"),
-            MontFp!(F127, "11"),
-            MontFp!(F127, "-13"),
-            MontFp!(F127, "1"),
+        const PHI_X_DEN: &'static [<Self::IsogenousCurve as CurveConfig>::BaseField] = &[
+            MontFp!("2"),
+            MontFp!("31"),
+            MontFp!("-10"),
+            MontFp!("-20"),
+            MontFp!("63"),
+            MontFp!("-44"),
+            MontFp!("34"),
+            MontFp!("30"),
+            MontFp!("-30"),
+            MontFp!("-33"),
+            MontFp!("11"),
+            MontFp!("-13"),
+            MontFp!("1"),
         ];
 
-        const PHI_Y_NOM: &'static [<Self::IsogenousCurve as ModelParameters>::BaseField] = &[
-            MontFp!(F127, "-34"),
-            MontFp!(F127, "-57"),
-            MontFp!(F127, "30"),
-            MontFp!(F127, "-18"),
-            MontFp!(F127, "-60"),
-            MontFp!(F127, "-43"),
-            MontFp!(F127, "-63"),
-            MontFp!(F127, "-18"),
-            MontFp!(F127, "-49"),
-            MontFp!(F127, "36"),
-            MontFp!(F127, "12"),
-            MontFp!(F127, "62"),
-            MontFp!(F127, "5"),
-            MontFp!(F127, "6"),
-            MontFp!(F127, "-7"),
-            MontFp!(F127, "48"),
-            MontFp!(F127, "41"),
-            MontFp!(F127, "59"),
-            MontFp!(F127, "10"),
+        const PHI_Y_NOM: &'static [<Self::IsogenousCurve as CurveConfig>::BaseField] = &[
+            MontFp!("-34"),
+            MontFp!("-57"),
+            MontFp!("30"),
+            MontFp!("-18"),
+            MontFp!("-60"),
+            MontFp!("-43"),
+            MontFp!("-63"),
+            MontFp!("-18"),
+            MontFp!("-49"),
+            MontFp!("36"),
+            MontFp!("12"),
+            MontFp!("62"),
+            MontFp!("5"),
+            MontFp!("6"),
+            MontFp!("-7"),
+            MontFp!("48"),
+            MontFp!("41"),
+            MontFp!("59"),
+            MontFp!("10"),
         ];
 
-        const PHI_Y_DEN: &'static [<Self::IsogenousCurve as ModelParameters>::BaseField] = &[
-            MontFp!(F127, "32"),
-            MontFp!(F127, "-18"),
-            MontFp!(F127, "-24"),
-            MontFp!(F127, "23"),
-            MontFp!(F127, "18"),
-            MontFp!(F127, "-55"),
-            MontFp!(F127, "-16"),
-            MontFp!(F127, "-61"),
-            MontFp!(F127, "-46"),
-            MontFp!(F127, "-13"),
-            MontFp!(F127, "-42"),
-            MontFp!(F127, "11"),
-            MontFp!(F127, "-30"),
-            MontFp!(F127, "38"),
-            MontFp!(F127, "3"),
-            MontFp!(F127, "52"),
-            MontFp!(F127, "-63"),
-            MontFp!(F127, "44"),
-            MontFp!(F127, "1"),
+        const PHI_Y_DEN: &'static [<Self::IsogenousCurve as CurveConfig>::BaseField] = &[
+            MontFp!("32"),
+            MontFp!("-18"),
+            MontFp!("-24"),
+            MontFp!("23"),
+            MontFp!("18"),
+            MontFp!("-55"),
+            MontFp!("-16"),
+            MontFp!("-61"),
+            MontFp!("-46"),
+            MontFp!("-13"),
+            MontFp!("-42"),
+            MontFp!("11"),
+            MontFp!("-30"),
+            MontFp!("38"),
+            MontFp!("3"),
+            MontFp!("52"),
+            MontFp!("-63"),
+            MontFp!("44"),
+            MontFp!("1"),
         ];
     }
 
@@ -295,7 +282,7 @@ mod test {
     fn hash_arbitrary_string_to_curve_wb() {
         use sha2::Sha256;
         let test_wb_to_curve_hasher = MapToCurveBasedHasher::<
-            GroupAffine<TestWBF127MapToCurveParams>,
+            Affine<TestWBF127MapToCurveParams>,
             DefaultFieldHasher<Sha256, 128>,
             WBMap<TestWBF127MapToCurveParams>,
         >::new(&[1])

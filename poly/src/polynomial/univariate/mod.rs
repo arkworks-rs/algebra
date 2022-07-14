@@ -44,9 +44,9 @@ impl<'a, F: Field> From<&'a SparsePolynomial<F>> for DenseOrSparsePolynomial<'a,
     }
 }
 
-impl<'a, F: Field> Into<DensePolynomial<F>> for DenseOrSparsePolynomial<'a, F> {
-    fn into(self) -> DensePolynomial<F> {
-        match self {
+impl<'a, F: Field> From<DenseOrSparsePolynomial<'a, F>> for DensePolynomial<F> {
+    fn from(other: DenseOrSparsePolynomial<'a, F>) -> DensePolynomial<F> {
+        match other {
             DPolynomial(p) => p.into_owned(),
             SPolynomial(p) => p.into_owned().into(),
         }

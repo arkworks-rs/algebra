@@ -142,24 +142,6 @@ pub struct QuadExtField<P: QuadExtConfig> {
     pub c1: P::BaseField,
 }
 
-/// Construct a [`QuadExtField`] element from elements of the base field. This should
-/// be used primarily for constructing constant field elements; in a non-const
-/// context, [`QuadExtField::new`] is preferable.
-///
-/// # Usage
-/// ```rust
-/// # use ark_test_curves::QuadExt;
-/// # use ark_test_curves::bls12_381 as ark_bls12_381;
-/// use ark_bls12_381::{FQ_ZERO, FQ_ONE, Fq2};
-/// const ONE: Fq2 = QuadExt!(FQ_ONE, FQ_ZERO);
-/// ```
-#[macro_export]
-macro_rules! QuadExt {
-    ($c0:expr, $c1:expr $(,)?) => {
-        $crate::QuadExtField { c0: $c0, c1: $c1 }
-    };
-}
-
 impl<P: QuadExtConfig> QuadExtField<P> {
     /// Create a new field element from coefficients `c0` and `c1`,
     /// so that the result is of the form `c0 + c1 * X`.
@@ -175,7 +157,7 @@ impl<P: QuadExtConfig> QuadExtField<P> {
     /// // `Fp2` a degree-2 extension over `Fp`.
     /// let c: Fp2 = Fp2::new(c0, c1);
     /// ```
-    pub fn new(c0: P::BaseField, c1: P::BaseField) -> Self {
+    pub const fn new(c0: P::BaseField, c1: P::BaseField) -> Self {
         Self { c0, c1 }
     }
 
@@ -250,13 +232,21 @@ impl<P: QuadExtConfig> One for QuadExtField<P> {
 }
 
 type BaseFieldIter<P> = <<P as QuadExtConfig>::BaseField as Field>::BasePrimeFieldIter;
+
 impl<P: QuadExtConfig> Field for QuadExtField<P> {
     type BasePrimeField = P::BasePrimeField;
-
     type BasePrimeFieldIter = Chain<BaseFieldIter<P>, BaseFieldIter<P>>;
+
+    const ZERO: Self = Self::new(P::BaseField::ZERO, P::BaseField::ZERO);
+    const ONE: Self = Self::new(P::BaseField::ONE, P::BaseField::ZERO);
 
     fn extension_degree() -> u64 {
         2 * P::BaseField::extension_degree()
+    }
+
+    fn from_base_prime_field(elem: Self::BasePrimeField) -> Self {
+        let fe = P::BaseField::from_base_prime_field(elem);
+        Self::new(fe, P::BaseField::ZERO)
     }
 
     fn to_base_prime_field_elements(&self) -> Self::BasePrimeFieldIter {
@@ -425,12 +415,12 @@ where
             // so either a0 = sqrt(c0) or a1 = sqrt(c0/P::NONRESIDUE)
             if self.c0.legendre().is_qr() {
                 // either c0 is a valid sqrt in the base field
-                return self.c0.sqrt().map(|c0| Self::new(c0, P::BaseField::zero()));
+                return self.c0.sqrt().map(|c0| Self::new(c0, P::BaseField::ZERO));
             } else {
                 // or we need to compute sqrt(c0/P::NONRESIDUE)
                 return (self.c0.div(P::NONRESIDUE))
                     .sqrt()
-                    .map(|res| Self::new(P::BaseField::zero(), res));
+                    .map(|res| Self::new(P::BaseField::ZERO, res));
             }
         }
         // Try computing the square root
@@ -512,7 +502,7 @@ impl<P: QuadExtConfig> Zeroize for QuadExtField<P> {
 
 impl<P: QuadExtConfig> From<u128> for QuadExtField<P> {
     fn from(other: u128) -> Self {
-        Self::new(other.into(), P::BaseField::zero())
+        Self::new(other.into(), P::BaseField::ZERO)
     }
 }
 
@@ -530,7 +520,7 @@ impl<P: QuadExtConfig> From<i128> for QuadExtField<P> {
 
 impl<P: QuadExtConfig> From<u64> for QuadExtField<P> {
     fn from(other: u64) -> Self {
-        Self::new(other.into(), P::BaseField::zero())
+        Self::new(other.into(), P::BaseField::ZERO)
     }
 }
 
@@ -548,7 +538,7 @@ impl<P: QuadExtConfig> From<i64> for QuadExtField<P> {
 
 impl<P: QuadExtConfig> From<u32> for QuadExtField<P> {
     fn from(other: u32) -> Self {
-        Self::new(other.into(), P::BaseField::zero())
+        Self::new(other.into(), P::BaseField::ZERO)
     }
 }
 
@@ -566,7 +556,7 @@ impl<P: QuadExtConfig> From<i32> for QuadExtField<P> {
 
 impl<P: QuadExtConfig> From<u16> for QuadExtField<P> {
     fn from(other: u16) -> Self {
-        Self::new(other.into(), P::BaseField::zero())
+        Self::new(other.into(), P::BaseField::ZERO)
     }
 }
 
@@ -584,7 +574,7 @@ impl<P: QuadExtConfig> From<i16> for QuadExtField<P> {
 
 impl<P: QuadExtConfig> From<u8> for QuadExtField<P> {
     fn from(other: u8) -> Self {
-        Self::new(other.into(), P::BaseField::zero())
+        Self::new(other.into(), P::BaseField::ZERO)
     }
 }
 
@@ -602,7 +592,7 @@ impl<P: QuadExtConfig> From<i8> for QuadExtField<P> {
 
 impl<P: QuadExtConfig> From<bool> for QuadExtField<P> {
     fn from(other: bool) -> Self {
-        Self::new(u8::from(other).into(), P::BaseField::zero())
+        Self::new(u8::from(other).into(), P::BaseField::ZERO)
     }
 }
 
@@ -815,6 +805,22 @@ mod quad_ext_tests {
             let actual = Fq2::from_base_prime_field_elems(&random_coeffs).unwrap();
             let expected = Fq2::new(random_coeffs[0], random_coeffs[1]);
             assert_eq!(actual, expected);
+        }
+    }
+
+    #[test]
+    fn test_from_base_prime_field_element() {
+        let ext_degree = Fq2::extension_degree() as usize;
+        let max_num_elems_to_test = 10;
+        for _ in 0..max_num_elems_to_test {
+            let mut random_coeffs = vec![Fq::zero(); ext_degree];
+            let random_coeff = Fq::rand(&mut test_rng());
+            let res = Fq2::from_base_prime_field(random_coeff);
+            random_coeffs[0] = random_coeff;
+            assert_eq!(
+                res,
+                Fq2::from_base_prime_field_elems(&random_coeffs).unwrap()
+            );
         }
     }
 }

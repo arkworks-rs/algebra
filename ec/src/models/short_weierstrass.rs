@@ -36,8 +36,8 @@ pub trait SWCurveConfig: super::CurveConfig {
     const COEFF_A: Self::BaseField;
     /// Coefficient `b` of the curve equation.
     const COEFF_B: Self::BaseField;
-    /// Coefficients of the base point of the curve
-    const AFFINE_GENERATOR_COEFFS: (Self::BaseField, Self::BaseField);
+    /// Generator of the prime-order subgroup.
+    const GENERATOR: Affine<Self>;
 
     /// Helper method for computing `elem * Self::COEFF_A`.
     ///
@@ -126,14 +126,12 @@ pub trait SWCurveConfig: super::CurveConfig {
     Hash(bound = "P: SWCurveConfig")
 )]
 #[must_use]
-// DISCUSS these shouldn't be public and instead we should have functions
-// encapsulating the attributes
 pub struct Affine<P: SWCurveConfig> {
-    /// X coordinate of the point represented as a field element
+    #[doc(hidden)]
     pub x: P::BaseField,
-    /// Y coordinate of the point represented as a field element
+    #[doc(hidden)]
     pub y: P::BaseField,
-    /// Flag determining if the point is in infinity
+    #[doc(hidden)]
     pub infinity: bool,
 }
 
@@ -151,20 +149,47 @@ impl<P: SWCurveConfig> PartialEq<Affine<P>> for Projective<P> {
 
 impl<P: SWCurveConfig> Display for Affine<P> {
     fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
-        if self.infinity {
-            write!(f, "Affine(Infinity)")
-        } else {
-            write!(f, "Affine(x={}, y={})", self.x, self.y)
+        match self.infinity {
+            true => write!(f, "infinity"),
+            false => write!(f, "({}, {})", self.x, self.y),
         }
     }
 }
 
 impl<P: SWCurveConfig> Affine<P> {
-    // DISCUSS The function shouldn't take infinity as parameter but instead accept
-    // only `(x,y)` so we have another const function `Affine::infinity`
-    // that takes no parameters
-    pub fn new(x: P::BaseField, y: P::BaseField, infinity: bool) -> Self {
-        Self { x, y, infinity }
+    /// Constructs a group element from x and y coordinates.
+    /// Performs checks to ensure that the point is on the curve and is in the right subgroup.
+    pub fn new(x: P::BaseField, y: P::BaseField) -> Self {
+        let point = Self {
+            x,
+            y,
+            infinity: false,
+        };
+        assert!(point.is_on_curve());
+        assert!(point.is_in_correct_subgroup_assuming_on_curve());
+        point
+    }
+
+    /// Constructs a group element from x and y coordinates.
+    ///
+    /// # Warning
+    ///
+    /// Does *not* perform any checks to ensure the point is in the curve or
+    /// is in the right subgroup.
+    pub const fn new_unchecked(x: P::BaseField, y: P::BaseField) -> Self {
+        Self {
+            x,
+            y,
+            infinity: false,
+        }
+    }
+
+    pub const fn identity() -> Self {
+        Self {
+            x: P::BaseField::ZERO,
+            y: P::BaseField::ZERO,
+            infinity: true,
+        }
     }
 
     /// Attempts to construct an affine point given an x-coordinate. The
@@ -186,24 +211,21 @@ impl<P: SWCurveConfig> Affine<P> {
             let negy = -y;
 
             let y = if (y < negy) ^ greatest { y } else { negy };
-            Self::new(x, y, false)
+            Self::new_unchecked(x, y)
         })
     }
 
     /// Checks if `self` is a valid point on the curve.
     pub fn is_on_curve(&self) -> bool {
-        if self.is_zero() {
-            true
-        } else {
-            // Check that the point is on the curve
-            let y2 = self.y.square();
+        if !self.infinity {
             // Rust does not optimise away addition with zero
-            let x3b = if P::COEFF_A.is_zero() {
-                P::add_b(&(self.x.square() * &self.x))
-            } else {
-                P::add_b(&((self.x.square() * &self.x) + &P::mul_by_a(&self.x)))
+            let mut x3b = P::add_b(&(self.x.square() * self.x));
+            if !P::COEFF_A.is_zero() {
+                x3b += &P::mul_by_a(&self.x);
             };
-            y2 == x3b
+            self.y.square() == x3b
+        } else {
+            true
         }
     }
 }
@@ -233,13 +255,13 @@ impl<P: SWCurveConfig> Zero for Affine<P> {
     /// by setting the `infinity` flag to true.
     #[inline]
     fn zero() -> Self {
-        Self::new(P::BaseField::zero(), P::BaseField::one(), true)
+        Self::identity()
     }
 
     /// Checks if `self` is the point at infinity.
     #[inline]
     fn is_zero(&self) -> bool {
-        self.infinity
+        self == &Self::zero()
     }
 }
 
@@ -280,16 +302,13 @@ impl<P: SWCurveConfig> AffineCurve for Affine<P> {
     type ScalarField = P::ScalarField;
     type Projective = Projective<P>;
 
-    fn xy(&self) -> (Self::BaseField, Self::BaseField) {
-        (self.x, self.y)
+    fn xy(&self) -> Option<(&Self::BaseField, &Self::BaseField)> {
+        (!self.infinity).then(|| (&self.x, &self.y))
     }
+
     #[inline]
     fn prime_subgroup_generator() -> Self {
-        Self::new(
-            P::AFFINE_GENERATOR_COEFFS.0,
-            P::AFFINE_GENERATOR_COEFFS.1,
-            false,
-        )
+        P::GENERATOR
     }
 
     fn from_random_bytes(bytes: &[u8]) -> Option<Self> {
@@ -321,7 +340,6 @@ impl<P: SWCurveConfig> AffineCurve for Affine<P> {
     /// Performs cofactor clearing.
     /// The default method is simply to multiply by the cofactor.
     /// Some curves can implement a more efficient algorithm.
-    #[must_use]
     fn clear_cofactor(&self) -> Self {
         P::clear_cofactor(self)
     }
@@ -333,12 +351,9 @@ impl<P: SWCurveConfig> Neg for Affine<P> {
     /// If `self.is_zero()`, returns `self` (`== Self::zero()`).
     /// Else, returns `(x, -y)`, where `self = (x, y)`.
     #[inline]
-    fn neg(self) -> Self {
-        if !self.is_zero() {
-            Self::new(self.x, -self.y, false)
-        } else {
-            self
-        }
+    fn neg(mut self) -> Self {
+        self.y = -self.y;
+        self
     }
 }
 
@@ -441,8 +456,19 @@ impl<P: SWCurveConfig> Default for Projective<P> {
 }
 
 impl<P: SWCurveConfig> Projective<P> {
-    pub fn new(x: P::BaseField, y: P::BaseField, z: P::BaseField) -> Self {
+    /// Construct a new group element without checking whether the coordinates
+    /// specify a point in the subgroup.
+    pub const fn new_unchecked(x: P::BaseField, y: P::BaseField, z: P::BaseField) -> Self {
         Self { x, y, z }
+    }
+
+    /// Construct a new group element in a way while enforcing that points are in
+    /// the prime-order subgroup.
+    pub fn new(x: P::BaseField, y: P::BaseField, z: P::BaseField) -> Self {
+        let p = Self::new_unchecked(x, y, z).into_affine();
+        assert!(p.is_on_curve());
+        assert!(p.is_in_correct_subgroup_assuming_on_curve());
+        p.into()
     }
 }
 
@@ -458,7 +484,7 @@ impl<P: SWCurveConfig> Zero for Projective<P> {
     /// Returns the point at infinity, which always has Z = 0.
     #[inline]
     fn zero() -> Self {
-        Self::new(
+        Self::new_unchecked(
             P::BaseField::one(),
             P::BaseField::one(),
             P::BaseField::zero(),
@@ -594,69 +620,70 @@ impl<P: SWCurveConfig> ProjectiveCurve for Projective<P> {
     /// efficient [formula](http://www.hyperelliptic.org/EFD/g1p/auto-shortw-jacobian-0.html#addition-madd-2007-bl)
     /// to compute `self + other`.
     fn add_assign_mixed(&mut self, other: &Affine<P>) {
-        if other.is_zero() {
-            return;
-        }
+        match other.is_zero() {
+            true => {},
+            false => {
+                if self.is_zero() {
+                    self.x = other.x;
+                    self.y = other.y;
+                    self.z = P::BaseField::one();
+                    return;
+                }
 
-        if self.is_zero() {
-            self.x = other.x;
-            self.y = other.y;
-            self.z = P::BaseField::one();
-            return;
-        }
+                // Z1Z1 = Z1^2
+                let z1z1 = self.z.square();
 
-        // Z1Z1 = Z1^2
-        let z1z1 = self.z.square();
+                // U2 = X2*Z1Z1
+                let u2 = z1z1 * other.x;
 
-        // U2 = X2*Z1Z1
-        let u2 = other.x * &z1z1;
+                // S2 = Y2*Z1*Z1Z1
+                let s2 = (self.z * other.y) * &z1z1;
 
-        // S2 = Y2*Z1*Z1Z1
-        let s2 = (other.y * &self.z) * &z1z1;
+                if self.x == u2 && self.y == s2 {
+                    // The two points are equal, so we double.
+                    self.double_in_place();
+                } else {
+                    // If we're adding -a and a together, self.z becomes zero as H becomes zero.
 
-        if self.x == u2 && self.y == s2 {
-            // The two points are equal, so we double.
-            self.double_in_place();
-        } else {
-            // If we're adding -a and a together, self.z becomes zero as H becomes zero.
+                    // H = U2-X1
+                    let h = u2 - &self.x;
 
-            // H = U2-X1
-            let h = u2 - &self.x;
+                    // HH = H^2
+                    let hh = h.square();
 
-            // HH = H^2
-            let hh = h.square();
+                    // I = 4*HH
+                    let mut i = hh;
+                    i.double_in_place().double_in_place();
 
-            // I = 4*HH
-            let mut i = hh;
-            i.double_in_place().double_in_place();
+                    // J = H*I
+                    let mut j = h * &i;
 
-            // J = H*I
-            let mut j = h * &i;
+                    // r = 2*(S2-Y1)
+                    let r = (s2 - &self.y).double();
 
-            // r = 2*(S2-Y1)
-            let r = (s2 - &self.y).double();
+                    // V = X1*I
+                    let v = self.x * &i;
 
-            // V = X1*I
-            let v = self.x * &i;
+                    // X3 = r^2 - J - 2*V
+                    self.x = r.square();
+                    self.x -= &j;
+                    self.x -= &v;
+                    self.x -= &v;
 
-            // X3 = r^2 - J - 2*V
-            self.x = r.square();
-            self.x -= &j;
-            self.x -= &v;
-            self.x -= &v;
+                    // Y3 = r*(V-X3)-2*Y1*J
+                    j *= &self.y; // J = 2*Y1*J
+                    j.double_in_place();
+                    self.y = v - &self.x;
+                    self.y *= &r;
+                    self.y -= &j;
 
-            // Y3 = r*(V-X3)-2*Y1*J
-            j *= &self.y; // J = 2*Y1*J
-            j.double_in_place();
-            self.y = v - &self.x;
-            self.y *= &r;
-            self.y -= &j;
-
-            // Z3 = (Z1+H)^2-Z1Z1-HH
-            self.z += &h;
-            self.z.square_in_place();
-            self.z -= &z1z1;
-            self.z -= &hh;
+                    // Z3 = (Z1+H)^2-Z1Z1-HH
+                    self.z += &h;
+                    self.z.square_in_place();
+                    self.z -= &z1z1;
+                    self.z -= &hh;
+                }
+            },
         }
     }
 
@@ -670,12 +697,9 @@ impl<P: SWCurveConfig> Neg for Projective<P> {
     type Output = Self;
 
     #[inline]
-    fn neg(self) -> Self {
-        if !self.is_zero() {
-            Self::new(self.x, -self.y, self.z)
-        } else {
-            self
-        }
+    fn neg(mut self) -> Self {
+        self.y = -self.y;
+        self
     }
 }
 
@@ -783,10 +807,13 @@ impl<P: SWCurveConfig> MulAssign<P::ScalarField> for Projective<P> {
 impl<P: SWCurveConfig> From<Affine<P>> for Projective<P> {
     #[inline]
     fn from(p: Affine<P>) -> Projective<P> {
-        if p.is_zero() {
-            Self::zero()
-        } else {
-            Self::new(p.x, p.y, P::BaseField::one())
+        match p.infinity {
+            true => Self::zero(),
+            false => Self {
+                x: p.x,
+                y: p.y,
+                z: P::BaseField::one(),
+            },
         }
     }
 }
@@ -800,7 +827,7 @@ impl<P: SWCurveConfig> From<Projective<P>> for Affine<P> {
             Affine::zero()
         } else if p.z.is_one() {
             // If Z is one, the point is already normalized.
-            Affine::new(p.x, p.y, false)
+            Affine::new_unchecked(p.x, p.y)
         } else {
             // Z is nonzero, so it must have an inverse in a field.
             let zinv = p.z.inverse().unwrap();
@@ -812,7 +839,7 @@ impl<P: SWCurveConfig> From<Projective<P>> for Affine<P> {
             // Y/Z^3
             let y = p.y * &(zinv_squared * &zinv);
 
-            Affine::new(x, y, false)
+            Affine::new_unchecked(x, y)
         }
     }
 }
@@ -821,14 +848,11 @@ impl<P: SWCurveConfig> CanonicalSerialize for Affine<P> {
     #[allow(unused_qualifications)]
     #[inline]
     fn serialize<W: Write>(&self, writer: W) -> Result<(), SerializationError> {
-        if self.is_zero() {
-            let flags = SWFlags::infinity();
-            // Serialize 0.
-            P::BaseField::zero().serialize_with_flags(writer, flags)
-        } else {
-            let flags = SWFlags::from_y_sign(self.y > -self.y);
-            self.x.serialize_with_flags(writer, flags)
-        }
+        let (x, flags) = match self.infinity {
+            true => (P::BaseField::zero(), SWFlags::infinity()),
+            false => (self.x, SWFlags::from_y_sign(self.y > -self.y)),
+        };
+        x.serialize_with_flags(writer, flags)
     }
 
     #[inline]
@@ -839,19 +863,25 @@ impl<P: SWCurveConfig> CanonicalSerialize for Affine<P> {
     #[allow(unused_qualifications)]
     #[inline]
     fn serialize_uncompressed<W: Write>(&self, mut writer: W) -> Result<(), SerializationError> {
-        let flags = if self.is_zero() {
-            SWFlags::infinity()
-        } else {
-            SWFlags::default()
+        let (x, y, flags) = match self.infinity {
+            true => (
+                P::BaseField::zero(),
+                P::BaseField::zero(),
+                SWFlags::infinity(),
+            ),
+            false => (self.x, self.y, SWFlags::from_y_sign(self.y > -self.y)),
         };
-        self.x.serialize(&mut writer)?;
-        self.y.serialize_with_flags(&mut writer, flags)?;
+        x.serialize(&mut writer)?;
+        y.serialize_with_flags(&mut writer, flags)?;
         Ok(())
     }
 
     #[inline]
     fn uncompressed_size(&self) -> usize {
-        self.x.serialized_size() + self.y.serialized_size_with_flags::<SWFlags>()
+        // The size of the serialization is independent of the values
+        // of `x` and `y`, and depends only on the size of the modulus.
+        P::BaseField::zero().serialized_size()
+            + P::BaseField::zero().serialized_size_with_flags::<SWFlags>()
     }
 }
 
@@ -917,8 +947,10 @@ impl<P: SWCurveConfig> CanonicalDeserialize for Affine<P> {
         let x: P::BaseField = CanonicalDeserialize::deserialize(&mut reader)?;
         let (y, flags): (P::BaseField, SWFlags) =
             CanonicalDeserializeWithFlags::deserialize_with_flags(&mut reader)?;
-        let p = Affine::<P>::new(x, y, flags.is_infinity());
-        Ok(p)
+        match flags.is_infinity() {
+            true => Ok(Self::zero()),
+            false => Ok(Self::new_unchecked(x, y)),
+        }
     }
 }
 
@@ -948,12 +980,12 @@ where
 {
     #[inline]
     fn to_field_elements(&self) -> Option<Vec<ConstraintF>> {
-        let mut x_fe = self.x.to_field_elements()?;
-        let y_fe = self.y.to_field_elements()?;
-        let infinity_fe = self.infinity.to_field_elements()?;
-        x_fe.extend_from_slice(&y_fe);
-        x_fe.extend_from_slice(&infinity_fe);
-        Some(x_fe)
+        let mut x = self.x.to_field_elements()?;
+        let y = self.y.to_field_elements()?;
+        let infinity = self.infinity.to_field_elements()?;
+        x.extend_from_slice(&y);
+        x.extend_from_slice(&infinity);
+        Some(x)
     }
 }
 

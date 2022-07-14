@@ -7,7 +7,7 @@ use libtest_mimic::{run_tests, Arguments, Outcome, Test};
 
 use ark_test_curves::{
     hashing::{curve_maps::wb::WBMap, map_to_curve_hasher::MapToCurveBasedHasher, HashToCurve},
-    short_weierstrass_jacobian::GroupAffine,
+    short_weierstrass::Affine,
 };
 
 use ark_ff::{Field, PrimeField};
@@ -42,13 +42,13 @@ fn run_test_w(Test { data, .. }: &Test<SuiteVector>) -> Outcome {
     let hasher;
     let m;
     let g1_mapper = MapToCurveBasedHasher::<
-        GroupAffine<G1Parameters>,
+        Affine<G1Parameters>,
         DefaultFieldHasher<Sha256, 128>,
         WBMap<G1Parameters>,
     >::new(dst)
     .unwrap();
     let g2_mapper = MapToCurveBasedHasher::<
-        GroupAffine<G2Parameters>,
+        Affine<G2Parameters>,
         DefaultFieldHasher<Sha256, 128>,
         WBMap<G2Parameters>,
     >::new(dst)
@@ -90,10 +90,9 @@ fn run_test_w(Test { data, .. }: &Test<SuiteVector>) -> Outcome {
         match data.curve.as_str() {
             "BLS12-381 G1" => {
                 let got = g1_mapper.hash(&v.msg.as_bytes()).unwrap();
-                let want = GroupAffine::<G1Parameters>::new(
+                let want = Affine::<G1Parameters>::new_unchecked(
                     Fq::from_base_prime_field_elems(&x[..]).unwrap(),
                     Fq::from_base_prime_field_elems(&y[..]).unwrap(),
-                    false,
                 );
                 assert!(got.is_on_curve());
                 assert!(want.is_on_curve());
@@ -110,10 +109,9 @@ fn run_test_w(Test { data, .. }: &Test<SuiteVector>) -> Outcome {
             },
             "BLS12-381 G2" => {
                 let got = g2_mapper.hash(&v.msg.as_bytes()).unwrap();
-                let want = GroupAffine::<G2Parameters>::new(
+                let want = Affine::<G2Parameters>::new_unchecked(
                     Fq2::from_base_prime_field_elems(&x[..]).unwrap(),
                     Fq2::from_base_prime_field_elems(&y[..]).unwrap(),
-                    false,
                 );
                 assert!(got.is_on_curve());
                 assert!(want.is_on_curve());

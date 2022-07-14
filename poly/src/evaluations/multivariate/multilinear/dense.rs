@@ -182,15 +182,13 @@ impl<F: Field> AddAssign for DenseMultilinearExtension<F> {
     }
 }
 
-impl<'a, 'b, F: Field> AddAssign<&'a DenseMultilinearExtension<F>>
-    for DenseMultilinearExtension<F>
-{
+impl<'a, F: Field> AddAssign<&'a DenseMultilinearExtension<F>> for DenseMultilinearExtension<F> {
     fn add_assign(&mut self, other: &'a DenseMultilinearExtension<F>) {
         *self = &*self + other;
     }
 }
 
-impl<'a, 'b, F: Field> AddAssign<(F, &'a DenseMultilinearExtension<F>)>
+impl<'a, F: Field> AddAssign<(F, &'a DenseMultilinearExtension<F>)>
     for DenseMultilinearExtension<F>
 {
     fn add_assign(&mut self, (f, other): (F, &'a DenseMultilinearExtension<F>)) {
@@ -235,9 +233,7 @@ impl<F: Field> SubAssign for DenseMultilinearExtension<F> {
     }
 }
 
-impl<'a, 'b, F: Field> SubAssign<&'a DenseMultilinearExtension<F>>
-    for DenseMultilinearExtension<F>
-{
+impl<'a, F: Field> SubAssign<&'a DenseMultilinearExtension<F>> for DenseMultilinearExtension<F> {
     fn sub_assign(&mut self, other: &'a DenseMultilinearExtension<F>) {
         *self = &*self - other;
     }

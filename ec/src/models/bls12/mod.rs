@@ -1,6 +1,6 @@
 use crate::{
     models::{short_weierstrass::SWCurveConfig, CurveConfig},
-    PairingEngine,
+    AffineCurve, PairingEngine,
 };
 use ark_ff::fields::{
     fp12_2over3over2::{Fp12, Fp12Config},
@@ -62,16 +62,17 @@ impl<P: Bls12Parameters> Bls12<P> {
         let mut c0 = coeffs.0;
         let mut c1 = coeffs.1;
         let mut c2 = coeffs.2;
+        let (px, py) = p.xy().unwrap();
 
         match P::TWIST_TYPE {
             TwistType::M => {
-                c2.mul_assign_by_fp(&p.y);
-                c1.mul_assign_by_fp(&p.x);
+                c2.mul_assign_by_fp(py);
+                c1.mul_assign_by_fp(px);
                 f.mul_by_014(&c0, &c1, &c2);
             },
             TwistType::D => {
-                c0.mul_assign_by_fp(&p.y);
-                c1.mul_assign_by_fp(&p.x);
+                c0.mul_assign_by_fp(py);
+                c1.mul_assign_by_fp(px);
                 f.mul_by_034(&c0, &c1, &c2);
             },
         }

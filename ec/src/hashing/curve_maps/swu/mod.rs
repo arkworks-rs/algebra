@@ -144,7 +144,7 @@ impl<P: SWUParams> MapToCurve<Affine<P>> for SWUMap<P> {
 
         let x_affine = num_x / div;
         let y_affine = if parity(&y) != parity(&point) { -y } else { y };
-        let point_on_curve = Affine::<P>::new(x_affine, y_affine, false);
+        let point_on_curve = Affine::<P>::new_unchecked(x_affine, y_affine);
         assert!(
             point_on_curve.is_on_curve(),
             "swu mapped to a point off the curve"
@@ -157,7 +157,7 @@ impl<P: SWUParams> MapToCurve<Affine<P>> for SWUMap<P> {
 mod test {
     use crate::hashing::map_to_curve_hasher::MapToCurveBasedHasher;
     use crate::hashing::HashToCurve;
-    use crate::ModelParameters;
+    use crate::CurveConfig;
     use ark_ff::field_hashers::DefaultFieldHasher;
     use ark_std::vec::Vec;
 
@@ -172,11 +172,11 @@ mod test {
     pub struct F127Config;
     pub type F127 = Fp64<MontBackend<F127Config, 1>>;
 
-    const F127_ONE: F127 = MontFp!(F127, "1");
+    const F127_ONE: F127 = MontFp!("1");
 
     struct TestSWUMapToCurveParams;
 
-    impl ModelParameters for TestSWUMapToCurveParams {
+    impl CurveConfig for TestSWUMapToCurveParams {
         const COFACTOR: &'static [u64] = &[1];
 
     #[rustfmt::skip]
@@ -199,21 +199,20 @@ mod test {
     ///         pass
     ///
     /// y^2 = x^3 + x + 63
-    impl SWModelParameters for TestSWUMapToCurveParams {
+    impl SWCurveConfig for TestSWUMapToCurveParams {
         /// COEFF_A = 1
         const COEFF_A: F127 = F127_ONE;
 
         /// COEFF_B = 1
     #[rustfmt::skip]
-        const COEFF_B: F127 = MontFp!(F127, "63");
+        const COEFF_B: F127 = MontFp!("63");
 
         /// AFFINE_GENERATOR_COEFFS = (G1_GENERATOR_X, G1_GENERATOR_Y)
-        const AFFINE_GENERATOR_COEFFS: (Self::BaseField, Self::BaseField) =
-            (MontFp!(F127, "62"), MontFp!(F127, "70"));
+        const GENERATOR: Affine<Self> = Affine::new_unchecked(MontFp!("62"), MontFp!("70"));
     }
 
     impl SWUParams for TestSWUMapToCurveParams {
-        const ZETA: F127 = MontFp!(F127, "-1");
+        const ZETA: F127 = MontFp!("-1");
     }
 
     /// test that MontFp make a none zero element out of 1
@@ -241,7 +240,7 @@ mod test {
     #[test]
     fn hash_arbitary_string_to_curve_swu() {
         let test_swu_to_curve_hasher = MapToCurveBasedHasher::<
-            GroupAffine<TestSWUMapToCurveParams>,
+            Affine<TestSWUMapToCurveParams>,
             DefaultFieldHasher<Sha256, 128>,
             SWUMap<TestSWUMapToCurveParams>,
         >::new(&[1])
@@ -262,7 +261,7 @@ mod test {
     fn map_field_to_curve_swu() {
         let test_map_to_curve = SWUMap::<TestSWUMapToCurveParams>::new().unwrap();
 
-        let mut map_range: Vec<GroupAffine<TestSWUMapToCurveParams>> = vec![];
+        let mut map_range: Vec<Affine<TestSWUMapToCurveParams>> = vec![];
         for current_field_element in 0..127 {
             map_range.push(
                 test_map_to_curve
