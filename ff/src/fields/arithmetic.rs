@@ -15,7 +15,6 @@ macro_rules! sqrt_impl {
         let mut x = w * $self;
         let mut b = x * &w;
 
-        // let mut v = $P::TWO_ADICITY as usize;
         let mut v = *$two_adicity as usize;
 
         while !b.is_one() {
