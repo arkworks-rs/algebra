@@ -18,7 +18,7 @@ use ark_std::{
 mod montgomery_backend;
 pub use montgomery_backend::*;
 
-use crate::{BigInt, BigInteger, FftField, Field, LegendreSymbol, PrimeField};
+use crate::{BigInt, BigInteger, FftField, Field, LegendreSymbol, PrimeField, SqrtPrecomputation};
 /// A trait that specifies the configuration of a prime field.
 /// Also specifies how to perform arithmetic on field elements.
 pub trait FpConfig<const N: usize>: Send + Sync + 'static + Sized {
@@ -59,6 +59,13 @@ pub trait FpConfig<const N: usize>: Send + Sync + 'static + Sized {
     /// FFT.
     const LARGE_SUBGROUP_ROOT_OF_UNITY: Option<Fp<Self, N>> = None;
 
+    const SQRT_PRECOMP: Option<SqrtPrecomputation<Fp<Self, N>>> =
+        Some(SqrtPrecomputation::TonelliShanks(
+            Self::TWO_ADICITY,
+            &Fp::<Self, N>::TRACE_MINUS_ONE_DIV_TWO,
+            Self::TWO_ADIC_ROOT_OF_UNITY,
+        ));
+
     /// Set a += b.
     fn add_assign(a: &mut Fp<Self, N>, b: &Fp<Self, N>);
 
@@ -76,18 +83,6 @@ pub trait FpConfig<const N: usize>: Send + Sync + 'static + Sized {
 
     /// Compute a^{-1} if `a` is not zero.
     fn inverse(a: &Fp<Self, N>) -> Option<Fp<Self, N>>;
-
-    /// Compute the square root of a, if it exists.
-    #[allow(unused_parens)]
-    fn square_root(a: &Fp<Self, N>) -> Option<Fp<Self, N>> {
-        sqrt_impl!(
-            Fp,
-            a,
-            (&Self::TWO_ADICITY),
-            (Fp::<Self, N>::TRACE_MINUS_ONE_DIV_TWO),
-            (&Self::TWO_ADIC_ROOT_OF_UNITY)
-        )
-    }
 
     /// Construct a field element from an integer in the range
     /// `0..(Self::MODULUS - 1)`. Returns `None` if the integer is outside
@@ -183,7 +178,7 @@ impl<P: FpConfig<N>, const N: usize> Field for Fp<P, N> {
     type BasePrimeField = Self;
     type BasePrimeFieldIter = iter::Once<Self::BasePrimeField>;
 
-    const SQRT_PRECOMP: Option<crate::SqrtPrecomputation<Self>> = None;
+    const SQRT_PRECOMP: Option<crate::SqrtPrecomputation<Self>> = P::SQRT_PRECOMP;
     const ZERO: Self = P::ZERO;
     const ONE: Self = P::ONE;
 
@@ -312,18 +307,6 @@ impl<P: FpConfig<N>, const N: usize> Field for Fp<P, N> {
         } else {
             QuadraticNonResidue
         }
-    }
-
-    #[inline]
-    fn sqrt(&self) -> Option<Self> {
-        P::square_root(self)
-    }
-
-    fn sqrt_in_place(&mut self) -> Option<&mut Self> {
-        (*self).sqrt().map(|sqrt| {
-            *self = sqrt;
-            self
-        })
     }
 }
 
