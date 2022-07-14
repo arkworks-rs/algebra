@@ -807,4 +807,17 @@ mod quad_ext_tests {
             assert_eq!(actual, expected);
         }
     }
+
+    #[test]
+    fn test_from_base_prime_field_element() {
+        let ext_degree = Fq2::extension_degree() as usize;
+        let max_num_elems_to_test = 10;
+        for _ in 0..max_num_elems_to_test {
+            let mut random_coeffs = vec![Fq::zero(); ext_degree];
+            let random_coeff = Fq::rand(&mut test_rng());
+            let res = Fq2::from_base_prime_field(random_coeff);
+            random_coeffs[0] = random_coeff;
+            assert_eq!(res, Fq2::from_base_prime_field_elems(&random_coeffs).unwrap());
+        }
+    }
 }

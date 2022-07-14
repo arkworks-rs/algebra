@@ -154,6 +154,13 @@ pub trait Field:
     fn from_base_prime_field_elems(elems: &[Self::BasePrimeField]) -> Option<Self>;
 
     /// Constructs a field element from a single base prime field elements.
+    /// ```
+    /// # use ark_ff::Field;
+    /// # use ark_test_curves::bls12_381::Fq as F;
+    /// # use ark_test_curves::bls12_381::Fq2 as F2;
+    /// # use ark_std::One;
+    /// assert_eq!(F2::from_base_prime_field(F::one()), F2::one());
+    /// ```
     fn from_base_prime_field(elem: Self::BasePrimeField) -> Self;
 
     /// Returns `self + self`.
