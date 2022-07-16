@@ -130,7 +130,11 @@ pub trait Field:
     + From<bool>
 {
     type BasePrimeField: PrimeField;
+
     type BasePrimeFieldIter: Iterator<Item = Self::BasePrimeField>;
+
+    /// Determines the algorithm for computing square roots.
+    const SQRT_PRECOMP: Option<SqrtPrecomputation<Self>>;
 
     /// The additive identity of the field.
     const ZERO: Self;
@@ -186,6 +190,29 @@ pub trait Field:
     /// This function is primarily intended for sampling random field elements
     /// from a hash-function or RNG output.
     fn from_random_bytes_with_flags<F: Flags>(bytes: &[u8]) -> Option<(Self, F)>;
+
+    /// Returns a `LegendreSymbol`, which indicates whether this field element
+    /// is  1 : a quadratic residue
+    ///  0 : equal to 0
+    /// -1 : a quadratic non-residue
+    fn legendre(&self) -> LegendreSymbol;
+
+    /// Returns the square root of self, if it exists.
+    #[must_use]
+    fn sqrt(&self) -> Option<Self> {
+        match Self::SQRT_PRECOMP {
+            Some(tv) => tv.sqrt(self),
+            None => unimplemented!(),
+        }
+    }
+
+    /// Sets `self` to be the square root of `self`, if it exists.
+    fn sqrt_in_place(&mut self) -> Option<&mut Self> {
+        (*self).sqrt().map(|sqrt| {
+            *self = sqrt;
+            self
+        })
+    }
 
     /// Returns `self * self`.
     #[must_use]
@@ -417,30 +444,13 @@ pub trait PrimeField:
     }
 }
 
-/// The interface for a field that supports an efficient square-root operation.
-pub trait SquareRootField: Field {
-    /// Returns a `LegendreSymbol`, which indicates whether this field element
-    /// is  
-    /// - 1: a quadratic residue
-    /// - 0: equal to 0
-    /// - -1: a quadratic non-residue
-    fn legendre(&self) -> LegendreSymbol;
-
-    /// Returns the square root of self, if it exists.
-    #[must_use]
-    fn sqrt(&self) -> Option<Self>;
-
-    /// Sets `self` to be the square root of `self`, if it exists.
-    fn sqrt_in_place(&mut self) -> Option<&mut Self>;
-}
-
 /// Indication of the field element's quadratic residuosity
 ///
 /// # Examples
 /// ```
 /// # use ark_std::test_rng;
 /// # use ark_std::UniformRand;
-/// # use ark_test_curves::{LegendreSymbol, Field, SquareRootField, bls12_381::Fq as Fp};
+/// # use ark_test_curves::{LegendreSymbol, Field, bls12_381::Fq as Fp};
 /// let a: Fp = Fp::rand(&mut test_rng());
 /// let b = a.square();
 /// assert_eq!(b.legendre(), LegendreSymbol::QuadraticResidue);
@@ -459,7 +469,7 @@ impl LegendreSymbol {
     /// ```
     /// # use ark_std::test_rng;
     /// # use ark_std::UniformRand;
-    /// # use ark_test_curves::{LegendreSymbol, Field, SquareRootField, bls12_381::Fq as Fp};
+    /// # use ark_test_curves::{LegendreSymbol, Field, bls12_381::Fq as Fp};
     /// let a: Fp = Fp::rand(&mut test_rng());
     /// let b: Fp = a.square();
     /// assert!(!b.legendre().is_zero());
@@ -472,7 +482,7 @@ impl LegendreSymbol {
     ///
     /// # Examples
     /// ```
-    /// # use ark_test_curves::{Fp2Config, LegendreSymbol, SquareRootField, bls12_381::{Fq, Fq2Config}};
+    /// # use ark_test_curves::{Fp2Config, Field, LegendreSymbol, bls12_381::{Fq, Fq2Config}};
     /// let a: Fq = Fq2Config::NONRESIDUE;
     /// assert!(a.legendre().is_qnr());
     /// ```
@@ -486,13 +496,80 @@ impl LegendreSymbol {
     /// # use ark_std::test_rng;
     /// # use ark_test_curves::bls12_381::Fq as Fp;
     /// # use ark_std::UniformRand;
-    /// # use ark_ff::{LegendreSymbol, Field, SquareRootField};
+    /// # use ark_ff::{LegendreSymbol, Field};
     /// let a: Fp = Fp::rand(&mut test_rng());
     /// let b: Fp = a.square();
     /// assert!(b.legendre().is_qr());
     /// ```
     pub fn is_qr(&self) -> bool {
         *self == LegendreSymbol::QuadraticResidue
+    }
+}
+
+#[non_exhaustive]
+pub enum SqrtPrecomputation<F: Field> {
+    // Tonelli-Shanks algorithm works for all elements, no matter what the modulus is.
+    TonelliShanks(u32, &'static dyn AsRef<[u64]>, F),
+}
+
+impl<F: Field> SqrtPrecomputation<F> {
+    fn sqrt(&self, elem: &F) -> Option<F> {
+        match self {
+            SqrtPrecomputation::TonelliShanks(two_adicity, trace_minus_one_div_two, qnr_to_t) => {
+                // https://eprint.iacr.org/2012/685.pdf (page 12, algorithm 5)
+                // Actually this is just normal Tonelli-Shanks; since `P::Generator`
+                // is a quadratic non-residue, `P::ROOT_OF_UNITY = P::GENERATOR ^ t`
+                // is also a quadratic non-residue (since `t` is odd).
+                if elem.is_zero() {
+                    return Some(F::zero());
+                }
+                // Try computing the square root (x at the end of the algorithm)
+                // Check at the end of the algorithm if x was a square root
+                // Begin Tonelli-Shanks
+                let mut z = *qnr_to_t;
+                let mut w = elem.pow(trace_minus_one_div_two);
+                let mut x = w * elem;
+                let mut b = x * &w;
+
+                let mut v = *two_adicity as usize;
+
+                while !b.is_one() {
+                    let mut k = 0usize;
+
+                    let mut b2k = b;
+                    while !b2k.is_one() {
+                        // invariant: b2k = b^(2^k) after entering this loop
+                        b2k.square_in_place();
+                        k += 1;
+                    }
+
+                    if k == (*two_adicity as usize) {
+                        // We are in the case where self^(T * 2^k) = x^(P::MODULUS - 1) = 1,
+                        // which means that no square root exists.
+                        return None;
+                    }
+                    let j = v - k;
+                    w = z;
+                    for _ in 1..j {
+                        w.square_in_place();
+                    }
+
+                    z = w.square();
+                    b *= &z;
+                    x *= &w;
+                    v = k;
+                }
+                // Is x the square root? If so, return it.
+                if x.square() == *elem {
+                    return Some(x);
+                } else {
+                    // Consistency check that if no square root is found,
+                    // it is because none exists.
+                    debug_assert!(!matches!(elem.legendre(), LegendreSymbol::QuadraticResidue));
+                    None
+                }
+            },
+        }
     }
 }
 

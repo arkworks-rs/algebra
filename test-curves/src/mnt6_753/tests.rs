@@ -4,7 +4,7 @@ use ark_ec::{
 };
 use ark_ff::{Field, One, UniformRand, Zero};
 
-use crate::bls12_381::{g1, Fq, Fq2, Fq6, FqConfig, Fr, FrConfig, G1Affine, G1Projective};
+use crate::mnt6_753::{Fq, Fq3, FqConfig, Fr, FrConfig};
 use ark_algebra_test_templates::{
     curves::*, fields::*, generate_field_test, generate_g1_test, msm::*,
 };
@@ -14,5 +14,4 @@ use ark_std::{
     test_rng,
 };
 
-generate_field_test!(bls12_381; fq2; fq6; mont(6, 4); );
-generate_g1_test!(bls12_381; curve_tests; sw_tests;);
+generate_field_test!(mnt6_753; fq3; );

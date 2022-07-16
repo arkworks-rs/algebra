@@ -6,7 +6,7 @@ use ark_ff::fields::{
     fp12_2over3over2::{Fp12, Fp12Config},
     fp2::Fp2Config,
     fp6_3over2::Fp6Config,
-    BitIteratorBE, Field, Fp2, PrimeField, SquareRootField,
+    BitIteratorBE, Field, Fp2, PrimeField,
 };
 use core::marker::PhantomData;
 use num_traits::{One, Zero};
@@ -33,7 +33,7 @@ pub trait Bls12Parameters: 'static {
     /// What kind of twist is this?
     const TWIST_TYPE: TwistType;
 
-    type Fp: PrimeField + SquareRootField + Into<<Self::Fp as PrimeField>::BigInt>;
+    type Fp: PrimeField + Into<<Self::Fp as PrimeField>::BigInt>;
     type Fp2Config: Fp2Config<Fp = Self::Fp>;
     type Fp6Config: Fp6Config<Fp2Config = Self::Fp2Config>;
     type Fp12Config: Fp12Config<Fp6Config = Self::Fp6Config>;

@@ -11,7 +11,7 @@ use ark_std::{
 };
 
 use ark_ff::{
-    fields::{Field, PrimeField, SquareRootField},
+    fields::{Field, PrimeField},
     ToConstraintField, UniformRand,
 };
 

@@ -1,4 +1,4 @@
-use ark_ff::{Field, PrimeField, SquareRootField};
+use ark_ff::{Field, PrimeField};
 
 pub mod bls12;
 pub mod bn;
@@ -16,10 +16,10 @@ pub mod twisted_edwards;
 /// prime-order subgroup of the curve.
 pub trait CurveConfig: Send + Sync + Sized + 'static {
     /// Base field that the curve is defined over.
-    type BaseField: Field + SquareRootField;
+    type BaseField: Field;
     /// Finite prime field corresponding to an appropriate prime-order subgroup
     /// of the curve group.
-    type ScalarField: PrimeField + SquareRootField + Into<<Self::ScalarField as PrimeField>::BigInt>;
+    type ScalarField: PrimeField + Into<<Self::ScalarField as PrimeField>::BigInt>;
 
     const COFACTOR: &'static [u64];
     const COFACTOR_INV: Self::ScalarField;

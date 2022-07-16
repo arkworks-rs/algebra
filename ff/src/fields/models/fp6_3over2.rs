@@ -7,6 +7,9 @@ pub trait Fp6Config: 'static + Send + Sync + Copy {
 
     const NONRESIDUE: Fp2<Self::Fp2Config>;
 
+    /// Determines the algorithm for computing square roots.
+    const SQRT_PRECOMP: Option<SqrtPrecomputation<Fp6<Self>>> = None;
+
     /// Coefficients for the Frobenius automorphism.
     const FROBENIUS_COEFF_FP6_C1: &'static [Fp2<Self::Fp2Config>];
     const FROBENIUS_COEFF_FP6_C2: &'static [Fp2<Self::Fp2Config>];
@@ -23,6 +26,8 @@ impl<P: Fp6Config> CubicExtConfig for Fp6ConfigWrapper<P> {
     type BasePrimeField = <P::Fp2Config as Fp2Config>::Fp;
     type BaseField = Fp2<P::Fp2Config>;
     type FrobCoeff = Fp2<P::Fp2Config>;
+
+    const SQRT_PRECOMP: Option<SqrtPrecomputation<CubicExtField<Self>>> = P::SQRT_PRECOMP;
 
     const DEGREE_OVER_BASE_PRIME_FIELD: usize = 6;
 

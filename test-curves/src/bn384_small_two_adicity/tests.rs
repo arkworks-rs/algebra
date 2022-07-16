@@ -2,7 +2,7 @@
 use ark_ec::{
     models::short_weierstrass::SWCurveConfig, AffineCurve, PairingEngine, ProjectiveCurve,
 };
-use ark_ff::{Field, One, SquareRootField, UniformRand, Zero};
+use ark_ff::{Field, One, UniformRand, Zero};
 use ark_std::{rand::Rng, test_rng};
 
 use crate::bn384_small_two_adicity::{g1, Fq, FqConfig, Fr, FrConfig, G1Affine, G1Projective};

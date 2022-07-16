@@ -1,5 +1,5 @@
 use crate::models::short_weierstrass::SWCurveConfig;
-use ark_ff::{BigInteger, Field, One, PrimeField, SquareRootField, Zero};
+use ark_ff::{BigInteger, Field, One, PrimeField, Zero};
 use ark_std::string::ToString;
 use core::marker::PhantomData;
 

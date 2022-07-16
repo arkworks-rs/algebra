@@ -5,8 +5,7 @@ use core::marker::PhantomData;
 /// Trait that specifies constants and methods for defining degree-three extension fields.
 pub trait Fp3Config: 'static + Send + Sync + Sized {
     /// Base prime field underlying this extension.
-    type Fp: PrimeField + SquareRootField;
-
+    type Fp: PrimeField;
     /// Cubic non-residue in `Self::Fp` used to construct the extension
     /// field. That is, `NONRESIDUE` is such that the cubic polynomial
     /// `f(X) = X^3 - Self::NONRESIDUE` in Fp\[X\] is irreducible in `Self::Fp`.
@@ -41,6 +40,13 @@ impl<P: Fp3Config> CubicExtConfig for Fp3ConfigWrapper<P> {
     const DEGREE_OVER_BASE_PRIME_FIELD: usize = 3;
 
     const NONRESIDUE: Self::BaseField = P::NONRESIDUE;
+
+    const SQRT_PRECOMP: Option<SqrtPrecomputation<CubicExtField<Self>>> =
+        Some(SqrtPrecomputation::TonelliShanks(
+            P::TWO_ADICITY,
+            &P::TRACE_MINUS_ONE_DIV_TWO,
+            P::QUADRATIC_NONRESIDUE_TO_T,
+        ));
 
     const FROBENIUS_COEFF_C1: &'static [Self::FrobCoeff] = P::FROBENIUS_COEFF_FP3_C1;
     const FROBENIUS_COEFF_C2: &'static [Self::FrobCoeff] = P::FROBENIUS_COEFF_FP3_C2;
@@ -89,31 +95,5 @@ impl<P: Fp3Config> Fp3<P> {
         self.c0.mul_assign(value);
         self.c1.mul_assign(value);
         self.c2.mul_assign(value);
-    }
-
-    /// Returns the value of QNR^T.
-    #[inline]
-    pub fn qnr_to_t() -> Self {
-        P::QUADRATIC_NONRESIDUE_TO_T
-    }
-}
-
-impl<P: Fp3Config> SquareRootField for Fp3<P> {
-    /// Returns the Legendre symbol.
-    fn legendre(&self) -> LegendreSymbol {
-        self.norm().legendre()
-    }
-
-    /// Returns the square root of self, if it exists.
-    fn sqrt(&self) -> Option<Self> {
-        sqrt_impl!(Self, P, self)
-    }
-
-    /// Sets `self` to be the square root of `self`, if it exists.
-    fn sqrt_in_place(&mut self) -> Option<&mut Self> {
-        (*self).sqrt().map(|sqrt| {
-            *self = sqrt;
-            self
-        })
     }
 }
