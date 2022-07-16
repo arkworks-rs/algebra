@@ -1,10 +1,12 @@
+use core::ops::Neg;
+
 use crate::bls12_381::*;
 use ark_ec::{
     bls12,
     hashing::curve_maps::wb::WBParams,
     models::CurveConfig,
     short_weierstrass::{self, *},
-    AffineCurve,
+    AffineCurve, ProjectiveCurve,
 };
 use ark_ff::{BigInt, Field, MontFp, Zero};
 
@@ -74,21 +76,36 @@ impl short_weierstrass::SWCurveConfig for Parameters {
 
     #[inline]
     fn clear_cofactor(p: &G2Affine) -> G2Affine {
-        // Using the effective cofactor, as explained in
-        // Section 5 of https://eprint.iacr.org/2019/403.pdf.
-        let h_eff: &'static [u64] = &[
-            0xe8020005aaa95551,
-            0x59894c0adebbf6b4,
-            0xe954cbc06689f6a3,
-            0x2ec0ec69d7477c1a,
-            0x6d82bf015d1212b0,
-            0x329c2f178731db95,
-            0x9986ff031508ffe1,
-            0x88e2a8e9145ad768,
-            0x584c6a0ea91b3528,
-            0xbc69f08f2ee75b3,
-        ];
-        Parameters::mul_affine(&p, h_eff).into()
+        // Based on Section 4.1 of https://eprint.iacr.org/2017/419.pdf
+        // [h(ψ)]P = [x^2 − x − 1]P + [x − 1]ψ(P) + (ψ^2)(2P)
+
+        // x = -15132376222941642752
+        // When multiplying, use -c1 instead, and then negate the result. That's much
+        // more efficient, since the scalar -c1 has less limbs and a much lower Hamming
+        // weight.
+        let x: &'static [u64] = crate::bls12_381::Parameters::X;
+        let p_projective = p.into_projective();
+
+        // [x]P
+        let x_p = Parameters::mul_affine(p, &x).neg();
+        // ψ(P)
+        let psi_p = p_power_endomorphism(&p);
+        // (ψ^2)(2P)
+        let mut psi2_p2 = double_p_power_endomorphism(&p_projective.double());
+
+        // tmp = [x]P + ψ(P)
+        let mut tmp = x_p.clone();
+        tmp.add_assign_mixed(&psi_p);
+
+        // tmp2 = [x^2]P + [x]ψ(P)
+        let mut tmp2: Projective<Parameters> = tmp;
+        tmp2 = tmp2.mul(x).neg();
+
+        // add up all the terms
+        psi2_p2 += tmp2;
+        psi2_p2 -= x_p;
+        psi2_p2.add_assign_mixed(&-psi_p);
+        (psi2_p2 - p_projective).into_affine()
     }
 }
 
@@ -134,6 +151,11 @@ pub const P_POWER_ENDOMORPHISM_COEFF_1: Fq2 = Fq2::new(
        "1028732146235106349975324479215795277384839936929757896155643118032610843298655225875571310552543014690878354869257")
 );
 
+pub const DOUBLE_P_POWER_ENDOMORPHISM: Fq2 = Fq2::new(
+    MontFp!("4002409555221667392624310435006688643935503118305586438271171395842971157480381377015405980053539358417135540939436"),
+    FQ_ZERO
+);
+
 pub fn p_power_endomorphism(p: &Affine<Parameters>) -> Affine<Parameters> {
     // The p-power endomorphism for G2 is defined as follows:
     // 1. Note that G2 is defined on curve E': y^2 = x^3 + 4(u+1). To map a point
@@ -155,6 +177,16 @@ pub fn p_power_endomorphism(p: &Affine<Parameters>) -> Affine<Parameters> {
     res.x.c0 = -P_POWER_ENDOMORPHISM_COEFF_0.c1 * &tmp_x.c1;
     res.x.c1 = P_POWER_ENDOMORPHISM_COEFF_0.c1 * &tmp_x.c0;
     res.y *= P_POWER_ENDOMORPHISM_COEFF_1;
+
+    res
+}
+
+/// For a p-power endomorphism psi(P), compute psi(psi(P))
+pub fn double_p_power_endomorphism(p: &Projective<Parameters>) -> Projective<Parameters> {
+    let mut res = *p;
+
+    res.x *= DOUBLE_P_POWER_ENDOMORPHISM;
+    res.y = res.y.neg();
 
     res
 }
