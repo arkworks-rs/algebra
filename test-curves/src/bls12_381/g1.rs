@@ -53,6 +53,7 @@ impl short_weierstrass::SWCurveConfig for Parameters {
     }
 }
 
+// Parameters from the [IETF draft v16, section E.2](https://www.ietf.org/archive/id/draft-irtf-cfrg-hash-to-curve-16.html#name-11-isogeny-map-for-bls12-381).
 impl WBParams for Parameters {
     type IsogenousCurve = SwuIsoParameters;
 

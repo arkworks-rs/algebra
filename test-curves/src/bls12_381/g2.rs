@@ -159,6 +159,7 @@ pub fn p_power_endomorphism(p: &Affine<Parameters>) -> Affine<Parameters> {
     res
 }
 
+// Parameters from the [IETF draft v16, section E.3](https://www.ietf.org/archive/id/draft-irtf-cfrg-hash-to-curve-16.html#name-3-isogeny-map-for-bls12-381).
 impl WBParams for Parameters {
     type IsogenousCurve = g2_swu_iso::SwuIsoParameters;
 
