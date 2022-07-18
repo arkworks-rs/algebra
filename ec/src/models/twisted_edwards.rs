@@ -234,7 +234,7 @@ impl<P: TECurveConfig> AffineCurve for Affine<P> {
         })
     }
 
-    fn mul<S: Into<<Self::ScalarField as PrimeField>::BigInt>>(&self, by: S) -> Self::Projective {
+    fn mul_bigint<S: Into<<Self::ScalarField as PrimeField>::BigInt>>(&self, by: S) -> Self::Projective {
         P::mul_affine(self, by.into().as_ref())
     }
 
@@ -315,7 +315,7 @@ impl<'a, P: TECurveConfig> SubAssign<&'a Self> for Affine<P> {
 
 impl<P: TECurveConfig> MulAssign<P::ScalarField> for Affine<P> {
     fn mul_assign(&mut self, other: P::ScalarField) {
-        *self = self.mul(other.into_bigint()).into()
+        *self = self.mul(&other).into()
     }
 }
 
@@ -573,7 +573,7 @@ impl<P: TECurveConfig> ProjectiveCurve for Projective<P> {
     }
 
     #[inline]
-    fn mul<S: AsRef<[u64]>>(self, other: S) -> Self {
+    fn mul_bigint<S: AsRef<[u64]>>(self, other: S) -> Self {
         P::mul_projective(&self, other.as_ref())
     }
 }
@@ -657,7 +657,7 @@ impl<'a, P: TECurveConfig> SubAssign<&'a Self> for Projective<P> {
 
 impl<P: TECurveConfig> MulAssign<P::ScalarField> for Projective<P> {
     fn mul_assign(&mut self, other: P::ScalarField) {
-        *self = self.mul(other.into_bigint())
+        *self = self.mul(&other)
     }
 }
 

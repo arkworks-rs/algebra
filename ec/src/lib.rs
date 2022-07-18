@@ -219,12 +219,12 @@ pub trait ProjectiveCurve:
     /// This is usually faster than adding `other` in projective form.
     fn add_assign_mixed(&mut self, other: &Self::Affine);
 
-    /// Performs scalar multiplication of this element.
-    fn mul<S: AsRef<[u64]>>(self, other: S) -> Self;
-
-    fn mul_scalar(self, by: &Self::ScalarField) -> Self {
-        self.mul(by.into_bigint())
+    fn mul(self, by: &Self::ScalarField) -> Self {
+        self.mul_bigint(by.into_bigint())
     }
+
+    /// Performs scalar multiplication of this element.
+    fn mul_bigint<S: AsRef<[u64]>>(self, other: S) -> Self;
 }
 
 /// Affine representation of an elliptic curve point guaranteed to be
@@ -287,14 +287,14 @@ pub trait AffineCurve:
     /// random group elements from a hash-function or RNG output.
     fn from_random_bytes(bytes: &[u8]) -> Option<Self>;
 
+    #[must_use]
+    fn mul(&self, by: &Self::ScalarField) -> Self::Projective {
+        self.mul_bigint(by.into_bigint())
+    }
+
     /// Performs scalar multiplication of this element with mixed addition.
     #[must_use]
-    fn mul<S: Into<<Self::ScalarField as PrimeField>::BigInt>>(&self, by: S) -> Self::Projective;
-
-    #[must_use]
-    fn mul_scalar(&self, by: &Self::ScalarField) -> Self::Projective {
-        self.mul(by.into_bigint())
-    }
+    fn mul_bigint<S: Into<<Self::ScalarField as PrimeField>::BigInt>>(&self, by: S) -> Self::Projective;
 
     /// Performs cofactor clearing.
     /// The default method is simply to multiply by the cofactor.
@@ -317,7 +317,7 @@ pub trait AffineCurve:
     /// `Self::ScalarField`.
     #[must_use]
     fn mul_by_cofactor_inv(&self) -> Self {
-        self.mul(Self::Config::COFACTOR_INV).into()
+        self.mul_bigint(Self::Config::COFACTOR_INV).into()
     }
 }
 
