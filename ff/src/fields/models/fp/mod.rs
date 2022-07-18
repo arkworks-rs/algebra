@@ -228,7 +228,8 @@ impl<P: FpConfig<N>, const N: usize> Field for Fp<P, N> {
             result_bytes.copy_from_u8_slice(bytes);
             // This mask retains everything in the last limb
             // that is below `P::MODULUS_BIT_SIZE`.
-            let last_limb_mask = (u64::MAX.checked_shr(shave_bits).unwrap_or(0)).to_le_bytes();
+            let last_limb_mask =
+                (u64::MAX.checked_shr(shave_bits as u32).unwrap_or(0)).to_le_bytes();
             let mut last_bytes_mask = [0u8; 9];
             last_bytes_mask[..8].copy_from_slice(&last_limb_mask);
 
