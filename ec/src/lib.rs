@@ -221,6 +221,10 @@ pub trait ProjectiveCurve:
 
     /// Performs scalar multiplication of this element.
     fn mul<S: AsRef<[u64]>>(self, other: S) -> Self;
+
+    fn mul_scalar(self, by: &Self::ScalarField) -> Self {
+        self.mul(by.into_bigint())
+    }
 }
 
 /// Affine representation of an elliptic curve point guaranteed to be
@@ -286,6 +290,11 @@ pub trait AffineCurve:
     /// Performs scalar multiplication of this element with mixed addition.
     #[must_use]
     fn mul<S: Into<<Self::ScalarField as PrimeField>::BigInt>>(&self, by: S) -> Self::Projective;
+
+    #[must_use]
+    fn mul_scalar(&self, by: &Self::ScalarField) -> Self::Projective {
+        self.mul(by.into_bigint())
+    }
 
     /// Performs cofactor clearing.
     /// The default method is simply to multiply by the cofactor.
