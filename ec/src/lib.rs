@@ -294,7 +294,7 @@ pub trait AffineCurve:
 
     /// Performs scalar multiplication of this element with mixed addition.
     #[must_use]
-    fn mul_bigint<S: Into<<Self::ScalarField as PrimeField>::BigInt>>(&self, by: S) -> Self::Projective;
+    fn mul_bigint<S: AsRef<[u64]>>(&self, by: S) -> Self::Projective;
 
     /// Performs cofactor clearing.
     /// The default method is simply to multiply by the cofactor.
@@ -317,7 +317,7 @@ pub trait AffineCurve:
     /// `Self::ScalarField`.
     #[must_use]
     fn mul_by_cofactor_inv(&self) -> Self {
-        self.mul_bigint(Self::Config::COFACTOR_INV).into()
+        self.mul(&Self::Config::COFACTOR_INV).into()
     }
 }
 

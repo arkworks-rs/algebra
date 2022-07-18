@@ -132,7 +132,7 @@ fn random_multiplication_test<G: ProjectiveCurve>() {
         assert_eq!(tmp1, tmp2);
         assert_eq!(tmp1, tmp3);
 
-        let expected  = a_affine.mul_bigint(s);
+        let expected = a_affine.mul_bigint(s.into_bigint());
         let got = a_affine.mul(&s);
         assert_eq!(expected, got);
     }

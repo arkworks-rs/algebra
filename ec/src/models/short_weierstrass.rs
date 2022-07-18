@@ -10,10 +10,7 @@ use ark_std::{
     vec::Vec,
 };
 
-use ark_ff::{
-    fields::{Field, PrimeField},
-    ToConstraintField, UniformRand,
-};
+use ark_ff::{fields::Field, ToConstraintField, UniformRand};
 
 use crate::{msm::VariableBaseMSM, AffineCurve, ProjectiveCurve};
 
@@ -326,8 +323,8 @@ impl<P: SWCurveConfig> AffineCurve for Affine<P> {
         })
     }
 
-    fn mul_bigint<S: Into<<Self::ScalarField as PrimeField>::BigInt>>(&self, by: S) -> Self::Projective {
-        P::mul_affine(self, by.into().as_ref())
+    fn mul_bigint<S: AsRef<[u64]>>(&self, by: S) -> Self::Projective {
+        P::mul_affine(self, by.as_ref())
     }
 
     /// Multiplies this element by the cofactor and output the

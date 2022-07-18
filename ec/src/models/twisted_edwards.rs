@@ -17,10 +17,7 @@ use ark_std::{
 use num_traits::{One, Zero};
 use zeroize::Zeroize;
 
-use ark_ff::{
-    fields::{Field, PrimeField},
-    ToConstraintField, UniformRand,
-};
+use ark_ff::{fields::Field, ToConstraintField, UniformRand};
 
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
@@ -234,8 +231,8 @@ impl<P: TECurveConfig> AffineCurve for Affine<P> {
         })
     }
 
-    fn mul_bigint<S: Into<<Self::ScalarField as PrimeField>::BigInt>>(&self, by: S) -> Self::Projective {
-        P::mul_affine(self, by.into().as_ref())
+    fn mul_bigint<S: AsRef<[u64]>>(&self, by: S) -> Self::Projective {
+        P::mul_affine(self, by.as_ref())
     }
 
     /// Multiplies this element by the cofactor and output the
