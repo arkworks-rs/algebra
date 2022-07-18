@@ -240,7 +240,7 @@ impl<P: FpConfig<N>, const N: usize> Field for Fp<P, N> {
             let flag_location = output_byte_size - 1;
 
             // At which byte is the flag located in the last limb?
-            let flag_location_in_last_limb = flag_location - (8 * (N - 1));
+            let flag_location_in_last_limb = flag_location.checked_sub(8 * ($limbs - 1)).unwrap_or(0);
 
             // Take all but the last 9 bytes.
             let last_bytes = result_bytes.last_n_plus_1_bytes_mut();
