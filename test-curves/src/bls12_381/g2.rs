@@ -61,7 +61,7 @@ impl short_weierstrass::SWCurveConfig for Parameters {
         // Checks that [p]P = [X]P
 
         let mut x_times_point =
-            point.mul(BigInt::new([crate::bls12_381::Parameters::X[0], 0, 0, 0]));
+            point.mul_bigint(BigInt::new([crate::bls12_381::Parameters::X[0], 0, 0, 0]));
         if crate::bls12_381::Parameters::X_IS_NEGATIVE {
             x_times_point = -x_times_point;
         }
