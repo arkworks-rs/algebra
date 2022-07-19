@@ -75,3 +75,14 @@ impl SWUParams for SwuIsoParameters {
     // ZETA = -(2 + u) as per IETF draft.
     const ZETA: Fq2 = Fq2::new(MontFp!("-2"), MontFp!("-1"));
 }
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_gen() {
+        let gen: G2Affine = g2_swu_iso::SwuIsoParameters::GENERATOR;
+        assert!(gen.is_on_curve());
+        assert!(gen.is_in_correct_subgroup_assuming_on_curve());
+    }
+}

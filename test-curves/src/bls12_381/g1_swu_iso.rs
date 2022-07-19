@@ -55,3 +55,15 @@ impl SWUParams for SwuIsoParameters {
     // ZETA = 0xb as per the IETF draft.
     const ZETA: Fq = MontFp!("11");
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_gen() {
+        let gen: G1Affine = SwuIsoParameters::GENERATOR;
+        assert!(gen.is_on_curve());
+        assert!(gen.is_in_correct_subgroup_assuming_on_curve());
+    }
+}
