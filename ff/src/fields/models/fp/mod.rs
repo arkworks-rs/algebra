@@ -228,7 +228,8 @@ impl<P: FpConfig<N>, const N: usize> Field for Fp<P, N> {
             result_bytes.copy_from_u8_slice(bytes);
             // This mask retains everything in the last limb
             // that is below `P::MODULUS_BIT_SIZE`.
-            let last_limb_mask = (u64::MAX >> shave_bits).to_le_bytes();
+            let last_limb_mask =
+                (u64::MAX.checked_shr(shave_bits as u32).unwrap_or(0)).to_le_bytes();
             let mut last_bytes_mask = [0u8; 9];
             last_bytes_mask[..8].copy_from_slice(&last_limb_mask);
 
@@ -239,7 +240,7 @@ impl<P: FpConfig<N>, const N: usize> Field for Fp<P, N> {
             let flag_location = output_byte_size - 1;
 
             // At which byte is the flag located in the last limb?
-            let flag_location_in_last_limb = flag_location - (8 * (N - 1));
+            let flag_location_in_last_limb = flag_location.checked_sub(8 * (N - 1)).unwrap_or(0);
 
             // Take all but the last 9 bytes.
             let last_bytes = result_bytes.last_n_plus_1_bytes_mut();
