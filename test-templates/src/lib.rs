@@ -31,30 +31,12 @@ macro_rules! generate_g1_test {
         generate_g1_test!($($tail)*);
     };
 
-    (te_group_tests; $($tail:tt)*) => {
-        #[test]
-        fn test_g1_projective_te_group() {
-            let mut rng = ark_std::test_rng();
-            let c = rng.gen();
-            let d = rng.gen();
-            group_test::<G1TEProjective>(c, d);
-        }
-        generate_g1_test!($($tail)*);
-    };
-
     ($curve_name: ident; $($tail:tt)*) => {
         #[test]
         fn test_g1_affine_curve() {
             test_var_base_msm::<G1Affine>();
             ark_algebra_test_templates::msm::test_chunked_pippenger::<G1Affine>();
             ark_algebra_test_templates::msm::test_hashmap_pippenger::<G1Affine>();
-        }
-
-        #[test]
-        fn test_g1_projective_group() {
-            let mut rng = ark_std::test_rng();
-            let a: G1Projective = rng.gen();
-            let b: G1Projective = rng.gen();
         }
 
         #[test]
@@ -98,14 +80,6 @@ macro_rules! generate_g2_test {
     };
 
     ($curve_name: ident; $($tail:tt)*) => {
-        #[test]
-        fn test_g2_projective_group() {
-            let mut rng = test_rng();
-            let a: G2Projective = rng.gen();
-            let b: G2Projective = rng.gen();
-            group_test(a, b);
-        }
-
         #[test]
         fn test_g2_generator() {
             let generator = G2Affine::prime_subgroup_generator();
