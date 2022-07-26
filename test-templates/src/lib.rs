@@ -239,6 +239,7 @@ macro_rules! generate_field_test {
         generate_field_test!($($tail)*);
     };
 
+    // Fq6 which is a cubic extension of Fq2.
     (fq6; $($tail:tt)*) => {
         #[test]
         fn test_fq6() {
@@ -260,6 +261,21 @@ macro_rules! generate_field_test {
         }
 
         generate_field_test!($($tail)*);
+    };
+
+    // Fq6 which is a quadratic extension of Fq3.
+    (fq6_2_on_3; $($tail:tt)*) => {
+        #[test]
+        fn test_fq6() {
+            let mut rng = ark_std::test_rng();
+            for _ in 0..ITERATIONS {
+                let g: Fq6 = UniformRand::rand(&mut rng);
+                let h: Fq6 = UniformRand::rand(&mut rng);
+                field_test(g, h);
+                sqrt_field_test(g);
+            }
+            frobenius_test::<Fq6, _>(Fq::characteristic(), 13);
+        }
     };
 
     (fq12; $($tail:tt)*) => {
