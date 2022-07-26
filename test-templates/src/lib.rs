@@ -164,7 +164,7 @@ macro_rules! generate_g1_generator_raw_test {
                 rhs.add_assign(&g1::Parameters::COEFF_B);
 
                 if let Some(y) = rhs.sqrt() {
-                    let p = G1Affine::new(x, if y < -y { y } else { -y }, false);
+                    let p = G1Affine::new_unchecked(x, if y < -y { y } else { -y });
                     assert!(!p.is_in_correct_subgroup_assuming_on_curve());
 
                     let g1 = p.mul_by_cofactor_to_projective();
