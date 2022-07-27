@@ -74,6 +74,8 @@
 - [\#350](https://github.com/arkworks-rs/algebra/pull/350) (`ark-serialize`) Fix issues with hygiene whenever a non-standard `Result` type is in scope.
 - [\#358](https://github.com/arkworks-rs/algebra/pull/358) (`ark-ff`) Fix the bug for `QuadExtField::sqrt` when `c1 = 0 && c0.legendre.is_qnr()`
 - [\#366](https://github.com/arkworks-rs/algebra/pull/366) (`ark-ff`) Fix `norm()` for cubic extension field towers.
+- [\#394](https://github.com/arkworks-rs/algebra/pull/394) (`ark-ff`, `ark-serialize`) Remove `EmptyFlags` construction checks.
+- [\#442](https://github.com/arkworks-rs/algebra/pull/442) (`ark-ff`) Fix deserialization for modulo with 64 shaving bits.
 
 ## v0.3.0
 
