@@ -31,30 +31,12 @@ macro_rules! generate_g1_test {
         generate_g1_test!($($tail)*);
     };
 
-    (te_group_tests; $($tail:tt)*) => {
-        #[test]
-        fn test_g1_projective_te_group() {
-            let mut rng = ark_std::test_rng();
-            let c = rng.gen();
-            let d = rng.gen();
-            group_test::<G1TEProjective>(c, d);
-        }
-        generate_g1_test!($($tail)*);
-    };
-
     ($curve_name: ident; $($tail:tt)*) => {
         #[test]
         fn test_g1_affine_curve() {
             test_var_base_msm::<G1Affine>();
             ark_algebra_test_templates::msm::test_chunked_pippenger::<G1Affine>();
             ark_algebra_test_templates::msm::test_hashmap_pippenger::<G1Affine>();
-        }
-
-        #[test]
-        fn test_g1_projective_group() {
-            let mut rng = ark_std::test_rng();
-            let a: G1Projective = rng.gen();
-            let b: G1Projective = rng.gen();
         }
 
         #[test]
@@ -98,14 +80,6 @@ macro_rules! generate_g2_test {
     };
 
     ($curve_name: ident; $($tail:tt)*) => {
-        #[test]
-        fn test_g2_projective_group() {
-            let mut rng = test_rng();
-            let a: G2Projective = rng.gen();
-            let b: G2Projective = rng.gen();
-            group_test(a, b);
-        }
-
         #[test]
         fn test_g2_generator() {
             let generator = G2Affine::prime_subgroup_generator();
@@ -190,7 +164,7 @@ macro_rules! generate_g1_generator_raw_test {
                 rhs.add_assign(&g1::Parameters::COEFF_B);
 
                 if let Some(y) = rhs.sqrt() {
-                    let p = G1Affine::new(x, if y < -y { y } else { -y }, false);
+                    let p = G1Affine::new_unchecked(x, if y < -y { y } else { -y });
                     assert!(!p.is_in_correct_subgroup_assuming_on_curve());
 
                     let g1 = p.mul_by_cofactor_to_projective();
@@ -265,6 +239,7 @@ macro_rules! generate_field_test {
         generate_field_test!($($tail)*);
     };
 
+    // Fq6 which is a cubic extension of Fq2.
     (fq6; $($tail:tt)*) => {
         #[test]
         fn test_fq6() {
@@ -286,6 +261,21 @@ macro_rules! generate_field_test {
         }
 
         generate_field_test!($($tail)*);
+    };
+
+    // Fq6 which is a quadratic extension of Fq3.
+    (fq6_2_on_3; $($tail:tt)*) => {
+        #[test]
+        fn test_fq6() {
+            let mut rng = ark_std::test_rng();
+            for _ in 0..ITERATIONS {
+                let g: Fq6 = UniformRand::rand(&mut rng);
+                let h: Fq6 = UniformRand::rand(&mut rng);
+                field_test(g, h);
+                sqrt_field_test(g);
+            }
+            frobenius_test::<Fq6, _>(Fq::characteristic(), 13);
+        }
     };
 
     (fq12; $($tail:tt)*) => {
