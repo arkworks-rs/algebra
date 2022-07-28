@@ -4,7 +4,7 @@ use crate::{
     short_weierstrass::{Affine, Projective},
     AffineCurve,
 };
-use ark_ff::fields::{Field, Fp3};
+use ark_ff::{fields::{Field, Fp3}, BitIteratorBE};
 use ark_std::vec::Vec;
 use num_traits::One;
 
@@ -53,32 +53,18 @@ impl<P: MNT6Parameters> From<G2Affine<P>> for G2Prepared<P> {
             t: <Fp3<P::Fp3Config>>::one(),
         };
 
-        for (idx, value) in P::ATE_LOOP_COUNT.iter().rev().enumerate() {
-            let mut tmp = *value;
-            let skip_extraneous_bits = 64 - value.leading_zeros();
-            let mut v = Vec::with_capacity(16);
-            for i in 0..64 {
-                if idx == 0 && (i == 0 || i >= skip_extraneous_bits) {
-                    continue;
-                }
-                v.push(tmp & 1 == 1);
-                tmp >>= 1;
-            }
+        for bit in BitIteratorBE::without_leading_zeros(P::ATE_LOOP_COUNT).skip(1) {
+            let (r2, coeff) = MNT6::<P>::doubling_step_for_flipped_miller_loop(&r);
+            g2p.double_coefficients.push(coeff);
+            r = r2;
 
-            for bit in v.iter().rev() {
-                let (r2, coeff) = MNT6::<P>::doubling_step_for_flipped_miller_loop(&r);
-                g2p.double_coefficients.push(coeff);
+            if bit {
+                let (r2, coeff) =
+                    MNT6::<P>::mixed_addition_step_for_flipped_miller_loop(&g2.x, &g2.y, &r);
+                g2p.addition_coefficients.push(coeff);
                 r = r2;
-
-                if *bit {
-                    let (r2, coeff) =
-                        MNT6::<P>::mixed_addition_step_for_flipped_miller_loop(&g2.x, &g2.y, &r);
-                    g2p.addition_coefficients.push(coeff);
-                    r = r2;
-                }
-
-                tmp >>= 1;
             }
+
         }
 
         if P::ATE_IS_LOOP_COUNT_NEG {
