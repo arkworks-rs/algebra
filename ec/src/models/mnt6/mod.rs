@@ -114,7 +114,8 @@ impl<P: MNT6Parameters> MNT6<P> {
         // code below gets executed for all bits (EXCEPT the MSB itself) of
         // mnt6_param_p (skipping leading zeros) in MSB to LSB order
         for ((ind, bit), dc) in P::ATE_LOOP_COUNT_2
-            .iter().enumerate()
+            .iter()
+            .enumerate()
             .skip(1)
             .zip(&q.double_coefficients)
         {
@@ -125,15 +126,26 @@ impl<P: MNT6Parameters> MNT6<P> {
 
             f = f.square() * &g_rr_at_p;
 
-            if *bit != 0 {
-                let ac = &q.addition_coefficients[add_idx];
-                add_idx += 1;
-
-                let g_rq_at_p = Fp6::new(
-                    ac.c_rz * &p.y_twist,
-                    -(q.y_over_twist * &ac.c_rz + &(l1_coeff * &ac.c_l1)),
-                );
-                f *= &g_rq_at_p;
+            match *bit {
+                1 => {
+                    let ac = &q.addition_coefficients[add_idx];
+                    add_idx += 1;
+                    let g_rq_at_p = Fp6::new(
+                        ac.c_rz * &p.y_twist,
+                        -(q.y_over_twist * &ac.c_rz + &(l1_coeff * &ac.c_l1)),
+                    );
+                    f *= &g_rq_at_p;
+                },
+                -1 => {
+                    let ac = &q.addition_coefficients[add_idx];
+                    add_idx += 1;
+                    let g_rq_at_p = Fp6::new(
+                        ac.c_rz * &p.y_twist,
+                        -(-q.y_over_twist * &ac.c_rz + &(l1_coeff * &ac.c_l1)),
+                    );
+                    f *= &g_rq_at_p;
+                },
+                _ => continue,
             }
         }
 
