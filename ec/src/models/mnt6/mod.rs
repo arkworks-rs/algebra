@@ -125,26 +125,21 @@ impl<P: MNT6Parameters> MNT6<P> {
 
             f = f.square() * &g_rr_at_p;
 
-            match *bit {
-                1 => {
-                    let ac = &q.addition_coefficients[add_idx];
-                    add_idx += 1;
-                    let g_rq_at_p = Fp6::new(
-                        ac.c_rz * &p.y_twist,
-                        -(q.y_over_twist * &ac.c_rz + &(l1_coeff * &ac.c_l1)),
-                    );
-                    f *= &g_rq_at_p;
-                },
-                -1 => {
-                    let ac = &q.addition_coefficients[add_idx];
-                    add_idx += 1;
-                    let g_rq_at_p = Fp6::new(
-                        ac.c_rz * &p.y_twist,
-                        -(-q.y_over_twist * &ac.c_rz + &(l1_coeff * &ac.c_l1)),
-                    );
-                    f *= &g_rq_at_p;
-                },
-                _ => continue,
+            if bit.abs() == 1 {
+                let ac = &q.addition_coefficients[add_idx];
+                add_idx += 1;
+
+                // Compute l_{R,Q}(P) if bit == 1, and l_{R,-Q}(P) if bit == -1
+                let y_over_twist = if *bit == 1 {
+                    q.y_over_twist
+                } else {
+                    -q.y_over_twist
+                };
+                let g_rq_at_p = Fp6::new(
+                    ac.c_rz * &p.y_twist,
+                    -(y_over_twist * &ac.c_rz + &(l1_coeff * &ac.c_l1)),
+                );
+                f *= &g_rq_at_p;
             }
         }
 
