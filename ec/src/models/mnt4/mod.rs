@@ -25,7 +25,7 @@ pub type GT<P> = Fp4<P>;
 pub trait MNT4Parameters: 'static {
     const TWIST: Fp2<Self::Fp2Config>;
     const TWIST_COEFF_A: Fp2<Self::Fp2Config>;
-    const ATE_LOOP_COUNT: &'static [u64];
+    const ATE_LOOP_COUNT_2: &'static [u64];
     const ATE_IS_LOOP_COUNT_NEG: bool;
     const FINAL_EXPONENT_LAST_CHUNK_1: <Self::Fp as PrimeField>::BigInt;
     const FINAL_EXPONENT_LAST_CHUNK_W0_IS_NEG: bool;
@@ -111,7 +111,8 @@ impl<P: MNT4Parameters> MNT4<P> {
         // code below gets executed for all bits (EXCEPT the MSB itself) of
         // mnt6_param_p (skipping leading zeros) in MSB to LSB order
 
-        for (bit, dc) in BitIteratorBE::without_leading_zeros(P::ATE_LOOP_COUNT)
+        for (bit, dc) in P::ATE_LOOP_COUNT_2
+            .iter()
             .skip(1)
             .zip(&q.double_coefficients)
         {
@@ -122,13 +123,19 @@ impl<P: MNT4Parameters> MNT4<P> {
 
             f = f.square() * &g_rr_at_p;
 
-            if bit {
+            if bit.abs() == 1 {
                 let ac = &q.addition_coefficients[add_idx];
                 add_idx += 1;
 
+                // Compute l_{R,Q}(P) if bit == 1, and l_{R,-Q}(P) if bit == -1
+                let y_over_twist = if *bit == 1 {
+                    q.y_over_twist
+                } else {
+                    -q.y_over_twist
+                };
                 let g_rq_at_p = Fp4::new(
                     ac.c_rz * &p.y_twist,
-                    -(q.y_over_twist * &ac.c_rz + &(l1_coeff * &ac.c_l1)),
+                    -(y_over_twist * &ac.c_rz + &(l1_coeff * &ac.c_l1)),
                 );
                 f *= &g_rq_at_p;
             }
