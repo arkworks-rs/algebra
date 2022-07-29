@@ -113,9 +113,8 @@ impl<P: MNT6Parameters> MNT6<P> {
 
         // code below gets executed for all bits (EXCEPT the MSB itself) of
         // mnt6_param_p (skipping leading zeros) in MSB to LSB order
-        for ((ind, bit), dc) in P::ATE_LOOP_COUNT_2
+        for (bit, dc) in P::ATE_LOOP_COUNT_2
             .iter()
-            .enumerate()
             .skip(1)
             .zip(&q.double_coefficients)
         {
