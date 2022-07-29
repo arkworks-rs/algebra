@@ -25,7 +25,6 @@ pub type GT<P> = Fp6<P>;
 pub trait MNT6Parameters: 'static {
     const TWIST: Fp3<Self::Fp3Config>;
     const TWIST_COEFF_A: Fp3<Self::Fp3Config>;
-    const ATE_LOOP_COUNT: &'static [u64];
     const ATE_LOOP_COUNT_2: &'static [i8];
     const ATE_IS_LOOP_COUNT_NEG: bool;
     const FINAL_EXPONENT_LAST_CHUNK_1: <Self::Fp as PrimeField>::BigInt;
