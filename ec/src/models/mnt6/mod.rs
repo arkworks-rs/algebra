@@ -112,6 +112,7 @@ impl<P: MNT6Parameters> MNT6<P> {
 
         // code below gets executed for all bits (EXCEPT the MSB itself) of
         // mnt6_param_p (skipping leading zeros) in MSB to LSB order
+        let y_over_twist_neg = -q.y_over_twist;
         for (bit, dc) in P::ATE_LOOP_COUNT_2
             .iter()
             .skip(1)
@@ -124,22 +125,27 @@ impl<P: MNT6Parameters> MNT6<P> {
 
             f = f.square() * &g_rr_at_p;
 
-            if bit.abs() == 1 {
+            // Compute l_{R,Q}(P) if bit == 1, and l_{R,-Q}(P) if bit == -1
+            let g_rq_at_p;
+            if *bit == 1 {
                 let ac = &q.addition_coefficients[add_idx];
                 add_idx += 1;
 
-                // Compute l_{R,Q}(P) if bit == 1, and l_{R,-Q}(P) if bit == -1
-                let y_over_twist = if *bit == 1 {
-                    q.y_over_twist
-                } else {
-                    -q.y_over_twist
-                };
-                let g_rq_at_p = Fp6::new(
+                g_rq_at_p = Fp6::new(
                     ac.c_rz * &p.y_twist,
-                    -(y_over_twist * &ac.c_rz + &(l1_coeff * &ac.c_l1)),
+                    -(q.y_over_twist * &ac.c_rz + &(l1_coeff * &ac.c_l1)),
                 );
-                f *= &g_rq_at_p;
+            } else if *bit == -1 {
+                let ac = &q.addition_coefficients[add_idx];
+                add_idx += 1;
+                g_rq_at_p = Fp6::new(
+                    ac.c_rz * &p.y_twist,
+                    -(y_over_twist_neg * &ac.c_rz + &(l1_coeff * &ac.c_l1)),
+                );
+            } else {
+                continue;
             }
+            f *= &g_rq_at_p;
         }
 
         if P::ATE_IS_LOOP_COUNT_NEG {
