@@ -63,7 +63,7 @@ where
         let rand_curve_elem_1 = self.curve_mapper.map_to_curve(rand_field_elems[1])?;
 
         let rand_curve_elem = rand_curve_elem_0 + rand_curve_elem_1;
-        let rand_subgroup_elem = rand_curve_elem.mul_by_cofactor();
+        let rand_subgroup_elem = rand_curve_elem.clear_cofactor();
 
         Ok(rand_subgroup_elem)
     }

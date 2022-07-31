@@ -15,14 +15,10 @@ use crate::{
 /// - [\[WB2019\]] <https://eprint.iacr.org/2019/403>
 pub trait SWUParams: SWCurveConfig {
     /// An element of the base field that is not a square root see \[WB2019, Section 4\].
-    /// It is also convenient to have $g(b/xi * a)$ to be square. In general
-    /// we use a `XI` with low absolute value coefficients when they are
+    /// It is also convenient to have $g(b/ZETA * a)$ to be square. In general
+    /// we use a `ZETA` with low absolute value coefficients when they are
     /// represented as integers.
-    const XI: Self::BaseField;
-    /// An arbitrary nonsquare conveniently chosen to be a primitive element of the base field
     const ZETA: Self::BaseField;
-    /// Square root of `THETA = Self::XI/Self::ZETA`.
-    const XI_ON_ZETA_SQRT: Self::BaseField;
 }
 
 /// Represents the SWU hash-to-curve map defined by `P`.
@@ -43,29 +39,11 @@ pub fn parity<F: Field>(element: &F) -> bool {
 impl<P: SWUParams> MapToCurve<Affine<P>> for SWUMap<P> {
     /// Constructs a new map if `P` represents a valid map.
     fn new() -> Result<Self, HashToCurveError> {
-        // Verifying that both XI and ZETA are non-squares
-        if P::XI.legendre().is_qr() || P::ZETA.legendre().is_qr() {
+        // Verifying that ZETA is a non-square
+        if P::ZETA.legendre().is_qr() {
             return Err(HashToCurveError::MapToCurveError(
-                "both xi and zeta should be quadratic non-residues for the SWU map".to_string(),
+                "ZETA should be a quadratic non-residue for the SWU map".to_string(),
             ));
-        }
-
-        // Verifying precomupted values
-        let xi_on_zeta = P::XI / P::ZETA;
-        match xi_on_zeta.sqrt() {
-            Some(xi_on_zeta_sqrt) => {
-                if xi_on_zeta_sqrt != P::XI_ON_ZETA_SQRT && xi_on_zeta_sqrt != -P::XI_ON_ZETA_SQRT {
-                    return Err(HashToCurveError::MapToCurveError(
-                        "precomputed P::XI_ON_ZETA_SQRT is not what it is supposed to be"
-                            .to_string(),
-                    ));
-                }
-            },
-            None => {
-                panic!(
-                    "`xi_on_zeta` was expected to have a sqrt, since the numerator and denominator are non-residues and Legendre symbol is multiplicative. Q.E.D"
-                );
-            },
         }
 
         // Verifying the prerequisite for applicability  of SWU map
@@ -105,40 +83,41 @@ impl<P: SWUParams> MapToCurve<Affine<P>> for SWUMap<P> {
         //   gx1 = num_gx1/div_gx1 = [num_x1^3 + A * num_x1 * div^2 + B * div^3] / div^3
         let a = P::COEFF_A;
         let b = P::COEFF_B;
-        let xi_t2 = P::XI * point.square();
-        let ta = xi_t2.square() + xi_t2;
+
+        let zeta_u2 = P::ZETA * point.square();
+        let ta = zeta_u2.square() + zeta_u2;
         let num_x1 = b * (ta + <P::BaseField as One>::one());
-        let div = a * if ta.is_zero() { P::XI } else { -ta };
+        let div = a * if ta.is_zero() { P::ZETA } else { -ta };
+
         let num2_x1 = num_x1.square();
         let div2 = div.square();
         let div3 = div2 * div;
         let num_gx1 = (num2_x1 + a * div2) * num_x1 + b * div3;
 
         // 5. x2 = Z * u^2 * x1
-        let num_x2 = xi_t2 * num_x1; // same div
+        let num_x2 = zeta_u2 * num_x1; // same div
 
         // 6. gx2 = x2^3 + A * x2 + B  [optimized out; see below]
         // 7. If is_square(gx1), set x = x1 and y = sqrt(gx1)
         // 8. Else set x = x2 and y = sqrt(gx2)
         let gx1_square;
         let gx1;
-        let zeta_gx1;
 
         assert!(
             !div3.is_zero(),
-            "we have checked that neither a or xi are zero. Q.E.D."
+            "we have checked that neither a or ZETA are zero. Q.E.D."
         );
         let y1: P::BaseField = {
             gx1 = num_gx1 / div3;
-            zeta_gx1 = P::ZETA * gx1;
             if gx1.legendre().is_qr() {
                 gx1_square = true;
                 gx1.sqrt()
                     .expect("We have checked that gx1 is a quadratic residue. Q.E.D")
             } else {
+                let zeta_gx1 = P::ZETA * gx1;
                 gx1_square = false;
                 zeta_gx1.sqrt().expect(
-                    "zeta * gx1 is a quadratic residue because legard is multiplicative. Q.E.D",
+                    "ZETA * gx1 is a quadratic residue because legard is multiplicative. Q.E.D",
                 )
             }
         };
@@ -159,17 +138,153 @@ impl<P: SWUParams> MapToCurve<Affine<P>> for SWUMap<P> {
         // u^3 * y1 is a square root of gx2. Note that we don't actually need to
         // compute gx2.
 
-        let y2 = P::XI_ON_ZETA_SQRT * xi_t2 * point * y1;
+        let y2 = zeta_u2 * point * y1;
         let num_x = if gx1_square { num_x1 } else { num_x2 };
         let y = if gx1_square { y1 } else { y2 };
 
         let x_affine = num_x / div;
-        let y_affine = if parity(&y) { -y } else { y };
+        let y_affine = if parity(&y) != parity(&point) { -y } else { y };
         let point_on_curve = Affine::<P>::new_unchecked(x_affine, y_affine);
         assert!(
             point_on_curve.is_on_curve(),
             "swu mapped to a point off the curve"
         );
         Ok(point_on_curve)
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use crate::hashing::map_to_curve_hasher::MapToCurveBasedHasher;
+    use crate::hashing::HashToCurve;
+    use crate::CurveConfig;
+    use ark_ff::field_hashers::DefaultFieldHasher;
+    use ark_std::vec::Vec;
+
+    use super::*;
+    use ark_ff::{fields::Fp64, MontBackend, MontFp};
+    use hashbrown::HashMap;
+    use sha2::Sha256;
+
+    #[derive(ark_ff::MontConfig)]
+    #[modulus = "127"]
+    #[generator = "6"]
+    pub struct F127Config;
+    pub type F127 = Fp64<MontBackend<F127Config, 1>>;
+
+    const F127_ONE: F127 = MontFp!("1");
+
+    struct TestSWUMapToCurveParams;
+
+    impl CurveConfig for TestSWUMapToCurveParams {
+        const COFACTOR: &'static [u64] = &[1];
+
+    #[rustfmt::skip]
+        const COFACTOR_INV: F127 = F127_ONE;
+
+        type BaseField = F127;
+        type ScalarField = F127;
+    }
+    /// just because not defining another field
+    ///
+    /// from itertools import product
+    /// p = 127
+    /// FF = GF(p)
+    /// for a,b in product(range(0,p), range(0,p)):
+    ///     try:
+    ///         E = EllipticCurve([FF(a),FF(b)])
+    ///         if E.order() == p:
+    ///             print(E)
+    ///     except:
+    ///         pass
+    ///
+    /// y^2 = x^3 + x + 63
+    impl SWCurveConfig for TestSWUMapToCurveParams {
+        /// COEFF_A = 1
+        const COEFF_A: F127 = F127_ONE;
+
+        /// COEFF_B = 1
+    #[rustfmt::skip]
+        const COEFF_B: F127 = MontFp!("63");
+
+        /// AFFINE_GENERATOR_COEFFS = (G1_GENERATOR_X, G1_GENERATOR_Y)
+        const GENERATOR: Affine<Self> = Affine::new_unchecked(MontFp!("62"), MontFp!("70"));
+    }
+
+    impl SWUParams for TestSWUMapToCurveParams {
+        const ZETA: F127 = MontFp!("-1");
+    }
+
+    /// test that MontFp make a none zero element out of 1
+    #[test]
+    fn test_field_element_construction() {
+        let a1 = F127::from(1);
+        let a2 = F127::from(2);
+        let a3 = F127::from(125);
+
+        assert!(F127::from(0) == a2 + a3);
+        assert!(F127::from(0) == a2 * a1 + a3);
+    }
+
+    #[test]
+    fn test_field_division() {
+        let num = F127::from(0x3d);
+        let den = F127::from(0x7b);
+        let num_on_den = F127::from(0x50);
+
+        assert!(num / den == num_on_den);
+    }
+
+    /// The point of the test is to get a simple SWU compatible curve and make
+    /// simple hash
+    #[test]
+    fn hash_arbitary_string_to_curve_swu() {
+        let test_swu_to_curve_hasher = MapToCurveBasedHasher::<
+            Affine<TestSWUMapToCurveParams>,
+            DefaultFieldHasher<Sha256, 128>,
+            SWUMap<TestSWUMapToCurveParams>,
+        >::new(&[1])
+        .unwrap();
+
+        let hash_result = test_swu_to_curve_hasher.hash(b"if you stick a Babel fish in your ear you can instantly understand anything said to you in any form of language.").expect("fail to hash the string to curve");
+
+        assert!(
+            hash_result.is_on_curve(),
+            "hash results into a point off the curve"
+        );
+    }
+
+    /// Use a simple SWU compatible curve and map the whole field to it. We observe
+    /// the map behaviour. Specifically, the map should be non-constant, all
+    /// elements should be mapped to curve successfully. everything can be mapped
+    #[test]
+    fn map_field_to_curve_swu() {
+        let test_map_to_curve = SWUMap::<TestSWUMapToCurveParams>::new().unwrap();
+
+        let mut map_range: Vec<Affine<TestSWUMapToCurveParams>> = vec![];
+        for current_field_element in 0..127 {
+            map_range.push(
+                test_map_to_curve
+                    .map_to_curve(F127::from(current_field_element as u64))
+                    .unwrap(),
+            );
+        }
+
+        let mut counts = HashMap::new();
+
+        let mode = map_range
+            .iter()
+            .copied()
+            .max_by_key(|&n| {
+                let count = counts.entry(n).or_insert(0);
+                *count += 1;
+                *count
+            })
+            .unwrap();
+
+        assert!(
+            *counts.get(&mode).unwrap() != 127,
+            "a constant hash function is not good."
+        );
     }
 }

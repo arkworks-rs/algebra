@@ -1,9 +1,12 @@
+use core::ops::Neg;
+
 use crate::bls12_381::*;
 use ark_ec::{
     bls12,
+    hashing::curve_maps::wb::WBParams,
     models::CurveConfig,
-    short_weierstrass::{self, Affine},
-    AffineCurve,
+    short_weierstrass::{self, *},
+    AffineCurve, ProjectiveCurve,
 };
 use ark_ff::{BigInt, Field, MontFp, Zero};
 
@@ -70,6 +73,40 @@ impl short_weierstrass::SWCurveConfig for Parameters {
 
         x_times_point.eq(&p_times_point)
     }
+
+    #[inline]
+    fn clear_cofactor(p: &G2Affine) -> G2Affine {
+        // Based on Section 4.1 of https://eprint.iacr.org/2017/419.pdf
+        // [h(ψ)]P = [x^2 − x − 1]P + [x − 1]ψ(P) + (ψ^2)(2P)
+
+        // x = -15132376222941642752
+        // When multiplying, use -c1 instead, and then negate the result. That's much
+        // more efficient, since the scalar -c1 has less limbs and a much lower Hamming
+        // weight.
+        let x: &'static [u64] = crate::bls12_381::Parameters::X;
+        let p_projective = p.into_projective();
+
+        // [x]P
+        let x_p = Parameters::mul_affine(p, &x).neg();
+        // ψ(P)
+        let psi_p = p_power_endomorphism(&p);
+        // (ψ^2)(2P)
+        let mut psi2_p2 = double_p_power_endomorphism(&p_projective.double());
+
+        // tmp = [x]P + ψ(P)
+        let mut tmp = x_p.clone();
+        tmp.add_assign_mixed(&psi_p);
+
+        // tmp2 = [x^2]P + [x]ψ(P)
+        let mut tmp2: Projective<Parameters> = tmp;
+        tmp2 = tmp2.mul(x).neg();
+
+        // add up all the terms
+        psi2_p2 += tmp2;
+        psi2_p2 -= x_p;
+        psi2_p2.add_assign_mixed(&-psi_p);
+        (psi2_p2 - p_projective).into_affine()
+    }
 }
 
 pub const G2_GENERATOR_X: Fq2 = Fq2::new(G2_GENERATOR_X_C0, G2_GENERATOR_X_C1);
@@ -114,6 +151,11 @@ pub const P_POWER_ENDOMORPHISM_COEFF_1: Fq2 = Fq2::new(
        "1028732146235106349975324479215795277384839936929757896155643118032610843298655225875571310552543014690878354869257")
 );
 
+pub const DOUBLE_P_POWER_ENDOMORPHISM: Fq2 = Fq2::new(
+    MontFp!("4002409555221667392624310435006688643935503118305586438271171395842971157480381377015405980053539358417135540939436"),
+    FQ_ZERO
+);
+
 pub fn p_power_endomorphism(p: &Affine<Parameters>) -> Affine<Parameters> {
     // The p-power endomorphism for G2 is defined as follows:
     // 1. Note that G2 is defined on curve E': y^2 = x^3 + 4(u+1). To map a point
@@ -137,4 +179,76 @@ pub fn p_power_endomorphism(p: &Affine<Parameters>) -> Affine<Parameters> {
     res.y *= P_POWER_ENDOMORPHISM_COEFF_1;
 
     res
+}
+
+/// For a p-power endomorphism psi(P), compute psi(psi(P))
+pub fn double_p_power_endomorphism(p: &Projective<Parameters>) -> Projective<Parameters> {
+    let mut res = *p;
+
+    res.x *= DOUBLE_P_POWER_ENDOMORPHISM;
+    res.y = res.y.neg();
+
+    res
+}
+
+// Parameters from the [IETF draft v16, section E.3](https://www.ietf.org/archive/id/draft-irtf-cfrg-hash-to-curve-16.html#name-3-isogeny-map-for-bls12-381).
+impl WBParams for Parameters {
+    type IsogenousCurve = g2_swu_iso::SwuIsoParameters;
+
+    const PHI_X_NOM: &'static [<Self::IsogenousCurve as CurveConfig>::BaseField] = &[
+        Fq2::new(
+                   MontFp!("889424345604814976315064405719089812568196182208668418962679585805340366775741747653930584250892369786198727235542"), 
+                   MontFp!("889424345604814976315064405719089812568196182208668418962679585805340366775741747653930584250892369786198727235542")), 
+        Fq2::new(
+                   MontFp!("0"), 
+                   MontFp!("2668273036814444928945193217157269437704588546626005256888038757416021100327225242961791752752677109358596181706522")), 
+        Fq2::new(
+                   MontFp!("2668273036814444928945193217157269437704588546626005256888038757416021100327225242961791752752677109358596181706526"), 
+                   MontFp!("1334136518407222464472596608578634718852294273313002628444019378708010550163612621480895876376338554679298090853261")), 
+        Fq2::new(
+                   MontFp!("3557697382419259905260257622876359250272784728834673675850718343221361467102966990615722337003569479144794908942033"), 
+                   MontFp!("0")),
+    ];
+
+    const PHI_X_DEN: &'static [<Self::IsogenousCurve as CurveConfig>::BaseField] = &[
+        Fq2::new(
+                   MontFp!("0"), 
+                   MontFp!("4002409555221667393417789825735904156556882819939007885332058136124031650490837864442687629129015664037894272559715")), 
+        Fq2::new(
+                   MontFp!("12"), 
+                   MontFp!("4002409555221667393417789825735904156556882819939007885332058136124031650490837864442687629129015664037894272559775")), 
+        Fq2::new(
+                   MontFp!("1"), 
+                   MontFp!("0")),
+    ];
+
+    const PHI_Y_NOM: &'static [<Self::IsogenousCurve as CurveConfig>::BaseField] = &[
+        Fq2::new(
+                   MontFp!("3261222600550988246488569487636662646083386001431784202863158481286248011511053074731078808919938689216061999863558"), 
+                   MontFp!("3261222600550988246488569487636662646083386001431784202863158481286248011511053074731078808919938689216061999863558")), 
+        Fq2::new(
+                   MontFp!("0"), 
+                   MontFp!("889424345604814976315064405719089812568196182208668418962679585805340366775741747653930584250892369786198727235518")), 
+        Fq2::new(
+                   MontFp!("2668273036814444928945193217157269437704588546626005256888038757416021100327225242961791752752677109358596181706524"), 
+                   MontFp!("1334136518407222464472596608578634718852294273313002628444019378708010550163612621480895876376338554679298090853263")), 
+        Fq2::new(
+                   MontFp!("2816510427748580758331037284777117739799287910327449993381818688383577828123182200904113516794492504322962636245776"), 
+                   MontFp!("0")),
+    ];
+
+    const PHI_Y_DEN: &'static [<Self::IsogenousCurve as CurveConfig>::BaseField] = &[
+        Fq2::new(
+                   MontFp!("4002409555221667393417789825735904156556882819939007885332058136124031650490837864442687629129015664037894272559355"), 
+                   MontFp!("4002409555221667393417789825735904156556882819939007885332058136124031650490837864442687629129015664037894272559355")), 
+        Fq2::new(
+                   MontFp!("0"), 
+                   MontFp!("4002409555221667393417789825735904156556882819939007885332058136124031650490837864442687629129015664037894272559571")), 
+        Fq2::new(
+                   MontFp!("18"), 
+                   MontFp!("4002409555221667393417789825735904156556882819939007885332058136124031650490837864442687629129015664037894272559769")), 
+        Fq2::new(
+                   MontFp!("1"), 
+                   MontFp!("0")),
+    ];
 }

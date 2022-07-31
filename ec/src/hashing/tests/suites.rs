@@ -5,9 +5,15 @@ use super::json::SuiteVector;
 use ark_ff::field_hashers::{DefaultFieldHasher, HashToField};
 use libtest_mimic::{run_tests, Arguments, Outcome, Test};
 
-use ark_ff::PrimeField;
-use ark_test_curves::bls12_381::Fq;
-use ark_test_curves::bls12_381::Fq2;
+use ark_test_curves::{
+    hashing::{curve_maps::wb::WBMap, map_to_curve_hasher::MapToCurveBasedHasher, HashToCurve},
+    short_weierstrass::Affine,
+};
+
+use ark_ff::{Field, PrimeField};
+use ark_test_curves::bls12_381::{
+    g1::Parameters as G1Parameters, g2::Parameters as G2Parameters, Fq, Fq2,
+};
 use sha2::Sha256;
 
 #[test]
@@ -35,6 +41,18 @@ fn run_test_w(Test { data, .. }: &Test<SuiteVector>) -> Outcome {
     let dst = data.dst.as_bytes();
     let hasher;
     let m;
+    let g1_mapper = MapToCurveBasedHasher::<
+        Affine<G1Parameters>,
+        DefaultFieldHasher<Sha256, 128>,
+        WBMap<G1Parameters>,
+    >::new(dst)
+    .unwrap();
+    let g2_mapper = MapToCurveBasedHasher::<
+        Affine<G2Parameters>,
+        DefaultFieldHasher<Sha256, 128>,
+        WBMap<G2Parameters>,
+    >::new(dst)
+    .unwrap();
     match data.curve.as_str() {
         "BLS12-381 G1" => {
             m = 1;
@@ -48,14 +66,11 @@ fn run_test_w(Test { data, .. }: &Test<SuiteVector>) -> Outcome {
     }
 
     for v in data.vectors.iter() {
+        // first, hash-to-field tests
         let got: Vec<Fq> = hasher.hash_to_field(&v.msg.as_bytes(), 2 * m);
         let want: Vec<Fq> = (&v.u)
             .into_iter()
-            .map(|x| {
-                x.split(",").map(|f| {
-                    Fq::from_be_bytes_mod_order(&hex::decode(f.trim_start_matches("0x")).unwrap())
-                })
-            })
+            .map(|x| read_fq_vec(x))
             .flatten()
             .collect();
         if got != want {
@@ -68,6 +83,59 @@ fn run_test_w(Test { data, .. }: &Test<SuiteVector>) -> Outcome {
                 )),
             };
         }
+
+        // then, test curve points
+        let x: Vec<Fq> = read_fq_vec(&v.p.x);
+        let y: Vec<Fq> = read_fq_vec(&v.p.y);
+        match data.curve.as_str() {
+            "BLS12-381 G1" => {
+                let got = g1_mapper.hash(&v.msg.as_bytes()).unwrap();
+                let want = Affine::<G1Parameters>::new_unchecked(
+                    Fq::from_base_prime_field_elems(&x[..]).unwrap(),
+                    Fq::from_base_prime_field_elems(&y[..]).unwrap(),
+                );
+                assert!(got.is_on_curve());
+                assert!(want.is_on_curve());
+                if got != want {
+                    return Outcome::Failed {
+                        msg: Some(format!(
+                            "Suite: {:?}\ngot:  {:?}\nwant: {:?}",
+                            data.ciphersuite,
+                            got.to_string(),
+                            want.to_string()
+                        )),
+                    };
+                }
+            },
+            "BLS12-381 G2" => {
+                let got = g2_mapper.hash(&v.msg.as_bytes()).unwrap();
+                let want = Affine::<G2Parameters>::new_unchecked(
+                    Fq2::from_base_prime_field_elems(&x[..]).unwrap(),
+                    Fq2::from_base_prime_field_elems(&y[..]).unwrap(),
+                );
+                assert!(got.is_on_curve());
+                assert!(want.is_on_curve());
+                if got != want {
+                    return Outcome::Failed {
+                        msg: Some(format!(
+                            "Suite: {:?}\nmsg: {}\n\ngot: {:?}\nwant: {:?}",
+                            data.ciphersuite,
+                            v.msg,
+                            got.to_string(),
+                            want.to_string(),
+                        )),
+                    };
+                }
+            },
+            _ => return Outcome::Ignored,
+        }
     }
     Outcome::Passed
+}
+
+fn read_fq_vec(input: &String) -> Vec<Fq> {
+    input
+        .split(",")
+        .map(|f| Fq::from_be_bytes_mod_order(&hex::decode(f.trim_start_matches("0x")).unwrap()))
+        .collect()
 }
