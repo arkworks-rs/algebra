@@ -1,6 +1,8 @@
+use ark_std::Zero;
+
 use super::quadratic_extension::*;
-use crate::fields::PrimeField;
-use core::marker::PhantomData;
+use crate::{fields::PrimeField, CyclotomicField};
+use core::{marker::PhantomData, ops::Not};
 
 /// Trait that specifies constants and methods for defining degree-two extension fields.
 pub trait Fp2Config: 'static + Send + Sync + Sized {
@@ -124,5 +126,23 @@ impl<P: Fp2Config> Fp2<P> {
     pub fn mul_assign_by_fp(&mut self, other: &P::Fp) {
         self.c0 *= other;
         self.c1 *= other;
+    }
+}
+
+impl<P: Fp2Config> CyclotomicField for Fp2<P> {
+    const INVERSE_IS_FAST: bool = true;
+    fn cyclotomic_inverse_in_place(&mut self) -> Option<&mut Self> {
+        // As the multiplicative subgroup is of order p^2 - 1, the
+        // only non-trivial cyclotomic subgroup is of order p+1
+        // Therefore, for any element in the cyclotomic subgroup, we have that `x^(p+1) = 1`.
+        // Recall that `x^(p+1)` in a quadratic extension field is equal
+        // to the norm in the base field, so we have that
+        // `x * x.conjugate() = 1`. By uniqueness of inverses,
+        // for this subgroup, x.inverse() = x.conjugate()
+
+        self.is_zero().not().then(|| {
+            self.conjugate();
+            self
+        })
     }
 }

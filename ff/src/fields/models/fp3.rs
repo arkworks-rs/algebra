@@ -97,3 +97,6 @@ impl<P: Fp3Config> Fp3<P> {
         self.c2.mul_assign(value);
     }
 }
+
+// We just use the default algorithms; there don't seem to be any faster ones.
+impl<P: Fp3Config> CyclotomicField for Fp3<P> {}

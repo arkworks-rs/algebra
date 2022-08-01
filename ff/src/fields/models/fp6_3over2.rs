@@ -143,3 +143,6 @@ impl<P: Fp6Config> Fp6<P> {
         self.c2 = t3;
     }
 }
+
+// We just use the default algorithms; there don't seem to be any faster ones.
+impl<P: Fp6Config> CyclotomicField for Fp6<P> {}

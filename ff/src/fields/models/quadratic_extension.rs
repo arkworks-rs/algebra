@@ -93,34 +93,6 @@ pub trait QuadExtConfig: 'static + Send + Sync + Sized {
     /// A specializable method for multiplying an element of the base field by
     /// the appropriate Frobenius coefficient.
     fn mul_base_field_by_frob_coeff(fe: &mut Self::BaseField, power: usize);
-
-    /// A specializable method for exponentiating that is to be used
-    /// *only* when `fe` is known to be in the cyclotommic subgroup.
-    fn cyclotomic_exp(fe: &QuadExtField<Self>, exponent: impl AsRef<[u64]>) -> QuadExtField<Self> {
-        let mut res = QuadExtField::one();
-        let mut self_inverse = *fe;
-        self_inverse.conjugate();
-
-        let mut found_nonzero = false;
-        let naf = crate::biginteger::arithmetic::find_naf(exponent.as_ref());
-
-        for &value in naf.iter().rev() {
-            if found_nonzero {
-                res.square_in_place();
-            }
-
-            if value != 0 {
-                found_nonzero = true;
-
-                if value > 0 {
-                    res *= fe;
-                } else {
-                    res *= &self_inverse;
-                }
-            }
-        }
-        res
-    }
 }
 
 /// An element of a quadratic extension field F_p\[X\]/(X^2 - P::NONRESIDUE) is
@@ -165,12 +137,6 @@ impl<P: QuadExtConfig> QuadExtField<P> {
     /// cyclotomic subgroup.
     pub fn conjugate(&mut self) {
         self.c1 = -self.c1;
-    }
-
-    /// This is only to be used when the element is *known* to be in the
-    /// cyclotomic subgroup.
-    pub fn cyclotomic_exp(&self, exponent: impl AsRef<[u64]>) -> Self {
-        P::cyclotomic_exp(self, exponent)
     }
 
     /// Norm of QuadExtField over `P::BaseField`:`Norm(a) = a * a.conjugate()`.
