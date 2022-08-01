@@ -2,11 +2,14 @@ use crate::{
     models::{short_weierstrass::SWCurveConfig, CurveConfig},
     PairingEngine,
 };
-use ark_ff::fields::{
-    fp12_2over3over2::{Fp12, Fp12Config},
-    fp2::Fp2Config,
-    fp6_3over2::Fp6Config,
-    Field, Fp2, PrimeField,
+use ark_ff::{
+    fields::{
+        fp12_2over3over2::{Fp12, Fp12Config},
+        fp2::Fp2Config,
+        fp6_3over2::Fp6Config,
+        Field, Fp2, PrimeField,
+    },
+    CyclotomicField,
 };
 use num_traits::One;
 
