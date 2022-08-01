@@ -99,7 +99,7 @@ impl short_weierstrass::SWCurveConfig for Parameters {
 
         // tmp2 = [x^2]P + [x]ψ(P)
         let mut tmp2: Projective<Parameters> = tmp;
-        tmp2 = tmp2.mul(x).neg();
+        tmp2 = tmp2.mul_bigint(x).neg();
 
         // add up all the terms
         psi2_p2 += tmp2;

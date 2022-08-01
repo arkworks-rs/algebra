@@ -27,7 +27,7 @@ use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use ark_std::{
     fmt::{Debug, Display},
     hash::Hash,
-    ops::{Add, AddAssign, MulAssign, Neg, Sub, SubAssign},
+    ops::{Add, AddAssign, Mul, MulAssign, Neg, Sub, SubAssign},
     vec::Vec,
 };
 use msm::VariableBaseMSM;
@@ -149,13 +149,16 @@ pub trait ProjectiveCurve:
     + Neg<Output = Self>
     + Add<Self, Output = Self>
     + Sub<Self, Output = Self>
+    + Mul<<Self as ProjectiveCurve>::ScalarField, Output = Self>
     + AddAssign<Self>
     + SubAssign<Self>
     + MulAssign<<Self as ProjectiveCurve>::ScalarField>
     + for<'a> Add<&'a Self, Output = Self>
     + for<'a> Sub<&'a Self, Output = Self>
+    + for<'a> Mul<&'a <Self as ProjectiveCurve>::ScalarField, Output = Self>
     + for<'a> AddAssign<&'a Self>
     + for<'a> SubAssign<&'a Self>
+    + for<'a> MulAssign<&'a <Self as ProjectiveCurve>::ScalarField>
     + core::iter::Sum<Self>
     + for<'a> core::iter::Sum<&'a Self>
     + From<<Self as ProjectiveCurve>::Affine>
@@ -218,10 +221,6 @@ pub trait ProjectiveCurve:
     /// Sets `self` to be `self + other`, where `other: Self::Affine`.
     /// This is usually faster than adding `other` in projective form.
     fn add_assign_mixed(&mut self, other: &Self::Affine);
-
-    fn mul(self, by: &Self::ScalarField) -> Self {
-        self.mul_bigint(by.into_bigint())
-    }
 
     /// Performs scalar multiplication of this element.
     fn mul_bigint<S: AsRef<[u64]>>(self, other: S) -> Self;
@@ -287,11 +286,6 @@ pub trait AffineCurve:
     /// random group elements from a hash-function or RNG output.
     fn from_random_bytes(bytes: &[u8]) -> Option<Self>;
 
-    #[must_use]
-    fn mul(&self, by: &Self::ScalarField) -> Self::Projective {
-        self.mul_bigint(by.into_bigint())
-    }
-
     /// Performs scalar multiplication of this element with mixed addition.
     #[must_use]
     fn mul_bigint<S: AsRef<[u64]>>(&self, by: S) -> Self::Projective;
@@ -317,7 +311,8 @@ pub trait AffineCurve:
     /// `Self::ScalarField`.
     #[must_use]
     fn mul_by_cofactor_inv(&self) -> Self {
-        self.mul(&Self::Config::COFACTOR_INV).into()
+        self.mul_bigint(&Self::Config::COFACTOR_INV.into_bigint())
+            .into()
     }
 }
 

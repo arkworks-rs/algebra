@@ -3,14 +3,15 @@ use ark_serialize::{
     CanonicalSerializeWithFlags, SWFlags, SerializationError,
 };
 use ark_std::{
+    borrow::Borrow,
     fmt::{Display, Formatter, Result as FmtResult},
     hash::{Hash, Hasher},
     io::{Read, Write},
-    ops::{Add, AddAssign, MulAssign, Neg, Sub, SubAssign},
+    ops::{Add, AddAssign, Mul, MulAssign, Neg, Sub, SubAssign},
     vec::Vec,
 };
 
-use ark_ff::{fields::Field, ToConstraintField, UniformRand};
+use ark_ff::{fields::Field, PrimeField, ToConstraintField, UniformRand};
 
 use crate::{msm::VariableBaseMSM, AffineCurve, ProjectiveCurve};
 
@@ -793,9 +794,19 @@ impl<'a, P: SWCurveConfig> SubAssign<&'a Self> for Projective<P> {
     }
 }
 
-impl<P: SWCurveConfig> MulAssign<P::ScalarField> for Projective<P> {
-    fn mul_assign(&mut self, other: P::ScalarField) {
-        *self = self.mul(&other)
+impl<P: SWCurveConfig, T: Borrow<P::ScalarField>> MulAssign<T> for Projective<P> {
+    fn mul_assign(&mut self, other: T) {
+        *self = self.mul_bigint(other.borrow().into_bigint())
+    }
+}
+
+impl<'a, P: SWCurveConfig, T: Borrow<P::ScalarField>> Mul<T> for Projective<P> {
+    type Output = Self;
+
+    #[inline]
+    fn mul(mut self, other: T) -> Self {
+        self *= other;
+        self
     }
 }
 
