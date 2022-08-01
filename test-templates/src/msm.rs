@@ -8,7 +8,7 @@ fn naive_var_base_msm<G: AffineCurve>(bases: &[G], scalars: &[G::ScalarField]) -
     let mut acc = G::Projective::zero();
 
     for (base, scalar) in bases.iter().zip(scalars.iter()) {
-        acc += &base.mul(scalar.into_bigint());
+        acc += base.mul_bigint(&scalar.into_bigint());
     }
     acc
 }

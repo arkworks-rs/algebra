@@ -4,10 +4,11 @@ use ark_serialize::{
     CanonicalSerializeWithFlags, EdwardsFlags, SerializationError,
 };
 use ark_std::{
+    borrow::Borrow,
     fmt::{Display, Formatter, Result as FmtResult},
     hash::{Hash, Hasher},
     io::{Read, Write},
-    ops::{Add, AddAssign, MulAssign, Neg, Sub, SubAssign},
+    ops::{Add, AddAssign, Mul, MulAssign, Neg, Sub, SubAssign},
     rand::{
         distributions::{Distribution, Standard},
         Rng,
@@ -17,10 +18,7 @@ use ark_std::{
 use num_traits::{One, Zero};
 use zeroize::Zeroize;
 
-use ark_ff::{
-    fields::{Field, PrimeField},
-    ToConstraintField, UniformRand,
-};
+use ark_ff::{fields::Field, PrimeField, ToConstraintField, UniformRand};
 
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
@@ -234,8 +232,8 @@ impl<P: TECurveConfig> AffineCurve for Affine<P> {
         })
     }
 
-    fn mul<S: Into<<Self::ScalarField as PrimeField>::BigInt>>(&self, by: S) -> Self::Projective {
-        P::mul_affine(self, by.into().as_ref())
+    fn mul_bigint<S: AsRef<[u64]>>(&self, by: S) -> Self::Projective {
+        P::mul_affine(self, by.as_ref())
     }
 
     /// Multiplies this element by the cofactor and output the
@@ -315,7 +313,7 @@ impl<'a, P: TECurveConfig> SubAssign<&'a Self> for Affine<P> {
 
 impl<P: TECurveConfig> MulAssign<P::ScalarField> for Affine<P> {
     fn mul_assign(&mut self, other: P::ScalarField) {
-        *self = self.mul(other.into_bigint()).into()
+        *self = self.mul_bigint(&other.into_bigint()).into()
     }
 }
 
@@ -573,7 +571,7 @@ impl<P: TECurveConfig> ProjectiveCurve for Projective<P> {
     }
 
     #[inline]
-    fn mul<S: AsRef<[u64]>>(self, other: S) -> Self {
+    fn mul_bigint<S: AsRef<[u64]>>(self, other: S) -> Self {
         P::mul_projective(&self, other.as_ref())
     }
 }
@@ -655,9 +653,19 @@ impl<'a, P: TECurveConfig> SubAssign<&'a Self> for Projective<P> {
     }
 }
 
-impl<P: TECurveConfig> MulAssign<P::ScalarField> for Projective<P> {
-    fn mul_assign(&mut self, other: P::ScalarField) {
-        *self = self.mul(other.into_bigint())
+impl<P: TECurveConfig, T: Borrow<P::ScalarField>> MulAssign<T> for Projective<P> {
+    fn mul_assign(&mut self, other: T) {
+        *self = self.mul_bigint(other.borrow().into_bigint())
+    }
+}
+
+impl<P: TECurveConfig, T: Borrow<P::ScalarField>> Mul<T> for Projective<P> {
+    type Output = Self;
+
+    #[inline]
+    fn mul(mut self, other: T) -> Self {
+        self *= other;
+        self
     }
 }
 

@@ -27,7 +27,7 @@ use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use ark_std::{
     fmt::{Debug, Display},
     hash::Hash,
-    ops::{Add, AddAssign, MulAssign, Neg, Sub, SubAssign},
+    ops::{Add, AddAssign, Mul, MulAssign, Neg, Sub, SubAssign},
     vec::Vec,
 };
 use msm::VariableBaseMSM;
@@ -149,13 +149,16 @@ pub trait ProjectiveCurve:
     + Neg<Output = Self>
     + Add<Self, Output = Self>
     + Sub<Self, Output = Self>
+    + Mul<<Self as ProjectiveCurve>::ScalarField, Output = Self>
     + AddAssign<Self>
     + SubAssign<Self>
     + MulAssign<<Self as ProjectiveCurve>::ScalarField>
     + for<'a> Add<&'a Self, Output = Self>
     + for<'a> Sub<&'a Self, Output = Self>
+    + for<'a> Mul<&'a <Self as ProjectiveCurve>::ScalarField, Output = Self>
     + for<'a> AddAssign<&'a Self>
     + for<'a> SubAssign<&'a Self>
+    + for<'a> MulAssign<&'a <Self as ProjectiveCurve>::ScalarField>
     + core::iter::Sum<Self>
     + for<'a> core::iter::Sum<&'a Self>
     + From<<Self as ProjectiveCurve>::Affine>
@@ -220,7 +223,7 @@ pub trait ProjectiveCurve:
     fn add_assign_mixed(&mut self, other: &Self::Affine);
 
     /// Performs scalar multiplication of this element.
-    fn mul<S: AsRef<[u64]>>(self, other: S) -> Self;
+    fn mul_bigint<S: AsRef<[u64]>>(self, other: S) -> Self;
 }
 
 /// Affine representation of an elliptic curve point guaranteed to be
@@ -285,7 +288,7 @@ pub trait AffineCurve:
 
     /// Performs scalar multiplication of this element with mixed addition.
     #[must_use]
-    fn mul<S: Into<<Self::ScalarField as PrimeField>::BigInt>>(&self, by: S) -> Self::Projective;
+    fn mul_bigint<S: AsRef<[u64]>>(&self, by: S) -> Self::Projective;
 
     /// Performs cofactor clearing.
     /// The default method is simply to multiply by the cofactor.
@@ -308,7 +311,8 @@ pub trait AffineCurve:
     /// `Self::ScalarField`.
     #[must_use]
     fn mul_by_cofactor_inv(&self) -> Self {
-        self.mul(Self::Config::COFACTOR_INV).into()
+        self.mul_bigint(&Self::Config::COFACTOR_INV.into_bigint())
+            .into()
     }
 }
 
