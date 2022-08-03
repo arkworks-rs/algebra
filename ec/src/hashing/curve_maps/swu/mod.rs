@@ -5,7 +5,7 @@ use core::marker::PhantomData;
 
 use crate::{
     hashing::{map_to_curve_hasher::MapToCurve, HashToCurveError},
-    models::short_weierstrass::Affine,
+    models::short_weierstrass::{Affine, Projective},
 };
 
 /// Trait defining the necessary parameters for the SWU hash-to-curve method
@@ -36,7 +36,7 @@ pub fn parity<F: Field>(element: &F) -> bool {
         .map_or(false, |x| x.into_bigint().is_odd())
 }
 
-impl<P: SWUParams> MapToCurve<Affine<P>> for SWUMap<P> {
+impl<P: SWUParams> MapToCurve<Projective<P>> for SWUMap<P> {
     /// Constructs a new map if `P` represents a valid map.
     fn new() -> Result<Self, HashToCurveError> {
         // Verifying that ZETA is a non-square

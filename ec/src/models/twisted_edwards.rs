@@ -1,4 +1,4 @@
-use crate::{msm::VariableBaseMSM, AffineCurve, ProjectiveCurve};
+use crate::{scalar_mul::{VariableBaseMSM, ScalarMul}, AffineRepr, CurveGroup, Group};
 use ark_serialize::{
     CanonicalDeserialize, CanonicalDeserializeWithFlags, CanonicalSerialize,
     CanonicalSerializeWithFlags, EdwardsFlags, SerializationError,
@@ -85,7 +85,7 @@ pub trait TECurveConfig: super::CurveConfig {
         for b in ark_ff::BitIteratorBE::without_leading_zeros(scalar) {
             res.double_in_place();
             if b {
-                res.add_assign_mixed(base)
+                res += base
             }
         }
 
@@ -148,6 +148,16 @@ impl<P: TECurveConfig> Affine<P> {
         p
     }
 
+    /// Construct the identity of the group
+    pub const fn identity() -> Self {
+        Self::new_unchecked(P::BaseField::zero(), P::BaseField::one())
+    }
+
+    /// Is this point the identity?
+    pub fn is_identity(&self) -> bool {
+        self.x.is_zero() && self.y.is_one()
+    }
+
     /// Attempts to construct an affine point given an y-coordinate. The
     /// point is not guaranteed to be in the prime order subgroup.
     ///
@@ -196,27 +206,17 @@ impl<P: TECurveConfig> Affine<P> {
     }
 }
 
-impl<P: TECurveConfig> Zero for Affine<P> {
-    fn zero() -> Self {
-        Self::new_unchecked(P::BaseField::zero(), P::BaseField::one())
-    }
-
-    fn is_zero(&self) -> bool {
-        self.x.is_zero() & self.y.is_one()
-    }
-}
-
-impl<P: TECurveConfig> AffineCurve for Affine<P> {
+impl<P: TECurveConfig> AffineRepr for Affine<P> {
     type Config = P;
     type BaseField = P::BaseField;
     type ScalarField = P::ScalarField;
-    type Projective = Projective<P>;
+    type Group = Projective<P>;
 
     fn xy(&self) -> Option<(&Self::BaseField, &Self::BaseField)> {
-        (!self.is_zero()).then(|| (&self.x, &self.y))
+        (!self.is_identity()).then(|| (&self.x, &self.y))
     }
 
-    fn prime_subgroup_generator() -> Self {
+    fn generator() -> Self {
         P::GENERATOR
     }
 
@@ -225,21 +225,21 @@ impl<P: TECurveConfig> AffineCurve for Affine<P> {
             // if y is valid and is zero, then parse this
             // point as infinity.
             if y.is_zero() {
-                Some(Self::zero())
+                Some(Self::identity())
             } else {
                 Self::get_point_from_y(y, flags.is_positive())
             }
         })
     }
 
-    fn mul_bigint<S: AsRef<[u64]>>(&self, by: S) -> Self::Projective {
+    fn mul_bigint(&self, by: impl AsRef<[u64]>) -> Self::Group {
         P::mul_affine(self, by.as_ref())
     }
 
     /// Multiplies this element by the cofactor and output the
     /// resulting projective element.
     #[must_use]
-    fn mul_by_cofactor_to_projective(&self) -> Self::Projective {
+    fn mul_by_cofactor_to_group(&self) -> Self::Group {
         P::mul_affine(self, Self::Config::COFACTOR)
     }
 
@@ -268,59 +268,28 @@ impl<P: TECurveConfig> Neg for Affine<P> {
     }
 }
 
-ark_ff::impl_additive_ops_from_ref!(Affine, TECurveConfig);
-
-impl<'a, P: TECurveConfig> Add<&'a Self> for Affine<P> {
-    type Output = Self;
-    fn add(self, other: &'a Self) -> Self {
-        let mut copy = self;
-        copy += other;
+impl<P: TECurveConfig, T: Borrow<Self>> Add<T> for Affine<P> {
+    type Output = Projective<P>;
+    fn add(self, other: T) -> Self::Output {
+        let mut copy = self.into_group();
+        copy += other.borrow();
         copy
     }
 }
 
-impl<'a, P: TECurveConfig> AddAssign<&'a Self> for Affine<P> {
-    fn add_assign(&mut self, other: &'a Self) {
-        let y1y2 = self.y * &other.y;
-        let x1x2 = self.x * &other.x;
-        let dx1x2y1y2 = P::COEFF_D * &y1y2 * &x1x2;
-
-        let d1 = P::BaseField::one() + &dx1x2y1y2;
-        let d2 = P::BaseField::one() - &dx1x2y1y2;
-
-        let x1y2 = self.x * &other.y;
-        let y1x2 = self.y * &other.x;
-
-        self.x = (x1y2 + &y1x2) / &d1;
-        self.y = (y1y2 - &P::mul_by_a(&x1x2)) / &d2;
-    }
-}
-
-impl<'a, P: TECurveConfig> Sub<&'a Self> for Affine<P> {
-    type Output = Self;
-    fn sub(self, other: &'a Self) -> Self {
-        let mut copy = self;
-        copy -= other;
+impl<P: TECurveConfig, T: Borrow<Self>> Sub<T> for Affine<P> {
+    type Output = Projective<P>;
+    fn sub(self, other: T) -> Self::Output {
+        let mut copy = self.into_group();
+        copy -= other.borrow();
         copy
-    }
-}
-
-impl<'a, P: TECurveConfig> SubAssign<&'a Self> for Affine<P> {
-    fn sub_assign(&mut self, other: &'a Self) {
-        *self += &(-(*other));
-    }
-}
-
-impl<P: TECurveConfig> MulAssign<P::ScalarField> for Affine<P> {
-    fn mul_assign(&mut self, other: P::ScalarField) {
-        *self = self.mul_bigint(&other.into_bigint()).into()
     }
 }
 
 impl<P: TECurveConfig> Default for Affine<P> {
     #[inline]
     fn default() -> Self {
-        Self::zero()
+        Self::identity()
     }
 }
 
@@ -371,13 +340,13 @@ pub struct Projective<P: TECurveConfig> {
 
 impl<P: TECurveConfig> PartialEq<Projective<P>> for Affine<P> {
     fn eq(&self, other: &Projective<P>) -> bool {
-        self.into_projective() == *other
+        self.into_group() == *other
     }
 }
 
 impl<P: TECurveConfig> PartialEq<Affine<P>> for Projective<P> {
     fn eq(&self, other: &Affine<P>) -> bool {
-        *self == other.into_projective()
+        *self == other.into_group()
     }
 }
 
@@ -416,7 +385,7 @@ impl<P: TECurveConfig> Distribution<Projective<P>> for Standard {
             let greatest = rng.gen();
 
             if let Some(p) = Affine::get_point_from_y(y, greatest) {
-                return p.mul_by_cofactor_to_projective();
+                return p.mul_by_cofactor_to_group();
             }
         }
     }
@@ -476,40 +445,11 @@ impl<P: TECurveConfig> Zero for Projective<P> {
     }
 }
 
-impl<P: TECurveConfig> ProjectiveCurve for Projective<P> {
-    type Config = P;
-    type BaseField = P::BaseField;
+impl<P: TECurveConfig> Group for Projective<P> {
     type ScalarField = P::ScalarField;
-    type Affine = Affine<P>;
 
-    fn prime_subgroup_generator() -> Self {
-        Affine::prime_subgroup_generator().into()
-    }
-
-    fn is_normalized(&self) -> bool {
-        self.z.is_one()
-    }
-
-    fn batch_normalization(v: &mut [Self]) {
-        // A projective curve element (x, y, t, z) is normalized
-        // to its affine representation, by the conversion
-        // (x, y, t, z) -> (x/z, y/z, t/z, 1)
-        // Batch normalizing N twisted edwards curve elements costs:
-        //     1 inversion + 6N field multiplications
-        // (batch inversion requires 3N multiplications + 1 inversion)
-        let mut z_s = v.iter().map(|g| g.z).collect::<Vec<_>>();
-        ark_ff::batch_inversion(&mut z_s);
-
-        // Perform affine transformations
-        ark_std::cfg_iter_mut!(v)
-            .zip(z_s)
-            .filter(|(g, _)| !g.is_normalized())
-            .for_each(|(g, z)| {
-                g.x *= &z; // x/z
-                g.y *= &z;
-                g.t *= &z;
-                g.z = P::BaseField::one(); // z = 1
-            });
+    fn generator() -> Self {
+        Affine::generator().into()
     }
 
     fn double_in_place(&mut self) -> &mut Self {
@@ -546,7 +486,58 @@ impl<P: TECurveConfig> ProjectiveCurve for Projective<P> {
         self
     }
 
-    fn add_assign_mixed(&mut self, other: &Affine<P>) {
+    #[inline]
+    fn mul_bigint(&self, other: impl AsRef<[u64]>) -> Self {
+        P::mul_projective(&self, other.as_ref())
+    }
+}
+
+impl<P: TECurveConfig> CurveGroup for Projective<P> {
+    type Config = P;
+    type BaseField = P::BaseField;
+    type Affine = Affine<P>;
+    type FullGroup = Affine<P>;
+
+    fn normalize_batch(v: &[Self]) -> Vec<Self::Affine> {
+        // A projective curve element (x, y, t, z) is normalized
+        // to its affine representation, by the conversion
+        // (x, y, t, z) -> (x/z, y/z, t/z, 1)
+        // Batch normalizing N twisted edwards curve elements costs:
+        //     1 inversion + 6N field multiplications
+        // (batch inversion requires 3N multiplications + 1 inversion)
+        let mut z_s = v.iter().map(|g| g.z).collect::<Vec<_>>();
+        ark_ff::batch_inversion(&mut z_s);
+
+        // Perform affine transformations
+        ark_std::cfg_iter_mut!(v)
+            .zip(z_s)
+            .map(|(g, z)| {
+                match g.is_zero() {
+                    true => Affine::identity(),
+                    false => {
+                        let x = g.x * &z;
+                        let y = g.y * &z;
+                        Affine::new_unchecked(x, y)
+                    }
+                }
+            })
+            .collect()
+
+    }
+}
+
+impl<P: TECurveConfig> Neg for Projective<P> {
+    type Output = Self;
+    fn neg(mut self) -> Self {
+        self.x = -self.x;
+        self.t = -self.t;
+        self
+    }
+}
+
+impl<P: TECurveConfig, T: Borrow<Affine<P>>> AddAssign<T> for Projective<P> {
+    fn add_assign(&mut self, other: T) {
+        let other = other.borrow();
         // See "Twisted Edwards Curves Revisited"
         // Huseyin Hisil, Kenneth Koon-Ho Wong, Gary Carter, and Ed Dawson
         // 3.1 Unified Addition in E^e
@@ -578,28 +569,44 @@ impl<P: TECurveConfig> ProjectiveCurve for Projective<P> {
         // Z3 = F*G
         self.z = f * &g;
     }
-
-    #[inline]
-    fn mul_bigint<S: AsRef<[u64]>>(self, other: S) -> Self {
-        P::mul_projective(&self, other.as_ref())
-    }
 }
 
-impl<P: TECurveConfig> Neg for Projective<P> {
+impl<P: TECurveConfig, T: Borrow<Affine<P>>> Add<T> for Projective<P> {
     type Output = Self;
-    fn neg(mut self) -> Self {
-        self.x = -self.x;
-        self.t = -self.t;
+    fn add(mut self, other: T) -> Self {
+        let other = other.borrow();
+        self += other;
         self
     }
 }
 
+impl<P: TECurveConfig, T: Borrow<Affine<P>>> SubAssign<T> for Projective<P> {
+    fn sub_assign(&mut self, other: T) {
+        *self += -(*other.borrow());
+    }
+}
+
+impl<P: TECurveConfig, T: Borrow<Affine<P>>> Sub<T> for Projective<P> {
+    type Output = Self;
+    fn sub(mut self, other: T) -> Self {
+        self -= other.borrow();
+        self
+    }
+}
 ark_ff::impl_additive_ops_from_ref!(Projective, TECurveConfig);
 
 impl<'a, P: TECurveConfig> Add<&'a Self> for Projective<P> {
     type Output = Self;
     fn add(mut self, other: &'a Self) -> Self {
         self += other;
+        self
+    }
+}
+
+impl<'a, P: TECurveConfig> Sub<&'a Self> for Projective<P> {
+    type Output = Self;
+    fn sub(mut self, other: &'a Self) -> Self {
+        self -= other;
         self
     }
 }
@@ -648,17 +655,9 @@ impl<'a, P: TECurveConfig> AddAssign<&'a Self> for Projective<P> {
     }
 }
 
-impl<'a, P: TECurveConfig> Sub<&'a Self> for Projective<P> {
-    type Output = Self;
-    fn sub(mut self, other: &'a Self) -> Self {
-        self -= other;
-        self
-    }
-}
-
 impl<'a, P: TECurveConfig> SubAssign<&'a Self> for Projective<P> {
     fn sub_assign(&mut self, other: &'a Self) {
-        *self += &(-(*other));
+        *self += -(*other);
     }
 }
 
@@ -678,6 +677,15 @@ impl<P: TECurveConfig, T: Borrow<P::ScalarField>> Mul<T> for Projective<P> {
     }
 }
 
+impl<P: TECurveConfig, T: Borrow<Affine<P>>> ark_std::iter::Sum<T> for Projective<P> {
+    fn sum<I>(iter: I) -> Self
+    where
+        I: Iterator<Item = T>,
+    {
+        iter.fold(Self::zero(), |acc, x| acc + x.borrow())
+    }
+}
+
 // The affine point (X, Y) is represented in the Extended Projective coordinates
 // with Z = 1.
 impl<P: TECurveConfig> From<Affine<P>> for Projective<P> {
@@ -691,7 +699,7 @@ impl<P: TECurveConfig> From<Affine<P>> for Projective<P> {
 impl<P: TECurveConfig> From<Projective<P>> for Affine<P> {
     fn from(p: Projective<P>) -> Affine<P> {
         if p.is_zero() {
-            Affine::zero()
+            Affine::identity()
         } else if p.z.is_one() {
             // If Z is one, the point is already normalized.
             Affine::new_unchecked(p.x, p.y)
@@ -701,42 +709,6 @@ impl<P: TECurveConfig> From<Projective<P>> for Affine<P> {
             let x = p.x * &z_inv;
             let y = p.y * &z_inv;
             Affine::new_unchecked(x, y)
-        }
-    }
-}
-
-impl<P: TECurveConfig> core::str::FromStr for Affine<P>
-where
-    P::BaseField: core::str::FromStr<Err = ()>,
-{
-    type Err = ();
-
-    fn from_str(mut s: &str) -> Result<Self, Self::Err> {
-        s = s.trim();
-        if s.is_empty() {
-            return Err(());
-        }
-        if s.len() < 3 {
-            return Err(());
-        }
-        if !(s.starts_with('(') && s.ends_with(')')) {
-            return Err(());
-        }
-        let mut point = Vec::new();
-        for substr in s.split(|c| c == '(' || c == ')' || c == ',' || c == ' ') {
-            if !substr.is_empty() {
-                point.push(P::BaseField::from_str(substr)?);
-            }
-        }
-        if point.len() != 2 {
-            return Err(());
-        }
-        let point = Self::new_unchecked(point[0], point[1]);
-
-        if !point.is_on_curve() {
-            Err(())
-        } else {
-            Ok(point)
         }
     }
 }
@@ -771,7 +743,7 @@ impl<P: TECurveConfig> CanonicalSerialize for Affine<P> {
     #[allow(unused_qualifications)]
     #[inline]
     fn serialize<W: Write>(&self, writer: W) -> Result<(), SerializationError> {
-        if self.is_zero() {
+        if self.is_identity() {
             let flags = EdwardsFlags::default();
             // Serialize 0.
             P::BaseField::zero().serialize_with_flags(writer, flags)
@@ -835,7 +807,7 @@ impl<P: TECurveConfig> CanonicalDeserialize for Affine<P> {
         let (y, flags): (P::BaseField, EdwardsFlags) =
             CanonicalDeserializeWithFlags::deserialize_with_flags(&mut reader)?;
         if y == P::BaseField::zero() {
-            Ok(Self::zero())
+            Ok(Self::identity())
         } else {
             let p = Affine::<P>::get_point_from_y(y, flags.is_positive())
                 .ok_or(SerializationError::InvalidData)?;
@@ -940,7 +912,7 @@ impl<P: TECurveConfig> Affine<P> {
     /// serialization format and will be deprecated and then removed in a
     /// future version.
     pub fn serialize_old<W: Write>(&self, writer: W) -> Result<(), SerializationError> {
-        if self.is_zero() {
+        if self.is_identity() {
             let flags = EdwardsFlags::default();
             // Serialize 0.
             P::BaseField::zero().serialize_with_flags(writer, flags)
@@ -985,7 +957,7 @@ impl<P: TECurveConfig> Affine<P> {
         let (x, flags): (P::BaseField, EdwardsFlags) =
             CanonicalDeserializeWithFlags::deserialize_with_flags(&mut reader)?;
         if x == P::BaseField::zero() {
-            Ok(Self::zero())
+            Ok(Self::identity())
         } else {
             let p = Affine::<P>::get_point_from_x_old(x, flags.is_positive())
                 .ok_or(SerializationError::InvalidData)?;
@@ -1035,18 +1007,8 @@ impl<P: TECurveConfig> Projective<P> {
     }
 }
 
-impl<P: TECurveConfig> VariableBaseMSM for Projective<P> {
-    type MSMBase = Affine<P>;
-
-    type Scalar = <Self as ProjectiveCurve>::ScalarField;
-
-    #[inline]
-    fn _double_in_place(&mut self) -> &mut Self {
-        self.double_in_place()
-    }
-
-    #[inline]
-    fn _add_assign_mixed(&mut self, other: &Self::MSMBase) {
-        self.add_assign_mixed(other)
-    }
+impl<P: TECurveConfig> ScalarMul for Projective<P> {
+    type MulBase = Affine<P>;
 }
+
+impl<P: TECurveConfig> VariableBaseMSM for Projective<P> {}

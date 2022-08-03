@@ -13,7 +13,7 @@ use ark_std::{
 
 use ark_ff::{fields::Field, PrimeField, ToConstraintField, UniformRand};
 
-use crate::{msm::VariableBaseMSM, AffineCurve, ProjectiveCurve};
+use crate::{scalar_mul::{VariableBaseMSM, ScalarMul}, AffineRepr, CurveGroup, Group};
 
 use num_traits::{One, Zero};
 use zeroize::Zeroize;
@@ -104,7 +104,7 @@ pub trait SWCurveConfig: super::CurveConfig {
         for b in ark_ff::BitIteratorBE::without_leading_zeros(scalar) {
             res.double_in_place();
             if b {
-                res.add_assign_mixed(base)
+                res += base
             }
         }
 
@@ -135,13 +135,13 @@ pub struct Affine<P: SWCurveConfig> {
 
 impl<P: SWCurveConfig> PartialEq<Projective<P>> for Affine<P> {
     fn eq(&self, other: &Projective<P>) -> bool {
-        self.into_projective() == *other
+        self.into_group() == *other
     }
 }
 
 impl<P: SWCurveConfig> PartialEq<Affine<P>> for Projective<P> {
     fn eq(&self, other: &Affine<P>) -> bool {
-        *self == other.into_projective()
+        *self == other.into_group()
     }
 }
 
@@ -247,39 +247,6 @@ impl<P: SWCurveConfig> Zeroize for Affine<P> {
     }
 }
 
-impl<P: SWCurveConfig> Zero for Affine<P> {
-    /// Returns the point at infinity. Note that in affine coordinates,
-    /// the point at infinity does not lie on the curve, and this is indicated
-    /// by setting the `infinity` flag to true.
-    #[inline]
-    fn zero() -> Self {
-        Self::identity()
-    }
-
-    /// Checks if `self` is the point at infinity.
-    #[inline]
-    fn is_zero(&self) -> bool {
-        self == &Self::zero()
-    }
-}
-
-impl<P: SWCurveConfig> Add<Self> for Affine<P> {
-    type Output = Self;
-    fn add(self, other: Self) -> Self {
-        let mut copy = self;
-        copy += &other;
-        copy
-    }
-}
-
-impl<'a, P: SWCurveConfig> AddAssign<&'a Self> for Affine<P> {
-    fn add_assign(&mut self, other: &'a Self) {
-        let mut s_proj = Projective::from(*self);
-        s_proj.add_assign_mixed(other);
-        *self = s_proj.into();
-    }
-}
-
 impl<P: SWCurveConfig> Distribution<Affine<P>> for Standard {
     #[inline]
     fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> Affine<P> {
@@ -294,18 +261,18 @@ impl<P: SWCurveConfig> Distribution<Affine<P>> for Standard {
     }
 }
 
-impl<P: SWCurveConfig> AffineCurve for Affine<P> {
+impl<P: SWCurveConfig> AffineRepr for Affine<P> {
     type Config = P;
     type BaseField = P::BaseField;
     type ScalarField = P::ScalarField;
-    type Projective = Projective<P>;
+    type Group = Projective<P>;
 
     fn xy(&self) -> Option<(&Self::BaseField, &Self::BaseField)> {
         (!self.infinity).then(|| (&self.x, &self.y))
     }
 
     #[inline]
-    fn prime_subgroup_generator() -> Self {
+    fn generator() -> Self {
         P::GENERATOR
     }
 
@@ -314,7 +281,7 @@ impl<P: SWCurveConfig> AffineCurve for Affine<P> {
             // if x is valid and is zero and only the infinity flag is set, then parse this
             // point as infinity. For all other choices, get the original point.
             if x.is_zero() && flags.is_infinity() {
-                Some(Self::zero())
+                Some(Self::identity())
             } else if let Some(y_is_positive) = flags.is_positive() {
                 Self::get_point_from_x(x, y_is_positive)
                 // Unwrap is safe because it's not zero.
@@ -324,14 +291,14 @@ impl<P: SWCurveConfig> AffineCurve for Affine<P> {
         })
     }
 
-    fn mul_bigint<S: AsRef<[u64]>>(&self, by: S) -> Self::Projective {
+    fn mul_bigint(&self, by: impl AsRef<[u64]>) -> Self::Group {
         P::mul_affine(self, by.as_ref())
     }
 
     /// Multiplies this element by the cofactor and output the
     /// resulting projective element.
     #[must_use]
-    fn mul_by_cofactor_to_projective(&self) -> Self::Projective {
+    fn mul_by_cofactor_to_group(&self) -> Self::Group {
         P::mul_affine(self, Self::Config::COFACTOR)
     }
 
@@ -355,24 +322,34 @@ impl<P: SWCurveConfig> Neg for Affine<P> {
     }
 }
 
+impl<P: SWCurveConfig, T: Borrow<Self>> Add<T> for Affine<P> {
+    type Output = Projective<P>;
+    fn add(self, other: T) -> Projective<P> {
+        let mut copy = self.into_group();
+        copy += other.borrow();
+        copy
+    }
+}
+
+impl<P: SWCurveConfig, T: Borrow<Self>> Sub<T> for Affine<P> {
+    type Output = Projective<P>;
+    fn sub(self, other: T) -> Projective<P> {
+        let mut copy = self.into_group();
+        copy -= other.borrow();
+        copy
+    }
+}
+
 impl<P: SWCurveConfig> Default for Affine<P> {
     #[inline]
     fn default() -> Self {
-        Self::zero()
+        Self::identity()
     }
 }
 
-impl<P: SWCurveConfig> core::iter::Sum<Self> for Affine<P> {
-    fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
-        iter.fold(Projective::<P>::zero(), |sum, x| sum.add_mixed(&x))
-            .into()
-    }
-}
-
-impl<'a, P: SWCurveConfig> core::iter::Sum<&'a Self> for Affine<P> {
-    fn sum<I: Iterator<Item = &'a Self>>(iter: I) -> Self {
-        iter.fold(Projective::<P>::zero(), |sum, x| sum.add_mixed(x))
-            .into()
+impl<P: SWCurveConfig, T: Borrow<Affine<P>>> core::iter::Sum<T> for Projective<P> {
+    fn sum<I: Iterator<Item = T>>(iter: I) -> Self {
+        iter.fold(Projective::zero(), |sum, x| sum + x.borrow())
     }
 }
 
@@ -449,7 +426,7 @@ impl<P: SWCurveConfig> Distribution<Projective<P>> for Standard {
             let greatest = rng.gen();
 
             if let Some(p) = Affine::get_point_from_x(x, greatest) {
-                return p.mul_by_cofactor_to_projective();
+                return p.mul_by_cofactor_to_group();
             }
         }
     }
@@ -505,49 +482,12 @@ impl<P: SWCurveConfig> Zero for Projective<P> {
     }
 }
 
-impl<P: SWCurveConfig> ProjectiveCurve for Projective<P> {
-    type Config = P;
-    type BaseField = P::BaseField;
+impl<P: SWCurveConfig> Group for Projective<P> {
     type ScalarField = P::ScalarField;
-    type Affine = Affine<P>;
 
     #[inline]
-    fn prime_subgroup_generator() -> Self {
-        Affine::prime_subgroup_generator().into()
-    }
-
-    #[inline]
-    fn is_normalized(&self) -> bool {
-        self.is_zero() || self.z.is_one()
-    }
-
-    /// Normalizes a slice of projective elements so that
-    /// conversion to affine is cheap.
-    ///
-    /// In more detail, this method converts a curve point in Jacobian
-    /// coordinates (x, y, z) into an equivalent representation (x/z^2,
-    /// y/z^3, 1).
-    ///
-    /// For `N = v.len()`, this costs 1 inversion + 6N field multiplications + N
-    /// field squarings.
-    ///
-    /// (Where batch inversion comprises 3N field multiplications + 1 inversion
-    /// of these operations)
-    #[inline]
-    fn batch_normalization(v: &mut [Self]) {
-        let mut z_s = v.iter().map(|g| g.z).collect::<Vec<_>>();
-        ark_ff::batch_inversion(&mut z_s);
-
-        // Perform affine transformations
-        ark_std::cfg_iter_mut!(v)
-            .zip(z_s)
-            .filter(|(g, _)| !g.is_normalized())
-            .for_each(|(g, z)| {
-                let z2 = z.square(); // 1/z
-                g.x *= &z2; // x/z^2
-                g.y *= &(z2 * &z); // y/z^3
-                g.z = P::BaseField::one(); // z = 1
-            });
+    fn generator() -> Self {
+        Affine::generator().into()
     }
 
     /// Sets `self = 2 * self`. Note that Jacobian formulae are incomplete, and
@@ -623,11 +563,66 @@ impl<P: SWCurveConfig> ProjectiveCurve for Projective<P> {
         }
     }
 
-    /// When `other.is_normalized()` (i.e., `other.z == 1`), we can use a more
-    /// efficient [formula](http://www.hyperelliptic.org/EFD/g1p/auto-shortw-jacobian-0.html#addition-madd-2007-bl)
-    /// to compute `self + other`.
-    fn add_assign_mixed(&mut self, other: &Affine<P>) {
-        match other.is_zero() {
+    #[inline]
+    fn mul_bigint(&self, other: impl AsRef<[u64]>) -> Self {
+        P::mul_projective(&self, other.as_ref())
+    }
+}
+
+impl<P: SWCurveConfig> CurveGroup for Projective<P> {
+    type Config = P;
+    type BaseField = P::BaseField;
+    type Affine = Affine<P>;
+    type FullGroup = Affine<P>;
+
+    /// Normalizes a slice of projective elements so that
+    /// conversion to affine is cheap.
+    ///
+    /// In more detail, this method converts a curve point in Jacobian
+    /// coordinates (x, y, z) into an equivalent representation (x/z^2,
+    /// y/z^3, 1).
+    ///
+    /// For `N = v.len()`, this costs 1 inversion + 6N field multiplications + N
+    /// field squarings.
+    ///
+    /// (Where batch inversion comprises 3N field multiplications + 1 inversion
+    /// of these operations)
+    #[inline]
+    fn normalize_batch(v: &[Self]) -> Vec<Self::Affine> {
+        let mut z_s = v.iter().map(|g| g.z).collect::<Vec<_>>();
+        ark_ff::batch_inversion(&mut z_s);
+
+        // Perform affine transformations
+        ark_std::cfg_iter!(v)
+            .zip(z_s)
+            .map(|(g, z)| {
+                match g.is_zero() {
+                    true => Affine::identity(),
+                    false => {
+                        let z2 = z.square();
+                        let x = g.x * z2;
+                        let y = g.y * z2 * z;
+                        Affine::new_unchecked(x, y)
+                    }
+                }
+            }).collect()
+    }
+}
+
+impl<P: SWCurveConfig> Neg for Projective<P> {
+    type Output = Self;
+
+    #[inline]
+    fn neg(mut self) -> Self {
+        self.y = -self.y;
+        self
+    }
+}
+
+impl<P: SWCurveConfig, T: Borrow<Affine<P>>> AddAssign<T> for Projective<P> {
+    fn add_assign(&mut self, other: T) {
+        let other = other.borrow();
+        match other.infinity {
             true => {},
             false => {
                 if self.is_zero() {
@@ -689,19 +684,27 @@ impl<P: SWCurveConfig> ProjectiveCurve for Projective<P> {
             },
         }
     }
+}
 
-    #[inline]
-    fn mul_bigint<S: AsRef<[u64]>>(self, other: S) -> Self {
-        P::mul_projective(&self, other.as_ref())
+impl<P: SWCurveConfig, T: Borrow<Affine<P>>> Add<T> for Projective<P> {
+    type Output = Self;
+    fn add(mut self, other: T) -> Self {
+        let other = other.borrow();
+        self += other;
+        self
     }
 }
 
-impl<P: SWCurveConfig> Neg for Projective<P> {
-    type Output = Self;
+impl<P: SWCurveConfig, T: Borrow<Affine<P>>> SubAssign<T> for Projective<P> {
+    fn sub_assign(&mut self, other: T) {
+        *self += -(*other.borrow());
+    }
+}
 
-    #[inline]
-    fn neg(mut self) -> Self {
-        self.y = -self.y;
+impl<P: SWCurveConfig, T: Borrow<Affine<P>>> Sub<T> for Projective<P> {
+    type Output = Self;
+    fn sub(mut self, other: T) -> Self {
+        self -= other.borrow();
         self
     }
 }
@@ -837,7 +840,7 @@ impl<P: SWCurveConfig> From<Projective<P>> for Affine<P> {
     #[inline]
     fn from(p: Projective<P>) -> Affine<P> {
         if p.is_zero() {
-            Affine::zero()
+            Affine::identity()
         } else if p.z.is_one() {
             // If Z is one, the point is already normalized.
             Affine::new_unchecked(p.x, p.y)
@@ -932,7 +935,7 @@ impl<P: SWCurveConfig> CanonicalDeserialize for Affine<P> {
         let (x, flags): (P::BaseField, SWFlags) =
             CanonicalDeserializeWithFlags::deserialize_with_flags(reader)?;
         if flags.is_infinity() {
-            Ok(Self::zero())
+            Ok(Self::identity())
         } else {
             let p = Affine::<P>::get_point_from_x(x, flags.is_positive().unwrap())
                 .ok_or(SerializationError::InvalidData)?;
@@ -961,7 +964,7 @@ impl<P: SWCurveConfig> CanonicalDeserialize for Affine<P> {
         let (y, flags): (P::BaseField, SWFlags) =
             CanonicalDeserializeWithFlags::deserialize_with_flags(&mut reader)?;
         match flags.is_infinity() {
-            true => Ok(Self::zero()),
+            true => Ok(Self::identity()),
             false => Ok(Self::new_unchecked(x, y)),
         }
     }
@@ -1012,18 +1015,8 @@ where
     }
 }
 
-impl<P: SWCurveConfig> VariableBaseMSM for Projective<P> {
-    type MSMBase = Affine<P>;
-
-    type Scalar = <Self as ProjectiveCurve>::ScalarField;
-
-    #[inline]
-    fn _double_in_place(&mut self) -> &mut Self {
-        self.double_in_place()
-    }
-
-    #[inline]
-    fn _add_assign_mixed(&mut self, other: &Self::MSMBase) {
-        self.add_assign_mixed(other)
-    }
+impl<P: SWCurveConfig> ScalarMul for Projective<P> {
+    type MulBase = Affine<P>;
 }
+
+impl<P: SWCurveConfig> VariableBaseMSM for Projective<P> {}

@@ -1,10 +1,10 @@
 use ark_ff::{Field, PrimeField};
 
-pub mod bls12;
-pub mod bn;
-pub mod bw6;
-pub mod mnt4;
-pub mod mnt6;
+// pub mod bls12;
+// pub mod bn;
+// pub mod bw6;
+// pub mod mnt4;
+// pub mod mnt6;
 pub mod short_weierstrass;
 pub mod twisted_edwards;
 

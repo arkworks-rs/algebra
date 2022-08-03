@@ -1,7 +1,14 @@
+mod glv;
+mod wnaf;
+
 mod fixed_base;
 mod variable_base;
+
 pub use fixed_base::*;
 pub use variable_base::*;
+
+use crate::Group;
+use ark_std::ops::{Add, AddAssign};
 
 /// The result of this function is only approximately `ln(a)`
 /// [`Explanation of usage`]
@@ -10,4 +17,15 @@ pub use variable_base::*;
 fn ln_without_floats(a: usize) -> usize {
     // log2(a) * ln(2)
     (ark_std::log2(a) * 69 / 100) as usize
+}
+
+pub trait ScalarMul: 
+    Group 
+    + Add<Self::MulBase, Output = Self>
+    + AddAssign<Self::MulBase>
+    + for<'a> Add<&'a Self::MulBase, Output = Self>
+    + for<'a> AddAssign<&'a Self::MulBase>
+    + From<Self::MulBase>
+{
+    type MulBase: Send + Sync + Copy + Eq + core::hash::Hash;
 }

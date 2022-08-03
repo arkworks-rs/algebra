@@ -6,8 +6,8 @@ use ark_poly::{univariate::DensePolynomial, DenseUVPolynomial, Polynomial};
 
 use crate::{
     hashing::{map_to_curve_hasher::MapToCurve, HashToCurveError},
-    models::short_weierstrass::Affine,
-    AffineCurve,
+    models::short_weierstrass::{Affine, Projective},
+    AffineRepr,
 };
 
 use super::swu::{SWUMap, SWUParams};
@@ -56,7 +56,7 @@ pub struct WBMap<P: WBParams> {
     curve_params: PhantomData<fn() -> P>,
 }
 
-impl<P: WBParams> MapToCurve<Affine<P>> for WBMap<P> {
+impl<P: WBParams> MapToCurve<Projective<P>> for WBMap<P> {
     /// Constructs a new map if `P` represents a valid map.
     fn new() -> Result<Self, HashToCurveError> {
         match P::isogeny_map(P::IsogenousCurve::GENERATOR) {
@@ -79,7 +79,7 @@ impl<P: WBParams> MapToCurve<Affine<P>> for WBMap<P> {
     /// <https://github.com/zcash/pasta_curves/blob/main/src/hashtocurve.rs>
     fn map_to_curve(
         &self,
-        element: <Affine<P> as AffineCurve>::BaseField,
+        element: <Affine<P> as AffineRepr>::BaseField,
     ) -> Result<Affine<P>, HashToCurveError> {
         // first we need to map the field point to the isogenous curve
         let point_on_isogenious_curve = self.swu_field_curve_hasher.map_to_curve(element).unwrap();
