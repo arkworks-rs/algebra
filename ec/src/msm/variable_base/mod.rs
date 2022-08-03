@@ -1,9 +1,11 @@
+// original
 use ark_ff::{prelude::*, PrimeField};
 use ark_std::{
     borrow::Borrow,
     iterable::Iterable,
-    ops::{Add, AddAssign},
+    ops::{Add, AddAssign, Neg},
     vec::Vec,
+    cmp::Ordering,
 };
 
 #[cfg(feature = "parallel")]
@@ -11,6 +13,49 @@ use rayon::prelude::*;
 
 pub mod stream_pippenger;
 pub use stream_pippenger::*;
+
+// From: https://github.com/arkworks-rs/gemini/blob/main/src/kzg/msm/variable_base.rs#L20
+fn make_digits(a: &impl BigInteger, w: usize, num_bits: usize) -> Vec<i64> {
+    let scalar = a.as_ref();
+    let radix: u64 = 1 << w;
+    let window_mask: u64 = radix - 1;
+
+    let mut carry = 0u64;
+    let num_bits = if num_bits == 0 {
+        a.num_bits() as usize
+    } else {
+        num_bits
+    };
+    let digits_count = (num_bits + w - 1) / w;
+    let mut digits = vec![0i64; digits_count];
+    for (i, digit) in digits.iter_mut().enumerate() {
+        // Construct a buffer of bits of the scalar, starting at `bit_offset`.
+        let bit_offset = i * w;
+        let u64_idx = bit_offset / 64;
+        let bit_idx = bit_offset % 64;
+        // Read the bits from the scalar
+        let bit_buf: u64;
+        if bit_idx < 64 - w || u64_idx == scalar.len() - 1 {
+            // This window's bits are contained in a single u64,
+            // or it's the last u64 anyway.
+            bit_buf = scalar[u64_idx] >> bit_idx;
+        } else {
+            // Combine the current u64's bits with the bits from the next u64
+            bit_buf = (scalar[u64_idx] >> bit_idx) | (scalar[1 + u64_idx] << (64 - bit_idx));
+        }
+
+        // Read the actual coefficient value from the window
+        let coef = carry + (bit_buf & window_mask); // coef = [0, 2^r)
+
+        // Recenter coefficients from [0,2^w) to [-2^w/2, 2^w/2)
+        carry = (coef + radix / 2) >> w;
+        *digit = (coef as i64) - (carry << w) as i64;
+    }
+
+    digits[digits_count - 1] += (carry << w) as i64;
+
+    digits
+}
 
 pub trait VariableBaseMSM:
     Eq
@@ -24,7 +69,7 @@ pub trait VariableBaseMSM:
     + for<'a> AddAssign<&'a Self>
     + for<'a> Add<&'a Self, Output = Self>
 {
-    type MSMBase: Sync + Copy;
+    type MSMBase: Sync + Copy + Neg<Output=Self::MSMBase>;
 
     type Scalar: PrimeField;
 
@@ -159,6 +204,62 @@ pub trait VariableBaseMSM:
                     }
                     total
                 })
+    }
+
+    // Compute msm using windowed non-adjacent form
+    fn msm_bigint_wnaf(
+        bases: &[Self::MSMBase],
+        bigints: &[<Self::Scalar as PrimeField>::BigInt],
+    ) -> Self {
+        let size = ark_std::cmp::min(bases.len(), bigints.len());
+        let scalars = &bigints[..size];
+        let bases = &bases[..size];
+
+        let c = if size < 32 {
+            3
+        } else {
+            super::ln_without_floats(size) + 2
+        };
+
+        let num_bits = Self::Scalar::MODULUS_BIT_SIZE as usize;
+        let digits_count = (num_bits + c - 1) / c;
+        let scalar_digits = scalars
+            .iter()
+            .map(|s| make_digits(s, c, num_bits))
+            .collect::<Vec<_>>();
+        let zero = Self::zero();
+        let mut window_sums = (0..digits_count)
+            .map(|i| {
+                let mut buckets = vec![zero; 1 << c];
+                for (digits, base) in scalar_digits.iter().zip(bases) {
+                    // digits is the digits thing of the first scalar?
+                    let scalar = digits[i];
+                    match scalar.cmp(&0) {
+                        Ordering::Greater => buckets[(scalar - 1) as usize]._add_assign_mixed(base),
+                        Ordering::Less => {
+                            let basem = -*base;
+                            buckets[(scalar - 1) as usize]._add_assign_mixed(&basem);
+                        },
+                        Ordering::Equal => (),
+                    }
+                }
+
+                let mut running_sum = Self::zero();
+                let mut res = Self::zero();
+                buckets.into_iter().rev().for_each(|b| {
+                    running_sum += &b;
+                    res += &running_sum;
+                });
+                res
+            })
+            .rev();
+        let first = window_sums.next().unwrap();
+        window_sums.fold(first, |mut total, sum_i| {
+            for _ in 0..c {
+                total._double_in_place();
+            }
+            total + sum_i
+        })
     }
     /// Streaming multi-scalar multiplication algorithm with hard-coded chunk
     /// size.
