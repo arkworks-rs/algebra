@@ -214,19 +214,21 @@ impl<P: Fp12Config> Fp12<P> {
     }
 }
 
-// TODO: make `const fn` in 1.46.
-pub fn characteristic_square_mod_6_is_one(characteristic: &[u64]) -> bool {
+pub const fn characteristic_square_mod_6_is_one(characteristic: &[u64]) -> bool {
     // characteristic mod 6 = (a_0 + 2**64 * a_1 + ...) mod 6
     //                      = a_0 mod 6 + (2**64 * a_1 mod 6) + (...) mod 6
     //                      = a_0 mod 6 + (4 * a_1 mod 6) + (4 * ...) mod 6
     let mut char_mod_6 = 0u64;
-    for (i, limb) in characteristic.iter().enumerate() {
+    let mut limb;
+    let n = characteristic.len();
+    crate::const_for!((i in 0..n) {
+        limb = characteristic[i];
         char_mod_6 += if i == 0 {
             limb % 6
         } else {
             (4 * (limb % 6)) % 6
         };
-    }
+    });
     (char_mod_6 * char_mod_6) % 6 == 1
 }
 
