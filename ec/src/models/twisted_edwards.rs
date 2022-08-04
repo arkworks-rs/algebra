@@ -338,6 +338,15 @@ impl<P: TECurveConfig> Distribution<Affine<P>> for Standard {
     }
 }
 
+impl<'a, P: TECurveConfig, T: Borrow<P::ScalarField>> Mul<T> for Affine<P> {
+    type Output = Projective<P>;
+
+    #[inline]
+    fn mul(self, other: T) -> Self::Output {
+        self.mul_bigint(other.borrow().into_bigint())
+    }
+}
+
 //////////////////////////////////////////////////////////////////////////////
 
 /// `Projective` implements Extended Twisted Edwards Coordinates
