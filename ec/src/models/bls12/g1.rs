@@ -1,7 +1,6 @@
 use crate::{
     bls12::Bls12Parameters,
     short_weierstrass::{Affine, Projective},
-    AffineCurve,
 };
 use num_traits::Zero;
 

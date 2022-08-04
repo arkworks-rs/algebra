@@ -1,6 +1,6 @@
 use crate::{
     models::{short_weierstrass::SWCurveConfig, CurveConfig},
-    AffineCurve, PairingEngine,
+    AffineRepr, pairing::Pairing,
 };
 use ark_ff::{
     fields::{
@@ -90,30 +90,27 @@ impl<P: Bls12Parameters> Bls12<P> {
     }
 }
 
-impl<P: Bls12Parameters> PairingEngine for Bls12<P> {
-    type Fr = <P::G1Parameters as CurveConfig>::ScalarField;
-    type G1Projective = G1Projective<P>;
+impl<P: Bls12Parameters> Pairing for Bls12<P> {
+    type ScalarField = <P::G1Parameters as CurveConfig>::ScalarField;
+    type G1 = G1Projective<P>;
     type G1Affine = G1Affine<P>;
     type G1Prepared = G1Prepared<P>;
-    type G2Projective = G2Projective<P>;
+    type G2 = G2Projective<P>;
     type G2Affine = G2Affine<P>;
     type G2Prepared = G2Prepared<P>;
-    type Fq = P::Fp;
-    type Fqe = Fp2<P::Fp2Config>;
-    type Fqk = Fp12<P::Fp12Config>;
 
     #[cfg(not(feature = "parallel"))]
-    fn miller_loop<'a, I>(i: I) -> Self::Fqk
-    where
-        I: IntoIterator<Item = &'a (Self::G1Prepared, Self::G2Prepared)>,
-    {
+    fn multi_miller_loop(
+        a: impl IntoIterator<Item = impl Into<Self::G1Prepared>>,
+        b: impl IntoIterator<Item = impl Into<Self::G2Prepared>>,
+    ) -> MillerLoopOutput<Self> {
         let mut pairs = vec![];
-        for (p, q) in i {
+        for (p, q) in a.zip(b) {
             if !p.is_zero() && !q.is_zero() {
                 pairs.push((p, q.ell_coeffs.iter()));
             }
         }
-        let mut f = Self::Fqk::one();
+        let mut f = Fq12::one();
         for i in BitIteratorBE::new(P::X).skip(1) {
             f.square_in_place();
             for (p, ref mut coeffs) in &mut pairs {
