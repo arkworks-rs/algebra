@@ -247,6 +247,8 @@ pub trait AffineCurve:
     + Neg<Output = Self>
     + Zeroize
     + core::iter::Sum<Self>
+    + Mul<Self::ScalarField, Output = Self::Projective>
+    + for<'a> Mul<&'a Self::ScalarField, Output = Self::Projective>
     + for<'a> core::iter::Sum<&'a Self>
     + From<<Self as AffineCurve>::Projective>
 {
