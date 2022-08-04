@@ -376,6 +376,15 @@ impl<'a, P: SWCurveConfig> core::iter::Sum<&'a Self> for Affine<P> {
     }
 }
 
+impl<'a, P: SWCurveConfig, T: Borrow<P::ScalarField>> Mul<T> for Affine<P> {
+    type Output = Projective<P>;
+
+    #[inline]
+    fn mul(self, other: T) -> Self::Output {
+        self.mul_bigint(other.borrow().into_bigint())
+    }
+}
+
 /// Jacobian coordinates for a point on an elliptic curve in short Weierstrass
 /// form, over the base field `P::BaseField`. This struct implements arithmetic
 /// via the Jacobian formulae
