@@ -232,19 +232,10 @@ pub trait Field:
     /// Returns `sum([a_i * b_i])`.
     #[inline]
     fn sum_of_products(a: &[Self], b: &[Self]) -> Self {
-        #[cfg(not(feature = "parallel"))]
-        {
-            a.iter()
-                .zip(b)
-                .fold(Self::zero(), |acc, (a, b)| acc + *a * b)
-        }
-        #[cfg(feature = "parallel")]
-        {
-            cfg_iter!(a)
-                .zip(b)
-                .fold(|| Self::zero(), |acc, (a, b)| acc + *a * b)
-                .sum()
-        }
+        cfg_iter!(a)
+            .zip(b)
+            .map(|(a, b)| *a * b)
+            .sum()
     }
 
     /// Exponentiates this element by a power of the base prime modulus via

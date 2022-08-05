@@ -206,12 +206,11 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
         for i in 0..N {
             let k = r[i].wrapping_mul(Self::INV);
             let mut carry = 0;
-            fa::mac_with_carry(r[i], k, Self::MODULUS.0[0], &mut carry);
+            fa::mac_discard(r[i], k, Self::MODULUS.0[0], &mut carry);
             for j in 1..N {
                 r[j + i] = fa::mac_with_carry(r[j + i], k, Self::MODULUS.0[j], &mut carry);
             }
-            r.b1[i] = fa::adc(r.b1[i], carry2, &mut carry);
-            carry2 = carry;
+            r.b1[i] = fa::adc(r.b1[i], carry, &mut carry2);
         }
         (a.0).0.copy_from_slice(&r.b1);
         a.subtract_modulus();
@@ -307,6 +306,7 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
         tmp
     }
 
+    #[unroll_for_loops(12)]
     fn sum_of_products(
         a: &[Fp<MontBackend<Self, N>, N>],
         b: &[Fp<MontBackend<Self, N>, N>],
@@ -329,33 +329,44 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
         //   need to store a single extra limb overall, instead of keeping around all the
         //   intermediate results and eventually having twice as many limbs.
 
-        // Algorithm 2, line 2
-        let result = (0..N).fold(BigInt::zero(), |mut result, j| {
-            // Algorithm 2, line 3
-            let (temp, end) =
-                a.iter()
-                    .zip(b)
-                    .fold((result, 0), |(mut temp, end), (Fp(a, _), Fp(b, _))| {
-                        let mut carry = 0;
-                        temp.0[0] = fa::mac(temp.0[0], a.0[j], b.0[0], &mut carry);
-                        for k in 1..N {
-                            temp.0[k] = fa::mac_with_carry(temp.0[k], a.0[j], b.0[k], &mut carry);
-                        }
-                        (temp, fa::adc(end, 0, &mut carry))
-                    });
-
-            let mut carry = 0;
-            let k = temp.0[0].wrapping_mul(Self::INV);
-            fa::mac_discard(temp.0[0], k, Self::MODULUS.0[0], &mut carry);
-            for i in 1..N {
-                result.0[i - 1] = fa::mac_with_carry(temp.0[i], k, Self::MODULUS.0[i], &mut carry);
-            }
-            result.0[N - 1] = fa::adc(end, 0, &mut carry);
-            result
-        });
-        let mut result = Fp::new(result);
-        result.subtract_modulus();
-        result
+        let modulus_size = Self::MODULUS.const_num_bits() as usize;
+        if modulus_size > 64 * N - 1 {
+            a.iter().zip(b).map(|(a, b)| *a * b).sum()
+        } else {
+            let chunk_size = 2 * (N * 64 - modulus_size) - 1;
+            // chunk_size is at least 1, since MODULUS_BIT_SIZE is at most N * 64 - 1.
+            a.chunks(chunk_size).zip(b.chunks(chunk_size)).map(|(a, b)| {
+                // Algorithm 2, line 2
+                let result = (0..N).fold(BigInt::zero(), |mut result, j| {
+                    // Algorithm 2, line 3
+                    let (temp, end) = 
+                    a.iter()
+                        .zip(b)
+                        .fold((result, 0), |(mut temp, mut end), (Fp(a, _), Fp(b, _))| {
+                            let mut carry = 0;
+                            temp.0[0] = fa::mac(temp.0[0], a.0[j], b.0[0], &mut carry);
+                            for k in 1..N {
+                                temp.0[k] = fa::mac_with_carry(temp.0[k], a.0[j], b.0[k], &mut carry);
+                            }
+                            end = fa::adc_no_carry(end, 0, &mut carry);
+                            (temp, end)
+                        });
+                    
+                    let k = temp.0[0].wrapping_mul(Self::INV);
+                    let mut carry = 0;
+                    fa::mac_discard(temp.0[0], k, Self::MODULUS.0[0], &mut carry);
+                    for i in 1..N {
+                        result.0[i - 1] = fa::mac_with_carry(temp.0[i], k, Self::MODULUS.0[i], &mut carry);
+                    }
+                    result.0[N - 1] = fa::adc_no_carry(end, 0, &mut carry);
+                    result
+                });
+                let mut result = Fp::new_unchecked(result);
+                result.subtract_modulus();
+                debug_assert_eq!(a.iter().zip(b).map(|(a, b)| *a * b).sum::<Fp<_, N>>(), result);
+                result
+            }).sum()
+        }
     }
 }
 
@@ -570,8 +581,8 @@ impl<T: MontConfig<N>, const N: usize> Fp<MontBackend<T, N>, N> {
         let mut carry2 = 0;
         crate::const_for!((i in 0..N) {
             let tmp = lo[i].wrapping_mul(T::INV);
-            let mut carry = 0;
-            mac_with_carry!(lo[i], tmp, T::MODULUS.0[0], &mut carry);
+            let mut carry;
+            mac!(lo[i], tmp, T::MODULUS.0[0], &mut carry);
             crate::const_for!((j in 1..N) {
                 let k = i + j;
                 if k >= N {
@@ -580,8 +591,7 @@ impl<T: MontConfig<N>, const N: usize> Fp<MontBackend<T, N>, N> {
                     lo[k] = mac_with_carry!(lo[k], tmp, T::MODULUS.0[j], &mut carry);
                 }
             });
-            hi[i] = adc!(hi[i], carry2, &mut carry);
-            carry2 = carry;
+            hi[i] = adc!(hi[i], carry, &mut carry2);
         });
 
         crate::const_for!((i in 0..N) {
