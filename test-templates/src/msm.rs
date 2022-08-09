@@ -2,15 +2,14 @@ use ark_ec::{
     msm::{ChunkedPippenger, HashMapPippenger, VariableBaseMSM},
     AffineCurve, ProjectiveCurve,
 };
-use ark_ff::{PrimeField, UniformRand, Zero};
+use ark_ff::{PrimeField, UniformRand};
 
 fn naive_var_base_msm<G: AffineCurve>(bases: &[G], scalars: &[G::ScalarField]) -> G::Projective {
-    let mut acc = G::Projective::zero();
-
-    for (base, scalar) in bases.iter().zip(scalars.iter()) {
-        acc += base.mul_bigint(&scalar.into_bigint());
-    }
-    acc
+    bases
+        .iter()
+        .zip(scalars.iter())
+        .map(|(&base, scalar)| base * scalar)
+        .sum()
 }
 
 pub fn test_var_base_msm<G>()
