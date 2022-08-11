@@ -56,17 +56,17 @@ impl<P: Bls12Parameters> From<G2Affine<P>> for G2Prepared<P> {
             },
             false => {
                 let mut ell_coeffs = vec![];
-                let mut r = G2HomProjective {
+                let mut r = G2HomProjective::<P> {
                     x: q.x,
                     y: q.y,
                     z: Fp2::one(),
                 };
 
                 for i in BitIteratorBE::new(P::X).skip(1) {
-                    ell_coeffs.push(doubling_step::<P>(&mut r, &two_inv));
+                    ell_coeffs.push(r.double_in_place(&two_inv));
 
                     if i {
-                        ell_coeffs.push(addition_step::<P>(&mut r, &q));
+                        ell_coeffs.push(r.add_in_place(&q));
                     }
                 }
 
@@ -103,57 +103,59 @@ impl<P: Bls12Parameters> G2Prepared<P> {
     }
 }
 
-fn doubling_step<B: Bls12Parameters>(
-    r: &mut G2HomProjective<B>,
-    two_inv: &B::Fp,
-) -> EllCoeff<Fp2<B::Fp2Config>> {
-    // Formula for line function when working with
-    // homogeneous projective coordinates.
+impl<P: Bls12Parameters> G2HomProjective<P> {
+    fn double_in_place(
+        &mut self,
+        two_inv: &P::Fp,
+    ) -> EllCoeff<Fp2<P::Fp2Config>> {
+        // Formula for line function when working with
+        // homogeneous projective coordinates.
 
-    let mut a = r.x * &r.y;
-    a.mul_assign_by_fp(two_inv);
-    let b = r.y.square();
-    let c = r.z.square();
-    let e = B::G2Parameters::COEFF_B * &(c.double() + &c);
-    let f = e.double() + &e;
-    let mut g = b + &f;
-    g.mul_assign_by_fp(two_inv);
-    let h = (r.y + &r.z).square() - &(b + &c);
-    let i = e - &b;
-    let j = r.x.square();
-    let e_square = e.square();
+        let mut a = self.x * &self.y;
+        a.mul_assign_by_fp(two_inv);
+        let b = self.y.square();
+        let c = self.z.square();
+        let e = P::G2Parameters::COEFF_B * &(c.double() + &c);
+        let f = e.double() + &e;
+        let mut g = b + &f;
+        g.mul_assign_by_fp(two_inv);
+        let h = (self.y + &self.z).square() - &(b + &c);
+        let i = e - &b;
+        let j = self.x.square();
+        let e_square = e.square();
 
-    r.x = a * &(b - &f);
-    r.y = g.square() - &(e_square.double() + &e_square);
-    r.z = b * &h;
-    match B::TWIST_TYPE {
-        TwistType::M => (i, j.double() + &j, -h),
-        TwistType::D => (-h, j.double() + &j, i),
+        self.x = a * &(b - &f);
+        self.y = g.square() - &(e_square.double() + &e_square);
+        self.z = b * &h;
+        match P::TWIST_TYPE {
+            TwistType::M => (i, j.double() + &j, -h),
+            TwistType::D => (-h, j.double() + &j, i),
+        }
     }
-}
 
-fn addition_step<B: Bls12Parameters>(
-    r: &mut G2HomProjective<B>,
-    q: &G2Affine<B>,
-) -> EllCoeff<Fp2<B::Fp2Config>> {
-    let (&qx, &qy) = q.xy().unwrap();
-    // Formula for line function when working with
-    // homogeneous projective coordinates.
-    let theta = r.y - &(qy * &r.z);
-    let lambda = r.x - &(qx * &r.z);
-    let c = theta.square();
-    let d = lambda.square();
-    let e = lambda * &d;
-    let f = r.z * &c;
-    let g = r.x * &d;
-    let h = e + &f - &g.double();
-    r.x = lambda * &h;
-    r.y = theta * &(g - &h) - &(e * &r.y);
-    r.z *= &e;
-    let j = theta * &qx - &(lambda * &qy);
+    fn add_in_place(
+        &mut self,
+        q: &G2Affine<P>,
+    ) -> EllCoeff<Fp2<P::Fp2Config>> {
+        let (&qx, &qy) = q.xy().unwrap();
+        // Formula for line function when working with
+        // homogeneous projective coordinates.
+        let theta = self.y - &(qy * &self.z);
+        let lambda = self.x - &(qx * &self.z);
+        let c = theta.square();
+        let d = lambda.square();
+        let e = lambda * &d;
+        let f = self.z * &c;
+        let g = self.x * &d;
+        let h = e + &f - &g.double();
+        self.x = lambda * &h;
+        self.y = theta * &(g - &h) - &(e * &self.y);
+        self.z *= &e;
+        let j = theta * &qx - &(lambda * &qy);
 
-    match B::TWIST_TYPE {
-        TwistType::M => (j, -theta, lambda),
-        TwistType::D => (lambda, -theta, j),
+        match P::TWIST_TYPE {
+            TwistType::M => (j, -theta, lambda),
+            TwistType::D => (lambda, -theta, j),
+        }
     }
 }
