@@ -41,7 +41,7 @@ macro_rules! generate_g1_test {
 
         #[test]
         fn test_g1_generator() {
-            let generator = G1Affine::prime_subgroup_generator();
+            let generator = G1Affine::generator();
             assert!(generator.is_on_curve());
             assert!(generator.is_in_correct_subgroup_assuming_on_curve());
         }
@@ -82,7 +82,7 @@ macro_rules! generate_g2_test {
     ($curve_name: ident; $($tail:tt)*) => {
         #[test]
         fn test_g2_generator() {
-            let generator = G2Affine::prime_subgroup_generator();
+            let generator = G2Affine::generator();
             assert!(generator.is_on_curve());
             assert!(generator.is_in_correct_subgroup_assuming_on_curve());
         }
@@ -174,7 +174,7 @@ macro_rules! generate_g1_generator_raw_test {
 
                         assert!(g1.is_in_correct_subgroup_assuming_on_curve());
 
-                        assert_eq!(g1, G1Affine::prime_subgroup_generator());
+                        assert_eq!(g1, G1Affine::generator());
                         break;
                     }
                 }

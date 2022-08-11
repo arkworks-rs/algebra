@@ -1,15 +1,18 @@
 use crate::{
     models::{short_weierstrass::SWCurveConfig, CurveConfig},
-    Pairing,
+    pairing::{MillerLoopOutput, Pairing, PairingOutput},
 };
 use ark_ff::{
     fp3::{Fp3, Fp3Config},
     fp6_2over3::{Fp6, Fp6Config},
     BitIteratorBE, CyclotomicMultSubgroup, Field, PrimeField,
 };
+use itertools::Itertools;
 use num_traits::{One, Zero};
 
 use core::marker::PhantomData;
+#[cfg(feature = "parallel")]
+use rayon::prelude::*;
 
 pub mod g1;
 pub mod g2;
@@ -195,29 +198,37 @@ impl<P: MNT6Parameters> MNT6<P> {
 }
 
 impl<P: MNT6Parameters> Pairing for MNT6<P> {
-    type Fr = <P::G1Parameters as CurveConfig>::ScalarField;
-    type G1Projective = G1Projective<P>;
+    type ScalarField = <P::G1Parameters as CurveConfig>::ScalarField;
+    type G1 = G1Projective<P>;
     type G1Affine = G1Affine<P>;
     type G1Prepared = G1Prepared<P>;
-    type G2Projective = G2Projective<P>;
+    type G2 = G2Projective<P>;
     type G2Affine = G2Affine<P>;
     type G2Prepared = G2Prepared<P>;
-    type Fq = P::Fp;
-    type Fqe = Fp3<P::Fp3Config>;
-    type Fqk = Fp6<P::Fp6Config>;
+    type TargetField = Fp6<P::Fp6Config>;
 
-    fn miller_loop<'a, I>(i: I) -> Self::Fqk
-    where
-        I: IntoIterator<Item = &'a (Self::G1Prepared, Self::G2Prepared)>,
-    {
-        let mut result = Self::Fqk::one();
-        for (p, q) in i {
-            result *= &Self::ate_miller_loop(p, q);
-        }
-        result
+    fn multi_miller_loop(
+        a: impl IntoIterator<Item = impl Into<Self::G1Prepared>>,
+        b: impl IntoIterator<Item = impl Into<Self::G2Prepared>>,
+    ) -> MillerLoopOutput<Self> {
+        let pairs = a
+            .into_iter()
+            .zip_eq(b)
+            .map(|(a, b)| (a.into(), b.into()))
+            .collect::<Vec<_>>();
+        let result = cfg_into_iter!(pairs)
+            .map(|(a, b)| Self::ate_miller_loop(&a, &b))
+            .product();
+        MillerLoopOutput(result)
     }
 
-    fn final_exponentiation(r: &Self::Fqk) -> Option<Self::Fqk> {
-        Some(Self::final_exponentiation(r))
+    fn final_exponentiation(f: MillerLoopOutput<Self>) -> Option<PairingOutput<Self>> {
+        let value = f.0;
+        let value_inv = value.inverse().unwrap();
+        let value_to_first_chunk = Self::final_exponentiation_first_chunk(&value, &value_inv);
+        let value_inv_to_first_chunk = Self::final_exponentiation_first_chunk(&value_inv, &value);
+        let result =
+            Self::final_exponentiation_last_chunk(&value_to_first_chunk, &value_inv_to_first_chunk);
+        Some(PairingOutput(result))
     }
 }
