@@ -16,9 +16,7 @@ use core::marker::PhantomData;
 use num_traits::{One, Zero};
 
 #[cfg(feature = "parallel")]
-use ark_std::cfg_iter;
-#[cfg(feature = "parallel")]
-use rayon::iter::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator};
+use rayon::prelude::*;
 
 /// A particular BLS12 group can have G2 being either a multiplicative or a
 /// divisive twist.
@@ -99,36 +97,6 @@ impl<P: Bls12Parameters> Pairing for Bls12<P> {
     type G2Prepared = G2Prepared<P>;
     type TargetField = Fp12<P::Fp12Config>;
 
-    #[cfg(not(feature = "parallel"))]
-    fn multi_miller_loop(
-        a: impl IntoIterator<Item = impl Into<Self::G1Prepared>>,
-        b: impl IntoIterator<Item = impl Into<Self::G2Prepared>>,
-    ) -> MillerLoopOutput<Self> {
-        let mut pairs = vec![];
-        for (p, q) in a.zip(b) {
-            if !p.is_zero() && !q.is_zero() {
-                pairs.push((p, q.ell_coeffs.iter()));
-            }
-        }
-        let mut f = Fq12::one();
-        for i in BitIteratorBE::new(P::X).skip(1) {
-            f.square_in_place();
-            for (p, ref mut coeffs) in &mut pairs {
-                Self::ell(&mut f, coeffs.next().unwrap(), &p.0);
-            }
-            if i {
-                for &mut (p, ref mut coeffs) in &mut pairs {
-                    Self::ell(&mut f, coeffs.next().unwrap(), &p.0);
-                }
-            }
-        }
-        if P::X_IS_NEGATIVE {
-            f.conjugate();
-        }
-        f
-    }
-
-    #[cfg(feature = "parallel")]
     fn multi_miller_loop(
         a: impl IntoIterator<Item = impl Into<Self::G1Prepared>>,
         b: impl IntoIterator<Item = impl Into<Self::G2Prepared>>,
@@ -143,31 +111,24 @@ impl<P: Bls12Parameters> Pairing for Bls12<P> {
             }
         }).collect::<Vec<_>>();
 
-        let f_s = vec![Self::TargetField::one(); pairs.len()];
-
-        let mut products = vec![];
-        cfg_iter!(pairs)
-            .zip(f_s)
-            .map(|((p, coeffs), f)| {
-                let coeffs = coeffs.as_slice();
-                let mut j = 0;
+        let f = cfg_chunks_mut!(pairs, 4)
+            .map(|pairs| {
+                let mut f = Self::TargetField::one();
                 for i in BitIteratorBE::new(P::X).skip(1) {
                     f.square_in_place();
-                    Self::ell(&mut f, &coeffs[j], &p.0);
-                    j += 1;
+                    for (p, coeffs) in pairs {
+                        Self::ell(&mut f, coeffs.next().unwrap(), &p.0);
+                    }
                     if i {
-                        Self::ell(&mut f, &coeffs[j], &p.0);
-                        j += 1;
+                        for (p, coeffs) in pairs {
+                            Self::ell(&mut f, &coeffs.next().unwrap(), &p.0);
+                        }
                     }
                 }
                 f
             })
-            .collect_into_vec(&mut products);
+            .product::<Self::TargetField>();
 
-        let mut f = Self::TargetField::one();
-        for ff in products {
-            f *= ff;
-        }
         if P::X_IS_NEGATIVE {
             f.conjugate();
         }

@@ -1,6 +1,6 @@
 use crate::{
     models::{short_weierstrass::SWCurveConfig, CurveConfig},
-    PairingEngine,
+    pairing::{Pairing, MillerLoopOutput, PairingOutput},
 };
 use ark_ff::{
     fields::{
@@ -11,9 +11,12 @@ use ark_ff::{
     },
     CyclotomicMultSubgroup,
 };
+use itertools::Itertools;
 use num_traits::One;
 
 use core::marker::PhantomData;
+#[cfg(feature = "parallel")]
+use rayon::prelude::*;
 
 pub enum TwistType {
     M,
@@ -87,55 +90,50 @@ impl<P: BnParameters> Bn<P> {
     }
 }
 
-impl<P: BnParameters> PairingEngine for Bn<P> {
-    type Fr = <P::G1Parameters as CurveConfig>::ScalarField;
-    type G1Projective = G1Projective<P>;
+impl<P: BnParameters> Pairing for Bn<P> {
+    type ScalarField = <P::G1Parameters as CurveConfig>::ScalarField;
+    type G1 = G1Projective<P>;
     type G1Affine = G1Affine<P>;
     type G1Prepared = G1Prepared<P>;
-    type G2Projective = G2Projective<P>;
+    type G2 = G2Projective<P>;
     type G2Affine = G2Affine<P>;
     type G2Prepared = G2Prepared<P>;
-    type Fq = P::Fp;
-    type Fqe = Fp2<P::Fp2Config>;
-    type Fqk = Fp12<P::Fp12Config>;
+    type TargetField = Fp12<P::Fp12Config>;
 
-    fn miller_loop<'a, I>(i: I) -> Self::Fqk
-    where
-        I: IntoIterator<Item = &'a (Self::G1Prepared, Self::G2Prepared)>,
-    {
-        let mut pairs = vec![];
-        for (p, q) in i {
-            if !p.is_zero() && !q.is_zero() {
-                pairs.push((p, q.ell_coeffs.iter()));
+    fn multi_miller_loop(
+        a: impl IntoIterator<Item = impl Into<Self::G1Prepared>>,
+        b: impl IntoIterator<Item = impl Into<Self::G2Prepared>>,
+    ) -> MillerLoopOutput<Self> {
+        let pairs = a.into_iter().zip_eq(b).filter_map(|(p, q)| {
+            let (p, q) = (p.into(), q.into());
+            match !p.is_zero() && !q.is_zero() {
+                true => Some((p, q.ell_coeffs.iter())),
+                false => None,
             }
-        }
+        }).collect::<Vec<_>>();
 
-        let mut f = Self::Fqk::one();
-
-        for i in (1..P::ATE_LOOP_COUNT.len()).rev() {
-            if i != P::ATE_LOOP_COUNT.len() - 1 {
-                f.square_in_place();
-            }
-
-            for (p, ref mut coeffs) in &mut pairs {
-                Self::ell(&mut f, coeffs.next().unwrap(), &p.0);
-            }
-
-            let bit = P::ATE_LOOP_COUNT[i - 1];
-            match bit {
-                1 => {
-                    for &mut (p, ref mut coeffs) in &mut pairs {
+        let f = cfg_chunks_mut!(pairs, 4)
+            .map(|pairs| {
+                let mut f = Self::TargetField::one();
+                for i in (1..P::ATE_LOOP_COUNT.len()).rev() {
+                    if i != P::ATE_LOOP_COUNT.len() - 1 {
+                        f.square_in_place();
+                    }
+                    
+                    for (p, ref mut coeffs) in pairs {
                         Self::ell(&mut f, coeffs.next().unwrap(), &p.0);
                     }
-                },
-                -1 => {
-                    for &mut (p, ref mut coeffs) in &mut pairs {
-                        Self::ell(&mut f, coeffs.next().unwrap(), &p.0);
+                    
+                    let bit = P::ATE_LOOP_COUNT[i - 1];
+                    if bit == 1 || bit == -1 {
+                        for &mut (p, ref mut coeffs) in pairs {
+                            Self::ell(&mut f, coeffs.next().unwrap(), &p.0);
+                        }
                     }
-                },
-                _ => continue,
-            }
-        }
+                }
+                f
+            })
+            .product::<Self::TargetField>();
 
         if P::X_IS_NEGATIVE {
             f.conjugate();
@@ -149,17 +147,18 @@ impl<P: BnParameters> PairingEngine for Bn<P> {
             Self::ell(&mut f, coeffs.next().unwrap(), &p.0);
         }
 
-        f
+        MillerLoopOutput(f)
     }
 
     #[allow(clippy::let_and_return)]
-    fn final_exponentiation(f: &Self::Fqk) -> Option<Self::Fqk> {
+    fn final_exponentiation(f: MillerLoopOutput<Self>) -> Option<PairingOutput<Self>> {
         // Easy part: result = elt^((q^6-1)*(q^2+1)).
         // Follows, e.g., Beuchat et al page 9, by computing result as follows:
         //   elt^((q^6-1)*(q^2+1)) = (conj(elt) * elt^(-1))^(q^2+1)
+        let f = f.0;
 
         // f1 = r.conjugate() = f^(p^6)
-        let mut f1 = *f;
+        let mut f1 = f;
         f1.conjugate();
 
         f.inverse().map(|mut f2| {
@@ -211,7 +210,7 @@ impl<P: BnParameters> PairingEngine for Bn<P> {
             y15.frobenius_map(3);
             let y16 = y15 * &y14;
 
-            y16
+            PairingOutput(y16)
         })
     }
 }
