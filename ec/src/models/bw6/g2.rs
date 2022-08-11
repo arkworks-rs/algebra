@@ -2,13 +2,13 @@ use ark_std::vec::Vec;
 
 use ark_ff::fields::{BitIteratorBE, Field};
 
-use num_traits::{One, Zero};
+use num_traits::One;
 
 use crate::{
     bw6::{BW6Parameters, TwistType},
     models::short_weierstrass::SWCurveConfig,
     short_weierstrass::{Affine, Projective},
-    AffineCurve,
+    AffineRepr, CurveGroup,
 };
 
 pub type G2Affine<P> = Affine<<P as BW6Parameters>::G2Parameters>;
@@ -43,13 +43,13 @@ struct G2HomProjective<P: BW6Parameters> {
 
 impl<P: BW6Parameters> Default for G2Prepared<P> {
     fn default() -> Self {
-        Self::from(G2Affine::<P>::prime_subgroup_generator())
+        Self::from(G2Affine::<P>::generator())
     }
 }
 
 impl<P: BW6Parameters> From<G2Affine<P>> for G2Prepared<P> {
     fn from(q: G2Affine<P>) -> Self {
-        if q.is_zero() {
+        if q.infinity {
             return Self {
                 ell_coeffs_1: vec![],
                 ell_coeffs_2: vec![],
@@ -103,6 +103,24 @@ impl<P: BW6Parameters> From<G2Affine<P>> for G2Prepared<P> {
             ell_coeffs_2,
             infinity: false,
         }
+    }
+}
+
+impl<'a, P: BW6Parameters> From<&'a G2Affine<P>> for G2Prepared<P> {
+    fn from(q: &'a G2Affine<P>) -> Self {
+        (*q).into()
+    }
+}
+
+impl<'a, P: BW6Parameters> From<&'a G2Projective<P>> for G2Prepared<P> {
+    fn from(q: &'a G2Projective<P>) -> Self {
+        q.into_affine().into()
+    }
+}
+
+impl<P: BW6Parameters> From<G2Projective<P>> for G2Prepared<P> {
+    fn from(q: G2Projective<P>) -> Self {
+        q.into_affine().into()
     }
 }
 
