@@ -1,12 +1,11 @@
-use ark_ff::{
-    fields::{BitIteratorBE, Field, Fp2},
-};
+use ark_ff::fields::{BitIteratorBE, Field, Fp2};
 use ark_std::{vec::Vec, One};
 
 use crate::{
     bls12::{Bls12Parameters, TwistType},
     models::short_weierstrass::SWCurveConfig,
-    short_weierstrass::{Affine, Projective}, AffineRepr, CurveGroup,
+    short_weierstrass::{Affine, Projective},
+    AffineRepr, CurveGroup,
 };
 
 pub type G2Affine<P> = Affine<<P as Bls12Parameters>::G2Parameters>;
@@ -104,10 +103,7 @@ impl<P: Bls12Parameters> G2Prepared<P> {
 }
 
 impl<P: Bls12Parameters> G2HomProjective<P> {
-    fn double_in_place(
-        &mut self,
-        two_inv: &P::Fp,
-    ) -> EllCoeff<Fp2<P::Fp2Config>> {
+    fn double_in_place(&mut self, two_inv: &P::Fp) -> EllCoeff<Fp2<P::Fp2Config>> {
         // Formula for line function when working with
         // homogeneous projective coordinates.
 
@@ -133,10 +129,7 @@ impl<P: Bls12Parameters> G2HomProjective<P> {
         }
     }
 
-    fn add_in_place(
-        &mut self,
-        q: &G2Affine<P>,
-    ) -> EllCoeff<Fp2<P::Fp2Config>> {
+    fn add_in_place(&mut self, q: &G2Affine<P>) -> EllCoeff<Fp2<P::Fp2Config>> {
         let (&qx, &qy) = q.xy().unwrap();
         // Formula for line function when working with
         // homogeneous projective coordinates.

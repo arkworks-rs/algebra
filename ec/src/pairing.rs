@@ -1,21 +1,20 @@
-use ark_ff::{PrimeField, Field, One, CyclotomicField};
-use ark_serialize::{CanonicalSerialize, CanonicalDeserialize, SerializationError};
+use ark_ff::{CyclotomicField, Field, One, PrimeField};
+use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, SerializationError};
 use ark_std::{
-    fmt::{Debug, Display, Formatter, Result as FmtResult},
-    ops::{Add, AddAssign, Mul, MulAssign, Neg, Sub, SubAssign},
     borrow::Borrow,
-    vec::Vec,
+    fmt::{Debug, Display, Formatter, Result as FmtResult},
     io::{Read, Write},
-    Zero,
+    ops::{Add, AddAssign, Mul, MulAssign, Neg, Sub, SubAssign},
     rand::{
         distributions::{Distribution, Standard},
         Rng,
     },
-    UniformRand,
+    vec::Vec,
+    UniformRand, Zero,
 };
 use zeroize::Zeroize;
 
-use crate::{CurveGroup, AffineRepr, Group};
+use crate::{AffineRepr, CurveGroup, Group};
 
 /// Collection of types (mainly fields and curves) that together describe
 /// how to compute a pairing over a pairing-friendly curve.
@@ -33,20 +32,18 @@ pub trait Pairing: Sized + 'static + Copy + Debug + Sync + Send + Eq {
     type G1Affine: AffineRepr<Group = Self::G1, ScalarField = Self::ScalarField>
         + From<Self::G1>
         + Into<Self::G1>
-        + Into<Self::G1Prepared>
-        ;
+        + Into<Self::G1Prepared>;
 
     /// A G1 element that has been preprocessed for use in a pairing.
-    type G1Prepared: 
-        Default + 
-        Clone + 
-        Send + 
-        Sync + 
-        Debug + 
-        for<'a> From<&'a Self::G1> +
-        for<'a> From<&'a Self::G1Affine> + 
-        From<Self::G1> + 
-        From<Self::G1Affine>;
+    type G1Prepared: Default
+        + Clone
+        + Send
+        + Sync
+        + Debug
+        + for<'a> From<&'a Self::G1>
+        + for<'a> From<&'a Self::G1Affine>
+        + From<Self::G1>
+        + From<Self::G1Affine>;
 
     /// An element of G2.
     type G2: CurveGroup<ScalarField = Self::ScalarField, Affine = Self::G2Affine>
@@ -62,16 +59,15 @@ pub trait Pairing: Sized + 'static + Copy + Debug + Sync + Send + Eq {
         + Into<Self::G2Prepared>;
 
     /// A G2 element that has been preprocessed for use in a pairing.
-    type G2Prepared: 
-        Default + 
-        Clone + 
-        Send + 
-        Sync + 
-        Debug + 
-        for<'a> From<&'a Self::G2> +
-        for<'a> From<&'a Self::G2Affine> + 
-        From<Self::G2> + 
-        From<Self::G2Affine>;
+    type G2Prepared: Default
+        + Clone
+        + Send
+        + Sync
+        + Debug
+        + for<'a> From<&'a Self::G2>
+        + for<'a> From<&'a Self::G2Affine>
+        + From<Self::G2>
+        + From<Self::G2Affine>;
 
     /// The extension field that hosts the target group of the pairing.
     type TargetField: CyclotomicField;
@@ -83,22 +79,25 @@ pub trait Pairing: Sized + 'static + Copy + Debug + Sync + Send + Eq {
         b: impl IntoIterator<Item = impl Into<Self::G2Prepared>>,
     ) -> MillerLoopOutput<Self>;
 
-        /// Perform final exponentiation of the result of a miller loop.
+    /// Perform final exponentiation of the result of a miller loop.
     #[must_use]
     fn final_exponentiation(mlo: MillerLoopOutput<Self>) -> Option<PairingOutput<Self>>;
 
     /// Computes a product of pairings.
     #[must_use]
     fn product_of_pairings(
-        a: impl IntoIterator<Item = impl Into<Self::G1Prepared>>, 
-        b: impl IntoIterator<Item = impl Into<Self::G2Prepared>>, 
+        a: impl IntoIterator<Item = impl Into<Self::G1Prepared>>,
+        b: impl IntoIterator<Item = impl Into<Self::G2Prepared>>,
     ) -> PairingOutput<Self> {
         Self::final_exponentiation(Self::multi_miller_loop(a, b)).unwrap()
     }
 
     /// Performs multiple pairing operations
     #[must_use]
-    fn pairing(p: impl Into<Self::G1Prepared>, q: impl Into<Self::G2Prepared>) -> PairingOutput<Self> {
+    fn pairing(
+        p: impl Into<Self::G1Prepared>,
+        q: impl Into<Self::G2Prepared>,
+    ) -> PairingOutput<Self> {
         Self::product_of_pairings([p], [q])
     }
 }

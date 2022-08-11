@@ -48,11 +48,7 @@ impl WnafContext {
     /// `G::ScalarField`.
     ///
     /// Returns `None` if the table is too small.
-    pub fn mul_with_table<G: Group>(
-        &self,
-        base_table: &[G],
-        scalar: &G::ScalarField,
-    ) -> Option<G> {
+    pub fn mul_with_table<G: Group>(&self, base_table: &[G], scalar: &G::ScalarField) -> Option<G> {
         if 1 << (self.window_size - 1) > base_table.len() {
             return None;
         }

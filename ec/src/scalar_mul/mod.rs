@@ -19,8 +19,8 @@ fn ln_without_floats(a: usize) -> usize {
     (ark_std::log2(a) * 69 / 100) as usize
 }
 
-pub trait ScalarMul: 
-    Group 
+pub trait ScalarMul:
+    Group
     + Add<Self::MulBase, Output = Self>
     + AddAssign<Self::MulBase>
     + for<'a> Add<&'a Self::MulBase, Output = Self>

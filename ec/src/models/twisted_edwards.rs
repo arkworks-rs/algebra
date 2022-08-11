@@ -1,4 +1,7 @@
-use crate::{scalar_mul::{VariableBaseMSM, ScalarMul}, AffineRepr, CurveGroup, Group};
+use crate::{
+    scalar_mul::{ScalarMul, VariableBaseMSM},
+    AffineRepr, CurveGroup, Group,
+};
 use ark_serialize::{
     CanonicalDeserialize, CanonicalDeserializeWithFlags, CanonicalSerialize,
     CanonicalSerializeWithFlags, EdwardsFlags, SerializationError,
@@ -511,18 +514,15 @@ impl<P: TECurveConfig> CurveGroup for Projective<P> {
         // Perform affine transformations
         ark_std::cfg_iter_mut!(v)
             .zip(z_s)
-            .map(|(g, z)| {
-                match g.is_zero() {
-                    true => Affine::identity(),
-                    false => {
-                        let x = g.x * &z;
-                        let y = g.y * &z;
-                        Affine::new_unchecked(x, y)
-                    }
-                }
+            .map(|(g, z)| match g.is_zero() {
+                true => Affine::identity(),
+                false => {
+                    let x = g.x * &z;
+                    let y = g.y * &z;
+                    Affine::new_unchecked(x, y)
+                },
             })
             .collect()
-
     }
 }
 

@@ -13,7 +13,10 @@ use ark_std::{
 
 use ark_ff::{fields::Field, PrimeField, ToConstraintField, UniformRand};
 
-use crate::{scalar_mul::{VariableBaseMSM, ScalarMul}, AffineRepr, CurveGroup, Group};
+use crate::{
+    scalar_mul::{ScalarMul, VariableBaseMSM},
+    AffineRepr, CurveGroup, Group,
+};
 
 use num_traits::{One, Zero};
 use zeroize::Zeroize;
@@ -595,17 +598,16 @@ impl<P: SWCurveConfig> CurveGroup for Projective<P> {
         // Perform affine transformations
         ark_std::cfg_iter!(v)
             .zip(z_s)
-            .map(|(g, z)| {
-                match g.is_zero() {
-                    true => Affine::identity(),
-                    false => {
-                        let z2 = z.square();
-                        let x = g.x * z2;
-                        let y = g.y * z2 * z;
-                        Affine::new_unchecked(x, y)
-                    }
-                }
-            }).collect()
+            .map(|(g, z)| match g.is_zero() {
+                true => Affine::identity(),
+                false => {
+                    let z2 = z.square();
+                    let x = g.x * z2;
+                    let y = g.y * z2 * z;
+                    Affine::new_unchecked(x, y)
+                },
+            })
+            .collect()
     }
 }
 

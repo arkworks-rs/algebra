@@ -43,10 +43,7 @@ struct G2HomProjective<P: BnParameters> {
 }
 
 impl<P: BnParameters> G2HomProjective<P> {
-    fn double_in_place(
-        &mut self,
-        two_inv: &P::Fp,
-    ) -> EllCoeff<Fp2<P::Fp2Config>> {
+    fn double_in_place(&mut self, two_inv: &P::Fp) -> EllCoeff<Fp2<P::Fp2Config>> {
         // Formula for line function when working with
         // homogeneous projective coordinates.
 
@@ -72,10 +69,7 @@ impl<P: BnParameters> G2HomProjective<P> {
         }
     }
 
-    fn add_in_place(
-        &mut self,
-        q: &G2Affine<P>,
-    ) -> EllCoeff<Fp2<P::Fp2Config>> {
+    fn add_in_place(&mut self, q: &G2Affine<P>) -> EllCoeff<Fp2<P::Fp2Config>> {
         // Formula for line function when working with
         // homogeneous projective coordinates.
         let theta = self.y - &(q.y * &self.z);

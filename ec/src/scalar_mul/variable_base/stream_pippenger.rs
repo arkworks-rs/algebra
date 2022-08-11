@@ -45,11 +45,10 @@ impl<G: VariableBaseMSM> ChunkedPippenger<G> {
         self.scalars_buffer.push(*scalar.borrow());
         self.bases_buffer.push(*base.borrow());
         if self.scalars_buffer.len() == self.buf_size {
-            self.result
-                .add_assign(G::msm_bigint(
-                    self.bases_buffer.as_slice(),
-                    self.scalars_buffer.as_slice(),
-                ));
+            self.result.add_assign(G::msm_bigint(
+                self.bases_buffer.as_slice(),
+                self.scalars_buffer.as_slice(),
+            ));
             self.scalars_buffer.clear();
             self.bases_buffer.clear();
         }
@@ -59,10 +58,8 @@ impl<G: VariableBaseMSM> ChunkedPippenger<G> {
     #[inline(always)]
     pub fn finalize(mut self) -> G {
         if !self.scalars_buffer.is_empty() {
-            self.result += G::msm_bigint(
-                    self.bases_buffer.as_slice(),
-                    self.scalars_buffer.as_slice(),
-                );
+            self.result +=
+                G::msm_bigint(self.bases_buffer.as_slice(), self.scalars_buffer.as_slice());
         }
         self.result
     }

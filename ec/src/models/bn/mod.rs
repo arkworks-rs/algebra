@@ -1,6 +1,6 @@
 use crate::{
     models::{short_weierstrass::SWCurveConfig, CurveConfig},
-    pairing::{Pairing, MillerLoopOutput, PairingOutput},
+    pairing::{MillerLoopOutput, Pairing, PairingOutput},
 };
 use ark_ff::{
     fields::{
@@ -104,13 +104,17 @@ impl<P: BnParameters> Pairing for Bn<P> {
         a: impl IntoIterator<Item = impl Into<Self::G1Prepared>>,
         b: impl IntoIterator<Item = impl Into<Self::G2Prepared>>,
     ) -> MillerLoopOutput<Self> {
-        let pairs = a.into_iter().zip_eq(b).filter_map(|(p, q)| {
-            let (p, q) = (p.into(), q.into());
-            match !p.is_zero() && !q.is_zero() {
-                true => Some((p, q.ell_coeffs.iter())),
-                false => None,
-            }
-        }).collect::<Vec<_>>();
+        let pairs = a
+            .into_iter()
+            .zip_eq(b)
+            .filter_map(|(p, q)| {
+                let (p, q) = (p.into(), q.into());
+                match !p.is_zero() && !q.is_zero() {
+                    true => Some((p, q.ell_coeffs.iter())),
+                    false => None,
+                }
+            })
+            .collect::<Vec<_>>();
 
         let f = cfg_chunks_mut!(pairs, 4)
             .map(|pairs| {
@@ -119,11 +123,11 @@ impl<P: BnParameters> Pairing for Bn<P> {
                     if i != P::ATE_LOOP_COUNT.len() - 1 {
                         f.square_in_place();
                     }
-                    
+
                     for (p, ref mut coeffs) in pairs {
                         Self::ell(&mut f, coeffs.next().unwrap(), &p.0);
                     }
-                    
+
                     let bit = P::ATE_LOOP_COUNT[i - 1];
                     if bit == 1 || bit == -1 {
                         for &mut (p, ref mut coeffs) in pairs {

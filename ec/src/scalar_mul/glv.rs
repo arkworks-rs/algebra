@@ -47,11 +47,16 @@ pub trait GLVParameters: Send + Sync + 'static + CurveConfig {
     //  return (x',y') where
     //  x' = x * f(y) / y
     //  y' = g(y) / h(y)
-    fn endomorphism(base: &<Self::Curve as CurveGroup>::Affine) -> <Self::Curve as CurveGroup>::Affine;
+    fn endomorphism(
+        base: &<Self::Curve as CurveGroup>::Affine,
+    ) -> <Self::Curve as CurveGroup>::Affine;
 
     /// Decomposes a scalar s into k1, k2, s.t. s = k1 + lambda k2,
     fn scalar_decomposition(k: &Self::ScalarField) -> (Self::ScalarField, Self::ScalarField);
 
     /// Performs GLV multiplication.
-    fn glv_mul(base: &<Self::Curve as CurveGroup>::Affine, scalar: &Self::ScalarField) -> Self::Curve;
+    fn glv_mul(
+        base: &<Self::Curve as CurveGroup>::Affine,
+        scalar: &Self::ScalarField,
+    ) -> Self::Curve;
 }

@@ -1,7 +1,8 @@
 use crate::{
     models::{short_weierstrass::SWCurveConfig, CurveConfig},
-    AffineRepr, pairing::Pairing,
+    pairing::Pairing,
     pairing::{MillerLoopOutput, PairingOutput},
+    AffineRepr,
 };
 use ark_ff::{
     fields::{
@@ -103,13 +104,17 @@ impl<P: Bls12Parameters> Pairing for Bls12<P> {
     ) -> MillerLoopOutput<Self> {
         use itertools::Itertools;
 
-        let pairs = a.into_iter().zip_eq(b).filter_map(|(p, q)| {
-            let (p, q) = (p.into(), q.into());
-            match !p.is_zero() && !q.is_zero() {
-                true => Some((p, q.ell_coeffs.iter())),
-                false => None,
-            }
-        }).collect::<Vec<_>>();
+        let pairs = a
+            .into_iter()
+            .zip_eq(b)
+            .filter_map(|(p, q)| {
+                let (p, q) = (p.into(), q.into());
+                match !p.is_zero() && !q.is_zero() {
+                    true => Some((p, q.ell_coeffs.iter())),
+                    false => None,
+                }
+            })
+            .collect::<Vec<_>>();
 
         let f = cfg_chunks_mut!(pairs, 4)
             .map(|pairs| {

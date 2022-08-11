@@ -1,9 +1,5 @@
 use ark_ff::{prelude::*, PrimeField};
-use ark_std::{
-    borrow::Borrow,
-    iterable::Iterable,
-    vec::Vec,
-};
+use ark_std::{borrow::Borrow, iterable::Iterable, vec::Vec};
 
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
@@ -14,11 +10,11 @@ pub use stream_pippenger::*;
 use super::ScalarMul;
 
 pub trait VariableBaseMSM: ScalarMul {
-    /// Computes an inner product between the [`PrimeField`] elements in `scalars` 
+    /// Computes an inner product between the [`PrimeField`] elements in `scalars`
     /// and the corresponding group elements in `bases`.
-    /// 
+    ///
     /// This method checks that `bases` and `scalars` have the same length.
-    /// If they are unequal, it returns an error containing 
+    /// If they are unequal, it returns an error containing
     /// the shortest length over which the MSM can be performed.
     ///
     /// Reference: [`VariableBaseMSM::msm`]
@@ -35,7 +31,10 @@ pub trait VariableBaseMSM: ScalarMul {
     ///
     /// If the elements have different length, it will chop the slices to the
     /// shortest length between `scalars.len()` and `bases.len()`.
-    fn msm_unchecked(bases: &[Self::MulBase], scalars: &[Self::ScalarField]) -> Result<Self, usize> {
+    fn msm_unchecked(
+        bases: &[Self::MulBase],
+        scalars: &[Self::ScalarField],
+    ) -> Result<Self, usize> {
         (bases.len() == scalars.len())
             .then(|| Self::msm(bases, scalars))
             .ok_or(usize::min(bases.len(), scalars.len()))
@@ -168,10 +167,7 @@ pub trait VariableBaseMSM: ScalarMul {
                 .take(step)
                 .map(|s| s.borrow().into_bigint())
                 .collect::<Vec<_>>();
-            result += Self::msm_bigint(
-                bases_step.as_slice(),
-                scalars_step.as_slice(),
-            );
+            result += Self::msm_bigint(bases_step.as_slice(), scalars_step.as_slice());
         }
         result
     }

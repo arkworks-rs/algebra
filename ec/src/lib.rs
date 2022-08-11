@@ -30,8 +30,8 @@ use ark_std::{
     ops::{Add, AddAssign, Mul, MulAssign, Neg, Sub, SubAssign},
     vec::Vec,
 };
-use scalar_mul::{VariableBaseMSM, ScalarMul};
 use num_traits::Zero;
+use scalar_mul::{ScalarMul, VariableBaseMSM};
 use zeroize::Zeroize;
 
 pub mod models;
@@ -117,7 +117,7 @@ pub trait Group:
 
 /// An opaque representation of an elliptic curve group element that is suitable
 /// for efficient group arithmetic.
-/// 
+///
 /// The point is guaranteed to be in the correct prime order subgroup.
 pub trait CurveGroup: 
     Group 
@@ -160,7 +160,7 @@ pub trait CurveGroup:
 /// The canonical representation of an elliptic curve group element.
 /// This should represent the affine coordinates of the point corresponding
 /// to this group element.
-/// 
+///
 /// The point is guaranteed to be in the correct prime order subgroup.
 pub trait AffineRepr:
     Eq

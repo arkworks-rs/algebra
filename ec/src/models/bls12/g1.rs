@@ -1,6 +1,7 @@
 use crate::{
     bls12::Bls12Parameters,
-    short_weierstrass::{Affine, Projective}, AffineRepr, CurveGroup,
+    short_weierstrass::{Affine, Projective},
+    AffineRepr, CurveGroup,
 };
 
 pub type G1Affine<P> = Affine<<P as Bls12Parameters>::G1Parameters>;
