@@ -1,6 +1,7 @@
 use crate::{
     models::{short_weierstrass::SWCurveConfig, CurveConfig},
     AffineRepr, pairing::Pairing,
+    pairing::{MillerLoopOutput, PairingOutput},
 };
 use ark_ff::{
     fields::{
@@ -16,8 +17,6 @@ use num_traits::{One, Zero};
 
 #[cfg(feature = "parallel")]
 use ark_std::cfg_iter;
-#[cfg(feature = "parallel")]
-use core::slice::Iter;
 #[cfg(feature = "parallel")]
 use rayon::iter::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator};
 
@@ -98,6 +97,7 @@ impl<P: Bls12Parameters> Pairing for Bls12<P> {
     type G2 = G2Projective<P>;
     type G2Affine = G2Affine<P>;
     type G2Prepared = G2Prepared<P>;
+    type TargetField = Fp12<P::Fp12Config>;
 
     #[cfg(not(feature = "parallel"))]
     fn multi_miller_loop(
@@ -129,70 +129,59 @@ impl<P: Bls12Parameters> Pairing for Bls12<P> {
     }
 
     #[cfg(feature = "parallel")]
-    fn miller_loop<'a, I>(i: I) -> Self::Fqk
-    where
-        I: IntoIterator<Item = &'a (Self::G1Prepared, Self::G2Prepared)>,
-    {
-        let mut pairs = vec![];
-        for (p, q) in i {
-            if !p.is_zero() && !q.is_zero() {
-                pairs.push((p, q.ell_coeffs.iter()));
-            }
-        }
+    fn multi_miller_loop(
+        a: impl IntoIterator<Item = impl Into<Self::G1Prepared>>,
+        b: impl IntoIterator<Item = impl Into<Self::G2Prepared>>,
+    ) -> MillerLoopOutput<Self> {
+        use itertools::Itertools;
 
-        let mut f_vec = vec![];
-        for _ in 0..pairs.len() {
-            f_vec.push(Self::Fqk::one());
-        }
-
-        let a = |p: &&G1Prepared<P>,
-                 coeffs: &Iter<
-            '_,
-            (
-                Fp2<<P as Bls12Parameters>::Fp2Config>,
-                Fp2<<P as Bls12Parameters>::Fp2Config>,
-                Fp2<<P as Bls12Parameters>::Fp2Config>,
-            ),
-        >,
-                 mut f: Fp12<<P as Bls12Parameters>::Fp12Config>|
-         -> Fp12<<P as Bls12Parameters>::Fp12Config> {
-            let coeffs = coeffs.as_slice();
-            let mut j = 0;
-            for i in BitIteratorBE::new(P::X).skip(1) {
-                f.square_in_place();
-                Self::ell(&mut f, &coeffs[j], &p.0);
-                j += 1;
-                if i {
-                    Self::ell(&mut f, &coeffs[j], &p.0);
-                    j += 1;
-                }
+        let pairs = a.into_iter().zip_eq(b).filter_map(|(p, q)| {
+            let (p, q) = (p.into(), q.into());
+            match !p.is_zero() && !q.is_zero() {
+                true => Some((p, q.ell_coeffs.iter())),
+                false => None,
             }
-            f
-        };
+        }).collect::<Vec<_>>();
+
+        let f_s = vec![Self::TargetField::one(); pairs.len()];
 
         let mut products = vec![];
         cfg_iter!(pairs)
-            .zip(f_vec)
-            .map(|(p, f)| a(&p.0, &p.1, f))
+            .zip(f_s)
+            .map(|((p, coeffs), f)| {
+                let coeffs = coeffs.as_slice();
+                let mut j = 0;
+                for i in BitIteratorBE::new(P::X).skip(1) {
+                    f.square_in_place();
+                    Self::ell(&mut f, &coeffs[j], &p.0);
+                    j += 1;
+                    if i {
+                        Self::ell(&mut f, &coeffs[j], &p.0);
+                        j += 1;
+                    }
+                }
+                f
+            })
             .collect_into_vec(&mut products);
 
-        let mut f = Self::Fqk::one();
+        let mut f = Self::TargetField::one();
         for ff in products {
             f *= ff;
         }
         if P::X_IS_NEGATIVE {
             f.conjugate();
         }
-        f
+        MillerLoopOutput(f)
     }
 
-    fn final_exponentiation(f: &Self::Fqk) -> Option<Self::Fqk> {
+    fn final_exponentiation(f: MillerLoopOutput<Self>) -> Option<PairingOutput<Self>> {
         // Computing the final exponentation following
         // https://eprint.iacr.org/2020/875
         // Adapted from the implementation in https://github.com/ConsenSys/gurvy/pull/29
 
         // f1 = r.conjugate() = f^(p^6)
-        let mut f1 = *f;
+        let f = f.0;
+        let mut f1 = f;
         f1.conjugate();
 
         f.inverse().map(|mut f2| {
@@ -249,7 +238,7 @@ impl<P: Bls12Parameters> Pairing for Bls12<P> {
             y1 *= &y0;
             // result.Mul(&result, &t[1])
             r *= &y1;
-            r
+            PairingOutput(r)
         })
     }
 }

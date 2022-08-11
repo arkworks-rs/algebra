@@ -1,13 +1,12 @@
 use ark_ff::{
     fields::{BitIteratorBE, Field, Fp2},
-    Zero,
 };
 use ark_std::{vec::Vec, One};
 
 use crate::{
     bls12::{Bls12Parameters, TwistType},
     models::short_weierstrass::SWCurveConfig,
-    short_weierstrass::{Affine, Projective},
+    short_weierstrass::{Affine, Projective}, AffineRepr, CurveGroup,
 };
 
 pub type G2Affine<P> = Affine<<P as Bls12Parameters>::G2Parameters>;
@@ -43,14 +42,14 @@ struct G2HomProjective<P: Bls12Parameters> {
 
 impl<P: Bls12Parameters> Default for G2Prepared<P> {
     fn default() -> Self {
-        Self::from(G2Affine::<P>::prime_subgroup_generator())
+        Self::from(G2Affine::<P>::generator())
     }
 }
 
 impl<P: Bls12Parameters> From<G2Affine<P>> for G2Prepared<P> {
     fn from(q: G2Affine<P>) -> Self {
         let two_inv = P::Fp::one().double().inverse().unwrap();
-        match q.is_zero() {
+        match q.infinity {
             true => G2Prepared {
                 ell_coeffs: vec![],
                 infinity: true,
@@ -77,6 +76,24 @@ impl<P: Bls12Parameters> From<G2Affine<P>> for G2Prepared<P> {
                 }
             },
         }
+    }
+}
+
+impl<P: Bls12Parameters> From<G2Projective<P>> for G2Prepared<P> {
+    fn from(q: G2Projective<P>) -> Self {
+        q.into_affine().into()
+    }
+}
+
+impl<'a, P: Bls12Parameters> From<&'a G2Affine<P>> for G2Prepared<P> {
+    fn from(other: &'a G2Affine<P>) -> Self {
+        (*other).into()
+    }
+}
+
+impl<'a, P: Bls12Parameters> From<&'a G2Projective<P>> for G2Prepared<P> {
+    fn from(q: &'a G2Projective<P>) -> Self {
+        q.into_affine().into()
     }
 }
 
