@@ -24,11 +24,15 @@ pub type G2Projective<P> = Projective<<P as BnParameters>::G2Parameters>;
 pub struct G2Prepared<P: BnParameters> {
     // Stores the coefficients of the line evaluations as calculated in
     // https://eprint.iacr.org/2013/722.pdf
-    pub ell_coeffs: Vec<EllCoeff<Fp2<P::Fp2Config>>>,
+    pub ell_coeffs: Vec<EllCoeff<P>>,
     pub infinity: bool,
 }
 
-pub(crate) type EllCoeff<F> = (F, F, F);
+pub(crate) type EllCoeff<P> = (
+    Fp2<<P as BnParameters>::Fp2Config>,
+    Fp2<<P as BnParameters>::Fp2Config>,
+    Fp2<<P as BnParameters>::Fp2Config>,
+);
 
 #[derive(Derivative)]
 #[derivative(
@@ -43,7 +47,7 @@ struct G2HomProjective<P: BnParameters> {
 }
 
 impl<P: BnParameters> G2HomProjective<P> {
-    fn double_in_place(&mut self, two_inv: &P::Fp) -> EllCoeff<Fp2<P::Fp2Config>> {
+    fn double_in_place(&mut self, two_inv: &P::Fp) -> EllCoeff<P> {
         // Formula for line function when working with
         // homogeneous projective coordinates.
 
@@ -69,7 +73,7 @@ impl<P: BnParameters> G2HomProjective<P> {
         }
     }
 
-    fn add_in_place(&mut self, q: &G2Affine<P>) -> EllCoeff<Fp2<P::Fp2Config>> {
+    fn add_in_place(&mut self, q: &G2Affine<P>) -> EllCoeff<P> {
         // Formula for line function when working with
         // homogeneous projective coordinates.
         let theta = self.y - &(q.y * &self.z);

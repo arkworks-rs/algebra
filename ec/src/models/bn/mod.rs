@@ -62,7 +62,7 @@ pub struct Bn<P: BnParameters>(PhantomData<fn() -> P>);
 
 impl<P: BnParameters> Bn<P> {
     /// Evaluates the line function at point p.
-    fn ell(f: &mut Fp12<P::Fp12Config>, coeffs: &g2::EllCoeff<Fp2<P::Fp2Config>>, p: &G1Affine<P>) {
+    fn ell(f: &mut Fp12<P::Fp12Config>, coeffs: &g2::EllCoeff<P>, p: &G1Affine<P>) {
         let mut c0 = coeffs.0;
         let mut c1 = coeffs.1;
         let mut c2 = coeffs.2;
