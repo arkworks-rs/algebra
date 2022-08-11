@@ -2,7 +2,7 @@ use crate::{
     mnt6::MNT6Parameters,
     models::mnt6::MNT6,
     short_weierstrass::{Affine, Projective},
-    AffineCurve,
+    AffineRepr,
 };
 use ark_ff::fields::{Field, Fp3};
 use ark_std::vec::Vec;

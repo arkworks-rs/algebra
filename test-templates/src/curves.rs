@@ -3,7 +3,7 @@ use ark_ec::{
     short_weierstrass::{Affine, SWCurveConfig},
     twisted_edwards::{MontCurveConfig, Projective, TECurveConfig},
     wnaf::WnafContext,
-    AffineCurve, ProjectiveCurve,
+    AffineRepr, ProjectiveCurve,
 };
 use ark_ff::{Field, One, PrimeField, UniformRand, Zero};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, SWFlags, SerializationError};
@@ -573,7 +573,7 @@ where
 
     for _ in 0..ITERATIONS {
         let mut biginteger =
-            <<Affine<P> as AffineCurve>::BaseField as PrimeField>::BigInt::rand(&mut rng);
+            <<Affine<P> as AffineRepr>::BaseField as PrimeField>::BigInt::rand(&mut rng);
         let mut bytes = {
             let mut result = vec![0u8; biginteger.serialized_size()];
             biginteger

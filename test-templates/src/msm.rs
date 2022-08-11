@@ -1,10 +1,10 @@
 use ark_ec::{
     msm::{ChunkedPippenger, HashMapPippenger, VariableBaseMSM},
-    AffineCurve, ProjectiveCurve,
+    AffineRepr, ProjectiveCurve,
 };
 use ark_ff::{PrimeField, UniformRand, Zero};
 
-fn naive_var_base_msm<G: AffineCurve>(bases: &[G], scalars: &[G::ScalarField]) -> G::Projective {
+fn naive_var_base_msm<G: AffineRepr>(bases: &[G], scalars: &[G::ScalarField]) -> G::Projective {
     let mut acc = G::Projective::zero();
 
     for (base, scalar) in bases.iter().zip(scalars.iter()) {
@@ -15,7 +15,7 @@ fn naive_var_base_msm<G: AffineCurve>(bases: &[G], scalars: &[G::ScalarField]) -
 
 pub fn test_var_base_msm<G>()
 where
-    G: AffineCurve,
+    G: AffineRepr,
     G::Projective: VariableBaseMSM<MSMBase = G, Scalar = G::ScalarField>,
 {
     const SAMPLES: usize = 1 << 10;
@@ -39,7 +39,7 @@ where
 
 pub fn test_chunked_pippenger<G>()
 where
-    G: AffineCurve,
+    G: AffineRepr,
     G::Projective: VariableBaseMSM<MSMBase = G, Scalar = G::ScalarField>,
 {
     const SAMPLES: usize = 1 << 10;
@@ -66,7 +66,7 @@ where
 
 pub fn test_hashmap_pippenger<G>()
 where
-    G: AffineCurve,
+    G: AffineRepr,
     G::Projective: VariableBaseMSM<MSMBase = G, Scalar = G::ScalarField>,
 {
     const SAMPLES: usize = 1 << 10;

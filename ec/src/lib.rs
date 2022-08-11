@@ -119,8 +119,8 @@ pub trait Group:
 /// for efficient group arithmetic.
 ///
 /// The point is guaranteed to be in the correct prime order subgroup.
-pub trait CurveGroup: 
-    Group 
+pub trait CurveGroup:
+    Group
     + Add<Self::Affine, Output = Self>
     + AddAssign<Self::Affine>
     // + for<'a> Add<&'a Self::Affine, Output = Self>

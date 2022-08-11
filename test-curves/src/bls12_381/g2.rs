@@ -6,7 +6,7 @@ use ark_ec::{
     hashing::curve_maps::wb::WBParams,
     models::CurveConfig,
     short_weierstrass::{self, *},
-    AffineCurve, ProjectiveCurve,
+    AffineRepr, ProjectiveCurve,
 };
 use ark_ff::{BigInt, Field, MontFp, Zero};
 

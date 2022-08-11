@@ -1,7 +1,7 @@
 use crate::{
     mnt6::MNT6Parameters,
     short_weierstrass::{Affine, Projective},
-    AffineCurve,
+    AffineRepr,
 };
 use ark_ff::Fp3;
 
