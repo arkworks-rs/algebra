@@ -99,4 +99,4 @@ impl<P: Fp3Config> Fp3<P> {
 }
 
 // We just use the default algorithms; there don't seem to be any faster ones.
-impl<P: Fp3Config> CyclotomicField for Fp3<P> {}
+impl<P: Fp3Config> CyclotomicMultSubgroup for Fp3<P> {}

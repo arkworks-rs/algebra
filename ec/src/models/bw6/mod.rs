@@ -8,7 +8,7 @@ use ark_ff::{
         fp6_2over3::{Fp6, Fp6Config},
         BitIteratorBE, Field, PrimeField,
     },
-    CyclotomicField,
+    CyclotomicMultSubgroup,
 };
 use num_traits::One;
 
