@@ -1,4 +1,4 @@
-use ark_ff::{CyclotomicField, Field, One, PrimeField};
+use ark_ff::{CyclotomicMultSubgroup, Field, One, PrimeField};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, SerializationError};
 use ark_std::{
     borrow::Borrow,
@@ -70,7 +70,7 @@ pub trait Pairing: Sized + 'static + Copy + Debug + Sync + Send + Eq {
         + From<Self::G2Affine>;
 
     /// The extension field that hosts the target group of the pairing.
-    type TargetField: CyclotomicField;
+    type TargetField: CyclotomicMultSubgroup;
 
     /// Computes the product of Miller loops for some number of (G1, G2) pairs.
     #[must_use]
