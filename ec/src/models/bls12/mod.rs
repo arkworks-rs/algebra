@@ -104,28 +104,28 @@ impl<P: Bls12Parameters> Pairing for Bls12<P> {
     ) -> MillerLoopOutput<Self> {
         use itertools::Itertools;
 
-        let pairs = a
+        let mut pairs = a
             .into_iter()
             .zip_eq(b)
             .filter_map(|(p, q)| {
                 let (p, q) = (p.into(), q.into());
                 match !p.is_zero() && !q.is_zero() {
-                    true => Some((p, q.ell_coeffs.iter())),
+                    true => Some((p, q.ell_coeffs.into_iter())),
                     false => None,
                 }
             })
             .collect::<Vec<_>>();
 
-        let f = cfg_chunks_mut!(pairs, 4)
+        let mut f = cfg_chunks_mut!(pairs, 4)
             .map(|pairs| {
                 let mut f = Self::TargetField::one();
                 for i in BitIteratorBE::new(P::X).skip(1) {
                     f.square_in_place();
-                    for (p, coeffs) in pairs {
-                        Self::ell(&mut f, coeffs.next().unwrap(), &p.0);
+                    for (p, coeffs) in pairs.iter_mut() {
+                        Self::ell(&mut f, &coeffs.next().unwrap(), &p.0);
                     }
                     if i {
-                        for (p, coeffs) in pairs {
+                        for (p, coeffs) in pairs.iter_mut() {
                             Self::ell(&mut f, &coeffs.next().unwrap(), &p.0);
                         }
                     }

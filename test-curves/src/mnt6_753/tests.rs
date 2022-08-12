@@ -1,5 +1,5 @@
 #![allow(unused_imports)]
-use ark_ec::{models::short_weierstrass::SWCurveConfig, AffineRepr, Pairing, ProjectiveCurve};
+use ark_ec::{models::short_weierstrass::SWCurveConfig, pairing::Pairing, AffineRepr, CurveGroup};
 use ark_ff::{Field, One, UniformRand, Zero};
 
 use crate::mnt6_753::{Fq, Fq3, FqConfig, Fr, FrConfig};

@@ -7,7 +7,7 @@ use libtest_mimic::{run_tests, Arguments, Outcome, Test};
 
 use ark_test_curves::{
     hashing::{curve_maps::wb::WBMap, map_to_curve_hasher::MapToCurveBasedHasher, HashToCurve},
-    short_weierstrass::Affine,
+    short_weierstrass::{Affine, Projective},
 };
 
 use ark_ff::{Field, PrimeField};
@@ -42,13 +42,13 @@ fn run_test_w(Test { data, .. }: &Test<SuiteVector>) -> Outcome {
     let hasher;
     let m;
     let g1_mapper = MapToCurveBasedHasher::<
-        Affine<G1Parameters>,
+        Projective<G1Parameters>,
         DefaultFieldHasher<Sha256, 128>,
         WBMap<G1Parameters>,
     >::new(dst)
     .unwrap();
     let g2_mapper = MapToCurveBasedHasher::<
-        Affine<G2Parameters>,
+        Projective<G2Parameters>,
         DefaultFieldHasher<Sha256, 128>,
         WBMap<G2Parameters>,
     >::new(dst)

@@ -9,6 +9,7 @@ pub type G1Projective<P> = Projective<<P as BW6Parameters>::G1Parameters>;
 
 #[derive(Derivative)]
 #[derivative(
+    Copy(bound = "P: BW6Parameters"),
     Clone(bound = "P: BW6Parameters"),
     Debug(bound = "P: BW6Parameters"),
     PartialEq(bound = "P: BW6Parameters"),

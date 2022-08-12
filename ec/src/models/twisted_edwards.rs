@@ -1,5 +1,5 @@
 use crate::{
-    scalar_mul::{ScalarMul, VariableBaseMSM},
+    scalar_mul::{variable_base::VariableBaseMSM, ScalarMul},
     AffineRepr, CurveGroup, Group,
 };
 use ark_serialize::{
@@ -153,7 +153,7 @@ impl<P: TECurveConfig> Affine<P> {
 
     /// Construct the identity of the group
     pub const fn identity() -> Self {
-        Self::new_unchecked(P::BaseField::zero(), P::BaseField::one())
+        Self::new_unchecked(P::BaseField::ZERO, P::BaseField::ONE)
     }
 
     /// Is this point the identity?
@@ -512,7 +512,7 @@ impl<P: TECurveConfig> CurveGroup for Projective<P> {
         ark_ff::batch_inversion(&mut z_s);
 
         // Perform affine transformations
-        ark_std::cfg_iter_mut!(v)
+        ark_std::cfg_iter!(v)
             .zip(z_s)
             .map(|(g, z)| match g.is_zero() {
                 true => Affine::identity(),
@@ -1009,6 +1009,10 @@ impl<P: TECurveConfig> Projective<P> {
 
 impl<P: TECurveConfig> ScalarMul for Projective<P> {
     type MulBase = Affine<P>;
+
+    fn batch_convert_to_mul_base(bases: &[Self]) -> Vec<Self::MulBase> {
+        Self::normalize_batch(bases)
+    }
 }
 
 impl<P: TECurveConfig> VariableBaseMSM for Projective<P> {}

@@ -225,7 +225,7 @@ impl<P: Pairing, T: Borrow<P::ScalarField>> MulAssign<T> for PairingOutput<P> {
 impl<P: Pairing, T: Borrow<P::ScalarField>> Mul<T> for PairingOutput<P> {
     type Output = Self;
 
-    fn mul(mut self, other: T) -> Self {
+    fn mul(self, other: T) -> Self {
         self.mul_bigint(other.borrow().into_bigint())
     }
 }

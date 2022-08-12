@@ -31,7 +31,7 @@ use ark_std::{
     vec::Vec,
 };
 use num_traits::Zero;
-use scalar_mul::{ScalarMul, VariableBaseMSM};
+pub use scalar_mul::{variable_base::VariableBaseMSM, ScalarMul};
 use zeroize::Zeroize;
 
 pub mod models;

@@ -99,7 +99,7 @@ mod test {
             map_to_curve_hasher::MapToCurveBasedHasher,
         },
         models::short_weierstrass::SWCurveConfig,
-        short_weierstrass::Affine,
+        short_weierstrass::{Affine, Projective},
         CurveConfig,
     };
     use ark_ff::field_hashers::DefaultFieldHasher;
@@ -282,7 +282,7 @@ mod test {
     fn hash_arbitrary_string_to_curve_wb() {
         use sha2::Sha256;
         let test_wb_to_curve_hasher = MapToCurveBasedHasher::<
-            Affine<TestWBF127MapToCurveParams>,
+            Projective<TestWBF127MapToCurveParams>,
             DefaultFieldHasher<Sha256, 128>,
             WBMap<TestWBF127MapToCurveParams>,
         >::new(&[1])

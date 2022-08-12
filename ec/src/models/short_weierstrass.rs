@@ -14,7 +14,7 @@ use ark_std::{
 use ark_ff::{fields::Field, PrimeField, ToConstraintField, UniformRand};
 
 use crate::{
-    scalar_mul::{ScalarMul, VariableBaseMSM},
+    scalar_mul::{variable_base::VariableBaseMSM, ScalarMul},
     AffineRepr, CurveGroup, Group,
 };
 
@@ -1019,6 +1019,10 @@ where
 
 impl<P: SWCurveConfig> ScalarMul for Projective<P> {
     type MulBase = Affine<P>;
+
+    fn batch_convert_to_mul_base(bases: &[Self]) -> Vec<Self::MulBase> {
+        Self::normalize_batch(bases)
+    }
 }
 
 impl<P: SWCurveConfig> VariableBaseMSM for Projective<P> {}

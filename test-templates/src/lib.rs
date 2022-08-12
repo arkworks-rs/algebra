@@ -34,9 +34,9 @@ macro_rules! generate_g1_test {
     ($curve_name: ident; $($tail:tt)*) => {
         #[test]
         fn test_g1_affine_curve() {
-            test_var_base_msm::<G1Affine>();
-            ark_algebra_test_templates::msm::test_chunked_pippenger::<G1Affine>();
-            ark_algebra_test_templates::msm::test_hashmap_pippenger::<G1Affine>();
+            test_var_base_msm::<G1Projective>();
+            ark_algebra_test_templates::msm::test_chunked_pippenger::<G1Projective>();
+            ark_algebra_test_templates::msm::test_hashmap_pippenger::<G1Projective>();
         }
 
         #[test]

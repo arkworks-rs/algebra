@@ -1,14 +1,11 @@
-mod glv;
-mod wnaf;
+pub mod glv;
+pub mod wnaf;
 
-mod fixed_base;
-mod variable_base;
-
-pub use fixed_base::*;
-pub use variable_base::*;
+pub mod fixed_base;
+pub mod variable_base;
 
 use crate::Group;
-use ark_std::ops::{Add, AddAssign};
+use ark_std::ops::{Add, AddAssign, Mul};
 
 /// The result of this function is only approximately `ln(a)`
 /// [`Explanation of usage`]
@@ -27,5 +24,13 @@ pub trait ScalarMul:
     + for<'a> AddAssign<&'a Self::MulBase>
     + From<Self::MulBase>
 {
-    type MulBase: Send + Sync + Copy + Eq + core::hash::Hash;
+    type MulBase: Send
+        + Sync
+        + Copy
+        + Eq
+        + core::hash::Hash
+        + Mul<Self::ScalarField, Output = Self>
+        + for<'a> Mul<&'a Self::ScalarField, Output = Self>;
+
+    fn batch_convert_to_mul_base(bases: &[Self]) -> Vec<Self::MulBase>;
 }

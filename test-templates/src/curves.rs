@@ -1,9 +1,9 @@
 #![allow(unused)]
 use ark_ec::{
+    scalar_mul::wnaf::WnafContext,
     short_weierstrass::{Affine, SWCurveConfig},
     twisted_edwards::{MontCurveConfig, Projective, TECurveConfig},
-    wnaf::WnafContext,
-    AffineRepr, ProjectiveCurve,
+    AffineRepr, CurveGroup,
 };
 use ark_ff::{Field, One, PrimeField, UniformRand, Zero};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, SWFlags, SerializationError};
@@ -11,7 +11,7 @@ use ark_std::{io::Cursor, vec::Vec};
 
 pub const ITERATIONS: usize = 10;
 
-fn random_addition_test<G: ProjectiveCurve>() {
+fn random_addition_test<G: CurveGroup>() {
     let mut rng = ark_std::test_rng();
 
     for _ in 0..ITERATIONS {
@@ -27,8 +27,7 @@ fn random_addition_test<G: ProjectiveCurve>() {
             let mut aplusa = a;
             aplusa.add_assign(&a);
 
-            let mut aplusamixed = a;
-            aplusamixed.add_assign_mixed(&a.into_affine());
+            let mut aplusamixed = a + &a.into_affine();
 
             let mut adouble = a;
             adouble.double_in_place();
@@ -51,19 +50,13 @@ fn random_addition_test<G: ProjectiveCurve>() {
         // Mixed addition
 
         // (a + b) + c
-        tmp[3] = a_affine.into_projective();
-        tmp[3].add_assign_mixed(&b_affine);
-        tmp[3].add_assign_mixed(&c_affine);
+        tmp[3] = a_affine.into_group() + b_affine + c_affine;
 
         // a + (b + c)
-        tmp[4] = b_affine.into_projective();
-        tmp[4].add_assign_mixed(&c_affine);
-        tmp[4].add_assign_mixed(&a_affine);
+        tmp[4] = b_affine.into_group() + a_affine + c_affine;
 
         // (a + c) + b
-        tmp[5] = a_affine.into_projective();
-        tmp[5].add_assign_mixed(&c_affine);
-        tmp[5].add_assign_mixed(&b_affine);
+        tmp[5] = a_affine.into_group() + c_affine + b_affine;
 
         // Comparisons
         for i in 0..6 {
@@ -90,7 +83,7 @@ fn random_addition_test<G: ProjectiveCurve>() {
     }
 }
 
-fn random_multiplication_test<G: ProjectiveCurve>() {
+fn random_multiplication_test<G: CurveGroup>() {
     let mut rng = ark_std::test_rng();
 
     for _ in 0..ITERATIONS {
@@ -138,7 +131,7 @@ fn random_multiplication_test<G: ProjectiveCurve>() {
     }
 }
 
-fn random_doubling_test<G: ProjectiveCurve>() {
+fn random_doubling_test<G: CurveGroup>() {
     let mut rng = ark_std::test_rng();
 
     for _ in 0..ITERATIONS {
@@ -157,15 +150,14 @@ fn random_doubling_test<G: ProjectiveCurve>() {
         let mut tmp2 = a;
         tmp2.add_assign(&b);
 
-        let mut tmp3 = a;
-        tmp3.add_assign_mixed(&b.into_affine());
+        let tmp3 = a + b.into_affine();
 
         assert_eq!(tmp1, tmp2);
         assert_eq!(tmp1, tmp3);
     }
 }
 
-fn random_negation_test<G: ProjectiveCurve>() {
+fn random_negation_test<G: CurveGroup>() {
     let mut rng = ark_std::test_rng();
 
     for _ in 0..ITERATIONS {
@@ -185,8 +177,7 @@ fn random_negation_test<G: ProjectiveCurve>() {
         t3.add_assign(&t2);
         assert!(t3.is_zero());
 
-        let mut t4 = t1;
-        t4.add_assign_mixed(&t2.into_affine());
+        let t4 = t1 + t2.into_affine();
         assert!(t4.is_zero());
 
         t1 = -t1;
@@ -194,13 +185,13 @@ fn random_negation_test<G: ProjectiveCurve>() {
     }
 }
 
-fn random_transformation_test<G: ProjectiveCurve>() {
+fn random_transformation_test<G: CurveGroup>() {
     let mut rng = ark_std::test_rng();
 
     for _ in 0..ITERATIONS {
         let g = G::rand(&mut rng);
         let g_affine = g.into_affine();
-        let g_projective = g_affine.into_projective();
+        let g_projective = g_affine.into_group();
         assert_eq!(g, g_projective);
     }
 
@@ -218,24 +209,17 @@ fn random_transformation_test<G: ProjectiveCurve>() {
         }
         for _ in 0..5 {
             let s = between.sample(&mut rng);
-            v[s] = v[s].into_affine().into_projective();
+            v[s] = v[s].into_affine().into_group();
         }
 
-        let expected_v = v
-            .iter()
-            .map(|v| v.into_affine().into_projective())
-            .collect::<Vec<_>>();
-        G::batch_normalization(&mut v);
+        let expected_v = v.iter().map(|v| v.into_affine()).collect::<Vec<_>>();
+        let actual_v = G::normalize_batch(&v);
 
-        for i in &v {
-            assert!(i.is_normalized());
-        }
-
-        assert_eq!(v, expected_v);
+        assert_eq!(actual_v, expected_v);
     }
 }
 
-pub fn curve_tests<G: ProjectiveCurve>() {
+pub fn curve_tests<G: CurveGroup>() {
     let mut rng = ark_std::test_rng();
 
     // Negation edge case with zero.
@@ -257,19 +241,15 @@ pub fn curve_tests<G: ProjectiveCurve>() {
         let rcopy = r;
         r.add_assign(&G::zero());
         assert_eq!(r, rcopy);
-        r.add_assign_mixed(&G::Affine::zero());
-        assert_eq!(r, rcopy);
 
         let mut z = G::zero();
         z.add_assign(&G::zero());
-        assert!(z.is_zero());
-        z.add_assign_mixed(&G::Affine::zero());
         assert!(z.is_zero());
 
         let mut z2 = z;
         z2.add_assign(&r);
 
-        z.add_assign_mixed(&r.into_affine());
+        z += r.into_affine();
 
         assert_eq!(z, z2);
         assert_eq!(z, r);
@@ -278,12 +258,8 @@ pub fn curve_tests<G: ProjectiveCurve>() {
     // Transformations
     {
         let a = G::rand(&mut rng);
-        let b = a.into_affine().into_projective();
-        let c = a
-            .into_affine()
-            .into_projective()
-            .into_affine()
-            .into_projective();
+        let b = a.into_affine().into_group();
+        let c = a.into_affine().into_group().into_affine().into_group();
         assert_eq!(a, b);
         assert_eq!(b, c);
     }
@@ -379,14 +355,13 @@ pub fn curve_tests<G: ProjectiveCurve>() {
 pub fn sw_tests<P: SWCurveConfig>() {
     sw_curve_serialization_test::<P>();
     sw_from_random_bytes::<P>();
-    sw_affine_sum_test::<P>();
     sw_cofactor_clearing_test::<P>();
 }
 
 pub fn sw_from_random_bytes<P: SWCurveConfig>() {
     use ark_ec::models::short_weierstrass::{Affine, Projective};
 
-    let buf_size = Affine::<P>::zero().serialized_size();
+    let buf_size = Affine::<P>::identity().serialized_size();
 
     let mut rng = ark_std::test_rng();
 
@@ -409,7 +384,7 @@ pub fn sw_from_random_bytes<P: SWCurveConfig>() {
 pub fn sw_curve_serialization_test<P: SWCurveConfig>() {
     use ark_ec::models::short_weierstrass::{Affine, Projective};
 
-    let buf_size = Affine::<P>::zero().serialized_size();
+    let buf_size = Affine::<P>::identity().serialized_size();
 
     let mut rng = ark_std::test_rng();
 
@@ -437,7 +412,7 @@ pub fn sw_curve_serialization_test<P: SWCurveConfig>() {
         }
 
         {
-            let a = Affine::<P>::zero();
+            let a = Affine::<P>::identity();
             let mut serialized = vec![0; buf_size];
             let mut cursor = Cursor::new(&mut serialized[..]);
             a.serialize(&mut cursor).unwrap();
@@ -447,7 +422,7 @@ pub fn sw_curve_serialization_test<P: SWCurveConfig>() {
         }
 
         {
-            let a = Affine::<P>::zero();
+            let a = Affine::<P>::identity();
             let mut serialized = vec![0; buf_size - 1];
             let mut cursor = Cursor::new(&mut serialized[..]);
             a.serialize(&mut cursor).unwrap_err();
@@ -480,7 +455,7 @@ pub fn sw_curve_serialization_test<P: SWCurveConfig>() {
         }
 
         {
-            let a = Affine::<P>::zero();
+            let a = Affine::<P>::identity();
             let mut serialized = vec![0; a.uncompressed_size()];
             let mut cursor = Cursor::new(&mut serialized[..]);
             a.serialize_uncompressed(&mut cursor).unwrap();
@@ -488,27 +463,6 @@ pub fn sw_curve_serialization_test<P: SWCurveConfig>() {
             let b = Affine::<P>::deserialize_uncompressed(&mut cursor).unwrap();
             assert_eq!(a, b);
         }
-    }
-}
-
-pub fn sw_affine_sum_test<P: SWCurveConfig>() {
-    use ark_ec::models::short_weierstrass::{Affine, Projective};
-
-    let mut rng = ark_std::test_rng();
-
-    for _ in 0..ITERATIONS {
-        let mut test_vec = Vec::new();
-        for _ in 0..10 {
-            test_vec.push(Projective::<P>::rand(&mut rng).into_affine());
-        }
-
-        let sum_computed: Affine<P> = test_vec.iter().sum();
-        let mut sum_expected = Affine::zero();
-        for p in test_vec.iter() {
-            sum_expected += p;
-        }
-
-        assert_eq!(sum_computed, sum_expected);
     }
 }
 
@@ -552,7 +506,7 @@ where
 {
     use ark_ec::models::twisted_edwards::{Affine, Projective};
 
-    let buf_size = Affine::<P>::zero().serialized_size();
+    let buf_size = Affine::<P>::identity().serialized_size();
 
     let mut rng = ark_std::test_rng();
 
@@ -593,7 +547,7 @@ where
 pub fn edwards_curve_serialization_test<P: TECurveConfig>() {
     use ark_ec::models::twisted_edwards::{Affine, Projective};
 
-    let buf_size = Affine::<P>::zero().serialized_size();
+    let buf_size = Affine::<P>::identity().serialized_size();
 
     let mut rng = ark_std::test_rng();
 
@@ -611,7 +565,7 @@ pub fn edwards_curve_serialization_test<P: TECurveConfig>() {
         }
 
         {
-            let a = Affine::<P>::zero();
+            let a = Affine::<P>::identity();
             let mut serialized = vec![0; buf_size];
             let mut cursor = Cursor::new(&mut serialized[..]);
             a.serialize(&mut cursor).unwrap();
@@ -621,7 +575,7 @@ pub fn edwards_curve_serialization_test<P: TECurveConfig>() {
         }
 
         {
-            let a = Affine::<P>::zero();
+            let a = Affine::<P>::identity();
             let mut serialized = vec![0; buf_size - 1];
             let mut cursor = Cursor::new(&mut serialized[..]);
             a.serialize(&mut cursor).unwrap_err();
@@ -644,7 +598,7 @@ pub fn edwards_curve_serialization_test<P: TECurveConfig>() {
         }
 
         {
-            let a = Affine::<P>::zero();
+            let a = Affine::<P>::identity();
             let mut serialized = vec![0; a.uncompressed_size()];
             let mut cursor = Cursor::new(&mut serialized[..]);
             a.serialize_uncompressed(&mut cursor).unwrap();

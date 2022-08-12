@@ -240,7 +240,7 @@ mod test {
     #[test]
     fn hash_arbitary_string_to_curve_swu() {
         let test_swu_to_curve_hasher = MapToCurveBasedHasher::<
-            Affine<TestSWUMapToCurveParams>,
+            Projective<TestSWUMapToCurveParams>,
             DefaultFieldHasher<Sha256, 128>,
             SWUMap<TestSWUMapToCurveParams>,
         >::new(&[1])

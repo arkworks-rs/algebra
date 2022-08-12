@@ -225,28 +225,31 @@ impl<P: BW6Parameters> Pairing for BW6<P> {
     ) -> MillerLoopOutput<Self> {
         // Alg.5 in https://eprint.iacr.org/2020/351.pdf
 
-        let (pairs_1, pairs_2) = a
+        let (mut pairs_1, mut pairs_2) = a
             .into_iter()
             .zip_eq(b)
             .filter_map(|(p, q)| {
                 let (p, q): (G1Prepared<P>, G2Prepared<P>) = (p.into(), q.into());
                 match !p.is_zero() && !q.is_zero() {
-                    true => Some(((p, q.ell_coeffs_1.iter()), (p, q.ell_coeffs_2.iter()))),
+                    true => Some((
+                        (p, q.ell_coeffs_1.into_iter()),
+                        (p, q.ell_coeffs_2.into_iter()),
+                    )),
                     false => None,
                 }
             })
             .unzip::<_, _, Vec<_>, Vec<_>>();
 
-        let f_1 = cfg_chunks_mut!(pairs_1, 4)
+        let mut f_1 = cfg_chunks_mut!(pairs_1, 4)
             .map(|pairs| {
                 let mut f = Self::TargetField::one();
                 for i in BitIteratorBE::new(P::ATE_LOOP_COUNT_1).skip(1) {
                     f.square_in_place();
-                    for (p, coeffs) in pairs {
-                        Self::ell(&mut f, coeffs.next().unwrap(), &p.0);
+                    for (p, coeffs) in pairs.iter_mut() {
+                        Self::ell(&mut f, &coeffs.next().unwrap(), &p.0);
                     }
                     if i {
-                        for (p, coeffs) in pairs {
+                        for (p, coeffs) in pairs.iter_mut() {
                             Self::ell(&mut f, &coeffs.next().unwrap(), &p.0);
                         }
                     }
@@ -258,7 +261,7 @@ impl<P: BW6Parameters> Pairing for BW6<P> {
         if P::ATE_LOOP_COUNT_1_IS_NEGATIVE {
             f_1.conjugate();
         }
-        let f_2 = cfg_chunks_mut!(pairs_2, 4)
+        let mut f_2 = cfg_chunks_mut!(pairs_2, 4)
             .map(|pairs| {
                 let mut f = Self::TargetField::one();
                 for i in (1..P::ATE_LOOP_COUNT_2.len()).rev() {
@@ -266,14 +269,14 @@ impl<P: BW6Parameters> Pairing for BW6<P> {
                         f.square_in_place();
                     }
 
-                    for (p, ref mut coeffs) in pairs {
-                        Self::ell(&mut f, coeffs.next().unwrap(), &p.0);
+                    for (p, ref mut coeffs) in pairs.iter_mut() {
+                        Self::ell(&mut f, &coeffs.next().unwrap(), &p.0);
                     }
 
                     let bit = P::ATE_LOOP_COUNT_2[i - 1];
                     if bit == 1 || bit == -1 {
-                        for &mut (p, ref mut coeffs) in pairs {
-                            Self::ell(&mut f, coeffs.next().unwrap(), &p.0);
+                        for &mut (p, ref mut coeffs) in pairs.iter_mut() {
+                            Self::ell(&mut f, &coeffs.next().unwrap(), &p.0);
                         }
                     }
                 }
