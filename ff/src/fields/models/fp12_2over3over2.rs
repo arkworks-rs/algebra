@@ -3,7 +3,7 @@ use ark_std::Zero;
 use super::quadratic_extension::*;
 use crate::{
     fields::{fp6_3over2::*, Field, Fp2, Fp2Config as Fp2ConfigTrait},
-    CyclotomicField,
+    CyclotomicMultSubgroup,
 };
 use core::{
     marker::PhantomData,
@@ -123,7 +123,7 @@ pub fn characteristic_square_mod_6_is_one(characteristic: &[u64]) -> bool {
     (char_mod_6 * char_mod_6) % 6 == 1
 }
 
-impl<P: Fp12Config> CyclotomicField for Fp12<P> {
+impl<P: Fp12Config> CyclotomicMultSubgroup for Fp12<P> {
     const INVERSE_IS_FAST: bool = true;
 
     fn cyclotomic_inverse_in_place(&mut self) -> Option<&mut Self> {

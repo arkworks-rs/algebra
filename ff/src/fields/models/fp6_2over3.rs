@@ -8,7 +8,7 @@ use core::{
 
 use crate::{
     fields::{Fp3, Fp3Config},
-    CyclotomicField,
+    CyclotomicMultSubgroup,
 };
 
 pub trait Fp6Config: 'static + Send + Sync {
@@ -117,7 +117,7 @@ impl<P: Fp6Config> Fp6<P> {
     }
 }
 
-impl<P: Fp6Config> CyclotomicField for Fp6<P> {
+impl<P: Fp6Config> CyclotomicMultSubgroup for Fp6<P> {
     const INVERSE_IS_FAST: bool = true;
     fn cyclotomic_inverse_in_place(&mut self) -> Option<&mut Self> {
         self.is_zero().not().then(|| {

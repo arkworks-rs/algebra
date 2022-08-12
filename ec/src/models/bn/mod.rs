@@ -9,7 +9,7 @@ use ark_ff::{
         fp6_3over2::Fp6Config,
         Field, Fp2, PrimeField,
     },
-    CyclotomicField,
+    CyclotomicMultSubgroup,
 };
 use num_traits::One;
 

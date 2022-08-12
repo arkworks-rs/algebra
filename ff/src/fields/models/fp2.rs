@@ -1,7 +1,7 @@
 use ark_std::Zero;
 
 use super::quadratic_extension::*;
-use crate::{fields::PrimeField, CyclotomicField};
+use crate::{fields::PrimeField, CyclotomicMultSubgroup};
 use core::{marker::PhantomData, ops::Not};
 
 /// Trait that specifies constants and methods for defining degree-two extension fields.
@@ -129,7 +129,7 @@ impl<P: Fp2Config> Fp2<P> {
     }
 }
 
-impl<P: Fp2Config> CyclotomicField for Fp2<P> {
+impl<P: Fp2Config> CyclotomicMultSubgroup for Fp2<P> {
     const INVERSE_IS_FAST: bool = true;
     fn cyclotomic_inverse_in_place(&mut self) -> Option<&mut Self> {
         // As the multiplicative subgroup is of order p^2 - 1, the

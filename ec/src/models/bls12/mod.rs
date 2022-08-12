@@ -9,7 +9,7 @@ use ark_ff::{
         fp6_3over2::Fp6Config,
         BitIteratorBE, Field, Fp2, PrimeField,
     },
-    CyclotomicField,
+    CyclotomicMultSubgroup,
 };
 use core::marker::PhantomData;
 use num_traits::{One, Zero};

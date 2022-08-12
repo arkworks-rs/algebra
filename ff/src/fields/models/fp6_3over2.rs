@@ -145,4 +145,4 @@ impl<P: Fp6Config> Fp6<P> {
 }
 
 // We just use the default algorithms; there don't seem to be any faster ones.
-impl<P: Fp6Config> CyclotomicField for Fp6<P> {}
+impl<P: Fp6Config> CyclotomicMultSubgroup for Fp6<P> {}
