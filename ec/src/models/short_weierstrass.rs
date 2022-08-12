@@ -677,10 +677,8 @@ impl<P: SWCurveConfig> ProjectiveCurve for Projective<P> {
                     self.x -= &v.double();
 
                     // Y3 = r*(V-X3)-2*Y1*J
-                    self.y = P::BaseField::sum_of_products(
-                        &[r, -self.y.double()],
-                        &[(v - &self.x), j]
-                    );
+                    self.y =
+                        P::BaseField::sum_of_products(&[r, -self.y.double()], &[(v - &self.x), j]);
 
                     // Z3 = (Z1+H)^2-Z1Z1-HH
                     self.z += &h;
@@ -777,10 +775,7 @@ impl<'a, P: SWCurveConfig> AddAssign<&'a Self> for Projective<P> {
             self.x = r.square() - &j - &(v.double());
 
             // Y3 = r*(V - X3) - 2*S1*J
-            self.y = P::BaseField::sum_of_products(
-                &[r, -s1.double()],
-                &[(v - &self.x), j]
-            );
+            self.y = P::BaseField::sum_of_products(&[r, -s1.double()], &[(v - &self.x), j]);
 
             // Z3 = ((Z1+Z2)^2 - Z1Z1 - Z2Z2)*H
             self.z = ((self.z + &other.z).square() - &z1z1 - &z2z2) * &h;
