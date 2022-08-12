@@ -11,10 +11,10 @@ use ark_ff::{
     },
     CyclotomicMultSubgroup,
 };
+use ark_std::{marker::PhantomData, vec::Vec};
 use itertools::Itertools;
 use num_traits::One;
 
-use core::marker::PhantomData;
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
 

@@ -13,7 +13,7 @@ use ark_ff::{
     },
     CyclotomicMultSubgroup,
 };
-use core::marker::PhantomData;
+use ark_std::{marker::PhantomData, vec::Vec};
 use num_traits::{One, Zero};
 
 #[cfg(feature = "parallel")]

@@ -13,7 +13,8 @@ use ark_ff::{
 use itertools::Itertools;
 use num_traits::One;
 
-use core::marker::PhantomData;
+use ark_std::{marker::PhantomData, vec::Vec};
+
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
 

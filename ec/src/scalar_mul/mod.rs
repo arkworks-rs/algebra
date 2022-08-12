@@ -5,7 +5,10 @@ pub mod fixed_base;
 pub mod variable_base;
 
 use crate::Group;
-use ark_std::ops::{Add, AddAssign, Mul};
+use ark_std::{
+    ops::{Add, AddAssign, Mul},
+    vec::Vec,
+};
 
 /// The result of this function is only approximately `ln(a)`
 /// [`Explanation of usage`]
