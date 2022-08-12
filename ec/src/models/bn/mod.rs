@@ -84,7 +84,7 @@ impl<P: BnParameters> Bn<P> {
     fn exp_by_neg_x(mut f: Fp12<P::Fp12Config>) -> Fp12<P::Fp12Config> {
         f = f.cyclotomic_exp(&P::X);
         if !P::X_IS_NEGATIVE {
-            f.conjugate();
+            f.cyclotomic_inverse_in_place();
         }
         f
     }
@@ -140,7 +140,7 @@ impl<P: BnParameters> Pairing for Bn<P> {
             .product::<Self::TargetField>();
 
         if P::X_IS_NEGATIVE {
-            f.conjugate();
+            f.cyclotomic_inverse_in_place();
         }
 
         for (p, coeffs) in &mut pairs {
@@ -161,9 +161,9 @@ impl<P: BnParameters> Pairing for Bn<P> {
         //   elt^((q^6-1)*(q^2+1)) = (conj(elt) * elt^(-1))^(q^2+1)
         let f = f.0;
 
-        // f1 = r.conjugate() = f^(p^6)
+        // f1 = r.cyclotomic_inverse_in_place() = f^(p^6)
         let mut f1 = f;
-        f1.conjugate();
+        f1.cyclotomic_inverse_in_place();
 
         f.inverse().map(|mut f2| {
             // f2 = f^(-1);
@@ -197,8 +197,8 @@ impl<P: BnParameters> Pairing for Bn<P> {
             let y4 = Self::exp_by_neg_x(y3);
             let y5 = y4.cyclotomic_square();
             let mut y6 = Self::exp_by_neg_x(y5);
-            y3.conjugate();
-            y6.conjugate();
+            y3.cyclotomic_inverse_in_place();
+            y6.cyclotomic_inverse_in_place();
             let y7 = y6 * &y4;
             let mut y8 = y7 * &y3;
             let y9 = y8 * &y1;
@@ -209,7 +209,7 @@ impl<P: BnParameters> Pairing for Bn<P> {
             let y13 = y12 * &y11;
             y8.frobenius_map(2);
             let y14 = y8 * &y13;
-            r.conjugate();
+            r.cyclotomic_inverse_in_place();
             let mut y15 = r * &y9;
             y15.frobenius_map(3);
             let y16 = y15 * &y14;

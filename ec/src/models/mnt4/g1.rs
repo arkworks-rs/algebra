@@ -39,6 +39,7 @@ impl<P: MNT4Parameters> From<G1Affine<P>> for G1Prepared<P> {
         }
     }
 }
+
 impl<'a, P: MNT4Parameters> From<&'a G1Affine<P>> for G1Prepared<P> {
     fn from(g1: &'a G1Affine<P>) -> Self {
         (*g1).into()

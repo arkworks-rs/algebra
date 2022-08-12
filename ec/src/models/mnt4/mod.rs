@@ -160,7 +160,7 @@ impl<P: MNT4Parameters> MNT4<P> {
 
         // elt_q2 = elt^(q^2)
         let mut elt_q2 = *elt;
-        elt_q2.conjugate();
+        elt_q2.cyclotomic_inverse_in_place();
         // elt_q2_over_elt = elt^(q^2-1)
         elt_q2 * elt_inv
     }

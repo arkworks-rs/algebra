@@ -141,7 +141,7 @@ impl<P: Fp2Config> CyclotomicMultSubgroup for Fp2<P> {
         // for this subgroup, x.inverse() = x.conjugate()
 
         self.is_zero().not().then(|| {
-            self.conjugate();
+            self.conjugate_in_place();
             self
         })
     }

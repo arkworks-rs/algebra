@@ -83,7 +83,7 @@ impl<P: Bls12Parameters> Bls12<P> {
     fn exp_by_x(f: &Fp12<P::Fp12Config>, result: &mut Fp12<P::Fp12Config>) {
         *result = f.cyclotomic_exp(P::X);
         if P::X_IS_NEGATIVE {
-            result.conjugate();
+            result.cyclotomic_inverse_in_place();
         }
     }
 }
@@ -135,7 +135,7 @@ impl<P: Bls12Parameters> Pairing for Bls12<P> {
             .product::<Self::TargetField>();
 
         if P::X_IS_NEGATIVE {
-            f.conjugate();
+            f.cyclotomic_inverse_in_place();
         }
         MillerLoopOutput(f)
     }
@@ -145,10 +145,10 @@ impl<P: Bls12Parameters> Pairing for Bls12<P> {
         // https://eprint.iacr.org/2020/875
         // Adapted from the implementation in https://github.com/ConsenSys/gurvy/pull/29
 
-        // f1 = r.conjugate() = f^(p^6)
+        // f1 = r.cyclotomic_inverse_in_place() = f^(p^6)
         let f = f.0;
         let mut f1 = f;
-        f1.conjugate();
+        f1.cyclotomic_inverse_in_place();
 
         f.inverse().map(|mut f2| {
             // f2 = f^(-1);
@@ -172,13 +172,13 @@ impl<P: Bls12Parameters> Pairing for Bls12<P> {
             Self::exp_by_x(&r, &mut y1);
             // t[2].InverseUnitary(&result)
             let mut y2 = r;
-            y2.conjugate();
+            y2.cyclotomic_inverse_in_place();
             // t[1].Mul(&t[1], &t[2])
             y1 *= &y2;
             // t[2].Expt(&t[1])
             Self::exp_by_x(&y1, &mut y2);
             // t[1].InverseUnitary(&t[1])
-            y1.conjugate();
+            y1.cyclotomic_inverse_in_place();
             // t[1].Mul(&t[1], &t[2])
             y1 *= &y2;
             // t[2].Expt(&t[1])
@@ -197,7 +197,7 @@ impl<P: Bls12Parameters> Pairing for Bls12<P> {
             y0 = y1;
             y0.frobenius_map(2);
             // t[1].InverseUnitary(&t[1])
-            y1.conjugate();
+            y1.cyclotomic_inverse_in_place();
             // t[1].Mul(&t[1], &t[2])
             y1 *= &y2;
             // t[1].Mul(&t[1], &t[0])
