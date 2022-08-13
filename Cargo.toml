@@ -9,6 +9,7 @@ members = [
     "ff",
 
     "ec",
+    "bench-templates",
 
     "poly",
     "poly-benches",
