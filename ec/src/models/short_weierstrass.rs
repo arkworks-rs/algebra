@@ -607,7 +607,7 @@ impl<P: SWCurveConfig> ProjectiveCurve for Projective<P> {
             let s = ((self.x + &yy).square() - &xx - &yyyy).double();
 
             // M = 3*XX+a*ZZ^2
-            let m = xx + &xx + &xx + &P::mul_by_a(&zz.square());
+            let m = xx + xx.double() + P::mul_by_a(&zz.square());
 
             // T = M^2-2*S
             let t = m.square() - &s.double();
