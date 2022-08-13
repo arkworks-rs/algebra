@@ -106,14 +106,17 @@ pub trait Pairing: Sized + 'static + Copy + Debug + Sync + Send + Eq {
 /// wrapper around the field that the target group is embedded in.
 #[derive(Derivative)]
 #[derivative(
-    Copy(bound = ""),
-    Clone(bound = ""),
-    PartialEq(bound = ""),
-    Eq(bound = ""),
-    Debug(bound = ""),
-    Default(bound = ""),
-    Hash(bound = "")
+    Copy(bound = "P: Pairing"),
+    Clone(bound = "P: Pairing"),
+    Debug(bound = "P: Pairing"),
+    PartialEq(bound = "P: Pairing"),
+    Eq(bound = "P: Pairing"),
+    PartialOrd(bound = "P: Pairing"),
+    Ord(bound = "P: Pairing"),
+    Default(bound = "P: Pairing"),
+    Hash(bound = "P: Pairing")
 )]
+#[must_use]
 pub struct PairingOutput<P: Pairing>(pub P::TargetField);
 
 impl<P: Pairing> CanonicalSerialize for PairingOutput<P> {
@@ -294,6 +297,17 @@ impl<P: Pairing> Group for PairingOutput<P> {
 }
 
 /// Represents the output of the Miller loop of the pairing.
+#[derive(Derivative)]
+#[derivative(
+    Copy(bound = "P: Pairing"),
+    Clone(bound = "P: Pairing"),
+    Debug(bound = "P: Pairing"),
+    PartialEq(bound = "P: Pairing"),
+    Eq(bound = "P: Pairing"),
+    PartialOrd(bound = "P: Pairing"),
+    Ord(bound = "P: Pairing")
+)]
+#[must_use]
 pub struct MillerLoopOutput<P: Pairing>(pub P::TargetField);
 
 impl<P: Pairing> Mul<P::ScalarField> for MillerLoopOutput<P> {
