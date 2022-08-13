@@ -76,6 +76,50 @@ fn random_multiplication_tests<F: Field, R: Rng>(rng: &mut R) {
     }
 }
 
+fn random_sum_of_products_tests<F: Field, R: Rng>(rng: &mut R) {
+    for _ in 0..ITERATIONS {
+        for length in 1..100 {
+            let a = (0..length).map(|_| F::rand(rng)).collect::<Vec<_>>();
+            let b = (0..length).map(|_| F::rand(rng)).collect::<Vec<_>>();
+            let result_1 = F::sum_of_products(&a, &b);
+            let result_2 = a.into_iter().zip(b).map(|(a, b)| a * b).sum::<F>();
+            assert_eq!(result_1, result_2, "length: {length}");
+        }
+    }
+}
+
+fn edge_case_sum_of_products_tests<F: PrimeField>() {
+    use ark_ff::BigInteger;
+    let mut a_max = F::ZERO.into_bigint();
+    for (i, limb) in a_max.as_mut().iter_mut().enumerate() {
+        if i == F::BigInt::NUM_LIMBS - 1 {
+            *limb = u64::MAX >> (64 - ((F::MODULUS_BIT_SIZE - 1) % 64));
+        } else {
+            *limb = u64::MAX;
+        }
+    }
+    let a_max = F::from_bigint(a_max).unwrap();
+    let b_max = -F::one(); // p - 1.
+    for length in 1..100 {
+        let a = vec![a_max; length];
+        let b = vec![b_max; length];
+        let result_1 = F::sum_of_products(&a, &b);
+        let result_2 = a.into_iter().zip(b).map(|(a, b)| a * b).sum::<F>();
+        assert_eq!(result_1, result_2, "length: {length}");
+    }
+    let two_inv = F::from(2u64).inverse().unwrap();
+    let neg_one = -F::one();
+    let a_max = neg_one * two_inv - F::one();
+    let b_max = neg_one * two_inv - F::one();
+    for length in 1..100 {
+        let a = vec![a_max; length];
+        let b = vec![b_max; length];
+        let result_1 = F::sum_of_products(&a, &b);
+        let result_2 = a.into_iter().zip(b).map(|(a, b)| a * b).sum::<F>();
+        assert_eq!(result_1, result_2, "length: {length}");
+    }
+}
+
 fn random_inversion_tests<F: Field, R: Rng>(rng: &mut R) {
     assert!(F::zero().inverse().is_none());
 
@@ -162,6 +206,7 @@ fn random_field_tests<F: Field>() {
     random_addition_tests::<F, _>(&mut rng);
     random_subtraction_tests::<F, _>(&mut rng);
     random_multiplication_tests::<F, _>(&mut rng);
+    random_sum_of_products_tests::<F, _>(&mut rng);
     random_inversion_tests::<F, _>(&mut rng);
     random_doubling_tests::<F, _>(&mut rng);
     random_squaring_tests::<F, _>(&mut rng);
@@ -347,6 +392,9 @@ pub fn primefield_test<F: PrimeField>() {
     from_str_test::<F>();
     let one = F::one();
     assert_eq!(F::from(one.into_bigint()), one);
+
+    let mut rng = ark_std::test_rng();
+    edge_case_sum_of_products_tests::<F>();
 
     fft_field_test::<F>();
 }

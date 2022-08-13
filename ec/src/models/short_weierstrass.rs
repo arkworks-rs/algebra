@@ -584,7 +584,7 @@ impl<P: SWCurveConfig> ProjectiveCurve for Projective<P> {
             self.z.double_in_place();
 
             // X3 = F-2*D
-            self.x = f - &d - &d;
+            self.x = f - &d.double();
 
             // Y3 = E*(D-X3)-8*C
             self.y = (d - &self.x) * &e - &*c.double_in_place().double_in_place().double_in_place();
@@ -607,7 +607,7 @@ impl<P: SWCurveConfig> ProjectiveCurve for Projective<P> {
             let s = ((self.x + &yy).square() - &xx - &yyyy).double();
 
             // M = 3*XX+a*ZZ^2
-            let m = xx + &xx + &xx + &P::mul_by_a(&zz.square());
+            let m = xx + xx.double() + P::mul_by_a(&zz.square());
 
             // T = M^2-2*S
             let t = m.square() - &s.double();
@@ -663,7 +663,7 @@ impl<P: SWCurveConfig> ProjectiveCurve for Projective<P> {
                     i.double_in_place().double_in_place();
 
                     // J = H*I
-                    let mut j = h * &i;
+                    let j = h * &i;
 
                     // r = 2*(S2-Y1)
                     let r = (s2 - &self.y).double();
@@ -674,15 +674,11 @@ impl<P: SWCurveConfig> ProjectiveCurve for Projective<P> {
                     // X3 = r^2 - J - 2*V
                     self.x = r.square();
                     self.x -= &j;
-                    self.x -= &v;
-                    self.x -= &v;
+                    self.x -= &v.double();
 
                     // Y3 = r*(V-X3)-2*Y1*J
-                    j *= &self.y; // J = 2*Y1*J
-                    j.double_in_place();
-                    self.y = v - &self.x;
-                    self.y *= &r;
-                    self.y -= &j;
+                    self.y =
+                        P::BaseField::sum_of_products(&[r, -self.y.double()], &[(v - &self.x), j]);
 
                     // Z3 = (Z1+H)^2-Z1Z1-HH
                     self.z += &h;
@@ -779,7 +775,7 @@ impl<'a, P: SWCurveConfig> AddAssign<&'a Self> for Projective<P> {
             self.x = r.square() - &j - &(v.double());
 
             // Y3 = r*(V - X3) - 2*S1*J
-            self.y = r * &(v - &self.x) - &*(s1 * &j).double_in_place();
+            self.y = P::BaseField::sum_of_products(&[r, -s1.double()], &[(v - &self.x), j]);
 
             // Z3 = ((Z1+Z2)^2 - Z1Z1 - Z2Z2)*H
             self.z = ((self.z + &other.z).square() - &z1z1 - &z2z2) * &h;
