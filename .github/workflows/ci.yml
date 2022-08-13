@@ -152,13 +152,21 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
             command: check
-            args: --examples --workspace --exclude ark-algebra-test-templates --exclude ark-poly-benches --target thumbv6m-none-eabi
+            args: "--examples --workspace \
+                  --exclude ark-algebra-test-templates \
+                  --exclude ark-algebra-bench-templates \
+                  --exclude ark-poly-benches \
+                  --target thumbv6m-none-eabi"
 
       - name: build
         uses: actions-rs/cargo@v1
         with:
             command: build
-            args: --workspace --exclude ark-algebra-test-templates --exclude ark-poly-benches --target thumbv6m-none-eabi
+            args: "--examples --workspace \
+                  --exclude ark-algebra-test-templates \
+                  --exclude ark-algebra-bench-templates \
+                  --exclude ark-poly-benches \
+                  --target thumbv6m-none-eabi"
 
   test_against_curves:
     name: Test against curves
