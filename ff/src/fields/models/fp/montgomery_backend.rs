@@ -63,7 +63,7 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
     /// (MODULUS + 1) / 4 when MODULUS % 4 == 3. Used for square root precomputations.
     #[doc(hidden)]
     const MODULUS_PLUS_ONE_DIV_FOUR: Option<BigInt<N>> = {
-        match Self::MODULUS.0[0] % 4 == 3 {
+        match Self::MODULUS.mod_4() == 3 {
             true => {
                 let (modulus_plus_one, carry) =
                     Self::MODULUS.const_add_with_carry(&BigInt::<N>::one());
@@ -415,7 +415,7 @@ pub const fn can_use_no_carry_optimization<const N: usize>(modulus: &BigInt<N>) 
 
 pub const fn sqrt_precomputation<const N: usize, T: MontConfig<N>>(
 ) -> Option<SqrtPrecomputation<Fp<MontBackend<T, N>, N>>> {
-    match <T>::MODULUS.0[0] % 4 {
+    match T::MODULUS.mod_4() {
         3 => match T::MODULUS_PLUS_ONE_DIV_FOUR.as_ref() {
             Some(BigInt(modulus_plus_one_div_four)) => Some(SqrtPrecomputation::Case3Mod4 {
                 modulus_plus_one_div_four,
