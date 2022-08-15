@@ -127,11 +127,14 @@ fn random_multiplication_test<G: ProjectiveCurve>() {
         tmp2.add_assign(&b);
 
         // Affine multiplication
-        let mut tmp3 = a_affine.mul(s.into_bigint());
-        tmp3.add_assign(&b_affine.mul(s.into_bigint()));
-
+        let mut tmp3 = a_affine.mul_bigint(&s.into_bigint());
+        tmp3.add_assign(&b_affine.mul_bigint(&s.into_bigint()));
         assert_eq!(tmp1, tmp2);
         assert_eq!(tmp1, tmp3);
+
+        let expected = a_affine.mul_bigint(s.into_bigint());
+        let got = a_affine.mul_bigint(&s.into_bigint());
+        assert_eq!(expected, got);
     }
 }
 
@@ -304,12 +307,12 @@ pub fn curve_tests<G: ProjectiveCurve>() {
 
         assert_eq!(zero, zero);
         assert_eq!(zero.is_zero(), true);
-        assert_eq!(a.mul(&fr_one.into_bigint()), a);
-        assert_eq!(a.mul(&fr_two.into_bigint()), a + &a);
-        assert_eq!(a.mul(&fr_zero.into_bigint()), zero);
-        assert_eq!(a.mul(&fr_zero.into_bigint()) - &a, -a);
-        assert_eq!(a.mul(&fr_one.into_bigint()) - &a, zero);
-        assert_eq!(a.mul(&fr_two.into_bigint()) - &a, a);
+        assert_eq!(a.mul(&fr_one), a);
+        assert_eq!(a.mul(&fr_two), a + &a);
+        assert_eq!(a.mul(&fr_zero), zero);
+        assert_eq!(a.mul(&fr_zero) - &a, -a);
+        assert_eq!(a.mul(&fr_one) - &a, zero);
+        assert_eq!(a.mul(&fr_two) - &a, a);
 
         // a == a
         assert_eq!(a, a);
@@ -341,31 +344,27 @@ pub fn curve_tests<G: ProjectiveCurve>() {
 
         let fr_rand1 = G::ScalarField::rand(&mut rng);
         let fr_rand2 = G::ScalarField::rand(&mut rng);
-        let a_rand1 = a.mul(&fr_rand1.into_bigint());
-        let a_rand2 = a.mul(&fr_rand2.into_bigint());
+        let a_rand1 = a.mul(&fr_rand1);
+        let a_rand2 = a.mul(&fr_rand2);
         let fr_three = fr_two + &fr_rand1;
-        let a_two = a.mul(&fr_two.into_bigint());
+        let a_two = a.mul(&fr_two);
         assert_eq!(a_two, a.double(), "(a * 2)  != a.double()");
-        let a_six = a.mul(&(fr_three * &fr_two).into_bigint());
-        assert_eq!(
-            a_two.mul(&fr_three.into_bigint()),
-            a_six,
-            "(a * 2) * 3 != a * (2 * 3)"
-        );
+        let a_six = a.mul(&(fr_three * &fr_two));
+        assert_eq!(a_two.mul(&fr_three), a_six, "(a * 2) * 3 != a * (2 * 3)");
 
         assert_eq!(
-            a_rand1.mul(&fr_rand2.into_bigint()),
-            a_rand2.mul(&fr_rand1.into_bigint()),
+            a_rand1.mul(&fr_rand2),
+            a_rand2.mul(&fr_rand1),
             "(a * r1) * r2 != (a * r2) * r1"
         );
         assert_eq!(
-            a_rand2.mul(&fr_rand1.into_bigint()),
-            a.mul(&(fr_rand1 * &fr_rand2).into_bigint()),
+            a_rand2.mul(&fr_rand1),
+            a.mul(&(fr_rand1 * &fr_rand2)),
             "(a * r2) * r1 != a * (r1 * r2)"
         );
         assert_eq!(
-            a_rand1.mul(&fr_rand2.into_bigint()),
-            a.mul(&(fr_rand1 * &fr_rand2).into_bigint()),
+            a_rand1.mul(&fr_rand2),
+            a.mul(&(fr_rand1 * &fr_rand2)),
             "(a * r1) * r2 != a * (r1 * r2)"
         );
     }

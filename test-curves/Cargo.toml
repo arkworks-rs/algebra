@@ -21,6 +21,7 @@ ark-ec = { version = "^0.3.0", path = "../ec", default-features = false }
 [dev-dependencies]
 ark-serialize = { version = "^0.3.0", path = "../serialize", default-features = false }
 ark-algebra-test-templates = { version = "^0.3.0", path = "../test-templates", default-features = false }
+ark-algebra-bench-templates =  { version = "^0.3.0", path = "../bench-templates", default-features = false }
 
 [features]
 default = []
@@ -41,3 +42,24 @@ mnt6_753 = [ "mnt4_753_scalar_field", "mnt4_753_base_field" ]
 bn384_small_two_adicity_scalar_field = []
 bn384_small_two_adicity_base_field = []
 bn384_small_two_adicity_curve = [ "bn384_small_two_adicity_scalar_field", "bn384_small_two_adicity_base_field" ]
+
+[[bench]]
+name = "bls12_381"
+path = "benches/bls12_381.rs"
+harness = false
+
+
+[[bench]]
+name = "bn384_small_two_adicity"
+path = "benches/bn384_small_two_adicity.rs"
+harness = false
+
+[[bench]]
+name = "mnt4_753"
+path = "benches/mnt4_753.rs"
+harness = false
+
+[[bench]]
+name = "mnt6_753"
+path = "benches/mnt6_753.rs"
+harness = false

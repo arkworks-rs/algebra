@@ -46,6 +46,13 @@
     - `TEModelParameters` → `TECurveConfig`
     - `MontgomeryModelParameters` → `MontCurveConfig`
 - [\#440](https://github.com/arkworks-rs/algebra/pull/440) (`ark-ff`) Add a method to construct a field element from an element of the underlying base prime field.
+- [\#443](https://github.com/arkworks-rs/algebra/pull/443) (`ark-ec`) Improve ergonomics of scalar multiplication.
+    - Rename `ProjectiveCurve::mul(AsRef[u64])` to `ProjectiveCurve::mul_bigint(AsRef[u64])`.
+    - Bound `ProjectiveCurve` by
+        - `Mul<ScalarField>`,
+        - `for<'a> Mul<&'a ScalarField>`
+        - `MulAssign<ScalarField>`,
+        - `for<'a> MulAssign<&'a ScalarField>`
 
 ### Features
 

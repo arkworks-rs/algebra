@@ -3,17 +3,15 @@ use ark_serialize::{
     CanonicalSerializeWithFlags, SWFlags, SerializationError,
 };
 use ark_std::{
+    borrow::Borrow,
     fmt::{Display, Formatter, Result as FmtResult},
     hash::{Hash, Hasher},
     io::{Read, Write},
-    ops::{Add, AddAssign, MulAssign, Neg, Sub, SubAssign},
+    ops::{Add, AddAssign, Mul, MulAssign, Neg, Sub, SubAssign},
     vec::Vec,
 };
 
-use ark_ff::{
-    fields::{Field, PrimeField},
-    ToConstraintField, UniformRand,
-};
+use ark_ff::{fields::Field, PrimeField, ToConstraintField, UniformRand};
 
 use crate::{msm::VariableBaseMSM, AffineCurve, ProjectiveCurve};
 
@@ -326,8 +324,8 @@ impl<P: SWCurveConfig> AffineCurve for Affine<P> {
         })
     }
 
-    fn mul<S: Into<<Self::ScalarField as PrimeField>::BigInt>>(&self, by: S) -> Self::Projective {
-        P::mul_affine(self, by.into().as_ref())
+    fn mul_bigint<S: AsRef<[u64]>>(&self, by: S) -> Self::Projective {
+        P::mul_affine(self, by.as_ref())
     }
 
     /// Multiplies this element by the cofactor and output the
@@ -375,6 +373,15 @@ impl<'a, P: SWCurveConfig> core::iter::Sum<&'a Self> for Affine<P> {
     fn sum<I: Iterator<Item = &'a Self>>(iter: I) -> Self {
         iter.fold(Projective::<P>::zero(), |sum, x| sum.add_mixed(x))
             .into()
+    }
+}
+
+impl<'a, P: SWCurveConfig, T: Borrow<P::ScalarField>> Mul<T> for Affine<P> {
+    type Output = Projective<P>;
+
+    #[inline]
+    fn mul(self, other: T) -> Self::Output {
+        self.mul_bigint(other.borrow().into_bigint())
     }
 }
 
@@ -577,7 +584,7 @@ impl<P: SWCurveConfig> ProjectiveCurve for Projective<P> {
             self.z.double_in_place();
 
             // X3 = F-2*D
-            self.x = f - &d - &d;
+            self.x = f - &d.double();
 
             // Y3 = E*(D-X3)-8*C
             self.y = (d - &self.x) * &e - &*c.double_in_place().double_in_place().double_in_place();
@@ -600,7 +607,7 @@ impl<P: SWCurveConfig> ProjectiveCurve for Projective<P> {
             let s = ((self.x + &yy).square() - &xx - &yyyy).double();
 
             // M = 3*XX+a*ZZ^2
-            let m = xx + &xx + &xx + &P::mul_by_a(&zz.square());
+            let m = xx + xx.double() + P::mul_by_a(&zz.square());
 
             // T = M^2-2*S
             let t = m.square() - &s.double();
@@ -656,7 +663,7 @@ impl<P: SWCurveConfig> ProjectiveCurve for Projective<P> {
                     i.double_in_place().double_in_place();
 
                     // J = H*I
-                    let mut j = h * &i;
+                    let j = h * &i;
 
                     // r = 2*(S2-Y1)
                     let r = (s2 - &self.y).double();
@@ -667,15 +674,11 @@ impl<P: SWCurveConfig> ProjectiveCurve for Projective<P> {
                     // X3 = r^2 - J - 2*V
                     self.x = r.square();
                     self.x -= &j;
-                    self.x -= &v;
-                    self.x -= &v;
+                    self.x -= &v.double();
 
                     // Y3 = r*(V-X3)-2*Y1*J
-                    j *= &self.y; // J = 2*Y1*J
-                    j.double_in_place();
-                    self.y = v - &self.x;
-                    self.y *= &r;
-                    self.y -= &j;
+                    self.y =
+                        P::BaseField::sum_of_products(&[r, -self.y.double()], &[(v - &self.x), j]);
 
                     // Z3 = (Z1+H)^2-Z1Z1-HH
                     self.z += &h;
@@ -688,7 +691,7 @@ impl<P: SWCurveConfig> ProjectiveCurve for Projective<P> {
     }
 
     #[inline]
-    fn mul<S: AsRef<[u64]>>(self, other: S) -> Self {
+    fn mul_bigint<S: AsRef<[u64]>>(self, other: S) -> Self {
         P::mul_projective(&self, other.as_ref())
     }
 }
@@ -772,7 +775,7 @@ impl<'a, P: SWCurveConfig> AddAssign<&'a Self> for Projective<P> {
             self.x = r.square() - &j - &(v.double());
 
             // Y3 = r*(V - X3) - 2*S1*J
-            self.y = r * &(v - &self.x) - &*(s1 * &j).double_in_place();
+            self.y = P::BaseField::sum_of_products(&[r, -s1.double()], &[(v - &self.x), j]);
 
             // Z3 = ((Z1+Z2)^2 - Z1Z1 - Z2Z2)*H
             self.z = ((self.z + &other.z).square() - &z1z1 - &z2z2) * &h;
@@ -796,9 +799,19 @@ impl<'a, P: SWCurveConfig> SubAssign<&'a Self> for Projective<P> {
     }
 }
 
-impl<P: SWCurveConfig> MulAssign<P::ScalarField> for Projective<P> {
-    fn mul_assign(&mut self, other: P::ScalarField) {
-        *self = self.mul(other.into_bigint())
+impl<P: SWCurveConfig, T: Borrow<P::ScalarField>> MulAssign<T> for Projective<P> {
+    fn mul_assign(&mut self, other: T) {
+        *self = self.mul_bigint(other.borrow().into_bigint())
+    }
+}
+
+impl<'a, P: SWCurveConfig, T: Borrow<P::ScalarField>> Mul<T> for Projective<P> {
+    type Output = Self;
+
+    #[inline]
+    fn mul(mut self, other: T) -> Self {
+        self *= other;
+        self
     }
 }
 
