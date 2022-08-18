@@ -44,8 +44,8 @@ impl<P: Fp3Config> CubicExtConfig for Fp3ConfigWrapper<P> {
     const SQRT_PRECOMP: Option<SqrtPrecomputation<CubicExtField<Self>>> =
         Some(SqrtPrecomputation::TonelliShanks {
             two_adicity: P::TWO_ADICITY,
-            trace_of_modulus_minus_one_div_two: &P::TRACE_MINUS_ONE_DIV_TWO,
             quadratic_nonresidue_to_trace: P::QUADRATIC_NONRESIDUE_TO_T,
+            trace_of_modulus_minus_one_div_two: &P::TRACE_MINUS_ONE_DIV_TWO,
         });
 
     const FROBENIUS_COEFF_C1: &'static [Self::FrobCoeff] = P::FROBENIUS_COEFF_FP3_C1;
