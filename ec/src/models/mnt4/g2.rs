@@ -56,7 +56,7 @@ impl<P: MNT4Parameters> From<G2Affine<P>> for G2Prepared<P> {
         };
 
         let neg_g2 = g2.neg();
-        for bit in P::ATE_LOOP_COUNT_2.iter().skip(1) {
+        for bit in P::ATE_LOOP_COUNT.iter().skip(1) {
             let (r2, coeff) = MNT4::<P>::doubling_step_for_flipped_miller_loop(&r);
             g2p.double_coefficients.push(coeff);
             r = r2;

@@ -25,7 +25,7 @@ pub type GT<P> = Fp6<P>;
 pub trait MNT6Parameters: 'static {
     const TWIST: Fp3<Self::Fp3Config>;
     const TWIST_COEFF_A: Fp3<Self::Fp3Config>;
-    const ATE_LOOP_COUNT_2: &'static [i8];
+    const ATE_LOOP_COUNT: &'static [i8];
     const ATE_IS_LOOP_COUNT_NEG: bool;
     const FINAL_EXPONENT_LAST_CHUNK_1: <Self::Fp as PrimeField>::BigInt;
     const FINAL_EXPONENT_LAST_CHUNK_W0_IS_NEG: bool;
@@ -113,7 +113,7 @@ impl<P: MNT6Parameters> MNT6<P> {
         // code below gets executed for all bits (EXCEPT the MSB itself) of
         // mnt6_param_p (skipping leading zeros) in MSB to LSB order
         let y_over_twist_neg = -q.y_over_twist;
-        for (bit, dc) in P::ATE_LOOP_COUNT_2
+        for (bit, dc) in P::ATE_LOOP_COUNT
             .iter()
             .skip(1)
             .zip(&q.double_coefficients)
