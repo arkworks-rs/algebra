@@ -5,7 +5,7 @@ use crate::{
 use ark_ff::{
     fp2::{Fp2, Fp2Config},
     fp4::{Fp4, Fp4Config},
-    BitIteratorBE, CyclotomicMultSubgroup, Field, PrimeField,
+    CyclotomicMultSubgroup, Field, PrimeField,
 };
 use num_traits::{One, Zero};
 
@@ -111,11 +111,7 @@ impl<P: MNT4Parameters> MNT4<P> {
         // code below gets executed for all bits (EXCEPT the MSB itself) of
         // mnt6_param_p (skipping leading zeros) in MSB to LSB order
         let y_over_twist_neg = -q.y_over_twist;
-        for (bit, dc) in P::ATE_LOOP_COUNT
-            .iter()
-            .skip(1)
-            .zip(&q.double_coefficients)
-        {
+        for (bit, dc) in P::ATE_LOOP_COUNT.iter().skip(1).zip(&q.double_coefficients) {
             let g_rr_at_p = Fp4::new(
                 -dc.c_4c - &(dc.c_j * &p.x_twist) + &dc.c_l,
                 dc.c_h * &p.y_twist,
