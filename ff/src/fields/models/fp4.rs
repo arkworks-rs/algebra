@@ -1,7 +1,12 @@
-use super::quadratic_extension::*;
-use core::marker::PhantomData;
+use ark_std::Zero;
 
-use crate::fields::{Fp2, Fp2Config};
+use super::quadratic_extension::*;
+use core::{marker::PhantomData, ops::Not};
+
+use crate::{
+    fields::{Fp2, Fp2Config},
+    CyclotomicMultSubgroup,
+};
 
 pub trait Fp4Config: 'static + Send + Sync {
     type Fp2Config: Fp2Config;
@@ -55,5 +60,15 @@ impl<P: Fp4Config> Fp4<P> {
     pub fn mul_by_fp2(&mut self, element: &Fp2<P::Fp2Config>) {
         self.c0 *= element;
         self.c1 *= element;
+    }
+}
+
+impl<P: Fp4Config> CyclotomicMultSubgroup for Fp4<P> {
+    const INVERSE_IS_FAST: bool = true;
+    fn cyclotomic_inverse_in_place(&mut self) -> Option<&mut Self> {
+        self.is_zero().not().then(|| {
+            self.conjugate();
+            self
+        })
     }
 }
