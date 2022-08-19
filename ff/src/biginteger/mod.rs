@@ -30,16 +30,6 @@ impl<const N: usize> Default for BigInt<N> {
     }
 }
 
-impl<const N: usize> BigInt<N> {
-    pub const fn new(value: [u64; N]) -> Self {
-        Self(value)
-    }
-
-    pub const fn zero() -> Self {
-        Self([0u64; N])
-    }
-}
-
 /// Construct a [`struct@BigInt<N>`] element from a literal string.
 ///
 /// # Panics
@@ -96,6 +86,18 @@ macro_rules! const_modulo {
 }
 
 impl<const N: usize> BigInt<N> {
+    pub const fn new(value: [u64; N]) -> Self {
+        Self(value)
+    }
+
+    pub const fn zero() -> Self {
+        Self([0u64; N])
+    }
+
+    pub const fn one() -> Self {
+        BigInt!("1")
+    }
+
     #[doc(hidden)]
     pub const fn const_is_even(&self) -> bool {
         self.0[0] % 2 == 0
