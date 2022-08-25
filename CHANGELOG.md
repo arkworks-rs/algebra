@@ -34,6 +34,7 @@
 - [\#408](https://github.com/arkworks-rs/algebra/pull/408) (`ark-ff`) Change the output of `Display` formatting for BigInt & Fp from hex to decimal.
 - [\#412](https://github.com/arkworks-rs/algebra/pull/412) (`ark-poly`) Rename UV/MVPolynomial to DenseUV/MVPolynomial.
 - [\#417](https://github.com/arkworks-rs/algebra/pull/417) (`ark-ff`) Remove `ToBytes` and `FromBytes`.
+- [\#418](https://github.com/arkworks-rs/algebra/pull/418) (`ark-ff`) Add `sums_of_products` to `Field` and `Fp`
 - [\#422](https://github.com/arkworks-rs/algebra/pull/422) (`ark-ff`) Remove `SquareRootField`, and move functionality to `Field`
 - [\#425](https://github.com/arkworks-rs/algebra/pull/425) (`ark-ec`) Refactor `VariableBase` struct to `VariableBaseMSM` trait and implement it for `GroupProjective`.
 - [\#438](https://github.com/arkworks-rs/algebra/pull/438) (`ark-ec`) Rename modules, structs, and traits related to `ec`.
@@ -46,13 +47,17 @@
     - `TEModelParameters` → `TECurveConfig`
     - `MontgomeryModelParameters` → `MontCurveConfig`
 - [\#440](https://github.com/arkworks-rs/algebra/pull/440) (`ark-ff`) Add a method to construct a field element from an element of the underlying base prime field.
-- [\#443](https://github.com/arkworks-rs/algebra/pull/443) (`ark-ec`) Improve ergonomics of scalar multiplication.
+- [\#443](https://github.com/arkworks-rs/algebra/pull/443), [\#449](https://github.com/arkworks-rs/algebra/pull/449) (`ark-ec`) Improve ergonomics of scalar multiplication.
     - Rename `ProjectiveCurve::mul(AsRef[u64])` to `ProjectiveCurve::mul_bigint(AsRef[u64])`.
     - Bound `ProjectiveCurve` by
         - `Mul<ScalarField>`,
         - `for<'a> Mul<&'a ScalarField>`
         - `MulAssign<ScalarField>`,
         - `for<'a> MulAssign<&'a ScalarField>`
+    - Bound `AffineCurve` by
+        - `Mul<ScalarField, Output = ProjectiveCurve>`
+        - `for<'a> Mul<&'a ScalarField, Output = ProjectiveCurve>`
+- [\#446](https://github.com/arkworks-rs/algebra/pull/446) (`ark-ff`) Add `CyclotomicMultSubgroup` trait and impl for extension fields
 
 ### Features
 
@@ -66,7 +71,11 @@
 - [\#386](https://github.com/arkworks-rs/algebra/pull/386) (`ark-ff-macros`, `ark-ff`) Add a macro to derive `MontConfig`.
 - [\#396](https://github.com/arkworks-rs/algebra/pull/396) (`ark-ec`) Add a default `mul` function to `{TE,SW}CurveConfig` trait definition.
 - [\#397](https://github.com/arkworks-rs/algebra/pull/397) (`ark-ec`) Add `HashMapPippenger` to variable-base MSM.
+- [\#418](https://github.com/arkworks-rs/algebra/pull/418) (`ark-ff`) Add `sums_of_products` to `Field` and `Fp`
 - [\#420](https://github.com/arkworks-rs/algebra/pull/420) (`ark-ec`) Add a `clear_cofactor` method to `AffineCurve`.
+- [\#430](https://github.com/arkworks-rs/algebra/pull/430) (`ark-ec`) Add functionality for mapping a field element to a curve element for hash-to-curve.
+- [\#440](https://github.com/arkworks-rs/algebra/pull/440) (`ark-ff`) Add a method to construct a field element from an element of the underlying base prime field.
+- [\#446](https://github.com/arkworks-rs/algebra/pull/446) (`ark-ff`) Add `CyclotomicMultSubgroup` trait and impl for extension fields
 
 ### Improvements
 
@@ -205,7 +214,7 @@ The main features of this release are:
 - [\#207](https://github.com/arkworks-rs/algebra/pull/207) (`ark-ff`) Improve performance of extension fields when the non-residue is negative. (Improves fq2, fq12, and g2 speed on bls12 and bn curves.)
 - [\#211](https://github.com/arkworks-rs/algebra/pull/211) (`ark-ec`) Improve performance of BLS12 final exponentiation.
 - [\#214](https://github.com/arkworks-rs/algebra/pull/214) (`ark-poly`) Utilise a more efficient way of evaluating a polynomial at a single point.
-- [\#242](https://github.com/arkworks-rs/algebra/pull/242), [\#244][https://github.com/arkworks-rs/algebra/pull/244] (`ark-poly`) Speedup the sequential radix-2 FFT significantly by making the method in which it accesses roots more cache-friendly.
+- [\#242](https://github.com/arkworks-rs/algebra/pull/242), [\#244](https://github.com/arkworks-rs/algebra/pull/244) (`ark-poly`) Speedup the sequential radix-2 FFT significantly by making the method in which it accesses roots more cache-friendly.
 
 ### Bugfixes
 

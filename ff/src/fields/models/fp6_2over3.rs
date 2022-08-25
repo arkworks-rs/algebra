@@ -1,7 +1,15 @@
-use super::quadratic_extension::*;
-use core::{marker::PhantomData, ops::MulAssign};
+use ark_std::Zero;
 
-use crate::fields::{Fp3, Fp3Config};
+use super::quadratic_extension::*;
+use core::{
+    marker::PhantomData,
+    ops::{MulAssign, Not},
+};
+
+use crate::{
+    fields::{Fp3, Fp3Config},
+    CyclotomicMultSubgroup,
+};
 
 pub trait Fp6Config: 'static + Send + Sync {
     type Fp3Config: Fp3Config;
@@ -106,5 +114,15 @@ impl<P: Fp6Config> Fp6<P> {
         self.c1.c0 = x0 * &z3 + &(tmp1 * &z5) + &(tmp2 * &z2);
         self.c1.c1 = x0 * &z4 + &(x1 * &z3) + &(x4 * &z0);
         self.c1.c2 = x0 * &z5 + &(x1 * &z4) + &(x4 * &z1);
+    }
+}
+
+impl<P: Fp6Config> CyclotomicMultSubgroup for Fp6<P> {
+    const INVERSE_IS_FAST: bool = true;
+    fn cyclotomic_inverse_in_place(&mut self) -> Option<&mut Self> {
+        self.is_zero().not().then(|| {
+            self.conjugate();
+            self
+        })
     }
 }
