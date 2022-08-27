@@ -142,7 +142,7 @@ impl<P: MNT6Parameters> MNT6<P> {
             } else if *bit == 0 {
                 continue;
             } else {
-                unimplemented!();
+                unreachable!();
             }
             f *= &g_rq_at_p;
         }
