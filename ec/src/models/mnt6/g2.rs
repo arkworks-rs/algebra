@@ -74,7 +74,7 @@ impl<P: MNT6Parameters> From<G2Affine<P>> for G2Prepared<P> {
                     );
                 },
                 0 => continue,
-                _ => unimplemented!()
+                _ => unimplemented!(),
             }
             g2p.addition_coefficients.push(add_coeff);
             r = r_temp;
