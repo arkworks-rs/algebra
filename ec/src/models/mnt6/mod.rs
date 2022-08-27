@@ -113,6 +113,7 @@ impl<P: MNT6Parameters> MNT6<P> {
         // code below gets executed for all bits (EXCEPT the MSB itself) of
         // mnt6_param_p (skipping leading zeros) in MSB to LSB order
         let y_over_twist_neg = -q.y_over_twist;
+        assert_eq!(P::ATE_LOOP_COUNT.len() - 1, q.double_coefficients.len());
         for (bit, dc) in P::ATE_LOOP_COUNT.iter().skip(1).zip(&q.double_coefficients) {
             let g_rr_at_p = Fp6::new(
                 dc.c_l - &dc.c_4c - &(dc.c_j * &p.x_twist),
@@ -138,8 +139,10 @@ impl<P: MNT6Parameters> MNT6<P> {
                     ac.c_rz * &p.y_twist,
                     -(y_over_twist_neg * &ac.c_rz + &(l1_coeff * &ac.c_l1)),
                 );
-            } else {
+            } else if *bit == 0 {
                 continue;
+            } else {
+                unimplemented!();
             }
             f *= &g_rq_at_p;
         }

@@ -1,4 +1,4 @@
-use core::ops::Neg;
+use ark_std::ops::Neg;
 
 use crate::{
     mnt4::MNT4Parameters,
@@ -73,7 +73,8 @@ impl<P: MNT4Parameters> From<G2Affine<P>> for G2Prepared<P> {
                         &neg_g2.x, &neg_g2.y, &r,
                     );
                 },
-                _ => continue,
+                0 => continue,
+                _ => unimplemented!()
             }
             g2p.addition_coefficients.push(add_coeff);
             r = r_temp;
