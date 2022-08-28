@@ -2,7 +2,6 @@ use ark_ec::AffineCurve;
 use ark_ff::{Field, One, UniformRand, Zero};
 
 use crate::bls12_381::{g1, Fq, Fq2, Fq6, FqConfig, Fr, FrConfig, G1Affine, G1Projective};
-
 use ark_algebra_test_templates::{
     curves::*, fields::*, generate_field_test, generate_g1_test, msm::*,
 };
