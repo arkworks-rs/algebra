@@ -110,7 +110,7 @@ impl<P: SWCurveConfig> Default for Projective<P> {
 }
 
 impl<P: SWCurveConfig> Projective<P> {
-    /// Construct a new group element without checking whether the coordinates
+    /// Constructs a new group element without checking whether the coordinates
     /// specify a point in the subgroup.
     pub const fn new_unchecked(x: P::BaseField, y: P::BaseField, z: P::BaseField) -> Self {
         Self { x, y, z }
