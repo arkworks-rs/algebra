@@ -291,66 +291,62 @@ impl<P: SWCurveConfig> Neg for Projective<P> {
 impl<P: SWCurveConfig, T: Borrow<Affine<P>>> AddAssign<T> for Projective<P> {
     fn add_assign(&mut self, other: T) {
         let other = other.borrow();
-        match other.infinity {
-            true => {},
-            false => {
-                if self.is_zero() {
-                    self.x = other.x;
-                    self.y = other.y;
-                    self.z = P::BaseField::one();
-                    return;
-                }
+        if let Some((&other_x, &other_y)) = other.xy() {
+            if self.is_zero() {
+                self.x = other_x;
+                self.y = other_y;
+                self.z = P::BaseField::one();
+                return;
+            }
 
-                // Z1Z1 = Z1^2
-                let z1z1 = self.z.square();
+            // Z1Z1 = Z1^2
+            let z1z1 = self.z.square();
 
-                // U2 = X2*Z1Z1
-                let u2 = z1z1 * other.x;
+            // U2 = X2*Z1Z1
+            let u2 = z1z1 * other_x;
 
-                // S2 = Y2*Z1*Z1Z1
-                let s2 = (self.z * other.y) * &z1z1;
+            // S2 = Y2*Z1*Z1Z1
+            let s2 = (self.z * other_y) * &z1z1;
 
-                if self.x == u2 && self.y == s2 {
-                    // The two points are equal, so we double.
-                    self.double_in_place();
-                } else {
-                    // If we're adding -a and a together, self.z becomes zero as H becomes zero.
+            if self.x == u2 && self.y == s2 {
+                // The two points are equal, so we double.
+                self.double_in_place();
+            } else {
+                // If we're adding -a and a together, self.z becomes zero as H becomes zero.
 
-                    // H = U2-X1
-                    let h = u2 - &self.x;
+                // H = U2-X1
+                let h = u2 - &self.x;
 
-                    // HH = H^2
-                    let hh = h.square();
+                // HH = H^2
+                let hh = h.square();
 
-                    // I = 4*HH
-                    let mut i = hh;
-                    i.double_in_place().double_in_place();
+                // I = 4*HH
+                let mut i = hh;
+                i.double_in_place().double_in_place();
 
-                    // J = H*I
-                    let j = h * &i;
+                // J = H*I
+                let j = h * &i;
 
-                    // r = 2*(S2-Y1)
-                    let r = (s2 - &self.y).double();
+                // r = 2*(S2-Y1)
+                let r = (s2 - &self.y).double();
 
-                    // V = X1*I
-                    let v = self.x * &i;
+                // V = X1*I
+                let v = self.x * &i;
 
-                    // X3 = r^2 - J - 2*V
-                    self.x = r.square();
-                    self.x -= &j;
-                    self.x -= &v.double();
+                // X3 = r^2 - J - 2*V
+                self.x = r.square();
+                self.x -= &j;
+                self.x -= &v.double();
 
-                    // Y3 = r*(V-X3)-2*Y1*J
-                    self.y =
-                        P::BaseField::sum_of_products(&[r, -self.y.double()], &[(v - &self.x), j]);
+                // Y3 = r*(V-X3)-2*Y1*J
+                self.y = P::BaseField::sum_of_products(&[r, -self.y.double()], &[(v - &self.x), j]);
 
-                    // Z3 = (Z1+H)^2-Z1Z1-HH
-                    self.z += &h;
-                    self.z.square_in_place();
-                    self.z -= &z1z1;
-                    self.z -= &hh;
-                }
-            },
+                // Z3 = (Z1+H)^2-Z1Z1-HH
+                self.z += &h;
+                self.z.square_in_place();
+                self.z -= &z1z1;
+                self.z -= &hh;
+            }
         }
     }
 }
@@ -492,14 +488,11 @@ impl<'a, P: SWCurveConfig, T: Borrow<P::ScalarField>> Mul<T> for Projective<P> {
 impl<P: SWCurveConfig> From<Affine<P>> for Projective<P> {
     #[inline]
     fn from(p: Affine<P>) -> Projective<P> {
-        match p.infinity {
-            true => Self::zero(),
-            false => Self {
-                x: p.x,
-                y: p.y,
-                z: P::BaseField::one(),
-            },
-        }
+        p.xy().map_or(Projective::zero(), |(&x, &y)| Self {
+            x,
+            y,
+            z: P::BaseField::one(),
+        })
     }
 }
 

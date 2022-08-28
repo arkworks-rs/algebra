@@ -180,6 +180,14 @@ impl<P: SWCurveConfig> AffineRepr for Affine<P> {
         P::GENERATOR
     }
 
+    fn identity() -> Self {
+        Self {
+            x: P::BaseField::ZERO,
+            y: P::BaseField::ZERO,
+            infinity: true,
+        }
+    }
+
     fn from_random_bytes(bytes: &[u8]) -> Option<Self> {
         P::BaseField::from_random_bytes_with_flags::<SWFlags>(bytes).and_then(|(x, flags)| {
             // if x is valid and is zero and only the infinity flag is set, then parse this
@@ -229,9 +237,24 @@ impl<P: SWCurveConfig> Neg for Affine<P> {
 impl<P: SWCurveConfig, T: Borrow<Self>> Add<T> for Affine<P> {
     type Output = Projective<P>;
     fn add(self, other: T) -> Projective<P> {
+        // TODO implement more efficient formulae when z1 = z2 = 1.
         let mut copy = self.into_group();
         copy += other.borrow();
         copy
+    }
+}
+
+impl<P: SWCurveConfig> Add<Projective<P>> for Affine<P> {
+    type Output = Projective<P>;
+    fn add(self, other: Projective<P>) -> Projective<P> {
+        other + self
+    }
+}
+
+impl<'a, P: SWCurveConfig> Add<&'a Projective<P>> for Affine<P> {
+    type Output = Projective<P>;
+    fn add(self, other: &'a Projective<P>) -> Projective<P> {
+        *other + self
     }
 }
 

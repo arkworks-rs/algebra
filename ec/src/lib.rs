@@ -182,6 +182,8 @@ pub trait AffineRepr:
     + Into<<Self as AffineRepr>::Group>
     + Add<Self, Output = Self::Group>
     + for<'a> Add<&'a Self, Output = Self::Group>
+    + Add<Self::Group, Output = Self::Group>
+    + for<'a> Add<&'a Self::Group, Output = Self::Group>
     + Mul<Self::ScalarField, Output = Self::Group>
     + for<'a> Mul<&'a Self::ScalarField, Output = Self::Group>
 {
@@ -202,6 +204,24 @@ pub trait AffineRepr:
 
     /// Returns the x and y coordinates of this affine point.
     fn xy(&self) -> Option<(&Self::BaseField, &Self::BaseField)>;
+
+    /// Returns the x coordinate of this affine point.
+    fn x(&self) -> Option<&Self::BaseField> {
+        self.xy().map(|(x, _)| x)
+    }
+
+    /// Returns the y coordinate of this affine point.
+    fn y(&self) -> Option<&Self::BaseField> {
+        self.xy().map(|(_, y)| y)
+    }
+
+    /// Returns the point at infinity
+    fn identity() -> Self;
+
+    /// Is `self` the point at infinity?
+    fn is_identity(&self) -> bool {
+        self.xy().is_none()
+    }
 
     /// Returns a fixed generator of unknown exponent.
     #[must_use]

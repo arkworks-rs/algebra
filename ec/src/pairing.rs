@@ -14,7 +14,7 @@ use ark_std::{
 };
 use zeroize::Zeroize;
 
-use crate::{AffineRepr, CurveGroup, Group};
+use crate::{AffineRepr, CurveGroup, Group, VariableBaseMSM};
 
 /// Collection of types (mainly fields and curves) that together describe
 /// how to compute a pairing over a pairing-friendly curve.
@@ -79,13 +79,22 @@ pub trait Pairing: Sized + 'static + Copy + Debug + Sync + Send + Eq {
         b: impl IntoIterator<Item = impl Into<Self::G2Prepared>>,
     ) -> MillerLoopOutput<Self>;
 
-    /// Perform final exponentiation of the result of a miller loop.
+    /// Computes the Miller loop over `a` and `b`.
+    #[must_use]
+    fn miller_loop(
+        a: impl Into<Self::G1Prepared>,
+        b: impl Into<Self::G2Prepared>,
+    ) -> MillerLoopOutput<Self> {
+        Self::multi_miller_loop([a], [b])
+    }
+
+    /// Performs final exponentiation of the result of a `Self::multi_miller_loop`.
     #[must_use]
     fn final_exponentiation(mlo: MillerLoopOutput<Self>) -> Option<PairingOutput<Self>>;
 
-    /// Computes a product of pairings.
+    /// Computes a "product" of pairings.
     #[must_use]
-    fn product_of_pairings(
+    fn multi_pairing(
         a: impl IntoIterator<Item = impl Into<Self::G1Prepared>>,
         b: impl IntoIterator<Item = impl Into<Self::G2Prepared>>,
     ) -> PairingOutput<Self> {
@@ -98,7 +107,7 @@ pub trait Pairing: Sized + 'static + Copy + Debug + Sync + Send + Eq {
         p: impl Into<Self::G1Prepared>,
         q: impl Into<Self::G2Prepared>,
     ) -> PairingOutput<Self> {
-        Self::product_of_pairings([p], [q])
+        Self::multi_pairing([p], [q])
     }
 }
 
@@ -295,6 +304,16 @@ impl<P: Pairing> Group for PairingOutput<P> {
         Self(self.0.cyclotomic_exp(&other))
     }
 }
+
+impl<P: Pairing> crate::ScalarMul for PairingOutput<P> {
+    type MulBase = Self;
+
+    fn batch_convert_to_mul_base(bases: &[Self]) -> Vec<Self::MulBase> {
+        bases.to_vec()
+    }
+}
+
+impl<P: Pairing> VariableBaseMSM for PairingOutput<P> {}
 
 /// Represents the output of the Miller loop of the pairing.
 #[derive(Derivative)]

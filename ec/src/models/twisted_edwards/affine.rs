@@ -143,6 +143,10 @@ impl<P: TECurveConfig> AffineRepr for Affine<P> {
         P::GENERATOR
     }
 
+    fn identity() -> Self {
+        Self::new_unchecked(P::BaseField::ZERO, P::BaseField::ONE)
+    }
+
     fn from_random_bytes(bytes: &[u8]) -> Option<Self> {
         P::BaseField::from_random_bytes_with_flags::<EdwardsFlags>(bytes).and_then(|(y, flags)| {
             // if y is valid and is zero, then parse this
@@ -197,6 +201,20 @@ impl<P: TECurveConfig, T: Borrow<Self>> Add<T> for Affine<P> {
         let mut copy = self.into_group();
         copy += other.borrow();
         copy
+    }
+}
+
+impl<P: TECurveConfig> Add<Projective<P>> for Affine<P> {
+    type Output = Projective<P>;
+    fn add(self, other: Projective<P>) -> Projective<P> {
+        other + self
+    }
+}
+
+impl<'a, P: TECurveConfig> Add<&'a Projective<P>> for Affine<P> {
+    type Output = Projective<P>;
+    fn add(self, other: &'a Projective<P>) -> Projective<P> {
+        *other + self
     }
 }
 

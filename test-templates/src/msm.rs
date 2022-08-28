@@ -27,7 +27,6 @@ pub fn test_var_base_msm<G: VariableBaseMSM>() {
     let naive = naive_var_base_msm::<G>(g.as_slice(), v.as_slice());
     let fast = G::msm(g.as_slice(), v.as_slice());
 
-    // assert!(ark_std::panic::catch_unwind(||  <G::Projective as VariableBaseMSM>::msm(&g[.. SAMPLES], &v[.. SAMPLES-1])).is_err());
     assert_eq!(naive, fast);
 }
 

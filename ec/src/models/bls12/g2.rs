@@ -52,33 +52,31 @@ impl<P: Bls12Parameters> Default for G2Prepared<P> {
 impl<P: Bls12Parameters> From<G2Affine<P>> for G2Prepared<P> {
     fn from(q: G2Affine<P>) -> Self {
         let two_inv = P::Fp::one().double().inverse().unwrap();
-        match q.infinity {
-            true => G2Prepared {
-                ell_coeffs: vec![],
-                infinity: true,
-            },
-            false => {
-                let mut ell_coeffs = vec![];
-                let mut r = G2HomProjective::<P> {
-                    x: q.x,
-                    y: q.y,
-                    z: Fp2::one(),
-                };
+        let zero = G2Prepared {
+            ell_coeffs: vec![],
+            infinity: true,
+        };
+        q.xy().map_or(zero, |(&q_x, &q_y)| {
+            let mut ell_coeffs = vec![];
+            let mut r = G2HomProjective::<P> {
+                x: q_x,
+                y: q_y,
+                z: Fp2::one(),
+            };
 
-                for i in BitIteratorBE::new(P::X).skip(1) {
-                    ell_coeffs.push(r.double_in_place(&two_inv));
+            for i in BitIteratorBE::new(P::X).skip(1) {
+                ell_coeffs.push(r.double_in_place(&two_inv));
 
-                    if i {
-                        ell_coeffs.push(r.add_in_place(&q));
-                    }
+                if i {
+                    ell_coeffs.push(r.add_in_place(&q));
                 }
+            }
 
-                Self {
-                    ell_coeffs,
-                    infinity: false,
-                }
-            },
-        }
+            Self {
+                ell_coeffs,
+                infinity: false,
+            }
+        })
     }
 }
 

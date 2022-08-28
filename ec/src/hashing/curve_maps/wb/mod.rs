@@ -33,21 +33,22 @@ pub trait WBParams: SWCurveConfig + Sized {
     fn isogeny_map(
         domain_point: Affine<Self::IsogenousCurve>,
     ) -> Result<Affine<Self>, HashToCurveError> {
-        let x_num = DensePolynomial::from_coefficients_slice(Self::PHI_X_NOM);
-        let x_den = DensePolynomial::from_coefficients_slice(Self::PHI_X_DEN);
+        match domain_point.xy() {
+            Some((x, y)) => {
+                let x_num = DensePolynomial::from_coefficients_slice(Self::PHI_X_NOM);
+                let x_den = DensePolynomial::from_coefficients_slice(Self::PHI_X_DEN);
 
-        let y_num = DensePolynomial::from_coefficients_slice(Self::PHI_Y_NOM);
-        let y_den = DensePolynomial::from_coefficients_slice(Self::PHI_Y_DEN);
+                let y_num = DensePolynomial::from_coefficients_slice(Self::PHI_Y_NOM);
+                let y_den = DensePolynomial::from_coefficients_slice(Self::PHI_Y_DEN);
 
-        let mut v: [BaseField<Self>; 2] = [
-            x_den.evaluate(&domain_point.x),
-            y_den.evaluate(&domain_point.x),
-        ];
-        batch_inversion(&mut v);
-        let img_x = x_num.evaluate(&domain_point.x) * v[0];
-        let img_y = (y_num.evaluate(&domain_point.x) * domain_point.y) * v[1];
-
-        Ok(Affine::new_unchecked(img_x, img_y))
+                let mut v: [BaseField<Self>; 2] = [x_den.evaluate(x), y_den.evaluate(x)];
+                batch_inversion(&mut v);
+                let img_x = x_num.evaluate(x) * v[0];
+                let img_y = (y_num.evaluate(x) * y) * v[1];
+                Ok(Affine::new_unchecked(img_x, img_y))
+            },
+            None => Ok(Affine::identity()),
+        }
     }
 }
 
