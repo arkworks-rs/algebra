@@ -412,7 +412,12 @@ macro_rules! __test_field {
             let modulus_minus_one = &modulus - 1u8;
             assert_eq!(BigUint::from(<$field>::MODULUS_MINUS_ONE_DIV_TWO), &modulus_minus_one / 2u32);
             assert_eq!(<$field>::MODULUS_BIT_SIZE as u64, modulus.bits());
-
+            if &modulus % 4u8 == BigUint::from(3u8) {
+                assert_eq!(
+                    BigUint::from(T::MODULUS_PLUS_ONE_DIV_FOUR.unwrap()),
+                    (&modulus + 1u8) / 4u8
+                );
+            }
             let mut two_adicity = 0;
             let mut trace = modulus_minus_one;
             while trace.is_even() {

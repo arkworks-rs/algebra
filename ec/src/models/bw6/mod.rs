@@ -244,7 +244,7 @@ impl<P: BW6Parameters> Pairing for BW6<P> {
         let mut f_1 = cfg_chunks_mut!(pairs_1, 4)
             .map(|pairs| {
                 let mut f = Self::TargetField::one();
-                for i in BitIteratorBE::new(P::ATE_LOOP_COUNT_1).skip(1) {
+                for i in BitIteratorBE::without_leading(P::ATE_LOOP_COUNT_1).skip(1) {
                     f.square_in_place();
                     for (p, coeffs) in pairs.iter_mut() {
                         Self::ell(&mut f, &coeffs.next().unwrap(), &p.0);

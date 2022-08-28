@@ -118,7 +118,7 @@ impl<P: Bls12Parameters> Pairing for Bls12<P> {
         let mut f = cfg_chunks_mut!(pairs, 4)
             .map(|pairs| {
                 let mut f = Self::TargetField::one();
-                for i in BitIteratorBE::new(P::X).skip(1) {
+                for i in BitIteratorBE::without_leading_zeros(P::X).skip(1) {
                     f.square_in_place();
                     for (p, coeffs) in pairs.iter_mut() {
                         Self::ell(&mut f, &coeffs.next().unwrap(), &p.0);

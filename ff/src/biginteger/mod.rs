@@ -95,7 +95,9 @@ impl<const N: usize> BigInt<N> {
     }
 
     pub const fn one() -> Self {
-        BigInt!("1")
+        let mut one = Self::zero();
+        one.0[0] = 1;
+        one
     }
 
     #[doc(hidden)]
@@ -106,6 +108,13 @@ impl<const N: usize> BigInt<N> {
     #[doc(hidden)]
     pub const fn const_is_odd(&self) -> bool {
         self.0[0] % 2 == 1
+    }
+
+    #[doc(hidden)]
+    pub const fn mod_4(&self) -> u8 {
+        // To compute n % 4, we need to simply look at the
+        // 2 least significant bits of n, and check their value mod 4.
+        (((self.0[0] << 62) >> 62) % 4) as u8
     }
 
     /// Compute a right shift of `self`
@@ -185,7 +194,6 @@ impl<const N: usize> BigInt<N> {
     }
 
     #[inline]
-    #[unroll_for_loops(12)]
     pub(crate) const fn const_sub_with_borrow(mut self, other: &Self) -> (Self, bool) {
         let mut borrow = 0;
 
@@ -194,6 +202,17 @@ impl<const N: usize> BigInt<N> {
         });
 
         (self, borrow != 0)
+    }
+
+    #[inline]
+    pub(crate) const fn const_add_with_carry(mut self, other: &Self) -> (Self, bool) {
+        let mut carry = 0;
+
+        crate::const_for!((i in 0..N) {
+            self.0[i] = adc!(self.0[i], other.0[i], &mut carry);
+        });
+
+        (self, carry != 0)
     }
 
     const fn const_mul2(mut self) -> Self {
