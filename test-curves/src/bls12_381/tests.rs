@@ -4,13 +4,12 @@ use ark_ec::{
 };
 use ark_ff::{Field, One, UniformRand, Zero};
 
-use crate::bls12_381::{Fq, Fq2, Fq6, FqConfig, Fr, FrConfig, G1Affine, G1Projective};
+use crate::bls12_381::{g1, Fq, Fq2, Fq6, FqConfig, Fr, FrConfig, G1Affine, G1Projective};
 use ark_ec::bls12::{Bls12, Bls12Parameters, TwistType};
 
 use ark_algebra_test_templates::{
     curves::*, fields::*, generate_field_test, generate_g1_test, msm::*,
 };
-
 use ark_std::{
     ops::{AddAssign, MulAssign, SubAssign},
     rand::Rng,
