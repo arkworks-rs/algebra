@@ -46,7 +46,7 @@ pub trait MNT4Parameters: 'static {
 pub struct MNT4<P: MNT4Parameters>(PhantomData<fn() -> P>);
 
 impl<P: MNT4Parameters> MNT4<P> {
-    fn doubling_step_for_flipped_miller_loop(
+    fn doubling_for_flipped_miller_loop(
         r: &G2ProjectiveExtended<P>,
     ) -> (G2ProjectiveExtended<P>, AteDoubleCoefficients<P>) {
         let a = r.t.square();
@@ -75,7 +75,7 @@ impl<P: MNT4Parameters> MNT4<P> {
         (r2, coeff)
     }
 
-    fn mixed_addition_step_for_flipped_miller_loop(
+    fn mixed_addition_for_flipped_miller_loop(
         x: &Fp2<P::Fp2Config>,
         y: &Fp2<P::Fp2Config>,
         r: &G2ProjectiveExtended<P>,
@@ -121,28 +121,27 @@ impl<P: MNT4Parameters> MNT4<P> {
             f = f.square() * &g_rr_at_p;
 
             // Compute l_{R,Q}(P) if bit == 1, and l_{R,-Q}(P) if bit == -1
-            let g_rq_at_p;
-            if *bit == 1 {
+            let g_rq_at_p = if *bit == 1 {
                 let ac = &q.addition_coefficients[add_idx];
                 add_idx += 1;
 
-                g_rq_at_p = Fp4::new(
+                Fp4::new(
                     ac.c_rz * &p.y_twist,
                     -(q.y_over_twist * &ac.c_rz + &(l1_coeff * &ac.c_l1)),
-                );
+                )
             } else if *bit == -1 {
                 let ac = &q.addition_coefficients[add_idx];
                 add_idx += 1;
 
-                g_rq_at_p = Fp4::new(
+                Fp4::new(
                     ac.c_rz * &p.y_twist,
                     -(y_over_twist_neg * &ac.c_rz + &(l1_coeff * &ac.c_l1)),
-                );
+                )
             } else if *bit == 0 {
                 continue;
             } else {
                 unreachable!();
-            }
+            };
             f *= &g_rq_at_p;
         }
 
