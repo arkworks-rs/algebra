@@ -95,7 +95,7 @@ macro_rules! generate_g2_test {
 macro_rules! generate_bilinearity_test {
     () => {};
 
-    ($curve_name: ident, $filed_name: ident) => {
+    ($curve_name: ident, $field_name: ident) => {
         #[test]
         fn test_bilinearity() {
             let mut rng = test_rng();
@@ -115,13 +115,13 @@ macro_rules! generate_bilinearity_test {
             assert_eq!(ans1, ans2);
             assert_eq!(ans2, ans3);
 
-            assert_ne!(ans1, $filed_name::one());
-            assert_ne!(ans2, $filed_name::one());
-            assert_ne!(ans3, $filed_name::one());
+            assert_ne!(ans1, $field_name::one());
+            assert_ne!(ans2, $field_name::one());
+            assert_ne!(ans3, $field_name::one());
 
-            assert_eq!(ans1.pow(Fr::characteristic()), $filed_name::one());
-            assert_eq!(ans2.pow(Fr::characteristic()), $filed_name::one());
-            assert_eq!(ans3.pow(Fr::characteristic()), $filed_name::one());
+            assert_eq!(ans1.pow(Fr::characteristic()), $field_name::one());
+            assert_eq!(ans2.pow(Fr::characteristic()), $field_name::one());
+            assert_eq!(ans3.pow(Fr::characteristic()), $field_name::one());
         }
     };
 }
