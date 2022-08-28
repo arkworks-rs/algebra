@@ -1,3 +1,5 @@
+use ark_std::ops::Neg;
+
 use crate::{
     mnt4::MNT4Parameters,
     models::mnt4::MNT4,
@@ -34,51 +36,39 @@ impl<P: MNT4Parameters> Default for G2Prepared<P> {
 }
 
 impl<P: MNT4Parameters> From<G2Affine<P>> for G2Prepared<P> {
-    fn from(g2: G2Affine<P>) -> Self {
+    fn from(g: G2Affine<P>) -> Self {
         let twist_inv = P::TWIST.inverse().unwrap();
 
-        let mut g2p = G2Prepared {
-            x: g2.x,
-            y: g2.y,
-            x_over_twist: g2.x * &twist_inv,
-            y_over_twist: g2.y * &twist_inv,
+        let mut g_prep = G2Prepared {
+            x: g.x,
+            y: g.y,
+            x_over_twist: g.x * &twist_inv,
+            y_over_twist: g.y * &twist_inv,
             double_coefficients: vec![],
             addition_coefficients: vec![],
         };
 
         let mut r = G2ProjectiveExtended {
-            x: g2.x,
-            y: g2.y,
+            x: g.x,
+            y: g.y,
             z: <Fp2<P::Fp2Config>>::one(),
             t: <Fp2<P::Fp2Config>>::one(),
         };
 
-        for (idx, value) in P::ATE_LOOP_COUNT.iter().rev().enumerate() {
-            let mut tmp = *value;
-            let skip_extraneous_bits = 64 - value.leading_zeros();
-            let mut v = Vec::with_capacity(16);
-            for i in 0..64 {
-                if idx == 0 && (i == 0 || i >= skip_extraneous_bits) {
-                    continue;
-                }
-                v.push(tmp & 1 == 1);
-                tmp >>= 1;
-            }
+        let neg_g = g.neg();
+        for bit in P::ATE_LOOP_COUNT.iter().skip(1) {
+            let (r2, coeff) = MNT4::<P>::doubling_for_flipped_miller_loop(&r);
+            g_prep.double_coefficients.push(coeff);
+            r = r2;
 
-            for bit in v.iter().rev() {
-                let (r2, coeff) = MNT4::<P>::doubling_step_for_flipped_miller_loop(&r);
-                g2p.double_coefficients.push(coeff);
-                r = r2;
-
-                if *bit {
-                    let (r2, coeff) =
-                        MNT4::<P>::mixed_addition_step_for_flipped_miller_loop(&g2.x, &g2.y, &r);
-                    g2p.addition_coefficients.push(coeff);
-                    r = r2;
-                }
-
-                tmp >>= 1;
-            }
+            let (r_temp, add_coeff) = match bit {
+                1 => MNT4::<P>::mixed_addition_for_flipped_miller_loop(&g.x, &g.y, &r),
+                -1 => MNT4::<P>::mixed_addition_for_flipped_miller_loop(&neg_g.x, &neg_g.y, &r),
+                0 => continue,
+                _ => unreachable!(),
+            };
+            g_prep.addition_coefficients.push(add_coeff);
+            r = r_temp;
         }
 
         if P::ATE_IS_LOOP_COUNT_NEG {
@@ -89,15 +79,15 @@ impl<P: MNT4Parameters> From<G2Affine<P>> for G2Prepared<P> {
             let minus_r_affine_x = r.x * &rz2_inv;
             let minus_r_affine_y = -r.y * &rz3_inv;
 
-            let add_result = MNT4::<P>::mixed_addition_step_for_flipped_miller_loop(
+            let add_result = MNT4::<P>::mixed_addition_for_flipped_miller_loop(
                 &minus_r_affine_x,
                 &minus_r_affine_y,
                 &r,
             );
-            g2p.addition_coefficients.push(add_result.1);
+            g_prep.addition_coefficients.push(add_result.1);
         }
 
-        g2p
+        g_prep
     }
 }
 
