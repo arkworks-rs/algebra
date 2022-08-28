@@ -413,6 +413,13 @@ pub fn montgomery_primefield_test<T: MontConfig<N>, const N: usize>() {
         modulus.bits()
     );
 
+    if &modulus % 4u8 == BigUint::from(3u8) {
+        assert_eq!(
+            BigUint::from(T::MODULUS_PLUS_ONE_DIV_FOUR.unwrap()),
+            (&modulus + 1u8) / 4u8
+        );
+    }
+
     let modulus_minus_one = &modulus - 1u8;
     assert_eq!(
         BigUint::from(Fp::<MontBackend<T, N>, N>::MODULUS_MINUS_ONE_DIV_TWO),

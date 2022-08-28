@@ -58,11 +58,24 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
     /// Precomputed material for use when computing square roots.
     /// The default is to use the standard Tonelli-Shanks algorithm.
     const SQRT_PRECOMP: Option<SqrtPrecomputation<Fp<MontBackend<Self, N>, N>>> =
-        Some(SqrtPrecomputation::TonelliShanks(
-            <MontBackend<Self, N>>::TWO_ADICITY,
-            &<Fp<MontBackend<Self, N>, N>>::TRACE_MINUS_ONE_DIV_TWO,
-            Self::TWO_ADIC_ROOT_OF_UNITY,
-        ));
+        sqrt_precomputation::<N, Self>();
+
+    /// (MODULUS + 1) / 4 when MODULUS % 4 == 3. Used for square root precomputations.
+    #[doc(hidden)]
+    const MODULUS_PLUS_ONE_DIV_FOUR: Option<BigInt<N>> = {
+        match Self::MODULUS.mod_4() == 3 {
+            true => {
+                let (modulus_plus_one, carry) =
+                    Self::MODULUS.const_add_with_carry(&BigInt::<N>::one());
+                let mut result = modulus_plus_one.divide_by_2_round_down();
+                // Since modulus_plus_one is even, dividing by 2 results in a MSB of 0.
+                // Thus we can set MSB to `carry` to get the correct result of (MODULUS + 1) // 2:
+                result.0[N - 1] |= (carry as u64) << 63;
+                Some(result.divide_by_2_round_down())
+            },
+            false => None,
+        }
+    };
 
     /// Set a += b;
     fn add_assign(a: &mut Fp<MontBackend<Self, N>, N>, b: &Fp<MontBackend<Self, N>, N>) {
@@ -400,6 +413,24 @@ pub const fn can_use_no_carry_optimization<const N: usize>(modulus: &BigInt<N>) 
     !(first_bit_set || all_bits_set)
 }
 
+pub const fn sqrt_precomputation<const N: usize, T: MontConfig<N>>(
+) -> Option<SqrtPrecomputation<Fp<MontBackend<T, N>, N>>> {
+    match T::MODULUS.mod_4() {
+        3 => match T::MODULUS_PLUS_ONE_DIV_FOUR.as_ref() {
+            Some(BigInt(modulus_plus_one_div_four)) => Some(SqrtPrecomputation::Case3Mod4 {
+                modulus_plus_one_div_four,
+            }),
+            None => None,
+        },
+        _ => Some(SqrtPrecomputation::TonelliShanks {
+            two_adicity: <MontBackend<T, N>>::TWO_ADICITY,
+            quadratic_nonresidue_to_trace: T::TWO_ADIC_ROOT_OF_UNITY,
+            trace_of_modulus_minus_one_div_two:
+                &<Fp<MontBackend<T, N>, N>>::TRACE_MINUS_ONE_DIV_TWO.0,
+        }),
+    }
+}
+
 /// Construct a [`Fp<MontBackend<T, N>, N>`] element from a literal string. This
 /// should be used primarily for constructing constant field elements; in a
 /// non-const context, [`Fp::from_str`](`ark_std::str::FromStr::from_str`) is
@@ -515,6 +546,11 @@ impl<T: MontConfig<N>, const N: usize> FpConfig<N> for MontBackend<T, N> {
 }
 
 impl<T: MontConfig<N>, const N: usize> Fp<MontBackend<T, N>, N> {
+    #[doc(hidden)]
+    pub const R2: BigInt<N> = T::R2;
+    #[doc(hidden)]
+    pub const INV: u64 = T::INV;
+
     /// Construct a new field element from its underlying
     /// [`struct@BigInt`] data type.
     #[inline]
@@ -635,9 +671,4 @@ impl<T: MontConfig<N>, const N: usize> Fp<MontBackend<T, N>, N> {
     const fn sub_with_borrow(a: &BigInt<N>, b: &BigInt<N>) -> BigInt<N> {
         a.const_sub_with_borrow(b).0
     }
-}
-
-impl<T: MontConfig<N>, const N: usize> Fp<MontBackend<T, N>, N> {
-    pub const R2: BigInt<N> = T::R2;
-    pub const INV: u64 = T::INV;
 }

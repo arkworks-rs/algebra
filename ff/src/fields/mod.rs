@@ -636,16 +636,31 @@ impl LegendreSymbol {
     }
 }
 
+/// Precomputation that makes computing square roots faster
+/// A particular variant should only be instantiated if the modulus satisfies
+/// the corresponding condition.
 #[non_exhaustive]
 pub enum SqrtPrecomputation<F: Field> {
     // Tonelli-Shanks algorithm works for all elements, no matter what the modulus is.
-    TonelliShanks(u32, &'static dyn AsRef<[u64]>, F),
+    TonelliShanks {
+        two_adicity: u32,
+        quadratic_nonresidue_to_trace: F,
+        trace_of_modulus_minus_one_div_two: &'static [u64],
+    },
+    /// To be used when the modulus is 3 mod 4.
+    Case3Mod4 {
+        modulus_plus_one_div_four: &'static [u64],
+    },
 }
 
 impl<F: Field> SqrtPrecomputation<F> {
     fn sqrt(&self, elem: &F) -> Option<F> {
         match self {
-            SqrtPrecomputation::TonelliShanks(two_adicity, trace_minus_one_div_two, qnr_to_t) => {
+            Self::TonelliShanks {
+                two_adicity,
+                quadratic_nonresidue_to_trace,
+                trace_of_modulus_minus_one_div_two,
+            } => {
                 // https://eprint.iacr.org/2012/685.pdf (page 12, algorithm 5)
                 // Actually this is just normal Tonelli-Shanks; since `P::Generator`
                 // is a quadratic non-residue, `P::ROOT_OF_UNITY = P::GENERATOR ^ t`
@@ -656,8 +671,8 @@ impl<F: Field> SqrtPrecomputation<F> {
                 // Try computing the square root (x at the end of the algorithm)
                 // Check at the end of the algorithm if x was a square root
                 // Begin Tonelli-Shanks
-                let mut z = *qnr_to_t;
-                let mut w = elem.pow(trace_minus_one_div_two);
+                let mut z = *quadratic_nonresidue_to_trace;
+                let mut w = elem.pow(trace_of_modulus_minus_one_div_two);
                 let mut x = w * elem;
                 let mut b = x * &w;
 
@@ -698,6 +713,12 @@ impl<F: Field> SqrtPrecomputation<F> {
                     debug_assert!(!matches!(elem.legendre(), LegendreSymbol::QuadraticResidue));
                     None
                 }
+            },
+            Self::Case3Mod4 {
+                modulus_plus_one_div_four,
+            } => {
+                let result = elem.pow(modulus_plus_one_div_four.as_ref());
+                (result.square() == *elem).then_some(result)
             },
         }
     }
