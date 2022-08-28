@@ -3,6 +3,7 @@ use ark_ff::{
     Zero,
 };
 use ark_std::{vec::Vec, One};
+use ark_serialize::*;
 
 use crate::{
     bls12::{Bls12Parameters, TwistType},
@@ -14,7 +15,7 @@ use crate::{
 pub type G2Affine<P> = Affine<<P as Bls12Parameters>::G2Parameters>;
 pub type G2Projective<P> = Projective<<P as Bls12Parameters>::G2Parameters>;
 
-#[derive(Derivative)]
+#[derive(Derivative, CanonicalSerialize, CanonicalDeserialize)]
 #[derivative(
     Clone(bound = "P: Bls12Parameters"),
     Debug(bound = "P: Bls12Parameters"),

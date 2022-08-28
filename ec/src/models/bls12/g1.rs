@@ -4,11 +4,12 @@ use crate::{
     AffineCurve,
 };
 use num_traits::Zero;
+use ark_serialize::*;
 
 pub type G1Affine<P> = Affine<<P as Bls12Parameters>::G1Parameters>;
 pub type G1Projective<P> = Projective<<P as Bls12Parameters>::G1Parameters>;
 
-#[derive(Derivative)]
+#[derive(Derivative, CanonicalSerialize, CanonicalDeserialize)]
 #[derivative(
     Clone(bound = "P: Bls12Parameters"),
     Debug(bound = "P: Bls12Parameters"),

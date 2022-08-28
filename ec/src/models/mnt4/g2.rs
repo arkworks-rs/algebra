@@ -7,11 +7,12 @@ use crate::{
 use ark_ff::fields::{Field, Fp2};
 use ark_std::vec::Vec;
 use num_traits::One;
+use ark_serialize::*;
 
 pub type G2Affine<P> = Affine<<P as MNT4Parameters>::G2Parameters>;
 pub type G2Projective<P> = Projective<<P as MNT4Parameters>::G2Parameters>;
 
-#[derive(Derivative)]
+#[derive(Derivative, CanonicalSerialize, CanonicalDeserialize)]
 #[derivative(
     Clone(bound = "P: MNT4Parameters"),
     Debug(bound = "P: MNT4Parameters"),
@@ -108,7 +109,7 @@ pub(super) struct G2ProjectiveExtended<P: MNT4Parameters> {
     pub(crate) t: Fp2<P::Fp2Config>,
 }
 
-#[derive(Derivative)]
+#[derive(Derivative, CanonicalSerialize, CanonicalDeserialize)]
 #[derivative(
     Clone(bound = "P: MNT4Parameters"),
     Debug(bound = "P: MNT4Parameters"),
@@ -122,7 +123,7 @@ pub struct AteDoubleCoefficients<P: MNT4Parameters> {
     pub c_l: Fp2<P::Fp2Config>,
 }
 
-#[derive(Derivative)]
+#[derive(Derivative, CanonicalSerialize, CanonicalDeserialize)]
 #[derivative(
     Clone(bound = "P: MNT4Parameters"),
     Debug(bound = "P: MNT4Parameters"),
