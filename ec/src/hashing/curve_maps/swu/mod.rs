@@ -155,9 +155,10 @@ impl<P: SWUParams> MapToCurve<Projective<P>> for SWUMap<P> {
 
 #[cfg(test)]
 mod test {
-    use crate::hashing::map_to_curve_hasher::MapToCurveBasedHasher;
-    use crate::hashing::HashToCurve;
-    use crate::CurveConfig;
+    use crate::{
+        hashing::{map_to_curve_hasher::MapToCurveBasedHasher, HashToCurve},
+        CurveConfig,
+    };
     use ark_ff::field_hashers::DefaultFieldHasher;
     use ark_std::vec::Vec;
 

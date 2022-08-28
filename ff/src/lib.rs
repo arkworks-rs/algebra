@@ -1,6 +1,5 @@
 //! Utilities for a field $\FF$.
 //!
-//!
 
 #![cfg_attr(not(feature = "std"), no_std)]
 #![warn(

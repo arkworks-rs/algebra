@@ -1,5 +1,7 @@
-use std::fs::{read_dir, File};
-use std::io::BufReader;
+use std::{
+    fs::{read_dir, File},
+    io::BufReader,
+};
 
 use super::json::SuiteVector;
 use ark_ff::field_hashers::{DefaultFieldHasher, HashToField};

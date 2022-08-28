@@ -90,7 +90,6 @@ impl<P: WBParams> MapToCurve<Projective<P>> for WBMap<P> {
 
 #[cfg(test)]
 mod test {
-    use crate::hashing::HashToCurve;
     use crate::{
         hashing::{
             curve_maps::{
@@ -98,13 +97,13 @@ mod test {
                 wb::{WBMap, WBParams},
             },
             map_to_curve_hasher::MapToCurveBasedHasher,
+            HashToCurve,
         },
         models::short_weierstrass::SWCurveConfig,
         short_weierstrass::{Affine, Projective},
         CurveConfig,
     };
-    use ark_ff::field_hashers::DefaultFieldHasher;
-    use ark_ff::{fields::Fp64, MontBackend, MontFp};
+    use ark_ff::{field_hashers::DefaultFieldHasher, fields::Fp64, MontBackend, MontFp};
 
     #[derive(ark_ff::MontConfig)]
     #[modulus = "127"]

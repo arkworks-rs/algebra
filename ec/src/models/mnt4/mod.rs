@@ -1,7 +1,6 @@
 use crate::{
     models::{short_weierstrass::SWCurveConfig, CurveConfig},
-    pairing::Pairing,
-    pairing::{MillerLoopOutput, PairingOutput},
+    pairing::{MillerLoopOutput, Pairing, PairingOutput},
 };
 use ark_ff::{
     fp2::{Fp2, Fp2Config},
