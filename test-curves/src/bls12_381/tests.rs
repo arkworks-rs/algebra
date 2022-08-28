@@ -4,10 +4,10 @@ use ark_ec::{
 };
 use ark_ff::{Field, One, UniformRand, Zero};
 
-use crate::bls12_381::{Fq, Fq2, Fq6, FqConfig, Fr, FrConfig};
+use crate::bls12_381::{Fq, FqConfig, Fr, FrConfig};
 
 #[cfg(feature = "bls12_381_curve")]
-use crate::bls12_381::{g1, G1Affine, G1Projective};
+use crate::bls12_381::{g1, Fq2, Fq6, G1Affine, G1Projective};
 #[cfg(feature = "bls12_381_curve")]
 use ark_ec::bls12::{Bls12, Bls12Parameters, TwistType};
 
@@ -22,7 +22,11 @@ use ark_std::{
     test_rng,
 };
 
+#[cfg(feature = "bls12_381_curve")]
 generate_field_test!(bls12_381; fq2; fq6; mont(6, 4); );
+
+#[cfg(not(feature = "bls12_381_curve"))]
+generate_field_test!(bls12_381; mont(6, 4); );
 
 #[cfg(feature = "bls12_381_curve")]
 generate_g1_test!(bls12_381; curve_tests; sw_tests;);

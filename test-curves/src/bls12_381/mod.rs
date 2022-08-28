@@ -4,13 +4,13 @@ pub use fr::*;
 #[cfg(feature = "bls12_381_curve")]
 use ark_ec::bls12::{Bls12, Bls12Parameters, TwistType};
 
-#[cfg(feature = "bls12_381_scalar_field")]
+#[cfg(feature = "bls12_381_curve")]
 pub mod fq;
-#[cfg(feature = "bls12_381_scalar_field")]
+#[cfg(feature = "bls12_381_curve")]
 pub mod fq12;
-#[cfg(feature = "bls12_381_scalar_field")]
+#[cfg(feature = "bls12_381_curve")]
 pub mod fq2;
-#[cfg(feature = "bls12_381_scalar_field")]
+#[cfg(feature = "bls12_381_curve")]
 pub mod fq6;
 #[cfg(feature = "bls12_381_curve")]
 pub mod g1;
@@ -20,13 +20,11 @@ pub mod g1_swu_iso;
 pub mod g2;
 #[cfg(feature = "bls12_381_curve")]
 pub mod g2_swu_iso;
-#[cfg(feature = "bls12_381_scalar_field")]
-pub use {fq::*, fq12::*, fq2::*, fq6::*};
+
 #[cfg(feature = "bls12_381_curve")]
-pub use {g1::*, g1_swu_iso::*, g2::*, g2_swu_iso::*};
+pub use {fq::*, fq12::*, fq2::*, fq6::*, g1::*, g1_swu_iso::*, g2::*, g2_swu_iso::*};
 
 #[cfg(test)]
-#[cfg(feature = "bls12_381_scalar_field")]
 mod tests;
 
 #[cfg(feature = "bls12_381_curve")]
