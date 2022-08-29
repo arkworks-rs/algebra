@@ -60,10 +60,7 @@ impl<F: Field> DenseMultilinearExtension<F> {
         if a == b || k == 0 {
             return;
         }
-        assert!(
-            b + k <= self.num_vars,
-            "invalid relabel argument"
-        );
+        assert!(b + k <= self.num_vars, "invalid relabel argument");
         assert!(a + k <= b, "overlapped swap window is not allowed");
         for i in 0..self.evaluations.len() {
             let j = swap_bits(i, a, b, k);
