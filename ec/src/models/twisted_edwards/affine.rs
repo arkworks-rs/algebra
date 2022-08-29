@@ -4,7 +4,7 @@ use ark_serialize::{
 };
 use ark_std::{
     borrow::Borrow,
-    fmt::{Display, Formatter, Result as FmtResult},
+    fmt::{Debug, Display, Formatter, Result as FmtResult},
     io::{Read, Write},
     ops::{Add, Mul, Neg, Sub},
     rand::{
@@ -29,7 +29,6 @@ use crate::AffineRepr;
     Clone(bound = "P: TECurveConfig"),
     PartialEq(bound = "P: TECurveConfig"),
     Eq(bound = "P: TECurveConfig"),
-    Debug(bound = "P: TECurveConfig"),
     Hash(bound = "P: TECurveConfig")
 )]
 #[must_use]
@@ -41,6 +40,15 @@ pub struct Affine<P: TECurveConfig> {
 }
 
 impl<P: TECurveConfig> Display for Affine<P> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+        match self.is_identity() {
+            true => write!(f, "infinity"),
+            false => write!(f, "({}, {})", self.x, self.y),
+        }
+    }
+}
+
+impl<P: TECurveConfig> Debug for Affine<P> {
     fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
         match self.is_identity() {
             true => write!(f, "infinity"),

@@ -1,7 +1,7 @@
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, SerializationError};
 use ark_std::{
     borrow::Borrow,
-    fmt::{Display, Formatter, Result as FmtResult},
+    fmt::{Debug, Display, Formatter, Result as FmtResult},
     hash::{Hash, Hasher},
     io::{Read, Write},
     ops::{Add, AddAssign, Mul, MulAssign, Neg, Sub, SubAssign},
@@ -30,11 +30,7 @@ use crate::{
 /// form, over the base field `P::BaseField`. This struct implements arithmetic
 /// via the Jacobian formulae
 #[derive(Derivative)]
-#[derivative(
-    Copy(bound = "P: SWCurveConfig"),
-    Clone(bound = "P: SWCurveConfig"),
-    Debug(bound = "P: SWCurveConfig")
-)]
+#[derivative(Copy(bound = "P: SWCurveConfig"), Clone(bound = "P: SWCurveConfig"))]
 #[must_use]
 pub struct Projective<P: SWCurveConfig> {
     /// `X / Z` projection of the affine `X`
@@ -48,6 +44,15 @@ pub struct Projective<P: SWCurveConfig> {
 impl<P: SWCurveConfig> Display for Projective<P> {
     fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
         write!(f, "{}", Affine::from(*self))
+    }
+}
+
+impl<P: SWCurveConfig> Debug for Projective<P> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+        match self.is_zero() {
+            true => write!(f, "infinity"),
+            false => write!(f, "({}, {}, {})", self.x, self.y, self.z),
+        }
     }
 }
 

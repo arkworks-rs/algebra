@@ -300,15 +300,14 @@ macro_rules! __test_group {
 
                 if let Some(y) = rhs.sqrt() {
                     let p = Affine::new_unchecked(x, if y < -y { y } else { -y });
-                    assert!(!p.is_in_correct_subgroup_assuming_on_curve());
+                    if !<<$group as CurveGroup>::Config as CurveConfig>::cofactor_is_one() {
+                        assert!(!p.is_in_correct_subgroup_assuming_on_curve());
+                    }
 
                     let g1 = p.mul_by_cofactor_to_group();
                     if !g1.is_zero() {
                         let g1 = Affine::from(g1);
-
                         assert!(g1.is_in_correct_subgroup_assuming_on_curve());
-
-                        assert_eq!(g1, <$group>::generator());
                         break;
                     }
                 }
@@ -388,7 +387,7 @@ macro_rules! test_group {
             use ark_ec::{Group, CurveGroup, ScalarMul, AffineRepr, CurveConfig, short_weierstrass::SWCurveConfig, twisted_edwards::TECurveConfig, scalar_mul::{*, wnaf::*}};
             use ark_serialize::*;
             use ark_std::{io::Cursor, rand::Rng, vec::Vec, test_rng, vec, Zero, One, UniformRand};
-            const ITERATIONS: usize = 1000;
+            const ITERATIONS: usize = 500;
 
             $crate::__test_group!($group $(; $tail)*);
         }

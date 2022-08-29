@@ -4,7 +4,7 @@ use ark_serialize::{
 };
 use ark_std::{
     borrow::Borrow,
-    fmt::{Display, Formatter, Result as FmtResult},
+    fmt::{Debug, Display, Formatter, Result as FmtResult},
     io::{Read, Write},
     ops::{Add, Mul, Neg, Sub},
     rand::{
@@ -30,7 +30,6 @@ use crate::AffineRepr;
     Clone(bound = "P: SWCurveConfig"),
     PartialEq(bound = "P: SWCurveConfig"),
     Eq(bound = "P: SWCurveConfig"),
-    Debug(bound = "P: SWCurveConfig"),
     Hash(bound = "P: SWCurveConfig")
 )]
 #[must_use]
@@ -50,6 +49,15 @@ impl<P: SWCurveConfig> PartialEq<Projective<P>> for Affine<P> {
 }
 
 impl<P: SWCurveConfig> Display for Affine<P> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+        match self.infinity {
+            true => write!(f, "infinity"),
+            false => write!(f, "({}, {})", self.x, self.y),
+        }
+    }
+}
+
+impl<P: SWCurveConfig> Debug for Affine<P> {
     fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
         match self.infinity {
             true => write!(f, "infinity"),

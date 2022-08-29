@@ -215,7 +215,7 @@ pub trait AffineRepr:
         self.xy().map(|(_, y)| y)
     }
 
-    /// Returns the point at infinity
+    /// Returns the point at infinity.
     fn identity() -> Self;
 
     /// Is `self` the point at infinity?

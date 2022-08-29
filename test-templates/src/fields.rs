@@ -200,7 +200,7 @@ macro_rules! __test_field {
             assert!(<$field>::ONE.is_one());
             assert_eq!(<$field>::ONE, one);
 
-            for _ in 0..(ITERATIONS * ITERATIONS) {
+            for _ in 0..ITERATIONS {
                 // Associativity
                 let a = <$field>::rand(&mut rng);
                 let b = <$field>::rand(&mut rng);
@@ -250,8 +250,8 @@ macro_rules! __test_field {
         fn test_pow() {
             use ark_std::UniformRand;
             let mut rng = test_rng();
-            for _ in 0..ITERATIONS {
-                for i in 0..(ITERATIONS as u64) {
+            for _ in 0..(ITERATIONS / 10) {
+                for i in 0..20 {
                     // Exponentiate by various small numbers and ensure it is
                     // consistent with repeated multiplication.
                     let a = <$field>::rand(&mut rng);
@@ -291,7 +291,7 @@ macro_rules! __test_field {
             use ark_std::UniformRand;
             let rng = &mut test_rng();
             for _ in 0..ITERATIONS {
-                for length in 1..100 {
+                for length in 1..20 {
                     let a = (0..length).map(|_| <$field>::rand(rng)).collect::<Vec<_>>();
                     let b = (0..length).map(|_| <$field>::rand(rng)).collect::<Vec<_>>();
                     let result_1 = <$field>::sum_of_products(&a, &b);
@@ -303,7 +303,7 @@ macro_rules! __test_field {
                 let neg_one = -<$field>::one();
                 let a_max = neg_one * two_inv - <$field>::one();
                 let b_max = neg_one * two_inv - <$field>::one();
-                for length in 1..100 {
+                for length in 1..20 {
                     let a = vec![a_max; length];
                     let b = vec![b_max; length];
                     let result_1 = <$field>::sum_of_products(&a, &b);
@@ -466,16 +466,16 @@ macro_rules! __test_field {
                 // Now, euler_totient(2^64) = 1 << 63, and so
                 // euler_totient(2^64) - 1 = (1 << 63) - 1 = 1111111... (63 digits).
                 // We compute this powering via standard square and multiply.
-                let mut inv = BigInt::one();
-                let two_to_64 = BigInt::one() << 64;
+                let mut inv = 1i128;
+                let two_to_64 = 1i128 << 64;
                 for _ in 0..63 {
                     // Square
-                    inv = (&inv * &inv) % &two_to_64;
+                    inv = (inv * inv) % two_to_64;
                     // Multiply
-                    inv = (&inv * <$field>::MODULUS.0[0]) % &two_to_64;
+                    inv = (&inv * <$field>::MODULUS.0[0] as i128) % &two_to_64;
                 };
                 inv = (-inv) % two_to_64;
-                inv
+                inv as u64
             };
 
             assert_eq!(r, <$field>::R.into());
