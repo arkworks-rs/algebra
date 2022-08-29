@@ -414,7 +414,7 @@ macro_rules! __test_field {
             if let Some(SqrtPrecomputation::Case3Mod4 { modulus_plus_one_div_four }) = <$field>::SQRT_PRECOMP {
                 assert_eq!(modulus_plus_one_div_four, &((&modulus + 1u8) / 4u8).to_u64_digits());
             }
-            
+
             let mut two_adicity = 0;
             let mut trace = modulus_minus_one;
             while trace.is_even() {
@@ -477,7 +477,7 @@ macro_rules! __test_field {
                 inv = (-inv) % two_to_64;
                 inv
             };
-            
+
             assert_eq!(r, <$field>::R.into());
             assert_eq!(r2, <$field>::R2.into());
             assert_eq!(inv, <$field>::INV.into());
