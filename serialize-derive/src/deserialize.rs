@@ -20,9 +20,9 @@ fn impl_valid_field(
             }
         },
         _ => {
-            check_body.push(quote! { snarkvm_utilities::Valid::check(&self.#(#idents).*)?; });
+            check_body.push(quote! { ark_serialize::Valid::check(&self.#(#idents).*)?; });
             batch_check_body
-                .push(quote! { snarkvm_utilities::Valid::batch_check(batch.iter().map(|v| &v.#(#idents).*))?; });
+                .push(quote! { ark_serialize::Valid::batch_check(batch.iter().map(|v| &v.#(#idents).*))?; });
         },
     }
 }
@@ -71,14 +71,14 @@ fn impl_valid(ast: &syn::DeriveInput) -> TokenStream {
     };
 
     let gen = quote! {
-        impl #impl_generics snarkvm_utilities::Valid for #name #ty_generics #where_clause {
+        impl #impl_generics ark_serialize::Valid for #name #ty_generics #where_clause {
             #[allow(unused_mut, unused_variables)]
-            fn check(&self) -> Result<(), snarkvm_utilities::serialize::SerializationError> {
+            fn check(&self) -> Result<(), ark_serialize::SerializationError> {
                 #(#check_body)*
                 Ok(())
             }
             #[allow(unused_mut, unused_variables)]
-            fn batch_check<'a>(batch: impl Iterator<Item = &'a Self> + Send) -> Result<(), snarkvm_utilities::serialize::SerializationError>
+            fn batch_check<'a>(batch: impl Iterator<Item = &'a Self> + Send) -> Result<(), ark_serialize::SerializationError>
                 where
             Self: 'a
             {
@@ -158,11 +158,11 @@ pub(super) fn impl_canonical_deserialize(ast: &syn::DeriveInput) -> TokenStream 
     let mut gen = quote! {
         impl #impl_generics CanonicalDeserialize for #name #ty_generics #where_clause {
             #[allow(unused_mut,unused_variables)]
-            fn deserialize_with_mode<R: snarkvm_utilities::io::Read>(
+            fn deserialize_with_mode<R: ark_serialize::Read>(
                 mut reader: R,
-                compress: snarkvm_utilities::serialize::Compress,
-                validate: snarkvm_utilities::serialize::Validate,
-            ) -> Result<Self, snarkvm_utilities::serialize::SerializationError> {
+                compress: ark_serialize::Compress,
+                validate: ark_serialize::Validate,
+            ) -> Result<Self, ark_serialize::SerializationError> {
                 #deserialize_body
             }
         }

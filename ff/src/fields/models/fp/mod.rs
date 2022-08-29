@@ -2,7 +2,7 @@ use core::iter;
 
 use ark_serialize::{
     buffer_byte_size, CanonicalDeserialize, CanonicalDeserializeWithFlags, CanonicalSerialize,
-    CanonicalSerializeWithFlags, EmptyFlags, Flags, SerializationError,
+    CanonicalSerializeWithFlags, Compress, EmptyFlags, Flags, SerializationError, Valid, Validate,
 };
 use ark_std::{
     cmp::{Ord, Ordering, PartialOrd},
@@ -265,7 +265,7 @@ impl<P: FpConfig<N>, const N: usize> Field for Fp<P, N> {
                 }
                 *b &= m;
             }
-            Self::deserialize(&result_bytes.as_slice()[..(N * 8)])
+            Self::deserialize_compressed(&result_bytes.as_slice()[..(N * 8)])
                 .ok()
                 .and_then(|f| F::from_u8(flags).map(|flag| (f, flag)))
         }
@@ -560,12 +560,16 @@ impl<P: FpConfig<N>, const N: usize> CanonicalSerializeWithFlags for Fp<P, N> {
 
 impl<P: FpConfig<N>, const N: usize> CanonicalSerialize for Fp<P, N> {
     #[inline]
-    fn serialize<W: ark_std::io::Write>(&self, writer: W) -> Result<(), SerializationError> {
+    fn serialize_with_mode<W: ark_std::io::Write>(
+        &self,
+        writer: W,
+        _compress: Compress,
+    ) -> Result<(), SerializationError> {
         self.serialize_with_flags(writer, EmptyFlags)
     }
 
     #[inline]
-    fn serialized_size(&self) -> usize {
+    fn serialized_size(&self, _compress: Compress) -> usize {
         self.serialized_size_with_flags::<EmptyFlags>()
     }
 }
@@ -595,8 +599,18 @@ impl<P: FpConfig<N>, const N: usize> CanonicalDeserializeWithFlags for Fp<P, N> 
     }
 }
 
+impl<P: FpConfig<N>, const N: usize> Valid for Fp<P, N> {
+    fn check(&self) -> Result<(), SerializationError> {
+        Ok(())
+    }
+}
+
 impl<P: FpConfig<N>, const N: usize> CanonicalDeserialize for Fp<P, N> {
-    fn deserialize<R: ark_std::io::Read>(reader: R) -> Result<Self, SerializationError> {
+    fn deserialize_with_mode<R: ark_std::io::Read>(
+        reader: R,
+        _compress: Compress,
+        _validate: Validate,
+    ) -> Result<Self, SerializationError> {
         Self::deserialize_with_flags::<R, EmptyFlags>(reader).map(|(r, _)| r)
     }
 }
