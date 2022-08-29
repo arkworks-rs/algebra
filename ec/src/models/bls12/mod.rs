@@ -114,7 +114,7 @@ impl<P: Bls12Parameters> PairingEngine for Bls12<P> {
             }
         }
         let mut f = Self::Fqk::one();
-        for i in BitIteratorBE::new(P::X).skip(1) {
+        for i in BitIteratorBE::without_leading_zeros(P::X).skip(1) {
             f.square_in_place();
             for (p, ref mut coeffs) in &mut pairs {
                 Self::ell(&mut f, coeffs.next().unwrap(), &p.0);
@@ -161,7 +161,7 @@ impl<P: Bls12Parameters> PairingEngine for Bls12<P> {
          -> Fp12<<P as Bls12Parameters>::Fp12Config> {
             let coeffs = coeffs.as_slice();
             let mut j = 0;
-            for i in BitIteratorBE::new(P::X).skip(1) {
+            for i in BitIteratorBE::without_leading_zeros(P::X).skip(1) {
                 f.square_in_place();
                 Self::ell(&mut f, &coeffs[j], &p.0);
                 j += 1;
