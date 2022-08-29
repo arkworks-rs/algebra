@@ -5,7 +5,7 @@ use crate::{
     MultilinearExtension,
 };
 use ark_ff::{Field, Zero};
-use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, Read, SerializationError, Write};
+use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use ark_std::{
     collections::BTreeMap,
     fmt,
