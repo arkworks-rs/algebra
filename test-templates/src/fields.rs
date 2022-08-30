@@ -451,6 +451,7 @@ macro_rules! __test_field {
             use ark_ff::{FpConfig, BigInteger};
             use $crate::num_bigint::{BigUint, BigInt};
             use $crate::num_integer::Integer;
+            use $crate::num_traits::{Signed, cast::ToPrimitive};
 
             let limbs = <$field as PrimeField>::BigInt::NUM_LIMBS;
             let modulus: BigUint = <$field>::MODULUS.into();
@@ -466,21 +467,33 @@ macro_rules! __test_field {
                 // Now, euler_totient(2^64) = 1 << 63, and so
                 // euler_totient(2^64) - 1 = (1 << 63) - 1 = 1111111... (63 digits).
                 // We compute this powering via standard square and multiply.
-                let mut inv = 1i128;
-                let two_to_64 = 1i128 << 64;
+                let mut inv = 1u128;
+                let two_to_64 = 1u128 << 64;
                 for _ in 0..63 {
                     // Square
-                    inv = (inv * inv) % two_to_64;
+                    inv = inv.checked_mul(inv).unwrap() % two_to_64;
                     // Multiply
-                    inv = (&inv * <$field>::MODULUS.0[0] as i128) % &two_to_64;
+                    inv = inv.checked_mul(<$field>::MODULUS.0[0] as u128).unwrap() % &two_to_64;
                 };
+                let mut inv = inv as i128;
+                let two_to_64 = two_to_64 as i128;
                 inv = (-inv) % two_to_64;
                 inv as u64
             };
+            let group_order = 0b111111111111111111111111111111111111111111111111111111111111111u64;
+            let group_order_lower = ((group_order << 32) >> 32) as u32; // clear the upper 32 bits
+            let group_order_upper = ((group_order) >> 32) as u32; // drop the lower 32 bits
+            let modulus_lower_limb = <$field>::MODULUS.0[0];
+            let modulus_lower_limb_to2_32 = modulus_lower_limb.wrapping_pow(u32::MAX).wrapping_mul(modulus_lower_limb);
+            let inv2 = modulus_lower_limb
+                .wrapping_pow(group_order_lower)
+                .wrapping_mul(modulus_lower_limb_to2_32.wrapping_pow(group_order_upper))
+                .wrapping_neg();
 
             assert_eq!(r, <$field>::R.into());
             assert_eq!(r2, <$field>::R2.into());
             assert_eq!(inv, <$field>::INV.into());
+            assert_eq!(inv2, <$field>::INV);
         }
     }
 }

@@ -8,3 +8,4 @@ pub mod pairing;
 
 pub use num_bigint;
 pub use num_integer;
+pub use num_traits;
