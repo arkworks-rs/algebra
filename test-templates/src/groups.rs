@@ -3,7 +3,7 @@
 macro_rules! __test_group {
     ($group: ty) => {
         type ScalarField = <$group as Group>::ScalarField;
-        fn test_add() {
+        fn test_add_properties() {
             let mut rng = &mut ark_std::test_rng();
             let zero = <$group>::zero();
             for _ in 0..ITERATIONS {
@@ -54,7 +54,7 @@ macro_rules! __test_group {
             let mut rng = test_rng();
             let zero = <$group>::zero();
 
-            for _ in 0..(ITERATIONS * ITERATIONS){
+            for _ in 0..ITERATIONS{
                 // Anti-commutativity
                 let a = <$group>::rand(&mut rng);
                 let b = <$group>::rand(&mut rng);
@@ -78,7 +78,7 @@ macro_rules! __test_group {
             assert_eq!(one.inverse().unwrap(), one);
             assert!(one.is_one());
 
-            for _ in 0..(ITERATIONS * ITERATIONS) {
+            for _ in 0..ITERATIONS {
                 // Associativity
                 let a = <$group>::rand(&mut rng);
                 let b = ScalarField::rand(&mut rng);
