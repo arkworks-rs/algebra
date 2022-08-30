@@ -1,6 +1,6 @@
 use ark_serialize::{
     CanonicalDeserialize, CanonicalDeserializeWithFlags, CanonicalSerialize,
-    CanonicalSerializeWithFlags, SWFlags, SerializationError,
+    CanonicalSerializeWithFlags, Compress, SWFlags, SerializationError, Valid, Validate,
 };
 use ark_std::{
     borrow::Borrow,
@@ -109,19 +109,25 @@ impl<P: SWCurveConfig> Affine<P> {
     /// largest y-coordinate be selected.
     #[allow(dead_code)]
     pub fn get_point_from_x(x: P::BaseField, greatest: bool) -> Option<Self> {
+        Self::get_y_from_x(x, greatest).map(|y| Self::new_unchecked(x, y))
+    }
+
+    pub fn get_y_from_x(x: P::BaseField, greatest: bool) -> Option<P::BaseField> {
         // Compute x^3 + ax + b
         // Rust does not optimise away addition with zero
-        let x3b = if P::COEFF_A.is_zero() {
+        let x3_plus_ax_plus_b = if P::COEFF_A.is_zero() {
             P::add_b(&(x.square() * &x))
         } else {
             P::add_b(&((x.square() * &x) + &P::mul_by_a(&x)))
         };
 
-        x3b.sqrt().map(|y| {
+        x3_plus_ax_plus_b.sqrt().map(|y| {
             let negy = -y;
-
-            let y = if (y < negy) ^ greatest { y } else { negy };
-            Self::new_unchecked(x, y)
+            if (y < negy) ^ greatest {
+                y
+            } else {
+                negy
+            }
         })
     }
 
@@ -320,22 +326,11 @@ impl<P: SWCurveConfig> From<Projective<P>> for Affine<P> {
 impl<P: SWCurveConfig> CanonicalSerialize for Affine<P> {
     #[allow(unused_qualifications)]
     #[inline]
-    fn serialize<W: Write>(&self, writer: W) -> Result<(), SerializationError> {
-        let (x, flags) = match self.infinity {
-            true => (P::BaseField::zero(), SWFlags::infinity()),
-            false => (self.x, SWFlags::from_y_sign(self.y > -self.y)),
-        };
-        x.serialize_with_flags(writer, flags)
-    }
-
-    #[inline]
-    fn serialized_size(&self) -> usize {
-        P::BaseField::zero().serialized_size_with_flags::<SWFlags>()
-    }
-
-    #[allow(unused_qualifications)]
-    #[inline]
-    fn serialize_uncompressed<W: Write>(&self, mut writer: W) -> Result<(), SerializationError> {
+    fn serialize_with_mode<W: Write>(
+        &self,
+        mut writer: W,
+        compress: ark_serialize::Compress,
+    ) -> Result<(), SerializationError> {
         let (x, y, flags) = match self.infinity {
             true => (
                 P::BaseField::zero(),
@@ -344,57 +339,67 @@ impl<P: SWCurveConfig> CanonicalSerialize for Affine<P> {
             ),
             false => (self.x, self.y, SWFlags::from_y_sign(self.y > -self.y)),
         };
-        x.serialize(&mut writer)?;
-        y.serialize_with_flags(&mut writer, flags)?;
-        Ok(())
+
+        match compress {
+            Compress::Yes => x.serialize_with_flags(writer, flags),
+            Compress::No => {
+                x.serialize_with_mode(&mut writer, compress)?;
+                y.serialize_with_flags(&mut writer, flags)
+            },
+        }
     }
 
     #[inline]
-    fn uncompressed_size(&self) -> usize {
-        // The size of the serialization is independent of the values
-        // of `x` and `y`, and depends only on the size of the modulus.
-        P::BaseField::zero().serialized_size()
-            + P::BaseField::zero().serialized_size_with_flags::<SWFlags>()
+    fn serialized_size(&self, compress: Compress) -> usize {
+        let zero = P::BaseField::zero();
+        match compress {
+            Compress::Yes => zero.serialized_size_with_flags::<SWFlags>(),
+            Compress::No => zero.compressed_size() + zero.serialized_size_with_flags::<SWFlags>(),
+        }
+    }
+}
+
+impl<P: SWCurveConfig> Valid for Affine<P> {
+    fn check(&self) -> Result<(), SerializationError> {
+        if self.is_on_curve() && self.is_in_correct_subgroup_assuming_on_curve() {
+            Ok(())
+        } else {
+            Err(SerializationError::InvalidData)
+        }
     }
 }
 
 impl<P: SWCurveConfig> CanonicalDeserialize for Affine<P> {
     #[allow(unused_qualifications)]
-    fn deserialize<R: Read>(reader: R) -> Result<Self, SerializationError> {
-        let (x, flags): (P::BaseField, SWFlags) =
-            CanonicalDeserializeWithFlags::deserialize_with_flags(reader)?;
+    fn deserialize_with_mode<R: Read>(
+        mut reader: R,
+        compress: Compress,
+        validate: Validate,
+    ) -> Result<Self, SerializationError> {
+        let (x, y, flags) = match compress {
+            Compress::Yes => {
+                let (x, flags): (_, SWFlags) =
+                    CanonicalDeserializeWithFlags::deserialize_with_flags(reader)?;
+                let y = Self::get_y_from_x(x, flags.is_positive().unwrap())
+                    .ok_or(SerializationError::InvalidData)?;
+                (x, y, flags)
+            },
+            Compress::No => {
+                let x: P::BaseField =
+                    CanonicalDeserialize::deserialize_with_mode(&mut reader, compress, validate)?;
+                let (y, flags): (_, SWFlags) =
+                    CanonicalDeserializeWithFlags::deserialize_with_flags(&mut reader)?;
+                (x, y, flags)
+            },
+        };
         if flags.is_infinity() {
             Ok(Self::identity())
         } else {
-            let p = Affine::<P>::get_point_from_x(x, flags.is_positive().unwrap())
-                .ok_or(SerializationError::InvalidData)?;
-            if !p.is_in_correct_subgroup_assuming_on_curve() {
-                return Err(SerializationError::InvalidData);
+            let point = Self::new_unchecked(x, y);
+            if let Validate::Yes = validate {
+                point.check()?;
             }
-            Ok(p)
-        }
-    }
-
-    #[allow(unused_qualifications)]
-    fn deserialize_uncompressed<R: Read>(
-        reader: R,
-    ) -> Result<Self, ark_serialize::SerializationError> {
-        let p = Self::deserialize_unchecked(reader)?;
-
-        if !p.is_in_correct_subgroup_assuming_on_curve() {
-            return Err(SerializationError::InvalidData);
-        }
-        Ok(p)
-    }
-
-    #[allow(unused_qualifications)]
-    fn deserialize_unchecked<R: Read>(mut reader: R) -> Result<Self, SerializationError> {
-        let x: P::BaseField = CanonicalDeserialize::deserialize(&mut reader)?;
-        let (y, flags): (P::BaseField, SWFlags) =
-            CanonicalDeserializeWithFlags::deserialize_with_flags(&mut reader)?;
-        match flags.is_infinity() {
-            true => Ok(Self::identity()),
-            false => Ok(Self::new_unchecked(x, y)),
+            Ok(point)
         }
     }
 }

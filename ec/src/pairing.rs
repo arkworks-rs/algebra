@@ -1,5 +1,7 @@
 use ark_ff::{CyclotomicMultSubgroup, Field, One, PrimeField};
-use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, SerializationError};
+use ark_serialize::{
+    CanonicalDeserialize, CanonicalSerialize, Compress, SerializationError, Valid, Validate,
+};
 use ark_std::{
     borrow::Borrow,
     fmt::{Debug, Display, Formatter, Result as FmtResult},
@@ -131,49 +133,41 @@ pub struct PairingOutput<P: Pairing>(pub P::TargetField);
 impl<P: Pairing> CanonicalSerialize for PairingOutput<P> {
     #[allow(unused_qualifications)]
     #[inline]
-    fn serialize<W: Write>(&self, writer: W) -> Result<(), SerializationError> {
-        self.0.serialize(writer)
+    fn serialize_with_mode<W: Write>(
+        &self,
+        writer: W,
+        compress: Compress,
+    ) -> Result<(), SerializationError> {
+        self.0.serialize_with_mode(writer, compress)
     }
 
     #[inline]
-    fn serialized_size(&self) -> usize {
-        self.0.serialized_size()
-    }
-
-    #[allow(unused_qualifications)]
-    #[inline]
-    fn serialize_uncompressed<W: Write>(&self, writer: W) -> Result<(), SerializationError> {
-        self.0.serialize_uncompressed(writer)
-    }
-
-    #[inline]
-    fn uncompressed_size(&self) -> usize {
-        self.0.uncompressed_size()
+    fn serialized_size(&self, compress: Compress) -> usize {
+        self.0.serialized_size(compress)
     }
 }
 
-impl<P: Pairing> CanonicalDeserialize for PairingOutput<P> {
-    #[allow(unused_qualifications)]
-    fn deserialize<R: Read>(reader: R) -> Result<Self, SerializationError> {
-        Self::deserialize_uncompressed(reader)
-    }
-
-    #[allow(unused_qualifications)]
-    fn deserialize_uncompressed<R: Read>(
-        reader: R,
-    ) -> Result<Self, ark_serialize::SerializationError> {
-        let f = Self::deserialize_unchecked(reader)?;
-        // Check that the output is within the field.
-        if f.0.pow(&P::ScalarField::characteristic()).is_one() {
-            Ok(f)
+impl<P: Pairing> Valid for PairingOutput<P> {
+    fn check(&self) -> Result<(), SerializationError> {
+        if self.0.pow(&P::ScalarField::characteristic()).is_one() {
+            Ok(())
         } else {
             Err(SerializationError::InvalidData)
         }
     }
+}
 
-    #[allow(unused_qualifications)]
-    fn deserialize_unchecked<R: Read>(reader: R) -> Result<Self, SerializationError> {
-        P::TargetField::deserialize_unchecked(reader).map(Self)
+impl<P: Pairing> CanonicalDeserialize for PairingOutput<P> {
+    fn deserialize_with_mode<R: Read>(
+        reader: R,
+        compress: Compress,
+        validate: Validate,
+    ) -> Result<Self, SerializationError> {
+        let f = P::TargetField::deserialize_with_mode(reader, compress, validate).map(Self)?;
+        if let Validate::Yes = validate {
+            f.check()?;
+        }
+        Ok(f)
     }
 }
 

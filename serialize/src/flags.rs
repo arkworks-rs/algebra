@@ -143,28 +143,25 @@ pub enum EdwardsFlags {
 
 impl EdwardsFlags {
     #[inline]
-    pub fn from_x_sign(is_positive: bool) -> Self {
-        if is_positive {
-            EdwardsFlags::PositiveX
-        } else {
+    pub fn from_x_sign(is_negative: bool) -> Self {
+        if is_negative {
             EdwardsFlags::NegativeX
+        } else {
+            EdwardsFlags::PositiveX
         }
     }
 
     #[inline]
-    pub fn is_positive(&self) -> bool {
-        match self {
-            EdwardsFlags::PositiveX => true,
-            EdwardsFlags::NegativeX => false,
-        }
+    pub fn is_negative(&self) -> bool {
+        matches!(*self, EdwardsFlags::NegativeX)
     }
 }
 
 impl Default for EdwardsFlags {
     #[inline]
     fn default() -> Self {
-        // PositiveX doesn't change the serialization
-        EdwardsFlags::PositiveX
+        // NegativeX doesn't change the serialization
+        EdwardsFlags::NegativeX
     }
 }
 

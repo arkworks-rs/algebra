@@ -115,65 +115,50 @@ macro_rules! __test_group {
 
         #[test]
         fn test_serialization() {
-            let buf_size = <$group>::zero().serialized_size();
+            for compress in [Compress::Yes, Compress::No] {
+                for validate in [Validate::Yes, Validate::No] {
+                    let buf_size = <$group>::zero().serialized_size(compress);
 
-            let mut rng = ark_std::test_rng();
+                    let mut rng = ark_std::test_rng();
 
-            for _ in 0..ITERATIONS {
-                let a = <$group>::rand(&mut rng);
-                {
-                    let mut serialized = vec![0; buf_size];
-                    let mut cursor = Cursor::new(&mut serialized[..]);
-                    a.serialize(&mut cursor).unwrap();
+                    for _ in 0..ITERATIONS {
+                        let a = <$group>::rand(&mut rng);
+                        {
+                            let mut serialized = vec![0; buf_size];
+                            let mut cursor = Cursor::new(&mut serialized[..]);
+                            a.serialize_with_mode(&mut cursor, compress).unwrap();
 
-                    let mut cursor = Cursor::new(&serialized[..]);
-                    let b = <$group>::deserialize(&mut cursor).unwrap();
-                    assert_eq!(a, b);
-                }
+                            let mut cursor = Cursor::new(&serialized[..]);
+                            let b = <$group>::deserialize_with_mode(&mut cursor, compress, validate).unwrap();
+                            assert_eq!(a, b);
+                        }
 
-                {
-                    let a = <$group>::zero();
-                    let mut serialized = vec![0; buf_size];
-                    let mut cursor = Cursor::new(&mut serialized[..]);
-                    a.serialize(&mut cursor).unwrap();
-                    let mut cursor = Cursor::new(&serialized[..]);
-                    let b = <$group>::deserialize(&mut cursor).unwrap();
-                    assert_eq!(a, b);
-                }
+                        {
+                            let a = <$group>::zero();
+                            let mut serialized = vec![0; buf_size];
+                            let mut cursor = Cursor::new(&mut serialized[..]);
+                            a.serialize_with_mode(&mut cursor, compress).unwrap();
+                            let mut cursor = Cursor::new(&serialized[..]);
+                            let b = <$group>::deserialize_with_mode(&mut cursor, compress, validate).unwrap();
+                            assert_eq!(a, b);
+                        }
 
-                {
-                    let a = <$group>::zero();
-                    let mut serialized = vec![0; buf_size - 1];
-                    let mut cursor = Cursor::new(&mut serialized[..]);
-                    a.serialize(&mut cursor).unwrap_err();
-                }
+                        {
+                            let a = <$group>::zero();
+                            let mut serialized = vec![0; buf_size - 1];
+                            let mut cursor = Cursor::new(&mut serialized[..]);
+                            a.serialize_with_mode(&mut cursor, compress).unwrap_err();
+                        }
 
-                {
-                    let serialized = vec![0; buf_size - 1];
-                    let mut cursor = Cursor::new(&serialized[..]);
-                    <$group>::deserialize(&mut cursor).unwrap_err();
-                }
-
-                {
-                    let mut serialized = vec![0; a.uncompressed_size()];
-                    let mut cursor = Cursor::new(&mut serialized[..]);
-                    a.serialize_uncompressed(&mut cursor).unwrap();
-
-                    let mut cursor = Cursor::new(&serialized[..]);
-                    let b = <$group>::deserialize_uncompressed(&mut cursor).unwrap();
-                    assert_eq!(a, b);
-                }
-
-                {
-                    let a = <$group>::zero();
-                    let mut serialized = vec![0; a.uncompressed_size()];
-                    let mut cursor = Cursor::new(&mut serialized[..]);
-                    a.serialize_uncompressed(&mut cursor).unwrap();
-                    let mut cursor = Cursor::new(&serialized[..]);
-                    let b = <$group>::deserialize_uncompressed(&mut cursor).unwrap();
-                    assert_eq!(a, b);
+                        {
+                            let serialized = vec![0; buf_size - 1];
+                            let mut cursor = Cursor::new(&serialized[..]);
+                            <$group>::deserialize_with_mode(&mut cursor, compress, validate).unwrap_err();
+                        }
+                    }
                 }
             }
+
         }
     };
     ($group:ty; msm) => {
@@ -230,28 +215,6 @@ macro_rules! __test_group {
                 let actual_v = <$group>::normalize_batch(&v);
 
                 assert_eq!(actual_v, expected_v);
-            }
-        }
-
-        #[test]
-        pub fn test_from_random_bytes() {
-            let buf_size = Affine::identity().serialized_size();
-
-            let mut rng = ark_std::test_rng();
-
-            for _ in 0..ITERATIONS {
-                let a = <$group>::rand(&mut rng);
-                let mut a = a.into_affine();
-                {
-                    let mut serialized = vec![0; buf_size];
-                    let mut cursor = Cursor::new(&mut serialized[..]);
-                    a.serialize(&mut cursor).unwrap();
-
-                    let mut cursor = Cursor::new(&serialized[..]);
-                    let p1 = Affine::deserialize(&mut cursor).unwrap();
-                    let p2 = Affine::from_random_bytes(&serialized).unwrap();
-                    assert_eq!(p1, p2);
-                }
             }
         }
 
