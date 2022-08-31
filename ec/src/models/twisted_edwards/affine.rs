@@ -1,6 +1,6 @@
 use ark_serialize::{
     CanonicalDeserialize, CanonicalDeserializeWithFlags, CanonicalSerialize,
-    CanonicalSerializeWithFlags, Compress, EdwardsFlags, SerializationError, Valid, Validate,
+    CanonicalSerializeWithFlags, Compress, SerializationError, Valid, Validate,
 };
 use ark_std::{
     borrow::Borrow,
@@ -18,7 +18,7 @@ use zeroize::Zeroize;
 
 use ark_ff::{fields::Field, PrimeField, ToConstraintField, UniformRand};
 
-use super::{Projective, TECurveConfig};
+use super::{Projective, TECurveConfig, TEFlags};
 use crate::AffineRepr;
 
 /// Affine coordinates for a point on a twisted Edwards curve, over the
@@ -100,8 +100,14 @@ impl<P: TECurveConfig> Affine<P> {
     /// X^2 * (a - d * Y^2) = 1 - Y^2
     /// X^2 = (1 - Y^2) / (a - d * Y^2)
     #[allow(dead_code)]
-    pub fn get_point_from_y(y: P::BaseField, greatest: bool) -> Option<Self> {
-        Self::get_x_from_y(y, greatest).map(|x| Self::new_unchecked(x, y))
+    pub fn get_point_from_y_unchecked(y: P::BaseField, greatest: bool) -> Option<Self> {
+        Self::get_xs_from_y_unchecked(y).map(|(x, neg_x)| {
+            if greatest {
+                Self::new_unchecked(neg_x, y)
+            } else {
+                Self::new_unchecked(x, y)
+            }
+        })
     }
 
     /// Attempts to recover the x-coordinate given an y-coordinate. The
@@ -115,7 +121,7 @@ impl<P: TECurveConfig> Affine<P> {
     /// X^2 * (a - d * Y^2) = 1 - Y^2
     /// X^2 = (1 - Y^2) / (a - d * Y^2)
     #[allow(dead_code)]
-    pub fn get_x_from_y(y: P::BaseField, greatest: bool) -> Option<P::BaseField> {
+    pub fn get_xs_from_y_unchecked(y: P::BaseField) -> Option<(P::BaseField, P::BaseField)> {
         let y2 = y.square();
 
         let numerator = P::BaseField::one() - y2;
@@ -126,11 +132,11 @@ impl<P: TECurveConfig> Affine<P> {
             .map(|denom| denom * &numerator)
             .and_then(|x2| x2.sqrt())
             .map(|x| {
-                let negx = -x;
-                if (x < negx) ^ greatest {
-                    x
+                let neg_x = -x;
+                if x <= neg_x {
+                    (x, neg_x)
                 } else {
-                    negx
+                    (neg_x, x)
                 }
             })
     }
@@ -140,7 +146,7 @@ impl<P: TECurveConfig> Affine<P> {
         let x2 = self.x.square();
         let y2 = self.y.square();
 
-        let lhs = y2 + &P::mul_by_a(&x2);
+        let lhs = y2 + P::mul_by_a(x2);
         let rhs = P::BaseField::one() + &(P::COEFF_D * &(x2 * &y2));
 
         lhs == rhs
@@ -174,8 +180,8 @@ impl<P: TECurveConfig> AffineRepr for Affine<P> {
     }
 
     fn from_random_bytes(bytes: &[u8]) -> Option<Self> {
-        P::BaseField::from_random_bytes_with_flags::<EdwardsFlags>(bytes)
-            .and_then(|(y, flags)| Self::get_point_from_y(y, flags.is_negative()))
+        P::BaseField::from_random_bytes_with_flags::<TEFlags>(bytes)
+            .and_then(|(y, flags)| Self::get_point_from_y_unchecked(y, flags.is_negative()))
     }
 
     fn mul_bigint(&self, by: impl AsRef<[u64]>) -> Self::Group {
@@ -260,7 +266,7 @@ impl<P: TECurveConfig> Distribution<Affine<P>> for Standard {
             let y = P::BaseField::rand(rng);
             let greatest = rng.gen();
 
-            if let Some(p) = Affine::get_point_from_y(y, greatest) {
+            if let Some(p) = Affine::get_point_from_y_unchecked(y, greatest) {
                 return p.mul_by_cofactor();
             }
         }
@@ -302,7 +308,7 @@ impl<P: TECurveConfig> CanonicalSerialize for Affine<P> {
         mut writer: W,
         compress: ark_serialize::Compress,
     ) -> Result<(), SerializationError> {
-        let flags = EdwardsFlags::from_x_sign(self.y > -self.y);
+        let flags = TEFlags::from_x_coordinate(self.x);
         match compress {
             Compress::Yes => self.y.serialize_with_flags(writer, flags),
             Compress::No => {
@@ -316,7 +322,7 @@ impl<P: TECurveConfig> CanonicalSerialize for Affine<P> {
     fn serialized_size(&self, compress: Compress) -> usize {
         let zero = P::BaseField::zero();
         match compress {
-            Compress::Yes => zero.serialized_size_with_flags::<EdwardsFlags>(),
+            Compress::Yes => zero.serialized_size_with_flags::<TEFlags>(),
             Compress::No => self.x.uncompressed_size() + self.y.uncompressed_size(),
         }
     }
@@ -341,11 +347,15 @@ impl<P: TECurveConfig> CanonicalDeserialize for Affine<P> {
     ) -> Result<Self, SerializationError> {
         let (x, y) = match compress {
             Compress::Yes => {
-                let (y, flags): (_, EdwardsFlags) =
+                let (y, flags): (_, TEFlags) =
                     CanonicalDeserializeWithFlags::deserialize_with_flags(reader)?;
-                let x = Self::get_x_from_y(y, flags.is_negative())
-                    .ok_or(SerializationError::InvalidData)?;
-                (x, y)
+                let (x, neg_x) =
+                    Self::get_xs_from_y_unchecked(y).ok_or(SerializationError::InvalidData)?;
+                if flags.is_negative() {
+                    (neg_x, y)
+                } else {
+                    (x, y)
+                }
             },
             Compress::No => {
                 let x: P::BaseField = CanonicalDeserialize::deserialize_uncompressed(&mut reader)?;

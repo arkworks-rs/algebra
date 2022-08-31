@@ -88,7 +88,7 @@ impl<P: TECurveConfig> Distribution<Projective<P>> for Standard {
             let y = P::BaseField::rand(rng);
             let greatest = rng.gen();
 
-            if let Some(p) = Affine::get_point_from_y(y, greatest) {
+            if let Some(p) = Affine::get_point_from_y_unchecked(y, greatest) {
                 return p.mul_by_cofactor_to_group();
             }
         }
@@ -169,7 +169,7 @@ impl<P: TECurveConfig> Group for Projective<P> {
         // C = 2 * Z1^2
         let c = self.z.square().double();
         // D = a * A
-        let d = P::mul_by_a(&a);
+        let d = P::mul_by_a(a);
         // E = (X1 + Y1)^2 - A - B
         let e = (self.x + &self.y).square() - &a - &b;
         // G = D + B
@@ -260,7 +260,7 @@ impl<P: TECurveConfig, T: Borrow<Affine<P>>> AddAssign<T> for Projective<P> {
         // G = D+C
         let g = d + &c;
         // H = B-a*A
-        let h = b - &P::mul_by_a(&a);
+        let h = b - &P::mul_by_a(a);
         // X3 = E*F
         self.x = e * &f;
         // Y3 = G*H
@@ -331,7 +331,7 @@ impl<'a, P: TECurveConfig> AddAssign<&'a Self> for Projective<P> {
         let d = self.z * &other.z;
 
         // H = B - aA
-        let h = b - &P::mul_by_a(&a);
+        let h = b - &P::mul_by_a(a);
 
         // E = (x1 + y1) * (x2 + y2) - A - B
         let e = (self.x + &self.y) * &(other.x + &other.y) - &a - &b;

@@ -102,7 +102,7 @@ impl<P: SWCurveConfig> Distribution<Projective<P>> for Standard {
             let x = P::BaseField::rand(rng);
             let greatest = rng.gen();
 
-            if let Some(p) = Affine::get_point_from_x(x, greatest) {
+            if let Some(p) = Affine::get_point_from_x_unchecked(x, greatest) {
                 return p.mul_by_cofactor_to_group();
             }
         }
@@ -224,7 +224,7 @@ impl<P: SWCurveConfig> Group for Projective<P> {
             let s = ((self.x + &yy).square() - &xx - &yyyy).double();
 
             // M = 3*XX+a*ZZ^2
-            let m = xx + xx.double() + P::mul_by_a(&zz.square());
+            let m = xx + xx.double() + P::mul_by_a(zz.square());
 
             // T = M^2-2*S
             let t = m.square() - &s.double();

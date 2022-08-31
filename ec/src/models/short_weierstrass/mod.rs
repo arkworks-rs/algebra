@@ -10,6 +10,9 @@ pub use affine::*;
 mod group;
 pub use group::*;
 
+mod serialization_flags;
+pub use serialization_flags::*;
+
 /// Constants and convenience functions that collectively define the [Short Weierstrass model](https://www.hyperelliptic.org/EFD/g1p/auto-shortw.html)
 /// of the curve. In this model, the curve equation is `y² = x³ + a * x + b`,
 /// for constants `a` and `b`.
@@ -27,10 +30,12 @@ pub trait SWCurveConfig: super::CurveConfig {
     /// the product can be computed faster than standard field multiplication
     /// (eg: via doubling if `COEFF_A == 2`, or if `COEFF_A.is_zero()`).
     #[inline(always)]
-    fn mul_by_a(elem: &Self::BaseField) -> Self::BaseField {
-        let mut copy = *elem;
-        copy *= &Self::COEFF_A;
-        copy
+    fn mul_by_a(elem: Self::BaseField) -> Self::BaseField {
+        if Self::COEFF_A.is_zero() {
+            Self::BaseField::ZERO
+        } else {
+            elem * Self::COEFF_A
+        }
     }
 
     /// Helper method for computing `elem + Self::COEFF_B`.
@@ -39,13 +44,12 @@ pub trait SWCurveConfig: super::CurveConfig {
     /// the sum can be computed faster than standard field addition (eg: via
     /// doubling).
     #[inline(always)]
-    fn add_b(elem: &Self::BaseField) -> Self::BaseField {
-        if !Self::COEFF_B.is_zero() {
-            let mut copy = *elem;
-            copy += &Self::COEFF_B;
-            return copy;
+    fn add_b(elem: Self::BaseField) -> Self::BaseField {
+        if Self::COEFF_B.is_zero() {
+            elem
+        } else {
+            elem + &Self::COEFF_B
         }
-        *elem
     }
 
     /// Check if the provided curve point is in the prime-order subgroup.

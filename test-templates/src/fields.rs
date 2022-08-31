@@ -72,18 +72,6 @@ macro_rules! __test_field {
                             assert_eq!(a, b);
                         }
 
-                        {
-                            let mut serialized = vec![0u8; buf_size + 1];
-                            let mut cursor = Cursor::new(&mut serialized[..]);
-                            a.serialize_with_flags(&mut cursor, SWFlags::from_y_sign(true))
-                            .unwrap();
-                            let mut cursor = Cursor::new(&serialized[..]);
-                            let (b, flags) = <$field>::deserialize_with_flags::<_, SWFlags>(&mut cursor).unwrap();
-                            assert_eq!(flags.is_positive(), Some(true));
-                            assert!(!flags.is_infinity());
-                            assert_eq!(a, b);
-                        }
-
 
 
                         {
@@ -502,7 +490,7 @@ macro_rules! test_field {
                 fields::{FftField, Field, LegendreSymbol, PrimeField},
                 Fp, MontBackend, MontConfig,
             };
-            use ark_serialize::{buffer_bit_byte_size, Flags, SWFlags};
+            use ark_serialize::{buffer_bit_byte_size, Flags};
             use ark_std::{io::Cursor, rand::Rng, vec::Vec, test_rng, vec, Zero, One, UniformRand};
             const ITERATIONS: usize = 1000;
 

@@ -280,8 +280,27 @@ macro_rules! __test_group {
 
             for _ in 0..ITERATIONS {
                 let f = BaseField::rand(rng);
-                assert_eq!(Config::mul_by_a(&f), f * Config::COEFF_A);
-                assert_eq!(Config::add_b(&f), f + Config::COEFF_B);
+                assert_eq!(Config::mul_by_a(f), f * Config::COEFF_A);
+                assert_eq!(Config::add_b(f), f + Config::COEFF_B);
+            }
+            {
+                use ark_ec::models::short_weierstrass::SWFlags;
+                for compress in [Compress::Yes, Compress::No] {
+                    for flag in [SWFlags::PointAtInfinity, SWFlags::YIsNegative, SWFlags::YIsPositive] {
+                        let a = BaseField::rand(&mut rng);
+                        let buf_size = a.serialized_size(compress);
+                        let mut serialized = vec![0u8; buf_size + 1];
+                        let mut cursor = Cursor::new(&mut serialized[..]);
+                        a.serialize_with_flags(&mut cursor, flag)
+                        .unwrap();
+                        let mut cursor = Cursor::new(&serialized[..]);
+                        let (b, flags) = BaseField::deserialize_with_flags::<_, SWFlags>(&mut cursor).unwrap();
+                        assert_eq!(flags, flag);
+                        assert!(!flags.is_infinity());
+                        assert_eq!(a, b);
+                    }
+
+                }
             }
         }
     };
@@ -335,6 +354,25 @@ macro_rules! __test_group {
                 let f = BaseField::rand(rng);
                 assert_eq!(Config::mul_by_a(&f), f * Config::COEFF_A);
                 assert_eq!(Config::add_b(&f), f + Config::COEFF_B);
+            }
+            {
+                use ark_ec::models::twisted_edwards::TEFlags;
+                for compress in [Compress::Yes, Compress::No] {
+                    for flag in [TEFlags::XIsPositive, TEFlags::XIsNegative] {
+                        let a = BaseField::rand(&mut rng);
+                        let buf_size = a.serialized_size(compress);
+                        let mut serialized = vec![0u8; buf_size + 1];
+                        let mut cursor = Cursor::new(&mut serialized[..]);
+                        a.serialize_with_flags(&mut cursor, flag)
+                        .unwrap();
+                        let mut cursor = Cursor::new(&serialized[..]);
+                        let (b, flags) = BaseField::deserialize_with_flags::<_, TEFlags>(&mut cursor).unwrap();
+                        assert_eq!(flags, flag);
+                        assert!(!flags.is_infinity());
+                        assert_eq!(a, b);
+                    }
+
+                }
             }
         }
     }

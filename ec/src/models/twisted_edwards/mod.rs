@@ -9,6 +9,9 @@ pub use affine::*;
 mod group;
 pub use group::*;
 
+mod serialization_flags;
+pub use serialization_flags::*;
+
 /// Constants and convenience functions that collectively define the [Twisted Edwards model](https://www.hyperelliptic.org/EFD/g1p/auto-twisted.html)
 /// of the curve. In this model, the curve equation is
 /// `a * x² + y² = 1 + d * x² * y²`, for constants `a` and `d`.
@@ -30,10 +33,8 @@ pub trait TECurveConfig: super::CurveConfig {
     /// the product can be computed faster than standard field multiplication
     /// (eg: via doubling if `COEFF_A == 2`, or if `COEFF_A.is_zero()`).
     #[inline(always)]
-    fn mul_by_a(elem: &Self::BaseField) -> Self::BaseField {
-        let mut copy = *elem;
-        copy *= &Self::COEFF_A;
-        copy
+    fn mul_by_a(elem: Self::BaseField) -> Self::BaseField {
+        elem * Self::COEFF_A
     }
 
     /// Checks that the current point is in the prime order subgroup given

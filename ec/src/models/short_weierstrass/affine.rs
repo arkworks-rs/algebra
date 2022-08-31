@@ -1,6 +1,6 @@
 use ark_serialize::{
     CanonicalDeserialize, CanonicalDeserializeWithFlags, CanonicalSerialize,
-    CanonicalSerializeWithFlags, Compress, SWFlags, SerializationError, Valid, Validate,
+    CanonicalSerializeWithFlags, Compress, SerializationError, Valid, Validate,
 };
 use ark_std::{
     borrow::Borrow,
@@ -19,7 +19,7 @@ use ark_ff::{fields::Field, PrimeField, ToConstraintField, UniformRand};
 
 use zeroize::Zeroize;
 
-use super::{Projective, SWCurveConfig};
+use super::{Projective, SWCurveConfig, SWFlags};
 use crate::AffineRepr;
 
 /// Affine coordinates for a point on an elliptic curve in short Weierstrass
@@ -108,40 +108,60 @@ impl<P: SWCurveConfig> Affine<P> {
     /// If and only if `greatest` is set will the lexicographically
     /// largest y-coordinate be selected.
     #[allow(dead_code)]
-    pub fn get_point_from_x(x: P::BaseField, greatest: bool) -> Option<Self> {
-        Self::get_y_from_x(x, greatest).map(|y| Self::new_unchecked(x, y))
-    }
-
-    pub fn get_y_from_x(x: P::BaseField, greatest: bool) -> Option<P::BaseField> {
-        // Compute x^3 + ax + b
-        // Rust does not optimise away addition with zero
-        let x3_plus_ax_plus_b = if P::COEFF_A.is_zero() {
-            P::add_b(&(x.square() * &x))
-        } else {
-            P::add_b(&((x.square() * &x) + &P::mul_by_a(&x)))
-        };
-
-        x3_plus_ax_plus_b.sqrt().map(|y| {
-            let negy = -y;
-            if (y < negy) ^ greatest {
-                y
+    pub fn get_point_from_x_unchecked(x: P::BaseField, greatest: bool) -> Option<Self> {
+        Self::get_ys_from_x_unchecked(x).map(|(y, neg_y)| {
+            if greatest {
+                Self::new_unchecked(x, y)
             } else {
-                negy
+                Self::new_unchecked(x, neg_y)
             }
         })
+    }
+
+    /// Returns the two possible y-coordinates corresponding to the given x-coordinate.
+    /// The corresponding points are not guaranteed to be in the prime-order subgroup,
+    /// but are guaranteed to be on the curve. That is, this method returns `None`
+    /// if the x-coordinate corresponds to a non-curve point.
+    ///
+    /// The results are sorted by lexicographical order.
+    /// This means that, if `P::BaseField: PrimeField`, the results are sorted as integers.
+    fn get_ys_from_x_unchecked(x: P::BaseField) -> Option<(P::BaseField, P::BaseField)> {
+        // Compute the curve equation x^3 + Ax + B.
+        // Since Rust does not optimise away additions with zero, we explicitly check
+        // for that case here, and avoid multiplication by `a` if possible.
+        let mut x3_plus_ax_plus_b = P::add_b(x.square() * x);
+        if !P::COEFF_A.is_zero() {
+            x3_plus_ax_plus_b += P::mul_by_a(x)
+        };
+        let y = x3_plus_ax_plus_b.sqrt()?;
+        let neg_y = -y;
+        match y < neg_y {
+            true => Some((y, neg_y)),
+            false => Some((neg_y, y)),
+        }
     }
 
     /// Checks if `self` is a valid point on the curve.
     pub fn is_on_curve(&self) -> bool {
         if !self.infinity {
             // Rust does not optimise away addition with zero
-            let mut x3b = P::add_b(&(self.x.square() * self.x));
+            let mut x3b = P::add_b(self.x.square() * self.x);
             if !P::COEFF_A.is_zero() {
-                x3b += &P::mul_by_a(&self.x);
+                x3b += P::mul_by_a(self.x);
             };
             self.y.square() == x3b
         } else {
             true
+        }
+    }
+
+    pub fn to_flags(&self) -> SWFlags {
+        if self.infinity {
+            SWFlags::PointAtInfinity
+        } else if self.y <= -self.y {
+            SWFlags::YIsPositive
+        } else {
+            SWFlags::YIsNegative
         }
     }
 }
@@ -172,7 +192,7 @@ impl<P: SWCurveConfig> Distribution<Affine<P>> for Standard {
             let x = P::BaseField::rand(rng);
             let greatest = rng.gen();
 
-            if let Some(p) = Affine::get_point_from_x(x, greatest) {
+            if let Some(p) = Affine::get_point_from_x_unchecked(x, greatest) {
                 return p.mul_by_cofactor();
             }
         }
@@ -209,7 +229,7 @@ impl<P: SWCurveConfig> AffineRepr for Affine<P> {
             if x.is_zero() && flags.is_infinity() {
                 Some(Self::identity())
             } else if let Some(y_is_positive) = flags.is_positive() {
-                Self::get_point_from_x(x, y_is_positive)
+                Self::get_point_from_x_unchecked(x, y_is_positive)
                 // Unwrap is safe because it's not zero.
             } else {
                 None
@@ -337,7 +357,7 @@ impl<P: SWCurveConfig> CanonicalSerialize for Affine<P> {
                 P::BaseField::zero(),
                 SWFlags::infinity(),
             ),
-            false => (self.x, self.y, SWFlags::from_y_sign(self.y > -self.y)),
+            false => (self.x, self.y, self.to_flags()),
         };
 
         match compress {
@@ -380,9 +400,19 @@ impl<P: SWCurveConfig> CanonicalDeserialize for Affine<P> {
             Compress::Yes => {
                 let (x, flags): (_, SWFlags) =
                     CanonicalDeserializeWithFlags::deserialize_with_flags(reader)?;
-                let y = Self::get_y_from_x(x, flags.is_positive().unwrap())
-                    .ok_or(SerializationError::InvalidData)?;
-                (x, y, flags)
+                match flags {
+                    SWFlags::PointAtInfinity => (Self::identity().x, Self::identity().y, flags),
+                    _ => {
+                        let is_positive = flags.is_positive().unwrap();
+                        let (y, neg_y) = Self::get_ys_from_x_unchecked(x)
+                            .ok_or(SerializationError::InvalidData)?;
+                        if is_positive {
+                            (x, y, flags)
+                        } else {
+                            (x, neg_y, flags)
+                        }
+                    },
+                }
             },
             Compress::No => {
                 let x: P::BaseField =
