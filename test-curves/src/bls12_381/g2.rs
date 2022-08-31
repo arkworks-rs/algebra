@@ -2,7 +2,7 @@ use core::ops::Neg;
 
 use crate::bls12_381::*;
 use ark_ec::{
-    bls12,
+    bls12::{self, Bls12Parameters},
     hashing::curve_maps::wb::WBParams,
     models::CurveConfig,
     short_weierstrass::{self, *},
