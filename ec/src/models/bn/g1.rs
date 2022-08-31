@@ -1,9 +1,8 @@
 use crate::{
     bn::BnParameters,
     short_weierstrass::{Affine, Projective},
-    AffineCurve,
+    AffineRepr, CurveGroup,
 };
-use num_traits::Zero;
 
 pub type G1Affine<P> = Affine<<P as BnParameters>::G1Parameters>;
 pub type G1Projective<P> = Projective<<P as BnParameters>::G1Parameters>;
@@ -23,14 +22,32 @@ impl<P: BnParameters> From<G1Affine<P>> for G1Prepared<P> {
     }
 }
 
+impl<P: BnParameters> From<G1Projective<P>> for G1Prepared<P> {
+    fn from(q: G1Projective<P>) -> Self {
+        q.into_affine().into()
+    }
+}
+
+impl<'a, P: BnParameters> From<&'a G1Affine<P>> for G1Prepared<P> {
+    fn from(other: &'a G1Affine<P>) -> Self {
+        G1Prepared(*other)
+    }
+}
+
+impl<'a, P: BnParameters> From<&'a G1Projective<P>> for G1Prepared<P> {
+    fn from(q: &'a G1Projective<P>) -> Self {
+        q.into_affine().into()
+    }
+}
+
 impl<P: BnParameters> G1Prepared<P> {
     pub fn is_zero(&self) -> bool {
-        self.0.is_zero()
+        self.0.infinity
     }
 }
 
 impl<P: BnParameters> Default for G1Prepared<P> {
     fn default() -> Self {
-        G1Prepared(G1Affine::<P>::prime_subgroup_generator())
+        G1Prepared(G1Affine::<P>::generator())
     }
 }

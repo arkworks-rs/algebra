@@ -6,8 +6,8 @@ use ark_poly::{univariate::DensePolynomial, DenseUVPolynomial, Polynomial};
 
 use crate::{
     hashing::{map_to_curve_hasher::MapToCurve, HashToCurveError},
-    models::short_weierstrass::Affine,
-    AffineCurve,
+    models::short_weierstrass::{Affine, Projective},
+    AffineRepr,
 };
 
 use super::swu::{SWUMap, SWUParams};
@@ -33,21 +33,22 @@ pub trait WBParams: SWCurveConfig + Sized {
     fn isogeny_map(
         domain_point: Affine<Self::IsogenousCurve>,
     ) -> Result<Affine<Self>, HashToCurveError> {
-        let x_num = DensePolynomial::from_coefficients_slice(Self::PHI_X_NOM);
-        let x_den = DensePolynomial::from_coefficients_slice(Self::PHI_X_DEN);
+        match domain_point.xy() {
+            Some((x, y)) => {
+                let x_num = DensePolynomial::from_coefficients_slice(Self::PHI_X_NOM);
+                let x_den = DensePolynomial::from_coefficients_slice(Self::PHI_X_DEN);
 
-        let y_num = DensePolynomial::from_coefficients_slice(Self::PHI_Y_NOM);
-        let y_den = DensePolynomial::from_coefficients_slice(Self::PHI_Y_DEN);
+                let y_num = DensePolynomial::from_coefficients_slice(Self::PHI_Y_NOM);
+                let y_den = DensePolynomial::from_coefficients_slice(Self::PHI_Y_DEN);
 
-        let mut v: [BaseField<Self>; 2] = [
-            x_den.evaluate(&domain_point.x),
-            y_den.evaluate(&domain_point.x),
-        ];
-        batch_inversion(&mut v);
-        let img_x = x_num.evaluate(&domain_point.x) * v[0];
-        let img_y = (y_num.evaluate(&domain_point.x) * domain_point.y) * v[1];
-
-        Ok(Affine::new_unchecked(img_x, img_y))
+                let mut v: [BaseField<Self>; 2] = [x_den.evaluate(x), y_den.evaluate(x)];
+                batch_inversion(&mut v);
+                let img_x = x_num.evaluate(x) * v[0];
+                let img_y = (y_num.evaluate(x) * y) * v[1];
+                Ok(Affine::new_unchecked(img_x, img_y))
+            },
+            None => Ok(Affine::identity()),
+        }
     }
 }
 
@@ -56,7 +57,7 @@ pub struct WBMap<P: WBParams> {
     curve_params: PhantomData<fn() -> P>,
 }
 
-impl<P: WBParams> MapToCurve<Affine<P>> for WBMap<P> {
+impl<P: WBParams> MapToCurve<Projective<P>> for WBMap<P> {
     /// Constructs a new map if `P` represents a valid map.
     fn new() -> Result<Self, HashToCurveError> {
         match P::isogeny_map(P::IsogenousCurve::GENERATOR) {
@@ -79,7 +80,7 @@ impl<P: WBParams> MapToCurve<Affine<P>> for WBMap<P> {
     /// <https://github.com/zcash/pasta_curves/blob/main/src/hashtocurve.rs>
     fn map_to_curve(
         &self,
-        element: <Affine<P> as AffineCurve>::BaseField,
+        element: <Affine<P> as AffineRepr>::BaseField,
     ) -> Result<Affine<P>, HashToCurveError> {
         // first we need to map the field point to the isogenous curve
         let point_on_isogenious_curve = self.swu_field_curve_hasher.map_to_curve(element).unwrap();
@@ -89,7 +90,6 @@ impl<P: WBParams> MapToCurve<Affine<P>> for WBMap<P> {
 
 #[cfg(test)]
 mod test {
-    use crate::hashing::HashToCurve;
     use crate::{
         hashing::{
             curve_maps::{
@@ -97,13 +97,13 @@ mod test {
                 wb::{WBMap, WBParams},
             },
             map_to_curve_hasher::MapToCurveBasedHasher,
+            HashToCurve,
         },
         models::short_weierstrass::SWCurveConfig,
-        short_weierstrass::Affine,
+        short_weierstrass::{Affine, Projective},
         CurveConfig,
     };
-    use ark_ff::field_hashers::DefaultFieldHasher;
-    use ark_ff::{fields::Fp64, MontBackend, MontFp};
+    use ark_ff::{field_hashers::DefaultFieldHasher, fields::Fp64, MontBackend, MontFp};
 
     #[derive(ark_ff::MontConfig)]
     #[modulus = "127"]
@@ -282,7 +282,7 @@ mod test {
     fn hash_arbitrary_string_to_curve_wb() {
         use sha2::Sha256;
         let test_wb_to_curve_hasher = MapToCurveBasedHasher::<
-            Affine<TestWBF127MapToCurveParams>,
+            Projective<TestWBF127MapToCurveParams>,
             DefaultFieldHasher<Sha256, 128>,
             WBMap<TestWBF127MapToCurveParams>,
         >::new(&[1])

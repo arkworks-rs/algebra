@@ -2,8 +2,10 @@ use libtest_mimic::{run_tests, Arguments, Outcome, Test};
 
 use sha2::{Sha256, Sha384, Sha512};
 use sha3::{Shake128, Shake256};
-use std::fs::{read_dir, File};
-use std::io::BufReader;
+use std::{
+    fs::{read_dir, File},
+    io::BufReader,
+};
 
 use super::{Expander, ExpanderXmd, ExpanderXof};
 

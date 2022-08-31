@@ -1,7 +1,7 @@
 use ark_algebra_bench_templates::*;
 use ark_std::ops::{AddAssign, MulAssign, SubAssign};
 
-use ark_ec::ProjectiveCurve;
+use ark_ec::{CurveGroup, Group};
 use ark_ff::{biginteger::BigInteger768 as FqRepr, BigInteger, Field, PrimeField, UniformRand};
 use ark_test_curves::mnt4_753::{fq::Fq, fr::Fr, G1Affine, G1Projective as G1};
 

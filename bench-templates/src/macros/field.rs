@@ -27,6 +27,8 @@ macro_rules! f_bench {
                 repr_add_nocarry,
                 repr_sub_noborrow,
                 repr_num_bits,
+                repr_from_bits_le,
+                repr_from_bits_be,
                 repr_mul2,
                 repr_div2,
                 into_repr,
@@ -449,6 +451,34 @@ macro_rules! prime_field {
             b.iter(|| {
                 count = (count + 1) % SAMPLES;
                 let _ = $f::from(v[count]);
+            });
+        }
+
+        fn repr_from_bits_be(b: &mut $crate::bencher::Bencher) {
+            const SAMPLES: usize = 1000;
+            let mut rng = ark_std::test_rng();
+            let v = (0..SAMPLES)
+                .map(|_| ark_ff::BitIteratorBE::new($f_repr::rand(&mut rng)).collect::<Vec<_>>())
+                .collect::<Vec<_>>();
+            let mut count = 0;
+            b.iter(|| {
+                let mut tmp = $f_repr::from_bits_be(&v[count]);
+                count = (count + 1) % SAMPLES;
+                tmp;
+            });
+        }
+
+        fn repr_from_bits_le(b: &mut $crate::bencher::Bencher) {
+            const SAMPLES: usize = 1000;
+            let mut rng = ark_std::test_rng();
+            let v = (0..SAMPLES)
+                .map(|_| ark_ff::BitIteratorLE::new($f_repr::rand(&mut rng)).collect::<Vec<_>>())
+                .collect::<Vec<_>>();
+            let mut count = 0;
+            b.iter(|| {
+                let mut tmp = $f_repr::from_bits_le(&v[count]);
+                count = (count + 1) % SAMPLES;
+                tmp;
             });
         }
     };

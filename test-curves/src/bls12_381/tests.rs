@@ -1,18 +1,12 @@
-#![allow(unused_imports)]
-use ark_ec::{
-    models::short_weierstrass::SWCurveConfig, AffineCurve, PairingEngine, ProjectiveCurve,
-};
-use ark_ff::{Field, One, UniformRand, Zero};
+use crate::bls12_381::*;
+use ark_algebra_test_templates::*;
 
-use crate::bls12_381::{g1, Fq, Fq2, Fq6, FqConfig, Fr, FrConfig, G1Affine, G1Projective};
-use ark_algebra_test_templates::{
-    curves::*, fields::*, generate_field_test, generate_g1_test, msm::*,
-};
-use ark_std::{
-    ops::{AddAssign, MulAssign, SubAssign},
-    rand::Rng,
-    test_rng,
-};
-
-generate_field_test!(bls12_381; fq2; fq6; mont(6, 4); );
-generate_g1_test!(bls12_381; curve_tests; sw_tests;);
+test_field!(fr; Fr; mont_prime_field);
+test_field!(fq; Fq; mont_prime_field);
+test_field!(fq2; Fq2);
+test_field!(fq6; Fq6);
+test_field!(fq12; Fq12);
+test_group!(g1; G1Projective; sw);
+test_group!(g2; G2Projective; sw);
+test_group!(pairing_output; ark_ec::pairing::PairingOutput<Bls12_381>; msm);
+test_pairing!(pairing; crate::bls12_381::Bls12_381);

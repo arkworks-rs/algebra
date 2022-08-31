@@ -1,7 +1,7 @@
 use crate::{
     mnt6::MNT6Parameters,
     short_weierstrass::{Affine, Projective},
-    AffineCurve,
+    AffineRepr, CurveGroup,
 };
 use ark_ff::Fp3;
 
@@ -40,8 +40,25 @@ impl<P: MNT6Parameters> From<G1Affine<P>> for G1Prepared<P> {
     }
 }
 
+impl<'a, P: MNT6Parameters> From<&'a G1Affine<P>> for G1Prepared<P> {
+    fn from(g1: &'a G1Affine<P>) -> Self {
+        (*g1).into()
+    }
+}
+
+impl<P: MNT6Parameters> From<G1Projective<P>> for G1Prepared<P> {
+    fn from(g1: G1Projective<P>) -> Self {
+        g1.into_affine().into()
+    }
+}
+impl<'a, P: MNT6Parameters> From<&'a G1Projective<P>> for G1Prepared<P> {
+    fn from(g1: &'a G1Projective<P>) -> Self {
+        (*g1).into()
+    }
+}
+
 impl<P: MNT6Parameters> Default for G1Prepared<P> {
     fn default() -> Self {
-        Self::from(G1Affine::<P>::prime_subgroup_generator())
+        Self::from(G1Affine::<P>::generator())
     }
 }

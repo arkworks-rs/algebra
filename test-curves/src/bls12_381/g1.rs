@@ -138,7 +138,7 @@ pub const G1_GENERATOR_Y: Fq = MontFp!("1339506544944476473020471379941921221584
 #[cfg(test)]
 mod test {
     use super::*;
-    use ark_ec::ProjectiveCurve;
+    use ark_ec::CurveGroup;
     use ark_std::UniformRand;
 
     #[test]
@@ -150,12 +150,12 @@ mod test {
             g_s[i] = G1Projective::rand(&mut rng);
         }
 
-        let mut g_s_affine_naive = [G1Affine::zero(); 100];
+        let mut g_s_affine_naive = [G1Affine::identity(); 100];
         for (i, g) in g_s.iter().enumerate() {
             g_s_affine_naive[i] = g.into_affine();
         }
 
-        let g_s_affine_fast = G1Projective::batch_normalization_into_affine(&g_s);
+        let g_s_affine_fast = G1Projective::normalize_batch(&g_s);
         assert_eq!(g_s_affine_naive.as_ref(), g_s_affine_fast.as_slice());
     }
 }

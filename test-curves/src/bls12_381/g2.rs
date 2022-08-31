@@ -6,7 +6,7 @@ use ark_ec::{
     hashing::curve_maps::wb::WBParams,
     models::CurveConfig,
     short_weierstrass::{self, *},
-    AffineCurve, ProjectiveCurve,
+    AffineRepr, CurveGroup, Group,
 };
 use ark_ff::{BigInt, Field, MontFp, Zero};
 
@@ -84,7 +84,7 @@ impl short_weierstrass::SWCurveConfig for Parameters {
         // more efficient, since the scalar -c1 has less limbs and a much lower Hamming
         // weight.
         let x: &'static [u64] = crate::bls12_381::Parameters::X;
-        let p_projective = p.into_projective();
+        let p_projective = p.into_group();
 
         // [x]P
         let x_p = Parameters::mul_affine(p, &x).neg();
@@ -93,18 +93,13 @@ impl short_weierstrass::SWCurveConfig for Parameters {
         // (ψ^2)(2P)
         let mut psi2_p2 = double_p_power_endomorphism(&p_projective.double());
 
-        // tmp = [x]P + ψ(P)
-        let mut tmp = x_p.clone();
-        tmp.add_assign_mixed(&psi_p);
-
-        // tmp2 = [x^2]P + [x]ψ(P)
-        let mut tmp2: Projective<Parameters> = tmp;
-        tmp2 = tmp2.mul_bigint(x).neg();
+        // tmp = [x^2]P + [x]ψ(P)
+        let tmp = (x_p.clone() + psi_p).mul_bigint(x).neg();
 
         // add up all the terms
-        psi2_p2 += tmp2;
+        psi2_p2 += tmp;
         psi2_p2 -= x_p;
-        psi2_p2.add_assign_mixed(&-psi_p);
+        psi2_p2 -= psi_p;
         (psi2_p2 - p_projective).into_affine()
     }
 }
