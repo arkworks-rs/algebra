@@ -296,7 +296,6 @@ macro_rules! __test_group {
                         let mut cursor = Cursor::new(&serialized[..]);
                         let (b, flags) = BaseField::deserialize_with_flags::<_, SWFlags>(&mut cursor).unwrap();
                         assert_eq!(flags, flag);
-                        assert!(!flags.is_infinity());
                         assert_eq!(a, b);
                     }
 
