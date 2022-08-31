@@ -305,55 +305,20 @@ macro_rules! __test_group {
         }
     };
     ($group:ty; te) => {
-        $crate::__test_group!($group, curve);
+        $crate::__test_group!($group; curve);
 
         #[test]
         fn test_te_properties() {
             let mut rng = &mut ark_std::test_rng();
 
-            let generator = <$group>::generator();
+            let generator = <$group>::generator().into_affine();
             assert!(generator.is_on_curve());
             assert!(generator.is_in_correct_subgroup_assuming_on_curve());
             let mut y = BaseField::zero();
             let one = BaseField::one();
-            let mut i = 0;
-            loop {
-
-                let y2 = y.square();
-
-                let numerator = one - y2;
-                let denominator = Config::COEFF_A - (y2 * Config::COEFF_D);
-
-                let candidate_point = denominator
-                    .inverse()
-                    .map(|denom| denom * &numerator)
-                    .and_then(|x2| x2.sqrt())
-                    .map(|x| {
-                        let negx = -x;
-                        let x = if (x < negx) ^ greatest { x } else { negx };
-                        Affine::new_unchecked(x, y)
-                    });
-                if let Some(p) = candidate_point {
-                    assert!(!p.is_in_correct_subgroup_assuming_on_curve());
-                    let g1 = p.mul_by_cofactor_to_projective();
-                    if !g1.is_zero() {
-                        assert_eq!(i, $const);
-                        let g1 = <$group>::Affine::from(g1);
-
-                        assert!(g1.is_in_correct_subgroup_assuming_on_curve());
-
-                        assert_eq!(g1, $group::generator());
-                        break;
-                    }
-                }
-                i += 1;
-                x += BaseField::one();
-            }
-
             for _ in 0..ITERATIONS {
                 let f = BaseField::rand(rng);
-                assert_eq!(Config::mul_by_a(&f), f * Config::COEFF_A);
-                assert_eq!(Config::add_b(&f), f + Config::COEFF_B);
+                assert_eq!(Config::mul_by_a(f), f * Config::COEFF_A);
             }
             {
                 use ark_ec::models::twisted_edwards::TEFlags;
@@ -368,7 +333,6 @@ macro_rules! __test_group {
                         let mut cursor = Cursor::new(&serialized[..]);
                         let (b, flags) = BaseField::deserialize_with_flags::<_, TEFlags>(&mut cursor).unwrap();
                         assert_eq!(flags, flag);
-                        assert!(!flags.is_infinity());
                         assert_eq!(a, b);
                     }
 

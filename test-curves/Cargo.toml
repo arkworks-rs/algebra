@@ -32,6 +32,7 @@ parallel = [ "ark-ff/parallel", "ark-ec/parallel", "ark-std/parallel" ]
 
 bls12_381_scalar_field = []
 bls12_381_curve = [ "bls12_381_scalar_field" ]
+ed_on_bls12_381 = [ "bls12_381_scalar_field" ]
 
 mnt4_753_scalar_field = []
 mnt4_753_base_field = []
@@ -48,6 +49,10 @@ name = "bls12_381"
 path = "benches/bls12_381.rs"
 harness = false
 
+[[bench]]
+name = "ed_on_bls12_381"
+path = "benches/ed_on_bls12_381.rs"
+harness = false
 
 [[bench]]
 name = "bn384_small_two_adicity"

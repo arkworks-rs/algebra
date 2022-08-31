@@ -3,10 +3,10 @@ use ark_serialize::Flags;
 
 /// Flags to be encoded into the serialization.
 /// The default flags (empty) should not change the binary representation.
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum TEFlags {
-    XIsPositive,
-    XIsNegative,
+    XIsPositive = 0,
+    XIsNegative = 1,
 }
 
 impl TEFlags {
