@@ -148,7 +148,6 @@ pub fn find_naf(num: &[u64]) -> Vec<i8> {
 /// exception of non-adjacence for the most significant bit.
 ///
 /// Since this representation is no longer a strict NAF, we call it "relaxed NAF".
-///
 pub fn find_relaxed_naf(num: &[u64]) -> Vec<i8> {
     let mut res = find_naf(num);
 

@@ -1,6 +1,7 @@
 use crate::{
     models::{short_weierstrass::SWCurveConfig, CurveConfig},
-    AffineCurve, PairingEngine,
+    pairing::{MillerLoopOutput, Pairing, PairingOutput},
+    AffineRepr,
 };
 use ark_ff::{
     fields::{
@@ -11,15 +12,11 @@ use ark_ff::{
     },
     CyclotomicMultSubgroup,
 };
-use core::marker::PhantomData;
+use ark_std::{marker::PhantomData, vec::Vec};
 use num_traits::{One, Zero};
 
 #[cfg(feature = "parallel")]
-use ark_std::cfg_iter;
-#[cfg(feature = "parallel")]
-use core::slice::Iter;
-#[cfg(feature = "parallel")]
-use rayon::iter::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator};
+use rayon::prelude::*;
 
 /// A particular BLS12 group can have G2 being either a multiplicative or a
 /// divisive twist.
@@ -61,7 +58,7 @@ pub struct Bls12<P: Bls12Parameters>(PhantomData<fn() -> P>);
 
 impl<P: Bls12Parameters> Bls12<P> {
     // Evaluate the line function at point p.
-    fn ell(f: &mut Fp12<P::Fp12Config>, coeffs: &g2::EllCoeff<Fp2<P::Fp2Config>>, p: &G1Affine<P>) {
+    fn ell(f: &mut Fp12<P::Fp12Config>, coeffs: &g2::EllCoeff<P>, p: &G1Affine<P>) {
         let mut c0 = coeffs.0;
         let mut c1 = coeffs.1;
         let mut c2 = coeffs.2;
@@ -85,118 +82,72 @@ impl<P: Bls12Parameters> Bls12<P> {
     fn exp_by_x(f: &Fp12<P::Fp12Config>, result: &mut Fp12<P::Fp12Config>) {
         *result = f.cyclotomic_exp(P::X);
         if P::X_IS_NEGATIVE {
-            result.conjugate();
+            result.cyclotomic_inverse_in_place();
         }
     }
 }
 
-impl<P: Bls12Parameters> PairingEngine for Bls12<P> {
-    type Fr = <P::G1Parameters as CurveConfig>::ScalarField;
-    type G1Projective = G1Projective<P>;
+impl<P: Bls12Parameters> Pairing for Bls12<P> {
+    type ScalarField = <P::G1Parameters as CurveConfig>::ScalarField;
+    type G1 = G1Projective<P>;
     type G1Affine = G1Affine<P>;
     type G1Prepared = G1Prepared<P>;
-    type G2Projective = G2Projective<P>;
+    type G2 = G2Projective<P>;
     type G2Affine = G2Affine<P>;
     type G2Prepared = G2Prepared<P>;
-    type Fq = P::Fp;
-    type Fqe = Fp2<P::Fp2Config>;
-    type Fqk = Fp12<P::Fp12Config>;
+    type TargetField = Fp12<P::Fp12Config>;
 
-    #[cfg(not(feature = "parallel"))]
-    fn miller_loop<'a, I>(i: I) -> Self::Fqk
-    where
-        I: IntoIterator<Item = &'a (Self::G1Prepared, Self::G2Prepared)>,
-    {
-        let mut pairs = vec![];
-        for (p, q) in i {
-            if !p.is_zero() && !q.is_zero() {
-                pairs.push((p, q.ell_coeffs.iter()));
-            }
-        }
-        let mut f = Self::Fqk::one();
-        for i in BitIteratorBE::without_leading_zeros(P::X).skip(1) {
-            f.square_in_place();
-            for (p, ref mut coeffs) in &mut pairs {
-                Self::ell(&mut f, coeffs.next().unwrap(), &p.0);
-            }
-            if i {
-                for &mut (p, ref mut coeffs) in &mut pairs {
-                    Self::ell(&mut f, coeffs.next().unwrap(), &p.0);
+    fn multi_miller_loop(
+        a: impl IntoIterator<Item = impl Into<Self::G1Prepared>>,
+        b: impl IntoIterator<Item = impl Into<Self::G2Prepared>>,
+    ) -> MillerLoopOutput<Self> {
+        use itertools::Itertools;
+
+        let mut pairs = a
+            .into_iter()
+            .zip_eq(b)
+            .filter_map(|(p, q)| {
+                let (p, q) = (p.into(), q.into());
+                match !p.is_zero() && !q.is_zero() {
+                    true => Some((p, q.ell_coeffs.into_iter())),
+                    false => None,
                 }
-            }
-        }
+            })
+            .collect::<Vec<_>>();
+
+        let mut f = cfg_chunks_mut!(pairs, 4)
+            .map(|pairs| {
+                let mut f = Self::TargetField::one();
+                for i in BitIteratorBE::without_leading_zeros(P::X).skip(1) {
+                    f.square_in_place();
+                    for (p, coeffs) in pairs.iter_mut() {
+                        Self::ell(&mut f, &coeffs.next().unwrap(), &p.0);
+                    }
+                    if i {
+                        for (p, coeffs) in pairs.iter_mut() {
+                            Self::ell(&mut f, &coeffs.next().unwrap(), &p.0);
+                        }
+                    }
+                }
+                f
+            })
+            .product::<Self::TargetField>();
+
         if P::X_IS_NEGATIVE {
-            f.conjugate();
+            f.cyclotomic_inverse_in_place();
         }
-        f
+        MillerLoopOutput(f)
     }
 
-    #[cfg(feature = "parallel")]
-    fn miller_loop<'a, I>(i: I) -> Self::Fqk
-    where
-        I: IntoIterator<Item = &'a (Self::G1Prepared, Self::G2Prepared)>,
-    {
-        let mut pairs = vec![];
-        for (p, q) in i {
-            if !p.is_zero() && !q.is_zero() {
-                pairs.push((p, q.ell_coeffs.iter()));
-            }
-        }
-
-        let mut f_vec = vec![];
-        for _ in 0..pairs.len() {
-            f_vec.push(Self::Fqk::one());
-        }
-
-        let a = |p: &&G1Prepared<P>,
-                 coeffs: &Iter<
-            '_,
-            (
-                Fp2<<P as Bls12Parameters>::Fp2Config>,
-                Fp2<<P as Bls12Parameters>::Fp2Config>,
-                Fp2<<P as Bls12Parameters>::Fp2Config>,
-            ),
-        >,
-                 mut f: Fp12<<P as Bls12Parameters>::Fp12Config>|
-         -> Fp12<<P as Bls12Parameters>::Fp12Config> {
-            let coeffs = coeffs.as_slice();
-            let mut j = 0;
-            for i in BitIteratorBE::without_leading_zeros(P::X).skip(1) {
-                f.square_in_place();
-                Self::ell(&mut f, &coeffs[j], &p.0);
-                j += 1;
-                if i {
-                    Self::ell(&mut f, &coeffs[j], &p.0);
-                    j += 1;
-                }
-            }
-            f
-        };
-
-        let mut products = vec![];
-        cfg_iter!(pairs)
-            .zip(f_vec)
-            .map(|(p, f)| a(&p.0, &p.1, f))
-            .collect_into_vec(&mut products);
-
-        let mut f = Self::Fqk::one();
-        for ff in products {
-            f *= ff;
-        }
-        if P::X_IS_NEGATIVE {
-            f.conjugate();
-        }
-        f
-    }
-
-    fn final_exponentiation(f: &Self::Fqk) -> Option<Self::Fqk> {
+    fn final_exponentiation(f: MillerLoopOutput<Self>) -> Option<PairingOutput<Self>> {
         // Computing the final exponentation following
         // https://eprint.iacr.org/2020/875
         // Adapted from the implementation in https://github.com/ConsenSys/gurvy/pull/29
 
-        // f1 = r.conjugate() = f^(p^6)
-        let mut f1 = *f;
-        f1.conjugate();
+        // f1 = r.cyclotomic_inverse_in_place() = f^(p^6)
+        let f = f.0;
+        let mut f1 = f;
+        f1.cyclotomic_inverse_in_place();
 
         f.inverse().map(|mut f2| {
             // f2 = f^(-1);
@@ -220,13 +171,13 @@ impl<P: Bls12Parameters> PairingEngine for Bls12<P> {
             Self::exp_by_x(&r, &mut y1);
             // t[2].InverseUnitary(&result)
             let mut y2 = r;
-            y2.conjugate();
+            y2.cyclotomic_inverse_in_place();
             // t[1].Mul(&t[1], &t[2])
             y1 *= &y2;
             // t[2].Expt(&t[1])
             Self::exp_by_x(&y1, &mut y2);
             // t[1].InverseUnitary(&t[1])
-            y1.conjugate();
+            y1.cyclotomic_inverse_in_place();
             // t[1].Mul(&t[1], &t[2])
             y1 *= &y2;
             // t[2].Expt(&t[1])
@@ -245,14 +196,14 @@ impl<P: Bls12Parameters> PairingEngine for Bls12<P> {
             y0 = y1;
             y0.frobenius_map(2);
             // t[1].InverseUnitary(&t[1])
-            y1.conjugate();
+            y1.cyclotomic_inverse_in_place();
             // t[1].Mul(&t[1], &t[2])
             y1 *= &y2;
             // t[1].Mul(&t[1], &t[0])
             y1 *= &y0;
             // result.Mul(&result, &t[1])
             r *= &y1;
-            r
+            PairingOutput(r)
         })
     }
 }

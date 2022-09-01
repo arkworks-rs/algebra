@@ -1,14 +1,14 @@
 use ark_algebra_bench_templates::*;
 use ark_std::ops::{AddAssign, MulAssign, SubAssign};
 
-use ark_ec::{PairingEngine, ProjectiveCurve};
+use ark_ec::{CurveGroup, Group};
 use ark_ff::{
     biginteger::{BigInteger256 as FrRepr, BigInteger384 as FqRepr},
     BigInteger, Field, PrimeField, UniformRand,
 };
 use ark_test_curves::bls12_381::{
-    fq::Fq, fq2::Fq2, fr::Fr, Bls12_381, Fq12, G1Affine, G1Projective as G1, G2Affine,
-    G2Projective as G2,
+    fq::Fq, fq2::Fq2, fr::Fr, Bls12_381, Fq12, G1Affine, G1Prepared, G1Projective as G1, G2Affine,
+    G2Prepared, G2Projective as G2,
 };
 
 mod g1 {

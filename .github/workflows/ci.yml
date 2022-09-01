@@ -119,6 +119,40 @@ jobs:
                    --all-features"
         if: matrix.rust == 'nightly'
 
+  test_assembly:
+    name: Test assembly
+    runs-on: ubuntu-latest
+    env:
+      RUSTFLAGS: -Dwarnings
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Install Rust nightly
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: nightly
+          override: true
+
+      - uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Test assembly on nightly
+        env:
+          RUSTFLAGS: -C target-cpu=native
+        uses: actions-rs/cargo@v1
+        with:
+            command: test
+            args: "--workspace \
+                   --package ark-test-curves \
+                   --all-features"
+
   check_no_std:
     name: Check no_std
     runs-on: ubuntu-latest

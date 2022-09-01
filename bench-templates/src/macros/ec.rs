@@ -95,14 +95,14 @@ macro_rules! ec_bench {
             let mut count = 0;
             b.iter(|| {
                 let mut tmp = v[count].0;
-                n_fold!(tmp, v, add_assign_mixed, count);
+                n_fold!(tmp, v, add_assign, count);
                 count = (count + 1) % SAMPLES;
                 tmp
             });
         }
 
         fn deser(b: &mut $crate::bencher::Bencher) {
-            use ark_ec::ProjectiveCurve;
+            use ark_ec::CurveGroup;
             use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
             const SAMPLES: usize = 1000;
 
@@ -128,7 +128,7 @@ macro_rules! ec_bench {
         }
 
         fn ser(b: &mut $crate::bencher::Bencher) {
-            use ark_ec::ProjectiveCurve;
+            use ark_ec::CurveGroup;
             use ark_serialize::CanonicalSerialize;
             const SAMPLES: usize = 1000;
 
@@ -137,7 +137,7 @@ macro_rules! ec_bench {
             let mut v: Vec<_> = (0..SAMPLES)
                 .map(|_| <$projective>::rand(&mut rng))
                 .collect();
-            let v = <$projective>::batch_normalization_into_affine(v.as_mut_slice());
+            let v = <$projective>::normalize_batch(v.as_mut_slice());
             let mut bytes = Vec::with_capacity(1000);
 
             let mut count = 0;
@@ -150,7 +150,7 @@ macro_rules! ec_bench {
         }
 
         fn deser_unchecked(b: &mut $crate::bencher::Bencher) {
-            use ark_ec::ProjectiveCurve;
+            use ark_ec::CurveGroup;
             use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
             const SAMPLES: usize = 1000;
 
@@ -184,7 +184,7 @@ macro_rules! ec_bench {
             let mut v: Vec<_> = (0..SAMPLES)
                 .map(|_| <$projective>::rand(&mut rng))
                 .collect();
-            let v = <$projective>::batch_normalization_into_affine(v.as_mut_slice());
+            let v = <$projective>::normalize_batch(v.as_mut_slice());
             let mut bytes = Vec::with_capacity(1000);
 
             let mut count = 0;
@@ -197,7 +197,7 @@ macro_rules! ec_bench {
         }
 
         fn deser_uncompressed(b: &mut $crate::bencher::Bencher) {
-            use ark_ec::ProjectiveCurve;
+            use ark_ec::CurveGroup;
             use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
             const SAMPLES: usize = 1000;
 
@@ -223,7 +223,7 @@ macro_rules! ec_bench {
         }
 
         fn msm_131072(b: &mut $crate::bencher::Bencher) {
-            use ark_ec::msm::VariableBaseMSM;
+            use ark_ec::scalar_mul::variable_base::VariableBaseMSM;
             use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
             const SAMPLES: usize = 131072;
 

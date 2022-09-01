@@ -135,8 +135,9 @@ impl<P: QuadExtConfig> QuadExtField<P> {
 
     /// This is only to be used when the element is *known* to be in the
     /// cyclotomic subgroup.
-    pub fn conjugate(&mut self) {
+    pub fn conjugate_in_place(&mut self) -> &mut Self {
         self.c1 = -self.c1;
+        self
     }
 
     /// Norm of QuadExtField over `P::BaseField`:`Norm(a) = a * a.conjugate()`.

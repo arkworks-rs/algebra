@@ -4,7 +4,7 @@ use crate::{
     mnt4::MNT4Parameters,
     models::mnt4::MNT4,
     short_weierstrass::{Affine, Projective},
-    AffineCurve,
+    AffineRepr, CurveGroup,
 };
 use ark_ff::fields::{Field, Fp2};
 use ark_std::vec::Vec;
@@ -31,7 +31,7 @@ pub struct G2Prepared<P: MNT4Parameters> {
 
 impl<P: MNT4Parameters> Default for G2Prepared<P> {
     fn default() -> Self {
-        Self::from(G2Affine::<P>::prime_subgroup_generator())
+        Self::from(G2Affine::<P>::generator())
     }
 }
 
@@ -88,6 +88,23 @@ impl<P: MNT4Parameters> From<G2Affine<P>> for G2Prepared<P> {
         }
 
         g_prep
+    }
+}
+
+impl<'a, P: MNT4Parameters> From<&'a G2Affine<P>> for G2Prepared<P> {
+    fn from(g2: &'a G2Affine<P>) -> Self {
+        (*g2).into()
+    }
+}
+
+impl<P: MNT4Parameters> From<G2Projective<P>> for G2Prepared<P> {
+    fn from(g2: G2Projective<P>) -> Self {
+        g2.into_affine().into()
+    }
+}
+impl<'a, P: MNT4Parameters> From<&'a G2Projective<P>> for G2Prepared<P> {
+    fn from(g2: &'a G2Projective<P>) -> Self {
+        (*g2).into()
     }
 }
 

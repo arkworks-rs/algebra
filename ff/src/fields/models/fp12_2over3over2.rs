@@ -107,19 +107,18 @@ impl<P: Fp12Config> Fp12<P> {
     }
 }
 
-// TODO: make `const fn` in 1.46.
-pub fn characteristic_square_mod_6_is_one(characteristic: &[u64]) -> bool {
-    // characteristic mod 6 = (a_0 + 2**64 * a_1 + ...) mod 6
-    //                      = a_0 mod 6 + (2**64 * a_1 mod 6) + (...) mod 6
-    //                      = a_0 mod 6 + (4 * a_1 mod 6) + (4 * ...) mod 6
+pub const fn characteristic_square_mod_6_is_one(characteristic: &[u64]) -> bool {
+    // char mod 6 = (a_0 + 2**64 * a_1 + ...) mod 6
+    //            = a_0 mod 6 + (2**64 * a_1 mod 6) + (...) mod 6
+    //            = a_0 mod 6 + (4 * a_1 mod 6) + (4 * ...) mod 6
     let mut char_mod_6 = 0u64;
-    for (i, limb) in characteristic.iter().enumerate() {
+    crate::const_for!((i in 0..(characteristic.len())) {
         char_mod_6 += if i == 0 {
-            limb % 6
+            characteristic[i] % 6
         } else {
-            (4 * (limb % 6)) % 6
+            (4 * (characteristic[i] % 6)) % 6
         };
-    }
+    });
     (char_mod_6 * char_mod_6) % 6 == 1
 }
 
@@ -127,10 +126,7 @@ impl<P: Fp12Config> CyclotomicMultSubgroup for Fp12<P> {
     const INVERSE_IS_FAST: bool = true;
 
     fn cyclotomic_inverse_in_place(&mut self) -> Option<&mut Self> {
-        self.is_zero().not().then(|| {
-            self.conjugate();
-            self
-        })
+        self.is_zero().not().then(|| self.conjugate_in_place())
     }
 
     fn cyclotomic_square_in_place(&mut self) -> &mut Self {

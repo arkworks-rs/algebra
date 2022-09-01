@@ -5,7 +5,7 @@ use core::marker::PhantomData;
 
 use crate::{
     hashing::{map_to_curve_hasher::MapToCurve, HashToCurveError},
-    models::short_weierstrass::Affine,
+    models::short_weierstrass::{Affine, Projective},
 };
 
 /// Trait defining the necessary parameters for the SWU hash-to-curve method
@@ -36,7 +36,7 @@ pub fn parity<F: Field>(element: &F) -> bool {
         .map_or(false, |x| x.into_bigint().is_odd())
 }
 
-impl<P: SWUParams> MapToCurve<Affine<P>> for SWUMap<P> {
+impl<P: SWUParams> MapToCurve<Projective<P>> for SWUMap<P> {
     /// Constructs a new map if `P` represents a valid map.
     fn new() -> Result<Self, HashToCurveError> {
         // Verifying that ZETA is a non-square
@@ -155,9 +155,10 @@ impl<P: SWUParams> MapToCurve<Affine<P>> for SWUMap<P> {
 
 #[cfg(test)]
 mod test {
-    use crate::hashing::map_to_curve_hasher::MapToCurveBasedHasher;
-    use crate::hashing::HashToCurve;
-    use crate::CurveConfig;
+    use crate::{
+        hashing::{map_to_curve_hasher::MapToCurveBasedHasher, HashToCurve},
+        CurveConfig,
+    };
     use ark_ff::field_hashers::DefaultFieldHasher;
     use ark_std::vec::Vec;
 
@@ -240,7 +241,7 @@ mod test {
     #[test]
     fn hash_arbitary_string_to_curve_swu() {
         let test_swu_to_curve_hasher = MapToCurveBasedHasher::<
-            Affine<TestSWUMapToCurveParams>,
+            Projective<TestSWUMapToCurveParams>,
             DefaultFieldHasher<Sha256, 128>,
             SWUMap<TestSWUMapToCurveParams>,
         >::new(&[1])

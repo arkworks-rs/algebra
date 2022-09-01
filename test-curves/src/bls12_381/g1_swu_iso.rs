@@ -1,8 +1,10 @@
 use crate::bls12_381::*;
-use ark_ec::hashing::curve_maps::swu::SWUParams;
-use ark_ec::models::{
-    short_weierstrass::{Affine, SWCurveConfig},
-    CurveConfig,
+use ark_ec::{
+    hashing::curve_maps::swu::SWUParams,
+    models::{
+        short_weierstrass::{Affine, SWCurveConfig},
+        CurveConfig,
+    },
 };
 use ark_ff::MontFp;
 
