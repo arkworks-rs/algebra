@@ -4,13 +4,13 @@
 
 ### Breaking changes
 
-- [\#300](https://github.com/arkworks-rs/algebra/pull/300) (`ark-ec`) Change the implementation of `Hash` trait of `GroupProjective` to use the affine co-ordinates.
+- [\#300](https://github.com/arkworks-rs/algebra/pull/300) (`ark-ec`) Change the implementation of `Hash` trait of `GroupProjective` to use the affine coordinates.
 - [\#302](https://github.com/arkworks-rs/algebra/pull/302) (`ark-ff`) Rename `find_wnaf` to `find_naf`.
 - [\#310](https://github.com/arkworks-rs/algebra/pull/310) (`ark-ec`, `ark-ff`) Remove unnecessary internal `PhantomData`.
 - [\#333](https://github.com/arkworks-rs/algebra/pull/333) (`ark-poly`) Expose more properties of `EvaluationDomain`s.
 - [\#338](https://github.com/arkworks-rs/algebra/pull/338) (`ark-ec`) Add missing `UniformRand` trait bound to `GroupAffine`.
 - [\#338](https://github.com/arkworks-rs/algebra/pull/338) (workspace) Change to Rust 2021 edition.
-- [\#345](https://github.com/arkworks-rs/algebra/pull/345) (`ark-ec`, `ark-serialize`) Change the serialization format for Twisted Edwards Curves. We now encode the Y co-ordinate and take the sign bit of the X co-ordinate, the default flag is also now the Positive X value. The old methods for backwards compatibility are located [here](https://github.com/arkworks-rs/algebra/pull/345/files#diff-3621a48bb33f469144044d8d5fc663f767e103132a764812cda6be6c25877494R860)
+- [\#345](https://github.com/arkworks-rs/algebra/pull/345) (`ark-ec`, `ark-serialize`) Change the serialization format for Twisted Edwards Curves. We now encode the Y coordinate and take the sign bit of the X coordinate, the default flag is also now the Positive X value. The old methods for backwards compatibility are located [here](https://github.com/arkworks-rs/algebra/pull/345/files#diff-3621a48bb33f469144044d8d5fc663f767e103132a764812cda6be6c25877494R860)
 - [\#348](https://github.com/arkworks-rs/algebra/pull/348) (`ark-ec`) Rename `msm:{Fixed,Variable}BaseMSM:multi_scalar_mul` to `msm:{Fixed,Variable}:msm` to avoid redundancy.
 - [\#359](https://github.com/arkworks-rs/algebra/pull/359) (`ark-test-templates`) Simplify the field and curve test macros.
 - [\#365](https://github.com/arkworks-rs/algebra/pull/365) (`ark-ec`)
@@ -58,7 +58,74 @@
         - `Mul<ScalarField, Output = ProjectiveCurve>`
         - `for<'a> Mul<&'a ScalarField, Output = ProjectiveCurve>`
 - [\#445](https://github.com/arkworks-rs/algebra/pull/445) (`ark-ec`) Change the `ATE_LOOP_COUNT` in MNT4/6 curves to use 2-NAF.
-- [\#446](https://github.com/arkworks-rs/algebra/pull/446) (`ark-ff`) Add `CyclotomicMultSubgroup` trait and impl for extension fields
+- [\#446](https://github.com/arkworks-rs/algebra/pull/446) (`ark-ff`) Add `CyclotomicMultSubgroup` trait and implement it for extension fields
+- [\#447](https://github.com/arkworks-rs/algebra/pull/447) (`ark-ec`, `ark-algebra-test-templates`) Rename and refactor group infrastructure, and test infrastructure for fields, groups, and pairings:
+    - Create new `Group` trait and move some functionality from `ProjectiveCurve` to it.
+    - Rename `ProjectiveCurve` to `CurveGroup: Group`.
+        - Rename some associated types:
+            - `AffineCurve` → `Affine`
+        - Rename some methods:
+            - `batch_normalization_to_affine` → `normalize_batch`
+    - Rename `AffineCurve` to `Affine`.
+        - Rename associated types:
+            - `Projective` → `Group`
+        - Add methods:
+            - Add method `fn x(&self) -> Self::BaseField` that returns the x coordinate of the point.
+            - Add method `fn y(&self) -> Self::BaseField` that returns the y coordinate of the point.
+        - Rename methods:
+            - `zero()` → `identity()`
+            - `is_zero()` → `is_identity()`
+            - `into_projective()` → `into_group()`
+    - Add new `ScalarMul` trait that encapsulates scalar multiplication routines for arbitrary `Group`s.
+        - `ScalarMul` trait has a `MulBase` associated type to encapsulate bases for variable base and fixed-base scalar multiplication algorithms.
+        - `ScalarMul` requires `Add<Self::MulBase, Output = Self>`, `AddAssign<Self::MulBase>`, and `From<Self::MulBase>`.
+    - Rename `PairingEngine` to `Pairing`:
+        - Rename associated types:
+            - `Fr` → `ScalarField`
+            - `G1Projective` → `G1`
+            - `G2Projective` → `G2`
+            - `Fqk` → `TargetField: CyclotomicMultSubgroup`
+        - Remove associated type `Fqe`.
+        - Rename methods:
+            - `miller_loop` → `multi_miller_loop`
+            - `pairing` → `multi_pairing`
+        - Change method signatures:
+            - `miller_loop` and `multi_miller_loop` now
+                - take two iterators over `impl Into<G1Prepared>` and `impl Into<G2Prepared>` as input, and
+                - output `MillerLoopOutput`, which is a newtype wrapper around `TargetField`.
+            - `final_exponentiation` now
+                - takes as input a `MillerLoopOutput`,
+                - outputs `PairingOutput`, which is a newtype around `TargetField`, and which implements `Group` and `ScalarMul`, allowing it to be used with the existing MSM infrastructure.
+            - Pairings, which are the composition of Miller loops and final exponentiation, are changed accordingly.
+    - `ark-algebra-test-templates` macro syntax is now simplified; see the test files in `test-curves` for examples.
+- [\#463](https://github.com/arkworks-rs/algebra/pull/453) (`ark-serialize`, `ark-ff`, `ark-ec`) Refactor serialization infrastructure to enable more flexibility and less repetition of code:
+    - New `enum Compress` that indicates whether point compression should be enabled or not.
+    - New `enum Validate` that indicates whether type-specific validation checks should be carried out or not.
+    - New `trait Valid` that provides methods for checking whether a deserialized value of a given type passes appropriate validation checks. The trait has the following methods
+        - `check` which checks a single value, and
+        - `batch_check` which checks a batch of values.
+    - `CanonicalSerialize`:
+        - New signature for `serialize` that takes in an argument `compress: Compress`
+        - Old `serialize` → `serialize_compressed`
+        - `serialize_uncompressed` → `serialize_uncompressed`
+        - Every method has a default implementation that calls `serialize` with the appropriate `compress` value.
+    - `CanonicalDeserialize`:
+        - All types implementing
+        - New signature for `deserialize` that takes in arguments `compress: Compress` and `validate: Validate`.
+        - `deserialize` → `deserialize_compressed`
+        - `deserialize_uncompressed` → `deserialize_uncompressed`
+        - `deserialize_unchecked` → `deserialize_uncompressed_unchecked`
+        - New method `deserialize_compressed_unchecked` that performs decompression but skips validation checks.
+        - Every method has a default implementation that calls `deserialize` with the appropriate `compress` and `validate` values.
+    - The `SWFlags` enum has been moved to `ark_ec::models::short_weierstrass`, and has had its variants renamed to be somewhat more descriptive.
+    - The `EdwardsFlags` enum has been moved to `ark_ec::models::twisted_edwards`, has been renamed to `TEFlags`, and has had its variants renamed to be somewhat more descriptive.
+    - New serialization format for Short Weierstrass curves:
+        - Points with a "positive" y-coordinate are serialized with the sign bit set to zero (as opposed to the sign bit set to one in the old behavior).
+        - Points with a "negative" y-coordinate are serialized with the sign bit set to one (as opposed to the sign bit set to zero in the old behavior).
+        - The point at infinity is serialized with the infinity flag set to one.
+    - New serialization format for Twisted Edwards curves:
+        - Points with a "positive" x-coordinate are serialized with the sign bit set to zero.
+        - Points with a "negative" x-coordinate are serialized with the sign bit set to one.
 
 ### Features
 

@@ -49,75 +49,58 @@ macro_rules! __test_field {
         fn test_serialization() {
             use ark_serialize::*;
             use ark_std::UniformRand;
-            let buf_size = <$field>::zero().serialized_size();
+            for compress in [Compress::Yes, Compress::No] {
+                for validate in [Validate::Yes, Validate::No] {
+                    let buf_size = <$field>::zero().serialized_size(compress);
 
-            let buffer_size =
-                buffer_bit_byte_size(<$field as Field>::BasePrimeField::MODULUS_BIT_SIZE as usize).1 *
-                (<$field>::extension_degree() as usize);
-            assert_eq!(buffer_size, buf_size);
+                    let buffer_size =
+                        buffer_bit_byte_size(<$field as Field>::BasePrimeField::MODULUS_BIT_SIZE as usize).1 *
+                        (<$field>::extension_degree() as usize);
+                    assert_eq!(buffer_size, buf_size);
 
-            let mut rng = ark_std::test_rng();
+                    let mut rng = ark_std::test_rng();
 
-            for _ in 0..ITERATIONS {
-                let a = <$field>::rand(&mut rng);
-                {
-                    let mut serialized = vec![0u8; buf_size];
-                    let mut cursor = Cursor::new(&mut serialized[..]);
-                    a.serialize(&mut cursor).unwrap();
+                    for _ in 0..ITERATIONS {
+                        let a = <$field>::rand(&mut rng);
+                        {
+                            let mut serialized = vec![0u8; buf_size];
+                            let mut cursor = Cursor::new(&mut serialized[..]);
+                            a.serialize_with_mode(&mut cursor, compress).unwrap();
 
-                    let mut cursor = Cursor::new(&serialized[..]);
-                    let b = <$field>::deserialize(&mut cursor).unwrap();
-                    assert_eq!(a, b);
-                }
-
-                {
-                    let mut serialized = vec![0u8; a.uncompressed_size()];
-                    let mut cursor = Cursor::new(&mut serialized[..]);
-                    a.serialize_uncompressed(&mut cursor).unwrap();
-
-                    let mut cursor = Cursor::new(&serialized[..]);
-                    let b = <$field>::deserialize_uncompressed(&mut cursor).unwrap();
-                    assert_eq!(a, b);
-                }
-
-                {
-                    let mut serialized = vec![0u8; buf_size + 1];
-                    let mut cursor = Cursor::new(&mut serialized[..]);
-                    a.serialize_with_flags(&mut cursor, SWFlags::from_y_sign(true))
-                    .unwrap();
-                    let mut cursor = Cursor::new(&serialized[..]);
-                    let (b, flags) = <$field>::deserialize_with_flags::<_, SWFlags>(&mut cursor).unwrap();
-                    assert_eq!(flags.is_positive(), Some(true));
-                    assert!(!flags.is_infinity());
-                    assert_eq!(a, b);
-                }
+                            let mut cursor = Cursor::new(&serialized[..]);
+                            let b = <$field>::deserialize_with_mode(&mut cursor, compress, validate).unwrap();
+                            assert_eq!(a, b);
+                        }
 
 
 
-                {
-                    let mut serialized = vec![0; buf_size];
-                    let result = matches!(
-                        a.serialize_with_flags(&mut &mut serialized[..], $crate::fields::DummyFlags).unwrap_err(),
-                        SerializationError::NotEnoughSpace
-                    );
-                    assert!(result);
+                        {
+                            let mut serialized = vec![0; buf_size];
+                            let result = matches!(
+                                a.serialize_with_flags(&mut &mut serialized[..], $crate::fields::DummyFlags).unwrap_err(),
+                                SerializationError::NotEnoughSpace
+                            );
+                            assert!(result);
 
-                    let result = matches!(
-                        <$field>::deserialize_with_flags::<_, $crate::fields::DummyFlags>(&mut &serialized[..]).unwrap_err(),
-                        SerializationError::NotEnoughSpace,
-                    );
-                    assert!(result);
+                            let result = matches!(
+                                <$field>::deserialize_with_flags::<_, $crate::fields::DummyFlags>(&mut &serialized[..]).unwrap_err(),
+                                SerializationError::NotEnoughSpace,
+                            );
+                            assert!(result);
 
-                    {
-                        let mut serialized = vec![0; buf_size - 1];
-                        let mut cursor = Cursor::new(&mut serialized[..]);
-                        a.serialize(&mut cursor).unwrap_err();
+                            {
+                                let mut serialized = vec![0; buf_size - 1];
+                                let mut cursor = Cursor::new(&mut serialized[..]);
+                                a.serialize_with_mode(&mut cursor, compress).unwrap_err();
 
-                        let mut cursor = Cursor::new(&serialized[..]);
-                        <$field>::deserialize(&mut cursor).unwrap_err();
+                                let mut cursor = Cursor::new(&serialized[..]);
+                                <$field>::deserialize_with_mode(&mut cursor, compress, validate).unwrap_err();
+                            }
+                        }
                     }
                 }
             }
+
         }
 
         #[test]
@@ -507,7 +490,7 @@ macro_rules! test_field {
                 fields::{FftField, Field, LegendreSymbol, PrimeField},
                 Fp, MontBackend, MontConfig,
             };
-            use ark_serialize::{buffer_bit_byte_size, Flags, SWFlags};
+            use ark_serialize::{buffer_bit_byte_size, Flags};
             use ark_std::{io::Cursor, rand::Rng, vec::Vec, test_rng, vec, Zero, One, UniformRand};
             const ITERATIONS: usize = 1000;
 

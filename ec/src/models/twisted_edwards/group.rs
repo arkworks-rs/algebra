@@ -1,4 +1,6 @@
-use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, SerializationError};
+use ark_serialize::{
+    CanonicalDeserialize, CanonicalSerialize, Compress, SerializationError, Valid, Validate,
+};
 use ark_std::{
     borrow::Borrow,
     fmt::{Display, Formatter, Result as FmtResult},
@@ -86,7 +88,7 @@ impl<P: TECurveConfig> Distribution<Projective<P>> for Standard {
             let y = P::BaseField::rand(rng);
             let greatest = rng.gen();
 
-            if let Some(p) = Affine::get_point_from_y(y, greatest) {
+            if let Some(p) = Affine::get_point_from_y_unchecked(y, greatest) {
                 return p.mul_by_cofactor_to_group();
             }
         }
@@ -167,7 +169,7 @@ impl<P: TECurveConfig> Group for Projective<P> {
         // C = 2 * Z1^2
         let c = self.z.square().double();
         // D = a * A
-        let d = P::mul_by_a(&a);
+        let d = P::mul_by_a(a);
         // E = (X1 + Y1)^2 - A - B
         let e = (self.x + &self.y).square() - &a - &b;
         // G = D + B
@@ -258,7 +260,7 @@ impl<P: TECurveConfig, T: Borrow<Affine<P>>> AddAssign<T> for Projective<P> {
         // G = D+C
         let g = d + &c;
         // H = B-a*A
-        let h = b - &P::mul_by_a(&a);
+        let h = b - &P::mul_by_a(a);
         // X3 = E*F
         self.x = e * &f;
         // Y3 = G*H
@@ -329,7 +331,7 @@ impl<'a, P: TECurveConfig> AddAssign<&'a Self> for Projective<P> {
         let d = self.z * &other.z;
 
         // H = B - aA
-        let h = b - &P::mul_by_a(&a);
+        let h = b - &P::mul_by_a(a);
 
         // E = (x1 + y1) * (x2 + y2) - A - B
         let e = (self.x + &self.y) * &(other.x + &other.y) - &a - &b;
@@ -422,47 +424,47 @@ impl<P: MontCurveConfig> MontgomeryAffine<P> {
 impl<P: TECurveConfig> CanonicalSerialize for Projective<P> {
     #[allow(unused_qualifications)]
     #[inline]
-    fn serialize<W: Write>(&self, writer: W) -> Result<(), SerializationError> {
+    fn serialize_with_mode<W: Write>(
+        &self,
+        writer: W,
+        compress: Compress,
+    ) -> Result<(), SerializationError> {
         let aff = Affine::<P>::from(*self);
-        aff.serialize(writer)
+        aff.serialize_with_mode(writer, compress)
     }
 
     #[inline]
-    fn serialized_size(&self) -> usize {
+    fn serialized_size(&self, compress: Compress) -> usize {
         let aff = Affine::<P>::from(*self);
-        aff.serialized_size()
+        aff.serialized_size(compress)
+    }
+}
+
+impl<P: TECurveConfig> Valid for Projective<P> {
+    fn check(&self) -> Result<(), SerializationError> {
+        self.into_affine().check()
     }
 
-    #[allow(unused_qualifications)]
-    #[inline]
-    fn serialize_uncompressed<W: Write>(&self, writer: W) -> Result<(), SerializationError> {
-        let aff = Affine::<P>::from(*self);
-        aff.serialize_uncompressed(writer)
-    }
-
-    #[inline]
-    fn uncompressed_size(&self) -> usize {
-        let aff = Affine::<P>::from(*self);
-        aff.uncompressed_size()
+    fn batch_check<'a>(
+        batch: impl Iterator<Item = &'a Self> + Send,
+    ) -> Result<(), SerializationError>
+    where
+        Self: 'a,
+    {
+        let batch = batch.copied().collect::<Vec<_>>();
+        let batch = Self::normalize_batch(&batch);
+        Affine::batch_check(batch.iter())
     }
 }
 
 impl<P: TECurveConfig> CanonicalDeserialize for Projective<P> {
     #[allow(unused_qualifications)]
-    fn deserialize<R: Read>(reader: R) -> Result<Self, SerializationError> {
-        let aff = Affine::<P>::deserialize(reader)?;
-        Ok(aff.into())
-    }
-
-    #[allow(unused_qualifications)]
-    fn deserialize_uncompressed<R: Read>(reader: R) -> Result<Self, SerializationError> {
-        let aff = Affine::<P>::deserialize_uncompressed(reader)?;
-        Ok(aff.into())
-    }
-
-    #[allow(unused_qualifications)]
-    fn deserialize_unchecked<R: Read>(reader: R) -> Result<Self, SerializationError> {
-        let aff = Affine::<P>::deserialize_unchecked(reader)?;
+    fn deserialize_with_mode<R: Read>(
+        reader: R,
+        compress: Compress,
+        validate: Validate,
+    ) -> Result<Self, SerializationError> {
+        let aff = Affine::<P>::deserialize_with_mode(reader, compress, validate)?;
         Ok(aff.into())
     }
 }
@@ -474,45 +476,6 @@ where
     #[inline]
     fn to_field_elements(&self) -> Option<Vec<ConstraintF>> {
         Affine::from(*self).to_field_elements()
-    }
-}
-
-impl<P: TECurveConfig> Projective<P> {
-    /// This method is implemented for backwards compatibility with the old
-    /// serialization format and will be deprecated and then removed in a
-    /// future version.
-    pub fn serialize_old<W: Write>(&self, writer: W) -> Result<(), SerializationError> {
-        let aff = Affine::<P>::from(*self);
-        aff.serialize_old(writer)
-    }
-
-    #[allow(unused_qualifications)]
-    #[inline]
-    /// This method is implemented for backwards compatibility with the old
-    /// serialization format and will be deprecated and then removed in a
-    /// future version.
-    pub fn serialize_uncompressed_old<W: Write>(
-        &self,
-        writer: W,
-    ) -> Result<(), SerializationError> {
-        let aff = Affine::<P>::from(*self);
-        aff.serialize_uncompressed(writer)
-    }
-
-    #[allow(unused_qualifications)]
-    /// This method is implemented for backwards compatibility with the old
-    /// serialization format and will be deprecated and then removed in a
-    /// future version.
-    pub fn deserialize_uncompressed_old<R: Read>(reader: R) -> Result<Self, SerializationError> {
-        let aff = Affine::<P>::deserialize_uncompressed(reader)?;
-        Ok(aff.into())
-    }
-    /// This method is implemented for backwards compatibility with the old
-    /// serialization format and will be deprecated and then removed in a
-    /// future version.
-    pub fn deserialize_old<R: Read>(reader: R) -> Result<Self, SerializationError> {
-        let aff = Affine::<P>::deserialize_old(reader)?;
-        Ok(aff.into())
     }
 }
 

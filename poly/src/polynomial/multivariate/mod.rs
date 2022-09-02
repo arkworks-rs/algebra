@@ -1,11 +1,10 @@
 //! Work with sparse multivariate polynomials.
 use ark_ff::Field;
-use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, SerializationError};
+use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use ark_std::{
     cmp::Ordering,
     fmt::{Debug, Error, Formatter},
     hash::Hash,
-    io::{Read, Write},
     ops::Deref,
     vec::Vec,
 };

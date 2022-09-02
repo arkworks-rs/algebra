@@ -1,4 +1,6 @@
-use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, SerializationError};
+use ark_serialize::{
+    CanonicalDeserialize, CanonicalSerialize, Compress, SerializationError, Valid, Validate,
+};
 use ark_std::{
     borrow::Borrow,
     fmt::{Debug, Display, Formatter, Result as FmtResult},
@@ -100,7 +102,7 @@ impl<P: SWCurveConfig> Distribution<Projective<P>> for Standard {
             let x = P::BaseField::rand(rng);
             let greatest = rng.gen();
 
-            if let Some(p) = Affine::get_point_from_x(x, greatest) {
+            if let Some(p) = Affine::get_point_from_x_unchecked(x, greatest) {
                 return p.mul_by_cofactor_to_group();
             }
         }
@@ -222,7 +224,7 @@ impl<P: SWCurveConfig> Group for Projective<P> {
             let s = ((self.x + &yy).square() - &xx - &yyyy).double();
 
             // M = 3*XX+a*ZZ^2
-            let m = xx + xx.double() + P::mul_by_a(&zz.square());
+            let m = xx + xx.double() + P::mul_by_a(zz.square());
 
             // T = M^2-2*S
             let t = m.square() - &s.double();
@@ -504,47 +506,47 @@ impl<P: SWCurveConfig> From<Affine<P>> for Projective<P> {
 impl<P: SWCurveConfig> CanonicalSerialize for Projective<P> {
     #[allow(unused_qualifications)]
     #[inline]
-    fn serialize<W: Write>(&self, writer: W) -> Result<(), SerializationError> {
+    fn serialize_with_mode<W: Write>(
+        &self,
+        writer: W,
+        compress: Compress,
+    ) -> Result<(), SerializationError> {
         let aff = Affine::<P>::from(*self);
-        aff.serialize(writer)
+        aff.serialize_with_mode(writer, compress)
     }
 
     #[inline]
-    fn serialized_size(&self) -> usize {
+    fn serialized_size(&self, compress: Compress) -> usize {
         let aff = Affine::<P>::from(*self);
-        aff.serialized_size()
+        aff.serialized_size(compress)
+    }
+}
+
+impl<P: SWCurveConfig> Valid for Projective<P> {
+    fn check(&self) -> Result<(), SerializationError> {
+        self.into_affine().check()
     }
 
-    #[allow(unused_qualifications)]
-    #[inline]
-    fn serialize_uncompressed<W: Write>(&self, writer: W) -> Result<(), SerializationError> {
-        let aff = Affine::<P>::from(*self);
-        aff.serialize_uncompressed(writer)
-    }
-
-    #[inline]
-    fn uncompressed_size(&self) -> usize {
-        let aff = Affine::<P>::from(*self);
-        aff.uncompressed_size()
+    fn batch_check<'a>(
+        batch: impl Iterator<Item = &'a Self> + Send,
+    ) -> Result<(), SerializationError>
+    where
+        Self: 'a,
+    {
+        let batch = batch.copied().collect::<Vec<_>>();
+        let batch = Self::normalize_batch(&batch);
+        Affine::batch_check(batch.iter())
     }
 }
 
 impl<P: SWCurveConfig> CanonicalDeserialize for Projective<P> {
     #[allow(unused_qualifications)]
-    fn deserialize<R: Read>(reader: R) -> Result<Self, SerializationError> {
-        let aff = Affine::<P>::deserialize(reader)?;
-        Ok(aff.into())
-    }
-
-    #[allow(unused_qualifications)]
-    fn deserialize_uncompressed<R: Read>(reader: R) -> Result<Self, SerializationError> {
-        let aff = Affine::<P>::deserialize_uncompressed(reader)?;
-        Ok(aff.into())
-    }
-
-    #[allow(unused_qualifications)]
-    fn deserialize_unchecked<R: Read>(reader: R) -> Result<Self, SerializationError> {
-        let aff = Affine::<P>::deserialize_unchecked(reader)?;
+    fn deserialize_with_mode<R: Read>(
+        reader: R,
+        compress: Compress,
+        validate: Validate,
+    ) -> Result<Self, SerializationError> {
+        let aff = Affine::<P>::deserialize_with_mode(reader, compress, validate)?;
         Ok(aff.into())
     }
 }

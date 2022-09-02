@@ -115,63 +115,47 @@ macro_rules! __test_group {
 
         #[test]
         fn test_serialization() {
-            let buf_size = <$group>::zero().serialized_size();
+            for compress in [Compress::Yes, Compress::No] {
+                for validate in [Validate::Yes, Validate::No] {
+                    let buf_size = <$group>::zero().serialized_size(compress);
 
-            let mut rng = ark_std::test_rng();
+                    let mut rng = ark_std::test_rng();
 
-            for _ in 0..ITERATIONS {
-                let a = <$group>::rand(&mut rng);
-                {
-                    let mut serialized = vec![0; buf_size];
-                    let mut cursor = Cursor::new(&mut serialized[..]);
-                    a.serialize(&mut cursor).unwrap();
+                    for _ in 0..ITERATIONS {
+                        let a = <$group>::rand(&mut rng);
+                        {
+                            let mut serialized = vec![0; buf_size];
+                            let mut cursor = Cursor::new(&mut serialized[..]);
+                            a.serialize_with_mode(&mut cursor, compress).unwrap();
 
-                    let mut cursor = Cursor::new(&serialized[..]);
-                    let b = <$group>::deserialize(&mut cursor).unwrap();
-                    assert_eq!(a, b);
-                }
+                            let mut cursor = Cursor::new(&serialized[..]);
+                            let b = <$group>::deserialize_with_mode(&mut cursor, compress, validate).unwrap();
+                            assert_eq!(a, b);
+                        }
 
-                {
-                    let a = <$group>::zero();
-                    let mut serialized = vec![0; buf_size];
-                    let mut cursor = Cursor::new(&mut serialized[..]);
-                    a.serialize(&mut cursor).unwrap();
-                    let mut cursor = Cursor::new(&serialized[..]);
-                    let b = <$group>::deserialize(&mut cursor).unwrap();
-                    assert_eq!(a, b);
-                }
+                        {
+                            let a = <$group>::zero();
+                            let mut serialized = vec![0; buf_size];
+                            let mut cursor = Cursor::new(&mut serialized[..]);
+                            a.serialize_with_mode(&mut cursor, compress).unwrap();
+                            let mut cursor = Cursor::new(&serialized[..]);
+                            let b = <$group>::deserialize_with_mode(&mut cursor, compress, validate).unwrap();
+                            assert_eq!(a, b);
+                        }
 
-                {
-                    let a = <$group>::zero();
-                    let mut serialized = vec![0; buf_size - 1];
-                    let mut cursor = Cursor::new(&mut serialized[..]);
-                    a.serialize(&mut cursor).unwrap_err();
-                }
+                        {
+                            let a = <$group>::zero();
+                            let mut serialized = vec![0; buf_size - 1];
+                            let mut cursor = Cursor::new(&mut serialized[..]);
+                            a.serialize_with_mode(&mut cursor, compress).unwrap_err();
+                        }
 
-                {
-                    let serialized = vec![0; buf_size - 1];
-                    let mut cursor = Cursor::new(&serialized[..]);
-                    <$group>::deserialize(&mut cursor).unwrap_err();
-                }
-
-                {
-                    let mut serialized = vec![0; a.uncompressed_size()];
-                    let mut cursor = Cursor::new(&mut serialized[..]);
-                    a.serialize_uncompressed(&mut cursor).unwrap();
-
-                    let mut cursor = Cursor::new(&serialized[..]);
-                    let b = <$group>::deserialize_uncompressed(&mut cursor).unwrap();
-                    assert_eq!(a, b);
-                }
-
-                {
-                    let a = <$group>::zero();
-                    let mut serialized = vec![0; a.uncompressed_size()];
-                    let mut cursor = Cursor::new(&mut serialized[..]);
-                    a.serialize_uncompressed(&mut cursor).unwrap();
-                    let mut cursor = Cursor::new(&serialized[..]);
-                    let b = <$group>::deserialize_uncompressed(&mut cursor).unwrap();
-                    assert_eq!(a, b);
+                        {
+                            let serialized = vec![0; buf_size - 1];
+                            let mut cursor = Cursor::new(&serialized[..]);
+                            <$group>::deserialize_with_mode(&mut cursor, compress, validate).unwrap_err();
+                        }
+                    }
                 }
             }
         }
@@ -230,28 +214,6 @@ macro_rules! __test_group {
                 let actual_v = <$group>::normalize_batch(&v);
 
                 assert_eq!(actual_v, expected_v);
-            }
-        }
-
-        #[test]
-        pub fn test_from_random_bytes() {
-            let buf_size = Affine::identity().serialized_size();
-
-            let mut rng = ark_std::test_rng();
-
-            for _ in 0..ITERATIONS {
-                let a = <$group>::rand(&mut rng);
-                let mut a = a.into_affine();
-                {
-                    let mut serialized = vec![0; buf_size];
-                    let mut cursor = Cursor::new(&mut serialized[..]);
-                    a.serialize(&mut cursor).unwrap();
-
-                    let mut cursor = Cursor::new(&serialized[..]);
-                    let p1 = Affine::deserialize(&mut cursor).unwrap();
-                    let p2 = Affine::from_random_bytes(&serialized).unwrap();
-                    assert_eq!(p1, p2);
-                }
             }
         }
 
@@ -318,61 +280,62 @@ macro_rules! __test_group {
 
             for _ in 0..ITERATIONS {
                 let f = BaseField::rand(rng);
-                assert_eq!(Config::mul_by_a(&f), f * Config::COEFF_A);
-                assert_eq!(Config::add_b(&f), f + Config::COEFF_B);
+                assert_eq!(Config::mul_by_a(f), f * Config::COEFF_A);
+                assert_eq!(Config::add_b(f), f + Config::COEFF_B);
+            }
+            {
+                use ark_ec::models::short_weierstrass::SWFlags;
+                for compress in [Compress::Yes, Compress::No] {
+                    for flag in [SWFlags::PointAtInfinity, SWFlags::YIsNegative, SWFlags::YIsPositive] {
+                        let a = BaseField::rand(&mut rng);
+                        let buf_size = a.serialized_size(compress);
+                        let mut serialized = vec![0u8; buf_size + 1];
+                        let mut cursor = Cursor::new(&mut serialized[..]);
+                        a.serialize_with_flags(&mut cursor, flag)
+                        .unwrap();
+                        let mut cursor = Cursor::new(&serialized[..]);
+                        let (b, flags) = BaseField::deserialize_with_flags::<_, SWFlags>(&mut cursor).unwrap();
+                        assert_eq!(flags, flag);
+                        assert_eq!(a, b);
+                    }
+
+                }
             }
         }
     };
     ($group:ty; te) => {
-        $crate::__test_group!($group, curve);
+        $crate::__test_group!($group; curve);
 
         #[test]
         fn test_te_properties() {
             let mut rng = &mut ark_std::test_rng();
 
-            let generator = <$group>::generator();
+            let generator = <$group>::generator().into_affine();
             assert!(generator.is_on_curve());
             assert!(generator.is_in_correct_subgroup_assuming_on_curve());
             let mut y = BaseField::zero();
             let one = BaseField::one();
-            let mut i = 0;
-            loop {
-
-                let y2 = y.square();
-
-                let numerator = one - y2;
-                let denominator = Config::COEFF_A - (y2 * Config::COEFF_D);
-
-                let candidate_point = denominator
-                    .inverse()
-                    .map(|denom| denom * &numerator)
-                    .and_then(|x2| x2.sqrt())
-                    .map(|x| {
-                        let negx = -x;
-                        let x = if (x < negx) ^ greatest { x } else { negx };
-                        Affine::new_unchecked(x, y)
-                    });
-                if let Some(p) = candidate_point {
-                    assert!(!p.is_in_correct_subgroup_assuming_on_curve());
-                    let g1 = p.mul_by_cofactor_to_projective();
-                    if !g1.is_zero() {
-                        assert_eq!(i, $const);
-                        let g1 = <$group>::Affine::from(g1);
-
-                        assert!(g1.is_in_correct_subgroup_assuming_on_curve());
-
-                        assert_eq!(g1, $group::generator());
-                        break;
-                    }
-                }
-                i += 1;
-                x += BaseField::one();
-            }
-
             for _ in 0..ITERATIONS {
                 let f = BaseField::rand(rng);
-                assert_eq!(Config::mul_by_a(&f), f * Config::COEFF_A);
-                assert_eq!(Config::add_b(&f), f + Config::COEFF_B);
+                assert_eq!(Config::mul_by_a(f), f * Config::COEFF_A);
+            }
+            {
+                use ark_ec::models::twisted_edwards::TEFlags;
+                for compress in [Compress::Yes, Compress::No] {
+                    for flag in [TEFlags::XIsPositive, TEFlags::XIsNegative] {
+                        let a = BaseField::rand(&mut rng);
+                        let buf_size = a.serialized_size(compress);
+                        let mut serialized = vec![0u8; buf_size + 1];
+                        let mut cursor = Cursor::new(&mut serialized[..]);
+                        a.serialize_with_flags(&mut cursor, flag)
+                        .unwrap();
+                        let mut cursor = Cursor::new(&serialized[..]);
+                        let (b, flags) = BaseField::deserialize_with_flags::<_, TEFlags>(&mut cursor).unwrap();
+                        assert_eq!(flags, flag);
+                        assert_eq!(a, b);
+                    }
+
+                }
             }
         }
     }

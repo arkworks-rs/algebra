@@ -101,33 +101,7 @@ macro_rules! ec_bench {
             });
         }
 
-        fn deser(b: &mut $crate::bencher::Bencher) {
-            use ark_ec::CurveGroup;
-            use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
-            const SAMPLES: usize = 1000;
-
-            let mut rng = ark_std::test_rng();
-
-            let mut num_bytes = 0;
-            let tmp = <$projective>::rand(&mut rng).into_affine();
-            let v: Vec<_> = (0..SAMPLES)
-                .flat_map(|_| {
-                    let mut bytes = Vec::with_capacity(1000);
-                    tmp.serialize(&mut bytes).unwrap();
-                    num_bytes = bytes.len();
-                    bytes
-                })
-                .collect();
-
-            let mut count = 0;
-            b.iter(|| {
-                count = (count + 1) % SAMPLES;
-                let index = count * num_bytes;
-                <$affine>::deserialize(&v[index..(index + num_bytes)]).unwrap()
-            });
-        }
-
-        fn ser(b: &mut $crate::bencher::Bencher) {
+        fn serialize_compressed(b: &mut $crate::bencher::Bencher) {
             use ark_ec::CurveGroup;
             use ark_serialize::CanonicalSerialize;
             const SAMPLES: usize = 1000;
@@ -145,11 +119,11 @@ macro_rules! ec_bench {
                 let tmp = v[count];
                 count = (count + 1) % SAMPLES;
                 bytes.clear();
-                tmp.serialize(&mut bytes)
+                tmp.serialize_compressed(&mut bytes)
             });
         }
 
-        fn deser_unchecked(b: &mut $crate::bencher::Bencher) {
+        fn deserialize_compressed(b: &mut $crate::bencher::Bencher) {
             use ark_ec::CurveGroup;
             use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
             const SAMPLES: usize = 1000;
@@ -161,7 +135,7 @@ macro_rules! ec_bench {
             let v: Vec<_> = (0..SAMPLES)
                 .flat_map(|_| {
                     let mut bytes = Vec::with_capacity(1000);
-                    tmp.serialize_unchecked(&mut bytes).unwrap();
+                    tmp.serialize_compressed(&mut bytes).unwrap();
                     num_bytes = bytes.len();
                     bytes
                 })
@@ -171,12 +145,39 @@ macro_rules! ec_bench {
             b.iter(|| {
                 count = (count + 1) % SAMPLES;
                 let index = count * num_bytes;
-                <$affine>::deserialize_unchecked(&v[index..(index + num_bytes)]).unwrap()
+                <$affine>::deserialize_compressed(&v[index..(index + num_bytes)]).unwrap()
             });
         }
 
-        fn ser_unchecked(b: &mut $crate::bencher::Bencher) {
+        fn deserialize_compressed_unchecked(b: &mut $crate::bencher::Bencher) {
+            use ark_ec::CurveGroup;
             use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
+            const SAMPLES: usize = 1000;
+
+            let mut rng = ark_std::test_rng();
+
+            let mut num_bytes = 0;
+            let tmp = <$projective>::rand(&mut rng).into_affine();
+            let v: Vec<_> = (0..SAMPLES)
+                .flat_map(|_| {
+                    let mut bytes = Vec::with_capacity(1000);
+                    tmp.serialize_compressed(&mut bytes).unwrap();
+                    num_bytes = bytes.len();
+                    bytes
+                })
+                .collect();
+
+            let mut count = 0;
+            b.iter(|| {
+                count = (count + 1) % SAMPLES;
+                let index = count * num_bytes;
+                <$affine>::deserialize_compressed_unchecked(&v[index..(index + num_bytes)]).unwrap()
+            });
+        }
+
+        fn serialize_uncompressed(b: &mut $crate::bencher::Bencher) {
+            use ark_ec::CurveGroup;
+            use ark_serialize::CanonicalSerialize;
             const SAMPLES: usize = 1000;
 
             let mut rng = ark_std::test_rng();
@@ -192,11 +193,11 @@ macro_rules! ec_bench {
                 let tmp = v[count];
                 count = (count + 1) % SAMPLES;
                 bytes.clear();
-                tmp.serialize_unchecked(&mut bytes)
+                tmp.serialize_uncompressed(&mut bytes)
             });
         }
 
-        fn deser_uncompressed(b: &mut $crate::bencher::Bencher) {
+        fn deserialize_uncompressed(b: &mut $crate::bencher::Bencher) {
             use ark_ec::CurveGroup;
             use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
             const SAMPLES: usize = 1000;
@@ -219,6 +220,33 @@ macro_rules! ec_bench {
                 count = (count + 1) % SAMPLES;
                 let index = count * num_bytes;
                 <$affine>::deserialize_uncompressed(&v[index..(index + num_bytes)]).unwrap()
+            });
+        }
+
+        fn deserialize_uncompressed_unchecked(b: &mut $crate::bencher::Bencher) {
+            use ark_ec::CurveGroup;
+            use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
+            const SAMPLES: usize = 1000;
+
+            let mut rng = ark_std::test_rng();
+
+            let mut num_bytes = 0;
+            let tmp = <$projective>::rand(&mut rng).into_affine();
+            let v: Vec<_> = (0..SAMPLES)
+                .flat_map(|_| {
+                    let mut bytes = Vec::with_capacity(1000);
+                    tmp.serialize_uncompressed(&mut bytes).unwrap();
+                    num_bytes = bytes.len();
+                    bytes
+                })
+                .collect();
+
+            let mut count = 0;
+            b.iter(|| {
+                count = (count + 1) % SAMPLES;
+                let index = count * num_bytes;
+                <$affine>::deserialize_uncompressed_unchecked(&v[index..(index + num_bytes)])
+                    .unwrap()
             });
         }
 
@@ -247,11 +275,12 @@ macro_rules! ec_bench {
             sub_assign,
             add_assign_mixed,
             double,
-            ser,
-            deser,
-            ser_unchecked,
-            deser_unchecked,
-            deser_uncompressed,
+            serialize_compressed,
+            deserialize_compressed,
+            deserialize_compressed_unchecked,
+            serialize_uncompressed,
+            deserialize_uncompressed,
+            deserialize_uncompressed_unchecked,
             msm_131072,
         );
     };

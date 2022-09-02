@@ -1,6 +1,6 @@
 use ark_serialize::{
     CanonicalDeserialize, CanonicalDeserializeWithFlags, CanonicalSerialize,
-    CanonicalSerializeWithFlags, EdwardsFlags, SerializationError,
+    CanonicalSerializeWithFlags, Compress, SerializationError, Valid, Validate,
 };
 use ark_std::{
     borrow::Borrow,
@@ -18,7 +18,7 @@ use zeroize::Zeroize;
 
 use ark_ff::{fields::Field, PrimeField, ToConstraintField, UniformRand};
 
-use super::{Projective, TECurveConfig};
+use super::{Projective, TECurveConfig, TEFlags};
 use crate::AffineRepr;
 
 /// Affine coordinates for a point on a twisted Edwards curve, over the
@@ -100,7 +100,28 @@ impl<P: TECurveConfig> Affine<P> {
     /// X^2 * (a - d * Y^2) = 1 - Y^2
     /// X^2 = (1 - Y^2) / (a - d * Y^2)
     #[allow(dead_code)]
-    pub fn get_point_from_y(y: P::BaseField, greatest: bool) -> Option<Self> {
+    pub fn get_point_from_y_unchecked(y: P::BaseField, greatest: bool) -> Option<Self> {
+        Self::get_xs_from_y_unchecked(y).map(|(x, neg_x)| {
+            if greatest {
+                Self::new_unchecked(neg_x, y)
+            } else {
+                Self::new_unchecked(x, y)
+            }
+        })
+    }
+
+    /// Attempts to recover the x-coordinate given an y-coordinate. The
+    /// resulting point is not guaranteed to be in the prime order subgroup.
+    ///
+    /// If and only if `greatest` is set will the lexicographically
+    /// largest x-coordinate be selected.
+    ///
+    /// a * X^2 + Y^2 = 1 + d * X^2 * Y^2
+    /// a * X^2 - d * X^2 * Y^2 = 1 - Y^2
+    /// X^2 * (a - d * Y^2) = 1 - Y^2
+    /// X^2 = (1 - Y^2) / (a - d * Y^2)
+    #[allow(dead_code)]
+    pub fn get_xs_from_y_unchecked(y: P::BaseField) -> Option<(P::BaseField, P::BaseField)> {
         let y2 = y.square();
 
         let numerator = P::BaseField::one() - y2;
@@ -111,9 +132,12 @@ impl<P: TECurveConfig> Affine<P> {
             .map(|denom| denom * &numerator)
             .and_then(|x2| x2.sqrt())
             .map(|x| {
-                let negx = -x;
-                let x = if (x < negx) ^ greatest { x } else { negx };
-                Self::new_unchecked(x, y)
+                let neg_x = -x;
+                if x <= neg_x {
+                    (x, neg_x)
+                } else {
+                    (neg_x, x)
+                }
             })
     }
 
@@ -122,7 +146,7 @@ impl<P: TECurveConfig> Affine<P> {
         let x2 = self.x.square();
         let y2 = self.y.square();
 
-        let lhs = y2 + &P::mul_by_a(&x2);
+        let lhs = y2 + P::mul_by_a(x2);
         let rhs = P::BaseField::one() + &(P::COEFF_D * &(x2 * &y2));
 
         lhs == rhs
@@ -156,15 +180,8 @@ impl<P: TECurveConfig> AffineRepr for Affine<P> {
     }
 
     fn from_random_bytes(bytes: &[u8]) -> Option<Self> {
-        P::BaseField::from_random_bytes_with_flags::<EdwardsFlags>(bytes).and_then(|(y, flags)| {
-            // if y is valid and is zero, then parse this
-            // point as infinity.
-            if y.is_zero() {
-                Some(Self::identity())
-            } else {
-                Self::get_point_from_y(y, flags.is_positive())
-            }
-        })
+        P::BaseField::from_random_bytes_with_flags::<TEFlags>(bytes)
+            .and_then(|(y, flags)| Self::get_point_from_y_unchecked(y, flags.is_negative()))
     }
 
     fn mul_bigint(&self, by: impl AsRef<[u64]>) -> Self::Group {
@@ -249,7 +266,7 @@ impl<P: TECurveConfig> Distribution<Affine<P>> for Standard {
             let y = P::BaseField::rand(rng);
             let greatest = rng.gen();
 
-            if let Some(p) = Affine::get_point_from_y(y, greatest) {
+            if let Some(p) = Affine::get_point_from_y_unchecked(y, greatest) {
                 return p.mul_by_cofactor();
             }
         }
@@ -283,75 +300,74 @@ impl<P: TECurveConfig> From<Projective<P>> for Affine<P> {
         }
     }
 }
-
 impl<P: TECurveConfig> CanonicalSerialize for Affine<P> {
     #[allow(unused_qualifications)]
     #[inline]
-    fn serialize<W: Write>(&self, writer: W) -> Result<(), SerializationError> {
-        if self.is_identity() {
-            let flags = EdwardsFlags::default();
-            // Serialize 0.
-            P::BaseField::zero().serialize_with_flags(writer, flags)
-        } else {
-            let flags = EdwardsFlags::from_x_sign(self.x > -self.x);
-            self.y.serialize_with_flags(writer, flags)
+    fn serialize_with_mode<W: Write>(
+        &self,
+        mut writer: W,
+        compress: ark_serialize::Compress,
+    ) -> Result<(), SerializationError> {
+        let flags = TEFlags::from_x_coordinate(self.x);
+        match compress {
+            Compress::Yes => self.y.serialize_with_flags(writer, flags),
+            Compress::No => {
+                self.x.serialize_uncompressed(&mut writer)?;
+                self.y.serialize_uncompressed(&mut writer)
+            },
         }
     }
 
     #[inline]
-    fn serialized_size(&self) -> usize {
-        P::BaseField::zero().serialized_size_with_flags::<EdwardsFlags>()
+    fn serialized_size(&self, compress: Compress) -> usize {
+        let zero = P::BaseField::zero();
+        match compress {
+            Compress::Yes => zero.serialized_size_with_flags::<TEFlags>(),
+            Compress::No => self.x.uncompressed_size() + self.y.uncompressed_size(),
+        }
     }
+}
 
-    #[allow(unused_qualifications)]
-    #[inline]
-    fn serialize_uncompressed<W: Write>(&self, mut writer: W) -> Result<(), SerializationError> {
-        self.x.serialize_uncompressed(&mut writer)?;
-        self.y.serialize_uncompressed(&mut writer)?;
-        Ok(())
-    }
-
-    #[inline]
-    fn uncompressed_size(&self) -> usize {
-        // x  + y
-        self.x.serialized_size() + self.y.serialized_size()
+impl<P: TECurveConfig> Valid for Affine<P> {
+    fn check(&self) -> Result<(), SerializationError> {
+        if self.is_on_curve() && self.is_in_correct_subgroup_assuming_on_curve() {
+            Ok(())
+        } else {
+            Err(SerializationError::InvalidData)
+        }
     }
 }
 
 impl<P: TECurveConfig> CanonicalDeserialize for Affine<P> {
     #[allow(unused_qualifications)]
-    fn deserialize<R: Read>(mut reader: R) -> Result<Self, SerializationError> {
-        let (y, flags): (P::BaseField, EdwardsFlags) =
-            CanonicalDeserializeWithFlags::deserialize_with_flags(&mut reader)?;
-        if y == P::BaseField::zero() {
-            Ok(Self::identity())
-        } else {
-            let p = Affine::<P>::get_point_from_y(y, flags.is_positive())
-                .ok_or(SerializationError::InvalidData)?;
-            if !p.is_in_correct_subgroup_assuming_on_curve() {
-                return Err(SerializationError::InvalidData);
-            }
-            Ok(p)
+    fn deserialize_with_mode<R: Read>(
+        mut reader: R,
+        compress: Compress,
+        validate: Validate,
+    ) -> Result<Self, SerializationError> {
+        let (x, y) = match compress {
+            Compress::Yes => {
+                let (y, flags): (_, TEFlags) =
+                    CanonicalDeserializeWithFlags::deserialize_with_flags(reader)?;
+                let (x, neg_x) =
+                    Self::get_xs_from_y_unchecked(y).ok_or(SerializationError::InvalidData)?;
+                if flags.is_negative() {
+                    (neg_x, y)
+                } else {
+                    (x, y)
+                }
+            },
+            Compress::No => {
+                let x: P::BaseField = CanonicalDeserialize::deserialize_uncompressed(&mut reader)?;
+                let y: P::BaseField = CanonicalDeserialize::deserialize_uncompressed(&mut reader)?;
+                (x, y)
+            },
+        };
+        let point = Self::new_unchecked(x, y);
+        if let Validate::Yes = validate {
+            point.check()?;
         }
-    }
-
-    #[allow(unused_qualifications)]
-    fn deserialize_uncompressed<R: Read>(reader: R) -> Result<Self, SerializationError> {
-        let p = Self::deserialize_unchecked(reader)?;
-
-        if !p.is_in_correct_subgroup_assuming_on_curve() {
-            return Err(SerializationError::InvalidData);
-        }
-        Ok(p)
-    }
-
-    #[allow(unused_qualifications)]
-    fn deserialize_unchecked<R: Read>(mut reader: R) -> Result<Self, SerializationError> {
-        let x: P::BaseField = CanonicalDeserialize::deserialize(&mut reader)?;
-        let y: P::BaseField = CanonicalDeserialize::deserialize(&mut reader)?;
-
-        let p = Affine::<P>::new_unchecked(x, y);
-        Ok(p)
+        Ok(point)
     }
 }
 
@@ -365,93 +381,5 @@ where
         let y_fe = self.y.to_field_elements()?;
         x_fe.extend_from_slice(&y_fe);
         Some(x_fe)
-    }
-}
-
-// This impl block and the one following are being used to encapsulate all of
-// the methods that are needed for backwards compatibility with the old
-// serialization format
-// See Issue #330
-impl<P: TECurveConfig> Affine<P> {
-    /// Attempts to construct an affine point given an x-coordinate. The
-    /// point is not guaranteed to be in the prime order subgroup.
-    ///
-    /// If and only if `greatest` is set will the lexicographically
-    /// largest y-coordinate be selected.
-    ///
-    /// This method is implemented for backwards compatibility with the old
-    /// serialization format and will be deprecated and then removed in a
-    /// future version.
-    #[allow(dead_code)]
-    pub fn get_point_from_x_old(x: P::BaseField, greatest: bool) -> Option<Self> {
-        let x2 = x.square();
-        let one = P::BaseField::one();
-        let numerator = P::mul_by_a(&x2) - &one;
-        let denominator = P::COEFF_D * &x2 - &one;
-        let y2 = denominator.inverse().map(|denom| denom * &numerator);
-        y2.and_then(|y2| y2.sqrt()).map(|y| {
-            let negy = -y;
-            let y = if (y < negy) ^ greatest { y } else { negy };
-            Self::new_unchecked(x, y)
-        })
-    }
-    /// This method is implemented for backwards compatibility with the old
-    /// serialization format and will be deprecated and then removed in a
-    /// future version.
-    pub fn serialize_old<W: Write>(&self, writer: W) -> Result<(), SerializationError> {
-        if self.is_identity() {
-            let flags = EdwardsFlags::default();
-            // Serialize 0.
-            P::BaseField::zero().serialize_with_flags(writer, flags)
-        } else {
-            // Note: although this says `from_x_sign` and we are
-            // using the sign of `y`. The logic works the same.
-            let flags = EdwardsFlags::from_x_sign(self.y > -self.y);
-            self.x.serialize_with_flags(writer, flags)
-        }
-    }
-
-    #[allow(unused_qualifications)]
-    #[inline]
-    /// This method is implemented for backwards compatibility with the old
-    /// serialization format and will be deprecated and then removed in a
-    /// future version.
-    pub fn serialize_uncompressed_old<W: Write>(
-        &self,
-        mut writer: W,
-    ) -> Result<(), SerializationError> {
-        self.x.serialize_uncompressed(&mut writer)?;
-        self.y.serialize_uncompressed(&mut writer)?;
-        Ok(())
-    }
-
-    #[allow(unused_qualifications)]
-    /// This method is implemented for backwards compatibility with the old
-    /// serialization format and will be deprecated and then removed in a
-    /// future version.
-    pub fn deserialize_uncompressed_old<R: Read>(reader: R) -> Result<Self, SerializationError> {
-        let p = Self::deserialize_unchecked(reader)?;
-
-        if !p.is_in_correct_subgroup_assuming_on_curve() {
-            return Err(SerializationError::InvalidData);
-        }
-        Ok(p)
-    }
-    /// This method is implemented for backwards compatibility with the old
-    /// serialization format and will be deprecated and then removed in a
-    /// future version.
-    pub fn deserialize_old<R: Read>(mut reader: R) -> Result<Self, SerializationError> {
-        let (x, flags): (P::BaseField, EdwardsFlags) =
-            CanonicalDeserializeWithFlags::deserialize_with_flags(&mut reader)?;
-        if x == P::BaseField::zero() {
-            Ok(Self::identity())
-        } else {
-            let p = Affine::<P>::get_point_from_x_old(x, flags.is_positive())
-                .ok_or(SerializationError::InvalidData)?;
-            if !p.is_in_correct_subgroup_assuming_on_curve() {
-                return Err(SerializationError::InvalidData);
-            }
-            Ok(p)
-        }
     }
 }

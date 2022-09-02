@@ -1,6 +1,6 @@
 use ark_serialize::{
     CanonicalDeserialize, CanonicalDeserializeWithFlags, CanonicalSerialize,
-    CanonicalSerializeWithFlags, SWFlags, SerializationError,
+    CanonicalSerializeWithFlags, Compress, SerializationError, Valid, Validate,
 };
 use ark_std::{
     borrow::Borrow,
@@ -19,7 +19,7 @@ use ark_ff::{fields::Field, PrimeField, ToConstraintField, UniformRand};
 
 use zeroize::Zeroize;
 
-use super::{Projective, SWCurveConfig};
+use super::{Projective, SWCurveConfig, SWFlags};
 use crate::AffineRepr;
 
 /// Affine coordinates for a point on an elliptic curve in short Weierstrass
@@ -108,34 +108,60 @@ impl<P: SWCurveConfig> Affine<P> {
     /// If and only if `greatest` is set will the lexicographically
     /// largest y-coordinate be selected.
     #[allow(dead_code)]
-    pub fn get_point_from_x(x: P::BaseField, greatest: bool) -> Option<Self> {
-        // Compute x^3 + ax + b
-        // Rust does not optimise away addition with zero
-        let x3b = if P::COEFF_A.is_zero() {
-            P::add_b(&(x.square() * &x))
-        } else {
-            P::add_b(&((x.square() * &x) + &P::mul_by_a(&x)))
-        };
-
-        x3b.sqrt().map(|y| {
-            let negy = -y;
-
-            let y = if (y < negy) ^ greatest { y } else { negy };
-            Self::new_unchecked(x, y)
+    pub fn get_point_from_x_unchecked(x: P::BaseField, greatest: bool) -> Option<Self> {
+        Self::get_ys_from_x_unchecked(x).map(|(y, neg_y)| {
+            if greatest {
+                Self::new_unchecked(x, y)
+            } else {
+                Self::new_unchecked(x, neg_y)
+            }
         })
+    }
+
+    /// Returns the two possible y-coordinates corresponding to the given x-coordinate.
+    /// The corresponding points are not guaranteed to be in the prime-order subgroup,
+    /// but are guaranteed to be on the curve. That is, this method returns `None`
+    /// if the x-coordinate corresponds to a non-curve point.
+    ///
+    /// The results are sorted by lexicographical order.
+    /// This means that, if `P::BaseField: PrimeField`, the results are sorted as integers.
+    fn get_ys_from_x_unchecked(x: P::BaseField) -> Option<(P::BaseField, P::BaseField)> {
+        // Compute the curve equation x^3 + Ax + B.
+        // Since Rust does not optimise away additions with zero, we explicitly check
+        // for that case here, and avoid multiplication by `a` if possible.
+        let mut x3_plus_ax_plus_b = P::add_b(x.square() * x);
+        if !P::COEFF_A.is_zero() {
+            x3_plus_ax_plus_b += P::mul_by_a(x)
+        };
+        let y = x3_plus_ax_plus_b.sqrt()?;
+        let neg_y = -y;
+        match y < neg_y {
+            true => Some((y, neg_y)),
+            false => Some((neg_y, y)),
+        }
     }
 
     /// Checks if `self` is a valid point on the curve.
     pub fn is_on_curve(&self) -> bool {
         if !self.infinity {
             // Rust does not optimise away addition with zero
-            let mut x3b = P::add_b(&(self.x.square() * self.x));
+            let mut x3b = P::add_b(self.x.square() * self.x);
             if !P::COEFF_A.is_zero() {
-                x3b += &P::mul_by_a(&self.x);
+                x3b += P::mul_by_a(self.x);
             };
             self.y.square() == x3b
         } else {
             true
+        }
+    }
+
+    pub fn to_flags(&self) -> SWFlags {
+        if self.infinity {
+            SWFlags::PointAtInfinity
+        } else if self.y <= -self.y {
+            SWFlags::YIsPositive
+        } else {
+            SWFlags::YIsNegative
         }
     }
 }
@@ -166,7 +192,7 @@ impl<P: SWCurveConfig> Distribution<Affine<P>> for Standard {
             let x = P::BaseField::rand(rng);
             let greatest = rng.gen();
 
-            if let Some(p) = Affine::get_point_from_x(x, greatest) {
+            if let Some(p) = Affine::get_point_from_x_unchecked(x, greatest) {
                 return p.mul_by_cofactor();
             }
         }
@@ -203,7 +229,7 @@ impl<P: SWCurveConfig> AffineRepr for Affine<P> {
             if x.is_zero() && flags.is_infinity() {
                 Some(Self::identity())
             } else if let Some(y_is_positive) = flags.is_positive() {
-                Self::get_point_from_x(x, y_is_positive)
+                Self::get_point_from_x_unchecked(x, y_is_positive)
                 // Unwrap is safe because it's not zero.
             } else {
                 None
@@ -320,81 +346,90 @@ impl<P: SWCurveConfig> From<Projective<P>> for Affine<P> {
 impl<P: SWCurveConfig> CanonicalSerialize for Affine<P> {
     #[allow(unused_qualifications)]
     #[inline]
-    fn serialize<W: Write>(&self, writer: W) -> Result<(), SerializationError> {
-        let (x, flags) = match self.infinity {
-            true => (P::BaseField::zero(), SWFlags::infinity()),
-            false => (self.x, SWFlags::from_y_sign(self.y > -self.y)),
-        };
-        x.serialize_with_flags(writer, flags)
-    }
-
-    #[inline]
-    fn serialized_size(&self) -> usize {
-        P::BaseField::zero().serialized_size_with_flags::<SWFlags>()
-    }
-
-    #[allow(unused_qualifications)]
-    #[inline]
-    fn serialize_uncompressed<W: Write>(&self, mut writer: W) -> Result<(), SerializationError> {
+    fn serialize_with_mode<W: Write>(
+        &self,
+        mut writer: W,
+        compress: ark_serialize::Compress,
+    ) -> Result<(), SerializationError> {
         let (x, y, flags) = match self.infinity {
             true => (
                 P::BaseField::zero(),
                 P::BaseField::zero(),
                 SWFlags::infinity(),
             ),
-            false => (self.x, self.y, SWFlags::from_y_sign(self.y > -self.y)),
+            false => (self.x, self.y, self.to_flags()),
         };
-        x.serialize(&mut writer)?;
-        y.serialize_with_flags(&mut writer, flags)?;
-        Ok(())
+
+        match compress {
+            Compress::Yes => x.serialize_with_flags(writer, flags),
+            Compress::No => {
+                x.serialize_with_mode(&mut writer, compress)?;
+                y.serialize_with_flags(&mut writer, flags)
+            },
+        }
     }
 
     #[inline]
-    fn uncompressed_size(&self) -> usize {
-        // The size of the serialization is independent of the values
-        // of `x` and `y`, and depends only on the size of the modulus.
-        P::BaseField::zero().serialized_size()
-            + P::BaseField::zero().serialized_size_with_flags::<SWFlags>()
+    fn serialized_size(&self, compress: Compress) -> usize {
+        let zero = P::BaseField::zero();
+        match compress {
+            Compress::Yes => zero.serialized_size_with_flags::<SWFlags>(),
+            Compress::No => zero.compressed_size() + zero.serialized_size_with_flags::<SWFlags>(),
+        }
+    }
+}
+
+impl<P: SWCurveConfig> Valid for Affine<P> {
+    fn check(&self) -> Result<(), SerializationError> {
+        if self.is_on_curve() && self.is_in_correct_subgroup_assuming_on_curve() {
+            Ok(())
+        } else {
+            Err(SerializationError::InvalidData)
+        }
     }
 }
 
 impl<P: SWCurveConfig> CanonicalDeserialize for Affine<P> {
     #[allow(unused_qualifications)]
-    fn deserialize<R: Read>(reader: R) -> Result<Self, SerializationError> {
-        let (x, flags): (P::BaseField, SWFlags) =
-            CanonicalDeserializeWithFlags::deserialize_with_flags(reader)?;
+    fn deserialize_with_mode<R: Read>(
+        mut reader: R,
+        compress: Compress,
+        validate: Validate,
+    ) -> Result<Self, SerializationError> {
+        let (x, y, flags) = match compress {
+            Compress::Yes => {
+                let (x, flags): (_, SWFlags) =
+                    CanonicalDeserializeWithFlags::deserialize_with_flags(reader)?;
+                match flags {
+                    SWFlags::PointAtInfinity => (Self::identity().x, Self::identity().y, flags),
+                    _ => {
+                        let is_positive = flags.is_positive().unwrap();
+                        let (y, neg_y) = Self::get_ys_from_x_unchecked(x)
+                            .ok_or(SerializationError::InvalidData)?;
+                        if is_positive {
+                            (x, y, flags)
+                        } else {
+                            (x, neg_y, flags)
+                        }
+                    },
+                }
+            },
+            Compress::No => {
+                let x: P::BaseField =
+                    CanonicalDeserialize::deserialize_with_mode(&mut reader, compress, validate)?;
+                let (y, flags): (_, SWFlags) =
+                    CanonicalDeserializeWithFlags::deserialize_with_flags(&mut reader)?;
+                (x, y, flags)
+            },
+        };
         if flags.is_infinity() {
             Ok(Self::identity())
         } else {
-            let p = Affine::<P>::get_point_from_x(x, flags.is_positive().unwrap())
-                .ok_or(SerializationError::InvalidData)?;
-            if !p.is_in_correct_subgroup_assuming_on_curve() {
-                return Err(SerializationError::InvalidData);
+            let point = Self::new_unchecked(x, y);
+            if let Validate::Yes = validate {
+                point.check()?;
             }
-            Ok(p)
-        }
-    }
-
-    #[allow(unused_qualifications)]
-    fn deserialize_uncompressed<R: Read>(
-        reader: R,
-    ) -> Result<Self, ark_serialize::SerializationError> {
-        let p = Self::deserialize_unchecked(reader)?;
-
-        if !p.is_in_correct_subgroup_assuming_on_curve() {
-            return Err(SerializationError::InvalidData);
-        }
-        Ok(p)
-    }
-
-    #[allow(unused_qualifications)]
-    fn deserialize_unchecked<R: Read>(mut reader: R) -> Result<Self, SerializationError> {
-        let x: P::BaseField = CanonicalDeserialize::deserialize(&mut reader)?;
-        let (y, flags): (P::BaseField, SWFlags) =
-            CanonicalDeserializeWithFlags::deserialize_with_flags(&mut reader)?;
-        match flags.is_infinity() {
-            true => Ok(Self::identity()),
-            false => Ok(Self::new_unchecked(x, y)),
+            Ok(point)
         }
     }
 }
