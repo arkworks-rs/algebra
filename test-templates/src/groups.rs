@@ -280,8 +280,8 @@ macro_rules! __test_group {
 
             for _ in 0..ITERATIONS {
                 let f = BaseField::rand(rng);
-                assert_eq!(Config::mul_by_a(f), f * Config::COEFF_A);
-                assert_eq!(Config::add_b(f), f + Config::COEFF_B);
+                assert_eq!(<Config as SWCurveConfig>::mul_by_a(f), f * <Config as SWCurveConfig>::COEFF_A);
+                assert_eq!(<Config as SWCurveConfig>::add_b(f), f + <Config as SWCurveConfig>::COEFF_B);
             }
             {
                 use ark_ec::models::short_weierstrass::SWFlags;
