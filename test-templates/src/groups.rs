@@ -258,7 +258,7 @@ macro_rules! __test_group {
             let mut i = 0;
             loop {
                 // y^2 = x^3 + a * x + b
-                let rhs = x * x.square() + x * Config::COEFF_A + Config::COEFF_B;
+                let rhs = x * x.square() + x * <Config as SWCurveConfig>::COEFF_A + <Config as SWCurveConfig>::COEFF_B;
 
                 if let Some(y) = rhs.sqrt() {
                     let p = Affine::new_unchecked(x, if y < -y { y } else { -y });
