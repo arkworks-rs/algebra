@@ -163,13 +163,6 @@ impl<P: MNT6Parameters> MNT6<P> {
         f
     }
 
-    pub fn final_exponentiation(value: &Fp6<P::Fp6Config>) -> GT<P::Fp6Config> {
-        let value_inv = value.inverse().unwrap();
-        let value_to_first_chunk = Self::final_exponentiation_first_chunk(value, &value_inv);
-        let value_inv_to_first_chunk = Self::final_exponentiation_first_chunk(&value_inv, value);
-        Self::final_exponentiation_last_chunk(&value_to_first_chunk, &value_inv_to_first_chunk)
-    }
-
     fn final_exponentiation_first_chunk(
         elt: &Fp6<P::Fp6Config>,
         elt_inv: &Fp6<P::Fp6Config>,

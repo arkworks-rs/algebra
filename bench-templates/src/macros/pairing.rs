@@ -17,7 +17,11 @@ macro_rules! pairing_bench {
             ) = g1s
                 .into_iter()
                 .zip(g2s)
-                .map(|(g1, g2)| (g1.into(), g2.into()))
+                .map(|(g1, g2)| {
+                    let g1: <$curve as Pairing>::G1Prepared = g1.into();
+                    let g2: <$curve as Pairing>::G2Prepared = g2.into();
+                    (g1, g2)
+                })
                 .unzip();
             let mut count = 0;
             b.iter(|| {
@@ -48,7 +52,7 @@ macro_rules! pairing_bench {
 
             let mut count = 0;
             b.iter(|| {
-                let tmp = $curve::final_exponentiation(v[count]);
+                let tmp = <$curve as Pairing>::final_exponentiation(v[count]);
                 count = (count + 1) % SAMPLES;
                 tmp
             });
@@ -66,7 +70,7 @@ macro_rules! pairing_bench {
 
             let mut count = 0;
             b.iter(|| {
-                let tmp = $curve::pairing(v1[count], v2[count]);
+                let tmp = <$curve as Pairing>::pairing(v1[count], v2[count]);
                 count = (count + 1) % SAMPLES;
                 tmp
             });
