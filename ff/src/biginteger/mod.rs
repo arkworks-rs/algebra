@@ -4,11 +4,10 @@ use crate::{
     UniformRand,
 };
 use ark_ff_macros::unroll_for_loops;
-use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, SerializationError};
+use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use ark_std::{
     convert::TryFrom,
     fmt::{Debug, Display, UpperHex},
-    io::{Read, Write},
     rand::{
         distributions::{Distribution, Standard},
         Rng,
@@ -21,7 +20,9 @@ use zeroize::Zeroize;
 #[macro_use]
 pub mod arithmetic;
 
-#[derive(Copy, Clone, PartialEq, Eq, Debug, Hash, Zeroize)]
+#[derive(
+    Copy, Clone, PartialEq, Eq, Debug, Hash, Zeroize, CanonicalSerialize, CanonicalDeserialize,
+)]
 pub struct BigInt<const N: usize>(pub [u64; N]);
 
 impl<const N: usize> Default for BigInt<N> {
@@ -465,17 +466,11 @@ impl<const N: usize> BigInteger for BigInt<N> {
     }
 
     fn from_bits_le(bits: &[bool]) -> Self {
-        let mut res = Self::default();
-        let mut acc: u64 = 0;
-
-        let bits = bits.to_vec();
-        for (i, bits64) in bits.chunks(64).enumerate() {
-            for bit in bits64.iter().rev() {
-                acc <<= 1;
-                acc += *bit as u64;
+        let mut res = Self::zero();
+        for (bits64, res_i) in bits.chunks(64).zip(&mut res.0) {
+            for (i, bit) in bits64.iter().enumerate() {
+                *res_i |= (*bit as u64) << i;
             }
-            res.0[i] = acc;
-            acc = 0;
         }
         res
     }
@@ -495,34 +490,6 @@ impl<const N: usize> BigInteger for BigInt<N> {
             res.extend_from_slice(&limb);
         }
         res
-    }
-}
-
-impl<const N: usize> CanonicalSerialize for BigInt<N> {
-    #[inline]
-    fn serialize<W: Write>(&self, mut writer: W) -> Result<(), SerializationError> {
-        for num in self.0 {
-            writer.write_all(&num.to_le_bytes())?;
-        }
-        Ok(())
-    }
-
-    #[inline]
-    fn serialized_size(&self) -> usize {
-        Self::NUM_LIMBS * 8
-    }
-}
-
-impl<const N: usize> CanonicalDeserialize for BigInt<N> {
-    #[inline]
-    fn deserialize<R: Read>(mut reader: R) -> Result<Self, SerializationError> {
-        let mut res = [0u64; N];
-        for num in res.iter_mut() {
-            let mut bytes = [0u8; 8];
-            reader.read_exact(&mut bytes)?;
-            *num = u64::from_le_bytes(bytes);
-        }
-        Ok(Self::new(res))
     }
 }
 

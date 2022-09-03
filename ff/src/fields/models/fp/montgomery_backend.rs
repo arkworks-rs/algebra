@@ -23,7 +23,7 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
     const R2: BigInt<N> = Self::MODULUS.montgomery_r2();
 
     /// INV = -MODULUS^{-1} mod 2^64
-    const INV: u64 = inv(&Self::MODULUS);
+    const INV: u64 = inv::<Self, N>();
 
     /// A multiplicative generator of the field.
     /// `Self::GENERATOR` is an element having multiplicative order
@@ -37,7 +37,7 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
     /// `Self::MODULUS` has (a) a non-zero MSB, and (b) at least one
     /// zero bit in the rest of the modulus.
     #[doc(hidden)]
-    const CAN_USE_NO_CARRY_OPT: bool = can_use_no_carry_optimization(&Self::MODULUS);
+    const CAN_USE_NO_CARRY_OPT: bool = can_use_no_carry_optimization::<Self, N>();
 
     /// 2^s root of unity computed by GENERATOR^t
     const TWO_ADIC_ROOT_OF_UNITY: Fp<MontBackend<Self, N>, N>;
@@ -115,16 +115,23 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
                 && N > 1
                 && cfg!(all(
                     feature = "asm",
-                    inline_asm_stable,
                     target_feature = "bmi2",
                     target_feature = "adx",
                     target_arch = "x86_64"
                 ))
             {
-                #[cfg(all(feature = "asm", inline_asm_stable, target_feature = "bmi2", target_feature = "adx", target_arch = "x86_64"))]
+                #[cfg(
+                    all(
+                        feature = "asm", 
+                        target_feature = "bmi2", 
+                        target_feature = "adx", 
+                        target_arch = "x86_64"
+                    )
+                )]
                 #[allow(unsafe_code, unused_mut)]
-                // Tentatively avoid using assembly for `N == 1`.
                 #[rustfmt::skip]
+
+                // Tentatively avoid using assembly for `N == 1`.
                 match N {
                     2 => { ark_ff_asm::x86_64_asm_mul!(2, (a.0).0, (b.0).0); },
                     3 => { ark_ff_asm::x86_64_asm_mul!(3, (a.0).0, (b.0).0); },
@@ -152,7 +159,7 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
             }
         } else {
             // Alternative implementation
-            *a = a.mul_without_reduce(b);
+            *a = a.mul_without_cond_subtract(b);
         }
         a.subtract_modulus();
     }
@@ -392,23 +399,34 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
 }
 
 /// Compute -M^{-1} mod 2^64.
-pub const fn inv<const N: usize>(m: &BigInt<N>) -> u64 {
+pub const fn inv<T: MontConfig<N>, const N: usize>() -> u64 {
+    // We compute this as follows.
+    // First, MODULUS mod 2^64 is just the lower 64 bits of MODULUS.
+    // Hence MODULUS mod 2^64 = MODULUS.0[0] mod 2^64.
+    //
+    // Next, computing the inverse mod 2^64 involves exponentiating by
+    // the multiplicative group order, which is euler_totient(2^64) - 1.
+    // Now, euler_totient(2^64) = 1 << 63, and so
+    // euler_totient(2^64) - 1 = (1 << 63) - 1 = 1111111... (63 digits).
+    // We compute this powering via standard square and multiply.
     let mut inv = 1u64;
     crate::const_for!((_i in 0..63) {
+        // Square
         inv = inv.wrapping_mul(inv);
-        inv = inv.wrapping_mul(m.0[0]);
+        // Multiply
+        inv = inv.wrapping_mul(T::MODULUS.0[0]);
     });
     inv.wrapping_neg()
 }
 
 #[inline]
-pub const fn can_use_no_carry_optimization<const N: usize>(modulus: &BigInt<N>) -> bool {
+pub const fn can_use_no_carry_optimization<T: MontConfig<N>, const N: usize>() -> bool {
     // Checking the modulus at compile time
-    let first_bit_set = modulus.0[N - 1] >> 63 != 0;
+    let first_bit_set = T::MODULUS.0[N - 1] >> 63 != 0;
     // N can be 1, hence we can run into a case with an unused mut.
-    let mut all_bits_set = modulus.0[N - 1] == !0 - (1 << 63);
+    let mut all_bits_set = T::MODULUS.0[N - 1] == !0 - (1 << 63);
     crate::const_for!((i in 1..N) {
-        all_bits_set &= modulus.0[N - i - 1] == !0u64;
+        all_bits_set &= T::MODULUS.0[N - i - 1] == !0u64;
     });
     !(first_bit_set || all_bits_set)
 }
@@ -547,6 +565,8 @@ impl<T: MontConfig<N>, const N: usize> FpConfig<N> for MontBackend<T, N> {
 
 impl<T: MontConfig<N>, const N: usize> Fp<MontBackend<T, N>, N> {
     #[doc(hidden)]
+    pub const R: BigInt<N> = T::R;
+    #[doc(hidden)]
     pub const R2: BigInt<N> = T::R2;
     #[doc(hidden)]
     pub const INV: u64 = T::INV;
@@ -607,7 +627,7 @@ impl<T: MontConfig<N>, const N: usize> Fp<MontBackend<T, N>, N> {
         }
     }
 
-    const fn mul_without_reduce(mut self, other: &Self) -> Self {
+    const fn mul_without_cond_subtract(mut self, other: &Self) -> Self {
         let (mut lo, mut hi) = ([0u64; N], [0u64; N]);
         crate::const_for!((i in 0..N) {
             let mut carry = 0;
@@ -645,8 +665,8 @@ impl<T: MontConfig<N>, const N: usize> Fp<MontBackend<T, N>, N> {
     }
 
     const fn mul(mut self, other: &Self) -> Self {
-        self = self.mul_without_reduce(other);
-        self.const_reduce()
+        self = self.mul_without_cond_subtract(other);
+        self.const_subtract_modulus()
     }
 
     const fn const_is_valid(&self) -> bool {
@@ -661,7 +681,7 @@ impl<T: MontConfig<N>, const N: usize> Fp<MontBackend<T, N>, N> {
     }
 
     #[inline]
-    const fn const_reduce(mut self) -> Self {
+    const fn const_subtract_modulus(mut self) -> Self {
         if !self.const_is_valid() {
             self.0 = Self::sub_with_borrow(&self.0, &T::MODULUS);
         }

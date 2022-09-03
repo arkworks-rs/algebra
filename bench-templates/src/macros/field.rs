@@ -17,16 +17,20 @@ macro_rules! f_bench {
                 mul_assign,
                 square,
                 inverse,
-                ser,
-                deser,
-                ser_unchecked,
-                deser_unchecked,
+                serialize_compressed,
+                deserialize_compressed,
+                deserialize_compressed_unchecked,
+                serialize_uncompressed,
+                deserialize_uncompressed,
+                deserialize_uncompressed_unchecked,
                 // sqrt field stuff
                 sqrt,
                 // prime field stuff
                 repr_add_nocarry,
                 repr_sub_noborrow,
                 repr_num_bits,
+                repr_from_bits_le,
+                repr_from_bits_be,
                 repr_mul2,
                 repr_div2,
                 into_repr,
@@ -51,10 +55,12 @@ macro_rules! f_bench {
                 mul_assign,
                 square,
                 inverse,
-                ser,
-                deser,
-                ser_unchecked,
-                deser_unchecked,
+                serialize_compressed,
+                deserialize_compressed,
+                deserialize_compressed_unchecked,
+                serialize_uncompressed,
+                deserialize_uncompressed,
+                deserialize_uncompressed_unchecked,
                 // sqrt field stuff
                 sqrt,
             );
@@ -76,10 +82,12 @@ macro_rules! f_bench {
                 mul_assign,
                 square,
                 inverse,
-                ser,
-                deser,
-                ser_unchecked,
-                deser_unchecked,
+                serialize_compressed,
+                deserialize_compressed,
+                deserialize_compressed_unchecked,
+                serialize_uncompressed,
+                deserialize_uncompressed,
+                deserialize_uncompressed_unchecked,
             );
         }
         use $modname::$modname;
@@ -206,32 +214,7 @@ macro_rules! field_common {
             });
         }
 
-        fn deser(b: &mut $crate::bencher::Bencher) {
-            use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
-            const SAMPLES: usize = 1000;
-
-            let mut rng = ark_std::test_rng();
-
-            let mut num_bytes = 0;
-            let v: Vec<_> = (0..SAMPLES)
-                .flat_map(|_| {
-                    let mut bytes = Vec::with_capacity(1000);
-                    let tmp = $f::rand(&mut rng);
-                    tmp.serialize(&mut bytes).unwrap();
-                    num_bytes = bytes.len();
-                    bytes
-                })
-                .collect();
-
-            let mut count = 0;
-            b.iter(|| {
-                count = (count + 1) % SAMPLES;
-                let index = count * num_bytes;
-                <$f_type>::deserialize(&v[index..(index + num_bytes)]).unwrap()
-            });
-        }
-
-        fn ser(b: &mut $crate::bencher::Bencher) {
+        fn serialize_compressed(b: &mut $crate::bencher::Bencher) {
             use ark_serialize::CanonicalSerialize;
             const SAMPLES: usize = 1000;
 
@@ -245,11 +228,11 @@ macro_rules! field_common {
                 let tmp = v[count];
                 count = (count + 1) % SAMPLES;
                 bytes.clear();
-                tmp.serialize(&mut bytes)
+                tmp.serialize_compressed(&mut bytes)
             });
         }
 
-        fn deser_unchecked(b: &mut $crate::bencher::Bencher) {
+        fn deserialize_compressed(b: &mut $crate::bencher::Bencher) {
             use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
             const SAMPLES: usize = 1000;
 
@@ -260,7 +243,7 @@ macro_rules! field_common {
                 .flat_map(|_| {
                     let mut bytes = Vec::with_capacity(1000);
                     let tmp = $f::rand(&mut rng);
-                    tmp.serialize_unchecked(&mut bytes).unwrap();
+                    tmp.serialize_compressed(&mut bytes).unwrap();
                     num_bytes = bytes.len();
                     bytes
                 })
@@ -270,11 +253,37 @@ macro_rules! field_common {
             b.iter(|| {
                 count = (count + 1) % SAMPLES;
                 let index = count * num_bytes;
-                <$f_type>::deserialize_unchecked(&v[index..(index + num_bytes)]).unwrap()
+                <$f_type>::deserialize_compressed(&v[index..(index + num_bytes)]).unwrap()
             });
         }
 
-        fn ser_unchecked(b: &mut $crate::bencher::Bencher) {
+        fn deserialize_compressed_unchecked(b: &mut $crate::bencher::Bencher) {
+            use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
+            const SAMPLES: usize = 1000;
+
+            let mut rng = ark_std::test_rng();
+
+            let mut num_bytes = 0;
+            let v: Vec<_> = (0..SAMPLES)
+                .flat_map(|_| {
+                    let mut bytes = Vec::with_capacity(1000);
+                    let tmp = $f::rand(&mut rng);
+                    tmp.serialize_compressed(&mut bytes).unwrap();
+                    num_bytes = bytes.len();
+                    bytes
+                })
+                .collect();
+
+            let mut count = 0;
+            b.iter(|| {
+                count = (count + 1) % SAMPLES;
+                let index = count * num_bytes;
+                <$f_type>::deserialize_uncompressed_unchecked(&v[index..(index + num_bytes)])
+                    .unwrap()
+            });
+        }
+
+        fn serialize_uncompressed(b: &mut $crate::bencher::Bencher) {
             use ark_serialize::CanonicalSerialize;
             const SAMPLES: usize = 1000;
 
@@ -288,7 +297,57 @@ macro_rules! field_common {
                 let tmp = v[count];
                 count = (count + 1) % SAMPLES;
                 bytes.clear();
-                tmp.serialize_unchecked(&mut bytes)
+                tmp.serialize_uncompressed(&mut bytes)
+            });
+        }
+        fn deserialize_uncompressed(b: &mut $crate::bencher::Bencher) {
+            use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
+            const SAMPLES: usize = 1000;
+
+            let mut rng = ark_std::test_rng();
+
+            let mut num_bytes = 0;
+            let v: Vec<_> = (0..SAMPLES)
+                .flat_map(|_| {
+                    let mut bytes = Vec::with_capacity(1000);
+                    let tmp = $f::rand(&mut rng);
+                    tmp.serialize_uncompressed(&mut bytes).unwrap();
+                    num_bytes = bytes.len();
+                    bytes
+                })
+                .collect();
+
+            let mut count = 0;
+            b.iter(|| {
+                count = (count + 1) % SAMPLES;
+                let index = count * num_bytes;
+                <$f_type>::deserialize_uncompressed(&v[index..(index + num_bytes)]).unwrap()
+            });
+        }
+
+        fn deserialize_uncompressed_unchecked(b: &mut $crate::bencher::Bencher) {
+            use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
+            const SAMPLES: usize = 1000;
+
+            let mut rng = ark_std::test_rng();
+
+            let mut num_bytes = 0;
+            let v: Vec<_> = (0..SAMPLES)
+                .flat_map(|_| {
+                    let mut bytes = Vec::with_capacity(1000);
+                    let tmp = $f::rand(&mut rng);
+                    tmp.serialize_uncompressed(&mut bytes).unwrap();
+                    num_bytes = bytes.len();
+                    bytes
+                })
+                .collect();
+
+            let mut count = 0;
+            b.iter(|| {
+                count = (count + 1) % SAMPLES;
+                let index = count * num_bytes;
+                <$f_type>::deserialize_uncompressed_unchecked(&v[index..(index + num_bytes)])
+                    .unwrap()
             });
         }
     };
@@ -449,6 +508,34 @@ macro_rules! prime_field {
             b.iter(|| {
                 count = (count + 1) % SAMPLES;
                 let _ = $f::from(v[count]);
+            });
+        }
+
+        fn repr_from_bits_be(b: &mut $crate::bencher::Bencher) {
+            const SAMPLES: usize = 1000;
+            let mut rng = ark_std::test_rng();
+            let v = (0..SAMPLES)
+                .map(|_| ark_ff::BitIteratorBE::new($f_repr::rand(&mut rng)).collect::<Vec<_>>())
+                .collect::<Vec<_>>();
+            let mut count = 0;
+            b.iter(|| {
+                let mut tmp = $f_repr::from_bits_be(&v[count]);
+                count = (count + 1) % SAMPLES;
+                tmp;
+            });
+        }
+
+        fn repr_from_bits_le(b: &mut $crate::bencher::Bencher) {
+            const SAMPLES: usize = 1000;
+            let mut rng = ark_std::test_rng();
+            let v = (0..SAMPLES)
+                .map(|_| ark_ff::BitIteratorLE::new($f_repr::rand(&mut rng)).collect::<Vec<_>>())
+                .collect::<Vec<_>>();
+            let mut count = 0;
+            b.iter(|| {
+                let mut tmp = $f_repr::from_bits_le(&v[count]);
+                count = (count + 1) % SAMPLES;
+                tmp;
             });
         }
     };

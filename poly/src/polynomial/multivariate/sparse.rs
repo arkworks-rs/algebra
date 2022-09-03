@@ -4,11 +4,10 @@ use crate::{
     DenseMVPolynomial, Polynomial,
 };
 use ark_ff::{Field, Zero};
-use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, SerializationError};
+use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use ark_std::{
     cmp::Ordering,
     fmt,
-    io::{Read, Write},
     ops::{Add, AddAssign, Neg, Sub, SubAssign},
     rand::Rng,
     vec::Vec,

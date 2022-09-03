@@ -1,9 +1,10 @@
-use crate::{AffineCurve, ProjectiveCurve};
 use ark_ff::{BigInteger, PrimeField};
 use ark_std::{cfg_iter, cfg_iter_mut, vec::Vec};
 
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
+
+use super::ScalarMul;
 
 pub struct FixedBase;
 
@@ -16,11 +17,11 @@ impl FixedBase {
         }
     }
 
-    pub fn get_window_table<T: ProjectiveCurve>(
+    pub fn get_window_table<T: ScalarMul>(
         scalar_size: usize,
         window: usize,
         g: T,
-    ) -> Vec<Vec<T::Affine>> {
+    ) -> Vec<Vec<T::MulBase>> {
         let in_window = 1 << window;
         let outerc = (scalar_size + window - 1) / window;
         let last_in_window = 1 << (scalar_size - (outerc - 1) * window);
@@ -53,20 +54,20 @@ impl FixedBase {
                 }
             });
         cfg_iter!(multiples_of_g)
-            .map(|s| T::batch_normalization_into_affine(s))
+            .map(|s| T::batch_convert_to_mul_base(s))
             .collect()
     }
 
-    pub fn windowed_mul<T: ProjectiveCurve>(
+    pub fn windowed_mul<T: ScalarMul>(
         outerc: usize,
         window: usize,
-        multiples_of_g: &[Vec<T::Affine>],
+        multiples_of_g: &[Vec<<T as ScalarMul>::MulBase>],
         scalar: &T::ScalarField,
     ) -> T {
         let modulus_size = T::ScalarField::MODULUS_BIT_SIZE as usize;
         let scalar_val = scalar.into_bigint().to_bits_le();
 
-        let mut res = multiples_of_g[0][0].into_projective();
+        let mut res = T::from(multiples_of_g[0][0]);
         for outer in 0..outerc {
             let mut inner = 0usize;
             for i in 0..window {
@@ -74,17 +75,17 @@ impl FixedBase {
                     inner |= 1 << i;
                 }
             }
-            res.add_assign_mixed(&multiples_of_g[outer][inner]);
+            res += &multiples_of_g[outer][inner];
         }
         res
     }
 
     // TODO use const-generics for the scalar size and window
     // TODO use iterators of iterators of T::Affine instead of taking owned Vec
-    pub fn msm<T: ProjectiveCurve>(
+    pub fn msm<T: ScalarMul>(
         scalar_size: usize,
         window: usize,
-        table: &[Vec<T::Affine>],
+        table: &[Vec<<T as ScalarMul>::MulBase>],
         v: &[T::ScalarField],
     ) -> Vec<T> {
         let outerc = (scalar_size + window - 1) / window;
