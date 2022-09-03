@@ -249,6 +249,7 @@ jobs:
             echo      "ark-ff-macros = { path = 'algebra/ff-macros' }";
             echo      "ark-ff-asm = { path = 'algebra/ff-asm' }";
             echo      "ark-ec = { path = 'algebra/ec' }";
+            echo      "ark-algebra-bench-templates = { path = 'algebra/bench-templates' }"
             echo      "ark-algebra-test-templates = { path = 'algebra/test-templates' }"
             echo      "ark-bls12-377 = { git = 'https://github.com/arkworks-rs/curves' }"
             echo      "ark-bls12-381 = { git = 'https://github.com/arkworks-rs/curves' }"
