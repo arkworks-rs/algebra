@@ -317,7 +317,7 @@ macro_rules! __test_group {
             let one = BaseField::one();
             for _ in 0..ITERATIONS {
                 let f = BaseField::rand(rng);
-                assert_eq!(Config::mul_by_a(f), f * Config::COEFF_A);
+                assert_eq!(<Config as TECurveConfig>::mul_by_a(f), f * <Config as TECurveConfig>::COEFF_A);
             }
             {
                 use ark_ec::models::twisted_edwards::TEFlags;
