@@ -1,6 +1,6 @@
 use ark_ff::fields::{BitIteratorBE, Field, Fp2};
-use ark_std::{vec::Vec, One};
 use ark_serialize::*;
+use ark_std::{vec::Vec, One};
 
 use crate::{
     bls12::{Bls12Parameters, TwistType},

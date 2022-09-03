@@ -1,7 +1,7 @@
-use ark_std::vec::Vec;
 use ark_ff::fields::{Field, Fp2};
-use num_traits::One;
 use ark_serialize::*;
+use ark_std::vec::Vec;
+use num_traits::One;
 
 use crate::{
     bn::{BnParameters, TwistType},

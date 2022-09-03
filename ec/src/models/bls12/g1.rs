@@ -4,6 +4,7 @@ use crate::{
     AffineRepr, CurveGroup,
 };
 use ark_serialize::*;
+use ark_std::vec::Vec;
 
 pub type G1Affine<P> = Affine<<P as Bls12Parameters>::G1Parameters>;
 pub type G1Projective<P> = Projective<<P as Bls12Parameters>::G1Parameters>;

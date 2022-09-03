@@ -7,9 +7,9 @@ use crate::{
     AffineRepr, CurveGroup,
 };
 use ark_ff::fields::{Field, Fp3};
+use ark_serialize::*;
 use ark_std::vec::Vec;
 use num_traits::One;
-use ark_serialize::*;
 
 pub type G2Affine<P> = Affine<<P as MNT6Parameters>::G2Parameters>;
 pub type G2Projective<P> = Projective<<P as MNT6Parameters>::G2Parameters>;

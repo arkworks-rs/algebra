@@ -5,6 +5,7 @@ use crate::{
 };
 use ark_ff::Fp2;
 use ark_serialize::*;
+use ark_std::vec::Vec;
 
 pub type G1Affine<P> = Affine<<P as MNT4Parameters>::G1Parameters>;
 pub type G1Projective<P> = Projective<<P as MNT4Parameters>::G1Parameters>;

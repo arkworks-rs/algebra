@@ -1,7 +1,7 @@
-use ark_std::vec::Vec;
 use ark_ff::fields::{BitIteratorBE, Field};
-use num_traits::One;
 use ark_serialize::*;
+use ark_std::vec::Vec;
+use num_traits::One;
 
 use crate::{
     bw6::{BW6Parameters, TwistType},
