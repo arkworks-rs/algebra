@@ -344,11 +344,11 @@ macro_rules! __test_group {
         {
             use ark_ec::twisted_edwards::MontCurveConfig;
             // A = 2 * (a + d) / (a - d)
-            let a = <Config as TECurveConfig>::BaseField::one().double()
+            let a = <Config as CurveConfig>::BaseField::one().double()
                 * &(<Config as TECurveConfig>::COEFF_A + &<Config as TECurveConfig>::COEFF_D)
                 * &(<Config as TECurveConfig>::COEFF_A - &<Config as TECurveConfig>::COEFF_D).inverse().unwrap();
             // B = 4 / (a - d)
-            let b = <Config as TECurveConfig>::BaseField::one().double().double() *
+            let b = <Config as CurveConfig>::BaseField::one().double().double() *
                 &(<Config as TECurveConfig>::COEFF_A - &<Config as TECurveConfig>::COEFF_D).inverse().unwrap();
 
             assert_eq!(a, <Config as MontCurveConfig>::COEFF_A);
