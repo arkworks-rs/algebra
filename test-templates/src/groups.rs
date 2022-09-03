@@ -351,8 +351,8 @@ macro_rules! __test_group {
             let b = <Config as TECurveConfig>::BaseField::one().double().double() *
                 &(<Config as TECurveConfig>::COEFF_A - &<Config as TECurveConfig>::COEFF_D).inverse().unwrap();
 
-            assert_eq!(a, <Config as TECurveConfig>::MontCurveConfig::COEFF_A);
-            assert_eq!(b, <Config as TECurveConfig>::MontCurveConfig::COEFF_B);
+            assert_eq!(a, <Config as MontCurveConfig>::COEFF_A);
+            assert_eq!(b, <Config as MontCurveConfig>::COEFF_B);
         }
     }
 }
