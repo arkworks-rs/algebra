@@ -342,6 +342,7 @@ macro_rules! __test_group {
         #[test]
         fn test_montgomery_conversion_test()
         {
+            use ark_ec::twisted_edwards::MontCurveConfig;
             // A = 2 * (a + d) / (a - d)
             let a = <Config as TECurveConfig>::BaseField::one().double()
                 * &(<Config as TECurveConfig>::COEFF_A + &<Config as TECurveConfig>::COEFF_D)
