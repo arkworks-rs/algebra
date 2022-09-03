@@ -338,6 +338,21 @@ macro_rules! __test_group {
                 }
             }
         }
+
+        #[test]
+        fn test_montgomery_conversion_test()
+        {
+            // A = 2 * (a + d) / (a - d)
+            let a = <Config as TECurveConfig>::BaseField::one().double()
+                * &(<Config as TECurveConfig>::COEFF_A + &<Config as TECurveConfig>::COEFF_D)
+                * &(<Config as TECurveConfig>::COEFF_A - &<Config as TECurveConfig>::COEFF_D).inverse().unwrap();
+            // B = 4 / (a - d)
+            let b = <Config as TECurveConfig>::BaseField::one().double().double() *
+                &(<Config as TECurveConfig>::COEFF_A - &<Config as TECurveConfig>::COEFF_D).inverse().unwrap();
+
+            assert_eq!(a, <Config as TECurveConfig>::MontCurveConfig::COEFF_A);
+            assert_eq!(b, <Config as TECurveConfig>::MontCurveConfig::COEFF_B);
+        }
     }
 }
 
