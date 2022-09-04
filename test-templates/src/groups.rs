@@ -258,7 +258,7 @@ macro_rules! __test_group {
             let mut i = 0;
             loop {
                 // y^2 = x^3 + a * x + b
-                let rhs = x * x.square() + x * Config::COEFF_A + Config::COEFF_B;
+                let rhs = x * x.square() + x * <Config as SWCurveConfig>::COEFF_A + <Config as SWCurveConfig>::COEFF_B;
 
                 if let Some(y) = rhs.sqrt() {
                     let p = Affine::new_unchecked(x, if y < -y { y } else { -y });
@@ -280,8 +280,8 @@ macro_rules! __test_group {
 
             for _ in 0..ITERATIONS {
                 let f = BaseField::rand(rng);
-                assert_eq!(Config::mul_by_a(f), f * Config::COEFF_A);
-                assert_eq!(Config::add_b(f), f + Config::COEFF_B);
+                assert_eq!(<Config as SWCurveConfig>::mul_by_a(f), f * <Config as SWCurveConfig>::COEFF_A);
+                assert_eq!(<Config as SWCurveConfig>::add_b(f), f + <Config as SWCurveConfig>::COEFF_B);
             }
             {
                 use ark_ec::models::short_weierstrass::SWFlags;
@@ -317,7 +317,7 @@ macro_rules! __test_group {
             let one = BaseField::one();
             for _ in 0..ITERATIONS {
                 let f = BaseField::rand(rng);
-                assert_eq!(Config::mul_by_a(f), f * Config::COEFF_A);
+                assert_eq!(<Config as TECurveConfig>::mul_by_a(f), f * <Config as TECurveConfig>::COEFF_A);
             }
             {
                 use ark_ec::models::twisted_edwards::TEFlags;
@@ -337,6 +337,22 @@ macro_rules! __test_group {
 
                 }
             }
+        }
+
+        #[test]
+        fn test_montgomery_conversion_test()
+        {
+            use ark_ec::twisted_edwards::MontCurveConfig;
+            // A = 2 * (a + d) / (a - d)
+            let a = <Config as CurveConfig>::BaseField::one().double()
+                * &(<Config as TECurveConfig>::COEFF_A + &<Config as TECurveConfig>::COEFF_D)
+                * &(<Config as TECurveConfig>::COEFF_A - &<Config as TECurveConfig>::COEFF_D).inverse().unwrap();
+            // B = 4 / (a - d)
+            let b = <Config as CurveConfig>::BaseField::one().double().double() *
+                &(<Config as TECurveConfig>::COEFF_A - &<Config as TECurveConfig>::COEFF_D).inverse().unwrap();
+
+            assert_eq!(a, <Config as MontCurveConfig>::COEFF_A);
+            assert_eq!(b, <Config as MontCurveConfig>::COEFF_B);
         }
     }
 }
