@@ -430,13 +430,12 @@ impl<P: TECurveConfig> CanonicalSerialize for Projective<P> {
         compress: Compress,
     ) -> Result<(), SerializationError> {
         let aff = Affine::<P>::from(*self);
-        aff.serialize_with_mode(writer, compress)
+        P::serialize_with_mode(&aff, writer, compress)
     }
 
     #[inline]
     fn serialized_size(&self, compress: Compress) -> usize {
-        let aff = Affine::<P>::from(*self);
-        aff.serialized_size(compress)
+        P::serialized_size(compress)
     }
 }
 
@@ -464,7 +463,7 @@ impl<P: TECurveConfig> CanonicalDeserialize for Projective<P> {
         compress: Compress,
         validate: Validate,
     ) -> Result<Self, SerializationError> {
-        let aff = Affine::<P>::deserialize_with_mode(reader, compress, validate)?;
+        let aff = P::deserialize_with_mode(reader, compress, validate)?;
         Ok(aff.into())
     }
 }
