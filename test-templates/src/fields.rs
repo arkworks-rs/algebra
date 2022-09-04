@@ -54,7 +54,7 @@ macro_rules! __test_field {
                     let buf_size = <$field>::zero().serialized_size(compress);
 
                     let buffer_size =
-                        buffer_bit_byte_size(<$field as Field>::BasePrimeField::MODULUS_BIT_SIZE as usize).1 *
+                        buffer_bit_byte_size(<$field as Field>::BasePrimeField::MODULUS_BIT_SIZE as usize + 1).1 *
                         (<$field>::extension_degree() as usize);
                     assert_eq!(buffer_size, buf_size);
 
@@ -366,9 +366,17 @@ macro_rules! __test_field {
         fn test_sum_of_products_edge_case() {
             use ark_ff::BigInteger;
             let mut a_max = <$field>::ZERO.into_bigint();
+
+            let last_limb = if <$field>::MODULUS_BIT_SIZE % 64 == 0 {
+                <$field as PrimeField>::BigInt::NUM_LIMBS - 2
+            } else {
+                <$field as PrimeField>::BigInt::NUM_LIMBS - 1
+            };
+
             for (i, limb) in a_max.as_mut().iter_mut().enumerate() {
-                if i == <$field as PrimeField>::BigInt::NUM_LIMBS - 1 {
+                if i == last_limb {
                     *limb = u64::MAX >> (64 - ((<$field>::MODULUS_BIT_SIZE - 1) % 64));
+                    break;
                 } else {
                     *limb = u64::MAX;
                 }
@@ -395,7 +403,11 @@ macro_rules! __test_field {
             assert_eq!(BigUint::from(<$field>::MODULUS_MINUS_ONE_DIV_TWO), &modulus_minus_one / 2u32);
             assert_eq!(<$field>::MODULUS_BIT_SIZE as u64, modulus.bits());
             if let Some(SqrtPrecomputation::Case3Mod4 { modulus_plus_one_div_four }) = <$field>::SQRT_PRECOMP {
-                assert_eq!(modulus_plus_one_div_four, &((&modulus + 1u8) / 4u8).to_u64_digits());
+                let mut expected = ((&modulus + 1u8) / 4u8).to_u64_digits();
+                if <$field>::MODULUS_BIT_SIZE as u64 % 64 == 0 {
+                    expected.push(0u64);
+                }
+                assert_eq!(modulus_plus_one_div_four, &expected);
             }
 
             let mut two_adicity = 0;
