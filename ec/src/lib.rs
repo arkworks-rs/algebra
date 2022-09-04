@@ -149,6 +149,7 @@ pub trait CurveGroup:
     type FullGroup;
 
     /// Normalizes a slice of group elements into affine.
+    #[must_use]
     fn normalize_batch(v: &[Self]) -> Vec<Self::Affine>;
 
     /// Converts `self` into the affine representation.
