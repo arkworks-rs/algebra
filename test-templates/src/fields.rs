@@ -54,7 +54,7 @@ macro_rules! __test_field {
                     let buf_size = <$field>::zero().serialized_size(compress);
 
                     let buffer_size =
-                        buffer_bit_byte_size(<$field as Field>::BasePrimeField::MODULUS_BIT_SIZE as usize + 1).1 *
+                        buffer_bit_byte_size(<$field as Field>::BasePrimeField::MODULUS_BIT_SIZE as usize).1 *
                         (<$field>::extension_degree() as usize);
                     assert_eq!(buffer_size, buf_size);
 
