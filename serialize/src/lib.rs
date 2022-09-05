@@ -23,12 +23,16 @@ pub use ark_serialize_derive::*;
 
 use digest::{generic_array::GenericArray, Digest, OutputSizeUser};
 
+/// Whether to use a compressed version of the serialization algorithm. Specific behavior depends
+/// on implementation. If no compressed version exists (e.g. on `Fp`), mode is ignored.
 #[derive(Copy, Clone, PartialEq, Eq)]
 pub enum Compress {
     Yes,
     No,
 }
 
+/// Whether to validate the element after deserializing it. Specific behavior depends on
+/// implementation. If no validation algorithm exists (e.g. on `Fp`), mode is ignored.
 #[derive(Copy, Clone, PartialEq, Eq)]
 pub enum Validate {
     Yes,
@@ -76,6 +80,7 @@ pub trait Valid: Sized + Sync {
 /// }
 /// ```
 pub trait CanonicalSerialize {
+    /// The general serialize method that takes in customization flags.
     fn serialize_with_mode<W: Write>(
         &self,
         writer: W,
@@ -118,6 +123,7 @@ pub trait CanonicalSerialize {
 /// }
 /// ```
 pub trait CanonicalDeserialize: Valid {
+    /// The general deserialize method that takes in customization flags.
     fn deserialize_with_mode<R: Read>(
         reader: R,
         compress: Compress,

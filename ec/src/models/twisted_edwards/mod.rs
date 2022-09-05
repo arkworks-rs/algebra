@@ -85,6 +85,8 @@ pub trait TECurveConfig: super::CurveConfig {
         res
     }
 
+    /// If uncompressed, serializes both x and y coordinates.
+    /// If compressed, serializes y coordinate with a bit to encode whether x is positive.
     #[inline]
     fn serialize_with_mode<W: Write>(
         item: &Affine<Self>,
@@ -101,6 +103,9 @@ pub trait TECurveConfig: super::CurveConfig {
         }
     }
 
+    /// If `validate` is `Yes`, calls `check()` to make sure the element is valid.
+    ///
+    /// Uses `Affine::get_xs_from_y_unchecked()` for the compressed version.
     fn deserialize_with_mode<R: Read>(
         mut reader: R,
         compress: Compress,

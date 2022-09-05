@@ -96,6 +96,7 @@ impl<P: SWCurveConfig> Hash for Projective<P> {
 }
 
 impl<P: SWCurveConfig> Distribution<Projective<P>> for Standard {
+    /// Generates a uniformly random instance of the curve.
     #[inline]
     fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> Projective<P> {
         loop {

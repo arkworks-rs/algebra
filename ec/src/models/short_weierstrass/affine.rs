@@ -185,6 +185,7 @@ impl<P: SWCurveConfig> Zeroize for Affine<P> {
 }
 
 impl<P: SWCurveConfig> Distribution<Affine<P>> for Standard {
+    /// Generates a uniformly random instance of the curve.
     #[inline]
     fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> Affine<P> {
         loop {

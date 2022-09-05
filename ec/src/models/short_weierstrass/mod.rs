@@ -105,6 +105,9 @@ pub trait SWCurveConfig: super::CurveConfig {
         res
     }
 
+    /// If uncompressed, serializes both x and y coordinates as well as a bit for whether it is
+    /// infinity. If compressed, serializes x coordinate with two bits to encode whether y is
+    /// positive, negative, or infinity.
     #[inline]
     fn serialize_with_mode<W: Write>(
         item: &Affine<Self>,
@@ -129,6 +132,7 @@ pub trait SWCurveConfig: super::CurveConfig {
         }
     }
 
+    /// If `validate` is `Yes`, calls `check()` to make sure the element is valid.
     fn deserialize_with_mode<R: Read>(
         mut reader: R,
         compress: Compress,
