@@ -242,8 +242,7 @@ impl<P: FpConfig<N>, const N: usize> Field for Fp<P, N> {
             last_bytes_mask[..8].copy_from_slice(&last_limb_mask);
 
             // Length of the buffer containing the field element and the flag.
-            let output_byte_size =
-                buffer_byte_size(Self::MODULUS_BIT_SIZE as usize + 1 + F::BIT_SIZE);
+            let output_byte_size = buffer_byte_size(Self::MODULUS_BIT_SIZE as usize + F::BIT_SIZE);
             // Location of the flag is the last byte of the serialized
             // form of the field element.
             let flag_location = output_byte_size - 1;
@@ -536,7 +535,7 @@ impl<P: FpConfig<N>, const N: usize> CanonicalSerializeWithFlags for Fp<P, N> {
         // Calculate the number of bytes required to represent a field element
         // serialized with `flags`. If `F::BIT_SIZE < 8`,
         // this is at most `N * 8 + 1`
-        let output_byte_size = buffer_byte_size(Self::MODULUS_BIT_SIZE as usize + 1 + F::BIT_SIZE);
+        let output_byte_size = buffer_byte_size(Self::MODULUS_BIT_SIZE as usize + F::BIT_SIZE);
 
         // Write out `self` to a temporary buffer.
         // The size of the buffer is $byte_size + 1 because `F::BIT_SIZE`
@@ -555,7 +554,7 @@ impl<P: FpConfig<N>, const N: usize> CanonicalSerializeWithFlags for Fp<P, N> {
     // If `(m - P::MODULUS_BIT_SIZE) >= F::BIT_SIZE` , then this method returns `n`;
     // otherwise, it returns `n + 1`.
     fn serialized_size_with_flags<F: Flags>(&self) -> usize {
-        buffer_byte_size(Self::MODULUS_BIT_SIZE as usize + 1 + F::BIT_SIZE)
+        buffer_byte_size(Self::MODULUS_BIT_SIZE as usize + F::BIT_SIZE)
     }
 }
 
