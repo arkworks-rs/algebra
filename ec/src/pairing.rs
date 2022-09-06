@@ -42,6 +42,8 @@ pub trait Pairing: Sized + 'static + Copy + Debug + Sync + Send + Eq {
         + Send
         + Sync
         + Debug
+        + CanonicalSerialize
+        + CanonicalDeserialize
         + for<'a> From<&'a Self::G1>
         + for<'a> From<&'a Self::G1Affine>
         + From<Self::G1>
@@ -66,6 +68,8 @@ pub trait Pairing: Sized + 'static + Copy + Debug + Sync + Send + Eq {
         + Send
         + Sync
         + Debug
+        + CanonicalSerialize
+        + CanonicalDeserialize
         + for<'a> From<&'a Self::G2>
         + for<'a> From<&'a Self::G2Affine>
         + From<Self::G2>

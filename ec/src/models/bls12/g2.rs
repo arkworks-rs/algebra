@@ -1,4 +1,5 @@
 use ark_ff::fields::{BitIteratorBE, Field, Fp2};
+use ark_serialize::*;
 use ark_std::{vec::Vec, One};
 
 use crate::{
@@ -11,7 +12,7 @@ use crate::{
 pub type G2Affine<P> = Affine<<P as Bls12Parameters>::G2Parameters>;
 pub type G2Projective<P> = Projective<<P as Bls12Parameters>::G2Parameters>;
 
-#[derive(Derivative)]
+#[derive(Derivative, CanonicalSerialize, CanonicalDeserialize)]
 #[derivative(
     Clone(bound = "P: Bls12Parameters"),
     Debug(bound = "P: Bls12Parameters"),
