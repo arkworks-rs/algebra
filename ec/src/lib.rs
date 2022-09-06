@@ -217,10 +217,10 @@ pub trait AffineRepr:
     }
 
     /// Returns the point at infinity.
-    fn identity() -> Self;
+    fn zero() -> Self;
 
     /// Is `self` the point at infinity?
-    fn is_identity(&self) -> bool {
+    fn is_zero(&self) -> bool {
         self.xy().is_none()
     }
 

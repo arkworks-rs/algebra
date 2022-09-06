@@ -214,7 +214,7 @@ impl<P: SWCurveConfig> AffineRepr for Affine<P> {
         P::GENERATOR
     }
 
-    fn identity() -> Self {
+    fn zero() -> Self {
         Self {
             x: P::BaseField::ZERO,
             y: P::BaseField::ZERO,
