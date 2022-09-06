@@ -1,6 +1,5 @@
 use ark_serialize::{
-    CanonicalDeserialize, CanonicalDeserializeWithFlags, CanonicalSerialize,
-    CanonicalSerializeWithFlags, Compress, SerializationError, Valid, Validate,
+    CanonicalDeserialize, CanonicalSerialize, Compress, SerializationError, Valid, Validate,
 };
 use ark_std::{
     borrow::Borrow,
@@ -260,6 +259,7 @@ impl<P: TECurveConfig> Default for Affine<P> {
 }
 
 impl<P: TECurveConfig> Distribution<Affine<P>> for Standard {
+    /// Generates a uniformly random instance of the curve.
     #[inline]
     fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> Affine<P> {
         loop {
@@ -301,30 +301,18 @@ impl<P: TECurveConfig> From<Projective<P>> for Affine<P> {
     }
 }
 impl<P: TECurveConfig> CanonicalSerialize for Affine<P> {
-    #[allow(unused_qualifications)]
     #[inline]
     fn serialize_with_mode<W: Write>(
         &self,
-        mut writer: W,
+        writer: W,
         compress: ark_serialize::Compress,
     ) -> Result<(), SerializationError> {
-        let flags = TEFlags::from_x_coordinate(self.x);
-        match compress {
-            Compress::Yes => self.y.serialize_with_flags(writer, flags),
-            Compress::No => {
-                self.x.serialize_uncompressed(&mut writer)?;
-                self.y.serialize_uncompressed(&mut writer)
-            },
-        }
+        P::serialize_with_mode(self, writer, compress)
     }
 
     #[inline]
     fn serialized_size(&self, compress: Compress) -> usize {
-        let zero = P::BaseField::zero();
-        match compress {
-            Compress::Yes => zero.serialized_size_with_flags::<TEFlags>(),
-            Compress::No => self.x.uncompressed_size() + self.y.uncompressed_size(),
-        }
+        P::serialized_size(compress)
     }
 }
 
@@ -339,35 +327,12 @@ impl<P: TECurveConfig> Valid for Affine<P> {
 }
 
 impl<P: TECurveConfig> CanonicalDeserialize for Affine<P> {
-    #[allow(unused_qualifications)]
     fn deserialize_with_mode<R: Read>(
-        mut reader: R,
+        reader: R,
         compress: Compress,
         validate: Validate,
     ) -> Result<Self, SerializationError> {
-        let (x, y) = match compress {
-            Compress::Yes => {
-                let (y, flags): (_, TEFlags) =
-                    CanonicalDeserializeWithFlags::deserialize_with_flags(reader)?;
-                let (x, neg_x) =
-                    Self::get_xs_from_y_unchecked(y).ok_or(SerializationError::InvalidData)?;
-                if flags.is_negative() {
-                    (neg_x, y)
-                } else {
-                    (x, y)
-                }
-            },
-            Compress::No => {
-                let x: P::BaseField = CanonicalDeserialize::deserialize_uncompressed(&mut reader)?;
-                let y: P::BaseField = CanonicalDeserialize::deserialize_uncompressed(&mut reader)?;
-                (x, y)
-            },
-        };
-        let point = Self::new_unchecked(x, y);
-        if let Validate::Yes = validate {
-            point.check()?;
-        }
-        Ok(point)
+        P::deserialize_with_mode(reader, compress, validate)
     }
 }
 

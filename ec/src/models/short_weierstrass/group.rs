@@ -96,6 +96,7 @@ impl<P: SWCurveConfig> Hash for Projective<P> {
 }
 
 impl<P: SWCurveConfig> Distribution<Projective<P>> for Standard {
+    /// Generates a uniformly random instance of the curve.
     #[inline]
     fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> Projective<P> {
         loop {
@@ -504,7 +505,6 @@ impl<P: SWCurveConfig> From<Affine<P>> for Projective<P> {
 }
 
 impl<P: SWCurveConfig> CanonicalSerialize for Projective<P> {
-    #[allow(unused_qualifications)]
     #[inline]
     fn serialize_with_mode<W: Write>(
         &self,
@@ -512,13 +512,12 @@ impl<P: SWCurveConfig> CanonicalSerialize for Projective<P> {
         compress: Compress,
     ) -> Result<(), SerializationError> {
         let aff = Affine::<P>::from(*self);
-        aff.serialize_with_mode(writer, compress)
+        P::serialize_with_mode(&aff, writer, compress)
     }
 
     #[inline]
     fn serialized_size(&self, compress: Compress) -> usize {
-        let aff = Affine::<P>::from(*self);
-        aff.serialized_size(compress)
+        P::serialized_size(compress)
     }
 }
 
@@ -540,13 +539,12 @@ impl<P: SWCurveConfig> Valid for Projective<P> {
 }
 
 impl<P: SWCurveConfig> CanonicalDeserialize for Projective<P> {
-    #[allow(unused_qualifications)]
     fn deserialize_with_mode<R: Read>(
         reader: R,
         compress: Compress,
         validate: Validate,
     ) -> Result<Self, SerializationError> {
-        let aff = Affine::<P>::deserialize_with_mode(reader, compress, validate)?;
+        let aff = P::deserialize_with_mode(reader, compress, validate)?;
         Ok(aff.into())
     }
 }
