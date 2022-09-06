@@ -1,7 +1,6 @@
-use ark_std::vec::Vec;
-
 use ark_ff::fields::{BitIteratorBE, Field};
-
+use ark_serialize::*;
+use ark_std::vec::Vec;
 use num_traits::One;
 
 use crate::{
@@ -14,7 +13,7 @@ use crate::{
 pub type G2Affine<P> = Affine<<P as BW6Parameters>::G2Parameters>;
 pub type G2Projective<P> = Projective<<P as BW6Parameters>::G2Parameters>;
 
-#[derive(Derivative)]
+#[derive(Derivative, CanonicalSerialize, CanonicalDeserialize)]
 #[derivative(
     Clone(bound = "P: BW6Parameters"),
     Debug(bound = "P: BW6Parameters"),
@@ -29,7 +28,7 @@ pub struct G2Prepared<P: BW6Parameters> {
     pub infinity: bool,
 }
 
-#[derive(Derivative)]
+#[derive(Derivative, CanonicalSerialize, CanonicalDeserialize)]
 #[derivative(
     Clone(bound = "P: BW6Parameters"),
     Copy(bound = "P: BW6Parameters"),

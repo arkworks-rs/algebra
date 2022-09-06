@@ -7,13 +7,14 @@ use crate::{
     AffineRepr, CurveGroup,
 };
 use ark_ff::fields::{Field, Fp3};
+use ark_serialize::*;
 use ark_std::vec::Vec;
 use num_traits::One;
 
 pub type G2Affine<P> = Affine<<P as MNT6Parameters>::G2Parameters>;
 pub type G2Projective<P> = Projective<<P as MNT6Parameters>::G2Parameters>;
 
-#[derive(Derivative)]
+#[derive(Derivative, CanonicalSerialize, CanonicalDeserialize)]
 #[derivative(
     Clone(bound = "P: MNT6Parameters"),
     Debug(bound = "P: MNT6Parameters"),
@@ -112,7 +113,7 @@ pub(super) struct G2ProjectiveExtended<P: MNT6Parameters> {
     pub(crate) t: Fp3<P::Fp3Config>,
 }
 
-#[derive(Derivative)]
+#[derive(Derivative, CanonicalSerialize, CanonicalDeserialize)]
 #[derivative(
     Clone(bound = "P: MNT6Parameters"),
     Debug(bound = "P: MNT6Parameters"),
@@ -126,7 +127,7 @@ pub struct AteDoubleCoefficients<P: MNT6Parameters> {
     pub c_l: Fp3<P::Fp3Config>,
 }
 
-#[derive(Derivative)]
+#[derive(Derivative, CanonicalSerialize, CanonicalDeserialize)]
 #[derivative(
     Clone(bound = "P: MNT6Parameters"),
     Debug(bound = "P: MNT6Parameters"),
