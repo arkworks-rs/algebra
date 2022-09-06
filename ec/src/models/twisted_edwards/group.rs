@@ -217,7 +217,7 @@ impl<P: TECurveConfig> CurveGroup for Projective<P> {
         ark_std::cfg_iter!(v)
             .zip(z_s)
             .map(|(g, z)| match g.is_zero() {
-                true => Affine::identity(),
+                true => Affine::zero(),
                 false => {
                     let x = g.x * &z;
                     let y = g.y * &z;

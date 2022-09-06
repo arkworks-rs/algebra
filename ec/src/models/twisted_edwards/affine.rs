@@ -40,7 +40,7 @@ pub struct Affine<P: TECurveConfig> {
 
 impl<P: TECurveConfig> Display for Affine<P> {
     fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
-        match self.is_identity() {
+        match self.is_zero() {
             true => write!(f, "infinity"),
             false => write!(f, "({}, {})", self.x, self.y),
         }
@@ -49,7 +49,7 @@ impl<P: TECurveConfig> Display for Affine<P> {
 
 impl<P: TECurveConfig> Debug for Affine<P> {
     fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
-        match self.is_identity() {
+        match self.is_zero() {
             true => write!(f, "infinity"),
             false => write!(f, "({}, {})", self.x, self.y),
         }
@@ -79,12 +79,12 @@ impl<P: TECurveConfig> Affine<P> {
     }
 
     /// Construct the identity of the group
-    pub const fn identity() -> Self {
+    pub const fn zero() -> Self {
         Self::new_unchecked(P::BaseField::ZERO, P::BaseField::ONE)
     }
 
     /// Is this point the identity?
-    pub fn is_identity(&self) -> bool {
+    pub fn is_zero(&self) -> bool {
         self.x.is_zero() && self.y.is_one()
     }
 
@@ -167,14 +167,14 @@ impl<P: TECurveConfig> AffineRepr for Affine<P> {
     type Group = Projective<P>;
 
     fn xy(&self) -> Option<(&Self::BaseField, &Self::BaseField)> {
-        (!self.is_identity()).then(|| (&self.x, &self.y))
+        (!self.is_zero()).then(|| (&self.x, &self.y))
     }
 
     fn generator() -> Self {
         P::GENERATOR
     }
 
-    fn identity() -> Self {
+    fn zero() -> Self {
         Self::new_unchecked(P::BaseField::ZERO, P::BaseField::ONE)
     }
 
@@ -254,7 +254,7 @@ impl<P: TECurveConfig, T: Borrow<Self>> Sub<T> for Affine<P> {
 impl<P: TECurveConfig> Default for Affine<P> {
     #[inline]
     fn default() -> Self {
-        Self::identity()
+        Self::zero()
     }
 }
 
@@ -287,7 +287,7 @@ impl<'a, P: TECurveConfig, T: Borrow<P::ScalarField>> Mul<T> for Affine<P> {
 impl<P: TECurveConfig> From<Projective<P>> for Affine<P> {
     fn from(p: Projective<P>) -> Affine<P> {
         if p.is_zero() {
-            Affine::identity()
+            Affine::zero()
         } else if p.z.is_one() {
             // If Z is one, the point is already normalized.
             Affine::new_unchecked(p.x, p.y)
