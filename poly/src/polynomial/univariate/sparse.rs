@@ -5,11 +5,10 @@ use crate::{
     DenseUVPolynomial, EvaluationDomain, Evaluations,
 };
 use ark_ff::{FftField, Field, Zero};
-use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, SerializationError};
+use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use ark_std::{
     collections::BTreeMap,
     fmt,
-    io::{Read, Write},
     ops::{Add, AddAssign, Deref, DerefMut, Mul, Neg, SubAssign},
     vec::Vec,
 };

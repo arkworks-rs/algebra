@@ -5,7 +5,7 @@ use crate::{
     MultilinearExtension,
 };
 use ark_ff::{Field, Zero};
-use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, Read, SerializationError, Write};
+use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use ark_std::{
     collections::BTreeMap,
     fmt,
@@ -587,10 +587,10 @@ mod tests {
             let point: Vec<_> = (0..10).map(|_| Fr::rand(&mut rng)).collect();
             let expected = poly.evaluate(&point);
 
-            poly.serialize(&mut buf).unwrap();
+            poly.serialize_compressed(&mut buf).unwrap();
 
             let poly2: SparseMultilinearExtension<Fr> =
-                SparseMultilinearExtension::deserialize(&buf[..]).unwrap();
+                SparseMultilinearExtension::deserialize_compressed(&buf[..]).unwrap();
             assert_eq!(poly2.evaluate(&point), expected);
         }
     }

@@ -1,7 +1,6 @@
-use ark_std::vec::Vec;
-
 use ark_ff::fields::{Field, Fp2};
-
+use ark_serialize::*;
+use ark_std::vec::Vec;
 use num_traits::One;
 
 use crate::{
@@ -14,7 +13,7 @@ use crate::{
 pub type G2Affine<P> = Affine<<P as BnParameters>::G2Parameters>;
 pub type G2Projective<P> = Projective<<P as BnParameters>::G2Parameters>;
 
-#[derive(Derivative)]
+#[derive(Derivative, CanonicalSerialize, CanonicalDeserialize)]
 #[derivative(
     Clone(bound = "P: BnParameters"),
     Debug(bound = "P: BnParameters"),

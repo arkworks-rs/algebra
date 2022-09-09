@@ -1,3 +1,9 @@
+use ark_serialize::{
+    CanonicalDeserialize, CanonicalDeserializeWithFlags, CanonicalSerialize,
+    CanonicalSerializeWithFlags, Compress, SerializationError, Valid, Validate,
+};
+use ark_std::io::{Read, Write};
+
 use crate::{AffineRepr, Group};
 use num_traits::Zero;
 
@@ -8,6 +14,9 @@ pub use affine::*;
 
 mod group;
 pub use group::*;
+
+mod serialization_flags;
+pub use serialization_flags::*;
 
 /// Constants and convenience functions that collectively define the [Twisted Edwards model](https://www.hyperelliptic.org/EFD/g1p/auto-twisted.html)
 /// of the curve. In this model, the curve equation is
@@ -30,10 +39,8 @@ pub trait TECurveConfig: super::CurveConfig {
     /// the product can be computed faster than standard field multiplication
     /// (eg: via doubling if `COEFF_A == 2`, or if `COEFF_A.is_zero()`).
     #[inline(always)]
-    fn mul_by_a(elem: &Self::BaseField) -> Self::BaseField {
-        let mut copy = *elem;
-        copy *= &Self::COEFF_A;
-        copy
+    fn mul_by_a(elem: Self::BaseField) -> Self::BaseField {
+        elem * Self::COEFF_A
     }
 
     /// Checks that the current point is in the prime order subgroup given
@@ -76,6 +83,68 @@ pub trait TECurveConfig: super::CurveConfig {
         }
 
         res
+    }
+
+    /// If uncompressed, serializes both x and y coordinates.
+    /// If compressed, serializes y coordinate with a bit to encode whether x is positive.
+    #[inline]
+    fn serialize_with_mode<W: Write>(
+        item: &Affine<Self>,
+        mut writer: W,
+        compress: ark_serialize::Compress,
+    ) -> Result<(), SerializationError> {
+        let flags = TEFlags::from_x_coordinate(item.x);
+        match compress {
+            Compress::Yes => item.y.serialize_with_flags(writer, flags),
+            Compress::No => {
+                item.x.serialize_uncompressed(&mut writer)?;
+                item.y.serialize_uncompressed(&mut writer)
+            },
+        }
+    }
+
+    /// If `validate` is `Yes`, calls `check()` to make sure the element is valid.
+    ///
+    /// Uses `Affine::get_xs_from_y_unchecked()` for the compressed version.
+    fn deserialize_with_mode<R: Read>(
+        mut reader: R,
+        compress: Compress,
+        validate: Validate,
+    ) -> Result<Affine<Self>, SerializationError> {
+        let (x, y) = match compress {
+            Compress::Yes => {
+                let (y, flags): (_, TEFlags) =
+                    CanonicalDeserializeWithFlags::deserialize_with_flags(reader)?;
+                let (x, neg_x) = Affine::<Self>::get_xs_from_y_unchecked(y)
+                    .ok_or(SerializationError::InvalidData)?;
+                if flags.is_negative() {
+                    (neg_x, y)
+                } else {
+                    (x, y)
+                }
+            },
+            Compress::No => {
+                let x: Self::BaseField =
+                    CanonicalDeserialize::deserialize_uncompressed(&mut reader)?;
+                let y: Self::BaseField =
+                    CanonicalDeserialize::deserialize_uncompressed(&mut reader)?;
+                (x, y)
+            },
+        };
+        let point = Affine::<Self>::new_unchecked(x, y);
+        if let Validate::Yes = validate {
+            point.check()?;
+        }
+        Ok(point)
+    }
+
+    #[inline]
+    fn serialized_size(compress: Compress) -> usize {
+        let zero = Self::BaseField::zero();
+        match compress {
+            Compress::Yes => zero.serialized_size_with_flags::<TEFlags>(),
+            Compress::No => zero.uncompressed_size() + zero.uncompressed_size(),
+        }
     }
 }
 

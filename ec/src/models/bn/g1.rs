@@ -3,11 +3,13 @@ use crate::{
     short_weierstrass::{Affine, Projective},
     AffineRepr, CurveGroup,
 };
+use ark_serialize::*;
+use ark_std::vec::Vec;
 
 pub type G1Affine<P> = Affine<<P as BnParameters>::G1Parameters>;
 pub type G1Projective<P> = Projective<<P as BnParameters>::G1Parameters>;
 
-#[derive(Derivative)]
+#[derive(Derivative, CanonicalSerialize, CanonicalDeserialize)]
 #[derivative(
     Clone(bound = "P: BnParameters"),
     Debug(bound = "P: BnParameters"),
