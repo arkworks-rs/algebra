@@ -257,7 +257,7 @@ impl<const N: usize> BigInteger for BigInt<N> {
     const NUM_LIMBS: usize = N;
 
     #[inline]
-    #[unroll_for_loops(12)]
+    // #[unroll_for_loops(12)]
     fn add_with_carry(&mut self, other: &Self) -> bool {
         let mut carry = 0;
 
@@ -485,7 +485,7 @@ impl<const N: usize> BigInteger for BigInt<N> {
     #[inline]
     fn to_bytes_le(&self) -> Vec<u8> {
         let array_map = self.0.iter().map(|limb| limb.to_le_bytes());
-        let mut res = Vec::<u8>::with_capacity(N * 8);
+        let mut res = Vec::with_capacity(N * 8);
         for limb in array_map {
             res.extend_from_slice(&limb);
         }
@@ -494,37 +494,34 @@ impl<const N: usize> BigInteger for BigInt<N> {
 }
 
 impl<const N: usize> UpperHex for BigInt<N> {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         write!(f, "{:016X}", BigUint::from(*self))
     }
 }
 
 impl<const N: usize> Display for BigInt<N> {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         write!(f, "{}", BigUint::from(*self))
     }
 }
 
 impl<const N: usize> Ord for BigInt<N> {
     #[inline]
-    #[unroll_for_loops(12)]
-    fn cmp(&self, other: &Self) -> ::core::cmp::Ordering {
-        use core::cmp::Ordering;
-        for i in 0..N {
-            let a = &self.0[N - i - 1];
-            let b = &other.0[N - i - 1];
-            match a.cmp(b) {
-                Ordering::Equal => {},
-                order => return order,
-            };
+    fn cmp(&self, other: &Self) -> core::cmp::Ordering {
+        for (a, b) in self.0.iter().rev().zip(other.0.iter().rev()) {
+            if a < b {
+                return core::cmp::Ordering::Less;
+            } else if a > b {
+                return core::cmp::Ordering::Greater;
+            }
         }
-        Ordering::Equal
+        core::cmp::Ordering::Equal
     }
 }
 
 impl<const N: usize> PartialOrd for BigInt<N> {
     #[inline]
-    fn partial_cmp(&self, other: &Self) -> Option<::core::cmp::Ordering> {
+    fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> {
         Some(self.cmp(other))
     }
 }

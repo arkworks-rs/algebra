@@ -1,12 +1,11 @@
 use ark_algebra_bench_templates::*;
-use ark_std::ops::{AddAssign, MulAssign, SubAssign};
+use ark_test_curves::ed_on_bls12_381::{Fq, Fr, Projective};
 
-use ark_ec::{CurveGroup, Group};
-use ark_ff::{biginteger::BigInteger256 as Repr, BigInteger, Field, PrimeField, UniformRand};
-use ark_test_curves::ed_on_bls12_381::{Affine, Fq, Fr, Projective};
+mod group {
+    use super::*;
+    ec_bench!(Projective);
+}
+f_bench!(prime, Fq, fq);
+f_bench!(prime, Fr, fr);
 
-f_bench!(Fq, Fq, Repr, Repr, fq);
-f_bench!(Fr, Fr, Repr, Repr, fr);
-ec_bench!(Projective, Affine);
-
-bencher::benchmark_main!(fq, fr, group_ops);
+criterion_main!(group::benches, fq::benches, fr::benches);
