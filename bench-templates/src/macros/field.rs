@@ -143,15 +143,6 @@ macro_rules! field_common {
                     })
                 },
             );
-            // arithmetic.bench_function(
-            //     &format!("SquareRoot when Square exists for {}", stringify!($F)),
-            //     |b| {
-            //         let mut i = 0;
-            //         b.iter(|| {
-            //             i = (i + 1) % SAMPLES;
-            //             field_elements_left[i].sqrt()
-            //         })
-            // });
         }
 
         fn serialization(c: &mut $crate::criterion::Criterion) {
@@ -271,7 +262,6 @@ macro_rules! sqrt {
                 .map(|_| <$F>::rand(&mut rng))
                 .collect::<Vec<_>>();
             let qrs = f.iter().map(|s| s.square()).collect::<Vec<_>>();
-            let qnrs = f.iter().map(|s| s.square()).collect::<Vec<_>>();
             let mut sqrt = c.benchmark_group(format!("SquareRoot for {}", stringify!($F)));
 
             sqrt.bench_function(&format!("Square Root for QR for {}", stringify!($F)), |b| {
@@ -281,28 +271,11 @@ macro_rules! sqrt {
                     qrs[i].sqrt().unwrap()
                 })
             });
-            sqrt.bench_function(
-                &format!("Square Root for QNR for {}", stringify!($F)),
-                |b| {
-                    let mut i = 0;
-                    b.iter(|| {
-                        i = (i + 1) % SAMPLES;
-                        qnrs[i].sqrt()
-                    })
-                },
-            );
             sqrt.bench_function(&format!("Legendre for QR for {}", stringify!($F)), |b| {
                 let mut i = 0;
                 b.iter(|| {
                     i = (i + 1) % SAMPLES;
                     qrs[i].legendre()
-                })
-            });
-            sqrt.bench_function(&format!("Legendre for QNR for {}", stringify!($F)), |b| {
-                let mut i = 0;
-                b.iter(|| {
-                    i = (i + 1) % SAMPLES;
-                    qnrs[i].legendre()
                 })
             });
             sqrt.finish();
@@ -433,36 +406,29 @@ macro_rules! prime_field {
                     v1[i] == v2[i]
                 })
             });
+            bits.finish();
+
+            let f = (0..SAMPLES)
+                .map(|_| <$F>::rand(&mut rng))
+                .collect::<Vec<_>>();
+            let bigints = f.iter().map(|f| f.into_bigint()).collect::<Vec<_>>();
+            let mut conversions =
+                c.benchmark_group(format!("Conversions for {}::BigInt", stringify!($F)));
+            conversions.bench_function(&format!("From BigInt for {}", stringify!($F)), |b| {
+                let mut i = 0;
+                b.iter(|| {
+                    i = (i + 1) % SAMPLES;
+                    <$F>::from_bigint(bigints[i])
+                })
+            });
+            conversions.bench_function(&format!("Into BigInt for {}", stringify!($F)), |b| {
+                let mut i = 0;
+                b.iter(|| {
+                    i = (i + 1) % SAMPLES;
+                    f[i].into_bigint()
+                })
+            });
+            conversions.finish()
         }
-
-        // fn into_repr(b: &mut $crate::bencher::Bencher) {
-        //     const SAMPLES: usize = 1000;
-
-        //     let mut rng = ark_std::test_rng();
-
-        //     let v: Vec<$f_type> = (0..SAMPLES).map(|_| $f::rand(&mut rng)).collect();
-
-        //     let mut count = 0;
-        //     b.iter(|| {
-        //         count = (count + 1) % SAMPLES;
-        //         v[count].into_bigint();
-        //     });
-        // }
-
-        // fn from_repr(b: &mut $crate::bencher::Bencher) {
-        //     const SAMPLES: usize = 1000;
-
-        //     let mut rng = ark_std::test_rng();
-
-        //     let v: Vec<$f_repr_type> = (0..SAMPLES)
-        //         .map(|_| $f::rand(&mut rng).into_bigint())
-        //         .collect();
-
-        //     let mut count = 0;
-        //     b.iter(|| {
-        //         count = (count + 1) % SAMPLES;
-        //         let _ = $f::from(v[count]);
-        //     });
-        // }
     };
 }
