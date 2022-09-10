@@ -1,12 +1,10 @@
-use crate::CurveConfig;
+use crate::{CurveConfig, CurveGroup};
 
 /// The GLV parameters for computing the endomorphism and scalar decomposition.
 pub trait GLVParameters: Send + Sync + 'static + CurveConfig {
-    /// Affine representation of curve points.
-    type CurveAffine;
     /// A representation of curve points that enables efficient arithmetic by
     /// avoiding inversions.
-    type CurveProjective;
+    type Curve: CurveGroup<Config = Self>;
 
     // Constants that are used to calculate `phi(G) := lambda*G`.
 
@@ -49,11 +47,16 @@ pub trait GLVParameters: Send + Sync + 'static + CurveConfig {
     //  return (x',y') where
     //  x' = x * f(y) / y
     //  y' = g(y) / h(y)
-    fn endomorphism(base: &Self::CurveAffine) -> Self::CurveAffine;
+    fn endomorphism(
+        base: &<Self::Curve as CurveGroup>::Affine,
+    ) -> <Self::Curve as CurveGroup>::Affine;
 
     /// Decomposes a scalar s into k1, k2, s.t. s = k1 + lambda k2,
     fn scalar_decomposition(k: &Self::ScalarField) -> (Self::ScalarField, Self::ScalarField);
 
     /// Performs GLV multiplication.
-    fn glv_mul(base: &Self::CurveAffine, scalar: &Self::ScalarField) -> Self::CurveProjective;
+    fn glv_mul(
+        base: &<Self::Curve as CurveGroup>::Affine,
+        scalar: &Self::ScalarField,
+    ) -> Self::Curve;
 }

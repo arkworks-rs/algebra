@@ -67,7 +67,7 @@ impl<P: Fp4Config> CyclotomicMultSubgroup for Fp4<P> {
     const INVERSE_IS_FAST: bool = true;
     fn cyclotomic_inverse_in_place(&mut self) -> Option<&mut Self> {
         self.is_zero().not().then(|| {
-            self.conjugate();
+            self.conjugate_in_place();
             self
         })
     }

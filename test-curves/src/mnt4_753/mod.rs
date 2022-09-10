@@ -12,3 +12,6 @@ pub use fr::*;
 pub mod g1;
 #[cfg(feature = "mnt4_753_curve")]
 pub use g1::*;
+
+#[cfg(test)]
+mod tests;

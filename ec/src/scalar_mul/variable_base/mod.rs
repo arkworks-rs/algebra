@@ -1,10 +1,5 @@
 use ark_ff::{prelude::*, PrimeField};
-use ark_std::{
-    borrow::Borrow,
-    iterable::Iterable,
-    ops::{Add, AddAssign},
-    vec::Vec,
-};
+use ark_std::{borrow::Borrow, iterable::Iterable, vec::Vec};
 
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
@@ -12,53 +7,34 @@ use rayon::prelude::*;
 pub mod stream_pippenger;
 pub use stream_pippenger::*;
 
-pub trait VariableBaseMSM:
-    Eq
-    + Sized
-    + Sync
-    + Zero
-    + Clone
-    + Copy
-    + Send
-    + AddAssign<Self>
-    + for<'a> AddAssign<&'a Self>
-    + for<'a> Add<&'a Self, Output = Self>
-{
-    type MSMBase: Sync + Copy;
+use super::ScalarMul;
 
-    type Scalar: PrimeField;
-
-    #[doc(hidden)]
-    fn _double_in_place(&mut self) -> &mut Self;
-
-    #[doc(hidden)]
-    fn _add_assign_mixed(&mut self, other: &Self::MSMBase);
-
-    /// Optimized implementation of multi-scalar multiplication.
+pub trait VariableBaseMSM: ScalarMul {
+    /// Computes an inner product between the [`PrimeField`] elements in `scalars`
+    /// and the corresponding group elements in `bases`.
     ///
-    /// Multiply the [`PrimeField`] elements in `scalars` with the
-    /// respective group elements in `bases` and sum the resulting set.
+    /// This method checks that `bases` and `scalars` have the same length.
+    /// If they are unequal, it returns an error containing
+    /// the shortest length over which the MSM can be performed.
     ///
-    /// <section class="warning">
-    ///
-    /// If the elements have different length, it will chop the slices to the
-    /// shortest length between `scalars.len()` and `bases.len()`.
-    ///
-    /// </section>
-    fn msm(bases: &[Self::MSMBase], scalars: &[Self::Scalar]) -> Self {
+    /// Reference: [`VariableBaseMSM::msm`]
+    fn msm(bases: &[Self::MulBase], scalars: &[Self::ScalarField]) -> Self {
         let bigints = cfg_into_iter!(scalars)
             .map(|s| s.into_bigint())
             .collect::<Vec<_>>();
         Self::msm_bigint(bases, &bigints)
     }
 
-    /// Optimized implementation of multi-scalar multiplication, that checks bounds.
+    /// Performs multi-scalar multiplication, without checking that `bases.len() == scalars.len()`.
     ///
-    /// Performs `Self::msm`, checking that `bases` and `scalars` have the same length.
-    /// If the length are not equal, returns an error containing the shortest legth over which msm can be performed.
+    /// # Warning
     ///
-    /// Reference: [`VariableBaseMSM::msm`]
-    fn msm_checked(bases: &[Self::MSMBase], scalars: &[Self::Scalar]) -> Result<Self, usize> {
+    /// If the elements have different length, it will chop the slices to the
+    /// shortest length between `scalars.len()` and `bases.len()`.
+    fn msm_unchecked(
+        bases: &[Self::MulBase],
+        scalars: &[Self::ScalarField],
+    ) -> Result<Self, usize> {
         (bases.len() == scalars.len())
             .then(|| Self::msm(bases, scalars))
             .ok_or(usize::min(bases.len(), scalars.len()))
@@ -66,8 +42,8 @@ pub trait VariableBaseMSM:
 
     /// Optimized implementation of multi-scalar multiplication.
     fn msm_bigint(
-        bases: &[Self::MSMBase],
-        bigints: &[<Self::Scalar as PrimeField>::BigInt],
+        bases: &[Self::MulBase],
+        bigints: &[<Self::ScalarField as PrimeField>::BigInt],
     ) -> Self {
         let size = ark_std::cmp::min(bases.len(), bigints.len());
         let scalars = &bigints[..size];
@@ -80,8 +56,8 @@ pub trait VariableBaseMSM:
             super::ln_without_floats(size) + 2
         };
 
-        let num_bits = Self::Scalar::MODULUS_BIT_SIZE as usize;
-        let fr_one = Self::Scalar::one().into_bigint();
+        let num_bits = Self::ScalarField::MODULUS_BIT_SIZE as usize;
+        let fr_one = Self::ScalarField::one().into_bigint();
 
         let zero = Self::zero();
         let window_starts: Vec<_> = (0..num_bits).step_by(c).collect();
@@ -100,7 +76,7 @@ pub trait VariableBaseMSM:
                     if scalar == fr_one {
                         // We only process unit scalars once in the first window.
                         if w_start == 0 {
-                            res._add_assign_mixed(base);
+                            res += base;
                         }
                     } else {
                         let mut scalar = scalar;
@@ -116,7 +92,7 @@ pub trait VariableBaseMSM:
                         // bucket.
                         // (Recall that `buckets` doesn't have a zero bucket.)
                         if scalar != 0 {
-                            buckets[(scalar - 1) as usize]._add_assign_mixed(base);
+                            buckets[(scalar - 1) as usize] += base;
                         }
                     }
                 });
@@ -155,19 +131,20 @@ pub trait VariableBaseMSM:
                 .fold(zero, |mut total, sum_i| {
                     total += sum_i;
                     for _ in 0..c {
-                        total._double_in_place();
+                        total.double_in_place();
                     }
                     total
                 })
     }
+
     /// Streaming multi-scalar multiplication algorithm with hard-coded chunk
     /// size.
     fn msm_chunks<I: ?Sized, J>(bases_stream: &J, scalars_stream: &I) -> Self
     where
         I: Iterable,
-        I::Item: Borrow<Self::Scalar>,
+        I::Item: Borrow<Self::ScalarField>,
         J: Iterable,
-        J::Item: Borrow<Self::MSMBase>,
+        J::Item: Borrow<Self::MulBase>,
     {
         assert!(scalars_stream.len() <= bases_stream.len());
 
@@ -190,10 +167,7 @@ pub trait VariableBaseMSM:
                 .take(step)
                 .map(|s| s.borrow().into_bigint())
                 .collect::<Vec<_>>();
-            result.add_assign(Self::msm_bigint(
-                bases_step.as_slice(),
-                scalars_step.as_slice(),
-            ));
+            result += Self::msm_bigint(bases_step.as_slice(), scalars_step.as_slice());
         }
         result
     }

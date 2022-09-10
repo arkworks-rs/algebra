@@ -4,11 +4,10 @@ use crate::{
     UniformRand,
 };
 use ark_ff_macros::unroll_for_loops;
-use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, SerializationError};
+use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use ark_std::{
     convert::TryFrom,
     fmt::{Debug, Display, UpperHex},
-    io::{Read, Write},
     rand::{
         distributions::{Distribution, Standard},
         Rng,
@@ -21,7 +20,9 @@ use zeroize::Zeroize;
 #[macro_use]
 pub mod arithmetic;
 
-#[derive(Copy, Clone, PartialEq, Eq, Debug, Hash, Zeroize)]
+#[derive(
+    Copy, Clone, PartialEq, Eq, Debug, Hash, Zeroize, CanonicalSerialize, CanonicalDeserialize,
+)]
 pub struct BigInt<const N: usize>(pub [u64; N]);
 
 impl<const N: usize> Default for BigInt<N> {
@@ -95,7 +96,9 @@ impl<const N: usize> BigInt<N> {
     }
 
     pub const fn one() -> Self {
-        BigInt!("1")
+        let mut one = Self::zero();
+        one.0[0] = 1;
+        one
     }
 
     #[doc(hidden)]
@@ -106,6 +109,13 @@ impl<const N: usize> BigInt<N> {
     #[doc(hidden)]
     pub const fn const_is_odd(&self) -> bool {
         self.0[0] % 2 == 1
+    }
+
+    #[doc(hidden)]
+    pub const fn mod_4(&self) -> u8 {
+        // To compute n % 4, we need to simply look at the
+        // 2 least significant bits of n, and check their value mod 4.
+        (((self.0[0] << 62) >> 62) % 4) as u8
     }
 
     /// Compute a right shift of `self`
@@ -185,7 +195,6 @@ impl<const N: usize> BigInt<N> {
     }
 
     #[inline]
-    #[unroll_for_loops(12)]
     pub(crate) const fn const_sub_with_borrow(mut self, other: &Self) -> (Self, bool) {
         let mut borrow = 0;
 
@@ -194,6 +203,17 @@ impl<const N: usize> BigInt<N> {
         });
 
         (self, borrow != 0)
+    }
+
+    #[inline]
+    pub(crate) const fn const_add_with_carry(mut self, other: &Self) -> (Self, bool) {
+        let mut carry = 0;
+
+        crate::const_for!((i in 0..N) {
+            self.0[i] = adc!(self.0[i], other.0[i], &mut carry);
+        });
+
+        (self, carry != 0)
     }
 
     const fn const_mul2(mut self) -> Self {
@@ -237,7 +257,7 @@ impl<const N: usize> BigInteger for BigInt<N> {
     const NUM_LIMBS: usize = N;
 
     #[inline]
-    #[unroll_for_loops(12)]
+    // #[unroll_for_loops(12)]
     fn add_with_carry(&mut self, other: &Self) -> bool {
         let mut carry = 0;
 
@@ -446,17 +466,11 @@ impl<const N: usize> BigInteger for BigInt<N> {
     }
 
     fn from_bits_le(bits: &[bool]) -> Self {
-        let mut res = Self::default();
-        let mut acc: u64 = 0;
-
-        let bits = bits.to_vec();
-        for (i, bits64) in bits.chunks(64).enumerate() {
-            for bit in bits64.iter().rev() {
-                acc <<= 1;
-                acc += *bit as u64;
+        let mut res = Self::zero();
+        for (bits64, res_i) in bits.chunks(64).zip(&mut res.0) {
+            for (i, bit) in bits64.iter().enumerate() {
+                *res_i |= (*bit as u64) << i;
             }
-            res.0[i] = acc;
-            acc = 0;
         }
         res
     }
@@ -471,7 +485,7 @@ impl<const N: usize> BigInteger for BigInt<N> {
     #[inline]
     fn to_bytes_le(&self) -> Vec<u8> {
         let array_map = self.0.iter().map(|limb| limb.to_le_bytes());
-        let mut res = Vec::<u8>::with_capacity(N * 8);
+        let mut res = Vec::with_capacity(N * 8);
         for limb in array_map {
             res.extend_from_slice(&limb);
         }
@@ -479,66 +493,35 @@ impl<const N: usize> BigInteger for BigInt<N> {
     }
 }
 
-impl<const N: usize> CanonicalSerialize for BigInt<N> {
-    #[inline]
-    fn serialize<W: Write>(&self, mut writer: W) -> Result<(), SerializationError> {
-        for num in self.0 {
-            writer.write_all(&num.to_le_bytes())?;
-        }
-        Ok(())
-    }
-
-    #[inline]
-    fn serialized_size(&self) -> usize {
-        Self::NUM_LIMBS * 8
-    }
-}
-
-impl<const N: usize> CanonicalDeserialize for BigInt<N> {
-    #[inline]
-    fn deserialize<R: Read>(mut reader: R) -> Result<Self, SerializationError> {
-        let mut res = [0u64; N];
-        for num in res.iter_mut() {
-            let mut bytes = [0u8; 8];
-            reader.read_exact(&mut bytes)?;
-            *num = u64::from_le_bytes(bytes);
-        }
-        Ok(Self::new(res))
-    }
-}
-
 impl<const N: usize> UpperHex for BigInt<N> {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         write!(f, "{:016X}", BigUint::from(*self))
     }
 }
 
 impl<const N: usize> Display for BigInt<N> {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         write!(f, "{}", BigUint::from(*self))
     }
 }
 
 impl<const N: usize> Ord for BigInt<N> {
     #[inline]
-    #[unroll_for_loops(12)]
-    fn cmp(&self, other: &Self) -> ::core::cmp::Ordering {
-        use core::cmp::Ordering;
-        for i in 0..N {
-            let a = &self.0[N - i - 1];
-            let b = &other.0[N - i - 1];
-            match a.cmp(b) {
-                Ordering::Equal => {},
-                order => return order,
-            };
+    fn cmp(&self, other: &Self) -> core::cmp::Ordering {
+        for (a, b) in self.0.iter().rev().zip(other.0.iter().rev()) {
+            if a < b {
+                return core::cmp::Ordering::Less;
+            } else if a > b {
+                return core::cmp::Ordering::Greater;
+            }
         }
-        Ordering::Equal
+        core::cmp::Ordering::Equal
     }
 }
 
 impl<const N: usize> PartialOrd for BigInt<N> {
     #[inline]
-    fn partial_cmp(&self, other: &Self) -> Option<::core::cmp::Ordering> {
+    fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> {
         Some(self.cmp(other))
     }
 }
