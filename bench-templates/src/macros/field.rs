@@ -1,542 +1,395 @@
 #[macro_export]
 macro_rules! f_bench {
     // Use this for base fields
-    ($f:ident, $f_type:ty, $f_repr:ident, $f_repr_type:ty, $modname:ident) => {
-        pub mod $modname {
-            use super::*;
-            field_common!($f, $f_type);
-            sqrt!($f, $f_type);
-            prime_field!($f, $f_type, $f_repr, $f_repr_type);
-            $crate::benchmark_group!(
-                $modname,
-                // common stuff
-                add_assign,
-                sub_assign,
-                double,
-                negate,
-                mul_assign,
-                square,
-                inverse,
-                serialize_compressed,
-                deserialize_compressed,
-                deserialize_compressed_unchecked,
-                serialize_uncompressed,
-                deserialize_uncompressed,
-                deserialize_uncompressed_unchecked,
-                // sqrt field stuff
-                sqrt,
-                // prime field stuff
-                repr_add_nocarry,
-                repr_sub_noborrow,
-                repr_num_bits,
-                repr_from_bits_le,
-                repr_from_bits_be,
-                repr_mul2,
-                repr_div2,
-                into_repr,
-                from_repr,
-            );
+    (prime, $curve_name:expr, $F:ident) => {
+        $crate::paste! {
+            mod [<$F:lower>] {
+                use super::*;
+                use ark_ff::{Field, PrimeField, UniformRand};
+                field_common!($curve_name, $F);
+                sqrt!($curve_name, $F);
+                prime_field!($curve_name, $F);
+                $crate::criterion_group!(
+                    benches,
+                    // common stuff
+                    arithmetic,
+                    serialization,
+                    // sqrt field stuff
+                    sqrt,
+                    // prime field stuff
+                    bigint,
+                );
+            }
         }
-        use $modname::$modname;
     };
     // use this for intermediate fields
-    (extension, $f:ident, $f_type:ty, $modname:ident) => {
-        mod $modname {
-            use super::*;
-            field_common!($f, $f_type);
-            sqrt!($f, $f_type);
-            $crate::benchmark_group!(
-                $modname,
-                // common stuff
-                add_assign,
-                sub_assign,
-                double,
-                negate,
-                mul_assign,
-                square,
-                inverse,
-                serialize_compressed,
-                deserialize_compressed,
-                deserialize_compressed_unchecked,
-                serialize_uncompressed,
-                deserialize_uncompressed,
-                deserialize_uncompressed_unchecked,
-                // sqrt field stuff
-                sqrt,
-            );
+    (extension, $curve_name:expr, $F:ident) => {
+        $crate::paste! {
+            mod [<$F:lower>] {
+                use super::*;
+                use ark_ff::{Field, UniformRand};
+                field_common!($curve_name, $F);
+                sqrt!($curve_name, $F);
+                $crate::criterion_group!(
+                    benches,
+                    // common stuff
+                    arithmetic,
+                    serialization,
+                    // sqrt field stuff
+                    sqrt,
+                );
+            }
         }
-        use $modname::$modname;
     };
-    // Use this for the full extension field Fqk
-    (target, $f:ident, $f_type:ty, $modname:ident) => {
-        mod $modname {
-            use super::*;
-            field_common!($f, $f_type);
-            $crate::benchmark_group!(
-                $modname,
-                // common stuff
-                add_assign,
-                sub_assign,
-                double,
-                negate,
-                mul_assign,
-                square,
-                inverse,
-                serialize_compressed,
-                deserialize_compressed,
-                deserialize_compressed_unchecked,
-                serialize_uncompressed,
-                deserialize_uncompressed,
-                deserialize_uncompressed_unchecked,
-            );
+    // Use this for the target field.
+    (target, $curve_name:expr, $F:ident) => {
+        $crate::paste! {
+            mod [<$F:lower>] {
+                use super::*;
+                use ark_ff::{Field, UniformRand};
+                field_common!($curve_name, $F);
+                $crate::criterion_group!(
+                    benches,
+                    // common stuff
+                    arithmetic,
+                    serialization,
+                );
+            }
         }
-        use $modname::$modname;
     };
 }
 
 #[macro_export]
 macro_rules! field_common {
-    ($f:ident, $f_type:ty) => {
-        fn add_assign(b: &mut $crate::bencher::Bencher) {
+    ($curve_name:expr, $F:ident) => {
+        fn arithmetic(c: &mut $crate::criterion::Criterion) {
+            let name = format!("{}::{}", stringify!($curve), stringify!($F));
             const SAMPLES: usize = 1000;
-
             let mut rng = ark_std::test_rng();
+            let mut arithmetic = c.benchmark_group(format!("Arithmetic for {name}"));
+            let field_elements_left = (0..SAMPLES)
+                .map(|_| <$F>::rand(&mut rng))
+                .collect::<Vec<_>>();
+            let field_elements_right = (0..SAMPLES)
+                .map(|_| <$F>::rand(&mut rng))
+                .collect::<Vec<_>>();
+            arithmetic.bench_function("Addition", |b| {
+                let mut i = 0;
+                b.iter(|| {
+                    i = (i + 1) % SAMPLES;
+                    field_elements_left[i] + field_elements_right[i]
+                })
+            });
+            arithmetic.bench_function("Subtraction", |b| {
+                let mut i = 0;
+                b.iter(|| {
+                    i = (i + 1) % SAMPLES;
+                    field_elements_left[i] - field_elements_right[i]
+                })
+            });
+            arithmetic.bench_function("Negation", |b| {
+                let mut i = 0;
+                b.iter(|| {
+                    i = (i + 1) % SAMPLES;
+                    -field_elements_left[i]
+                })
+            });
 
-            let v: Vec<_> = (0..SAMPLES)
-                .map(|_| ($f::rand(&mut rng), $f::rand(&mut rng)))
-                .collect();
+            arithmetic.bench_function("Double", |b| {
+                let mut i = 0;
+                b.iter(|| {
+                    i = (i + 1) % SAMPLES;
+                    field_elements_left[i].double()
+                })
+            });
 
-            let mut count = 0;
-            b.iter(|| {
-                let mut tmp = v[count].0;
-                n_fold!(tmp, v, add_assign, count);
-                count = (count + 1) % SAMPLES;
-                tmp
+            arithmetic.bench_function("Multiplication", |b| {
+                let mut i = 0;
+                b.iter(|| {
+                    i = (i + 1) % SAMPLES;
+                    field_elements_left[i] * field_elements_right[i]
+                })
+            });
+            arithmetic.bench_function("Square", |b| {
+                let mut i = 0;
+                b.iter(|| {
+                    i = (i + 1) % SAMPLES;
+                    field_elements_left[i].square()
+                })
+            });
+            arithmetic.bench_function("Inverse", |b| {
+                let mut i = 0;
+                b.iter(|| {
+                    i = (i + 1) % SAMPLES;
+                    field_elements_left[i].inverse().unwrap()
+                })
+            });
+            arithmetic.bench_function("Sum of products of size 2", |b| {
+                let mut i = 0;
+                b.iter(|| {
+                    i = (i + 1) % SAMPLES;
+                    let j = (i + 1) % SAMPLES;
+                    <$F>::sum_of_products(
+                        &[field_elements_left[i], field_elements_right[j]],
+                        &[field_elements_left[j], field_elements_right[i]],
+                    )
+                })
+            });
+            arithmetic.bench_function("Naive sum of products of size 2", |b| {
+                let mut i = 0;
+                b.iter(|| {
+                    i = (i + 1) % SAMPLES;
+                    let j = (i + 1) % SAMPLES;
+                    field_elements_left[i] * field_elements_left[j]
+                        + field_elements_right[j] * field_elements_right[i]
+                })
             });
         }
 
-        fn sub_assign(b: &mut $crate::bencher::Bencher) {
+        fn serialization(c: &mut $crate::criterion::Criterion) {
+            use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
+            let name = format!("{}::{}", stringify!($curve), stringify!($F));
             const SAMPLES: usize = 1000;
 
             let mut rng = ark_std::test_rng();
 
-            let v: Vec<_> = (0..SAMPLES)
-                .map(|_| ($f::rand(&mut rng), $f::rand(&mut rng)))
-                .collect();
-
-            let mut count = 0;
-            b.iter(|| {
-                let mut tmp = v[count].0;
-                n_fold!(tmp, v, sub_assign, count);
-                count = (count + 1) % SAMPLES;
-                tmp
-            });
-        }
-
-        fn double(b: &mut $crate::bencher::Bencher) {
-            const SAMPLES: usize = 1000;
-
-            let mut rng = ark_std::test_rng();
-
-            let v: Vec<$f_type> = (0..SAMPLES).map(|_| $f::rand(&mut rng)).collect();
-
-            let mut count = 0;
-            b.iter(|| {
-                let mut tmp = v[count];
-                n_fold!(tmp, double_in_place);
-                count = (count + 1) % SAMPLES;
-                tmp
-            });
-        }
-
-        fn negate(b: &mut $crate::bencher::Bencher) {
-            const SAMPLES: usize = 1000;
-
-            let mut rng = ark_std::test_rng();
-
-            let v: Vec<$f_type> = (0..SAMPLES).map(|_| $f::rand(&mut rng)).collect();
-
-            let mut count = 0;
-            b.iter(|| {
-                let mut tmp = v[count];
-                tmp = -tmp;
-                count = (count + 1) % SAMPLES;
-                tmp
-            });
-        }
-
-        fn mul_assign(b: &mut $crate::bencher::Bencher) {
-            const SAMPLES: usize = 1000;
-
-            let mut rng = ark_std::test_rng();
-
-            let v: Vec<_> = (0..SAMPLES)
-                .map(|_| ($f::rand(&mut rng), $f::rand(&mut rng)))
-                .collect();
-
-            let mut count = 0;
-            b.iter(|| {
-                let mut tmp = v[count].0;
-                n_fold!(tmp, v, mul_assign, count);
-                count = (count + 1) % SAMPLES;
-                tmp
-            });
-        }
-
-        fn square(b: &mut $crate::bencher::Bencher) {
-            const SAMPLES: usize = 1000;
-
-            let mut rng = ark_std::test_rng();
-
-            let v: Vec<$f_type> = (0..SAMPLES).map(|_| $f::rand(&mut rng)).collect();
-
-            let mut count = 0;
-            b.iter(|| {
-                let mut tmp = v[count];
-                n_fold!(tmp, square_in_place);
-                count = (count + 1) % SAMPLES;
-                tmp
-            });
-        }
-
-        fn inverse(b: &mut $crate::bencher::Bencher) {
-            const SAMPLES: usize = 1000;
-
-            let mut rng = ark_std::test_rng();
-
-            let v: Vec<$f_type> = (0..SAMPLES).map(|_| $f::rand(&mut rng)).collect();
-
-            let mut count = 0;
-            b.iter(|| {
-                let tmp = v[count].inverse();
-                count = (count + 1) % SAMPLES;
-                tmp
-            });
-        }
-
-        fn serialize_compressed(b: &mut $crate::bencher::Bencher) {
-            use ark_serialize::CanonicalSerialize;
-            const SAMPLES: usize = 1000;
-
-            let mut rng = ark_std::test_rng();
-
-            let v: Vec<$f_type> = (0..SAMPLES).map(|_| $f::rand(&mut rng)).collect();
+            let f = (0..SAMPLES)
+                .map(|_| <$F>::rand(&mut rng))
+                .collect::<Vec<_>>();
             let mut bytes = Vec::with_capacity(1000);
 
-            let mut count = 0;
-            b.iter(|| {
-                let tmp = v[count];
-                count = (count + 1) % SAMPLES;
-                bytes.clear();
-                tmp.serialize_compressed(&mut bytes)
-            });
-        }
-
-        fn deserialize_compressed(b: &mut $crate::bencher::Bencher) {
-            use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
-            const SAMPLES: usize = 1000;
-
-            let mut rng = ark_std::test_rng();
-
-            let mut num_bytes = 0;
-            let v: Vec<_> = (0..SAMPLES)
-                .flat_map(|_| {
+            let f_compressed = f
+                .iter()
+                .map(|a| {
                     let mut bytes = Vec::with_capacity(1000);
-                    let tmp = $f::rand(&mut rng);
-                    tmp.serialize_compressed(&mut bytes).unwrap();
-                    num_bytes = bytes.len();
+                    a.serialize_compressed(&mut bytes).unwrap();
                     bytes
                 })
-                .collect();
+                .collect::<Vec<_>>();
 
-            let mut count = 0;
-            b.iter(|| {
-                count = (count + 1) % SAMPLES;
-                let index = count * num_bytes;
-                <$f_type>::deserialize_compressed(&v[index..(index + num_bytes)]).unwrap()
-            });
-        }
-
-        fn deserialize_compressed_unchecked(b: &mut $crate::bencher::Bencher) {
-            use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
-            const SAMPLES: usize = 1000;
-
-            let mut rng = ark_std::test_rng();
-
-            let mut num_bytes = 0;
-            let v: Vec<_> = (0..SAMPLES)
-                .flat_map(|_| {
+            let f_uncompressed = f
+                .iter()
+                .map(|a| {
                     let mut bytes = Vec::with_capacity(1000);
-                    let tmp = $f::rand(&mut rng);
-                    tmp.serialize_compressed(&mut bytes).unwrap();
-                    num_bytes = bytes.len();
+                    a.serialize_uncompressed(&mut bytes).unwrap();
                     bytes
                 })
-                .collect();
+                .collect::<Vec<_>>();
 
-            let mut count = 0;
-            b.iter(|| {
-                count = (count + 1) % SAMPLES;
-                let index = count * num_bytes;
-                <$f_type>::deserialize_uncompressed_unchecked(&v[index..(index + num_bytes)])
-                    .unwrap()
-            });
-        }
+            let mut serialization = c.benchmark_group(format!("Serialization for {name}"));
 
-        fn serialize_uncompressed(b: &mut $crate::bencher::Bencher) {
-            use ark_serialize::CanonicalSerialize;
-            const SAMPLES: usize = 1000;
-
-            let mut rng = ark_std::test_rng();
-
-            let v: Vec<$f_type> = (0..SAMPLES).map(|_| $f::rand(&mut rng)).collect();
-            let mut bytes = Vec::with_capacity(1000);
-
-            let mut count = 0;
-            b.iter(|| {
-                let tmp = v[count];
-                count = (count + 1) % SAMPLES;
-                bytes.clear();
-                tmp.serialize_uncompressed(&mut bytes)
-            });
-        }
-        fn deserialize_uncompressed(b: &mut $crate::bencher::Bencher) {
-            use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
-            const SAMPLES: usize = 1000;
-
-            let mut rng = ark_std::test_rng();
-
-            let mut num_bytes = 0;
-            let v: Vec<_> = (0..SAMPLES)
-                .flat_map(|_| {
-                    let mut bytes = Vec::with_capacity(1000);
-                    let tmp = $f::rand(&mut rng);
-                    tmp.serialize_uncompressed(&mut bytes).unwrap();
-                    num_bytes = bytes.len();
-                    bytes
+            serialization.bench_function("Serialize Compressed", |b| {
+                let mut i = 0;
+                b.iter(|| {
+                    i = (i + 1) % SAMPLES;
+                    bytes.clear();
+                    f[i].serialize_compressed(&mut bytes).unwrap()
                 })
-                .collect();
-
-            let mut count = 0;
-            b.iter(|| {
-                count = (count + 1) % SAMPLES;
-                let index = count * num_bytes;
-                <$f_type>::deserialize_uncompressed(&v[index..(index + num_bytes)]).unwrap()
             });
-        }
-
-        fn deserialize_uncompressed_unchecked(b: &mut $crate::bencher::Bencher) {
-            use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
-            const SAMPLES: usize = 1000;
-
-            let mut rng = ark_std::test_rng();
-
-            let mut num_bytes = 0;
-            let v: Vec<_> = (0..SAMPLES)
-                .flat_map(|_| {
-                    let mut bytes = Vec::with_capacity(1000);
-                    let tmp = $f::rand(&mut rng);
-                    tmp.serialize_uncompressed(&mut bytes).unwrap();
-                    num_bytes = bytes.len();
-                    bytes
+            serialization.bench_function("Serialize Uncompressed", |b| {
+                let mut i = 0;
+                b.iter(|| {
+                    i = (i + 1) % SAMPLES;
+                    bytes.clear();
+                    f[i].serialize_uncompressed(&mut bytes).unwrap()
                 })
-                .collect();
-
-            let mut count = 0;
-            b.iter(|| {
-                count = (count + 1) % SAMPLES;
-                let index = count * num_bytes;
-                <$f_type>::deserialize_uncompressed_unchecked(&v[index..(index + num_bytes)])
-                    .unwrap()
             });
+            serialization.bench_function("Deserialize Compressed", |b| {
+                let mut i = 0;
+                b.iter(|| {
+                    i = (i + 1) % SAMPLES;
+                    bytes.clear();
+                    <$F>::deserialize_compressed(f_compressed[i].as_slice()).unwrap()
+                })
+            });
+            serialization.bench_function("Deserialize Compressed Unchecked", |b| {
+                let mut i = 0;
+                b.iter(|| {
+                    i = (i + 1) % SAMPLES;
+                    bytes.clear();
+                    <$F>::deserialize_compressed_unchecked(f_compressed[i].as_slice()).unwrap()
+                })
+            });
+            serialization.bench_function("Deserialize Uncompressed", |b| {
+                let mut i = 0;
+                b.iter(|| {
+                    i = (i + 1) % SAMPLES;
+                    bytes.clear();
+                    <$F>::deserialize_uncompressed(f_uncompressed[i].as_slice()).unwrap()
+                })
+            });
+            serialization.bench_function("Deserialize Uncompressed Unchecked", |b| {
+                let mut i = 0;
+                b.iter(|| {
+                    i = (i + 1) % SAMPLES;
+                    bytes.clear();
+                    <$F>::deserialize_uncompressed_unchecked(f_uncompressed[i].as_slice()).unwrap()
+                })
+            });
+            serialization.finish()
         }
     };
 }
 
 #[macro_export]
 macro_rules! sqrt {
-    ($f:ident, $f_type:ty) => {
-        pub fn sqrt(b: &mut $crate::bencher::Bencher) {
+    ($curve_name:expr, $F:ident) => {
+        fn sqrt(c: &mut $crate::criterion::Criterion) {
+            use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
             const SAMPLES: usize = 1000;
+            let name = format!("{}::{}", stringify!($curve), stringify!($F));
 
             let mut rng = ark_std::test_rng();
 
-            let v: Vec<$f_type> = (0..SAMPLES)
-                .map(|_| {
-                    let mut tmp = $f::rand(&mut rng);
-                    tmp.square_in_place();
-                    tmp
-                })
-                .collect();
+            let f = (0..SAMPLES)
+                .map(|_| <$F>::rand(&mut rng))
+                .collect::<Vec<_>>();
+            let qrs = f.iter().map(|s| s.square()).collect::<Vec<_>>();
+            let mut sqrt = c.benchmark_group(format!("SquareRoot for {name}"));
 
-            let mut count = 0;
-            b.iter(|| {
-                count = (count + 1) % SAMPLES;
-                v[count].sqrt()
+            sqrt.bench_function("Square Root for QR", |b| {
+                let mut i = 0;
+                b.iter(|| {
+                    i = (i + 1) % SAMPLES;
+                    qrs[i].sqrt().unwrap()
+                })
             });
+            sqrt.bench_function("Legendre for QR", |b| {
+                let mut i = 0;
+                b.iter(|| {
+                    i = (i + 1) % SAMPLES;
+                    qrs[i].legendre()
+                })
+            });
+            sqrt.finish();
         }
     };
 }
 
 #[macro_export]
 macro_rules! prime_field {
-    ($f:ident, $f_type:ty, $f_repr:ident, $f_repr_type:ty) => {
-        fn repr_add_nocarry(b: &mut $crate::bencher::Bencher) {
+    ($curve_name:expr, $F:ident) => {
+        fn bigint(c: &mut $crate::criterion::Criterion) {
+            use ark_ff::{BigInteger, PrimeField};
+            type BigInt = <$F as PrimeField>::BigInt;
             const SAMPLES: usize = 1000;
 
+            let name = format!("{}::{}", stringify!($curve), stringify!($F));
             let mut rng = ark_std::test_rng();
 
-            let v: Vec<_> = (0..SAMPLES)
+            let (v1, v2): (Vec<_>, Vec<_>) = (0..SAMPLES)
                 .map(|_| {
-                    let mut tmp1 = $f_repr::rand(&mut rng);
-                    let mut tmp2 = $f_repr::rand(&mut rng);
+                    let mut tmp1 = BigInt::rand(&mut rng);
+                    let mut tmp2 = BigInt::rand(&mut rng);
                     // Shave a few bits off to avoid overflow.
                     for _ in 0..3 {
                         tmp1.div2();
                         tmp2.div2();
                     }
+                    tmp2.div2();
                     (tmp1, tmp2)
                 })
-                .collect();
-
-            let mut count = 0;
-            b.iter(|| {
-                let mut tmp = v[count].0;
-                n_fold!(tmp, v, add_with_carry, count);
-                count = (count + 1) % SAMPLES;
-                tmp
-            });
-        }
-
-        fn repr_sub_noborrow(b: &mut $crate::bencher::Bencher) {
-            const SAMPLES: usize = 1000;
-
-            let mut rng = ark_std::test_rng();
-
-            let v: Vec<_> = (0..SAMPLES)
-                .map(|_| {
-                    let tmp1 = $f_repr::rand(&mut rng);
-                    let mut tmp2 = tmp1;
-                    // Ensure tmp2 is smaller than tmp1.
-                    for _ in 0..10 {
-                        tmp2.div2();
-                    }
-                    (tmp1, tmp2)
+                .unzip();
+            let mut arithmetic = c.benchmark_group(format!("Arithmetic for {name}::BigInt"));
+            arithmetic.bench_function("Addition with carry", |b| {
+                let mut i = 0;
+                b.iter(|| {
+                    i = (i + 1) % SAMPLES;
+                    let mut tmp = v1[i];
+                    (tmp, tmp.add_with_carry(&v2[i]))
                 })
-                .collect();
-
-            let mut count = 0;
-            b.iter(|| {
-                let mut tmp = v[count].0;
-                n_fold!(tmp, v, sub_with_borrow, count);
-                count = (count + 1) % SAMPLES;
-                tmp;
             });
-        }
-
-        fn repr_num_bits(b: &mut $crate::bencher::Bencher) {
-            const SAMPLES: usize = 1000;
-
-            let mut rng = ark_std::test_rng();
-
-            let v: Vec<$f_repr_type> = (0..SAMPLES).map(|_| $f_repr::rand(&mut rng)).collect();
-
-            let mut count = 0;
-            b.iter(|| {
-                let tmp = v[count].num_bits();
-                count = (count + 1) % SAMPLES;
-                tmp;
+            arithmetic.bench_function("Subtraction with borrow", |b| {
+                let mut i = 0;
+                b.iter(|| {
+                    i = (i + 1) % SAMPLES;
+                    let mut tmp = v1[i];
+                    (tmp, tmp.sub_with_borrow(&v2[i]))
+                })
             });
-        }
-
-        fn repr_mul2(b: &mut $crate::bencher::Bencher) {
-            const SAMPLES: usize = 1000;
-
-            let mut rng = ark_std::test_rng();
-
-            let v: Vec<$f_repr_type> = (0..SAMPLES).map(|_| $f_repr::rand(&mut rng)).collect();
-
-            let mut count = 0;
-            b.iter(|| {
-                let mut tmp = v[count];
-                n_fold!(tmp, mul2);
-                count = (count + 1) % SAMPLES;
-                tmp;
+            arithmetic.bench_function("Multiplication by 2", |b| {
+                let mut i = 0;
+                b.iter(|| {
+                    i = (i + 1) % SAMPLES;
+                    let mut tmp = v1[i];
+                    tmp.mul2()
+                })
             });
-        }
-
-        fn repr_div2(b: &mut $crate::bencher::Bencher) {
-            const SAMPLES: usize = 1000;
-
-            let mut rng = ark_std::test_rng();
-
-            let v: Vec<$f_repr_type> = (0..SAMPLES).map(|_| $f_repr::rand(&mut rng)).collect();
-
-            let mut count = 0;
-            b.iter(|| {
-                let mut tmp = v[count];
-                n_fold!(tmp, div2);
-                count = (count + 1) % SAMPLES;
-                tmp;
+            arithmetic.bench_function("Division by 2", |b| {
+                let mut i = 0;
+                b.iter(|| {
+                    i = (i + 1) % SAMPLES;
+                    let mut tmp = v1[i];
+                    tmp.div2()
+                })
             });
-        }
-
-        fn into_repr(b: &mut $crate::bencher::Bencher) {
-            const SAMPLES: usize = 1000;
-
-            let mut rng = ark_std::test_rng();
-
-            let v: Vec<$f_type> = (0..SAMPLES).map(|_| $f::rand(&mut rng)).collect();
-
-            let mut count = 0;
-            b.iter(|| {
-                count = (count + 1) % SAMPLES;
-                v[count].into_bigint();
+            arithmetic.finish();
+            let mut bits = c.benchmark_group(format!("Bitwise operations for {name}::BigInt"));
+            bits.bench_function("Number of bits", |b| {
+                let mut i = 0;
+                b.iter(|| {
+                    i = (i + 1) % SAMPLES;
+                    v2[i].num_bits()
+                })
             });
-        }
-
-        fn from_repr(b: &mut $crate::bencher::Bencher) {
-            const SAMPLES: usize = 1000;
-
-            let mut rng = ark_std::test_rng();
-
-            let v: Vec<$f_repr_type> = (0..SAMPLES)
-                .map(|_| $f::rand(&mut rng).into_bigint())
-                .collect();
-
-            let mut count = 0;
-            b.iter(|| {
-                count = (count + 1) % SAMPLES;
-                let _ = $f::from(v[count]);
-            });
-        }
-
-        fn repr_from_bits_be(b: &mut $crate::bencher::Bencher) {
-            const SAMPLES: usize = 1000;
-            let mut rng = ark_std::test_rng();
-            let v = (0..SAMPLES)
-                .map(|_| ark_ff::BitIteratorBE::new($f_repr::rand(&mut rng)).collect::<Vec<_>>())
+            let v_bits_le = v2
+                .iter()
+                .map(|s| ark_ff::BitIteratorLE::new(s).collect::<Vec<_>>())
                 .collect::<Vec<_>>();
-            let mut count = 0;
-            b.iter(|| {
-                let mut tmp = $f_repr::from_bits_be(&v[count]);
-                count = (count + 1) % SAMPLES;
-                tmp;
+            bits.bench_function("From Little-Endian bits", |b| {
+                let mut i = 0;
+                b.iter(|| {
+                    i = (i + 1) % SAMPLES;
+                    BigInt::from_bits_be(&v_bits_le[i]);
+                })
             });
-        }
-
-        fn repr_from_bits_le(b: &mut $crate::bencher::Bencher) {
-            const SAMPLES: usize = 1000;
-            let mut rng = ark_std::test_rng();
-            let v = (0..SAMPLES)
-                .map(|_| ark_ff::BitIteratorLE::new($f_repr::rand(&mut rng)).collect::<Vec<_>>())
+            let v_bits_be = v1
+                .iter()
+                .map(|s| ark_ff::BitIteratorBE::new(s).collect::<Vec<_>>())
                 .collect::<Vec<_>>();
-            let mut count = 0;
-            b.iter(|| {
-                let mut tmp = $f_repr::from_bits_le(&v[count]);
-                count = (count + 1) % SAMPLES;
-                tmp;
+            bits.bench_function("From Big-Endian bits", |b| {
+                let mut i = 0;
+                b.iter(|| {
+                    i = (i + 1) % SAMPLES;
+                    BigInt::from_bits_be(&v_bits_be[i]);
+                })
             });
+            bits.bench_function("Comparison", |b| {
+                let mut i = 0;
+                b.iter(|| {
+                    i = (i + 1) % SAMPLES;
+                    v1[i] > v2[i]
+                })
+            });
+            bits.bench_function("Equality", |b| {
+                let mut i = 0;
+                b.iter(|| {
+                    i = (i + 1) % SAMPLES;
+                    v1[i] == v2[i]
+                })
+            });
+            bits.finish();
+
+            let f = (0..SAMPLES)
+                .map(|_| <$F>::rand(&mut rng))
+                .collect::<Vec<_>>();
+            let bigints = f.iter().map(|f| f.into_bigint()).collect::<Vec<_>>();
+            let mut conversions = c.benchmark_group(format!("Conversions for {name}"));
+            conversions.bench_function("From BigInt", |b| {
+                let mut i = 0;
+                b.iter(|| {
+                    i = (i + 1) % SAMPLES;
+                    <$F>::from_bigint(bigints[i])
+                })
+            });
+            conversions.bench_function("Into BigInt", |b| {
+                let mut i = 0;
+                b.iter(|| {
+                    i = (i + 1) % SAMPLES;
+                    f[i].into_bigint()
+                })
+            });
+            conversions.finish()
         }
     };
 }

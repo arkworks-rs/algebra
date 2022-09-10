@@ -1,81 +1,87 @@
 #[macro_export]
 macro_rules! pairing_bench {
-    ($curve:ident, $pairing_field:ident) => {
-        fn miller_loop(b: &mut $crate::bencher::Bencher) {
-            use ark_ec::pairing::Pairing;
-            const SAMPLES: usize = 1000;
+    ($curve:ident) => {
+        mod pairing {
+            use super::*;
+            use ark_std::UniformRand;
+            fn pairing(c: &mut $crate::criterion::Criterion) {
+                use ark_ec::{pairing::Pairing, CurveGroup};
 
-            let mut rng = ark_std::test_rng();
+                type G1 = <$curve as Pairing>::G1;
+                type G2 = <$curve as Pairing>::G2;
+                type G1Prepared = <$curve as Pairing>::G1Prepared;
+                type G2Prepared = <$curve as Pairing>::G2Prepared;
 
-            let g1s = (0..SAMPLES).map(|_| G1::rand(&mut rng)).collect::<Vec<_>>();
-            let g2s = (0..SAMPLES).map(|_| G2::rand(&mut rng)).collect::<Vec<_>>();
-            let g1s = G1::normalize_batch(&g1s);
-            let g2s = G2::normalize_batch(&g2s);
-            let (prepared_1, prepared_2): (
-                Vec<<$curve as Pairing>::G1Prepared>,
-                Vec<<$curve as Pairing>::G2Prepared>,
-            ) = g1s
-                .into_iter()
-                .zip(g2s)
-                .map(|(g1, g2)| {
-                    let g1: <$curve as Pairing>::G1Prepared = g1.into();
-                    let g2: <$curve as Pairing>::G2Prepared = g2.into();
-                    (g1, g2)
-                })
-                .unzip();
-            let mut count = 0;
-            b.iter(|| {
-                let tmp = $curve::multi_miller_loop(
-                    [prepared_1[count].clone()],
-                    [prepared_2[count].clone()],
+                const SAMPLES: usize = 1000;
+
+                let mut rng = ark_std::test_rng();
+
+                let g1s = (0..SAMPLES).map(|_| G1::rand(&mut rng)).collect::<Vec<_>>();
+                let g2s = (0..SAMPLES).map(|_| G2::rand(&mut rng)).collect::<Vec<_>>();
+                let g1s = G1::normalize_batch(&g1s);
+                let g2s = G2::normalize_batch(&g2s);
+                let (prepared_1, prepared_2): (Vec<G1Prepared>, Vec<G2Prepared>) = g1s
+                    .iter()
+                    .zip(&g2s)
+                    .map(|(g1, g2)| {
+                        let g1: G1Prepared = g1.into();
+                        let g2: G2Prepared = g2.into();
+                        (g1, g2)
+                    })
+                    .unzip();
+                let miller_loop_outputs = prepared_1
+                    .iter()
+                    .cloned()
+                    .zip(prepared_2.iter().cloned())
+                    .map(|(g1, g2)| <$curve as Pairing>::multi_miller_loop([g1], [g2]))
+                    .collect::<Vec<_>>();
+                let mut i = 0;
+                let mut pairing = c.benchmark_group(format!("Pairing for {}", stringify!($curve)));
+                pairing.bench_function(
+                    &format!("G1 Preparation for {}", stringify!($curve)),
+                    |b| {
+                        b.iter(|| {
+                            i = (i + 1) % SAMPLES;
+                            G1Prepared::from(g1s[i].clone())
+                        })
+                    },
                 );
-                count = (count + 1) % SAMPLES;
-                tmp
-            });
+                pairing.bench_function(
+                    &format!("G2 Preparation for {}", stringify!($curve)),
+                    |b| {
+                        b.iter(|| {
+                            i = (i + 1) % SAMPLES;
+                            G2Prepared::from(g2s[i])
+                        })
+                    },
+                );
+                pairing.bench_function(&format!("Miller Loop for {}", stringify!($curve)), |b| {
+                    b.iter(|| {
+                        i = (i + 1) % SAMPLES;
+                        <$curve as Pairing>::multi_miller_loop(
+                            [prepared_1[i].clone()],
+                            [prepared_2[i].clone()],
+                        )
+                    })
+                });
+                pairing.bench_function(
+                    &format!("Final Exponentiation for {}", stringify!($curve)),
+                    |b| {
+                        b.iter(|| {
+                            i = (i + 1) % SAMPLES;
+                            <$curve as Pairing>::final_exponentiation(miller_loop_outputs[i])
+                        })
+                    },
+                );
+                pairing.bench_function(&format!("Full Pairing for {}", stringify!($curve)), |b| {
+                    b.iter(|| {
+                        i = (i + 1) % SAMPLES;
+                        <$curve as Pairing>::multi_pairing([g1s[i]], [g2s[i]])
+                    })
+                });
+            }
+
+            $crate::criterion_group!(benches, pairing);
         }
-
-        fn final_exponentiation(b: &mut $crate::bencher::Bencher) {
-            use ark_ec::pairing::Pairing;
-            const SAMPLES: usize = 1000;
-
-            let mut rng = ark_std::test_rng();
-
-            let v: Vec<_> = (0..SAMPLES)
-                .map(|_| {
-                    (
-                        G1Prepared::from(G1::rand(&mut rng)),
-                        G2Prepared::from(G2::rand(&mut rng)),
-                    )
-                })
-                .map(|(p, q)| $curve::multi_miller_loop([p], [q]))
-                .collect();
-
-            let mut count = 0;
-            b.iter(|| {
-                let tmp = <$curve as Pairing>::final_exponentiation(v[count]);
-                count = (count + 1) % SAMPLES;
-                tmp
-            });
-        }
-
-        fn full_pairing(b: &mut $crate::bencher::Bencher) {
-            use ark_ec::pairing::Pairing;
-            const SAMPLES: usize = 1000;
-
-            let mut rng = ark_std::test_rng();
-
-            let (v1, v2): (Vec<G1>, Vec<G2>) = (0..SAMPLES)
-                .map(|_| (G1::rand(&mut rng), G2::rand(&mut rng)))
-                .unzip();
-
-            let mut count = 0;
-            b.iter(|| {
-                let tmp = <$curve as Pairing>::pairing(v1[count], v2[count]);
-                count = (count + 1) % SAMPLES;
-                tmp
-            });
-        }
-
-        $crate::benchmark_group!(pairing, miller_loop, final_exponentiation, full_pairing,);
     };
 }
