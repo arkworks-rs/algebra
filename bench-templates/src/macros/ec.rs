@@ -1,287 +1,234 @@
 #[macro_export]
 macro_rules! ec_bench {
-    ($projective:ty, $affine:ty) => {
-        fn rand(b: &mut $crate::bencher::Bencher) {
-            let mut rng = ark_std::test_rng();
-            b.iter(|| <$projective>::rand(&mut rng));
-        }
+    ($curve_name:expr, $Group:ident) => {
+        $crate::paste! {
+            mod [<$Group:lower>] {
+                use ark_ec::Group;
+                use super::*;
 
-        fn mul_assign(b: &mut $crate::bencher::Bencher) {
-            const SAMPLES: usize = 1000;
+                type Scalar = <$Group as Group>::ScalarField;
+                fn rand(c: &mut $crate::criterion::Criterion) {
+                    let name = format!("{}::{}", $curve_name, stringify!($Group));
+                    use ark_std::UniformRand;
+                    let mut rng = ark_std::test_rng();
+                    c.bench_function(
+                        &format!("Sample {name} elements"),
+                        |b| b.iter(|| <$Group>::rand(&mut rng)),
+                    );
+                }
 
-            let mut rng = ark_std::test_rng();
+                fn arithmetic(c: &mut $crate::criterion::Criterion) {
+                    use ark_ec::{CurveGroup, Group};
+                    use ark_std::UniformRand;
+                    let name = format!("{}::{}", $curve_name, stringify!($Group));
 
-            let v: Vec<($projective, Fr)> = (0..SAMPLES)
-                .map(|_| (<$projective>::rand(&mut rng), Fr::rand(&mut rng)))
-                .collect();
+                    type Scalar = <$Group as Group>::ScalarField;
+                    const SAMPLES: usize = 1000;
+                    let mut rng = ark_std::test_rng();
+                    let mut arithmetic =
+                        c.benchmark_group(format!("Arithmetic for {name}"));
+                    let group_elements_left = (0..SAMPLES)
+                        .map(|_| <$Group>::rand(&mut rng))
+                        .collect::<Vec<_>>();
+                    let group_elements_right = (0..SAMPLES)
+                        .map(|_| <$Group>::rand(&mut rng))
+                        .collect::<Vec<_>>();
+                    let group_elements_right_affine = <$Group>::normalize_batch(&group_elements_right);
+                    let scalars = (0..SAMPLES)
+                        .map(|_| Scalar::rand(&mut rng))
+                        .collect::<Vec<_>>();
+                    arithmetic.bench_function("Addition", |b| {
+                        let mut i = 0;
+                        b.iter(|| {
+                            i = (i + 1) % SAMPLES;
+                            group_elements_left[i] + group_elements_right[i]
+                        })
+                    });
+                    arithmetic.bench_function(
+                        "Subtraction",
+                        |b| {
+                            let mut i = 0;
+                            b.iter(|| {
+                                i = (i + 1) % SAMPLES;
+                                group_elements_left[i] - group_elements_right[i]
+                            })
+                        },
+                    );
 
-            let mut count = 0;
-            b.iter(|| {
-                let mut tmp = v[count].0;
-                tmp *= v[count].1;
-                count = (count + 1) % SAMPLES;
-                tmp
-            });
-        }
+                    arithmetic.bench_function(
+                        "Mixed Addition",
+                        |b| {
+                            let mut i = 0;
+                            b.iter(|| {
+                                i = (i + 1) % SAMPLES;
+                                group_elements_left[i] + group_elements_right_affine[i]
+                            })
+                        },
+                    );
 
-        fn add_assign(b: &mut $crate::bencher::Bencher) {
-            const SAMPLES: usize = 1000;
+                    arithmetic.bench_function(
+                        "Mixed Subtraction",
+                        |b| {
+                            let mut i = 0;
+                            b.iter(|| {
+                                i = (i + 1) % SAMPLES;
+                                group_elements_left[i] - group_elements_right_affine[i]
+                            })
+                        },
+                    );
 
-            let mut rng = ark_std::test_rng();
+                    arithmetic.bench_function("Double", |b| {
+                        let mut i = 0;
+                        b.iter(|| {
+                            i = (i + 1) % SAMPLES;
+                            group_elements_left[i].double()
+                        })
+                    });
 
-            let v: Vec<($projective, $projective)> = (0..SAMPLES)
-                .map(|_| (<$projective>::rand(&mut rng), <$projective>::rand(&mut rng)))
-                .collect();
+                    arithmetic.bench_function(
+                        "Scalar Multiplication",
+                        |b| {
+                            let mut i = 0;
+                            b.iter(|| {
+                                i = (i + 1) % SAMPLES;
+                                group_elements_left[i] * scalars[i]
+                            })
+                        },
+                    );
+                }
 
-            let mut count = 0;
-            b.iter(|| {
-                let mut tmp = v[count].0;
-                n_fold!(tmp, v, add_assign, count);
-                count = (count + 1) % SAMPLES;
-                tmp
-            });
-        }
+                fn serialization(c: &mut $crate::criterion::Criterion) {
+                    use ark_ec::CurveGroup;
+                    use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
+                    use ark_std::UniformRand;
 
-        fn sub_assign(b: &mut $crate::bencher::Bencher) {
-            const SAMPLES: usize = 1000;
+                    const SAMPLES: usize = 1000;
 
-            let mut rng = ark_std::test_rng();
+                    let name = format!("{}::{}", $curve_name, stringify!($Group));
+                    let mut rng = ark_std::test_rng();
 
-            let v: Vec<($projective, $projective)> = (0..SAMPLES)
-                .map(|_| (<$projective>::rand(&mut rng), <$projective>::rand(&mut rng)))
-                .collect();
-
-            let mut count = 0;
-            b.iter(|| {
-                let mut tmp = v[count].0;
-                n_fold!(tmp, v, sub_assign, count);
-                count = (count + 1) % SAMPLES;
-                tmp
-            });
-        }
-
-        fn double(b: &mut $crate::bencher::Bencher) {
-            const SAMPLES: usize = 1000;
-
-            let mut rng = ark_std::test_rng();
-
-            let v: Vec<$projective> = (0..SAMPLES)
-                .map(|_| <$projective>::rand(&mut rng))
-                .collect();
-
-            let mut count = 0;
-            b.iter(|| {
-                let mut tmp = v[count];
-                n_fold!(tmp, double_in_place);
-                count = (count + 1) % SAMPLES;
-                tmp
-            });
-        }
-
-        fn add_assign_mixed(b: &mut $crate::bencher::Bencher) {
-            const SAMPLES: usize = 1000;
-
-            let mut rng = ark_std::test_rng();
-
-            let v: Vec<($projective, $affine)> = (0..SAMPLES)
-                .map(|_| {
-                    (
-                        <$projective>::rand(&mut rng),
-                        <$projective>::rand(&mut rng).into(),
-                    )
-                })
-                .collect();
-
-            let mut count = 0;
-            b.iter(|| {
-                let mut tmp = v[count].0;
-                n_fold!(tmp, v, add_assign, count);
-                count = (count + 1) % SAMPLES;
-                tmp
-            });
-        }
-
-        fn serialize_compressed(b: &mut $crate::bencher::Bencher) {
-            use ark_ec::CurveGroup;
-            use ark_serialize::CanonicalSerialize;
-            const SAMPLES: usize = 1000;
-
-            let mut rng = ark_std::test_rng();
-
-            let mut v: Vec<_> = (0..SAMPLES)
-                .map(|_| <$projective>::rand(&mut rng))
-                .collect();
-            let v = <$projective>::normalize_batch(v.as_mut_slice());
-            let mut bytes = Vec::with_capacity(1000);
-
-            let mut count = 0;
-            b.iter(|| {
-                let tmp = v[count];
-                count = (count + 1) % SAMPLES;
-                bytes.clear();
-                tmp.serialize_compressed(&mut bytes)
-            });
-        }
-
-        fn deserialize_compressed(b: &mut $crate::bencher::Bencher) {
-            use ark_ec::CurveGroup;
-            use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
-            const SAMPLES: usize = 1000;
-
-            let mut rng = ark_std::test_rng();
-
-            let mut num_bytes = 0;
-            let tmp = <$projective>::rand(&mut rng).into_affine();
-            let v: Vec<_> = (0..SAMPLES)
-                .flat_map(|_| {
+                    let v: Vec<_> = (0..SAMPLES)
+                        .map(|_| <$Group>::rand(&mut rng))
+                        .collect();
+                    let v = <$Group>::normalize_batch(&v);
                     let mut bytes = Vec::with_capacity(1000);
-                    tmp.serialize_compressed(&mut bytes).unwrap();
-                    num_bytes = bytes.len();
-                    bytes
-                })
-                .collect();
+                    let v_compressed = v
+                        .iter()
+                        .map(|a| {
+                            let mut bytes = Vec::with_capacity(1000);
+                            a.serialize_compressed(&mut bytes).unwrap();
+                            bytes
+                        })
+                        .collect::<Vec<_>>();
+                    let v_uncompressed = v
+                        .iter()
+                        .map(|a| {
+                            let mut bytes = Vec::with_capacity(1000);
+                            a.serialize_uncompressed(&mut bytes).unwrap();
+                            bytes
+                        })
+                        .collect::<Vec<_>>();
+                    let mut serialization =
+                        c.benchmark_group(format!("Serialization for {name}"));
+                    serialization.bench_function(
+                        "Serialize Compressed",
+                        |b| {
+                            let mut i = 0;
+                            b.iter(|| {
+                                i = (i + 1) % SAMPLES;
+                                bytes.clear();
+                                v[i].serialize_compressed(&mut bytes).unwrap()
+                            })
+                        },
+                    );
+                    serialization.bench_function(
+                        "Serialize Uncompressed",
+                        |b| {
+                            let mut i = 0;
+                            b.iter(|| {
+                                i = (i + 1) % SAMPLES;
+                                bytes.clear();
+                                v[i].serialize_uncompressed(&mut bytes).unwrap()
+                            })
+                        },
+                    );
+                    serialization.bench_function(
+                        "Deserialize Compressed",
+                        |b| {
+                            let mut i = 0;
+                            b.iter(|| {
+                                i = (i + 1) % SAMPLES;
+                                bytes.clear();
+                                <$Group>::deserialize_compressed(v_compressed[i].as_slice()).unwrap()
+                            })
+                        },
+                    );
+                    serialization.bench_function(
+                        "Deserialize Compressed Unchecked",
+                        |b| {
+                            let mut i = 0;
+                            b.iter(|| {
+                                i = (i + 1) % SAMPLES;
+                                bytes.clear();
+                                <$Group>::deserialize_compressed_unchecked(v_compressed[i].as_slice())
+                                    .unwrap()
+                            })
+                        },
+                    );
+                    serialization.bench_function(
+                        "Deserialize Uncompressed",
+                        |b| {
+                            let mut i = 0;
+                            b.iter(|| {
+                                i = (i + 1) % SAMPLES;
+                                bytes.clear();
+                                <$Group>::deserialize_uncompressed(v_uncompressed[i].as_slice())
+                                    .unwrap()
+                            })
+                        },
+                    );
+                    serialization.bench_function(
+                        "Deserialize Uncompressed Unchecked",
+                        |b| {
+                            let mut i = 0;
+                            b.iter(|| {
+                                i = (i + 1) % SAMPLES;
+                                bytes.clear();
+                                <$Group>::deserialize_uncompressed_unchecked(
+                                    v_uncompressed[i].as_slice(),
+                                )
+                                .unwrap()
+                            })
+                        },
+                    );
+                }
 
-            let mut count = 0;
-            b.iter(|| {
-                count = (count + 1) % SAMPLES;
-                let index = count * num_bytes;
-                <$affine>::deserialize_compressed(&v[index..(index + num_bytes)]).unwrap()
-            });
+                fn msm_131072(c: &mut $crate::criterion::Criterion) {
+                    use ark_ec::{scalar_mul::variable_base::VariableBaseMSM, CurveGroup};
+                    use ark_ff::PrimeField;
+                    use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
+                    use ark_std::UniformRand;
+
+                    const SAMPLES: usize = 131072;
+
+                    let name = format!("{}::{}", $curve_name, stringify!($Group));
+                    let mut rng = ark_std::test_rng();
+
+                    let g = <$Group>::rand(&mut rng).into_affine();
+                    let v: Vec<_> = (0..SAMPLES).map(|_| g).collect();
+                    let scalars: Vec<_> = (0..SAMPLES)
+                        .map(|_| Scalar::rand(&mut rng).into_bigint())
+                        .collect();
+                    c.bench_function(&format!("MSM for {name}"), |b| {
+                        b.iter(|| {
+                            let result: $Group = VariableBaseMSM::msm_bigint(&v, &scalars);
+                            result
+                        })
+                    });
+                }
+
+                $crate::criterion_group!(benches, rand, arithmetic, serialization, msm_131072,);
+            }
         }
-
-        fn deserialize_compressed_unchecked(b: &mut $crate::bencher::Bencher) {
-            use ark_ec::CurveGroup;
-            use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
-            const SAMPLES: usize = 1000;
-
-            let mut rng = ark_std::test_rng();
-
-            let mut num_bytes = 0;
-            let tmp = <$projective>::rand(&mut rng).into_affine();
-            let v: Vec<_> = (0..SAMPLES)
-                .flat_map(|_| {
-                    let mut bytes = Vec::with_capacity(1000);
-                    tmp.serialize_compressed(&mut bytes).unwrap();
-                    num_bytes = bytes.len();
-                    bytes
-                })
-                .collect();
-
-            let mut count = 0;
-            b.iter(|| {
-                count = (count + 1) % SAMPLES;
-                let index = count * num_bytes;
-                <$affine>::deserialize_compressed_unchecked(&v[index..(index + num_bytes)]).unwrap()
-            });
-        }
-
-        fn serialize_uncompressed(b: &mut $crate::bencher::Bencher) {
-            use ark_ec::CurveGroup;
-            use ark_serialize::CanonicalSerialize;
-            const SAMPLES: usize = 1000;
-
-            let mut rng = ark_std::test_rng();
-
-            let mut v: Vec<_> = (0..SAMPLES)
-                .map(|_| <$projective>::rand(&mut rng))
-                .collect();
-            let v = <$projective>::normalize_batch(v.as_mut_slice());
-            let mut bytes = Vec::with_capacity(1000);
-
-            let mut count = 0;
-            b.iter(|| {
-                let tmp = v[count];
-                count = (count + 1) % SAMPLES;
-                bytes.clear();
-                tmp.serialize_uncompressed(&mut bytes)
-            });
-        }
-
-        fn deserialize_uncompressed(b: &mut $crate::bencher::Bencher) {
-            use ark_ec::CurveGroup;
-            use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
-            const SAMPLES: usize = 1000;
-
-            let mut rng = ark_std::test_rng();
-
-            let mut num_bytes = 0;
-            let tmp = <$projective>::rand(&mut rng).into_affine();
-            let v: Vec<_> = (0..SAMPLES)
-                .flat_map(|_| {
-                    let mut bytes = Vec::with_capacity(1000);
-                    tmp.serialize_uncompressed(&mut bytes).unwrap();
-                    num_bytes = bytes.len();
-                    bytes
-                })
-                .collect();
-
-            let mut count = 0;
-            b.iter(|| {
-                count = (count + 1) % SAMPLES;
-                let index = count * num_bytes;
-                <$affine>::deserialize_uncompressed(&v[index..(index + num_bytes)]).unwrap()
-            });
-        }
-
-        fn deserialize_uncompressed_unchecked(b: &mut $crate::bencher::Bencher) {
-            use ark_ec::CurveGroup;
-            use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
-            const SAMPLES: usize = 1000;
-
-            let mut rng = ark_std::test_rng();
-
-            let mut num_bytes = 0;
-            let tmp = <$projective>::rand(&mut rng).into_affine();
-            let v: Vec<_> = (0..SAMPLES)
-                .flat_map(|_| {
-                    let mut bytes = Vec::with_capacity(1000);
-                    tmp.serialize_uncompressed(&mut bytes).unwrap();
-                    num_bytes = bytes.len();
-                    bytes
-                })
-                .collect();
-
-            let mut count = 0;
-            b.iter(|| {
-                count = (count + 1) % SAMPLES;
-                let index = count * num_bytes;
-                <$affine>::deserialize_uncompressed_unchecked(&v[index..(index + num_bytes)])
-                    .unwrap()
-            });
-        }
-
-        fn msm_131072(b: &mut $crate::bencher::Bencher) {
-            use ark_ec::scalar_mul::variable_base::VariableBaseMSM;
-            use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
-            const SAMPLES: usize = 131072;
-
-            let mut rng = ark_std::test_rng();
-
-            let g = <$projective>::rand(&mut rng).into_affine();
-            let v: Vec<_> = (0..SAMPLES).map(|_| g).collect();
-            let scalars: Vec<_> = (0..SAMPLES)
-                .map(|_| Fr::rand(&mut rng).into_bigint())
-                .collect();
-            b.bench_n(1, |b| {
-                b.iter(|| <$projective as VariableBaseMSM>::msm_bigint(&v, &scalars));
-            })
-        }
-
-        $crate::benchmark_group!(
-            group_ops,
-            rand,
-            mul_assign,
-            add_assign,
-            sub_assign,
-            add_assign_mixed,
-            double,
-            serialize_compressed,
-            deserialize_compressed,
-            deserialize_compressed_unchecked,
-            serialize_uncompressed,
-            deserialize_uncompressed,
-            deserialize_uncompressed_unchecked,
-            msm_131072,
-        );
     };
 }
