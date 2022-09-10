@@ -261,20 +261,27 @@ impl<const N: usize> BigInteger for BigInt<N> {
     fn add_with_carry(&mut self, other: &Self) -> bool {
         let mut carry = 0;
 
-        for i in 0..N {
-            #[cfg(all(target_arch = "x86_64", feature = "asm"))]
-            #[allow(unsafe_code)]
-            unsafe {
-                use core::arch::x86_64::_addcarry_u64;
-                carry = _addcarry_u64(carry, self.0[i], other.0[i], &mut self.0[i])
-            };
-
-            #[cfg(not(all(target_arch = "x86_64", feature = "asm")))]
-            {
-                self.0[i] = arithmetic::adc(self.0[i], other.0[i], &mut carry);
-            }
+        if N >= 1 {
+            carry = arithmetic::adc(&mut self.0[0], other.0[0], carry);
         }
-
+        if N >= 2 {
+            carry = arithmetic::adc(&mut self.0[1], other.0[1], carry);
+        }
+        if N >= 3 {
+            carry = arithmetic::adc(&mut self.0[2], other.0[2], carry);
+        }
+        if N >= 4 {
+            carry = arithmetic::adc(&mut self.0[3], other.0[3], carry);
+        }
+        if N >= 5 {
+            carry = arithmetic::adc(&mut self.0[4], other.0[4], carry);
+        }
+        if N >= 6 {
+            carry = arithmetic::adc(&mut self.0[5], other.0[5], carry);
+        }
+        for i in 6..N {
+            carry = arithmetic::adc(&mut self.0[i], other.0[i], carry);
+        }
         carry != 0
     }
 
@@ -282,26 +289,31 @@ impl<const N: usize> BigInteger for BigInt<N> {
     #[unroll_for_loops(12)]
     fn sub_with_borrow(&mut self, other: &Self) -> bool {
         let mut borrow = 0;
-
-        for i in 0..N {
-            #[cfg(all(target_arch = "x86_64", feature = "asm"))]
-            #[allow(unsafe_code)]
-            unsafe {
-                use core::arch::x86_64::_subborrow_u64;
-                borrow = _subborrow_u64(borrow, self.0[i], other.0[i], &mut self.0[i])
-            };
-
-            #[cfg(not(all(target_arch = "x86_64", feature = "asm")))]
-            {
-                self.0[i] = arithmetic::sbb(self.0[i], other.0[i], &mut borrow);
-            }
+        if N >= 1 {
+            borrow = arithmetic::sbb(&mut self.0[0], other.0[0], borrow);
         }
-
+        if N >= 2 {
+            borrow = arithmetic::sbb(&mut self.0[1], other.0[1], borrow);
+        }
+        if N >= 3 {
+            borrow = arithmetic::sbb(&mut self.0[2], other.0[2], borrow);
+        }
+        if N >= 4 {
+            borrow = arithmetic::sbb(&mut self.0[3], other.0[3], borrow);
+        }
+        if N >= 5 {
+            borrow = arithmetic::sbb(&mut self.0[4], other.0[4], borrow);
+        }
+        if N >= 6 {
+            borrow = arithmetic::sbb(&mut self.0[5], other.0[5], borrow);
+        }
+        for i in 6..N {
+            borrow = arithmetic::sbb(&mut self.0[i], other.0[i], borrow);
+        }
         borrow != 0
     }
 
     #[inline]
-    #[unroll_for_loops(12)]
     #[allow(unused)]
     fn mul2(&mut self) {
         #[cfg(all(target_arch = "x86_64", feature = "asm"))]
@@ -331,7 +343,6 @@ impl<const N: usize> BigInteger for BigInt<N> {
     }
 
     #[inline]
-    #[unroll_for_loops(12)]
     fn muln(&mut self, mut n: u32) {
         if n >= (64 * N) as u32 {
             *self = Self::from(0u64);
@@ -360,8 +371,6 @@ impl<const N: usize> BigInteger for BigInt<N> {
     }
 
     #[inline]
-    #[unroll_for_loops(12)]
-    #[allow(unused)]
     fn div2(&mut self) {
         let mut t = 0;
         for i in 0..N {
@@ -374,7 +383,6 @@ impl<const N: usize> BigInteger for BigInt<N> {
     }
 
     #[inline]
-    #[unroll_for_loops(12)]
     fn divn(&mut self, mut n: u32) {
         if n >= (64 * N) as u32 {
             *self = Self::from(0u64);
@@ -414,12 +422,7 @@ impl<const N: usize> BigInteger for BigInt<N> {
 
     #[inline]
     fn is_zero(&self) -> bool {
-        for i in 0..N {
-            if self.0[i] != 0 {
-                return false;
-            }
-        }
-        true
+        self.0.iter().all(|&e| e == 0)
     }
 
     #[inline]

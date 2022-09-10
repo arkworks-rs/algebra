@@ -8,13 +8,23 @@ macro_rules! adc {
     }};
 }
 
-/// Calculate a + b + carry, returning the sum and modifying the
-/// carry value.
+/// Sets a = a + b + carry, and returns the new carry.
 #[inline(always)]
-pub(crate) fn adc(a: u64, b: u64, carry: &mut u64) -> u64 {
-    let tmp = a as u128 + b as u128 + *carry as u128;
-    *carry = (tmp >> 64) as u64;
-    tmp as u64
+#[allow(unused_mut)]
+pub(crate) fn adc(a: &mut u64, b: u64, carry: u64) -> u64 {
+    #[cfg(all(target_arch = "x86_64", feature = "asm"))]
+    #[allow(unsafe_code)]
+    unsafe {
+        use core::arch::x86_64::_addcarry_u64;
+        *carry = _addcarry_u64(carry, *a, b, a);
+        a
+    };
+    #[cfg(not(all(target_arch = "x86_64", feature = "asm")))]
+    {
+        let tmp = *a as u128 + b as u128 + carry as u128;
+        *a = tmp as u64;
+        (tmp >> 64) as u64
+    }
 }
 
 /// Calculate a + b + carry, returning the sum
@@ -33,11 +43,26 @@ macro_rules! sbb {
     }};
 }
 
-/// Calculate a - b - borrow, returning the result and modifying
-/// the borrow value.
+/// Sets a = a - b - borrow, and returns the borrow.
 #[inline(always)]
-pub(crate) fn sbb(a: u64, b: u64, borrow: &mut u64) -> u64 {
-    sbb!(a, b, &mut *borrow)
+#[allow(unused_mut)]
+pub(crate) fn sbb(a: &mut u64, b: u64, borrow: u64) -> u64 {
+    #[cfg(all(target_arch = "x86_64", feature = "asm"))]
+    #[allow(unsafe_code)]
+    unsafe {
+        use core::arch::x86_64::_subborrow_u64;
+        _subborrow_u64(*borrow, a, b, &mut a)
+    };
+    #[cfg(not(all(target_arch = "x86_64", feature = "asm")))]
+    {
+        let tmp = (1u128 << 64) + (*a as u128) - (b as u128) - (borrow as u128);
+        *a = tmp as u64;
+        if tmp >> 64 == 0 {
+            1
+        } else {
+            0
+        }
+    }
 }
 
 /// Calculate a + b * c, returning the lower 64 bits of the result and setting
@@ -92,7 +117,7 @@ pub fn find_naf(num: &[u64]) -> Vec<i8> {
         let mut borrow = 0;
 
         for (a, b) in num.iter_mut().zip(other) {
-            *a = sbb(*a, b, &mut borrow);
+            borrow = sbb(a, b, borrow);
         }
     };
     let add_nocarry = |num: &mut [u64], z: u64| {
@@ -101,7 +126,7 @@ pub fn find_naf(num: &[u64]) -> Vec<i8> {
         let mut carry = 0;
 
         for (a, b) in num.iter_mut().zip(other) {
-            *a = adc(*a, b, &mut carry);
+            carry = adc(a, b, carry);
         }
     };
     let div2 = |num: &mut [u64]| {

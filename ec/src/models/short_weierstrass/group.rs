@@ -180,32 +180,44 @@ impl<P: SWCurveConfig> Group for Projective<P> {
 
         if P::COEFF_A.is_zero() {
             // A = X1^2
-            let mut a = self.x.square();
+            let mut a = self.x;
+            a.square_in_place();
 
             // B = Y1^2
-            let b = self.y.square();
+            let mut b = self.y;
+            b.square_in_place();
 
             // C = B^2
-            let mut c = b.square();
+            let mut c = b;
+            c.square_in_place();
 
-            // D = 2*((X1+B)2-A-C)
-            let d = ((self.x + &b).square() - &a - &c).double();
+            // D = 2*((X1+B)^2-A-C)
+            //   = 2 * (X1 + Y1^2)^2 - A - C
+            //   = 2 * 2 * X1 * Y1^2
+            let mut d = self.x;
+            d *= &b;
+            d.double_in_place().double_in_place();
 
             // E = 3*A
             let e = a + &*a.double_in_place();
 
             // F = E^2
-            let f = e.square();
+            let mut f = e;
+            f.square_in_place();
 
             // Z3 = 2*Y1*Z1
             self.z *= &self.y;
             self.z.double_in_place();
 
             // X3 = F-2*D
-            self.x = f - &d.double();
+            self.x = f;
+            self.x -= &d.double();
 
             // Y3 = E*(D-X3)-8*C
-            self.y = (d - &self.x) * &e - &*c.double_in_place().double_in_place().double_in_place();
+            self.y = d;
+            self.y -= &self.x;
+            self.y *= &e;
+            self.y -= c.double_in_place().double_in_place().double_in_place();
             self
         } else {
             // http://www.hyperelliptic.org/EFD/g1p/auto-shortw-jacobian-0.html#doubling-dbl-2009-l
@@ -308,13 +320,17 @@ impl<P: SWCurveConfig, T: Borrow<Affine<P>>> AddAssign<T> for Projective<P> {
             }
 
             // Z1Z1 = Z1^2
-            let z1z1 = self.z.square();
+            let mut z1z1 = self.z;
+            z1z1.square_in_place();
 
             // U2 = X2*Z1Z1
-            let u2 = z1z1 * other_x;
+            let mut u2 = z1z1;
+            u2 *= &other_x;
 
             // S2 = Y2*Z1*Z1Z1
-            let s2 = (self.z * other_y) * &z1z1;
+            let mut s2 = self.z;
+            s2 *= &other_y;
+            s2 *= &z1z1;
 
             if self.x == u2 && self.y == s2 {
                 // The two points are equal, so we double.
@@ -323,37 +339,42 @@ impl<P: SWCurveConfig, T: Borrow<Affine<P>>> AddAssign<T> for Projective<P> {
                 // If we're adding -a and a together, self.z becomes zero as H becomes zero.
 
                 // H = U2-X1
-                let h = u2 - &self.x;
+                let mut h = u2;
+                h -= &self.x;
 
                 // HH = H^2
-                let hh = h.square();
+                let mut hh = h;
+                hh.square_in_place();
 
                 // I = 4*HH
                 let mut i = hh;
                 i.double_in_place().double_in_place();
 
-                // J = H*I
-                let j = h * &i;
+                // J = -H*I
+                let mut j = -h;
+                j *= &i;
 
                 // r = 2*(S2-Y1)
-                let r = (s2 - &self.y).double();
+                let mut r = s2;
+                r -= &self.y;
+                r.double_in_place();
 
                 // V = X1*I
-                let v = self.x * &i;
+                let mut v = self.x;
+                v *= &i;
 
-                // X3 = r^2 - J - 2*V
+                // X3 = r^2 + J - 2*V
                 self.x = r.square();
-                self.x -= &j;
+                self.x += &j;
                 self.x -= &v.double();
 
-                // Y3 = r*(V-X3)-2*Y1*J
-                self.y = P::BaseField::sum_of_products(&[r, -self.y.double()], &[(v - &self.x), j]);
+                // Y3 = r*(V-X3) + 2*Y1*J
+                self.y = P::BaseField::sum_of_products(&[r, self.y.double()], &[(v - &self.x), j]);
 
-                // Z3 = (Z1+H)^2-Z1Z1-HH
-                self.z += &h;
-                self.z.square_in_place();
-                self.z -= &z1z1;
-                self.z -= &hh;
+                // Z3 = 2 * Z1 * H;
+                // Can alternatively be computed as (Z1+H)^2-Z1Z1-HH, but the latter is slower.
+                self.z *= &h;
+                self.z.double_in_place();
             }
         }
     }
@@ -415,16 +436,22 @@ impl<'a, P: SWCurveConfig> AddAssign<&'a Self> for Projective<P> {
         let z2z2 = other.z.square();
 
         // U1 = X1*Z2Z2
-        let u1 = self.x * &z2z2;
+        let mut u1 = self.x;
+        u1 *= &z2z2;
 
         // U2 = X2*Z1Z1
-        let u2 = other.x * &z1z1;
+        let mut u2 = other.x;
+        u2 *= &z1z1;
 
         // S1 = Y1*Z2*Z2Z2
-        let s1 = self.y * &other.z * &z2z2;
+        let mut s1 = self.y;
+        s1 *= &other.z;
+        s1 *= &z2z2;
 
         // S2 = Y2*Z1*Z1Z1
-        let s2 = other.y * &self.z * &z1z1;
+        let mut s2 = other.y;
+        s2 *= &self.z;
+        s2 *= &z1z1;
 
         if u1 == u2 && s1 == s2 {
             // The two points are equal, so we double.
@@ -433,28 +460,40 @@ impl<'a, P: SWCurveConfig> AddAssign<&'a Self> for Projective<P> {
             // If we're adding -a and a together, self.z becomes zero as H becomes zero.
 
             // H = U2-U1
-            let h = u2 - &u1;
+            let mut h = u2;
+            h -= &u1;
 
             // I = (2*H)^2
-            let i = (h.double()).square();
+            let mut i = h;
+            i.double_in_place().square_in_place();
 
-            // J = H*I
-            let j = h * &i;
+            // J = -H*I
+            let mut j = -h;
+            j *= &i;
 
             // r = 2*(S2-S1)
-            let r = (s2 - &s1).double();
+            let mut r = s2;
+            r -= &s1;
+            r.double_in_place();
 
             // V = U1*I
-            let v = u1 * &i;
+            let mut v = u1;
+            v *= &i;
 
             // X3 = r^2 - J - 2*V
-            self.x = r.square() - &j - &(v.double());
+            self.x = r;
+            self.x.square_in_place();
+            self.x += &j;
+            self.x -= &(v.double());
 
             // Y3 = r*(V - X3) - 2*S1*J
-            self.y = P::BaseField::sum_of_products(&[r, -s1.double()], &[(v - &self.x), j]);
+            self.y = P::BaseField::sum_of_products(&[r, s1.double()], &[(v - &self.x), j]);
 
             // Z3 = ((Z1+Z2)^2 - Z1Z1 - Z2Z2)*H
-            self.z = ((self.z + &other.z).square() - &z1z1 - &z2z2) * &h;
+            // This is equal to Z3 = 2 * Z1 * Z2 * H, and computing it this way is faster.
+            self.z *= other.z;
+            self.z.double_in_place();
+            self.z *= &h;
         }
     }
 }

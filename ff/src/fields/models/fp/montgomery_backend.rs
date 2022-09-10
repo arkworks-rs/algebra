@@ -77,7 +77,8 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
         }
     };
 
-    /// Set a += b;
+    /// Sets `a = a + b`.
+    #[inline(always)]
     fn add_assign(a: &mut Fp<MontBackend<Self, N>, N>, b: &Fp<MontBackend<Self, N>, N>) {
         // This cannot exceed the backing capacity.
         a.0.add_with_carry(&b.0);
@@ -85,6 +86,8 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
         a.subtract_modulus();
     }
 
+    /// Sets `a = a - b`.
+    #[inline(always)]
     fn sub_assign(a: &mut Fp<MontBackend<Self, N>, N>, b: &Fp<MontBackend<Self, N>, N>) {
         // If `other` is larger than `self`, add the modulus to self first.
         if b.0 > a.0 {
@@ -93,11 +96,39 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
         a.0.sub_with_borrow(&b.0);
     }
 
+    /// Sets `a = 2 * a`.
+    #[inline(always)]
     fn double_in_place(a: &mut Fp<MontBackend<Self, N>, N>) {
         // This cannot exceed the backing capacity.
         a.0.mul2();
         // However, it may need to be reduced.
         a.subtract_modulus();
+    }
+
+    /// Sets `a = -a`.
+    #[inline(always)]
+    fn negate_in_place(a: &mut Fp<MontBackend<Self, N>, N>) {
+        if !a.is_zero() {
+            let mut tmp = Self::MODULUS;
+            tmp.sub_with_borrow(&a.0);
+            a.0 = tmp;
+        }
+    }
+
+    /// Sets `a = - 2 * a`.
+    #[inline(always)]
+    fn negate_and_double_in_place(a: &mut Fp<MontBackend<Self, N>, N>) {
+        if !a.is_zero() {
+            // Let's double first
+            a.0.mul2();
+            // However, it may need to be reduced.
+            if !self.is_less_than_modulus() {
+                self.0.sub_with_borrow(&Self::MODULUS);
+            }
+            let mut tmp = Self::MODULUS;
+            tmp.sub_with_borrow(&a.0);
+            a.0 = tmp;
+        }
     }
 
     /// This modular multiplication algorithm uses Montgomery
@@ -106,8 +137,8 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
     /// [here](https://hackmd.io/@zkteam/modular_multiplication) if
     /// `Self::MODULUS` has (a) a non-zero MSB, and (b) at least one
     /// zero bit in the rest of the modulus.
-    #[inline]
     #[unroll_for_loops(12)]
+    #[inline(always)]
     fn mul_assign(a: &mut Fp<MontBackend<Self, N>, N>, b: &Fp<MontBackend<Self, N>, N>) {
         // No-carry optimisation applied to CIOS
         if Self::CAN_USE_NO_CARRY_OPT {
@@ -164,7 +195,7 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
         a.subtract_modulus();
     }
 
-    #[inline]
+    #[inline(always)]
     #[unroll_for_loops(12)]
     fn square_in_place(a: &mut Fp<MontBackend<Self, N>, N>) {
         if N == 1 {
@@ -219,7 +250,7 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
 
         for i in 0..N {
             r[2 * i] = fa::mac_with_carry(r[2 * i], (a.0).0[i], (a.0).0[i], &mut carry);
-            r[2 * i + 1] = fa::adc(r[2 * i + 1], 0, &mut carry);
+            carry = fa::adc(&mut r[2 * i + 1], 0, carry);
         }
         // Montgomery reduction
         let mut carry2 = 0;
@@ -230,7 +261,7 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
             for j in 1..N {
                 r[j + i] = fa::mac_with_carry(r[j + i], k, Self::MODULUS.0[j], &mut carry);
             }
-            r.b1[i] = fa::adc(r.b1[i], carry, &mut carry2);
+            carry2 = fa::adc(&mut r.b1[i], carry, carry2);
         }
         (a.0).0.copy_from_slice(&r.b1);
         a.subtract_modulus();
@@ -296,11 +327,11 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
         let mut r = Fp::new_unchecked(r);
         if r.is_zero() {
             Some(r)
-        } else if r.is_less_than_modulus() {
+        } else if r.is_geq_modulus() {
+            None
+        } else {
             r *= &Fp::new_unchecked(Self::R2);
             Some(r)
-        } else {
-            None
         }
     }
 
@@ -525,6 +556,10 @@ impl<T: MontConfig<N>, const N: usize> FpConfig<N> for MontBackend<T, N> {
 
     fn double_in_place(a: &mut Fp<Self, N>) {
         T::double_in_place(a)
+    }
+
+    fn negate_in_place(a: &mut Fp<Self, N>) {
+        T::negate_in_place(a)
     }
 
     /// This modular multiplication algorithm uses Montgomery

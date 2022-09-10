@@ -118,6 +118,14 @@ pub trait Field:
     + for<'a> SubAssign<&'a Self>
     + for<'a> MulAssign<&'a Self>
     + for<'a> DivAssign<&'a Self>
+    + for<'a> Add<&'a mut Self, Output = Self>
+    + for<'a> Sub<&'a mut Self, Output = Self>
+    + for<'a> Mul<&'a mut Self, Output = Self>
+    + for<'a> Div<&'a mut Self, Output = Self>
+    + for<'a> AddAssign<&'a mut Self>
+    + for<'a> SubAssign<&'a mut Self>
+    + for<'a> MulAssign<&'a mut Self>
+    + for<'a> DivAssign<&'a mut Self>
     + core::iter::Sum<Self>
     + for<'a> core::iter::Sum<&'a Self>
     + core::iter::Product<Self>
