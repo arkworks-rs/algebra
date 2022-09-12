@@ -3,6 +3,7 @@ use ark_std::{marker::PhantomData, Zero};
 use super::{Fp, FpConfig};
 use crate::{biginteger::arithmetic as fa, BigInt, BigInteger, PrimeField, SqrtPrecomputation};
 use ark_ff_macros::unroll_for_loops;
+use itertools::Itertools;
 
 /// A trait that specifies the constants and arithmetic procedures
 /// for Montgomery arithmetic over the prime field defined by `MODULUS`.
@@ -109,22 +110,6 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
     #[inline(always)]
     fn negate_in_place(a: &mut Fp<MontBackend<Self, N>, N>) {
         if !a.is_zero() {
-            let mut tmp = Self::MODULUS;
-            tmp.sub_with_borrow(&a.0);
-            a.0 = tmp;
-        }
-    }
-
-    /// Sets `a = - 2 * a`.
-    #[inline(always)]
-    fn negate_and_double_in_place(a: &mut Fp<MontBackend<Self, N>, N>) {
-        if !a.is_zero() {
-            // Let's double first
-            a.0.mul2();
-            // However, it may need to be reduced.
-            if !self.is_less_than_modulus() {
-                self.0.sub_with_borrow(&Self::MODULUS);
-            }
             let mut tmp = Self::MODULUS;
             tmp.sub_with_borrow(&a.0);
             a.0 = tmp;
@@ -387,7 +372,7 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
             let chunk_size = 2 * (N * 64 - modulus_size) - 1;
             // chunk_size is at least 1, since MODULUS_BIT_SIZE is at most N * 64 - 1.
             a.chunks(chunk_size)
-                .zip(b.chunks(chunk_size))
+                .zip_eq(b.chunks(chunk_size))
                 .map(|(a, b)| {
                     // Algorithm 2, line 2
                     let result = (0..N).fold(BigInt::zero(), |mut result, j| {
