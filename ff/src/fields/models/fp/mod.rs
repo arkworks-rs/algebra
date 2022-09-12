@@ -183,6 +183,8 @@ impl<P: FpConfig<N>, const N: usize> Field for Fp<P, N> {
     const ZERO: Self = P::ZERO;
     const ONE: Self = P::ONE;
 
+    const GENERATOR: Self = P::GENERATOR;
+
     fn extension_degree() -> u64 {
         1
     }
@@ -336,7 +338,6 @@ impl<P: FpConfig<N>, const N: usize> PrimeField for Fp<P, N> {
 }
 
 impl<P: FpConfig<N>, const N: usize> FftField for Fp<P, N> {
-    const GENERATOR: Self = P::GENERATOR;
     const TWO_ADICITY: u32 = P::TWO_ADICITY;
     const TWO_ADIC_ROOT_OF_UNITY: Self = P::TWO_ADIC_ROOT_OF_UNITY;
     const SMALL_SUBGROUP_BASE: Option<u32> = P::SMALL_SUBGROUP_BASE;

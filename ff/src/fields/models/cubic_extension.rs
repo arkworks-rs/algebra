@@ -47,6 +47,9 @@ pub trait CubicExtConfig: 'static + Send + Sync + Sized {
     /// The cubic non-residue used to construct the extension.
     const NONRESIDUE: Self::BaseField;
 
+    /// The generator of the multiplicative group of the quadratic extension field
+    const GENERATOR: (Self::BaseField, Self::BaseField, Self::BaseField);
+
     /// Coefficients for the Frobenius automorphism.
     const FROBENIUS_COEFF_C1: &'static [Self::FrobCoeff];
     const FROBENIUS_COEFF_C2: &'static [Self::FrobCoeff];
@@ -165,6 +168,8 @@ impl<P: CubicExtConfig> Field for CubicExtField<P> {
     const ZERO: Self = Self::new(P::BaseField::ZERO, P::BaseField::ZERO, P::BaseField::ZERO);
 
     const ONE: Self = Self::new(P::BaseField::ONE, P::BaseField::ZERO, P::BaseField::ZERO);
+
+    const GENERATOR: Self = Self::new(P::GENERATOR.0, P::GENERATOR.1, P::GENERATOR.2);
 
     fn extension_degree() -> u64 {
         3 * P::BaseField::extension_degree()

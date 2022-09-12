@@ -19,6 +19,9 @@ pub trait Fp6Config: 'static + Send + Sync {
     /// Coefficients for the Frobenius automorphism.
     const FROBENIUS_COEFF_FP6_C1: &'static [<Self::Fp3Config as Fp3Config>::Fp];
 
+    /// The generator of the multiplicative group of the Fp6 field
+    const GENERATOR: (Fp3<Self::Fp3Config>, Fp3<Self::Fp3Config>);
+
     #[inline(always)]
     fn mul_fp3_by_nonresidue(fe: &Fp3<Self::Fp3Config>) -> Fp3<Self::Fp3Config> {
         let mut res = *fe;
@@ -42,6 +45,8 @@ impl<P: Fp6Config> QuadExtConfig for Fp6ConfigWrapper<P> {
     const NONRESIDUE: Self::BaseField = P::NONRESIDUE;
 
     const FROBENIUS_COEFF_C1: &'static [Self::FrobCoeff] = P::FROBENIUS_COEFF_FP6_C1;
+
+    const GENERATOR: (Self::BaseField, Self::BaseField) = P::GENERATOR;
 
     #[inline(always)]
     fn mul_base_field_by_nonresidue(fe: &Self::BaseField) -> Self::BaseField {

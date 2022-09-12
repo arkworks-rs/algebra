@@ -14,6 +14,13 @@ pub trait Fp6Config: 'static + Send + Sync + Copy {
     const FROBENIUS_COEFF_FP6_C1: &'static [Fp2<Self::Fp2Config>];
     const FROBENIUS_COEFF_FP6_C2: &'static [Fp2<Self::Fp2Config>];
 
+    /// The generator of the multiplicative group of the Fp6 field
+    const GENERATOR: (
+        Fp2<Self::Fp2Config>,
+        Fp2<Self::Fp2Config>,
+        Fp2<Self::Fp2Config>,
+    );
+
     #[inline(always)]
     fn mul_fp2_by_nonresidue(fe: &Fp2<Self::Fp2Config>) -> Fp2<Self::Fp2Config> {
         Self::NONRESIDUE * fe
@@ -35,6 +42,8 @@ impl<P: Fp6Config> CubicExtConfig for Fp6ConfigWrapper<P> {
 
     const FROBENIUS_COEFF_C1: &'static [Self::FrobCoeff] = P::FROBENIUS_COEFF_FP6_C1;
     const FROBENIUS_COEFF_C2: &'static [Self::FrobCoeff] = P::FROBENIUS_COEFF_FP6_C2;
+
+    const GENERATOR: (Self::BaseField, Self::BaseField, Self::BaseField) = P::GENERATOR;
 
     #[inline(always)]
     fn mul_base_field_by_nonresidue(fe: &Self::BaseField) -> Self::BaseField {

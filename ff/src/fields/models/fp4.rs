@@ -19,6 +19,9 @@ pub trait Fp4Config: 'static + Send + Sync {
     /// non_residue^((modulus^i-1)/4) for i=0,1,2,3
     const FROBENIUS_COEFF_FP4_C1: &'static [<Self::Fp2Config as Fp2Config>::Fp];
 
+    /// The generator of the multiplicative group of the Fp4 field
+    const GENERATOR: (Fp2<Self::Fp2Config>, Fp2<Self::Fp2Config>);
+
     #[inline(always)]
     fn mul_fp2_by_nonresidue(fe: &Fp2<Self::Fp2Config>) -> Fp2<Self::Fp2Config> {
         // see [[DESD06, Section 5.1]](https://eprint.iacr.org/2006/471.pdf).
@@ -38,6 +41,8 @@ impl<P: Fp4Config> QuadExtConfig for Fp4ConfigWrapper<P> {
     const NONRESIDUE: Self::BaseField = P::NONRESIDUE;
 
     const FROBENIUS_COEFF_C1: &'static [Self::FrobCoeff] = P::FROBENIUS_COEFF_FP4_C1;
+
+    const GENERATOR: (Self::BaseField, Self::BaseField) = P::GENERATOR;
 
     #[inline(always)]
     fn mul_base_field_by_nonresidue(fe: &Self::BaseField) -> Self::BaseField {

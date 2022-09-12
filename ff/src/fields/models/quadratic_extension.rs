@@ -48,6 +48,9 @@ pub trait QuadExtConfig: 'static + Send + Sync + Sized {
     /// Coefficients for the Frobenius automorphism.
     const FROBENIUS_COEFF_C1: &'static [Self::FrobCoeff];
 
+    /// The generator of the multiplicative group of the quadratic extension field
+    const GENERATOR: (Self::BaseField, Self::BaseField);
+
     /// A specializable method for multiplying an element of the base field by
     /// the quadratic non-residue. This is used in Karatsuba multiplication
     /// and in complex squaring.
@@ -208,6 +211,7 @@ impl<P: QuadExtConfig> Field for QuadExtField<P> {
 
     const ZERO: Self = Self::new(P::BaseField::ZERO, P::BaseField::ZERO);
     const ONE: Self = Self::new(P::BaseField::ONE, P::BaseField::ZERO);
+    const GENERATOR: Self = Self::new(P::GENERATOR.0, P::GENERATOR.1);
 
     fn extension_degree() -> u64 {
         2 * P::BaseField::extension_degree()

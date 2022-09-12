@@ -14,6 +14,9 @@ pub trait Fp3Config: 'static + Send + Sync + Sized {
     const FROBENIUS_COEFF_FP3_C1: &'static [Self::Fp];
     const FROBENIUS_COEFF_FP3_C2: &'static [Self::Fp];
 
+    /// The generator of the multiplicative group of the cubic extension field
+    const GENERATOR: (Self::Fp, Self::Fp, Self::Fp);
+
     /// p^3 - 1 = 2^s * t, where t is odd.
     const TWO_ADICITY: u32;
     const TRACE_MINUS_ONE_DIV_TWO: &'static [u64];
@@ -50,6 +53,8 @@ impl<P: Fp3Config> CubicExtConfig for Fp3ConfigWrapper<P> {
 
     const FROBENIUS_COEFF_C1: &'static [Self::FrobCoeff] = P::FROBENIUS_COEFF_FP3_C1;
     const FROBENIUS_COEFF_C2: &'static [Self::FrobCoeff] = P::FROBENIUS_COEFF_FP3_C2;
+
+    const GENERATOR: (Self::BaseField, Self::BaseField, Self::BaseField) = P::GENERATOR;
 
     #[inline(always)]
     fn mul_base_field_by_nonresidue(fe: &Self::BaseField) -> Self::BaseField {

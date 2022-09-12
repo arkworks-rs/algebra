@@ -17,6 +17,9 @@ pub trait Fp2Config: 'static + Send + Sync + Sized {
     /// Coefficients for the Frobenius automorphism.
     const FROBENIUS_COEFF_FP2_C1: &'static [Self::Fp];
 
+    /// The generator of the multiplicative group of the quadratic extension field
+    const GENERATOR: (Self::Fp, Self::Fp);
+
     /// Return `fe * Self::NONRESIDUE`.
     /// Intended for specialization when [`Self::NONRESIDUE`] has a special
     /// structure that can speed up multiplication
@@ -64,6 +67,8 @@ impl<P: Fp2Config> QuadExtConfig for Fp2ConfigWrapper<P> {
     const NONRESIDUE: Self::BaseField = P::NONRESIDUE;
 
     const FROBENIUS_COEFF_C1: &'static [Self::FrobCoeff] = P::FROBENIUS_COEFF_FP2_C1;
+
+    const GENERATOR: (Self::BaseField, Self::BaseField) = P::GENERATOR;
 
     #[inline(always)]
     fn mul_base_field_by_nonresidue(fe: &Self::BaseField) -> Self::BaseField {

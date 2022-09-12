@@ -141,6 +141,9 @@ pub trait Field:
     /// The multiplicative identity of the field.
     const ONE: Self;
 
+    /// The generator of the multiplicative group of the field
+    const GENERATOR: Self;
+
     /// Returns the characteristic of the field,
     /// in little-endian representation.
     fn characteristic() -> &'static [u64] {
@@ -400,9 +403,6 @@ fn exp_loop<F: CyclotomicMultSubgroup, I: Iterator<Item = i8>>(f: &mut F, e: I) 
 
 /// The interface for fields that are able to be used in FFTs.
 pub trait FftField: Field {
-    /// The generator of the multiplicative group of the field
-    const GENERATOR: Self;
-
     /// Let `N` be the size of the multiplicative group defined by the field.
     /// Then `TWO_ADICITY` is the two-adicity of `N`, i.e. the integer `s`
     /// such that `N = 2^s * t` for some odd integer `t`.

@@ -22,6 +22,9 @@ pub trait Fp12Config: 'static + Send + Sync + Copy {
     /// Coefficients for the Frobenius automorphism.
     const FROBENIUS_COEFF_FP12_C1: &'static [Fp2<Fp2Config<Self>>];
 
+    /// The generator of the multiplicative group of the Fp6 field
+    const GENERATOR: (Fp6<Self::Fp6Config>, Fp6<Self::Fp6Config>);
+
     /// Multiply by quadratic nonresidue v.
     #[inline(always)]
     fn mul_fp6_by_nonresidue(fe: &Fp6<Self::Fp6Config>) -> Fp6<Self::Fp6Config> {
@@ -45,6 +48,8 @@ impl<P: Fp12Config> QuadExtConfig for Fp12ConfigWrapper<P> {
     const NONRESIDUE: Self::BaseField = P::NONRESIDUE;
 
     const FROBENIUS_COEFF_C1: &'static [Self::FrobCoeff] = P::FROBENIUS_COEFF_FP12_C1;
+
+    const GENERATOR: (Self::BaseField, Self::BaseField) = P::GENERATOR;
 
     #[inline(always)]
     fn mul_base_field_by_nonresidue(fe: &Self::BaseField) -> Self::BaseField {
