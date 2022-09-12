@@ -5,7 +5,7 @@ use std::{
 
 use super::json::SuiteVector;
 use ark_ff::field_hashers::{DefaultFieldHasher, HashToField};
-use libtest_mimic::{run_tests, Arguments, Outcome, Test};
+use libtest_mimic::{run, Arguments, Failed, Trial};
 
 use ark_test_curves::{
     hashing::{curve_maps::wb::WBMap, map_to_curve_hasher::MapToCurveBasedHasher, HashToCurve},
@@ -21,24 +21,18 @@ use sha2::Sha256;
 #[test]
 fn suites() {
     let args = Arguments::from_args();
-    let mut tests_weierstrass = Vec::<Test<SuiteVector>>::new();
+    let mut tests_weierstrass = Vec::<Trial>::new();
 
     for filename in read_dir("./src/hashing/tests/testdata").unwrap() {
         let file = File::open(filename.unwrap().path()).unwrap();
         let u: SuiteVector = serde_json::from_reader(BufReader::new(file)).unwrap();
-        let test = Test {
-            name: u.ciphersuite.clone(),
-            data: u,
-            kind: String::default(),
-            is_ignored: false,
-            is_bench: false,
-        };
+        let test = Trial::test(u.ciphersuite.clone(), move || run_test_w(&u));
         tests_weierstrass.push(test);
     }
-    run_tests(&args, tests_weierstrass, run_test_w).exit_if_failed();
+    run(&args, tests_weierstrass).exit_if_failed();
 }
 
-fn run_test_w(Test { data, .. }: &Test<SuiteVector>) -> Outcome {
+fn run_test_w(data: &SuiteVector) -> Result<(), Failed> {
     assert_eq!(data.hash, "sha256");
     let dst = data.dst.as_bytes();
     let hasher;
@@ -64,7 +58,7 @@ fn run_test_w(Test { data, .. }: &Test<SuiteVector>) -> Outcome {
             m = 2;
             hasher = <DefaultFieldHasher<Sha256, 128> as HashToField<Fq2>>::new(dst);
         },
-        _ => return Outcome::Ignored,
+        _ => return Err("unsupported test suite".into()),
     }
 
     for v in data.vectors.iter() {
@@ -76,14 +70,13 @@ fn run_test_w(Test { data, .. }: &Test<SuiteVector>) -> Outcome {
             .flatten()
             .collect();
         if got != want {
-            return Outcome::Failed {
-                msg: Some(format!(
-                    "Suite: {:?}\ngot:  {:?}\nwant: {:?}",
-                    data.ciphersuite,
-                    got[0].to_string(),
-                    want[0].to_string()
-                )),
-            };
+            return Err(format!(
+                "Suite: {:?}\ngot:  {:?}\nwant: {:?}",
+                data.ciphersuite,
+                got[0].to_string(),
+                want[0].to_string()
+            )
+            .into());
         }
 
         // then, test curve points
@@ -99,14 +92,13 @@ fn run_test_w(Test { data, .. }: &Test<SuiteVector>) -> Outcome {
                 assert!(got.is_on_curve());
                 assert!(want.is_on_curve());
                 if got != want {
-                    return Outcome::Failed {
-                        msg: Some(format!(
-                            "Suite: {:?}\ngot:  {:?}\nwant: {:?}",
-                            data.ciphersuite,
-                            got.to_string(),
-                            want.to_string()
-                        )),
-                    };
+                    return Err(format!(
+                        "Suite: {:?}\ngot:  {:?}\nwant: {:?}",
+                        data.ciphersuite,
+                        got.to_string(),
+                        want.to_string()
+                    )
+                    .into());
                 }
             },
             "BLS12-381 G2" => {
@@ -118,21 +110,20 @@ fn run_test_w(Test { data, .. }: &Test<SuiteVector>) -> Outcome {
                 assert!(got.is_on_curve());
                 assert!(want.is_on_curve());
                 if got != want {
-                    return Outcome::Failed {
-                        msg: Some(format!(
-                            "Suite: {:?}\nmsg: {}\n\ngot: {:?}\nwant: {:?}",
-                            data.ciphersuite,
-                            v.msg,
-                            got.to_string(),
-                            want.to_string(),
-                        )),
-                    };
+                    return Err(format!(
+                        "Suite: {:?}\nmsg: {}\n\ngot: {:?}\nwant: {:?}",
+                        data.ciphersuite,
+                        v.msg,
+                        got.to_string(),
+                        want.to_string(),
+                    )
+                    .into());
                 }
             },
-            _ => return Outcome::Ignored,
+            _ => return Err("unsupported test suite".into()),
         }
     }
-    Outcome::Passed
+    Ok(())
 }
 
 fn read_fq_vec(input: &String) -> Vec<Fq> {
