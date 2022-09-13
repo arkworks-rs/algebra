@@ -16,9 +16,8 @@ pub(crate) fn adc(a: &mut u64, b: u64, carry: u64) -> u64 {
     #[allow(unsafe_code)]
     unsafe {
         use core::arch::x86_64::_addcarry_u64;
-        *carry = _addcarry_u64(carry, *a, b, a);
-        a
-    };
+        _addcarry_u64(carry as u8, *a, b, a) as u64
+    }
     #[cfg(not(all(target_arch = "x86_64", feature = "asm")))]
     {
         let tmp = *a as u128 + b as u128 + carry as u128;
@@ -51,8 +50,8 @@ pub(crate) fn sbb(a: &mut u64, b: u64, borrow: u64) -> u64 {
     #[allow(unsafe_code)]
     unsafe {
         use core::arch::x86_64::_subborrow_u64;
-        _subborrow_u64(*borrow, a, b, &mut a)
-    };
+        _subborrow_u64(borrow as u8, *a, b, a) as u64
+    }
     #[cfg(not(all(target_arch = "x86_64", feature = "asm")))]
     {
         let tmp = (1u128 << 64) + (*a as u128) - (b as u128) - (borrow as u128);
