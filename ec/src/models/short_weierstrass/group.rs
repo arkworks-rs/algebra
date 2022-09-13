@@ -275,7 +275,7 @@ impl<P: SWCurveConfig> Group for Projective<P> {
 
     #[inline]
     fn mul_bigint(&self, other: impl AsRef<[u64]>) -> Self {
-        P::mul_projective(&self, other.as_ref())
+        P::mul_projective(self, other.as_ref())
     }
 }
 
@@ -547,7 +547,7 @@ impl<P: SWCurveConfig, T: Borrow<P::ScalarField>> MulAssign<T> for Projective<P>
     }
 }
 
-impl<'a, P: SWCurveConfig, T: Borrow<P::ScalarField>> Mul<T> for Projective<P> {
+impl<P: SWCurveConfig, T: Borrow<P::ScalarField>> Mul<T> for Projective<P> {
     type Output = Self;
 
     #[inline]

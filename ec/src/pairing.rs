@@ -79,14 +79,12 @@ pub trait Pairing: Sized + 'static + Copy + Debug + Sync + Send + Eq {
     type TargetField: CyclotomicMultSubgroup;
 
     /// Computes the product of Miller loops for some number of (G1, G2) pairs.
-    #[must_use]
     fn multi_miller_loop(
         a: impl IntoIterator<Item = impl Into<Self::G1Prepared>>,
         b: impl IntoIterator<Item = impl Into<Self::G2Prepared>>,
     ) -> MillerLoopOutput<Self>;
 
     /// Computes the Miller loop over `a` and `b`.
-    #[must_use]
     fn miller_loop(
         a: impl Into<Self::G1Prepared>,
         b: impl Into<Self::G2Prepared>,
@@ -99,7 +97,6 @@ pub trait Pairing: Sized + 'static + Copy + Debug + Sync + Send + Eq {
     fn final_exponentiation(mlo: MillerLoopOutput<Self>) -> Option<PairingOutput<Self>>;
 
     /// Computes a "product" of pairings.
-    #[must_use]
     fn multi_pairing(
         a: impl IntoIterator<Item = impl Into<Self::G1Prepared>>,
         b: impl IntoIterator<Item = impl Into<Self::G2Prepared>>,
@@ -108,7 +105,6 @@ pub trait Pairing: Sized + 'static + Copy + Debug + Sync + Send + Eq {
     }
 
     /// Performs multiple pairing operations
-    #[must_use]
     fn pairing(
         p: impl Into<Self::G1Prepared>,
         q: impl Into<Self::G2Prepared>,

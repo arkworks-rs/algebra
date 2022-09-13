@@ -87,14 +87,14 @@ impl short_weierstrass::SWCurveConfig for Parameters {
         let p_projective = p.into_group();
 
         // [x]P
-        let x_p = Parameters::mul_affine(p, &x).neg();
+        let x_p = Parameters::mul_affine(p, x).neg();
         // ψ(P)
-        let psi_p = p_power_endomorphism(&p);
+        let psi_p = p_power_endomorphism(p);
         // (ψ^2)(2P)
         let mut psi2_p2 = double_p_power_endomorphism(&p_projective.double());
 
         // tmp = [x^2]P + [x]ψ(P)
-        let tmp = (x_p.clone() + psi_p).mul_bigint(x).neg();
+        let tmp = (x_p + psi_p).mul_bigint(x).neg();
 
         // add up all the terms
         psi2_p2 += tmp;
@@ -169,8 +169,8 @@ pub fn p_power_endomorphism(p: &Affine<Parameters>) -> Affine<Parameters> {
     res.y.frobenius_map(1);
 
     let tmp_x = res.x;
-    res.x.c0 = -P_POWER_ENDOMORPHISM_COEFF_0.c1 * &tmp_x.c1;
-    res.x.c1 = P_POWER_ENDOMORPHISM_COEFF_0.c1 * &tmp_x.c0;
+    res.x.c0 = -P_POWER_ENDOMORPHISM_COEFF_0.c1 * tmp_x.c1;
+    res.x.c1 = P_POWER_ENDOMORPHISM_COEFF_0.c1 * tmp_x.c0;
     res.y *= P_POWER_ENDOMORPHISM_COEFF_1;
 
     res

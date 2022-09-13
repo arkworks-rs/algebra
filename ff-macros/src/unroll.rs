@@ -94,7 +94,7 @@ fn unroll(expr: &Expr, unroll_by: usize) -> Expr {
             ..
         } = *for_loop;
 
-        let new_body = unroll_in_block(&*body, unroll_by);
+        let new_body = unroll_in_block(body, unroll_by);
 
         let forloop_with_body = |body| {
             Expr::ForLoop(ExprForLoop {
@@ -197,7 +197,7 @@ fn unroll(expr: &Expr, unroll_by: usize) -> Expr {
         } = *if_expr;
         Expr::If(ExprIf {
             cond: Box::new(unroll(&**cond, unroll_by)),
-            then_branch: unroll_in_block(&*then_branch, unroll_by),
+            then_branch: unroll_in_block(then_branch, unroll_by),
             else_branch: else_branch
                 .as_ref()
                 .map(|x| (x.0, Box::new(unroll(&*x.1, unroll_by)))),
@@ -212,7 +212,7 @@ fn unroll(expr: &Expr, unroll_by: usize) -> Expr {
     } else if let Expr::Block(expr_block) = expr {
         let ExprBlock { ref block, .. } = *expr_block;
         Expr::Block(ExprBlock {
-            block: unroll_in_block(&*block, unroll_by),
+            block: unroll_in_block(block, unroll_by),
             ..(*expr_block).clone()
         })
     } else {

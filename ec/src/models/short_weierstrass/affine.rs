@@ -308,7 +308,7 @@ impl<P: SWCurveConfig> Default for Affine<P> {
     }
 }
 
-impl<'a, P: SWCurveConfig, T: Borrow<P::ScalarField>> Mul<T> for Affine<P> {
+impl<P: SWCurveConfig, T: Borrow<P::ScalarField>> Mul<T> for Affine<P> {
     type Output = Projective<P>;
 
     #[inline]

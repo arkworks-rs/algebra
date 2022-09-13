@@ -600,7 +600,7 @@ pub trait PrimeField:
 /// let b = a.square();
 /// assert_eq!(b.legendre(), LegendreSymbol::QuadraticResidue);
 /// ```
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum LegendreSymbol {
     Zero = 0,
     QuadraticResidue = 1,
@@ -721,7 +721,7 @@ impl<F: Field> SqrtPrecomputation<F> {
                 }
                 // Is x the square root? If so, return it.
                 if x.square() == *elem {
-                    return Some(x);
+                    Some(x)
                 } else {
                     // Consistency check that if no square root is found,
                     // it is because none exists.
