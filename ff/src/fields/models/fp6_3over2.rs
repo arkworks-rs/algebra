@@ -15,8 +15,14 @@ pub trait Fp6Config: 'static + Send + Sync + Copy {
     const FROBENIUS_COEFF_FP6_C2: &'static [Fp2<Self::Fp2Config>];
 
     #[inline(always)]
-    fn mul_fp2_by_nonresidue(fe: &Fp2<Self::Fp2Config>) -> Fp2<Self::Fp2Config> {
-        Self::NONRESIDUE * fe
+    fn mul_fp2_by_nonresidue_in_place(fe: &mut Fp2<Self::Fp2Config>) -> &mut Fp2<Self::Fp2Config> {
+        *fe *= &Self::NONRESIDUE;
+        fe
+    }
+    #[inline(always)]
+    fn mul_fp2_by_nonresidue(mut fe: Fp2<Self::Fp2Config>) -> Fp2<Self::Fp2Config> {
+        Self::mul_fp2_by_nonresidue_in_place(&mut fe);
+        fe
     }
 }
 
@@ -37,8 +43,8 @@ impl<P: Fp6Config> CubicExtConfig for Fp6ConfigWrapper<P> {
     const FROBENIUS_COEFF_C2: &'static [Self::FrobCoeff] = P::FROBENIUS_COEFF_FP6_C2;
 
     #[inline(always)]
-    fn mul_base_field_by_nonresidue(fe: &Self::BaseField) -> Self::BaseField {
-        P::mul_fp2_by_nonresidue(fe)
+    fn mul_base_field_by_nonresidue_in_place(fe: &mut Self::BaseField) -> &mut Self::BaseField {
+        P::mul_fp2_by_nonresidue_in_place(fe)
     }
 
     fn mul_base_field_by_frob_coeff(
@@ -83,7 +89,7 @@ impl<P: Fp6Config> Fp6<P> {
 
             t1.mul_assign(&tmp);
             t1.sub_assign(&b_b);
-            t1 = P::mul_fp2_by_nonresidue(&t1);
+            P::mul_fp2_by_nonresidue_in_place(&mut t1);
         }
 
         let mut t2 = *c1;
@@ -113,7 +119,7 @@ impl<P: Fp6Config> Fp6<P> {
 
             t1.mul_assign(&tmp);
             t1.sub_assign(&b_b);
-            t1 = P::mul_fp2_by_nonresidue(&t1);
+            P::mul_fp2_by_nonresidue_in_place(&mut t1);
             t1.add_assign(&a_a);
         }
 

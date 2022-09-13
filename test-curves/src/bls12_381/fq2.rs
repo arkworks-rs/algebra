@@ -22,8 +22,8 @@ impl Fp2Config for Fq2Config {
     ];
 
     #[inline(always)]
-    fn mul_fp_by_nonresidue(fp: &Self::Fp) -> Self::Fp {
-        -(*fp)
+    fn mul_fp_by_nonresidue_in_place(fp: &mut Self::Fp) -> &mut Self::Fp {
+        fp.neg_in_place()
     }
 }
 

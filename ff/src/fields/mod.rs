@@ -182,6 +182,9 @@ pub trait Field:
     /// Doubles `self` in place.
     fn double_in_place(&mut self) -> &mut Self;
 
+    /// Negates `self` in place.
+    fn neg_in_place(&mut self) -> &mut Self;
+
     /// Attempt to deserialize a field element. Returns `None` if the
     /// deserialization fails.
     ///
@@ -240,7 +243,12 @@ pub trait Field:
     /// Returns `sum([a_i * b_i])`.
     #[inline]
     fn sum_of_products(a: &[Self], b: &[Self]) -> Self {
-        cfg_iter!(a).zip(b).map(|(a, b)| *a * b).sum()
+        assert_eq!(a.len(), b.len());
+        let mut sum = Self::zero();
+        for i in 0..a.len() {
+            sum += a[i] * b[i];
+        }
+        sum
     }
 
     /// Exponentiates this element by a power of the base prime modulus via

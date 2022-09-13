@@ -74,7 +74,7 @@ pub trait FpConfig<const N: usize>: Send + Sync + 'static + Sized {
     fn double_in_place(a: &mut Fp<Self, N>);
 
     /// Set a = -a;
-    fn negate_in_place(a: &mut Fp<Self, N>);
+    fn neg_in_place(a: &mut Fp<Self, N>);
 
     /// Set a *= b.
     fn mul_assign(a: &mut Fp<Self, N>, b: &Fp<Self, N>);
@@ -215,6 +215,12 @@ impl<P: FpConfig<N>, const N: usize> Field for Fp<P, N> {
     #[inline]
     fn double_in_place(&mut self) -> &mut Self {
         P::double_in_place(self);
+        self
+    }
+
+    #[inline]
+    fn neg_in_place(&mut self) -> &mut Self {
+        P::neg_in_place(self);
         self
     }
 
@@ -681,9 +687,7 @@ impl<P: FpConfig<N>, const N: usize> Neg for Fp<P, N> {
     #[inline]
     #[must_use]
     fn neg(mut self) -> Self {
-        if !self.is_zero() {
-            P::negate_in_place(&mut self);
-        }
+        P::neg_in_place(&mut self);
         self
     }
 }

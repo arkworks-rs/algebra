@@ -156,7 +156,7 @@ impl<P: SWCurveConfig> Zero for Projective<P> {
     /// Checks whether `self.z.is_zero()`.
     #[inline]
     fn is_zero(&self) -> bool {
-        self.z.is_zero()
+        self.z == P::BaseField::ZERO
     }
 }
 
@@ -178,7 +178,7 @@ impl<P: SWCurveConfig> Group for Projective<P> {
             return self;
         }
 
-        if P::COEFF_A.is_zero() {
+        if P::COEFF_A == P::BaseField::ZERO {
             // A = X1^2
             let mut a = self.x;
             a.square_in_place();
@@ -194,23 +194,32 @@ impl<P: SWCurveConfig> Group for Projective<P> {
             // D = 2*((X1+B)^2-A-C)
             //   = 2 * (X1 + Y1^2)^2 - A - C
             //   = 2 * 2 * X1 * Y1^2
-            let mut d = self.x;
-            d *= &b;
-            d.double_in_place().double_in_place();
+            let d = if [1, 2].contains(&P::BaseField::extension_degree()) {
+                let mut d = self.x;
+                d *= &b;
+                d.double_in_place().double_in_place();
+                d
+            } else {
+                let mut d = self.x;
+                d += &b;
+                d.square_in_place();
+                d -= a;
+                d -= c;
+                d.double_in_place();
+                d
+            };
 
             // E = 3*A
             let e = a + &*a.double_in_place();
-
-            // F = E^2
-            let mut f = e;
-            f.square_in_place();
 
             // Z3 = 2*Y1*Z1
             self.z *= &self.y;
             self.z.double_in_place();
 
+            // F = E^2
             // X3 = F-2*D
-            self.x = f;
+            self.x = e;
+            self.x.square_in_place();
             self.x -= &d.double();
 
             // Y3 = E*(D-X3)-8*C
@@ -228,27 +237,38 @@ impl<P: SWCurveConfig> Group for Projective<P> {
             let yy = self.y.square();
 
             // YYYY = YY^2
-            let mut yyyy = yy.square();
+            let mut yyyy = yy;
+            yyyy.square_in_place();
 
             // ZZ = Z1^2
-            let zz = self.z.square();
+            let mut zz = self.z;
+            zz.square_in_place();
 
             // S = 2*((X1+YY)^2-XX-YYYY)
             let s = ((self.x + &yy).square() - &xx - &yyyy).double();
 
             // M = 3*XX+a*ZZ^2
-            let m = xx + xx.double() + P::mul_by_a(zz.square());
+            let mut m = xx;
+            m.double_in_place();
+            m += &xx;
+            m += &P::mul_by_a(zz.square());
 
             // T = M^2-2*S
-            let t = m.square() - &s.double();
-
             // X3 = T
-            self.x = t;
-            // Y3 = M*(S-T)-8*YYYY
-            let old_y = self.y;
-            self.y = m * &(s - &t) - &*yyyy.double_in_place().double_in_place().double_in_place();
+            self.x = m;
+            self.x.square_in_place();
+            self.x -= s.double();
+
             // Z3 = (Y1+Z1)^2-YY-ZZ
-            self.z = (old_y + &self.z).square() - &yy - &zz;
+            self.z *= self.y;
+            self.z.double_in_place();
+
+            // Y3 = M*(S-X3)-8*YYYY
+            self.y = s;
+            self.y -= &self.x;
+            self.y *= &m;
+            self.y -= yyyy.double_in_place().double_in_place().double_in_place();
+
             self
         }
     }
@@ -351,7 +371,8 @@ impl<P: SWCurveConfig, T: Borrow<Affine<P>>> AddAssign<T> for Projective<P> {
                 i.double_in_place().double_in_place();
 
                 // J = -H*I
-                let mut j = -h;
+                let mut j = h;
+                j.neg_in_place();
                 j *= &i;
 
                 // r = 2*(S2-Y1)
@@ -369,7 +390,9 @@ impl<P: SWCurveConfig, T: Borrow<Affine<P>>> AddAssign<T> for Projective<P> {
                 self.x -= &v.double();
 
                 // Y3 = r*(V-X3) + 2*Y1*J
-                self.y = P::BaseField::sum_of_products(&[r, self.y.double()], &[(v - &self.x), j]);
+                v -= &self.x;
+                self.y.double_in_place();
+                self.y = P::BaseField::sum_of_products(&[r, self.y], &[v, j]);
 
                 // Z3 = 2 * Z1 * H;
                 // Can alternatively be computed as (Z1+H)^2-Z1Z1-HH, but the latter is slower.
@@ -468,7 +491,8 @@ impl<'a, P: SWCurveConfig> AddAssign<&'a Self> for Projective<P> {
             i.double_in_place().square_in_place();
 
             // J = -H*I
-            let mut j = -h;
+            let mut j = h;
+            j.neg_in_place();
             j *= &i;
 
             // r = 2*(S2-S1)
@@ -486,8 +510,10 @@ impl<'a, P: SWCurveConfig> AddAssign<&'a Self> for Projective<P> {
             self.x += &j;
             self.x -= &(v.double());
 
-            // Y3 = r*(V - X3) - 2*S1*J
-            self.y = P::BaseField::sum_of_products(&[r, s1.double()], &[(v - &self.x), j]);
+            // Y3 = r*(V - X3) + 2*S1*J
+            v -= &self.x;
+            self.y.double_in_place();
+            self.y = P::BaseField::sum_of_products(&[r, self.y], &[v, j]);
 
             // Z3 = ((Z1+Z2)^2 - Z1Z1 - Z2Z2)*H
             // This is equal to Z3 = 2 * Z1 * Z2 * H, and computing it this way is faster.
