@@ -3,7 +3,6 @@ use ark_std::{marker::PhantomData, Zero};
 use super::{Fp, FpConfig};
 use crate::{biginteger::arithmetic as fa, BigInt, BigInteger, PrimeField, SqrtPrecomputation};
 use ark_ff_macros::unroll_for_loops;
-use itertools::Itertools;
 
 /// A trait that specifies the constants and arithmetic procedures
 /// for Montgomery arithmetic over the prime field defined by `MODULUS`.
@@ -343,11 +342,10 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
     }
 
     #[unroll_for_loops(12)]
-    fn sum_of_products(
-        a: &[Fp<MontBackend<Self, N>, N>],
-        b: &[Fp<MontBackend<Self, N>, N>],
+    fn sum_of_products<const M: usize>(
+        a: &[Fp<MontBackend<Self, N>, N>; M],
+        b: &[Fp<MontBackend<Self, N>, N>; M],
     ) -> Fp<MontBackend<Self, N>, N> {
-        assert_eq!(a.len(), b.len());
         // Adapted from https://github.com/zkcrypto/bls12_381/pull/84 by @str4d.
 
         // For a single `a x b` multiplication, operand scanning (schoolbook) takes each
@@ -368,45 +366,11 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
         let modulus_size = Self::MODULUS.const_num_bits() as usize;
         if modulus_size > 64 * N - 1 {
             a.iter().zip(b).map(|(a, b)| *a * b).sum()
-        } else if a.len() == 2 {
-            // Algorithm 2, line 2
-            let result = (0..N).fold(BigInt::zero(), |mut result, j| {
-                // Algorithm 2, line 3
-                let (temp, end) = a.iter().zip(b).fold(
-                    (result, 0),
-                    |(mut temp, mut end), (Fp(a, _), Fp(b, _))| {
-                        let mut carry = 0;
-                        temp.0[0] = fa::mac(temp.0[0], a.0[j], b.0[0], &mut carry);
-                        for k in 1..N {
-                            temp.0[k] = fa::mac_with_carry(temp.0[k], a.0[j], b.0[k], &mut carry);
-                        }
-                        end = fa::adc_no_carry(end, 0, &mut carry);
-                        (temp, end)
-                    },
-                );
-
-                let k = temp.0[0].wrapping_mul(Self::INV);
-                let mut carry = 0;
-                fa::mac_discard(temp.0[0], k, Self::MODULUS.0[0], &mut carry);
-                for i in 1..N {
-                    result.0[i - 1] =
-                        fa::mac_with_carry(temp.0[i], k, Self::MODULUS.0[i], &mut carry);
-                }
-                result.0[N - 1] = fa::adc_no_carry(end, 0, &mut carry);
-                result
-            });
-            let mut result = Fp::new_unchecked(result);
-            result.subtract_modulus();
-            debug_assert_eq!(
-                a.iter().zip(b).map(|(a, b)| *a * b).sum::<Fp<_, N>>(),
-                result
-            );
-            result
         } else {
             let chunk_size = 2 * (N * 64 - modulus_size) - 1;
             // chunk_size is at least 1, since MODULUS_BIT_SIZE is at most N * 64 - 1.
             a.chunks(chunk_size)
-                .zip_eq(b.chunks(chunk_size))
+                .zip(b.chunks(chunk_size))
                 .map(|(a, b)| {
                     // Algorithm 2, line 2
                     let result = (0..N).fold(BigInt::zero(), |mut result, j| {
@@ -592,7 +556,7 @@ impl<T: MontConfig<N>, const N: usize> FpConfig<N> for MontBackend<T, N> {
         T::mul_assign(a, b)
     }
 
-    fn sum_of_products(a: &[Fp<Self, N>], b: &[Fp<Self, N>]) -> Fp<Self, N> {
+    fn sum_of_products<const M: usize>(a: &[Fp<Self, N>; M], b: &[Fp<Self, N>; M]) -> Fp<Self, N> {
         T::sum_of_products(a, b)
     }
 

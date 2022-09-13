@@ -242,8 +242,7 @@ pub trait Field:
 
     /// Returns `sum([a_i * b_i])`.
     #[inline]
-    fn sum_of_products(a: &[Self], b: &[Self]) -> Self {
-        assert_eq!(a.len(), b.len());
+    fn sum_of_products<const T: usize>(a: &[Self; T], b: &[Self; T]) -> Self {
         let mut sum = Self::zero();
         for i in 0..a.len() {
             sum += a[i] * b[i];

@@ -80,7 +80,7 @@ pub trait FpConfig<const N: usize>: Send + Sync + 'static + Sized {
     fn mul_assign(a: &mut Fp<Self, N>, b: &Fp<Self, N>);
 
     /// Compute the inner product `<a, b>`.
-    fn sum_of_products(a: &[Fp<Self, N>], b: &[Fp<Self, N>]) -> Fp<Self, N>;
+    fn sum_of_products<const T: usize>(a: &[Fp<Self, N>; T], b: &[Fp<Self, N>; T]) -> Fp<Self, N>;
 
     /// Set a *= b.
     fn square_in_place(a: &mut Fp<Self, N>);
@@ -230,7 +230,7 @@ impl<P: FpConfig<N>, const N: usize> Field for Fp<P, N> {
     }
 
     #[inline]
-    fn sum_of_products(a: &[Self], b: &[Self]) -> Self {
+    fn sum_of_products<const T: usize>(a: &[Self; T], b: &[Self; T]) -> Self {
         P::sum_of_products(a, b)
     }
 

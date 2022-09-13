@@ -263,7 +263,7 @@ impl<P: SWCurveConfig> Neg for Affine<P> {
     /// Else, returns `(x, -y)`, where `self = (x, y)`.
     #[inline]
     fn neg(mut self) -> Self {
-        self.y = -self.y;
+        self.y.neg_in_place();
         self
     }
 }

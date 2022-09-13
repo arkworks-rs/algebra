@@ -344,8 +344,8 @@ impl<P: SWCurveConfig, T: Borrow<Affine<P>>> AddAssign<T> for Projective<P> {
             z1z1.square_in_place();
 
             // U2 = X2*Z1Z1
-            let mut u2 = z1z1;
-            u2 *= &other_x;
+            let mut u2 = other_x;
+            u2 *= &z1z1;
 
             // S2 = Y2*Z1*Z1Z1
             let mut s2 = self.z;
@@ -512,6 +512,7 @@ impl<'a, P: SWCurveConfig> AddAssign<&'a Self> for Projective<P> {
 
             // Y3 = r*(V - X3) + 2*S1*J
             v -= &self.x;
+            self.y = s1;
             self.y.double_in_place();
             self.y = P::BaseField::sum_of_products(&[r, self.y], &[v, j]);
 

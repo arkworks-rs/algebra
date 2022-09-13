@@ -1,5 +1,7 @@
 #![allow(unused)]
 #![allow(clippy::eq_op)]
+
+use ark_std::rand::Rng;
 #[derive(Default, Clone, Copy, Debug)]
 pub struct DummyFlags;
 
@@ -13,6 +15,36 @@ impl ark_serialize::Flags for DummyFlags {
     fn from_u8(_value: u8) -> Option<Self> {
         Some(DummyFlags)
     }
+}
+
+pub fn sum_of_products_test_helper<F: ark_ff::Field, const N: usize>(rng: &mut impl Rng) {
+    let a: [_; N] = core::array::from_fn(|_| F::rand(rng));
+    let b: [_; N] = core::array::from_fn(|_| F::rand(rng));
+    let result_1 = F::sum_of_products(&a, &b);
+    let result_2 = a.into_iter().zip(b).map(|(a, b)| a * b).sum::<F>();
+    assert_eq!(result_1, result_2, "length: {N}");
+
+    let two_inv = F::from(2u64).inverse().unwrap();
+    let neg_one = -F::one();
+    let a_max = neg_one * two_inv - F::one();
+    let b_max = neg_one * two_inv - F::one();
+    let a = [a_max; N];
+    let b = [b_max; N];
+
+    let result_1 = F::sum_of_products(&a, &b);
+    let result_2 = a.into_iter().zip(b).map(|(a, b)| a * b).sum::<F>();
+    assert_eq!(result_1, result_2, "length: {N}");
+}
+
+pub fn prime_field_sum_of_products_test_helper<F: ark_ff::PrimeField, const N: usize>(
+    a_max: F,
+    b_max: F,
+) {
+    let a = [a_max; N];
+    let b = [b_max; N];
+    let result_1 = F::sum_of_products(&a, &b);
+    let result_2 = a.into_iter().zip(b).map(|(a, b)| a * b).sum::<F>();
+    assert_eq!(result_1, result_2, "length: {N}");
 }
 
 #[macro_export]
@@ -271,28 +303,20 @@ macro_rules! __test_field {
 
         #[test]
         fn test_sum_of_products_tests() {
-            use ark_std::UniformRand;
+            use ark_std::{UniformRand, rand::Rng};
             let rng = &mut test_rng();
-            for _ in 0..ITERATIONS {
-                for length in 1..20 {
-                    let a = (0..length).map(|_| <$field>::rand(rng)).collect::<Vec<_>>();
-                    let b = (0..length).map(|_| <$field>::rand(rng)).collect::<Vec<_>>();
-                    let result_1 = <$field>::sum_of_products(&a, &b);
-                    let result_2 = a.into_iter().zip(b).map(|(a, b)| a * b).sum::<$field>();
-                    assert_eq!(result_1, result_2, "length: {length}");
-                }
 
-                let two_inv = <$field>::from(2u64).inverse().unwrap();
-                let neg_one = -<$field>::one();
-                let a_max = neg_one * two_inv - <$field>::one();
-                let b_max = neg_one * two_inv - <$field>::one();
-                for length in 1..20 {
-                    let a = vec![a_max; length];
-                    let b = vec![b_max; length];
-                    let result_1 = <$field>::sum_of_products(&a, &b);
-                    let result_2 = a.into_iter().zip(b).map(|(a, b)| a * b).sum::<$field>();
-                    assert_eq!(result_1, result_2, "length: {length}");
-                }
+            for _ in 0..ITERATIONS {
+                $crate::fields::sum_of_products_test_helper::<$field, 1>(rng);
+                $crate::fields::sum_of_products_test_helper::<$field, 2>(rng);
+                $crate::fields::sum_of_products_test_helper::<$field, 3>(rng);
+                $crate::fields::sum_of_products_test_helper::<$field, 4>(rng);
+                $crate::fields::sum_of_products_test_helper::<$field, 5>(rng);
+                $crate::fields::sum_of_products_test_helper::<$field, 6>(rng);
+                $crate::fields::sum_of_products_test_helper::<$field, 7>(rng);
+                $crate::fields::sum_of_products_test_helper::<$field, 8>(rng);
+                $crate::fields::sum_of_products_test_helper::<$field, 9>(rng);
+                $crate::fields::sum_of_products_test_helper::<$field, 10>(rng);
             }
         }
 
@@ -375,13 +399,17 @@ macro_rules! __test_field {
             }
             let a_max = <$field>::from_bigint(a_max).unwrap();
             let b_max = -<$field>::one(); // p - 1.
-            for length in 1..100 {
-                let a = vec![a_max; length];
-                let b = vec![b_max; length];
-                let result_1 = <$field>::sum_of_products(&a, &b);
-                let result_2 = a.into_iter().zip(b).map(|(a, b)| a * b).sum::<$field>();
-                assert_eq!(result_1, result_2, "length: {length}");
-            }
+
+            $crate::fields::prime_field_sum_of_products_test_helper::<_, 1>(a_max, b_max);
+            $crate::fields::prime_field_sum_of_products_test_helper::<_, 2>(a_max, b_max);
+            $crate::fields::prime_field_sum_of_products_test_helper::<_, 3>(a_max, b_max);
+            $crate::fields::prime_field_sum_of_products_test_helper::<_, 4>(a_max, b_max);
+            $crate::fields::prime_field_sum_of_products_test_helper::<_, 5>(a_max, b_max);
+            $crate::fields::prime_field_sum_of_products_test_helper::<_, 6>(a_max, b_max);
+            $crate::fields::prime_field_sum_of_products_test_helper::<_, 7>(a_max, b_max);
+            $crate::fields::prime_field_sum_of_products_test_helper::<_, 8>(a_max, b_max);
+            $crate::fields::prime_field_sum_of_products_test_helper::<_, 9>(a_max, b_max);
+            $crate::fields::prime_field_sum_of_products_test_helper::<_, 10>(a_max, b_max);
         }
 
         #[test]
