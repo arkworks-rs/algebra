@@ -30,14 +30,24 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
     /// `Self::MODULUS - 1`.
     const GENERATOR: Fp<MontBackend<Self, N>, N>;
 
-    /// Can we use the no-carry optimization for multiplication and squaring
-    /// outlined [here](https://hackmd.io/@zkteam/modular_multiplication)?
+    /// Can we use the no-carry optimization for multiplication
+    /// outlined [here](https://hackmd.io/@gnark/modular_multiplication)?
     ///
-    /// This optimization applies if
-    /// `Self::MODULUS` has (a) a non-zero MSB, and (b) at least one
-    /// zero bit in the rest of the modulus.
+    /// This optimization applies if 
+    /// (a) `Self::MODULUS[N-1] < u64::MAX >> 1`, and 
+    /// (b) the bits of the modulus are not all 1.
     #[doc(hidden)]
-    const CAN_USE_NO_CARRY_OPT: bool = can_use_no_carry_optimization::<Self, N>();
+    const CAN_USE_NO_CARRY_MUL_OPT: bool = can_use_no_carry_mul_optimization::<Self, N>();
+
+    /// Can we use the no-carry optimization for squaring
+    /// outlined [here](https://hackmd.io/@gnark/modular_multiplication)?
+    ///
+    /// This optimization applies if 
+    /// (a) `Self::MODULUS[N-1] < u64::MAX >> 2`, and 
+    /// (b) the bits of the modulus are not all 1.
+    #[doc(hidden)]
+    const CAN_USE_NO_CARRY_SQUARE_OPT: bool = can_use_no_carry_mul_optimization::<Self, N>();
+
 
     /// 2^s root of unity computed by GENERATOR^t
     const TWO_ADIC_ROOT_OF_UNITY: Fp<MontBackend<Self, N>, N>;
@@ -118,14 +128,14 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
     /// This modular multiplication algorithm uses Montgomery
     /// reduction for efficient implementation. It also additionally
     /// uses the "no-carry optimization" outlined
-    /// [here](https://hackmd.io/@zkteam/modular_multiplication) if
+    /// [here](https://hackmd.io/@gnark/modular_multiplication) if
     /// `Self::MODULUS` has (a) a non-zero MSB, and (b) at least one
     /// zero bit in the rest of the modulus.
     #[unroll_for_loops(12)]
     #[inline(always)]
     fn mul_assign(a: &mut Fp<MontBackend<Self, N>, N>, b: &Fp<MontBackend<Self, N>, N>) {
         // No-carry optimisation applied to CIOS
-        if Self::CAN_USE_NO_CARRY_OPT {
+        if Self::CAN_USE_NO_CARRY_MUL_OPT {
             if N <= 6
                 && N > 1
                 && cfg!(all(
@@ -157,13 +167,16 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
                 };
             } else {
                 let mut r = [0u64; N];
-                let mut carry1 = 0u64;
-                let mut carry2 = 0u64;
 
                 for i in 0..N {
+                    let mut carry1 = 0u64;
                     r[0] = fa::mac(r[0], (a.0).0[0], (b.0).0[i], &mut carry1);
+
                     let k = r[0].wrapping_mul(Self::INV);
+
+                    let mut carry2 = 0u64;
                     fa::mac_discard(r[0], k, Self::MODULUS.0[0], &mut carry2);
+
                     for j in 1..N {
                         r[j] = fa::mac_with_carry(r[j], (a.0).0[j], (b.0).0[i], &mut carry1);
                         r[j - 1] = fa::mac_with_carry(r[j], k, Self::MODULUS.0[j], &mut carry2);
@@ -174,6 +187,7 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
             }
         } else {
             // Alternative implementation
+            // Implements CIOS.
             *a = a.mul_without_cond_subtract(b);
         }
         a.subtract_modulus();
@@ -189,30 +203,34 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
             Self::mul_assign(a, &temp);
             return;
         }
-        #[cfg(all(
-            feature = "asm",
-            inline_asm_stable,
-            target_feature = "bmi2",
-            target_feature = "adx",
-            target_arch = "x86_64"
-        ))]
-        #[allow(unsafe_code, unused_mut)]
-        {
-            // Checking the modulus at compile time
-            if N <= 6 && Self::CAN_USE_NO_CARRY_OPT {
-                #[rustfmt::skip]
-                match N {
-                    2 => { ark_ff_asm::x86_64_asm_square!(2, (a.0).0); },
-                    3 => { ark_ff_asm::x86_64_asm_square!(3, (a.0).0); },
-                    4 => { ark_ff_asm::x86_64_asm_square!(4, (a.0).0); },
-                    5 => { ark_ff_asm::x86_64_asm_square!(5, (a.0).0); },
-                    6 => { ark_ff_asm::x86_64_asm_square!(6, (a.0).0); },
-                    _ => unsafe { ark_std::hint::unreachable_unchecked() },
-                };
-                a.subtract_modulus();
-                return;
-            }
+        if Self::CAN_USE_NO_CARRY_SQUARE_OPT 
+            && N <= 6
+            && N > 1
+            && cfg!(all(
+                feature = "asm",
+                target_feature = "bmi2",
+                target_feature = "adx",
+                target_arch = "x86_64"
+            )) {
+            #[cfg(all(
+                feature = "asm",
+                target_feature = "bmi2",
+                target_feature = "adx",
+                target_arch = "x86_64"
+            ))]
+            #[allow(unsafe_code, unused_mut)]
+            match N {
+                2 => { ark_ff_asm::x86_64_asm_square!(2, (a.0).0); },
+                3 => { ark_ff_asm::x86_64_asm_square!(3, (a.0).0); },
+                4 => { ark_ff_asm::x86_64_asm_square!(4, (a.0).0); },
+                5 => { ark_ff_asm::x86_64_asm_square!(5, (a.0).0); },
+                6 => { ark_ff_asm::x86_64_asm_square!(6, (a.0).0); },
+                _ => unsafe { ark_std::hint::unreachable_unchecked() },
+            };
+            a.subtract_modulus();
+            return;
         }
+        
         let mut r = crate::const_helpers::MulBuffer::<N>::zeroed();
 
         let mut carry = 0;
@@ -468,15 +486,25 @@ pub const fn inv<T: MontConfig<N>, const N: usize>() -> u64 {
 }
 
 #[inline]
-pub const fn can_use_no_carry_optimization<T: MontConfig<N>, const N: usize>() -> bool {
+pub const fn can_use_no_carry_mul_optimization<T: MontConfig<N>, const N: usize>() -> bool {
     // Checking the modulus at compile time
-    let first_bit_set = T::MODULUS.0[N - 1] >> 63 != 0;
-    // N can be 1, hence we can run into a case with an unused mut.
-    let mut all_bits_set = T::MODULUS.0[N - 1] == !0 - (1 << 63);
+    let top_bit_is_zero = T::MODULUS.0[N - 1] >> 62 == 0;
+    let mut all_remaining_bits_are_one = T::MODULUS.0[N - 1] == u64::MAX >> 2;
     crate::const_for!((i in 1..N) {
-        all_bits_set &= T::MODULUS.0[N - i - 1] == !0u64;
+        all_remaining_bits_are_one  &= T::MODULUS.0[N - i - 1] == u64::MAX;
     });
-    !(first_bit_set || all_bits_set)
+    top_bit_is_zero && !all_remaining_bits_are_one
+}
+
+#[inline]
+pub const fn can_use_no_carry_square_optimization<T: MontConfig<N>, const N: usize>() -> bool {
+    // Checking the modulus at compile time
+    let top_two_bits_are_zero = T::MODULUS.0[N - 1] >> 62 == 0;
+    let mut all_remaining_bits_are_one = T::MODULUS.0[N - 1] == u64::MAX >> 2;
+    crate::const_for!((i in 1..N) {
+        all_remaining_bits_are_one  &= T::MODULUS.0[N - i - 1] == u64::MAX;
+    });
+    top_two_bits_are_zero && !all_remaining_bits_are_one
 }
 
 pub const fn sqrt_precomputation<const N: usize, T: MontConfig<N>>(
