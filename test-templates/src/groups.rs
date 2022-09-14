@@ -241,8 +241,6 @@ macro_rules! __test_group {
                 let b = <$group>::rand(rng);
                 assert!(a.is_on_curve());
                 assert!(b.into_affine().is_on_curve());
-                #[cfg(feature = "std")]
-                std::dbg!("Starting equality");
                 assert_eq!(b + a, b + a_group, "b + a failed on input {a}, {b}");
                 assert_eq!(a + b, a_group + b, "a + b failed on input {a}, {b}");
             }
