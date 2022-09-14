@@ -204,8 +204,7 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
             return;
         }
         if Self::CAN_USE_NO_CARRY_SQUARE_OPT 
-            && N <= 6
-            && N > 1
+            && (2..=6).contains(&N)
             && cfg!(all(
                 feature = "asm",
                 target_feature = "bmi2",
