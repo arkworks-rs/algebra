@@ -12,6 +12,15 @@ macro_rules! adc {
 #[inline(always)]
 #[allow(unused_mut)]
 pub(crate) fn adc(a: &mut u64, b: u64, carry: u64) -> u64 {
+    let tmp = *a as u128 + b as u128 + carry as u128;
+    *a = tmp as u64;
+    (tmp >> 64) as u64
+}
+
+/// Sets a = a + b + carry, and returns the new carry.
+#[inline(always)]
+#[allow(unused_mut)]
+pub(crate) fn adc_for_add_with_carry(a: &mut u64, b: u64, carry: u64) -> u64 {
     #[cfg(all(target_arch = "x86_64", feature = "asm"))]
     #[allow(unsafe_code)]
     unsafe {
@@ -46,6 +55,19 @@ macro_rules! sbb {
 #[inline(always)]
 #[allow(unused_mut)]
 pub(crate) fn sbb(a: &mut u64, b: u64, borrow: u64) -> u64 {
+    let tmp = (1u128 << 64) + (*a as u128) - (b as u128) - (borrow as u128);
+    *a = tmp as u64;
+    if tmp >> 64 == 0 {
+        1
+    } else {
+        0
+    }
+}
+
+/// Sets a = a - b - borrow, and returns the borrow.
+#[inline(always)]
+#[allow(unused_mut)]
+pub(crate) fn sbb_for_sub_with_borrow(a: &mut u64, b: u64, borrow: u64) -> u64 {
     #[cfg(all(target_arch = "x86_64", feature = "asm"))]
     #[allow(unsafe_code)]
     unsafe {

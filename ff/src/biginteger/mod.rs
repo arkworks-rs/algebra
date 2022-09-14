@@ -257,30 +257,33 @@ impl<const N: usize> BigInteger for BigInt<N> {
     const NUM_LIMBS: usize = N;
 
     #[inline]
-    // #[unroll_for_loops(12)]
     fn add_with_carry(&mut self, other: &Self) -> bool {
-        let mut carry = 0;
+        use arithmetic::adc_for_add_with_carry as adc;
 
+        let a = &mut self.0;
+        let b = &other.0;
+
+        let mut carry = 0;
         if N >= 1 {
-            carry = arithmetic::adc(&mut self.0[0], other.0[0], carry);
+            carry = adc(&mut a[0], b[0], carry);
         }
         if N >= 2 {
-            carry = arithmetic::adc(&mut self.0[1], other.0[1], carry);
+            carry = adc(&mut a[1], b[1], carry);
         }
         if N >= 3 {
-            carry = arithmetic::adc(&mut self.0[2], other.0[2], carry);
+            carry = adc(&mut a[2], b[2], carry);
         }
         if N >= 4 {
-            carry = arithmetic::adc(&mut self.0[3], other.0[3], carry);
+            carry = adc(&mut a[3], b[3], carry);
         }
         if N >= 5 {
-            carry = arithmetic::adc(&mut self.0[4], other.0[4], carry);
+            carry = adc(&mut a[4], b[4], carry);
         }
         if N >= 6 {
-            carry = arithmetic::adc(&mut self.0[5], other.0[5], carry);
+            carry = adc(&mut a[5], b[5], carry);
         }
         for i in 6..N {
-            carry = arithmetic::adc(&mut self.0[i], other.0[i], carry);
+            carry = adc(&mut a[i], b[i], carry);
         }
         carry != 0
     }
@@ -288,27 +291,32 @@ impl<const N: usize> BigInteger for BigInt<N> {
     #[inline]
     #[unroll_for_loops(12)]
     fn sub_with_borrow(&mut self, other: &Self) -> bool {
+        use arithmetic::sbb_for_sub_with_borrow as sbb;
+
+        let a = &mut self.0;
+        let b = &other.0;
         let mut borrow = 0;
+
         if N >= 1 {
-            borrow = arithmetic::sbb(&mut self.0[0], other.0[0], borrow);
+            borrow = sbb(&mut a[0], b[0], borrow);
         }
         if N >= 2 {
-            borrow = arithmetic::sbb(&mut self.0[1], other.0[1], borrow);
+            borrow = sbb(&mut a[1], b[1], borrow);
         }
         if N >= 3 {
-            borrow = arithmetic::sbb(&mut self.0[2], other.0[2], borrow);
+            borrow = sbb(&mut a[2], b[2], borrow);
         }
         if N >= 4 {
-            borrow = arithmetic::sbb(&mut self.0[3], other.0[3], borrow);
+            borrow = sbb(&mut a[3], b[3], borrow);
         }
         if N >= 5 {
-            borrow = arithmetic::sbb(&mut self.0[4], other.0[4], borrow);
+            borrow = sbb(&mut a[4], b[4], borrow);
         }
         if N >= 6 {
-            borrow = arithmetic::sbb(&mut self.0[5], other.0[5], borrow);
+            borrow = sbb(&mut a[5], b[5], borrow);
         }
         for i in 6..N {
-            borrow = arithmetic::sbb(&mut self.0[i], other.0[i], borrow);
+            borrow = sbb(&mut a[i], b[i], borrow);
         }
         borrow != 0
     }
