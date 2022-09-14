@@ -351,7 +351,7 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
         // For a single `a x b` multiplication, operand scanning (schoolbook) takes each
         // limb of `a` in turn, and multiplies it by all of the limbs of `b` to compute
         // the result as a double-width intermediate representation, which is then fully
-        // reduced at the end. Here however we have pairs of multiplications (a_i, b_i),
+        // reduced at the carry. Here however we have pairs of multiplications (a_i, b_i),
         // the results of which are summed.
         //
         // The intuition for this algorithm is two-fold:
@@ -364,8 +364,42 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
         //   intermediate results and eventually having twice as many limbs.
 
         let modulus_size = Self::MODULUS.const_num_bits() as usize;
-        if modulus_size > 64 * N - 1 {
+        if modulus_size >= 64 * N - 1 {
             a.iter().zip(b).map(|(a, b)| *a * b).sum()
+        } else if M == 2 {
+            // Algorithm 2, line 2
+            let result = (0..N).fold(BigInt::zero(), |mut result, j| {
+                // Algorithm 2, line 3
+                let mut carry_a = 0;
+                let mut carry_b = 0;
+                for (a, b) in a.iter().zip(b) {
+                    let a = &a.0;
+                    let b = &b.0;
+                    let mut carry2 = 0;
+                    result.0[0] = fa::mac(result.0[0], a.0[j], b.0[0], &mut carry2);
+                    for k in 1..N {
+                        result.0[k] = fa::mac_with_carry(result.0[k], a.0[j], b.0[k], &mut carry2);
+                    }
+                    carry_b = fa::adc(&mut carry_a, carry_b, carry2);
+                }
+
+                let k = result.0[0].wrapping_mul(Self::INV);
+                let mut carry2 = 0;
+                fa::mac_discard(result.0[0], k, Self::MODULUS.0[0], &mut carry2);
+                for i in 1..N {
+                    result.0[i - 1] =
+                        fa::mac_with_carry(result.0[i], k, Self::MODULUS.0[i], &mut carry2);
+                }
+                result.0[N - 1] = fa::adc_no_carry(carry_a, carry_b, &mut carry2);
+                result
+            });
+            let mut result = Fp::new_unchecked(result);
+            result.subtract_modulus();
+            debug_assert_eq!(
+                a.iter().zip(b).map(|(a, b)| *a * b).sum::<Fp<_, N>>(),
+                result
+            );
+            result
         } else {
             let chunk_size = 2 * (N * 64 - modulus_size) - 1;
             // chunk_size is at least 1, since MODULUS_BIT_SIZE is at most N * 64 - 1.
@@ -375,28 +409,28 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
                     // Algorithm 2, line 2
                     let result = (0..N).fold(BigInt::zero(), |mut result, j| {
                         // Algorithm 2, line 3
-                        let (temp, end) = a.iter().zip(b).fold(
+                        let (temp, carry) = a.iter().zip(b).fold(
                             (result, 0),
-                            |(mut temp, mut end), (Fp(a, _), Fp(b, _))| {
-                                let mut carry = 0;
-                                temp.0[0] = fa::mac(temp.0[0], a.0[j], b.0[0], &mut carry);
+                            |(mut temp, mut carry), (Fp(a, _), Fp(b, _))| {
+                                let mut carry2 = 0;
+                                temp.0[0] = fa::mac(temp.0[0], a.0[j], b.0[0], &mut carry2);
                                 for k in 1..N {
                                     temp.0[k] =
-                                        fa::mac_with_carry(temp.0[k], a.0[j], b.0[k], &mut carry);
+                                        fa::mac_with_carry(temp.0[k], a.0[j], b.0[k], &mut carry2);
                                 }
-                                end = fa::adc_no_carry(end, 0, &mut carry);
-                                (temp, end)
+                                carry = fa::adc_no_carry(carry, 0, &mut carry2);
+                                (temp, carry)
                             },
                         );
 
                         let k = temp.0[0].wrapping_mul(Self::INV);
-                        let mut carry = 0;
-                        fa::mac_discard(temp.0[0], k, Self::MODULUS.0[0], &mut carry);
+                        let mut carry2 = 0;
+                        fa::mac_discard(temp.0[0], k, Self::MODULUS.0[0], &mut carry2);
                         for i in 1..N {
                             result.0[i - 1] =
-                                fa::mac_with_carry(temp.0[i], k, Self::MODULUS.0[i], &mut carry);
+                                fa::mac_with_carry(temp.0[i], k, Self::MODULUS.0[i], &mut carry2);
                         }
-                        result.0[N - 1] = fa::adc_no_carry(end, 0, &mut carry);
+                        result.0[N - 1] = fa::adc_no_carry(carry, 0, &mut carry2);
                         result
                     });
                     let mut result = Fp::new_unchecked(result);

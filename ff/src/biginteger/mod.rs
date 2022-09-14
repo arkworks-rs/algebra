@@ -295,7 +295,7 @@ impl<const N: usize> BigInteger for BigInt<N> {
 
         let a = &mut self.0;
         let b = &other.0;
-        let mut borrow = 0;
+        let mut borrow = 0u8;
 
         if N >= 1 {
             borrow = sbb(&mut a[0], b[0], borrow);

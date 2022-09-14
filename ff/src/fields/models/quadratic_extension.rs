@@ -647,11 +647,11 @@ impl<'a, P: QuadExtConfig> MulAssign<&'a Self> for QuadExtField<P> {
     #[inline]
     fn mul_assign(&mut self, other: &Self) {
         if Self::extension_degree() == 2 {
-            let mut c1_copy = self.c1;
-            P::mul_base_field_by_nonresidue_in_place(&mut c1_copy);
+            let c1_input = [self.c0, self.c1];
+            P::mul_base_field_by_nonresidue_in_place(&mut self.c1);
             *self = Self::new(
-                P::BaseField::sum_of_products(&[self.c0, c1_copy], &[other.c0, other.c1]),
-                P::BaseField::sum_of_products(&[self.c0, self.c1], &[other.c1, other.c0]),
+                P::BaseField::sum_of_products(&[self.c0, self.c1], &[other.c0, other.c1]),
+                P::BaseField::sum_of_products(&c1_input, &[other.c1, other.c0]),
             )
         } else {
             // Karatsuba multiplication;
