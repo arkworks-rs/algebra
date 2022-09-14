@@ -61,7 +61,7 @@ pub trait QuadExtConfig: 'static + Send + Sync + Sized {
     /// This allows for optimizations when the non-residue is
     /// canonically negative in the field.
     #[inline(always)]
-    fn add_and_mul_base_field_by_nonresidue_in_place(y: &mut Self::BaseField, x: &Self::BaseField) {
+    fn mul_base_field_by_nonresidue_and_add(y: &mut Self::BaseField, x: &Self::BaseField) {
         Self::mul_base_field_by_nonresidue_in_place(y);
         *y += x;
     }
@@ -69,9 +69,9 @@ pub trait QuadExtConfig: 'static + Send + Sync + Sized {
     /// A specializable method for computing x + mul_base_field_by_nonresidue(y) + y
     /// This allows for optimizations when the non-residue is not -1.
     #[inline(always)]
-    fn add_and_mul_base_field_by_nonresidue_plus_one(y: &mut Self::BaseField, x: &Self::BaseField) {
+    fn mul_base_field_by_nonresidue_plus_one_and_add(y: &mut Self::BaseField, x: &Self::BaseField) {
         let old_y = *y;
-        Self::add_and_mul_base_field_by_nonresidue_in_place(y, x);
+        Self::mul_base_field_by_nonresidue_and_add(y, x);
         *y += old_y;
     }
 
@@ -320,7 +320,7 @@ impl<P: QuadExtConfig> Field for QuadExtField<P> {
             // result.c0 = (c0^2 - beta * c0 * c1 + beta * c1^2) + (beta * c0 * c1)
             // result.c0 = c0^2 + beta * c1^2
             self.c0 = v2;
-            P::add_and_mul_base_field_by_nonresidue_plus_one(&mut self.c0, &v0);
+            P::mul_base_field_by_nonresidue_plus_one_and_add(&mut self.c0, &v0);
 
             self
         }
@@ -666,7 +666,7 @@ impl<'a, P: QuadExtConfig> MulAssign<&'a Self> for QuadExtField<P> {
             self.c1 -= &v0;
             self.c1 -= &v1;
             self.c0 = v1;
-            P::add_and_mul_base_field_by_nonresidue_in_place(&mut self.c0, &v0);
+            P::mul_base_field_by_nonresidue_and_add(&mut self.c0, &v0);
         }
     }
 }

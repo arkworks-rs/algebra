@@ -33,8 +33,8 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
     /// Can we use the no-carry optimization for multiplication
     /// outlined [here](https://hackmd.io/@gnark/modular_multiplication)?
     ///
-    /// This optimization applies if 
-    /// (a) `Self::MODULUS[N-1] < u64::MAX >> 1`, and 
+    /// This optimization applies if
+    /// (a) `Self::MODULUS[N-1] < u64::MAX >> 1`, and
     /// (b) the bits of the modulus are not all 1.
     #[doc(hidden)]
     const CAN_USE_NO_CARRY_MUL_OPT: bool = can_use_no_carry_mul_optimization::<Self, N>();
@@ -42,12 +42,11 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
     /// Can we use the no-carry optimization for squaring
     /// outlined [here](https://hackmd.io/@gnark/modular_multiplication)?
     ///
-    /// This optimization applies if 
-    /// (a) `Self::MODULUS[N-1] < u64::MAX >> 2`, and 
+    /// This optimization applies if
+    /// (a) `Self::MODULUS[N-1] < u64::MAX >> 2`, and
     /// (b) the bits of the modulus are not all 1.
     #[doc(hidden)]
     const CAN_USE_NO_CARRY_SQUARE_OPT: bool = can_use_no_carry_mul_optimization::<Self, N>();
-
 
     /// 2^s root of unity computed by GENERATOR^t
     const TWO_ADIC_ROOT_OF_UNITY: Fp<MontBackend<Self, N>, N>;
@@ -203,14 +202,15 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
             Self::mul_assign(a, &temp);
             return;
         }
-        if Self::CAN_USE_NO_CARRY_SQUARE_OPT 
+        if Self::CAN_USE_NO_CARRY_SQUARE_OPT
             && (2..=6).contains(&N)
             && cfg!(all(
                 feature = "asm",
                 target_feature = "bmi2",
                 target_feature = "adx",
                 target_arch = "x86_64"
-            )) {
+            ))
+        {
             #[cfg(all(
                 feature = "asm",
                 target_feature = "bmi2",
@@ -218,6 +218,7 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
                 target_arch = "x86_64"
             ))]
             #[allow(unsafe_code, unused_mut)]
+            #[rustfmt::skip]
             match N {
                 2 => { ark_ff_asm::x86_64_asm_square!(2, (a.0).0); },
                 3 => { ark_ff_asm::x86_64_asm_square!(3, (a.0).0); },
@@ -229,7 +230,7 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
             a.subtract_modulus();
             return;
         }
-        
+
         let mut r = crate::const_helpers::MulBuffer::<N>::zeroed();
 
         let mut carry = 0;
