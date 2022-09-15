@@ -132,7 +132,7 @@ pub type Fp832<P> = Fp<P, 13>;
 
 impl<P: FpConfig<N>, const N: usize> Fp<P, N> {
     #[inline]
-    pub(crate) fn is_geq_modulus(&self) -> bool {
+    pub fn is_geq_modulus(&self) -> bool {
         self.0 >= P::MODULUS
     }
 

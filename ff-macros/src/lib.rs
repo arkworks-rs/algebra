@@ -10,6 +10,7 @@
 use num_bigint::{BigInt, BigUint, Sign};
 use num_traits::One;
 use proc_macro::TokenStream;
+use quote::{format_ident, quote};
 use std::str::FromStr;
 use syn::{Expr, Item, ItemFn, Lit};
 
@@ -32,6 +33,11 @@ fn parse_string(input: TokenStream) -> Option<String> {
 }
 
 fn str_to_limbs(num: &str) -> (bool, Vec<String>) {
+    let (sign, limbs) = str_to_limbs_u64(num);
+    (sign, limbs.into_iter().map(|l| format!("{l}u64")).collect())
+}
+
+fn str_to_limbs_u64(num: &str) -> (bool, Vec<u64>) {
     let (sign, digits) = BigInt::from_str(num)
         .expect("could not parse to bigint")
         .to_radix_le(16);
@@ -42,7 +48,7 @@ fn str_to_limbs(num: &str) -> (bool, Vec<String>) {
             for (i, hexit) in chunk.iter().enumerate() {
                 this += (*hexit as u64) << (4 * i);
             }
-            format!("{}u64", this)
+            this
         })
         .collect::<Vec<_>>();
 
@@ -130,37 +136,274 @@ pub fn prime_field(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let modulus = modulus.to_string();
     let generator = generator.to_string();
     let two_adic_root_of_unity = two_adic_root_of_unity.to_string();
-    if let Some(large_subgroup_generator) = large_subgroup_generator {
+    let modulus_limbs = str_to_limbs_u64(&modulus).1;
+    let can_use_no_carry_mul_opt = (*modulus_limbs.last().unwrap() < (u64::MAX >> 1))
+        && modulus_limbs[..limbs - 1].iter().any(|l| *l != u64::MAX);
+    let modulus = quote::quote! { BigInt([ #( #modulus_limbs ),* ]) };
+
+    let add_with_carry = add_with_carry_impl(limbs);
+    let sub_with_borrow = sub_with_borrow_impl(limbs);
+    let subtract_modulus = subtract_modulus_impl(&modulus);
+    let mul_assign = mul_assign_impl(can_use_no_carry_mul_opt, limbs, &modulus_limbs);
+
+    let mixed_radix = if let Some(large_subgroup_generator) = large_subgroup_generator {
         quote::quote! {
-            #[automatically_derived]
-            impl ark_ff::fields::MontConfig<#limbs> for #name {
+            const SMALL_SUBGROUP_BASE: Option<u32> = Some(#small_subgroup_base);
 
-                const MODULUS: ark_ff::BigInt<#limbs> = ark_ff::BigInt!(#modulus);
+            const SMALL_SUBGROUP_BASE_ADICITY: Option<u32> = Some(#small_subgroup_power);
 
-                const GENERATOR: ark_ff::fields::Fp<ark_ff::fields::MontBackend<Self, #limbs>, #limbs> = ark_ff::MontFp!(#generator);
-
-                const TWO_ADIC_ROOT_OF_UNITY: ark_ff::fields::Fp<ark_ff::fields::MontBackend<Self, #limbs>, #limbs> = ark_ff::MontFp!(#two_adic_root_of_unity);
-
-                const SMALL_SUBGROUP_BASE: Option<u32> = Some(#small_subgroup_base);
-
-                const SMALL_SUBGROUP_BASE_ADICITY: Option<u32> = Some(#small_subgroup_power);
-
-                const LARGE_SUBGROUP_ROOT_OF_UNITY: Option<ark_ff::fields::Fp<ark_ff::fields::MontBackend<Self, #limbs>, #limbs>> = Some(ark_ff::MontFp!(#large_subgroup_generator));
-            }
+            const LARGE_SUBGROUP_ROOT_OF_UNITY: Option<F> = Some(ark_ff::MontFp!(#large_subgroup_generator));
         }
     } else {
-        quote::quote! {
+        quote::quote! {}
+    };
+    let mod_name = format_ident!("{}___", name.to_string().to_lowercase());
+    quote::quote! {
+        mod #mod_name {
+            use super::#name;
+            use ark_ff::{Field, PrimeField, fields::Fp, BigInt, BigInteger, biginteger::arithmetic as fa};
+            type B = BigInt<#limbs>;
+            type F = Fp<ark_ff::fields::MontBackend<#name, #limbs>, #limbs>;
             #[automatically_derived]
             impl ark_ff::fields::MontConfig<#limbs> for #name {
+                const MODULUS: B = #modulus;
 
-                const MODULUS: ark_ff::BigInt<#limbs> = ark_ff::BigInt!(#modulus);
+                const GENERATOR: F = ark_ff::MontFp!(#generator);
 
-                const GENERATOR: ark_ff::fields::Fp<ark_ff::fields::MontBackend<Self, #limbs>, #limbs> = ark_ff::MontFp!(#generator);
+                const TWO_ADIC_ROOT_OF_UNITY: F = ark_ff::MontFp!(#two_adic_root_of_unity);
 
-                const TWO_ADIC_ROOT_OF_UNITY: ark_ff::fields::Fp<ark_ff::fields::MontBackend<Self, #limbs>, #limbs> = ark_ff::MontFp!(#two_adic_root_of_unity);
+                #mixed_radix
+
+                #[inline(always)]
+                fn add_assign(a: &mut F, b: &F) {
+                    __add_with_carry(&mut a.0, &b.0);
+                    __subtract_modulus(a);
+                }
+                
+                #[inline(always)]
+                fn sub_assign(a: &mut F, b: &F) {
+                    // If `other` is larger than `self`, add the modulus to self first.
+                    if b.0 > a.0 {
+                        __add_with_carry(&mut a.0, &#modulus);
+                    }
+                    __sub_with_borrow(&mut a.0, &b.0);
+                }
+
+                #[inline(always)]
+                fn double_in_place(a: &mut F) {
+                    // This cannot exceed the backing capacity.
+                    a.0.mul2();
+                    // However, it may need to be reduced.
+                    __subtract_modulus(a);
+                }
+
+                /// Sets `a = -a`.
+                #[inline(always)]
+                fn neg_in_place(a: &mut F) {
+                    if *a != F::ZERO {
+                        let mut tmp = #modulus;
+                        __sub_with_borrow(&mut tmp, &a.0);
+                        a.0 = tmp;
+                    }
+                }
+
+                #[inline(always)]
+                fn mul_assign(a: &mut F, b: &F) {
+                    #mul_assign
+                }
+            }
+            
+            #subtract_modulus
+            
+            #add_with_carry
+            
+            #sub_with_borrow
+        }
+    }
+    .into()
+}
+
+fn add_with_carry_impl(num_limbs: usize) -> proc_macro2::TokenStream {
+    let mut body = proc_macro2::TokenStream::new();
+    body.extend(quote! {
+        use ark_ff::biginteger::arithmetic::adc_for_add_with_carry as adc;
+        let mut carry = 0;
+    });
+    for i in 0..num_limbs {
+        body.extend(quote! {
+            carry = adc(&mut a.0[#i], b.0[#i], carry);
+        });
+    }
+    body.extend(quote! {
+        carry != 0
+    });
+    quote! {
+        #[inline(always)]
+        fn __add_with_carry(
+            a: &mut B,
+            b: & B,
+        ) -> bool {
+            #body
+        }
+    }
+    .into()
+}
+
+fn sub_with_borrow_impl(num_limbs: usize) -> proc_macro2::TokenStream {
+    let mut body = proc_macro2::TokenStream::new();
+    body.extend(quote! {
+        use ark_ff::biginteger::arithmetic::sbb_for_sub_with_borrow as sbb;
+        let mut borrow = 0;
+    });
+    for i in 0..num_limbs {
+        body.extend(quote! {
+            borrow = sbb(&mut a.0[#i], b.0[#i], borrow);
+        });
+    }
+    body.extend(quote! {
+        borrow != 0
+    });
+    quote! {
+        #[inline(always)]
+        fn __sub_with_borrow(
+            a: &mut B,
+            b: & B,
+        ) -> bool {
+            #body
+        }
+    }
+    .into()
+}
+
+fn subtract_modulus_impl(modulus: &proc_macro2::TokenStream) -> proc_macro2::TokenStream {
+    quote! {
+        #[inline(always)]
+        fn __subtract_modulus(a: &mut F) {
+            if a.is_geq_modulus() {
+                __sub_with_borrow(&mut a.0, &#modulus);
             }
         }
-    }.into()
+    }
+}
+
+fn mul_assign_impl(
+    can_use_no_carry_mul_opt: bool,
+    num_limbs: usize,
+    modulus_limbs: &[u64],
+) -> proc_macro2::TokenStream {
+    let mut body = proc_macro2::TokenStream::new();
+    let modulus_0 = modulus_limbs[0];
+    if can_use_no_carry_mul_opt {
+        // This modular multiplication algorithm uses Montgomery
+        // reduction for efficient implementation. It also additionally
+        // uses the "no-carry optimization" outlined
+        // [here](https://hackmd.io/@gnark/modular_multiplication) if
+        // `MODULUS` has (a) a non-zero MSB, and (b) at least one
+        // zero bit in the rest of the modulus.
+
+        let mut default = proc_macro2::TokenStream::new();
+        default.extend(quote! { let mut r = [0u64; #num_limbs]; });
+        for i in 0..num_limbs {
+            default.extend(quote! {
+                let mut carry1 = 0u64;
+                r[0] = fa::mac(r[0], (a.0).0[0], (b.0).0[#i], &mut carry1);
+                let k = r[0].wrapping_mul(Self::INV);
+                let mut carry2 = 0u64;
+                fa::mac_discard(r[0], k, #modulus_0, &mut carry2);
+            });
+            for j in 1..num_limbs {
+                let modulus_j = modulus_limbs[j];
+                let idx = j - 1;
+                default.extend(quote! {
+                    r[#j] = fa::mac_with_carry(r[#j], (a.0).0[#j], (b.0).0[#i], &mut carry1);
+                    r[#idx] = fa::mac_with_carry(r[#j], k, #modulus_j, &mut carry2);
+                });
+            }
+            default.extend(quote!(r[#num_limbs - 1] = carry1 + carry2;));
+        }
+        default.extend(quote!((a.0).0 = r;));
+        if (2..=6).contains(&num_limbs) {
+            body.extend(quote!({
+                if cfg!(all(
+                    feature = "asm",
+                    target_feature = "bmi2",
+                    target_feature = "adx",
+                    target_arch = "x86_64"
+                )) {
+                    // Tentatively avoid using assembly for `N == 1`.
+                    #[cfg(
+                        all(
+                            feature = "asm",
+                            target_feature = "bmi2",
+                            target_feature = "adx",
+                            target_arch = "x86_64"
+                        )
+                    )]
+                    #[allow(unsafe_code, unused_mut)]
+                    #[rustfmt::skip]
+                    match N {
+                        2 => { ark_ff_asm::x86_64_asm_mul!(2, (a.0).0, (b.0).0); },
+                        3 => { ark_ff_asm::x86_64_asm_mul!(3, (a.0).0, (b.0).0); },
+                        4 => { ark_ff_asm::x86_64_asm_mul!(4, (a.0).0, (b.0).0); },
+                        5 => { ark_ff_asm::x86_64_asm_mul!(5, (a.0).0, (b.0).0); },
+                        6 => { ark_ff_asm::x86_64_asm_mul!(6, (a.0).0, (b.0).0); },
+                        _ => unsafe { ark_std::hint::unreachable_unchecked() },
+                    };
+                } else {
+                    #default
+                }
+            }))
+        } else {
+            body.extend(quote!({
+                #default
+            }))
+        }
+    } else {
+        // We use standard CIOS
+        body.extend(quote! {
+            let (mut lo, mut hi) = ([0u64; #num_limbs], [0u64; #num_limbs]);
+        });
+        for i in 0..num_limbs {
+            body.extend(quote! { let mut carry = 0; });
+            for j in 0..num_limbs {
+                let k = i + j;
+                if k >= num_limbs {
+                    let idx = k - num_limbs;
+                    body.extend(quote!{hi[#idx] = fa::mac_with_carry(hi[#idx], (a.0).0[#i], (b.0).0[#j], &mut carry);});
+                } else {
+                    body.extend(quote!{lo[#k] = fa::mac_with_carry(lo[#k], (a.0).0[#i], (b.0).0[#j], &mut carry);});
+                }
+                body.extend(quote! { hi[#i] = carry; });
+            }
+        }
+        body.extend(quote!( let mut carry2 = 0; ));
+        for i in 0..num_limbs {
+            body.extend(quote! {
+                let tmp = lo[#i].wrapping_mul(Self::INV);
+                let mut carry = 0;
+                fa::mac(lo[#i], tmp, #modulus_0, &mut carry);
+            });
+            for j in 1..num_limbs {
+                let modulus_j = modulus_limbs[j];
+                let k = i + j;
+                if k >= num_limbs {
+                    let idx = k - num_limbs;
+                    body.extend(quote!(hi[#idx] = fa::mac_with_carry(hi[#idx], tmp, #modulus_j, &mut carry);));
+                } else {
+                    body.extend(
+                        quote!(lo[#k] = fa::mac_with_carry(lo[#k], tmp, modulus_j, &mut carry);),
+                    );
+                }
+                body.extend(quote!(hi[#i] = fa::adc(hi[#i], carry, &mut carry2);));
+            }
+        }
+        body.extend(quote! {
+            (a.0).0 = hi;
+        });
+    }
+    body.extend(quote!(__subtract_modulus(a);));
+    println!("{body}");
+    body
 }
 
 const ARG_MSG: &str = "Failed to parse unroll threshold; must be a positive integer";

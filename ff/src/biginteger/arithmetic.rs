@@ -20,7 +20,8 @@ pub(crate) fn adc(a: &mut u64, b: u64, carry: u64) -> u64 {
 /// Sets a = a + b + carry, and returns the new carry.
 #[inline(always)]
 #[allow(unused_mut)]
-pub(crate) fn adc_for_add_with_carry(a: &mut u64, b: u64, carry: u8) -> u8 {
+#[doc(hidden)]
+pub fn adc_for_add_with_carry(a: &mut u64, b: u64, carry: u8) -> u8 {
     #[cfg(all(target_arch = "x86_64", feature = "asm"))]
     #[allow(unsafe_code)]
     unsafe {
@@ -67,7 +68,8 @@ pub(crate) fn sbb(a: &mut u64, b: u64, borrow: u64) -> u64 {
 /// Sets a = a - b - borrow, and returns the borrow.
 #[inline(always)]
 #[allow(unused_mut)]
-pub(crate) fn sbb_for_sub_with_borrow(a: &mut u64, b: u64, borrow: u8) -> u8 {
+#[doc(hidden)]
+pub fn sbb_for_sub_with_borrow(a: &mut u64, b: u64, borrow: u8) -> u8 {
     #[cfg(all(target_arch = "x86_64", feature = "asm"))]
     #[allow(unsafe_code)]
     unsafe {
@@ -85,7 +87,8 @@ pub(crate) fn sbb_for_sub_with_borrow(a: &mut u64, b: u64, borrow: u8) -> u8 {
 /// Calculate a + b * c, returning the lower 64 bits of the result and setting
 /// `carry` to the upper 64 bits.
 #[inline(always)]
-pub(crate) fn mac(a: u64, b: u64, c: u64, carry: &mut u64) -> u64 {
+#[doc(hidden)]
+pub fn mac(a: u64, b: u64, c: u64, carry: &mut u64) -> u64 {
     let tmp = (a as u128) + (b as u128 * c as u128);
     *carry = (tmp >> 64) as u64;
     tmp as u64
@@ -94,7 +97,8 @@ pub(crate) fn mac(a: u64, b: u64, c: u64, carry: &mut u64) -> u64 {
 /// Calculate a + b * c, discarding the lower 64 bits of the result and setting
 /// `carry` to the upper 64 bits.
 #[inline(always)]
-pub(crate) fn mac_discard(a: u64, b: u64, c: u64, carry: &mut u64) {
+#[doc(hidden)]
+pub fn mac_discard(a: u64, b: u64, c: u64, carry: &mut u64) {
     let tmp = (a as u128) + (b as u128 * c as u128);
     *carry = (tmp >> 64) as u64;
 }
@@ -118,11 +122,19 @@ macro_rules! mac {
 /// Calculate a + (b * c) + carry, returning the least significant digit
 /// and setting carry to the most significant digit.
 #[inline(always)]
-pub(crate) fn mac_with_carry(a: u64, b: u64, c: u64, carry: &mut u64) -> u64 {
+#[doc(hidden)]
+pub fn mac_with_carry(a: u64, b: u64, c: u64, carry: &mut u64) -> u64 {
     let tmp = (a as u128) + (b as u128 * c as u128) + (*carry as u128);
     *carry = (tmp >> 64) as u64;
     tmp as u64
 }
+
+// pub(crate) fn mac_with_carry_x86(a: u64, b: u64, c: u64, d: u64, lo: &mut u64, hi: &mut u64, carry: &mut u8, overflow: &mut u8) -> (u8, u8) {
+//     use core::arch::x86_64::_mulx_u64;
+//     *lo = _mulx_u64(a, b, &mut hi);
+//     *carry = _addcarryx_u64(*carry, c, lo, &mut lo);
+//     *overflow = _addcarryx_u64(*overflow, r12, hi, &mut r12);
+// }
 
 /// Compute the NAF (non-adjacent form) of num
 pub fn find_naf(num: &[u64]) -> Vec<i8> {
