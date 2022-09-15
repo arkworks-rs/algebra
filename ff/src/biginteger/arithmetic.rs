@@ -11,7 +11,8 @@ macro_rules! adc {
 /// Sets a = a + b + carry, and returns the new carry.
 #[inline(always)]
 #[allow(unused_mut)]
-pub(crate) fn adc(a: &mut u64, b: u64, carry: u64) -> u64 {
+#[doc(hidden)]
+pub fn adc(a: &mut u64, b: u64, carry: u64) -> u64 {
     let tmp = *a as u128 + b as u128 + carry as u128;
     *a = tmp as u64;
     (tmp >> 64) as u64
@@ -38,7 +39,8 @@ pub fn adc_for_add_with_carry(a: &mut u64, b: u64, carry: u8) -> u8 {
 
 /// Calculate a + b + carry, returning the sum
 #[inline(always)]
-pub(crate) fn adc_no_carry(a: u64, b: u64, carry: &mut u64) -> u64 {
+#[doc(hidden)]
+pub fn adc_no_carry(a: u64, b: u64, carry: &mut u64) -> u64 {
     let tmp = a as u128 + b as u128 + *carry as u128;
     tmp as u64
 }
