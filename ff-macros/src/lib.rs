@@ -179,7 +179,7 @@ pub fn prime_field(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
                     __add_with_carry(&mut a.0, &b.0);
                     __subtract_modulus(a);
                 }
-                
+
                 #[inline(always)]
                 fn sub_assign(a: &mut F, b: &F) {
                     // If `other` is larger than `self`, add the modulus to self first.
@@ -212,11 +212,11 @@ pub fn prime_field(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
                     #mul_assign
                 }
             }
-            
+
             #subtract_modulus
-            
+
             #add_with_carry
-            
+
             #sub_with_borrow
         }
     }
@@ -322,6 +322,7 @@ fn mul_assign_impl(
             default.extend(quote!(r[#num_limbs - 1] = carry1 + carry2;));
         }
         default.extend(quote!((a.0).0 = r;));
+        // Avoid using assembly for `N == 1`.
         if (2..=6).contains(&num_limbs) {
             body.extend(quote!({
                 if cfg!(all(
@@ -330,7 +331,6 @@ fn mul_assign_impl(
                     target_feature = "adx",
                     target_arch = "x86_64"
                 )) {
-                    // Tentatively avoid using assembly for `N == 1`.
                     #[cfg(
                         all(
                             feature = "asm",
@@ -340,15 +340,7 @@ fn mul_assign_impl(
                         )
                     )]
                     #[allow(unsafe_code, unused_mut)]
-                    #[rustfmt::skip]
-                    match N {
-                        2 => { ark_ff_asm::x86_64_asm_mul!(2, (a.0).0, (b.0).0); },
-                        3 => { ark_ff_asm::x86_64_asm_mul!(3, (a.0).0, (b.0).0); },
-                        4 => { ark_ff_asm::x86_64_asm_mul!(4, (a.0).0, (b.0).0); },
-                        5 => { ark_ff_asm::x86_64_asm_mul!(5, (a.0).0, (b.0).0); },
-                        6 => { ark_ff_asm::x86_64_asm_mul!(6, (a.0).0, (b.0).0); },
-                        _ => unsafe { ark_std::hint::unreachable_unchecked() },
-                    };
+                    ark_ff::x86_64_asm_mul!(#num_limbs, (a.0).0, (b.0).0);
                 } else {
                     #default
                 }
@@ -402,7 +394,6 @@ fn mul_assign_impl(
         });
     }
     body.extend(quote!(__subtract_modulus(a);));
-    println!("{body}");
     body
 }
 
