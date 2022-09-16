@@ -653,6 +653,7 @@ mod tests;
 /// This defines a `BigInteger`, a smart wrapper around a
 /// sequence of `u64` limbs, least-significant limb first.
 // TODO: get rid of this trait once we can use associated constants in const generics.
+// TODO: and remove the `ark-serialize/derive` feature in the Cargo.toml
 pub trait BigInteger:
     CanonicalSerialize
     + CanonicalDeserialize
