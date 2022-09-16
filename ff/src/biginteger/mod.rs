@@ -4,10 +4,13 @@ use crate::{
     UniformRand,
 };
 use ark_ff_macros::unroll_for_loops;
-use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
+use ark_serialize::{
+    CanonicalDeserialize, CanonicalSerialize, Compress, SerializationError, Valid, Validate,
+};
 use ark_std::{
     convert::TryFrom,
     fmt::{Debug, Display, UpperHex},
+    io::{Read, Write},
     rand::{
         distributions::{Distribution, Standard},
         Rng,
@@ -20,14 +23,44 @@ use zeroize::Zeroize;
 #[macro_use]
 pub mod arithmetic;
 
-#[derive(
-    Copy, Clone, PartialEq, Eq, Debug, Hash, Zeroize, CanonicalSerialize, CanonicalDeserialize,
-)]
+#[derive(Copy, Clone, PartialEq, Eq, Debug, Hash, Zeroize)]
 pub struct BigInt<const N: usize>(pub [u64; N]);
 
 impl<const N: usize> Default for BigInt<N> {
     fn default() -> Self {
         Self([0u64; N])
+    }
+}
+
+impl<const N: usize> CanonicalSerialize for BigInt<N> {
+    fn serialize_with_mode<W: Write>(
+        &self,
+        writer: W,
+        compress: Compress,
+    ) -> Result<(), SerializationError> {
+        self.0.serialize_with_mode(writer, compress)
+    }
+
+    fn serialized_size(&self, compress: Compress) -> usize {
+        self.0.serialized_size(compress)
+    }
+}
+
+impl<const N: usize> Valid for BigInt<N> {
+    fn check(&self) -> Result<(), SerializationError> {
+        self.0.check()
+    }
+}
+
+impl<const N: usize> CanonicalDeserialize for BigInt<N> {
+    fn deserialize_with_mode<R: Read>(
+        reader: R,
+        compress: Compress,
+        validate: Validate,
+    ) -> Result<Self, SerializationError> {
+        Ok(BigInt::<N>(<[u64; N]>::deserialize_with_mode(
+            reader, compress, validate,
+        )?))
     }
 }
 

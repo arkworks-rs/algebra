@@ -17,7 +17,7 @@ rust-version = "1.59"
 ark-ff-asm = { version = "^0.3.0", path = "../ff-asm" }
 ark-ff-macros = { version = "^0.3.0", path = "../ff-macros" }
 ark-std = { version = "^0.3.0", default-features = false }
-ark-serialize = { version = "^0.3.0", path = "../serialize", features = ["derive"], default-features = false }
+ark-serialize = { version = "^0.3.0", path = "../serialize", default-features = false }
 derivative = { version = "2", features = ["use_core"] }
 num-traits = { version = "0.2", default-features = false }
 paste = "1.0"
