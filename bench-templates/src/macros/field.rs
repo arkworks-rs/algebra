@@ -63,7 +63,7 @@ macro_rules! f_bench {
 macro_rules! field_common {
     ($curve_name:expr, $F:ident) => {
         fn arithmetic(c: &mut $crate::criterion::Criterion) {
-            let name = format!("{}::{}", stringify!($curve), stringify!($F));
+            let name = format!("{}::{}", $curve_name, stringify!($F));
             const SAMPLES: usize = 1000;
             let mut rng = ark_std::test_rng();
             let mut arithmetic = c.benchmark_group(format!("Arithmetic for {name}"));
@@ -148,7 +148,7 @@ macro_rules! field_common {
 
         fn serialization(c: &mut $crate::criterion::Criterion) {
             use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
-            let name = format!("{}::{}", stringify!($curve), stringify!($F));
+            let name = format!("{}::{}", $curve_name, stringify!($F));
             const SAMPLES: usize = 1000;
 
             let mut rng = ark_std::test_rng();
@@ -237,7 +237,7 @@ macro_rules! sqrt {
         fn sqrt(c: &mut $crate::criterion::Criterion) {
             use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
             const SAMPLES: usize = 1000;
-            let name = format!("{}::{}", stringify!($curve), stringify!($F));
+            let name = format!("{}::{}", $curve_name, stringify!($F));
 
             let mut rng = ark_std::test_rng();
 
@@ -274,7 +274,7 @@ macro_rules! prime_field {
             type BigInt = <$F as PrimeField>::BigInt;
             const SAMPLES: usize = 1000;
 
-            let name = format!("{}::{}", stringify!($curve), stringify!($F));
+            let name = format!("{}::{}", $curve_name, stringify!($F));
             let mut rng = ark_std::test_rng();
 
             let (v1, v2): (Vec<_>, Vec<_>) = (0..SAMPLES)
