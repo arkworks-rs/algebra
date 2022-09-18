@@ -1,14 +1,14 @@
 #[macro_export]
 macro_rules! f_bench {
     // Use this for base fields
-    (prime, $curve_name:expr, $F:ident) => {
+    (prime, $field_name:expr, $F:ident) => {
         $crate::paste! {
             mod [<$F:lower>] {
                 use super::*;
                 use ark_ff::{Field, PrimeField, UniformRand};
-                field_common!($curve_name, $F);
-                sqrt!($curve_name, $F);
-                prime_field!($curve_name, $F);
+                field_common!($field_name, $F);
+                sqrt!($field_name, $F);
+                prime_field!($field_name, $F);
                 $crate::criterion_group!(
                     benches,
                     // common stuff
@@ -23,13 +23,13 @@ macro_rules! f_bench {
         }
     };
     // use this for intermediate fields
-    (extension, $curve_name:expr, $F:ident) => {
+    (extension, $field_name:expr, $F:ident) => {
         $crate::paste! {
             mod [<$F:lower>] {
                 use super::*;
                 use ark_ff::{Field, UniformRand};
-                field_common!($curve_name, $F);
-                sqrt!($curve_name, $F);
+                field_common!($field_name, $F);
+                sqrt!($field_name, $F);
                 $crate::criterion_group!(
                     benches,
                     // common stuff
@@ -42,12 +42,12 @@ macro_rules! f_bench {
         }
     };
     // Use this for the target field.
-    (target, $curve_name:expr, $F:ident) => {
+    (target, $field_name:expr, $F:ident) => {
         $crate::paste! {
             mod [<$F:lower>] {
                 use super::*;
                 use ark_ff::{Field, UniformRand};
-                field_common!($curve_name, $F);
+                field_common!($field_name, $F);
                 $crate::criterion_group!(
                     benches,
                     // common stuff
@@ -61,9 +61,9 @@ macro_rules! f_bench {
 
 #[macro_export]
 macro_rules! field_common {
-    ($curve_name:expr, $F:ident) => {
+    ($field_name:expr, $F:ident) => {
         fn arithmetic(c: &mut $crate::criterion::Criterion) {
-            let name = format!("{}::{}", stringify!($curve), stringify!($F));
+            let name = format!("{}::{}", $field_name, stringify!($F));
             const SAMPLES: usize = 1000;
             let mut rng = ark_std::test_rng();
             let mut arithmetic = c.benchmark_group(format!("Arithmetic for {name}"));
@@ -148,7 +148,7 @@ macro_rules! field_common {
 
         fn serialization(c: &mut $crate::criterion::Criterion) {
             use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
-            let name = format!("{}::{}", stringify!($curve), stringify!($F));
+            let name = format!("{}::{}", $field_name, stringify!($F));
             const SAMPLES: usize = 1000;
 
             let mut rng = ark_std::test_rng();
@@ -233,11 +233,11 @@ macro_rules! field_common {
 
 #[macro_export]
 macro_rules! sqrt {
-    ($curve_name:expr, $F:ident) => {
+    ($field_name:expr, $F:ident) => {
         fn sqrt(c: &mut $crate::criterion::Criterion) {
             use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
             const SAMPLES: usize = 1000;
-            let name = format!("{}::{}", stringify!($curve), stringify!($F));
+            let name = format!("{}::{}", $field_name, stringify!($F));
 
             let mut rng = ark_std::test_rng();
 
@@ -268,13 +268,13 @@ macro_rules! sqrt {
 
 #[macro_export]
 macro_rules! prime_field {
-    ($curve_name:expr, $F:ident) => {
+    ($field_name:expr, $F:ident) => {
         fn bigint(c: &mut $crate::criterion::Criterion) {
             use ark_ff::{BigInteger, PrimeField};
             type BigInt = <$F as PrimeField>::BigInt;
             const SAMPLES: usize = 1000;
 
-            let name = format!("{}::{}", stringify!($curve), stringify!($F));
+            let name = format!("{}::{}", $field_name, stringify!($F));
             let mut rng = ark_std::test_rng();
 
             let (v1, v2): (Vec<_>, Vec<_>) = (0..SAMPLES)
