@@ -3,11 +3,13 @@ use crate::{
     short_weierstrass::{Affine, Projective},
     AffineRepr, CurveGroup,
 };
+use ark_serialize::*;
+use ark_std::vec::Vec;
 
 pub type G1Affine<P> = Affine<<P as Bls12Parameters>::G1Parameters>;
 pub type G1Projective<P> = Projective<<P as Bls12Parameters>::G1Parameters>;
 
-#[derive(Derivative)]
+#[derive(Derivative, CanonicalSerialize, CanonicalDeserialize)]
 #[derivative(
     Clone(bound = "P: Bls12Parameters"),
     Debug(bound = "P: Bls12Parameters"),
@@ -42,7 +44,7 @@ impl<'a, P: Bls12Parameters> From<&'a G1Projective<P>> for G1Prepared<P> {
 
 impl<P: Bls12Parameters> G1Prepared<P> {
     pub fn is_zero(&self) -> bool {
-        self.0.is_identity()
+        self.0.is_zero()
     }
 }
 

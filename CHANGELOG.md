@@ -144,6 +144,8 @@
 - [\#430](https://github.com/arkworks-rs/algebra/pull/430) (`ark-ec`) Add functionality for mapping a field element to a curve element for hash-to-curve.
 - [\#440](https://github.com/arkworks-rs/algebra/pull/440) (`ark-ff`) Add a method to construct a field element from an element of the underlying base prime field.
 - [\#446](https://github.com/arkworks-rs/algebra/pull/446) (`ark-ff`) Add `CyclotomicMultSubgroup` trait and impl for extension fields
+- [\#467](https://github.com/arkworks-rs/algebra/pull/467) (`ark-ec`)
+    - Move implementation of `serialize_with_mode()`, `deserialize_with_mode()`, and `serialized_size()` into `{SW,TE}CurveConfig` to allow customization.
 
 ### Improvements
 

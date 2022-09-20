@@ -57,13 +57,10 @@ impl<F: Field> DenseMultilinearExtension<F> {
         if a > b {
             ark_std::mem::swap(&mut a, &mut b);
         }
-        assert!(
-            a + k < self.num_vars && b + k < self.num_vars,
-            "invalid relabel argument"
-        );
         if a == b || k == 0 {
             return;
         }
+        assert!(b + k <= self.num_vars, "invalid relabel argument");
         assert!(a + k <= b, "overlapped swap window is not allowed");
         for i in 0..self.evaluations.len() {
             let j = swap_bits(i, a, b, k);
@@ -334,6 +331,10 @@ mod tests {
             poly.relabel_inplace(7, 0, 2);
             point.swap(0, 7);
             point.swap(1, 8);
+            assert_eq!(expected, poly.evaluate(&point));
+
+            poly.relabel_inplace(0, 9, 1);
+            point.swap(0, 9);
             assert_eq!(expected, poly.evaluate(&point));
         }
     }

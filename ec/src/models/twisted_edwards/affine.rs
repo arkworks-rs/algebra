@@ -1,6 +1,5 @@
 use ark_serialize::{
-    CanonicalDeserialize, CanonicalDeserializeWithFlags, CanonicalSerialize,
-    CanonicalSerializeWithFlags, Compress, SerializationError, Valid, Validate,
+    CanonicalDeserialize, CanonicalSerialize, Compress, SerializationError, Valid, Validate,
 };
 use ark_std::{
     borrow::Borrow,
@@ -41,7 +40,7 @@ pub struct Affine<P: TECurveConfig> {
 
 impl<P: TECurveConfig> Display for Affine<P> {
     fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
-        match self.is_identity() {
+        match self.is_zero() {
             true => write!(f, "infinity"),
             false => write!(f, "({}, {})", self.x, self.y),
         }
@@ -50,7 +49,7 @@ impl<P: TECurveConfig> Display for Affine<P> {
 
 impl<P: TECurveConfig> Debug for Affine<P> {
     fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
-        match self.is_identity() {
+        match self.is_zero() {
             true => write!(f, "infinity"),
             false => write!(f, "({}, {})", self.x, self.y),
         }
@@ -80,12 +79,12 @@ impl<P: TECurveConfig> Affine<P> {
     }
 
     /// Construct the identity of the group
-    pub const fn identity() -> Self {
+    pub const fn zero() -> Self {
         Self::new_unchecked(P::BaseField::ZERO, P::BaseField::ONE)
     }
 
     /// Is this point the identity?
-    pub fn is_identity(&self) -> bool {
+    pub fn is_zero(&self) -> bool {
         self.x.is_zero() && self.y.is_one()
     }
 
@@ -168,14 +167,14 @@ impl<P: TECurveConfig> AffineRepr for Affine<P> {
     type Group = Projective<P>;
 
     fn xy(&self) -> Option<(&Self::BaseField, &Self::BaseField)> {
-        (!self.is_identity()).then(|| (&self.x, &self.y))
+        (!self.is_zero()).then(|| (&self.x, &self.y))
     }
 
     fn generator() -> Self {
         P::GENERATOR
     }
 
-    fn identity() -> Self {
+    fn zero() -> Self {
         Self::new_unchecked(P::BaseField::ZERO, P::BaseField::ONE)
     }
 
@@ -255,11 +254,12 @@ impl<P: TECurveConfig, T: Borrow<Self>> Sub<T> for Affine<P> {
 impl<P: TECurveConfig> Default for Affine<P> {
     #[inline]
     fn default() -> Self {
-        Self::identity()
+        Self::zero()
     }
 }
 
 impl<P: TECurveConfig> Distribution<Affine<P>> for Standard {
+    /// Generates a uniformly random instance of the curve.
     #[inline]
     fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> Affine<P> {
         loop {
@@ -287,7 +287,7 @@ impl<'a, P: TECurveConfig, T: Borrow<P::ScalarField>> Mul<T> for Affine<P> {
 impl<P: TECurveConfig> From<Projective<P>> for Affine<P> {
     fn from(p: Projective<P>) -> Affine<P> {
         if p.is_zero() {
-            Affine::identity()
+            Affine::zero()
         } else if p.z.is_one() {
             // If Z is one, the point is already normalized.
             Affine::new_unchecked(p.x, p.y)
@@ -301,30 +301,18 @@ impl<P: TECurveConfig> From<Projective<P>> for Affine<P> {
     }
 }
 impl<P: TECurveConfig> CanonicalSerialize for Affine<P> {
-    #[allow(unused_qualifications)]
     #[inline]
     fn serialize_with_mode<W: Write>(
         &self,
-        mut writer: W,
+        writer: W,
         compress: ark_serialize::Compress,
     ) -> Result<(), SerializationError> {
-        let flags = TEFlags::from_x_coordinate(self.x);
-        match compress {
-            Compress::Yes => self.y.serialize_with_flags(writer, flags),
-            Compress::No => {
-                self.x.serialize_uncompressed(&mut writer)?;
-                self.y.serialize_uncompressed(&mut writer)
-            },
-        }
+        P::serialize_with_mode(self, writer, compress)
     }
 
     #[inline]
     fn serialized_size(&self, compress: Compress) -> usize {
-        let zero = P::BaseField::zero();
-        match compress {
-            Compress::Yes => zero.serialized_size_with_flags::<TEFlags>(),
-            Compress::No => self.x.uncompressed_size() + self.y.uncompressed_size(),
-        }
+        P::serialized_size(compress)
     }
 }
 
@@ -339,35 +327,12 @@ impl<P: TECurveConfig> Valid for Affine<P> {
 }
 
 impl<P: TECurveConfig> CanonicalDeserialize for Affine<P> {
-    #[allow(unused_qualifications)]
     fn deserialize_with_mode<R: Read>(
-        mut reader: R,
+        reader: R,
         compress: Compress,
         validate: Validate,
     ) -> Result<Self, SerializationError> {
-        let (x, y) = match compress {
-            Compress::Yes => {
-                let (y, flags): (_, TEFlags) =
-                    CanonicalDeserializeWithFlags::deserialize_with_flags(reader)?;
-                let (x, neg_x) =
-                    Self::get_xs_from_y_unchecked(y).ok_or(SerializationError::InvalidData)?;
-                if flags.is_negative() {
-                    (neg_x, y)
-                } else {
-                    (x, y)
-                }
-            },
-            Compress::No => {
-                let x: P::BaseField = CanonicalDeserialize::deserialize_uncompressed(&mut reader)?;
-                let y: P::BaseField = CanonicalDeserialize::deserialize_uncompressed(&mut reader)?;
-                (x, y)
-            },
-        };
-        let point = Self::new_unchecked(x, y);
-        if let Validate::Yes = validate {
-            point.check()?;
-        }
-        Ok(point)
+        P::deserialize_with_mode(reader, compress, validate)
     }
 }
 
