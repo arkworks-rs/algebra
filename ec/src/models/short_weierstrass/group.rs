@@ -260,6 +260,7 @@ impl<P: SWCurveConfig> Group for Projective<P> {
             self.x -= s.double();
 
             // Z3 = (Y1+Z1)^2-YY-ZZ
+            // Can be calculated as Z3 = 2*Y1*Z1, and this is faster.
             self.z *= self.y;
             self.z.double_in_place();
 
@@ -504,7 +505,7 @@ impl<'a, P: SWCurveConfig> AddAssign<&'a Self> for Projective<P> {
             let mut v = u1;
             v *= &i;
 
-            // X3 = r^2 - J - 2*V
+            // X3 = r^2 + J - 2*V
             self.x = r;
             self.x.square_in_place();
             self.x += &j;

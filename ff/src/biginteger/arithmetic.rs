@@ -131,12 +131,6 @@ pub fn mac_with_carry(a: u64, b: u64, c: u64, carry: &mut u64) -> u64 {
     tmp as u64
 }
 
-// pub(crate) fn mac_with_carry_x86(a: u64, b: u64, c: u64, d: u64, lo: &mut u64, hi: &mut u64, carry: &mut u8, overflow: &mut u8) -> (u8, u8) {
-//     use core::arch::x86_64::_mulx_u64;
-//     *lo = _mulx_u64(a, b, &mut hi);
-//     *carry = _addcarryx_u64(*carry, c, lo, &mut lo);
-//     *overflow = _addcarryx_u64(*overflow, r12, hi, &mut r12);
-// }
 
 /// Compute the NAF (non-adjacent form) of num
 pub fn find_naf(num: &[u64]) -> Vec<i8> {
