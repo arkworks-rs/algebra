@@ -39,6 +39,7 @@ pub(super) fn sum_of_products_impl(num_limbs: usize, modulus: &[u64]) -> proc_ma
                 result.0[#i - 1] = fa::mac_with_carry(result.0[#i], k, #modulus_i, &mut carry2);
             });
         }
+        let modulus_0 = modulus[0];
         body.extend(quote! {
         // Algorithm 2, line 2
         let result = (0..#num_limbs).fold(BigInt::zero(), |mut result, j| {
@@ -56,7 +57,7 @@ pub(super) fn sum_of_products_impl(num_limbs: usize, modulus: &[u64]) -> proc_ma
 
             let k = result.0[0].wrapping_mul(Self::INV);
             let mut carry2 = 0;
-            fa::mac_discard(result.0[0], k, Self::MODULUS.0[0], &mut carry2);
+            fa::mac_discard(result.0[0], k, #modulus_0, &mut carry2);
             #mont_red_body
             result.0[#num_limbs - 1] = fa::adc_no_carry(carry_a, carry_b, &mut carry2);
             result
