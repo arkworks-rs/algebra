@@ -154,6 +154,7 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
         *hi = neg;
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn apply_butterfly<T: DomainCoeff<F>, G: Fn(((&mut T, &mut T), &F)) + Copy + Sync + Send>(
         g: G,
         xi: &mut [T],

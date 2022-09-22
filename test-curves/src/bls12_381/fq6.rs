@@ -80,11 +80,10 @@ impl Fp6Config for Fq6Config {
 
     /// Multiply this element by the quadratic nonresidue 1 + u.
     /// Make this generic.
-    fn mul_fp2_by_nonresidue(fe: &Fq2) -> Fq2 {
-        let mut copy = *fe;
-        let t0 = copy.c0;
-        copy.c0 -= &fe.c1;
-        copy.c1 += &t0;
-        copy
+    fn mul_fp2_by_nonresidue_in_place(fe: &mut Fq2) -> &mut Fq2 {
+        let t0 = fe.c0;
+        fe.c0 -= &fe.c1;
+        fe.c1 += &t0;
+        fe
     }
 }

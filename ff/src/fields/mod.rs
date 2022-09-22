@@ -48,6 +48,7 @@ use rayon::prelude::*;
 /// pub struct FqConfig;
 /// pub type Fq = Fp64<MontBackend<FqConfig, 1>>;
 ///
+/// # fn main() {
 /// let a = Fq::from(9);
 /// let b = Fq::from(10);
 ///
@@ -58,6 +59,7 @@ use rayon::prelude::*;
 /// assert_eq!(a.square(), Fq::from(13)); // 81 = 13 mod 17
 /// assert_eq!(b.double(), Fq::from(3));  // 20 =  3 mod 17
 /// assert_eq!(a / b, a * b.inverse().unwrap()); // need to unwrap since `b` could be 0 which is not invertible
+/// # }
 /// ```
 ///
 /// ## Using pre-defined fields
@@ -118,6 +120,14 @@ pub trait Field:
     + for<'a> SubAssign<&'a Self>
     + for<'a> MulAssign<&'a Self>
     + for<'a> DivAssign<&'a Self>
+    + for<'a> Add<&'a mut Self, Output = Self>
+    + for<'a> Sub<&'a mut Self, Output = Self>
+    + for<'a> Mul<&'a mut Self, Output = Self>
+    + for<'a> Div<&'a mut Self, Output = Self>
+    + for<'a> AddAssign<&'a mut Self>
+    + for<'a> SubAssign<&'a mut Self>
+    + for<'a> MulAssign<&'a mut Self>
+    + for<'a> DivAssign<&'a mut Self>
     + core::iter::Sum<Self>
     + for<'a> core::iter::Sum<&'a Self>
     + core::iter::Product<Self>
@@ -173,6 +183,9 @@ pub trait Field:
 
     /// Doubles `self` in place.
     fn double_in_place(&mut self) -> &mut Self;
+
+    /// Negates `self` in place.
+    fn neg_in_place(&mut self) -> &mut Self;
 
     /// Attempt to deserialize a field element. Returns `None` if the
     /// deserialization fails.
@@ -231,8 +244,12 @@ pub trait Field:
 
     /// Returns `sum([a_i * b_i])`.
     #[inline]
-    fn sum_of_products(a: &[Self], b: &[Self]) -> Self {
-        cfg_iter!(a).zip(b).map(|(a, b)| *a * b).sum()
+    fn sum_of_products<const T: usize>(a: &[Self; T], b: &[Self; T]) -> Self {
+        let mut sum = Self::zero();
+        for i in 0..a.len() {
+            sum += a[i] * b[i];
+        }
+        sum
     }
 
     /// Exponentiates this element by a power of the base prime modulus via
@@ -585,7 +602,7 @@ pub trait PrimeField:
 /// let b = a.square();
 /// assert_eq!(b.legendre(), LegendreSymbol::QuadraticResidue);
 /// ```
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum LegendreSymbol {
     Zero = 0,
     QuadraticResidue = 1,
@@ -706,7 +723,7 @@ impl<F: Field> SqrtPrecomputation<F> {
                 }
                 // Is x the square root? If so, return it.
                 if x.square() == *elem {
-                    return Some(x);
+                    Some(x)
                 } else {
                     // Consistency check that if no square root is found,
                     // it is because none exists.

@@ -54,8 +54,17 @@ pub trait CubicExtConfig: 'static + Send + Sync + Sized {
     /// A specializable method for multiplying an element of the base field by
     /// the quadratic non-residue. This is used in multiplication and squaring.
     #[inline(always)]
-    fn mul_base_field_by_nonresidue(fe: &Self::BaseField) -> Self::BaseField {
-        Self::NONRESIDUE * fe
+    fn mul_base_field_by_nonresidue_in_place(fe: &mut Self::BaseField) -> &mut Self::BaseField {
+        *fe *= &Self::NONRESIDUE;
+        fe
+    }
+
+    /// A defaulted method for multiplying an element of the base field by
+    /// the quadratic non-residue. This is used in multiplication and squaring.
+    #[inline(always)]
+    fn mul_base_field_by_nonresidue(mut fe: Self::BaseField) -> Self::BaseField {
+        Self::mul_base_field_by_nonresidue_in_place(&mut fe);
+        fe
     }
 
     /// A specializable method for multiplying an element of the base field by
@@ -209,6 +218,13 @@ impl<P: CubicExtConfig> Field for CubicExtField<P> {
         self
     }
 
+    fn neg_in_place(&mut self) -> &mut Self {
+        self.c0.neg_in_place();
+        self.c1.neg_in_place();
+        self.c2.neg_in_place();
+        self
+    }
+
     #[inline]
     fn from_random_bytes_with_flags<F: Flags>(bytes: &[u8]) -> Option<(Self, F)> {
         let split_at = bytes.len() / 3;
@@ -251,8 +267,16 @@ impl<P: CubicExtConfig> Field for CubicExtField<P> {
         let s3 = bc.double();
         let s4 = c.square();
 
-        self.c0 = s0 + &P::mul_base_field_by_nonresidue(&s3);
-        self.c1 = s1 + &P::mul_base_field_by_nonresidue(&s4);
+        // c0 = s0 + s3 * NON_RESIDUE
+        self.c0 = s3;
+        P::mul_base_field_by_nonresidue_in_place(&mut self.c0);
+        self.c0 += &s0;
+
+        // c1 = s1 + s4 * NON_RESIDUE
+        self.c1 = s4;
+        P::mul_base_field_by_nonresidue_in_place(&mut self.c1);
+        self.c1 += &s1;
+
         self.c2 = s1 + &s2 + &s3 - &s0 - &s4;
         self
     }
@@ -275,16 +299,16 @@ impl<P: CubicExtConfig> Field for CubicExtField<P> {
             let t3 = self.c0 * &self.c1;
             let t4 = self.c0 * &self.c2;
             let t5 = self.c1 * &self.c2;
-            let n5 = P::mul_base_field_by_nonresidue(&t5);
+            let n5 = P::mul_base_field_by_nonresidue(t5);
 
             let s0 = t0 - &n5;
-            let s1 = P::mul_base_field_by_nonresidue(&t2) - &t3;
+            let s1 = P::mul_base_field_by_nonresidue(t2) - &t3;
             let s2 = t1 - &t4; // typo in paper referenced above. should be "-" as per Scott, but is "*"
 
             let a1 = self.c2 * &s1;
             let a2 = self.c1 * &s2;
             let mut a3 = a1 + &a2;
-            a3 = P::mul_base_field_by_nonresidue(&a3);
+            a3 = P::mul_base_field_by_nonresidue(a3);
             let t6 = (self.c0 * &s0 + &a3).inverse().unwrap();
 
             let c0 = t6 * &s0;
@@ -458,9 +482,9 @@ impl<P: CubicExtConfig> Neg for CubicExtField<P> {
     type Output = Self;
     #[inline]
     fn neg(mut self) -> Self {
-        self.c0 = -self.c0;
-        self.c1 = -self.c1;
-        self.c2 = -self.c2;
+        self.c0.neg_in_place();
+        self.c1.neg_in_place();
+        self.c2.neg_in_place();
         self
     }
 }
@@ -560,8 +584,8 @@ impl<'a, P: CubicExtConfig> MulAssign<&'a Self> for CubicExtField<P> {
         let y = (d + &e) * &(a + &b) - &ad - &be;
         let z = (d + &f) * &(a + &c) - &ad + &be - &cf;
 
-        self.c0 = ad + &P::mul_base_field_by_nonresidue(&x);
-        self.c1 = y + &P::mul_base_field_by_nonresidue(&cf);
+        self.c0 = ad + &P::mul_base_field_by_nonresidue(x);
+        self.c1 = y + &P::mul_base_field_by_nonresidue(cf);
         self.c2 = z;
     }
 }

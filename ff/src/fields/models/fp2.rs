@@ -21,33 +21,35 @@ pub trait Fp2Config: 'static + Send + Sync + Sized {
     /// Intended for specialization when [`Self::NONRESIDUE`] has a special
     /// structure that can speed up multiplication
     #[inline(always)]
-    fn mul_fp_by_nonresidue(fe: &Self::Fp) -> Self::Fp {
-        Self::NONRESIDUE * fe
+    fn mul_fp_by_nonresidue_in_place(fe: &mut Self::Fp) -> &mut Self::Fp {
+        *fe *= Self::NONRESIDUE;
+        fe
     }
 
-    /// A specializable method for computing `x + mul_base_field_by_nonresidue(y)`
-    /// This allows for optimizations when [`Self::NONRESIDUE`] is
+    /// A specializable method for setting `y = x + NONRESIDUE * y`.
+    /// This allows for optimizations when the non-residue is
     /// canonically negative in the field.
     #[inline(always)]
-    fn add_and_mul_fp_by_nonresidue(x: &Self::Fp, y: &Self::Fp) -> Self::Fp {
-        *x + Self::mul_fp_by_nonresidue(y)
+    fn mul_fp_by_nonresidue_and_add(y: &mut Self::Fp, x: &Self::Fp) {
+        Self::mul_fp_by_nonresidue_in_place(y);
+        *y += x;
     }
 
-    /// A specializable method for computing `x + y + mul_base_field_by_nonresidue(y)`
-    /// This allows for optimizations when the [`Self::NONRESIDUE`] is not `-1`.
+    /// A specializable method for computing x + mul_fp_by_nonresidue(y) + y
+    /// This allows for optimizations when the non-residue is not -1.
     #[inline(always)]
-    fn add_and_mul_fp_by_nonresidue_plus_one(x: &Self::Fp, y: &Self::Fp) -> Self::Fp {
-        let mut tmp = *x;
-        tmp += y;
-        Self::add_and_mul_fp_by_nonresidue(&tmp, y)
+    fn mul_fp_by_nonresidue_plus_one_and_add(y: &mut Self::Fp, x: &Self::Fp) {
+        let old_y = *y;
+        Self::mul_fp_by_nonresidue_and_add(y, x);
+        *y += old_y;
     }
 
-    /// A specializable method for computing `x - mul_base_field_by_nonresidue(y)`
-    /// This allows for optimizations when the [`Self::NONRESIDUE`] is
+    /// A specializable method for computing x - mul_fp_by_nonresidue(y)
+    /// This allows for optimizations when the non-residue is
     /// canonically negative in the field.
     #[inline(always)]
-    fn sub_and_mul_fp_by_nonresidue(x: &Self::Fp, y: &Self::Fp) -> Self::Fp {
-        *x - Self::mul_fp_by_nonresidue(y)
+    fn sub_and_mul_fp_by_nonresidue(y: &mut Self::Fp, x: &Self::Fp) {
+        *y = *x - Self::mul_fp_by_nonresidue_in_place(y);
     }
 }
 
@@ -66,32 +68,23 @@ impl<P: Fp2Config> QuadExtConfig for Fp2ConfigWrapper<P> {
     const FROBENIUS_COEFF_C1: &'static [Self::FrobCoeff] = P::FROBENIUS_COEFF_FP2_C1;
 
     #[inline(always)]
-    fn mul_base_field_by_nonresidue(fe: &Self::BaseField) -> Self::BaseField {
-        P::mul_fp_by_nonresidue(fe)
+    fn mul_base_field_by_nonresidue_in_place(fe: &mut Self::BaseField) -> &mut Self::BaseField {
+        P::mul_fp_by_nonresidue_in_place(fe)
     }
 
     #[inline(always)]
-    fn add_and_mul_base_field_by_nonresidue(
-        x: &Self::BaseField,
-        y: &Self::BaseField,
-    ) -> Self::BaseField {
-        P::add_and_mul_fp_by_nonresidue(x, y)
+    fn mul_base_field_by_nonresidue_and_add(y: &mut Self::BaseField, x: &Self::BaseField) {
+        P::mul_fp_by_nonresidue_and_add(y, x)
     }
 
     #[inline(always)]
-    fn add_and_mul_base_field_by_nonresidue_plus_one(
-        x: &Self::BaseField,
-        y: &Self::BaseField,
-    ) -> Self::BaseField {
-        P::add_and_mul_fp_by_nonresidue_plus_one(x, y)
+    fn mul_base_field_by_nonresidue_plus_one_and_add(y: &mut Self::BaseField, x: &Self::BaseField) {
+        P::mul_fp_by_nonresidue_plus_one_and_add(y, x)
     }
 
     #[inline(always)]
-    fn sub_and_mul_base_field_by_nonresidue(
-        x: &Self::BaseField,
-        y: &Self::BaseField,
-    ) -> Self::BaseField {
-        P::sub_and_mul_fp_by_nonresidue(x, y)
+    fn sub_and_mul_base_field_by_nonresidue(y: &mut Self::BaseField, x: &Self::BaseField) {
+        P::sub_and_mul_fp_by_nonresidue(y, x)
     }
 
     fn mul_base_field_by_frob_coeff(fe: &mut Self::BaseField, power: usize) {

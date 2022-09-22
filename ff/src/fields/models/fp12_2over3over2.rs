@@ -24,12 +24,14 @@ pub trait Fp12Config: 'static + Send + Sync + Copy {
 
     /// Multiply by quadratic nonresidue v.
     #[inline(always)]
-    fn mul_fp6_by_nonresidue(fe: &Fp6<Self::Fp6Config>) -> Fp6<Self::Fp6Config> {
+    fn mul_fp6_by_nonresidue_in_place(fe: &mut Fp6<Self::Fp6Config>) -> &mut Fp6<Self::Fp6Config> {
         // see [[DESD06, Section 6.1]](https://eprint.iacr.org/2006/471.pdf).
-        let new_c0 = Self::Fp6Config::mul_fp2_by_nonresidue(&fe.c2);
-        let new_c1 = fe.c0;
-        let new_c2 = fe.c1;
-        Fp6::new(new_c0, new_c1, new_c2)
+        let old_c1 = fe.c1;
+        fe.c1 = fe.c0;
+        fe.c0 = fe.c2;
+        Self::Fp6Config::mul_fp2_by_nonresidue_in_place(&mut fe.c0);
+        fe.c2 = old_c1;
+        fe
     }
 }
 
@@ -47,8 +49,8 @@ impl<P: Fp12Config> QuadExtConfig for Fp12ConfigWrapper<P> {
     const FROBENIUS_COEFF_C1: &'static [Self::FrobCoeff] = P::FROBENIUS_COEFF_FP12_C1;
 
     #[inline(always)]
-    fn mul_base_field_by_nonresidue(fe: &Self::BaseField) -> Self::BaseField {
-        P::mul_fp6_by_nonresidue(fe)
+    fn mul_base_field_by_nonresidue_in_place(fe: &mut Self::BaseField) -> &mut Self::BaseField {
+        P::mul_fp6_by_nonresidue_in_place(fe)
     }
 
     fn mul_base_field_by_frob_coeff(fe: &mut Self::BaseField, power: usize) {
@@ -82,7 +84,9 @@ impl<P: Fp12Config> Fp12<P> {
         let mut e = self.c0 + &self.c1;
         e.mul_by_01(&c0, c1);
         self.c1 = e - &(a + &b);
-        self.c0 = a + &P::mul_fp6_by_nonresidue(&b);
+        self.c0 = b;
+        P::mul_fp6_by_nonresidue_in_place(&mut self.c0);
+        self.c0 += &a;
     }
 
     pub fn mul_by_014(
@@ -102,7 +106,7 @@ impl<P: Fp12Config> Fp12<P> {
         self.c1.sub_assign(&aa);
         self.c1.sub_assign(&bb);
         self.c0 = bb;
-        self.c0 = P::mul_fp6_by_nonresidue(&self.c0);
+        P::mul_fp6_by_nonresidue_in_place(&mut self.c0);
         self.c0.add_assign(&aa);
     }
 }
@@ -145,17 +149,17 @@ impl<P: Fp12Config> CyclotomicMultSubgroup for Fp12<P> {
 
             // t0 + t1*y = (z0 + z1*y)^2 = a^2
             let mut tmp = *r0 * r1;
-            let t0 = (*r0 + r1) * &(fp2_nr(&r1) + r0) - &tmp - &fp2_nr(&tmp);
+            let t0 = (*r0 + r1) * &(fp2_nr(*r1) + r0) - &tmp - &fp2_nr(tmp);
             let t1 = tmp.double();
 
             // t2 + t3*y = (z2 + z3*y)^2 = b^2
             tmp = *r2 * r3;
-            let t2 = (*r2 + r3) * &(fp2_nr(&r3) + r2) - &tmp - &fp2_nr(&tmp);
+            let t2 = (*r2 + r3) * &(fp2_nr(*r3) + r2) - &tmp - &fp2_nr(tmp);
             let t3 = tmp.double();
 
             // t4 + t5*y = (z4 + z5*y)^2 = c^2
             tmp = *r4 * r5;
-            let t4 = (*r4 + r5) * &(fp2_nr(&r5) + r4) - &tmp - &fp2_nr(&tmp);
+            let t4 = (*r4 + r5) * &(fp2_nr(*r5) + r4) - &tmp - &fp2_nr(tmp);
             let t5 = tmp.double();
 
             let z0 = &mut self.c0.c0;
@@ -180,7 +184,7 @@ impl<P: Fp12Config> CyclotomicMultSubgroup for Fp12<P> {
             // for B
 
             // z2 = 3 * (xi * t5) + 2 * z2
-            tmp = fp2_nr(&t5);
+            tmp = fp2_nr(t5);
             *z2 += tmp;
             z2.double_in_place();
             *z2 += &tmp;

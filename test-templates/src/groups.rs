@@ -237,9 +237,12 @@ macro_rules! __test_group {
             let rng = &mut ark_std::test_rng();
             for _ in 0..ITERATIONS {
                 let a = Affine::rand(rng);
+                let a_group = a.into_group();
                 let b = <$group>::rand(rng);
-                assert_eq!(a + b, a.into_group() + b);
-                assert_eq!(b + a, a.into_group() + b);
+                assert!(a.is_on_curve());
+                assert!(b.into_affine().is_on_curve());
+                assert_eq!(b + a, b + a_group, "b + a failed on input {a}, {b}");
+                assert_eq!(a + b, a_group + b, "a + b failed on input {a}, {b}");
             }
         }
     };
