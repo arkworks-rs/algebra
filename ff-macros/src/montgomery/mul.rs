@@ -66,45 +66,34 @@ pub(super) fn mul_assign_impl(
         }
     } else {
         // We use standard CIOS
+        let double_limbs = num_limbs * 2;
         body.extend(quote! {
-            let (mut lo, mut hi) = ([0u64; #num_limbs], [0u64; #num_limbs]);
+            let mut scratch = [0u64; #double_limbs];
         });
         for i in 0..num_limbs {
-            body.extend(quote! { let mut carry = 0; });
+            body.extend(quote! { let mut carry = 0u64; });
             for j in 0..num_limbs {
                 let k = i + j;
-                if k >= num_limbs {
-                    let idx = k - num_limbs;
-                    body.extend(quote!{hi[#idx] = fa::mac_with_carry(hi[#idx], (a.0).0[#i], (b.0).0[#j], &mut carry);});
-                } else {
-                    body.extend(quote!{lo[#k] = fa::mac_with_carry(lo[#k], (a.0).0[#i], (b.0).0[#j], &mut carry);});
-                }
-                body.extend(quote! { hi[#i] = carry; });
+                body.extend(quote!{scratch[#k] = fa::mac_with_carry(scratch[#k], (a.0).0[#i], (b.0).0[#j], &mut carry);});
             }
+            body.extend(quote! { scratch[#i + #num_limbs] = carry; });
         }
-        body.extend(quote!( let mut carry2 = 0; ));
+        body.extend(quote!( let mut carry2 = 0u64; ));
         for i in 0..num_limbs {
             body.extend(quote! {
-                let tmp = lo[#i].wrapping_mul(Self::INV);
-                let mut carry = 0;
-                fa::mac(lo[#i], tmp, #modulus_0, &mut carry);
+                let tmp = scratch[#i].wrapping_mul(Self::INV);
+                let mut carry = 0u64;
+                fa::mac(scratch[#i], tmp, #modulus_0, &mut carry);
             });
             for j in 1..num_limbs {
                 let modulus_j = modulus_limbs[j];
                 let k = i + j;
-                if k >= num_limbs {
-                    let idx = k - num_limbs;
-                    body.extend(quote!(hi[#idx] = fa::mac_with_carry(hi[#idx], tmp, #modulus_j, &mut carry);));
-                } else {
-                    body.extend(
-                        quote!(lo[#k] = fa::mac_with_carry(lo[#k], tmp, modulus_j, &mut carry);),
-                    );
-                }
-                body.extend(quote!(hi[#i] = fa::adc(hi[#i], carry, &mut carry2);));
+                body.extend(quote!(scratch[#k] = fa::mac_with_carry(scratch[#k], tmp, #modulus_j, &mut carry);));
             }
+            body.extend(quote!(carry2 = fa::adc(&mut scratch[#i + #num_limbs], carry, carry2);));
         }
         body.extend(quote! {
-            (a.0).0 = hi;
+            (a.0).0 = scratch[#num_limbs..].try_into().unwrap();
         });
     }
     body.extend(quote!(__subtract_modulus(a);));

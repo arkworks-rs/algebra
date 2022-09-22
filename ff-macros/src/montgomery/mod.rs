@@ -54,8 +54,14 @@ pub fn mont_config_helper(
     let generator = generator.to_string();
     let two_adic_root_of_unity = two_adic_root_of_unity.to_string();
     let modulus_limbs = utils::str_to_limbs_u64(&modulus).1;
-    let can_use_no_carry_mul_opt = (*modulus_limbs.last().unwrap() < (u64::MAX >> 1))
-        && modulus_limbs[..limbs - 1].iter().any(|l| *l != u64::MAX);
+    let can_use_no_carry_mul_opt = {
+        let first_limb_check = *modulus_limbs.last().unwrap() < (u64::MAX >> 1);
+        if limbs != 1 {
+            first_limb_check && modulus_limbs[..limbs - 1].iter().any(|l| *l != u64::MAX)
+        } else {
+            first_limb_check
+        }
+    };
     let modulus = quote::quote! { BigInt([ #( #modulus_limbs ),* ]) };
 
     let add_with_carry = add_with_carry_impl(limbs);
