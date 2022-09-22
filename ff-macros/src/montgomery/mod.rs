@@ -85,11 +85,12 @@ pub fn mont_config_helper(
     quote::quote! {
         mod #mod_name {
             use super::#config_name;
-            use ark_ff::{Field, PrimeField, fields::Fp, BigInt, BigInteger, biginteger::arithmetic as fa};
+            use crate::ark_ff::{Field, PrimeField, fields::Fp, BigInt, BigInteger, biginteger::arithmetic as fa, fields::*};
             type B = BigInt<#limbs>;
-            type F = Fp<ark_ff::fields::MontBackend<#config_name, #limbs>, #limbs>;
+            type F = Fp<MontBackend<#config_name, #limbs>, #limbs>;
+
             #[automatically_derived]
-            impl ark_ff::fields::MontConfig<#limbs> for #config_name {
+            impl MontConfig<#limbs> for #config_name {
                 const MODULUS: B = #modulus;
 
                 const GENERATOR: F = ark_ff::MontFp!(#generator);

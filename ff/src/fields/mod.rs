@@ -48,6 +48,7 @@ use rayon::prelude::*;
 /// pub struct FqConfig;
 /// pub type Fq = Fp64<MontBackend<FqConfig, 1>>;
 ///
+/// # fn main() {
 /// let a = Fq::from(9);
 /// let b = Fq::from(10);
 ///
@@ -58,6 +59,7 @@ use rayon::prelude::*;
 /// assert_eq!(a.square(), Fq::from(13)); // 81 = 13 mod 17
 /// assert_eq!(b.double(), Fq::from(3));  // 20 =  3 mod 17
 /// assert_eq!(a / b, a * b.inverse().unwrap()); // need to unwrap since `b` could be 0 which is not invertible
+/// # }
 /// ```
 ///
 /// ## Using pre-defined fields
