@@ -468,7 +468,7 @@ mod tests {
                     let mut actual_vec = expected_vec.clone();
 
                     let domain = Radix2EvaluationDomain::new(d).unwrap();
-                    let coset_domain = domain.get_coset(Fr::GENERATOR);
+                    let coset_domain = domain.get_coset(Fr::GENERATOR).unwrap();
 
                     serial_radix2_fft(&mut expected_vec, domain.group_gen, log_d);
                     domain.fft_in_place(&mut actual_vec);
