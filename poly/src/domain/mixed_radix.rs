@@ -39,6 +39,10 @@ pub struct MixedRadixEvaluationDomain<F: FftField> {
     pub group_gen_inv: F,
     /// Multiplicative generator of the finite field.
     pub generator_inv: F,
+    /// Offset that specifies the coset.
+    pub offset: F,
+    /// Inverse of the offset that specifies the coset.
+    pub offset_inv: F,
 }
 
 impl<F: FftField> fmt::Debug for MixedRadixEvaluationDomain<F> {
@@ -57,29 +61,32 @@ impl<F: FftField> EvaluationDomain<F> for MixedRadixEvaluationDomain<F> {
     /// Construct a domain that is large enough for evaluations of a polynomial
     /// having `num_coeffs` coefficients.
     fn new(num_coeffs: usize) -> Option<Self> {
-        let small_subgroup_base = F::SMALL_SUBGROUP_BASE?;
-
         // Compute the best size of our evaluation domain.
-        let num_coeffs = best_mixed_domain_size::<F>(num_coeffs) as u64;
+        Self::new_subgroup(best_mixed_domain_size::<F>(num_coeffs))
+    }
+
+    fn new_subgroup(subgroup_size: usize) -> Option<Self> {
+        let size = subgroup_size as u64;
+        let small_subgroup_base = F::SMALL_SUBGROUP_BASE?;
 
         // Compute the size of our evaluation domain
         let q = u64::from(small_subgroup_base);
-        let q_adicity = k_adicity(q, num_coeffs);
+        let q_adicity = k_adicity(q, size);
         let q_part = q.checked_pow(q_adicity)?;
 
-        let two_adicity = k_adicity(2, num_coeffs);
+        let two_adicity = k_adicity(2, size);
         let two_part = 2u64.checked_pow(two_adicity)?;
 
-        let size = num_coeffs;
+        let size = size;
         let log_size_of_group = two_adicity;
 
-        if num_coeffs != q_part * two_part {
+        if size != q_part * two_part {
             return None;
         }
 
         // Compute the generator for the multiplicative subgroup.
         // It should be the num_coeffs root of unity.
-        let group_gen = F::get_root_of_unity(num_coeffs)?;
+        let group_gen = F::get_root_of_unity(size)?;
         // Check that it is indeed the requested root of unity.
         debug_assert_eq!(group_gen.pow([size]), F::one());
         let size_as_field_element = F::from(size);
@@ -93,6 +100,16 @@ impl<F: FftField> EvaluationDomain<F> for MixedRadixEvaluationDomain<F> {
             group_gen,
             group_gen_inv: group_gen.inverse()?,
             generator_inv: F::GENERATOR.inverse()?,
+            offset: F::one(),
+            offset_inv: F::one(),
+        })
+    }
+
+    fn get_coset(&self, offset: F) -> Option<Self> {
+        Some(MixedRadixEvaluationDomain {
+            offset,
+            offset_inv: offset.inverse()?,
+            ..*self
         })
     }
 

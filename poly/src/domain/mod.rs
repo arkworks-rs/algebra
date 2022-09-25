@@ -46,6 +46,17 @@ pub trait EvaluationDomain<F: FftField>:
     /// having `num_coeffs` coefficients.
     fn new(num_coeffs: usize) -> Option<Self>;
 
+    /// Construct a domain
+    fn new_subgroup(subgroup_size: usize) -> Option<Self>;
+
+    /// Construct a coset domain
+    fn new_coset(coset_size: usize, offset: F) -> Option<Self> {
+        Self::new_subgroup(coset_size)?.get_coset(offset)
+    }
+
+    /// Construct a coset domain from a subgroup domain
+    fn get_coset(&self, offset: F) -> Option<Self>;
+
     /// Return the size of a domain that is large enough for evaluations of a
     /// polynomial having `num_coeffs` coefficients.
     fn compute_size_of_domain(num_coeffs: usize) -> Option<usize>;

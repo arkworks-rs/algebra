@@ -30,6 +30,10 @@ pub struct Radix2EvaluationDomain<F: FftField> {
     pub group_gen_inv: F,
     /// Multiplicative generator of the finite field.
     pub generator_inv: F,
+    /// Offset that specifies the coset.
+    pub offset: F,
+    /// Inverse of the offset that specifies the coset.
+    pub offset_inv: F,
 }
 
 impl<F: FftField> fmt::Debug for Radix2EvaluationDomain<F> {
@@ -44,12 +48,17 @@ impl<F: FftField> EvaluationDomain<F> for Radix2EvaluationDomain<F> {
     /// Construct a domain that is large enough for evaluations of a polynomial
     /// having `num_coeffs` coefficients.
     fn new(num_coeffs: usize) -> Option<Self> {
-        // Compute the size of our evaluation domain
-        let size = if num_coeffs.is_power_of_two() {
-            num_coeffs as u64
+        Self::new_subgroup(if num_coeffs.is_power_of_two() {
+            num_coeffs
         } else {
-            num_coeffs.checked_next_power_of_two()? as u64
-        };
+            num_coeffs.checked_next_power_of_two()?
+        })
+    }
+
+    fn new_subgroup(subgroup_size: usize) -> Option<Self> {
+        debug_assert!(subgroup_size.is_power_of_two());
+
+        let size = subgroup_size as u64;
         let log_size_of_group = size.trailing_zeros();
 
         // libfqfft uses > https://github.com/scipr-lab/libfqfft/blob/e0183b2cef7d4c5deb21a6eaf3fe3b586d738fe0/libfqfft/evaluation_domain/domains/basic_radix2_domain.tcc#L33
@@ -62,6 +71,7 @@ impl<F: FftField> EvaluationDomain<F> for Radix2EvaluationDomain<F> {
         let group_gen = F::get_root_of_unity(size)?;
         // Check that it is indeed the 2^(log_size_of_group) root of unity.
         debug_assert_eq!(group_gen.pow([size]), F::one());
+        // debug_assert_ne!(group_gen.pow([size / 2]), F::one());
         let size_as_field_element = F::from(size);
         let size_inv = size_as_field_element.inverse()?;
 
@@ -73,6 +83,16 @@ impl<F: FftField> EvaluationDomain<F> for Radix2EvaluationDomain<F> {
             group_gen,
             group_gen_inv: group_gen.inverse()?,
             generator_inv: F::GENERATOR.inverse()?,
+            offset: F::one(),
+            offset_inv: F::one(),
+        })
+    }
+
+    fn get_coset(&self, offset: F) -> Option<Self> {
+        Some(Radix2EvaluationDomain {
+            offset,
+            offset_inv: offset.inverse()?,
+            ..*self
         })
     }
 
