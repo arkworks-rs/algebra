@@ -37,8 +37,6 @@ pub struct MixedRadixEvaluationDomain<F: FftField> {
     pub group_gen: F,
     /// Inverse of the generator of the subgroup.
     pub group_gen_inv: F,
-    /// Multiplicative generator of the finite field.
-    pub generator_inv: F,
     /// Offset that specifies the coset.
     pub offset: F,
     /// Inverse of the offset that specifies the coset.
@@ -99,7 +97,6 @@ impl<F: FftField> EvaluationDomain<F> for MixedRadixEvaluationDomain<F> {
             size_inv,
             group_gen,
             group_gen_inv: group_gen.inverse()?,
-            generator_inv: F::GENERATOR.inverse()?,
             offset: F::one(),
             offset_inv: F::one(),
         })

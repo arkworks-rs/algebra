@@ -82,7 +82,6 @@ impl<F: FftField> EvaluationDomain<F> for Radix2EvaluationDomain<F> {
             size_inv,
             group_gen,
             group_gen_inv: group_gen.inverse()?,
-            generator_inv: F::GENERATOR.inverse()?,
             offset: F::one(),
             offset_inv: F::one(),
         })
