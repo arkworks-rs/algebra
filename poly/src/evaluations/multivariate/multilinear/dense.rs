@@ -47,7 +47,7 @@ impl<F: Field> DenseMultilinearExtension<F> {
             evaluations,
         }
     }
-    /// Relabel the point inplace by switching `k` scalars from position `a` to
+    /// Relabel the point in place by switching `k` scalars from position `a` to
     /// position `b`, and from position `b` to position `a` in vector.
     ///
     /// This function turns `P(x_1,...,x_a,...,x_{a+k - 1},...,x_b,...,x_{b+k - 1},...,x_n)`
