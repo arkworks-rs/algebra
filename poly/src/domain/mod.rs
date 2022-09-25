@@ -152,7 +152,72 @@ pub trait EvaluationDomain<F: FftField>:
     /// `P(tau) = sum_{i in [|Domain|]} L_{i, Domain}(tau) * P(g^i)`.
     /// `L_{i, Domain}` is the value of the i-th lagrange coefficient
     /// in the returned vector.
-    fn evaluate_all_lagrange_coefficients(&self, tau: F) -> Vec<F>;
+    fn evaluate_all_lagrange_coefficients(&self, tau: F) -> Vec<F> {
+        // Evaluate all Lagrange polynomials at tau to get the lagrange coefficients.
+        // Define the following as
+        // - H: The coset we are in, with generator g and offset h
+        // - m: The size of the coset H
+        // - Z_H: The vanishing polynomial for H. Z_H(x) = prod_{i in m} (x - hg^i) = x^m - h^m
+        // - v_i: A sequence of values, where v_0 = 1/(m * h^(m-1)), and v_{i + 1} = g * v_i
+        //
+        // We then compute L_{i,H}(tau) as `L_{i,H}(tau) = Z_H(tau) * v_i / (tau - h * g^i)`
+        //
+        // However, if tau in H, both the numerator and denominator equal 0
+        // when i corresponds to the value tau equals, and the coefficient is 0
+        // everywhere else. We handle this case separately, and we can easily
+        // detect by checking if the vanishing poly is 0.
+        let size = self.size();
+        let z_h_at_tau = self.evaluate_vanishing_polynomial(tau);
+        let offset = self.offset();
+        let group_gen = self.group_gen();
+        if z_h_at_tau.is_zero() {
+            // In this case, we know that tau = hg^i, for some value i.
+            // Then i-th lagrange coefficient in this case is then simply 1,
+            // and all other lagrange coefficients are 0.
+            // Thus we find i by brute force.
+            let mut u = vec![F::zero(); size];
+            let mut omega_i = offset;
+            for u_i in u.iter_mut().take(size) {
+                if omega_i == tau {
+                    *u_i = F::one();
+                    break;
+                }
+                omega_i *= &group_gen;
+            }
+            u
+        } else {
+            // In this case we have to compute `Z_H(tau) * v_i / (tau - h g^i)`
+            // for i in 0..size
+            // We actually compute this by computing (Z_H(tau) * v_i)^{-1} * (tau - h g^i)
+            // and then batch inverting to get the correct lagrange coefficients.
+            // We let `l_i = (Z_H(tau) * v_i)^-1` and `r_i = tau - h g^i`
+            // Notice that since Z_H(tau) is i-independent,
+            // and v_i = g * v_{i-1}, it follows that
+            // l_i = g^-1 * l_{i-1}
+            // TODO: consider caching the computation of l_i to save N multiplications
+            use ark_ff::fields::batch_inversion;
+
+            let group_gen_inv = self.group_gen_inv();
+
+            // v_0_inv = m * h^(m-1)
+            let v_0_inv = self.size_as_field_element() * offset.pow([size as u64 - 1]);
+            let mut l_i = z_h_at_tau.inverse().unwrap() * v_0_inv;
+            let mut negative_cur_elem = -offset;
+            let mut lagrange_coefficients_inverse = vec![F::zero(); size];
+            for coeff in &mut lagrange_coefficients_inverse {
+                let r_i = tau + negative_cur_elem;
+                *coeff = l_i * r_i;
+                // Increment l_i and negative_cur_elem
+                l_i *= &group_gen_inv;
+                negative_cur_elem *= &group_gen;
+            }
+
+            // Invert the lagrange coefficients inverse, to get the actual coefficients,
+            // and return these
+            batch_inversion(lagrange_coefficients_inverse.as_mut_slice());
+            lagrange_coefficients_inverse
+        }
+    }
 
     /// Return the sparse vanishing polynomial.
     fn vanishing_polynomial(&self) -> crate::univariate::SparsePolynomial<F>;

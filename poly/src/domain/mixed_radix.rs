@@ -195,48 +195,6 @@ impl<F: FftField> EvaluationDomain<F> for MixedRadixEvaluationDomain<F> {
         }
     }
 
-    fn evaluate_all_lagrange_coefficients(&self, tau: F) -> Vec<F> {
-        // Evaluate all Lagrange polynomials
-        let size = self.size();
-        let t_size = tau.pow([self.size]);
-        let one = F::one();
-        if t_size.is_one() {
-            let mut u = vec![F::zero(); size];
-            let mut omega_i = one;
-            for u_i in u.iter_mut().take(size) {
-                if omega_i == tau {
-                    *u_i = one;
-                    break;
-                }
-                omega_i *= &self.group_gen;
-            }
-            u
-        } else {
-            use ark_ff::fields::batch_inversion;
-
-            let mut l = (t_size - one) * self.size_inv;
-            let mut r = one;
-            let mut u = vec![F::zero(); size];
-            let mut ls = vec![F::zero(); size];
-            for i in 0..size {
-                u[i] = tau - r;
-                ls[i] = l;
-                l *= &self.group_gen;
-                r *= &self.group_gen;
-            }
-
-            batch_inversion(u.as_mut_slice());
-
-            ark_std::cfg_iter_mut!(u)
-                .zip(ls)
-                .for_each(|(tau_minus_r, l)| {
-                    *tau_minus_r = l * *tau_minus_r;
-                });
-
-            u
-        }
-    }
-
     fn vanishing_polynomial(&self) -> crate::univariate::SparsePolynomial<F> {
         let coeffs = vec![(0, -self.offset.pow([self.size])), (self.size(), F::one())];
         crate::univariate::SparsePolynomial::from_coefficients_vec(coeffs)
@@ -448,8 +406,11 @@ pub(crate) fn serial_mixed_radix_fft<T: DomainCoeff<F>, F: FftField>(
 
 #[cfg(test)]
 mod tests {
-    use crate::{polynomial::Polynomial, EvaluationDomain, MixedRadixEvaluationDomain};
-    use ark_ff::{FftField, Field, Zero};
+    use crate::{
+        polynomial::{univariate::DensePolynomial, DenseUVPolynomial, Polynomial},
+        EvaluationDomain, MixedRadixEvaluationDomain,
+    };
+    use ark_ff::{FftField, Field, One, UniformRand, Zero};
     use ark_std::{rand::Rng, test_rng};
     use ark_test_curves::bn384_small_two_adicity::Fq as Fr;
 
@@ -488,6 +449,69 @@ mod tests {
             let z = coset_domain.vanishing_polynomial();
             for point in coset_domain.elements() {
                 assert!(z.evaluate(&point).is_zero())
+            }
+        }
+    }
+
+    /// Test that lagrange interpolation for a random polynomial at a random
+    /// point works.
+    #[test]
+    fn non_systematic_lagrange_coefficients_test() {
+        for domain_dim in 1..10 {
+            let domain_size = 1 << domain_dim;
+            let domain = MixedRadixEvaluationDomain::<Fr>::new(domain_size).unwrap();
+            let coset_domain = domain.get_coset(Fr::GENERATOR).unwrap();
+            // Get random pt + lagrange coefficients
+            let rand_pt = Fr::rand(&mut test_rng());
+            let lagrange_coeffs = domain.evaluate_all_lagrange_coefficients(rand_pt);
+            let coset_lagrange_coeffs = coset_domain.evaluate_all_lagrange_coefficients(rand_pt);
+
+            // Sample the random polynomial, evaluate it over the domain and the random
+            // point.
+            let rand_poly = DensePolynomial::<Fr>::rand(domain_size - 1, &mut test_rng());
+            let poly_evals = domain.fft(rand_poly.coeffs());
+            let coset_poly_evals = coset_domain.fft(rand_poly.coeffs());
+            let actual_eval = rand_poly.evaluate(&rand_pt);
+
+            // Do lagrange interpolation, and compare against the actual evaluation
+            let mut interpolated_eval = Fr::zero();
+            let mut coset_interpolated_eval = Fr::zero();
+            for i in 0..domain_size {
+                interpolated_eval += lagrange_coeffs[i] * poly_evals[i];
+                coset_interpolated_eval += coset_lagrange_coeffs[i] * coset_poly_evals[i];
+            }
+            assert_eq!(actual_eval, interpolated_eval);
+            assert_eq!(actual_eval, coset_interpolated_eval);
+        }
+    }
+
+    /// Test that lagrange coefficients for a point in the domain is correct
+    #[test]
+    fn systematic_lagrange_coefficients_test() {
+        // This runs in time O(N^2) in the domain size, so keep the domain dimension
+        // low. We generate lagrange coefficients for each element in the domain.
+        for domain_dim in 1..5 {
+            let domain_size = 1 << domain_dim;
+            let domain = MixedRadixEvaluationDomain::<Fr>::new(domain_size).unwrap();
+            let coset_domain = domain.get_coset(Fr::GENERATOR).unwrap();
+            for (i, (x, coset_x)) in domain.elements().zip(coset_domain.elements()).enumerate() {
+                let lagrange_coeffs = domain.evaluate_all_lagrange_coefficients(x);
+                let coset_lagrange_coeffs =
+                    coset_domain.evaluate_all_lagrange_coefficients(coset_x);
+                for (j, (y, coset_y)) in lagrange_coeffs
+                    .into_iter()
+                    .zip(coset_lagrange_coeffs)
+                    .enumerate()
+                {
+                    // Lagrange coefficient for the evaluation point, which should be 1
+                    if i == j {
+                        assert_eq!(y, Fr::one());
+                        assert_eq!(coset_y, Fr::one());
+                    } else {
+                        assert_eq!(y, Fr::zero());
+                        assert_eq!(coset_y, Fr::zero());
+                    }
+                }
             }
         }
     }

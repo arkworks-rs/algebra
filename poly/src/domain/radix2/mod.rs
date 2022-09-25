@@ -28,8 +28,6 @@ pub struct Radix2EvaluationDomain<F: FftField> {
     pub group_gen: F,
     /// Inverse of the generator of the subgroup.
     pub group_gen_inv: F,
-    /// Multiplicative generator of the finite field.
-    pub generator_inv: F,
     /// Offset that specifies the coset.
     pub offset: F,
     /// Inverse of the offset that specifies the coset.
@@ -151,71 +149,6 @@ impl<F: FftField> EvaluationDomain<F> for Radix2EvaluationDomain<F> {
         self.in_order_ifft_in_place(&mut *evals);
     }
 
-    fn evaluate_all_lagrange_coefficients(&self, tau: F) -> Vec<F> {
-        // Evaluate all Lagrange polynomials at tau to get the lagrange coefficients.
-        // Define the following as
-        // - H: The coset we are in, with generator g and offset h
-        // - m: The size of the coset H
-        // - Z_H: The vanishing polynomial for H. Z_H(x) = prod_{i in m} (x - hg^i) = x^m - h^m
-        // - v_i: A sequence of values, where v_0 = 1/(m * h^(m-1)), and v_{i + 1} = g * v_i
-        //
-        // We then compute L_{i,H}(tau) as `L_{i,H}(tau) = Z_H(tau) * v_i / (tau - h * g^i)`
-        //
-        // However, if tau in H, both the numerator and denominator equal 0
-        // when i corresponds to the value tau equals, and the coefficient is 0
-        // everywhere else. We handle this case separately, and we can easily
-        // detect by checking if the vanishing poly is 0.
-        let size = self.size();
-        // TODO: Make this use the vanishing polynomial
-        let z_h_at_tau = tau.pow([self.size]) - F::one();
-        let domain_offset = F::one();
-        if z_h_at_tau.is_zero() {
-            // In this case, we know that tau = hg^i, for some value i.
-            // Then i-th lagrange coefficient in this case is then simply 1,
-            // and all other lagrange coefficients are 0.
-            // Thus we find i by brute force.
-            let mut u = vec![F::zero(); size];
-            let mut omega_i = domain_offset;
-            for u_i in u.iter_mut().take(size) {
-                if omega_i == tau {
-                    *u_i = F::one();
-                    break;
-                }
-                omega_i *= &self.group_gen;
-            }
-            u
-        } else {
-            // In this case we have to compute `Z_H(tau) * v_i / (tau - h g^i)`
-            // for i in 0..size
-            // We actually compute this by computing (Z_H(tau) * v_i)^{-1} * (tau - h g^i)
-            // and then batch inverting to get the correct lagrange coefficients.
-            // We let `l_i = (Z_H(tau) * v_i)^-1` and `r_i = tau - h g^i`
-            // Notice that since Z_H(tau) is i-independent,
-            // and v_i = g * v_{i-1}, it follows that
-            // l_i = g^-1 * l_{i-1}
-            // TODO: consider caching the computation of l_i to save N multiplications
-            use ark_ff::fields::batch_inversion;
-
-            // v_0_inv = m * h^(m-1)
-            let v_0_inv = F::from(self.size) * domain_offset.pow([self.size - 1]);
-            let mut l_i = z_h_at_tau.inverse().unwrap() * v_0_inv;
-            let mut negative_cur_elem = -domain_offset;
-            let mut lagrange_coefficients_inverse = vec![F::zero(); size];
-            for coeff in &mut lagrange_coefficients_inverse {
-                let r_i = tau + negative_cur_elem;
-                *coeff = l_i * r_i;
-                // Increment l_i and negative_cur_elem
-                l_i *= &self.group_gen_inv;
-                negative_cur_elem *= &self.group_gen;
-            }
-
-            // Invert the lagrange coefficients inverse, to get the actual coefficients,
-            // and return these
-            batch_inversion(lagrange_coefficients_inverse.as_mut_slice());
-            lagrange_coefficients_inverse
-        }
-    }
-
     fn vanishing_polynomial(&self) -> crate::univariate::SparsePolynomial<F> {
         let coeffs = vec![(0, -self.offset.pow([self.size])), (self.size(), F::one())];
         crate::univariate::SparsePolynomial::from_coefficients_vec(coeffs)
@@ -252,7 +185,6 @@ impl<F: FftField> EvaluationDomain<F> for Radix2EvaluationDomain<F> {
 #[cfg(test)]
 mod tests {
     use crate::{
-        domain::Vec,
         polynomial::{univariate::*, DenseUVPolynomial, Polynomial},
         EvaluationDomain, Radix2EvaluationDomain,
     };
@@ -336,22 +268,28 @@ mod tests {
         for domain_dim in 1..10 {
             let domain_size = 1 << domain_dim;
             let domain = Radix2EvaluationDomain::<Fr>::new(domain_size).unwrap();
+            let coset_domain = domain.get_coset(Fr::GENERATOR).unwrap();
             // Get random pt + lagrange coefficients
             let rand_pt = Fr::rand(&mut test_rng());
             let lagrange_coeffs = domain.evaluate_all_lagrange_coefficients(rand_pt);
+            let coset_lagrange_coeffs = coset_domain.evaluate_all_lagrange_coefficients(rand_pt);
 
             // Sample the random polynomial, evaluate it over the domain and the random
             // point.
             let rand_poly = DensePolynomial::<Fr>::rand(domain_size - 1, &mut test_rng());
             let poly_evals = domain.fft(rand_poly.coeffs());
+            let coset_poly_evals = coset_domain.fft(rand_poly.coeffs());
             let actual_eval = rand_poly.evaluate(&rand_pt);
 
             // Do lagrange interpolation, and compare against the actual evaluation
             let mut interpolated_eval = Fr::zero();
+            let mut coset_interpolated_eval = Fr::zero();
             for i in 0..domain_size {
                 interpolated_eval += lagrange_coeffs[i] * poly_evals[i];
+                coset_interpolated_eval += coset_lagrange_coeffs[i] * coset_poly_evals[i];
             }
             assert_eq!(actual_eval, interpolated_eval);
+            assert_eq!(actual_eval, coset_interpolated_eval);
         }
     }
 
@@ -363,16 +301,23 @@ mod tests {
         for domain_dim in 1..5 {
             let domain_size = 1 << domain_dim;
             let domain = Radix2EvaluationDomain::<Fr>::new(domain_size).unwrap();
-            let all_domain_elements: Vec<Fr> = domain.elements().collect();
-            for i in 0..domain_size {
-                let lagrange_coeffs =
-                    domain.evaluate_all_lagrange_coefficients(all_domain_elements[i]);
-                for j in 0..domain_size {
+            let coset_domain = domain.get_coset(Fr::GENERATOR).unwrap();
+            for (i, (x, coset_x)) in domain.elements().zip(coset_domain.elements()).enumerate() {
+                let lagrange_coeffs = domain.evaluate_all_lagrange_coefficients(x);
+                let coset_lagrange_coeffs =
+                    coset_domain.evaluate_all_lagrange_coefficients(coset_x);
+                for (j, (y, coset_y)) in lagrange_coeffs
+                    .into_iter()
+                    .zip(coset_lagrange_coeffs)
+                    .enumerate()
+                {
                     // Lagrange coefficient for the evaluation point, which should be 1
                     if i == j {
-                        assert_eq!(lagrange_coeffs[j], Fr::one());
+                        assert_eq!(y, Fr::one());
+                        assert_eq!(coset_y, Fr::one());
                     } else {
-                        assert_eq!(lagrange_coeffs[j], Fr::zero());
+                        assert_eq!(y, Fr::zero());
+                        assert_eq!(coset_y, Fr::zero());
                     }
                 }
             }
