@@ -73,10 +73,8 @@ impl<F: FftField> EvaluationDomain<F> for MixedRadixEvaluationDomain<F> {
         let q_part = q.checked_pow(q_adicity)?;
 
         let two_adicity = k_adicity(2, size);
-        let two_part = 2u64.checked_pow(two_adicity)?;
-
-        let size = size;
         let log_size_of_group = two_adicity;
+        let two_part = 2u64.checked_pow(two_adicity)?;
 
         if size != q_part * two_part {
             return None;
@@ -421,7 +419,7 @@ mod tests {
             let domain = MixedRadixEvaluationDomain::<Fr>::new(coeffs).unwrap();
             let coset_domain = domain.get_coset(Fr::GENERATOR).unwrap();
             let z = domain.vanishing_polynomial();
-            let z_coset = coset_domain.vanishing_polynomial();
+            let coset_z = coset_domain.vanishing_polynomial();
             for _ in 0..100 {
                 let point: Fr = rng.gen();
                 assert_eq!(
@@ -429,7 +427,7 @@ mod tests {
                     domain.evaluate_vanishing_polynomial(point)
                 );
                 assert_eq!(
-                    z_coset.evaluate(&point),
+                    coset_z.evaluate(&point),
                     coset_domain.evaluate_vanishing_polynomial(point)
                 );
             }
@@ -531,17 +529,13 @@ mod tests {
         for coeffs in 1..12 {
             let size = 1 << coeffs;
             let domain = MixedRadixEvaluationDomain::<Fr>::new(size).unwrap();
-            let coset_domain = domain.get_coset(Fr::GENERATOR).unwrap();
-            for (i, (element, coset_element)) in
-                domain.elements().zip(coset_domain.elements()).enumerate()
-            {
-                assert_eq!(element, domain.group_gen.pow([i as u64]));
-                assert_eq!(element, domain.element(i));
-                assert_eq!(
-                    coset_element,
-                    Fr::GENERATOR * coset_domain.group_gen.pow([i as u64])
-                );
-                assert_eq!(coset_element, coset_domain.element(i));
+            let offset = Fr::GENERATOR;
+            let coset_domain = domain.get_coset(offset).unwrap();
+            for (i, (x, coset_x)) in domain.elements().zip(coset_domain.elements()).enumerate() {
+                assert_eq!(x, domain.group_gen.pow([i as u64]));
+                assert_eq!(x, domain.element(i));
+                assert_eq!(coset_x, offset * coset_domain.group_gen.pow([i as u64]));
+                assert_eq!(coset_x, coset_domain.element(i));
             }
         }
     }

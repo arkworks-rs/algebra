@@ -246,17 +246,13 @@ mod tests {
         for coeffs in 1..10 {
             let size = 1 << coeffs;
             let domain = Radix2EvaluationDomain::<Fr>::new(size).unwrap();
-            let coset_domain = domain.get_coset(Fr::GENERATOR).unwrap();
-            for (i, (element, coset_element)) in
-                domain.elements().zip(coset_domain.elements()).enumerate()
-            {
-                assert_eq!(element, domain.group_gen.pow([i as u64]));
-                assert_eq!(element, domain.element(i));
-                assert_eq!(
-                    coset_element,
-                    Fr::GENERATOR * coset_domain.group_gen.pow([i as u64])
-                );
-                assert_eq!(coset_element, coset_domain.element(i));
+            let offset = Fr::GENERATOR;
+            let coset_domain = domain.get_coset(offset).unwrap();
+            for (i, (x, coset_x)) in domain.elements().zip(coset_domain.elements()).enumerate() {
+                assert_eq!(x, domain.group_gen.pow([i as u64]));
+                assert_eq!(x, domain.element(i));
+                assert_eq!(coset_x, offset * coset_domain.group_gen.pow([i as u64]));
+                assert_eq!(coset_x, coset_domain.element(i));
             }
         }
     }
@@ -339,11 +335,10 @@ mod tests {
         for log_domain_size in log_degree..(log_degree + 2) {
             let domain_size = 1 << log_domain_size;
             let domain = Radix2EvaluationDomain::<Fr>::new_subgroup(domain_size).unwrap();
-            let coset_domain = domain.get_coset(Fr::GENERATOR).unwrap();
+            let coset_domain =
+                Radix2EvaluationDomain::<Fr>::new_coset(domain_size, Fr::GENERATOR).unwrap();
             let poly_evals = domain.fft(&rand_poly.coeffs);
             let poly_coset_evals = coset_domain.fft(&rand_poly.coeffs);
-
-            assert_eq!(coset_domain.offset, Fr::GENERATOR);
 
             for (i, (x, coset_x)) in domain.elements().zip(coset_domain.elements()).enumerate() {
                 assert_eq!(poly_evals[i], rand_poly.evaluate(&x));
@@ -473,6 +468,7 @@ mod tests {
                     let mut actual_vec = expected_vec.clone();
 
                     let domain = Radix2EvaluationDomain::new(d).unwrap();
+                    let coset_domain = domain.get_coset(Fr::GENERATOR);
 
                     serial_radix2_fft(&mut expected_vec, domain.group_gen, log_d);
                     domain.fft_in_place(&mut actual_vec);
@@ -484,11 +480,11 @@ mod tests {
                     assert_eq!(expected_vec, expected_poly);
 
                     serial_radix2_coset_fft(&mut expected_vec, domain.group_gen, log_d);
-                    domain.coset_fft_in_place(&mut actual_vec);
+                    coset_domain.fft_in_place(&mut actual_vec);
                     assert_eq!(expected_vec, actual_vec);
 
                     serial_radix2_coset_ifft(&mut expected_vec, domain.group_gen, log_d);
-                    domain.coset_ifft_in_place(&mut actual_vec);
+                    coset_domain.ifft_in_place(&mut actual_vec);
                     assert_eq!(expected_vec, actual_vec);
                 }
             }
