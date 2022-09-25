@@ -191,6 +191,7 @@ pub struct Elements<F: FftField> {
     pub(crate) cur_pow: u64,
     pub(crate) size: u64,
     pub(crate) group_gen: F,
+    pub(crate) offset: F,
 }
 
 impl<F: FftField> Iterator for Elements<F> {
@@ -202,7 +203,7 @@ impl<F: FftField> Iterator for Elements<F> {
             let cur_elem = self.cur_elem;
             self.cur_elem *= &self.group_gen;
             self.cur_pow += 1;
-            Some(cur_elem)
+            Some(self.offset * cur_elem)
         }
     }
 }

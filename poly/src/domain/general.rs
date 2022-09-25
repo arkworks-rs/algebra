@@ -182,8 +182,13 @@ impl<F: FftField> EvaluationDomain<F> for GeneralEvaluationDomain<F> {
     }
 
     #[inline]
-    fn generator_inv(&self) -> F {
-        map!(self, generator_inv)
+    fn offset(&self) -> F {
+        map!(self, offset)
+    }
+
+    #[inline]
+    fn offset_inv(&self) -> F {
+        map!(self, offset_inv)
     }
 
     #[inline]
@@ -194,16 +199,6 @@ impl<F: FftField> EvaluationDomain<F> for GeneralEvaluationDomain<F> {
     #[inline]
     fn ifft_in_place<T: DomainCoeff<F>>(&self, evals: &mut Vec<T>) {
         map!(self, ifft_in_place, evals)
-    }
-
-    #[inline]
-    fn coset_fft_in_place<T: DomainCoeff<F>>(&self, coeffs: &mut Vec<T>) {
-        map!(self, coset_fft_in_place, coeffs)
-    }
-
-    #[inline]
-    fn coset_ifft_in_place<T: DomainCoeff<F>>(&self, evals: &mut Vec<T>) {
-        map!(self, coset_ifft_in_place, evals)
     }
 
     #[inline]

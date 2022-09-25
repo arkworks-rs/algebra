@@ -131,8 +131,13 @@ impl<F: FftField> EvaluationDomain<F> for Radix2EvaluationDomain<F> {
     }
 
     #[inline]
-    fn generator_inv(&self) -> F {
-        self.generator_inv
+    fn offset(&self) -> F {
+        self.offset
+    }
+
+    #[inline]
+    fn offset_inv(&self) -> F {
+        self.offset_inv
     }
 
     #[inline]
@@ -145,12 +150,6 @@ impl<F: FftField> EvaluationDomain<F> for Radix2EvaluationDomain<F> {
     fn ifft_in_place<T: DomainCoeff<F>>(&self, evals: &mut Vec<T>) {
         evals.resize(self.size(), T::zero());
         self.in_order_ifft_in_place(&mut *evals);
-    }
-
-    #[inline]
-    fn coset_ifft_in_place<T: DomainCoeff<F>>(&self, evals: &mut Vec<T>) {
-        evals.resize(self.size(), T::zero());
-        self.in_order_coset_ifft_in_place(&mut *evals);
     }
 
     fn evaluate_all_lagrange_coefficients(&self, tau: F) -> Vec<F> {
@@ -219,7 +218,7 @@ impl<F: FftField> EvaluationDomain<F> for Radix2EvaluationDomain<F> {
     }
 
     fn vanishing_polynomial(&self) -> crate::univariate::SparsePolynomial<F> {
-        let coeffs = vec![(0, -F::one()), (self.size(), F::one())];
+        let coeffs = vec![(0, -self.offset.pow([self.size])), (self.size(), F::one())];
         crate::univariate::SparsePolynomial::from_coefficients_vec(coeffs)
     }
 
@@ -227,7 +226,7 @@ impl<F: FftField> EvaluationDomain<F> for Radix2EvaluationDomain<F> {
     /// For multiplicative subgroups, this polynomial is `z(X) = X^self.size -
     /// 1`.
     fn evaluate_vanishing_polynomial(&self, tau: F) -> F {
-        tau.pow([self.size]) - F::one()
+        tau.pow([self.size]) - self.offset.pow([self.size])
     }
 
     /// Returns the `i`-th element of the domain, where elements are ordered by
@@ -236,7 +235,7 @@ impl<F: FftField> EvaluationDomain<F> for Radix2EvaluationDomain<F> {
     fn element(&self, i: usize) -> F {
         // TODO: Consider precomputed exponentiation tables if we need this to be
         // faster.
-        self.group_gen.pow([i as u64])
+        self.offset * self.group_gen.pow([i as u64])
     }
 
     /// Return an iterator over the elements of the domain.
@@ -246,6 +245,7 @@ impl<F: FftField> EvaluationDomain<F> for Radix2EvaluationDomain<F> {
             cur_pow: 0,
             size: self.size,
             group_gen: self.group_gen,
+            offset: self.offset,
         }
     }
 }
@@ -266,13 +266,19 @@ mod tests {
         let rng = &mut test_rng();
         for coeffs in 0..10 {
             let domain = Radix2EvaluationDomain::<Fr>::new(coeffs).unwrap();
+            let coset_domain = domain.get_coset(Fr::GENERATOR).unwrap();
             let z = domain.vanishing_polynomial();
+            let z_coset = coset_domain.vanishing_polynomial();
             for _ in 0..100 {
                 let point: Fr = rng.gen();
                 assert_eq!(
                     z.evaluate(&point),
                     domain.evaluate_vanishing_polynomial(point)
-                )
+                );
+                assert_eq!(
+                    z_coset.evaluate(&point),
+                    coset_domain.evaluate_vanishing_polynomial(point)
+                );
             }
         }
     }
@@ -283,6 +289,12 @@ mod tests {
             let domain = Radix2EvaluationDomain::<Fr>::new(coeffs).unwrap();
             let z = domain.vanishing_polynomial();
             for point in domain.elements() {
+                assert!(z.evaluate(&point).is_zero())
+            }
+
+            let coset_domain = domain.get_coset(Fr::GENERATOR).unwrap();
+            let z = coset_domain.vanishing_polynomial();
+            for point in coset_domain.elements() {
                 assert!(z.evaluate(&point).is_zero())
             }
         }
@@ -303,8 +315,17 @@ mod tests {
         for coeffs in 1..10 {
             let size = 1 << coeffs;
             let domain = Radix2EvaluationDomain::<Fr>::new(size).unwrap();
-            for (i, element) in domain.elements().enumerate() {
+            let coset_domain = domain.get_coset(Fr::GENERATOR).unwrap();
+            for (i, (element, coset_element)) in
+                domain.elements().zip(coset_domain.elements()).enumerate()
+            {
                 assert_eq!(element, domain.group_gen.pow([i as u64]));
+                assert_eq!(element, domain.element(i));
+                assert_eq!(
+                    coset_element,
+                    Fr::GENERATOR * coset_domain.group_gen.pow([i as u64])
+                );
+                assert_eq!(coset_element, coset_domain.element(i));
             }
         }
     }
@@ -373,12 +394,14 @@ mod tests {
 
         for log_domain_size in log_degree..(log_degree + 2) {
             let domain_size = 1 << log_domain_size;
-            let domain = Radix2EvaluationDomain::<Fr>::new(domain_size).unwrap();
+            let domain = Radix2EvaluationDomain::<Fr>::new_subgroup(domain_size).unwrap();
+            let coset_domain = domain.get_coset(Fr::GENERATOR).unwrap();
             let poly_evals = domain.fft(&rand_poly.coeffs);
-            let poly_coset_evals = domain.coset_fft(&rand_poly.coeffs);
-            for (i, x) in domain.elements().enumerate() {
-                let coset_x = Fr::GENERATOR * x;
+            let poly_coset_evals = coset_domain.fft(&rand_poly.coeffs);
 
+            assert_eq!(coset_domain.offset, Fr::GENERATOR);
+
+            for (i, (x, coset_x)) in domain.elements().zip(coset_domain.elements()).enumerate() {
                 assert_eq!(poly_evals[i], rand_poly.evaluate(&x));
                 assert_eq!(poly_coset_evals[i], rand_poly.evaluate(&coset_x));
             }
@@ -386,7 +409,7 @@ mod tests {
             let rand_poly_from_subgroup =
                 DensePolynomial::from_coefficients_vec(domain.ifft(&poly_evals));
             let rand_poly_from_coset =
-                DensePolynomial::from_coefficients_vec(domain.coset_ifft(&poly_coset_evals));
+                DensePolynomial::from_coefficients_vec(coset_domain.ifft(&poly_coset_evals));
 
             assert_eq!(
                 rand_poly, rand_poly_from_subgroup,

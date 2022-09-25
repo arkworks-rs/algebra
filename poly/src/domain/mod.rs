@@ -81,8 +81,11 @@ pub trait EvaluationDomain<F: FftField>:
     /// Return the group inverse of `self.group_gen()`.
     fn group_gen_inv(&self) -> F;
 
-    /// Return the inverse of the multiplicative generator of `F`.
-    fn generator_inv(&self) -> F;
+    /// Return the offset that defines this domain.
+    fn offset(&self) -> F;
+
+    /// Return the inverse of `self.offset()`.
+    fn offset_inv(&self) -> F;
 
     /// Compute a FFT.
     #[inline]
@@ -142,38 +145,6 @@ pub trait EvaluationDomain<F: FftField>:
             });
     }
 
-    /// Compute a FFT over a coset of the domain.
-    #[inline]
-    fn coset_fft<T: DomainCoeff<F>>(&self, coeffs: &[T]) -> Vec<T> {
-        let mut coeffs = coeffs.to_vec();
-        self.coset_fft_in_place(&mut coeffs);
-        coeffs
-    }
-
-    /// Compute a FFT over a coset of the domain, modifying the input vector
-    /// in place.
-    #[inline]
-    fn coset_fft_in_place<T: DomainCoeff<F>>(&self, coeffs: &mut Vec<T>) {
-        Self::distribute_powers(coeffs, F::GENERATOR);
-        self.fft_in_place(coeffs);
-    }
-
-    /// Compute a IFFT over a coset of the domain.
-    #[inline]
-    fn coset_ifft<T: DomainCoeff<F>>(&self, evals: &[T]) -> Vec<T> {
-        let mut evals = evals.to_vec();
-        self.coset_ifft_in_place(&mut evals);
-        evals
-    }
-
-    /// Compute a IFFT over a coset of the domain, modifying the input vector in
-    /// place.
-    #[inline]
-    fn coset_ifft_in_place<T: DomainCoeff<F>>(&self, evals: &mut Vec<T>) {
-        self.ifft_in_place(evals);
-        Self::distribute_powers(evals, self.generator_inv());
-    }
-
     /// Evaluate all the lagrange polynomials defined by this domain at the
     /// point `tau`. This is computed in time O(|domain|).
     /// Then given the evaluations of a degree d polynomial P over this domain,
@@ -194,18 +165,6 @@ pub trait EvaluationDomain<F: FftField>:
 
     /// Return an iterator over the elements of the domain.
     fn elements(&self) -> Self::Elements;
-
-    /// The target polynomial is the zero polynomial in our
-    /// evaluation domain, so we must perform division over
-    /// a coset.
-    fn divide_by_vanishing_poly_on_coset_in_place(&self, evals: &mut [F]) {
-        let i = self
-            .evaluate_vanishing_polynomial(F::GENERATOR)
-            .inverse()
-            .unwrap();
-
-        ark_std::cfg_iter_mut!(evals).for_each(|eval| *eval *= &i);
-    }
 
     /// Given an index which assumes the first elements of this domain are the
     /// elements of another (sub)domain,
