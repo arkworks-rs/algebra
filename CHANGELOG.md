@@ -2,6 +2,14 @@
 
 ## Pending
 
+- [\#487](https://github.com/arkworks-rs/algebra/pull/487) (`ark-poly`) Refactor `EvaluationDomain` trait for cosets:
+    - Add constructors `new_subgroup` and `new_coset`.
+    - Add convenience method `get_coset`.
+    - Add methods `offset` and `offset_inv`.
+    - Remove method `generator_inv`.
+    - Remove method `divide_by_vanishing_poly_on_coset_in_place`.
+    - Remove coset fft methods: `coset_fft`, `coset_fft_in_place`, `coset_ifft`, `coset_ifft_in_place`.
+
 ### Breaking changes
 
 - [\#300](https://github.com/arkworks-rs/algebra/pull/300) (`ark-ec`) Change the implementation of `Hash` trait of `GroupProjective` to use the affine coordinates.
