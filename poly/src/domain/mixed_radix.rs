@@ -195,7 +195,7 @@ impl<F: FftField> EvaluationDomain<F> for MixedRadixEvaluationDomain<F> {
     fn evaluate_all_lagrange_coefficients(&self, tau: F) -> Vec<F> {
         // Evaluate all Lagrange polynomials
         let size = self.size();
-        let t_size = tau.pow(&[self.size]);
+        let t_size = tau.pow([self.size]);
         let one = F::one();
         if t_size.is_one() {
             let mut u = vec![F::zero(); size];
@@ -243,7 +243,7 @@ impl<F: FftField> EvaluationDomain<F> for MixedRadixEvaluationDomain<F> {
     /// For multiplicative subgroups, this polynomial is `z(X) = X^self.size -
     /// 1`.
     fn evaluate_vanishing_polynomial(&self, tau: F) -> F {
-        tau.pow(&[self.size]) - F::one()
+        tau.pow([self.size]) - F::one()
     }
 
     /// Returns the `i`-th element of the domain, where elements are ordered by
@@ -252,7 +252,7 @@ impl<F: FftField> EvaluationDomain<F> for MixedRadixEvaluationDomain<F> {
     fn element(&self, i: usize) -> F {
         // TODO: Consider precomputed exponentiation tables if we need this to be
         // faster.
-        self.group_gen.pow(&[i as u64])
+        self.group_gen.pow([i as u64])
     }
 
     /// Return an iterator over the elements of the domain.
@@ -371,7 +371,7 @@ pub(crate) fn serial_mixed_radix_fft<T: DomainCoeff<F>, F: FftField>(
             }
         }
 
-        let omega_q = omega.pow(&[(n / q) as u64]);
+        let omega_q = omega.pow([(n / q) as u64]);
         let mut qth_roots = Vec::with_capacity(q);
         qth_roots.push(F::one());
         for i in 1..q {
@@ -382,7 +382,7 @@ pub(crate) fn serial_mixed_radix_fft<T: DomainCoeff<F>, F: FftField>(
 
         // Doing the q_adicity passes.
         for _ in 0..q_adicity {
-            let w_m = omega.pow(&[(n / (q * m)) as u64]);
+            let w_m = omega.pow([(n / (q * m)) as u64]);
             let mut k = 0;
             while k < n {
                 let mut w_j = F::one(); // w_j is omega_m ^ j
@@ -423,7 +423,7 @@ pub(crate) fn serial_mixed_radix_fft<T: DomainCoeff<F>, F: FftField>(
 
     for _ in 0..two_adicity {
         // w_m is 2^s-th root of unity now
-        let w_m = omega.pow(&[(n / (2 * m)) as u64]);
+        let w_m = omega.pow([(n / (2 * m)) as u64]);
 
         let mut k = 0;
         while k < n {

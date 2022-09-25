@@ -169,7 +169,7 @@ impl<F: FftField> EvaluationDomain<F> for Radix2EvaluationDomain<F> {
         // detect by checking if the vanishing poly is 0.
         let size = self.size();
         // TODO: Make this use the vanishing polynomial
-        let z_h_at_tau = tau.pow(&[self.size]) - F::one();
+        let z_h_at_tau = tau.pow([self.size]) - F::one();
         let domain_offset = F::one();
         if z_h_at_tau.is_zero() {
             // In this case, we know that tau = hg^i, for some value i.
@@ -199,7 +199,7 @@ impl<F: FftField> EvaluationDomain<F> for Radix2EvaluationDomain<F> {
             use ark_ff::fields::batch_inversion;
 
             // v_0_inv = m * h^(m-1)
-            let v_0_inv = F::from(self.size) * domain_offset.pow(&[self.size - 1]);
+            let v_0_inv = F::from(self.size) * domain_offset.pow([self.size - 1]);
             let mut l_i = z_h_at_tau.inverse().unwrap() * v_0_inv;
             let mut negative_cur_elem = -domain_offset;
             let mut lagrange_coefficients_inverse = vec![F::zero(); size];
@@ -227,7 +227,7 @@ impl<F: FftField> EvaluationDomain<F> for Radix2EvaluationDomain<F> {
     /// For multiplicative subgroups, this polynomial is `z(X) = X^self.size -
     /// 1`.
     fn evaluate_vanishing_polynomial(&self, tau: F) -> F {
-        tau.pow(&[self.size]) - F::one()
+        tau.pow([self.size]) - F::one()
     }
 
     /// Returns the `i`-th element of the domain, where elements are ordered by
@@ -236,7 +236,7 @@ impl<F: FftField> EvaluationDomain<F> for Radix2EvaluationDomain<F> {
     fn element(&self, i: usize) -> F {
         // TODO: Consider precomputed exponentiation tables if we need this to be
         // faster.
-        self.group_gen.pow(&[i as u64])
+        self.group_gen.pow([i as u64])
     }
 
     /// Return an iterator over the elements of the domain.
@@ -445,7 +445,7 @@ mod tests {
             let mut m = 1;
             for _i in 1..=log_n {
                 // w_m is 2^i-th root of unity
-                let w_m = omega.pow(&[(n / (2 * m)) as u64]);
+                let w_m = omega.pow([(n / (2 * m)) as u64]);
 
                 let mut k = 0;
                 while k < n {
