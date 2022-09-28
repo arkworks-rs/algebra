@@ -41,6 +41,8 @@ pub struct MixedRadixEvaluationDomain<F: FftField> {
     pub offset: F,
     /// Inverse of the offset that specifies the coset.
     pub offset_inv: F,
+    /// Constant coefficient for the vanishing polynomial.
+    pub offset_pow_size: F,
 }
 
 impl<F: FftField> fmt::Debug for MixedRadixEvaluationDomain<F> {
@@ -97,6 +99,7 @@ impl<F: FftField> EvaluationDomain<F> for MixedRadixEvaluationDomain<F> {
             group_gen_inv: group_gen.inverse()?,
             offset: F::one(),
             offset_inv: F::one(),
+            offset_pow_size: F::one(),
         })
     }
 
@@ -104,6 +107,7 @@ impl<F: FftField> EvaluationDomain<F> for MixedRadixEvaluationDomain<F> {
         Some(MixedRadixEvaluationDomain {
             offset,
             offset_inv: offset.inverse()?,
+            offset_pow_size: offset.pow([self.size]),
             ..*self
         })
     }
@@ -154,12 +158,12 @@ impl<F: FftField> EvaluationDomain<F> for MixedRadixEvaluationDomain<F> {
     }
 
     #[inline]
-    fn offset(&self) -> F {
+    fn coset_offset(&self) -> F {
         self.offset
     }
 
     #[inline]
-    fn offset_inv(&self) -> F {
+    fn coset_offset_inv(&self) -> F {
         self.offset_inv
     }
 
@@ -194,34 +198,24 @@ impl<F: FftField> EvaluationDomain<F> for MixedRadixEvaluationDomain<F> {
     }
 
     fn vanishing_polynomial(&self) -> crate::univariate::SparsePolynomial<F> {
-        let coeffs = vec![(0, -self.offset.pow([self.size])), (self.size(), F::one())];
+        let coeffs = vec![(0, -self.offset_pow_size), (self.size(), F::one())];
         crate::univariate::SparsePolynomial::from_coefficients_vec(coeffs)
     }
 
     /// This evaluates the vanishing polynomial for this domain at tau.
     /// For multiplicative subgroups, this polynomial is `z(X) = X^self.size -
-    /// 1`.
+    /// offset^self.size`.
     fn evaluate_vanishing_polynomial(&self, tau: F) -> F {
-        tau.pow([self.size]) - self.offset.pow([self.size])
-    }
-
-    /// Returns the `i`-th element of the domain, where elements are ordered by
-    /// their power of the generator which they correspond to.
-    /// e.g. the `i`-th element is g^i
-    fn element(&self, i: usize) -> F {
-        // TODO: Consider precomputed exponentiation tables if we need this to be
-        // faster.
-        self.offset * self.group_gen.pow([i as u64])
+        tau.pow([self.size]) - self.offset_pow_size
     }
 
     /// Return an iterator over the elements of the domain.
     fn elements(&self) -> Elements<F> {
         Elements {
-            cur_elem: F::one(),
+            cur_elem: self.offset,
             cur_pow: 0,
             size: self.size,
             group_gen: self.group_gen,
-            offset: self.offset,
         }
     }
 }

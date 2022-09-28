@@ -182,13 +182,13 @@ impl<F: FftField> EvaluationDomain<F> for GeneralEvaluationDomain<F> {
     }
 
     #[inline]
-    fn offset(&self) -> F {
-        map!(self, offset)
+    fn coset_offset(&self) -> F {
+        map!(self, coset_offset)
     }
 
     #[inline]
-    fn offset_inv(&self) -> F {
-        map!(self, offset_inv)
+    fn coset_offset_inv(&self) -> F {
+        map!(self, coset_offset_inv)
     }
 
     #[inline]
@@ -214,11 +214,6 @@ impl<F: FftField> EvaluationDomain<F> for GeneralEvaluationDomain<F> {
     #[inline]
     fn evaluate_vanishing_polynomial(&self, tau: F) -> F {
         map!(self, evaluate_vanishing_polynomial, tau)
-    }
-
-    /// Returns the `i`-th element of the domain.
-    fn element(&self, i: usize) -> F {
-        map!(self, element, i)
     }
 
     /// Return an iterator over the elements of the domain.

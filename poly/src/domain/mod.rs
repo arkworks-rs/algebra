@@ -81,11 +81,11 @@ pub trait EvaluationDomain<F: FftField>:
     /// Return the group inverse of `self.group_gen()`.
     fn group_gen_inv(&self) -> F;
 
-    /// Return the offset that defines this domain.
-    fn offset(&self) -> F;
+    /// Return the group offset that defines this domain.
+    fn coset_offset(&self) -> F;
 
     /// Return the inverse of `self.offset()`.
-    fn offset_inv(&self) -> F;
+    fn coset_offset_inv(&self) -> F;
 
     /// Compute a FFT.
     #[inline]
@@ -168,7 +168,7 @@ pub trait EvaluationDomain<F: FftField>:
         // detect by checking if the vanishing poly is 0.
         let size = self.size();
         let z_h_at_tau = self.evaluate_vanishing_polynomial(tau);
-        let offset = self.offset();
+        let offset = self.coset_offset();
         let group_gen = self.group_gen();
         if z_h_at_tau.is_zero() {
             // In this case, we know that tau = hg^i, for some value i.
@@ -226,7 +226,9 @@ pub trait EvaluationDomain<F: FftField>:
     fn evaluate_vanishing_polynomial(&self, tau: F) -> F;
 
     /// Returns the `i`-th element of the domain.
-    fn element(&self, i: usize) -> F;
+    fn element(&self, i: usize) -> F {
+        self.coset_offset() * self.group_gen().pow([i as u64])
+    }
 
     /// Return an iterator over the elements of the domain.
     fn elements(&self) -> Self::Elements;
