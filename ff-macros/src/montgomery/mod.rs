@@ -81,10 +81,10 @@ pub fn mont_config_helper(
     } else {
         quote::quote! {}
     };
-    let mod_name = format_ident!("{}___", config_name.to_string().to_lowercase());
+    let scope_name = format_ident!("{}___", config_name.to_string().to_lowercase());
     quote::quote! {
-        fn #mod_name() {
-            use ark_ff::{Field, PrimeField, fields::Fp, BigInt, BigInteger, biginteger::arithmetic as fa, fields::*};
+        fn #scope_name() {
+            use ark_ff::{fields::Fp, BigInt, BigInteger, biginteger::arithmetic as fa, fields::*};
             type B = BigInt<#limbs>;
             type F = Fp<MontBackend<#config_name, #limbs>, #limbs>;
 
