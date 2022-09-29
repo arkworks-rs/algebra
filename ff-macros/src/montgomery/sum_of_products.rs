@@ -40,35 +40,47 @@ pub(super) fn sum_of_products_impl(num_limbs: usize, modulus: &[u64]) -> proc_ma
             });
         }
         let modulus_0 = modulus[0];
+        let chunk_size = 2 * (num_limbs * 64 - modulus_size) - 1;
         body.extend(quote! {
-        // Algorithm 2, line 2
-        let result = (0..#num_limbs).fold(BigInt::zero(), |mut result, j| {
-            // Algorithm 2, line 3
-            let mut carry_a = 0;
-            let mut carry_b = 0;
-            for (a, b) in a.iter().zip(b) {
-                let a = &a.0;
-                let b = &b.0;
-                let mut carry2 = 0;
-                result.0[0] = fa::mac(result.0[0], a.0[j], b.0[0], &mut carry2);
-                #inner_loop_body
-                carry_b = fa::adc(&mut carry_a, carry_b, carry2);
+            if M <= #chunk_size {
+                // Algorithm 2, line 2
+                let result = (0..#num_limbs).fold(BigInt::zero(), |mut result, j| {
+                    // Algorithm 2, line 3
+                    let mut carry_a = 0;
+                    let mut carry_b = 0;
+                    for (a, b) in a.iter().zip(b) {
+                        let a = &a.0;
+                        let b = &b.0;
+                        let mut carry2 = 0;
+                        result.0[0] = fa::mac(result.0[0], a.0[j], b.0[0], &mut carry2);
+                        #inner_loop_body
+                        carry_b = fa::adc(&mut carry_a, carry_b, carry2);
+                    }
+
+                    let k = result.0[0].wrapping_mul(Self::INV);
+                    let mut carry2 = 0;
+                    fa::mac_discard(result.0[0], k, #modulus_0, &mut carry2);
+                    #mont_red_body
+                    result.0[#num_limbs - 1] = fa::adc_no_carry(carry_a, carry_b, &mut carry2);
+                    result
+                });
+                let mut result = F::new_unchecked(result);
+                __subtract_modulus(&mut result);
+                debug_assert_eq!(
+                    a.iter().zip(b).map(|(a, b)| *a * b).sum::<F>(),
+                    result
+                );
+                result
+            } else {
+                a.chunks(#chunk_size).zip(b.chunks(#chunk_size)).map(|(a, b)| {
+                    if a.len() == #chunk_size {
+                        Self::sum_of_products::<#chunk_size>(a.try_into().unwrap(), b.try_into().unwrap())
+                    } else {
+                        a.iter().zip(b).map(|(a, b)| *a * b).sum()
+                    }
+                }).sum()
             }
 
-            let k = result.0[0].wrapping_mul(Self::INV);
-            let mut carry2 = 0;
-            fa::mac_discard(result.0[0], k, #modulus_0, &mut carry2);
-            #mont_red_body
-            result.0[#num_limbs - 1] = fa::adc_no_carry(carry_a, carry_b, &mut carry2);
-            result
-        });
-        let mut result = F::new_unchecked(result);
-        __subtract_modulus(&mut result);
-        debug_assert_eq!(
-            a.iter().zip(b).map(|(a, b)| *a * b).sum::<F>(),
-            result
-        );
-        result
 
         });
         body
