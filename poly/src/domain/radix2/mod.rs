@@ -33,6 +33,7 @@ pub struct Radix2EvaluationDomain<F: FftField> {
     /// Inverse of the offset that specifies the coset.
     pub offset_inv: F,
     /// Constant coefficient for the vanishing polynomial.
+    /// Equals `self.offset^self.size`.
     pub offset_pow_size: F,
 }
 
