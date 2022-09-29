@@ -236,7 +236,11 @@ pub trait EvaluationDomain<F: FftField>:
 
     /// Returns the `i`-th element of the domain.
     fn element(&self, i: usize) -> F {
-        self.coset_offset() * self.group_gen().pow([i as u64])
+        let mut result = self.group_gen().pow([i as u64]);
+        if !self.coset_offset().is_one() {
+            result *= self.coset_offset()
+        }
+        result
     }
 
     /// Return an iterator over the elements of the domain.
