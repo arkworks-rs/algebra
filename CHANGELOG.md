@@ -126,6 +126,10 @@
     - New serialization format for Twisted Edwards curves:
         - Points with a "positive" x-coordinate are serialized with the sign bit set to zero.
         - Points with a "negative" x-coordinate are serialized with the sign bit set to one.
+- [\#487](https://github.com/arkworks-rs/algebra/pull/487) (`ark-poly`) Refactor `EvaluationDomain` trait for cosets:
+    - Remove method `generator_inv`.
+    - Remove method `divide_by_vanishing_poly_on_coset_in_place`.
+    - Remove coset fft methods: `coset_fft`, `coset_fft_in_place`, `coset_ifft`, `coset_ifft_in_place`.
 
 ### Features
 
@@ -146,6 +150,10 @@
 - [\#446](https://github.com/arkworks-rs/algebra/pull/446) (`ark-ff`) Add `CyclotomicMultSubgroup` trait and impl for extension fields
 - [\#467](https://github.com/arkworks-rs/algebra/pull/467) (`ark-ec`)
     - Move implementation of `serialize_with_mode()`, `deserialize_with_mode()`, and `serialized_size()` into `{SW,TE}CurveConfig` to allow customization.
+- [\#487](https://github.com/arkworks-rs/algebra/pull/487) (`ark-poly`) Refactor `EvaluationDomain` trait for cosets:
+    - Add constructor `new_coset`.
+    - Add convenience method `get_coset`.
+    - Add methods `coset_offset`, `coset_offset_inv` and `coset_offset_pow_size`.
 
 ### Improvements
 

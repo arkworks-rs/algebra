@@ -46,6 +46,15 @@ pub trait EvaluationDomain<F: FftField>:
     /// having `num_coeffs` coefficients.
     fn new(num_coeffs: usize) -> Option<Self>;
 
+    /// Construct a coset domain that is large enough for evaluations of a polynomial
+    /// having `num_coeffs` coefficients.
+    fn new_coset(num_coeffs: usize, offset: F) -> Option<Self> {
+        Self::new(num_coeffs)?.get_coset(offset)
+    }
+
+    /// Construct a coset domain from a subgroup domain
+    fn get_coset(&self, offset: F) -> Option<Self>;
+
     /// Return the size of a domain that is large enough for evaluations of a
     /// polynomial having `num_coeffs` coefficients.
     fn compute_size_of_domain(num_coeffs: usize) -> Option<usize>;
@@ -70,8 +79,14 @@ pub trait EvaluationDomain<F: FftField>:
     /// Return the group inverse of `self.group_gen()`.
     fn group_gen_inv(&self) -> F;
 
-    /// Return the inverse of the multiplicative generator of `F`.
-    fn generator_inv(&self) -> F;
+    /// Return the group offset that defines this domain.
+    fn coset_offset(&self) -> F;
+
+    /// Return the inverse of `self.offset()`.
+    fn coset_offset_inv(&self) -> F;
+
+    /// Return `offset^size`.
+    fn coset_offset_pow_size(&self) -> F;
 
     /// Compute a FFT.
     #[inline]
@@ -131,38 +146,6 @@ pub trait EvaluationDomain<F: FftField>:
             });
     }
 
-    /// Compute a FFT over a coset of the domain.
-    #[inline]
-    fn coset_fft<T: DomainCoeff<F>>(&self, coeffs: &[T]) -> Vec<T> {
-        let mut coeffs = coeffs.to_vec();
-        self.coset_fft_in_place(&mut coeffs);
-        coeffs
-    }
-
-    /// Compute a FFT over a coset of the domain, modifying the input vector
-    /// in place.
-    #[inline]
-    fn coset_fft_in_place<T: DomainCoeff<F>>(&self, coeffs: &mut Vec<T>) {
-        Self::distribute_powers(coeffs, F::GENERATOR);
-        self.fft_in_place(coeffs);
-    }
-
-    /// Compute a IFFT over a coset of the domain.
-    #[inline]
-    fn coset_ifft<T: DomainCoeff<F>>(&self, evals: &[T]) -> Vec<T> {
-        let mut evals = evals.to_vec();
-        self.coset_ifft_in_place(&mut evals);
-        evals
-    }
-
-    /// Compute a IFFT over a coset of the domain, modifying the input vector in
-    /// place.
-    #[inline]
-    fn coset_ifft_in_place<T: DomainCoeff<F>>(&self, evals: &mut Vec<T>) {
-        self.ifft_in_place(evals);
-        Self::distribute_powers(evals, self.generator_inv());
-    }
-
     /// Evaluate all the lagrange polynomials defined by this domain at the
     /// point `tau`. This is computed in time O(|domain|).
     /// Then given the evaluations of a degree d polynomial P over this domain,
@@ -170,31 +153,98 @@ pub trait EvaluationDomain<F: FftField>:
     /// `P(tau) = sum_{i in [|Domain|]} L_{i, Domain}(tau) * P(g^i)`.
     /// `L_{i, Domain}` is the value of the i-th lagrange coefficient
     /// in the returned vector.
-    fn evaluate_all_lagrange_coefficients(&self, tau: F) -> Vec<F>;
+    fn evaluate_all_lagrange_coefficients(&self, tau: F) -> Vec<F> {
+        // Evaluate all Lagrange polynomials at tau to get the lagrange coefficients.
+        // Define the following as
+        // - H: The coset we are in, with generator g and offset h
+        // - m: The size of the coset H
+        // - Z_H: The vanishing polynomial for H. Z_H(x) = prod_{i in m} (x - hg^i) = x^m - h^m
+        // - v_i: A sequence of values, where v_0 = 1/(m * h^(m-1)), and v_{i + 1} = g * v_i
+        //
+        // We then compute L_{i,H}(tau) as `L_{i,H}(tau) = Z_H(tau) * v_i / (tau - h * g^i)`
+        //
+        // However, if tau in H, both the numerator and denominator equal 0
+        // when i corresponds to the value tau equals, and the coefficient is 0
+        // everywhere else. We handle this case separately, and we can easily
+        // detect by checking if the vanishing poly is 0.
+        let size = self.size();
+        let z_h_at_tau = self.evaluate_vanishing_polynomial(tau);
+        let offset = self.coset_offset();
+        let group_gen = self.group_gen();
+        if z_h_at_tau.is_zero() {
+            // In this case, we know that tau = hg^i, for some value i.
+            // Then i-th lagrange coefficient in this case is then simply 1,
+            // and all other lagrange coefficients are 0.
+            // Thus we find i by brute force.
+            let mut u = vec![F::zero(); size];
+            let mut omega_i = offset;
+            for u_i in u.iter_mut().take(size) {
+                if omega_i == tau {
+                    *u_i = F::one();
+                    break;
+                }
+                omega_i *= &group_gen;
+            }
+            u
+        } else {
+            // In this case we have to compute `Z_H(tau) * v_i / (tau - h g^i)`
+            // for i in 0..size
+            // We actually compute this by computing (Z_H(tau) * v_i)^{-1} * (tau - h g^i)
+            // and then batch inverting to get the correct lagrange coefficients.
+            // We let `l_i = (Z_H(tau) * v_i)^-1` and `r_i = tau - h g^i`
+            // Notice that since Z_H(tau) is i-independent,
+            // and v_i = g * v_{i-1}, it follows that
+            // l_i = g^-1 * l_{i-1}
+            // TODO: consider caching the computation of l_i to save N multiplications
+            use ark_ff::fields::batch_inversion;
+
+            let group_gen_inv = self.group_gen_inv();
+
+            // v_0_inv = m * h^(m-1)
+            let v_0_inv = self.size_as_field_element() * offset.pow([size as u64 - 1]);
+            let mut l_i = z_h_at_tau.inverse().unwrap() * v_0_inv;
+            let mut negative_cur_elem = -offset;
+            let mut lagrange_coefficients_inverse = vec![F::zero(); size];
+            for coeff in &mut lagrange_coefficients_inverse {
+                let r_i = tau + negative_cur_elem;
+                *coeff = l_i * r_i;
+                // Increment l_i and negative_cur_elem
+                l_i *= &group_gen_inv;
+                negative_cur_elem *= &group_gen;
+            }
+
+            // Invert the lagrange coefficients inverse, to get the actual coefficients,
+            // and return these
+            batch_inversion(lagrange_coefficients_inverse.as_mut_slice());
+            lagrange_coefficients_inverse
+        }
+    }
 
     /// Return the sparse vanishing polynomial.
-    fn vanishing_polynomial(&self) -> crate::univariate::SparsePolynomial<F>;
+    fn vanishing_polynomial(&self) -> crate::univariate::SparsePolynomial<F> {
+        let constant_coeff = self.coset_offset_pow_size();
+        let coeffs = vec![(0, -constant_coeff), (self.size(), F::one())];
+        crate::univariate::SparsePolynomial::from_coefficients_vec(coeffs)
+    }
 
     /// This evaluates the vanishing polynomial for this domain at tau.
-    fn evaluate_vanishing_polynomial(&self, tau: F) -> F;
+    fn evaluate_vanishing_polynomial(&self, tau: F) -> F {
+        // TODO: Consider precomputed exponentiation tables if we need this to be
+        // faster.
+        tau.pow([self.size() as u64]) - self.coset_offset_pow_size()
+    }
 
     /// Returns the `i`-th element of the domain.
-    fn element(&self, i: usize) -> F;
+    fn element(&self, i: usize) -> F {
+        let mut result = self.group_gen().pow([i as u64]);
+        if !self.coset_offset().is_one() {
+            result *= self.coset_offset()
+        }
+        result
+    }
 
     /// Return an iterator over the elements of the domain.
     fn elements(&self) -> Self::Elements;
-
-    /// The target polynomial is the zero polynomial in our
-    /// evaluation domain, so we must perform division over
-    /// a coset.
-    fn divide_by_vanishing_poly_on_coset_in_place(&self, evals: &mut [F]) {
-        let i = self
-            .evaluate_vanishing_polynomial(F::GENERATOR)
-            .inverse()
-            .unwrap();
-
-        ark_std::cfg_iter_mut!(evals).for_each(|eval| *eval *= &i);
-    }
 
     /// Given an index which assumes the first elements of this domain are the
     /// elements of another (sub)domain,

@@ -82,18 +82,20 @@ fn bench_ifft_in_place<F: FftField, D: EvaluationDomain<F>>(b: &mut Bencher, deg
 fn bench_coset_fft_in_place<F: FftField, D: EvaluationDomain<F>>(b: &mut Bencher, degree: &usize) {
     // Per benchmark setup
     let (domain, mut a) = fft_common_setup::<F, D>(*degree);
+    let coset_domain = domain.get_coset(F::GENERATOR).unwrap();
     b.iter(|| {
         // Per benchmark iteration
-        domain.coset_fft_in_place(&mut a);
+        coset_domain.fft_in_place(&mut a);
     });
 }
 
 fn bench_coset_ifft_in_place<F: FftField, D: EvaluationDomain<F>>(b: &mut Bencher, degree: &usize) {
     // Per benchmark setup
     let (domain, mut a) = fft_common_setup::<F, D>(*degree);
+    let coset_domain = domain.get_coset(F::GENERATOR).unwrap();
     b.iter(|| {
         // Per benchmark iteration
-        domain.coset_ifft_in_place(&mut a);
+        coset_domain.ifft_in_place(&mut a);
     });
 }
 

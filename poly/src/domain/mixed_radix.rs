@@ -37,8 +37,13 @@ pub struct MixedRadixEvaluationDomain<F: FftField> {
     pub group_gen: F,
     /// Inverse of the generator of the subgroup.
     pub group_gen_inv: F,
-    /// Multiplicative generator of the finite field.
-    pub generator_inv: F,
+    /// Offset that specifies the coset.
+    pub offset: F,
+    /// Inverse of the offset that specifies the coset.
+    pub offset_inv: F,
+    /// Constant coefficient for the vanishing polynomial.
+    /// Equals `self.offset^self.size`.
+    pub offset_pow_size: F,
 }
 
 impl<F: FftField> fmt::Debug for MixedRadixEvaluationDomain<F> {
@@ -57,29 +62,26 @@ impl<F: FftField> EvaluationDomain<F> for MixedRadixEvaluationDomain<F> {
     /// Construct a domain that is large enough for evaluations of a polynomial
     /// having `num_coeffs` coefficients.
     fn new(num_coeffs: usize) -> Option<Self> {
-        let small_subgroup_base = F::SMALL_SUBGROUP_BASE?;
-
         // Compute the best size of our evaluation domain.
-        let num_coeffs = best_mixed_domain_size::<F>(num_coeffs) as u64;
+        let size = best_mixed_domain_size::<F>(num_coeffs) as u64;
+        let small_subgroup_base = F::SMALL_SUBGROUP_BASE?;
 
         // Compute the size of our evaluation domain
         let q = u64::from(small_subgroup_base);
-        let q_adicity = k_adicity(q, num_coeffs);
+        let q_adicity = k_adicity(q, size);
         let q_part = q.checked_pow(q_adicity)?;
 
-        let two_adicity = k_adicity(2, num_coeffs);
+        let two_adicity = k_adicity(2, size);
+        let log_size_of_group = two_adicity;
         let two_part = 2u64.checked_pow(two_adicity)?;
 
-        let size = num_coeffs;
-        let log_size_of_group = two_adicity;
-
-        if num_coeffs != q_part * two_part {
+        if size != q_part * two_part {
             return None;
         }
 
         // Compute the generator for the multiplicative subgroup.
         // It should be the num_coeffs root of unity.
-        let group_gen = F::get_root_of_unity(num_coeffs)?;
+        let group_gen = F::get_root_of_unity(size)?;
         // Check that it is indeed the requested root of unity.
         debug_assert_eq!(group_gen.pow([size]), F::one());
         let size_as_field_element = F::from(size);
@@ -92,7 +94,18 @@ impl<F: FftField> EvaluationDomain<F> for MixedRadixEvaluationDomain<F> {
             size_inv,
             group_gen,
             group_gen_inv: group_gen.inverse()?,
-            generator_inv: F::GENERATOR.inverse()?,
+            offset: F::one(),
+            offset_inv: F::one(),
+            offset_pow_size: F::one(),
+        })
+    }
+
+    fn get_coset(&self, offset: F) -> Option<Self> {
+        Some(MixedRadixEvaluationDomain {
+            offset,
+            offset_inv: offset.inverse()?,
+            offset_pow_size: offset.pow([self.size]),
+            ..*self
         })
     }
 
@@ -142,12 +155,25 @@ impl<F: FftField> EvaluationDomain<F> for MixedRadixEvaluationDomain<F> {
     }
 
     #[inline]
-    fn generator_inv(&self) -> F {
-        self.generator_inv
+    fn coset_offset(&self) -> F {
+        self.offset
+    }
+
+    #[inline]
+    fn coset_offset_inv(&self) -> F {
+        self.offset_inv
+    }
+
+    #[inline]
+    fn coset_offset_pow_size(&self) -> F {
+        self.offset_pow_size
     }
 
     #[inline]
     fn fft_in_place<T: DomainCoeff<F>>(&self, coeffs: &mut Vec<T>) {
+        if !self.offset.is_one() {
+            Self::distribute_powers(coeffs, self.offset);
+        }
         coeffs.resize(self.size(), T::zero());
         best_fft(
             coeffs,
@@ -166,82 +192,17 @@ impl<F: FftField> EvaluationDomain<F> for MixedRadixEvaluationDomain<F> {
             self.log_size_of_group,
             serial_mixed_radix_fft::<T, F>,
         );
-        ark_std::cfg_iter_mut!(evals).for_each(|val| *val *= self.size_inv);
-    }
-
-    #[inline]
-    fn coset_ifft_in_place<T: DomainCoeff<F>>(&self, evals: &mut Vec<T>) {
-        self.ifft_in_place(evals);
-        Self::distribute_powers(evals, self.generator_inv);
-    }
-
-    fn evaluate_all_lagrange_coefficients(&self, tau: F) -> Vec<F> {
-        // Evaluate all Lagrange polynomials
-        let size = self.size();
-        let t_size = tau.pow(&[self.size]);
-        let one = F::one();
-        if t_size.is_one() {
-            let mut u = vec![F::zero(); size];
-            let mut omega_i = one;
-            for u_i in u.iter_mut().take(size) {
-                if omega_i == tau {
-                    *u_i = one;
-                    break;
-                }
-                omega_i *= &self.group_gen;
-            }
-            u
+        if self.offset.is_one() {
+            ark_std::cfg_iter_mut!(evals).for_each(|val| *val *= self.size_inv);
         } else {
-            use ark_ff::fields::batch_inversion;
-
-            let mut l = (t_size - one) * self.size_inv;
-            let mut r = one;
-            let mut u = vec![F::zero(); size];
-            let mut ls = vec![F::zero(); size];
-            for i in 0..size {
-                u[i] = tau - r;
-                ls[i] = l;
-                l *= &self.group_gen;
-                r *= &self.group_gen;
-            }
-
-            batch_inversion(u.as_mut_slice());
-
-            ark_std::cfg_iter_mut!(u)
-                .zip(ls)
-                .for_each(|(tau_minus_r, l)| {
-                    *tau_minus_r = l * *tau_minus_r;
-                });
-
-            u
+            Self::distribute_powers_and_mul_by_const(evals, self.offset_inv, self.size_inv);
         }
-    }
-
-    fn vanishing_polynomial(&self) -> crate::univariate::SparsePolynomial<F> {
-        let coeffs = vec![(0, -F::one()), (self.size(), F::one())];
-        crate::univariate::SparsePolynomial::from_coefficients_vec(coeffs)
-    }
-
-    /// This evaluates the vanishing polynomial for this domain at tau.
-    /// For multiplicative subgroups, this polynomial is `z(X) = X^self.size -
-    /// 1`.
-    fn evaluate_vanishing_polynomial(&self, tau: F) -> F {
-        tau.pow(&[self.size]) - F::one()
-    }
-
-    /// Returns the `i`-th element of the domain, where elements are ordered by
-    /// their power of the generator which they correspond to.
-    /// e.g. the `i`-th element is g^i
-    fn element(&self, i: usize) -> F {
-        // TODO: Consider precomputed exponentiation tables if we need this to be
-        // faster.
-        self.group_gen.pow(&[i as u64])
     }
 
     /// Return an iterator over the elements of the domain.
     fn elements(&self) -> Elements<F> {
         Elements {
-            cur_elem: F::one(),
+            cur_elem: self.offset,
             cur_pow: 0,
             size: self.size,
             group_gen: self.group_gen,
@@ -354,7 +315,7 @@ pub(crate) fn serial_mixed_radix_fft<T: DomainCoeff<F>, F: FftField>(
             }
         }
 
-        let omega_q = omega.pow(&[(n / q) as u64]);
+        let omega_q = omega.pow([(n / q) as u64]);
         let mut qth_roots = Vec::with_capacity(q);
         qth_roots.push(F::one());
         for i in 1..q {
@@ -365,7 +326,7 @@ pub(crate) fn serial_mixed_radix_fft<T: DomainCoeff<F>, F: FftField>(
 
         // Doing the q_adicity passes.
         for _ in 0..q_adicity {
-            let w_m = omega.pow(&[(n / (q * m)) as u64]);
+            let w_m = omega.pow([(n / (q * m)) as u64]);
             let mut k = 0;
             while k < n {
                 let mut w_j = F::one(); // w_j is omega_m ^ j
@@ -406,7 +367,7 @@ pub(crate) fn serial_mixed_radix_fft<T: DomainCoeff<F>, F: FftField>(
 
     for _ in 0..two_adicity {
         // w_m is 2^s-th root of unity now
-        let w_m = omega.pow(&[(n / (2 * m)) as u64]);
+        let w_m = omega.pow([(n / (2 * m)) as u64]);
 
         let mut k = 0;
         while k < n {
@@ -427,8 +388,11 @@ pub(crate) fn serial_mixed_radix_fft<T: DomainCoeff<F>, F: FftField>(
 
 #[cfg(test)]
 mod tests {
-    use crate::{polynomial::Polynomial, EvaluationDomain, MixedRadixEvaluationDomain};
-    use ark_ff::{Field, Zero};
+    use crate::{
+        polynomial::{univariate::DensePolynomial, DenseUVPolynomial, Polynomial},
+        EvaluationDomain, MixedRadixEvaluationDomain,
+    };
+    use ark_ff::{FftField, Field, One, UniformRand, Zero};
     use ark_std::{rand::Rng, test_rng};
     use ark_test_curves::bn384_small_two_adicity::Fq as Fr;
 
@@ -437,13 +401,19 @@ mod tests {
         let rng = &mut test_rng();
         for coeffs in 0..12 {
             let domain = MixedRadixEvaluationDomain::<Fr>::new(coeffs).unwrap();
+            let coset_domain = domain.get_coset(Fr::GENERATOR).unwrap();
             let z = domain.vanishing_polynomial();
+            let coset_z = coset_domain.vanishing_polynomial();
             for _ in 0..100 {
                 let point: Fr = rng.gen();
                 assert_eq!(
                     z.evaluate(&point),
                     domain.evaluate_vanishing_polynomial(point)
-                )
+                );
+                assert_eq!(
+                    coset_z.evaluate(&point),
+                    coset_domain.evaluate_vanishing_polynomial(point)
+                );
             }
         }
     }
@@ -455,6 +425,75 @@ mod tests {
             let z = domain.vanishing_polynomial();
             for point in domain.elements() {
                 assert!(z.evaluate(&point).is_zero())
+            }
+
+            let coset_domain = domain.get_coset(Fr::GENERATOR).unwrap();
+            let z = coset_domain.vanishing_polynomial();
+            for point in coset_domain.elements() {
+                assert!(z.evaluate(&point).is_zero())
+            }
+        }
+    }
+
+    /// Test that lagrange interpolation for a random polynomial at a random
+    /// point works.
+    #[test]
+    fn non_systematic_lagrange_coefficients_test() {
+        for domain_dim in 1..10 {
+            let domain_size = 1 << domain_dim;
+            let domain = MixedRadixEvaluationDomain::<Fr>::new(domain_size).unwrap();
+            let coset_domain = domain.get_coset(Fr::GENERATOR).unwrap();
+            // Get random pt + lagrange coefficients
+            let rand_pt = Fr::rand(&mut test_rng());
+            let lagrange_coeffs = domain.evaluate_all_lagrange_coefficients(rand_pt);
+            let coset_lagrange_coeffs = coset_domain.evaluate_all_lagrange_coefficients(rand_pt);
+
+            // Sample the random polynomial, evaluate it over the domain and the random
+            // point.
+            let rand_poly = DensePolynomial::<Fr>::rand(domain_size - 1, &mut test_rng());
+            let poly_evals = domain.fft(rand_poly.coeffs());
+            let coset_poly_evals = coset_domain.fft(rand_poly.coeffs());
+            let actual_eval = rand_poly.evaluate(&rand_pt);
+
+            // Do lagrange interpolation, and compare against the actual evaluation
+            let mut interpolated_eval = Fr::zero();
+            let mut coset_interpolated_eval = Fr::zero();
+            for i in 0..domain_size {
+                interpolated_eval += lagrange_coeffs[i] * poly_evals[i];
+                coset_interpolated_eval += coset_lagrange_coeffs[i] * coset_poly_evals[i];
+            }
+            assert_eq!(actual_eval, interpolated_eval);
+            assert_eq!(actual_eval, coset_interpolated_eval);
+        }
+    }
+
+    /// Test that lagrange coefficients for a point in the domain is correct
+    #[test]
+    fn systematic_lagrange_coefficients_test() {
+        // This runs in time O(N^2) in the domain size, so keep the domain dimension
+        // low. We generate lagrange coefficients for each element in the domain.
+        for domain_dim in 1..5 {
+            let domain_size = 1 << domain_dim;
+            let domain = MixedRadixEvaluationDomain::<Fr>::new(domain_size).unwrap();
+            let coset_domain = domain.get_coset(Fr::GENERATOR).unwrap();
+            for (i, (x, coset_x)) in domain.elements().zip(coset_domain.elements()).enumerate() {
+                let lagrange_coeffs = domain.evaluate_all_lagrange_coefficients(x);
+                let coset_lagrange_coeffs =
+                    coset_domain.evaluate_all_lagrange_coefficients(coset_x);
+                for (j, (y, coset_y)) in lagrange_coeffs
+                    .into_iter()
+                    .zip(coset_lagrange_coeffs)
+                    .enumerate()
+                {
+                    // Lagrange coefficient for the evaluation point, which should be 1
+                    if i == j {
+                        assert_eq!(y, Fr::one());
+                        assert_eq!(coset_y, Fr::one());
+                    } else {
+                        assert_eq!(y, Fr::zero());
+                        assert_eq!(coset_y, Fr::zero());
+                    }
+                }
             }
         }
     }
@@ -474,8 +513,13 @@ mod tests {
         for coeffs in 1..12 {
             let size = 1 << coeffs;
             let domain = MixedRadixEvaluationDomain::<Fr>::new(size).unwrap();
-            for (i, element) in domain.elements().enumerate() {
-                assert_eq!(element, domain.group_gen.pow([i as u64]));
+            let offset = Fr::GENERATOR;
+            let coset_domain = domain.get_coset(offset).unwrap();
+            for (i, (x, coset_x)) in domain.elements().zip(coset_domain.elements()).enumerate() {
+                assert_eq!(x, domain.group_gen.pow([i as u64]));
+                assert_eq!(x, domain.element(i));
+                assert_eq!(coset_x, offset * coset_domain.group_gen.pow([i as u64]));
+                assert_eq!(coset_x, coset_domain.element(i));
             }
         }
     }
