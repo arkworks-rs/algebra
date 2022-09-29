@@ -151,9 +151,9 @@
 - [\#467](https://github.com/arkworks-rs/algebra/pull/467) (`ark-ec`)
     - Move implementation of `serialize_with_mode()`, `deserialize_with_mode()`, and `serialized_size()` into `{SW,TE}CurveConfig` to allow customization.
 - [\#487](https://github.com/arkworks-rs/algebra/pull/487) (`ark-poly`) Refactor `EvaluationDomain` trait for cosets:
-    - Add constructors `new_subgroup` and `new_coset`.
+    - Add constructor `new_coset`.
     - Add convenience method `get_coset`.
-    - Add methods `coset_offset` and `coset_offset_inv`.
+    - Add methods `coset_offset`, `coset_offset_inv` and `coset_offset_pow_size`.
 
 ### Improvements
 
