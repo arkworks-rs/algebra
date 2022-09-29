@@ -48,17 +48,11 @@ impl<F: FftField> EvaluationDomain<F> for Radix2EvaluationDomain<F> {
     /// Construct a domain that is large enough for evaluations of a polynomial
     /// having `num_coeffs` coefficients.
     fn new(num_coeffs: usize) -> Option<Self> {
-        Self::new_subgroup(if num_coeffs.is_power_of_two() {
+        let size = if num_coeffs.is_power_of_two() {
             num_coeffs
         } else {
             num_coeffs.checked_next_power_of_two()?
-        })
-    }
-
-    fn new_subgroup(subgroup_size: usize) -> Option<Self> {
-        debug_assert!(subgroup_size.is_power_of_two());
-
-        let size = subgroup_size as u64;
+        } as u64;
         let log_size_of_group = size.trailing_zeros();
 
         // libfqfft uses > https://github.com/scipr-lab/libfqfft/blob/e0183b2cef7d4c5deb21a6eaf3fe3b586d738fe0/libfqfft/evaluation_domain/domains/basic_radix2_domain.tcc#L33
@@ -71,7 +65,6 @@ impl<F: FftField> EvaluationDomain<F> for Radix2EvaluationDomain<F> {
         let group_gen = F::get_root_of_unity(size)?;
         // Check that it is indeed the 2^(log_size_of_group) root of unity.
         debug_assert_eq!(group_gen.pow([size]), F::one());
-        // debug_assert_ne!(group_gen.pow([size / 2]), F::one());
         let size_as_field_element = F::from(size);
         let size_inv = size_as_field_element.inverse()?;
 
@@ -142,6 +135,11 @@ impl<F: FftField> EvaluationDomain<F> for Radix2EvaluationDomain<F> {
     }
 
     #[inline]
+    fn coset_offset_pow_size(&self) -> F {
+        self.offset_pow_size
+    }
+
+    #[inline]
     fn fft_in_place<T: DomainCoeff<F>>(&self, coeffs: &mut Vec<T>) {
         coeffs.resize(self.size(), T::zero());
         self.in_order_fft_in_place(&mut *coeffs)
@@ -151,18 +149,6 @@ impl<F: FftField> EvaluationDomain<F> for Radix2EvaluationDomain<F> {
     fn ifft_in_place<T: DomainCoeff<F>>(&self, evals: &mut Vec<T>) {
         evals.resize(self.size(), T::zero());
         self.in_order_ifft_in_place(&mut *evals);
-    }
-
-    fn vanishing_polynomial(&self) -> crate::univariate::SparsePolynomial<F> {
-        let coeffs = vec![(0, -self.offset_pow_size), (self.size(), F::one())];
-        crate::univariate::SparsePolynomial::from_coefficients_vec(coeffs)
-    }
-
-    /// This evaluates the vanishing polynomial for this domain at tau.
-    /// For multiplicative subgroups, this polynomial is `z(X) = X^self.size -
-    /// offset^self.size`.
-    fn evaluate_vanishing_polynomial(&self, tau: F) -> F {
-        tau.pow([self.size]) - self.offset_pow_size
     }
 
     /// Return an iterator over the elements of the domain.
@@ -328,7 +314,7 @@ mod tests {
 
         for log_domain_size in log_degree..(log_degree + 2) {
             let domain_size = 1 << log_domain_size;
-            let domain = Radix2EvaluationDomain::<Fr>::new_subgroup(domain_size).unwrap();
+            let domain = Radix2EvaluationDomain::<Fr>::new(domain_size).unwrap();
             let coset_domain =
                 Radix2EvaluationDomain::<Fr>::new_coset(domain_size, Fr::GENERATOR).unwrap();
             let poly_evals = domain.fft(&rand_poly.coeffs);

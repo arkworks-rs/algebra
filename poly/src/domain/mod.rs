@@ -46,12 +46,10 @@ pub trait EvaluationDomain<F: FftField>:
     /// having `num_coeffs` coefficients.
     fn new(num_coeffs: usize) -> Option<Self>;
 
-    /// Construct a domain
-    fn new_subgroup(subgroup_size: usize) -> Option<Self>;
-
-    /// Construct a coset domain
-    fn new_coset(coset_size: usize, offset: F) -> Option<Self> {
-        Self::new_subgroup(coset_size)?.get_coset(offset)
+    /// Construct a coset domain that is large enough for evaluations of a polynomial
+    /// having `num_coeffs` coefficients.
+    fn new_coset(num_coeffs: usize, offset: F) -> Option<Self> {
+        Self::new(num_coeffs)?.get_coset(offset)
     }
 
     /// Construct a coset domain from a subgroup domain
@@ -86,6 +84,9 @@ pub trait EvaluationDomain<F: FftField>:
 
     /// Return the inverse of `self.offset()`.
     fn coset_offset_inv(&self) -> F;
+
+    /// Return `offset^size`.
+    fn coset_offset_pow_size(&self) -> F;
 
     /// Compute a FFT.
     #[inline]
@@ -220,10 +221,18 @@ pub trait EvaluationDomain<F: FftField>:
     }
 
     /// Return the sparse vanishing polynomial.
-    fn vanishing_polynomial(&self) -> crate::univariate::SparsePolynomial<F>;
+    fn vanishing_polynomial(&self) -> crate::univariate::SparsePolynomial<F> {
+        let constant_coeff = self.coset_offset_pow_size();
+        let coeffs = vec![(0, -constant_coeff), (self.size(), F::one())];
+        crate::univariate::SparsePolynomial::from_coefficients_vec(coeffs)
+    }
 
     /// This evaluates the vanishing polynomial for this domain at tau.
-    fn evaluate_vanishing_polynomial(&self, tau: F) -> F;
+    fn evaluate_vanishing_polynomial(&self, tau: F) -> F {
+        // TODO: Consider precomputed exponentiation tables if we need this to be
+        // faster.
+        tau.pow([self.size() as u64]) - self.coset_offset_pow_size()
+    }
 
     /// Returns the `i`-th element of the domain.
     fn element(&self, i: usize) -> F {

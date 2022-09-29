@@ -121,21 +121,6 @@ impl<F: FftField> EvaluationDomain<F> for GeneralEvaluationDomain<F> {
         None
     }
 
-    fn new_subgroup(subgroup_size: usize) -> Option<Self> {
-        let domain = Radix2EvaluationDomain::new_subgroup(subgroup_size);
-        if let Some(domain) = domain {
-            return Some(GeneralEvaluationDomain::Radix2(domain));
-        }
-
-        if F::SMALL_SUBGROUP_BASE.is_some() {
-            return Some(GeneralEvaluationDomain::MixedRadix(
-                MixedRadixEvaluationDomain::new_subgroup(subgroup_size)?,
-            ));
-        }
-
-        None
-    }
-
     fn get_coset(&self, offset: F) -> Option<Self> {
         Some(match self {
             Self::Radix2(domain) => Self::Radix2(domain.get_coset(offset)?),
@@ -189,6 +174,10 @@ impl<F: FftField> EvaluationDomain<F> for GeneralEvaluationDomain<F> {
     #[inline]
     fn coset_offset_inv(&self) -> F {
         map!(self, coset_offset_inv)
+    }
+
+    fn coset_offset_pow_size(&self) -> F {
+        map!(self, coset_offset_pow_size)
     }
 
     #[inline]

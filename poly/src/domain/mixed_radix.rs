@@ -62,11 +62,7 @@ impl<F: FftField> EvaluationDomain<F> for MixedRadixEvaluationDomain<F> {
     /// having `num_coeffs` coefficients.
     fn new(num_coeffs: usize) -> Option<Self> {
         // Compute the best size of our evaluation domain.
-        Self::new_subgroup(best_mixed_domain_size::<F>(num_coeffs))
-    }
-
-    fn new_subgroup(subgroup_size: usize) -> Option<Self> {
-        let size = subgroup_size as u64;
+        let size = best_mixed_domain_size::<F>(num_coeffs) as u64;
         let small_subgroup_base = F::SMALL_SUBGROUP_BASE?;
 
         // Compute the size of our evaluation domain
@@ -168,6 +164,11 @@ impl<F: FftField> EvaluationDomain<F> for MixedRadixEvaluationDomain<F> {
     }
 
     #[inline]
+    fn coset_offset_pow_size(&self) -> F {
+        self.offset_pow_size
+    }
+
+    #[inline]
     fn fft_in_place<T: DomainCoeff<F>>(&self, coeffs: &mut Vec<T>) {
         if !self.offset.is_one() {
             Self::distribute_powers(coeffs, self.offset);
@@ -195,18 +196,6 @@ impl<F: FftField> EvaluationDomain<F> for MixedRadixEvaluationDomain<F> {
         } else {
             Self::distribute_powers_and_mul_by_const(evals, self.offset_inv, self.size_inv);
         }
-    }
-
-    fn vanishing_polynomial(&self) -> crate::univariate::SparsePolynomial<F> {
-        let coeffs = vec![(0, -self.offset_pow_size), (self.size(), F::one())];
-        crate::univariate::SparsePolynomial::from_coefficients_vec(coeffs)
-    }
-
-    /// This evaluates the vanishing polynomial for this domain at tau.
-    /// For multiplicative subgroups, this polynomial is `z(X) = X^self.size -
-    /// offset^self.size`.
-    fn evaluate_vanishing_polynomial(&self, tau: F) -> F {
-        tau.pow([self.size]) - self.offset_pow_size
     }
 
     /// Return an iterator over the elements of the domain.
