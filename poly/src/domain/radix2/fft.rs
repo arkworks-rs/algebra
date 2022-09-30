@@ -20,6 +20,46 @@ enum FFTOrder {
 }
 
 impl<F: FftField> Radix2EvaluationDomain<F> {
+    /// Degree aware FFT that runs in O(n log d) instead of O(n log n)
+    /// Implementation copied from libiop.
+    pub(crate) fn degree_aware_fft_in_place<T: DomainCoeff<F>>(&self, coeffs: &mut Vec<T>) {
+        if !self.offset.is_one() {
+            Self::distribute_powers(&mut *coeffs, self.offset);
+        }
+        let n = self.size();
+        let log_n = self.log_size_of_group;
+        let num_coeffs = coeffs.len();
+        let log_d = ark_std::log2(num_coeffs);
+        // When the polynomial is of size k*|coset|, for k < 2^i,
+        // the first i iterations of Cooley Tukey are easily predictable.
+        // This is because they will be combining g(w^2) + wh(w^2), but g or h will always refer
+        // to a coefficient that is 0.
+        // Therefore those first i rounds have the effect of copying the evaluations into more locations,
+        // so we handle this in initialization, and reduce the number of loops that are performing arithmetic.
+        // The number of times we copy each initial non-zero element is as below:
+        let duplicity_of_initials = 1 << (log_n - log_d);
+        coeffs.resize(n, T::zero());
+
+        // swap coefficients in place
+        for i in 0..num_coeffs as u64 {
+            let ri = fft::bitrev(i, log_n);
+            if i < ri {
+                coeffs.swap(i as usize, ri as usize);
+            }
+        }
+
+        // duplicate initial values
+        if duplicity_of_initials > 1 {
+            for i in (0..n).step_by(duplicity_of_initials) {
+                let v = coeffs[i];
+                coeffs[i + 1..i + duplicity_of_initials].fill(v);
+            }
+        }
+
+        let start_gap = duplicity_of_initials;
+        self.oi_helper(&mut coeffs[..], self.group_gen, start_gap);
+    }
+
     pub(crate) fn in_order_fft_in_place<T: DomainCoeff<F>>(&self, x_s: &mut [T]) {
         if !self.offset.is_one() {
             Self::distribute_powers(x_s, self.offset);
@@ -42,7 +82,7 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
         let log_len = ark_std::log2(x_s.len());
 
         if ord == OI {
-            self.oi_helper(x_s, self.group_gen);
+            self.oi_helper(x_s, self.group_gen, 1);
         } else {
             self.io_helper(x_s, self.group_gen);
         }
@@ -67,7 +107,7 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
         if ord == IO {
             self.io_helper(x_s, self.group_gen_inv);
         } else {
-            self.oi_helper(x_s, self.group_gen_inv);
+            self.oi_helper(x_s, self.group_gen_inv, 1);
         }
     }
 
@@ -230,7 +270,7 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
         }
     }
 
-    fn oi_helper<T: DomainCoeff<F>>(&self, xi: &mut [T], root: F) {
+    fn oi_helper<T: DomainCoeff<F>>(&self, xi: &mut [T], root: F, start_gap: usize) {
         let roots_cache = self.roots_of_unity(root);
 
         // The `cmp::min` is only necessary for the case where
@@ -248,7 +288,7 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
         #[cfg(not(feature = "parallel"))]
         let max_threads = 1;
 
-        let mut gap = 1;
+        let mut gap = start_gap;
         while gap < xi.len() {
             // each butterfly cluster uses 2*gap positions
             let chunk_size = 2 * gap;
@@ -297,7 +337,7 @@ const LOG_ROOTS_OF_UNITY_PARALLEL_SIZE: u32 = 7;
 
 #[inline]
 fn bitrev(a: u64, log_len: u32) -> u64 {
-    a.reverse_bits() >> (64 - log_len)
+    a.reverse_bits().wrapping_shr(64 - log_len)
 }
 
 fn derange<T>(xi: &mut [T], log_len: u32) {

@@ -142,8 +142,7 @@ impl<F: FftField> EvaluationDomain<F> for Radix2EvaluationDomain<F> {
 
     #[inline]
     fn fft_in_place<T: DomainCoeff<F>>(&self, coeffs: &mut Vec<T>) {
-        coeffs.resize(self.size(), T::zero());
-        self.in_order_fft_in_place(&mut *coeffs)
+        self.degree_aware_fft_in_place(coeffs)
     }
 
     #[inline]
