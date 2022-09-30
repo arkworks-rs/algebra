@@ -37,7 +37,7 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
         // Therefore those first i rounds have the effect of copying the evaluations into more locations,
         // so we handle this in initialization, and reduce the number of loops that are performing arithmetic.
         // The number of times we copy each initial non-zero element is as below:
-        let duplicity_of_initials = 1 << (log_n - log_d);
+        let duplicity_of_initials = 1 << log_n.checked_sub(log_d).expect("domain is too small");
         coeffs.resize(n, T::zero());
 
         // swap coefficients in place
@@ -50,16 +50,17 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
 
         // duplicate initial values
         if duplicity_of_initials > 1 {
-            for i in (0..n).step_by(duplicity_of_initials) {
-                let v = coeffs[i];
-                coeffs[i + 1..i + duplicity_of_initials].fill(v);
-            }
+            ark_std::cfg_chunks_mut!(coeffs, duplicity_of_initials).for_each(|chunk| {
+                let v = chunk[0];
+                chunk[1..].fill(v);
+            });
         }
 
         let start_gap = duplicity_of_initials;
         self.oi_helper(&mut coeffs[..], self.group_gen, start_gap);
     }
 
+    #[allow(unused)]
     pub(crate) fn in_order_fft_in_place<T: DomainCoeff<F>>(&self, x_s: &mut [T]) {
         if !self.offset.is_one() {
             Self::distribute_powers(x_s, self.offset);
