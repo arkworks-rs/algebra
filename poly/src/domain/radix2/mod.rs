@@ -147,11 +147,11 @@ impl<F: FftField> EvaluationDomain<F> for Radix2EvaluationDomain<F> {
         } else {
             coeffs.len().next_power_of_two()
         };
-        if num_coeffs >= self.size() {
+        if self.size() >= num_coeffs << 2 {
+            self.degree_aware_fft_in_place(coeffs);
+        } else {
             coeffs.resize(num_coeffs, T::zero());
             self.in_order_fft_in_place(coeffs);
-        } else {
-            self.degree_aware_fft_in_place(coeffs);
         }
     }
 
