@@ -28,7 +28,11 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
         }
         let n = self.size();
         let log_n = self.log_size_of_group;
-        let num_coeffs = coeffs.len();
+        let num_coeffs = if coeffs.len().is_power_of_two() {
+            coeffs.len()
+        } else {
+            coeffs.len().checked_next_power_of_two().unwrap()
+        };
         let log_d = ark_std::log2(num_coeffs);
         // When the polynomial is of size k*|coset|, for k < 2^i,
         // the first i iterations of Cooley Tukey are easily predictable.
@@ -37,7 +41,9 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
         // Therefore those first i rounds have the effect of copying the evaluations into more locations,
         // so we handle this in initialization, and reduce the number of loops that are performing arithmetic.
         // The number of times we copy each initial non-zero element is as below:
+
         let duplicity_of_initials = 1 << log_n.checked_sub(log_d).expect("domain is too small");
+
         coeffs.resize(n, T::zero());
 
         // swap coefficients in place
@@ -57,7 +63,7 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
         }
 
         let start_gap = duplicity_of_initials;
-        self.oi_helper(&mut coeffs[..], self.group_gen, start_gap);
+        self.oi_helper(&mut *coeffs, self.group_gen, start_gap);
     }
 
     #[allow(unused)]
@@ -182,8 +188,11 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
 
     #[inline(always)]
     fn butterfly_fn_io<T: DomainCoeff<F>>(((lo, hi), root): ((&mut T, &mut T), &F)) {
-        let neg = *lo - *hi;
+        let mut neg = *lo;
+        neg -= *hi;
+
         *lo += *hi;
+
         *hi = neg;
         *hi *= *root;
     }
@@ -191,8 +200,12 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
     #[inline(always)]
     fn butterfly_fn_oi<T: DomainCoeff<F>>(((lo, hi), root): ((&mut T, &mut T), &F)) {
         *hi *= *root;
-        let neg = *lo - *hi;
+
+        let mut neg = *lo;
+        neg -= *hi;
+
         *lo += *hi;
+
         *hi = neg;
     }
 
@@ -247,7 +260,7 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
             // Which also implies a large lookup stride.
             if num_chunks >= MIN_NUM_CHUNKS_FOR_COMPACTION {
                 if !first {
-                    roots = cfg_into_iter!(roots).step_by(step * 2).collect()
+                    roots = cfg_into_iter!(roots).step_by(step * 2).collect();
                 }
                 step = 1;
                 roots.shrink_to_fit();
@@ -259,7 +272,7 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
             Self::apply_butterfly(
                 Self::butterfly_fn_io,
                 xi,
-                &roots[..],
+                &roots,
                 step,
                 chunk_size,
                 num_chunks,
@@ -300,9 +313,11 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
             // Which also implies a large lookup stride.
             let (roots, step) = if num_chunks >= MIN_NUM_CHUNKS_FOR_COMPACTION && gap < xi.len() / 2
             {
-                cfg_iter_mut!(compacted_roots[..gap])
-                    .zip(cfg_iter!(roots_cache[..(gap * num_chunks)]).step_by(num_chunks))
-                    .for_each(|(a, b)| *a = *b);
+                cfg_iter!(roots_cache)
+                    .step_by(num_chunks)
+                    .zip(&mut compacted_roots[..gap])
+                    .for_each(|(b, a)| *a = *b);
+
                 (&compacted_roots[..gap], 1)
             } else {
                 (&roots_cache[..], num_chunks)
