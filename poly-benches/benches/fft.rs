@@ -52,9 +52,16 @@ fn setup_bench(
     group.finish();
 }
 
-fn fft_common_setup<F: FftField, D: EvaluationDomain<F>>(degree: usize) -> (D, Vec<F>) {
+fn fft_setup<F: FftField, D: EvaluationDomain<F>>(degree: usize) -> (D, Vec<F>) {
+    fft_setup_with_domain_size(degree, degree)
+}
+
+fn fft_setup_with_domain_size<F: FftField, D: EvaluationDomain<F>>(
+    degree: usize,
+    domain_size: usize,
+) -> (D, Vec<F>) {
     let mut rng = &mut ark_std::test_rng();
-    let domain = D::new(degree).unwrap();
+    let domain = D::new(domain_size).unwrap();
     let a = DensePolynomial::<F>::rand(degree - 1, &mut rng)
         .coeffs()
         .to_vec();
@@ -63,7 +70,19 @@ fn fft_common_setup<F: FftField, D: EvaluationDomain<F>>(degree: usize) -> (D, V
 
 fn bench_fft_in_place<F: FftField, D: EvaluationDomain<F>>(b: &mut Bencher, degree: &usize) {
     // Per benchmark setup
-    let (domain, mut a) = fft_common_setup::<F, D>(*degree);
+    let (domain, mut a) = fft_setup::<F, D>(*degree);
+    b.iter(|| {
+        // Per benchmark iteration
+        domain.fft_in_place(&mut a);
+    });
+}
+
+fn bench_large_domain_fft_in_place<F: FftField, D: EvaluationDomain<F>>(
+    b: &mut Bencher,
+    degree: &usize,
+) {
+    // Per benchmark setup
+    let (domain, mut a) = fft_setup_with_domain_size::<F, D>(*degree, degree << 2);
     b.iter(|| {
         // Per benchmark iteration
         domain.fft_in_place(&mut a);
@@ -72,7 +91,7 @@ fn bench_fft_in_place<F: FftField, D: EvaluationDomain<F>>(b: &mut Bencher, degr
 
 fn bench_ifft_in_place<F: FftField, D: EvaluationDomain<F>>(b: &mut Bencher, degree: &usize) {
     // Per benchmark setup
-    let (domain, mut a) = fft_common_setup::<F, D>(*degree);
+    let (domain, mut a) = fft_setup::<F, D>(*degree);
     b.iter(|| {
         // Per benchmark iteration
         domain.ifft_in_place(&mut a);
@@ -81,7 +100,7 @@ fn bench_ifft_in_place<F: FftField, D: EvaluationDomain<F>>(b: &mut Bencher, deg
 
 fn bench_coset_fft_in_place<F: FftField, D: EvaluationDomain<F>>(b: &mut Bencher, degree: &usize) {
     // Per benchmark setup
-    let (domain, mut a) = fft_common_setup::<F, D>(*degree);
+    let (domain, mut a) = fft_setup::<F, D>(*degree);
     let coset_domain = domain.get_coset(F::GENERATOR).unwrap();
     b.iter(|| {
         // Per benchmark iteration
@@ -91,7 +110,7 @@ fn bench_coset_fft_in_place<F: FftField, D: EvaluationDomain<F>>(b: &mut Bencher
 
 fn bench_coset_ifft_in_place<F: FftField, D: EvaluationDomain<F>>(b: &mut Bencher, degree: &usize) {
     // Per benchmark setup
-    let (domain, mut a) = fft_common_setup::<F, D>(*degree);
+    let (domain, mut a) = fft_setup::<F, D>(*degree);
     let coset_domain = domain.get_coset(F::GENERATOR).unwrap();
     b.iter(|| {
         // Per benchmark iteration
@@ -104,18 +123,30 @@ fn fft_benches<F: FftField, D: EvaluationDomain<F>>(
     name: &'static str,
     size_range: &[usize],
 ) {
-    let cur_name = format!("{:?} - subgroup_fft_in_place", name.clone());
-    setup_bench(c, &cur_name, bench_fft_in_place::<F, D>, size_range);
-    let cur_name = format!("{:?} - subgroup_ifft_in_place", name.clone());
-    setup_bench(c, &cur_name, bench_ifft_in_place::<F, D>, size_range);
-    let cur_name = format!("{:?} - coset_fft_in_place", name.clone());
-    setup_bench(c, &cur_name, bench_coset_fft_in_place::<F, D>, size_range);
-    let cur_name = format!("{:?} - coset_ifft_in_place", name.clone());
-    setup_bench(c, &cur_name, bench_coset_ifft_in_place::<F, D>, size_range);
+    let bench_name = format!("{name} - Subgroup FFT");
+    setup_bench(c, &bench_name, bench_fft_in_place::<F, D>, size_range);
+    let bench_name = format!("{name} - Subgroup FFT on larger domain");
+    setup_bench(
+        c,
+        &bench_name,
+        bench_large_domain_fft_in_place::<F, D>,
+        size_range,
+    );
+    let bench_name = format!("{name} - Subgroup IFFT");
+    setup_bench(c, &bench_name, bench_ifft_in_place::<F, D>, size_range);
+    let bench_name = format!("{name} - Coset FFT");
+    setup_bench(c, &bench_name, bench_coset_fft_in_place::<F, D>, size_range);
+    let bench_name = format!("{name} - Coset IFFT");
+    setup_bench(
+        c,
+        &bench_name,
+        bench_coset_ifft_in_place::<F, D>,
+        size_range,
+    );
 }
 
 fn bench_bls12_381(c: &mut Criterion) {
-    let name = "bls12_381 - radix2";
+    let name = "BLS12_381 - Radix2";
     if ENABLE_RADIX2_BENCHES {
         fft_benches::<bls12_381_fr, Radix2EvaluationDomain<bls12_381_fr>>(
             c,
@@ -126,7 +157,7 @@ fn bench_bls12_381(c: &mut Criterion) {
 }
 
 fn bench_mnt6_753(c: &mut Criterion) {
-    let name = "mnt6_753 - mixed radix";
+    let name = "MNT6_753 - Mixed Radix";
     if ENABLE_MIXED_RADIX_BENCHES {
         fft_benches::<mnt6_753_fr, MixedRadixEvaluationDomain<mnt6_753_fr>>(
             c,

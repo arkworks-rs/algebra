@@ -11,6 +11,9 @@ use ark_std::{convert::TryFrom, fmt, vec::Vec};
 
 mod fft;
 
+/// Factor that determines if a the degree aware FFT should be called.
+const DEGREE_AWARE_FFT_THRESHOLD_FACTOR: usize = 1 << 2;
+
 /// Defines a domain over which finite field (I)FFTs can be performed. Works
 /// only for fields that have a large multiplicative subgroup of size that is
 /// a power-of-2.
@@ -142,8 +145,12 @@ impl<F: FftField> EvaluationDomain<F> for Radix2EvaluationDomain<F> {
 
     #[inline]
     fn fft_in_place<T: DomainCoeff<F>>(&self, coeffs: &mut Vec<T>) {
-        coeffs.resize(self.size(), T::zero());
-        self.in_order_fft_in_place(&mut *coeffs)
+        if coeffs.len() * DEGREE_AWARE_FFT_THRESHOLD_FACTOR <= self.size() {
+            self.degree_aware_fft_in_place(coeffs);
+        } else {
+            coeffs.resize(self.size(), T::zero());
+            self.in_order_fft_in_place(coeffs);
+        }
     }
 
     #[inline]
@@ -165,6 +172,7 @@ impl<F: FftField> EvaluationDomain<F> for Radix2EvaluationDomain<F> {
 
 #[cfg(test)]
 mod tests {
+    use super::DEGREE_AWARE_FFT_THRESHOLD_FACTOR;
     use crate::{
         polynomial::{univariate::*, DenseUVPolynomial, Polynomial},
         EvaluationDomain, Radix2EvaluationDomain,
@@ -341,6 +349,24 @@ mod tests {
                 "degree = {}, domain size = {}",
                 degree, domain_size
             );
+        }
+    }
+
+    #[test]
+    fn degree_aware_fft_correctness() {
+        // Test that the degree aware FFT (O(n log d)) matches the regular FFT (O(n log n)).
+        let num_coeffs = 1 << 5;
+        let rand_poly = DensePolynomial::<Fr>::rand(num_coeffs - 1, &mut test_rng());
+        let domain_size = num_coeffs * DEGREE_AWARE_FFT_THRESHOLD_FACTOR;
+        let domain = Radix2EvaluationDomain::<Fr>::new(domain_size).unwrap();
+        let coset_domain = domain.get_coset(Fr::GENERATOR).unwrap();
+
+        let deg_aware_fft_evals = domain.fft(&rand_poly);
+        let coset_deg_aware_fft_evals = coset_domain.fft(&rand_poly);
+
+        for (i, (x, coset_x)) in domain.elements().zip(coset_domain.elements()).enumerate() {
+            assert_eq!(deg_aware_fft_evals[i], rand_poly.evaluate(&x));
+            assert_eq!(coset_deg_aware_fft_evals[i], rand_poly.evaluate(&coset_x));
         }
     }
 
