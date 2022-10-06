@@ -321,7 +321,7 @@ mod tests {
         let degree = 1 << log_degree;
         let rand_poly = DensePolynomial::<Fr>::rand(degree - 1, &mut test_rng());
 
-        for log_domain_size in log_degree..=(log_degree + 2) {
+        for log_domain_size in log_degree..(log_degree + 2) {
             let domain_size = 1 << log_domain_size;
             let domain = Radix2EvaluationDomain::<Fr>::new(domain_size).unwrap();
             let coset_domain =
