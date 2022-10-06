@@ -303,6 +303,8 @@ pub trait DomainCoeff<F: FftField>:
     + core::ops::SubAssign
     + ark_ff::Zero
     + core::ops::MulAssign<F>
+    + core::fmt::Debug
+    + PartialEq
 {
 }
 
@@ -317,6 +319,8 @@ where
         + core::ops::AddAssign
         + core::ops::SubAssign
         + ark_ff::Zero
-        + core::ops::MulAssign<F>,
+        + core::ops::MulAssign<F>
+        + core::fmt::Debug
+        + PartialEq,
 {
 }
