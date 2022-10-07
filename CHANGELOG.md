@@ -98,7 +98,7 @@
                 - outputs `PairingOutput`, which is a newtype around `TargetField`, and which implements `Group` and `ScalarMul`, allowing it to be used with the existing MSM infrastructure.
             - Pairings, which are the composition of Miller loops and final exponentiation, are changed accordingly.
     - `ark-algebra-test-templates` macro syntax is now simplified; see the test files in `test-curves` for examples.
-- [\#463](https://github.com/arkworks-rs/algebra/pull/453) (`ark-serialize`, `ark-ff`, `ark-ec`) Refactor serialization infrastructure to enable more flexibility and less repetition of code:
+- [\#463](https://github.com/arkworks-rs/algebra/pull/463) (`ark-serialize`, `ark-ff`, `ark-ec`) Refactor serialization infrastructure to enable more flexibility and less repetition of code:
     - New `enum Compress` that indicates whether point compression should be enabled or not.
     - New `enum Validate` that indicates whether type-specific validation checks should be carried out or not.
     - New `trait Valid` that provides methods for checking whether a deserialized value of a given type passes appropriate validation checks. The trait has the following methods
