@@ -178,6 +178,7 @@ macro_rules! __test_group {
         }
     };
     ($group:ty; curve) => {
+        $crate::__test_group!($group);
         $crate::__test_group!($group; msm);
         type Affine = <$group as CurveGroup>::Affine;
         type Config = <$group as CurveGroup>::Config;
