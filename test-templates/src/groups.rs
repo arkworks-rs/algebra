@@ -3,6 +3,7 @@
 macro_rules! __test_group {
     ($group: ty) => {
         type ScalarField = <$group as Group>::ScalarField;
+        #[test]
         fn test_add_properties() {
             let mut rng = &mut ark_std::test_rng();
             let zero = <$group>::zero();
