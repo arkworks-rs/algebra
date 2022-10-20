@@ -14,8 +14,8 @@ edition = "2021"
 rust-version = "1.56"
 
 [dependencies]
-ark-serialize-derive = { version = "^0.4.0-alpha", path = "../serialize-derive", optional = true }
-ark-std = { version = "^0.4.0-alpha", default-features = false }
+ark-serialize-derive = { version = "0.4.0-alpha", path = "../serialize-derive", optional = true }
+ark-std = { version = "0.4.0-alpha", default-features = false }
 digest = { version = "0.10", default-features = false }
 
 [dev-dependencies]
