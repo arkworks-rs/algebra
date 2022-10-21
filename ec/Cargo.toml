@@ -1,6 +1,6 @@
 [package]
 name = "ark-ec"
-version = "0.4.0-alpha"
+version = "0.4.0-alpha.0"
 authors = [ "arkworks contributors" ]
 description = "A library for elliptic curves and pairings"
 homepage = "https://arkworks.rs"
@@ -26,7 +26,7 @@ hashbrown = "0.12.1"
 itertools = { version = "0.10", default-features = false }
 
 [dev-dependencies]
-ark-test-curves = { version = "0.4.0-alpha", path = "../test-curves", default-features = false, features = ["bls12_381_curve"] }
+# ark-test-curves = { version = "0.4.0-alpha", path = "../test-curves", default-features = false, features = ["bls12_381_curve"] }
 sha2 = { version = "0.10", default-features = false }
 libtest-mimic = "0.5.2"
 serde = "1.0.110"
