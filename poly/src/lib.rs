@@ -40,6 +40,7 @@ pub use polynomial::{multivariate, univariate, DenseMVPolynomial, DenseUVPolynom
 #[cfg(test)]
 mod test;
 
+#[rustfmt::skip]
 #[cfg(doctest)]
 mod test_readme {
   macro_rules! external_doc_test {
