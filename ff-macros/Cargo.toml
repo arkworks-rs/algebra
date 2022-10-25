@@ -15,6 +15,7 @@ rust-version = "1.56"
 
 [dependencies]
 quote = "1.0.0"
+proc-macro2 = { version = "1" }
 syn = { version = "1.0.0", features = ["full", "parsing", "extra-traits"]}
 num-bigint = { version = "0.4", default-features = false }
 num-traits = { version = "0.2", default-features = false }

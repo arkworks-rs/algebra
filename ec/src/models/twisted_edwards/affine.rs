@@ -273,7 +273,7 @@ impl<P: TECurveConfig> Distribution<Affine<P>> for Standard {
     }
 }
 
-impl<'a, P: TECurveConfig, T: Borrow<P::ScalarField>> Mul<T> for Affine<P> {
+impl<P: TECurveConfig, T: Borrow<P::ScalarField>> Mul<T> for Affine<P> {
     type Output = Projective<P>;
 
     #[inline]

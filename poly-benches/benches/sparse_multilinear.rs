@@ -12,11 +12,11 @@ const NUM_VARIABLES_RANGE: Range<usize> = 12..23;
 fn arithmetic_op_bench<F: Field>(c: &mut Criterion) {
     let mut rng = test_rng();
 
-    let mut group = c.benchmark_group("Add");
+    let mut group = c.benchmark_group("SparseMultilinear");
     for nv in NUM_VARIABLES_RANGE {
-        let num_nonzero_entries = 1 << (nv / 2);
+        let num_nonzero_entries = 1 << (dbg!(nv) / 2);
         group.bench_with_input(
-            BenchmarkId::new("add", num_nonzero_entries),
+            BenchmarkId::new(format!("Add with num_vars = {nv}"), num_nonzero_entries),
             &num_nonzero_entries,
             |b, &num_nonzero_entries| {
                 let poly1 = SparseMultilinearExtension::<F>::rand_with_config(
@@ -33,13 +33,11 @@ fn arithmetic_op_bench<F: Field>(c: &mut Criterion) {
             },
         );
     }
-    group.finish();
 
-    let mut group = c.benchmark_group("Sub");
     for nv in NUM_VARIABLES_RANGE {
         let num_nonzero_entries = 1 << (nv / 2);
         group.bench_with_input(
-            BenchmarkId::new("sub", num_nonzero_entries),
+            BenchmarkId::new(format!("Sub with num_vars = {nv}"), num_nonzero_entries),
             &num_nonzero_entries,
             |b, &num_nonzero_entries| {
                 let poly1 = SparseMultilinearExtension::<F>::rand_with_config(
@@ -61,11 +59,11 @@ fn arithmetic_op_bench<F: Field>(c: &mut Criterion) {
 
 fn evaluation_op_bench<F: Field>(c: &mut Criterion) {
     let mut rng = test_rng();
-    let mut group = c.benchmark_group("Evaluate");
+    let mut group = c.benchmark_group("SparseMultilinear");
     for nv in NUM_VARIABLES_RANGE {
         let num_nonzero_entries = 1 << (nv / 2);
         group.bench_with_input(
-            BenchmarkId::new("evaluate", num_nonzero_entries),
+            BenchmarkId::new(format!("Eval with num_vars = {nv}"), num_nonzero_entries),
             &num_nonzero_entries,
             |b, &num_nonzero_entries| {
                 let poly = SparseMultilinearExtension::<F>::rand_with_config(

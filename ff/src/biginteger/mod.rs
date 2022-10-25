@@ -3,11 +3,15 @@ use crate::{
     fields::{BitIteratorBE, BitIteratorLE},
     UniformRand,
 };
+#[allow(unused)]
 use ark_ff_macros::unroll_for_loops;
-use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
+use ark_serialize::{
+    CanonicalDeserialize, CanonicalSerialize, Compress, SerializationError, Valid, Validate,
+};
 use ark_std::{
     convert::TryFrom,
     fmt::{Debug, Display, UpperHex},
+    io::{Read, Write},
     rand::{
         distributions::{Distribution, Standard},
         Rng,
@@ -20,14 +24,44 @@ use zeroize::Zeroize;
 #[macro_use]
 pub mod arithmetic;
 
-#[derive(
-    Copy, Clone, PartialEq, Eq, Debug, Hash, Zeroize, CanonicalSerialize, CanonicalDeserialize,
-)]
+#[derive(Copy, Clone, PartialEq, Eq, Debug, Hash, Zeroize)]
 pub struct BigInt<const N: usize>(pub [u64; N]);
 
 impl<const N: usize> Default for BigInt<N> {
     fn default() -> Self {
         Self([0u64; N])
+    }
+}
+
+impl<const N: usize> CanonicalSerialize for BigInt<N> {
+    fn serialize_with_mode<W: Write>(
+        &self,
+        writer: W,
+        compress: Compress,
+    ) -> Result<(), SerializationError> {
+        self.0.serialize_with_mode(writer, compress)
+    }
+
+    fn serialized_size(&self, compress: Compress) -> usize {
+        self.0.serialized_size(compress)
+    }
+}
+
+impl<const N: usize> Valid for BigInt<N> {
+    fn check(&self) -> Result<(), SerializationError> {
+        self.0.check()
+    }
+}
+
+impl<const N: usize> CanonicalDeserialize for BigInt<N> {
+    fn deserialize_with_mode<R: Read>(
+        reader: R,
+        compress: Compress,
+        validate: Validate,
+    ) -> Result<Self, SerializationError> {
+        Ok(BigInt::<N>(<[u64; N]>::deserialize_with_mode(
+            reader, compress, validate,
+        )?))
     }
 }
 
@@ -228,7 +262,6 @@ impl<const N: usize> BigInt<N> {
         self
     }
 
-    #[unroll_for_loops(12)]
     pub(crate) const fn const_is_zero(&self) -> bool {
         let mut is_zero = true;
         crate::const_for!((i in 0..N) {
@@ -257,51 +290,72 @@ impl<const N: usize> BigInteger for BigInt<N> {
     const NUM_LIMBS: usize = N;
 
     #[inline]
-    // #[unroll_for_loops(12)]
     fn add_with_carry(&mut self, other: &Self) -> bool {
-        let mut carry = 0;
+        {
+            use arithmetic::adc_for_add_with_carry as adc;
 
-        for i in 0..N {
-            #[cfg(all(target_arch = "x86_64", feature = "asm"))]
-            #[allow(unsafe_code)]
-            unsafe {
-                use core::arch::x86_64::_addcarry_u64;
-                carry = _addcarry_u64(carry, self.0[i], other.0[i], &mut self.0[i])
-            };
+            let a = &mut self.0;
+            let b = &other.0;
+            let mut carry = 0;
 
-            #[cfg(not(all(target_arch = "x86_64", feature = "asm")))]
-            {
-                self.0[i] = arithmetic::adc(self.0[i], other.0[i], &mut carry);
+            if N >= 1 {
+                carry = adc(&mut a[0], b[0], carry);
             }
+            if N >= 2 {
+                carry = adc(&mut a[1], b[1], carry);
+            }
+            if N >= 3 {
+                carry = adc(&mut a[2], b[2], carry);
+            }
+            if N >= 4 {
+                carry = adc(&mut a[3], b[3], carry);
+            }
+            if N >= 5 {
+                carry = adc(&mut a[4], b[4], carry);
+            }
+            if N >= 6 {
+                carry = adc(&mut a[5], b[5], carry);
+            }
+            for i in 6..N {
+                carry = adc(&mut a[i], b[i], carry);
+            }
+            carry != 0
         }
-
-        carry != 0
     }
 
     #[inline]
-    #[unroll_for_loops(12)]
     fn sub_with_borrow(&mut self, other: &Self) -> bool {
-        let mut borrow = 0;
+        use arithmetic::sbb_for_sub_with_borrow as sbb;
 
-        for i in 0..N {
-            #[cfg(all(target_arch = "x86_64", feature = "asm"))]
-            #[allow(unsafe_code)]
-            unsafe {
-                use core::arch::x86_64::_subborrow_u64;
-                borrow = _subborrow_u64(borrow, self.0[i], other.0[i], &mut self.0[i])
-            };
+        let a = &mut self.0;
+        let b = &other.0;
+        let mut borrow = 0u8;
 
-            #[cfg(not(all(target_arch = "x86_64", feature = "asm")))]
-            {
-                self.0[i] = arithmetic::sbb(self.0[i], other.0[i], &mut borrow);
-            }
+        if N >= 1 {
+            borrow = sbb(&mut a[0], b[0], borrow);
         }
-
+        if N >= 2 {
+            borrow = sbb(&mut a[1], b[1], borrow);
+        }
+        if N >= 3 {
+            borrow = sbb(&mut a[2], b[2], borrow);
+        }
+        if N >= 4 {
+            borrow = sbb(&mut a[3], b[3], borrow);
+        }
+        if N >= 5 {
+            borrow = sbb(&mut a[4], b[4], borrow);
+        }
+        if N >= 6 {
+            borrow = sbb(&mut a[5], b[5], borrow);
+        }
+        for i in 6..N {
+            borrow = sbb(&mut a[i], b[i], borrow);
+        }
         borrow != 0
     }
 
     #[inline]
-    #[unroll_for_loops(12)]
     #[allow(unused)]
     fn mul2(&mut self) {
         #[cfg(all(target_arch = "x86_64", feature = "asm"))]
@@ -331,7 +385,6 @@ impl<const N: usize> BigInteger for BigInt<N> {
     }
 
     #[inline]
-    #[unroll_for_loops(12)]
     fn muln(&mut self, mut n: u32) {
         if n >= (64 * N) as u32 {
             *self = Self::from(0u64);
@@ -360,8 +413,6 @@ impl<const N: usize> BigInteger for BigInt<N> {
     }
 
     #[inline]
-    #[unroll_for_loops(12)]
-    #[allow(unused)]
     fn div2(&mut self) {
         let mut t = 0;
         for i in 0..N {
@@ -374,7 +425,6 @@ impl<const N: usize> BigInteger for BigInt<N> {
     }
 
     #[inline]
-    #[unroll_for_loops(12)]
     fn divn(&mut self, mut n: u32) {
         if n >= (64 * N) as u32 {
             *self = Self::from(0u64);
@@ -414,12 +464,7 @@ impl<const N: usize> BigInteger for BigInt<N> {
 
     #[inline]
     fn is_zero(&self) -> bool {
-        for i in 0..N {
-            if self.0[i] != 0 {
-                return false;
-            }
-        }
-        true
+        self.0.iter().all(|&e| e == 0)
     }
 
     #[inline]
@@ -507,15 +552,27 @@ impl<const N: usize> Display for BigInt<N> {
 
 impl<const N: usize> Ord for BigInt<N> {
     #[inline]
+    #[cfg_attr(target_arch = "x86_64", unroll_for_loops(12))]
     fn cmp(&self, other: &Self) -> core::cmp::Ordering {
+        use core::cmp::Ordering;
+        #[cfg(target_arch = "x86_64")]
+        for i in 0..N {
+            let a = &self.0[N - i - 1];
+            let b = &other.0[N - i - 1];
+            match a.cmp(b) {
+                Ordering::Equal => {},
+                order => return order,
+            };
+        }
+        #[cfg(not(target_arch = "x86_64"))]
         for (a, b) in self.0.iter().rev().zip(other.0.iter().rev()) {
             if a < b {
-                return core::cmp::Ordering::Less;
+                return Ordering::Less;
             } else if a > b {
-                return core::cmp::Ordering::Greater;
+                return Ordering::Greater;
             }
         }
-        core::cmp::Ordering::Equal
+        Ordering::Equal
     }
 }
 

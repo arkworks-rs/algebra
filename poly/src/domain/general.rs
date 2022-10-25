@@ -121,6 +121,13 @@ impl<F: FftField> EvaluationDomain<F> for GeneralEvaluationDomain<F> {
         None
     }
 
+    fn get_coset(&self, offset: F) -> Option<Self> {
+        Some(match self {
+            Self::Radix2(domain) => Self::Radix2(domain.get_coset(offset)?),
+            Self::MixedRadix(domain) => Self::MixedRadix(domain.get_coset(offset)?),
+        })
+    }
+
     fn compute_size_of_domain(num_coeffs: usize) -> Option<usize> {
         let domain_size = Radix2EvaluationDomain::<F>::compute_size_of_domain(num_coeffs);
         if let Some(domain_size) = domain_size {
@@ -160,8 +167,17 @@ impl<F: FftField> EvaluationDomain<F> for GeneralEvaluationDomain<F> {
     }
 
     #[inline]
-    fn generator_inv(&self) -> F {
-        map!(self, generator_inv)
+    fn coset_offset(&self) -> F {
+        map!(self, coset_offset)
+    }
+
+    #[inline]
+    fn coset_offset_inv(&self) -> F {
+        map!(self, coset_offset_inv)
+    }
+
+    fn coset_offset_pow_size(&self) -> F {
+        map!(self, coset_offset_pow_size)
     }
 
     #[inline]
@@ -172,16 +188,6 @@ impl<F: FftField> EvaluationDomain<F> for GeneralEvaluationDomain<F> {
     #[inline]
     fn ifft_in_place<T: DomainCoeff<F>>(&self, evals: &mut Vec<T>) {
         map!(self, ifft_in_place, evals)
-    }
-
-    #[inline]
-    fn coset_fft_in_place<T: DomainCoeff<F>>(&self, coeffs: &mut Vec<T>) {
-        map!(self, coset_fft_in_place, coeffs)
-    }
-
-    #[inline]
-    fn coset_ifft_in_place<T: DomainCoeff<F>>(&self, evals: &mut Vec<T>) {
-        map!(self, coset_ifft_in_place, evals)
     }
 
     #[inline]
@@ -197,11 +203,6 @@ impl<F: FftField> EvaluationDomain<F> for GeneralEvaluationDomain<F> {
     #[inline]
     fn evaluate_vanishing_polynomial(&self, tau: F) -> F {
         map!(self, evaluate_vanishing_polynomial, tau)
-    }
-
-    /// Returns the `i`-th element of the domain.
-    fn element(&self, i: usize) -> F {
-        map!(self, element, i)
     }
 
     /// Return an iterator over the elements of the domain.

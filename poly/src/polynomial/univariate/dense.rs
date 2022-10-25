@@ -306,7 +306,7 @@ impl<'a, 'b, F: Field> Add<&'a SparsePolynomial<F>> for &'b DensePolynomial<F> {
 
     #[inline]
     fn add(self, other: &'a SparsePolynomial<F>) -> DensePolynomial<F> {
-        let result = if self.is_zero() {
+        if self.is_zero() {
             other.clone().into()
         } else if other.is_zero() {
             self.clone()
@@ -327,8 +327,7 @@ impl<'a, 'b, F: Field> Add<&'a SparsePolynomial<F>> for &'b DensePolynomial<F> {
             }
             result.coeffs.extend(upper_coeffs);
             result
-        };
-        result
+        }
     }
 }
 
@@ -467,7 +466,7 @@ impl<'a, 'b, F: Field> Sub<&'a SparsePolynomial<F>> for &'b DensePolynomial<F> {
 
     #[inline]
     fn sub(self, other: &'a SparsePolynomial<F>) -> DensePolynomial<F> {
-        let result = if self.is_zero() {
+        if self.is_zero() {
             let result = other.clone();
             result.neg().into()
         } else if other.is_zero() {
@@ -489,8 +488,7 @@ impl<'a, 'b, F: Field> Sub<&'a SparsePolynomial<F>> for &'b DensePolynomial<F> {
             }
             result.coeffs.extend(upper_coeffs);
             result
-        };
-        result
+        }
     }
 }
 
