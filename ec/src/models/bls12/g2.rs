@@ -150,8 +150,8 @@ impl<P: Bls12Parameters> G2HomProjective<P> {
         let j = theta * &qx - &(lambda * &qy);
 
         match P::TWIST_TYPE {
-            TwistType::M => (j, -theta, lambda),
-            TwistType::D => (lambda, -theta, j),
+            TwistType::M => (j, -theta, -lambda),
+            TwistType::D => (-lambda, -theta, j),
         }
     }
 }
