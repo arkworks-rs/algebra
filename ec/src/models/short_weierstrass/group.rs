@@ -15,7 +15,7 @@ use ark_std::{
     One, Zero,
 };
 
-use ark_ff::{fields::Field, PrimeField, ToConstraintField, UniformRand};
+use ark_ff::{AdditiveGroup, fields::Field, PrimeField, ToConstraintField, UniformRand};
 
 use zeroize::Zeroize;
 
@@ -25,7 +25,7 @@ use rayon::prelude::*;
 use super::{Affine, SWCurveConfig};
 use crate::{
     scalar_mul::{variable_base::VariableBaseMSM, ScalarMul},
-    AffineRepr, CurveGroup, Group,
+    AffineRepr, CurveGroup, PrimeGroup,
 };
 
 /// Jacobian coordinates for a point on an elliptic curve in short Weierstrass
@@ -160,7 +160,11 @@ impl<P: SWCurveConfig> Zero for Projective<P> {
     }
 }
 
-impl<P: SWCurveConfig> Group for Projective<P> {
+impl<P: SWCurveConfig> AdditiveGroup for Projective<P> {
+    type Scalar = P::ScalarField;
+}
+
+impl<P: SWCurveConfig> PrimeGroup for Projective<P> {
     type ScalarField = P::ScalarField;
 
     #[inline]
@@ -283,6 +287,7 @@ impl<P: SWCurveConfig> Group for Projective<P> {
 impl<P: SWCurveConfig> CurveGroup for Projective<P> {
     type Config = P;
     type BaseField = P::BaseField;
+    type ScalarField = P::ScalarField;
     type Affine = Affine<P>;
     type FullGroup = Affine<P>;
 

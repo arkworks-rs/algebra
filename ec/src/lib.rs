@@ -22,16 +22,15 @@ extern crate ark_std;
 
 use ark_ff::{
     fields::{Field, PrimeField},
-    UniformRand,
+    UniformRand, AdditiveGroup,
 };
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use ark_std::{
     fmt::{Debug, Display},
     hash::Hash,
-    ops::{Add, AddAssign, Mul, MulAssign, Neg, Sub, SubAssign},
+    ops::{Add, AddAssign, Mul, MulAssign},
     vec::Vec,
 };
-use num_traits::Zero;
 pub use scalar_mul::{variable_base::VariableBaseMSM, ScalarMul};
 use zeroize::Zeroize;
 
@@ -47,38 +46,7 @@ pub mod hashing;
 pub mod pairing;
 
 /// Represents (elements of) a group of prime order `r`.
-pub trait Group:
-    Eq
-    + 'static
-    + Sized
-    + CanonicalSerialize
-    + CanonicalDeserialize
-    + Copy
-    + Clone
-    + Default
-    + Send
-    + Sync
-    + Hash
-    + Debug
-    + Display
-    + UniformRand
-    + Zeroize
-    + Zero
-    + Neg<Output = Self>
-    + Add<Self, Output = Self>
-    + Sub<Self, Output = Self>
-    + Mul<<Self as Group>::ScalarField, Output = Self>
-    + AddAssign<Self>
-    + SubAssign<Self>
-    + MulAssign<<Self as Group>::ScalarField>
-    + for<'a> Add<&'a Self, Output = Self>
-    + for<'a> Sub<&'a Self, Output = Self>
-    + for<'a> Mul<&'a <Self as Group>::ScalarField, Output = Self>
-    + for<'a> AddAssign<&'a Self>
-    + for<'a> SubAssign<&'a Self>
-    + for<'a> MulAssign<&'a <Self as Group>::ScalarField>
-    + core::iter::Sum<Self>
-    + for<'a> core::iter::Sum<&'a Self>
+pub trait PrimeGroup: AdditiveGroup<Scalar = Self::ScalarField>
 {
     /// The scalar field `F_r`, where `r` is the order of this group.
     type ScalarField: PrimeField;
@@ -116,12 +84,13 @@ pub trait Group:
     }
 }
 
+
 /// An opaque representation of an elliptic curve group element that is suitable
 /// for efficient group arithmetic.
 ///
 /// The point is guaranteed to be in the correct prime order subgroup.
 pub trait CurveGroup:
-    Group
+    PrimeGroup<ScalarField = <Self as CurveGroup>::ScalarField>
     + Add<Self::Affine, Output = Self>
     + AddAssign<Self::Affine>
     // + for<'a> Add<&'a Self::Affine, Output = Self>
@@ -133,14 +102,15 @@ pub trait CurveGroup:
     + core::iter::Sum<Self::Affine>
     + for<'a> core::iter::Sum<&'a Self::Affine>
 {
-    type Config: CurveConfig<ScalarField = Self::ScalarField, BaseField = Self::BaseField>;
+    type Config: CurveConfig<ScalarField = <Self as PrimeGroup>::ScalarField, BaseField = Self::BaseField>;
+    type ScalarField: PrimeField;
     /// The field over which this curve is defined.
     type BaseField: Field;
     /// The affine representation of this element.
     type Affine: AffineRepr<
             Config = Self::Config,
             Group = Self,
-            ScalarField = Self::ScalarField,
+            ScalarField = <Self as PrimeGroup>::ScalarField,
             BaseField = Self::BaseField,
         > + From<Self>
         + Into<Self>;
@@ -278,7 +248,7 @@ where
     Self::E2: MulAssign<<Self::E1 as CurveGroup>::BaseField>,
 {
     type E1: CurveGroup<
-        BaseField = <Self::E2 as Group>::ScalarField,
+        BaseField = <Self::E2 as PrimeGroup>::ScalarField,
         ScalarField = <Self::E2 as CurveGroup>::BaseField,
     >;
     type E2: CurveGroup;
@@ -289,12 +259,12 @@ pub trait PairingFriendlyCycle: CurveCycle {
     type Engine1: pairing::Pairing<
         G1 = Self::E1,
         G1Affine = <Self::E1 as CurveGroup>::Affine,
-        ScalarField = <Self::E1 as Group>::ScalarField,
+        ScalarField = <Self::E1 as PrimeGroup>::ScalarField,
     >;
 
     type Engine2: pairing::Pairing<
         G1 = Self::E2,
         G1Affine = <Self::E2 as CurveGroup>::Affine,
-        ScalarField = <Self::E2 as Group>::ScalarField,
+        ScalarField = <Self::E2 as PrimeGroup>::ScalarField,
     >;
 }

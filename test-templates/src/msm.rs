@@ -1,11 +1,11 @@
 use ark_ec::{
     scalar_mul::variable_base::{ChunkedPippenger, HashMapPippenger, VariableBaseMSM},
-    ScalarMul,
+    ScalarMul, PrimeGroup,
 };
 use ark_ff::{PrimeField, UniformRand};
 use ark_std::vec::Vec;
 
-fn naive_var_base_msm<G: ScalarMul>(bases: &[G::MulBase], scalars: &[G::ScalarField]) -> G {
+fn naive_var_base_msm<G: ScalarMul>(bases: &[G::MulBase], scalars: &[<G as PrimeGroup>::ScalarField]) -> G {
     let mut acc = G::zero();
 
     for (base, scalar) in bases.iter().zip(scalars.iter()) {
@@ -20,7 +20,7 @@ pub fn test_var_base_msm<G: VariableBaseMSM>() {
     let mut rng = ark_std::test_rng();
 
     let v = (0..SAMPLES)
-        .map(|_| G::ScalarField::rand(&mut rng))
+        .map(|_| <G as PrimeGroup>::ScalarField::rand(&mut rng))
         .collect::<Vec<_>>();
     let g = (0..SAMPLES).map(|_| G::rand(&mut rng)).collect::<Vec<_>>();
     let g = G::batch_convert_to_mul_base(&g);
@@ -37,7 +37,7 @@ pub fn test_chunked_pippenger<G: VariableBaseMSM>() {
     let mut rng = ark_std::test_rng();
 
     let v = (0..SAMPLES)
-        .map(|_| G::ScalarField::rand(&mut rng).into_bigint())
+        .map(|_| <G as PrimeGroup>::ScalarField::rand(&mut rng).into_bigint())
         .collect::<Vec<_>>();
     let g = (0..SAMPLES).map(|_| G::rand(&mut rng)).collect::<Vec<_>>();
     let g = G::batch_convert_to_mul_base(&g);
@@ -60,7 +60,7 @@ pub fn test_hashmap_pippenger<G: VariableBaseMSM>() {
     let mut v_scal = Vec::new();
     let v = (0..SAMPLES)
         .map(|_| {
-            let x = G::ScalarField::rand(&mut rng);
+            let x = <G as PrimeGroup>::ScalarField::rand(&mut rng);
             v_scal.push(x);
             x.into_bigint()
         })

@@ -21,7 +21,7 @@ use ark_std::rand::{
 
 use crate::{
     fields::{Field, PrimeField},
-    LegendreSymbol, SqrtPrecomputation, ToConstraintField, UniformRand,
+    LegendreSymbol, SqrtPrecomputation, ToConstraintField, UniformRand, AdditiveGroup,
 };
 
 /// Defines a Cubic extension field from a cubic non-residue.
@@ -162,6 +162,10 @@ impl<P: CubicExtConfig> One for CubicExtField<P> {
     fn is_one(&self) -> bool {
         self.c0.is_one() && self.c1.is_zero() && self.c2.is_zero()
     }
+}
+
+impl<P: CubicExtConfig> AdditiveGroup for CubicExtField<P> {
+    type Scalar= Self;
 }
 
 type BaseFieldIter<P> = <<P as CubicExtConfig>::BaseField as Field>::BasePrimeFieldIter;

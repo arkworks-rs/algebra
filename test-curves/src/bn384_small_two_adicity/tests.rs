@@ -1,5 +1,5 @@
 #![allow(unused_imports)]
-use ark_ec::{models::short_weierstrass::SWCurveConfig, pairing::Pairing, AffineRepr, CurveGroup};
+use ark_ec::{models::short_weierstrass::SWCurveConfig, pairing::Pairing, AffineRepr, CurveGroup, PrimeGroup};
 use ark_ff::{Field, One, UniformRand, Zero};
 use ark_std::{rand::Rng, test_rng};
 

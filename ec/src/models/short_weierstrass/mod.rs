@@ -6,7 +6,7 @@ use ark_std::io::{Read, Write};
 
 use ark_ff::fields::Field;
 
-use crate::{scalar_mul::variable_base::VariableBaseMSM, AffineRepr, Group};
+use crate::{scalar_mul::variable_base::VariableBaseMSM, AffineRepr, PrimeGroup};
 
 use num_traits::Zero;
 

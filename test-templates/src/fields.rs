@@ -179,9 +179,9 @@ macro_rules! __test_field {
                 assert_eq!(t1, t2);
 
                 // Doubling
-                assert_eq!(a.double(), a + a);
-                assert_eq!(b.double(), b + b);
-                assert_eq!(c.double(), c + c);
+                assert_eq!(ark_ff::Field::double(&a), a + a);
+                assert_eq!(ark_ff::Field::double(&b), b + b);
+                assert_eq!(ark_ff::Field::double(&c), c + c);
             }
         }
 
@@ -258,9 +258,9 @@ macro_rules! __test_field {
                 assert_eq!(a * (b + c), a * b + a * c, "Distributivity failed");
                 assert_eq!(b * (a + c), b * a + b * c, "Distributivity failed");
                 assert_eq!(c * (a + b), c * a + c * b, "Distributivity failed");
-                assert_eq!((a + b).square(), a.square() + b.square() + a * b.double(), "Distributivity for square failed");
-                assert_eq!((b + c).square(), c.square() + b.square() + c * b.double(), "Distributivity for square failed");
-                assert_eq!((c + a).square(), a.square() + c.square() + a * c.double(), "Distributivity for square failed");
+                assert_eq!((a + b).square(), a.square() + b.square() + a * ark_ff::Field::double(&b), "Distributivity for square failed");
+                assert_eq!((b + c).square(), c.square() + b.square() + c * ark_ff::Field::double(&b), "Distributivity for square failed");
+                assert_eq!((c + a).square(), a.square() + c.square() + a * ark_ff::Field::double(&c), "Distributivity for square failed");
             }
         }
 

@@ -15,7 +15,7 @@ use ark_std::{
     One, Zero,
 };
 
-use ark_ff::{fields::Field, PrimeField, ToConstraintField, UniformRand};
+use ark_ff::{AdditiveGroup, fields::Field, PrimeField, ToConstraintField, UniformRand};
 
 use zeroize::Zeroize;
 
@@ -25,7 +25,7 @@ use rayon::prelude::*;
 use super::{Affine, MontCurveConfig, TECurveConfig};
 use crate::{
     scalar_mul::{variable_base::VariableBaseMSM, ScalarMul},
-    AffineRepr, CurveGroup, Group,
+    AffineRepr, CurveGroup, PrimeGroup,
 };
 
 /// `Projective` implements Extended Twisted Edwards Coordinates
@@ -150,7 +150,11 @@ impl<P: TECurveConfig> Zero for Projective<P> {
     }
 }
 
-impl<P: TECurveConfig> Group for Projective<P> {
+impl<P: TECurveConfig> AdditiveGroup for Projective<P> {
+    type Scalar = P::ScalarField;
+}
+
+impl<P: TECurveConfig> PrimeGroup for Projective<P> {
     type ScalarField = P::ScalarField;
 
     fn generator() -> Self {
@@ -201,6 +205,7 @@ impl<P: TECurveConfig> CurveGroup for Projective<P> {
     type Config = P;
     type BaseField = P::BaseField;
     type Affine = Affine<P>;
+    type ScalarField = P::ScalarField;
     type FullGroup = Affine<P>;
 
     fn normalize_batch(v: &[Self]) -> Vec<Self::Affine> {
@@ -226,6 +231,7 @@ impl<P: TECurveConfig> CurveGroup for Projective<P> {
             })
             .collect()
     }
+
 }
 
 impl<P: TECurveConfig> Neg for Projective<P> {

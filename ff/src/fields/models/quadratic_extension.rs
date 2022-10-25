@@ -22,7 +22,7 @@ use ark_std::rand::{
 use crate::{
     biginteger::BigInteger,
     fields::{Field, LegendreSymbol, PrimeField},
-    SqrtPrecomputation, ToConstraintField, UniformRand,
+    SqrtPrecomputation, ToConstraintField, UniformRand, AdditiveGroup,
 };
 
 /// Defines a Quadratic extension field from a quadratic non-residue.
@@ -191,6 +191,10 @@ impl<P: QuadExtConfig> One for QuadExtField<P> {
     fn is_one(&self) -> bool {
         self.c0.is_one() && self.c1.is_zero()
     }
+}
+
+impl<P: QuadExtConfig> AdditiveGroup for QuadExtField<P> {
+    type Scalar = Self;
 }
 
 type BaseFieldIter<P> = <<P as QuadExtConfig>::BaseField as Field>::BasePrimeFieldIter;

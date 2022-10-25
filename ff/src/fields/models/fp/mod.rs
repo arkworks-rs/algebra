@@ -18,7 +18,7 @@ use ark_std::{
 mod montgomery_backend;
 pub use montgomery_backend::*;
 
-use crate::{BigInt, BigInteger, FftField, Field, LegendreSymbol, PrimeField, SqrtPrecomputation};
+use crate::{BigInt, BigInteger, FftField, Field, LegendreSymbol, PrimeField, SqrtPrecomputation, AdditiveGroup};
 /// A trait that specifies the configuration of a prime field.
 /// Also specifies how to perform arithmetic on field elements.
 pub trait FpConfig<const N: usize>: Send + Sync + 'static + Sized {
@@ -184,6 +184,10 @@ impl<P: FpConfig<N>, const N: usize> One for Fp<P, N> {
     fn is_one(&self) -> bool {
         *self == P::ONE
     }
+}
+
+impl<P: FpConfig<N>, const N: usize> AdditiveGroup for Fp<P, N> {
+    type Scalar = Self;
 }
 
 impl<P: FpConfig<N>, const N: usize> Field for Fp<P, N> {

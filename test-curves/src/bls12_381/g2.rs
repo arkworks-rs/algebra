@@ -6,7 +6,7 @@ use ark_ec::{
     hashing::curve_maps::wb::{IsogenyMap, WBConfig},
     models::CurveConfig,
     short_weierstrass::{self, *},
-    AffineRepr, CurveGroup, Group,
+    AffineRepr, CurveGroup, PrimeGroup,
 };
 use ark_ff::{BigInt, Field, MontFp, Zero};
 

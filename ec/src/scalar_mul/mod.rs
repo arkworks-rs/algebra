@@ -4,7 +4,7 @@ pub mod wnaf;
 pub mod fixed_base;
 pub mod variable_base;
 
-use crate::Group;
+use crate::PrimeGroup;
 use ark_std::{
     ops::{Add, AddAssign, Mul, Neg, Sub, SubAssign},
     vec::Vec,
@@ -20,7 +20,7 @@ fn ln_without_floats(a: usize) -> usize {
 }
 
 pub trait ScalarMul:
-    Group
+    PrimeGroup
     + Add<Self::MulBase, Output = Self>
     + AddAssign<Self::MulBase>
     + for<'a> Add<&'a Self::MulBase, Output = Self>
