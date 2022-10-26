@@ -387,9 +387,9 @@ mod std_tests {
 #[cfg(test)]
 mod no_std_tests {
     use super::*;
-    use num_bigint::*;
     use ark_std::str::FromStr;
     use ark_std::test_rng;
+    use num_bigint::*;
 
     // TODO: only Fr & FrConfig should need to be imported.
     // The rest of imports are caused by cargo not resolving the deps properly

@@ -778,9 +778,6 @@ impl<'a, 'b, P: FpConfig<N>, const N: usize> Div<&'b Fp<P, N>> for &'a Fp<P, N> 
     }
 }
 
-
-
-
 impl<'a, P: FpConfig<N>, const N: usize> AddAssign<&'a Self> for Fp<P, N> {
     #[inline]
     fn add_assign(&mut self, other: &Self) {
