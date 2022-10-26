@@ -17,9 +17,8 @@ This crate contains two types of traits:
 The available field traits are:
 
 - [`Field`](https://github.com/arkworks-rs/algebra/blob/master/ff/src/fields/mod.rs#L66) - Interface for a generic finite field.
-- [`FftField`](https://github.com/arkworks-rs/algebra/blob/master/ff/src/fields/mod.rs#L275) - Exposes methods that allow for performing efficient FFTs on field elements.
-- [`PrimeField`](https://github.com/arkworks-rs/algebra/blob/master/ff/src/fields/mod.rs#L347) - Field with a prime `p` number of elements, also referred to as `Fp`.
-- [`SquareRootField`](https://github.com/arkworks-rs/algebra/blob/master/ff/src/fields/mod.rs#L431) - Interface for fields that support square-root operations
+- [`FftField`](https://github.com/arkworks-rs/algebra/blob/master/ff/src/fields/mod.rs#L419) - Exposes methods that allow for performing efficient FFTs on field elements.
+- [`PrimeField`](https://github.com/arkworks-rs/algebra/blob/master/ff/src/fields/mod.rs#L523) - Field with a prime `p` number of elements, also referred to as `Fp`.
 
 The models implemented are:
 
