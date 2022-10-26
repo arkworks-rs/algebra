@@ -25,6 +25,9 @@ pub use self::biginteger::*;
 pub mod fields;
 pub use self::fields::*;
 
+pub(crate) mod bits;
+pub use bits::*;
+
 pub(crate) mod const_helpers;
 
 pub use ark_std::UniformRand;

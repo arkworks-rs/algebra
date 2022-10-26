@@ -8,9 +8,9 @@ use ark_ff::{
         fp12_2over3over2::{Fp12, Fp12Config},
         fp2::Fp2Config,
         fp6_3over2::Fp6Config,
-        BitIteratorBE, Field, Fp2, PrimeField,
+        Fp2,
     },
-    CyclotomicMultSubgroup,
+    BitIteratorBE, CyclotomicMultSubgroup, Field, PrimeField,
 };
 use ark_std::{marker::PhantomData, vec::Vec};
 use num_traits::{One, Zero};

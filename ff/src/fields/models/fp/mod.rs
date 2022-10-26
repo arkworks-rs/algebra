@@ -734,6 +734,50 @@ impl<'a, P: FpConfig<N>, const N: usize> Div<&'a Fp<P, N>> for Fp<P, N> {
     }
 }
 
+impl<'a, 'b, P: FpConfig<N>, const N: usize> Add<&'b Fp<P, N>> for &'a Fp<P, N> {
+    type Output = Fp<P, N>;
+
+    #[inline]
+    fn add(self, other: &'b Fp<P, N>) -> Fp<P, N> {
+        let mut result = *self;
+        result.add_assign(other);
+        result
+    }
+}
+
+impl<'a, 'b, P: FpConfig<N>, const N: usize> Sub<&'b Fp<P, N>> for &'a Fp<P, N> {
+    type Output = Fp<P, N>;
+
+    #[inline]
+    fn sub(self, other: &Fp<P, N>) -> Fp<P, N> {
+        let mut result = *self;
+        result.sub_assign(other);
+        result
+    }
+}
+
+impl<'a, 'b, P: FpConfig<N>, const N: usize> Mul<&'b Fp<P, N>> for &'a Fp<P, N> {
+    type Output = Fp<P, N>;
+
+    #[inline]
+    fn mul(self, other: &Fp<P, N>) -> Fp<P, N> {
+        let mut result = *self;
+        result.mul_assign(other);
+        result
+    }
+}
+
+impl<'a, 'b, P: FpConfig<N>, const N: usize> Div<&'b Fp<P, N>> for &'a Fp<P, N> {
+    type Output = Fp<P, N>;
+
+    #[inline]
+    fn div(self, other: &Fp<P, N>) -> Fp<P, N> {
+        let mut result = *self;
+        result.div_assign(other);
+        result
+    }
+}
+
 impl<'a, P: FpConfig<N>, const N: usize> AddAssign<&'a Self> for Fp<P, N> {
     #[inline]
     fn add_assign(&mut self, other: &Self) {

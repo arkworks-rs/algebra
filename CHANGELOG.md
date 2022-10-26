@@ -130,6 +130,10 @@
     - Remove method `generator_inv`.
     - Remove method `divide_by_vanishing_poly_on_coset_in_place`.
     - Remove coset fft methods: `coset_fft`, `coset_fft_in_place`, `coset_ifft`, `coset_ifft_in_place`.
+- [\#492](https://github.com/arkworks-rs/algebra/pull/492) (`ark-ff`) Refactor `ark-ff` APIs:
+    - Splits the contents of `ff/src/fields/mod.rs` into smaller files for easier management.
+    - Moves `BitIterator` out of `ark_ff::fields` and into `ark_ff` directly.
+    - Adds `impl<'a, 'b> Add/Sub/Mul/Div<&'a F> for &'b F`
 
 ### Features
 
