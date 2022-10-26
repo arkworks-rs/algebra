@@ -14,7 +14,7 @@ pub trait CyclotomicMultSubgroup: crate::Field {
     /// By default this is `false`, but should be set to `true` for quadratic extensions.
     const INVERSE_IS_FAST: bool = false;
 
-    /// Compute a square in the cyclotomic subgroup. By default this is computed using [`Field::square`], but for
+    /// Compute a square in the cyclotomic subgroup. By default this is computed using [`Field::square`](crate::Field::square), but for
     /// degree 12 extensions, this can be computed faster than normal squaring.
     ///
     /// # Warning
@@ -26,7 +26,7 @@ pub trait CyclotomicMultSubgroup: crate::Field {
     }
 
     /// Square `self` in place. By default this is computed using
-    /// [`Field::square_in_place`], but for degree 12 extensions,
+    /// [`Field::square_in_place`](crate::Field::square_in_place), but for degree 12 extensions,
     /// this can be computed faster than normal squaring.
     ///
     /// # Warning
@@ -68,7 +68,7 @@ pub trait CyclotomicMultSubgroup: crate::Field {
         result
     }
 
-    /// Set `self` to be the result of exponentiating [`self`] by `e`,
+    /// Set `self` to be the result of exponentiating `self` by `e`,
     /// using efficient cyclotomic algorithms.
     ///
     /// # Warning
