@@ -367,7 +367,7 @@ fn serial_batch_inversion_and_mul<F: Field>(v: &mut [F], coeff: &F) {
 
 #[cfg(all(test, feature = "std"))]
 mod std_tests {
-    use super::BitIteratorLE;
+    use crate::BitIteratorLE;
 
     #[test]
     fn bit_iterator_le() {
@@ -388,9 +388,9 @@ mod std_tests {
 mod no_std_tests {
     use super::*;
     use num_bigint::*;
-    use std::str::FromStr;
-
+    use ark_std::str::FromStr;
     use ark_std::test_rng;
+
     // TODO: only Fr & FrConfig should need to be imported.
     // The rest of imports are caused by cargo not resolving the deps properly
     // from this crate and from ark_test_curves

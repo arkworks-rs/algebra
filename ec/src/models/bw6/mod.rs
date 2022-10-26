@@ -6,8 +6,9 @@ use ark_ff::{
     fields::{
         fp3::Fp3Config,
         fp6_2over3::{Fp6, Fp6Config},
-        BitIteratorBE, Field, PrimeField,
+        Field, PrimeField,
     },
+    BitIteratorBE, 
     CyclotomicMultSubgroup,
 };
 use itertools::Itertools;

@@ -1,6 +1,6 @@
 use crate::{BigInteger, FftField, Field};
 
-use ark_std::{cmp::min, str::FromStr};
+use ark_std::{cmp::min, str::FromStr, vec::Vec};
 use num_bigint::BigUint;
 
 /// The interface for a prime field, i.e. the field of integers modulo a prime $p$.  
