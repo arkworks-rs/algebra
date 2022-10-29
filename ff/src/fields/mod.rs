@@ -12,6 +12,7 @@ use ark_std::{
 
 pub use ark_ff_macros;
 use num_traits::{One, Zero};
+use serde::{de::DeserializeOwned, Serialize};
 use zeroize::Zeroize;
 
 pub mod utils;
@@ -113,6 +114,8 @@ pub trait Field:
     + CanonicalSerializeWithFlags
     + CanonicalDeserialize
     + CanonicalDeserializeWithFlags
+    + Serialize
+    + DeserializeOwned
     + Add<Self, Output = Self>
     + Sub<Self, Output = Self>
     + Mul<Self, Output = Self>

@@ -12,6 +12,7 @@ use ark_std::{
 };
 
 use num_traits::{One, Zero};
+use serde::{Deserialize, Serialize};
 use zeroize::Zeroize;
 
 use ark_std::rand::{
@@ -93,7 +94,7 @@ pub trait QuadExtConfig: 'static + Send + Sync + Sized {
 
 /// An element of a quadratic extension field F_p\[X\]/(X^2 - P::NONRESIDUE) is
 /// represented as c0 + c1 * X, for c0, c1 in `P::BaseField`.
-#[derive(Derivative)]
+#[derive(Serialize, Deserialize, Derivative)]
 #[derivative(
     Default(bound = "P: QuadExtConfig"),
     Hash(bound = "P: QuadExtConfig"),

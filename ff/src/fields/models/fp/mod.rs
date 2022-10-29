@@ -17,6 +17,7 @@ use ark_std::{
 #[macro_use]
 mod montgomery_backend;
 pub use montgomery_backend::*;
+use serde::{Deserialize, Serialize};
 
 use crate::{BigInt, BigInteger, FftField, Field, LegendreSymbol, PrimeField, SqrtPrecomputation};
 /// A trait that specifies the configuration of a prime field.
@@ -100,7 +101,7 @@ pub trait FpConfig<const N: usize>: Send + Sync + 'static + Sized {
 
 /// Represents an element of the prime field F_p, where `p == P::MODULUS`.
 /// This type can represent elements in any field of size at most N * 64 bits.
-#[derive(Derivative)]
+#[derive(Serialize, Deserialize, Derivative)]
 #[derivative(
     Default(bound = ""),
     Hash(bound = ""),

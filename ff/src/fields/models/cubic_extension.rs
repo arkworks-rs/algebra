@@ -12,6 +12,7 @@ use ark_std::{
 };
 
 use num_traits::{One, Zero};
+use serde::{Deserialize, Serialize};
 use zeroize::Zeroize;
 
 use ark_std::rand::{
@@ -78,7 +79,7 @@ pub trait CubicExtConfig: 'static + Send + Sync + Sized {
 
 /// An element of a cubic extension field F_p\[X\]/(X^3 - P::NONRESIDUE) is
 /// represented as c0 + c1 * X + c2 * X^2, for c0, c1, c2 in `P::BaseField`.
-#[derive(Derivative)]
+#[derive(Serialize, Deserialize, Derivative)]
 #[derivative(
     Default(bound = "P: CubicExtConfig"),
     Hash(bound = "P: CubicExtConfig"),
