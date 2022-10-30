@@ -1,0 +1,6 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+- given-names: "arkworks contributors"
+title: "arkworks zkSNARK ecosystem"
+url: "https://github.com/arkworks-rs/"

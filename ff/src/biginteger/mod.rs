@@ -1,7 +1,6 @@
 use crate::{
-    const_for,
-    fields::{BitIteratorBE, BitIteratorLE},
-    UniformRand,
+    bits::{BitIteratorBE, BitIteratorLE},
+    const_for, UniformRand,
 };
 #[allow(unused)]
 use ark_ff_macros::unroll_for_loops;
