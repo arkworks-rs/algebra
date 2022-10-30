@@ -65,7 +65,7 @@ pub(super) fn sum_of_products_impl(num_limbs: usize, modulus: &[u64]) -> proc_ma
                     result
                 });
                 let mut result = F::new_unchecked(result);
-                __subtract_modulus(&mut result);
+                __subtract_modulus_with_carry(&mut result, false);
                 debug_assert_eq!(
                     a.iter().zip(b).map(|(a, b)| *a * b).sum::<F>(),
                     result

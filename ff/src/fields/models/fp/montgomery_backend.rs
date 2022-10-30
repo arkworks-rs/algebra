@@ -90,9 +90,9 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
     #[inline(always)]
     fn add_assign(a: &mut Fp<MontBackend<Self, N>, N>, b: &Fp<MontBackend<Self, N>, N>) {
         // This cannot exceed the backing capacity.
-        a.0.add_with_carry(&b.0);
+        let c = a.0.add_with_carry(&b.0);
         // However, it may need to be reduced
-        a.subtract_modulus();
+        a.subtract_modulus_with_carry(c);
     }
 
     /// Sets `a = a - b`.
@@ -109,9 +109,9 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
     #[inline(always)]
     fn double_in_place(a: &mut Fp<MontBackend<Self, N>, N>) {
         // This cannot exceed the backing capacity.
-        a.0.mul2();
+        let c = a.0.mul2();
         // However, it may need to be reduced.
-        a.subtract_modulus();
+        a.subtract_modulus_with_carry(c);
     }
 
     /// Sets `a = -a`.
@@ -189,7 +189,7 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
             // Implements CIOS.
             *a = a.mul_without_cond_subtract(b);
         }
-        a.subtract_modulus();
+        a.subtract_modulus_with_carry(false);
     }
 
     #[inline(always)]
@@ -227,7 +227,7 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
                 6 => { ark_ff_asm::x86_64_asm_square!(6, (a.0).0); },
                 _ => unsafe { ark_std::hint::unreachable_unchecked() },
             };
-            a.subtract_modulus();
+            a.subtract_modulus_with_carry(false);
             return;
         }
 
@@ -241,7 +241,8 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
             r.b1[i] = carry;
             carry = 0;
         }
-        r.b1[N - 1] >>= 63;
+
+        r.b1[N - 1] = r.b1[N - 2] >> 63;
         for i in 0..N {
             r[2 * (N - 1) - i] = (r[2 * (N - 1) - i] << 1) | (r[2 * (N - 1) - (i + 1)] >> 63);
         }
@@ -266,7 +267,7 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
             carry2 = fa::adc(&mut r.b1[i], carry, carry2);
         }
         (a.0).0.copy_from_slice(&r.b1);
-        a.subtract_modulus();
+        a.subtract_modulus_with_carry(carry2 != 0);
     }
 
     fn inverse(a: &Fp<MontBackend<Self, N>, N>) -> Option<Fp<MontBackend<Self, N>, N>> {
@@ -292,8 +293,11 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
                     if b.0.is_even() {
                         b.0.div2();
                     } else {
-                        b.0.add_with_carry(&Self::MODULUS);
+                        let carry = b.0.add_with_carry(&Self::MODULUS);
                         b.0.div2();
+                        if carry {
+                            b.0.0[N - 1] |= 1 << 63;
+                        }
                     }
                 }
 
@@ -303,8 +307,11 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
                     if c.0.is_even() {
                         c.0.div2();
                     } else {
-                        c.0.add_with_carry(&Self::MODULUS);
+                        let carry = c.0.add_with_carry(&Self::MODULUS);
                         c.0.div2();
+                        if carry {
+                            c.0.0[N - 1] |= 1 << 63;
+                        }
                     }
                 }
 
@@ -412,7 +419,7 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
                 result
             });
             let mut result = Fp::new_unchecked(result);
-            result.subtract_modulus();
+            result.subtract_modulus_with_carry(false);
             debug_assert_eq!(
                 a.iter().zip(b).map(|(a, b)| *a * b).sum::<Fp<_, N>>(),
                 result
@@ -452,7 +459,7 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
                         result
                     });
                     let mut result = Fp::new_unchecked(result);
-                    result.subtract_modulus();
+                    result.subtract_modulus_with_carry(false);
                     debug_assert_eq!(
                         a.iter().zip(b).map(|(a, b)| *a * b).sum::<Fp<_, N>>(),
                         result

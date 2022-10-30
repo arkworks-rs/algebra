@@ -22,13 +22,10 @@ pub fn mont_config_helper(
     small_subgroup_power: Option<u32>,
     config_name: proc_macro2::Ident,
 ) -> proc_macro2::TokenStream {
-    // The arithmetic in this library only works if the modulus*2 is smaller than
-    // the backing representation. Compute the number of limbs we need.
     let mut limbs = 1usize;
     {
-        let mod2 = (&modulus) << 1; // modulus * 2
         let mut cur = BigUint::one() << 64; // always 64-bit limbs for now
-        while cur < mod2 {
+        while cur < modulus {
             limbs += 1;
             cur <<= 64;
         }
@@ -100,8 +97,8 @@ pub fn mont_config_helper(
 
                 #[inline(always)]
                 fn add_assign(a: &mut F, b: &F) {
-                    __add_with_carry(&mut a.0, &b.0);
-                    __subtract_modulus(a);
+                    let c = __add_with_carry(&mut a.0, &b.0);
+                    __subtract_modulus_with_carry(a, c);
                 }
 
                 #[inline(always)]
@@ -116,9 +113,9 @@ pub fn mont_config_helper(
                 #[inline(always)]
                 fn double_in_place(a: &mut F) {
                     // This cannot exceed the backing capacity.
-                    a.0.mul2();
+                    let c = a.0.mul2();
                     // However, it may need to be reduced.
-                    __subtract_modulus(a);
+                    __subtract_modulus_with_carry(a, c);
                 }
 
                 /// Sets `a = -a`.

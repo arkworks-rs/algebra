@@ -105,13 +105,14 @@ macro_rules! const_modulo {
         let mut remainder = Self::new([0u64; N]);
         let end = $a.num_bits();
         let mut i = (end - 1) as isize;
+        let mut carry;
         while i >= 0 {
-            remainder = remainder.const_mul2();
+            (remainder, carry) = remainder.const_mul2_with_carry();
             remainder.0[0] |= $a.get_bit(i as usize) as u64;
-            if remainder.const_geq($divisor) {
+            if remainder.const_geq($divisor) || carry {
                 let (r, borrow) = remainder.const_sub_with_borrow($divisor);
                 remainder = r;
-                assert!(!borrow);
+                assert!(borrow == carry);
             }
             i -= 1;
         }
@@ -249,7 +250,7 @@ impl<const N: usize> BigInt<N> {
         (self, carry != 0)
     }
 
-    const fn const_mul2(mut self) -> Self {
+    const fn const_mul2_with_carry(mut self) -> (Self, bool) {
         let mut last = 0;
         crate::const_for!((i in 0..N) {
             let a = self.0[i];
@@ -258,7 +259,7 @@ impl<const N: usize> BigInt<N> {
             self.0[i] |= last;
             last = tmp;
         });
-        self
+        (self, last != 0)
     }
 
     pub(crate) const fn const_is_zero(&self) -> bool {
@@ -356,7 +357,7 @@ impl<const N: usize> BigInteger for BigInt<N> {
 
     #[inline]
     #[allow(unused)]
-    fn mul2(&mut self) {
+    fn mul2(&mut self) -> bool {
         #[cfg(all(target_arch = "x86_64", feature = "asm"))]
         #[allow(unsafe_code)]
         {
@@ -368,6 +369,8 @@ impl<const N: usize> BigInteger for BigInt<N> {
                     carry = _addcarry_u64(carry, self.0[i], self.0[i], &mut self.0[i])
                 };
             }
+
+            carry != 0
         }
 
         #[cfg(not(all(target_arch = "x86_64", feature = "asm")))]
@@ -380,6 +383,7 @@ impl<const N: usize> BigInteger for BigInt<N> {
                 *a |= last;
                 last = tmp;
             }
+            last != 0
         }
     }
 
@@ -803,7 +807,7 @@ pub trait BigInteger:
     /// mul.mul2();
     /// assert_eq!(mul, B::from(0u64));
     /// ```
-    fn mul2(&mut self);
+    fn mul2(&mut self) -> bool;
 
     /// Performs a leftwise bitshift of this number by n bits, effectively multiplying
     /// it by 2^n. Overflow is ignored.
