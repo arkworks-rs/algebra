@@ -28,4 +28,4 @@ blake2 = { version = "0.10", default-features = false}
 default = []
 std = [ "ark-std/std", ]
 derive = [ "ark-serialize-derive" ]
-serde = [ ]
+serde = [ "dep:serde" ]

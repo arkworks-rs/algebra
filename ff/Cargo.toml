@@ -47,8 +47,7 @@ default = []
 std = [ "ark-std/std", "ark-serialize/std", "itertools/use_std" ]
 parallel = [ "std", "rayon", "ark-std/parallel" ]
 asm = []
-serde = [ "ark-serialize/with_serde" ]
-
+serde = [ "dep:serde", "ark-serialize/serde" ]
 
 [package.metadata.docs.rs]
 rustdoc-args = ["--html-in-header", "../doc/katex-header.html"]
