@@ -2,7 +2,8 @@ use core::iter;
 
 use ark_serialize::{
     buffer_byte_size, CanonicalDeserialize, CanonicalDeserializeWithFlags, CanonicalSerialize,
-    CanonicalSerializeWithFlags, Compress, EmptyFlags, Flags, SerializationError, Valid, Validate,
+    CanonicalSerializeInner, CanonicalSerializeWithFlags, Compress, EmptyFlags, Flags,
+    SerializationError, Valid, Validate,
 };
 use ark_std::{
     cmp::{Ord, Ordering, PartialOrd},
@@ -17,7 +18,6 @@ use ark_std::{
 #[macro_use]
 mod montgomery_backend;
 pub use montgomery_backend::*;
-use serde::{Deserialize, Serialize};
 
 use crate::{BigInt, BigInteger, FftField, Field, LegendreSymbol, PrimeField, SqrtPrecomputation};
 /// A trait that specifies the configuration of a prime field.
@@ -101,7 +101,8 @@ pub trait FpConfig<const N: usize>: Send + Sync + 'static + Sized {
 
 /// Represents an element of the prime field F_p, where `p == P::MODULUS`.
 /// This type can represent elements in any field of size at most N * 64 bits.
-#[derive(Serialize, Deserialize, Derivative)]
+#[cfg_attr(feature = "serde", serde::Serialize, serde::Deserialize)]
+#[derive(Derivative)]
 #[derivative(
     Default(bound = ""),
     Hash(bound = ""),
@@ -568,7 +569,7 @@ impl<P: FpConfig<N>, const N: usize> CanonicalSerializeWithFlags for Fp<P, N> {
     }
 }
 
-impl<P: FpConfig<N>, const N: usize> CanonicalSerialize for Fp<P, N> {
+impl<P: FpConfig<N>, const N: usize> CanonicalSerializeInner for Fp<P, N> {
     #[inline]
     fn serialize_with_mode<W: ark_std::io::Write>(
         &self,
@@ -583,6 +584,8 @@ impl<P: FpConfig<N>, const N: usize> CanonicalSerialize for Fp<P, N> {
         self.serialized_size_with_flags::<EmptyFlags>()
     }
 }
+
+impl<P: FpConfig<N>, const N: usize> CanonicalSerialize for Fp<P, N> {}
 
 impl<P: FpConfig<N>, const N: usize> CanonicalDeserializeWithFlags for Fp<P, N> {
     fn deserialize_with_flags<R: ark_std::io::Read, F: Flags>(

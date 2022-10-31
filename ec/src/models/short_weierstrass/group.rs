@@ -571,7 +571,7 @@ impl<P: SWCurveConfig> From<Affine<P>> for Projective<P> {
     }
 }
 
-impl<P: SWCurveConfig> CanonicalSerialize for Projective<P> {
+impl<P: SWCurveConfig> CanonicalSerializeInner for Projective<P> {
     #[inline]
     fn serialize_with_mode<W: Write>(
         &self,
@@ -587,6 +587,8 @@ impl<P: SWCurveConfig> CanonicalSerialize for Projective<P> {
         P::serialized_size(compress)
     }
 }
+
+impl<P: SWCurveConfig> CanonicalSerialize for Projective<P> {}
 
 impl<P: SWCurveConfig> Valid for Projective<P> {
     fn check(&self) -> Result<(), SerializationError> {

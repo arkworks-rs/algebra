@@ -22,7 +22,7 @@ derivative = { version = "2", features = ["use_core"] }
 num-traits = { version = "0.2", default-features = false }
 paste = "1.0"
 rayon = { version = "1", optional = true }
-serde = { version = "1.0", features = ["derive"] }
+serde = { version = "1.0", optional = true, features = ["derive"] }
 zeroize = { version = "1", default-features = false, features = ["zeroize_derive"] }
 num-bigint = { version = "0.4", default-features = false }
 digest = { version = "0.10", default-features = false, features = ["alloc"] }
@@ -47,6 +47,7 @@ default = []
 std = [ "ark-std/std", "ark-serialize/std", "itertools/use_std" ]
 parallel = [ "std", "rayon", "ark-std/parallel" ]
 asm = []
+serde = [ "ark-serialize/with_serde" ]
 
 
 [package.metadata.docs.rs]

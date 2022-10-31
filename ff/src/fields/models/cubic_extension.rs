@@ -1,6 +1,7 @@
 use ark_serialize::{
     CanonicalDeserialize, CanonicalDeserializeWithFlags, CanonicalSerialize,
-    CanonicalSerializeWithFlags, Compress, EmptyFlags, Flags, SerializationError, Valid, Validate,
+    CanonicalSerializeInner, CanonicalSerializeWithFlags, Compress, EmptyFlags, Flags,
+    SerializationError, Valid, Validate,
 };
 use ark_std::{
     cmp::{Ord, Ordering, PartialOrd},
@@ -12,7 +13,6 @@ use ark_std::{
 };
 
 use num_traits::{One, Zero};
-use serde::{Deserialize, Serialize};
 use zeroize::Zeroize;
 
 use ark_std::rand::{
@@ -79,7 +79,8 @@ pub trait CubicExtConfig: 'static + Send + Sync + Sized {
 
 /// An element of a cubic extension field F_p\[X\]/(X^3 - P::NONRESIDUE) is
 /// represented as c0 + c1 * X + c2 * X^2, for c0, c1, c2 in `P::BaseField`.
-#[derive(Serialize, Deserialize, Derivative)]
+#[cfg_attr(feature = "serde", serde::Serialize, serde::Deserialize)]
+#[derive(Derivative)]
 #[derivative(
     Default(bound = "P: CubicExtConfig"),
     Hash(bound = "P: CubicExtConfig"),
@@ -625,7 +626,7 @@ impl<P: CubicExtConfig> CanonicalSerializeWithFlags for CubicExtField<P> {
     }
 }
 
-impl<P: CubicExtConfig> CanonicalSerialize for CubicExtField<P> {
+impl<P: CubicExtConfig> CanonicalSerializeInner for CubicExtField<P> {
     #[inline]
     fn serialize_with_mode<W: Write>(
         &self,
@@ -640,6 +641,8 @@ impl<P: CubicExtConfig> CanonicalSerialize for CubicExtField<P> {
         self.serialized_size_with_flags::<EmptyFlags>()
     }
 }
+
+impl<P: CubicExtConfig> CanonicalSerialize for CubicExtField<P> {}
 
 impl<P: CubicExtConfig> CanonicalDeserializeWithFlags for CubicExtField<P> {
     #[inline]

@@ -5,7 +5,8 @@ use crate::{
 #[allow(unused)]
 use ark_ff_macros::unroll_for_loops;
 use ark_serialize::{
-    CanonicalDeserialize, CanonicalSerialize, Compress, SerializationError, Valid, Validate,
+    CanonicalDeserialize, CanonicalSerialize, CanonicalSerializeInner, Compress,
+    SerializationError, Valid, Validate,
 };
 use ark_std::{
     convert::TryFrom,
@@ -18,12 +19,13 @@ use ark_std::{
     vec::Vec,
 };
 use num_bigint::BigUint;
-use serde::{Deserialize, Serialize};
 use zeroize::Zeroize;
 
 #[macro_use]
 pub mod arithmetic;
 
+/// This is a hack to make serialization of BigInt work below.
+#[cfg(feature = "serde")]
 mod arrays {
     use ark_std::vec::Vec;
     use ark_std::{convert::TryInto, marker::PhantomData};
@@ -84,8 +86,11 @@ mod arrays {
     }
 }
 
-#[derive(Copy, Clone, PartialEq, Eq, Debug, Hash, Zeroize, Serialize, Deserialize)]
-pub struct BigInt<const N: usize>(#[serde(with = "arrays")] pub [u64; N]);
+#[derive(Copy, Clone, PartialEq, Eq, Debug, Hash, Zeroize)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub struct BigInt<const N: usize>(
+    #[cfg_attr(feature = "serde", serde(with = "arrays"))] pub [u64; N],
+);
 
 impl<const N: usize> Default for BigInt<N> {
     fn default() -> Self {
@@ -93,7 +98,7 @@ impl<const N: usize> Default for BigInt<N> {
     }
 }
 
-impl<const N: usize> CanonicalSerialize for BigInt<N> {
+impl<const N: usize> CanonicalSerializeInner for BigInt<N> {
     fn serialize_with_mode<W: Write>(
         &self,
         writer: W,
@@ -106,6 +111,8 @@ impl<const N: usize> CanonicalSerialize for BigInt<N> {
         self.0.serialized_size(compress)
     }
 }
+
+impl<const N: usize> CanonicalSerialize for BigInt<N> {}
 
 impl<const N: usize> Valid for BigInt<N> {
     fn check(&self) -> Result<(), SerializationError> {

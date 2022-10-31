@@ -133,7 +133,7 @@ pub trait Pairing: Sized + 'static + Copy + Debug + Sync + Send + Eq {
 #[must_use]
 pub struct PairingOutput<P: Pairing>(pub P::TargetField);
 
-impl<P: Pairing> CanonicalSerialize for PairingOutput<P> {
+impl<P: Pairing> CanonicalSerializeInner for PairingOutput<P> {
     #[allow(unused_qualifications)]
     #[inline]
     fn serialize_with_mode<W: Write>(
@@ -149,6 +149,8 @@ impl<P: Pairing> CanonicalSerialize for PairingOutput<P> {
         self.0.serialized_size(compress)
     }
 }
+
+impl<P: Pairing> CanonicalSerialize for PairingOutput<P> {}
 
 impl<P: Pairing> Valid for PairingOutput<P> {
     fn check(&self) -> Result<(), SerializationError> {

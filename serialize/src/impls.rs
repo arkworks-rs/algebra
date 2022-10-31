@@ -16,7 +16,7 @@ impl Valid for bool {
     }
 }
 
-impl CanonicalSerialize for bool {
+impl CanonicalSerializeInner for bool {
     #[inline]
     fn serialize_with_mode<W: Write>(
         &self,
@@ -32,6 +32,8 @@ impl CanonicalSerialize for bool {
         1
     }
 }
+
+impl CanonicalSerialize for bool {}
 
 impl CanonicalDeserialize for bool {
     #[inline]
@@ -50,7 +52,7 @@ impl CanonicalDeserialize for bool {
 
 macro_rules! impl_uint {
     ($type:ty) => {
-        impl CanonicalSerialize for $type {
+        impl CanonicalSerializeInner for $type {
             #[inline]
             fn serialize_with_mode<W: Write>(
                 &self,
@@ -65,6 +67,8 @@ macro_rules! impl_uint {
                 core::mem::size_of::<$type>()
             }
         }
+
+        impl CanonicalSerialize for $type {}
 
         impl Valid for $type {
             #[inline]
@@ -103,7 +107,7 @@ impl_uint!(u16);
 impl_uint!(u32);
 impl_uint!(u64);
 
-impl CanonicalSerialize for usize {
+impl CanonicalSerializeInner for usize {
     #[inline]
     fn serialize_with_mode<W: Write>(
         &self,
@@ -118,6 +122,8 @@ impl CanonicalSerialize for usize {
         core::mem::size_of::<u64>()
     }
 }
+
+impl CanonicalSerialize for usize {}
 
 impl Valid for usize {
     #[inline]
@@ -147,7 +153,7 @@ impl CanonicalDeserialize for usize {
     }
 }
 
-impl<T: CanonicalSerialize> CanonicalSerialize for Option<T> {
+impl<T: CanonicalSerialize> CanonicalSerializeInner for Option<T> {
     #[inline]
     fn serialize_with_mode<W: Write>(
         &self,
@@ -210,7 +216,7 @@ impl<T: CanonicalDeserialize> CanonicalDeserialize for Option<T> {
 }
 
 // No-op
-impl<T> CanonicalSerialize for PhantomData<T> {
+impl<T> CanonicalSerializeInner for PhantomData<T> {
     #[inline]
     fn serialize_with_mode<W: Write>(
         &self,
@@ -244,7 +250,7 @@ impl<T: Send + Sync> CanonicalDeserialize for PhantomData<T> {
     }
 }
 
-impl<T: CanonicalSerialize + ToOwned> CanonicalSerialize for Rc<T> {
+impl<T: CanonicalSerialize + ToOwned> CanonicalSerializeInner for Rc<T> {
     #[inline]
     fn serialize_with_mode<W: Write>(
         &self,
@@ -261,7 +267,7 @@ impl<T: CanonicalSerialize + ToOwned> CanonicalSerialize for Rc<T> {
 }
 
 #[cfg(feature = "std")]
-impl<T: CanonicalSerialize + ToOwned> CanonicalSerialize for ark_std::sync::Arc<T> {
+impl<T: CanonicalSerialize + ToOwned> CanonicalSerializeInner for ark_std::sync::Arc<T> {
     #[inline]
     fn serialize_with_mode<W: Write>(
         &self,
@@ -312,7 +318,7 @@ impl<T: CanonicalDeserialize + ToOwned + Sync + Send> CanonicalDeserialize
     }
 }
 
-impl<'a, T: CanonicalSerialize + ToOwned> CanonicalSerialize for Cow<'a, T> {
+impl<'a, T: CanonicalSerialize + ToOwned> CanonicalSerializeInner for Cow<'a, T> {
     #[inline]
     fn serialize_with_mode<W: Write>(
         &self,
@@ -368,7 +374,7 @@ where
     }
 }
 
-impl<T: CanonicalSerialize, const N: usize> CanonicalSerialize for [T; N] {
+impl<T: CanonicalSerialize, const N: usize> CanonicalSerializeInner for [T; N] {
     #[inline]
     fn serialize_with_mode<W: Write>(
         &self,
@@ -422,7 +428,7 @@ impl<T: CanonicalDeserialize, const N: usize> CanonicalDeserialize for [T; N] {
     }
 }
 
-impl<T: CanonicalSerialize> CanonicalSerialize for Vec<T> {
+impl<T: CanonicalSerialize> CanonicalSerializeInner for Vec<T> {
     #[inline]
     fn serialize_with_mode<W: Write>(
         &self,
@@ -479,7 +485,7 @@ impl<T: CanonicalDeserialize> CanonicalDeserialize for Vec<T> {
     }
 }
 
-impl<T: CanonicalSerialize> CanonicalSerialize for [T] {
+impl<T: CanonicalSerialize> CanonicalSerializeInner for [T] {
     #[inline]
     fn serialize_with_mode<W: Write>(
         &self,
@@ -503,7 +509,7 @@ impl<T: CanonicalSerialize> CanonicalSerialize for [T] {
     }
 }
 
-impl<'a, T: CanonicalSerialize> CanonicalSerialize for &'a [T] {
+impl<'a, T: CanonicalSerializeInner> CanonicalSerializeInner for &'a [T] {
     #[inline]
     fn serialize_with_mode<W: Write>(
         &self,
@@ -519,7 +525,7 @@ impl<'a, T: CanonicalSerialize> CanonicalSerialize for &'a [T] {
     }
 }
 
-impl CanonicalSerialize for String {
+impl CanonicalSerializeInner for String {
     #[inline]
     fn serialize_with_mode<W: Write>(
         &self,
@@ -534,6 +540,8 @@ impl CanonicalSerialize for String {
         self.as_bytes().serialized_size(compress)
     }
 }
+
+impl CanonicalSerialize for String {}
 
 impl Valid for String {
     #[inline]
@@ -568,7 +576,7 @@ macro_rules! impl_tuple {
         }
 
         #[allow(unused)]
-        impl<$($ty, )*> CanonicalSerialize for ($($ty,)*) where
+        impl<$($ty, )*> CanonicalSerializeInner for ($($ty,)*) where
             $($ty: CanonicalSerialize,)*
         {
             #[inline]
@@ -605,7 +613,7 @@ impl_tuple!(A:0, B:1,);
 impl_tuple!(A:0, B:1, C:2,);
 impl_tuple!(A:0, B:1, C:2, D:3,);
 
-impl<K, V> CanonicalSerialize for BTreeMap<K, V>
+impl<K, V> CanonicalSerializeInner for BTreeMap<K, V>
 where
     K: CanonicalSerialize,
     V: CanonicalSerialize,
@@ -674,7 +682,7 @@ where
     }
 }
 
-impl<V: CanonicalSerialize> CanonicalSerialize for BTreeSet<V> {
+impl<V: CanonicalSerialize> CanonicalSerializeInner for BTreeSet<V> {
     /// Serializes a `BTreeSet` as `len(set) || value 1 || value 2 || ... || value n`.
     fn serialize_with_mode<W: Write>(
         &self,
