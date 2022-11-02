@@ -17,12 +17,12 @@ This library is released under the MIT License and the Apache v2 License (see [L
 
 This repository contains several Rust crates:  
 
-* [`ark-ff`](ff): Provides generic implementations of various finite fields
-* [`ark-ec`](ec): Provides generic implementations for different kinds of elliptic curves, along with pairings over these
-* [`ark-poly`](poly): Implements univariate, multivariate, and multilinear polynomials, and FFTs over finite fields.
-* [`ark-serialize`](serialize): Provides efficient serialization and point compression for finite fields and elliptic curves
+* [`ark-ff`](ff): Generic abstractions for, and implementations of various kinds of finite fields
+* [`ark-ec`](ec): Generic abstractions for prime-order groups, and implementations of various kinds of (pairing-friendly and standard) elliptic curves
+* [`ark-poly`](poly): Interfaces for univariate, multivariate, and multilinear polynomials, and FFTs over finite fields
+* [`ark-serialize`](serialize): Efficient interfaces for serialization and point compression for finite fields and elliptic curves
 
-In addition, the [`curves`](https://github.com/arkworks-rs/curves) repository contains implementations of popular elliptic curves; see [here](https://github.com/arkworks-rs/curves/README.md) for details.
+In addition, the [`curves`](https://github.com/arkworks-rs/curves) repository contains concrete implementations of popular elliptic curves; see [here](https://github.com/arkworks-rs/curves/README.md) for details.
 
 ## Build guide
 
@@ -67,7 +67,7 @@ RUSTFLAGS="-C target-feature=+bmi2,+adx" cargo +nightly [test/build/bench] --fea
 To enable this in the `Cargo.toml` of your own projects, enable the `asm` feature flag:
 
 ```toml
-ark-ff = { version = "0.3.0", features = [ "asm" ] }
+ark-ff = { version = "0.4", features = [ "asm" ] }
 ```
 
 Note that because inline assembly support in Rust is currently unstable, using this backend requires using the Nightly compiler at the moment.
