@@ -20,7 +20,7 @@ use ark_ec::Group;
 use ark_ff::{PrimeField, Field};
 // We'll use the BLS12-381 G1 curve for this example.
 // This group has a prime order `r`, and is associated with a prime field `Fr`.
-use ark_test_curves::bls12_381::{G1Projective as G, G1Affine as GAffine, Fr as ScalarField};
+use ark_test_curves::bls12_381::{G1Projective as G, Fr as ScalarField};
 use ark_std::{Zero, UniformRand, ops::Mul};
 
 let mut rng = ark_std::test_rng();
