@@ -79,9 +79,12 @@ assert_eq!(e, a.square() - b.square());
 assert_eq!(a.inverse().unwrap() * a, F::one()); // have to to unwrap, as `a` could be zero.
 ```
 
-In some cases, it is important to take square roots of field elements
-(e.g.: for point compression of elliptic curve elements.)
-To support this, users can implement the `sqrt`-related methods for their field type. These can be used as follows:
+In some cases, it is useful to be able to compute square roots of field elements
+(e.g.: for point compression of elliptic curve elements).
+To support this, users can implement the `sqrt`-related methods for their field type. This method
+is already implemented for prime fields (see below), and also for quadratic extension fields.
+
+The `sqrt`-related methods can be used as follows:
 
 ```rust
 use ark_ff::Field;
@@ -91,23 +94,17 @@ use ark_test_curves::bls12_381::Fq2 as F;
 use ark_std::{One, UniformRand};
 
 let mut rng = ark_std::test_rng();
-// Let's try to sample a random square via rejection sampling:
-let mut a = F::rand(&mut rng);
-while a.legendre().is_qnr() { // A square is also called a *quadratic residue*
-    a = F::rand(&mut rng);
-}
+let a = F::rand(&mut rng);
 
-// Since `a` is a square, we can compute its square root:
-let b = a.sqrt().unwrap();
-assert_eq!(b.square(), a);
-
-// Let's sample a random *non-square*
-let mut a = F::rand(&mut rng);
-while a.legendre().is_qr() {
-    a = F::rand(&mut rng);
+// We can check if a field element is a square by computing its Legendre symbol...
+if a.legendre().is_qr() {
+    // ... and if it is, we can compute its square root.
+    let b = a.sqrt().unwrap();
+    assert_eq!(b.square(), a);
+} else {
+    // Otherwise, we can check that the square root is `None`.
+    assert_eq!(a.sqrt(), None);
 }
-// The square root should not exist:
-assert_eq!(a.sqrt(), None);
 ```
 
 ### [`PrimeField`]
