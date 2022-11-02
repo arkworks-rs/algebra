@@ -24,7 +24,7 @@ use ark_test_curves::bls12_381::{G1Projective as G, Fr as ScalarField};
 use ark_std::{Zero, UniformRand, ops::Mul};
 
 let mut rng = ark_std::test_rng();
-// Let's sample uniformly random field elements:
+// Let's sample uniformly random group elements:
 let a = G::rand(&mut rng);
 let b = G::rand(&mut rng);
 
@@ -59,15 +59,21 @@ use ark_ff::{PrimeField, Field};
 // We'll use the BLS12-381 G1 curve for this example.
 // This group has a prime order `r`, and is associated with a prime field `Fr`.
 use ark_test_curves::bls12_381::{G1Projective as G, G1Affine as GAffine, Fr as ScalarField};
-use ark_std::{Zero, UniformRand};
+use ark_std::{Zero,  UniformRand};
 
 let mut rng = ark_std::test_rng();
-// Let's sample uniformly random field elements:
+// Let's sample uniformly random group elements:
 let a = GAffine::rand(&mut rng);
 let b = GAffine::rand(&mut rng);
 
 let s1 = ScalarField::rand(&mut rng);
 let s2 = ScalarField::rand(&mut rng);
+
+// Note that we're using the `GAffine` type here, as opposed to `G`.
+// This is because MSMs are more efficient when the group elements are in affine form. (See below for why.)
+//
+// The `VariableBaseMSM` trait allows specializing the input group element representation to allow 
+// for more efficient implementations.
 let result = G::msm(&[a, b], &[s1, s2]);
 assert_eq!(result, a * s1 + b * s2);
 ```
