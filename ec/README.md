@@ -160,4 +160,4 @@ assert_eq!(e1, e2);
 
 ### Hash-to-group
 
-`ark-ec` also provides traits for hashing to elliptic curve groups. The [`HashToCurve`](https://github.com/arkworks-rs/algebra/blob/master/ec/src/hashing/mod.rs) trait allows users to hash arbitrary byte strings to points on elliptic curves, and allows using different hashing strategies.
+`ark-ec` also provides traits for hashing to elliptic curve groups. The [`HashToCurve`](https://github.com/arkworks-rs/algebra/blob/master/ec/src/hashing/mod.rs) trait allows users to hash arbitrary byte strings to elliptic curve group elements, and allows using different hashing strategies.
