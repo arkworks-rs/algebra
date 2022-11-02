@@ -8,7 +8,6 @@
 )]
 #![allow(clippy::op_ref, clippy::suspicious_op_assign_impl)]
 #![deny(unsafe_code)]
-
 #![doc = include_str!("../README.md")]
 
 #[macro_use]

@@ -7,7 +7,6 @@
     rust_2021_compatibility
 )]
 #![forbid(unsafe_code)]
-
 #![doc = include_str!("../README.md")]
 mod error;
 mod flags;
