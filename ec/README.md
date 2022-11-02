@@ -20,7 +20,7 @@ use ark_ec::Group;
 use ark_ff::{PrimeField, Field};
 // We'll use the BLS12-381 G1 curve for this example.
 // This group has a prime order `r`, and is associated with a prime field `Fr`.
-use ark_test_curves::bls12_381::{G1Projective as G, G1Affine as GAffine, Fr as ScalarField};
+use ark_test_curves::bls12_381::{G1Projective as G, Fr as ScalarField};
 use ark_std::{Zero, UniformRand, ops::Mul};
 
 let mut rng = ark_std::test_rng();
@@ -160,4 +160,4 @@ assert_eq!(e1, e2);
 
 ### Hash-to-group
 
-`ark-ec` also provides traits for hashing to elliptic curve groups. The [`HashToCurve`](https://github.com/arkworks-rs/algebra/blob/master/ec/src/hashing/mod.rs) trait allows users to hash arbitrary byte strings to points on elliptic curves, and allows using different hashing strategies.
+`ark-ec` also provides traits for hashing to elliptic curve groups. The [`HashToCurve`](https://github.com/arkworks-rs/algebra/blob/master/ec/src/hashing/mod.rs) trait allows users to hash arbitrary byte strings to elliptic curve group elements, and allows using different hashing strategies.
