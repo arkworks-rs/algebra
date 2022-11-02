@@ -34,7 +34,7 @@ use ark_serialize::{CanonicalSerialize, CanonicalDeserialize};
 use ark_std::UniformRand;
 
 let mut rng = ark_std::test_rng();
-// Let's sample uniformly random field elements:
+// Let's sample uniformly random group elements:
 let a: G1Affine = G1::rand(&mut rng).into();
 let b: G2Affine = G2::rand(&mut rng).into();
 
