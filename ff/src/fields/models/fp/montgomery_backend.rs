@@ -242,6 +242,7 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
             carry = 0;
         }
         r.b1[N - 1] = r.b1[N - 2] >> 63;
+        
 
         for i in 0..N {
             r[2 * (N - 1) - i] = (r[2 * (N - 1) - i] << 1) | (r[2 * (N - 1) - (i + 1)] >> 63);
@@ -296,7 +297,7 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
                         let carry = b.0.add_with_carry(&Self::MODULUS);
                         b.0.div2();
                         if carry {
-                            b.0 .0[N - 1] |= 1 << 63;
+                            (b.0).0[N - 1] |= 1 << 63;
                         }
                     }
                 }
@@ -310,7 +311,7 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
                         let carry = c.0.add_with_carry(&Self::MODULUS);
                         c.0.div2();
                         if carry {
-                            c.0 .0[N - 1] |= 1 << 63;
+                            (c.0).0[N - 1] |= 1 << 63;
                         }
                     }
                 }
