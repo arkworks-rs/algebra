@@ -209,7 +209,6 @@ macro_rules! __test_field {
             let mut rng = test_rng();
             let zero = <$field>::zero();
             let one = <$field>::one();
-
             assert_eq!(one.inverse().unwrap(), one);
             assert!(one.is_one());
 
@@ -221,7 +220,6 @@ macro_rules! __test_field {
                 let a = <$field>::rand(&mut rng);
                 let b = <$field>::rand(&mut rng);
                 let c = <$field>::rand(&mut rng);
-
                 assert_eq!((a * b) * c, a * (b * c));
 
                 // Commutativity

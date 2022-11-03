@@ -241,8 +241,8 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
             r.b1[i] = carry;
             carry = 0;
         }
-
         r.b1[N - 1] = r.b1[N - 2] >> 63;
+        
         for i in 0..N {
             r[2 * (N - 1) - i] = (r[2 * (N - 1) - i] << 1) | (r[2 * (N - 1) - (i + 1)] >> 63);
         }

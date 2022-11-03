@@ -96,7 +96,7 @@ pub(super) fn mul_assign_impl(
         body.extend(quote! {
             (a.0).0 = scratch[#num_limbs..].try_into().unwrap();
         });
-        body.extend(quote!(__subtract_modulus_with_carry(a, carry2 == 1);));
+        body.extend(quote!(__subtract_modulus_with_carry(a, carry2 != 0);));
     }
     body
 }
