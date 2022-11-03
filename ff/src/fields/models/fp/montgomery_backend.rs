@@ -189,7 +189,7 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
             // Implements CIOS.
             *a = a.mul_without_cond_subtract(b);
         }
-        a.subtract_modulus_with_carry(false);
+        a.subtract_modulus();
     }
 
     #[inline(always)]
@@ -227,7 +227,7 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
                 6 => { ark_ff_asm::x86_64_asm_square!(6, (a.0).0); },
                 _ => unsafe { ark_std::hint::unreachable_unchecked() },
             };
-            a.subtract_modulus_with_carry(false);
+            a.subtract_modulus();
             return;
         }
 
@@ -419,7 +419,7 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
                 result
             });
             let mut result = Fp::new_unchecked(result);
-            result.subtract_modulus_with_carry(false);
+            result.subtract_modulus();
             debug_assert_eq!(
                 a.iter().zip(b).map(|(a, b)| *a * b).sum::<Fp<_, N>>(),
                 result
@@ -459,7 +459,7 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
                         result
                     });
                     let mut result = Fp::new_unchecked(result);
-                    result.subtract_modulus_with_carry(false);
+                    result.subtract_modulus();
                     debug_assert_eq!(
                         a.iter().zip(b).map(|(a, b)| *a * b).sum::<Fp<_, N>>(),
                         result

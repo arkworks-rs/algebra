@@ -64,7 +64,7 @@ pub(super) fn mul_assign_impl(
                 #default
             }))
         }
-        body.extend(quote!(__subtract_modulus_with_carry(a, false);));
+        body.extend(quote!(__subtract_modulus(a);));
     } else {
         // We use standard CIOS
         let double_limbs = num_limbs * 2;
@@ -96,7 +96,11 @@ pub(super) fn mul_assign_impl(
         body.extend(quote! {
             (a.0).0 = scratch[#num_limbs..].try_into().unwrap();
         });
-        body.extend(quote!(__subtract_modulus_with_carry(a, carry2 != 0);));
+        if modulus_limbs.last().unwrap() >> 63 != 0 {
+            body.extend(quote!(__subtract_modulus_with_carry(a, carry2 != 0);));
+        } else {
+            body.extend(quote!(__subtract_modulus(a);));
+        }
     }
     body
 }

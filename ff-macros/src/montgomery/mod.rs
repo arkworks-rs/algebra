@@ -78,6 +78,35 @@ pub fn mont_config_helper(
     } else {
         quote::quote! {}
     };
+
+    let add_assign = if modulus_limbs.last().unwrap() >> 63 != 0 {
+        quote::quote! {
+            let c = __add_with_carry(&mut a.0, &b.0);
+            __subtract_modulus_with_carry(a, c);
+        }
+    } else {
+        quote::quote! {
+            __add_with_carry(&mut a.0, &b.0);
+            __subtract_modulus(a);
+        }
+    };
+
+    let double_in_place = if modulus_limbs.last().unwrap() >> 63 != 0 {
+        quote::quote! {
+            // This cannot exceed the backing capacity.
+            let c = a.0.mul2();
+            // However, it may need to be reduced.
+            __subtract_modulus_with_carry(a, c);
+        }
+    } else {
+        quote::quote! {
+            // This cannot exceed the backing capacity.
+            a.0.mul2();
+            // However, it may need to be reduced.
+            __subtract_modulus(a);
+        }
+    };
+
     let scope_name = format_ident!("{}___", config_name.to_string().to_lowercase());
     quote::quote! {
         fn #scope_name() {
@@ -97,8 +126,7 @@ pub fn mont_config_helper(
 
                 #[inline(always)]
                 fn add_assign(a: &mut F, b: &F) {
-                    let c = __add_with_carry(&mut a.0, &b.0);
-                    __subtract_modulus_with_carry(a, c);
+                    #add_assign
                 }
 
                 #[inline(always)]
@@ -112,10 +140,7 @@ pub fn mont_config_helper(
 
                 #[inline(always)]
                 fn double_in_place(a: &mut F) {
-                    // This cannot exceed the backing capacity.
-                    let c = a.0.mul2();
-                    // However, it may need to be reduced.
-                    __subtract_modulus_with_carry(a, c);
+                    #double_in_place
                 }
 
                 /// Sets `a = -a`.
