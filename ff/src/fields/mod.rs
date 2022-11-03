@@ -387,8 +387,7 @@ mod std_tests {
 #[cfg(test)]
 mod no_std_tests {
     use super::*;
-    use ark_std::str::FromStr;
-    use ark_std::test_rng;
+    use ark_std::{str::FromStr, test_rng};
     use num_bigint::*;
 
     // TODO: only Fr & FrConfig should need to be imported.
