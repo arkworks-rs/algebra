@@ -12,6 +12,7 @@
     clippy::suspicious_op_assign_impl,
     clippy::many_single_char_names
 )]
+#![doc = include_str!("../README.md")]
 
 #[macro_use]
 extern crate derivative;
