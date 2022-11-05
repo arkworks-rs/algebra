@@ -8,7 +8,7 @@
 
 ### Improvements
 
-### Bug fixes
+### Bugfixes
 
 ## v0.4.0
 
