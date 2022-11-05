@@ -90,6 +90,8 @@
             - `miller_loop` → `multi_miller_loop`
             - `pairing` → `multi_pairing`
         - Change method signatures:
+            - `product_of_pairings` -> `multi_pairing`
+                - take two references to element iterators instead of an iterator of tuples.
             - `miller_loop` and `multi_miller_loop` now
                 - take two iterators over `impl Into<G1Prepared>` and `impl Into<G2Prepared>` as input, and
                 - output `MillerLoopOutput`, which is a newtype wrapper around `TargetField`.
