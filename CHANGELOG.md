@@ -65,7 +65,7 @@
         - Rename some associated types:
             - `AffineCurve` → `Affine`
         - Rename some methods:
-            - `batch_normalization_to_affine` → `normalize_batch`
+            - `batch_normalization_into_affine` → `normalize_batch`
     - Rename `AffineCurve` to `Affine`.
         - Rename associated types:
             - `Projective` → `Group`
