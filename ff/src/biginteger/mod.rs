@@ -1,7 +1,6 @@
 use crate::{
-    const_for,
-    fields::{BitIteratorBE, BitIteratorLE},
-    UniformRand,
+    bits::{BitIteratorBE, BitIteratorLE},
+    const_for, UniformRand,
 };
 #[allow(unused)]
 use ark_ff_macros::unroll_for_loops;
@@ -798,7 +797,7 @@ pub trait BigInteger:
     /// zero.mul2();
     /// assert_eq!(zero, B::from(0u64));
     ///
-    /// let mut arr : [bool; 64] = [false; 64];
+    /// let mut arr: [bool; 64] = [false; 64];
     /// arr[0] = true;
     /// let mut mul = B::from_bits_be(&arr);
     /// mul.mul2();
@@ -823,7 +822,7 @@ pub trait BigInteger:
     /// zero.muln(5);
     /// assert_eq!(zero, B::from(0u64));
     ///
-    /// let mut arr : [bool; 64] = [false; 64];
+    /// let mut arr: [bool; 64] = [false; 64];
     /// arr[4] = true;
     /// let mut mul = B::from_bits_be(&arr);
     /// mul.muln(5);
@@ -866,7 +865,7 @@ pub trait BigInteger:
     /// assert_eq!(one, thirty_two_div);
     ///
     /// // Edge-Case
-    /// let mut arr : [bool; 64] = [false; 64];
+    /// let mut arr: [bool; 64] = [false; 64];
     /// arr[4] = true;
     /// let mut div = B::from_bits_le(&arr);
     /// div.divn(5);
@@ -942,7 +941,7 @@ pub trait BigInteger:
     /// ```
     /// use ark_ff::{biginteger::BigInteger64 as B, BigInteger as _};
     ///
-    /// let mut arr : [bool; 64] = [false; 64];
+    /// let mut arr: [bool; 64] = [false; 64];
     /// arr[63] = true;
     /// let mut one = B::from(1u64);
     /// assert_eq!(B::from_bits_be(&arr), one);
@@ -956,7 +955,7 @@ pub trait BigInteger:
     /// ```
     /// use ark_ff::{biginteger::BigInteger64 as B, BigInteger as _};
     ///
-    /// let mut arr : [bool; 64] = [false; 64];
+    /// let mut arr: [bool; 64] = [false; 64];
     /// arr[0] = true;
     /// let mut one = B::from(1u64);
     /// assert_eq!(B::from_bits_le(&arr), one);

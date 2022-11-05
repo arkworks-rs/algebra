@@ -21,6 +21,9 @@ use crate::{AffineRepr, CurveGroup, Group, VariableBaseMSM};
 /// Collection of types (mainly fields and curves) that together describe
 /// how to compute a pairing over a pairing-friendly curve.
 pub trait Pairing: Sized + 'static + Copy + Debug + Sync + Send + Eq {
+    /// This is the base field of the G1 group and base prime field of G2.
+    type BaseField: PrimeField;
+
     /// This is the scalar field of the G1/G2 groups.
     type ScalarField: PrimeField;
 

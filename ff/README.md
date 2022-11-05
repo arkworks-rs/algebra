@@ -36,3 +36,100 @@ The above two models serve as abstractions for constructing the extension fields
 - [`Fp6_2over3`](https://github.com/arkworks-rs/algebra/blob/master/ff/src/fields/models/fp6_2over3.rs#L48) - Extension tower: quadratic extension on a cubic extension field, i.e. `BaseField = Fp3`, but `BasePrimeField = Fp`.
 - [`Fp6_3over2`](https://github.com/arkworks-rs/algebra/blob/master/ff/src/fields/models/fp6_3over2.rs#L49) - Extension tower, similar to the above except that the towering order is reversed: it's a cubic extension on a quadratic extension field, i.e. `BaseField = Fp2`, but `BasePrimeField = Fp`. Only this latter one is exported by default as `Fp6`.
 - [`Fp12_2over3over2`](https://github.com/arkworks-rs/algebra/blob/master/ff/src/fields/models/fp12_2over3over2.rs#L83) - Extension tower: quadratic extension of `Fp6_3over2`, i.e. `BaseField = Fp6`.
+
+## Usage
+
+There are two important traits when working with finite fields: [`Field`],
+and [`PrimeField`]. Let's explore these via examples.
+
+### [`Field`]
+
+The [`Field`] trait provides a generic interface for any finite field.
+Types implementing [`Field`] support common field operations
+such as addition, subtraction, multiplication, and inverses.
+
+```rust
+use ark_ff::Field;
+// We'll use a field associated with the BLS12-381 pairing-friendly
+// group for this example.
+use ark_test_curves::bls12_381::Fq2 as F;
+// `ark-std` is a utility crate that enables `arkworks` libraries
+// to easily support `std` and `no_std` workloads, and also re-exports
+// useful crates that should be common across the entire ecosystem, such as `rand`.
+use ark_std::{One, UniformRand};
+
+let mut rng = ark_std::test_rng();
+// Let's sample uniformly random field elements:
+let a = F::rand(&mut rng);
+let b = F::rand(&mut rng);
+
+// We can add...
+let c = a + b;
+// ... subtract ...
+let d = a - b;
+// ... double elements ...
+assert_eq!(c + d, a.double());
+
+// ... multiply ...
+let e = c * d;
+// ... square elements ...
+assert_eq!(e, a.square() - b.square());
+
+// ... and compute inverses ...
+assert_eq!(a.inverse().unwrap() * a, F::one()); // have to to unwrap, as `a` could be zero.
+```
+
+In some cases, it is useful to be able to compute square roots of field elements
+(e.g.: for point compression of elliptic curve elements).
+To support this, users can implement the `sqrt`-related methods for their field type. This method
+is already implemented for prime fields (see below), and also for quadratic extension fields.
+
+The `sqrt`-related methods can be used as follows:
+
+```rust
+use ark_ff::Field;
+// As before, we'll use a field associated with the BLS12-381 pairing-friendly
+// group for this example.
+use ark_test_curves::bls12_381::Fq2 as F;
+use ark_std::{One, UniformRand};
+
+let mut rng = ark_std::test_rng();
+let a = F::rand(&mut rng);
+
+// We can check if a field element is a square by computing its Legendre symbol...
+if a.legendre().is_qr() {
+    // ... and if it is, we can compute its square root.
+    let b = a.sqrt().unwrap();
+    assert_eq!(b.square(), a);
+} else {
+    // Otherwise, we can check that the square root is `None`.
+    assert_eq!(a.sqrt(), None);
+}
+```
+
+### [`PrimeField`]
+
+If the field is of prime order, then users can choose
+to implement the [`PrimeField`] trait for it. This provides access to the following
+additional APIs:
+
+```rust
+use ark_ff::{Field, PrimeField, FpConfig, BigInteger};
+// Now we'll use the prime field underlying the BLS12-381 G1 curve.
+use ark_test_curves::bls12_381::Fq as F;
+use ark_std::{One, Zero, UniformRand};
+
+let mut rng = ark_std::test_rng();
+let a = F::rand(&mut rng);
+// We can access the prime modulus associated with `F`:
+let modulus = <F as PrimeField>::MODULUS;
+assert_eq!(a.pow(&modulus), a);
+
+// We can convert field elements to integers in the range [0, MODULUS - 1]:
+let one: num_bigint::BigUint = F::one().into();
+assert_eq!(one, num_bigint::BigUint::one());
+
+// We can construct field elements from an arbitrary sequence of bytes:
+let n = F::from_le_bytes_mod_order(&modulus.to_bytes_le());
+assert_eq!(n, F::zero());
+```

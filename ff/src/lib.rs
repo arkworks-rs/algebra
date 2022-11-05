@@ -1,5 +1,3 @@
-//! Utilities for a field $\FF$.
-
 #![cfg_attr(not(feature = "std"), no_std)]
 #![warn(
     unused,
@@ -10,6 +8,7 @@
 )]
 #![allow(clippy::op_ref, clippy::suspicious_op_assign_impl)]
 #![deny(unsafe_code)]
+#![doc = include_str!("../README.md")]
 
 #[macro_use]
 extern crate ark_std;
@@ -24,6 +23,9 @@ pub use self::biginteger::*;
 #[macro_use]
 pub mod fields;
 pub use self::fields::*;
+
+pub(crate) mod bits;
+pub use bits::*;
 
 pub(crate) mod const_helpers;
 
