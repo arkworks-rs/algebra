@@ -3,12 +3,14 @@ doc:
 
 .PHONY: doc
 
-# use the --tag-prefix "" to avoid a separate tag for each crate
-# use the --dependent-version to avoid bumping each crate's dependencies, e.g. from `0.4.0-alpha` to `0.4.0-alpha.3`, 
-# which would break due to circular dev-dependencies
-
-# Since the master branch is protected, the current workflow is to create a release branch, e.g. `release-0.4` from `master`,
-# commit the new version changes, and once the release is done, merge the release branch back to master.
+# Since the master branch is protected, the current workflow is to create a PR with the version changes,
+# and once the PR is merged, run the `make VERSION=<version> release` to publish the new crates.
 release:
+ifndef VERSION
+	$(error VERSION is not set. Run with `make VERSION=<version> release`)
+endif
+	git pull
 	cargo update
-	cargo release alpha --dependent-version fix --tag-prefix "" --execute --allow-branch "release*"
+	git tag $(VERSION) 
+	git push origin $(VERSION)
+	cargo release publish --execute --verbose --allow-branch "master"
