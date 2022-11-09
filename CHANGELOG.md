@@ -4,6 +4,16 @@
 
 ### Breaking changes
 
+### Features
+
+### Improvements
+
+### Bugfixes
+
+## v0.4.0
+
+### Breaking changes
+
 - [\#300](https://github.com/arkworks-rs/algebra/pull/300) (`ark-ec`) Change the implementation of `Hash` trait of `GroupProjective` to use the affine coordinates.
 - [\#302](https://github.com/arkworks-rs/algebra/pull/302) (`ark-ff`) Rename `find_wnaf` to `find_naf`.
 - [\#310](https://github.com/arkworks-rs/algebra/pull/310) (`ark-ec`, `ark-ff`) Remove unnecessary internal `PhantomData`.

@@ -3,14 +3,14 @@ doc:
 
 .PHONY: doc
 
-# Since the master branch is protected, the current workflow is to create a release branch, e.g. `release-0.4` from `master`,
-# commit the new version changes, and once the release is done, merge the release branch back to master.
+# Since the master branch is protected, the current workflow is to create a PR with the version changes,
+# and once the PR is merged, run the `make VERSION=<version> release` to publish the new crates.
 release:
-	# Run with `make release VERSION=<version>`
-	git checkout master
+ifndef VERSION
+	$(error VERSION is not set. Run with `make VERSION=<version> release`)
+endif
 	git pull
 	cargo update
-	# run sanity checks
 	git tag $(VERSION) 
-	git push mmagician $(VERSION)
-	# cargo publish
+	git push origin $(VERSION)
+	cargo release publish --execute --verbose --allow-branch "master"
