@@ -1,6 +1,6 @@
 [package]
 name = "ark-poly-benches"
-version = "0.4.0-alpha"
+version = "0.4.0-alpha.3"
 authors = [ "arkworks contributors" ]
 description = "A library for benchmarking finite-field FFTs"
 include = ["Cargo.toml", "src", "README.md", "LICENSE-APACHE", "LICENSE-MIT"]
