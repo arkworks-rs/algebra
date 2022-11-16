@@ -203,6 +203,7 @@ impl<P: MNT6Parameters> MNT6<P> {
 }
 
 impl<P: MNT6Parameters> Pairing for MNT6<P> {
+    type BaseField = <P::G1Parameters as CurveConfig>::BaseField;
     type ScalarField = <P::G1Parameters as CurveConfig>::ScalarField;
     type G1 = G1Projective<P>;
     type G1Affine = G1Affine<P>;

@@ -3,6 +3,7 @@
 macro_rules! __test_group {
     ($group: ty) => {
         type ScalarField = <$group as Group>::ScalarField;
+        #[test]
         fn test_add_properties() {
             let mut rng = &mut ark_std::test_rng();
             let zero = <$group>::zero();
@@ -177,6 +178,7 @@ macro_rules! __test_group {
         }
     };
     ($group:ty; curve) => {
+        $crate::__test_group!($group);
         $crate::__test_group!($group; msm);
         type Affine = <$group as CurveGroup>::Affine;
         type Config = <$group as CurveGroup>::Config;

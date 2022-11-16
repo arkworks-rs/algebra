@@ -65,7 +65,7 @@
         - Rename some associated types:
             - `AffineCurve` → `Affine`
         - Rename some methods:
-            - `batch_normalization_to_affine` → `normalize_batch`
+            - `batch_normalization_into_affine` → `normalize_batch`
     - Rename `AffineCurve` to `Affine`.
         - Rename associated types:
             - `Projective` → `Group`
@@ -90,6 +90,8 @@
             - `miller_loop` → `multi_miller_loop`
             - `pairing` → `multi_pairing`
         - Change method signatures:
+            - `product_of_pairings` -> `multi_pairing`
+                - take two references to element iterators instead of an iterator of tuples.
             - `miller_loop` and `multi_miller_loop` now
                 - take two iterators over `impl Into<G1Prepared>` and `impl Into<G2Prepared>` as input, and
                 - output `MillerLoopOutput`, which is a newtype wrapper around `TargetField`.
@@ -98,7 +100,7 @@
                 - outputs `PairingOutput`, which is a newtype around `TargetField`, and which implements `Group` and `ScalarMul`, allowing it to be used with the existing MSM infrastructure.
             - Pairings, which are the composition of Miller loops and final exponentiation, are changed accordingly.
     - `ark-algebra-test-templates` macro syntax is now simplified; see the test files in `test-curves` for examples.
-- [\#463](https://github.com/arkworks-rs/algebra/pull/453) (`ark-serialize`, `ark-ff`, `ark-ec`) Refactor serialization infrastructure to enable more flexibility and less repetition of code:
+- [\#463](https://github.com/arkworks-rs/algebra/pull/463) (`ark-serialize`, `ark-ff`, `ark-ec`) Refactor serialization infrastructure to enable more flexibility and less repetition of code:
     - New `enum Compress` that indicates whether point compression should be enabled or not.
     - New `enum Validate` that indicates whether type-specific validation checks should be carried out or not.
     - New `trait Valid` that provides methods for checking whether a deserialized value of a given type passes appropriate validation checks. The trait has the following methods
@@ -130,6 +132,10 @@
     - Remove method `generator_inv`.
     - Remove method `divide_by_vanishing_poly_on_coset_in_place`.
     - Remove coset fft methods: `coset_fft`, `coset_fft_in_place`, `coset_ifft`, `coset_ifft_in_place`.
+- [\#492](https://github.com/arkworks-rs/algebra/pull/492) (`ark-ff`) Refactor `ark-ff` APIs:
+    - Splits the contents of `ff/src/fields/mod.rs` into smaller files for easier management.
+    - Moves `BitIterator` out of `ark_ff::fields` and into `ark_ff` directly.
+    - Adds `impl<'a, 'b> Add/Sub/Mul/Div<&'a F> for &'b F`
 
 ### Features
 

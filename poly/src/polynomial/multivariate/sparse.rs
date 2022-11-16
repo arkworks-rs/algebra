@@ -64,11 +64,11 @@ impl<F: Field> Polynomial<F> for SparsePolynomial<F, SparseTerm> {
     ///
     /// # Examples
     /// ```
+    /// use ark_ff::UniformRand;
     /// use ark_poly::{
     ///     polynomial::multivariate::{SparsePolynomial, SparseTerm, Term},
     ///     DenseMVPolynomial, Polynomial,
     /// };
-    /// use ark_ff::UniformRand;
     /// use ark_std::test_rng;
     /// use ark_test_curves::bls12_381::Fq;
     ///

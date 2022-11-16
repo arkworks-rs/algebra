@@ -1,13 +1,14 @@
-<h1 style="text-align: center;">arkworks::algebra</h1>
+<h1 align="center">arkworks::algebra</h1>
 
-<p style="text-align: center;">
+<p align="center">
     <img src="https://github.com/arkworks-rs/algebra/workflows/CI/badge.svg?branch=master">
     <a href="https://github.com/arkworks-rs/algebra/blob/master/LICENSE-APACHE"><img src="https://img.shields.io/badge/license-APACHE-blue.svg"></a>
     <a href="https://github.com/arkworks-rs/algebra/blob/master/LICENSE-MIT"><img src="https://img.shields.io/badge/license-MIT-blue.svg"></a>
     <a href="https://deps.rs/repo/github/arkworks-rs/algebra"><img src="https://deps.rs/repo/github/arkworks-rs/algebra/status.svg"></a>
+    <a href="https://discord.gg/UNtS7QXyPk"><img src="https://img.shields.io/discord/908465643727253524?label=Discord&logo=discord"></a>
 </p>
 
-The arkworks ecosystem consist of Rust libraries for designing and working with __zero knowledge succinct non-interactive arguments (zkSNARKs)__. This repository contains efficient implementations some of the key algebraic components underlying zkSNARKs: finite fields, elliptic curves, and polynomials.
+The arkworks ecosystem consist of Rust libraries for designing and working with *zero knowledge succinct non-interactive arguments (zkSNARKs)*. This repository contains efficient implementations of the key algebraic components underlying zkSNARKs: finite fields, elliptic curves, and polynomials.
 
 This library is released under the MIT License and the Apache v2 License (see [License](#license)).
 
@@ -17,12 +18,12 @@ This library is released under the MIT License and the Apache v2 License (see [L
 
 This repository contains several Rust crates:  
 
-* [`ark-ff`](ff): Provides generic implementations of various finite fields
-* [`ark-ec`](ec): Provides generic implementations for different kinds of elliptic curves, along with pairings over these
-* [`ark-poly`](poly): Implements univariate, multivariate, and multilinear polynomials, and FFTs over finite fields.
-* [`ark-serialize`](serialize): Provides efficient serialization and point compression for finite fields and elliptic curves
+* [`ark-ff`](ff): Generic abstractions for, and implementations of various kinds of finite fields
+* [`ark-ec`](ec): Generic abstractions for prime-order groups, and implementations of various kinds of (pairing-friendly and standard) elliptic curves
+* [`ark-poly`](poly): Interfaces for univariate, multivariate, and multilinear polynomials, and FFTs over finite fields
+* [`ark-serialize`](serialize): Efficient interfaces for serialization and point compression for finite fields and elliptic curves
 
-In addition, the [`curves`](https://github.com/arkworks-rs/curves) repository contains implementations of popular elliptic curves; see [here](https://github.com/arkworks-rs/curves/README.md) for details.
+In addition, the [`curves`](https://github.com/arkworks-rs/curves) repository contains concrete implementations of popular elliptic curves; see [here](https://github.com/arkworks-rs/curves/README.md) for details.
 
 ## Build guide
 
@@ -67,7 +68,7 @@ RUSTFLAGS="-C target-feature=+bmi2,+adx" cargo +nightly [test/build/bench] --fea
 To enable this in the `Cargo.toml` of your own projects, enable the `asm` feature flag:
 
 ```toml
-ark-ff = { version = "0.3.0", features = [ "asm" ] }
+ark-ff = { version = "0.4", features = [ "asm" ] }
 ```
 
 Note that because inline assembly support in Rust is currently unstable, using this backend requires using the Nightly compiler at the moment.

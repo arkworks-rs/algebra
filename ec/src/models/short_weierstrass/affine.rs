@@ -108,11 +108,11 @@ impl<P: SWCurveConfig> Affine<P> {
     /// largest y-coordinate be selected.
     #[allow(dead_code)]
     pub fn get_point_from_x_unchecked(x: P::BaseField, greatest: bool) -> Option<Self> {
-        Self::get_ys_from_x_unchecked(x).map(|(y, neg_y)| {
+        Self::get_ys_from_x_unchecked(x).map(|(smaller, larger)| {
             if greatest {
-                Self::new_unchecked(x, y)
+                Self::new_unchecked(x, larger)
             } else {
-                Self::new_unchecked(x, neg_y)
+                Self::new_unchecked(x, smaller)
             }
         })
     }

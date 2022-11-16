@@ -8,9 +8,9 @@ use ark_ff::{
         fp12_2over3over2::{Fp12, Fp12Config},
         fp2::Fp2Config,
         fp6_3over2::Fp6Config,
-        BitIteratorBE, Field, Fp2, PrimeField,
+        Fp2,
     },
-    CyclotomicMultSubgroup,
+    BitIteratorBE, CyclotomicMultSubgroup, Field, PrimeField,
 };
 use ark_std::{marker::PhantomData, vec::Vec};
 use num_traits::{One, Zero};
@@ -88,6 +88,7 @@ impl<P: Bls12Parameters> Bls12<P> {
 }
 
 impl<P: Bls12Parameters> Pairing for Bls12<P> {
+    type BaseField = <P::G1Parameters as CurveConfig>::BaseField;
     type ScalarField = <P::G1Parameters as CurveConfig>::ScalarField;
     type G1 = G1Projective<P>;
     type G1Affine = G1Affine<P>;
