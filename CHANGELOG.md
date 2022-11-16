@@ -2,6 +2,8 @@
 
 ## Pending
 
+- [\#517](https://github.com/arkworks-rs/algebra/pull/517) (`ark-ec`) Move the definition of the isogeny map of WB hash-to-curve to a separate struct
+
 ### Breaking changes
 
 - [\#300](https://github.com/arkworks-rs/algebra/pull/300) (`ark-ec`) Change the implementation of `Hash` trait of `GroupProjective` to use the affine coordinates.
@@ -178,7 +180,6 @@
 - [\#394](https://github.com/arkworks-rs/algebra/pull/394) (`ark-ff`, `ark-serialize`) Remove `EmptyFlags` construction checks.
 - [\#442](https://github.com/arkworks-rs/algebra/pull/442) (`ark-ff`) Fix deserialization for modulo with 64 shaving bits.
 - [\#460](https://github.com/arkworks-rs/algebra/pull/460) (`ark-ec`) Fix a corner case for ate pairing in BLS12 and BW6 models.
-- [\#517](https://github.com/arkworks-rs/algebra/pull/517) (`ark-ec`) Move the definition of the isogeny map of WB hash-to-curve to a separate struct
 
 ## v0.3.0
 
