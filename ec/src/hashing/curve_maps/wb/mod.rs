@@ -13,6 +13,25 @@ use crate::{
 use super::swu::{SWUMap, SWUParams};
 type BaseField<MP> = <MP as CurveConfig>::BaseField;
 
+/// RationalMap is used to define a rational map between curves where
+/// x coordinate of the codomain poin only depends on x coordinate of domain point
+/// and the y coordinate of the codomain point is a multiple of domain point's y coordinate
+/// where the mulitplier depends on x coordinate of the domain point
+/// Phi := (a(x), b(x)*y)
+/// All isogeny maps of curves of short Weierstrass form can be written in this way. See
+/// [\[Ga18]\]. Theorem 9.7.5.
+///
+/// - [\[Ga18]\] Galbraith, S. D. (2018). Mathematics of public key cryptography. :
+///  Cambridge University Press.
+
+pub struct RationalMap<'a, MP: CurveConfig> {
+    pub x_map_numerator: &'a [BaseField<MP>],
+    pub x_map_denominator: &'a [BaseField<MP>],
+
+    pub y_map_numerator: &'a [BaseField<MP>],
+    pub y_map_denominator: &'a [BaseField<MP>],
+}
+
 /// Trait defining the necessary parameters for the WB hash-to-curve method
 /// for the curves of Weierstrass form of:
 /// of y^2 = x^3 + a*x + b where b != 0 but `a` can be zero like BLS-381 curve.
@@ -24,22 +43,18 @@ pub trait WBParams: SWCurveConfig + Sized {
     // different scalar field type IsogenousCurveScalarField :
     type IsogenousCurve: SWUParams<BaseField = BaseField<Self>>;
 
-    const PHI_X_NOM: &'static [BaseField<Self>];
-    const PHI_X_DEN: &'static [BaseField<Self>];
-
-    const PHI_Y_NOM: &'static [BaseField<Self>];
-    const PHI_Y_DEN: &'static [BaseField<Self>];
+    const PHI: RationalMap<'static, Self>;
 
     fn isogeny_map(
         domain_point: Affine<Self::IsogenousCurve>,
     ) -> Result<Affine<Self>, HashToCurveError> {
         match domain_point.xy() {
             Some((x, y)) => {
-                let x_num = DensePolynomial::from_coefficients_slice(Self::PHI_X_NOM);
-                let x_den = DensePolynomial::from_coefficients_slice(Self::PHI_X_DEN);
+                let x_num = DensePolynomial::from_coefficients_slice(Self::PHI.x_map_numerator);
+                let x_den = DensePolynomial::from_coefficients_slice(Self::PHI.x_map_denominator);
 
-                let y_num = DensePolynomial::from_coefficients_slice(Self::PHI_Y_NOM);
-                let y_den = DensePolynomial::from_coefficients_slice(Self::PHI_Y_DEN);
+                let y_num = DensePolynomial::from_coefficients_slice(Self::PHI.y_map_numerator);
+                let y_den = DensePolynomial::from_coefficients_slice(Self::PHI.y_map_denominator);
 
                 let mut v: [BaseField<Self>; 2] = [x_den.evaluate(x), y_den.evaluate(x)];
                 batch_inversion(&mut v);
@@ -94,7 +109,7 @@ mod test {
         hashing::{
             curve_maps::{
                 swu::SWUParams,
-                wb::{WBMap, WBParams},
+                wb::{RationalMap, WBMap, WBParams},
             },
             map_to_curve_hasher::MapToCurveBasedHasher,
             HashToCurve,
@@ -195,85 +210,89 @@ mod test {
     /// - 43*x^5*y - 60*x^4*y - 18*x^3*y + 30*x^2*y - 57*x*y - 34*y)/(x^18 + 44*x^17
     /// - 63*x^16 + 52*x^15 + 3*x^14 + 38*x^13 - 30*x^12 + 11*x^11 - 42*x^10 - 13*x^9
     /// - 46*x^8 - 61*x^7 - 16*x^6 - 55*x^5 + 18*x^4 + 23*x^3 - 24*x^2 - 18*x + 32)
+    const RATIONAL_MAP_TESTWBF127: RationalMap<'_, TestWBF127MapToCurveParams> =
+        RationalMap::<'static, TestWBF127MapToCurveParams> {
+            x_map_numerator: &[
+                MontFp!("4"),
+                MontFp!("63"),
+                MontFp!("23"),
+                MontFp!("39"),
+                MontFp!("-14"),
+                MontFp!("23"),
+                MontFp!("-32"),
+                MontFp!("32"),
+                MontFp!("-13"),
+                MontFp!("40"),
+                MontFp!("34"),
+                MontFp!("10"),
+                MontFp!("-21"),
+                MontFp!("-57"),
+            ],
+
+            x_map_denominator: &[
+                MontFp!("2"),
+                MontFp!("31"),
+                MontFp!("-10"),
+                MontFp!("-20"),
+                MontFp!("63"),
+                MontFp!("-44"),
+                MontFp!("34"),
+                MontFp!("30"),
+                MontFp!("-30"),
+                MontFp!("-33"),
+                MontFp!("11"),
+                MontFp!("-13"),
+                MontFp!("1"),
+            ],
+
+            y_map_numerator: &[
+                MontFp!("-34"),
+                MontFp!("-57"),
+                MontFp!("30"),
+                MontFp!("-18"),
+                MontFp!("-60"),
+                MontFp!("-43"),
+                MontFp!("-63"),
+                MontFp!("-18"),
+                MontFp!("-49"),
+                MontFp!("36"),
+                MontFp!("12"),
+                MontFp!("62"),
+                MontFp!("5"),
+                MontFp!("6"),
+                MontFp!("-7"),
+                MontFp!("48"),
+                MontFp!("41"),
+                MontFp!("59"),
+                MontFp!("10"),
+            ],
+
+            y_map_denominator: &[
+                MontFp!("32"),
+                MontFp!("-18"),
+                MontFp!("-24"),
+                MontFp!("23"),
+                MontFp!("18"),
+                MontFp!("-55"),
+                MontFp!("-16"),
+                MontFp!("-61"),
+                MontFp!("-46"),
+                MontFp!("-13"),
+                MontFp!("-42"),
+                MontFp!("11"),
+                MontFp!("-30"),
+                MontFp!("38"),
+                MontFp!("3"),
+                MontFp!("52"),
+                MontFp!("-63"),
+                MontFp!("44"),
+                MontFp!("1"),
+            ],
+        };
     impl WBParams for TestWBF127MapToCurveParams {
         type IsogenousCurve = TestSWU127MapToIsogenousCurveParams;
 
-        const PHI_X_NOM: &'static [<Self::IsogenousCurve as CurveConfig>::BaseField] = &[
-            MontFp!("4"),
-            MontFp!("63"),
-            MontFp!("23"),
-            MontFp!("39"),
-            MontFp!("-14"),
-            MontFp!("23"),
-            MontFp!("-32"),
-            MontFp!("32"),
-            MontFp!("-13"),
-            MontFp!("40"),
-            MontFp!("34"),
-            MontFp!("10"),
-            MontFp!("-21"),
-            MontFp!("-57"),
-        ];
-
-        const PHI_X_DEN: &'static [<Self::IsogenousCurve as CurveConfig>::BaseField] = &[
-            MontFp!("2"),
-            MontFp!("31"),
-            MontFp!("-10"),
-            MontFp!("-20"),
-            MontFp!("63"),
-            MontFp!("-44"),
-            MontFp!("34"),
-            MontFp!("30"),
-            MontFp!("-30"),
-            MontFp!("-33"),
-            MontFp!("11"),
-            MontFp!("-13"),
-            MontFp!("1"),
-        ];
-
-        const PHI_Y_NOM: &'static [<Self::IsogenousCurve as CurveConfig>::BaseField] = &[
-            MontFp!("-34"),
-            MontFp!("-57"),
-            MontFp!("30"),
-            MontFp!("-18"),
-            MontFp!("-60"),
-            MontFp!("-43"),
-            MontFp!("-63"),
-            MontFp!("-18"),
-            MontFp!("-49"),
-            MontFp!("36"),
-            MontFp!("12"),
-            MontFp!("62"),
-            MontFp!("5"),
-            MontFp!("6"),
-            MontFp!("-7"),
-            MontFp!("48"),
-            MontFp!("41"),
-            MontFp!("59"),
-            MontFp!("10"),
-        ];
-
-        const PHI_Y_DEN: &'static [<Self::IsogenousCurve as CurveConfig>::BaseField] = &[
-            MontFp!("32"),
-            MontFp!("-18"),
-            MontFp!("-24"),
-            MontFp!("23"),
-            MontFp!("18"),
-            MontFp!("-55"),
-            MontFp!("-16"),
-            MontFp!("-61"),
-            MontFp!("-46"),
-            MontFp!("-13"),
-            MontFp!("-42"),
-            MontFp!("11"),
-            MontFp!("-30"),
-            MontFp!("38"),
-            MontFp!("3"),
-            MontFp!("52"),
-            MontFp!("-63"),
-            MontFp!("44"),
-            MontFp!("1"),
-        ];
+        const PHI: RationalMap<'static, Self> = RATIONAL_MAP_TESTWBF127;
     }
 
     /// The point of the test is to get a simple WB compatible curve
