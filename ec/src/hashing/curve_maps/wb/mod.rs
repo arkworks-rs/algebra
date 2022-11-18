@@ -13,16 +13,16 @@ use crate::{
 use super::swu::{SWUMap, SWUParams};
 type BaseField<MP> = <MP as CurveConfig>::BaseField;
 
-/// RationalMap is used to define a rational map between curves where
-/// x coordinate of the codomain poin only depends on x coordinate of domain point
-/// and the y coordinate of the codomain point is a multiple of domain point's y coordinate
-/// where the mulitplier depends on x coordinate of the domain point
-/// Phi := (a(x), b(x)*y)
+/// [`RationalMap`] is defines a rational map between curves where
+/// the `x` coordinate of the codomain point only depends on the 
+/// `x`-coordinate of the domain point, and the
+/// `y`-coordinate of the codomain point is a multiple of the `y`-coordinate of the domain point. 
+/// The multiplier depends on the `x`-coordinate of the domain point.
+/// That is, the map is of the form `Phi(x, y) := (a(x), b(x)*y)`.
 /// All isogeny maps of curves of short Weierstrass form can be written in this way. See
-/// [\[Ga18]\]. Theorem 9.7.5.
+/// [\[Ga18]\]. Theorem 9.7.5 for details.
 ///
-/// - [\[Ga18]\] Galbraith, S. D. (2018). Mathematics of public key cryptography. :
-///  Cambridge University Press.
+/// - [\[Ga18]\] Galbraith, S. D. (2018). Mathematics of public key cryptography.
 
 pub struct RationalMap<'a, MP: CurveConfig> {
     pub x_map_numerator: &'a [BaseField<MP>],
