@@ -57,7 +57,8 @@ impl short_weierstrass::SWCurveConfig for Parameters {
 impl WBParams for Parameters {
     type IsogenousCurve = g1_swu_iso::SwuIsoParameters;
 
-    const ISOGENY_MAP: IsogenyMap<'static, Self::IsogenousCurve, Self> = g1_swu_iso::ISOGENY_MAP_TO_G1;
+    const ISOGENY_MAP: IsogenyMap<'static, Self::IsogenousCurve, Self> =
+        g1_swu_iso::ISOGENY_MAP_TO_G1;
 }
 
 /// G1_GENERATOR_X =

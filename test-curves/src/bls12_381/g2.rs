@@ -190,5 +190,6 @@ pub fn double_p_power_endomorphism(p: &Projective<Parameters>) -> Projective<Par
 impl WBParams for Parameters {
     type IsogenousCurve = g2_swu_iso::SwuIsoParameters;
 
-    const ISOGENY_MAP: IsogenyMap<'static, Self::IsogenousCurve, Self> = g2_swu_iso::ISOGENY_MAP_TO_G2;
+    const ISOGENY_MAP: IsogenyMap<'static, Self::IsogenousCurve, Self> =
+        g2_swu_iso::ISOGENY_MAP_TO_G2;
 }

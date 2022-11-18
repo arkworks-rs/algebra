@@ -1,10 +1,10 @@
-use core::marker::PhantomData;
 use crate::bls12_381::*;
 use ark_ec::models::{
     short_weierstrass::{Affine, SWCurveConfig},
     CurveConfig,
 };
 use ark_ff::MontFp;
+use core::marker::PhantomData;
 
 use ark_ec::hashing::curve_maps::{swu::SWUParams, wb::IsogenyMap};
 
@@ -134,7 +134,7 @@ pub const ISOGENY_MAP_TO_G2  : IsogenyMap<'_, SwuIsoParameters, g2::Parameters> 
                    MontFp!("1"),
                    MontFp!("0")),
     ],
-    
+
     _phantom_domain : PhantomData::<SwuIsoParameters>,
 };
 
