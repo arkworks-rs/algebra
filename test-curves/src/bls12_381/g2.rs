@@ -3,7 +3,7 @@ use core::ops::Neg;
 use crate::bls12_381::*;
 use ark_ec::{
     bls12::{self, Bls12Parameters},
-    hashing::curve_maps::wb::{RationalMap, WBParams},
+    hashing::curve_maps::wb::{IsogenyMap, WBParams},
     models::CurveConfig,
     short_weierstrass::{self, *},
     AffineRepr, CurveGroup, Group,
@@ -190,5 +190,5 @@ pub fn double_p_power_endomorphism(p: &Projective<Parameters>) -> Projective<Par
 impl WBParams for Parameters {
     type IsogenousCurve = g2_swu_iso::SwuIsoParameters;
 
-    const PHI: RationalMap<'static, Self> = g2_swu_iso::RATIONAL_MAP_TO_G2;
+    const ISOGENY_MAP: IsogenyMap<'static, Self::IsogenousCurve, Self> = g2_swu_iso::ISOGENY_MAP_TO_G2;
 }

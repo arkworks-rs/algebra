@@ -1,6 +1,6 @@
 use crate::bls12_381::*;
 use ark_ec::{
-    hashing::curve_maps::wb::{RationalMap, WBParams},
+    hashing::curve_maps::wb::{IsogenyMap, WBParams},
     models::CurveConfig,
     short_weierstrass::{self, *},
 };
@@ -57,7 +57,7 @@ impl short_weierstrass::SWCurveConfig for Parameters {
 impl WBParams for Parameters {
     type IsogenousCurve = g1_swu_iso::SwuIsoParameters;
 
-    const PHI: RationalMap<'static, Self> = g1_swu_iso::RATIONAL_MAP_TO_G1;
+    const ISOGENY_MAP: IsogenyMap<'static, Self::IsogenousCurve, Self> = g1_swu_iso::ISOGENY_MAP_TO_G1;
 }
 
 /// G1_GENERATOR_X =

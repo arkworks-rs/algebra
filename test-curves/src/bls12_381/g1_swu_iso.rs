@@ -1,6 +1,8 @@
+use core::marker::PhantomData;
+
 use crate::bls12_381::*;
 use ark_ec::{
-    hashing::curve_maps::{swu::SWUParams, wb::RationalMap},
+    hashing::curve_maps::{swu::SWUParams, wb::IsogenyMap},
     models::{
         short_weierstrass::{Affine, SWCurveConfig},
         CurveConfig,
@@ -58,7 +60,7 @@ impl SWUParams for SwuIsoParameters {
     const ZETA: Fq = MontFp!("11");
 }
 
-pub const RATIONAL_MAP_TO_G1 : RationalMap<'_, g1::Parameters> = RationalMap::<'static, g1::Parameters> {
+pub const ISOGENY_MAP_TO_G1 : IsogenyMap<'_, SwuIsoParameters, g1::Parameters, > = IsogenyMap::<'static, SwuIsoParameters, g1::Parameters> {
     x_map_numerator : &[
         MontFp!("2712959285290305970661081772124144179193819192423276218370281158706191519995889425075952244140278856085036081760695"),
         MontFp!("3564859427549639835253027846704205725951033235539816243131874237388832081954622352624080767121604606753339903542203"),
@@ -124,7 +126,9 @@ pub const RATIONAL_MAP_TO_G1 : RationalMap<'_, g1::Parameters> = RationalMap::<'
         MontFp!("369162719928976119195087327055926326601627748362769544198813069133429557026740823593067700396825489145575282378487"),
         MontFp!("2164195715141237148945939585099633032390257748382945597506236650132835917087090097395995817229686247227784224263055"),
         MontFp!("1"),
-    ]
+    ],
+
+    _phantom_domain : PhantomData::<SwuIsoParameters>,
 };
 
 #[cfg(test)]

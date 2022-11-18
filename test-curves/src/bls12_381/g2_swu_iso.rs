@@ -1,3 +1,4 @@
+use core::marker::PhantomData;
 use crate::bls12_381::*;
 use ark_ec::models::{
     short_weierstrass::{Affine, SWCurveConfig},
@@ -5,7 +6,7 @@ use ark_ec::models::{
 };
 use ark_ff::MontFp;
 
-use ark_ec::hashing::curve_maps::{swu::SWUParams, wb::RationalMap};
+use ark_ec::hashing::curve_maps::{swu::SWUParams, wb::IsogenyMap};
 
 type G2Affine = Affine<SwuIsoParameters>;
 
@@ -76,7 +77,7 @@ impl SWUParams for SwuIsoParameters {
     const ZETA: Fq2 = Fq2::new(MontFp!("-2"), MontFp!("-1"));
 }
 
-pub const RATIONAL_MAP_TO_G2  : RationalMap<'_, g2::Parameters> = RationalMap::<'static, g2::Parameters> {
+pub const ISOGENY_MAP_TO_G2  : IsogenyMap<'_, SwuIsoParameters, g2::Parameters> = IsogenyMap::<'static, SwuIsoParameters, g2::Parameters> {
     x_map_numerator: &[
         Fq2::new(
                    MontFp!("889424345604814976315064405719089812568196182208668418962679585805340366775741747653930584250892369786198727235542"),
@@ -133,6 +134,8 @@ pub const RATIONAL_MAP_TO_G2  : RationalMap<'_, g2::Parameters> = RationalMap::<
                    MontFp!("1"),
                    MontFp!("0")),
     ],
+    
+    _phantom_domain : PhantomData::<SwuIsoParameters>,
 };
 
 #[cfg(test)]
