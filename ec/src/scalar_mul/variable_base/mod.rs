@@ -13,9 +13,8 @@ pub trait VariableBaseMSM: ScalarMul {
     /// Computes an inner product between the [`PrimeField`] elements in `scalars`
     /// and the corresponding group elements in `bases`.
     ///
-    /// This method checks that `bases` and `scalars` have the same length.
-    /// If they are unequal, it returns an error containing
-    /// the shortest length over which the MSM can be performed.
+    /// If the elements have different length, it will chop the slices to the
+    /// shortest length between `scalars.len()` and `bases.len()`.
     ///
     /// Reference: [`VariableBaseMSM::msm`]
     fn msm(bases: &[Self::MulBase], scalars: &[Self::ScalarField]) -> Self {
@@ -29,8 +28,9 @@ pub trait VariableBaseMSM: ScalarMul {
     ///
     /// # Warning
     ///
-    /// If the elements have different length, it will chop the slices to the
-    /// shortest length between `scalars.len()` and `bases.len()`.
+    /// This method checks that `bases` and `scalars` have the same length.
+    /// If they are unequal, it returns an error containing
+    /// the shortest length over which the MSM can be performed.
     fn msm_unchecked(
         bases: &[Self::MulBase],
         scalars: &[Self::ScalarField],
