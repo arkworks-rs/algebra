@@ -1,5 +1,3 @@
-use core::marker::PhantomData;
-
 use crate::bls12_381::*;
 use ark_ec::{
     hashing::curve_maps::{swu::SWUParams, wb::IsogenyMap},

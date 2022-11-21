@@ -22,16 +22,20 @@ type BaseField<MP> = <MP as CurveConfig>::BaseField;
 /// All isogeny maps of curves of short Weierstrass form can be written in this way. See
 /// [\[Ga18]\]. Theorem 9.7.5 for details.
 ///
+/// We assume that DOMAIN and CODOMAIN have the same BaseField but we use both
+/// BaseField<DOMAIN> and BaseField<CODOMAIN> in our fields' definitions to avoid
+/// using PhantomData
+///
 /// - [\[Ga18]\] Galbraith, S. D. (2018). Mathematics of public key cryptography.
 pub struct IsogenyMap<
     'a,
     DOMAIN: SWCurveConfig,
     CODOMAIN: SWCurveConfig<BaseField = BaseField<DOMAIN>>,
 > {
-    pub x_map_numerator: &'a [BaseField<CODOMAIN>],
+    pub x_map_numerator: &'a [BaseField<DOMAIN>],
     pub x_map_denominator: &'a [BaseField<CODOMAIN>],
 
-    pub y_map_numerator: &'a [BaseField<CODOMAIN>],
+    pub y_map_numerator: &'a [BaseField<DOMAIN>],
     pub y_map_denominator: &'a [BaseField<CODOMAIN>],
 }
 
@@ -126,7 +130,6 @@ mod test {
         CurveConfig,
     };
     use ark_ff::{field_hashers::DefaultFieldHasher, fields::Fp64, MontBackend, MontFp};
-    use core::marker::PhantomData;
 
     #[derive(ark_ff::MontConfig)]
     #[modulus = "127"]
@@ -299,7 +302,6 @@ mod test {
             MontFp!("44"),
             MontFp!("1"),
         ],
-
     };
     impl WBParams for TestWBF127MapToCurveParams {
         type IsogenousCurve = TestSWU127MapToIsogenousCurveParams;

@@ -4,7 +4,6 @@ use ark_ec::models::{
     CurveConfig,
 };
 use ark_ff::MontFp;
-use core::marker::PhantomData;
 
 use ark_ec::hashing::curve_maps::{swu::SWUParams, wb::IsogenyMap};
 
