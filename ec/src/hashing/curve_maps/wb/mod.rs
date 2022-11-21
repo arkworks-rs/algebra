@@ -25,24 +25,22 @@ type BaseField<MP> = <MP as CurveConfig>::BaseField;
 /// - [\[Ga18]\] Galbraith, S. D. (2018). Mathematics of public key cryptography.
 pub struct IsogenyMap<
     'a,
-    DOMAINE: SWCurveConfig,
-    CODOMAINE: SWCurveConfig<BaseField = BaseField<DOMAINE>>,
+    DOMAIN: SWCurveConfig,
+    CODOMAIN: SWCurveConfig<BaseField = BaseField<DOMAIN>>,
 > {
-    pub x_map_numerator: &'a [BaseField<CODOMAINE>],
-    pub x_map_denominator: &'a [BaseField<CODOMAINE>],
+    pub x_map_numerator: &'a [BaseField<CODOMAIN>],
+    pub x_map_denominator: &'a [BaseField<CODOMAIN>],
 
-    pub y_map_numerator: &'a [BaseField<CODOMAINE>],
-    pub y_map_denominator: &'a [BaseField<CODOMAINE>],
-
-    pub _phantom_domain: PhantomData<DOMAINE>,
+    pub y_map_numerator: &'a [BaseField<CODOMAIN>],
+    pub y_map_denominator: &'a [BaseField<CODOMAIN>],
 }
 
-impl<'a, DOMAINE, CODOMAINE> IsogenyMap<'a, DOMAINE, CODOMAINE>
+impl<'a, DOMAIN, CODOMAIN> IsogenyMap<'a, DOMAIN, CODOMAIN>
 where
-    DOMAINE: SWCurveConfig,
-    CODOMAINE: SWCurveConfig<BaseField = BaseField<DOMAINE>>,
+    DOMAIN: SWCurveConfig,
+    CODOMAIN: SWCurveConfig<BaseField = BaseField<DOMAIN>>,
 {
-    fn apply(&self, domain_point: Affine<DOMAINE>) -> Result<Affine<CODOMAINE>, HashToCurveError> {
+    fn apply(&self, domain_point: Affine<DOMAIN>) -> Result<Affine<CODOMAIN>, HashToCurveError> {
         match domain_point.xy() {
             Some((x, y)) => {
                 let x_num = DensePolynomial::from_coefficients_slice(self.x_map_numerator);
@@ -51,11 +49,11 @@ where
                 let y_num = DensePolynomial::from_coefficients_slice(self.y_map_numerator);
                 let y_den = DensePolynomial::from_coefficients_slice(self.y_map_denominator);
 
-                let mut v: [BaseField<DOMAINE>; 2] = [x_den.evaluate(x), y_den.evaluate(x)];
+                let mut v: [BaseField<DOMAIN>; 2] = [x_den.evaluate(x), y_den.evaluate(x)];
                 batch_inversion(&mut v);
                 let img_x = x_num.evaluate(x) * v[0];
                 let img_y = (y_num.evaluate(x) * y) * v[1];
-                Ok(Affine::<CODOMAINE>::new_unchecked(img_x, img_y))
+                Ok(Affine::<CODOMAIN>::new_unchecked(img_x, img_y))
             },
             None => Ok(Affine::identity()),
         }
@@ -224,7 +222,7 @@ mod test {
         '_,
         TestSWU127MapToIsogenousCurveParams,
         TestWBF127MapToCurveParams,
-    > = IsogenyMap::<'static, TestSWU127MapToIsogenousCurveParams, TestWBF127MapToCurveParams> {
+    > = IsogenyMap {
         x_map_numerator: &[
             MontFp!("4"),
             MontFp!("63"),
@@ -302,7 +300,6 @@ mod test {
             MontFp!("1"),
         ],
 
-        _phantom_domain: PhantomData::<TestSWU127MapToIsogenousCurveParams>,
     };
     impl WBParams for TestWBF127MapToCurveParams {
         type IsogenousCurve = TestSWU127MapToIsogenousCurveParams;
