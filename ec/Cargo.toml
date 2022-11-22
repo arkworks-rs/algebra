@@ -22,13 +22,13 @@ derivative = { version = "2", features = ["use_core"] }
 num-traits = { version = "0.2", default-features = false }
 rayon = { version = "1", optional = true }
 zeroize = { version = "1", default-features = false, features = ["zeroize_derive"] }
-hashbrown = "0.12.1"
+hashbrown = "0.13.1"
 itertools = { version = "0.10", default-features = false }
 
 [dev-dependencies]
 ark-test-curves = { version = "^0.3.0", path = "../test-curves", default-features = false, features = ["bls12_381_curve"] }
 sha2 = { version = "0.10", default-features = false }
-libtest-mimic = "0.5.2"
+libtest-mimic = "0.6.0"
 serde = "1.0.110"
 serde_json = "1.0.53"
 serde_derive = "1.0.110"
