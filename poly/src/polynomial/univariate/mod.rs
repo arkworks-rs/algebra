@@ -153,6 +153,7 @@ impl<'a, F: 'a + FftField> DenseOrSparsePolynomial<'a, F> {
                 Evaluations::from_vec_and_domain(evals, domain)
             },
             DPolynomial(Cow::Borrowed(d)) => {
+                // Reduce the coefficients of the polynomial mod X^domain.size()
                 let chunks = d.coeffs.chunks(domain.size());
                 let reduced = chunks.fold(vec![F::zero(); domain.size()], |x, y| {
                     x.iter().zip(y).map(|(&x, y)| x + y).collect()
@@ -160,6 +161,7 @@ impl<'a, F: 'a + FftField> DenseOrSparsePolynomial<'a, F> {
                 Evaluations::from_vec_and_domain(domain.fft(&reduced), domain)
             },
             DPolynomial(Cow::Owned(mut d)) => {
+                // Reduce the coefficients of the polynomial mod X^domain.size()
                 let mut chunks = d.coeffs.chunks_mut(domain.size());
                 let coeffs = chunks.next().unwrap();
                 for chunk in chunks {
