@@ -153,9 +153,20 @@ impl<'a, F: 'a + FftField> DenseOrSparsePolynomial<'a, F> {
                 Evaluations::from_vec_and_domain(evals, domain)
             },
             DPolynomial(Cow::Borrowed(d)) => {
-                Evaluations::from_vec_and_domain(domain.fft(&d.coeffs), domain)
+                let chunks = d.coeffs.chunks(domain.size());
+                let reduced = chunks.fold(vec![F::zero(); domain.size()], |x, y| {
+                    x.iter().zip(y).map(|(&x, y)| x + y).collect()
+                });
+                Evaluations::from_vec_and_domain(domain.fft(&reduced), domain)
             },
             DPolynomial(Cow::Owned(mut d)) => {
+                let mut chunks = d.coeffs.chunks_mut(domain.size());
+                let coeffs = chunks.next().unwrap();
+                for chunk in chunks {
+                    for (x, y) in coeffs.iter_mut().zip(chunk) {
+                        *x += y;
+                    }
+                }
                 domain.fft_in_place(&mut d.coeffs);
                 Evaluations::from_vec_and_domain(d.coeffs, domain)
             },
