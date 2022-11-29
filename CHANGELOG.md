@@ -136,6 +136,7 @@
     - Splits the contents of `ff/src/fields/mod.rs` into smaller files for easier management.
     - Moves `BitIterator` out of `ark_ff::fields` and into `ark_ff` directly.
     - Adds `impl<'a, 'b> Add/Sub/Mul/Div<&'a F> for &'b F`
+- [\#517](https://github.com/arkworks-rs/algebra/pull/517) (`ark-ec`) Move the definition of the isogeny map of WB hash-to-curve to a separate struct
 
 ### Features
 
