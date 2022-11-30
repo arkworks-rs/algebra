@@ -3,6 +3,8 @@ use ark_ec::{
     ScalarMul,
 };
 use ark_ff::{PrimeField, UniformRand};
+use ark_std::{borrow::Borrow, iterable::Iterable, vec::Vec};
+
 
 fn naive_var_base_msm<G: ScalarMul>(bases: &[G::MulBase], scalars: &[G::ScalarField]) -> G {
     let mut acc = G::zero();
