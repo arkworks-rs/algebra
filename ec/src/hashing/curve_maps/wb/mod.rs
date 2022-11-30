@@ -1,4 +1,4 @@
-use core::marker::PhantomData;
+use core::{default, marker::PhantomData};
 
 use crate::{models::short_weierstrass::SWCurveConfig, CurveConfig};
 use ark_ff::batch_inversion;
@@ -32,29 +32,46 @@ pub struct IsogenyMap<
     DOMAIN: SWCurveConfig,
     CODOMAIN: SWCurveConfig<BaseField = BaseField<DOMAIN>>,
 > {
-    pub x_map_numerator: &'a [BaseField<DOMAIN>],
+    pub x_map_numerator: &'a [BaseField<CODOMAIN>],
     pub x_map_denominator: &'a [BaseField<CODOMAIN>],
 
-    pub y_map_numerator: &'a [BaseField<DOMAIN>],
+    pub y_map_numerator: &'a [BaseField<CODOMAIN>],
     pub y_map_denominator: &'a [BaseField<CODOMAIN>],
+    _phantom_domain: PhantomData<DOMAIN>,
 }
 
+// Pratyush suggestion
+// impl</* bounds */> IsogenyMap<'a, DOMAIN, CODOMAIN> {
+// 	const fn new(
+// 	    x_numerator: &'a [BaseField<CODOMAIN>],
+// 	    x_denominator: &'a [BaseField<CODOMAIN>],
+// 	    ...
+// 	) → Self {
+// 	    Self {
+// 	        x_numerator,
+// 	        x_denominator,
+// 	        ...
+// 	    }
+// 	}
+// }
 impl<'a, DOMAIN, CODOMAIN> IsogenyMap<'a, DOMAIN, CODOMAIN>
 where
     DOMAIN: SWCurveConfig,
     CODOMAIN: SWCurveConfig<BaseField = BaseField<DOMAIN>>,
 {
-    const fn new(x_map_numerator: &'a[BaseField<DOMAIN>],
-	      x_map_denominator: &'a[BaseField<CODOMAIN>],
-	      y_map_numerator:&'a[BaseField<DOMAIN>],
-	      y_map_denominator: &'a[BaseField<CODOMAIN>],
+    pub const fn new(
+        x_map_numerator: &'a [BaseField<CODOMAIN>],
+        x_map_denominator: &'a [BaseField<CODOMAIN>],
+        y_map_numerator: &'a [BaseField<CODOMAIN>],
+        y_map_denominator: &'a [BaseField<CODOMAIN>],
     ) -> Self {
-	Self{
-	     x_map_numerator: x_map_numerator,
-	     x_map_denominator: x_map_denominator,
-	     y_map_numerator: y_map_numerator,
-	    y_map_denominator: y_map_denominator,
-	}
+        Self {
+            x_map_numerator,
+            x_map_denominator,
+            y_map_numerator,
+            y_map_denominator,
+            _phantom_domain: PhantomData::<DOMAIN>,
+        }
     }
 
     fn apply(&self, domain_point: Affine<DOMAIN>) -> Result<Affine<CODOMAIN>, HashToCurveError> {
@@ -238,10 +255,8 @@ mod test {
         'static,
         TestSWU127MapToIsogenousCurveParams,
         TestWBF127MapToCurveParams,
-	> = IsogenyMap::<'static,
-        TestSWU127MapToIsogenousCurveParams,
-        TestWBF127MapToCurveParams>::new(
-	&[
+    > = IsogenyMap::<'static, TestSWU127MapToIsogenousCurveParams, TestWBF127MapToCurveParams>::new(
+        &[
             MontFp!("4"),
             MontFp!("63"),
             MontFp!("23"),
@@ -257,8 +272,7 @@ mod test {
             MontFp!("-21"),
             MontFp!("-57"),
         ],
-
-	&[
+        &[
             MontFp!("2"),
             MontFp!("31"),
             MontFp!("-10"),
@@ -273,8 +287,7 @@ mod test {
             MontFp!("-13"),
             MontFp!("1"),
         ],
-
-	&[
+        &[
             MontFp!("-34"),
             MontFp!("-57"),
             MontFp!("30"),
@@ -295,8 +308,7 @@ mod test {
             MontFp!("59"),
             MontFp!("10"),
         ],
-
-	&[
+        &[
             MontFp!("32"),
             MontFp!("-18"),
             MontFp!("-24"),
@@ -318,7 +330,6 @@ mod test {
             MontFp!("1"),
         ],
     );
-
 
     const ISOGENY_MAP_TESTWBF127: IsogenyMap<
         '_,
