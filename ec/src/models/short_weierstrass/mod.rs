@@ -105,14 +105,6 @@ pub trait SWCurveConfig: super::CurveConfig {
         res
     }
 
-    /// Default implementation for multi scalar multiplication
-    fn msm_bigint(
-        bases: &[Affine<Self>],
-        bigints: &[<Self::ScalarField as PrimeField>::BigInt],
-    ) -> Projective<Self> {
-        VariableBaseMSM::msm_bigint(bases, bigints)
-    }
-
     /// If uncompressed, serializes both x and y coordinates as well as a bit for whether it is
     /// infinity. If compressed, serializes x coordinate with two bits to encode whether y is
     /// positive, negative, or infinity.
