@@ -76,7 +76,7 @@ impl SWUParams for SwuIsoParameters {
     const ZETA: Fq2 = Fq2::new(MontFp!("-2"), MontFp!("-1"));
 }
 
-pub const ISOGENY_MAP_TO_G2  : IsogenyMap<'_, SwuIsoParameters, g2::Parameters> = IsogenyMap::new (
+pub const ISOGENY_MAP_TO_G2  : IsogenyMap<SwuIsoParameters, g2::Parameters> = IsogenyMap::new (
     &[
         Fq2::new(
                    MontFp!("889424345604814976315064405719089812568196182208668418962679585805340366775741747653930584250892369786198727235542"),

@@ -28,20 +28,19 @@ type BaseField<MP> = <MP as CurveConfig>::BaseField;
 ///
 /// - [\[Ga18]\] Galbraith, S. D. (2018). Mathematics of public key cryptography.
 pub struct IsogenyMap<
-    'a,
     DOMAIN: SWCurveConfig,
     CODOMAIN: SWCurveConfig<BaseField = BaseField<DOMAIN>>,
 > {
-    pub x_map_numerator: &'a [BaseField<CODOMAIN>],
-    pub x_map_denominator: &'a [BaseField<CODOMAIN>],
+    pub x_map_numerator: &'static [BaseField<CODOMAIN>],
+    pub x_map_denominator: &'static [BaseField<CODOMAIN>],
 
-    pub y_map_numerator: &'a [BaseField<CODOMAIN>],
-    pub y_map_denominator: &'a [BaseField<CODOMAIN>],
+    pub y_map_numerator: &'static [BaseField<CODOMAIN>],
+    pub y_map_denominator: &'static [BaseField<CODOMAIN>],
     _phantom_domain: PhantomData<DOMAIN>,
 }
 
 // Pratyush suggestion
-// impl</* bounds */> IsogenyMap<'a, DOMAIN, CODOMAIN> {
+// impl</* bounds */> IsogenyMap<'static, DOMAIN, CODOMAIN> {
 // 	const fn new(
 // 	    x_numerator: &'a [BaseField<CODOMAIN>],
 // 	    x_denominator: &'a [BaseField<CODOMAIN>],
@@ -54,16 +53,17 @@ pub struct IsogenyMap<
 // 	    }
 // 	}
 // }
-impl<'a, DOMAIN, CODOMAIN> IsogenyMap<'a, DOMAIN, CODOMAIN>
+
+impl<DOMAIN, CODOMAIN> IsogenyMap<DOMAIN, CODOMAIN>
 where
     DOMAIN: SWCurveConfig,
     CODOMAIN: SWCurveConfig<BaseField = BaseField<DOMAIN>>,
 {
     pub const fn new(
-        x_map_numerator: &'a [BaseField<CODOMAIN>],
-        x_map_denominator: &'a [BaseField<CODOMAIN>],
-        y_map_numerator: &'a [BaseField<CODOMAIN>],
-        y_map_denominator: &'a [BaseField<CODOMAIN>],
+        x_map_numerator: &'static [BaseField<CODOMAIN>],
+        x_map_denominator: &'static [BaseField<CODOMAIN>],
+        y_map_numerator: &'static [BaseField<CODOMAIN>],
+        y_map_denominator: &'static [BaseField<CODOMAIN>],
     ) -> Self {
         Self {
             x_map_numerator,
@@ -105,7 +105,7 @@ pub trait WBParams: SWCurveConfig + Sized {
     // different scalar field type IsogenousCurveScalarField :
     type IsogenousCurve: SWUParams<BaseField = BaseField<Self>>;
 
-    const ISOGENY_MAP: IsogenyMap<'static, Self::IsogenousCurve, Self>;
+    const ISOGENY_MAP: IsogenyMap<Self::IsogenousCurve, Self>;
 }
 
 pub struct WBMap<P: WBParams> {
