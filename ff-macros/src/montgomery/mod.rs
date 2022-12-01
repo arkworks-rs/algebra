@@ -2,6 +2,7 @@ use std::str::FromStr;
 
 use num_bigint::BigUint;
 use num_traits::One;
+use quote::format_ident;
 
 mod biginteger;
 use biginteger::*;
@@ -9,8 +10,10 @@ use biginteger::*;
 mod mul;
 use mul::*;
 
+mod square;
+use square::*;
+
 mod sum_of_products;
-use quote::format_ident;
 use sum_of_products::*;
 
 use crate::utils;
@@ -68,6 +71,7 @@ pub fn mont_config_helper(
     let sub_with_borrow = sub_with_borrow_impl(limbs);
     let subtract_modulus = subtract_modulus_impl(&modulus);
     let mul_assign = mul_assign_impl(can_use_no_carry_mul_opt, limbs, &modulus_limbs);
+    let square_in_place = square_in_place_impl(can_use_no_carry_mul_opt, limbs, &modulus_limbs);
     let sum_of_products = sum_of_products_impl(limbs, &modulus_limbs);
 
     let mixed_radix = if let Some(large_subgroup_generator) = large_subgroup_generator {
@@ -134,6 +138,10 @@ pub fn mont_config_helper(
                 #[inline(always)]
                 fn mul_assign(a: &mut F, b: &F) {
                     #mul_assign
+                }
+                #[inline(always)]
+                fn square_in_place(a: &mut F) {
+                    #square_in_place
                 }
 
                 fn sum_of_products<const M: usize>(
