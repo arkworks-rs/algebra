@@ -634,16 +634,7 @@ impl<P: SWCurveConfig> ScalarMul for Projective<P> {
     }
 }
 
-#[cfg(feature = "specialization")]
-pub trait CustomMSM: SWCurveConfig {
-    fn msm_bigint(
-        bases: &[Affine<Self>],
-        bigints: &[<Self::ScalarField as PrimeField>::BigInt],
-    ) -> Projective<Self>;
-}
-
-#[cfg(feature = "specialization")]
-impl<P: SWCurveConfig> VariableBaseMSM for Projective<P> where P: CustomMSM {
+impl<P: SWCurveConfig> VariableBaseMSM for Projective<P> {
     fn msm_bigint(
         bases: &[Self::MulBase],
         bigints: &[<Self::ScalarField as PrimeField>::BigInt],
@@ -651,8 +642,6 @@ impl<P: SWCurveConfig> VariableBaseMSM for Projective<P> where P: CustomMSM {
         P::msm_bigint(bases, bigints)
     }
 }
-
-impl<P: SWCurveConfig> VariableBaseMSM for Projective<P> {}
 
 impl<P: SWCurveConfig, T: Borrow<Affine<P>>> core::iter::Sum<T> for Projective<P> {
     fn sum<I: Iterator<Item = T>>(iter: I) -> Self {
