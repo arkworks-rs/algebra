@@ -79,7 +79,8 @@ pub fn mont_config_helper(
         quote::quote! {}
     };
 
-    let add_assign = if modulus_limbs.last().unwrap() >> 63 != 0 {
+    let modulus_has_spare_bit = modulus_limbs.last().unwrap() >> 63 == 0;
+    let add_assign = if !modulus_has_spare_bit {
         quote::quote! {
             let c = __add_with_carry(&mut a.0, &b.0);
             __subtract_modulus_with_carry(a, c);
@@ -91,7 +92,7 @@ pub fn mont_config_helper(
         }
     };
 
-    let double_in_place = if modulus_limbs.last().unwrap() >> 63 != 0 {
+    let double_in_place = if !modulus_has_spare_bit {
         quote::quote! {
             // This cannot exceed the backing capacity.
             let c = a.0.mul2();
@@ -174,4 +175,12 @@ pub fn mont_config_helper(
         }
     }
     .into()
+}
+
+#[test]
+fn test_macro_modulus_limbs() {
+    let modulus = "31517";
+    let limbs = utils::str_to_limbs_u64(modulus).1;
+
+    println!("modulus limbs spare bit: {:?}", limbs.last().unwrap() >> 63);
 }

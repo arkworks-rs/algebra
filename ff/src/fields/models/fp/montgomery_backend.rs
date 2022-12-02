@@ -48,6 +48,14 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
     #[doc(hidden)]
     const CAN_USE_NO_CARRY_SQUARE_OPT: bool = can_use_no_carry_mul_optimization::<Self, N>();
 
+    /// Does the modulus have a spare unused bit
+    ///
+    /// This optimization applies if
+    /// (a) `Self::MODULUS[N-1] < u64::MAX >> 2`, and
+    /// (b) the bits of the modulus are not all 1.
+    #[doc(hidden)]
+    const MODULUS_HAS_SPARE_BIT: bool = modulus_has_spare_bit::<Self, N>();
+
     /// 2^s root of unity computed by GENERATOR^t
     const TWO_ADIC_ROOT_OF_UNITY: Fp<MontBackend<Self, N>, N>;
 
@@ -92,7 +100,11 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
         // This cannot exceed the backing capacity.
         let c = a.0.add_with_carry(&b.0);
         // However, it may need to be reduced
-        a.subtract_modulus_with_carry(c);
+        if Self::MODULUS_HAS_SPARE_BIT {
+            a.subtract_modulus_with_carry(c);
+        } else {
+            a.subtract_modulus()
+        }
     }
 
     /// Sets `a = a - b`.
@@ -267,7 +279,11 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
             carry2 = fa::adc(&mut r.b1[i], carry, carry2);
         }
         (a.0).0.copy_from_slice(&r.b1);
-        a.subtract_modulus_with_carry(carry2 != 0);
+        if Self::MODULUS_HAS_SPARE_BIT {
+            a.subtract_modulus_with_carry(carry2 != 0);
+        } else {
+            a.subtract_modulus();
+        }
     }
 
     fn inverse(a: &Fp<MontBackend<Self, N>, N>) -> Option<Fp<MontBackend<Self, N>, N>> {
@@ -501,6 +517,12 @@ pub const fn can_use_no_carry_mul_optimization<T: MontConfig<N>, const N: usize>
         all_remaining_bits_are_one  &= T::MODULUS.0[N - i - 1] == u64::MAX;
     });
     top_bit_is_zero && !all_remaining_bits_are_one
+}
+
+#[inline]
+pub const fn modulus_has_spare_bit<T: MontConfig<N>, const N:usize>() -> bool {
+    let modulus_has_spare_bit = T::MODULUS.0[N - 1] >> 63 == 0;
+    modulus_has_spare_bit
 }
 
 #[inline]
