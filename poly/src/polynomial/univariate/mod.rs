@@ -11,6 +11,9 @@ mod sparse;
 pub use dense::DensePolynomial;
 pub use sparse::SparsePolynomial;
 
+#[cfg(feature = "parallel")]
+use rayon::prelude::*;
+
 /// Represents either a sparse polynomial or a dense one.
 #[derive(Clone)]
 pub enum DenseOrSparsePolynomial<'a, F: Field> {
