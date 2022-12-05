@@ -100,9 +100,9 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
         let c = a.0.add_with_carry(&b.0);
         // However, it may need to be reduced
         if Self::MODULUS_HAS_SPARE_BIT {
-            a.subtract_modulus_with_carry(c);
-        } else {
             a.subtract_modulus()
+        } else {
+            a.subtract_modulus_with_carry(c)
         }
     }
 
@@ -279,9 +279,9 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
         }
         (a.0).0.copy_from_slice(&r.b1);
         if Self::MODULUS_HAS_SPARE_BIT {
-            a.subtract_modulus_with_carry(carry2 != 0);
-        } else {
             a.subtract_modulus();
+        } else {
+            a.subtract_modulus_with_carry(carry2 != 0);
         }
     }
 
@@ -520,8 +520,7 @@ pub const fn can_use_no_carry_mul_optimization<T: MontConfig<N>, const N: usize>
 
 #[inline]
 pub const fn modulus_has_spare_bit<T: MontConfig<N>, const N:usize>() -> bool {
-    let modulus_has_spare_bit = T::MODULUS.0[N - 1] >> 63 == 0;
-    modulus_has_spare_bit
+    T::MODULUS.0[N - 1] >> 63 == 0;
 }
 
 #[inline]
