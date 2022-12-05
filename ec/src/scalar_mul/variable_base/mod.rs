@@ -45,6 +45,14 @@ pub trait VariableBaseMSM: ScalarMul {
         bases: &[Self::MulBase],
         bigints: &[<Self::ScalarField as PrimeField>::BigInt],
     ) -> Self {
+        Self::unhooked_msm_bigint(bases, bigints)
+    }
+
+    /// /// Raw optimized implementation of multi-scalar multiplication, only for usage by curve models.
+    fn unhooked_msm_bigint(
+        bases: &[Self::MulBase],
+        bigints: &[<Self::ScalarField as PrimeField>::BigInt],
+    ) -> Self {
         let size = ark_std::cmp::min(bases.len(), bigints.len());
         let scalars = &bigints[..size];
         let bases = &bases[..size];
