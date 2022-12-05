@@ -6,7 +6,7 @@ use ark_std::io::{Read, Write};
 
 use ark_ff::{fields::Field, PrimeField};
 
-use crate::{AffineRepr, Group, scalar_mul::variable_base::VariableBaseMSM};
+use crate::{scalar_mul::variable_base::VariableBaseMSM, AffineRepr, Group};
 
 use num_traits::Zero;
 
@@ -107,12 +107,11 @@ pub trait SWCurveConfig: super::CurveConfig {
 
     /// Default implementation for multi scalar multiplication
     fn model_msm_bigint(
-		bases: &[Affine<Self>],
-		bigints: &[<Self::ScalarField as PrimeField>::BigInt],
-	) -> Projective<Self>
-	{
-       VariableBaseMSM::unhooked_msm_bigint(bases, bigints)
-	}
+        bases: &[Affine<Self>],
+        bigints: &[<Self::ScalarField as PrimeField>::BigInt],
+    ) -> Projective<Self> {
+        VariableBaseMSM::unhooked_msm_bigint(bases, bigints)
+    }
 
     /// If uncompressed, serializes both x and y coordinates as well as a bit for whether it is
     /// infinity. If compressed, serializes x coordinate with two bits to encode whether y is
