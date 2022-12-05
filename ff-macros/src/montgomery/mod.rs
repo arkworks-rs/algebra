@@ -176,11 +176,3 @@ pub fn mont_config_helper(
     }
     .into()
 }
-
-#[test]
-fn test_macro_modulus_limbs() {
-    let modulus = "31517";
-    let limbs = utils::str_to_limbs_u64(modulus).1;
-
-    println!("modulus limbs spare bit: {:?}", limbs.last().unwrap() >> 63);
-}

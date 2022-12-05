@@ -50,9 +50,8 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
 
     /// Does the modulus have a spare unused bit
     ///
-    /// This optimization applies if
-    /// (a) `Self::MODULUS[N-1] < u64::MAX >> 2`, and
-    /// (b) the bits of the modulus are not all 1.
+    /// This condition applies if
+    /// (a) `Self::MODULUS[N-1] >> 63 == 0`
     #[doc(hidden)]
     const MODULUS_HAS_SPARE_BIT: bool = modulus_has_spare_bit::<Self, N>();
 
