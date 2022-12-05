@@ -2,6 +2,8 @@
 
 ## Pending
 
+- [\#521](https://github.com/arkworks-rs/algebra/pull/521) (`ark-poly`) Change `DensePolynomial::evaluate_over_domain` to not truncate terms higher than the size of the domain.
+
 ### Breaking changes
 
 - [\#300](https://github.com/arkworks-rs/algebra/pull/300) (`ark-ec`) Change the implementation of `Hash` trait of `GroupProjective` to use the affine coordinates.
@@ -136,6 +138,7 @@
     - Splits the contents of `ff/src/fields/mod.rs` into smaller files for easier management.
     - Moves `BitIterator` out of `ark_ff::fields` and into `ark_ff` directly.
     - Adds `impl<'a, 'b> Add/Sub/Mul/Div<&'a F> for &'b F`
+- [\#517](https://github.com/arkworks-rs/algebra/pull/517) (`ark-ec`) Move the definition of the isogeny map of WB hash-to-curve to a separate struct
 
 ### Features
 

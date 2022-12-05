@@ -13,6 +13,57 @@ use crate::{
 use super::swu::{SWUMap, SWUParams};
 type BaseField<MP> = <MP as CurveConfig>::BaseField;
 
+/// [`IsogenyMap`] defines an isogeny between curves of
+/// form `Phi(x, y) := (a(x), b(x)*y).
+/// The `x` coordinate of the codomain point only depends on the
+/// `x`-coordinate of the domain point, and the
+/// `y`-coordinate of the codomain point is a multiple of the `y`-coordinate of the domain point.
+/// The multiplier depends on the `x`-coordinate of the domain point.
+/// All isogeny maps of curves of short Weierstrass form can be written in this way. See
+/// [\[Ga18]\]. Theorem 9.7.5 for details.
+///
+/// We assume that DOMAIN and CODOMAIN have the same BaseField but we use both
+/// BaseField<DOMAIN> and BaseField<CODOMAIN> in our fields' definitions to avoid
+/// using PhantomData
+///
+/// - [\[Ga18]\] Galbraith, S. D. (2018). Mathematics of public key cryptography.
+pub struct IsogenyMap<
+    'a,
+    DOMAIN: SWCurveConfig,
+    CODOMAIN: SWCurveConfig<BaseField = BaseField<DOMAIN>>,
+> {
+    pub x_map_numerator: &'a [BaseField<DOMAIN>],
+    pub x_map_denominator: &'a [BaseField<CODOMAIN>],
+
+    pub y_map_numerator: &'a [BaseField<DOMAIN>],
+    pub y_map_denominator: &'a [BaseField<CODOMAIN>],
+}
+
+impl<'a, DOMAIN, CODOMAIN> IsogenyMap<'a, DOMAIN, CODOMAIN>
+where
+    DOMAIN: SWCurveConfig,
+    CODOMAIN: SWCurveConfig<BaseField = BaseField<DOMAIN>>,
+{
+    fn apply(&self, domain_point: Affine<DOMAIN>) -> Result<Affine<CODOMAIN>, HashToCurveError> {
+        match domain_point.xy() {
+            Some((x, y)) => {
+                let x_num = DensePolynomial::from_coefficients_slice(self.x_map_numerator);
+                let x_den = DensePolynomial::from_coefficients_slice(self.x_map_denominator);
+
+                let y_num = DensePolynomial::from_coefficients_slice(self.y_map_numerator);
+                let y_den = DensePolynomial::from_coefficients_slice(self.y_map_denominator);
+
+                let mut v: [BaseField<DOMAIN>; 2] = [x_den.evaluate(x), y_den.evaluate(x)];
+                batch_inversion(&mut v);
+                let img_x = x_num.evaluate(x) * v[0];
+                let img_y = (y_num.evaluate(x) * y) * v[1];
+                Ok(Affine::<CODOMAIN>::new_unchecked(img_x, img_y))
+            },
+            None => Ok(Affine::identity()),
+        }
+    }
+}
+
 /// Trait defining the necessary parameters for the WB hash-to-curve method
 /// for the curves of Weierstrass form of:
 /// of y^2 = x^3 + a*x + b where b != 0 but `a` can be zero like BLS-381 curve.
@@ -24,32 +75,7 @@ pub trait WBParams: SWCurveConfig + Sized {
     // different scalar field type IsogenousCurveScalarField :
     type IsogenousCurve: SWUParams<BaseField = BaseField<Self>>;
 
-    const PHI_X_NOM: &'static [BaseField<Self>];
-    const PHI_X_DEN: &'static [BaseField<Self>];
-
-    const PHI_Y_NOM: &'static [BaseField<Self>];
-    const PHI_Y_DEN: &'static [BaseField<Self>];
-
-    fn isogeny_map(
-        domain_point: Affine<Self::IsogenousCurve>,
-    ) -> Result<Affine<Self>, HashToCurveError> {
-        match domain_point.xy() {
-            Some((x, y)) => {
-                let x_num = DensePolynomial::from_coefficients_slice(Self::PHI_X_NOM);
-                let x_den = DensePolynomial::from_coefficients_slice(Self::PHI_X_DEN);
-
-                let y_num = DensePolynomial::from_coefficients_slice(Self::PHI_Y_NOM);
-                let y_den = DensePolynomial::from_coefficients_slice(Self::PHI_Y_DEN);
-
-                let mut v: [BaseField<Self>; 2] = [x_den.evaluate(x), y_den.evaluate(x)];
-                batch_inversion(&mut v);
-                let img_x = x_num.evaluate(x) * v[0];
-                let img_y = (y_num.evaluate(x) * y) * v[1];
-                Ok(Affine::new_unchecked(img_x, img_y))
-            },
-            None => Ok(Affine::identity()),
-        }
-    }
+    const ISOGENY_MAP: IsogenyMap<'static, Self::IsogenousCurve, Self>;
 }
 
 pub struct WBMap<P: WBParams> {
@@ -60,7 +86,7 @@ pub struct WBMap<P: WBParams> {
 impl<P: WBParams> MapToCurve<Projective<P>> for WBMap<P> {
     /// Constructs a new map if `P` represents a valid map.
     fn new() -> Result<Self, HashToCurveError> {
-        match P::isogeny_map(P::IsogenousCurve::GENERATOR) {
+        match P::ISOGENY_MAP.apply(P::IsogenousCurve::GENERATOR) {
             Ok(point_on_curve) => {
                 if !point_on_curve.is_on_curve() {
                     return Err(HashToCurveError::MapToCurveError(format!("the isogeny maps the generator of its domain: {} into {} which does not belong to its codomain.",P::IsogenousCurve::GENERATOR, point_on_curve)));
@@ -84,7 +110,7 @@ impl<P: WBParams> MapToCurve<Projective<P>> for WBMap<P> {
     ) -> Result<Affine<P>, HashToCurveError> {
         // first we need to map the field point to the isogenous curve
         let point_on_isogenious_curve = self.swu_field_curve_hasher.map_to_curve(element).unwrap();
-        P::isogeny_map(point_on_isogenious_curve)
+        P::ISOGENY_MAP.apply(point_on_isogenious_curve)
     }
 }
 
@@ -94,7 +120,7 @@ mod test {
         hashing::{
             curve_maps::{
                 swu::SWUParams,
-                wb::{WBMap, WBParams},
+                wb::{IsogenyMap, WBMap, WBParams},
             },
             map_to_curve_hasher::MapToCurveBasedHasher,
             HashToCurve,
@@ -195,10 +221,12 @@ mod test {
     /// - 43*x^5*y - 60*x^4*y - 18*x^3*y + 30*x^2*y - 57*x*y - 34*y)/(x^18 + 44*x^17
     /// - 63*x^16 + 52*x^15 + 3*x^14 + 38*x^13 - 30*x^12 + 11*x^11 - 42*x^10 - 13*x^9
     /// - 46*x^8 - 61*x^7 - 16*x^6 - 55*x^5 + 18*x^4 + 23*x^3 - 24*x^2 - 18*x + 32)
-    impl WBParams for TestWBF127MapToCurveParams {
-        type IsogenousCurve = TestSWU127MapToIsogenousCurveParams;
-
-        const PHI_X_NOM: &'static [<Self::IsogenousCurve as CurveConfig>::BaseField] = &[
+    const ISOGENY_MAP_TESTWBF127: IsogenyMap<
+        '_,
+        TestSWU127MapToIsogenousCurveParams,
+        TestWBF127MapToCurveParams,
+    > = IsogenyMap {
+        x_map_numerator: &[
             MontFp!("4"),
             MontFp!("63"),
             MontFp!("23"),
@@ -213,9 +241,9 @@ mod test {
             MontFp!("10"),
             MontFp!("-21"),
             MontFp!("-57"),
-        ];
+        ],
 
-        const PHI_X_DEN: &'static [<Self::IsogenousCurve as CurveConfig>::BaseField] = &[
+        x_map_denominator: &[
             MontFp!("2"),
             MontFp!("31"),
             MontFp!("-10"),
@@ -229,9 +257,9 @@ mod test {
             MontFp!("11"),
             MontFp!("-13"),
             MontFp!("1"),
-        ];
+        ],
 
-        const PHI_Y_NOM: &'static [<Self::IsogenousCurve as CurveConfig>::BaseField] = &[
+        y_map_numerator: &[
             MontFp!("-34"),
             MontFp!("-57"),
             MontFp!("30"),
@@ -251,9 +279,9 @@ mod test {
             MontFp!("41"),
             MontFp!("59"),
             MontFp!("10"),
-        ];
+        ],
 
-        const PHI_Y_DEN: &'static [<Self::IsogenousCurve as CurveConfig>::BaseField] = &[
+        y_map_denominator: &[
             MontFp!("32"),
             MontFp!("-18"),
             MontFp!("-24"),
@@ -273,7 +301,13 @@ mod test {
             MontFp!("-63"),
             MontFp!("44"),
             MontFp!("1"),
-        ];
+        ],
+    };
+    impl WBParams for TestWBF127MapToCurveParams {
+        type IsogenousCurve = TestSWU127MapToIsogenousCurveParams;
+
+        const ISOGENY_MAP: super::IsogenyMap<'static, Self::IsogenousCurve, Self> =
+            ISOGENY_MAP_TESTWBF127;
     }
 
     /// The point of the test is to get a simple WB compatible curve
