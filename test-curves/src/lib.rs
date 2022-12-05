@@ -28,3 +28,5 @@ pub mod mnt4_753;
     feature = "bn384_small_two_adicity_curve"
 ))]
 pub mod bn384_small_two_adicity;
+
+pub mod fp128;
