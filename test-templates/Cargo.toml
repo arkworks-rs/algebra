@@ -1,6 +1,6 @@
 [package]
 name = "ark-algebra-test-templates"
-version = "0.4.0-alpha.3"
+version = "0.4.0-alpha.4"
 authors = [ "arkworks contributors" ]
 description = "A library for tests for finite fields, elliptic curves, and pairings"
 homepage = "https://arkworks.rs"

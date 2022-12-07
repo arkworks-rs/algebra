@@ -1,6 +1,6 @@
 [package]
 name = "ark-test-curves"
-version = "0.4.0-alpha.3"
+version = "0.4.0-alpha.4"
 authors = [ "arkworks contributors" ]
 description = "A library for testing ark-ec & ark-poly"
 homepage = "https://arkworks.rs"
