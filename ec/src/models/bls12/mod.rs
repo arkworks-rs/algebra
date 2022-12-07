@@ -25,7 +25,7 @@ pub enum TwistType {
     D,
 }
 
-pub trait Bls12Parameters: 'static {
+pub trait Bls12Parameters: 'static + Sized {
     /// Parameterizes the BLS12 family.
     const X: &'static [u64];
     /// Is `Self::X` negative?
@@ -42,6 +42,48 @@ pub trait Bls12Parameters: 'static {
         BaseField = Fp2<Self::Fp2Config>,
         ScalarField = <Self::G1Parameters as CurveConfig>::ScalarField,
     >;
+
+    fn multi_miller_loop(
+		a: impl IntoIterator<Item = impl Into<G1Prepared<Self>>>,
+		b: impl IntoIterator<Item = impl Into<G2Prepared<Self>>>,
+	) -> MillerLoopOutput<Bls12<Self>> {
+        use itertools::Itertools;
+
+        let mut pairs = a
+            .into_iter()
+            .zip_eq(b)
+            .filter_map(|(p, q)| {
+                let (p, q) = (p.into(), q.into());
+                match !p.is_zero() && !q.is_zero() {
+                    true => Some((p, q.ell_coeffs.into_iter())),
+                    false => None,
+                }
+            })
+            .collect::<Vec<_>>();
+
+        let mut f = cfg_chunks_mut!(pairs, 4)
+            .map(|pairs| {
+                let mut f = <Bls12<Self> as Pairing>::TargetField::one();
+                for i in BitIteratorBE::without_leading_zeros(Self::X).skip(1) {
+                    f.square_in_place();
+                    for (p, coeffs) in pairs.iter_mut() {
+                        Bls12::<Self>::ell(&mut f, &coeffs.next().unwrap(), &p.0);
+                    }
+                    if i {
+                        for (p, coeffs) in pairs.iter_mut() {
+                            Bls12::<Self>::ell(&mut f, &coeffs.next().unwrap(), &p.0);
+                        }
+                    }
+                }
+                f
+            })
+            .product::<<Bls12<Self> as Pairing>::TargetField>();
+
+        if Self::X_IS_NEGATIVE {
+            f.cyclotomic_inverse_in_place();
+        }
+        MillerLoopOutput(f)
+    }
 }
 
 pub mod g1;
@@ -85,6 +127,7 @@ impl<P: Bls12Parameters> Bls12<P> {
             result.cyclotomic_inverse_in_place();
         }
     }
+
 }
 
 impl<P: Bls12Parameters> Pairing for Bls12<P> {
@@ -99,46 +142,11 @@ impl<P: Bls12Parameters> Pairing for Bls12<P> {
     type TargetField = Fp12<P::Fp12Config>;
 
     fn multi_miller_loop(
-        a: impl IntoIterator<Item = impl Into<Self::G1Prepared>>,
-        b: impl IntoIterator<Item = impl Into<Self::G2Prepared>>,
-    ) -> MillerLoopOutput<Self> {
-        use itertools::Itertools;
-
-        let mut pairs = a
-            .into_iter()
-            .zip_eq(b)
-            .filter_map(|(p, q)| {
-                let (p, q) = (p.into(), q.into());
-                match !p.is_zero() && !q.is_zero() {
-                    true => Some((p, q.ell_coeffs.into_iter())),
-                    false => None,
-                }
-            })
-            .collect::<Vec<_>>();
-
-        let mut f = cfg_chunks_mut!(pairs, 4)
-            .map(|pairs| {
-                let mut f = Self::TargetField::one();
-                for i in BitIteratorBE::without_leading_zeros(P::X).skip(1) {
-                    f.square_in_place();
-                    for (p, coeffs) in pairs.iter_mut() {
-                        Self::ell(&mut f, &coeffs.next().unwrap(), &p.0);
-                    }
-                    if i {
-                        for (p, coeffs) in pairs.iter_mut() {
-                            Self::ell(&mut f, &coeffs.next().unwrap(), &p.0);
-                        }
-                    }
-                }
-                f
-            })
-            .product::<Self::TargetField>();
-
-        if P::X_IS_NEGATIVE {
-            f.cyclotomic_inverse_in_place();
-        }
-        MillerLoopOutput(f)
-    }
+		a: impl IntoIterator<Item = impl Into<Self::G1Prepared>>,
+		b: impl IntoIterator<Item = impl Into<Self::G2Prepared>>,
+	) -> MillerLoopOutput<Self> {
+		P::multi_miller_loop(a, b)
+	}
 
     fn final_exponentiation(f: MillerLoopOutput<Self>) -> Option<PairingOutput<Self>> {
         // Computing the final exponentation following
