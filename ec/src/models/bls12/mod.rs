@@ -44,9 +44,9 @@ pub trait Bls12Parameters: 'static + Sized {
     >;
 
     fn multi_miller_loop(
-		a: impl IntoIterator<Item = impl Into<G1Prepared<Self>>>,
-		b: impl IntoIterator<Item = impl Into<G2Prepared<Self>>>,
-	) -> MillerLoopOutput<Bls12<Self>> {
+        a: impl IntoIterator<Item = impl Into<G1Prepared<Self>>>,
+        b: impl IntoIterator<Item = impl Into<G2Prepared<Self>>>,
+    ) -> MillerLoopOutput<Bls12<Self>> {
         use itertools::Itertools;
 
         let mut pairs = a
@@ -85,74 +85,75 @@ pub trait Bls12Parameters: 'static + Sized {
         MillerLoopOutput(f)
     }
 
-    fn final_exponentiation(f: MillerLoopOutput<Bls12<Self>>)
-		-> Option<PairingOutput<Bls12<Self>>>{
-            // Computing the final exponentation following
-            // https://eprint.iacr.org/2020/875
-            // Adapted from the implementation in https://github.com/ConsenSys/gurvy/pull/29
-    
-            // f1 = r.cyclotomic_inverse_in_place() = f^(p^6)
-            let f = f.0;
-            let mut f1 = f;
-            f1.cyclotomic_inverse_in_place();
-    
-            f.inverse().map(|mut f2| {
-                // f2 = f^(-1);
-                // r = f^(p^6 - 1)
-                let mut r = f1 * &f2;
-    
-                // f2 = f^(p^6 - 1)
-                f2 = r;
-                // r = f^((p^6 - 1)(p^2))
-                r.frobenius_map(2);
-    
-                // r = f^((p^6 - 1)(p^2) + (p^6 - 1))
-                // r = f^((p^6 - 1)(p^2 + 1))
-                r *= &f2;
-    
-                // Hard part of the final exponentation:
-                // t[0].CyclotomicSquare(&result)
-                let mut y0 = r.cyclotomic_square();
-                // t[1].Expt(&result)
-                let mut y1 = Fp12::zero();
-                Bls12::<Self>::exp_by_x(&r, &mut y1);
-                // t[2].InverseUnitary(&result)
-                let mut y2 = r;
-                y2.cyclotomic_inverse_in_place();
-                // t[1].Mul(&t[1], &t[2])
-                y1 *= &y2;
-                // t[2].Expt(&t[1])
-                Bls12::<Self>::exp_by_x(&y1, &mut y2);
-                // t[1].InverseUnitary(&t[1])
-                y1.cyclotomic_inverse_in_place();
-                // t[1].Mul(&t[1], &t[2])
-                y1 *= &y2;
-                // t[2].Expt(&t[1])
-                Bls12::<Self>::exp_by_x(&y1, &mut y2);
-                // t[1].Frobenius(&t[1])
-                y1.frobenius_map(1);
-                // t[1].Mul(&t[1], &t[2])
-                y1 *= &y2;
-                // result.Mul(&result, &t[0])
-                r *= &y0;
-                // t[0].Expt(&t[1])
-                Bls12::<Self>::exp_by_x(&y1, &mut y0);
-                // t[2].Expt(&t[0])
-                Bls12::<Self>::exp_by_x(&y0, &mut y2);
-                // t[0].FrobeniusSquare(&t[1])
-                y0 = y1;
-                y0.frobenius_map(2);
-                // t[1].InverseUnitary(&t[1])
-                y1.cyclotomic_inverse_in_place();
-                // t[1].Mul(&t[1], &t[2])
-                y1 *= &y2;
-                // t[1].Mul(&t[1], &t[0])
-                y1 *= &y0;
-                // result.Mul(&result, &t[1])
-                r *= &y1;
-                PairingOutput(r)
-            })
-        }
+    fn final_exponentiation(
+        f: MillerLoopOutput<Bls12<Self>>,
+    ) -> Option<PairingOutput<Bls12<Self>>> {
+        // Computing the final exponentation following
+        // https://eprint.iacr.org/2020/875
+        // Adapted from the implementation in https://github.com/ConsenSys/gurvy/pull/29
+
+        // f1 = r.cyclotomic_inverse_in_place() = f^(p^6)
+        let f = f.0;
+        let mut f1 = f;
+        f1.cyclotomic_inverse_in_place();
+
+        f.inverse().map(|mut f2| {
+            // f2 = f^(-1);
+            // r = f^(p^6 - 1)
+            let mut r = f1 * &f2;
+
+            // f2 = f^(p^6 - 1)
+            f2 = r;
+            // r = f^((p^6 - 1)(p^2))
+            r.frobenius_map(2);
+
+            // r = f^((p^6 - 1)(p^2) + (p^6 - 1))
+            // r = f^((p^6 - 1)(p^2 + 1))
+            r *= &f2;
+
+            // Hard part of the final exponentation:
+            // t[0].CyclotomicSquare(&result)
+            let mut y0 = r.cyclotomic_square();
+            // t[1].Expt(&result)
+            let mut y1 = Fp12::zero();
+            Bls12::<Self>::exp_by_x(&r, &mut y1);
+            // t[2].InverseUnitary(&result)
+            let mut y2 = r;
+            y2.cyclotomic_inverse_in_place();
+            // t[1].Mul(&t[1], &t[2])
+            y1 *= &y2;
+            // t[2].Expt(&t[1])
+            Bls12::<Self>::exp_by_x(&y1, &mut y2);
+            // t[1].InverseUnitary(&t[1])
+            y1.cyclotomic_inverse_in_place();
+            // t[1].Mul(&t[1], &t[2])
+            y1 *= &y2;
+            // t[2].Expt(&t[1])
+            Bls12::<Self>::exp_by_x(&y1, &mut y2);
+            // t[1].Frobenius(&t[1])
+            y1.frobenius_map(1);
+            // t[1].Mul(&t[1], &t[2])
+            y1 *= &y2;
+            // result.Mul(&result, &t[0])
+            r *= &y0;
+            // t[0].Expt(&t[1])
+            Bls12::<Self>::exp_by_x(&y1, &mut y0);
+            // t[2].Expt(&t[0])
+            Bls12::<Self>::exp_by_x(&y0, &mut y2);
+            // t[0].FrobeniusSquare(&t[1])
+            y0 = y1;
+            y0.frobenius_map(2);
+            // t[1].InverseUnitary(&t[1])
+            y1.cyclotomic_inverse_in_place();
+            // t[1].Mul(&t[1], &t[2])
+            y1 *= &y2;
+            // t[1].Mul(&t[1], &t[0])
+            y1 *= &y0;
+            // result.Mul(&result, &t[1])
+            r *= &y1;
+            PairingOutput(r)
+        })
+    }
 }
 
 pub mod g1;
@@ -196,7 +197,6 @@ impl<P: Bls12Parameters> Bls12<P> {
             result.cyclotomic_inverse_in_place();
         }
     }
-
 }
 
 impl<P: Bls12Parameters> Pairing for Bls12<P> {
@@ -211,11 +211,11 @@ impl<P: Bls12Parameters> Pairing for Bls12<P> {
     type TargetField = Fp12<P::Fp12Config>;
 
     fn multi_miller_loop(
-		a: impl IntoIterator<Item = impl Into<Self::G1Prepared>>,
-		b: impl IntoIterator<Item = impl Into<Self::G2Prepared>>,
-	) -> MillerLoopOutput<Self> {
-		P::multi_miller_loop(a, b)
-	}
+        a: impl IntoIterator<Item = impl Into<Self::G1Prepared>>,
+        b: impl IntoIterator<Item = impl Into<Self::G2Prepared>>,
+    ) -> MillerLoopOutput<Self> {
+        P::multi_miller_loop(a, b)
+    }
 
     fn final_exponentiation(f: MillerLoopOutput<Self>) -> Option<PairingOutput<Self>> {
         P::final_exponentiation(f)
