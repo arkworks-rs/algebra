@@ -198,8 +198,7 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
         if N == 1 {
             // We default to multiplying with `a` using the `Mul` impl
             // for the N == 1 case
-            let temp = *a;
-            Self::mul_assign(a, &temp);
+            *a *= *a;
             return;
         }
         if Self::CAN_USE_NO_CARRY_SQUARE_OPT
@@ -241,12 +240,10 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
             r.b1[i] = carry;
             carry = 0;
         }
-        r.b1[N - 1] >>= 63;
-        for i in 0..N {
-            r[2 * (N - 1) - i] = (r[2 * (N - 1) - i] << 1) | (r[2 * (N - 1) - (i + 1)] >> 63);
-        }
-        for i in 3..N {
-            r[N + 1 - i] = (r[N + 1 - i] << 1) | (r[N - i] >> 63);
+
+        r.b1[N - 1] = r.b1[N - 2] >> 63;
+        for i in 2..(2 * N - 1) {
+            r[2 * N - i] = (r[2 * N - i] << 1) | (r[2 * N - (i + 1)] >> 63);
         }
         r.b0[1] <<= 1;
 

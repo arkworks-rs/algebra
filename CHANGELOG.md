@@ -2,6 +2,8 @@
 
 ## Pending
 
+- [\#521](https://github.com/arkworks-rs/algebra/pull/521) (`ark-poly`) Change `DensePolynomial::evaluate_over_domain` to not truncate terms higher than the size of the domain.
+
 ### Breaking changes
 
 ### Features
@@ -146,6 +148,7 @@
     - Splits the contents of `ff/src/fields/mod.rs` into smaller files for easier management.
     - Moves `BitIterator` out of `ark_ff::fields` and into `ark_ff` directly.
     - Adds `impl<'a, 'b> Add/Sub/Mul/Div<&'a F> for &'b F`
+- [\#517](https://github.com/arkworks-rs/algebra/pull/517) (`ark-ec`) Move the definition of the isogeny map of WB hash-to-curve to a separate struct
 
 ### Features
 
@@ -188,6 +191,7 @@
 - [\#394](https://github.com/arkworks-rs/algebra/pull/394) (`ark-ff`, `ark-serialize`) Remove `EmptyFlags` construction checks.
 - [\#442](https://github.com/arkworks-rs/algebra/pull/442) (`ark-ff`) Fix deserialization for modulo with 64 shaving bits.
 - [\#460](https://github.com/arkworks-rs/algebra/pull/460) (`ark-ec`) Fix a corner case for ate pairing in BLS12 and BW6 models.
+- [\#526](https://github.com/arkworks-rs/algebra/pull/526) (`ark-ff`) Fix squaring for `Fp128`.
 
 ## v0.3.0
 
