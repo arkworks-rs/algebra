@@ -24,7 +24,7 @@ ark-algebra-test-templates = { version = "^0.3.0", path = "../test-templates", d
 ark-algebra-bench-templates =  { version = "^0.3.0", path = "../bench-templates", default-features = false }
 
 [features]
-default = []
+default = ["secp256k1_curve"]
 
 asm = [ "ark-ff/asm" ]
 
@@ -43,6 +43,8 @@ mnt6_753 = [ "mnt4_753_scalar_field", "mnt4_753_base_field" ]
 bn384_small_two_adicity_scalar_field = []
 bn384_small_two_adicity_base_field = []
 bn384_small_two_adicity_curve = [ "bn384_small_two_adicity_scalar_field", "bn384_small_two_adicity_base_field" ]
+
+secp256k1_curve = []
 
 [[bench]]
 name = "bls12_381"
