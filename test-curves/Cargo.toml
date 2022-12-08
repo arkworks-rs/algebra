@@ -24,7 +24,7 @@ ark-algebra-test-templates = { version = "^0.3.0", path = "../test-templates", d
 ark-algebra-bench-templates =  { version = "^0.3.0", path = "../bench-templates", default-features = false }
 
 [features]
-default = ["secp256k1_curve"]
+default = []
 
 asm = [ "ark-ff/asm" ]
 
