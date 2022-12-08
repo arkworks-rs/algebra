@@ -515,8 +515,8 @@ pub const fn can_use_no_carry_mul_optimization<T: MontConfig<N>, const N: usize>
 }
 
 #[inline]
-pub const fn modulus_has_spare_bit<T: MontConfig<N>, const N:usize>() -> bool {
-    T::MODULUS.0[N - 1] >> 63 == 0;
+pub const fn modulus_has_spare_bit<T: MontConfig<N>, const N: usize>() -> bool {
+    T::MODULUS.0[N - 1] >> 63 == 0
 }
 
 #[inline]
