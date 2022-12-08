@@ -1,16 +1,12 @@
-use ark_ec::{
-    models::CurveConfig,
-    short_weierstrass::*,
-};
-use ark_ff::{Field, MontFp, Zero};
 use crate::secp256k1::{Fq, Fr};
+use ark_ec::{models::CurveConfig, short_weierstrass::*};
+use ark_ff::{Field, MontFp, Zero};
 
 pub type G1Affine = Affine<Parameters>;
 pub type G1Projective = Projective<Parameters>;
 
 #[derive(Clone, Default, PartialEq, Eq)]
 pub struct Parameters;
-
 
 impl CurveConfig for Parameters {
     type BaseField = Fq;
