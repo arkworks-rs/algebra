@@ -143,13 +143,20 @@ impl<P: FpConfig<N>, const N: usize> Fp<P, N> {
         }
     }
 
+    #[inline]
+    fn subtract_modulus_with_carry(&mut self, carry: bool) {
+        if carry || self.is_geq_modulus() {
+            self.0.sub_with_borrow(&Self::MODULUS);
+        }
+    }
+
     fn num_bits_to_shave() -> usize {
         64 * N - (Self::MODULUS_BIT_SIZE as usize)
     }
 }
 
 impl<P, const N: usize> ark_std::fmt::Debug for Fp<P, N> {
-    fn fmt(&self, f: &mut ark_std::fmt::Formatter<'_>) -> ark_std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> ark_std::fmt::Result {
         ark_std::fmt::Debug::fmt(&self.0, f)
     }
 }
@@ -515,7 +522,7 @@ impl<P: FpConfig<N>, const N: usize> ark_std::rand::distributions::Distribution<
             let mask = if shave_bits == 64 {
                 0
             } else {
-                core::u64::MAX >> shave_bits
+                u64::MAX >> shave_bits
             };
 
             if let Some(val) = tmp.0 .0.last_mut() {
