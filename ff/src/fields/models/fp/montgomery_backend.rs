@@ -310,7 +310,7 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
                     } else {
                         let carry = b.0.add_with_carry(&Self::MODULUS);
                         b.0.div2();
-                        if carry {
+                        if !Self::MODULUS_HAS_SPARE_BIT && carry {
                             (b.0).0[N - 1] |= 1 << 63;
                         }
                     }
@@ -324,7 +324,7 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
                     } else {
                         let carry = c.0.add_with_carry(&Self::MODULUS);
                         c.0.div2();
-                        if carry {
+                        if !Self::MODULUS_HAS_SPARE_BIT && carry {
                             (c.0).0[N - 1] |= 1 << 63;
                         }
                     }
