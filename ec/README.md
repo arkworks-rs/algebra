@@ -74,7 +74,7 @@ let s2 = ScalarField::rand(&mut rng);
 //
 // The `VariableBaseMSM` trait allows specializing the input group element representation to allow 
 // for more efficient implementations.
-let result = G::msm(&[a, b], &[s1, s2]);
+let result = G::msm(&[a, b], &[s1, s2]).unwrap();
 assert_eq!(result, a * s1 + b * s2);
 ```
 
