@@ -44,6 +44,8 @@ bn384_small_two_adicity_scalar_field = []
 bn384_small_two_adicity_base_field = []
 bn384_small_two_adicity_curve = [ "bn384_small_two_adicity_scalar_field", "bn384_small_two_adicity_base_field" ]
 
+secp256k1 = []
+
 [[bench]]
 name = "bls12_381"
 path = "benches/bls12_381.rs"
