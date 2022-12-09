@@ -62,5 +62,12 @@ pub(super) fn subtract_modulus_impl(
                 __sub_with_borrow(&mut a.0, &#modulus);
             }
         }
+
+        #[inline(always)]
+        fn __subtract_modulus_with_carry(a: &mut F, carry: bool) {
+            if a.is_geq_modulus() || carry {
+                __sub_with_borrow(&mut a.0, &#modulus);
+            }
+        }
     }
 }
