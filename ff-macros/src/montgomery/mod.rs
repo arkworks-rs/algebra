@@ -3,7 +3,6 @@ use std::str::FromStr;
 
 use num_bigint::BigUint;
 use num_traits::One;
-use quote::format_ident;
 
 mod biginteger;
 use biginteger::*;
