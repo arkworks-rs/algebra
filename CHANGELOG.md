@@ -172,6 +172,7 @@
 - [\#352](https://github.com/arkworks-rs/algebra/pull/352) (`ark-ff`) Update `QuadExtField::sqrt` for better performance.
 - [\#357](https://github.com/arkworks-rs/algebra/pull/357) (`ark-poly`) Speedup division by vanishing polynomials for dense polynomials.
 - [\#445](https://github.com/arkworks-rs/algebra/pull/445) (`ark-ec`) Use 2-NAF for ate pairing in MNT4/6 curves.
+- [\#509](https://github.com/arkworks-rs/algebra/pull/509) (`ark-ff`, `ark-ff-macros`) Support prime fields with (64 * k)-bit modulus.
 
 ### Bugfixes
 

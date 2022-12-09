@@ -4,6 +4,7 @@ pub(super) fn mul_assign_impl(
     can_use_no_carry_mul_opt: bool,
     num_limbs: usize,
     modulus_limbs: &[u64],
+    modulus_has_spare_bit: bool,
 ) -> proc_macro2::TokenStream {
     let mut body = proc_macro2::TokenStream::new();
     let modulus_0 = modulus_limbs[0];
@@ -64,6 +65,7 @@ pub(super) fn mul_assign_impl(
                 #default
             }))
         }
+        body.extend(quote!(__subtract_modulus(a);));
     } else {
         // We use standard CIOS
         let double_limbs = num_limbs * 2;
@@ -95,7 +97,11 @@ pub(super) fn mul_assign_impl(
         body.extend(quote! {
             (a.0).0 = scratch[#num_limbs..].try_into().unwrap();
         });
+        if modulus_has_spare_bit {
+            body.extend(quote!(__subtract_modulus(a);));
+        } else {
+            body.extend(quote!(__subtract_modulus_with_carry(a, carry2 != 0);));
+        }
     }
-    body.extend(quote!(__subtract_modulus(a);));
     body
 }

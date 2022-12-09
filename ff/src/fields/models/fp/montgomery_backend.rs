@@ -48,6 +48,13 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
     #[doc(hidden)]
     const CAN_USE_NO_CARRY_SQUARE_OPT: bool = can_use_no_carry_mul_optimization::<Self, N>();
 
+    /// Does the modulus have a spare unused bit
+    ///
+    /// This condition applies if
+    /// (a) `Self::MODULUS[N-1] >> 63 == 0`
+    #[doc(hidden)]
+    const MODULUS_HAS_SPARE_BIT: bool = modulus_has_spare_bit::<Self, N>();
+
     /// 2^s root of unity computed by GENERATOR^t
     const TWO_ADIC_ROOT_OF_UNITY: Fp<MontBackend<Self, N>, N>;
 
@@ -90,9 +97,13 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
     #[inline(always)]
     fn add_assign(a: &mut Fp<MontBackend<Self, N>, N>, b: &Fp<MontBackend<Self, N>, N>) {
         // This cannot exceed the backing capacity.
-        a.0.add_with_carry(&b.0);
+        let c = a.0.add_with_carry(&b.0);
         // However, it may need to be reduced
-        a.subtract_modulus();
+        if Self::MODULUS_HAS_SPARE_BIT {
+            a.subtract_modulus()
+        } else {
+            a.subtract_modulus_with_carry(c)
+        }
     }
 
     /// Sets `a = a - b`.
@@ -109,9 +120,13 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
     #[inline(always)]
     fn double_in_place(a: &mut Fp<MontBackend<Self, N>, N>) {
         // This cannot exceed the backing capacity.
-        a.0.mul2();
+        let c = a.0.mul2();
         // However, it may need to be reduced.
-        a.subtract_modulus();
+        if Self::MODULUS_HAS_SPARE_BIT {
+            a.subtract_modulus()
+        } else {
+            a.subtract_modulus_with_carry(c)
+        }
     }
 
     /// Sets `a = -a`.
@@ -263,7 +278,11 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
             carry2 = fa::adc(&mut r.b1[i], carry, carry2);
         }
         (a.0).0.copy_from_slice(&r.b1);
-        a.subtract_modulus();
+        if Self::MODULUS_HAS_SPARE_BIT {
+            a.subtract_modulus();
+        } else {
+            a.subtract_modulus_with_carry(carry2 != 0);
+        }
     }
 
     fn inverse(a: &Fp<MontBackend<Self, N>, N>) -> Option<Fp<MontBackend<Self, N>, N>> {
@@ -289,8 +308,11 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
                     if b.0.is_even() {
                         b.0.div2();
                     } else {
-                        b.0.add_with_carry(&Self::MODULUS);
+                        let carry = b.0.add_with_carry(&Self::MODULUS);
                         b.0.div2();
+                        if !Self::MODULUS_HAS_SPARE_BIT && carry {
+                            (b.0).0[N - 1] |= 1 << 63;
+                        }
                     }
                 }
 
@@ -300,8 +322,11 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
                     if c.0.is_even() {
                         c.0.div2();
                     } else {
-                        c.0.add_with_carry(&Self::MODULUS);
+                        let carry = c.0.add_with_carry(&Self::MODULUS);
                         c.0.div2();
+                        if !Self::MODULUS_HAS_SPARE_BIT && carry {
+                            (c.0).0[N - 1] |= 1 << 63;
+                        }
                     }
                 }
 
@@ -491,6 +516,11 @@ pub const fn can_use_no_carry_mul_optimization<T: MontConfig<N>, const N: usize>
         all_remaining_bits_are_one  &= T::MODULUS.0[N - i - 1] == u64::MAX;
     });
     top_bit_is_zero && !all_remaining_bits_are_one
+}
+
+#[inline]
+pub const fn modulus_has_spare_bit<T: MontConfig<N>, const N: usize>() -> bool {
+    T::MODULUS.0[N - 1] >> 63 == 0
 }
 
 #[inline]
