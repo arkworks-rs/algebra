@@ -2,6 +2,8 @@
 
 ## Pending
 
+- [\#528](https://github.com/arkworks-rs/algebra/pull/528) (`ark-ec`) Allow to overwrite the default implementation of the `bigint_msm` function provided by the `VariableBaseMSM` trait by a specialized version in `SWCurveConfig`.
+
 ### Breaking changes
 
 - [\#300](https://github.com/arkworks-rs/algebra/pull/300) (`ark-ec`) Change the implementation of `Hash` trait of `GroupProjective` to use the affine coordinates.
