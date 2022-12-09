@@ -4,6 +4,7 @@ pub(super) fn square_in_place_impl(
     can_use_no_carry_mul_opt: bool,
     num_limbs: usize,
     modulus_limbs: &[u64],
+    modulus_has_spare_bit: bool,
 ) -> proc_macro2::TokenStream {
     let mut body = proc_macro2::TokenStream::new();
     let mut default = proc_macro2::TokenStream::new();
@@ -33,6 +34,7 @@ pub(super) fn square_in_place_impl(
         });
     }
     default.extend(quote! { r[1] <<= 1; });
+
     for i in 0..num_limbs {
         default.extend(quote! {
             r[2 * #i] = fa::mac_with_carry(r[2 * #i], (a.0).0[#i], (a.0).0[#i], &mut carry);
@@ -82,14 +84,20 @@ pub(super) fn square_in_place_impl(
                 )]
                 #[allow(unsafe_code, unused_mut)]
                 ark_ff::x86_64_asm_square!(#num_limbs, (a.0).0);
+                __subtract_modulus(a);
             } else {
                 #default
+                __subtract_modulus(a);
             }
-        }))
+        }));
+        return body;
     } else {
-        body.extend(quote!({ #default }))
+        body.extend(quote!( #default ));
+        if modulus_has_spare_bit {
+            body.extend(quote!(__subtract_modulus(a);));
+        } else {
+            body.extend(quote!(__subtract_modulus_with_carry(a, carry2 != 0);));
+        }
     }
-
-    body.extend(quote!(__subtract_modulus(a);));
     body
 }

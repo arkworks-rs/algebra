@@ -80,7 +80,12 @@ pub fn mont_config_helper(
         &modulus_limbs,
         modulus_has_spare_bit,
     );
-    let square_in_place = square_in_place_impl(can_use_no_carry_mul_opt, limbs, &modulus_limbs);
+    let square_in_place = square_in_place_impl(
+        can_use_no_carry_mul_opt,
+        limbs,
+        &modulus_limbs,
+        modulus_has_spare_bit,
+    );
     let sum_of_products = sum_of_products_impl(limbs, &modulus_limbs);
 
     let mixed_radix = if let Some(large_subgroup_generator) = large_subgroup_generator {
