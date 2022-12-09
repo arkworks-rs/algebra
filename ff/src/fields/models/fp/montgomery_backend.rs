@@ -122,7 +122,11 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
         // This cannot exceed the backing capacity.
         let c = a.0.mul2();
         // However, it may need to be reduced.
-        a.subtract_modulus_with_carry(c);
+        if Self::MODULUS_HAS_SPARE_BIT {
+            a.subtract_modulus()
+        } else {
+            a.subtract_modulus_with_carry(c)
+        }
     }
 
     /// Sets `a = -a`.
