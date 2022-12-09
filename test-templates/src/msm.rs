@@ -25,7 +25,7 @@ pub fn test_var_base_msm<G: VariableBaseMSM>() {
     let g = G::batch_convert_to_mul_base(&g);
 
     let naive = naive_var_base_msm::<G>(g.as_slice(), v.as_slice());
-    let fast = G::msm(g.as_slice(), v.as_slice());
+    let fast = G::msm(g.as_slice(), v.as_slice()).unwrap();
 
     assert_eq!(naive, fast);
 }
