@@ -3,6 +3,7 @@
 ## Pending
 
 - [\#528](https://github.com/arkworks-rs/algebra/pull/528) (`ark-ec`) Allow to overwrite the default implementation of the `bigint_msm` function provided by the `VariableBaseMSM` trait by a specialized version in `SWCurveConfig`.
+- [\#521](https://github.com/arkworks-rs/algebra/pull/521) (`ark-poly`) Change `DensePolynomial::evaluate_over_domain` to not truncate terms higher than the size of the domain.
 
 ### Breaking changes
 
@@ -172,6 +173,7 @@
 - [\#352](https://github.com/arkworks-rs/algebra/pull/352) (`ark-ff`) Update `QuadExtField::sqrt` for better performance.
 - [\#357](https://github.com/arkworks-rs/algebra/pull/357) (`ark-poly`) Speedup division by vanishing polynomials for dense polynomials.
 - [\#445](https://github.com/arkworks-rs/algebra/pull/445) (`ark-ec`) Use 2-NAF for ate pairing in MNT4/6 curves.
+- [\#509](https://github.com/arkworks-rs/algebra/pull/509) (`ark-ff`, `ark-ff-macros`) Support prime fields with (64 * k)-bit modulus.
 
 ### Bugfixes
 
@@ -181,6 +183,7 @@
 - [\#394](https://github.com/arkworks-rs/algebra/pull/394) (`ark-ff`, `ark-serialize`) Remove `EmptyFlags` construction checks.
 - [\#442](https://github.com/arkworks-rs/algebra/pull/442) (`ark-ff`) Fix deserialization for modulo with 64 shaving bits.
 - [\#460](https://github.com/arkworks-rs/algebra/pull/460) (`ark-ec`) Fix a corner case for ate pairing in BLS12 and BW6 models.
+- [\#526](https://github.com/arkworks-rs/algebra/pull/526) (`ark-ff`) Fix squaring for `Fp128`.
 
 ## v0.3.0
 

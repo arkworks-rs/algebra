@@ -11,6 +11,9 @@ mod sparse;
 pub use dense::DensePolynomial;
 pub use sparse::SparsePolynomial;
 
+#[cfg(feature = "parallel")]
+use rayon::prelude::*;
+
 /// Represents either a sparse polynomial or a dense one.
 #[derive(Clone)]
 pub enum DenseOrSparsePolynomial<'a, F: Field> {
@@ -153,9 +156,25 @@ impl<'a, F: 'a + FftField> DenseOrSparsePolynomial<'a, F> {
                 Evaluations::from_vec_and_domain(evals, domain)
             },
             DPolynomial(Cow::Borrowed(d)) => {
-                Evaluations::from_vec_and_domain(domain.fft(&d.coeffs), domain)
+                // Reduce the coefficients of the polynomial mod X^domain.size()
+                let mut chunks = d.coeffs.chunks(domain.size());
+                let mut reduced = chunks.next().unwrap().to_vec();
+                for chunk in chunks {
+                    cfg_iter_mut!(reduced).zip(chunk).for_each(|(x, y)| {
+                        *x += y;
+                    });
+                }
+                Evaluations::from_vec_and_domain(domain.fft(&reduced), domain)
             },
             DPolynomial(Cow::Owned(mut d)) => {
+                // Reduce the coefficients of the polynomial mod X^domain.size()
+                let mut chunks = d.coeffs.chunks_mut(domain.size());
+                let coeffs = chunks.next().unwrap();
+                for chunk in chunks {
+                    cfg_iter_mut!(coeffs).zip(chunk).for_each(|(x, y)| {
+                        *x += y;
+                    });
+                }
                 domain.fft_in_place(&mut d.coeffs);
                 Evaluations::from_vec_and_domain(d.coeffs, domain)
             },
