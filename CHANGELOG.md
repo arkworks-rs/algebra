@@ -136,6 +136,7 @@
     - Splits the contents of `ff/src/fields/mod.rs` into smaller files for easier management.
     - Moves `BitIterator` out of `ark_ff::fields` and into `ark_ff` directly.
     - Adds `impl<'a, 'b> Add/Sub/Mul/Div<&'a F> for &'b F`
+- [\#519](https://github.com/arkworks-rs/algebra/pull/519) (`ark-ec`) Refactor variable-base MSM to be checked by default, returning a `Result` if the lengths of the bases and scalars do not match.
 
 ### Features
 
