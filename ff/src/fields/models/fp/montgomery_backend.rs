@@ -46,7 +46,7 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
     /// (a) `Self::MODULUS[N-1] < u64::MAX >> 2`, and
     /// (b) the bits of the modulus are not all 1.
     #[doc(hidden)]
-    const CAN_USE_NO_CARRY_SQUARE_OPT: bool = can_use_no_carry_mul_optimization::<Self, N>();
+    const CAN_USE_NO_CARRY_SQUARE_OPT: bool = can_use_no_carry_square_optimization::<Self, N>();
 
     /// Does the modulus have a spare unused bit
     ///
@@ -216,72 +216,39 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
             *a *= *a;
             return;
         }
-        if Self::CAN_USE_NO_CARRY_SQUARE_OPT
-            && (2..=6).contains(&N)
-            && cfg!(all(
-                feature = "asm",
-                target_feature = "bmi2",
-                target_feature = "adx",
-                target_arch = "x86_64"
-            ))
-        {
-            #[cfg(all(
-                feature = "asm",
-                target_feature = "bmi2",
-                target_feature = "adx",
-                target_arch = "x86_64"
-            ))]
-            #[allow(unsafe_code, unused_mut)]
-            #[rustfmt::skip]
-            match N {
-                2 => { ark_ff_asm::x86_64_asm_square!(2, (a.0).0); },
-                3 => { ark_ff_asm::x86_64_asm_square!(3, (a.0).0); },
-                4 => { ark_ff_asm::x86_64_asm_square!(4, (a.0).0); },
-                5 => { ark_ff_asm::x86_64_asm_square!(5, (a.0).0); },
-                6 => { ark_ff_asm::x86_64_asm_square!(6, (a.0).0); },
-                _ => unsafe { ark_std::hint::unreachable_unchecked() },
-            };
-            a.subtract_modulus();
-            return;
-        }
-
-        let mut r = crate::const_helpers::MulBuffer::<N>::zeroed();
-
-        let mut carry = 0;
-        for i in 0..(N - 1) {
-            for j in (i + 1)..N {
-                r[i + j] = fa::mac_with_carry(r[i + j], (a.0).0[i], (a.0).0[j], &mut carry);
+        if Self::CAN_USE_NO_CARRY_SQUARE_OPT {
+            if N <= 6
+                && cfg!(all(
+                    feature = "asm",
+                    target_feature = "bmi2",
+                    target_feature = "adx",
+                    target_arch = "x86_64"
+                ))
+            {
+                #[cfg(all(
+                    feature = "asm",
+                    target_feature = "bmi2",
+                    target_feature = "adx",
+                    target_arch = "x86_64"
+                ))]
+                #[allow(unsafe_code, unused_mut)]
+                #[rustfmt::skip]
+                match N {
+                    2 => { ark_ff_asm::x86_64_asm_square!(2, (a.0).0); },
+                    3 => { ark_ff_asm::x86_64_asm_square!(3, (a.0).0); },
+                    4 => { ark_ff_asm::x86_64_asm_square!(4, (a.0).0); },
+                    5 => { ark_ff_asm::x86_64_asm_square!(5, (a.0).0); },
+                    6 => { ark_ff_asm::x86_64_asm_square!(6, (a.0).0); },
+                    _ => unsafe { ark_std::hint::unreachable_unchecked() },
+                };
+                a.subtract_modulus();
+                return;
+            } else {
+                // No-carry optimisation applied to CIOS squaring goes here
+                *a = a.square_without_opt();
             }
-            r.b1[i] = carry;
-            carry = 0;
-        }
-
-        r.b1[N - 1] = r.b1[N - 2] >> 63;
-        for i in 2..(2 * N - 1) {
-            r[2 * N - i] = (r[2 * N - i] << 1) | (r[2 * N - (i + 1)] >> 63);
-        }
-        r.b0[1] <<= 1;
-
-        for i in 0..N {
-            r[2 * i] = fa::mac_with_carry(r[2 * i], (a.0).0[i], (a.0).0[i], &mut carry);
-            carry = fa::adc(&mut r[2 * i + 1], 0, carry);
-        }
-        // Montgomery reduction
-        let mut carry2 = 0;
-        for i in 0..N {
-            let k = r[i].wrapping_mul(Self::INV);
-            let mut carry = 0;
-            fa::mac_discard(r[i], k, Self::MODULUS.0[0], &mut carry);
-            for j in 1..N {
-                r[j + i] = fa::mac_with_carry(r[j + i], k, Self::MODULUS.0[j], &mut carry);
-            }
-            carry2 = fa::adc(&mut r.b1[i], carry, carry2);
-        }
-        (a.0).0.copy_from_slice(&r.b1);
-        if Self::MODULUS_HAS_SPARE_BIT {
-            a.subtract_modulus();
         } else {
-            a.subtract_modulus_with_carry(carry2 != 0);
+            *a = a.square_without_opt();
         }
     }
 
@@ -526,6 +493,7 @@ pub const fn modulus_has_spare_bit<T: MontConfig<N>, const N: usize>() -> bool {
 #[inline]
 pub const fn can_use_no_carry_square_optimization<T: MontConfig<N>, const N: usize>() -> bool {
     // Checking the modulus at compile time
+    // TODO: figure out the exact math here
     let top_two_bits_are_zero = T::MODULUS.0[N - 1] >> 62 == 0;
     let mut all_remaining_bits_are_one = T::MODULUS.0[N - 1] == u64::MAX >> 2;
     crate::const_for!((i in 1..N) {
@@ -768,6 +736,49 @@ impl<T: MontConfig<N>, const N: usize> Fp<MontBackend<T, N>, N> {
         crate::const_for!((i in 0..N) {
             (self.0).0[i] = hi[i];
         });
+        self
+    }
+
+    // TODO: see if this can be made into a const fn like `mul_without_cond_subtract`
+    fn square_without_opt(mut self) -> Self {
+        let mut r = crate::const_helpers::MulBuffer::<N>::zeroed();
+
+        let mut carry = 0;
+        for i in 0..(N - 1) {
+            for j in (i + 1)..N {
+                r[i + j] = fa::mac_with_carry(r[i + j], (self.0).0[i], (self.0).0[j], &mut carry);
+            }
+            r.b1[i] = carry;
+            carry = 0;
+        }
+
+        r.b1[N - 1] = r.b1[N - 2] >> 63;
+        for i in 2..(2 * N - 1) {
+            r[2 * N - i] = (r[2 * N - i] << 1) | (r[2 * N - (i + 1)] >> 63);
+        }
+        r.b0[1] <<= 1;
+
+        for i in 0..N {
+            r[2 * i] = fa::mac_with_carry(r[2 * i], (self.0).0[i], (self.0).0[i], &mut carry);
+            carry = fa::adc(&mut r[2 * i + 1], 0, carry);
+        }
+        // Montgomery reduction
+        let mut carry2 = 0;
+        for i in 0..N {
+            let k = r[i].wrapping_mul(Self::INV);
+            let mut carry = 0;
+            fa::mac_discard(r[i], k, Self::MODULUS.0[0], &mut carry);
+            for j in 1..N {
+                r[j + i] = fa::mac_with_carry(r[j + i], k, Self::MODULUS.0[j], &mut carry);
+            }
+            carry2 = fa::adc(&mut r.b1[i], carry, carry2);
+        }
+        (self.0).0.copy_from_slice(&r.b1);
+        if T::MODULUS_HAS_SPARE_BIT {
+            self.subtract_modulus();
+        } else {
+            self.subtract_modulus_with_carry(carry2 != 0);
+        }
         self
     }
 
