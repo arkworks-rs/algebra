@@ -87,7 +87,17 @@ pub(super) fn square_in_place_impl(
                     ark_ff::x86_64_asm_square!(#num_limbs, (a.0).0);
                 }
             } else {
-                #default
+                #[cfg(
+                    not(all(
+                        feature = "asm",
+                        target_feature = "bmi2",
+                        target_feature = "adx",
+                        target_arch = "x86_64"
+                    ))
+                )]
+                {
+                    #default
+                }
             }
         }));
         body.extend(quote!(__subtract_modulus(a);));
