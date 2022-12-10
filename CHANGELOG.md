@@ -164,6 +164,7 @@
     - Add constructor `new_coset`.
     - Add convenience method `get_coset`.
     - Add methods `coset_offset`, `coset_offset_inv` and `coset_offset_pow_size`.
+- [\#539](https://github.com/arkworks-rs/algebra/pull/539) (`ark-ec`) Implement wNAF-based MSM, resulting in 5-10% speedups.
 
 ### Improvements
 
