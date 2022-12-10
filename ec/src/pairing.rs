@@ -304,6 +304,7 @@ impl<P: Pairing> Group for PairingOutput<P> {
 
 impl<P: Pairing> crate::ScalarMul for PairingOutput<P> {
     type MulBase = Self;
+    const NEGATION_IS_CHEAP: bool = P::TargetField::INVERSE_IS_FAST;
 
     fn batch_convert_to_mul_base(bases: &[Self]) -> Vec<Self::MulBase> {
         bases.to_vec()
