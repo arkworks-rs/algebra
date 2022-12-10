@@ -18,12 +18,10 @@ impl ark_serialize::Flags for DummyFlags {
 }
 
 pub fn sum_of_products_test_helper<F: ark_ff::Field, const N: usize>(rng: &mut impl Rng) {
-    println!("aaa");
     let a: [_; N] = core::array::from_fn(|_| F::rand(rng));
     let b: [_; N] = core::array::from_fn(|_| F::rand(rng));
     let result_1 = F::sum_of_products(&a, &b);
     let result_2 = a.into_iter().zip(b).map(|(a, b)| a * b).sum::<F>();
-    println!("bbb");
     assert_eq!(result_1, result_2, "length: {N}");
 
     let two_inv = F::from(2u64).inverse().unwrap();
@@ -308,7 +306,6 @@ macro_rules! __test_field {
             use ark_std::{UniformRand, rand::Rng};
             let rng = &mut test_rng();
 
-            println!("test");
             for _ in 0..ITERATIONS {
                 $crate::fields::sum_of_products_test_helper::<$field, 1>(rng);
                 $crate::fields::sum_of_products_test_helper::<$field, 2>(rng);
