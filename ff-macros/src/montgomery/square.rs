@@ -17,8 +17,9 @@ pub(super) fn square_in_place_impl(
     });
     for i in 0..(num_limbs - 1) {
         for j in (i + 1)..num_limbs {
+            let idx = i + j;
             default.extend(quote! {
-                r[#i + #j] = fa::mac_with_carry(r[#i + #j], (a.0).0[#i], (a.0).0[#j], &mut carry);
+                r[#idx] = fa::mac_with_carry(r[#idx], (a.0).0[#i], (a.0).0[#j], &mut carry);
             })
         }
         default.extend(quote! {
@@ -28,17 +29,16 @@ pub(super) fn square_in_place_impl(
     }
     default.extend(quote! { r[#double_num_limbs - 1] = r[#double_num_limbs - 2] >> 63; });
     for i in 2..(double_num_limbs - 1) {
-        default.extend(quote! {
-            r[#double_num_limbs - #i] =
-            (r[#double_num_limbs - #i] << 1) | (r[#double_num_limbs - (#i + 1)] >> 63);
-        });
+        let idx = double_num_limbs - i;
+        default.extend(quote! { r[#idx] = (r[#idx] << 1) | (r[#idx - 1] >> 63); });
     }
     default.extend(quote! { r[1] <<= 1; });
 
     for i in 0..num_limbs {
+        let idx = 2 * i;
         default.extend(quote! {
-            r[2 * #i] = fa::mac_with_carry(r[2 * #i], (a.0).0[#i], (a.0).0[#i], &mut carry);
-            carry = fa::adc(&mut r[2 * #i + 1], 0, carry);
+            r[#idx] = fa::mac_with_carry(r[#idx], (a.0).0[#i], (a.0).0[#i], &mut carry);
+            carry = fa::adc(&mut r[#idx + 1], 0, carry);
         });
     }
     // Montgomery reduction
@@ -63,9 +63,9 @@ pub(super) fn square_in_place_impl(
     if num_limbs == 1 {
         // We default to multiplying with `a` using the `Mul` impl
         // for the N == 1 case
-        return quote!({
+        quote!({
             *a *= *a;
-        });
+        })
     } else if (2..=6).contains(&num_limbs) && can_use_no_carry_mul_opt {
         body.extend(quote!({
             if cfg!(all(
@@ -85,14 +85,13 @@ pub(super) fn square_in_place_impl(
                 #[allow(unsafe_code, unused_mut)]
                 {
                     ark_ff::x86_64_asm_square!(#num_limbs, (a.0).0);
-                    __subtract_modulus(a);
                 }
             } else {
                 #default
-                __subtract_modulus(a);
             }
         }));
-        return body;
+        body.extend(quote!(__subtract_modulus(a);));
+        body
     } else {
         body.extend(quote!( #default ));
         if modulus_has_spare_bit {
@@ -100,6 +99,6 @@ pub(super) fn square_in_place_impl(
         } else {
             body.extend(quote!(__subtract_modulus_with_carry(a, carry2 != 0);));
         }
+        body
     }
-    body
 }

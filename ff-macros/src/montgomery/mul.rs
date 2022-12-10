@@ -61,9 +61,7 @@ pub(super) fn mul_assign_impl(
                 }
             }))
         } else {
-            body.extend(quote!({
-                #default
-            }))
+            body.extend(quote!({ #default }))
         }
         body.extend(quote!(__subtract_modulus(a);));
     } else {
