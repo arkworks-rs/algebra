@@ -150,10 +150,10 @@ pub fn mont_config_helper(
                 fn mul_assign(a: &mut F, b: &F) {
                     #mul_assign
                 }
-                #[inline(always)]
-                fn square_in_place(a: &mut F) {
-                    #square_in_place
-                }
+                // #[inline(always)]
+                // fn square_in_place(a: &mut F) {
+                //     #square_in_place
+                // }
 
                 fn sum_of_products<const M: usize>(
                     a: &[F; M],
