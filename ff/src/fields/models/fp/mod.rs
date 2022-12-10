@@ -131,6 +131,7 @@ pub type Fp768<P> = Fp<P, 12>;
 pub type Fp832<P> = Fp<P, 13>;
 
 impl<P: FpConfig<N>, const N: usize> Fp<P, N> {
+    #[doc(hidden)]
     #[inline]
     pub fn is_geq_modulus(&self) -> bool {
         self.0 >= P::MODULUS
