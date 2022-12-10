@@ -57,13 +57,21 @@ pub(super) fn mul_assign_impl(
                     #[allow(unsafe_code, unused_mut)]
                     ark_ff::x86_64_asm_mul!(#num_limbs, (a.0).0, (b.0).0);
                 } else {
-                    #default
+                    #[cfg(
+                        not(all(
+                            feature = "asm",
+                            target_feature = "bmi2",
+                            target_feature = "adx",
+                            target_arch = "x86_64"
+                        ))
+                    )]
+                    {
+                        #default
+                    }
                 }
             }))
         } else {
-            body.extend(quote!({
-                #default
-            }))
+            body.extend(quote!({ #default }))
         }
         body.extend(quote!(__subtract_modulus(a);));
     } else {

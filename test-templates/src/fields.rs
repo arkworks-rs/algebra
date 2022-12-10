@@ -209,55 +209,55 @@ macro_rules! __test_field {
             let mut rng = test_rng();
             let zero = <$field>::zero();
             let one = <$field>::one();
-            assert_eq!(one.inverse().unwrap(), one);
-            assert!(one.is_one());
+            assert_eq!(one.inverse().unwrap(), one, "One inverse failed");
+            assert!(one.is_one(), "One is not one");
 
-            assert!(<$field>::ONE.is_one());
-            assert_eq!(<$field>::ONE, one);
+            assert!(<$field>::ONE.is_one(), "One constant is not one");
+            assert_eq!(<$field>::ONE, one, "One constant is incorrect");
 
             for _ in 0..ITERATIONS {
                 // Associativity
                 let a = <$field>::rand(&mut rng);
                 let b = <$field>::rand(&mut rng);
                 let c = <$field>::rand(&mut rng);
-                assert_eq!((a * b) * c, a * (b * c));
+                assert_eq!((a * b) * c, a * (b * c), "Associativity failed");
 
                 // Commutativity
-                assert_eq!(a * b, b * a);
+                assert_eq!(a * b, b * a, "Commutativity failed");
 
                 // Identity
-                assert_eq!(one * a, a);
-                assert_eq!(one * b, b);
-                assert_eq!(one * c, c);
+                assert_eq!(one * a, a, "Identity mul failed");
+                assert_eq!(one * b, b, "Identity mul failed");
+                assert_eq!(one * c, c, "Identity mul failed");
 
-                assert_eq!(zero * a, zero);
-                assert_eq!(zero * b, zero);
-                assert_eq!(zero * c, zero);
+                assert_eq!(zero * a, zero, "Mul by zero failed");
+                assert_eq!(zero * b, zero, "Mul by zero failed");
+                assert_eq!(zero * c, zero, "Mul by zero failed");
 
                 // Inverses
-                assert_eq!(a * a.inverse().unwrap(), one);
-                assert_eq!(b * b.inverse().unwrap(), one);
-                assert_eq!(c * c.inverse().unwrap(), one);
+                assert_eq!(a * a.inverse().unwrap(), one, "Mul by inverse failed");
+                assert_eq!(b * b.inverse().unwrap(), one, "Mul by inverse failed");
+                assert_eq!(c * c.inverse().unwrap(), one, "Mul by inverse failed");
 
                 // Associativity and commutativity simultaneously
                 let t0 = (a * b) * c;
                 let t1 = (a * c) * b;
                 let t2 = (b * c) * a;
-                assert_eq!(t0, t1);
-                assert_eq!(t1, t2);
+                assert_eq!(t0, t1, "Associativity + commutativity failed");
+                assert_eq!(t1, t2, "Associativity + commutativity failed");
 
                 // Squaring
-                assert_eq!(a * a, a.square());
-                assert_eq!(b * b, b.square());
-                assert_eq!(c * c, c.square());
+                assert_eq!(a * a, a.square(), "Squaring failed");
+                assert_eq!(b * b, b.square(), "Squaring failed");
+                assert_eq!(c * c, c.square(), "Squaring failed");
 
                 // Distributivity
-                assert_eq!(a * (b + c), a * b + a * c);
-                assert_eq!(b * (a + c), b * a + b * c);
-                assert_eq!(c * (a + b), c * a + c * b);
-                assert_eq!((a + b).square(), a.square() + b.square() + a * b.double());
-                assert_eq!((b + c).square(), c.square() + b.square() + c * b.double());
-                assert_eq!((c + a).square(), a.square() + c.square() + a * c.double());
+                assert_eq!(a * (b + c), a * b + a * c, "Distributivity failed");
+                assert_eq!(b * (a + c), b * a + b * c, "Distributivity failed");
+                assert_eq!(c * (a + b), c * a + c * b, "Distributivity failed");
+                assert_eq!((a + b).square(), a.square() + b.square() + a * b.double(), "Distributivity for square failed");
+                assert_eq!((b + c).square(), c.square() + b.square() + c * b.double(), "Distributivity for square failed");
+                assert_eq!((c + a).square(), a.square() + c.square() + a * c.double(), "Distributivity for square failed");
             }
         }
 
