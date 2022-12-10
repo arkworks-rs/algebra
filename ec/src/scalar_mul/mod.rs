@@ -6,7 +6,7 @@ pub mod variable_base;
 
 use crate::Group;
 use ark_std::{
-    ops::{Add, AddAssign, Mul},
+    ops::{Add, AddAssign, Mul, Neg, Sub, SubAssign},
     vec::Vec,
 };
 
@@ -25,6 +25,10 @@ pub trait ScalarMul:
     + AddAssign<Self::MulBase>
     + for<'a> Add<&'a Self::MulBase, Output = Self>
     + for<'a> AddAssign<&'a Self::MulBase>
+    + Sub<Self::MulBase, Output = Self>
+    + SubAssign<Self::MulBase>
+    + for<'a> Sub<&'a Self::MulBase, Output = Self>
+    + for<'a> SubAssign<&'a Self::MulBase>
     + From<Self::MulBase>
 {
     type MulBase: Send
@@ -33,7 +37,10 @@ pub trait ScalarMul:
         + Eq
         + core::hash::Hash
         + Mul<Self::ScalarField, Output = Self>
-        + for<'a> Mul<&'a Self::ScalarField, Output = Self>;
+        + for<'a> Mul<&'a Self::ScalarField, Output = Self>
+        + Neg<Output = Self::MulBase>;
+
+    const NEGATION_IS_CHEAP: bool;
 
     fn batch_convert_to_mul_base(bases: &[Self]) -> Vec<Self::MulBase>;
 }

@@ -110,13 +110,14 @@ jobs:
 
       - name: Test assembly on nightly
         env:
-          RUSTFLAGS: -C target-cpu=native
+          RUSTFLAGS: -C target-cpu=native -Z macro-backtrace
         uses: actions-rs/cargo@v1
         with:
             command: test
             args: "--workspace \
                    --package ark-test-curves \
-                   --all-features"
+                   --all-features
+                   "
         if: matrix.rust == 'nightly'
 
   test_assembly:

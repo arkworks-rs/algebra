@@ -14,6 +14,9 @@ use double::*;
 mod mul;
 use mul::*;
 
+mod square;
+use square::*;
+
 mod sum_of_products;
 use sum_of_products::*;
 
@@ -72,6 +75,12 @@ pub fn mont_config_helper(
     let add_assign = add_assign_impl(modulus_has_spare_bit);
     let double_in_place = double_in_place_impl(modulus_has_spare_bit);
     let mul_assign = mul_assign_impl(
+        can_use_no_carry_mul_opt,
+        limbs,
+        &modulus_limbs,
+        modulus_has_spare_bit,
+    );
+    let square_in_place = square_in_place_impl(
         can_use_no_carry_mul_opt,
         limbs,
         &modulus_limbs,
@@ -140,6 +149,10 @@ pub fn mont_config_helper(
                 #[inline(always)]
                 fn mul_assign(a: &mut F, b: &F) {
                     #mul_assign
+                }
+                #[inline(always)]
+                fn square_in_place(a: &mut F) {
+                    #square_in_place
                 }
 
                 fn sum_of_products<const M: usize>(
