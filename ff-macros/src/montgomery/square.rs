@@ -58,7 +58,7 @@ pub(super) fn square_in_place_impl(
         }
         default.extend(quote! { carry2 = fa::adc(&mut r[#num_limbs + #i], carry, carry2); });
     }
-    default.extend(quote! { (a.0).0.copy_from_slice(&r[#num_limbs..]); });
+    default.extend(quote! { (a.0).0 = r[#num_limbs..].try_into().unwrap(); });
 
     if num_limbs == 1 {
         // We default to multiplying with `a` using the `Mul` impl
@@ -83,8 +83,10 @@ pub(super) fn square_in_place_impl(
                     )
                 )]
                 #[allow(unsafe_code, unused_mut)]
-                ark_ff::x86_64_asm_square!(#num_limbs, (a.0).0);
-                __subtract_modulus(a);
+                {
+                    ark_ff::x86_64_asm_square!(#num_limbs, (a.0).0);
+                    __subtract_modulus(a);
+                }
             } else {
                 #default
                 __subtract_modulus(a);
