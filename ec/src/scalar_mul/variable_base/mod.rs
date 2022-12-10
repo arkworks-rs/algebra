@@ -116,7 +116,7 @@ fn msm_bigint_wnaf<V: VariableBaseMSM>(
                 let scalar = digits[i];
                 match 0.cmp(&scalar) {
                     Ordering::Less => buckets[(scalar - 1) as usize] += base,
-                    Ordering::Greater => buckets[-(scalar - 1) as usize] -= base,
+                    Ordering::Greater => buckets[(-scalar - 1) as usize] -= base,
                     Ordering::Equal => (),
                 }
             }
