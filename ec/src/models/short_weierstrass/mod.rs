@@ -4,7 +4,7 @@ use ark_serialize::{
 };
 use ark_std::io::{Read, Write};
 
-use ark_ff::{fields::Field, PrimeField};
+use ark_ff::fields::Field;
 
 use crate::{scalar_mul::variable_base::VariableBaseMSM, AffineRepr, Group};
 
@@ -106,11 +106,13 @@ pub trait SWCurveConfig: super::CurveConfig {
     }
 
     /// Default implementation for multi scalar multiplication
-    fn model_msm_bigint(
+    fn model_msm(
         bases: &[Affine<Self>],
-        bigints: &[<Self::ScalarField as PrimeField>::BigInt],
-    ) -> Projective<Self> {
-        VariableBaseMSM::msm_bigint_default(bases, bigints)
+        scalars: &[Self::ScalarField],
+    ) -> Result<Projective<Self>, usize> {
+        (bases.len() == scalars.len())
+            .then(|| VariableBaseMSM::msm_unchecked(bases, scalars))
+            .ok_or(usize::min(bases.len(), scalars.len()))
     }
 
     /// If uncompressed, serializes both x and y coordinates as well as a bit for whether it is
