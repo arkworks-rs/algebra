@@ -628,6 +628,7 @@ where
 
 impl<P: SWCurveConfig> ScalarMul for Projective<P> {
     type MulBase = Affine<P>;
+    const NEGATION_IS_CHEAP: bool = true;
 
     fn batch_convert_to_mul_base(bases: &[Self]) -> Vec<Self::MulBase> {
         Self::normalize_batch(bases)
