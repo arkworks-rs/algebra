@@ -106,7 +106,7 @@ pub trait SWCurveConfig: super::CurveConfig {
     }
 
     /// Default implementation for multi scalar multiplication
-    fn model_msm(
+    fn msm(
         bases: &[Affine<Self>],
         scalars: &[Self::ScalarField],
     ) -> Result<Projective<Self>, usize> {
