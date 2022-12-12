@@ -42,7 +42,7 @@ pub trait VariableBaseMSM: ScalarMul {
         bases: &[Self::MulBase],
         bigints: &[<Self::ScalarField as PrimeField>::BigInt],
     ) -> Self {
-        Self::default_msm_bigint(bases, bigints)
+        Self::msm_bigint_default(bases, bigints)
     }
  
     /// Raw optimized implementation of multi-scalar multiplication, only for usage by curve models.
