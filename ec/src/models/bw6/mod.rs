@@ -40,6 +40,13 @@ pub trait BW6Parameters: 'static + Eq + PartialEq + Sized {
         ScalarField = <Self::G1Parameters as CurveConfig>::ScalarField,
     >;
 
+    fn final_exponentiation(f: MillerLoopOutput<BW6<Self>>) -> Option<PairingOutput<BW6<Self>>> {
+        let value = f.0;
+        let value_inv = value.inverse().unwrap();
+        let value_to_first_chunk = BW6::<Self>::final_exponentiation_first_chunk(&value, &value_inv);
+        Some(BW6::<Self>::final_exponentiation_last_chunk(&value_to_first_chunk)).map(PairingOutput)
+    }
+
     fn multi_miller_loop(
         a: impl IntoIterator<Item = impl Into<G1Prepared<Self>>>,
         b: impl IntoIterator<Item = impl Into<G2Prepared<Self>>>,
@@ -296,10 +303,7 @@ impl<P: BW6Parameters> Pairing for BW6<P> {
     type TargetField = Fp6<P::Fp6Config>;
 
     fn final_exponentiation(f: MillerLoopOutput<Self>) -> Option<PairingOutput<Self>> {
-        let value = f.0;
-        let value_inv = value.inverse().unwrap();
-        let value_to_first_chunk = Self::final_exponentiation_first_chunk(&value, &value_inv);
-        Some(Self::final_exponentiation_last_chunk(&value_to_first_chunk)).map(PairingOutput)
+        P::final_exponentiation(f)
     }
 
     fn multi_miller_loop(
