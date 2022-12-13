@@ -23,7 +23,7 @@ pub enum TwistType {
     D,
 }
 
-pub trait BW6Parameters: 'static + Eq + PartialEq {
+pub trait BW6Parameters: 'static + Eq + PartialEq + Sized {
     const X: <Self::Fp as PrimeField>::BigInt;
     const X_IS_NEGATIVE: bool;
     const ATE_LOOP_COUNT_1: &'static [u64];
@@ -39,6 +39,91 @@ pub trait BW6Parameters: 'static + Eq + PartialEq {
         BaseField = Self::Fp,
         ScalarField = <Self::G1Parameters as CurveConfig>::ScalarField,
     >;
+
+    fn final_exponentiation(f: MillerLoopOutput<BW6<Self>>) -> Option<PairingOutput<BW6<Self>>> {
+        let value = f.0;
+        let value_inv = value.inverse().unwrap();
+        let value_to_first_chunk =
+            BW6::<Self>::final_exponentiation_first_chunk(&value, &value_inv);
+        Some(BW6::<Self>::final_exponentiation_last_chunk(
+            &value_to_first_chunk,
+        ))
+        .map(PairingOutput)
+    }
+
+    fn multi_miller_loop(
+        a: impl IntoIterator<Item = impl Into<G1Prepared<Self>>>,
+        b: impl IntoIterator<Item = impl Into<G2Prepared<Self>>>,
+    ) -> MillerLoopOutput<BW6<Self>> {
+        // Alg.5 in https://eprint.iacr.org/2020/351.pdf
+
+        let (mut pairs_1, mut pairs_2) = a
+            .into_iter()
+            .zip_eq(b)
+            .filter_map(|(p, q)| {
+                let (p, q): (G1Prepared<Self>, G2Prepared<Self>) = (p.into(), q.into());
+                match !p.is_zero() && !q.is_zero() {
+                    true => Some((
+                        (p, q.ell_coeffs_1.into_iter()),
+                        (p, q.ell_coeffs_2.into_iter()),
+                    )),
+                    false => None,
+                }
+            })
+            .unzip::<_, _, Vec<_>, Vec<_>>();
+
+        let mut f_1 = cfg_chunks_mut!(pairs_1, 4)
+            .map(|pairs| {
+                let mut f = <BW6<Self> as Pairing>::TargetField::one();
+                for i in BitIteratorBE::without_leading_zeros(Self::ATE_LOOP_COUNT_1).skip(1) {
+                    f.square_in_place();
+                    for (p, coeffs) in pairs.iter_mut() {
+                        BW6::<Self>::ell(&mut f, &coeffs.next().unwrap(), &p.0);
+                    }
+                    if i {
+                        for (p, coeffs) in pairs.iter_mut() {
+                            BW6::<Self>::ell(&mut f, &coeffs.next().unwrap(), &p.0);
+                        }
+                    }
+                }
+                f
+            })
+            .product::<<BW6<Self> as Pairing>::TargetField>();
+
+        if Self::ATE_LOOP_COUNT_1_IS_NEGATIVE {
+            f_1.cyclotomic_inverse_in_place();
+        }
+        let mut f_2 = cfg_chunks_mut!(pairs_2, 4)
+            .map(|pairs| {
+                let mut f = <<BW6<Self> as Pairing>::TargetField>::one();
+                for i in (1..Self::ATE_LOOP_COUNT_2.len()).rev() {
+                    if i != Self::ATE_LOOP_COUNT_2.len() - 1 {
+                        f.square_in_place();
+                    }
+
+                    for (p, ref mut coeffs) in pairs.iter_mut() {
+                        BW6::<Self>::ell(&mut f, &coeffs.next().unwrap(), &p.0);
+                    }
+
+                    let bit = Self::ATE_LOOP_COUNT_2[i - 1];
+                    if bit == 1 || bit == -1 {
+                        for &mut (p, ref mut coeffs) in pairs.iter_mut() {
+                            BW6::<Self>::ell(&mut f, &coeffs.next().unwrap(), &p.0);
+                        }
+                    }
+                }
+                f
+            })
+            .product::<<BW6<Self> as Pairing>::TargetField>();
+
+        if Self::ATE_LOOP_COUNT_2_IS_NEGATIVE {
+            f_2.cyclotomic_inverse_in_place();
+        }
+
+        f_2.frobenius_map(1);
+
+        MillerLoopOutput(f_1 * &f_2)
+    }
 }
 
 pub mod g1;
@@ -221,84 +306,14 @@ impl<P: BW6Parameters> Pairing for BW6<P> {
     type G2Prepared = G2Prepared<P>;
     type TargetField = Fp6<P::Fp6Config>;
 
+    fn final_exponentiation(f: MillerLoopOutput<Self>) -> Option<PairingOutput<Self>> {
+        P::final_exponentiation(f)
+    }
+
     fn multi_miller_loop(
         a: impl IntoIterator<Item = impl Into<Self::G1Prepared>>,
         b: impl IntoIterator<Item = impl Into<Self::G2Prepared>>,
     ) -> MillerLoopOutput<Self> {
-        // Alg.5 in https://eprint.iacr.org/2020/351.pdf
-
-        let (mut pairs_1, mut pairs_2) = a
-            .into_iter()
-            .zip_eq(b)
-            .filter_map(|(p, q)| {
-                let (p, q): (G1Prepared<P>, G2Prepared<P>) = (p.into(), q.into());
-                match !p.is_zero() && !q.is_zero() {
-                    true => Some((
-                        (p, q.ell_coeffs_1.into_iter()),
-                        (p, q.ell_coeffs_2.into_iter()),
-                    )),
-                    false => None,
-                }
-            })
-            .unzip::<_, _, Vec<_>, Vec<_>>();
-
-        let mut f_1 = cfg_chunks_mut!(pairs_1, 4)
-            .map(|pairs| {
-                let mut f = Self::TargetField::one();
-                for i in BitIteratorBE::without_leading_zeros(P::ATE_LOOP_COUNT_1).skip(1) {
-                    f.square_in_place();
-                    for (p, coeffs) in pairs.iter_mut() {
-                        Self::ell(&mut f, &coeffs.next().unwrap(), &p.0);
-                    }
-                    if i {
-                        for (p, coeffs) in pairs.iter_mut() {
-                            Self::ell(&mut f, &coeffs.next().unwrap(), &p.0);
-                        }
-                    }
-                }
-                f
-            })
-            .product::<Self::TargetField>();
-
-        if P::ATE_LOOP_COUNT_1_IS_NEGATIVE {
-            f_1.cyclotomic_inverse_in_place();
-        }
-        let mut f_2 = cfg_chunks_mut!(pairs_2, 4)
-            .map(|pairs| {
-                let mut f = Self::TargetField::one();
-                for i in (1..P::ATE_LOOP_COUNT_2.len()).rev() {
-                    if i != P::ATE_LOOP_COUNT_2.len() - 1 {
-                        f.square_in_place();
-                    }
-
-                    for (p, ref mut coeffs) in pairs.iter_mut() {
-                        Self::ell(&mut f, &coeffs.next().unwrap(), &p.0);
-                    }
-
-                    let bit = P::ATE_LOOP_COUNT_2[i - 1];
-                    if bit == 1 || bit == -1 {
-                        for &mut (p, ref mut coeffs) in pairs.iter_mut() {
-                            Self::ell(&mut f, &coeffs.next().unwrap(), &p.0);
-                        }
-                    }
-                }
-                f
-            })
-            .product::<Self::TargetField>();
-
-        if P::ATE_LOOP_COUNT_2_IS_NEGATIVE {
-            f_2.cyclotomic_inverse_in_place();
-        }
-
-        f_2.frobenius_map(1);
-
-        MillerLoopOutput(f_1 * &f_2)
-    }
-
-    fn final_exponentiation(f: MillerLoopOutput<Self>) -> Option<PairingOutput<Self>> {
-        let value = f.0;
-        let value_inv = value.inverse().unwrap();
-        let value_to_first_chunk = Self::final_exponentiation_first_chunk(&value, &value_inv);
-        Some(Self::final_exponentiation_last_chunk(&value_to_first_chunk)).map(PairingOutput)
+        P::multi_miller_loop(a, b)
     }
 }
