@@ -43,8 +43,12 @@ pub trait BW6Parameters: 'static + Eq + PartialEq + Sized {
     fn final_exponentiation(f: MillerLoopOutput<BW6<Self>>) -> Option<PairingOutput<BW6<Self>>> {
         let value = f.0;
         let value_inv = value.inverse().unwrap();
-        let value_to_first_chunk = BW6::<Self>::final_exponentiation_first_chunk(&value, &value_inv);
-        Some(BW6::<Self>::final_exponentiation_last_chunk(&value_to_first_chunk)).map(PairingOutput)
+        let value_to_first_chunk =
+            BW6::<Self>::final_exponentiation_first_chunk(&value, &value_inv);
+        Some(BW6::<Self>::final_exponentiation_last_chunk(
+            &value_to_first_chunk,
+        ))
+        .map(PairingOutput)
     }
 
     fn multi_miller_loop(
