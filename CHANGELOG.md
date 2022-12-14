@@ -2,6 +2,7 @@
 
 ## Pending
 
+- [\#528](https://github.com/arkworks-rs/algebra/pull/528) (`ark-ec`) Allow to overwrite the default implementation of the `msm` function provided by the `VariableBaseMSM` trait by a specialized version in `SWCurveConfig`.
 - [\#521](https://github.com/arkworks-rs/algebra/pull/521) (`ark-poly`) Change `DensePolynomial::evaluate_over_domain` to not truncate terms higher than the size of the domain.
 
 ### Breaking changes

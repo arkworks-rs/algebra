@@ -635,7 +635,11 @@ impl<P: SWCurveConfig> ScalarMul for Projective<P> {
     }
 }
 
-impl<P: SWCurveConfig> VariableBaseMSM for Projective<P> {}
+impl<P: SWCurveConfig> VariableBaseMSM for Projective<P> {
+    fn msm(bases: &[Self::MulBase], bigints: &[Self::ScalarField]) -> Result<Self, usize> {
+        P::msm(bases, bigints)
+    }
+}
 
 impl<P: SWCurveConfig, T: Borrow<Affine<P>>> core::iter::Sum<T> for Projective<P> {
     fn sum<I: Iterator<Item = T>>(iter: I) -> Self {
