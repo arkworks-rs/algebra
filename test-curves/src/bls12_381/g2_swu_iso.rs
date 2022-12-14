@@ -76,8 +76,8 @@ impl SWUParams for SwuIsoParameters {
     const ZETA: Fq2 = Fq2::new(MontFp!("-2"), MontFp!("-1"));
 }
 
-pub const ISOGENY_MAP_TO_G2  : IsogenyMap<'_, SwuIsoParameters, g2::Parameters> = IsogenyMap {
-    x_map_numerator: &[
+pub const ISOGENY_MAP_TO_G2  : IsogenyMap<SwuIsoParameters, g2::Parameters> = IsogenyMap::new (
+    &[
         Fq2::new(
                    MontFp!("889424345604814976315064405719089812568196182208668418962679585805340366775741747653930584250892369786198727235542"),
                    MontFp!("889424345604814976315064405719089812568196182208668418962679585805340366775741747653930584250892369786198727235542")), 
@@ -92,7 +92,7 @@ pub const ISOGENY_MAP_TO_G2  : IsogenyMap<'_, SwuIsoParameters, g2::Parameters> 
                    MontFp!("0")),
     ],
 
-    x_map_denominator:  &[
+    &[
         Fq2::new(
                    MontFp!("0"), 
                    MontFp!("4002409555221667393417789825735904156556882819939007885332058136124031650490837864442687629129015664037894272559715")), 
@@ -104,7 +104,7 @@ pub const ISOGENY_MAP_TO_G2  : IsogenyMap<'_, SwuIsoParameters, g2::Parameters> 
                    MontFp!("0")),
     ],
 
-    y_map_numerator: &[
+    &[
         Fq2::new(
                    MontFp!("3261222600550988246488569487636662646083386001431784202863158481286248011511053074731078808919938689216061999863558"),
                    MontFp!("3261222600550988246488569487636662646083386001431784202863158481286248011511053074731078808919938689216061999863558")),
@@ -119,7 +119,7 @@ pub const ISOGENY_MAP_TO_G2  : IsogenyMap<'_, SwuIsoParameters, g2::Parameters> 
                    MontFp!("0")),
     ],
 
-    y_map_denominator: &[
+    &[
         Fq2::new(
                    MontFp!("4002409555221667393417789825735904156556882819939007885332058136124031650490837864442687629129015664037894272559355"),
                    MontFp!("4002409555221667393417789825735904156556882819939007885332058136124031650490837864442687629129015664037894272559355")),
@@ -133,7 +133,7 @@ pub const ISOGENY_MAP_TO_G2  : IsogenyMap<'_, SwuIsoParameters, g2::Parameters> 
                    MontFp!("1"),
                    MontFp!("0")),
     ],
-};
+);
 
 #[cfg(test)]
 mod test {

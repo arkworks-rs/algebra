@@ -1,4 +1,4 @@
-use core::marker::PhantomData;
+use core::{default, marker::PhantomData};
 
 use crate::{models::short_weierstrass::SWCurveConfig, CurveConfig};
 use ark_ff::batch_inversion;
@@ -28,22 +28,52 @@ type BaseField<MP> = <MP as CurveConfig>::BaseField;
 ///
 /// - [\[Ga18]\] Galbraith, S. D. (2018). Mathematics of public key cryptography.
 pub struct IsogenyMap<
-    'a,
     DOMAIN: SWCurveConfig,
     CODOMAIN: SWCurveConfig<BaseField = BaseField<DOMAIN>>,
 > {
-    pub x_map_numerator: &'a [BaseField<DOMAIN>],
-    pub x_map_denominator: &'a [BaseField<CODOMAIN>],
+    pub x_map_numerator: &'static [BaseField<CODOMAIN>],
+    pub x_map_denominator: &'static [BaseField<CODOMAIN>],
 
-    pub y_map_numerator: &'a [BaseField<DOMAIN>],
-    pub y_map_denominator: &'a [BaseField<CODOMAIN>],
+    pub y_map_numerator: &'static [BaseField<CODOMAIN>],
+    pub y_map_denominator: &'static [BaseField<CODOMAIN>],
+    _phantom_domain: PhantomData<DOMAIN>,
 }
 
-impl<'a, DOMAIN, CODOMAIN> IsogenyMap<'a, DOMAIN, CODOMAIN>
+// Pratyush suggestion
+// impl</* bounds */> IsogenyMap<'static, DOMAIN, CODOMAIN> {
+// 	const fn new(
+// 	    x_numerator: &'a [BaseField<CODOMAIN>],
+// 	    x_denominator: &'a [BaseField<CODOMAIN>],
+// 	    ...
+// 	) → Self {
+// 	    Self {
+// 	        x_numerator,
+// 	        x_denominator,
+// 	        ...
+// 	    }
+// 	}
+// }
+
+impl<DOMAIN, CODOMAIN> IsogenyMap<DOMAIN, CODOMAIN>
 where
     DOMAIN: SWCurveConfig,
     CODOMAIN: SWCurveConfig<BaseField = BaseField<DOMAIN>>,
 {
+    pub const fn new(
+        x_map_numerator: &'static [BaseField<CODOMAIN>],
+        x_map_denominator: &'static [BaseField<CODOMAIN>],
+        y_map_numerator: &'static [BaseField<CODOMAIN>],
+        y_map_denominator: &'static [BaseField<CODOMAIN>],
+    ) -> Self {
+        Self {
+            x_map_numerator,
+            x_map_denominator,
+            y_map_numerator,
+            y_map_denominator,
+            _phantom_domain: PhantomData::<DOMAIN>,
+        }
+    }
+
     fn apply(&self, domain_point: Affine<DOMAIN>) -> Result<Affine<CODOMAIN>, HashToCurveError> {
         match domain_point.xy() {
             Some((x, y)) => {
@@ -75,7 +105,7 @@ pub trait WBParams: SWCurveConfig + Sized {
     // different scalar field type IsogenousCurveScalarField :
     type IsogenousCurve: SWUParams<BaseField = BaseField<Self>>;
 
-    const ISOGENY_MAP: IsogenyMap<'static, Self::IsogenousCurve, Self>;
+    const ISOGENY_MAP: IsogenyMap<Self::IsogenousCurve, Self>;
 }
 
 pub struct WBMap<P: WBParams> {
@@ -221,6 +251,86 @@ mod test {
     /// - 43*x^5*y - 60*x^4*y - 18*x^3*y + 30*x^2*y - 57*x*y - 34*y)/(x^18 + 44*x^17
     /// - 63*x^16 + 52*x^15 + 3*x^14 + 38*x^13 - 30*x^12 + 11*x^11 - 42*x^10 - 13*x^9
     /// - 46*x^8 - 61*x^7 - 16*x^6 - 55*x^5 + 18*x^4 + 23*x^3 - 24*x^2 - 18*x + 32)
+    const ISOGENY_MAP_TESTWBF127_NEW: IsogenyMap<
+        'static,
+        TestSWU127MapToIsogenousCurveParams,
+        TestWBF127MapToCurveParams,
+    > = IsogenyMap::<'static, TestSWU127MapToIsogenousCurveParams, TestWBF127MapToCurveParams>::new(
+        &[
+            MontFp!("4"),
+            MontFp!("63"),
+            MontFp!("23"),
+            MontFp!("39"),
+            MontFp!("-14"),
+            MontFp!("23"),
+            MontFp!("-32"),
+            MontFp!("32"),
+            MontFp!("-13"),
+            MontFp!("40"),
+            MontFp!("34"),
+            MontFp!("10"),
+            MontFp!("-21"),
+            MontFp!("-57"),
+        ],
+        &[
+            MontFp!("2"),
+            MontFp!("31"),
+            MontFp!("-10"),
+            MontFp!("-20"),
+            MontFp!("63"),
+            MontFp!("-44"),
+            MontFp!("34"),
+            MontFp!("30"),
+            MontFp!("-30"),
+            MontFp!("-33"),
+            MontFp!("11"),
+            MontFp!("-13"),
+            MontFp!("1"),
+        ],
+        &[
+            MontFp!("-34"),
+            MontFp!("-57"),
+            MontFp!("30"),
+            MontFp!("-18"),
+            MontFp!("-60"),
+            MontFp!("-43"),
+            MontFp!("-63"),
+            MontFp!("-18"),
+            MontFp!("-49"),
+            MontFp!("36"),
+            MontFp!("12"),
+            MontFp!("62"),
+            MontFp!("5"),
+            MontFp!("6"),
+            MontFp!("-7"),
+            MontFp!("48"),
+            MontFp!("41"),
+            MontFp!("59"),
+            MontFp!("10"),
+        ],
+        &[
+            MontFp!("32"),
+            MontFp!("-18"),
+            MontFp!("-24"),
+            MontFp!("23"),
+            MontFp!("18"),
+            MontFp!("-55"),
+            MontFp!("-16"),
+            MontFp!("-61"),
+            MontFp!("-46"),
+            MontFp!("-13"),
+            MontFp!("-42"),
+            MontFp!("11"),
+            MontFp!("-30"),
+            MontFp!("38"),
+            MontFp!("3"),
+            MontFp!("52"),
+            MontFp!("-63"),
+            MontFp!("44"),
+            MontFp!("1"),
+        ],
+    );
+
     const ISOGENY_MAP_TESTWBF127: IsogenyMap<
         '_,
         TestSWU127MapToIsogenousCurveParams,
