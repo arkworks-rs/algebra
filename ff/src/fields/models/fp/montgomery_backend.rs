@@ -740,9 +740,12 @@ impl<T: MontConfig<N>, const N: usize> Fp<MontBackend<T, N>, N> {
     }
 
     // TODO: see if this can be made into a const fn like `mul_without_cond_subtract`
+    // Separated operand scanning (SOS) method, see [Section 2.3.1](https://www.microsoft.com/en-us/research/wp-content/uploads/1998/06/97Acar.pdf)
+    // Works in two separated parts: first square, then reduce
     fn square_without_opt(mut self) -> Self {
         let mut r = crate::const_helpers::MulBuffer::<N>::zeroed();
 
+        // 1a. First compute the square of a*a, without reduction
         let mut carry = 0;
         for i in 0..(N - 1) {
             for j in (i + 1)..N {
@@ -752,17 +755,21 @@ impl<T: MontConfig<N>, const N: usize> Fp<MontBackend<T, N>, N> {
             carry = 0;
         }
 
+        // 1b. Since in the loop we are computing a[i] * a[j] instead of 2 * a[i] * a[j],
+        // we need to double the result.
         r.b1[N - 1] = r.b1[N - 2] >> 63;
         for i in 2..(2 * N - 1) {
             r[2 * N - i] = (r[2 * N - i] << 1) | (r[2 * N - (i + 1)] >> 63);
         }
         r.b0[1] <<= 1;
 
+        // 1c. And add back the squares of the a[i]s that are skipped.
         for i in 0..N {
             r[2 * i] = fa::mac_with_carry(r[2 * i], (self.0).0[i], (self.0).0[i], &mut carry);
             carry = fa::adc(&mut r[2 * i + 1], 0, carry);
         }
-        // Montgomery reduction
+
+        // 2. Montgomery reduction.
         let mut carry2 = 0;
         for i in 0..N {
             let k = r[i].wrapping_mul(Self::INV);
