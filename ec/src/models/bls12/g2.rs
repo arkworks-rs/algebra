@@ -3,23 +3,23 @@ use ark_serialize::*;
 use ark_std::{vec::Vec, One};
 
 use crate::{
-    bls12::{Bls12Parameters, TwistType},
+    bls12::{Bls12Config, TwistType},
     models::short_weierstrass::SWCurveConfig,
     short_weierstrass::{Affine, Projective},
     AffineRepr, CurveGroup,
 };
 
-pub type G2Affine<P> = Affine<<P as Bls12Parameters>::G2Parameters>;
-pub type G2Projective<P> = Projective<<P as Bls12Parameters>::G2Parameters>;
+pub type G2Affine<P> = Affine<<P as Bls12Config>::G2Config>;
+pub type G2Projective<P> = Projective<<P as Bls12Config>::G2Config>;
 
 #[derive(Derivative, CanonicalSerialize, CanonicalDeserialize)]
 #[derivative(
-    Clone(bound = "P: Bls12Parameters"),
-    Debug(bound = "P: Bls12Parameters"),
-    PartialEq(bound = "P: Bls12Parameters"),
-    Eq(bound = "P: Bls12Parameters")
+    Clone(bound = "P: Bls12Config"),
+    Debug(bound = "P: Bls12Config"),
+    PartialEq(bound = "P: Bls12Config"),
+    Eq(bound = "P: Bls12Config")
 )]
-pub struct G2Prepared<P: Bls12Parameters> {
+pub struct G2Prepared<P: Bls12Config> {
     // Stores the coefficients of the line evaluations as calculated in
     // https://eprint.iacr.org/2013/722.pdf
     pub ell_coeffs: Vec<EllCoeff<P>>,
@@ -27,30 +27,30 @@ pub struct G2Prepared<P: Bls12Parameters> {
 }
 
 pub(crate) type EllCoeff<P> = (
-    Fp2<<P as Bls12Parameters>::Fp2Config>,
-    Fp2<<P as Bls12Parameters>::Fp2Config>,
-    Fp2<<P as Bls12Parameters>::Fp2Config>,
+    Fp2<<P as Bls12Config>::Fp2Config>,
+    Fp2<<P as Bls12Config>::Fp2Config>,
+    Fp2<<P as Bls12Config>::Fp2Config>,
 );
 
 #[derive(Derivative)]
 #[derivative(
-    Clone(bound = "P: Bls12Parameters"),
-    Copy(bound = "P: Bls12Parameters"),
-    Debug(bound = "P: Bls12Parameters")
+    Clone(bound = "P: Bls12Config"),
+    Copy(bound = "P: Bls12Config"),
+    Debug(bound = "P: Bls12Config")
 )]
-struct G2HomProjective<P: Bls12Parameters> {
+struct G2HomProjective<P: Bls12Config> {
     x: Fp2<P::Fp2Config>,
     y: Fp2<P::Fp2Config>,
     z: Fp2<P::Fp2Config>,
 }
 
-impl<P: Bls12Parameters> Default for G2Prepared<P> {
+impl<P: Bls12Config> Default for G2Prepared<P> {
     fn default() -> Self {
         Self::from(G2Affine::<P>::generator())
     }
 }
 
-impl<P: Bls12Parameters> From<G2Affine<P>> for G2Prepared<P> {
+impl<P: Bls12Config> From<G2Affine<P>> for G2Prepared<P> {
     fn from(q: G2Affine<P>) -> Self {
         let two_inv = P::Fp::one().double().inverse().unwrap();
         let zero = G2Prepared {
@@ -81,31 +81,31 @@ impl<P: Bls12Parameters> From<G2Affine<P>> for G2Prepared<P> {
     }
 }
 
-impl<P: Bls12Parameters> From<G2Projective<P>> for G2Prepared<P> {
+impl<P: Bls12Config> From<G2Projective<P>> for G2Prepared<P> {
     fn from(q: G2Projective<P>) -> Self {
         q.into_affine().into()
     }
 }
 
-impl<'a, P: Bls12Parameters> From<&'a G2Affine<P>> for G2Prepared<P> {
+impl<'a, P: Bls12Config> From<&'a G2Affine<P>> for G2Prepared<P> {
     fn from(other: &'a G2Affine<P>) -> Self {
         (*other).into()
     }
 }
 
-impl<'a, P: Bls12Parameters> From<&'a G2Projective<P>> for G2Prepared<P> {
+impl<'a, P: Bls12Config> From<&'a G2Projective<P>> for G2Prepared<P> {
     fn from(q: &'a G2Projective<P>) -> Self {
         q.into_affine().into()
     }
 }
 
-impl<P: Bls12Parameters> G2Prepared<P> {
+impl<P: Bls12Config> G2Prepared<P> {
     pub fn is_zero(&self) -> bool {
         self.infinity
     }
 }
 
-impl<P: Bls12Parameters> G2HomProjective<P> {
+impl<P: Bls12Config> G2HomProjective<P> {
     fn double_in_place(&mut self, two_inv: &P::Fp) -> EllCoeff<P> {
         // Formula for line function when working with
         // homogeneous projective coordinates.
@@ -114,7 +114,7 @@ impl<P: Bls12Parameters> G2HomProjective<P> {
         a.mul_assign_by_fp(two_inv);
         let b = self.y.square();
         let c = self.z.square();
-        let e = P::G2Parameters::COEFF_B * &(c.double() + &c);
+        let e = P::G2Config::COEFF_B * &(c.double() + &c);
         let f = e.double() + &e;
         let mut g = b + &f;
         g.mul_assign_by_fp(two_inv);

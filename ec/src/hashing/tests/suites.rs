@@ -13,9 +13,7 @@ use ark_test_curves::{
 };
 
 use ark_ff::{Field, PrimeField};
-use ark_test_curves::bls12_381::{
-    g1::Parameters as G1Parameters, g2::Parameters as G2Parameters, Fq, Fq2,
-};
+use ark_test_curves::bls12_381::{g1::Config as G1Config, g2::Config as G2Config, Fq, Fq2};
 use sha2::Sha256;
 
 #[test]
@@ -38,15 +36,15 @@ fn run_test_w(data: &SuiteVector) -> Result<(), Failed> {
     let hasher;
     let m;
     let g1_mapper = MapToCurveBasedHasher::<
-        Projective<G1Parameters>,
+        Projective<G1Config>,
         DefaultFieldHasher<Sha256, 128>,
-        WBMap<G1Parameters>,
+        WBMap<G1Config>,
     >::new(dst)
     .unwrap();
     let g2_mapper = MapToCurveBasedHasher::<
-        Projective<G2Parameters>,
+        Projective<G2Config>,
         DefaultFieldHasher<Sha256, 128>,
-        WBMap<G2Parameters>,
+        WBMap<G2Config>,
     >::new(dst)
     .unwrap();
     match data.curve.as_str() {
@@ -79,7 +77,7 @@ fn run_test_w(data: &SuiteVector) -> Result<(), Failed> {
         match data.curve.as_str() {
             "BLS12-381 G1" => {
                 let got = g1_mapper.hash(&v.msg.as_bytes()).unwrap();
-                let want = Affine::<G1Parameters>::new_unchecked(
+                let want = Affine::<G1Config>::new_unchecked(
                     Fq::from_base_prime_field_elems(&x[..]).unwrap(),
                     Fq::from_base_prime_field_elems(&y[..]).unwrap(),
                 );
@@ -95,7 +93,7 @@ fn run_test_w(data: &SuiteVector) -> Result<(), Failed> {
             },
             "BLS12-381 G2" => {
                 let got = g2_mapper.hash(&v.msg.as_bytes()).unwrap();
-                let want = Affine::<G2Parameters>::new_unchecked(
+                let want = Affine::<G2Config>::new_unchecked(
                     Fq2::from_base_prime_field_elems(&x[..]).unwrap(),
                     Fq2::from_base_prime_field_elems(&y[..]).unwrap(),
                 );

@@ -2,13 +2,13 @@ use crate::secp256k1::{Fq, Fr};
 use ark_ec::{models::CurveConfig, short_weierstrass::*};
 use ark_ff::{Field, MontFp, Zero};
 
-pub type G1Affine = Affine<Parameters>;
-pub type G1Projective = Projective<Parameters>;
+pub type G1Affine = Affine<Config>;
+pub type G1Projective = Projective<Config>;
 
 #[derive(Clone, Default, PartialEq, Eq)]
-pub struct Parameters;
+pub struct Config;
 
-impl CurveConfig for Parameters {
+impl CurveConfig for Config {
     type BaseField = Fq;
     type ScalarField = Fr;
 
@@ -20,7 +20,7 @@ impl CurveConfig for Parameters {
     const COFACTOR_INV: Fr =  Fr::ONE;
 }
 
-impl SWCurveConfig for Parameters {
+impl SWCurveConfig for Config {
     /// COEFF_A = 0
     const COEFF_A: Fq = Fq::ZERO;
 

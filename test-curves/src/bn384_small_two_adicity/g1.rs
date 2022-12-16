@@ -6,13 +6,13 @@ use ark_ff::Zero;
 
 use crate::bn384_small_two_adicity::{Fq, Fr, FR_ONE};
 
-pub type G1Affine = Affine<Parameters>;
-pub type G1Projective = Projective<Parameters>;
+pub type G1Affine = Affine<Config>;
+pub type G1Projective = Projective<Config>;
 
 #[derive(Clone, Default, PartialEq, Eq)]
-pub struct Parameters;
+pub struct Config;
 
-impl CurveConfig for Parameters {
+impl CurveConfig for Config {
     type BaseField = Fq;
     type ScalarField = Fr;
 
@@ -23,7 +23,7 @@ impl CurveConfig for Parameters {
     const COFACTOR_INV: Fr = FR_ONE;
 }
 
-impl short_weierstrass::SWCurveConfig for Parameters {
+impl short_weierstrass::SWCurveConfig for Config {
     /// COEFF_A = 0
     const COEFF_A: Fq = ark_ff::MontFp!("0");
 
