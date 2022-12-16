@@ -392,7 +392,14 @@ macro_rules! __test_field {
             let mut a_max = <$field>::ZERO.into_bigint();
             for (i, limb) in a_max.as_mut().iter_mut().enumerate() {
                 if i == <$field as PrimeField>::BigInt::NUM_LIMBS - 1 {
-                    *limb = u64::MAX >> (64 - ((<$field>::MODULUS_BIT_SIZE - 1) % 64));
+                    let mod_num_bits_mod_64 =
+                        64 * <$field as PrimeField>::BigInt::NUM_LIMBS
+                        - (<$field as PrimeField>::MODULUS_BIT_SIZE as usize);
+                    if mod_num_bits_mod_64 == 63 {
+                        *limb = 0u64;
+                    } else {
+                        *limb = u64::MAX >> (mod_num_bits_mod_64 + 1);
+                    }
                 } else {
                     *limb = u64::MAX;
                 }
