@@ -22,29 +22,29 @@ type BaseField<MP> = <MP as CurveConfig>::BaseField;
 /// All isogeny maps of curves of short Weierstrass form can be written in this way. See
 /// [\[Ga18]\]. Theorem 9.7.5 for details.
 ///
-/// We assume that DOMAIN and CODOMAIN have the same BaseField but we use both
-/// BaseField<DOMAIN> and BaseField<CODOMAIN> in our fields' definitions to avoid
-/// using PhantomData
+/// We assume that `Domain` and `Codomain` have the same `BaseField` but we use both
+/// `BaseField<Domain>` and `BaseField<Codomain>` in our fields' definitions to avoid
+/// using `PhantomData`
 ///
 /// - [\[Ga18]\] Galbraith, S. D. (2018). Mathematics of public key cryptography.
 pub struct IsogenyMap<
     'a,
-    DOMAIN: SWCurveConfig,
-    CODOMAIN: SWCurveConfig<BaseField = BaseField<DOMAIN>>,
+    Domain: SWCurveConfig,
+    Codomain: SWCurveConfig<BaseField = BaseField<Domain>>,
 > {
-    pub x_map_numerator: &'a [BaseField<DOMAIN>],
-    pub x_map_denominator: &'a [BaseField<CODOMAIN>],
+    pub x_map_numerator: &'a [BaseField<Domain>],
+    pub x_map_denominator: &'a [BaseField<Codomain>],
 
-    pub y_map_numerator: &'a [BaseField<DOMAIN>],
-    pub y_map_denominator: &'a [BaseField<CODOMAIN>],
+    pub y_map_numerator: &'a [BaseField<Domain>],
+    pub y_map_denominator: &'a [BaseField<Codomain>],
 }
 
-impl<'a, DOMAIN, CODOMAIN> IsogenyMap<'a, DOMAIN, CODOMAIN>
+impl<'a, Domain, Codomain> IsogenyMap<'a, Domain, Codomain>
 where
-    DOMAIN: SWCurveConfig,
-    CODOMAIN: SWCurveConfig<BaseField = BaseField<DOMAIN>>,
+    Domain: SWCurveConfig,
+    Codomain: SWCurveConfig<BaseField = BaseField<Domain>>,
 {
-    fn apply(&self, domain_point: Affine<DOMAIN>) -> Result<Affine<CODOMAIN>, HashToCurveError> {
+    fn apply(&self, domain_point: Affine<Domain>) -> Result<Affine<Codomain>, HashToCurveError> {
         match domain_point.xy() {
             Some((x, y)) => {
                 let x_num = DensePolynomial::from_coefficients_slice(self.x_map_numerator);
@@ -53,11 +53,11 @@ where
                 let y_num = DensePolynomial::from_coefficients_slice(self.y_map_numerator);
                 let y_den = DensePolynomial::from_coefficients_slice(self.y_map_denominator);
 
-                let mut v: [BaseField<DOMAIN>; 2] = [x_den.evaluate(x), y_den.evaluate(x)];
+                let mut v: [BaseField<Domain>; 2] = [x_den.evaluate(x), y_den.evaluate(x)];
                 batch_inversion(&mut v);
                 let img_x = x_num.evaluate(x) * v[0];
                 let img_y = (y_num.evaluate(x) * y) * v[1];
-                Ok(Affine::<CODOMAIN>::new_unchecked(img_x, img_y))
+                Ok(Affine::<Codomain>::new_unchecked(img_x, img_y))
             },
             None => Ok(Affine::identity()),
         }
