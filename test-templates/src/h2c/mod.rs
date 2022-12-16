@@ -55,16 +55,13 @@ macro_rules! test_h2c {
                     // first, hash-to-field tests
                     let got: Vec<$base_prime_field> =
                         hasher.hash_to_field(&v.msg.as_bytes(), 2 * $m);
-                    let want: Vec<$base_prime_field> = (&v.u)
-                        .into_iter()
-                        .map(|x| read_fq_vec(x))
-                        .flatten()
-                        .collect();
+                    let want: Vec<$base_prime_field> =
+                        v.u.iter().map(read_fq_vec).flatten().collect();
                     assert_eq!(got, want);
 
                     // then, test curve points
-                    let x: Vec<$base_prime_field> = read_fq_vec(&v.p.x);
-                    let y: Vec<$base_prime_field> = read_fq_vec(&v.p.y);
+                    let x = read_fq_vec(&v.p.x);
+                    let y = read_fq_vec(&v.p.y);
                     let got = g1_mapper.hash(&v.msg.as_bytes()).unwrap();
                     let want = Affine::<$group>::new_unchecked(
                         <$field>::from_base_prime_field_elems(&x[..]).unwrap(),

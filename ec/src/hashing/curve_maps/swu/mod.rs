@@ -22,9 +22,7 @@ pub trait SWUParams: SWCurveConfig {
 }
 
 /// Represents the SWU hash-to-curve map defined by `P`.
-pub struct SWUMap<P: SWUParams> {
-    curve_params: PhantomData<fn() -> P>,
-}
+pub struct SWUMap<P: SWUParams>(PhantomData<fn() -> P>);
 
 /// Trait defining a parity method on the Field elements based on [\[1\]] Section 4.1
 ///
@@ -51,9 +49,7 @@ impl<P: SWUParams> MapToCurve<Projective<P>> for SWUMap<P> {
             return Err(HashToCurveError::MapToCurveError("Simplified SWU requires a * b != 0 in the short Weierstrass form of y^2 = x^3 + a*x + b ".to_string()));
         }
 
-        Ok(SWUMap {
-            curve_params: PhantomData,
-        })
+        Ok(SWUMap(PhantomData))
     }
 
     /// Map an arbitrary base field element to a curve point.
@@ -186,6 +182,7 @@ mod test {
         type BaseField = F127;
         type ScalarField = F127;
     }
+
     /// just because not defining another field
     ///
     /// from itertools import product
@@ -204,8 +201,7 @@ mod test {
         /// COEFF_A = 1
         const COEFF_A: F127 = F127_ONE;
 
-        /// COEFF_B = 1
-    #[rustfmt::skip]
+        /// COEFF_B = 63
         const COEFF_B: F127 = MontFp!("63");
 
         /// AFFINE_GENERATOR_COEFFS = (G1_GENERATOR_X, G1_GENERATOR_Y)
