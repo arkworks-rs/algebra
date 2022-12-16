@@ -3,7 +3,7 @@ use core::ops::Neg;
 use crate::bls12_381::*;
 use ark_ec::{
     bls12::{self, Bls12Config},
-    hashing::curve_maps::wb::{IsogenyMap, WBParams},
+    hashing::curve_maps::wb::{IsogenyMap, WBConfig},
     models::CurveConfig,
     short_weierstrass::{self, *},
     AffineRepr, CurveGroup, Group,
@@ -187,7 +187,7 @@ pub fn double_p_power_endomorphism(p: &Projective<Config>) -> Projective<Config>
 }
 
 // Config from the [IETF draft v16, section E.3](https://www.ietf.org/archive/id/draft-irtf-cfrg-hash-to-curve-16.html#name-3-isogeny-map-for-bls12-381).
-impl WBParams for Config {
+impl WBConfig for Config {
     type IsogenousCurve = g2_swu_iso::SwuIsoConfig;
 
     const ISOGENY_MAP: IsogenyMap<'static, Self::IsogenousCurve, Self> =

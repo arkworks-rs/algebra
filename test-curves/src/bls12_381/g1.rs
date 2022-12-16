@@ -1,6 +1,6 @@
 use crate::bls12_381::*;
 use ark_ec::{
-    hashing::curve_maps::wb::{IsogenyMap, WBParams},
+    hashing::curve_maps::wb::{IsogenyMap, WBConfig},
     models::CurveConfig,
     short_weierstrass::{self, *},
 };
@@ -54,7 +54,7 @@ impl short_weierstrass::SWCurveConfig for Config {
 }
 
 // Config from the [IETF draft v16, section E.2](https://www.ietf.org/archive/id/draft-irtf-cfrg-hash-to-curve-16.html#name-11-isogeny-map-for-bls12-381).
-impl WBParams for Config {
+impl WBConfig for Config {
     type IsogenousCurve = g1_swu_iso::SwuIsoConfig;
 
     const ISOGENY_MAP: IsogenyMap<'static, Self::IsogenousCurve, Self> =

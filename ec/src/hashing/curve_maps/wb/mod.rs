@@ -10,7 +10,7 @@ use crate::{
     AffineRepr,
 };
 
-use super::swu::{SWUMap, SWUParams};
+use super::swu::{SWUConfig, SWUMap};
 type BaseField<MP> = <MP as CurveConfig>::BaseField;
 
 /// [`IsogenyMap`] defines an isogeny between curves of
@@ -70,20 +70,20 @@ where
 /// From [\[WB2019\]]
 ///
 /// - [\[WB2019\]] <http://dx.doi.org/10.46586/tches.v2019.i4.154-179>
-pub trait WBParams: SWCurveConfig + Sized {
+pub trait WBConfig: SWCurveConfig + Sized {
     // The isogenous curve should be defined over the same base field but it can have
     // different scalar field type IsogenousCurveScalarField :
-    type IsogenousCurve: SWUParams<BaseField = BaseField<Self>>;
+    type IsogenousCurve: SWUConfig<BaseField = BaseField<Self>>;
 
     const ISOGENY_MAP: IsogenyMap<'static, Self::IsogenousCurve, Self>;
 }
 
-pub struct WBMap<P: WBParams> {
+pub struct WBMap<P: WBConfig> {
     swu_field_curve_hasher: SWUMap<P::IsogenousCurve>,
     curve_params: PhantomData<fn() -> P>,
 }
 
-impl<P: WBParams> MapToCurve<Projective<P>> for WBMap<P> {
+impl<P: WBConfig> MapToCurve<Projective<P>> for WBMap<P> {
     /// Constructs a new map if `P` represents a valid map.
     fn new() -> Result<Self, HashToCurveError> {
         match P::ISOGENY_MAP.apply(P::IsogenousCurve::GENERATOR) {
@@ -119,8 +119,8 @@ mod test {
     use crate::{
         hashing::{
             curve_maps::{
-                swu::SWUParams,
-                wb::{IsogenyMap, WBMap, WBParams},
+                swu::SWUConfig,
+                wb::{IsogenyMap, WBConfig, WBMap},
             },
             map_to_curve_hasher::MapToCurveBasedHasher,
             HashToCurve,
@@ -141,9 +141,9 @@ mod test {
     const F127_ONE: F127 = MontFp!("1");
 
     /// The struct defining our parameters for the target curve of hashing
-    struct TestWBF127MapToCurveParams;
+    struct TestWBF127MapToCurveConfig;
 
-    impl CurveConfig for TestWBF127MapToCurveParams {
+    impl CurveConfig for TestWBF127MapToCurveConfig {
         const COFACTOR: &'static [u64] = &[1];
 
     #[rustfmt::skip]
@@ -155,7 +155,7 @@ mod test {
 
     /// E: Elliptic Curve defined by y^2 = x^3 + 3 over Finite
     /// Field of size 127
-    impl SWCurveConfig for TestWBF127MapToCurveParams {
+    impl SWCurveConfig for TestWBF127MapToCurveConfig {
         /// COEFF_A = 0
         const COEFF_A: F127 = F127_ZERO;
 
@@ -171,12 +171,12 @@ mod test {
     /// E_isogenous : Elliptic Curve defined by y^2 = x^3 + 109*x + 124 over Finite
     /// Field of size 127
     /// Isogenous to E : y^2 = x^3 + 3
-    struct TestSWU127MapToIsogenousCurveParams;
+    struct TestSWU127MapToIsogenousCurveConfig;
 
     /// First we define the isogenous curve
     /// sage: E_isogenous.order()
     /// 127
-    impl CurveConfig for TestSWU127MapToIsogenousCurveParams {
+    impl CurveConfig for TestSWU127MapToIsogenousCurveConfig {
         const COFACTOR: &'static [u64] = &[1];
 
     #[rustfmt::skip]
@@ -188,7 +188,7 @@ mod test {
 
     /// E_isogenous : Elliptic Curve defined by y^2 = x^3 + 109*x + 124 over Finite
     /// Field of size 127
-    impl SWCurveConfig for TestSWU127MapToIsogenousCurveParams {
+    impl SWCurveConfig for TestSWU127MapToIsogenousCurveConfig {
         /// COEFF_A = 109
         const COEFF_A: F127 = MontFp!("109");
 
@@ -201,7 +201,7 @@ mod test {
     }
 
     /// SWU parameters for E_isogenous
-    impl SWUParams for TestSWU127MapToIsogenousCurveParams {
+    impl SWUConfig for TestSWU127MapToIsogenousCurveConfig {
         /// NON-SQUARE = - 1
         const ZETA: F127 = MontFp!("-1");
     }
@@ -223,8 +223,8 @@ mod test {
     /// - 46*x^8 - 61*x^7 - 16*x^6 - 55*x^5 + 18*x^4 + 23*x^3 - 24*x^2 - 18*x + 32)
     const ISOGENY_MAP_TESTWBF127: IsogenyMap<
         '_,
-        TestSWU127MapToIsogenousCurveParams,
-        TestWBF127MapToCurveParams,
+        TestSWU127MapToIsogenousCurveConfig,
+        TestWBF127MapToCurveConfig,
     > = IsogenyMap {
         x_map_numerator: &[
             MontFp!("4"),
@@ -303,8 +303,8 @@ mod test {
             MontFp!("1"),
         ],
     };
-    impl WBParams for TestWBF127MapToCurveParams {
-        type IsogenousCurve = TestSWU127MapToIsogenousCurveParams;
+    impl WBConfig for TestWBF127MapToCurveConfig {
+        type IsogenousCurve = TestSWU127MapToIsogenousCurveConfig;
 
         const ISOGENY_MAP: super::IsogenyMap<'static, Self::IsogenousCurve, Self> =
             ISOGENY_MAP_TESTWBF127;
@@ -316,9 +316,9 @@ mod test {
     fn hash_arbitrary_string_to_curve_wb() {
         use sha2::Sha256;
         let test_wb_to_curve_hasher = MapToCurveBasedHasher::<
-            Projective<TestWBF127MapToCurveParams>,
+            Projective<TestWBF127MapToCurveConfig>,
             DefaultFieldHasher<Sha256, 128>,
-            WBMap<TestWBF127MapToCurveParams>,
+            WBMap<TestWBF127MapToCurveConfig>,
         >::new(&[1])
         .unwrap();
 

@@ -1,6 +1,6 @@
 use crate::bls12_381::*;
 use ark_ec::{
-    hashing::curve_maps::{swu::SWUParams, wb::IsogenyMap},
+    hashing::curve_maps::{swu::SWUConfig, wb::IsogenyMap},
     models::{
         short_weierstrass::{Affine, SWCurveConfig},
         CurveConfig,
@@ -53,7 +53,7 @@ impl SWCurveConfig for SwuIsoConfig {
 const G1_GENERATOR_X: Fq = MontFp!("1677416608493238977774703213729589714082762656433187746258164626835771660734158898989765932111853529350617333597651");
 const G1_GENERATOR_Y: Fq = MontFp!("1405098061573104639413728190240719229571583960971553962991897960445246185035342568402755187331334546673157015627211");
 
-impl SWUParams for SwuIsoConfig {
+impl SWUConfig for SwuIsoConfig {
     // ZETA = 0xb as per the IETF draft.
     const ZETA: Fq = MontFp!("11");
 }

@@ -5,7 +5,7 @@ use ark_ec::models::{
 };
 use ark_ff::MontFp;
 
-use ark_ec::hashing::curve_maps::{swu::SWUParams, wb::IsogenyMap};
+use ark_ec::hashing::curve_maps::{swu::SWUConfig, wb::IsogenyMap};
 
 type G2Affine = Affine<SwuIsoConfig>;
 
@@ -71,7 +71,7 @@ const G2_GENERATOR_X_C1: Fq = MontFp!("10370797385975734067653557740066018506336
 const G2_GENERATOR_Y_C0: Fq = MontFp!("3927929472994661655038722055497331445175131868678630546921475383290711810401295661250673209427965906654429357114487");
 const G2_GENERATOR_Y_C1: Fq = MontFp!("3300326318345570015758639333209189167876318321385223785506096497597561910823001330832964776707374262378602791224889");
 
-impl SWUParams for SwuIsoConfig {
+impl SWUConfig for SwuIsoConfig {
     // ZETA = -(2 + u) as per IETF draft.
     const ZETA: Fq2 = Fq2::new(MontFp!("-2"), MontFp!("-1"));
 }
