@@ -62,24 +62,18 @@ fn run_test_w(data: &SuiteVector) -> Result<(), Failed> {
     for v in data.vectors.iter() {
         // first, hash-to-field tests
         let got: Vec<Fq> = hasher.hash_to_field(&v.msg.as_bytes(), 2 * m);
-        let want: Vec<Fq> = (&v.u)
-            .into_iter()
-            .map(|x| read_fq_vec(x))
-            .flatten()
-            .collect();
+        let want: Vec<Fq> = v.u.iter().map(read_fq_vec).flatten().collect();
         if got != want {
             return Err(format!(
-                "Suite: {:?}\ngot:  {:?}\nwant: {:?}",
-                data.ciphersuite,
-                got[0].to_string(),
-                want[0].to_string()
+                "Suite: {:?}\ngot: {}\nwant: {}",
+                data.ciphersuite, got[0], want[0],
             )
             .into());
         }
 
         // then, test curve points
-        let x: Vec<Fq> = read_fq_vec(&v.p.x);
-        let y: Vec<Fq> = read_fq_vec(&v.p.y);
+        let x = read_fq_vec(&v.p.x);
+        let y = read_fq_vec(&v.p.y);
         match data.curve.as_str() {
             "BLS12-381 G1" => {
                 let got = g1_mapper.hash(&v.msg.as_bytes()).unwrap();
@@ -91,10 +85,8 @@ fn run_test_w(data: &SuiteVector) -> Result<(), Failed> {
                 assert!(want.is_on_curve());
                 if got != want {
                     return Err(format!(
-                        "Suite: {:?}\ngot:  {:?}\nwant: {:?}",
-                        data.ciphersuite,
-                        got.to_string(),
-                        want.to_string()
+                        "Suite: {:?}\ngot: {}\nwant: {}",
+                        data.ciphersuite, got, want,
                     )
                     .into());
                 }
@@ -109,11 +101,8 @@ fn run_test_w(data: &SuiteVector) -> Result<(), Failed> {
                 assert!(want.is_on_curve());
                 if got != want {
                     return Err(format!(
-                        "Suite: {:?}\nmsg: {}\n\ngot: {:?}\nwant: {:?}",
-                        data.ciphersuite,
-                        v.msg,
-                        got.to_string(),
-                        want.to_string(),
+                        "Suite: {:?}\nmsg: {}\n\ngot: {}\nwant: {}",
+                        data.ciphersuite, v.msg, got, want,
                     )
                     .into());
                 }

@@ -2,6 +2,7 @@
 
 ## Pending
 
+- [\#528](https://github.com/arkworks-rs/algebra/pull/528) (`ark-ec`) Allow to overwrite the default implementation of the `msm` function provided by the `VariableBaseMSM` trait by a specialized version in `SWCurveConfig`.
 - [\#521](https://github.com/arkworks-rs/algebra/pull/521) (`ark-poly`) Change `DensePolynomial::evaluate_over_domain` to not truncate terms higher than the size of the domain.
 
 ### Breaking changes
@@ -164,6 +165,7 @@
     - Add constructor `new_coset`.
     - Add convenience method `get_coset`.
     - Add methods `coset_offset`, `coset_offset_inv` and `coset_offset_pow_size`.
+- [\#539](https://github.com/arkworks-rs/algebra/pull/539) (`ark-ec`) Implement wNAF-based MSM, resulting in 5-10% speedups.
 
 ### Improvements
 
