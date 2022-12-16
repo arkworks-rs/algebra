@@ -25,7 +25,7 @@ pub enum TwistType {
     D,
 }
 
-pub trait Bls12Parameters: 'static + Sized {
+pub trait Bls12Config: 'static + Sized {
     /// Parameterizes the BLS12 family.
     const X: &'static [u64];
     /// Is `Self::X` negative?
@@ -37,10 +37,10 @@ pub trait Bls12Parameters: 'static + Sized {
     type Fp2Config: Fp2Config<Fp = Self::Fp>;
     type Fp6Config: Fp6Config<Fp2Config = Self::Fp2Config>;
     type Fp12Config: Fp12Config<Fp6Config = Self::Fp6Config>;
-    type G1Parameters: SWCurveConfig<BaseField = Self::Fp>;
-    type G2Parameters: SWCurveConfig<
+    type G1Config: SWCurveConfig<BaseField = Self::Fp>;
+    type G2Config: SWCurveConfig<
         BaseField = Fp2<Self::Fp2Config>,
-        ScalarField = <Self::G1Parameters as CurveConfig>::ScalarField,
+        ScalarField = <Self::G1Config as CurveConfig>::ScalarField,
     >;
 
     fn multi_miller_loop(
@@ -166,9 +166,9 @@ pub use self::{
 
 #[derive(Derivative)]
 #[derivative(Copy, Clone, PartialEq, Eq, Debug, Hash)]
-pub struct Bls12<P: Bls12Parameters>(PhantomData<fn() -> P>);
+pub struct Bls12<P: Bls12Config>(PhantomData<fn() -> P>);
 
-impl<P: Bls12Parameters> Bls12<P> {
+impl<P: Bls12Config> Bls12<P> {
     // Evaluate the line function at point p.
     fn ell(f: &mut Fp12<P::Fp12Config>, coeffs: &g2::EllCoeff<P>, p: &G1Affine<P>) {
         let mut c0 = coeffs.0;
@@ -199,9 +199,9 @@ impl<P: Bls12Parameters> Bls12<P> {
     }
 }
 
-impl<P: Bls12Parameters> Pairing for Bls12<P> {
-    type BaseField = <P::G1Parameters as CurveConfig>::BaseField;
-    type ScalarField = <P::G1Parameters as CurveConfig>::ScalarField;
+impl<P: Bls12Config> Pairing for Bls12<P> {
+    type BaseField = <P::G1Config as CurveConfig>::BaseField;
+    type ScalarField = <P::G1Config as CurveConfig>::ScalarField;
     type G1 = G1Projective<P>;
     type G1Affine = G1Affine<P>;
     type G1Prepared = G1Prepared<P>;

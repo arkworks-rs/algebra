@@ -28,13 +28,13 @@ pub use pairing::*;
 #[cfg(feature = "bls12_381_curve")]
 mod pairing {
     use super::*;
-    use ark_ec::bls12::{Bls12, Bls12Parameters, TwistType};
+    use ark_ec::bls12::{Bls12, Bls12Config, TwistType};
 
-    pub type Bls12_381 = Bls12<Parameters>;
+    pub type Bls12_381 = Bls12<Config>;
 
-    pub struct Parameters;
+    pub struct Config;
 
-    impl Bls12Parameters for Parameters {
+    impl Bls12Config for Config {
         const X: &'static [u64] = &[0xd201000000010000];
         const X_IS_NEGATIVE: bool = true;
         const TWIST_TYPE: TwistType = TwistType::M;
@@ -42,10 +42,10 @@ mod pairing {
         type Fp2Config = Fq2Config;
         type Fp6Config = Fq6Config;
         type Fp12Config = Fq12Config;
-        type G1Parameters = self::g1::Parameters;
-        type G2Parameters = self::g2::Parameters;
+        type G1Config = self::g1::Config;
+        type G2Config = self::g2::Config;
     }
 
-    pub type G1Prepared = ark_ec::bls12::G1Prepared<Parameters>;
-    pub type G2Prepared = ark_ec::bls12::G2Prepared<Parameters>;
+    pub type G1Prepared = ark_ec::bls12::G1Prepared<Config>;
+    pub type G2Prepared = ark_ec::bls12::G2Prepared<Config>;
 }
