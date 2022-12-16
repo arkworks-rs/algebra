@@ -150,8 +150,6 @@
     - `MNT6Parameters` → `MNT6Config`
     - `GLVParameters` → `GLVConfig`
 
-- [\#545](https://github.com/arkworks-rs/algebra/pull/545) (`ark-ec`) Rename all `*Parameters` to `*Config` for consistency.
-
 ### Features
 
 - [\#301](https://github.com/arkworks-rs/algebra/pull/301) (`ark-ec`) Add `GLVParameters` trait definition.
