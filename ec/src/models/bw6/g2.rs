@@ -4,23 +4,23 @@ use ark_std::vec::Vec;
 use num_traits::One;
 
 use crate::{
-    bw6::{BW6Parameters, TwistType},
+    bw6::{BW6Config, TwistType},
     models::short_weierstrass::SWCurveConfig,
     short_weierstrass::{Affine, Projective},
     AffineRepr, CurveGroup,
 };
 
-pub type G2Affine<P> = Affine<<P as BW6Parameters>::G2Parameters>;
-pub type G2Projective<P> = Projective<<P as BW6Parameters>::G2Parameters>;
+pub type G2Affine<P> = Affine<<P as BW6Config>::G2Config>;
+pub type G2Projective<P> = Projective<<P as BW6Config>::G2Config>;
 
 #[derive(Derivative, CanonicalSerialize, CanonicalDeserialize)]
 #[derivative(
-    Clone(bound = "P: BW6Parameters"),
-    Debug(bound = "P: BW6Parameters"),
-    PartialEq(bound = "P: BW6Parameters"),
-    Eq(bound = "P: BW6Parameters")
+    Clone(bound = "P: BW6Config"),
+    Debug(bound = "P: BW6Config"),
+    PartialEq(bound = "P: BW6Config"),
+    Eq(bound = "P: BW6Config")
 )]
-pub struct G2Prepared<P: BW6Parameters> {
+pub struct G2Prepared<P: BW6Config> {
     // Stores the coefficients of the line evaluations as calculated in
     // https://eprint.iacr.org/2013/722.pdf
     pub ell_coeffs_1: Vec<(P::Fp, P::Fp, P::Fp)>,
@@ -30,23 +30,23 @@ pub struct G2Prepared<P: BW6Parameters> {
 
 #[derive(Derivative, CanonicalSerialize, CanonicalDeserialize)]
 #[derivative(
-    Clone(bound = "P: BW6Parameters"),
-    Copy(bound = "P: BW6Parameters"),
-    Debug(bound = "P: BW6Parameters")
+    Clone(bound = "P: BW6Config"),
+    Copy(bound = "P: BW6Config"),
+    Debug(bound = "P: BW6Config")
 )]
-struct G2HomProjective<P: BW6Parameters> {
+struct G2HomProjective<P: BW6Config> {
     x: P::Fp,
     y: P::Fp,
     z: P::Fp,
 }
 
-impl<P: BW6Parameters> Default for G2Prepared<P> {
+impl<P: BW6Config> Default for G2Prepared<P> {
     fn default() -> Self {
         Self::from(G2Affine::<P>::generator())
     }
 }
 
-impl<P: BW6Parameters> From<G2Affine<P>> for G2Prepared<P> {
+impl<P: BW6Config> From<G2Affine<P>> for G2Prepared<P> {
     fn from(q: G2Affine<P>) -> Self {
         if q.infinity {
             return Self {
@@ -100,31 +100,31 @@ impl<P: BW6Parameters> From<G2Affine<P>> for G2Prepared<P> {
     }
 }
 
-impl<'a, P: BW6Parameters> From<&'a G2Affine<P>> for G2Prepared<P> {
+impl<'a, P: BW6Config> From<&'a G2Affine<P>> for G2Prepared<P> {
     fn from(q: &'a G2Affine<P>) -> Self {
         (*q).into()
     }
 }
 
-impl<'a, P: BW6Parameters> From<&'a G2Projective<P>> for G2Prepared<P> {
+impl<'a, P: BW6Config> From<&'a G2Projective<P>> for G2Prepared<P> {
     fn from(q: &'a G2Projective<P>) -> Self {
         q.into_affine().into()
     }
 }
 
-impl<P: BW6Parameters> From<G2Projective<P>> for G2Prepared<P> {
+impl<P: BW6Config> From<G2Projective<P>> for G2Prepared<P> {
     fn from(q: G2Projective<P>) -> Self {
         q.into_affine().into()
     }
 }
 
-impl<P: BW6Parameters> G2Prepared<P> {
+impl<P: BW6Config> G2Prepared<P> {
     pub fn is_zero(&self) -> bool {
         self.infinity
     }
 }
 
-impl<P: BW6Parameters> G2HomProjective<P> {
+impl<P: BW6Config> G2HomProjective<P> {
     fn double_in_place(&mut self) -> (P::Fp, P::Fp, P::Fp) {
         // Formula for line function when working with
         // homogeneous projective coordinates, as described in https://eprint.iacr.org/2013/722.pdf.
@@ -133,7 +133,7 @@ impl<P: BW6Parameters> G2HomProjective<P> {
         let b = self.y.square();
         let b4 = b.double().double();
         let c = self.z.square();
-        let e = P::G2Parameters::COEFF_B * &(c.double() + &c);
+        let e = P::G2Config::COEFF_B * &(c.double() + &c);
         let f = e.double() + &e;
         let g = b + &f;
         let h = (self.y + &self.z).square() - &(b + &c);

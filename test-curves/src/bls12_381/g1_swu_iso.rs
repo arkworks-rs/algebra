@@ -1,6 +1,6 @@
 use crate::bls12_381::*;
 use ark_ec::{
-    hashing::curve_maps::{swu::SWUParams, wb::IsogenyMap},
+    hashing::curve_maps::{swu::SWUConfig, wb::IsogenyMap},
     models::{
         short_weierstrass::{Affine, SWCurveConfig},
         CurveConfig,
@@ -8,12 +8,12 @@ use ark_ec::{
 };
 use ark_ff::MontFp;
 
-type G1Affine = Affine<SwuIsoParameters>;
+type G1Affine = Affine<SwuIsoConfig>;
 
 #[derive(Clone, Default, PartialEq, Eq)]
-pub struct SwuIsoParameters;
+pub struct SwuIsoConfig;
 
-impl CurveConfig for SwuIsoParameters {
+impl CurveConfig for SwuIsoConfig {
     type BaseField = Fq;
     type ScalarField = Fr;
 
@@ -36,7 +36,7 @@ impl CurveConfig for SwuIsoParameters {
 //      -  A' = 12190336318893619529228877361869031420615612348429846051986726275283378313155663745811710833465465981901188123677
 //      -  B' = 2906670324641927570491258158026293881577086121416628140204402091718288198173574630967936031029026176254968826637280
 //  *  Z: 11
-impl SWCurveConfig for SwuIsoParameters {
+impl SWCurveConfig for SwuIsoConfig {
     const COEFF_A: Fq = MontFp!("12190336318893619529228877361869031420615612348429846051986726275283378313155663745811710833465465981901188123677");
 
     #[rustfmt::skip]
@@ -53,12 +53,12 @@ impl SWCurveConfig for SwuIsoParameters {
 const G1_GENERATOR_X: Fq = MontFp!("1677416608493238977774703213729589714082762656433187746258164626835771660734158898989765932111853529350617333597651");
 const G1_GENERATOR_Y: Fq = MontFp!("1405098061573104639413728190240719229571583960971553962991897960445246185035342568402755187331334546673157015627211");
 
-impl SWUParams for SwuIsoParameters {
+impl SWUConfig for SwuIsoConfig {
     // ZETA = 0xb as per the IETF draft.
     const ZETA: Fq = MontFp!("11");
 }
 
-pub const ISOGENY_MAP_TO_G1 : IsogenyMap<'_, SwuIsoParameters, g1::Parameters, > = IsogenyMap {
+pub const ISOGENY_MAP_TO_G1 : IsogenyMap<'_, SwuIsoConfig, g1::Config, > = IsogenyMap {
     x_map_numerator : &[
         MontFp!("2712959285290305970661081772124144179193819192423276218370281158706191519995889425075952244140278856085036081760695"),
         MontFp!("3564859427549639835253027846704205725951033235539816243131874237388832081954622352624080767121604606753339903542203"),
@@ -133,7 +133,7 @@ mod test {
 
     #[test]
     fn test_gen() {
-        let gen: G1Affine = SwuIsoParameters::GENERATOR;
+        let gen: G1Affine = SwuIsoConfig::GENERATOR;
         assert!(gen.is_on_curve());
         assert!(gen.is_in_correct_subgroup_assuming_on_curve());
     }

@@ -111,9 +111,9 @@ impl<P: CubicExtConfig> CubicExtField<P> {
     /// let c0: Fp2 = Fp2::rand(&mut test_rng());
     /// let c1: Fp2 = Fp2::rand(&mut test_rng());
     /// let c2: Fp2 = Fp2::rand(&mut test_rng());
-    /// # type Params = Fp6ConfigWrapper<Fq6Config>;
+    /// # type Config = Fp6ConfigWrapper<Fq6Config>;
     /// // `Fp6` a degree-3 extension over `Fp2`.
-    /// let c: CubicExtField<Params> = Fp6::new(c0, c1, c2);
+    /// let c: CubicExtField<Config> = Fp6::new(c0, c1, c2);
     /// ```
     pub const fn new(c0: P::BaseField, c1: P::BaseField, c2: P::BaseField) -> Self {
         Self { c0, c1, c2 }
