@@ -49,6 +49,8 @@ This library comes with comprehensive unit and integration tests for each of the
 cargo test --all
 ```
 
+Note that this leaves out some tests that would be run in individual crates (e.g. `test-curves`) under `cargo test --all-features`.
+
 ## Benchmarks
 
 To run the benchmarks, install the nightly Rust toolchain, via `rustup install nightly`, and then run the following command:
