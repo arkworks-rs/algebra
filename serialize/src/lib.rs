@@ -232,6 +232,7 @@ mod test {
         vec,
         vec::Vec,
     };
+    use num_bigint::BigUint;
 
     #[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Debug)]
     struct Dummy;
@@ -460,5 +461,10 @@ mod test {
     fn test_sha3() {
         test_hash::<_, sha3::Sha3_256>(Dummy);
         test_hash::<_, sha3::Sha3_512>(Dummy);
+    }
+
+    #[test]
+    fn test_biguint() {
+        test_serialize(BigUint::from(123456u64));
     }
 }
