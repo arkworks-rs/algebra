@@ -5,7 +5,11 @@ on:
       version:
         description: Version to release
         required: true
-        type: string
+        type: choice
+        # Currently only alpha and patch releases are supported by this workflow, due to https://github.com/rust-lang/cargo/issues/4242
+        options: 
+          - alpha
+          - patch
 
 jobs:
   make-release-pr:
