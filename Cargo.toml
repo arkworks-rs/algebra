@@ -44,4 +44,3 @@ debug = true
 
 [workspace.metadata.release]
 dependent-version = "fix"
-tag-prefix = "" # Don't want to tag every single crate
