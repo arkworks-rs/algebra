@@ -430,7 +430,7 @@ macro_rules! __test_field {
             let modulus_minus_one = &modulus - 1u8;
             assert_eq!(BigUint::from(<$field>::MODULUS_MINUS_ONE_DIV_TWO), &modulus_minus_one / 2u32);
             assert_eq!(<$field>::MODULUS_BIT_SIZE as u64, modulus.bits());
-            if let Some(SqrtPrecomputation::Case3Mod4 { modulus_plus_one_div_four }) = <$field>::SQRT_PRECOMP {
+            if let Some(SqrtPrecomputation::PowerCase3Mod4 { modulus_plus_one_div_four }) = <$field>::SQRT_PRECOMP {
                 // Handle the case where `(MODULUS + 1) / 4`
                 // has fewer limbs than `MODULUS`.
                 let check = ((&modulus + 1u8) / 4u8).to_u64_digits();
