@@ -300,7 +300,7 @@ impl<P: TECurveConfig> From<Projective<P>> for Affine<P> {
         }
     }
 }
-impl<P: TECurveConfig> CanonicalSerialize for Affine<P> {
+impl<P: TECurveConfig> CanonicalSerializeInner for Affine<P> {
     #[inline]
     fn serialize_with_mode<W: Write>(
         &self,
@@ -315,6 +315,8 @@ impl<P: TECurveConfig> CanonicalSerialize for Affine<P> {
         P::serialized_size(compress)
     }
 }
+
+impl<P: TECurveConfig> CanonicalSerialize for Affine<P> {}
 
 impl<P: TECurveConfig> Valid for Affine<P> {
     fn check(&self) -> Result<(), SerializationError> {

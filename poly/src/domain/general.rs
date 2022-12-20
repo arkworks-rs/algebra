@@ -12,7 +12,8 @@ use crate::domain::{
 };
 use ark_ff::FftField;
 use ark_serialize::{
-    CanonicalDeserialize, CanonicalSerialize, Compress, SerializationError, Valid, Validate,
+    CanonicalDeserialize, CanonicalSerialize, CanonicalSerializeInner, Compress,
+    SerializationError, Valid, Validate,
 };
 use ark_std::{
     io::{Read, Write},
@@ -39,7 +40,7 @@ macro_rules! map {
     }
 }
 
-impl<F: FftField> CanonicalSerialize for GeneralEvaluationDomain<F> {
+impl<F: FftField> CanonicalSerializeInner for GeneralEvaluationDomain<F> {
     fn serialize_with_mode<W: Write>(
         &self,
         mut writer: W,
@@ -74,6 +75,8 @@ impl<F: FftField> CanonicalSerialize for GeneralEvaluationDomain<F> {
             }
     }
 }
+
+impl<F: FftField> CanonicalSerialize for GeneralEvaluationDomain<F> {}
 
 impl<F: FftField> Valid for GeneralEvaluationDomain<F> {
     fn check(&self) -> Result<(), SerializationError> {

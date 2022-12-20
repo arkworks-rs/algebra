@@ -50,7 +50,7 @@ pub(super) fn impl_canonical_serialize(ast: &syn::DeriveInput) -> TokenStream {
         data_struct.fields.len()
     } else {
         panic!(
-            "`CanonicalSerialize` can only be derived for structs, {} is not a struct",
+            "`CanonicalSerializeInner` can only be derived for structs, {} is not a struct",
             name
         );
     };
@@ -90,7 +90,7 @@ pub(super) fn impl_canonical_serialize(ast: &syn::DeriveInput) -> TokenStream {
     };
 
     let gen = quote! {
-        impl #impl_generics ark_serialize::CanonicalSerialize for #name #ty_generics #where_clause {
+        impl #impl_generics ark_serialize::CanonicalSerializeInner for #name #ty_generics #where_clause {
             #[allow(unused_mut, unused_variables)]
             fn serialize_with_mode<W: ark_serialize::Write>(&self, mut writer: W, compress: ark_serialize::Compress) -> Result<(), ark_serialize::SerializationError> {
                 #(#serialize_body)*
@@ -104,5 +104,8 @@ pub(super) fn impl_canonical_serialize(ast: &syn::DeriveInput) -> TokenStream {
             }
         }
     };
-    gen
+
+    let gen2 = quote! { impl #impl_generics ark_serialize::CanonicalSerialize for #name #ty_generics #where_clause {} };
+
+    quote! { #gen #gen2 }
 }

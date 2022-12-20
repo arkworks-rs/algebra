@@ -1,6 +1,7 @@
 use ark_serialize::{
     CanonicalDeserialize, CanonicalDeserializeWithFlags, CanonicalSerialize,
-    CanonicalSerializeWithFlags, Compress, EmptyFlags, Flags, SerializationError, Valid, Validate,
+    CanonicalSerializeInner, CanonicalSerializeWithFlags, Compress, EmptyFlags, Flags,
+    SerializationError, Valid, Validate,
 };
 use ark_std::{
     cmp::{Ord, Ordering, PartialOrd},
@@ -93,6 +94,7 @@ pub trait QuadExtConfig: 'static + Send + Sync + Sized {
 
 /// An element of a quadratic extension field F_p\[X\]/(X^2 - P::NONRESIDUE) is
 /// represented as c0 + c1 * X, for c0, c1 in `P::BaseField`.
+#[cfg_attr(feature = "serde", serde::Serialize, serde::Deserialize)]
 #[derive(Derivative)]
 #[derivative(
     Default(bound = "P: QuadExtConfig"),
@@ -702,7 +704,7 @@ impl<P: QuadExtConfig> CanonicalSerializeWithFlags for QuadExtField<P> {
     }
 }
 
-impl<P: QuadExtConfig> CanonicalSerialize for QuadExtField<P> {
+impl<P: QuadExtConfig> CanonicalSerializeInner for QuadExtField<P> {
     #[inline]
     fn serialize_with_mode<W: Write>(
         &self,
@@ -717,6 +719,8 @@ impl<P: QuadExtConfig> CanonicalSerialize for QuadExtField<P> {
         self.serialized_size_with_flags::<EmptyFlags>()
     }
 }
+
+impl<P: QuadExtConfig> CanonicalSerialize for QuadExtField<P> {}
 
 impl<P: QuadExtConfig> CanonicalDeserializeWithFlags for QuadExtField<P> {
     #[inline]

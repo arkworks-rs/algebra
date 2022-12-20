@@ -80,7 +80,7 @@ pub trait Valid: Sized + Sync {
 ///     b: (u64, (u64, u64)),
 /// }
 /// ```
-pub trait CanonicalSerialize {
+pub trait CanonicalSerializeInner {
     /// The general serialize method that takes in customization flags.
     fn serialize_with_mode<W: Write>(
         &self,
@@ -148,8 +148,14 @@ pub trait CanonicalDeserialize: Valid {
     }
 }
 
+#[cfg(feature = "serde")]
+pub trait CanonicalSerialize: CanonicalSerializeInner + serde::Serialize {}
+
+#[cfg(not(feature = "serde"))]
+pub trait CanonicalSerialize: CanonicalSerializeInner {}
+
 /// Serializer in little endian format allowing to encode flags.
-pub trait CanonicalSerializeWithFlags: CanonicalSerialize {
+pub trait CanonicalSerializeWithFlags: CanonicalSerializeInner {
     /// Serializes `self` and `flags` into `writer`.
     fn serialize_with_flags<W: Write, F: Flags>(
         &self,
@@ -189,7 +195,7 @@ impl<'a, H: Digest> ark_std::io::Write for HashMarshaller<'a, H> {
 
 /// The CanonicalSerialize induces a natural way to hash the
 /// corresponding value, of which this is the convenience trait.
-pub trait CanonicalSerializeHashExt: CanonicalSerialize {
+pub trait CanonicalSerializeHashExt: CanonicalSerializeInner {
     fn hash<H: Digest>(&self) -> GenericArray<u8, <H as OutputSizeUser>::OutputSize> {
         let mut hasher = H::new();
         self.serialize_compressed(HashMarshaller(&mut hasher))
@@ -236,7 +242,7 @@ mod test {
     #[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Debug)]
     struct Dummy;
 
-    impl CanonicalSerialize for Dummy {
+    impl CanonicalSerializeInner for Dummy {
         #[inline]
         fn serialize_with_mode<W: Write>(
             &self,
@@ -256,6 +262,8 @@ mod test {
             }
         }
     }
+
+    impl CanonicalSerialize for Dummy {}
 
     impl Valid for Dummy {
         fn check(&self) -> Result<(), SerializationError> {

@@ -422,7 +422,7 @@ impl<P: MontCurveConfig> MontgomeryAffine<P> {
     }
 }
 
-impl<P: TECurveConfig> CanonicalSerialize for Projective<P> {
+impl<P: TECurveConfig> CanonicalSerializeInner for Projective<P> {
     #[allow(unused_qualifications)]
     #[inline]
     fn serialize_with_mode<W: Write>(
@@ -439,6 +439,8 @@ impl<P: TECurveConfig> CanonicalSerialize for Projective<P> {
         P::serialized_size(compress)
     }
 }
+
+impl<P: TECurveConfig> CanonicalSerialize for Projective<P> {}
 
 impl<P: TECurveConfig> Valid for Projective<P> {
     fn check(&self) -> Result<(), SerializationError> {
