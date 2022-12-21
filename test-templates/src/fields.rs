@@ -428,7 +428,12 @@ macro_rules! __test_field {
             assert_eq!(BigUint::from(<$field>::MODULUS_MINUS_ONE_DIV_TWO), &modulus_minus_one / 2u32);
             assert_eq!(<$field>::MODULUS_BIT_SIZE as u64, modulus.bits());
             if let Some(SqrtPrecomputation::Case3Mod4 { modulus_plus_one_div_four }) = <$field>::SQRT_PRECOMP {
-                assert_eq!(modulus_plus_one_div_four, &((&modulus + 1u8) / 4u8).to_u64_digits());
+                // Handle the case where `(MODULUS + 1) / 4`
+                // has fewer limbs than `MODULUS`.
+                let check = ((&modulus + 1u8) / 4u8).to_u64_digits();
+                let len = check.len();
+                assert_eq!(&modulus_plus_one_div_four[..len], &check);
+                assert!(modulus_plus_one_div_four[len..].iter().all(|l| *l == 0));
             }
 
             let mut two_adicity = 0;
