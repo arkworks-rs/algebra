@@ -465,6 +465,18 @@ mod test {
 
     #[test]
     fn test_biguint() {
-        test_serialize(BigUint::from(123456u64));
+        let biguint = BigUint::from(123456u64);
+        test_serialize(biguint.clone());
+
+        let mut expected = (biguint.to_bytes_le().len() as u64).to_le_bytes().to_vec();
+        expected.extend_from_slice(&biguint.to_bytes_le());
+
+        let mut bytes = Vec::new();
+        biguint.serialize_with_mode(&mut bytes, Compress::Yes).unwrap();
+        assert_eq!(bytes, expected);
+
+        let mut bytes = Vec::new();
+        biguint.serialize_with_mode(&mut bytes, Compress::No).unwrap();
+        assert_eq!(bytes, expected);
     }
 }
