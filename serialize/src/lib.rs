@@ -232,6 +232,7 @@ mod test {
         vec,
         vec::Vec,
     };
+    use num_bigint::BigUint;
 
     #[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Debug)]
     struct Dummy;
@@ -460,5 +461,26 @@ mod test {
     fn test_sha3() {
         test_hash::<_, sha3::Sha3_256>(Dummy);
         test_hash::<_, sha3::Sha3_512>(Dummy);
+    }
+
+    #[test]
+    fn test_biguint() {
+        let biguint = BigUint::from(123456u64);
+        test_serialize(biguint.clone());
+
+        let mut expected = (biguint.to_bytes_le().len() as u64).to_le_bytes().to_vec();
+        expected.extend_from_slice(&biguint.to_bytes_le());
+
+        let mut bytes = Vec::new();
+        biguint
+            .serialize_with_mode(&mut bytes, Compress::Yes)
+            .unwrap();
+        assert_eq!(bytes, expected);
+
+        let mut bytes = Vec::new();
+        biguint
+            .serialize_with_mode(&mut bytes, Compress::No)
+            .unwrap();
+        assert_eq!(bytes, expected);
     }
 }
