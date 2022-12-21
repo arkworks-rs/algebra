@@ -472,11 +472,15 @@ mod test {
         expected.extend_from_slice(&biguint.to_bytes_le());
 
         let mut bytes = Vec::new();
-        biguint.serialize_with_mode(&mut bytes, Compress::Yes).unwrap();
+        biguint
+            .serialize_with_mode(&mut bytes, Compress::Yes)
+            .unwrap();
         assert_eq!(bytes, expected);
 
         let mut bytes = Vec::new();
-        biguint.serialize_with_mode(&mut bytes, Compress::No).unwrap();
+        biguint
+            .serialize_with_mode(&mut bytes, Compress::No)
+            .unwrap();
         assert_eq!(bytes, expected);
     }
 }
