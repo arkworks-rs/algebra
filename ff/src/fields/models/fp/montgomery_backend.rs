@@ -818,3 +818,42 @@ impl<T: MontConfig<N>, const N: usize> Fp<MontBackend<T, N>, N> {
         a.const_sub_with_borrow(b).0
     }
 }
+
+#[cfg(test)]
+mod test {
+    use num_bigint::{BigInt, Sign, BigUint};
+    use ark_test_curves::secp256k1::Fr;
+    use ark_std::str::FromStr;
+    use ark_std::string::String;
+    use ark_std::vec::Vec;
+
+    #[test]
+    fn test_mont_macro_correctness() {
+        let (is_positive, limbs) = str_to_limbs_u64("111192936301596926984056301862066282284536849596023571352007112326586892541694");
+        let t = Fr::from_sign_and_limbs(is_positive, &limbs);
+
+        let result: BigUint = t.into();
+        let expected = BigUint::from_str("111192936301596926984056301862066282284536849596023571352007112326586892541694").unwrap();
+
+        assert_eq!(result, expected);
+    }
+
+    fn str_to_limbs_u64(num: &str) -> (bool, Vec<u64>) {
+        let (sign, digits) = BigInt::from_str(num)
+            .expect("could not parse to bigint")
+            .to_radix_le(16);
+        let limbs = digits
+            .chunks(16)
+            .map(|chunk| {
+                let mut this = 0u64;
+                for (i, hexit) in chunk.iter().enumerate() {
+                    this += (*hexit as u64) << (4 * i);
+                }
+                this
+            })
+            .collect::<Vec<_>>();
+
+        let sign_is_positive = sign != Sign::Minus;
+        (sign_is_positive, limbs)
+    }
+}
