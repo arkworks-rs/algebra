@@ -1,6 +1,8 @@
 pub mod json;
+extern crate hex;
 extern crate serde_json;
 extern crate sha2;
+pub use hex::decode;
 pub use serde_json::from_reader;
 pub use sha2::Sha256;
 
@@ -27,6 +29,7 @@ macro_rules! test_h2c {
                 fs::{read_dir, File},
                 io::BufReader,
             };
+            use $crate::decode;
             use $crate::Sha256;
 
             use $crate::json::SuiteVector;
@@ -77,7 +80,7 @@ macro_rules! test_h2c {
                     .split(",")
                     .map(|f| {
                         <$base_prime_field>::from_be_bytes_mod_order(
-                            &hex::decode(f.trim_start_matches("0x")).unwrap(),
+                            &decode(f.trim_start_matches("0x")).unwrap(),
                         )
                     })
                     .collect()
