@@ -259,16 +259,17 @@ macro_rules! __test_group {
             assert!(generator.is_on_curve());
             assert!(generator.is_in_correct_subgroup_assuming_on_curve());
 
-            let mut x = BaseField::zero();
-            let mut i = 0;
-            loop {
+            for i in 0.. {
+                let x = BaseField::from(i);
                 // y^2 = x^3 + a * x + b
                 let rhs = x * x.square() + x * <Config as SWCurveConfig>::COEFF_A + <Config as SWCurveConfig>::COEFF_B;
 
                 if let Some(y) = rhs.sqrt() {
                     let p = Affine::new_unchecked(x, if y < -y { y } else { -y });
                     if !<<$group as CurveGroup>::Config as CurveConfig>::cofactor_is_one() {
-                        assert!(!p.is_in_correct_subgroup_assuming_on_curve());
+                        if p.is_in_correct_subgroup_assuming_on_curve() {
+                            continue;
+                        }
                     }
 
                     let g1 = p.mul_by_cofactor_to_group();
@@ -278,9 +279,6 @@ macro_rules! __test_group {
                         break;
                     }
                 }
-
-                i += 1;
-                x += BaseField::one();
             }
 
             for _ in 0..ITERATIONS {
