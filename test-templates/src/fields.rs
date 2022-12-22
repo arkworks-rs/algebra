@@ -513,7 +513,7 @@ macro_rules! __test_field {
 
             assert_eq!(r, <$field>::R.into());
             assert_eq!(r2, <$field>::R2.into());
-            assert_eq!(inv, <$field>::INV.into());
+            assert_eq!(inv, u64::from(<$field>::INV));
             assert_eq!(inv2, <$field>::INV);
         }
     }

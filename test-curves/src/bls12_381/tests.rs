@@ -18,3 +18,7 @@ test_group!(g2; G2Projective; sw);
 test_group!(pairing_output; ark_ec::pairing::PairingOutput<Bls12_381>; msm);
 #[cfg(feature = "bls12_381_curve")]
 test_pairing!(pairing; crate::bls12_381::Bls12_381);
+#[cfg(feature = "bls12_381_curve")]
+test_h2c!(g1_h2c; "./src/testdata"; "BLS12381G1"; crate::bls12_381::g1::Config; crate::bls12_381::Fq; crate::bls12_381::Fq; 1);
+#[cfg(feature = "bls12_381_curve")]
+test_h2c!(g2_hc2; "./src/testdata"; "BLS12381G2"; crate::bls12_381::g2::Config; crate::bls12_381::Fq2; crate::bls12_381::Fq; 2);
