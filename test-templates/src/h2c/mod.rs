@@ -8,7 +8,7 @@ pub use sha2::Sha256;
 
 #[macro_export]
 macro_rules! test_h2c {
-    ($mod_name: ident; $test_name: literal; $group: ty; $field: ty; $base_prime_field: ty; $m: literal) => {
+    ($mod_name: ident; $test_path: literal; $test_name: literal; $group: ty; $field: ty; $base_prime_field: ty; $m: literal) => {
         mod $mod_name {
             use ark_ff::PrimeField;
 
@@ -35,10 +35,7 @@ macro_rules! test_h2c {
             use $crate::json::SuiteVector;
             #[test]
             fn test_h2c() {
-                let filename = format!(
-                    "./src/curves/tests/{}_XMD-SHA-256_SSWU_RO_.json",
-                    $test_name
-                );
+                let filename = format!("{}/{}_XMD-SHA-256_SSWU_RO_.json", $test_path, $test_name);
 
                 let file = File::open(filename).unwrap();
                 let data: SuiteVector = $crate::from_reader(BufReader::new(file)).unwrap();
