@@ -1,18 +1,18 @@
 use crate::bls12_381::*;
 use ark_ec::{
-    hashing::curve_maps::wb::{IsogenyMap, WBParams},
+    hashing::curve_maps::wb::{IsogenyMap, WBConfig},
     models::CurveConfig,
     short_weierstrass::{self, *},
 };
 use ark_ff::{MontFp, Zero};
 
-pub type G1Affine = Affine<Parameters>;
-pub type G1Projective = Projective<Parameters>;
+pub type G1Affine = Affine<Config>;
+pub type G1Projective = Projective<Config>;
 
 #[derive(Clone, Default, PartialEq, Eq)]
-pub struct Parameters;
+pub struct Config;
 
-impl CurveConfig for Parameters {
+impl CurveConfig for Config {
     type BaseField = Fq;
     type ScalarField = Fr;
 
@@ -25,7 +25,7 @@ impl CurveConfig for Parameters {
     const COFACTOR_INV: Fr = MontFp!("52435875175126190458656871551744051925719901746859129887267498875565241663483");
 }
 
-impl short_weierstrass::SWCurveConfig for Parameters {
+impl short_weierstrass::SWCurveConfig for Config {
     /// COEFF_A = 0
     const COEFF_A: Fq = MontFp!("0");
 
@@ -49,13 +49,13 @@ impl short_weierstrass::SWCurveConfig for Parameters {
         // It is enough to multiply by (x - 1), instead of (x - 1)^2 / 3
         // sqrt(76329603384216526031706109802092473003*3) = 15132376222941642753
         let h_eff: &[u64] = &[0xd201000000010001];
-        Parameters::mul_affine(p, h_eff).into()
+        Config::mul_affine(p, h_eff).into()
     }
 }
 
-// Parameters from the [IETF draft v16, section E.2](https://www.ietf.org/archive/id/draft-irtf-cfrg-hash-to-curve-16.html#name-11-isogeny-map-for-bls12-381).
-impl WBParams for Parameters {
-    type IsogenousCurve = g1_swu_iso::SwuIsoParameters;
+// Config from the [IETF draft v16, section E.2](https://www.ietf.org/archive/id/draft-irtf-cfrg-hash-to-curve-16.html#name-11-isogeny-map-for-bls12-381).
+impl WBConfig for Config {
+    type IsogenousCurve = g1_swu_iso::SwuIsoConfig;
 
     const ISOGENY_MAP: IsogenyMap<'static, Self::IsogenousCurve, Self> =
         g1_swu_iso::ISOGENY_MAP_TO_G1;

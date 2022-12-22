@@ -365,17 +365,15 @@ macro_rules! __test_field {
                 (1 << <$field>::TWO_ADICITY) * (small_subgroup_base as u64).pow(small_subgroup_base_adicity);
                 assert_eq!(large_subgroup_root_of_unity.pow([pow]), <$field>::one());
 
-                for i in 0..<$field>::TWO_ADICITY {
-                    for j in 0..small_subgroup_base_adicity {
-                        use core::convert::TryFrom;
-                        let size = usize::try_from(1 << i as usize).unwrap()
-                        * usize::try_from((small_subgroup_base as u64).pow(j)).unwrap();
+                for i in 0..=<$field>::TWO_ADICITY {
+                    for j in 0..=small_subgroup_base_adicity {
+                        let size = (1u64 << i) * (small_subgroup_base as u64).pow(j);
                         let root = <$field>::get_root_of_unity(size as u64).unwrap();
                         assert_eq!(root.pow([size as u64]), <$field>::one());
                     }
                 }
             } else {
-                for i in 0..<$field>::TWO_ADICITY {
+                for i in 0..=<$field>::TWO_ADICITY {
                     let size = 1 << i;
                     let root = <$field>::get_root_of_unity(size).unwrap();
                     assert_eq!(root.pow([size as u64]), <$field>::one());
@@ -430,7 +428,12 @@ macro_rules! __test_field {
             assert_eq!(BigUint::from(<$field>::MODULUS_MINUS_ONE_DIV_TWO), &modulus_minus_one / 2u32);
             assert_eq!(<$field>::MODULUS_BIT_SIZE as u64, modulus.bits());
             if let Some(SqrtPrecomputation::Case3Mod4 { modulus_plus_one_div_four }) = <$field>::SQRT_PRECOMP {
-                assert_eq!(modulus_plus_one_div_four, &((&modulus + 1u8) / 4u8).to_u64_digits());
+                // Handle the case where `(MODULUS + 1) / 4`
+                // has fewer limbs than `MODULUS`.
+                let check = ((&modulus + 1u8) / 4u8).to_u64_digits();
+                let len = check.len();
+                assert_eq!(&modulus_plus_one_div_four[..len], &check);
+                assert!(modulus_plus_one_div_four[len..].iter().all(|l| *l == 0));
             }
 
             let mut two_adicity = 0;

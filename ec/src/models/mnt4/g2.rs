@@ -1,7 +1,7 @@
 use ark_std::ops::Neg;
 
 use crate::{
-    mnt4::MNT4Parameters,
+    mnt4::MNT4Config,
     models::mnt4::MNT4,
     short_weierstrass::{Affine, Projective},
     AffineRepr, CurveGroup,
@@ -11,17 +11,17 @@ use ark_serialize::*;
 use ark_std::vec::Vec;
 use num_traits::One;
 
-pub type G2Affine<P> = Affine<<P as MNT4Parameters>::G2Parameters>;
-pub type G2Projective<P> = Projective<<P as MNT4Parameters>::G2Parameters>;
+pub type G2Affine<P> = Affine<<P as MNT4Config>::G2Config>;
+pub type G2Projective<P> = Projective<<P as MNT4Config>::G2Config>;
 
 #[derive(Derivative, CanonicalSerialize, CanonicalDeserialize)]
 #[derivative(
-    Clone(bound = "P: MNT4Parameters"),
-    Debug(bound = "P: MNT4Parameters"),
-    PartialEq(bound = "P: MNT4Parameters"),
-    Eq(bound = "P: MNT4Parameters")
+    Clone(bound = "P: MNT4Config"),
+    Debug(bound = "P: MNT4Config"),
+    PartialEq(bound = "P: MNT4Config"),
+    Eq(bound = "P: MNT4Config")
 )]
-pub struct G2Prepared<P: MNT4Parameters> {
+pub struct G2Prepared<P: MNT4Config> {
     pub x: Fp2<P::Fp2Config>,
     pub y: Fp2<P::Fp2Config>,
     pub x_over_twist: Fp2<P::Fp2Config>,
@@ -30,13 +30,13 @@ pub struct G2Prepared<P: MNT4Parameters> {
     pub addition_coefficients: Vec<AteAdditionCoefficients<P>>,
 }
 
-impl<P: MNT4Parameters> Default for G2Prepared<P> {
+impl<P: MNT4Config> Default for G2Prepared<P> {
     fn default() -> Self {
         Self::from(G2Affine::<P>::generator())
     }
 }
 
-impl<P: MNT4Parameters> From<G2Affine<P>> for G2Prepared<P> {
+impl<P: MNT4Config> From<G2Affine<P>> for G2Prepared<P> {
     fn from(g: G2Affine<P>) -> Self {
         let twist_inv = P::TWIST.inverse().unwrap();
 
@@ -92,24 +92,24 @@ impl<P: MNT4Parameters> From<G2Affine<P>> for G2Prepared<P> {
     }
 }
 
-impl<'a, P: MNT4Parameters> From<&'a G2Affine<P>> for G2Prepared<P> {
+impl<'a, P: MNT4Config> From<&'a G2Affine<P>> for G2Prepared<P> {
     fn from(g2: &'a G2Affine<P>) -> Self {
         (*g2).into()
     }
 }
 
-impl<P: MNT4Parameters> From<G2Projective<P>> for G2Prepared<P> {
+impl<P: MNT4Config> From<G2Projective<P>> for G2Prepared<P> {
     fn from(g2: G2Projective<P>) -> Self {
         g2.into_affine().into()
     }
 }
-impl<'a, P: MNT4Parameters> From<&'a G2Projective<P>> for G2Prepared<P> {
+impl<'a, P: MNT4Config> From<&'a G2Projective<P>> for G2Prepared<P> {
     fn from(g2: &'a G2Projective<P>) -> Self {
         (*g2).into()
     }
 }
 
-pub(super) struct G2ProjectiveExtended<P: MNT4Parameters> {
+pub(super) struct G2ProjectiveExtended<P: MNT4Config> {
     pub(crate) x: Fp2<P::Fp2Config>,
     pub(crate) y: Fp2<P::Fp2Config>,
     pub(crate) z: Fp2<P::Fp2Config>,
@@ -118,12 +118,12 @@ pub(super) struct G2ProjectiveExtended<P: MNT4Parameters> {
 
 #[derive(Derivative, CanonicalSerialize, CanonicalDeserialize)]
 #[derivative(
-    Clone(bound = "P: MNT4Parameters"),
-    Debug(bound = "P: MNT4Parameters"),
-    PartialEq(bound = "P: MNT4Parameters"),
-    Eq(bound = "P: MNT4Parameters")
+    Clone(bound = "P: MNT4Config"),
+    Debug(bound = "P: MNT4Config"),
+    PartialEq(bound = "P: MNT4Config"),
+    Eq(bound = "P: MNT4Config")
 )]
-pub struct AteDoubleCoefficients<P: MNT4Parameters> {
+pub struct AteDoubleCoefficients<P: MNT4Config> {
     pub c_h: Fp2<P::Fp2Config>,
     pub c_4c: Fp2<P::Fp2Config>,
     pub c_j: Fp2<P::Fp2Config>,
@@ -132,12 +132,12 @@ pub struct AteDoubleCoefficients<P: MNT4Parameters> {
 
 #[derive(Derivative, CanonicalSerialize, CanonicalDeserialize)]
 #[derivative(
-    Clone(bound = "P: MNT4Parameters"),
-    Debug(bound = "P: MNT4Parameters"),
-    PartialEq(bound = "P: MNT4Parameters"),
-    Eq(bound = "P: MNT4Parameters")
+    Clone(bound = "P: MNT4Config"),
+    Debug(bound = "P: MNT4Config"),
+    PartialEq(bound = "P: MNT4Config"),
+    Eq(bound = "P: MNT4Config")
 )]
-pub struct AteAdditionCoefficients<P: MNT4Parameters> {
+pub struct AteAdditionCoefficients<P: MNT4Config> {
     pub c_l1: Fp2<P::Fp2Config>,
     pub c_rz: Fp2<P::Fp2Config>,
 }
