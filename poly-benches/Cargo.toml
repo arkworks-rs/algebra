@@ -10,12 +10,12 @@ publish = false
 rust-version = "1.56"
 
 [dependencies]
-ark-ff = { version = "^0.3.0", path = "../ff" }
-ark-poly = { version = "^0.3.0", path = "../poly" }
-ark-std = { version = "^0.3.0", default-features = false }
-ark-test-curves = { version = "^0.3.0", path = "../test-curves", default-features = false, features = [ "bls12_381_scalar_field", "mnt4_753_curve" ] }
-criterion = "0.4.0"
-rayon = { version = "1", optional = true }
+ark-ff.workspace = true
+ark-poly.workspace = true
+ark-std.workspace = true
+ark-test-curves = { workspace = true, features = [ "bls12_381_scalar_field", "mnt4_753_curve" ] }
+criterion.workspace = true
+rayon = { workspace = true, optional = true }
 
 [features]
 default = []

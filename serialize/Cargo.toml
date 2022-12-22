@@ -14,16 +14,16 @@ edition = "2021"
 rust-version = "1.56"
 
 [dependencies]
-ark-serialize-derive = { version = "^0.3.0", path = "../serialize-derive", optional = true }
-ark-std = { version = "^0.3.0", default-features = false }
-digest = { version = "0.10", default-features = false }
-num-bigint = { version = "0.4", default-features = false }
+ark-serialize-derive = { workspace = true, optional = true }
+ark-std.workspace = true
+digest.workspace = true
+num-bigint.workspace = true
 
 [dev-dependencies]
-sha2 = { version = "0.10", default-features = false}
-sha3 = { version = "0.10", default-features = false}
-blake2 = { version = "0.10", default-features = false}
-ark-test-curves = { version = "^0.3.0", path = "../test-curves", default-features = false, features = [ "bls12_381_curve"] }
+sha2.workspace = true
+sha3.workspace = true
+blake2.workspace = true
+ark-test-curves = { workspace = true, features = [ "bls12_381_curve"] }
 
 
 [features]

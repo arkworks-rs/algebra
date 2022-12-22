@@ -14,8 +14,8 @@ edition = "2021"
 rust-version = "1.57"
 
 [dependencies]
-quote = "1.0.0"
-syn = { version = "1.0.0", features = ["full", "parsing", "extra-traits"]}
+quote.workspace = true
+syn = { workspace = true, features = ["full", "parsing", "extra-traits"]}
 
 [lib]
 proc-macro = true
