@@ -245,51 +245,100 @@ pub fn find_relaxed_naf(num: &[u64]) -> Vec<i8> {
     res
 }
 
-#[test]
-fn test_find_relaxed_naf_usefulness() {
-    let vec = find_naf(&[12u64]);
-    assert_eq!(vec.len(), 5);
-
-    let vec = find_relaxed_naf(&[12u64]);
-    assert_eq!(vec.len(), 4);
-}
-
-#[test]
-fn test_find_relaxed_naf_correctness() {
+#[cfg(test)]
+mod tests {
     use ark_std::{One, UniformRand, Zero};
-    use num_bigint::BigInt;
+    use num_bigint::{BigInt, BigUint};
 
-    let mut rng = ark_std::test_rng();
+    use super::*;
 
-    for _ in 0..10 {
-        let num = [
-            u64::rand(&mut rng),
-            u64::rand(&mut rng),
-            u64::rand(&mut rng),
-            u64::rand(&mut rng),
-        ];
-        let relaxed_naf = find_relaxed_naf(&num);
+    #[test]
+    fn test_find_relaxed_naf_usefulness() {
+        let vec = find_naf(&[12u64]);
+        assert_eq!(vec.len(), 5);
 
-        let test = {
-            let mut sum = BigInt::zero();
-            let mut cur = BigInt::one();
-            for v in relaxed_naf {
-                sum += cur.clone() * v;
-                cur *= 2;
-            }
-            sum
-        };
+        let vec = find_relaxed_naf(&[12u64]);
+        assert_eq!(vec.len(), 4);
+    }
 
-        let test_expected = {
-            let mut sum = BigInt::zero();
-            let mut cur = BigInt::one();
-            for v in num.iter() {
-                sum += cur.clone() * v;
-                cur <<= 64;
-            }
-            sum
-        };
+    #[test]
+    fn test_find_relaxed_naf_correctness() {
+        let mut rng = ark_std::test_rng();
 
-        assert_eq!(test, test_expected);
+        for _ in 0..10 {
+            let num = [
+                u64::rand(&mut rng),
+                u64::rand(&mut rng),
+                u64::rand(&mut rng),
+                u64::rand(&mut rng),
+            ];
+            let relaxed_naf = find_relaxed_naf(&num);
+
+            let test = {
+                let mut sum = BigInt::zero();
+                let mut cur = BigInt::one();
+                for v in relaxed_naf {
+                    sum += cur.clone() * v;
+                    cur *= 2;
+                }
+                sum
+            };
+
+            let test_expected = {
+                let mut sum = BigInt::zero();
+                let mut cur = BigInt::one();
+                for v in num.iter() {
+                    sum += cur.clone() * v;
+                    cur <<= 64;
+                }
+                sum
+            };
+
+            assert_eq!(test, test_expected);
+        }
+    }
+
+    #[test]
+    fn test_mul_double_add_with_carry_2() {
+        // random tests, carry1 = 0
+        let mut rng = ark_std::test_rng();
+        for _ in 0..100 {
+            let mut carry1 = 0u64;
+            let mut carry0 = u64::rand(&mut rng);
+            let a = u64::rand(&mut rng);
+            let b = u64::rand(&mut rng);
+            let c = u64::rand(&mut rng);
+
+            let mut expected: BigUint = BigUint::zero();
+            expected += BigUint::from(a);
+            expected += BigUint::from(2u64) * BigUint::from(b) * BigUint::from(c);
+            expected += BigUint::from(carry0);
+            expected += BigUint::from(carry1) << 64;
+
+            let res = mul_double_add_with_carry_2(a, b, c, &mut carry0, &mut carry1);
+            let actual =
+                BigUint::from(res) + (BigUint::from(carry0) << 64) + (BigUint::from(carry1) << 128);
+            assert_eq!(actual, expected);
+        }
+
+        // random tests, carry1 = 1
+        for _ in 0..100 {
+            let mut carry1 = 1u64;
+            let mut carry0 = u64::rand(&mut rng);
+            let a = u64::rand(&mut rng);
+            let b = u64::rand(&mut rng);
+            let c = u64::rand(&mut rng);
+
+            let mut expected: BigUint = BigUint::zero();
+            expected += BigUint::from(a);
+            expected += BigUint::from(2u64) * BigUint::from(b) * BigUint::from(c);
+            expected += BigUint::from(carry0);
+            expected += BigUint::from(carry1) << 64;
+
+            let res = mul_double_add_with_carry_2(a, b, c, &mut carry0, &mut carry1);
+            let actual =
+                BigUint::from(res) + (BigUint::from(carry0) << 64) + (BigUint::from(carry1) << 128);
+            assert_eq!(actual, expected);
+        }
     }
 }
