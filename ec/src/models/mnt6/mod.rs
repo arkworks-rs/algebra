@@ -26,7 +26,7 @@ pub use self::{
 
 pub type GT<P> = Fp6<P>;
 
-pub trait MNT6Parameters: 'static {
+pub trait MNT6Config: 'static {
     const TWIST: Fp3<Self::Fp3Config>;
     const TWIST_COEFF_A: Fp3<Self::Fp3Config>;
     const ATE_LOOP_COUNT: &'static [i8];
@@ -38,18 +38,18 @@ pub trait MNT6Parameters: 'static {
     type Fr: PrimeField + Into<<Self::Fr as PrimeField>::BigInt>;
     type Fp3Config: Fp3Config<Fp = Self::Fp>;
     type Fp6Config: Fp6Config<Fp3Config = Self::Fp3Config>;
-    type G1Parameters: SWCurveConfig<BaseField = Self::Fp, ScalarField = Self::Fr>;
-    type G2Parameters: SWCurveConfig<
+    type G1Config: SWCurveConfig<BaseField = Self::Fp, ScalarField = Self::Fr>;
+    type G2Config: SWCurveConfig<
         BaseField = Fp3<Self::Fp3Config>,
-        ScalarField = <Self::G1Parameters as CurveConfig>::ScalarField,
+        ScalarField = <Self::G1Config as CurveConfig>::ScalarField,
     >;
 }
 
 #[derive(Derivative)]
 #[derivative(Copy, Clone, PartialEq, Eq, Debug, Hash)]
-pub struct MNT6<P: MNT6Parameters>(PhantomData<fn() -> P>);
+pub struct MNT6<P: MNT6Config>(PhantomData<fn() -> P>);
 
-impl<P: MNT6Parameters> MNT6<P> {
+impl<P: MNT6Config> MNT6<P> {
     fn doubling_for_flipped_miller_loop(
         r: &G2ProjectiveExtended<P>,
     ) -> (G2ProjectiveExtended<P>, AteDoubleCoefficients<P>) {
@@ -202,9 +202,9 @@ impl<P: MNT6Parameters> MNT6<P> {
     }
 }
 
-impl<P: MNT6Parameters> Pairing for MNT6<P> {
-    type BaseField = <P::G1Parameters as CurveConfig>::BaseField;
-    type ScalarField = <P::G1Parameters as CurveConfig>::ScalarField;
+impl<P: MNT6Config> Pairing for MNT6<P> {
+    type BaseField = <P::G1Config as CurveConfig>::BaseField;
+    type ScalarField = <P::G1Config as CurveConfig>::ScalarField;
     type G1 = G1Projective<P>;
     type G1Affine = G1Affine<P>;
     type G1Prepared = G1Prepared<P>;
