@@ -147,7 +147,7 @@ pub fn mul_double_add_with_carry_2(
     // it will spill a bit after *2 if the topmost bit is 1
     let doubling_high_carry = (tmp1 >> 127) as u64;
     // multiply by 2
-    tmp1 <<= 2;
+    tmp1 <<= 1;
     // get the topmost bits of tmp1
     let doubling_low_carry = (tmp1 >> 64) as u64;
     let doubling_bottom = tmp1 as u64;
