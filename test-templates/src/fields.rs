@@ -63,13 +63,16 @@ macro_rules! __test_field {
                 let a = <$field>::rand(&mut rng);
 
                 let mut a_0 = a;
-                a_0.frobenius_map(0);
+                a_0.frobenius_map_in_place(0);
                 assert_eq!(a, a_0);
+                assert_eq!(a, a.frobenius_map(0));
 
                 let mut a_q = a.pow(&characteristic);
                 for power in 1..max_power {
+                    assert_eq!(a_q, a.frobenius_map(power));
+
                     let mut a_qi = a;
-                    a_qi.frobenius_map(power);
+                    a_qi.frobenius_map_in_place(power);
                     assert_eq!(a_qi, a_q, "failed on power {}", power);
 
                     a_q = a_q.pow(&characteristic);

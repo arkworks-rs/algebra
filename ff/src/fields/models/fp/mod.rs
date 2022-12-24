@@ -316,7 +316,7 @@ impl<P: FpConfig<N>, const N: usize> Field for Fp<P, N> {
 
     /// The Frobenius map has no effect in a prime field.
     #[inline]
-    fn frobenius_map(&mut self, _: usize) {}
+    fn frobenius_map_in_place(&mut self, _: usize) {}
 
     #[inline]
     fn legendre(&self) -> LegendreSymbol {

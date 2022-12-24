@@ -177,9 +177,9 @@ fn mul_by_char<P: BnConfig>(r: G2Affine<P>) -> G2Affine<P> {
     // multiply by field characteristic
 
     let mut s = r;
-    s.x.frobenius_map(1);
+    s.x.frobenius_map_in_place(1);
     s.x *= &P::TWIST_MUL_BY_Q_X;
-    s.y.frobenius_map(1);
+    s.y.frobenius_map_in_place(1);
     s.y *= &P::TWIST_MUL_BY_Q_Y;
 
     s
