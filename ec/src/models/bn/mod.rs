@@ -174,7 +174,7 @@ impl<P: BnConfig> Pairing for Bn<P> {
             // f2 = f^(p^6 - 1)
             f2 = r;
             // r = f^((p^6 - 1)(p^2))
-            r.frobenius_map(2);
+            r.frobenius_map_in_place(2);
 
             // r = f^((p^6 - 1)(p^2) + (p^6 - 1))
             // r = f^((p^6 - 1)(p^2 + 1))
@@ -206,13 +206,13 @@ impl<P: BnConfig> Pairing for Bn<P> {
             let y10 = y8 * &y4;
             let y11 = y10 * &r;
             let mut y12 = y9;
-            y12.frobenius_map(1);
+            y12.frobenius_map_in_place(1);
             let y13 = y12 * &y11;
-            y8.frobenius_map(2);
+            y8.frobenius_map_in_place(2);
             let y14 = y8 * &y13;
             r.cyclotomic_inverse_in_place();
             let mut y15 = r * &y9;
-            y15.frobenius_map(3);
+            y15.frobenius_map_in_place(3);
             let y16 = y15 * &y14;
 
             PairingOutput(y16)

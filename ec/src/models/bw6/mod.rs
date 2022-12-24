@@ -120,7 +120,7 @@ pub trait BW6Config: 'static + Eq + Sized {
             f_2.cyclotomic_inverse_in_place();
         }
 
-        f_2.frobenius_map(1);
+        f_2.frobenius_map_in_place(1);
 
         MillerLoopOutput(f_1 * &f_2)
     }
@@ -180,7 +180,7 @@ impl<P: BW6Config> BW6<P> {
         let elt_q3_over_elt = elt_q3 * elt_inv;
         // alpha = elt^((q^3-1) * q)
         let mut alpha = elt_q3_over_elt;
-        alpha.frobenius_map(1);
+        alpha.frobenius_map_in_place(1);
         // beta = elt^((q^3-1)*(q+1)
         alpha * &elt_q3_over_elt
     }
@@ -198,28 +198,28 @@ impl<P: BW6Config> BW6<P> {
         // steps 1,2,3
         let f0 = *f;
         let mut f0p = f0;
-        f0p.frobenius_map(1);
+        f0p.frobenius_map_in_place(1);
         let f1 = Self::exp_by_x(f0);
         let mut f1p = f1;
-        f1p.frobenius_map(1);
+        f1p.frobenius_map_in_place(1);
         let f2 = Self::exp_by_x(f1);
         let mut f2p = f2;
-        f2p.frobenius_map(1);
+        f2p.frobenius_map_in_place(1);
         let f3 = Self::exp_by_x(f2);
         let mut f3p = f3;
-        f3p.frobenius_map(1);
+        f3p.frobenius_map_in_place(1);
         let f4 = Self::exp_by_x(f3);
         let mut f4p = f4;
-        f4p.frobenius_map(1);
+        f4p.frobenius_map_in_place(1);
         let f5 = Self::exp_by_x(f4);
         let mut f5p = f5;
-        f5p.frobenius_map(1);
+        f5p.frobenius_map_in_place(1);
         let f6 = Self::exp_by_x(f5);
         let mut f6p = f6;
-        f6p.frobenius_map(1);
+        f6p.frobenius_map_in_place(1);
         let f7 = Self::exp_by_x(f6);
         let mut f7p = f7;
-        f7p.frobenius_map(1);
+        f7p.frobenius_map_in_place(1);
 
         // step 4
         let f8p = Self::exp_by_x(f7p);
