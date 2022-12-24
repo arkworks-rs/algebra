@@ -105,7 +105,7 @@ pub trait Bls12Config: 'static + Sized {
             // f2 = f^(p^6 - 1)
             f2 = r;
             // r = f^((p^6 - 1)(p^2))
-            r.frobenius_map(2);
+            r.frobenius_map_in_place(2);
 
             // r = f^((p^6 - 1)(p^2) + (p^6 - 1))
             // r = f^((p^6 - 1)(p^2 + 1))
@@ -131,7 +131,7 @@ pub trait Bls12Config: 'static + Sized {
             // t[2].Expt(&t[1])
             Bls12::<Self>::exp_by_x(&y1, &mut y2);
             // t[1].Frobenius(&t[1])
-            y1.frobenius_map(1);
+            y1.frobenius_map_in_place(1);
             // t[1].Mul(&t[1], &t[2])
             y1 *= &y2;
             // result.Mul(&result, &t[0])
@@ -142,7 +142,7 @@ pub trait Bls12Config: 'static + Sized {
             Bls12::<Self>::exp_by_x(&y0, &mut y2);
             // t[0].FrobeniusSquare(&t[1])
             y0 = y1;
-            y0.frobenius_map(2);
+            y0.frobenius_map_in_place(2);
             // t[1].InverseUnitary(&t[1])
             y1.cyclotomic_inverse_in_place();
             // t[1].Mul(&t[1], &t[2])
