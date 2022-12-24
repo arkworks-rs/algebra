@@ -5,7 +5,11 @@ on:
       version:
         description: Version to release
         required: true
-        type: string
+        type: choice
+        # Currently only alpha and patch releases are supported by this workflow, due to https://github.com/rust-lang/cargo/issues/4242
+        options: 
+          - alpha
+          - patch
 
 jobs:
   make-release-pr:
@@ -17,10 +21,9 @@ jobs:
           tool: cargo-release
 
       - uses: actions/checkout@v3
-      - uses: mmagician/release-pr@merge
+      - uses: cargo-bins/release-pr@v2
         with:
           pr-template-file: .github/release-pr-template.ejs
           github-token: ${{ secrets.GITHUB_TOKEN }}
           version: ${{ inputs.version }}
           crate-release-all: true
-          options-dependent-version: fix

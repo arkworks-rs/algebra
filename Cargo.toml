@@ -41,3 +41,6 @@ lto = "thin"
 incremental = true
 debug-assertions = true
 debug = true
+
+[workspace.metadata.release]
+dependent-version = "fix"
