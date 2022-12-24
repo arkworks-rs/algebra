@@ -199,12 +199,19 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
                 }
                 (a.0).0 = r;
             }
+            a.subtract_modulus();
         } else {
             // Alternative implementation
             // Implements CIOS.
-            *a = a.mul_without_cond_subtract(b);
+            let (carry, res) = a.mul_without_cond_subtract(b);
+            *a = res;
+
+            if Self::MODULUS_HAS_SPARE_BIT {
+                a.subtract_modulus_with_carry(carry);
+            } else {
+                a.subtract_modulus();
+            }
         }
-        a.subtract_modulus();
     }
 
     #[inline(always)]
@@ -734,7 +741,7 @@ impl<T: MontConfig<N>, const N: usize> Fp<MontBackend<T, N>, N> {
         }
     }
 
-    const fn mul_without_cond_subtract(mut self, other: &Self) -> Self {
+    const fn mul_without_cond_subtract(mut self, other: &Self) -> (bool, Self) {
         let (mut lo, mut hi) = ([0u64; N], [0u64; N]);
         crate::const_for!((i in 0..N) {
             let mut carry = 0;
@@ -768,12 +775,16 @@ impl<T: MontConfig<N>, const N: usize> Fp<MontBackend<T, N>, N> {
         crate::const_for!((i in 0..N) {
             (self.0).0[i] = hi[i];
         });
-        self
+        (carry2 != 0, self)
     }
 
-    const fn mul(mut self, other: &Self) -> Self {
-        self = self.mul_without_cond_subtract(other);
-        self.const_subtract_modulus()
+    const fn mul(self, other: &Self) -> Self {
+        let (carry, res) = self.mul_without_cond_subtract(other);
+        if T::MODULUS_HAS_SPARE_BIT {
+            res.const_subtract_modulus()
+        } else {
+            res.const_subtract_modulus_with_carry(carry)
+        }
     }
 
     const fn const_is_valid(&self) -> bool {
@@ -795,7 +806,58 @@ impl<T: MontConfig<N>, const N: usize> Fp<MontBackend<T, N>, N> {
         self
     }
 
+    #[inline]
+    const fn const_subtract_modulus_with_carry(mut self, carry: bool) -> Self {
+        if carry || !self.const_is_valid() {
+            self.0 = Self::sub_with_borrow(&self.0, &T::MODULUS);
+        }
+        self
+    }
+
     const fn sub_with_borrow(a: &BigInt<N>, b: &BigInt<N>) -> BigInt<N> {
         a.const_sub_with_borrow(b).0
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use ark_std::str::FromStr;
+    use ark_std::vec::Vec;
+    use ark_test_curves::secp256k1::Fr;
+    use num_bigint::{BigInt, BigUint, Sign};
+
+    #[test]
+    fn test_mont_macro_correctness() {
+        let (is_positive, limbs) = str_to_limbs_u64(
+            "111192936301596926984056301862066282284536849596023571352007112326586892541694",
+        );
+        let t = Fr::from_sign_and_limbs(is_positive, &limbs);
+
+        let result: BigUint = t.into();
+        let expected = BigUint::from_str(
+            "111192936301596926984056301862066282284536849596023571352007112326586892541694",
+        )
+        .unwrap();
+
+        assert_eq!(result, expected);
+    }
+
+    fn str_to_limbs_u64(num: &str) -> (bool, Vec<u64>) {
+        let (sign, digits) = BigInt::from_str(num)
+            .expect("could not parse to bigint")
+            .to_radix_le(16);
+        let limbs = digits
+            .chunks(16)
+            .map(|chunk| {
+                let mut this = 0u64;
+                for (i, hexit) in chunk.iter().enumerate() {
+                    this += (*hexit as u64) << (4 * i);
+                }
+                this
+            })
+            .collect::<Vec<_>>();
+
+        let sign_is_positive = sign != Sign::Minus;
+        (sign_is_positive, limbs)
     }
 }

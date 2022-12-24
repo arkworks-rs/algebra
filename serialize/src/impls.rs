@@ -7,6 +7,7 @@ use ark_std::{
     string::String,
     vec::Vec,
 };
+use num_bigint::BigUint;
 
 use crate::*;
 
@@ -144,6 +145,50 @@ impl CanonicalDeserialize for usize {
         let mut bytes = [0u8; core::mem::size_of::<u64>()];
         reader.read_exact(&mut bytes)?;
         Ok(<u64>::from_le_bytes(bytes) as usize)
+    }
+}
+
+impl CanonicalSerialize for BigUint {
+    #[inline]
+    fn serialize_with_mode<W: Write>(
+        &self,
+        writer: W,
+        compress: Compress,
+    ) -> Result<(), SerializationError> {
+        self.to_bytes_le().serialize_with_mode(writer, compress)
+    }
+
+    #[inline]
+    fn serialized_size(&self, compress: Compress) -> usize {
+        self.to_bytes_le().serialized_size(compress)
+    }
+}
+
+impl CanonicalDeserialize for BigUint {
+    #[inline]
+    fn deserialize_with_mode<R: Read>(
+        reader: R,
+        compress: Compress,
+        validate: Validate,
+    ) -> Result<Self, SerializationError> {
+        Ok(BigUint::from_bytes_le(&Vec::<u8>::deserialize_with_mode(
+            reader, compress, validate,
+        )?))
+    }
+}
+
+impl Valid for BigUint {
+    #[inline]
+    fn check(&self) -> Result<(), SerializationError> {
+        Ok(())
+    }
+
+    #[inline]
+    fn batch_check<'a>(_batch: impl Iterator<Item = &'a Self>) -> Result<(), SerializationError>
+    where
+        Self: 'a,
+    {
+        Ok(())
     }
 }
 

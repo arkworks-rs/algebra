@@ -1,11 +1,6 @@
 use crate::hashing::curve_maps::swu::parity;
 use ark_test_curves::bls12_381::{Fq, Fq2, Fq6};
 
-#[cfg(all(test, feature = "std"))]
-mod json;
-#[cfg(all(test, feature = "std"))]
-mod suites;
-
 #[test]
 fn test_parity_of_prime_field_elements() {
     let a1 = Fq::from(0);
