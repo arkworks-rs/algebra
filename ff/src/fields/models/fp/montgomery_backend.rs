@@ -753,27 +753,25 @@ impl<T: MontConfig<N>, const N: usize> Fp<MontBackend<T, N>, N> {
         let mut r = crate::const_helpers::MulBuffer::<N>::zeroed();
 
         // 1a. First compute the square of a*a, without reduction
-        let mut carry = 0;
-        for i in 0..(N - 1) {
+        let mut carry_lo = 0;
+        let mut carry_hi = 0u64;
+        for i in 0..(N) {
+            r[2 * i] = fa::mac_with_carry(r[2 * i], (self.0).0[i], (self.0).0[i], &mut carry_lo);
             for j in (i + 1)..N {
-                r[i + j] = fa::mac_with_carry(r[i + j], (self.0).0[i], (self.0).0[j], &mut carry);
+                r[i + j] = fa::mul_double_add_with_carry_2(
+                    r[i + j],
+                    (self.0).0[i],
+                    (self.0).0[j],
+                    &mut carry_lo,
+                    &mut carry_hi,
+                );
             }
-            r.b1[i] = carry;
-            carry = 0;
-        }
-
-        // 1b. Since in the loop we are computing a[i] * a[j] instead of 2 * a[i] * a[j],
-        // we need to double the result.
-        r.b1[N - 1] = r.b1[N - 2] >> 63;
-        for i in 2..(2 * N - 1) {
-            r[2 * N - i] = (r[2 * N - i] << 1) | (r[2 * N - (i + 1)] >> 63);
-        }
-        r.b0[1] <<= 1;
-
-        // 1c. And add back the squares of the a[i]s that are skipped.
-        for i in 0..N {
-            r[2 * i] = fa::mac_with_carry(r[2 * i], (self.0).0[i], (self.0).0[i], &mut carry);
-            carry = fa::adc(&mut r[2 * i + 1], 0, carry);
+            r.b1[i] += carry_lo;
+            if (i + 1) < N {
+                r.b1[i + 1] = carry_hi;
+            }
+            carry_lo = 0;
+            carry_hi = 0;
         }
 
         // 2. Montgomery reduction.
