@@ -839,9 +839,11 @@ impl<T: MontConfig<N>, const N: usize> Fp<MontBackend<T, N>, N> {
 
 #[cfg(test)]
 mod test {
-    use ark_std::str::FromStr;
     use ark_std::vec::Vec;
+    use ark_std::UniformRand;
+    use ark_std::{str::FromStr, test_rng};
     use ark_test_curves::secp256k1::Fr;
+    use ark_test_curves::Field;
     use num_bigint::{BigInt, BigUint, Sign};
 
     #[test]
@@ -877,5 +879,12 @@ mod test {
 
         let sign_is_positive = sign != Sign::Minus;
         (sign_is_positive, limbs)
+    }
+
+    #[test]
+    fn test_square_correctness() {
+        let mut rng = test_rng();
+        let a = Fr::rand(&mut rng);
+        assert_eq!(a * a, a.square(), "Squaring failed");
     }
 }
