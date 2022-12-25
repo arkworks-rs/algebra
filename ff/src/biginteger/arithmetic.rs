@@ -153,10 +153,9 @@ pub fn mul_double_add_with_carry_2(
     let doubling_bottom = tmp1 as u64;
 
     // add the rest. Every element here should fit into a single u64 digit.
-    let tmp3 =
-        (a as u128) + (doubling_bottom as u128) + (*carry_lo as u128) + ((*carry_hi as u128) << 64);
+    let tmp3 = (a as u128) + (doubling_bottom as u128) + (*carry_lo as u128);
 
-    let tmp4 = (tmp3 >> 64) + (doubling_low_carry);
+    let tmp4 = (tmp3 >> 64) + (doubling_low_carry) + (*carry_hi as u128);
     // at this point, either tmp4 or doubling_high_carry are 1, but not both
     // assert!((tmp4 >> 64) + (doubling_high_carry as u128) <= 1);
     *carry_hi = (((tmp4 >> 64) as u64) + doubling_high_carry) as u64;
