@@ -500,7 +500,6 @@ pub const fn modulus_has_spare_bit<T: MontConfig<N>, const N: usize>() -> bool {
 #[inline]
 pub const fn can_use_no_carry_square_optimization<T: MontConfig<N>, const N: usize>() -> bool {
     // Checking the modulus at compile time
-    // TODO: figure out the exact math here
     let top_two_bits_are_zero = T::MODULUS.0[N - 1] >> 62 == 0;
     let mut all_remaining_bits_are_one = T::MODULUS.0[N - 1] == u64::MAX >> 2;
     crate::const_for!((i in 1..N) {
