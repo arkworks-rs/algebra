@@ -878,11 +878,4 @@ mod test {
         let sign_is_positive = sign != Sign::Minus;
         (sign_is_positive, limbs)
     }
-
-    #[test]
-    fn test_square_correctness() {
-        let mut rng = test_rng();
-        let a = Fr::rand(&mut rng);
-        assert_eq!(a * a, a.square(), "Squaring failed");
-    }
 }
