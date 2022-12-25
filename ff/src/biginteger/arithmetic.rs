@@ -158,7 +158,7 @@ pub fn mul_double_add_with_carry_2(
     let tmp4 = (tmp3 >> 64) + (doubling_low_carry) + (*carry_hi as u128);
     // at this point, either tmp4 or doubling_high_carry are 1, but not both
     // assert!((tmp4 >> 64) + (doubling_high_carry as u128) <= 1);
-    *carry_hi = (((tmp4 >> 64) as u64) + doubling_high_carry) as u64;
+    *carry_hi = doubling_high_carry;
 
     *carry_lo = tmp4 as u64;
 
