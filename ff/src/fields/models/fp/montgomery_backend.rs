@@ -248,12 +248,35 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
                     6 => { ark_ff_asm::x86_64_asm_square!(6, (a.0).0); },
                     _ => unsafe { ark_std::hint::unreachable_unchecked() },
                 };
-                a.subtract_modulus();
-                return;
             } else {
-                // No-carry optimisation applied to CIOS squaring goes here
-                *a = a.square_without_opt();
+                // No-carry optimisation for CIOS squaring
+                let mut r = [0u64; N];
+                for i in 0..N {
+                    let mut carry_hi = 0;
+                    let mut carry_lo = 0;
+                    r[i] = fa::mac_with_carry(r[i], (a.0).0[i], (a.0).0[i], &mut carry_lo);
+                    for j in (i + 1)..N {
+                        r[j] = fa::mul_double_add_with_carry_2(
+                            r[j],
+                            (a.0).0[i],
+                            (a.0).0[j],
+                            &mut carry_lo,
+                            &mut carry_hi,
+                        );
+                    }
+
+                    let k = r[0].wrapping_mul(Self::INV);
+                    let mut carry2 = 0u64;
+                    fa::mac_discard(r[0], k, Self::MODULUS.0[0], &mut carry2);
+                    for j in 1..N {
+                        r[j - 1] = fa::mac_with_carry(r[j], k, Self::MODULUS.0[j], &mut carry2);
+                    }
+                    r[N - 1] = carry_lo + carry2;
+                }
+                (a.0).0 = r;
             }
+            // with CAN_USE_NO_CARRY_SQUARE_OPT, we can always safely subtract the modulus
+            a.subtract_modulus();
         } else {
             *a = a.square_without_opt();
         }
