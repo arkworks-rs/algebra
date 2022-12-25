@@ -145,24 +145,18 @@ pub fn mul_double_add_with_carry_2(
 ) -> u64 {
     let mut tmp1 = (b as u128) * (c as u128);
     // it will spill a bit after *2 if the topmost bit is 1
-    let doubling_high_carry = (tmp1 >> 127) as u64;
+    let doubling_high_carry = tmp1 >> 127;
     // multiply by 2
     tmp1 <<= 1;
-    // get the topmost bits of tmp1
-    let doubling_low_carry = tmp1 >> 64;
-    let doubling_bottom = tmp1 as u64;
 
-    // add the rest. Every element here should fit into a single u64 digit.
-    let tmp3 = (a as u128) + (doubling_bottom as u128) + (*carry_lo as u128);
-
-    let tmp4 = (tmp3 >> 64) + (doubling_low_carry) + (*carry_hi as u128);
+    tmp1 += (*carry_lo as u128) + ((*carry_hi as u128) << 64) + (a as u128);
     // at this point, either tmp4 or doubling_high_carry are 1, but not both
     // assert!((tmp4 >> 64) + (doubling_high_carry as u128) <= 1);
-    *carry_hi = doubling_high_carry;
+    *carry_hi = doubling_high_carry as u64;
 
-    *carry_lo = tmp4 as u64;
+    *carry_lo = (tmp1 >> 64) as u64;
 
-    tmp3 as u64
+    tmp1 as u64
 }
 
 /// Compute the NAF (non-adjacent form) of num
