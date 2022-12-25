@@ -752,7 +752,7 @@ impl<T: MontConfig<N>, const N: usize> Fp<MontBackend<T, N>, N> {
     fn square_without_opt(mut self) -> Self {
         let mut r = crate::const_helpers::MulBuffer::<N>::zeroed();
 
-        // 1a. First compute the square of a*a, without reduction
+        // 1. First compute the square of a*a, without reduction.
         let mut carry_lo = 0;
         let mut carry_hi = 0u64;
         for i in 0..(N) {
