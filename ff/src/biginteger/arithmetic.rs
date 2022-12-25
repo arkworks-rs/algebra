@@ -131,7 +131,7 @@ pub fn mac_with_carry(a: u64, b: u64, c: u64, carry: &mut u64) -> u64 {
     tmp as u64
 }
 
-/// Calculate a + 2*(b * c) + carry0 + (carry1 << 64), returning the least significant digit
+/// Calculate a + 2*(b * c) + carry_lo  (carry_hi << 64), returning the least significant digit
 /// and setting carry0 to the 2nd-most significant digit, and carry1 to most significant digit
 /// TODO carry1 could be a bool/u8?
 #[inline(always)]
@@ -140,8 +140,8 @@ pub fn mul_double_add_with_carry_2(
     a: u64,
     b: u64,
     c: u64,
-    carry0: &mut u64,
-    carry1: &mut u64,
+    carry_lo: &mut u64,
+    carry_hi: &mut u64,
 ) -> u64 {
     let mut tmp1 = (b as u128) * (c as u128);
     // it will spill a bit after *2 if the topmost bit is 1
@@ -154,14 +154,14 @@ pub fn mul_double_add_with_carry_2(
 
     // add the rest. Every element here should fit into a single u64 digit.
     let tmp3 =
-        (a as u128) + (doubling_bottom as u128) + (*carry0 as u128) + ((*carry1 as u128) << 64);
+        (a as u128) + (doubling_bottom as u128) + (*carry_lo as u128) + ((*carry_hi as u128) << 64);
 
     let tmp4 = (tmp3 >> 64) + (doubling_low_carry);
     // at this point, either tmp4 or doubling_high_carry are 1, but not both
     // assert!((tmp4 >> 64) + (doubling_high_carry as u128) <= 1);
-    *carry1 = (((tmp4 >> 64) as u64) + doubling_high_carry) as u64;
+    *carry_hi = (((tmp4 >> 64) as u64) + doubling_high_carry) as u64;
 
-    *carry0 = tmp4 as u64;
+    *carry_lo = tmp4 as u64;
 
     tmp3 as u64
 }
