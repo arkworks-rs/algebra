@@ -144,18 +144,13 @@ pub fn mul_double_add_with_carry_2(
     carry_hi: &mut u64,
 ) -> u64 {
     let mut tmp1 = (b as u128) * (c as u128);
-    // it will spill a bit after *2 if the topmost bit is 1
-    let doubling_high_carry = tmp1 >> 127;
-    // multiply by 2
+    // it will spill a bit onto a 3rd limb after doubling if the topmost bit is 1
+    let spill = (tmp1 >> 127) as u64;
     tmp1 <<= 1;
-
+    // add the rest, should be no overflows here
     tmp1 += (*carry_lo as u128) + ((*carry_hi as u128) << 64) + (a as u128);
-    // at this point, either tmp4 or doubling_high_carry are 1, but not both
-    // assert!((tmp4 >> 64) + (doubling_high_carry as u128) <= 1);
-    *carry_hi = doubling_high_carry as u64;
-
+    *carry_hi = spill;
     *carry_lo = (tmp1 >> 64) as u64;
-
     tmp1 as u64
 }
 
