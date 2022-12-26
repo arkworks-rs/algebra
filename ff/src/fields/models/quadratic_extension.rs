@@ -149,9 +149,9 @@ impl<P: QuadExtConfig> QuadExtField<P> {
     /// let norm = c.norm();
     /// // We now compute the norm using the `a * a.conjugate()` approach.
     /// // A Frobenius map sends an element of `Fp2` to one of its p_th powers:
-    /// // `a.frobenius_map(1) -> a^p` and `a^p` is also `a`'s Galois conjugate.
+    /// // `a.frobenius_map_in_place(1) -> a^p` and `a^p` is also `a`'s Galois conjugate.
     /// let mut c_conjugate = c;
-    /// c_conjugate.frobenius_map(1);
+    /// c_conjugate.frobenius_map_in_place(1);
     /// let norm2 = c * c_conjugate;
     /// // Computing the norm of an `Fp2` element should result in an element
     /// // in BaseField `Fp`, i.e. `c1 == 0`
@@ -354,9 +354,9 @@ impl<P: QuadExtConfig> Field for QuadExtField<P> {
         }
     }
 
-    fn frobenius_map(&mut self, power: usize) {
-        self.c0.frobenius_map(power);
-        self.c1.frobenius_map(power);
+    fn frobenius_map_in_place(&mut self, power: usize) {
+        self.c0.frobenius_map_in_place(power);
+        self.c1.frobenius_map_in_place(power);
         P::mul_base_field_by_frob_coeff(&mut self.c1, power);
     }
 

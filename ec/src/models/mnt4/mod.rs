@@ -183,7 +183,7 @@ impl<P: MNT4Config> MNT4<P> {
         let elt_inv_clone = *elt_inv;
 
         let mut elt_q = *elt;
-        elt_q.frobenius_map(1);
+        elt_q.frobenius_map_in_place(1);
 
         let w1_part = elt_q.cyclotomic_exp(&P::FINAL_EXPONENT_LAST_CHUNK_1);
         let w0_part = if P::FINAL_EXPONENT_LAST_CHUNK_W0_IS_NEG {
