@@ -176,7 +176,7 @@ impl<P: MNT6Config> MNT6<P> {
         let elt_q3_over_elt = elt_q3 * elt_inv;
         // alpha = elt^((q^3-1) * q)
         let mut alpha = elt_q3_over_elt;
-        alpha.frobenius_map(1);
+        alpha.frobenius_map_in_place(1);
         // beta = elt^((q^3-1)*(q+1)
         alpha * &elt_q3_over_elt
     }
@@ -189,7 +189,7 @@ impl<P: MNT6Config> MNT6<P> {
         let elt_inv_clone = *elt_inv;
 
         let mut elt_q = *elt;
-        elt_q.frobenius_map(1);
+        elt_q.frobenius_map_in_place(1);
 
         let w1_part = elt_q.cyclotomic_exp(&P::FINAL_EXPONENT_LAST_CHUNK_1);
         let w0_part = if P::FINAL_EXPONENT_LAST_CHUNK_W0_IS_NEG {

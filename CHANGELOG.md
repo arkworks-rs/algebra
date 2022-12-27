@@ -149,6 +149,7 @@
     - `MNT4Parameters` → `MNT4Config`
     - `MNT6Parameters` → `MNT6Config`
     - `GLVParameters` → `GLVConfig`
+- [\#557](https://github.com/arkworks-rs/algebra/pull/557) (`ark-ff`) Change `frobenius_map` to return the result, instead of mutating the input. Add `frobenius_map_in_place` for the old behavior.
 
 ### Features
 

@@ -156,9 +156,9 @@ impl<P: FpConfig<N>, const N: usize> Fp<P, N> {
     }
 }
 
-impl<P, const N: usize> ark_std::fmt::Debug for Fp<P, N> {
+impl<P: FpConfig<N>, const N: usize> ark_std::fmt::Debug for Fp<P, N> {
     fn fmt(&self, f: &mut Formatter<'_>) -> ark_std::fmt::Result {
-        ark_std::fmt::Debug::fmt(&self.0, f)
+        ark_std::fmt::Debug::fmt(&self.into_bigint(), f)
     }
 }
 
@@ -316,7 +316,7 @@ impl<P: FpConfig<N>, const N: usize> Field for Fp<P, N> {
 
     /// The Frobenius map has no effect in a prime field.
     #[inline]
-    fn frobenius_map(&mut self, _: usize) {}
+    fn frobenius_map_in_place(&mut self, _: usize) {}
 
     #[inline]
     fn legendre(&self) -> LegendreSymbol {

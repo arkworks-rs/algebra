@@ -135,9 +135,9 @@ impl<P: CubicExtConfig> CubicExtField<P> {
         // indexed w.r.t. to BasePrimeField, we need to calculate the correct index.
         let index_multiplier = P::BaseField::extension_degree() as usize;
         let mut self_to_p = *self;
-        self_to_p.frobenius_map(index_multiplier);
+        self_to_p.frobenius_map_in_place(index_multiplier);
         let mut self_to_p2 = *self;
-        self_to_p2.frobenius_map(2 * index_multiplier);
+        self_to_p2.frobenius_map_in_place(2 * index_multiplier);
         self_to_p *= &(self_to_p2 * self);
         assert!(self_to_p.c1.is_zero() && self_to_p.c2.is_zero());
         self_to_p.c0
@@ -328,10 +328,10 @@ impl<P: CubicExtConfig> Field for CubicExtField<P> {
         }
     }
 
-    fn frobenius_map(&mut self, power: usize) {
-        self.c0.frobenius_map(power);
-        self.c1.frobenius_map(power);
-        self.c2.frobenius_map(power);
+    fn frobenius_map_in_place(&mut self, power: usize) {
+        self.c0.frobenius_map_in_place(power);
+        self.c1.frobenius_map_in_place(power);
+        self.c2.frobenius_map_in_place(power);
 
         P::mul_base_field_by_frob_coeff(&mut self.c1, &mut self.c2, power);
     }
