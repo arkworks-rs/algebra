@@ -156,9 +156,9 @@ impl<P: FpConfig<N>, const N: usize> Fp<P, N> {
     }
 }
 
-impl<P, const N: usize> ark_std::fmt::Debug for Fp<P, N> {
+impl<P: FpConfig<N>, const N: usize> ark_std::fmt::Debug for Fp<P, N> {
     fn fmt(&self, f: &mut Formatter<'_>) -> ark_std::fmt::Result {
-        ark_std::fmt::Debug::fmt(&self.0, f)
+        ark_std::fmt::Debug::fmt(&self.into_bigint(), f)
     }
 }
 
