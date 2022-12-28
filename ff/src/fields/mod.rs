@@ -267,6 +267,7 @@ pub trait Field:
 
     /// Returns `self^s`, where `s = Self::BasePrimeField::MODULUS^power`.
     /// This is also called the Frobenius automorphism.
+    #[must_use]
     fn frobenius_map(&self, power: usize) -> Self {
         let mut this = *self;
         this.frobenius_map_in_place(power);
