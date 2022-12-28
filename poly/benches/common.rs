@@ -1,8 +1,8 @@
-// Utility function for getting a vector of degrees to benchmark on.
-// returns vec![2^{min}, 2^{min + interval}, ..., 2^{max}], where:
-// interval = log_interval
-// min      = ceil(log_2(min_degree))
-// max      = ceil(log_2(max_degree))
+/// Utility function for getting a vector of degrees to benchmark on.
+/// returns `vec![2^{min}, 2^{min + interval}, ..., 2^{max}]`, where:
+/// * `interval = log_interval`
+/// * `min      = ceil(log_2(min_degree))`
+/// * `max      = ceil(log_2(max_degree))`
 pub fn size_range(
     log_interval: usize,
     min_degree: usize,
