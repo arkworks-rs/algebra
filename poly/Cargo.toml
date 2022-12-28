@@ -22,9 +22,31 @@ derivative = { version = "2", default-features = false, features = [ "use_core" 
 hashbrown = { version = "0.13.1"}
 
 [dev-dependencies]
-ark-test-curves = { path = "../test-curves", default-features = false, features = [ "bls12_381_curve", "bn384_small_two_adicity_curve"] }
+ark-test-curves = { path = "../test-curves", default-features = false, features = [ "bls12_381_curve", "bn384_small_two_adicity_curve", "mnt4_753_curve"] }
+criterion = "0.4.0"
+
 
 [features]
 default = []
 std = [ "ark-std/std", "ark-ff/std" ]
 parallel = [ "std", "ark-ff/parallel", "rayon", "ark-std/parallel" ]
+
+
+[[bench]]
+name = "fft"
+path = "benches/fft.rs"
+harness = false
+
+[[bench]]
+name = "dense_uv_polynomial"
+path = "benches/dense_uv_polynomial.rs"
+
+[[bench]]
+name = "dense_multilinear"
+path = "benches/dense_multilinear.rs"
+harness = false
+
+[[bench]]
+name = "sparse_multilinear"
+path = "benches/sparse_multilinear.rs"
+harness = false

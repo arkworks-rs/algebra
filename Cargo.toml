@@ -12,7 +12,6 @@ members = [
     "bench-templates",
 
     "poly",
-    "poly-benches",
     "test-curves",
     "test-templates",
 ]
