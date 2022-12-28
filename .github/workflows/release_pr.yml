@@ -14,7 +14,7 @@ on:
         description: Branch to target
         required: true
         type: string
-        default: 'release'
+        default: 'releases'
 
 jobs:
   make-release-pr:
