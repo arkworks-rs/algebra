@@ -1,6 +1,6 @@
 [package]
 name = "ark-ec"
-version = "0.3.0"
+version = "0.4.0-alpha.6"
 authors = [ "arkworks contributors" ]
 description = "A library for elliptic curves and pairings"
 homepage = "https://arkworks.rs"
@@ -14,10 +14,10 @@ edition = "2021"
 rust-version = "1.57"
 
 [dependencies]
-ark-std = { version = "^0.3.0", default-features = false }
-ark-serialize = { version = "^0.3.0", path = "../serialize", default-features = false }
-ark-ff = { version = "^0.3.0", path = "../ff", default-features = false }
-ark-poly = { version = "^0.3.0", path = "../poly", default-features = false }
+ark-std = { version = "0.4.0-alpha", default-features = false }
+ark-serialize = { version = "0.4.0-alpha", path = "../serialize", default-features = false }
+ark-ff = { version = "0.4.0-alpha", path = "../ff", default-features = false }
+ark-poly = { version = "0.4.0-alpha", path = "../poly", default-features = false }
 derivative = { version = "2", features = ["use_core"] }
 num-traits = { version = "0.2", default-features = false }
 rayon = { version = "1", optional = true }
@@ -26,7 +26,7 @@ hashbrown = "0.13.1"
 itertools = { version = "0.10", default-features = false }
 
 [dev-dependencies]
-ark-test-curves = { version = "^0.3.0", path = "../test-curves", default-features = false, features = ["bls12_381_curve"] }
+ark-test-curves = { version = "0.4.0-alpha", path = "../test-curves", default-features = false, features = ["bls12_381_curve"] }
 sha2 = { version = "0.10", default-features = false }
 libtest-mimic = "0.6.0"
 serde = "1.0.110"
