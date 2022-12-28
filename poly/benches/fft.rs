@@ -1,12 +1,13 @@
 extern crate criterion;
+mod common;
 
 use ark_ff::FftField;
 use ark_poly::{
     polynomial::{univariate::DensePolynomial, DenseUVPolynomial},
     EvaluationDomain, MixedRadixEvaluationDomain, Radix2EvaluationDomain,
 };
-use ark_poly_benches::size_range;
 use ark_test_curves::{bls12_381::Fr as bls12_381_fr, mnt4_753::Fq as mnt6_753_fr};
+use common::size_range;
 use criterion::{criterion_group, criterion_main, Bencher, BenchmarkId, Criterion};
 
 // degree bounds to benchmark on
