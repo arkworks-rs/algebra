@@ -1,6 +1,6 @@
 [package]
 name = "ark-test-curves"
-version = "0.3.0"
+version = "0.4.0-alpha.6"
 authors = [ "arkworks contributors" ]
 description = "A library for testing ark-ec & ark-poly"
 homepage = "https://arkworks.rs"
@@ -14,14 +14,14 @@ edition = "2021"
 rust-version = "1.56"
 
 [dependencies]
-ark-std = { version = "^0.3.0", default-features = false }
-ark-ff = { version = "^0.3.0", path = "../ff", default-features = false }
-ark-ec = { version = "^0.3.0", path = "../ec", default-features = false }
+ark-std = { version = "0.4.0-alpha", default-features = false }
+ark-ff = { version = "0.4.0-alpha", path = "../ff", default-features = false }
+ark-ec = { version = "0.4.0-alpha", path = "../ec", default-features = false }
 
 [dev-dependencies]
-ark-serialize = { version = "^0.3.0", path = "../serialize", default-features = false }
-ark-algebra-test-templates = { version = "^0.3.0", path = "../test-templates", default-features = false }
-ark-algebra-bench-templates =  { version = "^0.3.0", path = "../bench-templates", default-features = false }
+ark-serialize = { version = "0.4.0-alpha", path = "../serialize", default-features = false }
+ark-algebra-test-templates = { version = "0.4.0-alpha", path = "../test-templates", default-features = false }
+ark-algebra-bench-templates =  { version = "0.4.0-alpha", path = "../bench-templates", default-features = false }
 
 [features]
 default = []

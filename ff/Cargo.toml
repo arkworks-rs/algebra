@@ -1,6 +1,6 @@
 [package]
 name = "ark-ff"
-version = "0.3.0"
+version = "0.4.0-alpha.6"
 authors = [ "arkworks contributors" ]
 description = "A library for finite fields"
 homepage = "https://arkworks.rs"
@@ -14,10 +14,10 @@ edition = "2021"
 rust-version = "1.59"
 
 [dependencies]
-ark-ff-asm = { version = "^0.3.0", path = "../ff-asm" }
-ark-ff-macros = { version = "^0.3.0", path = "../ff-macros" }
-ark-std = { version = "^0.3.0", default-features = false }
-ark-serialize = { version = "^0.3.0", path = "../serialize", default-features = false }
+ark-ff-asm = { version = "0.4.0-alpha", path = "../ff-asm" }
+ark-ff-macros = { version = "0.4.0-alpha", path = "../ff-macros" }
+ark-std = { version = "0.4.0-alpha", default-features = false }
+ark-serialize = { version = "0.4.0-alpha", path = "../serialize", default-features = false }
 derivative = { version = "2", features = ["use_core"] }
 num-traits = { version = "0.2", default-features = false }
 paste = "1.0"
@@ -28,7 +28,7 @@ digest = { version = "0.10", default-features = false, features = ["alloc"] }
 itertools = { version = "0.10", default-features = false }
 
 [dev-dependencies]
-ark-test-curves = { version = "^0.3.0", path = "../test-curves", default-features = false, features = [ "bls12_381_curve", "mnt6_753", "secp256k1"] }
+ark-test-curves = { version = "0.4.0-alpha", path = "../test-curves", default-features = false, features = [ "bls12_381_curve", "mnt6_753", "secp256k1"] }
 blake2 = { version = "0.10", default-features = false }
 sha3 = { version = "0.10", default-features = false }
 sha2 = { version = "0.10", default-features = false }
