@@ -1,6 +1,6 @@
 [package]
 name = "ark-test-curves"
-version = "0.3.0"
+version = "0.4.0-alpha.6"
 authors = [ "arkworks contributors" ]
 description = "A library for testing ark-ec & ark-poly"
 homepage = "https://arkworks.rs"
@@ -14,14 +14,14 @@ edition = "2021"
 rust-version = "1.56"
 
 [dependencies]
-ark-std.workspace = true
-ark-ff.workspace = true
-ark-ec.workspace = true
+ark-std = { workspace = true, default-features = false }
+ark-ff = { workspace = true, default-features = false }
+ark-ec  = { workspace = true, default-features = false }
 
 [dev-dependencies]
-ark-serialize.workspace = true
-ark-algebra-test-templates.workspace = true
-ark-algebra-bench-templates.workspace = true
+ark-serialize  = { workspace = true, default-features = false }
+ark-algebra-test-templates = { workspace = true, default-features = false }
+ark-algebra-bench-templates = { workspace = true, default-features = false }
 
 [features]
 default = []

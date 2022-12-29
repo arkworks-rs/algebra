@@ -4,6 +4,16 @@
 
 ### Breaking changes
 
+### Features
+
+### Improvements
+
+### Bugfixes
+
+## v0.4.0
+
+### Breaking changes
+
 - [\#300](https://github.com/arkworks-rs/algebra/pull/300) (`ark-ec`) Change the implementation of `Hash` trait of `GroupProjective` to use the affine coordinates.
 - [\#302](https://github.com/arkworks-rs/algebra/pull/302) (`ark-ff`) Rename `find_wnaf` to `find_naf`.
 - [\#310](https://github.com/arkworks-rs/algebra/pull/310) (`ark-ec`, `ark-ff`) Remove unnecessary internal `PhantomData`.
@@ -186,6 +196,7 @@
 - [\#357](https://github.com/arkworks-rs/algebra/pull/357) (`ark-poly`) Speedup division by vanishing polynomials for dense polynomials.
 - [\#445](https://github.com/arkworks-rs/algebra/pull/445) (`ark-ec`) Use 2-NAF for ate pairing in MNT4/6 curves.
 - [\#509](https://github.com/arkworks-rs/algebra/pull/509) (`ark-ff`, `ark-ff-macros`) Support prime fields with (64 * k)-bit modulus.
+- [\#567](https://github.com/arkworks-rs/algebra/pull/567) (`ark-ec`) Allow to overwrite the default implementation of the `msm` function for TwistedEdwards form provided by the `VariableBaseMSM` trait by a specialized version in `TECurveConfig`.
 
 ### Bugfixes
 

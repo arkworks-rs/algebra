@@ -1,6 +1,6 @@
 [package]
 name = "ark-serialize"
-version = "0.3.0"
+version = "0.4.0-alpha.6"
 authors = [ "arkworks contributors" ]
 description = "A library for serializing types in the arkworks ecosystem"
 homepage = "https://arkworks.rs"
@@ -23,7 +23,7 @@ num-bigint.workspace = true
 sha2.workspace = true
 sha3.workspace = true
 blake2.workspace = true
-ark-test-curves = { workspace = true, features = [ "bls12_381_curve"] }
+ark-test-curves = { workspace = true, default-features = false, features = [ "bls12_381_curve"] }
 
 
 [features]
