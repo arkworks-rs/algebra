@@ -2,6 +2,8 @@
 
 ## Pending
 
+- [\#567](https://github.com/arkworks-rs/algebra/pull/567) (`ark-ec`) Allow to overwrite the default implementation of the `msm` function provided by the `VariableBaseMSM` trait by a specialized version in `SWCurveConfig`.
+
 ### Breaking changes
 
 ### Features
