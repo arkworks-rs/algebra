@@ -13,4 +13,4 @@ endif
 	cargo update
 	git tag $(VERSION) 
 	git push origin $(VERSION)
-	cargo release publish --execute --verbose --allow-branch "master"
+	cargo release publish --execute --verbose
