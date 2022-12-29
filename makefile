@@ -11,6 +11,6 @@ ifndef VERSION
 endif
 	git pull
 	cargo update
-	git tag $(VERSION) 
-	git push origin $(VERSION)
+	git tag v$(VERSION) 
+	git push origin v$(VERSION)
 	cargo release publish --execute --verbose
