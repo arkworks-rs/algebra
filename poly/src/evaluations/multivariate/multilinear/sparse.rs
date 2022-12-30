@@ -107,7 +107,7 @@ fn precompute_eq<F: Field>(g: &[F]) -> Vec<F> {
     dp[0] = F::one() - g[0];
     dp[1] = g[0];
     for i in 1..dim {
-        let dp_prev = (&dp[0..(1 << i)]).to_vec();
+        let dp_prev = dp[0..(1 << i)].to_vec();
         for b in 0..(1 << i) {
             dp[b] = dp_prev[b] * (F::one() - g[i]);
             dp[b + (1 << i)] = dp_prev[b] * g[i];
