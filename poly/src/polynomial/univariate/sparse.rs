@@ -89,11 +89,11 @@ impl<F: Field> Polynomial<F> for SparsePolynomial<F> {
             .iter()
             .map(|(i, c)| {
                 debug_assert_eq!(
-                    F::pow_with_table(&powers_of_2[..], &[*i as u64]).unwrap(),
-                    point.pow(&[*i as u64]),
+                    F::pow_with_table(&powers_of_2[..], [*i as u64]).unwrap(),
+                    point.pow([*i as u64]),
                     "pows not equal"
                 );
-                *c * F::pow_with_table(&powers_of_2[..], &[*i as u64]).unwrap()
+                *c * F::pow_with_table(&powers_of_2[..], [*i as u64]).unwrap()
             })
             .sum();
         total
@@ -207,7 +207,7 @@ impl<'b, F: Field> Mul<F> for &'b SparsePolynomial<F> {
         } else {
             let mut result = self.clone();
             cfg_iter_mut!(result).for_each(|e| {
-                (*e).1 *= elem;
+                e.1 *= elem;
             });
             result
         }

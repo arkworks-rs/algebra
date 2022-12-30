@@ -26,8 +26,7 @@ pub(super) fn mul_assign_impl(
                 let mut carry2 = 0u64;
                 fa::mac_discard(r[0], k, #modulus_0, &mut carry2);
             });
-            for j in 1..num_limbs {
-                let modulus_j = modulus_limbs[j];
+            for (j, modulus_j) in modulus_limbs.iter().enumerate().take(num_limbs).skip(1) {
                 let idx = j - 1;
                 default.extend(quote! {
                     r[#j] = fa::mac_with_carry(r[#j], (a.0).0[#j], (b.0).0[#i], &mut carry1);

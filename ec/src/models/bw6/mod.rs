@@ -160,7 +160,7 @@ impl<P: BW6Config> BW6<P> {
     }
 
     fn exp_by_x(mut f: Fp6<P::Fp6Config>) -> Fp6<P::Fp6Config> {
-        f = f.cyclotomic_exp(&P::X);
+        f = f.cyclotomic_exp(P::X);
         if P::X_IS_NEGATIVE {
             f.cyclotomic_inverse_in_place();
         }

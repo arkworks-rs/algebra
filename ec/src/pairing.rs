@@ -152,7 +152,7 @@ impl<P: Pairing> CanonicalSerialize for PairingOutput<P> {
 
 impl<P: Pairing> Valid for PairingOutput<P> {
     fn check(&self) -> Result<(), SerializationError> {
-        if self.0.pow(&P::ScalarField::characteristic()).is_one() {
+        if self.0.pow(P::ScalarField::characteristic()).is_one() {
             Ok(())
         } else {
             Err(SerializationError::InvalidData)

@@ -56,7 +56,7 @@ pub trait FftField: crate::Field {
 
             omega = large_subgroup_root_of_unity;
             for _ in q_adicity..small_subgroup_base_adicity {
-                omega = omega.pow(&[q as u64]);
+                omega = omega.pow([q as u64]);
             }
 
             for _ in two_adicity..Self::TWO_ADICITY {

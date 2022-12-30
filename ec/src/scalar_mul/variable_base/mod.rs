@@ -34,7 +34,7 @@ pub trait VariableBaseMSM: ScalarMul {
     fn msm(bases: &[Self::MulBase], scalars: &[Self::ScalarField]) -> Result<Self, usize> {
         (bases.len() == scalars.len())
             .then(|| Self::msm_unchecked(bases, scalars))
-            .ok_or(usize::min(bases.len(), scalars.len()))
+            .ok_or(bases.len().min(scalars.len()))
     }
 
     /// Optimized implementation of multi-scalar multiplication.
@@ -265,15 +265,14 @@ fn make_digits(a: &impl BigInteger, w: usize, num_bits: usize) -> Vec<i64> {
         let u64_idx = bit_offset / 64;
         let bit_idx = bit_offset % 64;
         // Read the bits from the scalar
-        let bit_buf: u64;
-        if bit_idx < 64 - w || u64_idx == scalar.len() - 1 {
+        let bit_buf = if bit_idx < 64 - w || u64_idx == scalar.len() - 1 {
             // This window's bits are contained in a single u64,
             // or it's the last u64 anyway.
-            bit_buf = scalar[u64_idx] >> bit_idx;
+            scalar[u64_idx] >> bit_idx
         } else {
             // Combine the current u64's bits with the bits from the next u64
-            bit_buf = (scalar[u64_idx] >> bit_idx) | (scalar[1 + u64_idx] << (64 - bit_idx));
-        }
+            (scalar[u64_idx] >> bit_idx) | (scalar[1 + u64_idx] << (64 - bit_idx))
+        };
 
         // Read the actual coefficient value from the window
         let coef = carry + (bit_buf & window_mask); // coef = [0, 2^r)
