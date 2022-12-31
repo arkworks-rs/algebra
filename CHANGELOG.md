@@ -160,6 +160,7 @@
     - `MNT6Parameters` → `MNT6Config`
     - `GLVParameters` → `GLVConfig`
 - [\#557](https://github.com/arkworks-rs/algebra/pull/557) (`ark-ff`) Change `frobenius_map` to return the result, instead of mutating the input. Add `frobenius_map_in_place` for the old behavior.
+- [\#537](https://github.com/arkworks-rs/algebra/pull/571) (`ark-ec`) Add `CanonicalSerialize` and `CanonicalDeserialize` traits to the arguments of `multi_miller_loop`.
 
 ### Features
 
