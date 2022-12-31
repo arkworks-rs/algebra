@@ -92,7 +92,7 @@ pub fn unroll_for_loops(args: TokenStream, input: TokenStream) -> TokenStream {
                 block: ref box_block,
                 ..
             } = &item_fn;
-            unroll::unroll_in_block(&**box_block, unroll_by)
+            unroll::unroll_in_block(box_block, unroll_by)
         };
         let new_item = Item::Fn(ItemFn {
             block: Box::new(new_block),

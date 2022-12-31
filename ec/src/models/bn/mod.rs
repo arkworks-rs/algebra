@@ -82,7 +82,7 @@ impl<P: BnConfig> Bn<P> {
     }
 
     fn exp_by_neg_x(mut f: Fp12<P::Fp12Config>) -> Fp12<P::Fp12Config> {
-        f = f.cyclotomic_exp(&P::X);
+        f = f.cyclotomic_exp(P::X);
         if !P::X_IS_NEGATIVE {
             f.cyclotomic_inverse_in_place();
         }

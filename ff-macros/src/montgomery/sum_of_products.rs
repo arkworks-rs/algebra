@@ -33,8 +33,7 @@ pub(super) fn sum_of_products_impl(num_limbs: usize, modulus: &[u64]) -> proc_ma
             });
         }
         let mut mont_red_body = proc_macro2::TokenStream::new();
-        for i in 1..num_limbs {
-            let modulus_i = modulus[i];
+        for (i, modulus_i) in modulus.iter().enumerate().take(num_limbs).skip(1) {
             mont_red_body.extend(quote! {
                 result.0[#i - 1] = fa::mac_with_carry(result.0[#i], k, #modulus_i, &mut carry2);
             });

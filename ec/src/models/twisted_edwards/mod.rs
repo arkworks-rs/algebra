@@ -92,7 +92,7 @@ pub trait TECurveConfig: super::CurveConfig {
     ) -> Result<Projective<Self>, usize> {
         (bases.len() == scalars.len())
             .then(|| VariableBaseMSM::msm_unchecked(bases, scalars))
-            .ok_or(usize::min(bases.len(), scalars.len()))
+            .ok_or(bases.len().min(scalars.len()))
     }
 
     /// If uncompressed, serializes both x and y coordinates.

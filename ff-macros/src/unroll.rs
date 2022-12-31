@@ -196,17 +196,17 @@ fn unroll(expr: &Expr, unroll_by: usize) -> Expr {
             ..
         } = *if_expr;
         Expr::If(ExprIf {
-            cond: Box::new(unroll(&**cond, unroll_by)),
+            cond: Box::new(unroll(cond, unroll_by)),
             then_branch: unroll_in_block(then_branch, unroll_by),
             else_branch: else_branch
                 .as_ref()
-                .map(|x| (x.0, Box::new(unroll(&*x.1, unroll_by)))),
+                .map(|x| (x.0, Box::new(unroll(&x.1, unroll_by)))),
             ..(*if_expr).clone()
         })
     } else if let Expr::Let(let_expr) = expr {
         let ExprLet { ref expr, .. } = *let_expr;
         Expr::Let(ExprLet {
-            expr: Box::new(unroll(&**expr, unroll_by)),
+            expr: Box::new(unroll(expr, unroll_by)),
             ..(*let_expr).clone()
         })
     } else if let Expr::Block(expr_block) = expr {
