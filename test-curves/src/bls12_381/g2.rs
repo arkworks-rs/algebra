@@ -9,13 +9,10 @@ use ark_ec::{
     AffineRepr, CurveGroup, Group,
 };
 use ark_ff::{BigInt, Field, MontFp, Zero};
-use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
-use ark_std::vec::Vec;
-
 pub type G2Affine = bls12::G2Affine<crate::bls12_381::Config>;
 pub type G2Projective = bls12::G2Projective<crate::bls12_381::Config>;
 
-#[derive(Clone, Default, PartialEq, Eq, CanonicalDeserialize, CanonicalSerialize)]
+#[derive(Clone, Default, PartialEq, Eq)]
 pub struct Config;
 
 impl CurveConfig for Config {
