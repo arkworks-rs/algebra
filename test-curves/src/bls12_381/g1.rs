@@ -5,11 +5,13 @@ use ark_ec::{
     short_weierstrass::{self, *},
 };
 use ark_ff::{MontFp, Zero};
+use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
+use ark_std::vec::Vec;
 
 pub type G1Affine = Affine<Config>;
 pub type G1Projective = Projective<Config>;
 
-#[derive(Clone, Default, PartialEq, Eq)]
+#[derive(Clone, Default, PartialEq, Eq, CanonicalDeserialize, CanonicalSerialize)]
 pub struct Config;
 
 impl CurveConfig for Config {

@@ -45,7 +45,7 @@ macro_rules! test_pairing {
                     let c = <$Pairing as Pairing>::G1::rand(rng).into_affine();
                     let d = <$Pairing as Pairing>::G2::rand(rng).into_affine();
                     let ans1 = <$Pairing>::pairing(a, b) + &<$Pairing>::pairing(c, d);
-                    let ans2 = <$Pairing>::multi_pairing(&[a, c], &[b, d]);
+                    let ans2 = <$Pairing>::multi_pairing([a, c], [b, d]);
                     assert_eq!(ans1, ans2);
                 }
             }

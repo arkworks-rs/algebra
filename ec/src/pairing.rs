@@ -37,7 +37,9 @@ pub trait Pairing: Sized + 'static + Copy + Debug + Sync + Send + Eq {
     type G1Affine: AffineRepr<Group = Self::G1, ScalarField = Self::ScalarField>
         + From<Self::G1>
         + Into<Self::G1>
-        + Into<Self::G1Prepared>;
+        + Into<Self::G1Prepared>
+        + CanonicalSerialize
+        + CanonicalDeserialize;
 
     /// A G1 element that has been preprocessed for use in a pairing.
     type G1Prepared: Default
@@ -63,7 +65,9 @@ pub trait Pairing: Sized + 'static + Copy + Debug + Sync + Send + Eq {
     type G2Affine: AffineRepr<Group = Self::G2, ScalarField = Self::ScalarField>
         + From<Self::G2>
         + Into<Self::G2>
-        + Into<Self::G2Prepared>;
+        + Into<Self::G2Prepared>
+        + CanonicalSerialize
+        + CanonicalDeserialize;
 
     /// A G2 element that has been preprocessed for use in a pairing.
     type G2Prepared: Default
