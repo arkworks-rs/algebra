@@ -83,14 +83,14 @@ pub trait Pairing: Sized + 'static + Copy + Debug + Sync + Send + Eq {
 
     /// Computes the product of Miller loops for some number of (G1, G2) pairs.
     fn multi_miller_loop(
-        a: impl IntoIterator<Item = impl Into<Self::G1Prepared>>,
-        b: impl IntoIterator<Item = impl Into<Self::G2Prepared>>,
+        a: impl IntoIterator<Item = impl Into<Self::G1Prepared> + CanonicalSerialize + CanonicalDeserialize>,
+        b: impl IntoIterator<Item = impl Into<Self::G2Prepared> + CanonicalSerialize + CanonicalDeserialize>,
     ) -> MillerLoopOutput<Self>;
 
     /// Computes the Miller loop over `a` and `b`.
     fn miller_loop(
-        a: impl Into<Self::G1Prepared>,
-        b: impl Into<Self::G2Prepared>,
+        a: impl Into<Self::G1Prepared> + CanonicalSerialize + CanonicalDeserialize,
+        b: impl Into<Self::G2Prepared> + CanonicalSerialize + CanonicalDeserialize,
     ) -> MillerLoopOutput<Self> {
         Self::multi_miller_loop([a], [b])
     }
@@ -101,16 +101,16 @@ pub trait Pairing: Sized + 'static + Copy + Debug + Sync + Send + Eq {
 
     /// Computes a "product" of pairings.
     fn multi_pairing(
-        a: impl IntoIterator<Item = impl Into<Self::G1Prepared>>,
-        b: impl IntoIterator<Item = impl Into<Self::G2Prepared>>,
+        a: impl IntoIterator<Item = impl Into<Self::G1Prepared> + CanonicalSerialize + CanonicalDeserialize>,
+        b: impl IntoIterator<Item = impl Into<Self::G2Prepared> + CanonicalSerialize + CanonicalDeserialize>,
     ) -> PairingOutput<Self> {
         Self::final_exponentiation(Self::multi_miller_loop(a, b)).unwrap()
     }
 
     /// Performs multiple pairing operations
     fn pairing(
-        p: impl Into<Self::G1Prepared>,
-        q: impl Into<Self::G2Prepared>,
+        p: impl Into<Self::G1Prepared> + CanonicalSerialize + CanonicalDeserialize,
+        q: impl Into<Self::G2Prepared> + CanonicalSerialize + CanonicalDeserialize,
     ) -> PairingOutput<Self> {
         Self::multi_pairing([p], [q])
     }

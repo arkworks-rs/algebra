@@ -11,6 +11,7 @@ use itertools::Itertools;
 use num_traits::{One, Zero};
 
 use ark_std::{marker::PhantomData, vec::Vec};
+use ark_serialize::{CanonicalSerialize, CanonicalDeserialize};
 
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
@@ -208,8 +209,8 @@ impl<P: MNT4Config> Pairing for MNT4<P> {
     type TargetField = Fp4<P::Fp4Config>;
 
     fn multi_miller_loop(
-        a: impl IntoIterator<Item = impl Into<Self::G1Prepared>>,
-        b: impl IntoIterator<Item = impl Into<Self::G2Prepared>>,
+        a: impl IntoIterator<Item = impl Into<Self::G1Prepared> + CanonicalSerialize + CanonicalDeserialize>,
+        b: impl IntoIterator<Item = impl Into<Self::G2Prepared> + CanonicalSerialize + CanonicalDeserialize>,
     ) -> MillerLoopOutput<Self> {
         let pairs = a
             .into_iter()
