@@ -10,9 +10,9 @@ use ark_ff::{
     },
     BitIteratorBE, CyclotomicMultSubgroup,
 };
+use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use itertools::Itertools;
 use num_traits::One;
-use ark_serialize::{CanonicalSerialize, CanonicalDeserialize};
 
 use ark_std::{marker::PhantomData, vec::Vec};
 
@@ -53,8 +53,12 @@ pub trait BW6Config: 'static + Eq + Sized {
     }
 
     fn multi_miller_loop(
-        a: impl IntoIterator<Item = impl Into<G1Prepared<Self>> + CanonicalSerialize + CanonicalDeserialize>,
-        b: impl IntoIterator<Item = impl Into<G2Prepared<Self>> + CanonicalSerialize + CanonicalDeserialize>,
+        a: impl IntoIterator<
+            Item = impl Into<G1Prepared<Self>> + CanonicalSerialize + CanonicalDeserialize,
+        >,
+        b: impl IntoIterator<
+            Item = impl Into<G2Prepared<Self>> + CanonicalSerialize + CanonicalDeserialize,
+        >,
     ) -> MillerLoopOutput<BW6<Self>> {
         // Alg.5 in https://eprint.iacr.org/2020/351.pdf
 
@@ -312,8 +316,12 @@ impl<P: BW6Config> Pairing for BW6<P> {
     }
 
     fn multi_miller_loop(
-        a: impl IntoIterator<Item = impl Into<Self::G1Prepared> + CanonicalSerialize + CanonicalDeserialize>,
-        b: impl IntoIterator<Item = impl Into<Self::G2Prepared> + CanonicalSerialize + CanonicalDeserialize>,
+        a: impl IntoIterator<
+            Item = impl Into<Self::G1Prepared> + CanonicalSerialize + CanonicalDeserialize,
+        >,
+        b: impl IntoIterator<
+            Item = impl Into<Self::G2Prepared> + CanonicalSerialize + CanonicalDeserialize,
+        >,
     ) -> MillerLoopOutput<Self> {
         P::multi_miller_loop(a, b)
     }

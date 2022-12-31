@@ -83,8 +83,12 @@ pub trait Pairing: Sized + 'static + Copy + Debug + Sync + Send + Eq {
 
     /// Computes the product of Miller loops for some number of (G1, G2) pairs.
     fn multi_miller_loop(
-        a: impl IntoIterator<Item = impl Into<Self::G1Prepared> + CanonicalSerialize + CanonicalDeserialize>,
-        b: impl IntoIterator<Item = impl Into<Self::G2Prepared> + CanonicalSerialize + CanonicalDeserialize>,
+        a: impl IntoIterator<
+            Item = impl Into<Self::G1Prepared> + CanonicalSerialize + CanonicalDeserialize,
+        >,
+        b: impl IntoIterator<
+            Item = impl Into<Self::G2Prepared> + CanonicalSerialize + CanonicalDeserialize,
+        >,
     ) -> MillerLoopOutput<Self>;
 
     /// Computes the Miller loop over `a` and `b`.
@@ -101,8 +105,12 @@ pub trait Pairing: Sized + 'static + Copy + Debug + Sync + Send + Eq {
 
     /// Computes a "product" of pairings.
     fn multi_pairing(
-        a: impl IntoIterator<Item = impl Into<Self::G1Prepared> + CanonicalSerialize + CanonicalDeserialize>,
-        b: impl IntoIterator<Item = impl Into<Self::G2Prepared> + CanonicalSerialize + CanonicalDeserialize>,
+        a: impl IntoIterator<
+            Item = impl Into<Self::G1Prepared> + CanonicalSerialize + CanonicalDeserialize,
+        >,
+        b: impl IntoIterator<
+            Item = impl Into<Self::G2Prepared> + CanonicalSerialize + CanonicalDeserialize,
+        >,
     ) -> PairingOutput<Self> {
         Self::final_exponentiation(Self::multi_miller_loop(a, b)).unwrap()
     }
