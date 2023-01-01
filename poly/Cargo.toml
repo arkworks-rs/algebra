@@ -1,6 +1,6 @@
 [package]
 name = "ark-poly"
-version = "0.3.0"
+version = "0.4.0-alpha.6"
 authors = [ "arkworks contributors" ]
 description = "A library for efficient polynomial arithmetic via FFTs over finite fields"
 homepage = "https://arkworks.rs"
@@ -14,17 +14,39 @@ edition = "2021"
 rust-version = "1.57"
 
 [dependencies]
-ark-ff = { version = "^0.3.0", path = "../ff", default-features = false }
-ark-serialize = { version = "^0.3.0", path = "../serialize", default-features = false, features = ["derive"] }
-ark-std = { version = "^0.3.0", default-features = false }
+ark-ff = { version = "0.4.0-alpha", path = "../ff", default-features = false }
+ark-serialize = { version = "0.4.0-alpha", path = "../serialize", default-features = false, features = ["derive"] }
+ark-std = { version = "0.4.0-alpha", default-features = false }
 rayon = { version = "1", optional = true }
 derivative = { version = "2", default-features = false, features = [ "use_core" ] }
 hashbrown = { version = "0.13.1"}
 
 [dev-dependencies]
-ark-test-curves = { path = "../test-curves", default-features = false, features = [ "bls12_381_curve", "bn384_small_two_adicity_curve"] }
+ark-test-curves = { path = "../test-curves", default-features = false, features = [ "bls12_381_curve", "bn384_small_two_adicity_curve", "mnt4_753_curve"] }
+criterion = "0.4.0"
+
 
 [features]
 default = []
 std = [ "ark-std/std", "ark-ff/std" ]
 parallel = [ "std", "ark-ff/parallel", "rayon", "ark-std/parallel" ]
+
+
+[[bench]]
+name = "fft"
+path = "benches/fft.rs"
+harness = false
+
+[[bench]]
+name = "dense_uv_polynomial"
+path = "benches/dense_uv_polynomial.rs"
+
+[[bench]]
+name = "dense_multilinear"
+path = "benches/dense_multilinear.rs"
+harness = false
+
+[[bench]]
+name = "sparse_multilinear"
+path = "benches/sparse_multilinear.rs"
+harness = false

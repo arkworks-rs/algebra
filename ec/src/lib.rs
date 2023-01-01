@@ -264,7 +264,7 @@ pub trait AffineRepr:
     /// `Self::ScalarField`.
     #[must_use]
     fn mul_by_cofactor_inv(&self) -> Self {
-        self.mul_bigint(&Self::Config::COFACTOR_INV.into_bigint())
+        self.mul_bigint(Self::Config::COFACTOR_INV.into_bigint())
             .into()
     }
 }

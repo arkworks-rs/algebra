@@ -1,0 +1,13 @@
+This is a release PR for version **<%= version.actual %>**<%
+    if (version.actual != version.desired) {
+%> (performing a <%= version.desired %> bump).<%
+    } else {
+%>.<%
+    }
+%>
+
+You will still need to manually publish the cargo crate:
+
+```
+$ make VERSION=<%= version.actual %> release
+```

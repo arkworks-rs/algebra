@@ -1,0 +1,35 @@
+name: Open a release PR
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version to release
+        required: true
+        type: choice
+        # Currently only alpha and patch releases are supported by this workflow, due to https://github.com/rust-lang/cargo/issues/4242
+        options: 
+          - alpha
+          - patch
+      base_branch:
+        description: Branch to target
+        required: true
+        type: string
+        default: 'releases'
+
+jobs:
+  make-release-pr:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install cargo-release
+        uses: taiki-e/install-action@v1
+        with:
+          tool: cargo-release
+
+      - uses: actions/checkout@v3
+      - uses: cargo-bins/release-pr@v2
+        with:
+          pr-template-file: .github/release-pr-template.ejs
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          version: ${{ inputs.version }}
+          crate-release-all: true
+          base-branch: ${{ inputs.base_branch }} 
