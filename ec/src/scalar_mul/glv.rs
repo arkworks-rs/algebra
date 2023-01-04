@@ -1,13 +1,13 @@
-use core::ops::{Mul, Neg};
-
+use crate::Group;
 use crate::{
-    short_weierstrass::Affine, AffineRepr, CurveConfig, CurveGroup, ScalarMul, VariableBaseMSM,
+    short_weierstrass::{Affine, Projective, SWCurveConfig},
+    CurveConfig, CurveGroup,
 };
-use ark_ff::PrimeField;
+use ark_ff::{PrimeField, Zero};
 use num_bigint::BigUint;
 
 /// The GLV parameters for computing the endomorphism and scalar decomposition.
-pub trait GLVConfig: Send + Sync + 'static + CurveConfig {
+pub trait GLVConfig: Send + Sync + 'static + SWCurveConfig {
     // /// A representation of curve points that enables efficient arithmetic by
     // /// avoiding inversions.
     // type Curve: CurveGroup<Config = Self>;
@@ -115,58 +115,45 @@ pub trait GLVConfig: Send + Sync + 'static + CurveConfig {
             sgn_k2,
         )
     }
-}
 
-//
-// This is not working
-//
+    fn endomorphism(p: &Affine<Self>) -> Affine<Self>;
 
-pub trait GLV<T: ScalarMul> {
-    fn endomorphism(p: T) -> T {
-        p
+    fn glv_mul(p: Affine<Self>, k: Self::ScalarField) -> Affine<Self> {
+        let (k1, sgn_k1, k2, sgn_k2) = Self::scalar_decomposition(k);
+
+        let mut b1 = p;
+        let mut b2 = Self::endomorphism(&p);
+
+        if !sgn_k1 {
+            b1 = -b1;
+        }
+        if !sgn_k2 {
+            b2 = -b2;
+        }
+
+        let b1b2 = b1 + b2;
+
+        let iter_k1 = ark_ff::BitIteratorBE::new(k1.into_bigint());
+        let iter_k2 = ark_ff::BitIteratorBE::new(k2.into_bigint());
+
+        let mut res = Projective::<Self>::zero();
+        let mut skip_zeros = true;
+        for pair in iter_k1.zip(iter_k2) {
+            if skip_zeros && pair == (false, false) {
+                skip_zeros = false;
+                continue;
+            }
+            res.double_in_place();
+            if pair == (true, false) {
+                res += b1;
+            }
+            if pair == (false, true) {
+                res += b2;
+            }
+            if pair == (true, true) {
+                res += b1b2;
+            }
+        }
+        res.into_affine()
     }
-
-    fn glv_mul<C: GLVConfig>(p: T, k: C::ScalarField) -> T {
-        let (k1, sgn_k1, k2, sgn_k2) = C::scalar_decomposition(k);
-        let p1 = if sgn_k1 { p } else { -p };
-        let p2 = if sgn_k2 {
-            Self::endomorphism(p)
-        } else {
-            -Self::endomorphism(p)
-        };
-        p1.mul_bigint(k1.into_bigint()) + p2.mul_bigint(k2.into_bigint())
-    }
 }
-
-//     fn glv_mul<V: VariableBaseMSM, C:GLVConfig> (
-//         base: AffineRepr<C>,
-//         scalar: V::ScalarField,
-//     ) {
-//     // ) -> V {
-//         let (k1, sgn_k1, k2, sgn_k2) = C::scalar_decomposition(scalar);
-//         let b1 = if sgn_k1 { base } else {-base};
-//         let mut b2: V::MulBase = C::endomorphism::<V>(base);
-//         b2 = if sgn_k2 { b2 } else {-b2};
-//         let x = b2.mul(k2);
-//         // VariableBaseMSM::msm_bigint(
-//         //     &[b1, b2],
-//         //     &[k1.into_bigint(), k2.into_bigint()],
-//         // )
-//     }
-// }
-
-// /// Performs NAF GLV multiplication.
-// fn naf_glv_mul(
-//     base: &<Self::Curve as CurveGroup>::Affine,
-//     scalar: Self::ScalarField,
-// ) -> Self::Curve {
-//     let (k1, sgn_k1, k2, sgn_k2) = Self::scalar_decomposition(scalar);
-//     variable_base::naf_two_scalar_mul::<Self>(
-//         *base,
-//         k1.into_bigint(),
-//         sgn_k1,
-//         Self::endomorphism(base),
-//         k2.into_bigint(),
-//         sgn_k2,
-//     )
-// }

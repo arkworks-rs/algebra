@@ -1,5 +1,4 @@
 use crate::bls12_381::*;
-use crate::CurveGroup;
 use ark_ec::{
     hashing::curve_maps::wb::{IsogenyMap, WBConfig},
     models::CurveConfig,
@@ -88,11 +87,17 @@ impl GLVConfig for Config {
         MontFp!("228988810152649578064853576960394133503"),
     ];
     const SGN_N: [bool; 4] = [true, true, false, true];
+
+    fn endomorphism(p: &Affine<Self>) -> Affine<Self> {
+        let mut res = (*p).clone();
+        res.x *= Self::COEFFS_ENDOMORPHISM[0];
+        res
+    }
 }
 
 #[cfg(test)]
 mod test {
-    use crate::bls12_381;
+    use std::time::Instant;
 
     use super::*;
     use ark_ec::CurveGroup;
@@ -117,17 +122,59 @@ mod test {
     }
 
     #[test]
-    fn test_glv_scalar() {
+    fn test_glv_scalar_decomposition() {
         use crate::bls12_381::{g1::Config, Fr};
-        use ark_ec::scalar_mul::glv::GLV;
+        let mut rng = ark_std::test_rng();
+        for _ in 1..100 {
+            let s = Fr::rand(&mut rng);
+            let (k1, boo1, k2, boo2) = Config::scalar_decomposition(s);
+            if boo1 && boo2 {
+                assert_eq!(k1 + Config::LAMBDA * k2, s);
+            }
+            if boo1 && !boo2 {
+                assert_eq!(k1 - Config::LAMBDA * k2, s);
+            }
+            if !boo1 && boo2 {
+                assert_eq!(-k1 + Config::LAMBDA * k2, s);
+            }
+            if !boo1 && !boo2 {
+                assert_eq!(-k1 - Config::LAMBDA * k2, s);
+            }
+        }
+    }
+
+    #[test]
+    fn test_glv() {
+        use crate::bls12_381::{g1::Config, Fr};
+        use ark_ec::AffineRepr;
+        let mut rng = ark_std::test_rng();
+        for _ in 1..100 {
+            let s = Fr::rand(&mut rng);
+            let g = Affine::<Config>::generator();
+            let s_g = g * s;
+            let s_g_glv = Config::glv_mul(g, s);
+            assert_eq!(s_g, s_g_glv);
+        }
+    }
+
+    #[test]
+    fn bench_glv() {
+        use crate::bls12_381::{g1::Config, Fr};
         use ark_ec::AffineRepr;
         let mut rng = ark_std::test_rng();
         let s = Fr::rand(&mut rng);
-        let (k1, book1, k2, book2) = Config::scalar_decomposition(s);
-        assert_eq!(k1 - Config::LAMBDA * k2, s);
         let g = Affine::<Config>::generator();
-        let s_g = g * s;
-        // this is not working
-        // assert_eq!(s_g, GLV::<G1Projective>::glv_mul(g,s));
+
+        let now = Instant::now();
+        for i in 1..100 {
+            let s_g = g * s;
+        }
+        println!("SM: {:?}", now.elapsed());
+
+        let now = Instant::now();
+        for i in 1..100 {
+            let s_g_glv = Config::glv_mul(g, s);
+        }
+        println!("GLV: {:?}", now.elapsed());
     }
 }
