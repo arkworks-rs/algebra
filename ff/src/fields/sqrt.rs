@@ -176,12 +176,12 @@ fn shanks<F: crate::Field>(
     // where a = (p - 3) / 4.
     // factor1 = elem^a
     let factor1 = elem.pow(char_minus_three_div_four);
-    // elem_p = elem^p
-    let elem_p = elem.frobenius_map(1);
+    // elem_to_p = elem^p
+    let elem_to_p = elem.frobenius_map(1);
     // factor2_base = elem^(p^2)a * elem^3pa * elem^2p
-    let factor2_base = elem_p.frobenius_map(1).pow(char_minus_three_div_four)
-        * elem_p.pow(&[3u64]).pow(char_minus_three_div_four)
-        * elem_p.square();
+    let factor2_base = elem_to_p.frobenius_map(1).pow(char_minus_three_div_four)
+        * elem_to_p.pow(&[3u64]).pow(char_minus_three_div_four)
+        * elem_to_p.square();
     // factor2 = prod_i=1^(m-3)/2 factor2_base^(p^2i)
     let mut factor2 = F::one();
     for i in 1..deg_minus_three_div_two_plus_one {
@@ -189,13 +189,13 @@ fn shanks<F: crate::Field>(
     }
     let a1 = factor1 * factor2;
 
-    let a0 = a1 * a1 * elem;
+    let a1_elem = a1 * elem;
+    let a0 = a1 * a1_elem;
     if a0 == -F::one() {
         return None;
     }
 
-    let x = a1 * elem;
-    Some(x)
+    Some(a1_elem)
 }
 
 /// https://eprint.iacr.org/2012/685.pdf (page 10, algorithm 3).
@@ -214,12 +214,12 @@ fn atkin<F: crate::Field>(
     // where a = (p - 5) / 8.
     // factor1 = elem^a
     let factor1 = elem.pow(char_minus_five_div_eight);
-    // elem_p = elem^p
-    let elem_p = elem.frobenius_map(1);
+    // elem_to_p = elem^p
+    let elem_to_p = elem.frobenius_map(1);
     // factor2_base = elem^(p^2)a * elem^5pa * elem^3p
-    let factor2_base = elem_p.frobenius_map(1).pow(char_minus_five_div_eight)
-        * elem_p.pow(&[5u64]).pow(char_minus_five_div_eight)
-        * elem_p.pow(&[3u64]);
+    let factor2_base = elem_to_p.frobenius_map(1).pow(char_minus_five_div_eight)
+        * elem_to_p.pow(&[5u64]).pow(char_minus_five_div_eight)
+        * elem_to_p.pow(&[3u64]);
     // factor2 = prod_i=1^(m-3)/2 factor2_base^(p^2i)
     let mut factor2 = F::one();
     for i in 1..deg_minus_three_div_two_plus_one {
@@ -227,15 +227,15 @@ fn atkin<F: crate::Field>(
     }
     let a1 = factor1 * factor2;
 
-    let mut a0 = a1 * a1 * elem;
-    a0 *= a0;
+    let a0 = (a1.square() * elem).square();
     if a0 == -F::one() {
         return None;
     }
 
     let b = a1 * trace;
-    let i = elem.double() * b * b;
-    let x = b * elem * (i - F::one());
+    let elem_b = b * elem;
+    let i = elem_b.double() * b;
+    let x = elem_b * (i - F::one());
 
     Some(x)
 }
@@ -261,12 +261,12 @@ fn kong<F: crate::Field>(
     // a = (p - 9) / 16
     // factor1 = elem^a
     let factor1 = elem.pow(char_minus_nine_div_sixteen);
-    // elem_p = elem^p
-    let elem_p = elem.frobenius_map(1);
+    // elem_to_p = elem^p
+    let elem_to_p = elem.frobenius_map(1);
     // factor2_base = elem^(p^2)a * elem^9pa * elem^5p
-    let factor2_base = elem_p.frobenius_map(1).pow(char_minus_nine_div_sixteen)
-        * elem_p.pow(&[9u64]).pow(char_minus_nine_div_sixteen)
-        * elem_p.pow(&[5u64]);
+    let factor2_base = elem_to_p.frobenius_map(1).pow(char_minus_nine_div_sixteen)
+        * elem_to_p.pow(&[9u64]).pow(char_minus_nine_div_sixteen)
+        * elem_to_p.pow(&[5u64]);
     // factor2 = prod_i=1^(m-3)/2 factor2_base^(p^2i)
     let mut factor2 = F::one();
     for i in 1..deg_minus_three_div_two_plus_one {
@@ -274,22 +274,22 @@ fn kong<F: crate::Field>(
     }
     let a1 = factor1 * factor2;
 
-    let mut a0 = a1 * a1 * elem;
-    a0 = a0.pow(&[4u64]);
+    let a0 = (a1.square() * elem).pow(&[4u64]);
     if a0 == -F::one() {
         return None;
     }
 
     let b = a1 * trace;
-    let i = elem.double() * b * b;
-    let r = i * i;
+    let elem_b = b * elem;
+    let mut i = elem_b.double() * b;
+    let r = i.square();
     if r == -F::one() {
-        let x = b * elem * (i - F::one());
+        let x = elem_b * (i - F::one());
         return Some(x);
     }
 
     let u = b * d;
-    let i = u.double() * u * c_squared * elem;
+    i = u.square().double() * c_squared * elem;
     let x = u * c * elem * (i - F::one());
     Some(x)
 }
