@@ -65,13 +65,20 @@ impl LegendreSymbol {
 /// the corresponding condition.
 #[non_exhaustive]
 pub enum SqrtPrecomputation<F: crate::Field> {
-    // Tonelli-Shanks algorithm works for all elements, no matter what the modulus is.
+    /// https://eprint.iacr.org/2012/685.pdf (page 12, algorithm 5).
+    /// Tonelli-Shanks algorithm works for all elements, no matter what the modulus is.
+    /// With _q_ as field order, _p_ as characteristic, and _m_ as extension degree:
+    /// * First factor _q - 1 = 2^s t_ where _t_ is odd.
+    /// * `two_adicity` - _s_.
+    /// * `quadratic_nonresidue_to_trace` - _c^t_, with random _c_ such that _c^2^(s - 1) = 1_.
+    /// * `trace_of_modulus_minus_one_div_two` - _(t - 1)/2 + 1_.
     TonelliShanks {
         two_adicity: u32,
         quadratic_nonresidue_to_trace: F,
         trace_of_modulus_minus_one_div_two: &'static [u64],
     },
-    /// To be used when the modulus is 3 mod 4.
+    /// In the case of 3 mod 4, we can find the square root via an exponentiation,
+    /// sqrt(a) = a^(p+1)/4. This can be proved using Euler's criterion, a^(p-1)/2 = 1 mod p.
     PowerCase3Mod4 {
         modulus_plus_one_div_four: &'static [u64],
     },
@@ -97,7 +104,6 @@ impl<F: crate::Field> SqrtPrecomputation<F> {
     }
 }
 
-/// https://eprint.iacr.org/2012/685.pdf (page 12, algorithm 5)
 fn tonelli_shanks<F: crate::Field>(
     elem: &F,
     two_adicity: &u32,
@@ -155,6 +161,139 @@ fn tonelli_shanks<F: crate::Field>(
         debug_assert!(!matches!(elem.legendre(), LegendreSymbol::QuadraticResidue));
         None
     }
+}
+
+/// https://eprint.iacr.org/2012/685.pdf (page 9, algorithm 2).
+/// With _q_ as field order, _p_ as characteristic, and _m_ as extension degree:
+/// * `char_minus_three_div_four` - _(p - 3)/4_.
+/// * `deg_minus_three_div_two_plus_one` - _(m - 3)/2 + 1_.
+fn shanks<F: crate::Field>(
+    elem: &F,
+    char_minus_three_div_four: &'static [u64],
+    deg_minus_three_div_two_plus_one: usize,
+) -> Option<F> {
+    // Computing a1 = Using decomposition of (q-3)/4 = a + p[pa + (3a+2)] * sum_i=1^(m-3)/2 p^2i
+    // where a = (p - 3) / 4.
+    // factor1 = elem^a
+    let factor1 = elem.pow(char_minus_three_div_four);
+    // elem_p = elem^p
+    let mut elem_p = elem.frobenius_map_pure(1);
+    // factor2_base = elem^(p^2)a * elem^3pa * elem^2p
+    let mut factor2_base = elem_p.frobenius_map_pure(1).pow(char_minus_three_div_four)
+        * elem_p.pow(&[3u64]).pow(char_minus_three_div_four)
+        * elem_p.square();
+    // factor2 = prod_i=1^(m-3)/2 factor2_base^(p^2i)
+    let mut factor2 = F::one();
+    for i in 1..deg_minus_three_div_two_plus_one {
+        factor2 *= factor2_base.frobenius_map_pure(i * 2 as usize);
+    }
+    let mut a1 = factor1 * factor2;
+
+    let mut a0 = a1 * a1 * elem;
+    if a0 == -F::one() {
+        return None;
+    }
+
+    let x = a1 * elem;
+    Some(x)
+}
+
+/// https://eprint.iacr.org/2012/685.pdf (page 10, algorithm 3).
+/// With _q_ as field order, _p_ as characteristic, and _m_ as extension degree:
+/// * `trace` - _2^(q - 5)/8_.
+/// * `char_minus_five_div_eight` - _(p - 5)/8_.
+/// * `deg_minus_three_div_two_plus_one` - _(m - 3)/2 + 1_.
+fn atkin<F: crate::Field>(
+    elem: &F,
+    trace: &F,
+    char_minus_five_div_eight: &'static [u64],
+    deg_minus_three_div_two_plus_one: usize,
+) -> Option<F> {
+    // Computing a1 = elem^(q-5)/8 using decomposition of
+    // (q-5)/8 = a + p[pa + (5a+3)] * sum_i=1^(m-3)/2 p^2i
+    // where a = (p - 5) / 8.
+    // factor1 = elem^a
+    let factor1 = elem.pow(char_minus_five_div_eight);
+    // elem_p = elem^p
+    let mut elem_p = elem.frobenius_map_pure(1);
+    // factor2_base = elem^(p^2)a * elem^5pa * elem^3p
+    let factor2_base = elem_p.frobenius_map_pure(1).pow(char_minus_five_div_eight)
+        * elem_p.pow(&[5u64]).pow(char_minus_five_div_eight)
+        * elem_p.pow(&[3u64]);
+    // factor2 = prod_i=1^(m-3)/2 factor2_base^(p^2i)
+    let mut factor2 = F::one();
+    for i in 1..deg_minus_three_div_two_plus_one {
+        factor2 *= factor2_base.frobenius_map_pure(2 * i);
+    }
+    let mut a1 = factor1 * factor2;
+
+    let mut a0 = a1 * a1 * elem;
+    a0 *= a0;
+    if a0 == -F::one() {
+        return None;
+    }
+
+    let b = a1 * trace;
+    let i = elem.double() * b * b;
+    let x = b * elem * (i - F::one());
+
+    Some(x)
+}
+
+/// https://eprint.iacr.org/2012/685.pdf (page 11, algorithm 4).
+/// With _q_ as field order, _p_ as characteristic, and _m_ as extension degree:
+/// * `trace` - _2^(q - 9)/16_.
+/// * `c` - nonzero value such that _chi_q(c) != 1_.
+/// * `d` - _c^(q - 9)/8_.
+/// * `c_squared` - _c^2_.
+/// * `char_minus_nine_div_sixteen` - _(p - 9)/16_.
+/// * `deg_minus_three_div_two_plus_one` - _(m - 3)/2 + 1_.
+fn kong<F: crate::Field>(
+    elem: &F,
+    trace: &F,
+    c: &F,
+    d: &F,
+    c_squared: &F,
+    char_minus_nine_div_sixteen: &'static [u64],
+    deg_minus_three_div_two_plus_one: usize,
+) -> Option<F> {
+    // Using decomposition of (q-9)/16 = a + p[pa + (9a+5)] * sum_i=1^(m-3)/2 p^2i
+    // a = (p - 9) / 16
+    // factor1 = elem^a
+    let factor1 = elem.pow(char_minus_nine_div_sixteen);
+    // elem_p = elem^p
+    let elem_p = elem.frobenius_map_pure(1);
+    // factor2_base = elem^(p^2)a * elem^9pa * elem^5p
+    let factor2_base = elem_p
+        .frobenius_map_pure(1)
+        .pow(char_minus_nine_div_sixteen)
+        * elem_p.pow(&[9u64]).pow(char_minus_nine_div_sixteen)
+        * elem_p.pow(&[5u64]);
+    // factor2 = prod_i=1^(m-3)/2 factor2_base^(p^2i)
+    let mut factor2 = F::one();
+    for i in 1..deg_minus_three_div_two_plus_one {
+        factor2 *= factor2_base.frobenius_map_pure(2 * i);
+    }
+    let a1 = factor1 * factor2;
+
+    let mut a0 = a1 * a1 * elem;
+    a0 = a0.pow(&[4u64]);
+    if a0 == -F::one() {
+        return None;
+    }
+
+    let b = a1 * trace;
+    let i = elem.double() * b * b;
+    let r = i * i;
+    if r == -F::one() {
+        let x = b * elem * (i - F::one());
+        return Some(x);
+    }
+
+    let u = b * d;
+    let i = u.double() * u * c_squared * elem;
+    let x = u * c * elem * (i - F::one());
+    Some(x)
 }
 
 fn power_case_three_mod_four<F: crate::Field>(
