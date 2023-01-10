@@ -517,8 +517,8 @@ pub const fn inv<T: MontConfig<N>, const N: usize>() -> u64 {
 #[inline]
 pub const fn can_use_no_carry_mul_optimization<T: MontConfig<N>, const N: usize>() -> bool {
     // Checking the modulus at compile time
-    let top_bit_is_zero = T::MODULUS.0[N - 1] >> 62 == 0;
-    let mut all_remaining_bits_are_one = T::MODULUS.0[N - 1] == u64::MAX >> 2;
+    let top_bit_is_zero = T::MODULUS.0[N - 1] >> 63 == 0;
+    let mut all_remaining_bits_are_one = T::MODULUS.0[N - 1] == u64::MAX >> 1;
     crate::const_for!((i in 1..N) {
         all_remaining_bits_are_one  &= T::MODULUS.0[N - i - 1] == u64::MAX;
     });
