@@ -359,7 +359,7 @@ macro_rules! __test_group {
         }
     };
     ($group:ty; glv) => {
-        $crate::__test_group!($group; curve);
+        type Config = <$group as CurveGroup>::Config;
 
         #[test]
         fn test_scalar_decomposition()
