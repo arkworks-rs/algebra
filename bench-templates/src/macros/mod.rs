@@ -108,4 +108,23 @@ macro_rules! bench {
             );
         }
     };
+    (
+        Name = $name:expr,
+        Group = $G:ident,
+        ScalarField = $Fr:ident,
+        PrimeBaseField = $Fq:ident,
+    ) => {
+        $crate::ec_bench!($name, $G);
+        $crate::glv_bench!($name, $G);
+        $crate::f_bench!(prime, $name, $Fr);
+        $crate::f_bench!(prime, $name, $Fq);
+
+        paste! {
+            criterion_main!(
+                [<$G:lower>]::benches,
+                [<$Fr:lower>]::benches,
+                [<$Fq:lower>]::benches,
+            );
+        }
+    };
 }
