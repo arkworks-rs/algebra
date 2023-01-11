@@ -7,6 +7,9 @@ mod field;
 #[macro_use]
 mod pairing;
 
+#[macro_use]
+mod glv;
+
 #[macro_export]
 macro_rules! bench {
     (
