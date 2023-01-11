@@ -357,6 +357,26 @@ macro_rules! __test_group {
             assert_eq!(a, <Config as MontCurveConfig>::COEFF_A);
             assert_eq!(b, <Config as MontCurveConfig>::COEFF_B);
         }
+    };
+    ($group:ty; glv) => {
+        $crate::__test_group!($group; curve);
+
+        #[test]
+        fn test_scalar_decomposition()
+        {
+            $crate::glv::glv_scalar_decomposition::<Config>();
+        }
+
+
+        #[test]
+        fn test_endomorphism_eigenvalue() {
+            $crate::glv::glv_endomorphism_eigenvalue::<Config>();
+        }
+
+        #[test]
+        fn test_glv_mul() {
+            $crate::glv::glv_scalar_multiplication::<Config>();
+        }
     }
 }
 

@@ -122,42 +122,6 @@ mod test {
     }
 
     #[test]
-    fn test_glv_scalar_decomposition() {
-        use crate::bls12_381::{g1::Config, Fr};
-        let mut rng = ark_std::test_rng();
-        for _ in 1..100 {
-            let s = Fr::rand(&mut rng);
-            let (k1, boo1, k2, boo2) = Config::scalar_decomposition(s);
-            if boo1 && boo2 {
-                assert_eq!(k1 + Config::LAMBDA * k2, s);
-            }
-            if boo1 && !boo2 {
-                assert_eq!(k1 - Config::LAMBDA * k2, s);
-            }
-            if !boo1 && boo2 {
-                assert_eq!(-k1 + Config::LAMBDA * k2, s);
-            }
-            if !boo1 && !boo2 {
-                assert_eq!(-k1 - Config::LAMBDA * k2, s);
-            }
-        }
-    }
-
-    #[test]
-    fn test_glv() {
-        use crate::bls12_381::{g1::Config, Fr};
-        use ark_ec::Group;
-        let mut rng = ark_std::test_rng();
-        for _ in 1..100 {
-            let s = Fr::rand(&mut rng);
-            let g = Projective::<Config>::generator();
-            let s_g = g * s;
-            let s_g_glv = Config::glv_mul(g, s);
-            assert_eq!(s_g, s_g_glv);
-        }
-    }
-
-    #[test]
     fn bench_glv() {
         use crate::bls12_381::{g1::Config, Fr};
         use ark_ec::Group;

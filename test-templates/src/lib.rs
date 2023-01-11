@@ -2,6 +2,7 @@
 pub mod groups;
 #[macro_use]
 pub mod fields;
+pub mod glv;
 pub mod msm;
 #[macro_use]
 pub mod pairing;
