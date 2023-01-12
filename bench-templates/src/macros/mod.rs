@@ -29,6 +29,8 @@ macro_rules! bench {
         $crate::f_bench!(extension, $name, $FqExt);
         $crate::f_bench!(target, $name, $FqTarget);
         $crate::pairing_bench!($Pairing);
+        $crate::glv_bench!($name, $G1);
+        $crate::glv_bench!($name, $G2);
 
         paste! {
             criterion_main!(
@@ -58,8 +60,6 @@ macro_rules! bench {
         $crate::f_bench!(extension, $name, $FqExt);
         $crate::f_bench!(target, $name, $FqTarget);
         $crate::pairing_bench!($Pairing);
-        $crate::glv_bench!($name, $G1);
-        $crate::glv_bench!($name, $G2);
 
         paste! {
             criterion_main!(
@@ -97,6 +97,7 @@ macro_rules! bench {
         PrimeBaseField = $Fq:ident,
     ) => {
         $crate::ec_bench!($name, $G);
+        $crate::glv_bench!($name, $G);
         $crate::f_bench!(prime, $name, $Fr);
         $crate::f_bench!(prime, $name, $Fq);
 
@@ -115,7 +116,6 @@ macro_rules! bench {
         PrimeBaseField = $Fq:ident,
     ) => {
         $crate::ec_bench!($name, $G);
-        $crate::glv_bench!($name, $G);
         $crate::f_bench!(prime, $name, $Fr);
         $crate::f_bench!(prime, $name, $Fq);
 
