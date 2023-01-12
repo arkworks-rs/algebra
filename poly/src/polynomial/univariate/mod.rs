@@ -156,27 +156,35 @@ impl<'a, F: 'a + FftField> DenseOrSparsePolynomial<'a, F> {
                 Evaluations::from_vec_and_domain(evals, domain)
             },
             DPolynomial(Cow::Borrowed(d)) => {
-                // Reduce the coefficients of the polynomial mod X^domain.size()
-                let mut chunks = d.coeffs.chunks(domain.size());
-                let mut reduced = chunks.next().unwrap().to_vec();
-                for chunk in chunks {
-                    cfg_iter_mut!(reduced).zip(chunk).for_each(|(x, y)| {
-                        *x += y;
-                    });
+                if d.is_zero() {
+                    Evaluations::from_vec_and_domain(vec![F::zero(); domain.size()], domain)
+                } else {
+                    // Reduce the coefficients of the polynomial mod X^domain.size()
+                    let mut chunks = d.coeffs.chunks(domain.size());
+                    let mut reduced = chunks.next().unwrap().to_vec();
+                    for chunk in chunks {
+                        cfg_iter_mut!(reduced).zip(chunk).for_each(|(x, y)| {
+                            *x += y;
+                        });
+                    }
+                    Evaluations::from_vec_and_domain(domain.fft(&reduced), domain)
                 }
-                Evaluations::from_vec_and_domain(domain.fft(&reduced), domain)
             },
             DPolynomial(Cow::Owned(mut d)) => {
                 // Reduce the coefficients of the polynomial mod X^domain.size()
-                let mut chunks = d.coeffs.chunks_mut(domain.size());
-                let coeffs = chunks.next().unwrap();
-                for chunk in chunks {
-                    cfg_iter_mut!(coeffs).zip(chunk).for_each(|(x, y)| {
-                        *x += y;
-                    });
+                if d.is_zero() {
+                    Evaluations::from_vec_and_domain(vec![F::zero(); domain.size()], domain)
+                } else {
+                    let mut chunks = d.coeffs.chunks_mut(domain.size());
+                    let coeffs = chunks.next().unwrap();
+                    for chunk in chunks {
+                        cfg_iter_mut!(coeffs).zip(chunk).for_each(|(x, y)| {
+                            *x += y;
+                        });
+                    }
+                    domain.fft_in_place(&mut d.coeffs);
+                    Evaluations::from_vec_and_domain(d.coeffs, domain)
                 }
-                domain.fft_in_place(&mut d.coeffs);
-                Evaluations::from_vec_and_domain(d.coeffs, domain)
             },
         }
     }
