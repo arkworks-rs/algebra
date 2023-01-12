@@ -21,7 +21,7 @@ macro_rules! bench {
         G1BaseField = $Fq:ident,
         G2BaseField = $FqExt:ident,
         TargetField = $FqTarget:ident,
-        glv
+        Method = $glv:expr,
     ) => {
         // $crate::ec_bench!($name, $G1);
         // $crate::ec_bench!($name, $G2);
