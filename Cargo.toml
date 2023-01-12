@@ -1,5 +1,4 @@
 [workspace]
-
 members = [
     "serialize",
     "serialize-derive",
@@ -15,6 +14,19 @@ members = [
     "test-curves",
     "test-templates",
 ]
+
+[workspace.package]
+version = "0.4.0-alpha.6"
+authors = [ "arkworks contributors" ]
+homepage = "https://arkworks.rs"
+repository = "https://github.com/arkworks-rs/algebra"
+documentation = "https://docs.rs/algebra/"
+keywords = ["cryptography", "finite-fields", "elliptic-curves", "pairing"]
+categories = ["cryptography"]
+include = ["Cargo.toml", "src", "README.md", "LICENSE-APACHE", "LICENSE-MIT"]
+license = "MIT/Apache-2.0"
+edition = "2021"
+rust-version = "1.59"
 
 [workspace.dependencies]
 ark-ec = { version = "0.4.0-alpha", path = "./ec", default-features = false }
