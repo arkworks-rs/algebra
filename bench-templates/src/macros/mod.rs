@@ -23,13 +23,13 @@ macro_rules! bench {
         TargetField = $FqTarget:ident,
         glv
     ) => {
-        $crate::ec_bench!($name, $G1);
-        $crate::ec_bench!($name, $G2);
-        $crate::f_bench!(prime, $name, $Fr);
-        $crate::f_bench!(prime, $name, $Fq);
-        $crate::f_bench!(extension, $name, $FqExt);
-        $crate::f_bench!(target, $name, $FqTarget);
-        $crate::pairing_bench!($Pairing);
+        // $crate::ec_bench!($name, $G1);
+        // $crate::ec_bench!($name, $G2);
+        // $crate::f_bench!(prime, $name, $Fr);
+        // $crate::f_bench!(prime, $name, $Fq);
+        // $crate::f_bench!(extension, $name, $FqExt);
+        // $crate::f_bench!(target, $name, $FqTarget);
+        // $crate::pairing_bench!($Pairing);
         $crate::glv_bench!($name, $G1);
         $crate::glv_bench!($name, $G2);
 
@@ -37,10 +37,10 @@ macro_rules! bench {
             criterion_main!(
                 [<$G1:lower>]::benches,
                 [<$G2:lower>]::benches,
-                [<$Fr:lower>]::benches,
-                [<$Fq:lower>]::benches,
-                [<$FqExt:lower>]::benches,
-                [<$FqTarget:lower>]::benches
+                // [<$Fr:lower>]::benches,
+                // [<$Fq:lower>]::benches,
+                // [<$FqExt:lower>]::benches,
+                // [<$FqTarget:lower>]::benches
             );
         }
     };
