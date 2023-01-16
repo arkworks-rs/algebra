@@ -60,11 +60,7 @@ macro_rules! sbb {
 pub(crate) fn sbb(a: &mut u64, b: u64, borrow: u64) -> u64 {
     let tmp = (1u128 << 64) + (*a as u128) - (b as u128) - (borrow as u128);
     *a = tmp as u64;
-    if tmp >> 64 == 0 {
-        1
-    } else {
-        0
-    }
+    (tmp >> 64 == 0) as u64
 }
 
 /// Sets a = a - b - borrow, and returns the borrow.

@@ -49,9 +49,8 @@ pub(super) fn square_in_place_impl(
             let mut carry = 0;
             fa::mac_discard(r[#i], k, #modulus_0, &mut carry);
         });
-        for j in 1..num_limbs {
+        for (j, modulus_j) in modulus_limbs.iter().enumerate().take(num_limbs).skip(1) {
             let idx = j + i;
-            let modulus_j = modulus_limbs[j];
             default.extend(quote! {
                 r[#idx] = fa::mac_with_carry(r[#idx], k, #modulus_j, &mut carry);
             });

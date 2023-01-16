@@ -109,7 +109,7 @@ pub trait FpConfig<const N: usize>: Send + Sync + 'static + Sized {
     PartialEq(bound = ""),
     Eq(bound = "")
 )]
-pub struct Fp<P, const N: usize>(
+pub struct Fp<P: FpConfig<N>, const N: usize>(
     pub BigInt<N>,
     #[derivative(Debug = "ignore")]
     #[doc(hidden)]
@@ -388,17 +388,20 @@ impl<P: FpConfig<N>, const N: usize> PartialOrd for Fp<P, N> {
 }
 
 impl<P: FpConfig<N>, const N: usize> From<u128> for Fp<P, N> {
-    fn from(other: u128) -> Self {
-        let mut default_int = BigInt::default();
+    fn from(mut other: u128) -> Self {
+        let mut result = BigInt::default();
         if N == 1 {
-            default_int.0[0] = (other % u128::from(P::MODULUS.0[0])) as u64;
+            result.0[0] = (other % u128::from(P::MODULUS.0[0])) as u64;
+        } else if N == 2 || P::MODULUS.0[2..].iter().all(|&x| x == 0) {
+            let mod_as_u128 = P::MODULUS.0[0] as u128 + ((P::MODULUS.0[1] as u128) << 64);
+            other %= mod_as_u128;
+            result.0[0] = ((other << 64) >> 64) as u64;
+            result.0[1] = (other >> 64) as u64;
         } else {
-            let upper = (other >> 64) as u64;
-            let lower = ((other << 64) >> 64) as u64;
-            default_int.0[0] = lower;
-            default_int.0[1] = upper;
+            result.0[0] = ((other << 64) >> 64) as u64;
+            result.0[1] = (other >> 64) as u64;
         }
-        Self::from_bigint(default_int).unwrap()
+        Self::from_bigint(result).unwrap()
     }
 }
 

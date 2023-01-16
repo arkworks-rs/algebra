@@ -170,5 +170,4 @@ pub fn mont_config_helper(
             #sub_with_borrow
         }
     }
-    .into()
 }
