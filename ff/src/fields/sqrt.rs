@@ -77,6 +77,40 @@ pub enum SqrtPrecomputation<F: crate::Field> {
         quadratic_nonresidue_to_trace: F,
         trace_of_modulus_minus_one_div_two: &'static [u64],
     },
+    /// https://eprint.iacr.org/2012/685.pdf (page 9, algorithm 2).
+    /// With _q_ as field order, _p_ as characteristic, and _m_ as extension degree:
+    /// * `char_minus_three_div_four` - _(p - 3)/4_.
+    /// * `deg_minus_three_div_two_plus_one` - _(m - 3)/2 + 1_.
+    ShanksCase3Mod4 {
+        char_minus_three_div_four: &'static [u64],
+        deg_minus_three_div_two_plus_one: usize,
+    },
+    /// https://eprint.iacr.org/2012/685.pdf (page 10, algorithm 3).
+    /// With _q_ as field order, _p_ as characteristic, and _m_ as extension degree:
+    /// * `trace` - _2^(q - 5)/8_.
+    /// * `char_minus_five_div_eight` - _(p - 5)/8_.
+    /// * `deg_minus_three_div_two_plus_one` - _(m - 3)/2 + 1_.
+    AtkinCase5Mod8 {
+        trace: F,
+        char_minus_five_div_eight: &'static [u64],
+        deg_minus_three_div_two_plus_one: usize,
+    },
+    /// https://eprint.iacr.org/2012/685.pdf (page 11, algorithm 4).
+    /// With _q_ as field order, _p_ as characteristic, and _m_ as extension degree:
+    /// * `trace` - _2^(q - 9)/16_.
+    /// * `c` - nonzero value such that _chi_q(c) != 1_.
+    /// * `d` - _c^(q - 9)/8_.
+    /// * `c_squared` - _c^2_.
+    /// * `char_minus_nine_div_sixteen` - _(p - 9)/16_.
+    /// * `deg_minus_three_div_two_plus_one` - _(m - 3)/2 + 1_.
+    KongCase9Mod16 {
+        trace: F,
+        c: F,
+        d: F,
+        c_squared: F,
+        char_minus_nine_div_sixteen: &'static [u64],
+        deg_minus_three_div_two_plus_one: usize,
+    },
     /// In the case of 3 mod 4, we can find the square root via an exponentiation,
     /// sqrt(a) = a^(p+1)/4. This can be proved using Euler's criterion, a^(p-1)/2 = 1 mod p.
     PowerCase3Mod4 {
@@ -97,6 +131,40 @@ impl<F: crate::Field> SqrtPrecomputation<F> {
                 quadratic_nonresidue_to_trace,
                 trace_of_modulus_minus_one_div_two,
             ),
+            SqrtPrecomputation::ShanksCase3Mod4 {
+                char_minus_three_div_four,
+                deg_minus_three_div_two_plus_one,
+            } => shanks(
+                elem,
+                char_minus_three_div_four,
+                *deg_minus_three_div_two_plus_one,
+            ),
+            SqrtPrecomputation::AtkinCase5Mod8 {
+                trace,
+                char_minus_five_div_eight,
+                deg_minus_three_div_two_plus_one,
+            } => atkin(
+                elem,
+                trace,
+                char_minus_five_div_eight,
+                *deg_minus_three_div_two_plus_one,
+            ),
+            SqrtPrecomputation::KongCase9Mod16 {
+                trace,
+                c,
+                d,
+                c_squared,
+                char_minus_nine_div_sixteen,
+                deg_minus_three_div_two_plus_one,
+            } => kong(
+                elem,
+                trace,
+                c,
+                d,
+                c_squared,
+                char_minus_nine_div_sixteen,
+                *deg_minus_three_div_two_plus_one,
+            ),
             Self::PowerCase3Mod4 {
                 modulus_plus_one_div_four,
             } => power_case_three_mod_four(elem, modulus_plus_one_div_four),
@@ -108,7 +176,7 @@ fn tonelli_shanks<F: crate::Field>(
     elem: &F,
     two_adicity: &u32,
     quadratic_nonresidue_to_trace: &F,
-    trace_of_modulus_minus_one_div_two: &'static [u64],
+    trace_of_modulus_minus_one_div_two: &[u64],
 ) -> Option<F> {
     // Actually this is just normal Tonelli-Shanks; since `P::Generator`
     // is a quadratic non-residue, `P::ROOT_OF_UNITY = P::GENERATOR ^ t`
@@ -163,13 +231,9 @@ fn tonelli_shanks<F: crate::Field>(
     }
 }
 
-/// https://eprint.iacr.org/2012/685.pdf (page 9, algorithm 2).
-/// With _q_ as field order, _p_ as characteristic, and _m_ as extension degree:
-/// * `char_minus_three_div_four` - _(p - 3)/4_.
-/// * `deg_minus_three_div_two_plus_one` - _(m - 3)/2 + 1_.
 fn shanks<F: crate::Field>(
     elem: &F,
-    char_minus_three_div_four: &'static [u64],
+    char_minus_three_div_four: &[u64],
     deg_minus_three_div_two_plus_one: usize,
 ) -> Option<F> {
     // Computing a1 = Using decomposition of (q-3)/4 = a + p[pa + (3a+2)] * sum_i=1^(m-3)/2 p^2i
@@ -198,15 +262,10 @@ fn shanks<F: crate::Field>(
     Some(a1_elem)
 }
 
-/// https://eprint.iacr.org/2012/685.pdf (page 10, algorithm 3).
-/// With _q_ as field order, _p_ as characteristic, and _m_ as extension degree:
-/// * `trace` - _2^(q - 5)/8_.
-/// * `char_minus_five_div_eight` - _(p - 5)/8_.
-/// * `deg_minus_three_div_two_plus_one` - _(m - 3)/2 + 1_.
 fn atkin<F: crate::Field>(
     elem: &F,
     trace: &F,
-    char_minus_five_div_eight: &'static [u64],
+    char_minus_five_div_eight: &[u64],
     deg_minus_three_div_two_plus_one: usize,
 ) -> Option<F> {
     // Computing a1 = elem^(q-5)/8 using decomposition of
@@ -240,21 +299,13 @@ fn atkin<F: crate::Field>(
     Some(x)
 }
 
-/// https://eprint.iacr.org/2012/685.pdf (page 11, algorithm 4).
-/// With _q_ as field order, _p_ as characteristic, and _m_ as extension degree:
-/// * `trace` - _2^(q - 9)/16_.
-/// * `c` - nonzero value such that _chi_q(c) != 1_.
-/// * `d` - _c^(q - 9)/8_.
-/// * `c_squared` - _c^2_.
-/// * `char_minus_nine_div_sixteen` - _(p - 9)/16_.
-/// * `deg_minus_three_div_two_plus_one` - _(m - 3)/2 + 1_.
 fn kong<F: crate::Field>(
     elem: &F,
     trace: &F,
     c: &F,
     d: &F,
     c_squared: &F,
-    char_minus_nine_div_sixteen: &'static [u64],
+    char_minus_nine_div_sixteen: &[u64],
     deg_minus_three_div_two_plus_one: usize,
 ) -> Option<F> {
     // Using decomposition of (q-9)/16 = a + p[pa + (9a+5)] * sum_i=1^(m-3)/2 p^2i
@@ -296,7 +347,7 @@ fn kong<F: crate::Field>(
 
 fn power_case_three_mod_four<F: crate::Field>(
     elem: &F,
-    modulus_plus_one_div_four: &&'static [u64],
+    modulus_plus_one_div_four: &[u64],
 ) -> Option<F> {
     let result = elem.pow(modulus_plus_one_div_four.as_ref());
     (result.square() == *elem).then_some(result)
