@@ -71,7 +71,7 @@ pub enum SqrtPrecomputation<F: crate::Field> {
     /// * First factor _q - 1 = 2^s t_ where _t_ is odd.
     /// * `two_adicity` - _s_.
     /// * `quadratic_nonresidue_to_trace` - _c^t_, with random _c_ such that _c^2^(s - 1) = 1_.
-    /// * `trace_of_modulus_minus_one_div_two` - _(t - 1)/2 + 1_.
+    /// * `trace_of_modulus_minus_one_div_two` - _(t - 1)/2_.
     TonelliShanks {
         two_adicity: u32,
         quadratic_nonresidue_to_trace: F,
