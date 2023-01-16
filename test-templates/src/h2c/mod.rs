@@ -29,8 +29,7 @@ macro_rules! test_h2c {
                 fs::{read_dir, File},
                 io::BufReader,
             };
-            use $crate::decode;
-            use $crate::Sha256;
+            use $crate::{decode, Sha256};
 
             use $crate::json::SuiteVector;
             #[test]
