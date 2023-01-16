@@ -821,8 +821,7 @@ impl<T: MontConfig<N>, const N: usize> Fp<MontBackend<T, N>, N> {
 
 #[cfg(test)]
 mod test {
-    use ark_std::str::FromStr;
-    use ark_std::vec::Vec;
+    use ark_std::{str::FromStr, vec::Vec};
     use ark_test_curves::secp256k1::Fr;
     use num_bigint::{BigInt, BigUint, Sign};
 
