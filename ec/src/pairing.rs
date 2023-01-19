@@ -267,6 +267,8 @@ impl<P: Pairing> Distribution<PairingOutput<P>> for Standard {
 
 impl<P: Pairing> AdditiveGroup for PairingOutput<P> {
     type Scalar = P::ScalarField;
+
+    const ZERO: Self = Self(P::TargetField::ONE);
 }
 
 impl<P: Pairing> PrimeGroup for PairingOutput<P> {

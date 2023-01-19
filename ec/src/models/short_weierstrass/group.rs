@@ -162,6 +162,8 @@ impl<P: SWCurveConfig> Zero for Projective<P> {
 
 impl<P: SWCurveConfig> AdditiveGroup for Projective<P> {
     type Scalar = P::ScalarField;
+
+    const ZERO: Self = Self::new_unchecked(P::BaseField::ONE, P::BaseField::ONE, P::BaseField::ZERO);
 }
 
 impl<P: SWCurveConfig> PrimeGroup for Projective<P> {

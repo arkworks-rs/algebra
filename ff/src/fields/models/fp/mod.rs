@@ -188,6 +188,7 @@ impl<P: FpConfig<N>, const N: usize> One for Fp<P, N> {
 
 impl<P: FpConfig<N>, const N: usize> AdditiveGroup for Fp<P, N> {
     type Scalar = Self;
+    const ZERO: Self = P::ZERO;
 }
 
 impl<P: FpConfig<N>, const N: usize> Field for Fp<P, N> {
@@ -195,7 +196,6 @@ impl<P: FpConfig<N>, const N: usize> Field for Fp<P, N> {
     type BasePrimeFieldIter = iter::Once<Self::BasePrimeField>;
 
     const SQRT_PRECOMP: Option<SqrtPrecomputation<Self>> = P::SQRT_PRECOMP;
-    const ZERO: Self = P::ZERO;
     const ONE: Self = P::ONE;
 
     fn extension_degree() -> u64 {

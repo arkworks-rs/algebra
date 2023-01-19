@@ -81,9 +81,12 @@ pub trait AdditiveGroup:
     + for<'a> AddAssign<&'a mut Self>
     + for<'a> SubAssign<&'a mut Self>
     + for<'a> MulAssign<&'a mut <Self as AdditiveGroup>::Scalar>
-    + core::iter::Sum<Self>
-    + for<'a> core::iter::Sum<&'a Self> {
+    + ark_std::iter::Sum<Self>
+    + for<'a> ark_std::iter::Sum<&'a Self> {
         type Scalar: Field;
+
+        /// The additive identity of the field.
+        const ZERO: Self;
     }
 
 /// The interface for a generic field.
@@ -180,8 +183,6 @@ pub trait Field:
     /// Determines the algorithm for computing square roots.
     const SQRT_PRECOMP: Option<SqrtPrecomputation<Self>>;
 
-    /// The additive identity of the field.
-    const ZERO: Self;
     /// The multiplicative identity of the field.
     const ONE: Self;
 

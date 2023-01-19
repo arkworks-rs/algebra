@@ -165,7 +165,9 @@ impl<P: CubicExtConfig> One for CubicExtField<P> {
 }
 
 impl<P: CubicExtConfig> AdditiveGroup for CubicExtField<P> {
-    type Scalar= Self;
+    type Scalar = Self;
+
+    const ZERO: Self = Self::new(P::BaseField::ZERO, P::BaseField::ZERO, P::BaseField::ZERO);
 }
 
 type BaseFieldIter<P> = <<P as CubicExtConfig>::BaseField as Field>::BasePrimeFieldIter;
@@ -174,8 +176,6 @@ impl<P: CubicExtConfig> Field for CubicExtField<P> {
     type BasePrimeFieldIter = Chain<BaseFieldIter<P>, Chain<BaseFieldIter<P>, BaseFieldIter<P>>>;
 
     const SQRT_PRECOMP: Option<SqrtPrecomputation<Self>> = P::SQRT_PRECOMP;
-
-    const ZERO: Self = Self::new(P::BaseField::ZERO, P::BaseField::ZERO, P::BaseField::ZERO);
 
     const ONE: Self = Self::new(P::BaseField::ONE, P::BaseField::ZERO, P::BaseField::ZERO);
 

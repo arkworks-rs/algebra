@@ -152,6 +152,8 @@ impl<P: TECurveConfig> Zero for Projective<P> {
 
 impl<P: TECurveConfig> AdditiveGroup for Projective<P> {
     type Scalar = P::ScalarField;
+
+    const ZERO: Self = Self::new_unchecked(P::BaseField::ZERO, P::BaseField::ONE, P::BaseField::ZERO, P::BaseField::ONE);
 }
 
 impl<P: TECurveConfig> PrimeGroup for Projective<P> {

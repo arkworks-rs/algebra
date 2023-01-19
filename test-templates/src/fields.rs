@@ -2,6 +2,7 @@
 #![allow(clippy::eq_op)]
 
 use ark_std::rand::Rng;
+
 #[derive(Default, Clone, Copy, Debug)]
 pub struct DummyFlags;
 
@@ -141,6 +142,8 @@ macro_rules! __test_field {
         #[test]
         fn test_add_properties() {
             use ark_std::UniformRand;
+            use ark_ff::AdditiveGroup;
+
             let mut rng = test_rng();
             let zero = <$field>::zero();
             assert_eq!(-zero, zero);
@@ -389,7 +392,8 @@ macro_rules! __test_field {
 
         #[test]
         fn test_sum_of_products_edge_case() {
-            use ark_ff::BigInteger;
+            use ark_ff::{AdditiveGroup, BigInteger};
+
             let mut a_max = <$field>::ZERO.into_bigint();
             for (i, limb) in a_max.as_mut().iter_mut().enumerate() {
                 if i == <$field as PrimeField>::BigInt::NUM_LIMBS - 1 {

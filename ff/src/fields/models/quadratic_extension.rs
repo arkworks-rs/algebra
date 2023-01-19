@@ -195,7 +195,10 @@ impl<P: QuadExtConfig> One for QuadExtField<P> {
 
 impl<P: QuadExtConfig> AdditiveGroup for QuadExtField<P> {
     type Scalar = Self;
+
+    const ZERO: Self = Self::new(P::BaseField::ZERO, P::BaseField::ZERO);
 }
+
 
 type BaseFieldIter<P> = <<P as QuadExtConfig>::BaseField as Field>::BasePrimeFieldIter;
 impl<P: QuadExtConfig> Field for QuadExtField<P> {
@@ -205,7 +208,6 @@ impl<P: QuadExtConfig> Field for QuadExtField<P> {
 
     const SQRT_PRECOMP: Option<SqrtPrecomputation<Self>> = None;
 
-    const ZERO: Self = Self::new(P::BaseField::ZERO, P::BaseField::ZERO);
     const ONE: Self = Self::new(P::BaseField::ONE, P::BaseField::ZERO);
 
     fn extension_degree() -> u64 {

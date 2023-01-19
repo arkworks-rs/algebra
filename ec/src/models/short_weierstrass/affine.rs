@@ -14,7 +14,7 @@ use ark_std::{
     One, Zero,
 };
 
-use ark_ff::{fields::Field, PrimeField, ToConstraintField, UniformRand};
+use ark_ff::{AdditiveGroup, fields::Field, PrimeField, ToConstraintField, UniformRand};
 
 use zeroize::Zeroize;
 
