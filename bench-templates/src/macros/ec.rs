@@ -6,7 +6,7 @@ macro_rules! ec_bench {
                 use ark_ec::PrimeGroup;
                 use super::*;
 
-                type Scalar = <$Group::ScalarField;
+                type Scalar = <$Group as PrimeGroup>::ScalarField;
                 fn rand(c: &mut $crate::criterion::Criterion) {
                     let name = format!("{}::{}", $curve_name, stringify!($Group));
                     use ark_std::UniformRand;
@@ -22,7 +22,7 @@ macro_rules! ec_bench {
                     use ark_std::UniformRand;
                     let name = format!("{}::{}", $curve_name, stringify!($Group));
 
-                    type Scalar = $Group::ScalarField;
+                    type Scalar = <$Group as PrimeGroup>::ScalarField;
                     const SAMPLES: usize = 1000;
                     let mut rng = ark_std::test_rng();
                     let mut arithmetic =
