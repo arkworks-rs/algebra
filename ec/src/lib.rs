@@ -77,7 +77,7 @@ pub trait PrimeGroup: AdditiveGroup<Scalar = Self::ScalarField> {
 ///
 /// The point is guaranteed to be in the correct prime order subgroup.
 pub trait CurveGroup:
-    PrimeGroup<ScalarField = <Self as CurveGroup>::ScalarField>
+    PrimeGroup
     + Add<Self::Affine, Output = Self>
     + AddAssign<Self::Affine>
     // + for<'a> Add<&'a Self::Affine, Output = Self>
@@ -89,15 +89,14 @@ pub trait CurveGroup:
     + core::iter::Sum<Self::Affine>
     + for<'a> core::iter::Sum<&'a Self::Affine>
 {
-    type Config: CurveConfig<ScalarField = <Self as PrimeGroup>::ScalarField, BaseField = Self::BaseField>;
-    type ScalarField: PrimeField;
+    type Config: CurveConfig<ScalarField = Self::ScalarField, BaseField = Self::BaseField>;
     /// The field over which this curve is defined.
     type BaseField: Field;
     /// The affine representation of this element.
     type Affine: AffineRepr<
             Config = Self::Config,
             Group = Self,
-            ScalarField = <Self as PrimeGroup>::ScalarField,
+            ScalarField = Self::ScalarField,
             BaseField = Self::BaseField,
         > + From<Self>
         + Into<Self>;

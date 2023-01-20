@@ -212,7 +212,6 @@ impl<P: TECurveConfig> CurveGroup for Projective<P> {
     type Config = P;
     type BaseField = P::BaseField;
     type Affine = Affine<P>;
-    type ScalarField = P::ScalarField;
     type FullGroup = Affine<P>;
 
     fn normalize_batch(v: &[Self]) -> Vec<Self::Affine> {

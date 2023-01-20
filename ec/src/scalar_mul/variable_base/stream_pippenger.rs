@@ -4,13 +4,11 @@ use ark_ff::{PrimeField, Zero};
 use ark_std::{borrow::Borrow, vec::Vec};
 use hashbrown::HashMap;
 
-use crate::PrimeGroup;
-
 use super::VariableBaseMSM;
 
 /// Struct for the chunked Pippenger algorithm.
 pub struct ChunkedPippenger<G: VariableBaseMSM> {
-    scalars_buffer: Vec<<<G as PrimeGroup>::ScalarField as PrimeField>::BigInt>,
+    scalars_buffer: Vec<<G::ScalarField as PrimeField>::BigInt>,
     bases_buffer: Vec<G::MulBase>,
     result: G,
     buf_size: usize,
@@ -42,7 +40,7 @@ impl<G: VariableBaseMSM> ChunkedPippenger<G> {
     pub fn add<B, S>(&mut self, base: B, scalar: S)
     where
         B: Borrow<G::MulBase>,
-        S: Borrow<<<G as PrimeGroup>::ScalarField as PrimeField>::BigInt>,
+        S: Borrow<<G::ScalarField as PrimeField>::BigInt>,
     {
         self.scalars_buffer.push(*scalar.borrow());
         self.bases_buffer.push(*base.borrow());
@@ -69,7 +67,7 @@ impl<G: VariableBaseMSM> ChunkedPippenger<G> {
 
 /// Hash map struct for Pippenger algorithm.
 pub struct HashMapPippenger<G: VariableBaseMSM> {
-    buffer: HashMap<G::MulBase, <G as PrimeGroup>::ScalarField>,
+    buffer: HashMap<G::MulBase, G::ScalarField>,
     result: G,
     buf_size: usize,
 }
@@ -89,13 +87,13 @@ impl<G: VariableBaseMSM> HashMapPippenger<G> {
     pub fn add<B, S>(&mut self, base: B, scalar: S)
     where
         B: Borrow<G::MulBase>,
-        S: Borrow<<G as PrimeGroup>::ScalarField>,
+        S: Borrow<G::ScalarField>,
     {
         // update the entry, guarding the possibility that it has been already set.
         let entry = self
             .buffer
             .entry(*base.borrow())
-            .or_insert(<G as PrimeGroup>::ScalarField::zero());
+            .or_insert(G::ScalarField::zero());
         *entry += *scalar.borrow();
         if self.buffer.len() == self.buf_size {
             let bases = self.buffer.keys().cloned().collect::<Vec<_>>();

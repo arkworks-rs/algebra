@@ -44,7 +44,6 @@ use ark_std::cmp::max;
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
 
-
 pub trait AdditiveGroup:
     Eq
     + 'static

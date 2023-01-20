@@ -290,7 +290,6 @@ impl<P: SWCurveConfig> PrimeGroup for Projective<P> {
 impl<P: SWCurveConfig> CurveGroup for Projective<P> {
     type Config = P;
     type BaseField = P::BaseField;
-    type ScalarField = P::ScalarField;
     type Affine = Affine<P>;
     type FullGroup = Affine<P>;
 

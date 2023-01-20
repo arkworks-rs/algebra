@@ -37,7 +37,7 @@ impl WnafContext {
     /// multiplication; first, it uses `Self::table` to calculate an
     /// appropriate table of multiples of `g`, and then uses the wNAF
     /// algorithm to compute the scalar multiple.
-    pub fn mul<G: PrimeGroup>(&self, g: G, scalar: &<G as PrimeGroup>::ScalarField) -> G {
+    pub fn mul<G: PrimeGroup>(&self, g: G, scalar: &G::ScalarField) -> G {
         let table = self.table(g);
         self.mul_with_table(&table, scalar).unwrap()
     }
@@ -48,7 +48,11 @@ impl WnafContext {
     /// `G::ScalarField`.
     ///
     /// Returns `None` if the table is too small.
-    pub fn mul_with_table<G: PrimeGroup>(&self, base_table: &[G], scalar: &<G as PrimeGroup>::ScalarField) -> Option<G> {
+    pub fn mul_with_table<G: PrimeGroup>(
+        &self,
+        base_table: &[G],
+        scalar: &G::ScalarField,
+    ) -> Option<G> {
         if 1 << (self.window_size - 1) > base_table.len() {
             return None;
         }
