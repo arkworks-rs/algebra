@@ -16,7 +16,7 @@ Implementations of particular curves using these curve models can be found in [`
 Many cryptographic protocols use as core building-blocks prime-order groups. The [`PrimeGroup`](https://github.com/arkworks-rs/algebra/blob/master/ec/src/lib.rs) trait is an abstraction that represents elements of such abelian prime-order groups. It provides methods for performing common operations on group elements:
 
 ```rust
-use ark_ec::PrimeGroup;
+use ark_ec::{AdditiveGroup, PrimeGroup};
 use ark_ff::{PrimeField, Field};
 // We'll use the BLS12-381 G1 curve for this example.
 // This group has a prime order `r`, and is associated with a prime field `Fr`.
@@ -90,7 +90,7 @@ but is slower for most arithmetic operations. Let's explore how and when to use
 these:
 
 ```rust
-use ark_ec::{AffineRepr, PrimeGroup, CurveGroup, VariableBaseMSM};
+use ark_ec::{AdditiveGroup, AffineRepr, PrimeGroup, CurveGroup, VariableBaseMSM};
 use ark_ff::{PrimeField, Field};
 use ark_test_curves::bls12_381::{G1Projective as G, G1Affine as GAffine, Fr as ScalarField};
 use ark_std::{Zero, UniformRand};

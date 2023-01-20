@@ -49,7 +49,7 @@ Types implementing [`Field`] support common field operations
 such as addition, subtraction, multiplication, and inverses.
 
 ```rust
-use ark_ff::Field;
+use ark_ff::{AdditiveGroup, Field};
 // We'll use a field associated with the BLS12-381 pairing-friendly
 // group for this example.
 use ark_test_curves::bls12_381::Fq2 as F;

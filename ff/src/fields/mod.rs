@@ -115,7 +115,7 @@ pub trait AdditiveGroup:
 /// To demonstrate the various field operations, we can first define a prime ordered field $\mathbb{F}_{p}$ with $p = 17$. When defining a field $\mathbb{F}_p$, we need to provide the modulus(the $p$ in $\mathbb{F}_p$) and a generator. Recall that a generator $g \in \mathbb{F}_p$ is a field element whose powers comprise the entire field: $\mathbb{F}_p =\\{g, g^1, \ldots, g^{p-1}\\}$.
 /// We can then manually construct the field element associated with an integer with `Fp::from` and perform field addition, subtraction, multiplication, and inversion on it.
 /// ```rust
-/// use ark_ff::fields::{Field, Fp64, MontBackend, MontConfig};
+/// use ark_ff::{AdditiveGroup, fields::{Field, Fp64, MontBackend, MontConfig}};
 ///
 /// #[derive(MontConfig)]
 /// #[modulus = "17"]
@@ -140,7 +140,7 @@ pub trait AdditiveGroup:
 /// ## Using pre-defined fields
 /// In the following example, we’ll use the field associated with the BLS12-381 pairing-friendly group.
 /// ```rust
-/// use ark_ff::Field;
+/// use ark_ff::{AdditiveGroup, Field};
 /// use ark_test_curves::bls12_381::Fq as F;
 /// use ark_std::{One, UniformRand, test_rng};
 ///

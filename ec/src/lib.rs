@@ -22,7 +22,7 @@ extern crate ark_std;
 
 use ark_ff::{
     fields::{Field, PrimeField},
-    AdditiveGroup, UniformRand,
+    UniformRand,
 };
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use ark_std::{
@@ -33,6 +33,8 @@ use ark_std::{
 };
 pub use scalar_mul::{variable_base::VariableBaseMSM, ScalarMul};
 use zeroize::Zeroize;
+
+pub use ark_ff::AdditiveGroup;
 
 pub mod models;
 pub use self::models::*;
