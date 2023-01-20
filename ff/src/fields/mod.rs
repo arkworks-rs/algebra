@@ -82,12 +82,32 @@ pub trait AdditiveGroup:
     + for<'a> SubAssign<&'a mut Self>
     + for<'a> MulAssign<&'a mut <Self as AdditiveGroup>::Scalar>
     + ark_std::iter::Sum<Self>
-    + for<'a> ark_std::iter::Sum<&'a Self> {
-        type Scalar: Field;
+    + for<'a> ark_std::iter::Sum<&'a Self>
+{
+    type Scalar: Field;
 
-        /// The additive identity of the field.
-        const ZERO: Self;
+    /// The additive identity of the field.
+    const ZERO: Self;
+
+    /// Doubles `self`.
+    #[must_use]
+    fn double(&self) -> Self {
+        let mut copy = *self;
+        copy.double_in_place();
+        copy
     }
+    /// Doubles `self` in place.
+    fn double_in_place(&mut self) -> &mut Self {
+        self.add_assign(*self);
+        self
+    }
+
+    /// Negates `self` in place.
+    fn neg_in_place(&mut self) -> &mut Self {
+        *self = -(*self);
+        self
+    }
+}
 
 /// The interface for a generic field.
 /// Types implementing [`Field`] support common field operations such as addition, subtraction, multiplication, and inverses.
@@ -211,16 +231,6 @@ pub trait Field:
     /// assert_eq!(F2::from_base_prime_field(F::one()), F2::one());
     /// ```
     fn from_base_prime_field(elem: Self::BasePrimeField) -> Self;
-
-    /// Returns `self + self`.
-    #[must_use]
-    fn double(&self) -> Self;
-
-    /// Doubles `self` in place.
-    fn double_in_place(&mut self) -> &mut Self;
-
-    /// Negates `self` in place.
-    fn neg_in_place(&mut self) -> &mut Self;
 
     /// Attempt to deserialize a field element. Returns `None` if the
     /// deserialization fails.

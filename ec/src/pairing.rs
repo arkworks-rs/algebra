@@ -1,4 +1,4 @@
-use ark_ff::{CyclotomicMultSubgroup, Field, One, PrimeField, AdditiveGroup};
+use ark_ff::{AdditiveGroup, CyclotomicMultSubgroup, Field, One, PrimeField};
 use ark_serialize::{
     CanonicalDeserialize, CanonicalSerialize, Compress, SerializationError, Valid, Validate,
 };
@@ -269,6 +269,11 @@ impl<P: Pairing> AdditiveGroup for PairingOutput<P> {
     type Scalar = P::ScalarField;
 
     const ZERO: Self = Self(P::TargetField::ONE);
+
+    fn double_in_place(&mut self) -> &mut Self {
+        self.0.cyclotomic_square_in_place();
+        self
+    }
 }
 
 impl<P: Pairing> PrimeGroup for PairingOutput<P> {
@@ -281,11 +286,6 @@ impl<P: Pairing> PrimeGroup for PairingOutput<P> {
         // Sample a random G2 element
         let g2 = P::G2::generator();
         P::pairing(g1.into(), g2.into())
-    }
-
-    fn double_in_place(&mut self) -> &mut Self {
-        self.0.cyclotomic_square_in_place();
-        self
     }
 
     fn mul_bigint(&self, other: impl AsRef<[u64]>) -> Self {

@@ -5,7 +5,7 @@ use crate::{
 use ark_ff::{
     fp3::{Fp3, Fp3Config},
     fp6_2over3::{Fp6, Fp6Config},
-    CyclotomicMultSubgroup, Field, PrimeField,
+    AdditiveGroup, CyclotomicMultSubgroup, Field, PrimeField,
 };
 use itertools::Itertools;
 use num_traits::{One, Zero};

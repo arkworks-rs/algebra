@@ -22,7 +22,7 @@ extern crate ark_std;
 
 use ark_ff::{
     fields::{Field, PrimeField},
-    UniformRand, AdditiveGroup,
+    AdditiveGroup, UniformRand,
 };
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use ark_std::{
@@ -46,25 +46,13 @@ pub mod hashing;
 pub mod pairing;
 
 /// Represents (elements of) a group of prime order `r`.
-pub trait PrimeGroup: AdditiveGroup<Scalar = Self::ScalarField>
-{
+pub trait PrimeGroup: AdditiveGroup<Scalar = Self::ScalarField> {
     /// The scalar field `F_r`, where `r` is the order of this group.
     type ScalarField: PrimeField;
 
     /// Returns a fixed generator of this group.
     #[must_use]
     fn generator() -> Self;
-
-    /// Doubles `self`.
-    #[must_use]
-    fn double(&self) -> Self {
-        let mut copy = *self;
-        copy.double_in_place();
-        copy
-    }
-
-    /// Double `self` in place.
-    fn double_in_place(&mut self) -> &mut Self;
 
     /// Performs scalar multiplication of this element.
     fn mul_bigint(&self, other: impl AsRef<[u64]>) -> Self;
@@ -83,7 +71,6 @@ pub trait PrimeGroup: AdditiveGroup<Scalar = Self::ScalarField>
         res
     }
 }
-
 
 /// An opaque representation of an elliptic curve group element that is suitable
 /// for efficient group arithmetic.

@@ -18,6 +18,7 @@ macro_rules! ec_bench {
                 }
 
                 fn arithmetic(c: &mut $crate::criterion::Criterion) {
+                    use ark_ff::AdditiveGroup;
                     use ark_ec::{CurveGroup, PrimeGroup};
                     use ark_std::UniformRand;
                     let name = format!("{}::{}", $curve_name, stringify!($Group));

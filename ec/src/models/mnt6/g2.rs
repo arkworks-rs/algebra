@@ -1,5 +1,3 @@
-use core::ops::Neg;
-
 use crate::{
     mnt6::MNT6Config,
     models::mnt6::MNT6,
@@ -8,7 +6,7 @@ use crate::{
 };
 use ark_ff::fields::{Field, Fp3};
 use ark_serialize::*;
-use ark_std::vec::Vec;
+use ark_std::{ops::Neg, vec::Vec};
 use num_traits::One;
 
 pub type G2Affine<P> = Affine<<P as MNT6Config>::G2Config>;

@@ -4,9 +4,9 @@ use ark_serialize::{
 };
 use ark_std::io::{Read, Write};
 
-use ark_ff::{AdditiveGroup, fields::Field};
+use ark_ff::{fields::Field, AdditiveGroup};
 
-use crate::{scalar_mul::variable_base::VariableBaseMSM, AffineRepr, PrimeGroup};
+use crate::{scalar_mul::variable_base::VariableBaseMSM, AffineRepr};
 
 use num_traits::Zero;
 

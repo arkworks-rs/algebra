@@ -15,7 +15,7 @@ use ark_std::{
     One, Zero,
 };
 
-use ark_ff::{AdditiveGroup, fields::Field, PrimeField, ToConstraintField, UniformRand};
+use ark_ff::{fields::Field, AdditiveGroup, PrimeField, ToConstraintField, UniformRand};
 
 use zeroize::Zeroize;
 
@@ -153,15 +153,12 @@ impl<P: TECurveConfig> Zero for Projective<P> {
 impl<P: TECurveConfig> AdditiveGroup for Projective<P> {
     type Scalar = P::ScalarField;
 
-    const ZERO: Self = Self::new_unchecked(P::BaseField::ZERO, P::BaseField::ONE, P::BaseField::ZERO, P::BaseField::ONE);
-}
-
-impl<P: TECurveConfig> PrimeGroup for Projective<P> {
-    type ScalarField = P::ScalarField;
-
-    fn generator() -> Self {
-        Affine::generator().into()
-    }
+    const ZERO: Self = Self::new_unchecked(
+        P::BaseField::ZERO,
+        P::BaseField::ONE,
+        P::BaseField::ZERO,
+        P::BaseField::ONE,
+    );
 
     fn double_in_place(&mut self) -> &mut Self {
         // See "Twisted Edwards Curves Revisited"
@@ -195,6 +192,14 @@ impl<P: TECurveConfig> PrimeGroup for Projective<P> {
         self.z = f * &g;
 
         self
+    }
+}
+
+impl<P: TECurveConfig> PrimeGroup for Projective<P> {
+    type ScalarField = P::ScalarField;
+
+    fn generator() -> Self {
+        Affine::generator().into()
     }
 
     #[inline]
@@ -233,7 +238,6 @@ impl<P: TECurveConfig> CurveGroup for Projective<P> {
             })
             .collect()
     }
-
 }
 
 impl<P: TECurveConfig> Neg for Projective<P> {

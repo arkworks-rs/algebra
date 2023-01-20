@@ -1,4 +1,7 @@
-use ark_ff::fields::{Field, Fp2};
+use ark_ff::{
+    fields::{Field, Fp2},
+    AdditiveGroup,
+};
 use ark_serialize::*;
 use ark_std::vec::Vec;
 use num_traits::One;

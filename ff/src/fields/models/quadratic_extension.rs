@@ -22,7 +22,7 @@ use ark_std::rand::{
 use crate::{
     biginteger::BigInteger,
     fields::{Field, LegendreSymbol, PrimeField},
-    SqrtPrecomputation, ToConstraintField, UniformRand, AdditiveGroup,
+    AdditiveGroup, SqrtPrecomputation, ToConstraintField, UniformRand,
 };
 
 /// Defines a Quadratic extension field from a quadratic non-residue.
@@ -197,8 +197,25 @@ impl<P: QuadExtConfig> AdditiveGroup for QuadExtField<P> {
     type Scalar = Self;
 
     const ZERO: Self = Self::new(P::BaseField::ZERO, P::BaseField::ZERO);
-}
 
+    fn double(&self) -> Self {
+        let mut result = *self;
+        result.double_in_place();
+        result
+    }
+
+    fn double_in_place(&mut self) -> &mut Self {
+        self.c0.double_in_place();
+        self.c1.double_in_place();
+        self
+    }
+
+    fn neg_in_place(&mut self) -> &mut Self {
+        self.c0.neg_in_place();
+        self.c1.neg_in_place();
+        self
+    }
+}
 
 type BaseFieldIter<P> = <<P as QuadExtConfig>::BaseField as Field>::BasePrimeFieldIter;
 impl<P: QuadExtConfig> Field for QuadExtField<P> {
@@ -234,24 +251,6 @@ impl<P: QuadExtConfig> Field for QuadExtField<P> {
             P::BaseField::from_base_prime_field_elems(&elems[0..base_ext_deg]).unwrap(),
             P::BaseField::from_base_prime_field_elems(&elems[base_ext_deg..]).unwrap(),
         ))
-    }
-
-    fn double(&self) -> Self {
-        let mut result = *self;
-        result.double_in_place();
-        result
-    }
-
-    fn double_in_place(&mut self) -> &mut Self {
-        self.c0.double_in_place();
-        self.c1.double_in_place();
-        self
-    }
-
-    fn neg_in_place(&mut self) -> &mut Self {
-        self.c0.neg_in_place();
-        self.c1.neg_in_place();
-        self
     }
 
     fn square(&self) -> Self {

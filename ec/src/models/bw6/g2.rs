@@ -1,4 +1,4 @@
-use ark_ff::{BitIteratorBE, Field};
+use ark_ff::{AdditiveGroup, BitIteratorBE, Field};
 use ark_serialize::*;
 use ark_std::vec::Vec;
 use num_traits::One;
