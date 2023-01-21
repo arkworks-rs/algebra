@@ -16,22 +16,22 @@ This crate contains two types of traits:
 
 The available field traits are:
 
-- [`Field`](https://github.com/arkworks-rs/algebra/blob/master/ff/src/fields/mod.rs) - Interface for a generic finite field.
-- [`FftField`](https://github.com/arkworks-rs/algebra/blob/master/ff/src/fields/fft_friendly.rs) - Exposes methods that allow for performing efficient FFTs on field elements.
-- [`PrimeField`](https://github.com/arkworks-rs/algebra/blob/master/ff/src/fields/prime.rs) - Field with a prime `p` number of elements, also referred to as `Fp`.
+- [`Field`](/ff/src/fields/mod.rs) - Interface for a generic finite field.
+- [`FftField`](/ff/src/fields/fft_friendly.rs) - Exposes methods that allow for performing efficient FFTs on field elements.
+- [`PrimeField`](/ff/src/fields/prime.rs) - Field with a prime `p` number of elements, also referred to as `Fp`.
 
 The models implemented are:
 
-- **Quadratic Extensions**: [`QuadExtField`](https://github.com/arkworks-rs/algebra/blob/master/ff/src/fields/models/quadratic_extension.rs), representing a quadratic extension field, in this case holding two base field elements, and `QuadExtConfig` - a trait defining the necessary parameters needed to instantiate a Quadratic Extension Field
-- **Cubic Extensions**: [`CubicExtField`](https://github.com/arkworks-rs/algebra/blob/master/ff/src/fields/models/cubic_extension.rs), representing a cubic extension field, holds three base field elements, and `CubicExtConfig` - a trait defining the necessary parameters needed to instantiate a Cubic Extension Field
+- **Quadratic Extensions**: [`QuadExtField`](/ff/src/fields/models/quadratic_extension.rs), representing a quadratic extension field, in this case holding two base field elements, and `QuadExtConfig` - a trait defining the necessary parameters needed to instantiate a Quadratic Extension Field
+- **Cubic Extensions**: [`CubicExtField`](/ff/src/fields/models/cubic_extension.rs), representing a cubic extension field, holds three base field elements, and `CubicExtConfig` - a trait defining the necessary parameters needed to instantiate a Cubic Extension Field
 
 The above two models serve as abstractions for constructing the extension fields `Fp^m` directly (i.e. `m` equal 2 or 3) or for creating extension towers to arrive at higher `m`. The latter is done by applying the extensions iteratively, e.g. cubic extension over a quadratic extension field.
 
-- [`Fp2`](https://github.com/arkworks-rs/algebra/blob/master/ff/src/fields/models/fp2.rs) - Quadratic extension directly on the prime field, i.e. `BaseField == BasePrimeField`
-- [`Fp3`](https://github.com/arkworks-rs/algebra/blob/master/ff/src/fields/models/fp3.rs) - Cubic extension directly on the prime field, i.e. `BaseField == BasePrimeField`
-- [`Fp6_2over3`](https://github.com/arkworks-rs/algebra/blob/master/ff/src/fields/models/fp6_2over3.rs) - Extension tower: quadratic extension on a cubic extension field, i.e. `BaseField = Fp3`, but `BasePrimeField = Fp`.
-- [`Fp6_3over2`](https://github.com/arkworks-rs/algebra/blob/master/ff/src/fields/models/fp6_3over2.rs) - Extension tower, similar to the above except that the towering order is reversed: it's a cubic extension on a quadratic extension field, i.e. `BaseField = Fp2`, but `BasePrimeField = Fp`. Only this latter one is exported by default as `Fp6`.
-- [`Fp12_2over3over2`](https://github.com/arkworks-rs/algebra/blob/master/ff/src/fields/models/fp12_2over3over2.rs) - Extension tower: quadratic extension of `Fp6_3over2`, i.e. `BaseField = Fp6`.
+- [`Fp2`](/ff/src/fields/models/fp2.rs) - Quadratic extension directly on the prime field, i.e. `BaseField == BasePrimeField`
+- [`Fp3`](/ff/src/fields/models/fp3.rs) - Cubic extension directly on the prime field, i.e. `BaseField == BasePrimeField`
+- [`Fp6_2over3`](/ff/src/fields/models/fp6_2over3.rs) - Extension tower: quadratic extension on a cubic extension field, i.e. `BaseField = Fp3`, but `BasePrimeField = Fp`.
+- [`Fp6_3over2`](/ff/src/fields/models/fp6_3over2.rs) - Extension tower, similar to the above except that the towering order is reversed: it's a cubic extension on a quadratic extension field, i.e. `BaseField = Fp2`, but `BasePrimeField = Fp`. Only this latter one is exported by default as `Fp6`.
+- [`Fp12_2over3over2`](/ff/src/fields/models/fp12_2over3over2.rs) - Extension tower: quadratic extension of `Fp6_3over2`, i.e. `BaseField = Fp6`.
 
 ## Usage
 
