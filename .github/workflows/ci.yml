@@ -239,6 +239,8 @@ jobs:
 
       - name: Patch cargo.toml
         run: |
+          ls ../
+          ls
           if  grep -q "\[patch.crates-io\]" Cargo.toml ; then
               MATCH=$(awk '/\[patch.crates-io\]/{ print NR; exit }' Cargo.toml); 
               sed -i "$MATCH,\$d" Cargo.toml
