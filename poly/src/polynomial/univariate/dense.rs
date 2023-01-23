@@ -608,9 +608,9 @@ impl<F: Field> Zero for DensePolynomial<F> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{polynomial::univariate::*, EvaluationDomain, GeneralEvaluationDomain};
+    use crate::{polynomial::univariate::*, EvaluationDomain, GeneralEvaluationDomain, Polynomial};
     use ark_ff::{Field, One, UniformRand, Zero};
-    use ark_std::{rand::Rng, test_rng};
+    use ark_std::{rand::Rng, test_rng, vec::Vec};
     use ark_test_curves::bls12_381::Fr;
 
     fn rand_sparse_poly<R: Rng>(degree: usize, rng: &mut R) -> SparsePolynomial<Fr> {
@@ -888,5 +888,25 @@ mod tests {
         let y = &negative_poly + &rand_poly;
         assert_eq!(y.degree(), n - 1);
         assert!(!y.coeffs.last().unwrap().is_zero());
+    }
+
+    #[test]
+    fn evaluate_over_domain_test() {
+        let rng = &mut ark_std::test_rng();
+        let domain = crate::domain::Radix2EvaluationDomain::<Fr>::new(1 << 10).unwrap();
+        for _ in 0..100 {
+            let poly = DensePolynomial::<Fr>::rand(1 << 11, rng);
+            let evaluations = domain
+                .elements()
+                .map(|e| poly.evaluate(&e))
+                .collect::<Vec<_>>();
+            assert_eq!(evaluations, poly.evaluate_over_domain(domain).evals);
+        }
+        let zero = DensePolynomial::zero();
+        let evaluations = domain
+            .elements()
+            .map(|e| zero.evaluate(&e))
+            .collect::<Vec<_>>();
+        assert_eq!(evaluations, zero.evaluate_over_domain(domain).evals);
     }
 }

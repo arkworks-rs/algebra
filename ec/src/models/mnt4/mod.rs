@@ -26,7 +26,7 @@ pub use self::{
 
 pub type GT<P> = Fp4<P>;
 
-pub trait MNT4Config: 'static {
+pub trait MNT4Config: 'static + Sized {
     const TWIST: Fp2<Self::Fp2Config>;
     const TWIST_COEFF_A: Fp2<Self::Fp2Config>;
     const ATE_LOOP_COUNT: &'static [i8];
@@ -43,6 +43,34 @@ pub trait MNT4Config: 'static {
         BaseField = Fp2<Self::Fp2Config>,
         ScalarField = <Self::G1Config as CurveConfig>::ScalarField,
     >;
+    fn multi_miller_loop(
+        a: impl IntoIterator<Item = impl Into<G1Prepared<Self>>>,
+        b: impl IntoIterator<Item = impl Into<G2Prepared<Self>>>,
+    ) -> MillerLoopOutput<MNT4<Self>> {
+        let pairs = a
+            .into_iter()
+            .zip_eq(b)
+            .map(|(a, b)| (a.into(), b.into()))
+            .collect::<Vec<_>>();
+        let result = cfg_into_iter!(pairs)
+            .map(|(a, b)| MNT4::<Self>::ate_miller_loop(&a, &b))
+            .product();
+        MillerLoopOutput(result)
+    }
+
+    fn final_exponentiation(f: MillerLoopOutput<MNT4<Self>>) -> Option<PairingOutput<MNT4<Self>>> {
+        let value = f.0;
+        let value_inv = value.inverse().unwrap();
+        let value_to_first_chunk =
+            MNT4::<Self>::final_exponentiation_first_chunk(&value, &value_inv);
+        let value_inv_to_first_chunk =
+            MNT4::<Self>::final_exponentiation_first_chunk(&value_inv, &value);
+        let result = MNT4::<Self>::final_exponentiation_last_chunk(
+            &value_to_first_chunk,
+            &value_inv_to_first_chunk,
+        );
+        Some(PairingOutput(result))
+    }
 }
 
 #[derive(Derivative)]
@@ -211,24 +239,10 @@ impl<P: MNT4Config> Pairing for MNT4<P> {
         a: impl IntoIterator<Item = impl Into<Self::G1Prepared>>,
         b: impl IntoIterator<Item = impl Into<Self::G2Prepared>>,
     ) -> MillerLoopOutput<Self> {
-        let pairs = a
-            .into_iter()
-            .zip_eq(b)
-            .map(|(a, b)| (a.into(), b.into()))
-            .collect::<Vec<_>>();
-        let result = cfg_into_iter!(pairs)
-            .map(|(a, b)| Self::ate_miller_loop(&a, &b))
-            .product();
-        MillerLoopOutput(result)
+        P::multi_miller_loop(a, b)
     }
 
     fn final_exponentiation(f: MillerLoopOutput<Self>) -> Option<PairingOutput<Self>> {
-        let value = f.0;
-        let value_inv = value.inverse().unwrap();
-        let value_to_first_chunk = Self::final_exponentiation_first_chunk(&value, &value_inv);
-        let value_inv_to_first_chunk = Self::final_exponentiation_first_chunk(&value_inv, &value);
-        let result =
-            Self::final_exponentiation_last_chunk(&value_to_first_chunk, &value_inv_to_first_chunk);
-        Some(PairingOutput(result))
+        P::final_exponentiation(f)
     }
 }
