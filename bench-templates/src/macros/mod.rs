@@ -7,43 +7,44 @@ mod field;
 #[macro_use]
 mod pairing;
 
-#[macro_use]
-mod glv;
+// #[macro_use]
+// mod glv;
 
 #[macro_export]
 macro_rules! bench {
-    (
-        Name = $name:expr,
-        Pairing = $Pairing:ident,
-        G1 = $G1:ident,
-        G2 = $G2:ident,
-        ScalarField = $Fr:ident,
-        G1BaseField = $Fq:ident,
-        G2BaseField = $FqExt:ident,
-        TargetField = $FqTarget:ident,
-        Method = $glv:expr,
-    ) => {
-        // $crate::ec_bench!($name, $G1);
-        // $crate::ec_bench!($name, $G2);
-        // $crate::f_bench!(prime, $name, $Fr);
-        // $crate::f_bench!(prime, $name, $Fq);
-        // $crate::f_bench!(extension, $name, $FqExt);
-        // $crate::f_bench!(target, $name, $FqTarget);
-        // $crate::pairing_bench!($Pairing);
-        $crate::glv_bench!($name, $G1);
-        $crate::glv_bench!($name, $G2);
+    // // I tried to benchmark glv but couldn't find the way to make it work...
+    // (
+    //     Name = $name:expr,
+    //     Pairing = $Pairing:ident,
+    //     G1 = $G1:ident,
+    //     G2 = $G2:ident,
+    //     ScalarField = $Fr:ident,
+    //     G1BaseField = $Fq:ident,
+    //     G2BaseField = $FqExt:ident,
+    //     TargetField = $FqTarget:ident,
+    //     Method = $glv:expr,
+    // ) => {
+    //     // $crate::ec_bench!($name, $G1);
+    //     // $crate::ec_bench!($name, $G2);
+    //     // $crate::f_bench!(prime, $name, $Fr);
+    //     // $crate::f_bench!(prime, $name, $Fq);
+    //     // $crate::f_bench!(extension, $name, $FqExt);
+    //     // $crate::f_bench!(target, $name, $FqTarget);
+    //     // $crate::pairing_bench!($Pairing);
+    //     $crate::glv_bench!($name, $G1);
+    //     $crate::glv_bench!($name, $G2);
 
-        paste! {
-            criterion_main!(
-                [<$G1:lower>]::benches,
-                [<$G2:lower>]::benches,
-                // [<$Fr:lower>]::benches,
-                // [<$Fq:lower>]::benches,
-                // [<$FqExt:lower>]::benches,
-                // [<$FqTarget:lower>]::benches
-            );
-        }
-    };
+    //     paste! {
+    //         criterion_main!(
+    //             [<$G1:lower>]::benches,
+    //             [<$G2:lower>]::benches,
+    //             // [<$Fr:lower>]::benches,
+    //             // [<$Fq:lower>]::benches,
+    //             // [<$FqExt:lower>]::benches,
+    //             // [<$FqTarget:lower>]::benches
+    //         );
+    //     }
+    // };
     (
         Name = $name:expr,
         Pairing = $Pairing:ident,
