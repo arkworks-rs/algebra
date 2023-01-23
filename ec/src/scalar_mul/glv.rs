@@ -8,29 +8,19 @@ use num_bigint::BigUint;
 
 /// The GLV parameters for computing the endomorphism and scalar decomposition.
 pub trait GLVConfig: Send + Sync + 'static + SWCurveConfig {
-    // /// A representation of curve points that enables efficient arithmetic by
-    // /// avoiding inversions.
-    // type Curve: CurveGroup<Config = Self>;
+    /// Constants that are used to calculate `phi(G) := lambda*G`.
 
-    // Constants that are used to calculate `phi(G) := lambda*G`.
-
-    /// Coefficients for the CM endomorphism
+    /// The coefficients of the endomorphism
     const COEFFS_ENDOMORPHISM: &'static [Self::BaseField];
 
     /// LAMBDA the eigenvalue corresponding to the endomorphism
     const LAMBDA: Self::ScalarField;
 
-    // Constants for scalar decomposition.
-    // This is a 2x2 matrix, which is practically the LLL-reduced bases.
-    // We require this matrix N to satisfy det(N) = ScalarField::characteristic().
-
+    /// Constants for scalar decomposition.
+    /// This is a 2x2 matrix, which is practically the LLL-reduced bases.
+    /// We require this matrix N to satisfy det(N) = ScalarField::characteristic().
     const COEFF_N: [<Self as CurveConfig>::ScalarField; 4];
     const SGN_N: [bool; 4];
-
-    // /// Maps a point G to phi(G):= lambda G where psi is the endomorphism.
-    // fn endomorphism(
-    //     base: &<Self::Curve as CurveGroup>::Affine,
-    // ) -> <Self::Curve as CurveGroup>::Affine;
 
     /// Decomposes a scalar s into k1, k2, s.t. s = k1 + lambda k2,
     fn scalar_decomposition(
