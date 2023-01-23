@@ -97,7 +97,6 @@ impl GLVConfig for Config {
 
 #[cfg(test)]
 mod test {
-    use std::time::Instant;
 
     use super::*;
     use ark_ec::CurveGroup;
@@ -122,23 +121,14 @@ mod test {
     }
 
     #[test]
-    fn bench_glv() {
+    fn test_glv() {
         use crate::bls12_381::{g1::Config, Fr};
         use ark_ec::Group;
         let mut rng = ark_std::test_rng();
         let s = Fr::rand(&mut rng);
         let g = Projective::<Config>::generator();
-
-        let now = Instant::now();
-        for _ in 1..100 {
-            let _ = g * s;
-        }
-        println!("SM: {:?}", now.elapsed());
-
-        let now = Instant::now();
-        for _ in 1..100 {
-            let _ = Config::glv_mul(g, s);
-        }
-        println!("GLV: {:?}", now.elapsed());
+        let s_g = g*s;
+        let s_g_glv = Config::glv_mul(g,s);
+        assert_eq!(s_g, s_g_glv);
     }
 }
