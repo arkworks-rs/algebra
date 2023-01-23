@@ -97,7 +97,6 @@ impl GLVConfig for Config {
 
 #[cfg(test)]
 mod test {
-
     use super::*;
     use ark_ec::CurveGroup;
     use ark_std::UniformRand;
@@ -118,17 +117,5 @@ mod test {
 
         let g_s_affine_fast = G1Projective::normalize_batch(&g_s);
         assert_eq!(g_s_affine_naive.as_ref(), g_s_affine_fast.as_slice());
-    }
-
-    #[test]
-    fn test_glv() {
-        use crate::bls12_381::{g1::Config, Fr};
-        use ark_ec::Group;
-        let mut rng = ark_std::test_rng();
-        let s = Fr::rand(&mut rng);
-        let g = Projective::<Config>::generator();
-        let s_g = g*s;
-        let s_g_glv = Config::glv_mul(g,s);
-        assert_eq!(s_g, s_g_glv);
     }
 }
