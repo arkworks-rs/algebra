@@ -1,4 +1,4 @@
-// #![no_std]
+#![no_std]
 
 extern crate ark_ff;
 pub use ark_ff::*;
