@@ -62,20 +62,6 @@ macro_rules! bench {
         ScalarField = $Fr:ident,
         PrimeBaseField = $Fq:ident,
     ) => {
-        $crate::glv_bench!($name, $G);
-
-        paste! {
-            criterion_main!(
-                [<$G:lower>]::benches,
-            );
-        }
-    };
-    (
-        Name = $name:expr,
-        Group = $G:ident,
-        ScalarField = $Fr:ident,
-        PrimeBaseField = $Fq:ident,
-    ) => {
         $crate::ec_bench!($name, $G);
         $crate::f_bench!(prime, $name, $Fr);
         $crate::f_bench!(prime, $name, $Fq);
