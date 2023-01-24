@@ -16,10 +16,10 @@ pub trait GLVConfig: Send + Sync + 'static + SWCurveConfig {
     /// The eigenvalue corresponding to the endomorphism.
     const LAMBDA: Self::ScalarField;
 
-    /// Constants for scalar decomposition.
-    /// This is a 2x2 matrix, which is practically the LLL-reduced bases.
-    /// We require this matrix N to satisfy det(N) = ScalarField::characteristic().
-    const COEFF_N: [<Self as CurveConfig>::ScalarField; 4];
+    /// A 2x2 matrix containing the coefficients for scalar decomposition
+    /// The entries are the LLL-reduced bases.
+    /// The determinant of this matrix must equal `ScalarField::characteristic()`.
+    const SCALAR_DECOMP_COEFFS: [[<Self::ScalarField as PrimeField>::BigInt; 2]; 2];
     const SGN_N: [bool; 4];
 
     /// Decomposes a scalar s into k1, k2, s.t. s = k1 + lambda k2,
