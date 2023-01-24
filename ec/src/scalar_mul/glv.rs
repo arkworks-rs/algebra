@@ -13,7 +13,7 @@ pub trait GLVConfig: Send + Sync + 'static + SWCurveConfig {
     /// The coefficients of the endomorphism
     const ENDO_COEFFS: &'static [Self::BaseField];
 
-    /// LAMBDA the eigenvalue corresponding to the endomorphism
+    /// The eigenvalue corresponding to the endomorphism.
     const LAMBDA: Self::ScalarField;
 
     /// Constants for scalar decomposition.
