@@ -134,14 +134,11 @@ pub trait GLVConfig: Send + Sync + 'static + SWCurveConfig {
                 continue;
             }
             res.double_in_place();
-            if pair == (true, false) {
-                res += b1;
-            }
-            if pair == (false, true) {
-                res += b2;
-            }
-            if pair == (true, true) {
-                res += b1b2;
+            match pair {
+                (true, false) => res += b1,
+                (false, true) => res += b2,
+                (true, true) => res += b1b2,
+                (false, false) => {},
             }
         }
         res.into_affine()
