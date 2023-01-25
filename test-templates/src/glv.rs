@@ -1,6 +1,10 @@
 use std::ops::Mul;
 
-use ark_ec::{scalar_mul::glv::GLVConfig, short_weierstrass::Projective, CurveGroup, Group};
+use ark_ec::{
+    scalar_mul::glv::GLVConfig,
+    short_weierstrass::{Affine, Projective},
+    AffineRepr, CurveGroup, Group,
+};
 use ark_std::UniformRand;
 
 pub fn glv_scalar_decomposition<P: GLVConfig>() {
@@ -32,7 +36,7 @@ pub fn glv_endomorphism_eigenvalue<P: GLVConfig>() {
     assert_eq!(endo_g, g.mul(P::LAMBDA));
 }
 
-pub fn glv_scalar_multiplication<P: GLVConfig>() {
+pub fn glv_projective<P: GLVConfig>() {
     // check that glv_mul indeed computes the scalar multiplication
     let mut rng = ark_std::test_rng();
 
@@ -40,8 +44,22 @@ pub fn glv_scalar_multiplication<P: GLVConfig>() {
     for _i in 0..100 {
         let k = P::ScalarField::rand(&mut rng);
 
-        let k_g = <P as GLVConfig>::glv_mul(g, k);
-        let k_g_2 = g.mul(k);
-        assert_eq!(k_g, k_g_2.into_affine());
+        let k_g = <P as GLVConfig>::glv_mul_projective(g, k);
+        let k_g_2 = g.mul(k).into_affine();
+        assert_eq!(k_g, k_g_2);
+    }
+}
+
+pub fn glv_affine<P: GLVConfig>() {
+    // check that glv_mul indeed computes the scalar multiplication
+    let mut rng = ark_std::test_rng();
+
+    let g = Affine::<P>::generator();
+    for _i in 0..100 {
+        let k = P::ScalarField::rand(&mut rng);
+
+        let k_g = <P as GLVConfig>::glv_mul_affine(g, k);
+        let k_g_2 = g.mul(k).into_affine();
+        assert_eq!(k_g, k_g_2);
     }
 }

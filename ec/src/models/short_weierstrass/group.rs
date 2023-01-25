@@ -24,7 +24,7 @@ use rayon::prelude::*;
 
 use super::{Affine, SWCurveConfig};
 use crate::{
-    scalar_mul::{variable_base::VariableBaseMSM, ScalarMul},
+    scalar_mul::{glv::GLVConfig, variable_base::VariableBaseMSM, ScalarMul},
     AffineRepr, CurveGroup, Group,
 };
 
@@ -644,5 +644,11 @@ impl<P: SWCurveConfig> VariableBaseMSM for Projective<P> {
 impl<P: SWCurveConfig, T: Borrow<Affine<P>>> core::iter::Sum<T> for Projective<P> {
     fn sum<I: Iterator<Item = T>>(iter: I) -> Self {
         iter.fold(Projective::zero(), |sum, x| sum + x.borrow())
+    }
+}
+
+impl<P: GLVConfig> Projective<P> {
+    fn mul_projective(mut self, other: P::ScalarField) -> Self {
+        P::glv_mul_projective(self, other)
     }
 }

@@ -1,7 +1,7 @@
 use crate::Group;
 use crate::{
     short_weierstrass::{Affine, Projective, SWCurveConfig},
-    CurveConfig, CurveGroup,
+    AffineRepr, CurveConfig, CurveGroup,
 };
 use ark_ff::{PrimeField, Zero};
 use num_bigint::BigUint;
@@ -19,7 +19,7 @@ pub trait GLVConfig: Send + Sync + 'static + SWCurveConfig {
     /// A 2x2 matrix containing the coefficients for scalar decomposition
     /// The entries are the LLL-reduced bases.
     /// The determinant of this matrix must equal `ScalarField::characteristic()`.
-    const SCALAR_DECOMP_COEFFS: [[<Self::ScalarField as PrimeField>::BigInt; 2]; 2];
+    const SCALAR_DECOMP_COEFFS: [[Self::ScalarField; 2]; 2];
     const SGN_N: [bool; 4];
 
     /// Decomposes a scalar s into k1, k2, s.t. s = k1 + lambda k2,
@@ -33,10 +33,14 @@ pub trait GLVConfig: Send + Sync + 'static + SWCurveConfig {
     ) {
         let scalar: BigUint = k.into_bigint().into();
 
-        let (sgn_n11, n11): (bool, BigUint) = (Self::SGN_N[0], Self::COEFF_N[0].into());
-        let (sgn_n12, n12): (bool, BigUint) = (Self::SGN_N[1], Self::COEFF_N[1].into());
-        let (sgn_n21, n21): (bool, BigUint) = (Self::SGN_N[2], Self::COEFF_N[2].into());
-        let (sgn_n22, n22): (bool, BigUint) = (Self::SGN_N[3], Self::COEFF_N[3].into());
+        let (sgn_n11, n11): (bool, BigUint) =
+            (Self::SGN_N[0], Self::SCALAR_DECOMP_COEFFS[0][0].into());
+        let (sgn_n12, n12): (bool, BigUint) =
+            (Self::SGN_N[1], Self::SCALAR_DECOMP_COEFFS[0][1].into());
+        let (sgn_n21, n21): (bool, BigUint) =
+            (Self::SGN_N[2], Self::SCALAR_DECOMP_COEFFS[1][0].into());
+        let (sgn_n22, n22): (bool, BigUint) =
+            (Self::SGN_N[3], Self::SCALAR_DECOMP_COEFFS[1][1].into());
 
         let r: BigUint = Self::ScalarField::MODULUS.into();
 
@@ -108,11 +112,49 @@ pub trait GLVConfig: Send + Sync + 'static + SWCurveConfig {
 
     fn endomorphism(p: &Projective<Self>) -> Projective<Self>;
 
-    fn glv_mul(p: Projective<Self>, k: Self::ScalarField) -> Projective<Self> {
+    fn endomorphism_affine(p: &Affine<Self>) -> Affine<Self>;
+
+    fn glv_mul_projective(p: Projective<Self>, k: Self::ScalarField) -> Projective<Self> {
         let (k1, sgn_k1, k2, sgn_k2) = Self::scalar_decomposition(k);
 
         let mut b1 = p;
         let mut b2 = Self::endomorphism(&p);
+
+        if !sgn_k1 {
+            b1 = -b1;
+        }
+        if !sgn_k2 {
+            b2 = -b2;
+        }
+
+        let b1b2 = b1 + b2;
+
+        let iter_k1 = ark_ff::BitIteratorBE::new(k1.into_bigint());
+        let iter_k2 = ark_ff::BitIteratorBE::new(k2.into_bigint());
+
+        let mut res = Projective::<Self>::zero();
+        let mut skip_zeros = true;
+        for pair in iter_k1.zip(iter_k2) {
+            if skip_zeros && pair == (false, false) {
+                skip_zeros = false;
+                continue;
+            }
+            res.double_in_place();
+            match pair {
+                (true, false) => res += b1,
+                (false, true) => res += b2,
+                (true, true) => res += b1b2,
+                (false, false) => {},
+            }
+        }
+        res
+    }
+
+    fn glv_mul_affine(p: Affine<Self>, k: Self::ScalarField) -> Affine<Self> {
+        let (k1, sgn_k1, k2, sgn_k2) = Self::scalar_decomposition(k);
+
+        let mut b1 = p;
+        let mut b2 = Self::endomorphism_affine(&p);
 
         if !sgn_k1 {
             b1 = -b1;

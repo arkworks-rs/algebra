@@ -375,7 +375,8 @@ macro_rules! __test_group {
 
         #[test]
         fn test_glv_mul() {
-            $crate::glv::glv_scalar_multiplication::<Config>();
+            $crate::glv::glv_projective::<Config>();
+            $crate::glv::glv_affine::<Config>();
         }
     }
 }
