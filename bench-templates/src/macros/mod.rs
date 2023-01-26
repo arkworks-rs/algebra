@@ -34,7 +34,8 @@ macro_rules! bench {
                 [<$Fr:lower>]::benches,
                 [<$Fq:lower>]::benches,
                 [<$FqExt:lower>]::benches,
-                [<$FqTarget:lower>]::benches
+                [<$FqTarget:lower>]::benches,
+                pairing::benches
             );
         }
     };
