@@ -205,15 +205,15 @@ pub trait AffineRepr:
         + MulAssign<Self::ScalarField>; // needed due to https://github.com/rust-lang/rust/issues/69640
 
     /// Returns the x and y coordinates of this affine point.
-    fn xy(&self) -> Option<(&Self::BaseField, &Self::BaseField)>;
+    fn xy(&self) -> Option<(Self::BaseField, Self::BaseField)>;
 
     /// Returns the x coordinate of this affine point.
-    fn x(&self) -> Option<&Self::BaseField> {
+    fn x(&self) -> Option<Self::BaseField> {
         self.xy().map(|(x, _)| x)
     }
 
     /// Returns the y coordinate of this affine point.
-    fn y(&self) -> Option<&Self::BaseField> {
+    fn y(&self) -> Option<Self::BaseField> {
         self.xy().map(|(_, y)| y)
     }
 

@@ -332,7 +332,7 @@ impl<P: SWCurveConfig> Neg for Projective<P> {
 impl<P: SWCurveConfig, T: Borrow<Affine<P>>> AddAssign<T> for Projective<P> {
     fn add_assign(&mut self, other: T) {
         let other = other.borrow();
-        if let Some((&other_x, &other_y)) = other.xy() {
+        if let Some((other_x, other_y)) = other.xy() {
             if self.is_zero() {
                 self.x = other_x;
                 self.y = other_y;
@@ -563,7 +563,7 @@ impl<P: SWCurveConfig, T: Borrow<P::ScalarField>> Mul<T> for Projective<P> {
 impl<P: SWCurveConfig> From<Affine<P>> for Projective<P> {
     #[inline]
     fn from(p: Affine<P>) -> Projective<P> {
-        p.xy().map_or(Projective::zero(), |(&x, &y)| Self {
+        p.xy().map_or(Projective::zero(), |(x, y)| Self {
             x,
             y,
             z: P::BaseField::one(),
