@@ -49,4 +49,4 @@ asm = []
 
 
 [package.metadata.docs.rs]
-rustdoc-args = ["--html-in-header", "../doc/katex-header.html"]
+rustdoc-args = ["--html-in-header", "./doc/katex-header.html"]

@@ -38,3 +38,6 @@ hex = "0.4"
 default = []
 std = [ "ark-std/std", "ark-ff/std", "ark-serialize/std" ]
 parallel = [ "std", "rayon", "ark-std/parallel" ]
+
+[package.metadata.docs.rs]
+rustdoc-args = ["--html-in-header", "./doc/katex-header.html"]
