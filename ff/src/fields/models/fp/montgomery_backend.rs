@@ -789,9 +789,9 @@ impl<T: MontConfig<N>, const N: usize> Fp<MontBackend<T, N>, N> {
 
     const fn const_is_valid(&self) -> bool {
         crate::const_for!((i in 0..N) {
-            if (self.0).0[(N - i - 1)] < T::MODULUS.0[(N - i - 1)] {
+            if (self.0).0[N - i - 1] < T::MODULUS.0[N - i - 1] {
                 return true
-            } else if (self.0).0[(N - i - 1)] > T::MODULUS.0[(N - i - 1)] {
+            } else if (self.0).0[N - i - 1] > T::MODULUS.0[N - i - 1] {
                 return false
             }
         });
