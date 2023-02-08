@@ -330,6 +330,7 @@ impl<P: SWCurveConfig> Neg for Projective<P> {
 }
 
 impl<P: SWCurveConfig, T: Borrow<Affine<P>>> AddAssign<T> for Projective<P> {
+    /// Using http://www.hyperelliptic.org/EFD/g1p/auto-shortw-jacobian-0.html#addition-madd-2007-bl
     fn add_assign(&mut self, other: T) {
         let other = other.borrow();
         if let Some((&other_x, &other_y)) = other.xy() {

@@ -71,6 +71,7 @@
 - [\#446](https://github.com/arkworks-rs/algebra/pull/446) (`ark-ff`) Add `CyclotomicMultSubgroup` trait and implement it for extension fields
 - [\#447](https://github.com/arkworks-rs/algebra/pull/447) (`ark-ec`, `ark-algebra-test-templates`) Rename and refactor group infrastructure, and test infrastructure for fields, groups, and pairings:
     - Create new `Group` trait and move some functionality from `ProjectiveCurve` to it.
+    - Refactor `add_assign_mixed` → `add_assign` that's polymorphic over its RHS.
     - Rename `ProjectiveCurve` to `CurveGroup: Group`.
         - Rename some associated types:
             - `AffineCurve` → `Affine`
