@@ -9,6 +9,7 @@
 #![allow(clippy::op_ref, clippy::suspicious_op_assign_impl)]
 #![deny(unsafe_code)]
 #![doc = include_str!("../README.md")]
+#![doc(html_in_header = include_str!("../../doc/katex-header.html"))]
 
 #[macro_use]
 extern crate ark_std;

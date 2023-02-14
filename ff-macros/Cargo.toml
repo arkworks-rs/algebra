@@ -1,17 +1,18 @@
 [package]
 name = "ark-ff-macros"
 description = "A library for generating x86-64 assembly for finite field multiplication"
+documentation = "https://docs.rs/ark-ff-macros/"
 version.workspace = true
 authors.workspace = true
 homepage.workspace = true
 repository.workspace = true
-documentation.workspace = true
 keywords.workspace = true
 categories.workspace = true
 include.workspace = true
 license.workspace = true
 edition.workspace = true
 rust-version.workspace = true
+rustdocflags.workspace = true
 
 [dependencies]
 quote.workspace = true

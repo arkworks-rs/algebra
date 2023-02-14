@@ -1,17 +1,18 @@
 [package]
 name = "ark-serialize"
 description = "A library for serializing types in the arkworks ecosystem"
+documentation = "https://docs.rs/ark-serialize/"
 version.workspace = true
 authors.workspace = true
 homepage.workspace = true
 repository.workspace = true
-documentation.workspace = true
 keywords.workspace = true
 categories.workspace = true
 include.workspace = true
 license.workspace = true
 edition.workspace = true
 rust-version.workspace = true
+rustdocflags.workspace = true
 
 [dependencies]
 ark-serialize-derive = { workspace = true, optional = true }

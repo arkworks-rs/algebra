@@ -14,33 +14,36 @@ members = [
     "test-curves",
     "test-templates",
 ]
+resolver = "2"
 
 [workspace.package]
-version = "0.4.0-alpha.6"
+version = "0.4.0"
 authors = [ "arkworks contributors" ]
 homepage = "https://arkworks.rs"
 repository = "https://github.com/arkworks-rs/algebra"
-documentation = "https://docs.rs/algebra/"
 keywords = ["cryptography", "finite-fields", "elliptic-curves", "pairing"]
 categories = ["cryptography"]
-include = ["Cargo.toml", "src", "README.md", "LICENSE-APACHE", "LICENSE-MIT"]
-license = "MIT/Apache-2.0"
+include = ["Cargo.toml", "src", "README.md", "LICENSE-APACHE", "LICENSE-MIT", "doc/katex-header.html"]
+license = "MIT OR Apache-2.0"
 edition = "2021"
-rust-version = "1.59"
+rust-version = "1.64"
+
+[workspace.metadata.docs.rs]
+rustdoc-args = [ "--html-in-header katex-header.html" ]
 
 [workspace.dependencies]
-ark-ec = { version = "0.4.0-alpha", path = "./ec", default-features = false }
-ark-ff = { version = "0.4.0-alpha", path = "./ff", default-features = false }
-ark-ff-asm = { version = "0.4.0-alpha", path = "./ff-asm" }
-ark-ff-macros = { version = "0.4.0-alpha", path = "./ff-macros" }
-ark-poly = { version = "0.4.0-alpha", path = "./poly", default-features = false }
-ark-serialize = { version = "0.4.0-alpha", path = "./serialize", default-features = false }
-ark-serialize-derive = { version = "0.4.0-alpha", path = "./serialize-derive" }
-ark-std = { version = "0.4.0-alpha", default-features = false }
+ark-ec = { version = "0.4.0", path = "./ec", default-features = false }
+ark-ff = { version = "0.4.0", path = "./ff", default-features = false }
+ark-ff-asm = { version = "0.4.0", path = "./ff-asm" }
+ark-ff-macros = { version = "0.4.0", path = "./ff-macros" }
+ark-poly = { version = "0.4.0", path = "./poly", default-features = false }
+ark-serialize = { version = "0.4.0", path = "./serialize", default-features = false }
+ark-serialize-derive = { version = "0.4.0", path = "./serialize-derive" }
+ark-std = { version = "0.4.0", default-features = false }
 
-ark-algebra-bench-templates =  { version = "0.4.0-alpha", path = "./bench-templates", default-features = false }
-ark-algebra-test-templates = { version = "0.4.0-alpha", path = "./test-templates", default-features = false }
-ark-test-curves = { version = "0.4.0-alpha", path = "./test-curves", default-features = false }
+ark-algebra-bench-templates =  { version = "0.4.0", path = "./bench-templates", default-features = false }
+ark-algebra-test-templates = { version = "0.4.0", path = "./test-templates", default-features = false }
+ark-test-curves = { version = "0.4.0", path = "./test-curves", default-features = false }
 
 num-traits = { version = "0.2", default-features = false }
 num-bigint = { version = "0.4", default-features = false }
