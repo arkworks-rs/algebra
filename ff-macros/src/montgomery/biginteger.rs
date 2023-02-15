@@ -23,7 +23,6 @@ pub(super) fn add_with_carry_impl(num_limbs: usize) -> proc_macro2::TokenStream 
             #body
         }
     }
-    .into()
 }
 
 pub(super) fn sub_with_borrow_impl(num_limbs: usize) -> proc_macro2::TokenStream {
@@ -49,7 +48,6 @@ pub(super) fn sub_with_borrow_impl(num_limbs: usize) -> proc_macro2::TokenStream
             #body
         }
     }
-    .into()
 }
 
 pub(super) fn subtract_modulus_impl(
@@ -59,6 +57,13 @@ pub(super) fn subtract_modulus_impl(
         #[inline(always)]
         fn __subtract_modulus(a: &mut F) {
             if a.is_geq_modulus() {
+                __sub_with_borrow(&mut a.0, &#modulus);
+            }
+        }
+
+        #[inline(always)]
+        fn __subtract_modulus_with_carry(a: &mut F, carry: bool) {
+            if a.is_geq_modulus() || carry {
                 __sub_with_borrow(&mut a.0, &#modulus);
             }
         }

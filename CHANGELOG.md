@@ -4,6 +4,16 @@
 
 ### Breaking changes
 
+### Features
+
+### Improvements
+
+### Bugfixes
+
+## v0.4.0
+
+### Breaking changes
+
 - [\#300](https://github.com/arkworks-rs/algebra/pull/300) (`ark-ec`) Change the implementation of `Hash` trait of `GroupProjective` to use the affine coordinates.
 - [\#302](https://github.com/arkworks-rs/algebra/pull/302) (`ark-ff`) Rename `find_wnaf` to `find_naf`.
 - [\#310](https://github.com/arkworks-rs/algebra/pull/310) (`ark-ec`, `ark-ff`) Remove unnecessary internal `PhantomData`.
@@ -31,7 +41,7 @@
 - [\#386](https://github.com/arkworks-rs/algebra/pull/386) (`ark-ff`) Remove `PrimeField::GENERATOR`, since it already exists on `FftField`.
 - [\#393](https://github.com/arkworks-rs/algebra/pull/393) (`ark-ec`, `ark-ff`) Rename `FpXParams` to `FpXConfig` and `FpXParamsWrapper` to `FpXConfigWrapper`.
 - [\#396](https://github.com/arkworks-rs/algebra/pull/396) (`ark-ec`) Remove `mul_bits` feature, and remove default implementations of `mul` and `mul_by_cofactor_to_projective`.
-- [\#408](https://github.com/arkworks-rs/algebra/pull/408) (`ark-ff`) Change the output of `Display` formatting for BigInt & Fp from hex to decimal.
+- [\#408](https://github.com/arkworks-rs/algebra/pull/408) (`ark-ff`) Change the output of `Display` formatting for `BigInt` and `Fp` from hex to decimal.
 - [\#412](https://github.com/arkworks-rs/algebra/pull/412) (`ark-poly`) Rename UV/MVPolynomial to DenseUV/MVPolynomial.
 - [\#417](https://github.com/arkworks-rs/algebra/pull/417) (`ark-ff`) Remove `ToBytes` and `FromBytes`.
 - [\#418](https://github.com/arkworks-rs/algebra/pull/418) (`ark-ff`) Add `sums_of_products` to `Field` and `Fp`
@@ -61,6 +71,7 @@
 - [\#446](https://github.com/arkworks-rs/algebra/pull/446) (`ark-ff`) Add `CyclotomicMultSubgroup` trait and implement it for extension fields
 - [\#447](https://github.com/arkworks-rs/algebra/pull/447) (`ark-ec`, `ark-algebra-test-templates`) Rename and refactor group infrastructure, and test infrastructure for fields, groups, and pairings:
     - Create new `Group` trait and move some functionality from `ProjectiveCurve` to it.
+    - Refactor `add_assign_mixed` → `add_assign` that's polymorphic over its RHS.
     - Rename `ProjectiveCurve` to `CurveGroup: Group`.
         - Rename some associated types:
             - `AffineCurve` → `Affine`
@@ -90,7 +101,7 @@
             - `miller_loop` → `multi_miller_loop`
             - `pairing` → `multi_pairing`
         - Change method signatures:
-            - `product_of_pairings` -> `multi_pairing`
+            - `product_of_pairings` → `multi_pairing`
                 - take two references to element iterators instead of an iterator of tuples.
             - `miller_loop` and `multi_miller_loop` now
                 - take two iterators over `impl Into<G1Prepared>` and `impl Into<G2Prepared>` as input, and
@@ -136,6 +147,20 @@
     - Splits the contents of `ff/src/fields/mod.rs` into smaller files for easier management.
     - Moves `BitIterator` out of `ark_ff::fields` and into `ark_ff` directly.
     - Adds `impl<'a, 'b> Add/Sub/Mul/Div<&'a F> for &'b F`
+- [\#517](https://github.com/arkworks-rs/algebra/pull/517) (`ark-ec`) Move the definition of the isogeny map of WB hash-to-curve to a separate struct
+- [\#519](https://github.com/arkworks-rs/algebra/pull/519) (`ark-ec`) Refactor variable-base MSM to be checked by default, returning a `Result` if the lengths of the bases and scalars do not match.
+- [\#545](https://github.com/arkworks-rs/algebra/pull/545) (`ark-ec`, `ark-ff`) Rename all `*Parameters` or `*Params` to `*Config`, including:
+    - `SWUParams` → `SWUConfig`
+    - `WBParams` → `WBConfig`
+    - `Bls12Parameters` → `Bls12Config`
+    - `G1Parameters` → `G1Config`
+    - `G2Parameters` → `G2Config`
+    - `BnParameters` → `BnConfig`
+    - `BW6Parameters` → `BW6Config`
+    - `MNT4Parameters` → `MNT4Config`
+    - `MNT6Parameters` → `MNT6Config`
+    - `GLVParameters` → `GLVConfig`
+- [\#557](https://github.com/arkworks-rs/algebra/pull/557) (`ark-ff`) Change `frobenius_map` to return the result, instead of mutating the input. Add `frobenius_map_in_place` for the old behavior.
 
 ### Features
 
@@ -160,6 +185,8 @@
     - Add constructor `new_coset`.
     - Add convenience method `get_coset`.
     - Add methods `coset_offset`, `coset_offset_inv` and `coset_offset_pow_size`.
+- [\#539](https://github.com/arkworks-rs/algebra/pull/539) (`ark-ec`) Implement wNAF-based MSM, resulting in 5-10% speedups.
+- [\#528](https://github.com/arkworks-rs/algebra/pull/528) (`ark-ec`) Allow to overwrite the default implementation of the `msm` function provided by the `VariableBaseMSM` trait by a specialized version in `SWCurveConfig`.
 
 ### Improvements
 
@@ -169,6 +196,8 @@
 - [\#352](https://github.com/arkworks-rs/algebra/pull/352) (`ark-ff`) Update `QuadExtField::sqrt` for better performance.
 - [\#357](https://github.com/arkworks-rs/algebra/pull/357) (`ark-poly`) Speedup division by vanishing polynomials for dense polynomials.
 - [\#445](https://github.com/arkworks-rs/algebra/pull/445) (`ark-ec`) Use 2-NAF for ate pairing in MNT4/6 curves.
+- [\#509](https://github.com/arkworks-rs/algebra/pull/509) (`ark-ff`, `ark-ff-macros`) Support prime fields with (64 * k)-bit modulus.
+- [\#567](https://github.com/arkworks-rs/algebra/pull/567) (`ark-ec`) Allow to overwrite the default implementation of the `msm` function for TwistedEdwards form provided by the `VariableBaseMSM` trait by a specialized version in `TECurveConfig`.
 
 ### Bugfixes
 
@@ -178,6 +207,8 @@
 - [\#394](https://github.com/arkworks-rs/algebra/pull/394) (`ark-ff`, `ark-serialize`) Remove `EmptyFlags` construction checks.
 - [\#442](https://github.com/arkworks-rs/algebra/pull/442) (`ark-ff`) Fix deserialization for modulo with 64 shaving bits.
 - [\#460](https://github.com/arkworks-rs/algebra/pull/460) (`ark-ec`) Fix a corner case for ate pairing in BLS12 and BW6 models.
+- [\#521](https://github.com/arkworks-rs/algebra/pull/521) (`ark-poly`) Change `DensePolynomial::evaluate_over_domain` to not truncate terms higher than the size of the domain.
+- [\#526](https://github.com/arkworks-rs/algebra/pull/526) (`ark-ff`) Fix squaring for `Fp128`.
 
 ## v0.3.0
 

@@ -109,7 +109,7 @@ pub trait FpConfig<const N: usize>: Send + Sync + 'static + Sized {
     PartialEq(bound = ""),
     Eq(bound = "")
 )]
-pub struct Fp<P, const N: usize>(
+pub struct Fp<P: FpConfig<N>, const N: usize>(
     pub BigInt<N>,
     #[derivative(Debug = "ignore")]
     #[doc(hidden)]
@@ -131,6 +131,7 @@ pub type Fp768<P> = Fp<P, 12>;
 pub type Fp832<P> = Fp<P, 13>;
 
 impl<P: FpConfig<N>, const N: usize> Fp<P, N> {
+    #[doc(hidden)]
     #[inline]
     pub fn is_geq_modulus(&self) -> bool {
         self.0 >= P::MODULUS
@@ -143,14 +144,21 @@ impl<P: FpConfig<N>, const N: usize> Fp<P, N> {
         }
     }
 
+    #[inline]
+    fn subtract_modulus_with_carry(&mut self, carry: bool) {
+        if carry || self.is_geq_modulus() {
+            self.0.sub_with_borrow(&Self::MODULUS);
+        }
+    }
+
     fn num_bits_to_shave() -> usize {
         64 * N - (Self::MODULUS_BIT_SIZE as usize)
     }
 }
 
-impl<P, const N: usize> ark_std::fmt::Debug for Fp<P, N> {
-    fn fmt(&self, f: &mut ark_std::fmt::Formatter<'_>) -> ark_std::fmt::Result {
-        ark_std::fmt::Debug::fmt(&self.0, f)
+impl<P: FpConfig<N>, const N: usize> ark_std::fmt::Debug for Fp<P, N> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> ark_std::fmt::Result {
+        ark_std::fmt::Debug::fmt(&self.into_bigint(), f)
     }
 }
 
@@ -308,7 +316,7 @@ impl<P: FpConfig<N>, const N: usize> Field for Fp<P, N> {
 
     /// The Frobenius map has no effect in a prime field.
     #[inline]
-    fn frobenius_map(&mut self, _: usize) {}
+    fn frobenius_map_in_place(&mut self, _: usize) {}
 
     #[inline]
     fn legendre(&self) -> LegendreSymbol {
@@ -380,17 +388,20 @@ impl<P: FpConfig<N>, const N: usize> PartialOrd for Fp<P, N> {
 }
 
 impl<P: FpConfig<N>, const N: usize> From<u128> for Fp<P, N> {
-    fn from(other: u128) -> Self {
-        let mut default_int = BigInt::default();
+    fn from(mut other: u128) -> Self {
+        let mut result = BigInt::default();
         if N == 1 {
-            default_int.0[0] = (other % u128::from(P::MODULUS.0[0])) as u64;
+            result.0[0] = (other % u128::from(P::MODULUS.0[0])) as u64;
+        } else if N == 2 || P::MODULUS.0[2..].iter().all(|&x| x == 0) {
+            let mod_as_u128 = P::MODULUS.0[0] as u128 + ((P::MODULUS.0[1] as u128) << 64);
+            other %= mod_as_u128;
+            result.0[0] = ((other << 64) >> 64) as u64;
+            result.0[1] = (other >> 64) as u64;
         } else {
-            let upper = (other >> 64) as u64;
-            let lower = ((other << 64) >> 64) as u64;
-            default_int.0[0] = lower;
-            default_int.0[1] = upper;
+            result.0[0] = ((other << 64) >> 64) as u64;
+            result.0[1] = (other >> 64) as u64;
         }
-        Self::from_bigint(default_int).unwrap()
+        Self::from_bigint(result).unwrap()
     }
 }
 
@@ -515,7 +526,7 @@ impl<P: FpConfig<N>, const N: usize> ark_std::rand::distributions::Distribution<
             let mask = if shave_bits == 64 {
                 0
             } else {
-                core::u64::MAX >> shave_bits
+                u64::MAX >> shave_bits
             };
 
             if let Some(val) = tmp.0 .0.last_mut() {

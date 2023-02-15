@@ -13,7 +13,7 @@ use crate::{
 /// y^2 = x^3 + a*x + b where ab != 0. From [\[WB2019\]]
 ///
 /// - [\[WB2019\]] <https://eprint.iacr.org/2019/403>
-pub trait SWUParams: SWCurveConfig {
+pub trait SWUConfig: SWCurveConfig {
     /// An element of the base field that is not a square root see \[WB2019, Section 4\].
     /// It is also convenient to have $g(b/ZETA * a)$ to be square. In general
     /// we use a `ZETA` with low absolute value coefficients when they are
@@ -22,9 +22,7 @@ pub trait SWUParams: SWCurveConfig {
 }
 
 /// Represents the SWU hash-to-curve map defined by `P`.
-pub struct SWUMap<P: SWUParams> {
-    curve_params: PhantomData<fn() -> P>,
-}
+pub struct SWUMap<P: SWUConfig>(PhantomData<fn() -> P>);
 
 /// Trait defining a parity method on the Field elements based on [\[1\]] Section 4.1
 ///
@@ -36,7 +34,7 @@ pub fn parity<F: Field>(element: &F) -> bool {
         .map_or(false, |x| x.into_bigint().is_odd())
 }
 
-impl<P: SWUParams> MapToCurve<Projective<P>> for SWUMap<P> {
+impl<P: SWUConfig> MapToCurve<Projective<P>> for SWUMap<P> {
     /// Constructs a new map if `P` represents a valid map.
     fn new() -> Result<Self, HashToCurveError> {
         // Verifying that ZETA is a non-square
@@ -51,9 +49,7 @@ impl<P: SWUParams> MapToCurve<Projective<P>> for SWUMap<P> {
             return Err(HashToCurveError::MapToCurveError("Simplified SWU requires a * b != 0 in the short Weierstrass form of y^2 = x^3 + a*x + b ".to_string()));
         }
 
-        Ok(SWUMap {
-            curve_params: PhantomData,
-        })
+        Ok(SWUMap(PhantomData))
     }
 
     /// Map an arbitrary base field element to a curve point.
@@ -175,9 +171,9 @@ mod test {
 
     const F127_ONE: F127 = MontFp!("1");
 
-    struct TestSWUMapToCurveParams;
+    struct TestSWUMapToCurveConfig;
 
-    impl CurveConfig for TestSWUMapToCurveParams {
+    impl CurveConfig for TestSWUMapToCurveConfig {
         const COFACTOR: &'static [u64] = &[1];
 
     #[rustfmt::skip]
@@ -186,6 +182,7 @@ mod test {
         type BaseField = F127;
         type ScalarField = F127;
     }
+
     /// just because not defining another field
     ///
     /// from itertools import product
@@ -200,19 +197,18 @@ mod test {
     ///         pass
     ///
     /// y^2 = x^3 + x + 63
-    impl SWCurveConfig for TestSWUMapToCurveParams {
+    impl SWCurveConfig for TestSWUMapToCurveConfig {
         /// COEFF_A = 1
         const COEFF_A: F127 = F127_ONE;
 
-        /// COEFF_B = 1
-    #[rustfmt::skip]
+        /// COEFF_B = 63
         const COEFF_B: F127 = MontFp!("63");
 
         /// AFFINE_GENERATOR_COEFFS = (G1_GENERATOR_X, G1_GENERATOR_Y)
         const GENERATOR: Affine<Self> = Affine::new_unchecked(MontFp!("62"), MontFp!("70"));
     }
 
-    impl SWUParams for TestSWUMapToCurveParams {
+    impl SWUConfig for TestSWUMapToCurveConfig {
         const ZETA: F127 = MontFp!("-1");
     }
 
@@ -241,9 +237,9 @@ mod test {
     #[test]
     fn hash_arbitary_string_to_curve_swu() {
         let test_swu_to_curve_hasher = MapToCurveBasedHasher::<
-            Projective<TestSWUMapToCurveParams>,
+            Projective<TestSWUMapToCurveConfig>,
             DefaultFieldHasher<Sha256, 128>,
-            SWUMap<TestSWUMapToCurveParams>,
+            SWUMap<TestSWUMapToCurveConfig>,
         >::new(&[1])
         .unwrap();
 
@@ -260,9 +256,9 @@ mod test {
     /// elements should be mapped to curve successfully. everything can be mapped
     #[test]
     fn map_field_to_curve_swu() {
-        let test_map_to_curve = SWUMap::<TestSWUMapToCurveParams>::new().unwrap();
+        let test_map_to_curve = SWUMap::<TestSWUMapToCurveConfig>::new().unwrap();
 
-        let mut map_range: Vec<Affine<TestSWUMapToCurveParams>> = vec![];
+        let mut map_range: Vec<Affine<TestSWUMapToCurveConfig>> = vec![];
         for current_field_element in 0..127 {
             map_range.push(
                 test_map_to_curve

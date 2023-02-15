@@ -152,7 +152,7 @@ impl<P: Pairing> CanonicalSerialize for PairingOutput<P> {
 
 impl<P: Pairing> Valid for PairingOutput<P> {
     fn check(&self) -> Result<(), SerializationError> {
-        if self.0.pow(&P::ScalarField::characteristic()).is_one() {
+        if self.0.pow(P::ScalarField::characteristic()).is_one() {
             Ok(())
         } else {
             Err(SerializationError::InvalidData)
@@ -304,6 +304,7 @@ impl<P: Pairing> Group for PairingOutput<P> {
 
 impl<P: Pairing> crate::ScalarMul for PairingOutput<P> {
     type MulBase = Self;
+    const NEGATION_IS_CHEAP: bool = P::TargetField::INVERSE_IS_FAST;
 
     fn batch_convert_to_mul_base(bases: &[Self]) -> Vec<Self::MulBase> {
         bases.to_vec()

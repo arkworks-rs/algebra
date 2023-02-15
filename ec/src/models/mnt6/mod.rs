@@ -26,7 +26,7 @@ pub use self::{
 
 pub type GT<P> = Fp6<P>;
 
-pub trait MNT6Parameters: 'static {
+pub trait MNT6Config: 'static + Sized {
     const TWIST: Fp3<Self::Fp3Config>;
     const TWIST_COEFF_A: Fp3<Self::Fp3Config>;
     const ATE_LOOP_COUNT: &'static [i8];
@@ -38,18 +38,47 @@ pub trait MNT6Parameters: 'static {
     type Fr: PrimeField + Into<<Self::Fr as PrimeField>::BigInt>;
     type Fp3Config: Fp3Config<Fp = Self::Fp>;
     type Fp6Config: Fp6Config<Fp3Config = Self::Fp3Config>;
-    type G1Parameters: SWCurveConfig<BaseField = Self::Fp, ScalarField = Self::Fr>;
-    type G2Parameters: SWCurveConfig<
+    type G1Config: SWCurveConfig<BaseField = Self::Fp, ScalarField = Self::Fr>;
+    type G2Config: SWCurveConfig<
         BaseField = Fp3<Self::Fp3Config>,
-        ScalarField = <Self::G1Parameters as CurveConfig>::ScalarField,
+        ScalarField = <Self::G1Config as CurveConfig>::ScalarField,
     >;
+
+    fn multi_miller_loop(
+        a: impl IntoIterator<Item = impl Into<G1Prepared<Self>>>,
+        b: impl IntoIterator<Item = impl Into<G2Prepared<Self>>>,
+    ) -> MillerLoopOutput<MNT6<Self>> {
+        let pairs = a
+            .into_iter()
+            .zip_eq(b)
+            .map(|(a, b)| (a.into(), b.into()))
+            .collect::<Vec<_>>();
+        let result = cfg_into_iter!(pairs)
+            .map(|(a, b)| MNT6::<Self>::ate_miller_loop(&a, &b))
+            .product();
+        MillerLoopOutput(result)
+    }
+
+    fn final_exponentiation(f: MillerLoopOutput<MNT6<Self>>) -> Option<PairingOutput<MNT6<Self>>> {
+        let value = f.0;
+        let value_inv = value.inverse().unwrap();
+        let value_to_first_chunk =
+            MNT6::<Self>::final_exponentiation_first_chunk(&value, &value_inv);
+        let value_inv_to_first_chunk =
+            MNT6::<Self>::final_exponentiation_first_chunk(&value_inv, &value);
+        let result = MNT6::<Self>::final_exponentiation_last_chunk(
+            &value_to_first_chunk,
+            &value_inv_to_first_chunk,
+        );
+        Some(PairingOutput(result))
+    }
 }
 
 #[derive(Derivative)]
 #[derivative(Copy, Clone, PartialEq, Eq, Debug, Hash)]
-pub struct MNT6<P: MNT6Parameters>(PhantomData<fn() -> P>);
+pub struct MNT6<P: MNT6Config>(PhantomData<fn() -> P>);
 
-impl<P: MNT6Parameters> MNT6<P> {
+impl<P: MNT6Config> MNT6<P> {
     fn doubling_for_flipped_miller_loop(
         r: &G2ProjectiveExtended<P>,
     ) -> (G2ProjectiveExtended<P>, AteDoubleCoefficients<P>) {
@@ -176,7 +205,7 @@ impl<P: MNT6Parameters> MNT6<P> {
         let elt_q3_over_elt = elt_q3 * elt_inv;
         // alpha = elt^((q^3-1) * q)
         let mut alpha = elt_q3_over_elt;
-        alpha.frobenius_map(1);
+        alpha.frobenius_map_in_place(1);
         // beta = elt^((q^3-1)*(q+1)
         alpha * &elt_q3_over_elt
     }
@@ -189,22 +218,22 @@ impl<P: MNT6Parameters> MNT6<P> {
         let elt_inv_clone = *elt_inv;
 
         let mut elt_q = *elt;
-        elt_q.frobenius_map(1);
+        elt_q.frobenius_map_in_place(1);
 
-        let w1_part = elt_q.cyclotomic_exp(&P::FINAL_EXPONENT_LAST_CHUNK_1);
+        let w1_part = elt_q.cyclotomic_exp(P::FINAL_EXPONENT_LAST_CHUNK_1);
         let w0_part = if P::FINAL_EXPONENT_LAST_CHUNK_W0_IS_NEG {
-            elt_inv_clone.cyclotomic_exp(&P::FINAL_EXPONENT_LAST_CHUNK_ABS_OF_W0)
+            elt_inv_clone.cyclotomic_exp(P::FINAL_EXPONENT_LAST_CHUNK_ABS_OF_W0)
         } else {
-            elt_clone.cyclotomic_exp(&P::FINAL_EXPONENT_LAST_CHUNK_ABS_OF_W0)
+            elt_clone.cyclotomic_exp(P::FINAL_EXPONENT_LAST_CHUNK_ABS_OF_W0)
         };
 
         w1_part * &w0_part
     }
 }
 
-impl<P: MNT6Parameters> Pairing for MNT6<P> {
-    type BaseField = <P::G1Parameters as CurveConfig>::BaseField;
-    type ScalarField = <P::G1Parameters as CurveConfig>::ScalarField;
+impl<P: MNT6Config> Pairing for MNT6<P> {
+    type BaseField = <P::G1Config as CurveConfig>::BaseField;
+    type ScalarField = <P::G1Config as CurveConfig>::ScalarField;
     type G1 = G1Projective<P>;
     type G1Affine = G1Affine<P>;
     type G1Prepared = G1Prepared<P>;
@@ -217,24 +246,10 @@ impl<P: MNT6Parameters> Pairing for MNT6<P> {
         a: impl IntoIterator<Item = impl Into<Self::G1Prepared>>,
         b: impl IntoIterator<Item = impl Into<Self::G2Prepared>>,
     ) -> MillerLoopOutput<Self> {
-        let pairs = a
-            .into_iter()
-            .zip_eq(b)
-            .map(|(a, b)| (a.into(), b.into()))
-            .collect::<Vec<_>>();
-        let result = cfg_into_iter!(pairs)
-            .map(|(a, b)| Self::ate_miller_loop(&a, &b))
-            .product();
-        MillerLoopOutput(result)
+        P::multi_miller_loop(a, b)
     }
 
     fn final_exponentiation(f: MillerLoopOutput<Self>) -> Option<PairingOutput<Self>> {
-        let value = f.0;
-        let value_inv = value.inverse().unwrap();
-        let value_to_first_chunk = Self::final_exponentiation_first_chunk(&value, &value_inv);
-        let value_inv_to_first_chunk = Self::final_exponentiation_first_chunk(&value_inv, &value);
-        let result =
-            Self::final_exponentiation_last_chunk(&value_to_first_chunk, &value_inv_to_first_chunk);
-        Some(PairingOutput(result))
+        P::final_exponentiation(f)
     }
 }

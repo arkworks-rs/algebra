@@ -48,6 +48,13 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
     #[doc(hidden)]
     const CAN_USE_NO_CARRY_SQUARE_OPT: bool = can_use_no_carry_mul_optimization::<Self, N>();
 
+    /// Does the modulus have a spare unused bit
+    ///
+    /// This condition applies if
+    /// (a) `Self::MODULUS[N-1] >> 63 == 0`
+    #[doc(hidden)]
+    const MODULUS_HAS_SPARE_BIT: bool = modulus_has_spare_bit::<Self, N>();
+
     /// 2^s root of unity computed by GENERATOR^t
     const TWO_ADIC_ROOT_OF_UNITY: Fp<MontBackend<Self, N>, N>;
 
@@ -90,9 +97,13 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
     #[inline(always)]
     fn add_assign(a: &mut Fp<MontBackend<Self, N>, N>, b: &Fp<MontBackend<Self, N>, N>) {
         // This cannot exceed the backing capacity.
-        a.0.add_with_carry(&b.0);
+        let c = a.0.add_with_carry(&b.0);
         // However, it may need to be reduced
-        a.subtract_modulus();
+        if Self::MODULUS_HAS_SPARE_BIT {
+            a.subtract_modulus()
+        } else {
+            a.subtract_modulus_with_carry(c)
+        }
     }
 
     /// Sets `a = a - b`.
@@ -109,9 +120,13 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
     #[inline(always)]
     fn double_in_place(a: &mut Fp<MontBackend<Self, N>, N>) {
         // This cannot exceed the backing capacity.
-        a.0.mul2();
+        let c = a.0.mul2();
         // However, it may need to be reduced.
-        a.subtract_modulus();
+        if Self::MODULUS_HAS_SPARE_BIT {
+            a.subtract_modulus()
+        } else {
+            a.subtract_modulus_with_carry(c)
+        }
     }
 
     /// Sets `a = -a`.
@@ -184,12 +199,19 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
                 }
                 (a.0).0 = r;
             }
+            a.subtract_modulus();
         } else {
             // Alternative implementation
             // Implements CIOS.
-            *a = a.mul_without_cond_subtract(b);
+            let (carry, res) = a.mul_without_cond_subtract(b);
+            *a = res;
+
+            if Self::MODULUS_HAS_SPARE_BIT {
+                a.subtract_modulus_with_carry(carry);
+            } else {
+                a.subtract_modulus();
+            }
         }
-        a.subtract_modulus();
     }
 
     #[inline(always)]
@@ -198,8 +220,7 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
         if N == 1 {
             // We default to multiplying with `a` using the `Mul` impl
             // for the N == 1 case
-            let temp = *a;
-            Self::mul_assign(a, &temp);
+            *a *= *a;
             return;
         }
         if Self::CAN_USE_NO_CARRY_SQUARE_OPT
@@ -241,12 +262,10 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
             r.b1[i] = carry;
             carry = 0;
         }
-        r.b1[N - 1] >>= 63;
-        for i in 0..N {
-            r[2 * (N - 1) - i] = (r[2 * (N - 1) - i] << 1) | (r[2 * (N - 1) - (i + 1)] >> 63);
-        }
-        for i in 3..N {
-            r[N + 1 - i] = (r[N + 1 - i] << 1) | (r[N - i] >> 63);
+
+        r.b1[N - 1] = r.b1[N - 2] >> 63;
+        for i in 2..(2 * N - 1) {
+            r[2 * N - i] = (r[2 * N - i] << 1) | (r[2 * N - (i + 1)] >> 63);
         }
         r.b0[1] <<= 1;
 
@@ -266,7 +285,11 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
             carry2 = fa::adc(&mut r.b1[i], carry, carry2);
         }
         (a.0).0.copy_from_slice(&r.b1);
-        a.subtract_modulus();
+        if Self::MODULUS_HAS_SPARE_BIT {
+            a.subtract_modulus();
+        } else {
+            a.subtract_modulus_with_carry(carry2 != 0);
+        }
     }
 
     fn inverse(a: &Fp<MontBackend<Self, N>, N>) -> Option<Fp<MontBackend<Self, N>, N>> {
@@ -292,8 +315,11 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
                     if b.0.is_even() {
                         b.0.div2();
                     } else {
-                        b.0.add_with_carry(&Self::MODULUS);
+                        let carry = b.0.add_with_carry(&Self::MODULUS);
                         b.0.div2();
+                        if !Self::MODULUS_HAS_SPARE_BIT && carry {
+                            (b.0).0[N - 1] |= 1 << 63;
+                        }
                     }
                 }
 
@@ -303,8 +329,11 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
                     if c.0.is_even() {
                         c.0.div2();
                     } else {
-                        c.0.add_with_carry(&Self::MODULUS);
+                        let carry = c.0.add_with_carry(&Self::MODULUS);
                         c.0.div2();
+                        if !Self::MODULUS_HAS_SPARE_BIT && carry {
+                            (c.0).0[N - 1] |= 1 << 63;
+                        }
                     }
                 }
 
@@ -488,12 +517,17 @@ pub const fn inv<T: MontConfig<N>, const N: usize>() -> u64 {
 #[inline]
 pub const fn can_use_no_carry_mul_optimization<T: MontConfig<N>, const N: usize>() -> bool {
     // Checking the modulus at compile time
-    let top_bit_is_zero = T::MODULUS.0[N - 1] >> 62 == 0;
-    let mut all_remaining_bits_are_one = T::MODULUS.0[N - 1] == u64::MAX >> 2;
+    let top_bit_is_zero = T::MODULUS.0[N - 1] >> 63 == 0;
+    let mut all_remaining_bits_are_one = T::MODULUS.0[N - 1] == u64::MAX >> 1;
     crate::const_for!((i in 1..N) {
         all_remaining_bits_are_one  &= T::MODULUS.0[N - i - 1] == u64::MAX;
     });
     top_bit_is_zero && !all_remaining_bits_are_one
+}
+
+#[inline]
+pub const fn modulus_has_spare_bit<T: MontConfig<N>, const N: usize>() -> bool {
+    T::MODULUS.0[N - 1] >> 63 == 0
 }
 
 #[inline]
@@ -707,7 +741,7 @@ impl<T: MontConfig<N>, const N: usize> Fp<MontBackend<T, N>, N> {
         }
     }
 
-    const fn mul_without_cond_subtract(mut self, other: &Self) -> Self {
+    const fn mul_without_cond_subtract(mut self, other: &Self) -> (bool, Self) {
         let (mut lo, mut hi) = ([0u64; N], [0u64; N]);
         crate::const_for!((i in 0..N) {
             let mut carry = 0;
@@ -741,19 +775,23 @@ impl<T: MontConfig<N>, const N: usize> Fp<MontBackend<T, N>, N> {
         crate::const_for!((i in 0..N) {
             (self.0).0[i] = hi[i];
         });
-        self
+        (carry2 != 0, self)
     }
 
-    const fn mul(mut self, other: &Self) -> Self {
-        self = self.mul_without_cond_subtract(other);
-        self.const_subtract_modulus()
+    const fn mul(self, other: &Self) -> Self {
+        let (carry, res) = self.mul_without_cond_subtract(other);
+        if T::MODULUS_HAS_SPARE_BIT {
+            res.const_subtract_modulus()
+        } else {
+            res.const_subtract_modulus_with_carry(carry)
+        }
     }
 
     const fn const_is_valid(&self) -> bool {
         crate::const_for!((i in 0..N) {
-            if (self.0).0[(N - i - 1)] < T::MODULUS.0[(N - i - 1)] {
+            if (self.0).0[N - i - 1] < T::MODULUS.0[N - i - 1] {
                 return true
-            } else if (self.0).0[(N - i - 1)] > T::MODULUS.0[(N - i - 1)] {
+            } else if (self.0).0[N - i - 1] > T::MODULUS.0[N - i - 1] {
                 return false
             }
         });
@@ -768,7 +806,57 @@ impl<T: MontConfig<N>, const N: usize> Fp<MontBackend<T, N>, N> {
         self
     }
 
+    #[inline]
+    const fn const_subtract_modulus_with_carry(mut self, carry: bool) -> Self {
+        if carry || !self.const_is_valid() {
+            self.0 = Self::sub_with_borrow(&self.0, &T::MODULUS);
+        }
+        self
+    }
+
     const fn sub_with_borrow(a: &BigInt<N>, b: &BigInt<N>) -> BigInt<N> {
         a.const_sub_with_borrow(b).0
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use ark_std::{str::FromStr, vec::Vec};
+    use ark_test_curves::secp256k1::Fr;
+    use num_bigint::{BigInt, BigUint, Sign};
+
+    #[test]
+    fn test_mont_macro_correctness() {
+        let (is_positive, limbs) = str_to_limbs_u64(
+            "111192936301596926984056301862066282284536849596023571352007112326586892541694",
+        );
+        let t = Fr::from_sign_and_limbs(is_positive, &limbs);
+
+        let result: BigUint = t.into();
+        let expected = BigUint::from_str(
+            "111192936301596926984056301862066282284536849596023571352007112326586892541694",
+        )
+        .unwrap();
+
+        assert_eq!(result, expected);
+    }
+
+    fn str_to_limbs_u64(num: &str) -> (bool, Vec<u64>) {
+        let (sign, digits) = BigInt::from_str(num)
+            .expect("could not parse to bigint")
+            .to_radix_le(16);
+        let limbs = digits
+            .chunks(16)
+            .map(|chunk| {
+                let mut this = 0u64;
+                for (i, hexit) in chunk.iter().enumerate() {
+                    this += (*hexit as u64) << (4 * i);
+                }
+                this
+            })
+            .collect::<Vec<_>>();
+
+        let sign_is_positive = sign != Sign::Minus;
+        (sign_is_positive, limbs)
     }
 }

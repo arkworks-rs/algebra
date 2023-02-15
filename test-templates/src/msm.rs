@@ -3,6 +3,7 @@ use ark_ec::{
     ScalarMul,
 };
 use ark_ff::{PrimeField, UniformRand};
+use ark_std::vec::Vec;
 
 fn naive_var_base_msm<G: ScalarMul>(bases: &[G::MulBase], scalars: &[G::ScalarField]) -> G {
     let mut acc = G::zero();
@@ -25,7 +26,7 @@ pub fn test_var_base_msm<G: VariableBaseMSM>() {
     let g = G::batch_convert_to_mul_base(&g);
 
     let naive = naive_var_base_msm::<G>(g.as_slice(), v.as_slice());
-    let fast = G::msm(g.as_slice(), v.as_slice());
+    let fast = G::msm(g.as_slice(), v.as_slice()).unwrap();
 
     assert_eq!(naive, fast);
 }

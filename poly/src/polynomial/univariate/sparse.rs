@@ -89,11 +89,11 @@ impl<F: Field> Polynomial<F> for SparsePolynomial<F> {
             .iter()
             .map(|(i, c)| {
                 debug_assert_eq!(
-                    F::pow_with_table(&powers_of_2[..], &[*i as u64]).unwrap(),
-                    point.pow(&[*i as u64]),
+                    F::pow_with_table(&powers_of_2[..], [*i as u64]).unwrap(),
+                    point.pow([*i as u64]),
                     "pows not equal"
                 );
-                *c * F::pow_with_table(&powers_of_2[..], &[*i as u64]).unwrap()
+                *c * F::pow_with_table(&powers_of_2[..], [*i as u64]).unwrap()
             })
             .sum();
         total
@@ -207,7 +207,7 @@ impl<'b, F: Field> Mul<F> for &'b SparsePolynomial<F> {
         } else {
             let mut result = self.clone();
             cfg_iter_mut!(result).for_each(|e| {
-                (*e).1 *= elem;
+                e.1 *= elem;
             });
             result
         }
@@ -502,6 +502,57 @@ mod tests {
                 assert_eq!(
                     dense_evals.interpolate(),
                     dense_poly,
+                    "poly_degree_dim = {}, domain_dim = {}",
+                    poly_degree_dim,
+                    domain_dim
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn evaluate_over_small_domain() {
+        // Test that polynomial evaluation over a domain, and interpolation returns the
+        // same poly.
+        let mut rng = test_rng();
+        for poly_degree_dim in 1..5 {
+            let poly_degree = (1 << poly_degree_dim) - 1;
+            let sparse_poly = rand_sparse_poly(poly_degree, &mut rng);
+
+            for domain_dim in 0..poly_degree_dim {
+                let domain_size = 1 << domain_dim;
+                let domain = GeneralEvaluationDomain::new(domain_size).unwrap();
+
+                let sparse_evals = sparse_poly.evaluate_over_domain_by_ref(domain);
+
+                // Test that sparse evaluation and dense evaluation agree
+                let dense_poly: DensePolynomial<Fr> = sparse_poly.clone().into();
+                let dense_evals = dense_poly.clone().evaluate_over_domain(domain);
+                assert_eq!(
+                    sparse_evals, dense_evals,
+                    "poly_degree_dim = {}, domain_dim = {}",
+                    poly_degree_dim, domain_dim
+                );
+
+                // Test interpolation works, by checking that interpolated polynomial agrees with the original on the domain
+                let (_q, r) = (dense_poly.clone() + -sparse_evals.interpolate())
+                    .divide_by_vanishing_poly(domain)
+                    .unwrap();
+                assert_eq!(
+                    r,
+                    DensePolynomial::<Fr>::zero(),
+                    "poly_degree_dim = {}, domain_dim = {}",
+                    poly_degree_dim,
+                    domain_dim
+                );
+
+                // Consistency check that the dense polynomials interpolation is correct.
+                let (_q, r) = (dense_poly.clone() + -dense_evals.interpolate())
+                    .divide_by_vanishing_poly(domain)
+                    .unwrap();
+                assert_eq!(
+                    r,
+                    DensePolynomial::<Fr>::zero(),
                     "poly_degree_dim = {}, domain_dim = {}",
                     poly_degree_dim,
                     domain_dim

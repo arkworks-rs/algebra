@@ -481,10 +481,15 @@ where
 
 impl<P: TECurveConfig> ScalarMul for Projective<P> {
     type MulBase = Affine<P>;
+    const NEGATION_IS_CHEAP: bool = true;
 
     fn batch_convert_to_mul_base(bases: &[Self]) -> Vec<Self::MulBase> {
         Self::normalize_batch(bases)
     }
 }
 
-impl<P: TECurveConfig> VariableBaseMSM for Projective<P> {}
+impl<P: TECurveConfig> VariableBaseMSM for Projective<P> {
+    fn msm(bases: &[Self::MulBase], bigints: &[Self::ScalarField]) -> Result<Self, usize> {
+        P::msm(bases, bigints)
+    }
+}

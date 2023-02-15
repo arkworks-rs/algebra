@@ -4,6 +4,7 @@ pub(super) fn mul_assign_impl(
     can_use_no_carry_mul_opt: bool,
     num_limbs: usize,
     modulus_limbs: &[u64],
+    modulus_has_spare_bit: bool,
 ) -> proc_macro2::TokenStream {
     let mut body = proc_macro2::TokenStream::new();
     let modulus_0 = modulus_limbs[0];
@@ -25,8 +26,7 @@ pub(super) fn mul_assign_impl(
                 let mut carry2 = 0u64;
                 fa::mac_discard(r[0], k, #modulus_0, &mut carry2);
             });
-            for j in 1..num_limbs {
-                let modulus_j = modulus_limbs[j];
+            for (j, modulus_j) in modulus_limbs.iter().enumerate().take(num_limbs).skip(1) {
                 let idx = j - 1;
                 default.extend(quote! {
                     r[#j] = fa::mac_with_carry(r[#j], (a.0).0[#j], (b.0).0[#i], &mut carry1);
@@ -56,14 +56,23 @@ pub(super) fn mul_assign_impl(
                     #[allow(unsafe_code, unused_mut)]
                     ark_ff::x86_64_asm_mul!(#num_limbs, (a.0).0, (b.0).0);
                 } else {
-                    #default
+                    #[cfg(
+                        not(all(
+                            feature = "asm",
+                            target_feature = "bmi2",
+                            target_feature = "adx",
+                            target_arch = "x86_64"
+                        ))
+                    )]
+                    {
+                        #default
+                    }
                 }
             }))
         } else {
-            body.extend(quote!({
-                #default
-            }))
+            body.extend(quote!({ #default }))
         }
+        body.extend(quote!(__subtract_modulus(a);));
     } else {
         // We use standard CIOS
         let double_limbs = num_limbs * 2;
@@ -95,7 +104,11 @@ pub(super) fn mul_assign_impl(
         body.extend(quote! {
             (a.0).0 = scratch[#num_limbs..].try_into().unwrap();
         });
+        if modulus_has_spare_bit {
+            body.extend(quote!(__subtract_modulus(a);));
+        } else {
+            body.extend(quote!(__subtract_modulus_with_carry(a, carry2 != 0);));
+        }
     }
-    body.extend(quote!(__subtract_modulus(a);));
     body
 }

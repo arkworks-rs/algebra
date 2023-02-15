@@ -12,7 +12,6 @@ members = [
     "bench-templates",
 
     "poly",
-    "poly-benches",
     "test-curves",
     "test-templates",
 ]
@@ -42,6 +41,5 @@ incremental = true
 debug-assertions = true
 debug = true
 
-# To be removed in the new release.
-[patch.crates-io]
-ark-std = { git = "https://github.com/arkworks-rs/std"}
+[workspace.metadata.release]
+dependent-version = "fix"

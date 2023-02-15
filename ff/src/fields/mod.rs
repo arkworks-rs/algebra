@@ -261,11 +261,20 @@ pub trait Field:
         sum
     }
 
-    /// Exponentiates this element by a power of the base prime modulus via
-    /// the Frobenius automorphism.
-    fn frobenius_map(&mut self, power: usize);
+    /// Sets `self` to `self^s`, where `s = Self::BasePrimeField::MODULUS^power`.
+    /// This is also called the Frobenius automorphism.
+    fn frobenius_map_in_place(&mut self, power: usize);
 
-    /// Exponentiates this element by a number represented with `u64` limbs,
+    /// Returns `self^s`, where `s = Self::BasePrimeField::MODULUS^power`.
+    /// This is also called the Frobenius automorphism.
+    #[must_use]
+    fn frobenius_map(&self, power: usize) -> Self {
+        let mut this = *self;
+        this.frobenius_map_in_place(power);
+        this
+    }
+
+    /// Returns `self^exp`, where `exp` is an integer represented with `u64` limbs,
     /// least significant limb first.
     #[must_use]
     fn pow<S: AsRef<[u64]>>(&self, exp: S) -> Self {

@@ -1,7 +1,7 @@
 use crate::{CurveConfig, CurveGroup};
 
 /// The GLV parameters for computing the endomorphism and scalar decomposition.
-pub trait GLVParameters: Send + Sync + 'static + CurveConfig {
+pub trait GLVConfig: Send + Sync + 'static + CurveConfig {
     /// A representation of curve points that enables efficient arithmetic by
     /// avoiding inversions.
     type Curve: CurveGroup<Config = Self>;

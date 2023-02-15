@@ -1,3 +1,4 @@
+use quote::format_ident;
 use std::str::FromStr;
 
 use num_bigint::BigUint;
@@ -6,11 +7,17 @@ use num_traits::One;
 mod biginteger;
 use biginteger::*;
 
+mod add;
+use add::*;
+mod double;
+use double::*;
 mod mul;
 use mul::*;
 
+mod square;
+use square::*;
+
 mod sum_of_products;
-use quote::format_ident;
 use sum_of_products::*;
 
 use crate::utils;
@@ -22,13 +29,10 @@ pub fn mont_config_helper(
     small_subgroup_power: Option<u32>,
     config_name: proc_macro2::Ident,
 ) -> proc_macro2::TokenStream {
-    // The arithmetic in this library only works if the modulus*2 is smaller than
-    // the backing representation. Compute the number of limbs we need.
     let mut limbs = 1usize;
     {
-        let mod2 = (&modulus) << 1; // modulus * 2
         let mut cur = BigUint::one() << 64; // always 64-bit limbs for now
-        while cur < mod2 {
+        while cur < modulus {
             limbs += 1;
             cur <<= 64;
         }
@@ -54,6 +58,7 @@ pub fn mont_config_helper(
     let generator = generator.to_string();
     let two_adic_root_of_unity = two_adic_root_of_unity.to_string();
     let modulus_limbs = utils::str_to_limbs_u64(&modulus).1;
+    let modulus_has_spare_bit = modulus_limbs.last().unwrap() >> 63 == 0;
     let can_use_no_carry_mul_opt = {
         let first_limb_check = *modulus_limbs.last().unwrap() < (u64::MAX >> 1);
         if limbs != 1 {
@@ -67,7 +72,20 @@ pub fn mont_config_helper(
     let add_with_carry = add_with_carry_impl(limbs);
     let sub_with_borrow = sub_with_borrow_impl(limbs);
     let subtract_modulus = subtract_modulus_impl(&modulus);
-    let mul_assign = mul_assign_impl(can_use_no_carry_mul_opt, limbs, &modulus_limbs);
+    let add_assign = add_assign_impl(modulus_has_spare_bit);
+    let double_in_place = double_in_place_impl(modulus_has_spare_bit);
+    let mul_assign = mul_assign_impl(
+        can_use_no_carry_mul_opt,
+        limbs,
+        &modulus_limbs,
+        modulus_has_spare_bit,
+    );
+    let square_in_place = square_in_place_impl(
+        can_use_no_carry_mul_opt,
+        limbs,
+        &modulus_limbs,
+        modulus_has_spare_bit,
+    );
     let sum_of_products = sum_of_products_impl(limbs, &modulus_limbs);
 
     let mixed_radix = if let Some(large_subgroup_generator) = large_subgroup_generator {
@@ -81,6 +99,7 @@ pub fn mont_config_helper(
     } else {
         quote::quote! {}
     };
+
     let scope_name = format_ident!("{}___", config_name.to_string().to_lowercase());
     quote::quote! {
         fn #scope_name() {
@@ -100,8 +119,7 @@ pub fn mont_config_helper(
 
                 #[inline(always)]
                 fn add_assign(a: &mut F, b: &F) {
-                    __add_with_carry(&mut a.0, &b.0);
-                    __subtract_modulus(a);
+                    #add_assign
                 }
 
                 #[inline(always)]
@@ -115,10 +133,7 @@ pub fn mont_config_helper(
 
                 #[inline(always)]
                 fn double_in_place(a: &mut F) {
-                    // This cannot exceed the backing capacity.
-                    a.0.mul2();
-                    // However, it may need to be reduced.
-                    __subtract_modulus(a);
+                    #double_in_place
                 }
 
                 /// Sets `a = -a`.
@@ -134,6 +149,10 @@ pub fn mont_config_helper(
                 #[inline(always)]
                 fn mul_assign(a: &mut F, b: &F) {
                     #mul_assign
+                }
+                #[inline(always)]
+                fn square_in_place(a: &mut F) {
+                    #square_in_place
                 }
 
                 fn sum_of_products<const M: usize>(
@@ -151,5 +170,4 @@ pub fn mont_config_helper(
             #sub_with_borrow
         }
     }
-    .into()
 }

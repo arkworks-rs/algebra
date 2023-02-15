@@ -330,6 +330,7 @@ impl<P: SWCurveConfig> Neg for Projective<P> {
 }
 
 impl<P: SWCurveConfig, T: Borrow<Affine<P>>> AddAssign<T> for Projective<P> {
+    /// Using http://www.hyperelliptic.org/EFD/g1p/auto-shortw-jacobian-0.html#addition-madd-2007-bl
     fn add_assign(&mut self, other: T) {
         let other = other.borrow();
         if let Some((&other_x, &other_y)) = other.xy() {
@@ -628,13 +629,18 @@ where
 
 impl<P: SWCurveConfig> ScalarMul for Projective<P> {
     type MulBase = Affine<P>;
+    const NEGATION_IS_CHEAP: bool = true;
 
     fn batch_convert_to_mul_base(bases: &[Self]) -> Vec<Self::MulBase> {
         Self::normalize_batch(bases)
     }
 }
 
-impl<P: SWCurveConfig> VariableBaseMSM for Projective<P> {}
+impl<P: SWCurveConfig> VariableBaseMSM for Projective<P> {
+    fn msm(bases: &[Self::MulBase], bigints: &[Self::ScalarField]) -> Result<Self, usize> {
+        P::msm(bases, bigints)
+    }
+}
 
 impl<P: SWCurveConfig, T: Borrow<Affine<P>>> core::iter::Sum<T> for Projective<P> {
     fn sum<I: Iterator<Item = T>>(iter: I) -> Self {

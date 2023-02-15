@@ -4,23 +4,23 @@ use ark_std::vec::Vec;
 use num_traits::One;
 
 use crate::{
-    bn::{BnParameters, TwistType},
+    bn::{BnConfig, TwistType},
     models::short_weierstrass::SWCurveConfig,
     short_weierstrass::{Affine, Projective},
     AffineRepr, CurveGroup,
 };
 
-pub type G2Affine<P> = Affine<<P as BnParameters>::G2Parameters>;
-pub type G2Projective<P> = Projective<<P as BnParameters>::G2Parameters>;
+pub type G2Affine<P> = Affine<<P as BnConfig>::G2Config>;
+pub type G2Projective<P> = Projective<<P as BnConfig>::G2Config>;
 
 #[derive(Derivative, CanonicalSerialize, CanonicalDeserialize)]
 #[derivative(
-    Clone(bound = "P: BnParameters"),
-    Debug(bound = "P: BnParameters"),
-    PartialEq(bound = "P: BnParameters"),
-    Eq(bound = "P: BnParameters")
+    Clone(bound = "P: BnConfig"),
+    Debug(bound = "P: BnConfig"),
+    PartialEq(bound = "P: BnConfig"),
+    Eq(bound = "P: BnConfig")
 )]
-pub struct G2Prepared<P: BnParameters> {
+pub struct G2Prepared<P: BnConfig> {
     // Stores the coefficients of the line evaluations as calculated in
     // https://eprint.iacr.org/2013/722.pdf
     pub ell_coeffs: Vec<EllCoeff<P>>,
@@ -28,24 +28,24 @@ pub struct G2Prepared<P: BnParameters> {
 }
 
 pub(crate) type EllCoeff<P> = (
-    Fp2<<P as BnParameters>::Fp2Config>,
-    Fp2<<P as BnParameters>::Fp2Config>,
-    Fp2<<P as BnParameters>::Fp2Config>,
+    Fp2<<P as BnConfig>::Fp2Config>,
+    Fp2<<P as BnConfig>::Fp2Config>,
+    Fp2<<P as BnConfig>::Fp2Config>,
 );
 
 #[derive(Derivative)]
 #[derivative(
-    Clone(bound = "P: BnParameters"),
-    Copy(bound = "P: BnParameters"),
-    Debug(bound = "P: BnParameters")
+    Clone(bound = "P: BnConfig"),
+    Copy(bound = "P: BnConfig"),
+    Debug(bound = "P: BnConfig")
 )]
-struct G2HomProjective<P: BnParameters> {
+struct G2HomProjective<P: BnConfig> {
     x: Fp2<P::Fp2Config>,
     y: Fp2<P::Fp2Config>,
     z: Fp2<P::Fp2Config>,
 }
 
-impl<P: BnParameters> G2HomProjective<P> {
+impl<P: BnConfig> G2HomProjective<P> {
     fn double_in_place(&mut self, two_inv: &P::Fp) -> EllCoeff<P> {
         // Formula for line function when working with
         // homogeneous projective coordinates.
@@ -54,7 +54,7 @@ impl<P: BnParameters> G2HomProjective<P> {
         a.mul_assign_by_fp(two_inv);
         let b = self.y.square();
         let c = self.z.square();
-        let e = P::G2Parameters::COEFF_B * &(c.double() + &c);
+        let e = P::G2Config::COEFF_B * &(c.double() + &c);
         let f = e.double() + &e;
         let mut g = b + &f;
         g.mul_assign_by_fp(two_inv);
@@ -95,13 +95,13 @@ impl<P: BnParameters> G2HomProjective<P> {
     }
 }
 
-impl<P: BnParameters> Default for G2Prepared<P> {
+impl<P: BnConfig> Default for G2Prepared<P> {
     fn default() -> Self {
         Self::from(G2Affine::<P>::generator())
     }
 }
 
-impl<P: BnParameters> From<G2Affine<P>> for G2Prepared<P> {
+impl<P: BnConfig> From<G2Affine<P>> for G2Prepared<P> {
     fn from(q: G2Affine<P>) -> Self {
         if q.infinity {
             G2Prepared {
@@ -149,37 +149,37 @@ impl<P: BnParameters> From<G2Affine<P>> for G2Prepared<P> {
     }
 }
 
-impl<P: BnParameters> From<G2Projective<P>> for G2Prepared<P> {
+impl<P: BnConfig> From<G2Projective<P>> for G2Prepared<P> {
     fn from(q: G2Projective<P>) -> Self {
         q.into_affine().into()
     }
 }
 
-impl<'a, P: BnParameters> From<&'a G2Affine<P>> for G2Prepared<P> {
+impl<'a, P: BnConfig> From<&'a G2Affine<P>> for G2Prepared<P> {
     fn from(other: &'a G2Affine<P>) -> Self {
         (*other).into()
     }
 }
 
-impl<'a, P: BnParameters> From<&'a G2Projective<P>> for G2Prepared<P> {
+impl<'a, P: BnConfig> From<&'a G2Projective<P>> for G2Prepared<P> {
     fn from(q: &'a G2Projective<P>) -> Self {
         q.into_affine().into()
     }
 }
 
-impl<P: BnParameters> G2Prepared<P> {
+impl<P: BnConfig> G2Prepared<P> {
     pub fn is_zero(&self) -> bool {
         self.infinity
     }
 }
 
-fn mul_by_char<P: BnParameters>(r: G2Affine<P>) -> G2Affine<P> {
+fn mul_by_char<P: BnConfig>(r: G2Affine<P>) -> G2Affine<P> {
     // multiply by field characteristic
 
     let mut s = r;
-    s.x.frobenius_map(1);
+    s.x.frobenius_map_in_place(1);
     s.x *= &P::TWIST_MUL_BY_Q_X;
-    s.y.frobenius_map(1);
+    s.y.frobenius_map_in_place(1);
     s.y *= &P::TWIST_MUL_BY_Q_Y;
 
     s

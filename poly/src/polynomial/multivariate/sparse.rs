@@ -239,7 +239,7 @@ impl<F: Field, T: Term> Neg for SparsePolynomial<F, T> {
     #[inline]
     fn neg(mut self) -> SparsePolynomial<F, T> {
         for coeff in &mut self.terms {
-            (*coeff).0 = -coeff.0;
+            (coeff).0 = -coeff.0;
         }
         self
     }
