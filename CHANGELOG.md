@@ -2,6 +2,8 @@
 
 ## Pending
 
+- (`ark-poly`) Reduce the number of field multiplications performed by `SparseMultilinearExtension::evaluate` and `DenseMultilinearExtension::evaluate`
+
 ### Breaking changes
 
 ### Features
