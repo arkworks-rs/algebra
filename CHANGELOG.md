@@ -79,7 +79,8 @@
             - `AffineCurve` → `Affine`
         - Rename some methods:
             - `batch_normalization_into_affine` → `normalize_batch`
-    - Rename `AffineCurve` to `Affine`.
+            - `prime_subgroup_generator` → `generator`
+    - Rename `AffineCurve` to `AffineRepr`.
         - Rename associated types:
             - `Projective` → `Group`
         - Add methods:
@@ -89,6 +90,7 @@
             - `zero()` → `identity()`
             - `is_zero()` → `is_identity()`
             - `into_projective()` → `into_group()`
+            - `prime_subgroup_generator()` → `generator()`
     - Add new `ScalarMul` trait that encapsulates scalar multiplication routines for arbitrary `Group`s.
         - `ScalarMul` trait has a `MulBase` associated type to encapsulate bases for variable base and fixed-base scalar multiplication algorithms.
         - `ScalarMul` requires `Add<Self::MulBase, Output = Self>`, `AddAssign<Self::MulBase>`, and `From<Self::MulBase>`.
