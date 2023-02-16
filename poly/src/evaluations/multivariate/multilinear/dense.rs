@@ -119,7 +119,9 @@ impl<F: Field> MultilinearExtension<F> for DenseMultilinearExtension<F> {
         for i in 1..dim + 1 {
             let r = partial_point[i - 1];
             for b in 0..(1 << (nv - i)) {
-                poly[b] = poly[b << 1] * (F::one() - r) + poly[(b << 1) + 1] * r;
+                let left = poly[b << 1];
+                let right = poly[(b << 1) + 1];
+                poly[b] = left + r * (right - left);
             }
         }
         Self::from_evaluations_slice(nv - dim, &poly[..(1 << (nv - dim))])
