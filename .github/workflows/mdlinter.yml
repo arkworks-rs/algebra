@@ -1,5 +1,7 @@
 name: Lint
 on:
+  merge_group:
+    branches: [master, main]
   push:
     branches: [master, main]
   pull_request:
