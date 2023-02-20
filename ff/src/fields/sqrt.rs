@@ -80,20 +80,16 @@ pub enum SqrtPrecomputation<F: crate::Field> {
     /// https://eprint.iacr.org/2012/685.pdf (page 9, algorithm 2).
     /// With _q_ as field order, _p_ as characteristic, and _m_ as extension degree:
     /// * `char_minus_three_div_four` - _(p - 3)/4_.
-    /// * `deg_minus_three_div_two_plus_one` - _(m - 3)/2 + 1_.
     ShanksCase3Mod4 {
         char_minus_three_div_four: &'static [u64],
-        deg_minus_three_div_two_plus_one: usize,
     },
     /// https://eprint.iacr.org/2012/685.pdf (page 10, algorithm 3).
     /// With _q_ as field order, _p_ as characteristic, and _m_ as extension degree:
     /// * `trace` - _2^(q - 5)/8_.
     /// * `char_minus_five_div_eight` - _(p - 5)/8_.
-    /// * `deg_minus_three_div_two_plus_one` - _(m - 3)/2 + 1_.
     AtkinCase5Mod8 {
         trace: F,
         char_minus_five_div_eight: &'static [u64],
-        deg_minus_three_div_two_plus_one: usize,
     },
     /// https://eprint.iacr.org/2012/685.pdf (page 11, algorithm 4).
     /// With _q_ as field order, _p_ as characteristic, and _m_ as extension degree:
@@ -102,14 +98,12 @@ pub enum SqrtPrecomputation<F: crate::Field> {
     /// * `d` - _c^(q - 9)/8_.
     /// * `c_squared` - _c^2_.
     /// * `char_minus_nine_div_sixteen` - _(p - 9)/16_.
-    /// * `deg_minus_three_div_two_plus_one` - _(m - 3)/2 + 1_.
     KongCase9Mod16 {
         trace: F,
         c: F,
         d: F,
         c_squared: F,
         char_minus_nine_div_sixteen: &'static [u64],
-        deg_minus_three_div_two_plus_one: usize,
     },
     /// In the case of 3 mod 4, we can find the square root via an exponentiation,
     /// sqrt(a) = a^(p+1)/4. This can be proved using Euler's criterion, a^(p-1)/2 = 1 mod p.
@@ -133,38 +127,18 @@ impl<F: crate::Field> SqrtPrecomputation<F> {
             ),
             SqrtPrecomputation::ShanksCase3Mod4 {
                 char_minus_three_div_four,
-                deg_minus_three_div_two_plus_one,
-            } => shanks(
-                elem,
-                char_minus_three_div_four,
-                *deg_minus_three_div_two_plus_one,
-            ),
+            } => shanks(elem, char_minus_three_div_four),
             SqrtPrecomputation::AtkinCase5Mod8 {
                 trace,
                 char_minus_five_div_eight,
-                deg_minus_three_div_two_plus_one,
-            } => atkin(
-                elem,
-                trace,
-                char_minus_five_div_eight,
-                *deg_minus_three_div_two_plus_one,
-            ),
+            } => atkin(elem, trace, char_minus_five_div_eight),
             SqrtPrecomputation::KongCase9Mod16 {
                 trace,
                 c,
                 d,
                 c_squared,
                 char_minus_nine_div_sixteen,
-                deg_minus_three_div_two_plus_one,
-            } => kong(
-                elem,
-                trace,
-                c,
-                d,
-                c_squared,
-                char_minus_nine_div_sixteen,
-                *deg_minus_three_div_two_plus_one,
-            ),
+            } => kong(elem, trace, c, d, c_squared, char_minus_nine_div_sixteen),
             Self::PowerCase3Mod4 {
                 modulus_plus_one_div_four,
             } => power_case_three_mod_four(elem, modulus_plus_one_div_four),
@@ -231,11 +205,7 @@ fn tonelli_shanks<F: crate::Field>(
     }
 }
 
-fn shanks<F: crate::Field>(
-    elem: &F,
-    char_minus_three_div_four: &[u64],
-    deg_minus_three_div_two_plus_one: usize,
-) -> Option<F> {
+fn shanks<F: crate::Field>(elem: &F, char_minus_three_div_four: &[u64]) -> Option<F> {
     // Computing a1 = Using decomposition of (q-3)/4 = a + p[pa + (3a+2)] * sum_i=1^(m-3)/2 p^2i
     // where a = (p - 3) / 4.
     // factor1 = elem^a
@@ -248,8 +218,9 @@ fn shanks<F: crate::Field>(
         * elem_to_p.square();
     // factor2 = prod_i=1^(m-3)/2 factor2_base^(p^2i)
     let mut factor2 = F::one();
-    for i in 1..deg_minus_three_div_two_plus_one {
-        factor2 *= factor2_base.frobenius_map(i * 2 as usize);
+    let n = (F::extension_degree() as usize - 3) / 2;
+    for i in 1..(n + 1) {
+        factor2 *= factor2_base.frobenius_map(i * 2);
     }
     let a1 = factor1 * factor2;
 
@@ -262,12 +233,7 @@ fn shanks<F: crate::Field>(
     Some(a1_elem)
 }
 
-fn atkin<F: crate::Field>(
-    elem: &F,
-    trace: &F,
-    char_minus_five_div_eight: &[u64],
-    deg_minus_three_div_two_plus_one: usize,
-) -> Option<F> {
+fn atkin<F: crate::Field>(elem: &F, trace: &F, char_minus_five_div_eight: &[u64]) -> Option<F> {
     // Computing a1 = elem^(q-5)/8 using decomposition of
     // (q-5)/8 = a + p[pa + (5a+3)] * sum_i=1^(m-3)/2 p^2i
     // where a = (p - 5) / 8.
@@ -281,8 +247,9 @@ fn atkin<F: crate::Field>(
         * elem_to_p.pow(&[3u64]);
     // factor2 = prod_i=1^(m-3)/2 factor2_base^(p^2i)
     let mut factor2 = F::one();
-    for i in 1..deg_minus_three_div_two_plus_one {
-        factor2 *= factor2_base.frobenius_map(2 * i);
+    let n = (F::extension_degree() as usize - 3) / 2;
+    for i in 1..(n + 1) {
+        factor2 *= factor2_base.frobenius_map(i * 2);
     }
     let a1 = factor1 * factor2;
 
@@ -306,7 +273,6 @@ fn kong<F: crate::Field>(
     d: &F,
     c_squared: &F,
     char_minus_nine_div_sixteen: &[u64],
-    deg_minus_three_div_two_plus_one: usize,
 ) -> Option<F> {
     // Using decomposition of (q-9)/16 = a + p[pa + (9a+5)] * sum_i=1^(m-3)/2 p^2i
     // a = (p - 9) / 16
@@ -320,8 +286,9 @@ fn kong<F: crate::Field>(
         * elem_to_p.pow(&[5u64]);
     // factor2 = prod_i=1^(m-3)/2 factor2_base^(p^2i)
     let mut factor2 = F::one();
-    for i in 1..deg_minus_three_div_two_plus_one {
-        factor2 *= factor2_base.frobenius_map(2 * i);
+    let n = (F::extension_degree() as usize - 3) / 2;
+    for i in 1..(n + 1) {
+        factor2 *= factor2_base.frobenius_map(i * 2);
     }
     let a1 = factor1 * factor2;
 
