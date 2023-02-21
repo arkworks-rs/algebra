@@ -1,6 +1,6 @@
 [package]
 name = "ark-algebra-bench-templates"
-version = "0.4.0"
+version = "0.4.1"
 authors = [ "arkworks contributors" ]
 description = "A benchmark library for finite fields and elliptic curves"
 homepage = "https://arkworks.rs"
