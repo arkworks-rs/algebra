@@ -11,7 +11,7 @@ categories = ["cryptography"]
 include = ["Cargo.toml", "src", "README.md", "LICENSE-APACHE", "LICENSE-MIT"]
 license = "MIT/Apache-2.0"
 edition = "2021"
-rust-version = "1.57"
+rust-version = "1.63"
 
 [dependencies]
 ark-std = { version = "0.4.0", default-features = false }
@@ -38,3 +38,6 @@ hex = "0.4"
 default = []
 std = [ "ark-std/std", "ark-ff/std", "ark-serialize/std" ]
 parallel = [ "std", "rayon", "ark-std/parallel" ]
+
+[package.metadata.docs.rs]
+rustdoc-args = ["--html-in-header", "./doc/katex-header.html"]

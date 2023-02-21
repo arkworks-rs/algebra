@@ -2,6 +2,8 @@
 
 ## Pending
 
+- (`ark-poly`) Reduce the number of field multiplications performed by `SparseMultilinearExtension::evaluate` and `DenseMultilinearExtension::evaluate`
+
 ### Breaking changes
 
 ### Features
@@ -71,12 +73,14 @@
 - [\#446](https://github.com/arkworks-rs/algebra/pull/446) (`ark-ff`) Add `CyclotomicMultSubgroup` trait and implement it for extension fields
 - [\#447](https://github.com/arkworks-rs/algebra/pull/447) (`ark-ec`, `ark-algebra-test-templates`) Rename and refactor group infrastructure, and test infrastructure for fields, groups, and pairings:
     - Create new `Group` trait and move some functionality from `ProjectiveCurve` to it.
+    - Refactor `add_assign_mixed` → `add_assign` that's polymorphic over its RHS.
     - Rename `ProjectiveCurve` to `CurveGroup: Group`.
         - Rename some associated types:
             - `AffineCurve` → `Affine`
         - Rename some methods:
             - `batch_normalization_into_affine` → `normalize_batch`
-    - Rename `AffineCurve` to `Affine`.
+            - `prime_subgroup_generator` → `generator`
+    - Rename `AffineCurve` to `AffineRepr`.
         - Rename associated types:
             - `Projective` → `Group`
         - Add methods:
@@ -86,6 +90,7 @@
             - `zero()` → `identity()`
             - `is_zero()` → `is_identity()`
             - `into_projective()` → `into_group()`
+            - `prime_subgroup_generator()` → `generator()`
     - Add new `ScalarMul` trait that encapsulates scalar multiplication routines for arbitrary `Group`s.
         - `ScalarMul` trait has a `MulBase` associated type to encapsulate bases for variable base and fixed-base scalar multiplication algorithms.
         - `ScalarMul` requires `Add<Self::MulBase, Output = Self>`, `AddAssign<Self::MulBase>`, and `From<Self::MulBase>`.
