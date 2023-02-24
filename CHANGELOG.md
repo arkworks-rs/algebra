@@ -3,6 +3,7 @@
 ## Pending
 
 - (`ark-poly`) Reduce the number of field multiplications performed by `SparseMultilinearExtension::evaluate` and `DenseMultilinearExtension::evaluate`
+- [\#610](https://github.com/arkworks-rs/algebra/pull/610) (`ark-ec`) Fix panic in `final_exponentiation` step for MNT4/6 curves if inverse does not exist.
 
 ### Breaking changes
 
