@@ -214,8 +214,9 @@ macro_rules! ec_bench {
                     let name = format!("{}::{}", $curve_name, stringify!($Group));
                     let mut rng = ark_std::test_rng();
 
-                    let g = <$Group>::rand(&mut rng).into_affine();
-                    let v: Vec<_> = (0..SAMPLES).map(|_| g).collect();
+                    let v: Vec<_> = (0..SAMPLES)
+                        .map(|_| <$Group>::rand(&mut rng).into_affine())
+                        .collect();
                     let scalars: Vec<_> = (0..SAMPLES)
                         .map(|_| Scalar::rand(&mut rng).into_bigint())
                         .collect();
