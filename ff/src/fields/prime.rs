@@ -77,7 +77,8 @@ pub trait PrimeField:
         // number of bytes needed to represent the modulus, as we must begin
         // modular reduction once the data is of the same number of bytes as the
         // modulus.
-        let (bytes,bytes_to_directly_convert) = bytes.split_at(bytes.len() - num_bytes_to_directly_convert);
+        let (bytes, bytes_to_directly_convert) =
+            bytes.split_at(bytes.len() - num_bytes_to_directly_convert);
         // Guaranteed to not be None, as the input is less than the modulus size.
         let mut res = Self::from_random_bytes(&bytes_to_directly_convert).unwrap();
 
