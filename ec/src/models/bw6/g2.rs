@@ -84,15 +84,16 @@ impl<P: BW6Config> From<G2Affine<P>> for G2Prepared<P> {
         }
         ell_coeffs_1.push(r.clone().add_in_place(&q));
 
-        // f_{u^2-u-1,Q}(P)
+        // TODO: this is probably the slowest part
+        // While G2 preparation is overall faster due to shortened 2nd loop,
+        // The inversion could probably be avoided by using Hom(P) + Hom(Q) addition,
+        // instead of mixed addition as is currently done.
         let qu: G2Affine<P> = r.into();
-        assert_eq!(qu, q.mul_bigint(&P::ATE_LOOP_COUNT_1));
-        assert_eq!(qu, q.mul_bigint(&P::X));
+        let neg_qu = -qu;
 
         let mut ell_coeffs_2 = vec![];
 
-        let neg_qu = -qu;
-
+        // f_{u^2-u-1,[u]Q}(P)
         for bit in P::ATE_LOOP_COUNT_2.iter().rev().skip(1) {
             ell_coeffs_2.push(r.double_in_place());
 
