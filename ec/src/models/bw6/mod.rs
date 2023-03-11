@@ -93,11 +93,14 @@ pub trait BW6Config: 'static + Eq + Sized {
             })
             .product::<<BW6<Self> as Pairing>::TargetField>();
 
-        let f_u_inv = f_u.cyclotomic_inverse().unwrap();
+        let f_u_inv;
 
         // TODO: is it enough to get the inverse of f_1, or does f_u also need to get inverted?
         if Self::ATE_LOOP_COUNT_1_IS_NEGATIVE {
+            f_u_inv = f_u;
             f_u.cyclotomic_inverse_in_place();
+        } else {
+            f_u_inv = f_u.cyclotomic_inverse().unwrap();
         }
 
         // f_1(P) = f_(u+1)(P) = f_u(P) * l([u]q, q)(P)
