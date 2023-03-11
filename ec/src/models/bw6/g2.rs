@@ -46,6 +46,17 @@ impl<P: BW6Config> Default for G2Prepared<P> {
     }
 }
 
+// impl into G2Affine from G2HomProjective
+impl<P: BW6Config> From<G2HomProjective<P>> for G2Affine<P> {
+    fn from(q: G2HomProjective<P>) -> Self {
+        let z_inv = q.z.inverse().unwrap();
+        let x = q.x * &z_inv;
+        let y = q.y * &z_inv;
+        // TODO: change this to `new_unchecked`
+        G2Affine::<P>::new(x, y)
+    }
+}
+
 impl<P: BW6Config> From<G2Affine<P>> for G2Prepared<P> {
     fn from(q: G2Affine<P>) -> Self {
         if q.infinity {
@@ -71,9 +82,13 @@ impl<P: BW6Config> From<G2Affine<P>> for G2Prepared<P> {
                 ell_coeffs_1.push(r.add_in_place(&q));
             }
         }
-        ell_coeffs_1.push(r.add_in_place(&q));
+        ell_coeffs_1.push(r.clone().add_in_place(&q));
 
         // f_{u^3-u^2-u,Q}(P)
+        let qu: G2Affine<P> = r.into();
+        assert_eq!(qu, q.mul_bigint(&P::ATE_LOOP_COUNT_1));
+        assert_eq!(qu, q.mul_bigint(&P::X));
+
         let mut ell_coeffs_2 = vec![];
         let mut r = G2HomProjective::<P> {
             x: q.x,
@@ -81,14 +96,14 @@ impl<P: BW6Config> From<G2Affine<P>> for G2Prepared<P> {
             z: P::Fp::one(),
         };
 
-        let negq = -q;
+        let neg_q = -q;
 
         for bit in P::ATE_LOOP_COUNT_2.iter().rev().skip(1) {
             ell_coeffs_2.push(r.double_in_place());
 
             match bit {
                 1 => ell_coeffs_2.push(r.add_in_place(&q)),
-                -1 => ell_coeffs_2.push(r.add_in_place(&negq)),
+                -1 => ell_coeffs_2.push(r.add_in_place(&neg_q)),
                 _ => continue,
             }
         }
