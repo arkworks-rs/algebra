@@ -52,8 +52,7 @@ impl<P: BW6Config> From<G2HomProjective<P>> for G2Affine<P> {
         let z_inv = q.z.inverse().unwrap();
         let x = q.x * &z_inv;
         let y = q.y * &z_inv;
-        // TODO: change this to `new_unchecked`
-        G2Affine::<P>::new(x, y)
+        G2Affine::<P>::new_unchecked(x, y)
     }
 }
 
