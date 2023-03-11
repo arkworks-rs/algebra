@@ -81,14 +81,29 @@ impl<P: BW6Config> From<G2Affine<P>> for G2Prepared<P> {
                 ell_coeffs_1.push(r.add_in_place(&q));
             }
         }
-        ell_coeffs_1.push(r.clone().add_in_place(&q));
-
         // TODO: this is probably the slowest part
         // While G2 preparation is overall faster due to shortened 2nd loop,
         // The inversion could probably be avoided by using Hom(P) + Hom(Q) addition,
         // instead of mixed addition as is currently done.
-        let qu: G2Affine<P> = r.into();
-        let neg_qu = -qu;
+        let r_affine: G2Affine<P> = r.into();
+        let qu;
+        let neg_qu;
+
+        // Swap the signs of `qu`, `r` & `neg_qu` if the loop count is negative.
+        if P::ATE_LOOP_COUNT_1_IS_NEGATIVE {
+            qu = -r_affine;
+            neg_qu = r_affine;
+        } else {
+            qu = r_affine;
+            neg_qu = -qu;
+        }
+
+        r = G2HomProjective::<P> {
+            x: qu.x,
+            y: qu.y,
+            z: P::Fp::one(),
+        };
+        ell_coeffs_1.push(r.clone().add_in_place(&q));
 
         let mut ell_coeffs_2 = vec![];
 
