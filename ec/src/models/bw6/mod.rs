@@ -26,6 +26,7 @@ pub enum TwistType {
 pub trait BW6Config: 'static + Eq + Sized {
     const X: <Self::Fp as PrimeField>::BigInt;
     const X_IS_NEGATIVE: bool;
+    // X
     const ATE_LOOP_COUNT_1: &'static [u64];
     const ATE_LOOP_COUNT_1_IS_NEGATIVE: bool;
     const ATE_LOOP_COUNT_2: &'static [i8];
@@ -72,7 +73,8 @@ pub trait BW6Config: 'static + Eq + Sized {
             })
             .unzip::<_, _, Vec<_>, Vec<_>>();
 
-        let mut f_1 = cfg_chunks_mut!(pairs_1, 4)
+        // compute f_u which we can later re-use for the 2nd loop
+        let mut f_u = cfg_chunks_mut!(pairs_1, 4)
             .map(|pairs| {
                 let mut f = <BW6<Self> as Pairing>::TargetField::one();
                 for i in BitIteratorBE::without_leading_zeros(Self::ATE_LOOP_COUNT_1).skip(1) {
@@ -91,8 +93,21 @@ pub trait BW6Config: 'static + Eq + Sized {
             .product::<<BW6<Self> as Pairing>::TargetField>();
 
         if Self::ATE_LOOP_COUNT_1_IS_NEGATIVE {
-            f_1.cyclotomic_inverse_in_place();
+            f_u.cyclotomic_inverse_in_place();
         }
+
+        // f_1(P) = f_(u+1)(P) = f_u(P) * l([u]q, q)(P)
+        let f_1 = cfg_chunks_mut!(pairs_1, 4)
+            .map(|pairs| {
+                // TODO remove clone?
+                let mut f = f_u.clone();
+                for (p, coeffs) in pairs.iter_mut() {
+                    BW6::<Self>::ell(&mut f, &coeffs.next().unwrap(), &p.0);
+                }
+                f
+            })
+            .product::<<BW6<Self> as Pairing>::TargetField>();
+
         let mut f_2 = cfg_chunks_mut!(pairs_2, 4)
             .map(|pairs| {
                 let mut f = <<BW6<Self> as Pairing>::TargetField>::one();

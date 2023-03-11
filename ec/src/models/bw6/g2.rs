@@ -56,7 +56,7 @@ impl<P: BW6Config> From<G2Affine<P>> for G2Prepared<P> {
             };
         }
 
-        // f_{u+1,Q}(P)
+        // f_{u,Q}(P)
         let mut ell_coeffs_1 = vec![];
         let mut r = G2HomProjective::<P> {
             x: q.x,
@@ -71,6 +71,7 @@ impl<P: BW6Config> From<G2Affine<P>> for G2Prepared<P> {
                 ell_coeffs_1.push(r.add_in_place(&q));
             }
         }
+        ell_coeffs_1.push(r.add_in_place(&q));
 
         // f_{u^3-u^2-u,Q}(P)
         let mut ell_coeffs_2 = vec![];
