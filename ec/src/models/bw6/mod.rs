@@ -1,3 +1,5 @@
+use core::ops::Neg;
+
 use crate::{
     models::{short_weierstrass::SWCurveConfig, CurveConfig},
     pairing::{MillerLoopOutput, Pairing, PairingOutput},
@@ -30,6 +32,8 @@ pub trait BW6Config: 'static + Eq + Sized {
     const ATE_LOOP_COUNT_1_IS_NEGATIVE: bool;
     const ATE_LOOP_COUNT_2: &'static [i8];
     const ATE_LOOP_COUNT_2_IS_NEGATIVE: bool;
+    const H_T: i64;
+    const H_Y: i64;
     const TWIST_TYPE: TwistType;
     type Fp: PrimeField + Into<<Self::Fp as PrimeField>::BigInt>;
     type Fp3Config: Fp3Config<Fp = Self::Fp>;
@@ -159,12 +163,20 @@ impl<P: BW6Config> BW6<P> {
         }
     }
 
-    fn exp_by_x(mut f: Fp6<P::Fp6Config>) -> Fp6<P::Fp6Config> {
-        f = f.cyclotomic_exp(P::X);
+    fn exp_by_x(f0: Fp6<P::Fp6Config>) -> Fp6<P::Fp6Config> {
+        let mut f = f0.cyclotomic_exp(P::X);
         if P::X_IS_NEGATIVE {
             f.cyclotomic_inverse_in_place();
         }
         f
+    }
+
+    fn exp_by_x_minus_1(f0: Fp6<P::Fp6Config>) -> Fp6<P::Fp6Config> {
+        let mut f = f0.cyclotomic_exp(P::X);
+        if P::X_IS_NEGATIVE {
+            f.cyclotomic_inverse_in_place();
+        }
+        f * &f0.cyclotomic_inverse().unwrap()
     }
 
     fn final_exponentiation_first_chunk(
@@ -186,112 +198,179 @@ impl<P: BW6Config> BW6<P> {
     }
 
     #[allow(clippy::let_and_return)]
-    fn final_exponentiation_last_chunk(f: &Fp6<P::Fp6Config>) -> Fp6<P::Fp6Config> {
+    fn final_exponentiation_last_chunk(m: &Fp6<P::Fp6Config>) -> Fp6<P::Fp6Config> {
+        // generic method for the BW6 family, parametrized by `h_t` and `h_y`
         // hard_part
-        // From https://eprint.iacr.org/2020/351.pdf, Alg.6
+        // From [HG21](https://eprint.iacr.org/2021/1359.pdf), Eq. 22
+        // Currently only implemented for trace = 0 mod 6
+        // TODO: Implement for trace = 3 mod 6
 
         #[rustfmt::skip]
-        // R0(x) := (-103*x^7 + 70*x^6 + 269*x^5 - 197*x^4 - 314*x^3 - 73*x^2 - 263*x - 220)
-        // R1(x) := (103*x^9 - 276*x^8 + 77*x^7 + 492*x^6 - 445*x^5 - 65*x^4 + 452*x^3 - 181*x^2 + 34*x + 229)
-        // f ^ R0(u) * (f ^ q) ^ R1(u) in a 2-NAF multi-exp fashion.
+        // The task is to exponentiate `f` (output of the easy part) by `(u+1)*Phi_k(p(u))/r(u)`
+        // To make an explicit link with [HHT](https://eprint.iacr.org/2020/875), Theorem 4, we have:
+        // Phi_k(p)/r = h_1 * (T + p - 1) + h_2
+        // where T = t - 1 = t_bw + h_t * r - 1
+        // h_1 = c (cofactor) = (h_t^2 + 3*h_y^2) / 4r + (h_t - h_y)/2t_bw + ((t_bw^2)/3 - t_bw + 1)/r - h_t
 
-        // steps 1,2,3
-        let f0 = *f;
-        let mut f0p = f0;
-        f0p.frobenius_map_in_place(1);
-        let f1 = Self::exp_by_x(f0);
-        let mut f1p = f1;
-        f1p.frobenius_map_in_place(1);
-        let f2 = Self::exp_by_x(f1);
-        let mut f2p = f2;
-        f2p.frobenius_map_in_place(1);
-        let f3 = Self::exp_by_x(f2);
-        let mut f3p = f3;
-        f3p.frobenius_map_in_place(1);
-        let f4 = Self::exp_by_x(f3);
-        let mut f4p = f4;
-        f4p.frobenius_map_in_place(1);
-        let f5 = Self::exp_by_x(f4);
-        let mut f5p = f5;
-        f5p.frobenius_map_in_place(1);
-        let f6 = Self::exp_by_x(f5);
-        let mut f6p = f6;
-        f6p.frobenius_map_in_place(1);
-        let f7 = Self::exp_by_x(f6);
-        let mut f7p = f7;
-        f7p.frobenius_map_in_place(1);
+        // compute a = f^(q - 1 - (X-1)^2)
+        let mut a = Self::exp_by_x_minus_1(*m);
+        {
+            let x = <P::Fp as PrimeField>::from_bigint(P::X).unwrap();
+            let tv2 = x - <P::Fp>::one();
+            let tv = m.cyclotomic_exp(tv2.into_bigint());
+            assert_eq!(a, tv)
+        }
+        a = Self::exp_by_x_minus_1(a);
+        a = m * a;
+        a.conjugate_in_place();
+        let f_frob = m.frobenius_map(1);
+        a *= f_frob;
 
-        // step 4
-        let f8p = Self::exp_by_x(f7p);
-        let f9p = Self::exp_by_x(f8p);
+        // compute b = f^(-(X^3-X^2-1) + (X+1)*q)
+        let b = Self::exp_by_x(a) * a * m;
 
-        // step 5
-        let mut f5p_p3 = f5p;
-        f5p_p3.cyclotomic_inverse_in_place();
-        let result1 = f3p * &f6p * &f5p_p3;
+        // now h = b^(c + h_t)
 
-        // step 6
-        let result2 = result1.square();
-        let f4_2p = f4 * &f2p;
-        let mut tmp1_p3 = f0 * &f1 * &f3 * &f4_2p * &f8p;
-        tmp1_p3.cyclotomic_inverse_in_place();
-        let result3 = result2 * &f5 * &f0p * &tmp1_p3;
+        // checking composition of `c`, we need to get the exponent t_bw/3
+        // t_bw/3 = (-X^5 + 3X^4 - 3X^3 + X)/3 (per Table 3 in [HG21])
+        // c = b^((X-1)/3)
+        let c = if P::X_IS_NEGATIVE {
+            let x = <P::Fp as PrimeField>::from_bigint(P::X).unwrap();
+            let tv2 = (x + <P::Fp>::one()) / <P::Fp>::from(3u64);
+            let mut tv = b.cyclotomic_exp(tv2.into_bigint());
+            tv.cyclotomic_inverse_in_place();
+            tv
+        } else {
+            let x = <P::Fp as PrimeField>::from_bigint(P::X).unwrap();
+            let tv2 = (x - <P::Fp>::one()) / <P::Fp>::from(3u64);
+            b.cyclotomic_exp(tv2.into_bigint())
+        };
 
-        // step 7
-        let result4 = result3.square();
-        let mut f7_p3 = f7;
-        f7_p3.cyclotomic_inverse_in_place();
-        let result5 = result4 * &f9p * &f7_p3;
+        {
+            let x = <P::Fp as PrimeField>::from_bigint(P::X).unwrap();
+            let tv2 = (x - <P::Fp>::from(1u64)) / <P::Fp>::from(3u64);
+            let tv = b.cyclotomic_exp(tv2.into_bigint());
+            assert_eq!(c, tv, "failed at c")
+        }
 
-        // step 8
-        let result6 = result5.square();
-        let f2_4p = f2 * &f4p;
-        let f4_2p_5p = f4_2p * &f5p;
-        let mut tmp2_p3 = f2_4p * &f3 * &f3p;
-        tmp2_p3.cyclotomic_inverse_in_place();
-        let result7 = result6 * &f4_2p_5p * &f6 * &f7p * &tmp2_p3;
+        let d = Self::exp_by_x_minus_1(c);
+        {
+            let x = <P::Fp as PrimeField>::from_bigint(P::X).unwrap();
+            let tv2 = (x * x - <P::Fp>::from(2u64) * x + <P::Fp>::one()) / <P::Fp>::from(3u64);
+            let tv = b.cyclotomic_exp(tv2.into_bigint());
+            assert_eq!(d, tv, "failed at d")
+        }
 
-        // step 9
-        let result8 = result7.square();
-        let mut tmp3_p3 = f0p * &f9p;
-        tmp3_p3.cyclotomic_inverse_in_place();
-        let result9 = result8 * &f0 * &f7 * &f1p * &tmp3_p3;
+        let mut e = Self::exp_by_x_minus_1(d);
+        e = Self::exp_by_x_minus_1(e);
+        e *= &d;
 
-        // step 10
-        let result10 = result9.square();
-        let f6p_8p = f6p * &f8p;
-        let f5_7p = f5 * &f7p;
-        let mut tmp4_p3 = f6p_8p;
-        tmp4_p3.cyclotomic_inverse_in_place();
-        let result11 = result10 * &f5_7p * &f2p * &tmp4_p3;
+        {
+            let x = <P::Fp as PrimeField>::from_bigint(P::X).unwrap();
+            let x_minus_1 = x - <P::Fp>::one();
+            let tv2 = ((x_minus_1 * x_minus_1 * x_minus_1 * x_minus_1) + (x_minus_1 * x_minus_1))
+                / <P::Fp>::from(3u64);
+            let tv = b.cyclotomic_exp(tv2.into_bigint());
+            assert_eq!(e, tv, "failed at e")
+        }
 
-        // step 11
-        let result12 = result11.square();
-        let f3_6 = f3 * &f6;
-        let f1_7 = f1 * &f7;
-        let mut tmp5_p3 = f1_7 * &f2;
-        tmp5_p3.cyclotomic_inverse_in_place();
-        let result13 = result12 * &f3_6 * &f9p * &tmp5_p3;
+        let mut f = Self::exp_by_x(e) * &e * &c;
 
-        // step 12
-        let result14 = result13.square();
-        let mut tmp6_p3 = f4_2p * &f5_7p * &f6p_8p;
-        tmp6_p3.cyclotomic_inverse_in_place();
-        let result15 = result14 * &f0 * &f0p * &f3p * &f5p * &tmp6_p3;
+        f.cyclotomic_inverse_in_place();
+        f *= &d;
 
-        // step 13
-        let result16 = result15.square();
-        let mut tmp7_p3 = f3_6;
-        tmp7_p3.cyclotomic_inverse_in_place();
-        let result17 = result16 * &f1p * &tmp7_p3;
+        {
+            let x = <P::Fp as PrimeField>::from_bigint(P::X).unwrap();
+            let x_minus_1 = x - <P::Fp>::one();
+            let x_plus_1 = x + <P::Fp>::one();
+            let tv2 = (x_plus_1 * (x_minus_1 * x_minus_1 * x_minus_1 * x_minus_1)
+                + x_plus_1 * (x_minus_1 * x_minus_1)
+                + x_minus_1)
+                / <P::Fp>::from(3u64);
+            // let tv2 = ((-x * x * x * x * x) + <P::Fp>::from(3u64) * x * x * x * x
+            //     - <P::Fp>::from(3u64) * x * x * x
+            //     + x)
+            //     / <P::Fp>::from(3u64);
+            let mut tv = b.cyclotomic_exp(tv2.into_bigint());
+            tv.cyclotomic_inverse_in_place();
+            tv *= &d;
+            // tv.cyclotomic_exp_in_place(((x_minus_1 * x_minus_1)).into_bigint());
+            assert_eq!(f, tv, "failed at f")
+        }
 
-        // step 14
-        let result18 = result17.square();
-        let mut tmp8_p3 = f2_4p * &f4_2p_5p * &f9p;
-        tmp8_p3.cyclotomic_inverse_in_place();
-        let result19 = result18 * &f1_7 * &f5_7p * &f0p * &tmp8_p3;
+        let mut g = f * &d;
+        g = Self::exp_by_x(g) * g;
+        g.cyclotomic_inverse_in_place();
+        g *= &c * &b;
+        {
+            // let x = <P as PrimeField>::from_bigint(P::X).unwrap();
+            // let x_minus_1 = x - <P::Fp>::one();
+            // let mut tv2 = ((x_minus_1 * x_minus_1 * x_minus_1 * x_minus_1)
+            //     + (x_minus_1 * x_minus_1))
+            //     / <P::Fp>::from(3u64);
+            // tv2 += <P::Fp>::from(2u64);
+            let r = <Self as Pairing>::ScalarField::MODULUS;
+            let tv = b.cyclotomic_exp(r);
+            assert_eq!(g, tv, "failed at g")
+        }
 
-        result19
+        let d1 = (P::H_T - P::H_Y) / 2;
+        let d2 = ((P::H_T ^ 2 + 3 * (P::H_Y ^ 2)) / 4) as u64;
+
+        let mut h = f.cyclotomic_exp(&[d1 as u64]);
+        // let mut h = f.cyclotomic_exp(<P::Fp as PrimeField>::BigInt::from(d1 as u64));
+        {
+            // assert_eq!(h, f.cyclotomic_exp(e))
+        }
+        // let mut h = f.cyclotomic_exp(<P::Fp as PrimeField>::BigInt::from(d1 as u64));
+        if d1 < 0 {
+            h.cyclotomic_inverse_in_place();
+        }
+        h *= &e;
+        g.cyclotomic_exp_in_place(&[d2]);
+        h *= &h * &h * &b * &g;
+
+        {
+            // let c = <Self as Pairing>::G1::COFACTOR;
+            let c = P::G1Config::COFACTOR;
+            let tv = b.cyclotomic_exp(c);
+            let mut tv2 = b.cyclotomic_exp(&[P::H_T as u64]);
+            tv2 *= tv;
+            tv2 = tv2 * tv2 * tv2;
+            // assert_eq!(h, tv, "failed at h");
+            // h = tv2;
+        }
+
+        // compute a = f^3(q - 1 - (u-1)^2)
+        a *= a * a;
+        a.cyclotomic_inverse_in_place();
+        {
+            let x = <P::Fp as PrimeField>::from_bigint(P::X).unwrap();
+            let x_minus_1 = x - <P::Fp>::one();
+            let tv2 = (P::Fp::from(3u64) * (x_minus_1 * x_minus_1) + P::Fp::from(3u64));
+            // + P::Fp::from_bigint(P::Fp::MODULUS).unwrap())
+            // * <P::Fp>::from(3u64);
+            let mut tv = f_frob * f_frob * f_frob;
+            tv.cyclotomic_inverse_in_place();
+            let tv3 = m.cyclotomic_exp(tv2.into_bigint());
+            let tv4 = tv * &tv3;
+            assert_eq!(a, tv4, "failed at a^3")
+        }
+
+        // now the rest
+        let out = h * &a;
+        // {
+        //     let x = <P::Fp as PrimeField>::from_bigint(P::X).unwrap();
+        //     let x_minus_1 = x - <P::Fp>::one();
+        //     let tv2 = (P::Fp::from(3u64) * (x_minus_1 * x_minus_1) + P::Fp::from(3u64));
+        //     // + P::Fp::from_bigint(P::Fp::MODULUS).unwrap())
+        //     // * <P::Fp>::from(3u64);
+        //     let mut tv = f_frob * f_frob * f_frob;
+        //     tv.cyclotomic_inverse_in_place();
+        //     let tv3 = m.cyclotomic_exp(tv2.into_bigint());
+        //     assert_eq!(out, tv4, "failed at a^3")
+        // }
+        out
     }
 }
 
