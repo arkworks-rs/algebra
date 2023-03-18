@@ -1,6 +1,6 @@
 [package]
 name = "ark-poly"
-version = "0.4.2-alpha.1"
+version = "0.4.2"
 authors = [ "arkworks contributors" ]
 description = "A library for efficient polynomial arithmetic via FFTs over finite fields"
 homepage = "https://arkworks.rs"

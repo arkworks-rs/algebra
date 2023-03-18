@@ -1,6 +1,6 @@
 [package]
 name = "ark-ec"
-version = "0.4.2-alpha.1"
+version = "0.4.2"
 authors = [ "arkworks contributors" ]
 description = "A library for elliptic curves and pairings"
 homepage = "https://arkworks.rs"
