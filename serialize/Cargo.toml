@@ -14,7 +14,7 @@ edition = "2021"
 rust-version = "1.63"
 
 [dependencies]
-ark-serialize-derive = { version = "0.4.2-alpha.1", path = "../serialize-derive", optional = true }
+ark-serialize-derive = { version = "0.4.2", path = "../serialize-derive", optional = true }
 ark-std = { version = "0.4.0", default-features = false }
 digest = { version = "0.10", default-features = false }
 num-bigint = { version = "0.4", default-features = false }
@@ -23,7 +23,7 @@ num-bigint = { version = "0.4", default-features = false }
 sha2 = { version = "0.10", default-features = false}
 sha3 = { version = "0.10", default-features = false}
 blake2 = { version = "0.10", default-features = false}
-ark-test-curves = { version = "0.4.2-alpha.1", path = "../test-curves", default-features = false, features = [ "bls12_381_curve"] }
+ark-test-curves = { version = "0.4.2", path = "../test-curves", default-features = false, features = [ "bls12_381_curve"] }
 
 
 [features]
