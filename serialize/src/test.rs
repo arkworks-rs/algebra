@@ -1,4 +1,3 @@
-
 use super::*;
 use ark_std::{
     collections::{BTreeMap, BTreeSet},
@@ -55,9 +54,7 @@ impl CanonicalDeserialize for Dummy {
     }
 }
 
-fn test_serialize<
-    T: PartialEq + core::fmt::Debug + CanonicalSerialize + CanonicalDeserialize,
->(
+fn test_serialize<T: PartialEq + core::fmt::Debug + CanonicalSerialize + CanonicalDeserialize>(
     data: T,
 ) {
     for compress in [Compress::Yes, Compress::No] {
