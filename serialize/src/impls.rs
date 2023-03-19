@@ -508,7 +508,8 @@ impl<T: CanonicalDeserialize> CanonicalDeserialize for Vec<T> {
         validate: Validate,
     ) -> Result<Self, SerializationError> {
         let len = u64::deserialize_with_mode(&mut reader, compress, validate)?
-        .try_into().map_err(|_| SerializationError::NotEnoughSpace) ?;
+            .try_into()
+            .map_err(|_| SerializationError::NotEnoughSpace)?;
         let mut values = Vec::with_capacity(len);
         for _ in 0..len {
             values.push(T::deserialize_with_mode(
