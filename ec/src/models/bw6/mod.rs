@@ -10,7 +10,7 @@ use ark_ff::{
         fp6_2over3::{Fp6, Fp6Config},
         Field, PrimeField,
     },
-    BitIteratorBE, CyclotomicMultSubgroup,
+    BigInteger, BitIteratorBE, CyclotomicMultSubgroup,
 };
 use itertools::Itertools;
 use num_traits::One;
@@ -212,13 +212,14 @@ impl<P: BW6Config> BW6<P> {
         // where T = t - 1 = t_bw + h_t * r - 1
         // h_1 = c (cofactor) = (h_t^2 + 3*h_y^2) / 4r + (h_t - h_y)/2t_bw + ((t_bw^2)/3 - t_bw + 1)/r - h_t
 
+        let x = <P::Fp as PrimeField>::from_bigint(P::X).unwrap();
+        let x_minus_1 = x - <P::Fp>::one();
         // compute a = f^(q - 1 - (X-1)^2)
-        let mut a = Self::exp_by_x_minus_1(*m);
+        let mut a = m.cyclotomic_exp(P::X) * m.cyclotomic_inverse().unwrap();
+        // let mut a = Self::exp_by_x_minus_1(*m);
         {
-            let x = <P::Fp as PrimeField>::from_bigint(P::X).unwrap();
-            let tv2 = x - <P::Fp>::one();
-            let tv = m.cyclotomic_exp(tv2.into_bigint());
-            assert_eq!(a, tv)
+            let tv = m.cyclotomic_exp(x_minus_1.into_bigint());
+            assert_eq!(a, tv, "failed at a")
         }
         a = Self::exp_by_x_minus_1(a);
         a = m * a;
@@ -226,8 +227,16 @@ impl<P: BW6Config> BW6<P> {
         let f_frob = m.frobenius_map(1);
         a *= f_frob;
 
-        // compute b = f^(-(X^3-X^2-1) + (X+1)*q)
+        // compute b = f^(-(X^3-X^2+1) + (X+1)*q)
         let b = Self::exp_by_x(a) * a * m;
+        {
+            let left = x*x*x - x*x + <P::Fp>::one();
+            let right = x + <P::Fp>::one();
+            let tv = m.cyclotomic_exp(left.into_bigint()).cyclotomic_inverse().unwrap();
+            let mut tv2 = m.cyclotomic_exp(right.into_bigint());
+            tv2.frobenius_map_in_place(1);
+            assert_eq!(b, tv * tv2, "failed at b")
+        }
 
         // now h = b^(c + h_t)
 
@@ -247,16 +256,14 @@ impl<P: BW6Config> BW6<P> {
         };
 
         {
-            let x = <P::Fp as PrimeField>::from_bigint(P::X).unwrap();
-            let tv2 = (x - <P::Fp>::from(1u64)) / <P::Fp>::from(3u64);
+            let tv2 = x_minus_1 / <P::Fp>::from(3u64);
             let tv = b.cyclotomic_exp(tv2.into_bigint());
             assert_eq!(c, tv, "failed at c")
         }
 
         let d = Self::exp_by_x_minus_1(c);
         {
-            let x = <P::Fp as PrimeField>::from_bigint(P::X).unwrap();
-            let tv2 = (x * x - <P::Fp>::from(2u64) * x + <P::Fp>::one()) / <P::Fp>::from(3u64);
+            let tv2 = (x_minus_1 * x_minus_1) / <P::Fp>::from(3u64);
             let tv = b.cyclotomic_exp(tv2.into_bigint());
             assert_eq!(d, tv, "failed at d")
         }
@@ -265,12 +272,11 @@ impl<P: BW6Config> BW6<P> {
         e = Self::exp_by_x_minus_1(e);
         e *= &d;
 
+        let cc_0_min_1 =
+            ((x_minus_1 * x_minus_1 * x_minus_1 * x_minus_1) + (x_minus_1 * x_minus_1));
         {
-            let x = <P::Fp as PrimeField>::from_bigint(P::X).unwrap();
-            let x_minus_1 = x - <P::Fp>::one();
-            let tv2 = ((x_minus_1 * x_minus_1 * x_minus_1 * x_minus_1) + (x_minus_1 * x_minus_1))
-                / <P::Fp>::from(3u64);
-            let tv = b.cyclotomic_exp(tv2.into_bigint());
+            let pow = cc_0_min_1 / <P::Fp>::from(3u64);
+            let tv = b.cyclotomic_exp(pow.into_bigint());
             assert_eq!(e, tv, "failed at e")
         }
 
@@ -279,77 +285,59 @@ impl<P: BW6Config> BW6<P> {
         f.cyclotomic_inverse_in_place();
         f *= &d;
 
+        // tr0 = -u^5 + 3*u^4 - 3*u^3 + u
+        let neg_tr_0 = (x * x * x * x * x) - (x * x * x * x * <P::Fp>::from(3u64))
+            + (x * x * x * <P::Fp>::from(3u64))
+            - x;
+
         {
-            let x = <P::Fp as PrimeField>::from_bigint(P::X).unwrap();
-            let x_minus_1 = x - <P::Fp>::one();
-            let x_plus_1 = x + <P::Fp>::one();
-            let tv2 = (x_plus_1 * (x_minus_1 * x_minus_1 * x_minus_1 * x_minus_1)
-                + x_plus_1 * (x_minus_1 * x_minus_1)
-                + x_minus_1)
-                / <P::Fp>::from(3u64);
-            // let tv2 = ((-x * x * x * x * x) + <P::Fp>::from(3u64) * x * x * x * x
-            //     - <P::Fp>::from(3u64) * x * x * x
-            //     + x)
-            //     / <P::Fp>::from(3u64);
+            // let x_plus_1 = x + <P::Fp>::one();
+            let tv2 = neg_tr_0 / <P::Fp>::from(3u64);
+
             let mut tv = b.cyclotomic_exp(tv2.into_bigint());
             tv.cyclotomic_inverse_in_place();
-            tv *= &d;
-            // tv.cyclotomic_exp_in_place(((x_minus_1 * x_minus_1)).into_bigint());
+            // tv *= &d;
             assert_eq!(f, tv, "failed at f")
-        }
-
-        let mut g = f * &d;
-        g = Self::exp_by_x(g) * g;
-        g.cyclotomic_inverse_in_place();
-        g *= &c * &b;
-        {
-            // let x = <P as PrimeField>::from_bigint(P::X).unwrap();
-            // let x_minus_1 = x - <P::Fp>::one();
-            // let mut tv2 = ((x_minus_1 * x_minus_1 * x_minus_1 * x_minus_1)
-            //     + (x_minus_1 * x_minus_1))
-            //     / <P::Fp>::from(3u64);
-            // tv2 += <P::Fp>::from(2u64);
-            let r = <Self as Pairing>::ScalarField::MODULUS;
-            let tv = b.cyclotomic_exp(r);
-            assert_eq!(g, tv, "failed at g")
         }
 
         let d1 = (P::H_T - P::H_Y) / 2;
         let d2 = ((P::H_T ^ 2 + 3 * (P::H_Y ^ 2)) / 4) as u64;
 
-        let mut h = f.cyclotomic_exp(&[d1 as u64]);
-        // let mut h = f.cyclotomic_exp(<P::Fp as PrimeField>::BigInt::from(d1 as u64));
+        let mut g = f * &d;
+        g = Self::exp_by_x(g) * g;
+        g.cyclotomic_inverse_in_place();
+        g *= &c * &b;
+        g.cyclotomic_exp_in_place(&[d2]);
+        let r = <Self as Pairing>::ScalarField::MODULUS;
+        let pow = <P::Fp as PrimeField>::from_be_bytes_mod_order(&r.to_bytes_be());
+
+        let d2_bigint = <P::Fp as PrimeField>::BigInt::from(d2 as u64);
+        let d_2 = <P::Fp as PrimeField>::from_bigint(d2_bigint).unwrap();
+        let r_d2 = d_2 * pow;
         {
-            // assert_eq!(h, f.cyclotomic_exp(e))
+            let tv = b.cyclotomic_exp(r_d2.into_bigint());
+            assert_eq!(g, tv, "failed at g")
         }
-        // let mut h = f.cyclotomic_exp(<P::Fp as PrimeField>::BigInt::from(d1 as u64));
+
+        let mut h = f.cyclotomic_exp(&[d1 as u64]);
+
         if d1 < 0 {
             h.cyclotomic_inverse_in_place();
         }
         h *= &e;
-        g.cyclotomic_exp_in_place(&[d2]);
-        h *= &h * &h * &b * &g;
+        h = &h.square() * &h * &b * &g;
 
         {
-            // let c = <Self as Pairing>::G1::COFACTOR;
-            let c = P::G1Config::COFACTOR;
-            let tv = b.cyclotomic_exp(c);
-            let mut tv2 = b.cyclotomic_exp(&[P::H_T as u64]);
-            tv2 *= tv;
-            tv2 = tv2 * tv2 * tv2;
-            // assert_eq!(h, tv, "failed at h");
-            // h = tv2;
+            let pow = r_d2 - P::Fp::from(d1 as u64) * neg_tr_0 + cc_0_min_1 + <P::Fp>::one();
+            let mut tv2 = b.cyclotomic_exp(&pow.into_bigint());
+            assert_eq!(h, tv2, "failed at h");
         }
 
         // compute a = f^3(q - 1 - (u-1)^2)
-        a *= a * a;
+        a = a.square() * &a;
         a.cyclotomic_inverse_in_place();
         {
-            let x = <P::Fp as PrimeField>::from_bigint(P::X).unwrap();
-            let x_minus_1 = x - <P::Fp>::one();
             let tv2 = (P::Fp::from(3u64) * (x_minus_1 * x_minus_1) + P::Fp::from(3u64));
-            // + P::Fp::from_bigint(P::Fp::MODULUS).unwrap())
-            // * <P::Fp>::from(3u64);
             let mut tv = f_frob * f_frob * f_frob;
             tv.cyclotomic_inverse_in_place();
             let tv3 = m.cyclotomic_exp(tv2.into_bigint());
