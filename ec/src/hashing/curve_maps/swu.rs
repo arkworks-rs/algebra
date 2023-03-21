@@ -36,7 +36,7 @@ pub fn parity<F: Field>(element: &F) -> bool {
 
 impl<P: SWUConfig> MapToCurve<Projective<P>> for SWUMap<P> {
     /// Checks if `P` represents a valid map.
-    fn test_parameters() -> Result<(), HashToCurveError> {
+    fn check_parameters() -> Result<(), HashToCurveError> {
         // Verifying that ZETA is a non-square
         if P::ZETA.legendre().is_qr() {
             return Err(HashToCurveError::MapToCurveError(
