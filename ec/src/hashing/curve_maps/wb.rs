@@ -95,7 +95,7 @@ impl<P: WBConfig> MapToCurve<Projective<P>> for WBMap<P> {
             Err(e) => return Err(e),
         }
 
-        SWUMap::<P::IsogenousCurve>::test_parameters().unwrap(); // Or ?
+        SWUMap::<P::IsogenousCurve>::check_parameters().unwrap(); // Or ?
         Ok(())
     }
 
