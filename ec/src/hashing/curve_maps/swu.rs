@@ -260,9 +260,8 @@ mod test {
 
         let mut map_range: Vec<Affine<TestSWUMapToCurveConfig>> = vec![];
         for current_field_element in 0..127 {
-            map_range.push(
-                SWUMap::<TestSWUMapToCurveConfig>::map_to_curve(F127::from(current_field_element as u64)).unwrap(),
-            );
+            let point = F127::from(current_field_element as u64);
+            map_range.push(SWUMap::<TestSWUMapToCurveConfig>::map_to_curve(point).unwrap());
         }
 
         let mut counts = HashMap::new();
