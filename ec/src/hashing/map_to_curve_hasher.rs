@@ -8,7 +8,7 @@ use ark_std::marker::PhantomData;
 /// Trait for mapping a random field element to a random curve point.
 pub trait MapToCurve<T: CurveGroup>: Sized {
     /// Checks whether supplied parameters represent a valid map.
-    fn test_parameters() -> Result<(), HashToCurveError>;
+    fn check_parameters() -> Result<(), HashToCurveError>;
 
     /// Map an arbitary field element to a corresponding curve point.
     fn map_to_curve(point: T::BaseField) -> Result<T::Affine, HashToCurveError>;
