@@ -85,7 +85,7 @@ pub struct WBMap<P: WBConfig> {
 
 impl<P: WBConfig> MapToCurve<Projective<P>> for WBMap<P> {
     /// Checks if `P` represents a valid map.
-    fn test_parameters() -> Result<(), HashToCurveError> {
+    fn check_parameters() -> Result<(), HashToCurveError> {
         match P::ISOGENY_MAP.apply(P::IsogenousCurve::GENERATOR) {
             Ok(point_on_curve) => {
                 if !point_on_curve.is_on_curve() {
