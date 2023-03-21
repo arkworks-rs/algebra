@@ -33,7 +33,7 @@ where
 {
     fn new(domain: &[u8]) -> Result<Self, HashToCurveError> {
         #[cfg(test)]
-        M2C::check_parameters() ?;
+        M2C::check_parameters()?;
         Ok(MapToCurveBasedHasher {
             field_hasher: H2F::new(domain),
             _curve_mapper: PhantomData,
