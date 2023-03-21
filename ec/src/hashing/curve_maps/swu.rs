@@ -256,7 +256,7 @@ mod test {
     /// elements should be mapped to curve successfully. everything can be mapped
     #[test]
     fn map_field_to_curve_swu() {
-        SWUMap::<TestSWUMapToCurveConfig>::test_parameters().unwrap();
+        SWUMap::<TestSWUMapToCurveConfig>::check_parameters().unwrap();
 
         let mut map_range: Vec<Affine<TestSWUMapToCurveConfig>> = vec![];
         for current_field_element in 0..127 {
