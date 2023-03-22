@@ -4,7 +4,6 @@
 use ark_std::vec::Vec;
 use digest::{DynDigest, ExtendableOutput, Update};
 pub trait Expander {
-    fn construct_dst_prime(&self) -> Vec<u8>;
     fn expand(&self, msg: &[u8], length: usize) -> Vec<u8>;
 }
 const MAX_DST_LENGTH: usize = 255;
@@ -21,7 +20,7 @@ pub(super) struct ExpanderXof<T: Update + Clone + ExtendableOutput> {
     pub(super) k: usize,
 }
 
-impl<T: Update + Clone + ExtendableOutput> Expander for ExpanderXof<T> {
+impl<T: Update + Clone + ExtendableOutput> ExpanderXof<T> {
     fn construct_dst_prime(&self) -> Vec<u8> {
         let mut dst_prime = if self.dst.len() > MAX_DST_LENGTH {
             let mut xofer = self.xofer.clone();
@@ -34,6 +33,9 @@ impl<T: Update + Clone + ExtendableOutput> Expander for ExpanderXof<T> {
         dst_prime.push(dst_prime.len() as u8);
         dst_prime
     }
+}
+
+impl<T: Update + Clone + ExtendableOutput> Expander for ExpanderXof<T> {
     fn expand(&self, msg: &[u8], n: usize) -> Vec<u8> {
         let dst_prime = self.construct_dst_prime();
         let lib_str = &[((n >> 8) & 0xFF) as u8, (n & 0xFF) as u8];
@@ -54,7 +56,7 @@ pub(super) struct ExpanderXmd<T: DynDigest + Clone> {
 
 static Z_PAD: [u8; 256] = [0u8; 256];
 
-impl<T: DynDigest + Clone> Expander for ExpanderXmd<T> {
+impl<T: DynDigest + Clone> ExpanderXmd<T> {
     fn construct_dst_prime(&self) -> Vec<u8> {
         let mut dst_prime = if self.dst.len() > MAX_DST_LENGTH {
             let mut hasher = self.hasher.clone();
@@ -67,6 +69,9 @@ impl<T: DynDigest + Clone> Expander for ExpanderXmd<T> {
         dst_prime.push(dst_prime.len() as u8);
         dst_prime
     }
+}
+
+impl<T: DynDigest + Clone> Expander for ExpanderXmd<T> {
     fn expand(&self, msg: &[u8], n: usize) -> Vec<u8> {
         let mut hasher = self.hasher.clone();
         // output size of the hash function, e.g. 32 bytes = 256 bits for sha2::Sha256
