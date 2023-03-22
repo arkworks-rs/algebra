@@ -52,6 +52,8 @@ pub(super) struct ExpanderXmd<T: DynDigest + Clone> {
     pub(super) block_size: usize,
 }
 
+static Z_PAD: [u8; 256] = [0u8; 256];
+
 impl<T: DynDigest + Clone> Expander for ExpanderXmd<T> {
     fn construct_dst_prime(&self) -> Vec<u8> {
         let mut dst_prime = if self.dst.len() > MAX_DST_LENGTH {
@@ -76,14 +78,13 @@ impl<T: DynDigest + Clone> Expander for ExpanderXmd<T> {
         );
 
         let dst_prime = self.construct_dst_prime();
-        let z_pad: Vec<u8> = vec![0; self.block_size];
         // Represent `len_in_bytes` as a 2-byte array.
         // As per I2OSP method outlined in https://tools.ietf.org/pdf/rfc8017.pdf,
         // The program should abort if integer that we're trying to convert is too large.
         assert!(n < (1 << 16), "Length should be smaller than 2^16");
         let lib_str: [u8; 2] = (n as u16).to_be_bytes();
 
-        hasher.update(&z_pad);
+        hasher.update(&Z_PAD[0..self.block_size]);
         hasher.update(msg);
         hasher.update(&lib_str);
         hasher.update(&[0u8]);
