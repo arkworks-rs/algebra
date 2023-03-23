@@ -41,11 +41,13 @@ impl<H: ExtendableOutput + Clone + Default> ExpanderXof<H> {
 
 impl<H: ExtendableOutput + Clone + Default> Expander for ExpanderXof<H> {
     fn expand(&self, msg: &[u8], n: usize) -> Vec<u8> {
-        let lib_str = &[((n >> 8) & 0xFF) as u8, (n & 0xFF) as u8];
-
         let mut xofer = self.xofer.clone();
         xofer.update(msg);
-        xofer.update(lib_str);
+
+        // I2OSP(len,2) https://www.rfc-editor.org/rfc/rfc8017.txt
+        let lib_str = (n as u16).to_be_bytes();
+        xofer.update(&lib_str);
+
         self.update_dst_prime(&mut xofer);
         xofer.finalize_boxed(n).to_vec()
     }
