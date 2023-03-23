@@ -2,7 +2,11 @@
 // With some optimisations
 
 use ark_std::vec::Vec;
-use digest::{DynDigest, ExtendableOutput, Update};
+
+use digest::{DynDigest, FixedOutput, ExtendableOutput, Update};
+use arrayvec::ArrayVec;
+
+
 pub trait Expander {
     fn expand(&self, msg: &[u8], length: usize) -> Vec<u8>;
 }
@@ -14,29 +18,49 @@ const LONG_DST_PREFIX: [u8; 17] = [
     0x2d,
 ];
 
+
+pub(super) struct DST(arrayvec::ArrayVec<u8,MAX_DST_LENGTH>);
+
+impl DST {
+    pub fn new_fixed<H: FixedOutput+Default>(dst: &[u8]) -> DST {
+        DST(if dst.len() > MAX_DST_LENGTH {
+            let mut long = H::default();
+            long.update(&LONG_DST_PREFIX.clone());
+            long.update(&dst);
+            ArrayVec::try_from( long.finalize_fixed().as_ref() ).unwrap()
+        } else {
+            ArrayVec::try_from(dst).unwrap()
+        })
+    }
+
+    pub fn new_xof<H: ExtendableOutput+Default>(dst: &[u8], k: usize) -> DST {
+        DST(if dst.len() > MAX_DST_LENGTH {
+            let mut long = H::default();
+            long.update(&LONG_DST_PREFIX.clone());
+            long.update(&dst);
+
+            let mut new_dst = [0u8; MAX_DST_LENGTH];
+            let new_dst = &mut new_dst[0..((2 * k + 7) >> 3)];
+            long.finalize_xof_into(new_dst);
+            ArrayVec::try_from( &*new_dst ).unwrap()
+        } else {
+            ArrayVec::try_from(dst).unwrap()
+        })
+    }
+
+    pub fn update<H: Update>(&self, h: &mut H) {
+        h.update(self.0.as_ref());
+        // I2OSP(len,1) https://www.rfc-editor.org/rfc/rfc8017.txt
+        h.update(&[self.0.len() as u8]);
+    }
+}
+
+
+
 pub(super) struct ExpanderXof<H: ExtendableOutput + Clone + Default> {
     pub(super) xofer: H,
     pub(super) dst: Vec<u8>,
     pub(super) k: usize,
-}
-
-impl<H: ExtendableOutput + Clone + Default> ExpanderXof<H> {
-    fn update_dst_prime(&self, h: &mut H) {
-        if self.dst.len() > MAX_DST_LENGTH {
-            let mut long = H::default();
-            long.update(&LONG_DST_PREFIX.clone());
-            long.update(&self.dst);
-
-            let mut new_dst = [0u8; MAX_DST_LENGTH];
-            let new_dst = &mut new_dst[0..((2 * self.k + 7) >> 3)];
-            long.finalize_xof_into(new_dst);
-            h.update(new_dst);
-            h.update(&[new_dst.len() as u8]);
-        } else {
-            h.update(&self.dst);
-            h.update(&[self.dst.len() as u8]);
-        }
-    }
 }
 
 impl<H: ExtendableOutput + Clone + Default> Expander for ExpanderXof<H> {
@@ -48,7 +72,7 @@ impl<H: ExtendableOutput + Clone + Default> Expander for ExpanderXof<H> {
         let lib_str = (n as u16).to_be_bytes();
         xofer.update(&lib_str);
 
-        self.update_dst_prime(&mut xofer);
+        DST::new_xof::<H>(self.dst.as_ref(), self.k).update(&mut xofer);
         xofer.finalize_boxed(n).to_vec()
     }
 }
