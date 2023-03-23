@@ -19,7 +19,7 @@ const LONG_DST_PREFIX: [u8; 17] = [
 ];
 
 
-pub(super) struct DST(pub arrayvec::ArrayVec<u8,MAX_DST_LENGTH>);
+pub(super) struct DST(arrayvec::ArrayVec<u8,MAX_DST_LENGTH>);
 
 impl DST {
     pub fn new_fixed<H: FixedOutput+Default>(dst: &[u8]) -> DST {
@@ -91,7 +91,8 @@ impl<H: ExtendableOutput + Clone + Default> Expander for ExpanderXof<H> {
         let lib_str = (n as u16).to_be_bytes();
         xofer.update(&lib_str);
 
-        self.update_dst_prime(&mut xofer);
+        DST::new_xof::<H>(self.dst.as_ref(), self.k).update(&mut xofer);
+        // self.update_dst_prime(&mut xofer);
         xofer.finalize_boxed(n).to_vec()
     }
 }
