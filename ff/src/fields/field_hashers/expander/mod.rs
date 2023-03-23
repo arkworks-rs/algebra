@@ -77,15 +77,15 @@ impl<H: ExtendableOutput + Clone + Default> Expander for ExpanderXof<H> {
     }
 }
 
-pub(super) struct ExpanderXmd<T: DynDigest + Clone> {
-    pub(super) hasher: T,
+pub(super) struct ExpanderXmd<H: DynDigest + Default + Clone> {
+    pub(super) hasher: H,
     pub(super) dst: Vec<u8>,
     pub(super) block_size: usize,
 }
 
 static Z_PAD: [u8; 256] = [0u8; 256];
 
-impl<T: DynDigest + Clone> ExpanderXmd<T> {
+impl<H: DynDigest + Default + Clone> ExpanderXmd<H> {
     fn construct_dst_prime(&self) -> Vec<u8> {
         let mut dst_prime = if self.dst.len() > MAX_DST_LENGTH {
             let mut hasher = self.hasher.clone();
@@ -100,7 +100,7 @@ impl<T: DynDigest + Clone> ExpanderXmd<T> {
     }
 }
 
-impl<T: DynDigest + Clone> Expander for ExpanderXmd<T> {
+impl<H: DynDigest + Default + Clone> Expander for ExpanderXmd<H> {
     fn expand(&self, msg: &[u8], n: usize) -> Vec<u8> {
         let mut hasher = self.hasher.clone();
         // output size of the hash function, e.g. 32 bytes = 256 bits for sha2::Sha256
@@ -118,6 +118,7 @@ impl<T: DynDigest + Clone> Expander for ExpanderXmd<T> {
         assert!(n < (1 << 16), "Length should be smaller than 2^16");
         let lib_str: [u8; 2] = (n as u16).to_be_bytes();
 
+        let mut hasher = H::default();
         hasher.update(&Z_PAD[0..self.block_size]);
         hasher.update(msg);
         hasher.update(&lib_str);
@@ -125,6 +126,7 @@ impl<T: DynDigest + Clone> Expander for ExpanderXmd<T> {
         hasher.update(&dst_prime);
         let b0 = hasher.finalize_reset();
 
+        let mut hasher = H::default();
         hasher.update(&b0);
         hasher.update(&[1u8]);
         hasher.update(&dst_prime);
@@ -133,6 +135,7 @@ impl<T: DynDigest + Clone> Expander for ExpanderXmd<T> {
         let mut uniform_bytes: Vec<u8> = Vec::with_capacity(n);
         uniform_bytes.extend_from_slice(&bi);
         for i in 2..=ell {
+            let mut hasher = H::default();
             // update the hasher with xor of b_0 and b_i elements
             for (l, r) in b0.iter().zip(bi.iter()) {
                 hasher.update(&[*l ^ *r]);
