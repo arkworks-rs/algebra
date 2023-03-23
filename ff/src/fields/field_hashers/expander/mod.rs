@@ -65,7 +65,7 @@ pub(super) struct ExpanderXof<H: ExtendableOutput + Clone + Default> {
 
 impl<H: ExtendableOutput + Clone + Default> Expander for ExpanderXof<H> {
     fn expand(&self, msg: &[u8], n: usize) -> Vec<u8> {
-        let mut xofer = self.xofer.clone();
+        let mut xofer = H::default();
         xofer.update(msg);
 
         // I2OSP(len,2) https://www.rfc-editor.org/rfc/rfc8017.txt
