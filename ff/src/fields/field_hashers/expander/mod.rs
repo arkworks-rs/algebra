@@ -14,36 +14,39 @@ const LONG_DST_PREFIX: [u8; 17] = [
     0x2d,
 ];
 
-pub(super) struct ExpanderXof<T: Update + Clone + ExtendableOutput> {
-    pub(super) xofer: T,
+pub(super) struct ExpanderXof<H: ExtendableOutput + Clone + Default> {
+    pub(super) xofer: H,
     pub(super) dst: Vec<u8>,
     pub(super) k: usize,
 }
 
-impl<T: Update + Clone + ExtendableOutput> ExpanderXof<T> {
-    fn construct_dst_prime(&self) -> Vec<u8> {
-        let mut dst_prime = if self.dst.len() > MAX_DST_LENGTH {
-            let mut xofer = self.xofer.clone();
-            xofer.update(&LONG_DST_PREFIX.clone());
-            xofer.update(&self.dst);
-            xofer.finalize_boxed((2 * self.k + 7) >> 3).to_vec()
+impl<H: ExtendableOutput + Clone + Default> ExpanderXof<H> {
+    fn update_dst_prime(&self, h: &mut H) {
+        if self.dst.len() > MAX_DST_LENGTH {
+            let mut long = H::default();
+            long.update(&LONG_DST_PREFIX.clone());
+            long.update(&self.dst);
+
+            let mut new_dst = [0u8; MAX_DST_LENGTH];
+            let new_dst = &mut new_dst[0..((2 * self.k + 7) >> 3)];
+            long.finalize_xof_into(new_dst);
+            h.update(new_dst);
+            h.update(&[new_dst.len() as u8]);
         } else {
-            self.dst.clone()
-        };
-        dst_prime.push(dst_prime.len() as u8);
-        dst_prime
+            h.update(&self.dst);
+            h.update(&[self.dst.len() as u8]);
+        }
     }
 }
 
-impl<T: Update + Clone + ExtendableOutput> Expander for ExpanderXof<T> {
+impl<H: ExtendableOutput + Clone + Default> Expander for ExpanderXof<H> {
     fn expand(&self, msg: &[u8], n: usize) -> Vec<u8> {
-        let dst_prime = self.construct_dst_prime();
         let lib_str = &[((n >> 8) & 0xFF) as u8, (n & 0xFF) as u8];
 
         let mut xofer = self.xofer.clone();
         xofer.update(msg);
         xofer.update(lib_str);
-        xofer.update(&dst_prime);
+        self.update_dst_prime(&mut xofer);
         xofer.finalize_boxed(n).to_vec()
     }
 }
