@@ -5,6 +5,34 @@ use ark_test_curves::{
     bls12_381::{Fr, G1Projective},
     bn384_small_two_adicity::Fr as BNFr,
 };
+use crate::{
+    EvaluationDomain,
+    domain::general::GeneralEvaluationDomain, univariate::DensePolynomial,
+};
+
+// Simple test to showcase the usage of FFT and iFFT using
+// ark-poly APIs.
+#[test]
+fn test_fft_example() {
+    // Create a random polynomial of degree 3
+    let coeffs = vec![Fr::from(1u8), Fr::from(2u8), Fr::from(3u8), Fr::from(4u8)];
+    let poly = DensePolynomial {
+        coeffs: coeffs.clone(),
+    };
+    let domain = GeneralEvaluationDomain::<Fr>::new(4).unwrap();
+
+    // Compute the FFT of the evaluations
+    let evals = domain.fft(&coeffs);
+
+    // Compute the inverse FFT of the FFT
+    let inv_fft = domain.ifft(&evals);
+
+    // Convert the inverse FFT back into a polynomial
+    let poly_again = DensePolynomial { coeffs: inv_fft };
+
+    // Verify that the original and reconstructed polynomials match
+    assert_eq!(poly, poly_again);
+}
 
 // Test multiplying various (low degree) polynomials together and
 // comparing with naive evaluations.
