@@ -187,16 +187,16 @@ impl<P: BW6Config> BW6<P> {
         let three = P::Fp::from(3u32);
         if P::X_IS_NEGATIVE {
             let exp = (u + one) / three;
-            f.cyclotomic_exp(exp.into_bigint()).cyclotomic_inverse().unwrap()
+            f.cyclotomic_exp(exp.into_bigint())
+                .cyclotomic_inverse()
+                .unwrap()
         } else {
             let exp = (u - one) / three;
             f.cyclotomic_exp(exp.into_bigint())
         }
     }
 
-    fn final_exponentiation_easy_part(
-        elt: Fp6<P::Fp6Config>
-    ) -> Fp6<P::Fp6Config> {
+    fn final_exponentiation_easy_part(elt: Fp6<P::Fp6Config>) -> Fp6<P::Fp6Config> {
         // (q^3-1)*(q+1)
         let elt_inv = elt.inverse().unwrap();
         // elt_q3 = elt^(q^3)
@@ -237,9 +237,16 @@ impl<P: BW6Config> BW6<P> {
             // E = (D**(u-1))**(u-1) * D
             let e = Self::exp_by_x_minus_1(&Self::exp_by_x_minus_1(&d)) * &d;
             // F = (E**(u+1) * C).conjugate() * D
-            let f = (Self::exp_by_x_plus_1(&e) * &c).cyclotomic_inverse().unwrap() * &d;
+            let f = (Self::exp_by_x_plus_1(&e) * &c)
+                .cyclotomic_inverse()
+                .unwrap()
+                * &d;
             // G = ((F * D)**(u+1)).conjugate() * C * B
-            let g = Self::exp_by_x_plus_1(&(f * &d)).cyclotomic_inverse().unwrap() * &c * &b;
+            let g = Self::exp_by_x_plus_1(&(f * &d))
+                .cyclotomic_inverse()
+                .unwrap()
+                * &c
+                * &b;
             // d2 = (ht**2+3*hy**2)//4
             let d2 = ((P::H_T * P::H_T + 3 * P::H_Y * P::H_Y) / 4) as u32;
             let d2 = <P::Fp as PrimeField>::BigInt::from(d2);
