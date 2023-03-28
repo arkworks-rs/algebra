@@ -213,6 +213,7 @@ impl<P: BW6Config> BW6<P> {
 
     fn final_exponentiation_hard_part(f: &Fp6<P::Fp6Config>) -> Fp6<P::Fp6Config> {
         // Generic implementation of the hard part of the final exponentiation for the BW6 family.
+        // Computes (u+1)*Phi_k(p(u))/r(u)
         if P::T_MOD_R_IS_ZERO {
             // Algorithm 4.3 from https://yelhousni.github.io/phd.pdf
             // Follows the implementation https://gitlab.inria.fr/zk-curves/snark-2-chains/-/blob/master/sage/pairing_bw6_bls12.py#L1036
@@ -252,7 +253,47 @@ impl<P: BW6Config> BW6<P> {
             // return A * H
             a * &h
         } else {
-            unimplemented!()
+            // Algorithm 4.4 from https://yelhousni.github.io/phd.pdf
+            // Follows the implementation https://gitlab.inria.fr/zk-curves/snark-2-chains/-/blob/master/sage/pairing_bw6_bls12.py#L969
+
+            // A = m**(u-1)
+            let a = Self::exp_by_x_minus_1(f);
+            // A = A**(u-1)
+            let a = Self::exp_by_x_minus_1(&a);
+            // A = A * m.frobenius()
+            let a = a * f.frobenius_map(1);
+            // B = A**(u+1) * m.conjugate()
+            let b = Self::exp_by_x_plus_1(&a) * f.cyclotomic_inverse().unwrap();
+            // A = A**2 * A
+            let a = a.square() * &a;
+            // C = B**((u-1)//3)
+            let c = Self::exp_by_x_minus_1_div_3(&b);
+            // D = C**(u-1)
+            let d = Self::exp_by_x_minus_1(&c);
+            // E = (D**(u-1))**(u-1) * D
+            let e = Self::exp_by_x_minus_1(&Self::exp_by_x_minus_1(&d)) * &d;
+            // D = D.conjugate()
+            let d = d.cyclotomic_inverse().unwrap();
+            // Fc = D * B
+            let fc = d * &b;
+            // G = E**(u+1) * Fc
+            let g = Self::exp_by_x_plus_1(&e) * &fc;
+            // H = G * C
+            let h = g * &c;
+            // I = (G * D)**(u+1) * Fc.conjugate()
+            let i = Self::exp_by_x_plus_1(&(g * &d)) * fc.cyclotomic_inverse().unwrap();
+            // d2 = (ht**2+3*hy**2)//4
+            let d2 = ((P::H_T * P::H_T + 3 * P::H_Y * P::H_Y) / 4) as u32;
+            let d2 = <P::Fp as PrimeField>::BigInt::from(d2);
+            // d1 = (ht+hy)//2
+            let d1 = ((P::H_T + P::H_Y) / 2) as u32;
+            let d1 = <P::Fp as PrimeField>::BigInt::from(d1);
+            // J = H**d1 * E
+            let j = h.cyclotomic_exp(d1) * &e;
+            // K = J**2 * J * B * I**d2
+            let k = j.square() * &j * &b * i.cyclotomic_exp(d2);
+            // return A * K
+            a * &k
         }
     }
 }
