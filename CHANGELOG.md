@@ -6,6 +6,8 @@
 
 ### Features
 
+- [\#633](https://github.com/arkworks-rs/algebra/pull/633) (`ark-ec`) Generic pairing implementation for the curves from the BW6 family.
+
 ### Improvements
 
 ### Bugfixes
