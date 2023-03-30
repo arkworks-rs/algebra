@@ -248,15 +248,17 @@ impl<P: BW6Config> BW6<P> {
                 * &c
                 * &b;
             // d2 = (ht**2+3*hy**2)//4
-            let d2 = ((P::H_T * P::H_T + 3 * P::H_Y * P::H_Y) / 4) as u32;
-            let d2 = <P::Fp as PrimeField>::BigInt::from(d2);
+            let d2 = ((P::H_T * P::H_T + 3 * P::H_Y * P::H_Y) / 4) as u64;
             // d1 = (ht-hy)//2
-            let d1 = ((P::H_T - P::H_Y) / 2) as u32;
-            let d1 = <P::Fp as PrimeField>::BigInt::from(d1);
+            let d1 = ((P::H_T - P::H_Y) / 2);
             // H = F**d1 * E
-            let h = f.cyclotomic_exp(d1) * &e;
+            let mut h = f.cyclotomic_exp(&[d1 as u64]);
+            if d1 < 0 {
+                h.cyclotomic_inverse_in_place();
+            }
+            h *= *e;
             // H = H**2 * H * B * G**d2
-            let h = h.square() * &h * &b * g.cyclotomic_exp(d2);
+            let h = h.square() * &h * &b * g.cyclotomic_exp(&[d2]);
             // return A * H
             a * &h
         } else {
