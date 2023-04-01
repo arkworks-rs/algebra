@@ -1,7 +1,7 @@
 #![no_std]
 
 pub use ark_ff;
-pub use ark_ff::{fields::models::*, Field, PrimeField, FftField, LegendreSymbol, MontFp};
+pub use ark_ff::{fields::models::*, FftField, Field, LegendreSymbol, MontFp, PrimeField};
 
 pub use ark_ec;
 pub use ark_ec::*;
