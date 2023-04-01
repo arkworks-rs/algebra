@@ -402,7 +402,10 @@ mod no_std_tests {
     // TODO: only Fr & FrConfig should need to be imported.
     // The rest of imports are caused by cargo not resolving the deps properly
     // from this crate and from ark_test_curves
-    use ark_test_curves::{batch_inversion, batch_inversion_and_mul, bls12_381::Fr, PrimeField};
+    use ark_test_curves::{
+        ark_ff::{batch_inversion, batch_inversion_and_mul, PrimeField},
+        bls12_381::Fr,
+    };
 
     #[test]
     fn test_batch_inversion() {
@@ -457,7 +460,7 @@ mod no_std_tests {
         // TODO: Eventually generate all the test vector bytes via computation with the
         // modulus
         use ark_std::{rand::Rng, string::ToString};
-        use ark_test_curves::BigInteger;
+        use ark_test_curves::ark_ff::BigInteger;
         use num_bigint::BigUint;
 
         let ref_modulus = BigUint::from_bytes_be(&Fr::MODULUS.to_bytes_be());

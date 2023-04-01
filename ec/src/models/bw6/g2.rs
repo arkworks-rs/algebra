@@ -21,8 +21,8 @@ pub type G2Projective<P> = Projective<<P as BW6Config>::G2Config>;
     Eq(bound = "P: BW6Config")
 )]
 pub struct G2Prepared<P: BW6Config> {
-    // Stores the coefficients of the line evaluations as calculated in
-    // https://eprint.iacr.org/2013/722.pdf
+    /// Stores the coefficients of the line evaluations as calculated in
+    /// <https://eprint.iacr.org/2013/722.pdf>
     pub ell_coeffs_1: Vec<(P::Fp, P::Fp, P::Fp)>,
     pub ell_coeffs_2: Vec<(P::Fp, P::Fp, P::Fp)>,
     pub infinity: bool,
@@ -127,7 +127,8 @@ impl<P: BW6Config> G2Prepared<P> {
 impl<P: BW6Config> G2HomProjective<P> {
     fn double_in_place(&mut self) -> (P::Fp, P::Fp, P::Fp) {
         // Formula for line function when working with
-        // homogeneous projective coordinates, as described in https://eprint.iacr.org/2013/722.pdf.
+        // homogeneous projective coordinates, as described in
+        // <https://eprint.iacr.org/2013/722.pdf>.
 
         let a = self.x * &self.y;
         let b = self.y.square();
