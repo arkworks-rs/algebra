@@ -20,8 +20,8 @@ pub type G2Projective<P> = Projective<<P as Bls12Config>::G2Config>;
     Eq(bound = "P: Bls12Config")
 )]
 pub struct G2Prepared<P: Bls12Config> {
-    // Stores the coefficients of the line evaluations as calculated in
-    // https://eprint.iacr.org/2013/722.pdf
+    /// Stores the coefficients of the line evaluations as calculated in
+    /// <https://eprint.iacr.org/2013/722.pdf>
     pub ell_coeffs: Vec<EllCoeff<P>>,
     pub infinity: bool,
 }
