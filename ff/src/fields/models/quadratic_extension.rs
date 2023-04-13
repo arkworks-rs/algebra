@@ -772,8 +772,8 @@ mod quad_ext_tests {
     use super::*;
     use ark_std::test_rng;
     use ark_test_curves::{
+        ark_ff::Field,
         bls12_381::{Fq, Fq2},
-        Field,
     };
 
     #[test]

@@ -14,13 +14,13 @@ Most types in `arkworks-rs` implement these traits.
 To use `ark-serialize`, add the following to your `Cargo.toml`:
 
 ```toml
-ark_serialize = "0.4"
+ark-serialize = "0.4"
 ```
 
 If you additionally want to derive implementations of the `CanonicalSerialize` and `CanonicalDeserialize` traits for your own types, you can enable the `derive` feature:
 
 ```toml
-ark_serialize = { version = "0.4", features = ["derive"] }
+ark-serialize = { version = "0.4", features = ["derive"] }
 ```
 
 ### Examples
