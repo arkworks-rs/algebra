@@ -215,8 +215,9 @@ macro_rules! ec_bench {
                     let mut rng = ark_std::test_rng();
 
                     let v: Vec<_> = (0..SAMPLES)
-                        .map(|_| <$Group>::rand(&mut rng).into_affine())
+                        .map(|_| <$Group>::rand(&mut rng))
                         .collect();
+                    let v = <$Group>::normalize_batch(&v);
                     let scalars: Vec<_> = (0..SAMPLES)
                         .map(|_| Scalar::rand(&mut rng).into_bigint())
                         .collect();
