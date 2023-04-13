@@ -81,7 +81,7 @@ impl<F: Field, H: Default + DynDigest + Clone, const SEC_PARAM: usize> HashToFie
                 );
                 base_prime_field_elems.push(val);
             }
-            let f = F::from_base_prime_field_elems(&base_prime_field_elems).unwrap();
+            let f = F::from_base_prime_field_elems(base_prime_field_elems.drain(..)).unwrap();
             output.push(f);
         }
 

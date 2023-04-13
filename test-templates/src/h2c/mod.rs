@@ -63,8 +63,8 @@ macro_rules! test_h2c {
                     let y = read_fq_vec(&v.p.y);
                     let got = g1_mapper.hash(&v.msg.as_bytes()).unwrap();
                     let want = Affine::<$group>::new_unchecked(
-                        <$field>::from_base_prime_field_elems(&x[..]).unwrap(),
-                        <$field>::from_base_prime_field_elems(&y[..]).unwrap(),
+                        <$field>::from_base_prime_field_elems(x).unwrap(),
+                        <$field>::from_base_prime_field_elems(y).unwrap(),
                     );
                     assert!(got.is_on_curve());
                     assert!(want.is_on_curve());
