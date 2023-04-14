@@ -145,7 +145,8 @@ impl<H: DynDigest + Default + Clone> Expander for ExpanderXmd<H> {
             bi = hasher.finalize_reset();
             uniform_bytes.extend_from_slice(&bi);
         }
-        uniform_bytes[0..n].to_vec()
+        uniform_bytes.truncate(n);
+        uniform_bytes
     }
 }
 
