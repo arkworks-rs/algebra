@@ -3,7 +3,7 @@ mod expander;
 use crate::{Field, PrimeField};
 
 use ark_std::vec::Vec;
-use digest::FixedOutputReset;
+use digest::{FixedOutputReset,XofReader};
 use expander::Expander;
 
 use self::expander::ExpanderXmd;
@@ -83,11 +83,28 @@ impl<F: Field, H: FixedOutputReset + Default + Clone, const SEC_PARAM: usize> Ha
     }
 }
 
+pub fn hash_to_field<F: Field,H: XofReader, const SEC_PARAM: usize>(h: &mut H) -> F {
+    // The final output of `hash_to_field` will be an array of field
+    // elements from F::BaseField, each of size `len_per_elem`.
+    let len_per_base_elem = get_len_per_elem::<F, SEC_PARAM>();
+    // Rust *still* lacks alloca, hence this ugly hack.
+    let mut alloca = [0u8; 2048];
+    let alloca = &mut alloca[0..len_per_base_elem];
+
+    let m = F::extension_degree() as usize;
+
+    let base_prime_field_elem = |_| {
+        h.read(alloca);
+        F::BasePrimeField::from_be_bytes_mod_order(alloca)
+    };
+    F::from_base_prime_field_elems( (0..m).map(base_prime_field_elem) ).unwrap()
+}
+
 /// This function computes the length in bytes that a hash function should output
 /// for hashing an element of type `Field`.
 /// See section 5.1 and 5.3 of the
 /// [IETF hash standardization draft](https://datatracker.ietf.org/doc/draft-irtf-cfrg-hash-to-curve/14/)
-fn get_len_per_elem<F: Field, const SEC_PARAM: usize>() -> usize {
+const fn get_len_per_elem<F: Field, const SEC_PARAM: usize>() -> usize {
     // ceil(log(p))
     let base_field_size_in_bits = F::BasePrimeField::MODULUS_BIT_SIZE as usize;
     // ceil(log(p)) + security_parameter
