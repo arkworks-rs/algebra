@@ -12,11 +12,7 @@ pub trait Expander {
 }
 const MAX_DST_LENGTH: usize = 255;
 
-const LONG_DST_PREFIX: [u8; 17] = [
-    //'H', '2', 'C', '-', 'O', 'V', 'E', 'R', 'S', 'I', 'Z', 'E', '-', 'D', 'S', 'T', '-',
-    0x48, 0x32, 0x43, 0x2d, 0x4f, 0x56, 0x45, 0x52, 0x53, 0x49, 0x5a, 0x45, 0x2d, 0x44, 0x53, 0x54,
-    0x2d,
-];
+const LONG_DST_PREFIX: &[u8; 17] = b"H2C-OVERSIZE-DST-";
 
 
 pub(super) struct DST(arrayvec::ArrayVec<u8,MAX_DST_LENGTH>);
@@ -25,7 +21,7 @@ impl DST {
     pub fn new_fixed<H: FixedOutput+Default>(dst: &[u8]) -> DST {
         DST(if dst.len() > MAX_DST_LENGTH {
             let mut long = H::default();
-            long.update(&LONG_DST_PREFIX.clone());
+            long.update(&LONG_DST_PREFIX[..]);
             long.update(&dst);
             ArrayVec::try_from( long.finalize_fixed().as_ref() ).unwrap()
         } else {
@@ -36,7 +32,7 @@ impl DST {
     pub fn new_xof<H: ExtendableOutput+Default>(dst: &[u8], k: usize) -> DST {
         DST(if dst.len() > MAX_DST_LENGTH {
             let mut long = H::default();
-            long.update(&LONG_DST_PREFIX.clone());
+            long.update(&LONG_DST_PREFIX[..]);
             long.update(&dst);
 
             let mut new_dst = [0u8; MAX_DST_LENGTH];
