@@ -69,7 +69,7 @@ impl<H: ExtendableOutput + Clone + Default> Expander for ExpanderXof<H> {
         xofer.update(&lib_str);
 
         DST::new_xof::<H>(self.dst.as_ref(), self.k).update(&mut xofer);
-        xofer.finalize_boxed(n).to_vec()
+        xofer.finalize_boxed(n).into_vec()
     }
 }
 
