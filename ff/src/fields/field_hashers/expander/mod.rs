@@ -3,7 +3,7 @@
 
 use ark_std::vec::Vec;
 
-use digest::{FixedOutput, ExtendableOutput, Update};
+use digest::{FixedOutputReset, ExtendableOutput, Update};
 use arrayvec::ArrayVec;
 
 
@@ -18,7 +18,7 @@ const LONG_DST_PREFIX: &[u8; 17] = b"H2C-OVERSIZE-DST-";
 pub(super) struct DST(arrayvec::ArrayVec<u8,MAX_DST_LENGTH>);
 
 impl DST {
-    pub fn new_fixed<H: FixedOutput+Default>(dst: &[u8]) -> DST {
+    pub fn new_fixed<H: FixedOutputReset+Default>(dst: &[u8]) -> DST {
         DST(if dst.len() > MAX_DST_LENGTH {
             let mut long = H::default();
             long.update(&LONG_DST_PREFIX[..]);
@@ -73,7 +73,7 @@ impl<H: ExtendableOutput + Clone + Default> Expander for ExpanderXof<H> {
     }
 }
 
-pub(super) struct ExpanderXmd<H: FixedOutput + Default + Clone> {
+pub(super) struct ExpanderXmd<H: FixedOutputReset + Default + Clone> {
     pub(super) hasher: H,
     pub(super) dst: Vec<u8>,
     pub(super) block_size: usize,
@@ -81,7 +81,7 @@ pub(super) struct ExpanderXmd<H: FixedOutput + Default + Clone> {
 
 static Z_PAD: [u8; 256] = [0u8; 256];
 
-impl<H: FixedOutput + Default + Clone> Expander for ExpanderXmd<H> {
+impl<H: FixedOutputReset + Default + Clone> Expander for ExpanderXmd<H> {
     fn expand(&self, msg: &[u8], n: usize) -> Vec<u8> {
         use digest::typenum::Unsigned;
         // output size of the hash function, e.g. 32 bytes = 256 bits for sha2::Sha256
@@ -107,7 +107,6 @@ impl<H: FixedOutput + Default + Clone> Expander for ExpanderXmd<H> {
         dst_prime.update(& mut hasher);
         let b0 = hasher.finalize_fixed();
 
-
         let mut hasher = H::default();
         hasher.update(&b0);
         hasher.update(&[1u8]);
@@ -116,15 +115,15 @@ impl<H: FixedOutput + Default + Clone> Expander for ExpanderXmd<H> {
 
         let mut uniform_bytes: Vec<u8> = Vec::with_capacity(n);
         uniform_bytes.extend_from_slice(&bi);
+        let mut hasher = H::default();
         for i in 2..=ell {
-            let mut hasher = H::default();
             // update the hasher with xor of b_0 and b_i elements
             for (l, r) in b0.iter().zip(bi.iter()) {
                 hasher.update(&[*l ^ *r]);
             }
             hasher.update(&[i as u8]);
             dst_prime.update(& mut hasher);
-            bi = hasher.finalize_fixed();
+            bi = hasher.finalize_fixed_reset();
             uniform_bytes.extend_from_slice(&bi);
         }
         uniform_bytes.truncate(n);
