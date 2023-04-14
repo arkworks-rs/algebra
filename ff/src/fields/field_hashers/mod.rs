@@ -18,7 +18,7 @@ pub trait HashToField<F: Field>: Sized {
     fn new(domain: &[u8]) -> Self;
 
     /// Hash an arbitrary `msg` to #`count` elements from field `F`.
-    fn hash_to_field(&self, msg: &[u8], count: usize) -> Vec<F>;
+    fn hash_to_field<const N: usize>(&self, msg: &[u8]) -> [F; N];
 }
 
 /// This field hasher constructs a Hash-To-Field based on a fixed-output hash function,
@@ -33,7 +33,7 @@ pub trait HashToField<F: Field>: Sized {
 /// use sha2::Sha256;
 ///
 /// let hasher = <DefaultFieldHasher<Sha256> as HashToField<Fq>>::new(&[1, 2, 3]);
-/// let field_elements: Vec<Fq> = hasher.hash_to_field(b"Hello, World!", 2);
+/// let field_elements: [Fq; 2] = hasher.hash_to_field(b"Hello, World!");
 ///
 /// assert_eq!(field_elements.len(), 2);
 /// ```
@@ -62,30 +62,24 @@ impl<F: Field, H: Default + DynDigest + Clone, const SEC_PARAM: usize> HashToFie
         }
     }
 
-    fn hash_to_field(&self, message: &[u8], count: usize) -> Vec<F> {
+    fn hash_to_field<const N: usize>(&self, message: &[u8]) -> [F; N] {
         let m = F::extension_degree() as usize;
 
         // The user imposes a `count` of elements of F_p^m to output per input msg,
         // each field element comprising `m` BasePrimeField elements.
-        let len_in_bytes = count * m * self.len_per_base_elem;
+        let len_in_bytes = N * m * self.len_per_base_elem;
         let uniform_bytes = self.expander.expand(message, len_in_bytes);
 
-        let mut output = Vec::with_capacity(count);
-        let mut base_prime_field_elems = Vec::with_capacity(m);
-        for i in 0..count {
-            base_prime_field_elems.clear();
-            for j in 0..m {
+        let cb = |i| {
+            let base_prime_field_elem = |j| {
                 let elm_offset = self.len_per_base_elem * (j + i * m);
-                let val = F::BasePrimeField::from_be_bytes_mod_order(
+                F::BasePrimeField::from_be_bytes_mod_order(
                     &uniform_bytes[elm_offset..][..self.len_per_base_elem],
-                );
-                base_prime_field_elems.push(val);
-            }
-            let f = F::from_base_prime_field_elems(base_prime_field_elems.drain(..)).unwrap();
-            output.push(f);
-        }
-
-        output
+                )
+            };
+            F::from_base_prime_field_elems( (0..m).map( base_prime_field_elem ) ).unwrap()
+        };
+        ark_std::array::from_fn::<F,N,_>(cb)
     }
 }
 
