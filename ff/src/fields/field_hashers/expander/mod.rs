@@ -81,21 +81,6 @@ pub(super) struct ExpanderXmd<H: FixedOutput + Default + Clone> {
 
 static Z_PAD: [u8; 256] = [0u8; 256];
 
-impl<H: FixedOutput + Default + Clone> ExpanderXmd<H> {
-    fn construct_dst_prime(&self) -> Vec<u8> {
-        let mut dst_prime = if self.dst.len() > MAX_DST_LENGTH {
-            let mut hasher = self.hasher.clone();
-            hasher.update(&LONG_DST_PREFIX);
-            hasher.update(&self.dst);
-            hasher.finalize_fixed().to_vec()
-        } else {
-            self.dst.clone()
-        };
-        dst_prime.push(dst_prime.len() as u8);
-        dst_prime
-    }
-}
-
 impl<H: FixedOutput + Default + Clone> Expander for ExpanderXmd<H> {
     fn expand(&self, msg: &[u8], n: usize) -> Vec<u8> {
         use digest::typenum::Unsigned;
@@ -107,7 +92,7 @@ impl<H: FixedOutput + Default + Clone> Expander for ExpanderXmd<H> {
             "The ratio of desired output to the output size of hash function is too large!"
         );
 
-        let dst_prime = self.construct_dst_prime();
+        let dst_prime = DST::new_fixed::<H>(self.dst.as_ref());
         // Represent `len_in_bytes` as a 2-byte array.
         // As per I2OSP method outlined in https://tools.ietf.org/pdf/rfc8017.pdf,
         // The program should abort if integer that we're trying to convert is too large.
@@ -119,13 +104,14 @@ impl<H: FixedOutput + Default + Clone> Expander for ExpanderXmd<H> {
         hasher.update(msg);
         hasher.update(&lib_str);
         hasher.update(&[0u8]);
-        hasher.update(&dst_prime);
+        dst_prime.update(& mut hasher);
         let b0 = hasher.finalize_fixed();
+
 
         let mut hasher = H::default();
         hasher.update(&b0);
         hasher.update(&[1u8]);
-        hasher.update(&dst_prime);
+        dst_prime.update(& mut hasher);
         let mut bi = hasher.finalize_fixed();
 
         let mut uniform_bytes: Vec<u8> = Vec::with_capacity(n);
@@ -137,7 +123,7 @@ impl<H: FixedOutput + Default + Clone> Expander for ExpanderXmd<H> {
                 hasher.update(&[*l ^ *r]);
             }
             hasher.update(&[i as u8]);
-            hasher.update(&dst_prime);
+            dst_prime.update(& mut hasher);
             bi = hasher.finalize_fixed();
             uniform_bytes.extend_from_slice(&bi);
         }
