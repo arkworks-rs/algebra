@@ -3,7 +3,7 @@ mod expander;
 use crate::{Field, PrimeField};
 
 use ark_std::vec::Vec;
-use digest::DynDigest;
+use digest::FixedOutput;
 use expander::Expander;
 
 use self::expander::ExpanderXmd;
@@ -37,12 +37,12 @@ pub trait HashToField<F: Field>: Sized {
 ///
 /// assert_eq!(field_elements.len(), 2);
 /// ```
-pub struct DefaultFieldHasher<H: Default + DynDigest + Clone, const SEC_PARAM: usize = 128> {
+pub struct DefaultFieldHasher<H: FixedOutput + Default + Clone, const SEC_PARAM: usize = 128> {
     expander: ExpanderXmd<H>,
     len_per_base_elem: usize,
 }
 
-impl<F: Field, H: Default + DynDigest + Clone, const SEC_PARAM: usize> HashToField<F>
+impl<F: Field, H: FixedOutput + Default + Clone, const SEC_PARAM: usize> HashToField<F>
     for DefaultFieldHasher<H, SEC_PARAM>
 {
     fn new(dst: &[u8]) -> Self {

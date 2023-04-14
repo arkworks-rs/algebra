@@ -3,7 +3,7 @@
 
 use ark_std::vec::Vec;
 
-use digest::{DynDigest, FixedOutput, ExtendableOutput, Update};
+use digest::{FixedOutput, ExtendableOutput, Update};
 use arrayvec::ArrayVec;
 
 
@@ -77,7 +77,7 @@ impl<H: ExtendableOutput + Clone + Default> Expander for ExpanderXof<H> {
     }
 }
 
-pub(super) struct ExpanderXmd<H: DynDigest + Default + Clone> {
+pub(super) struct ExpanderXmd<H: FixedOutput + Default + Clone> {
     pub(super) hasher: H,
     pub(super) dst: Vec<u8>,
     pub(super) block_size: usize,
@@ -85,13 +85,13 @@ pub(super) struct ExpanderXmd<H: DynDigest + Default + Clone> {
 
 static Z_PAD: [u8; 256] = [0u8; 256];
 
-impl<H: DynDigest + Default + Clone> ExpanderXmd<H> {
+impl<H: FixedOutput + Default + Clone> ExpanderXmd<H> {
     fn construct_dst_prime(&self) -> Vec<u8> {
         let mut dst_prime = if self.dst.len() > MAX_DST_LENGTH {
             let mut hasher = self.hasher.clone();
             hasher.update(&LONG_DST_PREFIX);
             hasher.update(&self.dst);
-            hasher.finalize_reset().to_vec()
+            hasher.finalize_fixed().to_vec()
         } else {
             self.dst.clone()
         };
@@ -100,11 +100,11 @@ impl<H: DynDigest + Default + Clone> ExpanderXmd<H> {
     }
 }
 
-impl<H: DynDigest + Default + Clone> Expander for ExpanderXmd<H> {
+impl<H: FixedOutput + Default + Clone> Expander for ExpanderXmd<H> {
     fn expand(&self, msg: &[u8], n: usize) -> Vec<u8> {
-        let mut hasher = self.hasher.clone();
+        use digest::typenum::Unsigned;
         // output size of the hash function, e.g. 32 bytes = 256 bits for sha2::Sha256
-        let b_len = hasher.output_size();
+        let b_len = H::OutputSize::to_usize();
         let ell = (n + (b_len - 1)) / b_len;
         assert!(
             ell <= 255,
@@ -124,13 +124,13 @@ impl<H: DynDigest + Default + Clone> Expander for ExpanderXmd<H> {
         hasher.update(&lib_str);
         hasher.update(&[0u8]);
         hasher.update(&dst_prime);
-        let b0 = hasher.finalize_reset();
+        let b0 = hasher.finalize_fixed();
 
         let mut hasher = H::default();
         hasher.update(&b0);
         hasher.update(&[1u8]);
         hasher.update(&dst_prime);
-        let mut bi = hasher.finalize_reset();
+        let mut bi = hasher.finalize_fixed();
 
         let mut uniform_bytes: Vec<u8> = Vec::with_capacity(n);
         uniform_bytes.extend_from_slice(&bi);
@@ -142,7 +142,7 @@ impl<H: DynDigest + Default + Clone> Expander for ExpanderXmd<H> {
             }
             hasher.update(&[i as u8]);
             hasher.update(&dst_prime);
-            bi = hasher.finalize_reset();
+            bi = hasher.finalize_fixed();
             uniform_bytes.extend_from_slice(&bi);
         }
         uniform_bytes.truncate(n);
