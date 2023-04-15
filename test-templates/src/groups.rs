@@ -157,6 +157,7 @@ macro_rules! __test_group {
                         let mut cursor = Cursor::new(&mut serialized[..]);
                         a.serialize_with_mode(&mut cursor, compress).unwrap_err();
                     }
+
                     // Test that deserializing from a buffer that is not big enough
                     // will yield and error.
                     // This test does not explicitly check that the error is due to
