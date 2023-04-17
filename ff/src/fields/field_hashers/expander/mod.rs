@@ -3,12 +3,13 @@
 
 use ark_std::vec::Vec;
 
-use digest::{FixedOutputReset, ExtendableOutput, Update};
+use digest::{FixedOutputReset, ExtendableOutput, XofReader, Update};
 use arrayvec::ArrayVec;
 
 
 pub trait Expander {
-    fn expand(&self, msg: &[u8], length: usize) -> Vec<u8>;
+    type R: XofReader;
+    fn expand(&self, msg: &[u8], length: usize) -> Self::R;
 }
 const MAX_DST_LENGTH: usize = 255;
 
@@ -61,7 +62,8 @@ pub(super) struct ExpanderXof<H: ExtendableOutput + Clone + Default> {
 }
 
 impl<H: ExtendableOutput + Clone + Default> Expander for ExpanderXof<H> {
-    fn expand(&self, msg: &[u8], n: usize) -> Vec<u8> {
+    type R = <H as ExtendableOutput>::Reader;
+    fn expand(&self, msg: &[u8], n: usize) -> Self::R {
         let mut xofer = H::default();
         xofer.update(msg);
 
@@ -70,7 +72,7 @@ impl<H: ExtendableOutput + Clone + Default> Expander for ExpanderXof<H> {
         xofer.update(&lib_str);
 
         DST::new_xof::<H>(self.dst.as_ref(), self.k).update(&mut xofer);
-        xofer.finalize_boxed(n).into_vec()
+        xofer.finalize_xof()
     }
 }
 
@@ -83,7 +85,8 @@ pub(super) struct ExpanderXmd<H: FixedOutputReset + Default + Clone> {
 static Z_PAD: [u8; 256] = [0u8; 256];
 
 impl<H: FixedOutputReset + Default + Clone> Expander for ExpanderXmd<H> {
-    fn expand(&self, msg: &[u8], n: usize) -> Vec<u8> {
+    type R = XofVec;
+    fn expand(&self, msg: &[u8], n: usize) -> Self::R {
         use digest::typenum::Unsigned;
         // output size of the hash function, e.g. 32 bytes = 256 bits for sha2::Sha256
         let b_len = H::OutputSize::to_usize();
@@ -113,8 +116,8 @@ impl<H: FixedOutputReset + Default + Clone> Expander for ExpanderXmd<H> {
         dst_prime.update(& mut hasher);
         let mut bi = hasher.finalize_fixed_reset();
 
-        let mut uniform_bytes: Vec<u8> = Vec::with_capacity(n);
-        uniform_bytes.extend_from_slice(&bi);
+        let mut bytes: Vec<u8> = Vec::with_capacity(n); 
+        bytes.extend_from_slice(&bi);
         for i in 2..=ell {
             // update the hasher with xor of b_0 and b_i elements
             for (l, r) in b0.iter().zip(bi.iter()) {
@@ -123,12 +126,30 @@ impl<H: FixedOutputReset + Default + Clone> Expander for ExpanderXmd<H> {
             hasher.update(&[i as u8]);
             dst_prime.update(& mut hasher);
             bi = hasher.finalize_fixed_reset();
-            uniform_bytes.extend_from_slice(&bi);
+            bytes.extend_from_slice(&bi);
         }
-        uniform_bytes.truncate(n);
-        uniform_bytes
+        bytes.truncate(n);
+        XofVec { bytes, pos: 0 }
     }
 }
+
+
+pub struct XofVec {
+    bytes: Vec<u8>,
+    pos: usize,
+}
+
+impl XofReader for XofVec {
+    fn read(&mut self, buffer: &mut [u8]) {
+        let end = self.pos + buffer.len();
+        if end > self.bytes.len() {
+            panic!("Read more than claimed form expand_message_xmd")
+        }
+        buffer.copy_from_slice(&self.bytes[self.pos..end]);
+        self.pos = end;
+    }
+}
+
 
 #[cfg(all(test, feature = "std"))]
 mod tests;

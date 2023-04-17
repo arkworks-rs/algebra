@@ -68,17 +68,9 @@ impl<F: Field, H: FixedOutputReset + Default + Clone, const SEC_PARAM: usize> Ha
         // The user imposes a `count` of elements of F_p^m to output per input msg,
         // each field element comprising `m` BasePrimeField elements.
         let len_in_bytes = N * m * self.len_per_base_elem;
-        let uniform_bytes = self.expander.expand(message, len_in_bytes);
+        let mut uniform_bytes = self.expander.expand(message, len_in_bytes);
 
-        let cb = |i| {
-            let base_prime_field_elem = |j| {
-                let elm_offset = self.len_per_base_elem * (j + i * m);
-                F::BasePrimeField::from_be_bytes_mod_order(
-                    &uniform_bytes[elm_offset..][..self.len_per_base_elem],
-                )
-            };
-            F::from_base_prime_field_elems( (0..m).map( base_prime_field_elem ) ).unwrap()
-        };
+        let cb = |_| hash_to_field::<F,_,SEC_PARAM>(&mut uniform_bytes);
         ark_std::array::from_fn::<F,N,_>(cb)
     }
 }
@@ -88,14 +80,18 @@ pub fn hash_to_field<F: Field,H: XofReader, const SEC_PARAM: usize>(h: &mut H) -
     // elements from F::BaseField, each of size `len_per_elem`.
     let len_per_base_elem = get_len_per_elem::<F, SEC_PARAM>();
     // Rust *still* lacks alloca, hence this ugly hack.
-    let mut alloca = [0u8; 2048];
+    if len_per_base_elem > 256 {
+        panic!("PrimeField larger than 1913 bits!");
+    }
+    let mut alloca = [0u8; 256];
     let alloca = &mut alloca[0..len_per_base_elem];
 
     let m = F::extension_degree() as usize;
 
     let base_prime_field_elem = |_| {
         h.read(alloca);
-        F::BasePrimeField::from_be_bytes_mod_order(alloca)
+        alloca.reverse();  // Need BE but Arkworks' LE is faster 
+        F::BasePrimeField::from_le_bytes_mod_order(alloca)
     };
     F::from_base_prime_field_elems( (0..m).map(base_prime_field_elem) ).unwrap()
 }
