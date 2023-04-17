@@ -14,11 +14,13 @@ const MAX_DST_LENGTH: usize = 255;
 
 const LONG_DST_PREFIX: &[u8; 17] = b"H2C-OVERSIZE-DST-";
 
-
-pub(super) struct DST(arrayvec::ArrayVec<u8,MAX_DST_LENGTH>);
+/// Implements section [5.3.3](https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-hash-to-curve-16#section-5.3.3)
+/// "Using DSTs longer than 255 bytes" of the 
+/// [IRTF CFRG hash-to-curve draft #16](https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-hash-to-curve-16#section-5.3.3).
+pub struct DST(arrayvec::ArrayVec<u8,MAX_DST_LENGTH>);
 
 impl DST {
-    pub fn new_fixed<H: FixedOutputReset+Default>(dst: &[u8]) -> DST {
+    pub fn new_xmd<H: FixedOutputReset+Default>(dst: &[u8]) -> DST {
         DST(if dst.len() > MAX_DST_LENGTH {
             let mut long = H::default();
             long.update(&LONG_DST_PREFIX[..]);
@@ -50,7 +52,6 @@ impl DST {
         h.update(&[self.0.len() as u8]);
     }
 }
-
 
 
 pub(super) struct ExpanderXof<H: ExtendableOutput + Clone + Default> {
@@ -92,7 +93,7 @@ impl<H: FixedOutputReset + Default + Clone> Expander for ExpanderXmd<H> {
             "The ratio of desired output to the output size of hash function is too large!"
         );
 
-        let dst_prime = DST::new_fixed::<H>(self.dst.as_ref());
+        let dst_prime = DST::new_xmd::<H>(self.dst.as_ref());
         // Represent `len_in_bytes` as a 2-byte array.
         // As per I2OSP method outlined in https://tools.ietf.org/pdf/rfc8017.pdf,
         // The program should abort if integer that we're trying to convert is too large.
