@@ -106,17 +106,15 @@ impl<H: FixedOutputReset + Default + Clone> Expander for ExpanderXmd<H> {
         hasher.update(&lib_str);
         hasher.update(&[0u8]);
         dst_prime.update(& mut hasher);
-        let b0 = hasher.finalize_fixed();
+        let b0 = hasher.finalize_fixed_reset();
 
-        let mut hasher = H::default();
         hasher.update(&b0);
         hasher.update(&[1u8]);
         dst_prime.update(& mut hasher);
-        let mut bi = hasher.finalize_fixed();
+        let mut bi = hasher.finalize_fixed_reset();
 
         let mut uniform_bytes: Vec<u8> = Vec::with_capacity(n);
         uniform_bytes.extend_from_slice(&bi);
-        let mut hasher = H::default();
         for i in 2..=ell {
             // update the hasher with xor of b_0 and b_i elements
             for (l, r) in b0.iter().zip(bi.iter()) {
