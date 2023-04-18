@@ -1,6 +1,7 @@
 use std::str::FromStr;
 
 use num_bigint::{BigInt, Sign};
+use num_traits::Num;
 use proc_macro::TokenStream;
 use syn::{Expr, Lit};
 
@@ -26,9 +27,25 @@ pub fn str_to_limbs(num: &str) -> (bool, Vec<String>) {
 }
 
 pub fn str_to_limbs_u64(num: &str) -> (bool, Vec<u64>) {
-    let (sign, digits) = BigInt::from_str(num)
-        .expect("could not parse to bigint")
-        .to_radix_le(16);
+    let is_negative = num.starts_with('-');
+    let num = if is_negative { &num[1..] } else { num };
+    let number = if num.starts_with("0x") || num.starts_with("0X") {
+        // We are in hexadecimal
+        BigInt::from_str_radix(&num[2..], 16)
+    } else if num.starts_with("0o") || num.starts_with("0O") {
+        // We are in octal
+        BigInt::from_str_radix(&num[2..], 8)
+    } else if num.starts_with("0b") || num.starts_with("0B") {
+        // We are in binary
+        BigInt::from_str_radix(&num[2..], 2)
+    } else {
+        // We are in decimal
+        BigInt::from_str(num)
+    }
+    .expect("could not parse to bigint");
+    let number = if is_negative { -number } else { number };
+    let (sign, digits) = number.to_radix_le(16);
+
     let limbs = digits
         .chunks(16)
         .map(|chunk| {
