@@ -80,18 +80,21 @@ pub fn hash_to_field<F: Field,H: XofReader, const SEC_PARAM: usize>(h: &mut H) -
     // elements from F::BaseField, each of size `len_per_elem`.
     let len_per_base_elem = get_len_per_elem::<F, SEC_PARAM>();
     // Rust *still* lacks alloca, hence this ugly hack.
-    if len_per_base_elem > 256 {
-        panic!("PrimeField larger than 1913 bits!");
-    }
     let mut alloca = [0u8; 256];
-    let alloca = &mut alloca[0..len_per_base_elem];
+    let mut vec = Vec::new();
+    let bytes = if len_per_base_elem > 256 {
+        vec.resize(len_per_base_elem, 0u8);
+        vec.as_mut()
+    } else {
+        &mut alloca[0..len_per_base_elem]
+    };
 
     let m = F::extension_degree() as usize;
 
     let base_prime_field_elem = |_| {
-        h.read(alloca);
-        alloca.reverse();  // Need BE but Arkworks' LE is faster 
-        F::BasePrimeField::from_le_bytes_mod_order(alloca)
+        h.read(&mut *bytes);
+        bytes.reverse();  // Need BE but Arkworks' LE is faster 
+        F::BasePrimeField::from_le_bytes_mod_order(&mut *bytes)
     };
     F::from_base_prime_field_elems( (0..m).map(base_prime_field_elem) ).unwrap()
 }
