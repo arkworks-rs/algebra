@@ -46,12 +46,19 @@ pub trait BW6Config: 'static + Eq + Sized {
         ScalarField = <Self::G1Config as CurveConfig>::ScalarField,
     >;
 
-    fn exp_by_x(f: &Fp6<Self::Fp6Config>) -> Fp6<Self::Fp6Config> {
-        let mut f = f.cyclotomic_exp(&Self::X);
-        if Self::X_IS_NEGATIVE {
+    // Computes the exponent of an element of the cyclotomic subgroup,
+    // and inverses the result if necessary.
+    fn cyclotomic_exp_signed(f: &Fp6<Self::Fp6Config>, x: impl AsRef<[u64]>, invert: bool) -> Fp6<Self::Fp6Config> {
+        let mut f = f.cyclotomic_exp(x);
+        if invert {
             f.cyclotomic_inverse_in_place();
         }
         f
+    }
+
+    // Computes the exponent of an element of the cyclotomic subgroup by the curve seed
+    fn exp_by_x(f: &Fp6<Self::Fp6Config>) -> Fp6<Self::Fp6Config> {
+        Self::cyclotomic_exp_signed(f, &Self::X, Self::X_IS_NEGATIVE)
     }
 
     fn final_exponentiation_hard_part(f: &Fp6<Self::Fp6Config>) -> Fp6<Self::Fp6Config> {
@@ -255,11 +262,7 @@ impl<P: BW6Config> BW6<P> {
             // d1 = (ht-hy)//2
             let d1 = (P::H_T - P::H_Y) / 2;
             // H = F**d1 * E
-            let mut h = f.cyclotomic_exp(&[d1 as u64]);
-            if d1 < 0 {
-                h.cyclotomic_inverse_in_place();
-            }
-            h *= e;
+            let h = P::cyclotomic_exp_signed(&f, &[d1 as u64], d1 < 0) * &e;
             // H = H**2 * H * B * G**d2
             let h = h.square() * &h * &b * g.cyclotomic_exp(&[d2]);
             // return A * H
@@ -299,11 +302,7 @@ impl<P: BW6Config> BW6<P> {
             // d1 = (ht+hy)//2
             let d1 = (P::H_T + P::H_Y) / 2;
             // J = H**d1 * E
-            let mut j = h.cyclotomic_exp(&[d1 as u64]);
-            if d1 < 0 {
-                j.cyclotomic_inverse_in_place();
-            }
-            j *= e;
+            let j = P::cyclotomic_exp_signed(&h, &[d1 as u64], d1 < 0) * &e;
             // K = J**2 * J * B * I**d2
             let k = j.square() * &j * &b * i.cyclotomic_exp(&[d2]);
             // return A * K
