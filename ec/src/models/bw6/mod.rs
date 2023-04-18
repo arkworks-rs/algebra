@@ -196,11 +196,7 @@ impl<P: BW6Config> BW6<P> {
     }
 
     fn exp_by_x_minus_1_div_3(f: &Fp6<P::Fp6Config>) -> Fp6<P::Fp6Config> {
-        let mut f = f.cyclotomic_exp(P::X_MINUS_1_DIV_3);
-        if P::X_IS_NEGATIVE {
-            f.cyclotomic_inverse_in_place();
-        }
-        f
+        P::cyclotomic_exp_signed(f, &P::X_MINUS_1_DIV_3, P::X_IS_NEGATIVE)
     }
 
     // f^[(p^3-1)(p+1)]
