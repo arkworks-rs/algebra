@@ -192,19 +192,26 @@ impl<P: BW6Config> BW6<P> {
         f
     }
 
-    fn final_exponentiation_easy_part(elt: Fp6<P::Fp6Config>) -> Fp6<P::Fp6Config> {
-        // (q^3-1)*(q+1)
-        let elt_inv = elt.inverse().unwrap();
-        // elt_q3 = elt^(q^3)
-        let mut elt_q3 = elt;
-        elt_q3.cyclotomic_inverse_in_place();
-        // elt_q3_over_elt = elt^(q^3-1)
-        let elt_q3_over_elt = elt_q3 * elt_inv;
-        // alpha = elt^((q^3-1) * q)
-        let mut alpha = elt_q3_over_elt;
-        alpha.frobenius_map_in_place(1);
-        // beta = elt^((q^3-1)*(q+1)
-        alpha * &elt_q3_over_elt
+    // f^[(p^3-1)(p+1)]
+    fn final_exponentiation_easy_part(f: Fp6<P::Fp6Config>) -> Fp6<P::Fp6Config> {
+        // f^(-1)
+        let f_inv = f.inverse().unwrap();
+        // f^(p^3)
+        let f_p3 =  {
+            let mut f = f;
+            f.conjugate_in_place();
+            f
+        };
+        // g := f^(p^3-1) = f^(p^3) * f^(-1)
+        let g = f_p3 * f_inv;
+        // g^p
+        let g_p = {
+            let mut g = g;
+            g.frobenius_map_in_place(1);
+            g
+        };
+        // g^(p+1) = g^p * g
+        g_p * &g
     }
 
     fn final_exponentiation_hard_part(f: &Fp6<P::Fp6Config>) -> Fp6<P::Fp6Config> {
