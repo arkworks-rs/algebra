@@ -3,10 +3,13 @@ mod expander;
 use crate::{Field, PrimeField};
 
 use ark_std::vec::Vec;
-use digest::{FixedOutputReset,XofReader};
-use expander::Expander;
+use digest::{ExtendableOutput,FixedOutputReset,XofReader};
+pub use expander::DST;
 
-use self::expander::ExpanderXmd;
+
+// pub trait HashToField: Field {
+//     fn hash_to_field() -> Self;
+// }
 
 /// Trait for hashing messages to field elements.
 pub trait HashToField<F: Field>: Sized {
@@ -28,54 +31,44 @@ pub trait HashToField<F: Field>: Sized {
 /// # Examples
 ///
 /// ```
-/// use ark_ff::fields::field_hashers::{DefaultFieldHasher, HashToField};
+/// use ark_ff::fields::field_hashers::{xmd_hash_to_field};
 /// use ark_test_curves::bls12_381::Fq;
 /// use sha2::Sha256;
 ///
-/// let hasher = <DefaultFieldHasher<Sha256> as HashToField<Fq>>::new(&[1, 2, 3]);
-/// let field_elements: [Fq; 2] = hasher.hash_to_field(b"Hello, World!");
+/// let field_elements: [Fq; 2] = xmd_hash_to_field::<Sha256,128,Fq,2>(b"Application",b"Hello, World!");
 ///
 /// assert_eq!(field_elements.len(), 2);
 /// ```
-pub struct DefaultFieldHasher<H: FixedOutputReset + Default + Clone, const SEC_PARAM: usize = 128> {
-    expander: ExpanderXmd<H>,
-    len_per_base_elem: usize,
-}
-
-impl<F: Field, H: FixedOutputReset + Default + Clone, const SEC_PARAM: usize> HashToField<F>
-    for DefaultFieldHasher<H, SEC_PARAM>
+pub fn xmd_hash_to_field<H,const SEC_PARAM: usize,F,const N: usize>(dst: &[u8], msg: &[u8]) -> [F; N]
+where F: Field, H: FixedOutputReset+Default,
 {
-    fn new(dst: &[u8]) -> Self {
-        // The final output of `hash_to_field` will be an array of field
-        // elements from F::BaseField, each of size `len_per_elem`.
-        let len_per_base_elem = get_len_per_elem::<F, SEC_PARAM>();
+    let dst = DST::new_xmd::<H>(dst);
 
-        let expander = ExpanderXmd {
-            hasher: H::default(),
-            dst: dst.to_vec(),
-            block_size: len_per_base_elem,
-        };
+    let len_per_base_elem = get_len_per_elem::<F, SEC_PARAM>();
+    let m = F::extension_degree() as usize;
+    let total_length = N * m * len_per_base_elem;
+    let mut xmd = dst.expand_xmd::<H>(len_per_base_elem, msg, total_length);
 
-        DefaultFieldHasher {
-            expander,
-            len_per_base_elem,
-        }
-    }
-
-    fn hash_to_field<const N: usize>(&self, message: &[u8]) -> [F; N] {
-        let m = F::extension_degree() as usize;
-
-        // The user imposes a `count` of elements of F_p^m to output per input msg,
-        // each field element comprising `m` BasePrimeField elements.
-        let len_in_bytes = N * m * self.len_per_base_elem;
-        let mut uniform_bytes = self.expander.expand(message, len_in_bytes);
-
-        let cb = |_| hash_to_field::<F,_,SEC_PARAM>(&mut uniform_bytes);
-        ark_std::array::from_fn::<F,N,_>(cb)
-    }
+    let h2f = |_| hash_to_field::<SEC_PARAM,F,_>(&mut xmd);
+    ark_std::array::from_fn::<F,N,_>(h2f)
 }
 
-pub fn hash_to_field<F: Field,H: XofReader, const SEC_PARAM: usize>(h: &mut H) -> F {
+
+pub fn xof_hash_to_field<H,const SEC_PARAM: usize,F,const N: usize>(dst: &[u8], msg: &[u8]) -> [F; N]
+where F: Field, H: ExtendableOutput+Default,
+{
+    let dst = DST::new_xof::<H>(dst,Some(SEC_PARAM));
+
+    let len_per_base_elem = get_len_per_elem::<F, SEC_PARAM>();
+    let m = F::extension_degree() as usize;
+    let total_length = N * m * len_per_base_elem;
+    let mut xof = dst.expand_xof::<H>(msg, total_length);
+
+    let h2f = |_| hash_to_field::<SEC_PARAM,F,_>(&mut xof);
+    ark_std::array::from_fn::<F,N,_>(h2f)
+}
+
+pub fn hash_to_field<const SEC_PARAM: usize,F: Field,H: XofReader>(h: &mut H) -> F {
     // The final output of `hash_to_field` will be an array of field
     // elements from F::BaseField, each of size `len_per_elem`.
     let len_per_base_elem = get_len_per_elem::<F, SEC_PARAM>();

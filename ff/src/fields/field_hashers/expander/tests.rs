@@ -1,26 +1,26 @@
 use libtest_mimic::{run, Arguments, Failed, Trial};
 
 use sha2::{Sha256, Sha384, Sha512};
-use sha3::{Shake128, Shake256};
+use sha3::{Shake128, Shake256, digest::XofReader};
 use std::{
     fs::{read_dir, File},
     io::BufReader,
 };
 
-use super::{Expander, ExpanderXmd, ExpanderXof};
+use super::{DST};
 
 #[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
 pub struct ExpanderVector {
     #[serde(rename = "DST")]
     pub dst: String,
-    pub k: usize,
+    pub k: usize, // sec_param
     pub hash: String,
     pub name: String,
     #[serde(rename = "tests")]
     pub vectors: Vec<TestExpander>,
 }
 
-#[derive(Debug, serde_derive::Serialize, serde_derive:: Deserialize)]
+#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
 pub struct TestExpander {
     #[serde(rename = "DST_prime")]
     pub dst_prime: String,
@@ -49,40 +49,28 @@ fn expander() {
     run(&args, tests).exit_if_failed();
 }
 
-#[derive(Copy, Clone)]
-pub enum ExpID {
-    XMD(HashID),
-    XOF(XofID),
-}
-
-#[derive(Clone, Copy, PartialEq, Eq)]
-pub enum HashID {
-    SHA256,
-    SHA384,
-    SHA512,
-}
-
-#[derive(Clone, Copy, PartialEq, Eq)]
-pub enum XofID {
-    SHAKE128,
-    SHAKE256,
-}
-
 fn do_test(data: ExpanderVector) -> Result<(), Failed> {
-    let exp_id = match data.hash.as_str() {
-        "SHA256" => ExpID::XMD(HashID::SHA256),
-        "SHA384" => ExpID::XMD(HashID::SHA384),
-        "SHA512" => ExpID::XMD(HashID::SHA512),
-        "SHAKE128" => ExpID::XOF(XofID::SHAKE128),
-        "SHAKE256" => ExpID::XOF(XofID::SHAKE256),
+    let dst = match data.hash.as_str() {
+        "SHA256" => DST::new_xmd::<Sha256>(data.dst.as_bytes()),
+        "SHA384" => DST::new_xmd::<Sha384>(data.dst.as_bytes()),
+        "SHA512" => DST::new_xmd::<Sha512>(data.dst.as_bytes()),
+        "SHAKE128" => DST::new_xof::<Shake128>(data.dst.as_bytes(), Some(data.k)),
+        "SHAKE256" => DST::new_xof::<Shake256>(data.dst.as_bytes(), Some(data.k)),
         _ => unimplemented!(),
     };
-    let exp = get_expander(exp_id, data.dst.as_bytes(), data.k);
+
     for v in data.vectors.iter() {
         let len = usize::from_str_radix(v.len_in_bytes.trim_start_matches("0x"), 16).unwrap();
-        let got = exp.expand(v.msg.as_bytes(), len);
+        let got = match data.hash.as_str() {
+            "SHA256" => dst.expand_xmd::<Sha256>(64, v.msg.as_bytes(), len).read_boxed(len),
+            "SHA384" => dst.expand_xmd::<Sha384>(128, v.msg.as_bytes(), len).read_boxed(len),
+            "SHA512" => dst.expand_xmd::<Sha512>(128, v.msg.as_bytes(), len).read_boxed(len),
+            "SHAKE128" => dst.expand_xof::<Shake128>(v.msg.as_bytes(), len).read_boxed(len),
+            "SHAKE256" => dst.expand_xof::<Shake256>(v.msg.as_bytes(), len).read_boxed(len),
+            _ => unimplemented!(),
+        };
         let want = hex::decode(&v.uniform_bytes).unwrap();
-        if got != want {
+        if &*got != want.as_slice() {
             return Err(format!(
                 "Expander: {}\nVector:   {}\ngot:  {:?}\nwant: {:?}",
                 data.hash, v.msg, got, want,
@@ -91,40 +79,4 @@ fn do_test(data: ExpanderVector) -> Result<(), Failed> {
         }
     }
     Ok(())
-}
-
-fn get_expander(id: ExpID, _dst: &[u8], k: usize) -> Box<dyn Expander> {
-    let dst = _dst.to_vec();
-
-    match id {
-        ExpID::XMD(h) => match h {
-            HashID::SHA256 => Box::new(ExpanderXmd {
-                hasher: Sha256::default(),
-                block_size: 64,
-                dst,
-            }),
-            HashID::SHA384 => Box::new(ExpanderXmd {
-                hasher: Sha384::default(),
-                block_size: 128,
-                dst,
-            }),
-            HashID::SHA512 => Box::new(ExpanderXmd {
-                hasher: Sha512::default(),
-                block_size: 128,
-                dst,
-            }),
-        },
-        ExpID::XOF(x) => match x {
-            XofID::SHAKE128 => Box::new(ExpanderXof {
-                xofer: Shake128::default(),
-                k,
-                dst,
-            }),
-            XofID::SHAKE256 => Box::new(ExpanderXof {
-                xofer: Shake256::default(),
-                k,
-                dst,
-            }),
-        },
-    }
 }
