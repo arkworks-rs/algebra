@@ -26,6 +26,8 @@ pub enum TwistType {
 pub trait BW6Config: 'static + Eq + Sized {
     const X: <Self::Fp as PrimeField>::BigInt;
     const X_IS_NEGATIVE: bool;
+    // [X-1]/3 for X>0, and [(-X)+1]/3 otherwise
+    const X_MINUS_1_DIV_3: <Self::Fp as PrimeField>::BigInt;
     const ATE_LOOP_COUNT_1: &'static [u64];
     const ATE_LOOP_COUNT_1_IS_NEGATIVE: bool;
     const ATE_LOOP_COUNT_2: &'static [i8];
@@ -34,6 +36,7 @@ pub trait BW6Config: 'static + Eq + Sized {
     const H_T: i64;
     const H_Y: i64;
     const T_MOD_R_IS_ZERO: bool;
+
     type Fp: PrimeField + Into<<Self::Fp as PrimeField>::BigInt>;
     type Fp3Config: Fp3Config<Fp = Self::Fp>;
     type Fp6Config: Fp6Config<Fp3Config = Self::Fp3Config>;
@@ -182,18 +185,11 @@ impl<P: BW6Config> BW6<P> {
     }
 
     fn exp_by_x_minus_1_div_3(f: &Fp6<P::Fp6Config>) -> Fp6<P::Fp6Config> {
-        let u = P::Fp::from(P::X);
-        let one = P::Fp::one();
-        let three = P::Fp::from(3u32);
+        let mut f = f.cyclotomic_exp(P::X_MINUS_1_DIV_3);
         if P::X_IS_NEGATIVE {
-            let exp = (u + one) / three;
-            f.cyclotomic_exp(exp.into_bigint())
-                .cyclotomic_inverse()
-                .unwrap()
-        } else {
-            let exp = (u - one) / three;
-            f.cyclotomic_exp(exp.into_bigint())
+            f.cyclotomic_inverse_in_place();
         }
+        f
     }
 
     fn final_exponentiation_easy_part(elt: Fp6<P::Fp6Config>) -> Fp6<P::Fp6Config> {
