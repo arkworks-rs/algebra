@@ -48,7 +48,11 @@ pub trait BW6Config: 'static + Eq + Sized {
 
     // Computes the exponent of an element of the cyclotomic subgroup,
     // and inverses the result if necessary.
-    fn cyclotomic_exp_signed(f: &Fp6<Self::Fp6Config>, x: impl AsRef<[u64]>, invert: bool) -> Fp6<Self::Fp6Config> {
+    fn cyclotomic_exp_signed(
+        f: &Fp6<Self::Fp6Config>,
+        x: impl AsRef<[u64]>,
+        invert: bool,
+    ) -> Fp6<Self::Fp6Config> {
         let mut f = f.cyclotomic_exp(x);
         if invert {
             f.cyclotomic_inverse_in_place();
@@ -204,7 +208,7 @@ impl<P: BW6Config> BW6<P> {
         // f^(-1)
         let f_inv = f.inverse().unwrap();
         // f^(p^3)
-        let f_p3 =  {
+        let f_p3 = {
             let mut f = f;
             f.conjugate_in_place();
             f
