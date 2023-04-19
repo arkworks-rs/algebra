@@ -3,7 +3,7 @@
 
 use ark_std::vec::Vec;
 
-use digest::{FixedOutputReset, ExtendableOutput, XofReader, Update, core_api::BlockSizeUser};
+use digest::{FixedOutputReset, ExtendableOutput, XofReader, Update};
 use arrayvec::ArrayVec;
 
 
@@ -90,23 +90,23 @@ impl<H: ExtendableOutput> Expander for H {
 
 static Z_PAD: [u8; 256] = [0u8; 256];
 
-pub struct Zpad<H: FixedOutputReset+BlockSizeUser+Default>(pub H);
+pub struct Zpad<H: FixedOutputReset+Default>(pub H);
 
-impl<H: FixedOutputReset+BlockSizeUser+Default> Update for Zpad<H> {
+impl<H: FixedOutputReset+Default> Update for Zpad<H> {
     fn update(&mut self, data: &[u8]) {
         self.0.update(data);
     }
 }
 
-impl<H: FixedOutputReset+BlockSizeUser+Default> Default for Zpad<H> {
-    fn default() -> Zpad<H> {
+impl<H: FixedOutputReset+Default> Zpad<H> {
+    pub fn new(block_size: usize) -> Zpad<H> {
         let mut hasher = H::default();
-        hasher.update(&Z_PAD[0 .. H::block_size()]);
+        hasher.update(&Z_PAD[0..block_size]);
         Zpad(hasher)
     }
 }
 
-impl<H: FixedOutputReset+BlockSizeUser+Default> Expander for Zpad<H> {
+impl<H: FixedOutputReset+Default> Expander for Zpad<H> {
     type R = XofVec;
     fn expand(self, dst: &DST, n: usize) -> XofVec
     {
