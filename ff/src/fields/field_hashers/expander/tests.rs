@@ -7,7 +7,7 @@ use std::{
     io::BufReader,
 };
 
-use super::{DST,Zpad,expand_xof};
+use super::{DST,Zpad,Expander};
 
 #[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
 pub struct ExpanderVector {
@@ -62,11 +62,11 @@ fn do_test(data: ExpanderVector) -> Result<(), Failed> {
     for v in data.vectors.iter() {
         let len = usize::from_str_radix(v.len_in_bytes.trim_start_matches("0x"), 16).unwrap();
         let got = match data.hash.as_str() {
-            "SHA256"   => Zpad::<Sha256>::default().chain(v.msg.as_bytes()).expand_xmd(&dst,len).read_boxed(len),
-            "SHA384"   => Zpad::<Sha384>::default().chain(v.msg.as_bytes()).expand_xmd(&dst,len).read_boxed(len),
-            "SHA512"   => Zpad::<Sha512>::default().chain(v.msg.as_bytes()).expand_xmd(&dst,len).read_boxed(len),
-            "SHAKE128" => expand_xof(Shake128::default().chain(v.msg.as_bytes()), &dst, len).read_boxed(len),
-            "SHAKE256" => expand_xof(Shake256::default().chain(v.msg.as_bytes()), &dst, len).read_boxed(len),
+            "SHA256"   => Zpad::<Sha256>::default().chain(v.msg.as_bytes()).expand(&dst,len).read_boxed(len),
+            "SHA384"   => Zpad::<Sha384>::default().chain(v.msg.as_bytes()).expand(&dst,len).read_boxed(len),
+            "SHA512"   => Zpad::<Sha512>::default().chain(v.msg.as_bytes()).expand(&dst,len).read_boxed(len),
+            "SHAKE128" => Shake128::default().chain(v.msg.as_bytes()).expand(&dst, len).read_boxed(len),
+            "SHAKE256" => Shake256::default().chain(v.msg.as_bytes()).expand(&dst, len).read_boxed(len),
             _ => unimplemented!(),
         };
         let want = hex::decode(&v.uniform_bytes).unwrap();
