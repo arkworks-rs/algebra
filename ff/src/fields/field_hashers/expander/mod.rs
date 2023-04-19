@@ -74,43 +74,38 @@ impl DST {
     }
 }
 
+pub fn expand_xof<H>(mut h: H, dst: &DST, n: usize) -> impl XofReader
+where H: ExtendableOutput
+{
+    assert!(n < (1 << 16), "Length should be smaller than 2^16");
+    // I2OSP(len,2) https://www.rfc-editor.org/rfc/rfc8017.txt
+    h.update(& (n as u16).to_be_bytes());
+
+    // DST::new_xof::<H>(self.dst.as_ref(), self.k)
+    dst.update(&mut h);
+    h.finalize_xof()
+}
+
+
 static Z_PAD: [u8; 256] = [0u8; 256];
 
-pub struct IrtfH2F<H: Update+Default>(H);
+pub struct Zpad<H: FixedOutputReset+BlockSizeUser+Default>(pub H);
 
-impl<H: Update+Default> Update for IrtfH2F<H> {
+impl<H: FixedOutputReset+BlockSizeUser+Default> Update for Zpad<H> {
     fn update(&mut self, data: &[u8]) {
         self.0.update(data);
     }
 }
 
-impl<H: Update+Default> IrtfH2F<H> {
-    pub fn new_xof() -> IrtfH2F<H>
-    where H: ExtendableOutput
-    {
-        IrtfH2F(H::default())
-    }
-
-    pub fn expand_xof(mut self, dst: &DST, n: usize) -> impl XofReader
-    where H: ExtendableOutput
-    {
-        assert!(n < (1 << 16), "Length should be smaller than 2^16");
-        // I2OSP(len,2) https://www.rfc-editor.org/rfc/rfc8017.txt
-        self.0.update(& (n as u16).to_be_bytes());
-
-        // DST::new_xof::<H>(self.dst.as_ref(), self.k)
-        dst.update(&mut self.0);
-        self.0.finalize_xof()
-    }
-
-    pub fn new_xmd() -> IrtfH2F<H>
-    where H: FixedOutputReset+BlockSizeUser
-    {
+impl<H: FixedOutputReset+BlockSizeUser+Default> Default for Zpad<H> {
+    fn default() -> Zpad<H> {
         let mut hasher = H::default();
         hasher.update(&Z_PAD[0 .. H::block_size()]);
-        IrtfH2F(hasher)
+        Zpad(hasher)
     }
+}
 
+impl<H: FixedOutputReset+BlockSizeUser+Default> Zpad<H> {
     pub fn expand_xmd(self, dst: &DST, n: usize) -> impl XofReader
     where H: FixedOutputReset
     {
@@ -123,7 +118,7 @@ impl<H: Update+Default> IrtfH2F<H> {
             "The ratio of desired output to the output size of hash function is too large!"
         );
 
-        let IrtfH2F(mut hasher) = self;
+        let Zpad(mut hasher) = self;
         assert!(n < (1 << 16), "Length should be smaller than 2^16");
         // I2OSP(len,2) https://www.rfc-editor.org/rfc/rfc8017.txt
         hasher.update(& (n as u16).to_be_bytes());
