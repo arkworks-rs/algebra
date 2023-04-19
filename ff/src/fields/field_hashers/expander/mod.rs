@@ -3,7 +3,7 @@
 
 use ark_std::vec::Vec;
 
-use digest::{FixedOutputReset, ExtendableOutput, XofReader, Update};
+use digest::{FixedOutputReset, ExtendableOutput, XofReader, Update, core_api::BlockSizeUser};
 use arrayvec::ArrayVec;
 
 
@@ -20,16 +20,29 @@ const LONG_DST_PREFIX: &[u8; 17] = b"H2C-OVERSIZE-DST-";
 /// [IRTF CFRG hash-to-curve draft #16](https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-hash-to-curve-16#section-5.3.3).
 pub struct DST(arrayvec::ArrayVec<u8,MAX_DST_LENGTH>);
 
+impl TryFrom<&'static [u8]> for DST {
+    type Error = &'static str;
+    fn try_from(dst: &'static [u8]) -> Result<Self, Self::Error> {
+        Ok(DST(ArrayVec::try_from(dst).map_err(|_| "DST longer than 255 bytes!") ?))
+    }
+}
+
+/*
+impl From<&'static [u8]> for DST {
+    fn from(dst: &'static [u8]) -> Self {
+        ArrayVec::try_from(dst).expect("DST longer than 255 bytes!");
+    }
+}
+*/
+
 impl DST {
     pub fn new_xmd<H: FixedOutputReset+Default>(dst: &[u8]) -> DST {
-        DST(if dst.len() > MAX_DST_LENGTH {
+        DST(ArrayVec::try_from(dst).unwrap_or_else( |_| {
             let mut long = H::default();
             long.update(&LONG_DST_PREFIX[..]);
             long.update(&dst);
             ArrayVec::try_from( long.finalize_fixed().as_ref() ).unwrap()
-        } else {
-            ArrayVec::try_from(dst).unwrap()
-        })
+        } ))
     }
 
     // pub fn sec_param<H: 'static>(dst: &[u8]) -> usize {
@@ -41,7 +54,7 @@ impl DST {
     // }
 
     pub fn new_xof<H: ExtendableOutput+Default>(dst: &[u8], sec_param: Option<usize>) -> DST {
-        DST(if dst.len() > MAX_DST_LENGTH {
+        DST(ArrayVec::try_from(dst).unwrap_or_else( |_| {
             let sec_param = sec_param.expect("expand_message_xof wants a security parameter for compressing a long domain string.");
             let mut long = H::default();
             long.update(&LONG_DST_PREFIX[..]);
@@ -51,9 +64,7 @@ impl DST {
             let new_dst = &mut new_dst[0..((2 * sec_param + 7) >> 3)];
             long.finalize_xof_into(new_dst);
             ArrayVec::try_from( &*new_dst ).unwrap()
-        } else {
-            ArrayVec::try_from(dst).unwrap()
-        })
+        } ))
     }
 
     pub fn update<H: Update>(&self, h: &mut H) {
@@ -61,27 +72,48 @@ impl DST {
         // I2OSP(len,1) https://www.rfc-editor.org/rfc/rfc8017.txt
         h.update(&[self.0.len() as u8]);
     }
+}
 
-    pub fn expand_xof<H>(&self, msg: &[u8], n: usize) -> impl XofReader
-    where H: ExtendableOutput+Default
+static Z_PAD: [u8; 256] = [0u8; 256];
+
+pub struct IrtfH2F<H: Update+Default>(H);
+
+impl<H: Update+Default> Update for IrtfH2F<H> {
+    fn update(&mut self, data: &[u8]) {
+        self.0.update(data);
+    }
+}
+
+impl<H: Update+Default> IrtfH2F<H> {
+    pub fn new_xof() -> IrtfH2F<H>
+    where H: ExtendableOutput
     {
-        let dst = self;
-        let mut xofer = H::default();
-        xofer.update(msg);
-
-        // I2OSP(len,2) https://www.rfc-editor.org/rfc/rfc8017.txt
-        let lib_str = (n as u16).to_be_bytes();
-        xofer.update(&lib_str);
-
-        // DST::new_xof::<H>(self.dst.as_ref(), self.k)
-        dst.update(&mut xofer);
-        xofer.finalize_xof()
+        IrtfH2F(H::default())
     }
 
-    pub fn expand_xmd<H>(&self, block_size: usize, msg: &[u8], n: usize) -> impl XofReader
-    where H: FixedOutputReset+Default
+    pub fn expand_xof(mut self, dst: &DST, n: usize) -> impl XofReader
+    where H: ExtendableOutput
     {
-        let dst = self;
+        assert!(n < (1 << 16), "Length should be smaller than 2^16");
+        // I2OSP(len,2) https://www.rfc-editor.org/rfc/rfc8017.txt
+        self.0.update(& (n as u16).to_be_bytes());
+
+        // DST::new_xof::<H>(self.dst.as_ref(), self.k)
+        dst.update(&mut self.0);
+        self.0.finalize_xof()
+    }
+
+    pub fn new_xmd() -> IrtfH2F<H>
+    where H: FixedOutputReset+BlockSizeUser
+    {
+        let mut hasher = H::default();
+        hasher.update(&Z_PAD[0 .. H::block_size()]);
+        IrtfH2F(hasher)
+    }
+
+    pub fn expand_xmd(self, dst: &DST, n: usize) -> impl XofReader
+    where H: FixedOutputReset
+    {
         use digest::typenum::Unsigned;
         // output size of the hash function, e.g. 32 bytes = 256 bits for sha2::Sha256
         let b_len = H::OutputSize::to_usize();
@@ -91,16 +123,11 @@ impl DST {
             "The ratio of desired output to the output size of hash function is too large!"
         );
 
-        // Represent `len_in_bytes` as a 2-byte array.
-        // As per I2OSP method outlined in https://tools.ietf.org/pdf/rfc8017.pdf,
-        // The program should abort if integer that we're trying to convert is too large.
+        let IrtfH2F(mut hasher) = self;
         assert!(n < (1 << 16), "Length should be smaller than 2^16");
-        let lib_str: [u8; 2] = (n as u16).to_be_bytes();
+        // I2OSP(len,2) https://www.rfc-editor.org/rfc/rfc8017.txt
+        hasher.update(& (n as u16).to_be_bytes());
 
-        let mut hasher = H::default();
-        hasher.update(&Z_PAD[0..block_size]);
-        hasher.update(msg);
-        hasher.update(&lib_str);
         hasher.update(&[0u8]);
         dst.update(& mut hasher);
         let b0 = hasher.finalize_fixed_reset();
@@ -126,8 +153,6 @@ impl DST {
         XofVec { bytes, pos: 0 }
     }
 }
-
-static Z_PAD: [u8; 256] = [0u8; 256];
 
 pub struct XofVec {
     bytes: Vec<u8>,

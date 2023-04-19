@@ -25,7 +25,7 @@ paste = "1.0"
 rayon = { version = "1", optional = true }
 zeroize = { version = "1", default-features = false, features = ["zeroize_derive"] }
 num-bigint = { version = "0.4", default-features = false }
-digest = { version = "0.10", default-features = false, features = ["alloc"] }
+digest = { version = "0.10", default-features = false, features = ["alloc", "core-api"] }
 itertools = { version = "0.10", default-features = false }
 
 [dev-dependencies]

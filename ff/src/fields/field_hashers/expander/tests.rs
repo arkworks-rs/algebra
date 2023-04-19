@@ -1,13 +1,13 @@
 use libtest_mimic::{run, Arguments, Failed, Trial};
 
 use sha2::{Sha256, Sha384, Sha512};
-use sha3::{Shake128, Shake256, digest::XofReader};
+use sha3::{Shake128, Shake256, digest::{Update,XofReader}};
 use std::{
     fs::{read_dir, File},
     io::BufReader,
 };
 
-use super::{DST};
+use super::{DST,IrtfH2F};
 
 #[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
 pub struct ExpanderVector {
@@ -62,11 +62,11 @@ fn do_test(data: ExpanderVector) -> Result<(), Failed> {
     for v in data.vectors.iter() {
         let len = usize::from_str_radix(v.len_in_bytes.trim_start_matches("0x"), 16).unwrap();
         let got = match data.hash.as_str() {
-            "SHA256" => dst.expand_xmd::<Sha256>(64, v.msg.as_bytes(), len).read_boxed(len),
-            "SHA384" => dst.expand_xmd::<Sha384>(128, v.msg.as_bytes(), len).read_boxed(len),
-            "SHA512" => dst.expand_xmd::<Sha512>(128, v.msg.as_bytes(), len).read_boxed(len),
-            "SHAKE128" => dst.expand_xof::<Shake128>(v.msg.as_bytes(), len).read_boxed(len),
-            "SHAKE256" => dst.expand_xof::<Shake256>(v.msg.as_bytes(), len).read_boxed(len),
+            "SHA256"   => IrtfH2F::<Sha256>::new_xmd().chain(v.msg.as_bytes()).expand_xmd(&dst,len).read_boxed(len),
+            "SHA384"   => IrtfH2F::<Sha384>::new_xmd().chain(v.msg.as_bytes()).expand_xmd(&dst,len).read_boxed(len),
+            "SHA512"   => IrtfH2F::<Sha512>::new_xmd().chain(v.msg.as_bytes()).expand_xmd(&dst,len).read_boxed(len),
+            "SHAKE128" => IrtfH2F::<Shake128>::new_xof().chain(v.msg.as_bytes()).expand_xof(&dst,len).read_boxed(len),
+            "SHAKE256" => IrtfH2F::<Shake256>::new_xof().chain(v.msg.as_bytes()).expand_xof(&dst,len).read_boxed(len),
             _ => unimplemented!(),
         };
         let want = hex::decode(&v.uniform_bytes).unwrap();
