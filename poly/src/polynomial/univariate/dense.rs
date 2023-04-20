@@ -353,8 +353,8 @@ impl<'a, F: Field> AddAssign<&'a DensePolynomial<F>> for DensePolynomial<F> {
                 .for_each(|(a, b)| {
                     *a += b;
                 });
-            self.truncate_leading_zeros();
         }
+        self.truncate_leading_zeros();
     }
 }
 
