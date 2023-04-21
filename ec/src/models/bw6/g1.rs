@@ -45,7 +45,7 @@ impl<'a, P: BW6Config> From<&'a G1Projective<P>> for G1Prepared<P> {
 
 impl<P: BW6Config> G1Prepared<P> {
     pub fn is_zero(&self) -> bool {
-        self.0.infinity
+        self.0.is_zero()
     }
 }
 

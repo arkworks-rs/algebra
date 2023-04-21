@@ -2,7 +2,10 @@ use ark_serialize::{
     CanonicalDeserialize, CanonicalDeserializeWithFlags, CanonicalSerialize,
     CanonicalSerializeWithFlags, Compress, SerializationError, Valid, Validate,
 };
-use ark_std::io::{Read, Write};
+use ark_std::{
+    hash::Hash,
+    io::{Read, Write},
+};
 
 use ark_ff::fields::Field;
 
@@ -29,6 +32,9 @@ pub trait SWCurveConfig: super::CurveConfig {
     const COEFF_B: Self::BaseField;
     /// Generator of the prime-order subgroup.
     const GENERATOR: Affine<Self>;
+
+    /// A type that is stored in `Affine<Self>` to indicate whether the point is at infinity.
+    type ZeroIndicator: ZeroInd<Self>;
 
     /// Helper method for computing `elem * Self::COEFF_A`.
     ///
@@ -124,7 +130,7 @@ pub trait SWCurveConfig: super::CurveConfig {
         mut writer: W,
         compress: ark_serialize::Compress,
     ) -> Result<(), SerializationError> {
-        let (x, y, flags) = match item.infinity {
+        let (x, y, flags) = match item.is_zero() {
             true => (
                 Self::BaseField::zero(),
                 Self::BaseField::zero(),
@@ -196,5 +202,32 @@ pub trait SWCurveConfig: super::CurveConfig {
             Compress::Yes => zero.serialized_size_with_flags::<SWFlags>(),
             Compress::No => zero.compressed_size() + zero.serialized_size_with_flags::<SWFlags>(),
         }
+    }
+}
+
+pub trait ZeroInd<C: SWCurveConfig>:
+    Hash + Ord + Eq + Copy + Sync + Send + Sized + 'static
+{
+    const IS_ZERO: Self;
+    const IS_NOT_ZERO: Self;
+    fn is_zero(point: &Affine<C>) -> bool;
+    fn zeroize(&mut self) {
+        *self = Self::IS_NOT_ZERO;
+    }
+}
+
+impl<C: SWCurveConfig<ZeroIndicator = bool>> ZeroInd<C> for bool {
+    const IS_ZERO: Self = true;
+    const IS_NOT_ZERO: Self = false;
+    fn is_zero(point: &Affine<C>) -> bool {
+        point.infinity
+    }
+}
+
+impl<C: SWCurveConfig> ZeroInd<C> for () {
+    const IS_ZERO: Self = ();
+    const IS_NOT_ZERO: Self = ();
+    fn is_zero(point: &Affine<C>) -> bool {
+        point.x.is_zero() & point.y.is_zero()
     }
 }

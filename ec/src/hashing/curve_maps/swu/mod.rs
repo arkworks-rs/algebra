@@ -206,6 +206,9 @@ mod test {
 
         /// AFFINE_GENERATOR_COEFFS = (G1_GENERATOR_X, G1_GENERATOR_Y)
         const GENERATOR: Affine<Self> = Affine::new_unchecked(MontFp!("62"), MontFp!("70"));
+
+        /// We use `bool` because the point (0, 0) could be on the curve.
+        type ZeroIndicator = bool;
     }
 
     impl SWUConfig for TestSWUMapToCurveConfig {
