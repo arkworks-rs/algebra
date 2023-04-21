@@ -82,28 +82,6 @@ pub trait Expander: Sized {
     }
 }
 
-/*
-/// An Expander for curves with no defined hash-to-curve
-pub struct PanicExpander;
-
-impl Update for Zpad<H> {
-    fn update(&mut self, data: &[u8]) {
-        panic!("Undefined hash to curve");
-    }
-}
-impl XofReader for PanicExpander {
-    fn read(&mut self, buffer: &mut [u8]) {
-        panic!("Undefined hash to curve");
-    }
-}
-impl Expander for PanicExpander {
-    type R = PanicExpander;
-    fn expand(self, dst: &DST, length: usize) {
-        panic!("Undefined hash to curve");
-    }
-}
-*/
-
 impl<H: ExtendableOutput> Expander for H {
     type R = <H as ExtendableOutput>::Reader;
     fn expand(mut self, dst: &DST, n: usize) -> Self::R
