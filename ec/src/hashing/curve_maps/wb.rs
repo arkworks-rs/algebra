@@ -1,16 +1,18 @@
 use core::marker::PhantomData;
 
 use crate::{models::short_weierstrass::SWCurveConfig, CurveConfig};
-use ark_ff::batch_inversion;
+use ark_ff::{
+    batch_inversion,
+};
 use ark_poly::{univariate::DensePolynomial, DenseUVPolynomial, Polynomial};
 
 use crate::{
-    hashing::{map_to_curve_hasher::MapToCurve, HashToCurveError},
+    hashing::{HashToCurveError},
     models::short_weierstrass::{Affine, Projective},
     AffineRepr,
 };
 
-use super::swu::{SWUConfig, SWUMap};
+use super::{MapToCurve, swu::{SWUConfig, SWUMap}};
 type BaseField<MP> = <MP as CurveConfig>::BaseField;
 
 /// [`IsogenyMap`] defines an isogeny between curves of
@@ -76,6 +78,10 @@ pub trait WBConfig: SWCurveConfig + Sized {
     type IsogenousCurve: SWUConfig<BaseField = BaseField<Self>>;
 
     const ISOGENY_MAP: IsogenyMap<'static, Self::IsogenousCurve, Self>;
+
+    /// Security parameters used by symetric components.
+    /// Almost always 128 bits. 
+    const SEC_PARAM: u16 = 128;
 }
 
 pub struct WBMap<P: WBConfig> {
@@ -84,6 +90,10 @@ pub struct WBMap<P: WBConfig> {
 }
 
 impl<P: WBConfig> MapToCurve<Projective<P>> for WBMap<P> {
+    /// Security parameters used by symetric components. 
+    /// Almost always 128 bits.
+    const SEC_PARAM: u16 = <P as WBConfig>::SEC_PARAM;
+
     /// Checks if `P` represents a valid map.
     fn check_parameters() -> Result<(), HashToCurveError> {
         match P::ISOGENY_MAP.apply(P::IsogenousCurve::GENERATOR) {
@@ -118,8 +128,8 @@ mod test {
             curve_maps::{
                 swu::SWUConfig,
                 wb::{IsogenyMap, WBConfig, WBMap},
+                MapToCurveBasedHasher,
             },
-            map_to_curve_hasher::MapToCurveBasedHasher,
             HashToCurve,
         },
         models::short_weierstrass::SWCurveConfig,

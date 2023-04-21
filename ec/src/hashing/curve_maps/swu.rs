@@ -1,10 +1,16 @@
 use crate::models::short_weierstrass::SWCurveConfig;
-use ark_ff::{BigInteger, Field, One, PrimeField, Zero};
+use ark_ff::{
+    BigInteger, Field, One, PrimeField, Zero,
+};
 use ark_std::string::ToString;
 use core::marker::PhantomData;
 
+use digest::{Update,XofReader};
+
+pub use super::MapToCurve;
+
 use crate::{
-    hashing::{map_to_curve_hasher::MapToCurve, HashToCurveError},
+    hashing::{HashToCurveError},
     models::short_weierstrass::{Affine, Projective},
 };
 
@@ -19,6 +25,10 @@ pub trait SWUConfig: SWCurveConfig {
     /// we use a `ZETA` with low absolute value coefficients when they are
     /// represented as integers.
     const ZETA: Self::BaseField;
+
+    /// Security parameters used by symetric components. 
+    /// Almost always 128 bits, unsued if merely supporting WB.
+    const SEC_PARAM: u16 = 128;
 }
 
 /// Represents the SWU hash-to-curve map defined by `P`.
@@ -35,6 +45,10 @@ pub fn parity<F: Field>(element: &F) -> bool {
 }
 
 impl<P: SWUConfig> MapToCurve<Projective<P>> for SWUMap<P> {
+    /// Security parameters used by symetric components. 
+    /// Almost always 128 bits.
+    const SEC_PARAM: u16 = <P as SWUConfig>::SEC_PARAM;
+ 
     /// Checks if `P` represents a valid map.
     fn check_parameters() -> Result<(), HashToCurveError> {
         // Verifying that ZETA is a non-square
@@ -152,7 +166,7 @@ impl<P: SWUConfig> MapToCurve<Projective<P>> for SWUMap<P> {
 #[cfg(test)]
 mod test {
     use crate::{
-        hashing::{map_to_curve_hasher::MapToCurveBasedHasher, HashToCurve},
+        hashing::{HashToCurve},
         CurveConfig,
     };
     use ark_ff::field_hashers::DefaultFieldHasher;
