@@ -2,6 +2,7 @@
 // With some optimisations
 
 use ark_std::vec::Vec;
+use crate::{Field};
 
 use digest::{FixedOutputReset, ExtendableOutput, XofReader, Update};
 use arrayvec::ArrayVec;
@@ -70,10 +71,38 @@ impl DST {
     }
 }
 
-pub trait Expander {
+pub trait Expander: Sized {
     type R: XofReader;
     fn expand(self, dst: &DST, length: usize) -> Self::R;
+    fn expand_for_field<const SEC_PARAM: usize,F: Field,const N: usize>(self, dst: &DST) -> Self::R {
+        let len_per_base_elem = super::get_len_per_elem::<F, SEC_PARAM>();
+        let m = F::extension_degree() as usize;
+        let total_length = N * m * len_per_base_elem;
+        self.expand(&dst, total_length)
+    }
 }
+
+/*
+/// An Expander for curves with no defined hash-to-curve
+pub struct PanicExpander;
+
+impl Update for Zpad<H> {
+    fn update(&mut self, data: &[u8]) {
+        panic!("Undefined hash to curve");
+    }
+}
+impl XofReader for PanicExpander {
+    fn read(&mut self, buffer: &mut [u8]) {
+        panic!("Undefined hash to curve");
+    }
+}
+impl Expander for PanicExpander {
+    type R = PanicExpander;
+    fn expand(self, dst: &DST, length: usize) {
+        panic!("Undefined hash to curve");
+    }
+}
+*/
 
 impl<H: ExtendableOutput> Expander for H {
     type R = <H as ExtendableOutput>::Reader;
@@ -103,6 +132,10 @@ impl<H: FixedOutputReset+Default> Zpad<H> {
         let mut hasher = H::default();
         hasher.update(&Z_PAD[0..block_size]);
         Zpad(hasher)
+    }
+    pub fn new_for_field<const SEC_PARAM: usize,F: Field>() -> Zpad<H> {
+        let len_per_base_elem = super::get_len_per_elem::<F, SEC_PARAM>();
+        Self::new(len_per_base_elem)
     }
 }
 
