@@ -5,8 +5,6 @@ use ark_ff::{
 use ark_std::string::ToString;
 use core::marker::PhantomData;
 
-use digest::{Update,XofReader};
-
 pub use super::MapToCurve;
 
 use crate::{

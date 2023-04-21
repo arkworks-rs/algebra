@@ -50,9 +50,9 @@ impl DST {
     //     }
     // }
 
-    pub fn new_xof<H: ExtendableOutput+Default>(dst: &[u8], sec_param: Option<usize>) -> DST {
+    pub fn new_xof<H: ExtendableOutput+Default>(dst: &[u8], sec_param: Option<u16>) -> DST {
         DST(ArrayVec::try_from(dst).unwrap_or_else( |_| {
-            let sec_param = sec_param.expect("expand_message_xof wants a security parameter for compressing a long domain string.");
+            let sec_param = sec_param.expect("expand_message_xof wants a security parameter for compressing a long domain string.") as usize;
             let mut long = H::default();
             long.update(&LONG_DST_PREFIX[..]);
             long.update(&dst);
@@ -74,7 +74,7 @@ impl DST {
 pub trait Expander: Sized {
     type R: XofReader;
     fn expand(self, dst: &DST, length: usize) -> Self::R;
-    fn expand_for_field<const SEC_PARAM: usize,F: Field,const N: usize>(self, dst: &DST) -> Self::R {
+    fn expand_for_field<const SEC_PARAM: u16,F: Field,const N: usize>(self, dst: &DST) -> Self::R {
         let len_per_base_elem = super::get_len_per_elem::<F, SEC_PARAM>();
         let m = F::extension_degree() as usize;
         let total_length = N * m * len_per_base_elem;
@@ -111,7 +111,7 @@ impl<H: FixedOutputReset+Default> Zpad<H> {
         hasher.update(&Z_PAD[0..block_size]);
         Zpad(hasher)
     }
-    pub fn new_for_field<const SEC_PARAM: usize,F: Field>() -> Zpad<H> {
+    pub fn new_for_field<const SEC_PARAM: u16,F: Field>() -> Zpad<H> {
         let len_per_base_elem = super::get_len_per_elem::<F, SEC_PARAM>();
         Self::new(len_per_base_elem)
     }

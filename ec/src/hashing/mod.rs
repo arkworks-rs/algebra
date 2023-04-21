@@ -10,11 +10,12 @@ pub mod wb;
 use ark_std::string::String;
 use core::fmt;
 
-pub use ark_ff::field_hashers::{self, digest, expander};
-use digest::{Update,XofReader};
-use expander::{DST,Expander};
+pub use ark_ff::field_hashers::{
+    self, DST,Expander,Zpad,
+    digest::{self,FixedOutputReset,Update,XofReader}
+};
 
-use crate::CurveGroup;
+use crate::{CurveGroup,AffineRepr};
 
 
 /// Trait for mapping a random field element to a random curve point.
@@ -36,24 +37,32 @@ pub trait MapToCurve<C: CurveGroup>: Sized {
 pub fn xof_map_to_curve<C,M,H>(xof: &mut H) -> Result<C, HashToCurveError> 
 where C: CurveGroup, M: MapToCurve<C>, H: XofReader,
 {
-    let f = || field_hashers::hash_to_field::<<M as MapToCurve<C>>::SEC_PARAM,C::BaseField,H>(xof);
-    let p0 = Self::map_to_curve(f())?;
-    let p1 = Self::map_to_curve(f())?;
+    let mut f = || match <M as MapToCurve<C>>::SEC_PARAM {
+        128 => field_hashers::hash_to_field::<128u16,C::BaseField,H>(xof),
+        256 => field_hashers::hash_to_field::<256u16,C::BaseField,H>(xof),
+        _ => panic!("const-generics"),
+    };
+    let p0 = <M as MapToCurve<C>>::map_to_curve(f())?;
+    let p1 = <M as MapToCurve<C>>::map_to_curve(f())?;
 
     // We've no projective clear_cofactor metho so normalize twice.
-    Ok( (p0 + p1).into_affine().clear_cofactor_to_group() )
+    Ok( (p0 + p1).into_affine().clear_cofactor().into_group() )
 }
 
 /// Applies the domain seperation tag (DST) to the hasher, and then
 /// completes teh hash-to-curve, as in the 
 /// [IRTF CFRG hash-to-curve draft](https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-hash-to-curve-16)
-pub fn expand_to_curve<C,M>(exp: impl Expander, dst: &DST) -> Result<T, HashToCurveError> 
+pub fn expand_to_curve<C,M>(exp: impl Expander, dst: &DST) -> Result<C, HashToCurveError> 
 where C: CurveGroup, M: MapToCurve<C>
 {
-    #[cfg(debug-assertions)]
-    M2C::check_parameters()?;
-    let mut xof = exp.expand_for_field::<<M as MapToCurve<C>>::SEC_PARAM,F,2>(dst);
-    xof_map_to_curve::<C,M>(&mut xof)
+    #[cfg(debug_assertions)]
+    <M as MapToCurve<C>>::check_parameters()?;
+    let mut xof = match <M as MapToCurve<C>>::SEC_PARAM {
+        128 => exp.expand_for_field::<128u16,C::BaseField,2>(dst),
+        256 => exp.expand_for_field::<256u16,C::BaseField,2>(dst),
+        _ => panic!("const-generics"),
+    };
+    xof_map_to_curve::<C,M,_>(&mut xof)
 }
 
 /// Hash-to-curves need an extendable output hash function (XoF).
@@ -64,9 +73,13 @@ where C: CurveGroup, M: MapToCurve<C>
 /// instead, which you initilize like `sha3::Shake128::default()`.
 /// All higher security level curves must use shake256 or similar, not sha2.
 pub fn zpad_expander<C,M,H>() -> Zpad<H>
-where C: CurveGroup, M: MapToCurve<C>, H: digest::FixedOutputReset+Default,
+where C: CurveGroup, M: MapToCurve<C>, H: FixedOutputReset+Default,
 {
-    expander::Zpad::<H>::new_for_field::<<M as MapToCurve<C>>::SEC_PARAM,C::BaseField>()
+    match <M as MapToCurve<C>>::SEC_PARAM {
+        128 => Zpad::<H>::new_for_field::<128u16,C::BaseField>(),
+        256 => Zpad::<H>::new_for_field::<256u16,C::BaseField>(),
+        _ => panic!("const-generics"),
+    }
 }
 
 /// [IRTF CFRG hash-to-curve draft](https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-hash-to-curve-16)
@@ -86,13 +99,11 @@ pub trait HashToCurve: CurveGroup {
     }
 
     fn hash_to_curve(dst: &DST, msg: &[u8]) -> Result<Self, HashToCurveError> {
-        let exp = Self::expander().update(msg);
+        let mut exp = Self::expander();
+        exp.update(msg);
         Self::finalize_to_curve(exp, dst)
     }
 }
-
-
-
 
 /// This is an error that could occur during the hash to curve process
 #[derive(Clone, Debug)]
