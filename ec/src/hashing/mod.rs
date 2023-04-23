@@ -11,7 +11,7 @@ use ark_std::string::String;
 use core::fmt;
 
 pub use ark_ff::field_hashers::{
-    self, DST,Expander,Zpad,
+    self,AsDST,Expander,Zpad,
     digest::{self,FixedOutputReset,Update,XofReader}
 };
 
@@ -52,7 +52,7 @@ where C: CurveGroup, M: MapToCurve<C>, H: XofReader,
 /// Applies the domain seperation tag (DST) to the hasher, and then
 /// completes teh hash-to-curve, as in the 
 /// [IRTF CFRG hash-to-curve draft](https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-hash-to-curve-16)
-pub fn expand_to_curve<C,M>(exp: impl Expander, dst: &DST) -> Result<C, HashToCurveError> 
+pub fn expand_to_curve<C,M>(exp: impl Expander, dst: impl AsDST) -> Result<C, HashToCurveError> 
 where C: CurveGroup, M: MapToCurve<C>
 {
     #[cfg(debug_assertions)]
@@ -94,11 +94,11 @@ pub trait HashToCurve: CurveGroup {
     /// Initalize the standard hasher for this hash-to-curve.
     fn expander() -> Self::Expand;
 
-    fn finalize_to_curve(exp: impl Expander, dst: &DST) -> Result<Self, HashToCurveError> {
+    fn finalize_to_curve(exp: impl Expander, dst: impl AsDST) -> Result<Self, HashToCurveError> {
         expand_to_curve::<Self,Self::Map>(exp,dst)
     }
 
-    fn hash_to_curve(dst: &DST, msg: &[u8]) -> Result<Self, HashToCurveError> {
+    fn hash_to_curve(dst: impl AsDST, msg: &[u8]) -> Result<Self, HashToCurveError> {
         let mut exp = Self::expander();
         exp.update(msg);
         Self::finalize_to_curve(exp, dst)

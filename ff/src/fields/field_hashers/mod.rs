@@ -5,7 +5,7 @@ use crate::{Field, PrimeField};
 use ark_std::vec::Vec;
 pub use digest::{self,Update};
 use digest::{ExtendableOutput,FixedOutputReset,XofReader};
-pub use expander::{DST, Zpad, Expander};
+pub use expander::{AsDST, DST, Zpad, Expander};
 
 
 // pub trait HashToField: Field {

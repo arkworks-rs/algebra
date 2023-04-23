@@ -12,25 +12,33 @@ const MAX_DST_LENGTH: usize = 255;
 
 const LONG_DST_PREFIX: &[u8; 17] = b"H2C-OVERSIZE-DST-";
 
+/// A domain seperation tag for the hashed-to-curve.
+pub trait AsDST {
+    fn as_dst(&self) -> &[u8];
+    fn update_digest<H: Update>(&self, h: &mut H) {
+        h.update(self.as_dst());
+        // I2OSP(len,1) https://www.rfc-editor.org/rfc/rfc8017.txt
+        h.update(&[self.as_dst().len() as u8]);
+    }
+}
+
+impl AsDST for &'static [u8] {
+    fn as_dst(&self) -> &[u8] {
+        assert!(self.len() < MAX_DST_LENGTH);
+        self
+    }
+}
+
 /// Implements section [5.3.3](https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-hash-to-curve-16#section-5.3.3)
 /// "Using DSTs longer than 255 bytes" of the 
 /// [IRTF CFRG hash-to-curve draft #16](https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-hash-to-curve-16#section-5.3.3).
 pub struct DST(arrayvec::ArrayVec<u8,MAX_DST_LENGTH>);
 
-impl TryFrom<&'static [u8]> for DST {
-    type Error = &'static str;
-    fn try_from(dst: &'static [u8]) -> Result<Self, Self::Error> {
-        Ok(DST(ArrayVec::try_from(dst).map_err(|_| "DST longer than 255 bytes!") ?))
+impl AsDST for &DST {
+    fn as_dst(&self) -> &[u8] {
+        self.0.as_ref()
     }
 }
-
-/*
-impl From<&'static [u8]> for DST {
-    fn from(dst: &'static [u8]) -> Self {
-        ArrayVec::try_from(dst).expect("DST longer than 255 bytes!");
-    }
-}
-*/
 
 impl DST {
     pub fn new_xmd<H: FixedOutputReset+Default>(dst: &[u8]) -> DST {
@@ -51,6 +59,9 @@ impl DST {
     // }
 
     pub fn new_xof<H: ExtendableOutput+Default>(dst: &[u8], sec_param: Option<u16>) -> DST {
+        // use digest::core_api::BlockSizeUser;
+        // H: +BlockSizeUser+
+        // Ask if <H as BlockSizeUser>::block_size() == sec_param?
         DST(ArrayVec::try_from(dst).unwrap_or_else( |_| {
             let sec_param = sec_param.expect("expand_message_xof wants a security parameter for compressing a long domain string.") as usize;
             let mut long = H::default();
@@ -63,34 +74,28 @@ impl DST {
             ArrayVec::try_from( &*new_dst ).unwrap()
         } ))
     }
-
-    pub fn update<H: Update>(&self, h: &mut H) {
-        h.update(self.0.as_ref());
-        // I2OSP(len,1) https://www.rfc-editor.org/rfc/rfc8017.txt
-        h.update(&[self.0.len() as u8]);
-    }
 }
-
+ 
 pub trait Expander: Sized {
     type R: XofReader;
-    fn expand(self, dst: &DST, length: usize) -> Self::R;
-    fn expand_for_field<const SEC_PARAM: u16,F: Field,const N: usize>(self, dst: &DST) -> Self::R {
+    fn expand(self, dst: impl AsDST, length: usize) -> Self::R;
+    fn expand_for_field<const SEC_PARAM: u16,F: Field,const N: usize>(self, dst: impl AsDST) -> Self::R {
         let len_per_base_elem = super::get_len_per_elem::<F, SEC_PARAM>();
         let m = F::extension_degree() as usize;
         let total_length = N * m * len_per_base_elem;
-        self.expand(&dst, total_length)
+        self.expand(dst, total_length)
     }
 }
 
 impl<H: ExtendableOutput> Expander for H {
     type R = <H as ExtendableOutput>::Reader;
-    fn expand(mut self, dst: &DST, n: usize) -> Self::R
+    fn expand(mut self, dst: impl AsDST, n: usize) -> Self::R
     {
         assert!(n < (1 << 16), "Length should be smaller than 2^16");
         // I2OSP(len,2) https://www.rfc-editor.org/rfc/rfc8017.txt
         self.update(& (n as u16).to_be_bytes());
     
-        dst.update(&mut self);
+        dst.update_digest(&mut self);
         self.finalize_xof()
     }
 }
@@ -119,7 +124,7 @@ impl<H: FixedOutputReset+Default> Zpad<H> {
 
 impl<H: FixedOutputReset+Default> Expander for Zpad<H> {
     type R = XofVec;
-    fn expand(self, dst: &DST, n: usize) -> XofVec
+    fn expand(self, dst: impl AsDST, n: usize) -> XofVec
     {
         use digest::typenum::Unsigned;
         // output size of the hash function, e.g. 32 bytes = 256 bits for sha2::Sha256
@@ -136,12 +141,12 @@ impl<H: FixedOutputReset+Default> Expander for Zpad<H> {
         hasher.update(& (n as u16).to_be_bytes());
 
         hasher.update(&[0u8]);
-        dst.update(& mut hasher);
+        dst.update_digest(& mut hasher);
         let b0 = hasher.finalize_fixed_reset();
 
         hasher.update(&b0);
         hasher.update(&[1u8]);
-        dst.update(& mut hasher);
+        dst.update_digest(& mut hasher);
         let mut bi = hasher.finalize_fixed_reset();
 
         let mut bytes: Vec<u8> = Vec::with_capacity(n); 
@@ -152,7 +157,7 @@ impl<H: FixedOutputReset+Default> Expander for Zpad<H> {
                 hasher.update(&[*l ^ *r]);
             }
             hasher.update(&[i as u8]);
-            dst.update(& mut hasher);
+            dst.update_digest(& mut hasher);
             bi = hasher.finalize_fixed_reset();
             bytes.extend_from_slice(&bi);
         }

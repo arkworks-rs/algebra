@@ -54,8 +54,8 @@ fn do_test(data: ExpanderVector) -> Result<(), Failed> {
         "SHA256" => DST::new_xmd::<Sha256>(data.dst.as_bytes()),
         "SHA384" => DST::new_xmd::<Sha384>(data.dst.as_bytes()),
         "SHA512" => DST::new_xmd::<Sha512>(data.dst.as_bytes()),
-        "SHAKE128" => DST::new_xof::<Shake128>(data.dst.as_bytes(), Some(data.k)),
-        "SHAKE256" => DST::new_xof::<Shake256>(data.dst.as_bytes(), Some(data.k)),
+        "SHAKE128" => DST::new_xof::<Shake128>(data.dst.as_bytes(), Some(data.k as u16)),
+        "SHAKE256" => DST::new_xof::<Shake256>(data.dst.as_bytes(), Some(data.k as u16)),
         _ => unimplemented!(),
     };
 
