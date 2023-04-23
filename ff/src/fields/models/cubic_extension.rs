@@ -700,9 +700,9 @@ mod cube_ext_tests {
     use super::*;
     use ark_std::test_rng;
     use ark_test_curves::{
+        ark_ff::Field,
         bls12_381::{Fq, Fq2, Fq6},
         mnt6_753::Fq3,
-        Field,
     };
 
     #[test]

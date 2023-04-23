@@ -122,6 +122,8 @@ macro_rules! __test_group {
 
                     let mut rng = ark_std::test_rng();
 
+                    // Test that serializing and deserializing random elements
+                    // works.
                     for _ in 0..ITERATIONS {
                         let a = <$group>::rand(&mut rng);
                         {
@@ -133,29 +135,37 @@ macro_rules! __test_group {
                             let b = <$group>::deserialize_with_mode(&mut cursor, compress, validate).unwrap();
                             assert_eq!(a, b);
                         }
+                    }
 
-                        {
-                            let a = <$group>::zero();
-                            let mut serialized = vec![0; buf_size];
-                            let mut cursor = Cursor::new(&mut serialized[..]);
-                            a.serialize_with_mode(&mut cursor, compress).unwrap();
-                            let mut cursor = Cursor::new(&serialized[..]);
-                            let b = <$group>::deserialize_with_mode(&mut cursor, compress, validate).unwrap();
-                            assert_eq!(a, b);
-                        }
+                    // Test that serializing and deserializing the identity element
+                    // works.
+                    {
+                        let a = <$group>::zero();
+                        let mut serialized = vec![0; buf_size];
+                        let mut cursor = Cursor::new(&mut serialized[..]);
+                        a.serialize_with_mode(&mut cursor, compress).unwrap();
+                        let mut cursor = Cursor::new(&serialized[..]);
+                        let b = <$group>::deserialize_with_mode(&mut cursor, compress, validate).unwrap();
+                        assert_eq!(a, b);
+                    }
 
-                        {
-                            let a = <$group>::zero();
-                            let mut serialized = vec![0; buf_size - 1];
-                            let mut cursor = Cursor::new(&mut serialized[..]);
-                            a.serialize_with_mode(&mut cursor, compress).unwrap_err();
-                        }
+                    // Test that serializing the identity point into a buffer that
+                    // is not big enough will yield an error.
+                    {
+                        let a = <$group>::zero();
+                        let mut serialized = vec![0; buf_size - 1];
+                        let mut cursor = Cursor::new(&mut serialized[..]);
+                        a.serialize_with_mode(&mut cursor, compress).unwrap_err();
+                    }
 
-                        {
-                            let serialized = vec![0; buf_size - 1];
-                            let mut cursor = Cursor::new(&serialized[..]);
-                            <$group>::deserialize_with_mode(&mut cursor, compress, validate).unwrap_err();
-                        }
+                    // Test that deserializing from a buffer that is not big enough
+                    // will yield and error.
+                    // This test does not explicitly check that the error is due to
+                    // a buffer that is not big enough.
+                    {
+                        let serialized = vec![0; buf_size - 1];
+                        let mut cursor = Cursor::new(&serialized[..]);
+                        <$group>::deserialize_with_mode(&mut cursor, compress, validate).unwrap_err();
                     }
                 }
             }
