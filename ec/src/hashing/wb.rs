@@ -125,11 +125,9 @@ impl<P: WBConfig> MapToCurve<Projective<P>> for WBMap<P> {
 mod test {
     use crate::{
         hashing::{
-            curve_maps::{
-                swu::SWUConfig,
-                wb::{IsogenyMap, WBConfig, WBMap},
-                MapToCurveBasedHasher,
-            },
+            swu::SWUConfig,
+            wb::{IsogenyMap, WBConfig, WBMap},
+            MapToCurveBasedHasher,
             HashToCurve,
         },
         models::short_weierstrass::SWCurveConfig,
@@ -316,6 +314,7 @@ mod test {
         const ISOGENY_MAP: super::IsogenyMap<'static, Self::IsogenousCurve, Self> =
             ISOGENY_MAP_TESTWBF127;
     }
+
 
     /// The point of the test is to get a simple WB compatible curve
     /// and make simple hash

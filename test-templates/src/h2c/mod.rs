@@ -15,7 +15,7 @@ macro_rules! test_h2c {
             extern crate std;
             use ark_ec::{
                 hashing::{
-                    curve_maps::wb::WBMap, map_to_curve_hasher::MapToCurveBasedHasher, HashToCurve,
+                    wb::WBMap, map_to_curve_hasher::MapToCurveBasedHasher, HashToCurve,
                 },
                 short_weierstrass::{Affine, Projective},
             };

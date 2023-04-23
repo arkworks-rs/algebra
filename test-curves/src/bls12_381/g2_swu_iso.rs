@@ -5,7 +5,7 @@ use ark_ec::models::{
 };
 use ark_ff::MontFp;
 
-use ark_ec::hashing::curve_maps::{swu::SWUConfig, wb::IsogenyMap};
+use ark_ec::hashing::{swu::SWUConfig, wb::IsogenyMap};
 
 type G2Affine = Affine<SwuIsoConfig>;
 

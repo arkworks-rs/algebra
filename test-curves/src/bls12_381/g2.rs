@@ -3,7 +3,7 @@ use core::ops::Neg;
 use crate::bls12_381::*;
 use ark_ec::{
     bls12::{self, Bls12Config},
-    hashing::curve_maps::wb::{IsogenyMap, WBConfig},
+    hashing::wb::{IsogenyMap, WBConfig},
     models::CurveConfig,
     short_weierstrass::{self, *},
     AffineRepr, CurveGroup, PrimeGroup,
