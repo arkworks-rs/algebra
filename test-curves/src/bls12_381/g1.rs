@@ -80,17 +80,12 @@ impl GLVConfig for Config {
     const LAMBDA: Self::ScalarField =
         MontFp!("52435875175126190479447740508185965837461563690374988244538805122978187051009");
 
-    const SCALAR_DECOMP_COEFFS: [[<Self as CurveConfig>::ScalarField; 2]; 2] = [
-        [
-            MontFp!("228988810152649578064853576960394133504"),
-            MontFp!("1"),
-        ],
-        [
-            MontFp!("1"),
-            MontFp!("228988810152649578064853576960394133503"),
-        ],
+    const SCALAR_DECOMP_COEFFS: [(bool, Self::ScalarField); 4] = [
+        (true, MontFp!("228988810152649578064853576960394133504")),
+        (true, MontFp!("1")),
+        (false, MontFp!("1")),
+        (true, MontFp!("228988810152649578064853576960394133503")),
     ];
-    const SGN_N: [bool; 4] = [true, true, false, true];
 
     fn endomorphism(p: &Projective<Self>) -> Projective<Self> {
         let mut res = (*p).clone();
