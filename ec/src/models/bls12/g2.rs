@@ -57,7 +57,7 @@ impl<P: Bls12Config> From<G2Affine<P>> for G2Prepared<P> {
             ell_coeffs: vec![],
             infinity: true,
         };
-        q.xy().map_or(zero, |(&q_x, &q_y)| {
+        q.xy().map_or(zero, |(q_x, q_y)| {
             let mut ell_coeffs = vec![];
             let mut r = G2HomProjective::<P> {
                 x: q_x,
@@ -133,7 +133,7 @@ impl<P: Bls12Config> G2HomProjective<P> {
     }
 
     fn add_in_place(&mut self, q: &G2Affine<P>) -> EllCoeff<P> {
-        let (&qx, &qy) = q.xy().unwrap();
+        let (qx, qy) = q.xy().unwrap();
         // Formula for line function when working with
         // homogeneous projective coordinates.
         let theta = self.y - &(qy * &self.z);
