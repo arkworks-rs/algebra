@@ -584,7 +584,7 @@ impl<'a, 'b, F: FftField> Mul<&'a DensePolynomial<F>> for &'b DensePolynomial<F>
         if self.is_zero() || other.is_zero() {
             DensePolynomial::zero()
         } else {
-            let domain = GeneralEvaluationDomain::new(self.coeffs.len() + other.coeffs.len())
+            let domain = GeneralEvaluationDomain::new(self.coeffs.len() + other.coeffs.len() - 1)
                 .expect("field is not smooth enough to construct domain");
             let mut self_evals = self.evaluate_over_domain_by_ref(domain);
             let other_evals = other.evaluate_over_domain_by_ref(domain);
