@@ -55,12 +55,12 @@ pub trait GLVConfig: Send + Sync + 'static + SWCurveConfig {
         // b1
         let b11 = &beta_1 * &n11;
         let b12 = &beta_2 * &n21;
-        let b1 = (b11 + b12) % &r;
+        let b1 = b11 + b12;
 
         // b2
         let b21 = &beta_1 * &n12;
         let b22 = &beta_2 * &n22;
-        let b2 = (b21 + b22) % &r;
+        let b2 = b21 + b22;
 
         let k1 = &scalar - b1;
 
