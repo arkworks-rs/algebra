@@ -77,9 +77,9 @@ pub trait SWCurveConfig: super::CurveConfig {
         item.mul_by_cofactor()
     }
 
-    /// Default implementation of group multiplication for projective
-    /// coordinates
-    fn mul_projective(base: &Projective<Self>, scalar: &[u64]) -> Projective<Self> {
+    /// Standard double-and-add method for multiplication by a scalar.
+    #[inline(always)]
+    fn double_and_add_projective(base: &Projective<Self>, scalar: &[u64]) -> Projective<Self> {
         let mut res = Projective::<Self>::zero();
         for b in ark_ff::BitIteratorBE::without_leading_zeros(scalar) {
             res.double_in_place();
@@ -91,9 +91,15 @@ pub trait SWCurveConfig: super::CurveConfig {
         res
     }
 
-    /// Default implementation of group multiplication for affine
-    /// coordinates.
-    fn mul_affine(base: &Affine<Self>, scalar: &[u64]) -> Projective<Self> {
+    /// Default implementation of group multiplication for projective
+    /// coordinates
+    fn mul_projective(base: &Projective<Self>, scalar: &[u64]) -> Projective<Self> {
+        Self::double_and_add_projective(base, scalar)
+    }
+
+    /// Standard double-and-add method for multiplication by a scalar.
+    #[inline(always)]
+    fn double_and_add_affine(base: &Affine<Self>, scalar: &[u64]) -> Projective<Self> {
         let mut res = Projective::<Self>::zero();
         for b in ark_ff::BitIteratorBE::without_leading_zeros(scalar) {
             res.double_in_place();
@@ -103,6 +109,12 @@ pub trait SWCurveConfig: super::CurveConfig {
         }
 
         res
+    }
+
+    /// Default implementation of group multiplication for affine
+    /// coordinates.
+    fn mul_affine(base: &Affine<Self>, scalar: &[u64]) -> Projective<Self> {
+        Self::double_and_add_affine(base, scalar)
     }
 
     /// Default implementation for multi scalar multiplication
