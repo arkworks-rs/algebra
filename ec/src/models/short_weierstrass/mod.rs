@@ -6,8 +6,12 @@ use ark_std::io::{Read, Write};
 
 use ark_ff::fields::Field;
 
-use crate::scalar_mul::{double_and_add_affine, double_and_add_projective};
-use crate::{scalar_mul::variable_base::VariableBaseMSM, AffineRepr};
+use crate::{
+    scalar_mul::{
+        double_and_add_affine, double_and_add_projective, variable_base::VariableBaseMSM,
+    },
+    AffineRepr,
+};
 use num_traits::Zero;
 
 mod affine;
