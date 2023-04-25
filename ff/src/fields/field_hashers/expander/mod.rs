@@ -28,6 +28,12 @@ impl AsDST for &'static [u8] {
         self
     }
 }
+impl<const N: usize> AsDST for &'static [u8; N] {
+    fn as_dst(&self) -> &[u8] {
+        assert!(self.len() < MAX_DST_LENGTH);
+        self.as_ref()
+    }
+}
 
 /// Implements section [5.3.3](https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-hash-to-curve-16#section-5.3.3)
 /// "Using DSTs longer than 255 bytes" of the 

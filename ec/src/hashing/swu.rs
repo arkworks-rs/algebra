@@ -164,10 +164,10 @@ impl<P: SWUConfig> MapToCurve<Projective<P>> for SWUMap<P> {
 #[cfg(test)]
 mod test {
     use crate::{
-        hashing::{HashToCurve},
-        CurveConfig,
+        hashing::{zpad_expander, Update, expand_to_curve, HashToCurve},
+        CurveConfig, CurveGroup
     };
-    use ark_ff::field_hashers::DefaultFieldHasher;
+    // use ark_ff::field_hashers::{ ?? };
     use ark_std::vec::Vec;
 
     use super::*;
@@ -248,17 +248,12 @@ mod test {
     /// simple hash
     #[test]
     fn hash_arbitary_string_to_curve_swu() {
-        let test_swu_to_curve_hasher = MapToCurveBasedHasher::<
-            Projective<TestSWUMapToCurveConfig>,
-            DefaultFieldHasher<Sha256, 128>,
-            SWUMap<TestSWUMapToCurveConfig>,
-        >::new(&[1])
-        .unwrap();
-
-        let hash_result = test_swu_to_curve_hasher.hash(b"if you stick a Babel fish in your ear you can instantly understand anything said to you in any form of language.").expect("fail to hash the string to curve");
+        let mut h = crate::hashing::zpad_expander::<Projective<TestSWUMapToCurveConfig>,SWUMap<TestSWUMapToCurveConfig>,Sha256>();
+        h.update(b"if you stick a Babel fish in your ear you can instantly understand anything said to you in any form of language.");
+        let hash_result: Projective<TestSWUMapToCurveConfig> = expand_to_curve::<Projective<TestSWUMapToCurveConfig>,SWUMap<TestSWUMapToCurveConfig>>(h, b"domain").expect("fail to hash the string to curve");
 
         assert!(
-            hash_result.is_on_curve(),
+            hash_result.into_affine().is_on_curve(),
             "hash results into a point off the curve"
         );
     }

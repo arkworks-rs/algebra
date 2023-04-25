@@ -125,16 +125,15 @@ impl<P: WBConfig> MapToCurve<Projective<P>> for WBMap<P> {
 mod test {
     use crate::{
         hashing::{
+            zpad_expander, Update, expand_to_curve,
             swu::SWUConfig,
             wb::{IsogenyMap, WBConfig, WBMap},
-            MapToCurveBasedHasher,
-            HashToCurve,
         },
         models::short_weierstrass::SWCurveConfig,
         short_weierstrass::{Affine, Projective},
-        CurveConfig,
+        CurveConfig, CurveGroup,
     };
-    use ark_ff::{field_hashers::DefaultFieldHasher, fields::Fp64, MontBackend, MontFp};
+    use ark_ff::{fields::Fp64, MontBackend, MontFp};
 
     #[derive(ark_ff::MontConfig)]
     #[modulus = "127"]
@@ -321,14 +320,12 @@ mod test {
     #[test]
     fn hash_arbitrary_string_to_curve_wb() {
         use sha2::Sha256;
-        let test_wb_to_curve_hasher = MapToCurveBasedHasher::<
-            Projective<TestWBF127MapToCurveConfig>,
-            DefaultFieldHasher<Sha256, 128>,
-            WBMap<TestWBF127MapToCurveConfig>,
-        >::new(&[1])
-        .unwrap();
 
-        let hash_result = test_wb_to_curve_hasher.hash(b"if you stick a Babel fish in your ear you can instantly understand anything said to you in any form of language.").expect("fail to hash the string to curve");
+        let mut h = zpad_expander::<Projective<TestWBF127MapToCurveConfig>,WBMap<TestWBF127MapToCurveConfig>,Sha256>();
+        h.update(b"if you stick a Babel fish in your ear you can instantly understand anything said to you in any form of language.");
+
+        let hash_result: Projective<TestWBF127MapToCurveConfig> = expand_to_curve::<Projective<TestWBF127MapToCurveConfig>,WBMap<TestWBF127MapToCurveConfig>>(h, b"domain").expect("fail to hash the string to curve");
+        let hash_result = hash_result.into_affine();
 
         assert!(
             hash_result.x != F127_ZERO && hash_result.y != F127_ZERO,
