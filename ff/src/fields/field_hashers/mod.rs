@@ -38,32 +38,32 @@ pub trait HashToField<F: Field>: Sized {
 /// use ark_test_curves::bls12_381::Fq;
 /// use sha2::Sha256;
 ///
-/// let field_elements: [Fq; 2] = xmd_hash_to_field::<Sha256,128,Fq,2>(b"Application",b"Hello, World!");
+/// let field_elements: [Fq; 2] = xmd_hash_to_field::<Sha256,Fq,2>(128,b"Application",b"Hello, World!");
 ///
 /// assert_eq!(field_elements.len(), 2);
 /// ```
-pub fn xmd_hash_to_field<H,const SEC_PARAM: u16,F,const N: usize>(dst: &[u8], msg: &[u8]) -> [F; N]
+pub fn xmd_hash_to_field<H,F,const N: usize>(sec_param: u16, dst: &[u8], msg: &[u8]) -> [F; N]
 where F: Field, H: FixedOutputReset+Default,
 {
     let dst = DST::new_xmd::<H>(dst);
-    let mut xmd = Zpad::<H>::new_for_field::<SEC_PARAM,F>().chain(msg).expand_for_field::<SEC_PARAM,F,2>(&dst);
-    let h2f = |_| hash_to_field::<SEC_PARAM,F,_>(&mut xmd);
+    let mut xmd = Zpad::<H>::new_for_field::<F>(sec_param).chain(msg).expand_for_field::<F,2>(sec_param,&dst);
+    let h2f = |_| hash_to_field::<F,_>(sec_param, &mut xmd);
     ark_std::array::from_fn::<F,N,_>(h2f)
 }
 
-pub fn xof_hash_to_field<H,const SEC_PARAM: u16,F,const N: usize>(dst: &[u8], msg: &[u8]) -> [F; N]
+pub fn xof_hash_to_field<H,F,const N: usize>(sec_param: u16, dst: &[u8], msg: &[u8]) -> [F; N]
 where F: Field, H: ExtendableOutput+Default,
 {
-    let dst = DST::new_xof::<H>(dst,Some(SEC_PARAM));
-    let mut xof = H::default().chain(msg).expand_for_field::<SEC_PARAM,F,2>(&dst);
-    let h2f = |_| hash_to_field::<SEC_PARAM,F,_>(&mut xof);
+    let dst = DST::new_xof::<H>(dst,Some(sec_param));
+    let mut xof = H::default().chain(msg).expand_for_field::<F,2>(sec_param,&dst);
+    let h2f = |_| hash_to_field::<F,_>(sec_param,&mut xof);
     ark_std::array::from_fn::<F,N,_>(h2f)
 }
 
-pub fn hash_to_field<const SEC_PARAM: u16,F: Field,H: XofReader>(h: &mut H) -> F {
+pub fn hash_to_field<F: Field,H: XofReader>(sec_param: u16, h: &mut H) -> F {
     // The final output of `hash_to_field` will be an array of field
     // elements from F::BaseField, each of size `len_per_elem`.
-    let len_per_base_elem = get_len_per_elem::<F, SEC_PARAM>();
+    let len_per_base_elem = get_len_per_elem::<F>(sec_param);
     // Rust *still* lacks alloca, hence this ugly hack.
     let mut alloca = [0u8; 256];
     let mut vec = Vec::new();
@@ -88,11 +88,11 @@ pub fn hash_to_field<const SEC_PARAM: u16,F: Field,H: XofReader>(h: &mut H) -> F
 /// for hashing an element of type `Field`.
 /// See section 5.1 and 5.3 of the
 /// [IETF hash standardization draft](https://datatracker.ietf.org/doc/draft-irtf-cfrg-hash-to-curve/14/)
-const fn get_len_per_elem<F: Field, const SEC_PARAM: u16>() -> usize {
+const fn get_len_per_elem<F: Field>(sec_param: u16) -> usize {
     // ceil(log(p))
     let base_field_size_in_bits = F::BasePrimeField::MODULUS_BIT_SIZE as usize;
     // ceil(log(p)) + security_parameter
-    let base_field_size_with_security_padding_in_bits = base_field_size_in_bits + (SEC_PARAM as usize);
+    let base_field_size_with_security_padding_in_bits = base_field_size_in_bits + (sec_param as usize);
     // ceil( (ceil(log(p)) + security_parameter) / 8)
     let bytes_per_base_field_elem =
         ((base_field_size_with_security_padding_in_bits + 7) / 8) as u64;

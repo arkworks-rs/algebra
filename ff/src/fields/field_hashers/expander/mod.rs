@@ -79,8 +79,8 @@ impl DST {
 pub trait Expander: Sized {
     type R: XofReader;
     fn expand(self, dst: impl AsDST, length: usize) -> Self::R;
-    fn expand_for_field<const SEC_PARAM: u16,F: Field,const N: usize>(self, dst: impl AsDST) -> Self::R {
-        let len_per_base_elem = super::get_len_per_elem::<F, SEC_PARAM>();
+    fn expand_for_field<F: Field,const N: usize>(self, sec_param: u16, dst: impl AsDST) -> Self::R {
+        let len_per_base_elem = super::get_len_per_elem::<F>(sec_param);
         let m = F::extension_degree() as usize;
         let total_length = N * m * len_per_base_elem;
         self.expand(dst, total_length)
@@ -116,8 +116,8 @@ impl<H: FixedOutputReset+Default> Zpad<H> {
         hasher.update(&Z_PAD[0..block_size]);
         Zpad(hasher)
     }
-    pub fn new_for_field<const SEC_PARAM: u16,F: Field>() -> Zpad<H> {
-        let len_per_base_elem = super::get_len_per_elem::<F, SEC_PARAM>();
+    pub fn new_for_field<F: Field>(sec_param: u16) -> Zpad<H> {
+        let len_per_base_elem = super::get_len_per_elem::<F>(sec_param);
         Self::new(len_per_base_elem)
     }
 }

@@ -37,11 +37,7 @@ pub trait MapToCurve<C: CurveGroup>: Sized {
 pub fn xof_map_to_curve<C,M,H>(xof: &mut H) -> Result<C, HashToCurveError> 
 where C: CurveGroup, M: MapToCurve<C>, H: XofReader,
 {
-    let mut f = || match <M as MapToCurve<C>>::SEC_PARAM {
-        128 => field_hashers::hash_to_field::<128u16,C::BaseField,H>(xof),
-        256 => field_hashers::hash_to_field::<256u16,C::BaseField,H>(xof),
-        _ => panic!("const-generics"),
-    };
+    let mut f = || field_hashers::hash_to_field::<C::BaseField,H>(<M as MapToCurve<C>>::SEC_PARAM, xof);
     let p0 = <M as MapToCurve<C>>::map_to_curve(f())?;
     let p1 = <M as MapToCurve<C>>::map_to_curve(f())?;
 
@@ -57,11 +53,7 @@ where C: CurveGroup, M: MapToCurve<C>
 {
     #[cfg(debug_assertions)]
     <M as MapToCurve<C>>::check_parameters()?;
-    let mut xof = match <M as MapToCurve<C>>::SEC_PARAM {
-        128 => exp.expand_for_field::<128u16,C::BaseField,2>(dst),
-        256 => exp.expand_for_field::<256u16,C::BaseField,2>(dst),
-        _ => panic!("const-generics"),
-    };
+    let mut xof = exp.expand_for_field::<C::BaseField,2>(<M as MapToCurve<C>>::SEC_PARAM, dst);
     xof_map_to_curve::<C,M,_>(&mut xof)
 }
 
@@ -75,11 +67,7 @@ where C: CurveGroup, M: MapToCurve<C>
 pub fn zpad_expander<C,M,H>() -> Zpad<H>
 where C: CurveGroup, M: MapToCurve<C>, H: FixedOutputReset+Default,
 {
-    match <M as MapToCurve<C>>::SEC_PARAM {
-        128 => Zpad::<H>::new_for_field::<128u16,C::BaseField>(),
-        256 => Zpad::<H>::new_for_field::<256u16,C::BaseField>(),
-        _ => panic!("const-generics"),
-    }
+    Zpad::<H>::new_for_field::<C::BaseField>(<M as MapToCurve<C>>::SEC_PARAM)
 }
 
 /// [IRTF CFRG hash-to-curve draft](https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-hash-to-curve-16)
