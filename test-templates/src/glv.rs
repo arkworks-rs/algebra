@@ -12,7 +12,8 @@ pub fn glv_scalar_decomposition<P: GLVConfig>() {
     for _i in 0..100 {
         let k = P::ScalarField::rand(&mut rng);
 
-        let ((is_k1_positive, k1), (is_k2_positive, k2)) = <P as GLVConfig>::scalar_decomposition(k);
+        let ((is_k1_positive, k1), (is_k2_positive, k2)) =
+            <P as GLVConfig>::scalar_decomposition(k);
 
         if is_k1_positive && is_k2_positive {
             assert_eq!(k1 + k2 * P::LAMBDA, k);
