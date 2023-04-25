@@ -1,9 +1,9 @@
 #![no_std]
 
-extern crate ark_ff;
-pub use ark_ff::*;
+pub use ark_ff;
+pub use ark_ff::{fields::models::*, FftField, Field, LegendreSymbol, MontFp, PrimeField};
 
-extern crate ark_ec;
+pub use ark_ec;
 pub use ark_ec::*;
 
 #[cfg(any(feature = "bls12_381_scalar_field", feature = "bls12_381_curve"))]

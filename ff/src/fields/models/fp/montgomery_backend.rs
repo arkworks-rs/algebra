@@ -574,9 +574,9 @@ pub const fn sqrt_precomputation<const N: usize, T: MontConfig<N>>(
 /// # Usage
 ///
 /// ```rust
-/// # use ark_test_curves::{MontFp, One};
+/// # use ark_test_curves::MontFp;
 /// # use ark_test_curves::bls12_381 as ark_bls12_381;
-/// # use ark_std::str::FromStr;
+/// # use ark_std::{One, str::FromStr};
 /// use ark_bls12_381::Fq;
 /// const ONE: Fq = MontFp!("1");
 /// const NEG_ONE: Fq = MontFp!("-1");
@@ -789,9 +789,9 @@ impl<T: MontConfig<N>, const N: usize> Fp<MontBackend<T, N>, N> {
 
     const fn const_is_valid(&self) -> bool {
         crate::const_for!((i in 0..N) {
-            if (self.0).0[(N - i - 1)] < T::MODULUS.0[(N - i - 1)] {
+            if (self.0).0[N - i - 1] < T::MODULUS.0[N - i - 1] {
                 return true
-            } else if (self.0).0[(N - i - 1)] > T::MODULUS.0[(N - i - 1)] {
+            } else if (self.0).0[N - i - 1] > T::MODULUS.0[N - i - 1] {
                 return false
             }
         });

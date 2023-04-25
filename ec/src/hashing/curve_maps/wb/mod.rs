@@ -53,10 +53,10 @@ where
                 let y_num = DensePolynomial::from_coefficients_slice(self.y_map_numerator);
                 let y_den = DensePolynomial::from_coefficients_slice(self.y_map_denominator);
 
-                let mut v: [BaseField<Domain>; 2] = [x_den.evaluate(x), y_den.evaluate(x)];
+                let mut v: [BaseField<Domain>; 2] = [x_den.evaluate(&x), y_den.evaluate(&x)];
                 batch_inversion(&mut v);
-                let img_x = x_num.evaluate(x) * v[0];
-                let img_y = (y_num.evaluate(x) * y) * v[1];
+                let img_x = x_num.evaluate(&x) * v[0];
+                let img_y = (y_num.evaluate(&x) * y) * v[1];
                 Ok(Affine::<Codomain>::new_unchecked(img_x, img_y))
             },
             None => Ok(Affine::identity()),
