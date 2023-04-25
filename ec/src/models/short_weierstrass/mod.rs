@@ -8,7 +8,7 @@ use ark_ff::fields::Field;
 
 use crate::{
     scalar_mul::{
-        double_and_add_affine, double_and_add_projective, variable_base::VariableBaseMSM,
+        sw_double_and_add_affine, sw_double_and_add_projective, variable_base::VariableBaseMSM,
     },
     AffineRepr,
 };
