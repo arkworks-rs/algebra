@@ -4,9 +4,35 @@
 
 ### Breaking changes
 
+- [\#593](https://github.com/arkworks-rs/algebra/pull/593) (`ark-ec`) Change `AffineRepr::xy()` to return owned values.
+
 ### Features
 
 ### Improvements
+
+### Bugfixes
+
+## v0.4.2
+
+### Breaking changes
+
+### Features
+
+### Improvements
+
+### Bugfixes
+
+- [\#610](https://github.com/arkworks-rs/algebra/pull/610) (`ark-ec`) Fix panic in `final_exponentiation` step for MNT4/6 curves if inverse does not exist.
+
+## v0.4.1
+
+### Breaking changes
+
+### Features
+
+### Improvements
+
+- [\#603](https://github.com/arkworks-rs/algebra/pull/603) (`ark-poly`) Reduce the number of field multiplications performed by `SparseMultilinearExtension::evaluate` and `DenseMultilinearExtension::evaluate`
 
 ### Bugfixes
 
@@ -71,12 +97,14 @@
 - [\#446](https://github.com/arkworks-rs/algebra/pull/446) (`ark-ff`) Add `CyclotomicMultSubgroup` trait and implement it for extension fields
 - [\#447](https://github.com/arkworks-rs/algebra/pull/447) (`ark-ec`, `ark-algebra-test-templates`) Rename and refactor group infrastructure, and test infrastructure for fields, groups, and pairings:
     - Create new `Group` trait and move some functionality from `ProjectiveCurve` to it.
+    - Refactor `add_assign_mixed` → `add_assign` that's polymorphic over its RHS.
     - Rename `ProjectiveCurve` to `CurveGroup: Group`.
         - Rename some associated types:
             - `AffineCurve` → `Affine`
         - Rename some methods:
             - `batch_normalization_into_affine` → `normalize_batch`
-    - Rename `AffineCurve` to `Affine`.
+            - `prime_subgroup_generator` → `generator`
+    - Rename `AffineCurve` to `AffineRepr`.
         - Rename associated types:
             - `Projective` → `Group`
         - Add methods:
@@ -86,6 +114,7 @@
             - `zero()` → `identity()`
             - `is_zero()` → `is_identity()`
             - `into_projective()` → `into_group()`
+            - `prime_subgroup_generator()` → `generator()`
     - Add new `ScalarMul` trait that encapsulates scalar multiplication routines for arbitrary `Group`s.
         - `ScalarMul` trait has a `MulBase` associated type to encapsulate bases for variable base and fixed-base scalar multiplication algorithms.
         - `ScalarMul` requires `Add<Self::MulBase, Output = Self>`, `AddAssign<Self::MulBase>`, and `From<Self::MulBase>`.

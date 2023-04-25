@@ -1,6 +1,6 @@
 [package]
 name = "ark-ec"
-version = "0.4.0"
+version = "0.4.2"
 authors = [ "arkworks contributors" ]
 description = "A library for elliptic curves and pairings"
 homepage = "https://arkworks.rs"
@@ -8,16 +8,16 @@ repository = "https://github.com/arkworks-rs/algebra"
 documentation = "https://docs.rs/ark-ec/"
 keywords = ["cryptography", "elliptic-curves", "pairing"]
 categories = ["cryptography"]
-include = ["Cargo.toml", "src", "README.md", "LICENSE-APACHE", "LICENSE-MIT"]
+include = ["Cargo.toml", "src", "doc", "README.md", "LICENSE-APACHE", "LICENSE-MIT"]
 license = "MIT/Apache-2.0"
 edition = "2021"
 rust-version = "1.63"
 
 [dependencies]
 ark-std = { version = "0.4.0", default-features = false }
-ark-serialize = { version = "0.4.0", path = "../serialize", default-features = false }
-ark-ff = { version = "0.4.0", path = "../ff", default-features = false }
-ark-poly = { version = "0.4.0", path = "../poly", default-features = false }
+ark-serialize = { version = "0.4.2", path = "../serialize", default-features = false }
+ark-ff = { version = "0.4.2", path = "../ff", default-features = false }
+ark-poly = { version = "0.4.2", path = "../poly", default-features = false }
 derivative = { version = "2", features = ["use_core"] }
 num-traits = { version = "0.2", default-features = false }
 rayon = { version = "1", optional = true }
@@ -27,7 +27,7 @@ itertools = { version = "0.10", default-features = false }
 num-bigint = "0.4.3"
 
 [dev-dependencies]
-ark-test-curves = { version = "0.4.0", path = "../test-curves", default-features = false, features = ["bls12_381_curve"] }
+ark-test-curves = { version = "0.4.2", path = "../test-curves", default-features = false, features = ["bls12_381_curve"] }
 sha2 = { version = "0.10", default-features = false }
 libtest-mimic = "0.6.0"
 serde = "1.0.110"
@@ -39,3 +39,6 @@ hex = "0.4"
 default = []
 std = [ "ark-std/std", "ark-ff/std", "ark-serialize/std" ]
 parallel = [ "std", "rayon", "ark-std/parallel" ]
+
+[package.metadata.docs.rs]
+rustdoc-args = ["--html-in-header", "./doc/katex-header.html"]

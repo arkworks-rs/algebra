@@ -20,8 +20,8 @@ pub type G2Projective<P> = Projective<<P as Bls12Config>::G2Config>;
     Eq(bound = "P: Bls12Config")
 )]
 pub struct G2Prepared<P: Bls12Config> {
-    // Stores the coefficients of the line evaluations as calculated in
-    // https://eprint.iacr.org/2013/722.pdf
+    /// Stores the coefficients of the line evaluations as calculated in
+    /// <https://eprint.iacr.org/2013/722.pdf>
     pub ell_coeffs: Vec<EllCoeff<P>>,
     pub infinity: bool,
 }
@@ -57,7 +57,7 @@ impl<P: Bls12Config> From<G2Affine<P>> for G2Prepared<P> {
             ell_coeffs: vec![],
             infinity: true,
         };
-        q.xy().map_or(zero, |(&q_x, &q_y)| {
+        q.xy().map_or(zero, |(q_x, q_y)| {
             let mut ell_coeffs = vec![];
             let mut r = G2HomProjective::<P> {
                 x: q_x,
@@ -133,7 +133,7 @@ impl<P: Bls12Config> G2HomProjective<P> {
     }
 
     fn add_in_place(&mut self, q: &G2Affine<P>) -> EllCoeff<P> {
-        let (&qx, &qy) = q.xy().unwrap();
+        let (qx, qy) = q.xy().unwrap();
         // Formula for line function when working with
         // homogeneous projective coordinates.
         let theta = self.y - &(qy * &self.z);
