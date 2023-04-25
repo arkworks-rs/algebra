@@ -1,10 +1,11 @@
 use std::ops::Mul;
 
 use ark_ec::{
-    scalar_mul::glv::GLVConfig,
+    scalar_mul::{glv::GLVConfig, sw_double_and_add_affine, sw_double_and_add_projective},
     short_weierstrass::{Affine, Projective},
     AffineRepr, CurveGroup, Group,
 };
+use ark_ff::PrimeField;
 use ark_std::UniformRand;
 
 pub fn glv_scalar_decomposition<P: GLVConfig>() {
@@ -46,7 +47,7 @@ pub fn glv_projective<P: GLVConfig>() {
         let k = P::ScalarField::rand(&mut rng);
 
         let k_g = <P as GLVConfig>::glv_mul_projective(g, k);
-        let k_g_2 = g.mul(k);
+        let k_g_2 = sw_double_and_add_projective(&g, &k.into_bigint().as_ref());
         assert_eq!(k_g, k_g_2);
     }
 }
@@ -60,7 +61,7 @@ pub fn glv_affine<P: GLVConfig>() {
         let k = P::ScalarField::rand(&mut rng);
 
         let k_g = <P as GLVConfig>::glv_mul_affine(g, k);
-        let k_g_2 = g.mul(k).into_affine();
+        let k_g_2 = sw_double_and_add_affine(&g, &k.into_bigint().as_ref()).into_affine();
         assert_eq!(k_g, k_g_2);
     }
 }
