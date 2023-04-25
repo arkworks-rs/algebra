@@ -1,7 +1,7 @@
 use crate::Group;
 use crate::{
     short_weierstrass::{Affine, Projective, SWCurveConfig},
-    CurveConfig, CurveGroup,
+    CurveGroup,
 };
 use ark_ff::{PrimeField, Zero};
 use num_bigint::{BigInt, BigUint, Sign};
@@ -25,12 +25,7 @@ pub trait GLVConfig: Send + Sync + 'static + SWCurveConfig {
     /// Decomposes a scalar s into k1, k2, s.t. s = k1 + lambda k2,
     fn scalar_decomposition(
         k: Self::ScalarField,
-    ) -> (
-        <Self as CurveConfig>::ScalarField,
-        bool,
-        <Self as CurveConfig>::ScalarField,
-        bool,
-    ) {
+    ) -> ((bool, Self::ScalarField), (bool, Self::ScalarField)) {
         let scalar: BigInt = k.into_bigint().into().into();
 
         let coeff_bigints: [BigInt; 4] = Self::SCALAR_DECOMP_COEFFS.map(|x| {
@@ -69,10 +64,11 @@ pub trait GLVConfig: Send + Sync + 'static + SWCurveConfig {
         let k2_abs = BigUint::try_from(k2.abs()).unwrap();
 
         (
-            Self::ScalarField::from(k1.to_biguint().unwrap()),
-            k1.sign() == Sign::Plus,
-            Self::ScalarField::from(k2_abs),
-            k2.sign() == Sign::Plus,
+            (
+                k1.sign() == Sign::Plus,
+                Self::ScalarField::from(k1.to_biguint().unwrap()),
+            ),
+            (k2.sign() == Sign::Plus, Self::ScalarField::from(k2_abs)),
         )
     }
 
@@ -81,7 +77,7 @@ pub trait GLVConfig: Send + Sync + 'static + SWCurveConfig {
     fn endomorphism_affine(p: &Affine<Self>) -> Affine<Self>;
 
     fn glv_mul_projective(p: Projective<Self>, k: Self::ScalarField) -> Projective<Self> {
-        let (k1, sgn_k1, k2, sgn_k2) = Self::scalar_decomposition(k);
+        let ((sgn_k1, k1), (sgn_k2, k2)) = Self::scalar_decomposition(k);
 
         let mut b1 = p;
         let mut b2 = Self::endomorphism(&p);
@@ -117,7 +113,7 @@ pub trait GLVConfig: Send + Sync + 'static + SWCurveConfig {
     }
 
     fn glv_mul_affine(p: Affine<Self>, k: Self::ScalarField) -> Affine<Self> {
-        let (k1, sgn_k1, k2, sgn_k2) = Self::scalar_decomposition(k);
+        let ((sgn_k1, k1), (sgn_k2, k2)) = Self::scalar_decomposition(k);
 
         let mut b1 = p;
         let mut b2 = Self::endomorphism_affine(&p);

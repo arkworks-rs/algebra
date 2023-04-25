@@ -12,7 +12,7 @@ pub fn glv_scalar_decomposition<P: GLVConfig>() {
     for _i in 0..100 {
         let k = P::ScalarField::rand(&mut rng);
 
-        let (k1, is_k1_positive, k2, is_k2_positive) = <P as GLVConfig>::scalar_decomposition(k);
+        let ((is_k1_positive, k1), (is_k2_positive, k2)) = <P as GLVConfig>::scalar_decomposition(k);
 
         if is_k1_positive && is_k2_positive {
             assert_eq!(k1 + k2 * P::LAMBDA, k);
@@ -45,7 +45,7 @@ pub fn glv_projective<P: GLVConfig>() {
         let k = P::ScalarField::rand(&mut rng);
 
         let k_g = <P as GLVConfig>::glv_mul_projective(g, k);
-        let k_g_2 = g.mul(k).into_affine();
+        let k_g_2 = g.mul(k);
         assert_eq!(k_g, k_g_2);
     }
 }
