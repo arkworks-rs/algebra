@@ -5,7 +5,7 @@ use ark_ec::{
     scalar_mul::glv::GLVConfig,
     short_weierstrass::{self, *},
 };
-use ark_ff::{MontFp, Zero};
+use ark_ff::{BigInt, MontFp, PrimeField, Zero};
 
 pub type G1Affine = Affine<Config>;
 pub type G1Projective = Projective<Config>;
@@ -85,11 +85,11 @@ impl GLVConfig for Config {
     const LAMBDA: Self::ScalarField =
         MontFp!("52435875175126190479447740508185965837461563690374988244538805122978187051009");
 
-    const SCALAR_DECOMP_COEFFS: [(bool, Self::ScalarField); 4] = [
-        (true, MontFp!("228988810152649578064853576960394133504")),
-        (true, MontFp!("1")),
-        (false, MontFp!("1")),
-        (true, MontFp!("228988810152649578064853576960394133503")),
+    const SCALAR_DECOMP_COEFFS: [(bool, <Self::ScalarField as PrimeField>::BigInt); 4] = [
+        (true, BigInt!("228988810152649578064853576960394133504")),
+        (true, BigInt!("1")),
+        (false, BigInt!("1")),
+        (true, BigInt!("228988810152649578064853576960394133503")),
     ];
 
     fn endomorphism(p: &Projective<Self>) -> Projective<Self> {

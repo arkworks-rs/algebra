@@ -20,7 +20,7 @@ pub trait GLVConfig: Send + Sync + 'static + SWCurveConfig {
     /// A 4-element vector representing a 2x2 matrix of coefficients the for scalar decomposition, s.t. k-th entry in the vector is at col i, row j in the matrix, with ij = BE binary decomposition of k.
     /// The entries are the LLL-reduced bases.
     /// The determinant of this matrix must equal `ScalarField::characteristic()`.
-    const SCALAR_DECOMP_COEFFS: [(bool, Self::ScalarField); 4];
+    const SCALAR_DECOMP_COEFFS: [(bool, <Self::ScalarField as PrimeField>::BigInt); 4];
 
     /// Decomposes a scalar s into k1, k2, s.t. s = k1 + lambda k2,
     fn scalar_decomposition(
