@@ -42,6 +42,11 @@ impl short_weierstrass::SWCurveConfig for Config {
         Self::BaseField::zero()
     }
 
+    fn mul_projective(p: &G1Projective, scalar: &[u64]) -> G1Projective {
+        let s = Self::ScalarField::from_sign_and_limbs(true, scalar);
+        <Self as GLVConfig>::glv_mul_projective(*p, s)
+    }
+
     #[inline]
     fn clear_cofactor(p: &G1Affine) -> G1Affine {
         // Using the effective cofactor, as explained in
