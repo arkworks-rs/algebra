@@ -22,13 +22,13 @@ pub trait AsDST {
     }
 }
 
-impl AsDST for &'static [u8] {
+impl AsDST for &[u8] {
     fn as_dst(&self) -> &[u8] {
         assert!(self.len() < MAX_DST_LENGTH);
         self
     }
 }
-impl<const N: usize> AsDST for &'static [u8; N] {
+impl<const N: usize> AsDST for &[u8; N] {
     fn as_dst(&self) -> &[u8] {
         assert!(self.len() < MAX_DST_LENGTH);
         self.as_ref()
