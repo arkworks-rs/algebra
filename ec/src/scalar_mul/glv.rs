@@ -58,16 +58,14 @@ pub trait GLVConfig: Send + Sync + 'static + SWCurveConfig {
         let b2 = b21 + b22;
 
         let k1 = &scalar - b1;
+        let k1_abs = BigUint::try_from(k1.abs()).unwrap();
 
         // k2
         let k2 = -b2;
         let k2_abs = BigUint::try_from(k2.abs()).unwrap();
 
         (
-            (
-                k1.sign() == Sign::Plus,
-                Self::ScalarField::from(k1.to_biguint().unwrap()),
-            ),
+            (k1.sign() == Sign::Plus, Self::ScalarField::from(k1_abs)),
             (k2.sign() == Sign::Plus, Self::ScalarField::from(k2_abs)),
         )
     }
