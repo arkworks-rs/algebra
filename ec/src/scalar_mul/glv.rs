@@ -4,7 +4,6 @@ use crate::{
     CurveConfig, CurveGroup,
 };
 use ark_ff::{PrimeField, Zero};
-use ark_std::vec::Vec;
 use num_bigint::{BigInt, BigUint, Sign};
 use num_traits::Signed;
 
@@ -34,17 +33,9 @@ pub trait GLVConfig: Send + Sync + 'static + SWCurveConfig {
     ) {
         let scalar: BigInt = k.into_bigint().into().into();
 
-        let coeff_bigints: [BigInt; 4] = Self::SCALAR_DECOMP_COEFFS
-            .iter()
-            .map(|x| {
-                BigInt::from_biguint(
-                    x.0.then(|| Sign::Plus).unwrap_or_else(|| Sign::Minus),
-                    x.1.into(),
-                )
-            })
-            .collect::<Vec<_>>()
-            .try_into()
-            .unwrap();
+        let coeff_bigints: [BigInt; 4] = Self::SCALAR_DECOMP_COEFFS.map(|x| {
+            BigInt::from_biguint(x.0.then_some(Sign::Plus).unwrap_or(Sign::Minus), x.1.into())
+        });
 
         let [n11, n12, n21, n22] = coeff_bigints;
 
