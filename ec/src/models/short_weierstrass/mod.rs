@@ -84,13 +84,13 @@ pub trait SWCurveConfig: super::CurveConfig {
     /// Default implementation of group multiplication for projective
     /// coordinates
     fn mul_projective(base: &Projective<Self>, scalar: &[u64]) -> Projective<Self> {
-        double_and_add_projective(base, scalar)
+        sw_double_and_add_projective(base, scalar)
     }
 
     /// Default implementation of group multiplication for affine
     /// coordinates.
     fn mul_affine(base: &Affine<Self>, scalar: &[u64]) -> Projective<Self> {
-        double_and_add_affine(base, scalar)
+        sw_double_and_add_affine(base, scalar)
     }
 
     /// Default implementation for multi scalar multiplication
