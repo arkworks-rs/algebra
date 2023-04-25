@@ -85,9 +85,13 @@ impl GLVConfig for Config {
     const LAMBDA: Self::ScalarField =
         MontFp!("52435875175126190479447740508185965837461563690374988244538805122978187051009");
 
+    /// Optimal decomposition as per Ch. 6.3.2: Decompositions for the k = 12 BLS Family,
+    /// from Guide to Pairing Based Cryptography by El Mrabet
     const SCALAR_DECOMP_COEFFS: [(bool, <Self::ScalarField as PrimeField>::BigInt); 4] = [
+        // v_2 = (X^2, 1)
         (true, BigInt!("228988810152649578064853576960394133504")),
         (true, BigInt!("1")),
+        // v_1 = (-1, X^2-1)
         (false, BigInt!("1")),
         (true, BigInt!("228988810152649578064853576960394133503")),
     ];
