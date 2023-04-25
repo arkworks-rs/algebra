@@ -6,8 +6,12 @@ use ark_std::io::{Read, Write};
 
 use ark_ff::fields::Field;
 
-use crate::{scalar_mul::variable_base::VariableBaseMSM, AffineRepr, Group};
-
+use crate::{
+    scalar_mul::{
+        sw_double_and_add_affine, sw_double_and_add_projective, variable_base::VariableBaseMSM,
+    },
+    AffineRepr,
+};
 use num_traits::Zero;
 
 mod affine;
@@ -80,29 +84,13 @@ pub trait SWCurveConfig: super::CurveConfig {
     /// Default implementation of group multiplication for projective
     /// coordinates
     fn mul_projective(base: &Projective<Self>, scalar: &[u64]) -> Projective<Self> {
-        let mut res = Projective::<Self>::zero();
-        for b in ark_ff::BitIteratorBE::without_leading_zeros(scalar) {
-            res.double_in_place();
-            if b {
-                res += base;
-            }
-        }
-
-        res
+        sw_double_and_add_projective(base, scalar)
     }
 
     /// Default implementation of group multiplication for affine
     /// coordinates.
     fn mul_affine(base: &Affine<Self>, scalar: &[u64]) -> Projective<Self> {
-        let mut res = Projective::<Self>::zero();
-        for b in ark_ff::BitIteratorBE::without_leading_zeros(scalar) {
-            res.double_in_place();
-            if b {
-                res += base
-            }
-        }
-
-        res
+        sw_double_and_add_affine(base, scalar)
     }
 
     /// Default implementation for multi scalar multiplication
