@@ -24,6 +24,7 @@ rayon = { version = "1", optional = true }
 zeroize = { version = "1", default-features = false, features = ["zeroize_derive"] }
 hashbrown = "0.13.1"
 itertools = { version = "0.10", default-features = false }
+num-bigint = "0.4.3"
 
 [dev-dependencies]
 ark-test-curves = { version = "0.4.2", path = "../test-curves", default-features = false, features = ["bls12_381_curve"] }
