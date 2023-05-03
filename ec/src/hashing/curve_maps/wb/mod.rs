@@ -196,7 +196,7 @@ mod test {
         const COEFF_A: F127 = MontFp!("109");
 
         /// COEFF_B = 124
-    #[rustfmt::skip]
+        #[rustfmt::skip]
         const COEFF_B: F127 = MontFp!("124");
 
         /// AFFINE_GENERATOR_COEFFS = (G1_GENERATOR_X, G1_GENERATOR_Y)
