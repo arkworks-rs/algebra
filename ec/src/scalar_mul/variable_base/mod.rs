@@ -24,7 +24,7 @@ pub trait VariableBaseMSM: ScalarMul {
         Self::msm_bigint(bases, &bigints)
     }
 
-    /// Performs multi-scalar multiplication, without checking that `bases.len() == scalars.len()`.
+    /// Performs multi-scalar multiplication.
     ///
     /// # Warning
     ///
