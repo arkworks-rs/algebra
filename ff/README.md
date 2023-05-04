@@ -11,45 +11,41 @@ Implementations of concrete finite fields for some popular elliptic curves can b
 
 This crate contains two types of traits:
 
-- `Field` traits: These define interfaces for manipulating field elements, such as addition, multiplication, inverses, square roots, and more.
+- [`Field`](Field) traits: These define interfaces for manipulating field elements, such as addition, multiplication, inverses, square roots, and more.
 - Field `Config`s: specifies the parameters defining the field in question. For extension fields, it also provides additional functionality required for the field, such as operations involving a (cubic or quadratic) non-residue used for constructing the field (`NONRESIDUE`).
 
 The available field traits are:
 
-- [`Field`](https://github.com/arkworks-rs/algebra/blob/master/ff/src/fields/mod.rs#L66) - Interface for a generic finite field.
-- [`FftField`](https://github.com/arkworks-rs/algebra/blob/master/ff/src/fields/mod.rs#L419) - Exposes methods that allow for performing efficient FFTs on field elements.
-- [`PrimeField`](https://github.com/arkworks-rs/algebra/blob/master/ff/src/fields/mod.rs#L523) - Field with a prime `p` number of elements, also referred to as `Fp`.
+- [`Field`](Field) - Interface for a generic finite field.
+- [`FftField`](FftField) - Exposes methods that allow for performing efficient FFTs on field elements.
+- [`PrimeField`](PrimeField) - Field with a prime `p` number of elements, also referred to as `Fp`.
 
 The models implemented are:
 
-- [`Quadratic Extension`](https://github.com/arkworks-rs/algebra/blob/master/ff/src/fields/models/quadratic_extension.rs)
-    - [`QuadExtField`](https://github.com/arkworks-rs/algebra/blob/master/ff/src/fields/models/quadratic_extension.rs#L140) - Struct representing a quadratic extension field, in this case holding two base field elements
-    - [`QuadExtConfig`](https://github.com/arkworks-rs/algebra/blob/master/ff/src/fields/models/quadratic_extension.rs#L27) - Trait defining the necessary parameters needed to instantiate a Quadratic Extension Field
-- [`Cubic Extension`](https://github.com/arkworks-rs/algebra/blob/master/ff/src/fields/models/cubic_extension.rs)
-    - [`CubicExtField`](https://github.com/arkworks-rs/algebra/blob/master/ff/src/fields/models/cubic_extension.rs#L72) - Struct representing a cubic extension field, holds three base field elements
-    - [`CubicExtConfig`](https://github.com/arkworks-rs/algebra/blob/master/ff/src/fields/models/cubic_extension.rs#L27) - Trait defining the necessary parameters needed to instantiate a Cubic Extension Field
-  
+- **Quadratic Extensions**: [`QuadExtField`](QuadExtField), representing a quadratic extension field, in this case holding two base field elements, and `QuadExtConfig` - a trait defining the necessary parameters needed to instantiate a Quadratic Extension Field
+- **Cubic Extensions**: [`CubicExtField`](CubicExtField), representing a cubic extension field, holds three base field elements, and `CubicExtConfig` - a trait defining the necessary parameters needed to instantiate a Cubic Extension Field
+
 The above two models serve as abstractions for constructing the extension fields `Fp^m` directly (i.e. `m` equal 2 or 3) or for creating extension towers to arrive at higher `m`. The latter is done by applying the extensions iteratively, e.g. cubic extension over a quadratic extension field.
 
-- [`Fp2`](https://github.com/arkworks-rs/algebra/blob/master/ff/src/fields/models/fp2.rs#L103) - Quadratic extension directly on the prime field, i.e. `BaseField == BasePrimeField`
-- [`Fp3`](https://github.com/arkworks-rs/algebra/blob/master/ff/src/fields/models/fp3.rs#L54) - Cubic extension directly on the prime field, i.e. `BaseField == BasePrimeField`
-- [`Fp6_2over3`](https://github.com/arkworks-rs/algebra/blob/master/ff/src/fields/models/fp6_2over3.rs#L48) - Extension tower: quadratic extension on a cubic extension field, i.e. `BaseField = Fp3`, but `BasePrimeField = Fp`.
-- [`Fp6_3over2`](https://github.com/arkworks-rs/algebra/blob/master/ff/src/fields/models/fp6_3over2.rs#L49) - Extension tower, similar to the above except that the towering order is reversed: it's a cubic extension on a quadratic extension field, i.e. `BaseField = Fp2`, but `BasePrimeField = Fp`. Only this latter one is exported by default as `Fp6`.
-- [`Fp12_2over3over2`](https://github.com/arkworks-rs/algebra/blob/master/ff/src/fields/models/fp12_2over3over2.rs#L83) - Extension tower: quadratic extension of `Fp6_3over2`, i.e. `BaseField = Fp6`.
+- [`Fp2`](Fp2) - Quadratic extension directly on the prime field, i.e. `BaseField == BasePrimeField`
+- [`Fp3`](Fp3) - Cubic extension directly on the prime field, i.e. `BaseField == BasePrimeField`
+- [`Fp6_2over3`](fields::models::fp6_2over3::Fp6Config) - Extension tower: quadratic extension on a cubic extension field, i.e. `BaseField = Fp3`, but `BasePrimeField = Fp`.
+- [`Fp6_3over2`](fields::models::fp6_3over2::Fp6Config) - Extension tower, similar to the above except that the towering order is reversed: it's a cubic extension on a quadratic extension field, i.e. `BaseField = Fp2`, but `BasePrimeField = Fp`. Only this latter one is exported by default as `Fp6`.
+- [`Fp12_2over3over2`](fields::models::fp12_2over3over2::Fp12Config) - Extension tower: quadratic extension of `Fp6_3over2`, i.e. `BaseField = Fp6`.
 
 ## Usage
 
-There are two important traits when working with finite fields: [`Field`],
-and [`PrimeField`]. Let's explore these via examples.
+There are two important traits when working with finite fields: [`Field`](Field),
+and [`PrimeField`](PrimeField). Let's explore these via examples.
 
-### [`Field`]
+### [`Field`](Field)
 
-The [`Field`] trait provides a generic interface for any finite field.
-Types implementing [`Field`] support common field operations
+The [`Field`](Field) trait provides a generic interface for any finite field.
+Types implementing [`Field`](Field) support common field operations
 such as addition, subtraction, multiplication, and inverses.
 
 ```rust
-use ark_ff::Field;
+use ark_ff::{AdditiveGroup, Field};
 // We'll use a field associated with the BLS12-381 pairing-friendly
 // group for this example.
 use ark_test_curves::bls12_381::Fq2 as F;
@@ -107,10 +103,10 @@ if a.legendre().is_qr() {
 }
 ```
 
-### [`PrimeField`]
+### [`PrimeField`](PrimeField)
 
 If the field is of prime order, then users can choose
-to implement the [`PrimeField`] trait for it. This provides access to the following
+to implement the [`PrimeField`](PrimeField) trait for it. This provides access to the following
 additional APIs:
 
 ```rust
@@ -133,3 +129,6 @@ assert_eq!(one, num_bigint::BigUint::one());
 let n = F::from_le_bytes_mod_order(&modulus.to_bytes_le());
 assert_eq!(n, F::zero());
 ```
+
+
+[Field]: https://docs.rs/ark-ff/0.3.0/ark_ff/fields/trait.Field.html
