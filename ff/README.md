@@ -70,7 +70,7 @@ let d = a - b;
 // ... double elements ...
 assert_eq!(c + d, a.double());
 // ... negate them ...
-assert_eq!(d, F::zero() - d);
+assert_ne!(d, -d);
 
 // ... and multiply them by scalars:
 let e = d * c;

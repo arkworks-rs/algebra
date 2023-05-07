@@ -5,11 +5,8 @@ pub mod fixed_base;
 pub mod variable_base;
 
 use crate::PrimeGroup;
-use crate::{
-    short_weierstrass::{Affine, Projective, SWCurveConfig},
-    Group,
-};
-use ark_ff::Zero;
+use crate::short_weierstrass::{Affine, Projective, SWCurveConfig};
+use ark_ff::{AdditiveGroup, Zero};
 use ark_std::{
     ops::{Add, AddAssign, Mul, Neg, Sub, SubAssign},
     vec::Vec,

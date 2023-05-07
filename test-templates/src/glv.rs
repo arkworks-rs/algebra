@@ -3,7 +3,7 @@ use std::ops::Mul;
 use ark_ec::{
     scalar_mul::{glv::GLVConfig, sw_double_and_add_affine, sw_double_and_add_projective},
     short_weierstrass::{Affine, Projective},
-    AffineRepr, CurveGroup, Group,
+    AffineRepr, CurveGroup, PrimeGroup,
 };
 use ark_ff::PrimeField;
 use ark_std::UniformRand;
