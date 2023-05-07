@@ -1,6 +1,6 @@
 [package]
 name = "ark-serialize-derive"
-version = "0.4.0"
+version = "0.4.2"
 authors = [ "arkworks Contributors" ]
 description = "A library for deriving serialization traits for the arkworks ecosystem"
 homepage = "https://arkworks.rs"
@@ -11,7 +11,7 @@ categories = ["cryptography"]
 include = ["Cargo.toml", "src", "README.md", "LICENSE-APACHE", "LICENSE-MIT"]
 license = "MIT/Apache-2.0"
 edition = "2021"
-rust-version = "1.56"
+rust-version = "1.60"
 
 ################################# Dependencies ################################
 

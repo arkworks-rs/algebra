@@ -61,7 +61,7 @@ pub trait MNT6Config: 'static + Sized {
 
     fn final_exponentiation(f: MillerLoopOutput<MNT6<Self>>) -> Option<PairingOutput<MNT6<Self>>> {
         let value = f.0;
-        let value_inv = value.inverse().unwrap();
+        let value_inv = value.inverse()?;
         let value_to_first_chunk =
             MNT6::<Self>::final_exponentiation_first_chunk(&value, &value_inv);
         let value_inv_to_first_chunk =

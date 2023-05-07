@@ -7,7 +7,7 @@
 </p>
 
 This crate defines Finite Field traits and useful abstraction models that follow these traits.
-Implementations of concrete finite fields for some popular elliptic curves can be found in [`arkworks-rs/curves`](https://github.com/arkworks-rs/curves/README.md) under `arkworks-rs/curves/<your favourite curve>/src/fields/`.
+Implementations of concrete finite fields for some popular elliptic curves can be found in [`arkworks-rs/curves`](https://github.com/arkworks-rs/curves/blob/master/README.md) under `arkworks-rs/curves/<your favourite curve>/src/fields/`.
 
 This crate contains two types of traits:
 

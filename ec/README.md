@@ -7,7 +7,7 @@
 </p>
 
 `ark-ec` defines traits and algorithms for working with different kinds of additive groups, with a focus on groups arising from elliptic curves. It further provides concrete instantiations of these traits for various elliptic curve models, including popular families of pairing-friendly curves such as the BLS12 family of curves.
-Implementations of particular curves using these curve models can be found in [`arkworks-rs/curves`](https://github.com/arkworks-rs/curves/README.md).
+Implementations of particular curves using these curve models can be found in [`arkworks-rs/curves`](https://github.com/arkworks-rs/curves/blob/master/README.md).
 
 ## Usage
 
