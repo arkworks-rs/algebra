@@ -63,6 +63,8 @@ macro_rules! f_bench {
 macro_rules! field_common {
     ($bench_group_name:expr, $F:ident) => {
         fn arithmetic(c: &mut $crate::criterion::Criterion) {
+            use ark_ff::AdditiveGroup;
+
             let name = format!("{}::{}", $bench_group_name, stringify!($F));
             const SAMPLES: usize = 1000;
             let mut rng = ark_std::test_rng();

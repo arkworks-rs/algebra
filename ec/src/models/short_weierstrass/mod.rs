@@ -4,7 +4,7 @@ use ark_serialize::{
 };
 use ark_std::io::{Read, Write};
 
-use ark_ff::fields::Field;
+use ark_ff::{fields::Field, AdditiveGroup};
 
 use crate::{
     scalar_mul::{

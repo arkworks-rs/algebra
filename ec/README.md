@@ -13,10 +13,10 @@ Implementations of particular curves using these curve models can be found in [`
 
 ### The `Group` trait
 
-Many cryptographic protocols use as core building-blocks prime-order groups. The [`Group`](https://github.com/arkworks-rs/algebra/blob/master/ec/src/lib.rs) trait is an abstraction that represents elements of such abelian prime-order groups. It provides methods for performing common operations on group elements:
+Many cryptographic protocols use as core building-blocks prime-order groups. The [`PrimeGroup`](https://github.com/arkworks-rs/algebra/blob/master/ec/src/lib.rs) trait is an abstraction that represents elements of such abelian prime-order groups. It provides methods for performing common operations on group elements:
 
 ```rust
-use ark_ec::Group;
+use ark_ec::{AdditiveGroup, PrimeGroup};
 use ark_ff::{PrimeField, Field};
 // We'll use the BLS12-381 G1 curve for this example.
 // This group has a prime order `r`, and is associated with a prime field `Fr`.
@@ -49,12 +49,12 @@ assert_eq!(f, c);
 
 ## Scalar multiplication
 
-While the `Group` trait already produces scalar multiplication routines, in many cases one can take advantage of
+While the `PrimeGroup` trait already produces scalar multiplication routines, in many cases one can take advantage of
 the group structure to perform scalar multiplication more efficiently. To allow such specialization, `ark-ec` provides
 the `ScalarMul` and `VariableBaseMSM` traits. The latter trait computes an "inner product" between a vector of scalars `s` and a vector of group elements `g`. That is, it computes `s.iter().zip(g).map(|(s, g)| g * s).sum()`.
 
 ```rust
-use ark_ec::{Group, VariableBaseMSM};
+use ark_ec::{PrimeGroup, VariableBaseMSM};
 use ark_ff::{PrimeField, Field};
 // We'll use the BLS12-381 G1 curve for this example.
 // This group has a prime order `r`, and is associated with a prime field `Fr`.
@@ -72,7 +72,7 @@ let s2 = ScalarField::rand(&mut rng);
 // Note that we're using the `GAffine` type here, as opposed to `G`.
 // This is because MSMs are more efficient when the group elements are in affine form. (See below for why.)
 //
-// The `VariableBaseMSM` trait allows specializing the input group element representation to allow 
+// The `VariableBaseMSM` trait allows specializing the input group element representation to allow
 // for more efficient implementations.
 let r = G::msm(&[a, b], &[s1, s2]).unwrap();
 assert_eq!(r, a * s1 + b * s2);
@@ -90,7 +90,7 @@ but is slower for most arithmetic operations. Let's explore how and when to use
 these:
 
 ```rust
-use ark_ec::{AffineRepr, Group, CurveGroup, VariableBaseMSM};
+use ark_ec::{AdditiveGroup, AffineRepr, PrimeGroup, CurveGroup, VariableBaseMSM};
 use ark_ff::{PrimeField, Field};
 use ark_test_curves::bls12_381::{G1Projective as G, G1Affine as GAffine, Fr as ScalarField};
 use ark_std::{Zero, UniformRand};
@@ -105,9 +105,9 @@ assert_eq!(a_aff, a);
 // We can also convert back to the `CurveGroup` representation:
 assert_eq!(a, a_aff.into_group());
 
-// As a general rule, most group operations are slower when elements 
-// are represented as `AffineRepr`. However, adding an `AffineRepr` 
-// point to a `CurveGroup` one is usually slightly more efficient than 
+// As a general rule, most group operations are slower when elements
+// are represented as `AffineRepr`. However, adding an `AffineRepr`
+// point to a `CurveGroup` one is usually slightly more efficient than
 // adding two `CurveGroup` points.
 let d = a + a_aff;
 assert_eq!(d, a.double());
