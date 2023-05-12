@@ -221,6 +221,36 @@ mod tests {
     }
 
     #[test]
+    fn selector_polynomial_test() {
+        for log_domain_size in 1..=10 {
+            let domain = Radix2EvaluationDomain::<Fr>::new(1 << log_domain_size).unwrap();
+            for log_subdomain_size in 1..=log_domain_size {
+                let subdomain = Radix2EvaluationDomain::<Fr>::new(1 << log_subdomain_size).unwrap();
+                // Iterate over all possible offsets of `subdomain` within `domain`.
+                let mut possible_offsets = vec![Fr::one()];
+                let domain_generator = domain.group_gen();
+                let mut offset = domain_generator;
+                let subdomain_generator = subdomain.group_gen();
+                while offset != subdomain_generator {
+                    possible_offsets.push(offset);
+                    offset *= domain_generator;
+                }
+                let cosets = possible_offsets.iter().map(|offset| subdomain.get_coset(*offset).unwrap());
+                for coset in cosets {
+                    for element in domain.elements() {
+                        let evaluation = domain.evaluate_selector_polynomial(&coset, element); 
+                        if coset.evaluate_vanishing_polynomial(element).is_zero() {
+                            assert_eq!(evaluation, Fr::one())
+                        } else {
+                            assert_eq!(evaluation, Fr::zero())
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
     fn size_of_elements() {
         for coeffs in 1..10 {
             let size = 1 << coeffs;

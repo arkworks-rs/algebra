@@ -234,6 +234,19 @@ pub trait EvaluationDomain<F: FftField>:
         tau.pow([self.size() as u64]) - self.coset_offset_pow_size()
     }
 
+    /// This evaluates at `tau` the selector polynomial for `self` with respect
+    /// to the subdomain `subdomain`.
+    fn evaluate_selector_polynomial(&self, subdomain: &Self, tau: F) -> F {
+        let v_subdomain_of_tau = subdomain.evaluate_vanishing_polynomial(tau);
+        if v_subdomain_of_tau.is_zero() {
+            F::one()
+        } else {
+            subdomain.size_as_field_element() * self.evaluate_vanishing_polynomial(tau) / 
+                (self.size_as_field_element() * v_subdomain_of_tau)
+        }
+        
+    }
+
     /// Returns the `i`-th element of the domain.
     fn element(&self, i: usize) -> F {
         let mut result = self.group_gen().pow([i as u64]);
