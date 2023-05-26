@@ -65,7 +65,7 @@ pub trait SWCurveConfig: super::CurveConfig {
     /// Check if the provided curve point is in the prime-order subgroup.
     ///
     /// The default implementation multiplies `item` by the order `r` of the
-    /// prime-order subgroup, and checks if the result is one.
+    /// prime-order subgroup, and checks if the result is zero.
     /// Implementors can choose to override this default impl
     /// if the given curve has faster methods
     /// for performing this check (for example, via leveraging curve
