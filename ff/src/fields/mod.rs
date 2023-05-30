@@ -1,6 +1,7 @@
 use core::iter::Product;
 
 use crate::UniformRand;
+use ark_group::AdditiveGroup;
 use ark_serialize::{
     CanonicalDeserialize, CanonicalDeserializeWithFlags, CanonicalSerialize,
     CanonicalSerializeWithFlags, EmptyFlags, Flags,
@@ -43,70 +44,6 @@ pub use sqrt::*;
 use ark_std::cmp::max;
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
-
-pub trait AdditiveGroup:
-    Eq
-    + 'static
-    + Sized
-    + CanonicalSerialize
-    + CanonicalDeserialize
-    + Copy
-    + Clone
-    + Default
-    + Send
-    + Sync
-    + Hash
-    + Debug
-    + Display
-    + UniformRand
-    + Zeroize
-    + Zero
-    + Neg<Output = Self>
-    + Add<Self, Output = Self>
-    + Sub<Self, Output = Self>
-    + Mul<<Self as AdditiveGroup>::Scalar, Output = Self>
-    + AddAssign<Self>
-    + SubAssign<Self>
-    + MulAssign<<Self as AdditiveGroup>::Scalar>
-    + for<'a> Add<&'a Self, Output = Self>
-    + for<'a> Sub<&'a Self, Output = Self>
-    + for<'a> Mul<&'a <Self as AdditiveGroup>::Scalar, Output = Self>
-    + for<'a> AddAssign<&'a Self>
-    + for<'a> SubAssign<&'a Self>
-    + for<'a> MulAssign<&'a <Self as AdditiveGroup>::Scalar>
-    + for<'a> Add<&'a mut Self, Output = Self>
-    + for<'a> Sub<&'a mut Self, Output = Self>
-    + for<'a> Mul<&'a mut <Self as AdditiveGroup>::Scalar, Output = Self>
-    + for<'a> AddAssign<&'a mut Self>
-    + for<'a> SubAssign<&'a mut Self>
-    + for<'a> MulAssign<&'a mut <Self as AdditiveGroup>::Scalar>
-    + ark_std::iter::Sum<Self>
-    + for<'a> ark_std::iter::Sum<&'a Self>
-{
-    type Scalar: Field;
-
-    /// The additive identity of the field.
-    const ZERO: Self;
-
-    /// Doubles `self`.
-    #[must_use]
-    fn double(&self) -> Self {
-        let mut copy = *self;
-        copy.double_in_place();
-        copy
-    }
-    /// Doubles `self` in place.
-    fn double_in_place(&mut self) -> &mut Self {
-        self.add_assign(*self);
-        self
-    }
-
-    /// Negates `self` in place.
-    fn neg_in_place(&mut self) -> &mut Self {
-        *self = -(*self);
-        self
-    }
-}
 
 /// The interface for a generic field.
 /// Types implementing [`Field`] support common field operations such as addition, subtraction, multiplication, and inverses.

@@ -4,6 +4,8 @@ members = [
     "serialize",
     "serialize-derive",
 
+    "group",
+
     "ff-macros",
     "ff-asm",
     "ff",

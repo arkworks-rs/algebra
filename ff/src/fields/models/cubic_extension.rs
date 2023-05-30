@@ -1,3 +1,4 @@
+use ark_group::AdditiveGroup;
 use ark_serialize::{
     CanonicalDeserialize, CanonicalDeserializeWithFlags, CanonicalSerialize,
     CanonicalSerializeWithFlags, Compress, EmptyFlags, Flags, SerializationError, Valid, Validate,
@@ -21,7 +22,7 @@ use ark_std::rand::{
 
 use crate::{
     fields::{Field, PrimeField},
-    AdditiveGroup, LegendreSymbol, SqrtPrecomputation, ToConstraintField, UniformRand,
+    LegendreSymbol, SqrtPrecomputation, ToConstraintField, UniformRand,
 };
 
 /// Defines a Cubic extension field from a cubic non-residue.
