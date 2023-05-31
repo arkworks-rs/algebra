@@ -1,4 +1,4 @@
-use crate::Group;
+use crate::AdditiveGroup;
 use crate::{
     short_weierstrass::{Affine, Projective, SWCurveConfig},
     CurveGroup,

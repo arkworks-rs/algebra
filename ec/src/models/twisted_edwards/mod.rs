@@ -4,10 +4,10 @@ use ark_serialize::{
 };
 use ark_std::io::{Read, Write};
 
-use crate::{scalar_mul::variable_base::VariableBaseMSM, AffineRepr, Group};
+use crate::{scalar_mul::variable_base::VariableBaseMSM, AffineRepr};
 use num_traits::Zero;
 
-use ark_ff::fields::Field;
+use ark_ff::{fields::Field, AdditiveGroup};
 
 mod affine;
 pub use affine::*;

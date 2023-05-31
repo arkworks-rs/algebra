@@ -6,9 +6,9 @@ use ark_ec::{
     hashing::curve_maps::wb::{IsogenyMap, WBConfig},
     models::CurveConfig,
     short_weierstrass::{self, *},
-    AffineRepr, CurveGroup, Group,
+    AffineRepr, CurveGroup, PrimeGroup,
 };
-use ark_ff::{BigInt, Field, MontFp, Zero};
+use ark_ff::{AdditiveGroup, BigInt, Field, MontFp, Zero};
 
 pub type G2Affine = bls12::G2Affine<crate::bls12_381::Config>;
 pub type G2Projective = bls12::G2Projective<crate::bls12_381::Config>;

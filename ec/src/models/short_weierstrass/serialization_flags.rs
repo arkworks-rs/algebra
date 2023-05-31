@@ -5,11 +5,11 @@ use ark_serialize::Flags;
 /// The default flags (empty) should not change the binary representation.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum SWFlags {
-    /// Represents a point with positive y-coordinate by setting the MSB to 1.
+    /// Represents a point with positive y-coordinate by setting all bits to 0.
     YIsPositive = 0,
     /// Represents the point at infinity by setting the setting the last-but-one bit to 1.
     PointAtInfinity = 1 << 6,
-    /// Represents a point with negative y-coordinate by setting all bits to 0.
+    /// Represents a point with negative y-coordinate by setting the MSB to 1.
     YIsNegative = 1 << 7,
 }
 

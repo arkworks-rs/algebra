@@ -28,12 +28,13 @@ use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use ark_std::{
     fmt::{Debug, Display},
     hash::Hash,
-    ops::{Add, AddAssign, Mul, MulAssign, Neg, Sub, SubAssign},
+    ops::{Add, AddAssign, Mul, MulAssign},
     vec::Vec,
 };
-use num_traits::Zero;
 pub use scalar_mul::{variable_base::VariableBaseMSM, ScalarMul};
 use zeroize::Zeroize;
+
+pub use ark_ff::AdditiveGroup;
 
 pub mod models;
 pub use self::models::*;
@@ -47,56 +48,13 @@ pub mod hashing;
 pub mod pairing;
 
 /// Represents (elements of) a group of prime order `r`.
-pub trait Group:
-    Eq
-    + 'static
-    + Sized
-    + CanonicalSerialize
-    + CanonicalDeserialize
-    + Copy
-    + Clone
-    + Default
-    + Send
-    + Sync
-    + Hash
-    + Debug
-    + Display
-    + UniformRand
-    + Zeroize
-    + Zero
-    + Neg<Output = Self>
-    + Add<Self, Output = Self>
-    + Sub<Self, Output = Self>
-    + Mul<<Self as Group>::ScalarField, Output = Self>
-    + AddAssign<Self>
-    + SubAssign<Self>
-    + MulAssign<<Self as Group>::ScalarField>
-    + for<'a> Add<&'a Self, Output = Self>
-    + for<'a> Sub<&'a Self, Output = Self>
-    + for<'a> Mul<&'a <Self as Group>::ScalarField, Output = Self>
-    + for<'a> AddAssign<&'a Self>
-    + for<'a> SubAssign<&'a Self>
-    + for<'a> MulAssign<&'a <Self as Group>::ScalarField>
-    + core::iter::Sum<Self>
-    + for<'a> core::iter::Sum<&'a Self>
-{
+pub trait PrimeGroup: AdditiveGroup<Scalar = Self::ScalarField> {
     /// The scalar field `F_r`, where `r` is the order of this group.
     type ScalarField: PrimeField;
 
     /// Returns a fixed generator of this group.
     #[must_use]
     fn generator() -> Self;
-
-    /// Doubles `self`.
-    #[must_use]
-    fn double(&self) -> Self {
-        let mut copy = *self;
-        copy.double_in_place();
-        copy
-    }
-
-    /// Double `self` in place.
-    fn double_in_place(&mut self) -> &mut Self;
 
     /// Performs scalar multiplication of this element.
     fn mul_bigint(&self, other: impl AsRef<[u64]>) -> Self;
@@ -121,7 +79,7 @@ pub trait Group:
 ///
 /// The point is guaranteed to be in the correct prime order subgroup.
 pub trait CurveGroup:
-    Group
+    PrimeGroup
     + Add<Self::Affine, Output = Self>
     + AddAssign<Self::Affine>
     // + for<'a> Add<&'a Self::Affine, Output = Self>
@@ -278,7 +236,7 @@ where
     Self::E2: MulAssign<<Self::E1 as CurveGroup>::BaseField>,
 {
     type E1: CurveGroup<
-        BaseField = <Self::E2 as Group>::ScalarField,
+        BaseField = <Self::E2 as PrimeGroup>::ScalarField,
         ScalarField = <Self::E2 as CurveGroup>::BaseField,
     >;
     type E2: CurveGroup;
@@ -289,12 +247,12 @@ pub trait PairingFriendlyCycle: CurveCycle {
     type Engine1: pairing::Pairing<
         G1 = Self::E1,
         G1Affine = <Self::E1 as CurveGroup>::Affine,
-        ScalarField = <Self::E1 as Group>::ScalarField,
+        ScalarField = <Self::E1 as PrimeGroup>::ScalarField,
     >;
 
     type Engine2: pairing::Pairing<
         G1 = Self::E2,
         G1Affine = <Self::E2 as CurveGroup>::Affine,
-        ScalarField = <Self::E2 as Group>::ScalarField,
+        ScalarField = <Self::E2 as PrimeGroup>::ScalarField,
     >;
 }

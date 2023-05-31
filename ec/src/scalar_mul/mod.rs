@@ -4,11 +4,9 @@ pub mod wnaf;
 pub mod fixed_base;
 pub mod variable_base;
 
-use crate::{
-    short_weierstrass::{Affine, Projective, SWCurveConfig},
-    Group,
-};
-use ark_ff::Zero;
+use crate::PrimeGroup;
+use crate::short_weierstrass::{Affine, Projective, SWCurveConfig};
+use ark_ff::{AdditiveGroup, Zero};
 use ark_std::{
     ops::{Add, AddAssign, Mul, Neg, Sub, SubAssign},
     vec::Vec,
@@ -58,7 +56,7 @@ pub fn sw_double_and_add_projective<P: SWCurveConfig>(
 }
 
 pub trait ScalarMul:
-    Group
+    PrimeGroup
     + Add<Self::MulBase, Output = Self>
     + AddAssign<Self::MulBase>
     + for<'a> Add<&'a Self::MulBase, Output = Self>
