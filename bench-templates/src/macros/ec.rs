@@ -28,16 +28,24 @@ macro_rules! ec_bench {
                     let mut rng = ark_std::test_rng();
                     let mut arithmetic =
                         c.benchmark_group(format!("Arithmetic for {name}"));
+                    // Efficient sampling of inputs for benchmarking
+                    let mut g_left = <$Group>::rand(&mut rng);
+                    let mut g_right = <$Group>::rand(&mut rng);
                     let group_elements_left = (0..SAMPLES)
-                        .map(|_| <$Group>::rand(&mut rng))
+                        .map(|_| g_left.double())
                         .collect::<Vec<_>>();
-                    let group_elements_right = (0..SAMPLES)
-                        .map(|_| <$Group>::rand(&mut rng))
+                    let mut group_elements_right = (0..SAMPLES)
+                        .map(|_| g_right.double())
                         .collect::<Vec<_>>();
+                    group_elements_right.reverse();
                     let group_elements_right_affine = <$Group>::normalize_batch(&group_elements_right);
+
+                    // Sample scalars
                     let scalars = (0..SAMPLES)
                         .map(|_| Scalar::rand(&mut rng))
                         .collect::<Vec<_>>();
+
+                    // Conduct benchmarks
                     arithmetic.bench_function("Addition", |b| {
                         let mut i = 0;
                         b.iter(|| {
@@ -99,7 +107,7 @@ macro_rules! ec_bench {
                 }
 
                 fn serialization(c: &mut $crate::criterion::Criterion) {
-                    use ark_ec::CurveGroup;
+                    use ark_ec::{AdditiveGroup, CurveGroup};
                     use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
                     use ark_std::UniformRand;
 
@@ -108,9 +116,9 @@ macro_rules! ec_bench {
                     let name = format!("{}::{}", $curve_name, stringify!($Group));
                     let mut rng = ark_std::test_rng();
 
-                    let v: Vec<_> = (0..SAMPLES)
-                        .map(|_| <$Group>::rand(&mut rng))
-                        .collect();
+                    // Efficient sampling of inputs for benchmarking
+                    let g = <$Group>::rand(&mut rng);
+                    let v: Vec<_> = (0..SAMPLES).map(|_| g.double()).collect();
                     let v = <$Group>::normalize_batch(&v);
                     let mut bytes = Vec::with_capacity(1000);
                     let v_compressed = v
@@ -129,6 +137,7 @@ macro_rules! ec_bench {
                             bytes
                         })
                         .collect::<Vec<_>>();
+                    // Start benchmarks
                     let mut serialization =
                         c.benchmark_group(format!("Serialization for {name}"));
                     serialization.bench_function(
@@ -205,7 +214,7 @@ macro_rules! ec_bench {
                 }
 
                 fn msm_131072(c: &mut $crate::criterion::Criterion) {
-                    use ark_ec::{scalar_mul::variable_base::VariableBaseMSM, CurveGroup};
+                    use ark_ec::{scalar_mul::variable_base::VariableBaseMSM, CurveGroup, AdditiveGroup};
                     use ark_ff::PrimeField;
                     use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
                     use ark_std::UniformRand;
@@ -215,18 +224,15 @@ macro_rules! ec_bench {
                     let name = format!("{}::{}", $curve_name, stringify!($Group));
                     let mut rng = ark_std::test_rng();
 
-                    let v: Vec<_> = (0..SAMPLES)
-                        .map(|_| <$Group>::rand(&mut rng))
-                        .collect();
-                    let v = <$Group>::normalize_batch(&v);
-                    let scalars: Vec<_> = (0..SAMPLES)
-                        .map(|_| Scalar::rand(&mut rng).into_bigint())
-                        .collect();
                     c.bench_function(&format!("MSM for {name}"), |b| {
-                        b.iter(|| {
-                            let result: $Group = VariableBaseMSM::msm_bigint(&v, &scalars);
-                            result
-                        })
+                        let g = <$Group>::rand(&mut rng);
+                        let v: Vec<_> = (0..SAMPLES).map(|_| g.double()).collect();
+                        let v = <$Group>::normalize_batch(&v);
+
+                        let scalars: Vec<_> = (0..SAMPLES)
+                            .map(|_| Scalar::rand(&mut rng).into_bigint())
+                            .collect();
+                        b.iter(|| <$Group>::msm_bigint(&v, &scalars))
                     });
                 }
 

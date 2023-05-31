@@ -33,3 +33,5 @@ pub mod bn384_small_two_adicity;
 pub mod secp256k1;
 
 pub mod fp128;
+
+pub mod starknet_fp;

@@ -29,12 +29,12 @@ macro_rules! bench {
 
         paste! {
             criterion_main!(
-                [<$G1:lower>]::benches,
-                [<$G2:lower>]::benches,
                 [<$Fr:lower>]::benches,
                 [<$Fq:lower>]::benches,
                 [<$FqExt:lower>]::benches,
                 [<$FqTarget:lower>]::benches,
+                [<$G1:lower>]::benches,
+                [<$G2:lower>]::benches,
                 pairing::benches
             );
         }
@@ -45,15 +45,15 @@ macro_rules! bench {
         ScalarField = $Fr:ident,
         BaseField = $Fq:ident,
     ) => {
-        $crate::ec_bench!($name, $G);
         $crate::f_bench!(prime, $name, $Fr);
         $crate::f_bench!(extension, $name, $Fq);
+        $crate::ec_bench!($name, $G);
 
         paste! {
             criterion_main!(
-                [<$G:lower>]::benches,
                 [<$Fr:lower>]::benches,
                 [<$Fq:lower>]::benches,
+                [<$G:lower>]::benches,
             );
         }
     };
@@ -63,15 +63,27 @@ macro_rules! bench {
         ScalarField = $Fr:ident,
         PrimeBaseField = $Fq:ident,
     ) => {
-        $crate::ec_bench!($name, $G);
         $crate::f_bench!(prime, $name, $Fr);
         $crate::f_bench!(prime, $name, $Fq);
+        $crate::ec_bench!($name, $G);
 
         paste! {
             criterion_main!(
-                [<$G:lower>]::benches,
                 [<$Fr:lower>]::benches,
                 [<$Fq:lower>]::benches,
+                [<$G:lower>]::benches,
+            );
+        }
+    };
+    (
+        Name = $name:expr,
+        PrimeField = $Fp:ident,
+    ) => {
+        $crate::f_bench!(prime, $name, $Fp);
+
+        paste! {
+            criterion_main!(
+                [<$Fp:lower>]::benches,
             );
         }
     };

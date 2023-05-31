@@ -340,22 +340,24 @@ macro_rules! prime_field {
                     v2[i].num_bits()
                 })
             });
-            let v_bits_le = v2
-                .iter()
-                .map(|s| ark_ff::BitIteratorLE::new(s).collect::<Vec<_>>())
-                .collect::<Vec<_>>();
+
             bits.bench_function("From Little-Endian bits", |b| {
+                let v_bits_le = v2
+                    .iter()
+                    .map(|s| ark_ff::BitIteratorLE::new(s).collect::<Vec<_>>())
+                    .collect::<Vec<_>>();
                 let mut i = 0;
                 b.iter(|| {
                     i = (i + 1) % SAMPLES;
                     BigInt::from_bits_be(&v_bits_le[i]);
                 })
             });
-            let v_bits_be = v1
-                .iter()
-                .map(|s| ark_ff::BitIteratorBE::new(s).collect::<Vec<_>>())
-                .collect::<Vec<_>>();
+
             bits.bench_function("From Big-Endian bits", |b| {
+                let v_bits_be = v1
+                    .iter()
+                    .map(|s| ark_ff::BitIteratorBE::new(s).collect::<Vec<_>>())
+                    .collect::<Vec<_>>();
                 let mut i = 0;
                 b.iter(|| {
                     i = (i + 1) % SAMPLES;

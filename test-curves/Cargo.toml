@@ -70,3 +70,8 @@ harness = false
 name = "mnt6_753"
 path = "benches/mnt6_753.rs"
 harness = false
+
+[[bench]]
+name = "starknet_fp"
+path = "benches/starknet_fp.rs"
+harness = false
