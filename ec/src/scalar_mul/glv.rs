@@ -1,7 +1,6 @@
-use crate::AdditiveGroup;
 use crate::{
     short_weierstrass::{Affine, Projective, SWCurveConfig},
-    CurveGroup,
+    AdditiveGroup, CurveGroup,
 };
 use ark_ff::{PrimeField, Zero};
 use num_bigint::{BigInt, BigUint, Sign};
