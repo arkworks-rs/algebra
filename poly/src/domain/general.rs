@@ -22,6 +22,29 @@ use ark_std::{
 /// Defines a domain over which finite field (I)FFTs can be performed.
 /// Generally tries to build a radix-2 domain and falls back to a mixed-radix
 /// domain if the radix-2 multiplicative subgroup is too small.
+///
+/// # Examples
+///
+/// ```
+/// use ark_poly::{GeneralEvaluationDomain, EvaluationDomain};
+/// use ark_poly::{univariate::DensePolynomial, Polynomial, DenseUVPolynomial};
+/// use ark_ff::FftField;
+///
+/// // The field we are using is FFT-friendly, with 2-adicity of 32.
+/// // We can efficiently evaluate polynomials over this field on up to 2^32 points.
+/// use ark_test_curves::bls12_381::Fr;
+///
+/// let small_domain = GeneralEvaluationDomain::<Fr>::new(4).unwrap();
+/// let evals = vec![Fr::from(1u8), Fr::from(2u8), Fr::from(3u8), Fr::from(4u8)];
+/// // From a vector of evaluations, we can recover the polynomial.
+/// let coeffs = small_domain.ifft(&evals);
+/// let poly = DensePolynomial::from_coefficients_vec(coeffs.clone());
+/// assert_eq!(poly.degree(), 3);
+///
+/// // We could also evaluate this polynomial at a large number of points efficiently, e.g. for Reed-Solomon encoding.
+/// let large_domain = GeneralEvaluationDomain::<Fr>::new(1<<10).unwrap();
+/// let new_evals = large_domain.fft(&coeffs);
+/// ```
 #[derive(Copy, Clone, Hash, Eq, PartialEq, Debug)]
 pub enum GeneralEvaluationDomain<F: FftField> {
     /// Radix-2 domain
