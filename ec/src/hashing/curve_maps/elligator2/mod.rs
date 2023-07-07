@@ -62,8 +62,6 @@ impl<P: Elligator2Config> MapToCurve<Projective<P>> for Elligator2Map<P> {
         let j = <P as MontCurveConfig>::COEFF_A;
         let k = <P as MontCurveConfig>::COEFF_B;
         let j_on_k = j / k;
-        println!("j/k: {}", j_on_k);
-        println!("element: {}", element);
 
         let ksq_inv = k
             .square()
@@ -71,7 +69,6 @@ impl<P: Elligator2Config> MapToCurve<Projective<P>> for Elligator2Map<P> {
             .expect("B coefficient cannot be zero in Montgomery form");
 
         let den_1 = <P::BaseField as One>::one() + P::Z * element.square();
-        println!("den1: {}", den_1);
 
         let x1 = -j_on_k
             / (if den_1.is_zero() {
@@ -79,12 +76,9 @@ impl<P: Elligator2Config> MapToCurve<Projective<P>> for Elligator2Map<P> {
             } else {
                 den_1
             });
-        println!("x1: {}", x1);
         let x1sq = x1.square();
-        println!("x1sq: {}", x1sq);
         let x1cb = x1sq * x1;
         let gx1 = x1cb + j_on_k * x1sq + x1 * ksq_inv;
-        // println!("gx1: {}", gx1);
 
         let x2 = -x1 - j_on_k;
         let x2sq = x2.square();
@@ -92,8 +86,6 @@ impl<P: Elligator2Config> MapToCurve<Projective<P>> for Elligator2Map<P> {
         let gx2 = x2cb + j_on_k * x2sq + x2 * ksq_inv;
 
         let (x, y, _sig0_y): (P::BaseField, P::BaseField, i8) = if gx1.legendre().is_qr() {
-            println!("gx1: {}", gx1);
-            println!("gx1.sqrt: {}", gx1.sqrt().expect(""));
             (
                 x1,
                 gx1.sqrt()
@@ -129,10 +121,6 @@ impl<P: Elligator2Config> MapToCurve<Projective<P>> for Elligator2Map<P> {
             let w = tv2_inv * t * (s - <P::BaseField as One>::one());
             (v, w)
         };
-        println!("s: {}", s);
-        println!("t: {}", t);
-        println!("v: {}", v);
-        println!("w: {}", w);
 
         let point_on_curve = Affine::<P>::new_unchecked(v, w);
         assert!(
@@ -229,9 +217,6 @@ mod test {
     /// simple hash
     #[test]
     fn hash_arbitary_string_to_curve_elligator2() {
-        let test_no: F101 = MontFp!("88");
-        println!("test print 88: {}", test_no);
-
         let test_elligator2_to_curve_hasher = MapToCurveBasedHasher::<
             Projective<TestElligator2MapToCurveConfig>,
             DefaultFieldHasher<Sha256, 128>,
