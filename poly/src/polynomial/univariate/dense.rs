@@ -116,13 +116,25 @@ impl<F: Field> DenseUVPolynomial<F> for DensePolynomial<F> {
         &self.coeffs
     }
 
-    /// Outputs a univariate polynomial of degree `d` where
-    /// each coefficient is sampled uniformly at random.
+    /// Outputs a univariate polynomial of degree `d` where each non-leading 
+    /// coefficient is sampled uniformly at random from R and the leading
+    /// coefficient is sampled uniformly at random from among the non-zero
+    /// elements of R.
     fn rand<R: Rng>(d: usize, rng: &mut R) -> Self {
         let mut random_coeffs = Vec::new();
-        for _ in 0..=d {
+        
+        let mut leading_coefficient = F::rand(rng);
+        
+        while leading_coefficient.is_zero() {
+            leading_coefficient = F::rand(rng);
+        }
+
+        random_coeffs.push(leading_coefficient);
+
+        for _ in 1..=d {
             random_coeffs.push(F::rand(rng));
         }
+
         Self::from_coefficients_vec(random_coeffs)
     }
 }
@@ -612,6 +624,7 @@ mod tests {
     use ark_ff::{Field, One, UniformRand, Zero};
     use ark_std::{rand::Rng, test_rng, vec::Vec};
     use ark_test_curves::bls12_381::Fr;
+    use ark_ff::{MontConfig, MontBackend, Fp64};
 
     fn rand_sparse_poly<R: Rng>(degree: usize, rng: &mut R) -> SparsePolynomial<Fr> {
         // Initialize coeffs so that its guaranteed to have a x^{degree} term
@@ -622,6 +635,25 @@ mod tests {
             }
         }
         SparsePolynomial::from_coefficients_vec(coeffs)
+    }
+
+    #[test] 
+    fn rand_dense_poly_degree() {
+
+        #[derive(MontConfig)]
+        #[modulus = "5"]
+        #[generator = "2"]
+        pub struct F5Config;
+
+        let rng = &mut test_rng();
+        pub type F5 = Fp64<MontBackend<F5Config, 1>>;
+        
+        // if the leading coefficient were uniformly sampled from all of F, this
+        // test would fail with high probabiliy 1 - 10^(-7)
+        for i in 0..=10 {
+            assert_eq!(DensePolynomial::<F5>::rand(i, rng).degree(), i);
+        }
+        
     }
 
     #[test]
