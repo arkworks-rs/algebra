@@ -121,6 +121,17 @@ impl<F: Field> DenseUVPolynomial<F> for DensePolynomial<F> {
     /// coefficient is sampled uniformly at random from `F` and the leading
     /// coefficient is sampled uniformly at random from among the non-zero
     /// elements of `F`.
+    /// 
+    /// # Example
+    /// ```
+    /// use ark_std::test_rng;
+    /// use ark_test_curves::bls12_381::Fr;
+    /// use ark_poly::{univariate::DensePolynomial, Polynomial, DenseUVPolynomial};
+    /// 
+    /// let rng = &mut test_rng();
+    /// let poly = DensePolynomial::<Fr>::rand(8, rng);
+    /// assert_eq!(poly.degree(), 8);
+    /// ```
     fn rand<R: Rng>(d: usize, rng: &mut R) -> Self {
         let mut random_coeffs = Vec::new();
 
