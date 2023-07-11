@@ -1,4 +1,5 @@
 //! A dense univariate polynomial represented in coefficient form.
+//! 
 use crate::{
     univariate::{DenseOrSparsePolynomial, SparsePolynomial},
     DenseUVPolynomial, EvaluationDomain, Evaluations, GeneralEvaluationDomain, Polynomial,
@@ -117,12 +118,19 @@ impl<F: Field> DenseUVPolynomial<F> for DensePolynomial<F> {
     }
 
     /// Outputs a univariate polynomial of degree `d` where each non-leading 
-    /// coefficient is sampled uniformly at random from R and the leading
+    /// coefficient is sampled uniformly at random from `F` and the leading
     /// coefficient is sampled uniformly at random from among the non-zero
-    /// elements of R.
+    /// elements of `F`.
     fn rand<R: Rng>(d: usize, rng: &mut R) -> Self {
         let mut random_coeffs = Vec::new();
-        
+
+        if d > 0 {
+            // d - 1 overflows when d = 0
+            for _ in 0..=(d - 1) {
+                random_coeffs.push(F::rand(rng));
+            }
+        }
+
         let mut leading_coefficient = F::rand(rng);
         
         while leading_coefficient.is_zero() {
@@ -131,9 +139,6 @@ impl<F: Field> DenseUVPolynomial<F> for DensePolynomial<F> {
 
         random_coeffs.push(leading_coefficient);
 
-        for _ in 1..=d {
-            random_coeffs.push(F::rand(rng));
-        }
 
         Self::from_coefficients_vec(random_coeffs)
     }
@@ -649,11 +654,10 @@ mod tests {
         pub type F5 = Fp64<MontBackend<F5Config, 1>>;
         
         // if the leading coefficient were uniformly sampled from all of F, this
-        // test would fail with high probabiliy 1 - 10^(-7)
-        for i in 0..=10 {
+        // test would fail with high probabiliy ~99.9%
+        for i in 1..=30 {
             assert_eq!(DensePolynomial::<F5>::rand(i, rng).degree(), i);
         }
-        
     }
 
     #[test]
