@@ -1,4 +1,4 @@
-use ark_ff::{CyclotomicMultSubgroup, Field, One, PrimeField};
+use ark_ff::{AdditiveGroup, CyclotomicMultSubgroup, Field, One, PrimeField};
 use ark_serialize::{
     CanonicalDeserialize, CanonicalSerialize, Compress, SerializationError, Valid, Validate,
 };
@@ -16,7 +16,7 @@ use ark_std::{
 };
 use zeroize::Zeroize;
 
-use crate::{AffineRepr, CurveGroup, Group, VariableBaseMSM};
+use crate::{AffineRepr, CurveGroup, PrimeGroup, VariableBaseMSM};
 
 /// Collection of types (mainly fields and curves) that together describe
 /// how to compute a pairing over a pairing-friendly curve.
@@ -265,7 +265,18 @@ impl<P: Pairing> Distribution<PairingOutput<P>> for Standard {
     }
 }
 
-impl<P: Pairing> Group for PairingOutput<P> {
+impl<P: Pairing> AdditiveGroup for PairingOutput<P> {
+    type Scalar = P::ScalarField;
+
+    const ZERO: Self = Self(P::TargetField::ONE);
+
+    fn double_in_place(&mut self) -> &mut Self {
+        self.0.cyclotomic_square_in_place();
+        self
+    }
+}
+
+impl<P: Pairing> PrimeGroup for PairingOutput<P> {
     type ScalarField = P::ScalarField;
 
     fn generator() -> Self {
@@ -275,11 +286,6 @@ impl<P: Pairing> Group for PairingOutput<P> {
         // Sample a random G2 element
         let g2 = P::G2::generator();
         P::pairing(g1.into(), g2.into())
-    }
-
-    fn double_in_place(&mut self) -> &mut Self {
-        self.0.cyclotomic_square_in_place();
-        self
     }
 
     fn mul_bigint(&self, other: impl AsRef<[u64]>) -> Self {

@@ -14,7 +14,7 @@ use ark_std::{
     One, Zero,
 };
 
-use ark_ff::{fields::Field, PrimeField, ToConstraintField, UniformRand};
+use ark_ff::{fields::Field, AdditiveGroup, PrimeField, ToConstraintField, UniformRand};
 
 use zeroize::Zeroize;
 
@@ -205,8 +205,8 @@ impl<P: SWCurveConfig> AffineRepr for Affine<P> {
     type ScalarField = P::ScalarField;
     type Group = Projective<P>;
 
-    fn xy(&self) -> Option<(&Self::BaseField, &Self::BaseField)> {
-        (!self.infinity).then(|| (&self.x, &self.y))
+    fn xy(&self) -> Option<(Self::BaseField, Self::BaseField)> {
+        (!self.infinity).then(|| (self.x, self.y))
     }
 
     #[inline]

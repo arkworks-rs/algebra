@@ -2,9 +2,10 @@ use crate::bls12_381::*;
 use ark_ec::{
     hashing::curve_maps::wb::{IsogenyMap, WBConfig},
     models::CurveConfig,
+    scalar_mul::glv::GLVConfig,
     short_weierstrass::{self, *},
 };
-use ark_ff::{MontFp, Zero};
+use ark_ff::{BigInt, MontFp, PrimeField, Zero};
 
 pub type G1Affine = Affine<Config>;
 pub type G1Projective = Projective<Config>;
@@ -41,6 +42,11 @@ impl short_weierstrass::SWCurveConfig for Config {
         Self::BaseField::zero()
     }
 
+    fn mul_projective(p: &G1Projective, scalar: &[u64]) -> G1Projective {
+        let s = Self::ScalarField::from_sign_and_limbs(true, scalar);
+        GLVConfig::glv_mul_projective(*p, s)
+    }
+
     #[inline]
     fn clear_cofactor(p: &G1Affine) -> G1Affine {
         // Using the effective cofactor, as explained in
@@ -70,6 +76,38 @@ pub const G1_GENERATOR_X: Fq = MontFp!("3685416753713387016781088315183077757961
 /// 1339506544944476473020471379941921221584933875938349620426543736416511423956333506472724655353366534992391756441569
 #[rustfmt::skip]
 pub const G1_GENERATOR_Y: Fq = MontFp!("1339506544944476473020471379941921221584933875938349620426543736416511423956333506472724655353366534992391756441569");
+
+impl GLVConfig for Config {
+    const ENDO_COEFFS: &'static[Self::BaseField] = &[
+        MontFp!("793479390729215512621379701633421447060886740281060493010456487427281649075476305620758731620350")
+    ];
+
+    const LAMBDA: Self::ScalarField =
+        MontFp!("52435875175126190479447740508185965837461563690374988244538805122978187051009");
+
+    /// Optimal decomposition as per Ch. 6.3.2: Decompositions for the k = 12 BLS Family,
+    /// from Guide to Pairing Based Cryptography by El Mrabet
+    const SCALAR_DECOMP_COEFFS: [(bool, <Self::ScalarField as PrimeField>::BigInt); 4] = [
+        // v_2 = (X^2, 1)
+        (true, BigInt!("228988810152649578064853576960394133504")),
+        (true, BigInt!("1")),
+        // v_1 = (-1, X^2-1)
+        (false, BigInt!("1")),
+        (true, BigInt!("228988810152649578064853576960394133503")),
+    ];
+
+    fn endomorphism(p: &Projective<Self>) -> Projective<Self> {
+        let mut res = *p;
+        res.x *= Self::ENDO_COEFFS[0];
+        res
+    }
+
+    fn endomorphism_affine(p: &Affine<Self>) -> Affine<Self> {
+        let mut res = *p;
+        res.x *= Self::ENDO_COEFFS[0];
+        res
+    }
+}
 
 #[cfg(test)]
 mod test {

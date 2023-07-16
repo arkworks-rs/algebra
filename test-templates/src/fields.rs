@@ -2,6 +2,7 @@
 #![allow(clippy::eq_op)]
 
 use ark_std::rand::Rng;
+
 #[derive(Default, Clone, Copy, Debug)]
 pub struct DummyFlags;
 
@@ -141,6 +142,8 @@ macro_rules! __test_field {
         #[test]
         fn test_add_properties() {
             use ark_std::UniformRand;
+            use ark_ff::AdditiveGroup;
+
             let mut rng = test_rng();
             let zero = <$field>::zero();
             assert_eq!(-zero, zero);
@@ -258,9 +261,9 @@ macro_rules! __test_field {
                 assert_eq!(a * (b + c), a * b + a * c, "Distributivity failed");
                 assert_eq!(b * (a + c), b * a + b * c, "Distributivity failed");
                 assert_eq!(c * (a + b), c * a + c * b, "Distributivity failed");
-                assert_eq!((a + b).square(), a.square() + b.square() + a * b.double(), "Distributivity for square failed");
-                assert_eq!((b + c).square(), c.square() + b.square() + c * b.double(), "Distributivity for square failed");
-                assert_eq!((c + a).square(), a.square() + c.square() + a * c.double(), "Distributivity for square failed");
+                assert_eq!((a + b).square(), a.square() + b.square() + a * ark_ff::AdditiveGroup::double(&b), "Distributivity for square failed");
+                assert_eq!((b + c).square(), c.square() + b.square() + c * ark_ff::AdditiveGroup::double(&b), "Distributivity for square failed");
+                assert_eq!((c + a).square(), a.square() + c.square() + a * ark_ff::AdditiveGroup::double(&c), "Distributivity for square failed");
             }
         }
 
@@ -389,7 +392,8 @@ macro_rules! __test_field {
 
         #[test]
         fn test_sum_of_products_edge_case() {
-            use ark_ff::BigInteger;
+            use ark_ff::{AdditiveGroup, BigInteger};
+
             let mut a_max = <$field>::ZERO.into_bigint();
             for (i, limb) in a_max.as_mut().iter_mut().enumerate() {
                 if i == <$field as PrimeField>::BigInt::NUM_LIMBS - 1 {
