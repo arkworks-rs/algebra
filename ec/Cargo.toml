@@ -9,7 +9,7 @@ documentation = "https://docs.rs/ark-ec/"
 keywords = ["cryptography", "elliptic-curves", "pairing"]
 categories = ["cryptography"]
 include = ["Cargo.toml", "src", "doc", "README.md", "LICENSE-APACHE", "LICENSE-MIT"]
-license = "MIT/Apache-2.0"
+license = "MIT OR Apache-2.0"
 edition = "2021"
 rust-version = "1.63"
 
