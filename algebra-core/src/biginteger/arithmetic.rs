@@ -101,6 +101,7 @@ pub fn mac_discard(a: u64, b: u64, c: u64, carry: &mut u64) {
     *carry = (tmp >> 64) as u64;
 }
 
+#[macro_export]
 macro_rules! mac_with_carry {
     ($a:expr, $b:expr, $c:expr, &mut $carry:expr$(,)?) => {{
         let tmp = ($a as u128) + ($b as u128 * $c as u128) + ($carry as u128);
@@ -109,6 +110,7 @@ macro_rules! mac_with_carry {
     }};
 }
 
+#[macro_export]
 macro_rules! mac {
     ($a:expr, $b:expr, $c:expr, &mut $carry:expr$(,)?) => {{
         let tmp = ($a as u128) + ($b as u128 * $c as u128);

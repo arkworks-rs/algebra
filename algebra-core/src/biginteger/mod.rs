@@ -1,9 +1,10 @@
 use crate::{
     bits::{BitIteratorBE, BitIteratorLE},
-    const_for, UniformRand,
+    const_for,
+    module::{Scalar, Sign},
 };
 #[allow(unused)]
-use ark_ff_macros::unroll_for_loops;
+use ark_algebra_macros::unroll_for_loops;
 use ark_serialize::{
     CanonicalDeserialize, CanonicalSerialize, Compress, SerializationError, Valid, Validate,
 };
@@ -16,6 +17,7 @@ use ark_std::{
         Rng,
     },
     vec::Vec,
+    UniformRand,
 };
 use num_bigint::BigUint;
 use zeroize::Zeroize;
@@ -25,6 +27,34 @@ pub mod arithmetic;
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug, Hash, Zeroize)]
 pub struct BigInt<const N: usize>(pub [u64; N]);
+
+impl<const N: usize> Scalar for BigInt<N> {
+    const MAX_BIT_SIZE: Option<u32> = Some(N as u32 * 64);
+    type U64Ref = [u64; N];
+    type U8Ref = ScalarU8Buffer<N>;
+
+    fn as_bytes(&self) -> (Sign, ScalarU8Buffer<N>) {
+        let mut buf = ScalarU8Buffer::<N>([[0u8; 8]; N]);
+        for (i, limb) in self.0.iter().enumerate() {
+            buf.0[i] = limb.to_le_bytes();
+        }
+        (Sign::Positive, buf)
+    }
+
+    fn as_u64s(&self) -> (Sign, Self::U64Ref) {
+        (Sign::Positive, self.0)
+    }
+}
+
+#[doc(hidden)]
+#[repr(C, align(1))]
+pub struct ScalarU8Buffer<const N: usize>(pub [[u8; 8]; N]);
+
+impl<const N: usize> AsRef<[u8]> for ScalarU8Buffer<N> {
+    fn as_ref(&self) -> &[u8] {
+        unsafe { ark_std::slice::from_raw_parts(self as *const Self as *const u8, N * 8) }
+    }
+}
 
 impl<const N: usize> Default for BigInt<N> {
     fn default() -> Self {
@@ -229,7 +259,8 @@ impl<const N: usize> BigInt<N> {
     }
 
     #[inline]
-    pub(crate) const fn const_sub_with_borrow(mut self, other: &Self) -> (Self, bool) {
+    #[doc(hidden)]
+    pub const fn const_sub_with_borrow(mut self, other: &Self) -> (Self, bool) {
         let mut borrow = 0;
 
         const_for!((i in 0..N) {
@@ -240,7 +271,8 @@ impl<const N: usize> BigInt<N> {
     }
 
     #[inline]
-    pub(crate) const fn const_add_with_carry(mut self, other: &Self) -> (Self, bool) {
+    #[doc(hidden)]
+    pub const fn const_add_with_carry(mut self, other: &Self) -> (Self, bool) {
         let mut carry = 0;
 
         crate::const_for!((i in 0..N) {
@@ -250,7 +282,9 @@ impl<const N: usize> BigInt<N> {
         (self, carry != 0)
     }
 
-    const fn const_mul2_with_carry(mut self) -> (Self, bool) {
+    #[inline]
+    #[doc(hidden)]
+    pub const fn const_mul2_with_carry(mut self) -> (Self, bool) {
         let mut last = 0;
         crate::const_for!((i in 0..N) {
             let a = self.0[i];
@@ -262,7 +296,9 @@ impl<const N: usize> BigInt<N> {
         (self, last != 0)
     }
 
-    pub(crate) const fn const_is_zero(&self) -> bool {
+    #[inline]
+    #[doc(hidden)]
+    pub const fn const_is_zero(&self) -> bool {
         let mut is_zero = true;
         crate::const_for!((i in 0..N) {
             is_zero &= self.0[i] == 0;
@@ -737,6 +773,7 @@ pub trait BigInteger:
     + From<u8>
     + TryFrom<BigUint, Error = ()>
     + Into<BigUint>
+    + Scalar
 {
     /// Number of 64-bit limbs representing `Self`.
     const NUM_LIMBS: usize;

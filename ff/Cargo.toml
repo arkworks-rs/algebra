@@ -14,9 +14,9 @@ edition = "2021"
 rust-version = "1.63"
 
 [dependencies]
-ark-group = { version = "0.4.2", path = "../group" }
+ark-algebra-core = { version = "0.4.2", path = "../algebra-core" }
 ark-ff-asm = { version = "0.4.2", path = "../ff-asm" }
-ark-ff-macros = { version = "0.4.2", path = "../ff-macros" }
+ark-algebra-macros = { version = "0.4.2", path = "../common-macros" }
 ark-std = { version = "0.4.0", default-features = false }
 ark-serialize = { version = "0.4.2", path = "../serialize", default-features = false }
 derivative = { version = "2", features = ["use_core"] }
