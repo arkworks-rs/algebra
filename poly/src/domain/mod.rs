@@ -9,7 +9,7 @@
 
 use ark_ff::FftField;
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
-use ark_std::{fmt, hash, rand::Rng, vec::Vec};
+use ark_std::{fmt, hash, rand::Rng, vec::Vec, Zero};
 
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
@@ -232,6 +232,21 @@ pub trait EvaluationDomain<F: FftField>:
         // TODO: Consider precomputed exponentiation tables if we need this to be
         // faster.
         tau.pow([self.size() as u64]) - self.coset_offset_pow_size()
+    }
+
+    /// Return the selector polynomial of `self` with respect to the subdomain `subdomain`.
+    /// Assumes that `subdomain` is contained within `self`.
+    /// 
+    /// # Panics
+    /// 
+    /// Panics if `subdomain` is not contained within `self`.
+    fn selector_polynomial(&self, subdomain: &Self) -> crate::univariate::DensePolynomial<F> {
+        use crate::univariate::DenseOrSparsePolynomial;
+        let self_vanishing_poly = DenseOrSparsePolynomial::from(&self.vanishing_polynomial() * (subdomain.size_as_field_element() * subdomain.coset_offset().pow([subdomain.size() as u64]))) ;
+        let subdomain_vanishing_poly = DenseOrSparsePolynomial::from(&subdomain.vanishing_polynomial() * self.size_as_field_element());
+        let (quotient, remainder) = self_vanishing_poly.divide_with_q_and_r(&subdomain_vanishing_poly).unwrap();
+        assert!(remainder.is_zero());
+        quotient
     }
 
     /// This evaluates at `tau` the selector polynomial for `self` with respect

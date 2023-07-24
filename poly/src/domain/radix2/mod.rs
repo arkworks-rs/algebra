@@ -178,7 +178,7 @@ mod tests {
         EvaluationDomain, Radix2EvaluationDomain,
     };
     use ark_ff::{FftField, Field, One, UniformRand, Zero};
-    use ark_std::{rand::Rng, test_rng};
+    use ark_std::{rand::Rng, test_rng, collections::BTreeSet};
     use ark_test_curves::bls12_381::Fr;
 
     #[test]
@@ -222,24 +222,37 @@ mod tests {
 
     #[test]
     fn selector_polynomial_test() {
-        for log_domain_size in 1..=10 {
-            let domain = Radix2EvaluationDomain::<Fr>::new(1 << log_domain_size).unwrap();
+        for log_domain_size in 1..=4 {
+            let domain_size = 1 << log_domain_size;
+            let domain = Radix2EvaluationDomain::<Fr>::new(domain_size).unwrap();
             for log_subdomain_size in 1..=log_domain_size {
-                let subdomain = Radix2EvaluationDomain::<Fr>::new(1 << log_subdomain_size).unwrap();
-                // Iterate over all possible offsets of `subdomain` within `domain`.
+                let subdomain_size = 1 << log_subdomain_size;
+                let subdomain = Radix2EvaluationDomain::<Fr>::new(subdomain_size).unwrap();
+
+                // Obtain all possible offsets of `subdomain` within `domain`.
                 let mut possible_offsets = vec![Fr::one()];
                 let domain_generator = domain.group_gen();
+
                 let mut offset = domain_generator;
                 let subdomain_generator = subdomain.group_gen();
                 while offset != subdomain_generator {
                     possible_offsets.push(offset);
                     offset *= domain_generator;
                 }
+                
+                assert_eq!(possible_offsets.len(), domain_size / subdomain_size);
+
+                // Get all possible cosets of `subdomain` within `domain`.
                 let cosets = possible_offsets.iter().map(|offset| subdomain.get_coset(*offset).unwrap());
+
                 for coset in cosets {
+                    let coset_elements = coset.elements().collect::<BTreeSet<_>>();
+                    let selector_poly = domain.selector_polynomial(&coset);
+                    assert_eq!(selector_poly.degree(), domain_size - subdomain_size);
                     for element in domain.elements() {
                         let evaluation = domain.evaluate_selector_polynomial(&coset, element); 
-                        if coset.evaluate_vanishing_polynomial(element).is_zero() {
+                        assert_eq!(evaluation, selector_poly.evaluate(&element));
+                        if coset_elements.contains(&element) {
                             assert_eq!(evaluation, Fr::one())
                         } else {
                             assert_eq!(evaluation, Fr::zero())
