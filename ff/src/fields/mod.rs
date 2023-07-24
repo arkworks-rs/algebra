@@ -192,6 +192,11 @@ pub trait Field:
     + From<u32>
     + From<u16>
     + From<u8>
+    + From<i128>
+    + From<i64>
+    + From<i32>
+    + From<i16>
+    + From<i8>
     + From<bool>
     + Product<Self>
 {
