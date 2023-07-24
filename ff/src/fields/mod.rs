@@ -473,6 +473,29 @@ mod no_std_tests {
     }
 
     #[test]
+    pub fn test_from_ints() {
+        let felt2 = Fr::one() + Fr::one();
+        let felt16 = felt2 * felt2 * felt2 * felt2;
+
+        assert_eq!(Fr::from(1u8),  Fr::one());
+        assert_eq!(Fr::from(1u16), Fr::one());
+        assert_eq!(Fr::from(1u32), Fr::one());
+        assert_eq!(Fr::from(1u64), Fr::one());
+        assert_eq!(Fr::from(1u128), Fr::one());
+        assert_eq!(Fr::from(-1i8), -Fr::one());
+        assert_eq!(Fr::from(-1i64), -Fr::one());
+
+        assert_eq!(Fr::from(0), Fr::zero());
+
+        assert_eq!(Fr::from(-16i32), -felt16);
+        assert_eq!(Fr::from(16u32), felt16);
+        assert_eq!(Fr::from(16i64), felt16);
+
+        assert_eq!(Fr::from(-2i128), -felt2);
+        assert_eq!(Fr::from(2u16), felt2);
+    }
+
+    #[test]
     fn test_from_into_biguint() {
         let mut rng = ark_std::test_rng();
 
