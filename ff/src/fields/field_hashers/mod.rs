@@ -3,11 +3,16 @@ mod expander;
 use crate::{Field, PrimeField};
 
 use ark_std::vec::Vec;
-use digest::DynDigest;
-use expander::Expander;
+pub use digest::{self,Update};
+use digest::{ExtendableOutput,FixedOutputReset,XofReader};
+pub use expander::{AsDST, DST, Zpad, Expander};
 
-use self::expander::ExpanderXmd;
 
+// pub trait HashToField: Field {
+//     fn hash_to_field() -> Self;
+// }
+
+/* 
 /// Trait for hashing messages to field elements.
 pub trait HashToField<F: Field>: Sized {
     /// Initialises a new hash-to-field helper struct.
@@ -18,8 +23,9 @@ pub trait HashToField<F: Field>: Sized {
     fn new(domain: &[u8]) -> Self;
 
     /// Hash an arbitrary `msg` to #`count` elements from field `F`.
-    fn hash_to_field(&self, msg: &[u8], count: usize) -> Vec<F>;
+    fn hash_to_field<const N: usize>(&self, msg: &[u8]) -> [F; N];
 }
+*/
 
 /// This field hasher constructs a Hash-To-Field based on a fixed-output hash function,
 /// like SHA2, SHA3 or Blake2.
@@ -28,76 +34,65 @@ pub trait HashToField<F: Field>: Sized {
 /// # Examples
 ///
 /// ```
-/// use ark_ff::fields::field_hashers::{DefaultFieldHasher, HashToField};
+/// use ark_ff::fields::field_hashers::{xmd_hash_to_field};
 /// use ark_test_curves::bls12_381::Fq;
 /// use sha2::Sha256;
 ///
-/// let hasher = <DefaultFieldHasher<Sha256> as HashToField<Fq>>::new(&[1, 2, 3]);
-/// let field_elements: Vec<Fq> = hasher.hash_to_field(b"Hello, World!", 2);
+/// let field_elements: [Fq; 2] = xmd_hash_to_field::<Sha256,Fq,2>(128,b"Application",b"Hello, World!");
 ///
 /// assert_eq!(field_elements.len(), 2);
 /// ```
-pub struct DefaultFieldHasher<H: Default + DynDigest + Clone, const SEC_PARAM: usize = 128> {
-    expander: ExpanderXmd<H>,
-    len_per_base_elem: usize,
+pub fn xmd_hash_to_field<H,F,const N: usize>(sec_param: u16, dst: &[u8], msg: &[u8]) -> [F; N]
+where F: Field, H: FixedOutputReset+Default,
+{
+    let dst = DST::new_xmd::<H>(dst);
+    let mut xmd = Zpad::<H>::new_for_field::<F>(sec_param).chain(msg).expand_for_field::<F,2>(sec_param,&dst);
+    let h2f = |_| hash_to_field::<F,_>(sec_param, &mut xmd);
+    ark_std::array::from_fn::<F,N,_>(h2f)
 }
 
-impl<F: Field, H: Default + DynDigest + Clone, const SEC_PARAM: usize> HashToField<F>
-    for DefaultFieldHasher<H, SEC_PARAM>
+pub fn xof_hash_to_field<H,F,const N: usize>(sec_param: u16, dst: &[u8], msg: &[u8]) -> [F; N]
+where F: Field, H: ExtendableOutput+Default,
 {
-    fn new(dst: &[u8]) -> Self {
-        // The final output of `hash_to_field` will be an array of field
-        // elements from F::BaseField, each of size `len_per_elem`.
-        let len_per_base_elem = get_len_per_elem::<F, SEC_PARAM>();
+    let dst = DST::new_xof::<H>(dst,Some(sec_param));
+    let mut xof = H::default().chain(msg).expand_for_field::<F,2>(sec_param,&dst);
+    let h2f = |_| hash_to_field::<F,_>(sec_param,&mut xof);
+    ark_std::array::from_fn::<F,N,_>(h2f)
+}
 
-        let expander = ExpanderXmd {
-            hasher: H::default(),
-            dst: dst.to_vec(),
-            block_size: len_per_base_elem,
-        };
+pub fn hash_to_field<F: Field,H: XofReader>(sec_param: u16, h: &mut H) -> F {
+    // The final output of `hash_to_field` will be an array of field
+    // elements from F::BaseField, each of size `len_per_elem`.
+    let len_per_base_elem = get_len_per_elem::<F>(sec_param);
+    // Rust *still* lacks alloca, hence this ugly hack.
+    let mut alloca = [0u8; 256];
+    let mut vec = Vec::new();
+    let bytes = if len_per_base_elem > 256 {
+        vec.resize(len_per_base_elem, 0u8);
+        vec.as_mut()
+    } else {
+        &mut alloca[0..len_per_base_elem]
+    };
 
-        DefaultFieldHasher {
-            expander,
-            len_per_base_elem,
-        }
-    }
+    let m = F::extension_degree() as usize;
 
-    fn hash_to_field(&self, message: &[u8], count: usize) -> Vec<F> {
-        let m = F::extension_degree() as usize;
-
-        // The user imposes a `count` of elements of F_p^m to output per input msg,
-        // each field element comprising `m` BasePrimeField elements.
-        let len_in_bytes = count * m * self.len_per_base_elem;
-        let uniform_bytes = self.expander.expand(message, len_in_bytes);
-
-        let mut output = Vec::with_capacity(count);
-        let mut base_prime_field_elems = Vec::with_capacity(m);
-        for i in 0..count {
-            base_prime_field_elems.clear();
-            for j in 0..m {
-                let elm_offset = self.len_per_base_elem * (j + i * m);
-                let val = F::BasePrimeField::from_be_bytes_mod_order(
-                    &uniform_bytes[elm_offset..][..self.len_per_base_elem],
-                );
-                base_prime_field_elems.push(val);
-            }
-            let f = F::from_base_prime_field_elems(&base_prime_field_elems).unwrap();
-            output.push(f);
-        }
-
-        output
-    }
+    let base_prime_field_elem = |_| {
+        h.read(&mut *bytes);
+        bytes.reverse();  // Need BE but Arkworks' LE is faster 
+        F::BasePrimeField::from_le_bytes_mod_order(&mut *bytes)
+    };
+    F::from_base_prime_field_elems( (0..m).map(base_prime_field_elem) ).unwrap()
 }
 
 /// This function computes the length in bytes that a hash function should output
 /// for hashing an element of type `Field`.
 /// See section 5.1 and 5.3 of the
 /// [IETF hash standardization draft](https://datatracker.ietf.org/doc/draft-irtf-cfrg-hash-to-curve/14/)
-fn get_len_per_elem<F: Field, const SEC_PARAM: usize>() -> usize {
+const fn get_len_per_elem<F: Field>(sec_param: u16) -> usize {
     // ceil(log(p))
     let base_field_size_in_bits = F::BasePrimeField::MODULUS_BIT_SIZE as usize;
     // ceil(log(p)) + security_parameter
-    let base_field_size_with_security_padding_in_bits = base_field_size_in_bits + SEC_PARAM;
+    let base_field_size_with_security_padding_in_bits = base_field_size_in_bits + (sec_param as usize);
     // ceil( (ceil(log(p)) + security_parameter) / 8)
     let bytes_per_base_field_elem =
         ((base_field_size_with_security_padding_in_bits + 7) / 8) as u64;

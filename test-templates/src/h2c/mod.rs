@@ -15,12 +15,13 @@ macro_rules! test_h2c {
             extern crate std;
             use ark_ec::{
                 hashing::{
-                    curve_maps::wb::WBMap, map_to_curve_hasher::MapToCurveBasedHasher, HashToCurve,
+                    wb::WBMap, HashToCurve,
                 },
                 short_weierstrass::{Affine, Projective},
+                CurveGroup,
             };
             use ark_ff::{
-                field_hashers::{DefaultFieldHasher, HashToField},
+                field_hashers::{xmd_hash_to_field}, // zpad_expander, expand_for_field
                 fields::Field,
                 One, UniformRand, Zero,
             };
@@ -41,30 +42,23 @@ macro_rules! test_h2c {
 
                 assert_eq!(data.hash, "sha256");
                 let dst = data.dst.as_bytes();
-                let hasher;
-                let g1_mapper = MapToCurveBasedHasher::<
-                    Projective<$group>,
-                    DefaultFieldHasher<Sha256, 128>,
-                    WBMap<$group>,
-                >::new(dst)
-                .unwrap();
-                hasher = <DefaultFieldHasher<Sha256, 128> as HashToField<$field>>::new(dst);
 
                 for v in data.vectors.iter() {
+
                     // first, hash-to-field tests
-                    let got: Vec<$base_prime_field> =
-                        hasher.hash_to_field(&v.msg.as_bytes(), 2 * $m);
+                    let got: [$base_prime_field; {  2* $m } ] =
+                        xmd_hash_to_field::<Sha256,Projective<TestSWUMapToCurveConfig>,{  2* $m }>(128,dst,&v.msg.as_bytes());
                     let want: Vec<$base_prime_field> =
                         v.u.iter().map(read_fq_vec).flatten().collect();
-                    assert_eq!(got, want);
+                    assert_eq!(got[..], *want);
 
                     // then, test curve points
                     let x = read_fq_vec(&v.p.x);
                     let y = read_fq_vec(&v.p.y);
-                    let got = g1_mapper.hash(&v.msg.as_bytes()).unwrap();
+                    let got = <Projective<$group> as HashToCurve>::hash_to_curve(dst,v.msg.as_bytes()).unwrap().into_affine();
                     let want = Affine::<$group>::new_unchecked(
-                        <$field>::from_base_prime_field_elems(&x[..]).unwrap(),
-                        <$field>::from_base_prime_field_elems(&y[..]).unwrap(),
+                        <$field>::from_base_prime_field_elems(x).unwrap(),
+                        <$field>::from_base_prime_field_elems(y).unwrap(),
                     );
                     assert!(got.is_on_curve());
                     assert!(want.is_on_curve());

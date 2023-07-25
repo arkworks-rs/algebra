@@ -1,16 +1,18 @@
 use core::marker::PhantomData;
 
 use crate::{models::short_weierstrass::SWCurveConfig, CurveConfig};
-use ark_ff::batch_inversion;
+use ark_ff::{
+    batch_inversion,
+};
 use ark_poly::{univariate::DensePolynomial, DenseUVPolynomial, Polynomial};
 
 use crate::{
-    hashing::{map_to_curve_hasher::MapToCurve, HashToCurveError},
+    hashing::{HashToCurveError},
     models::short_weierstrass::{Affine, Projective},
     AffineRepr,
 };
 
-use super::swu::{SWUConfig, SWUMap};
+use super::{MapToCurve, swu::{SWUConfig, SWUMap}};
 type BaseField<MP> = <MP as CurveConfig>::BaseField;
 
 /// [`IsogenyMap`] defines an isogeny between curves of
@@ -76,16 +78,24 @@ pub trait WBConfig: SWCurveConfig + Sized {
     type IsogenousCurve: SWUConfig<BaseField = BaseField<Self>>;
 
     const ISOGENY_MAP: IsogenyMap<'static, Self::IsogenousCurve, Self>;
+
+    /// Security parameters used by symetric components.
+    /// Almost always 128 bits. 
+    const SEC_PARAM: u16 = 128;
 }
 
 pub struct WBMap<P: WBConfig> {
-    swu_field_curve_hasher: SWUMap<P::IsogenousCurve>,
+    swu_field_curve_hasher: PhantomData<SWUMap<P::IsogenousCurve>>,
     curve_params: PhantomData<fn() -> P>,
 }
 
 impl<P: WBConfig> MapToCurve<Projective<P>> for WBMap<P> {
-    /// Constructs a new map if `P` represents a valid map.
-    fn new() -> Result<Self, HashToCurveError> {
+    /// Security parameters used by symetric components. 
+    /// Almost always 128 bits.
+    const SEC_PARAM: u16 = <P as WBConfig>::SEC_PARAM;
+
+    /// Checks if `P` represents a valid map.
+    fn check_parameters() -> Result<(), HashToCurveError> {
         match P::ISOGENY_MAP.apply(P::IsogenousCurve::GENERATOR) {
             Ok(point_on_curve) => {
                 if !point_on_curve.is_on_curve() {
@@ -95,21 +105,18 @@ impl<P: WBConfig> MapToCurve<Projective<P>> for WBMap<P> {
             Err(e) => return Err(e),
         }
 
-        Ok(WBMap {
-            swu_field_curve_hasher: SWUMap::<P::IsogenousCurve>::new().unwrap(),
-            curve_params: PhantomData,
-        })
+        SWUMap::<P::IsogenousCurve>::check_parameters().unwrap(); // Or ?
+        Ok(())
     }
 
     /// Map random field point to a random curve point
     /// inspired from
     /// <https://github.com/zcash/pasta_curves/blob/main/src/hashtocurve.rs>
     fn map_to_curve(
-        &self,
         element: <Affine<P> as AffineRepr>::BaseField,
     ) -> Result<Affine<P>, HashToCurveError> {
         // first we need to map the field point to the isogenous curve
-        let point_on_isogenious_curve = self.swu_field_curve_hasher.map_to_curve(element).unwrap();
+        let point_on_isogenious_curve = SWUMap::<P::IsogenousCurve>::map_to_curve(element).unwrap();
         P::ISOGENY_MAP.apply(point_on_isogenious_curve)
     }
 }
@@ -118,18 +125,15 @@ impl<P: WBConfig> MapToCurve<Projective<P>> for WBMap<P> {
 mod test {
     use crate::{
         hashing::{
-            curve_maps::{
-                swu::SWUConfig,
-                wb::{IsogenyMap, WBConfig, WBMap},
-            },
-            map_to_curve_hasher::MapToCurveBasedHasher,
-            HashToCurve,
+            zpad_expander, Update, expand_to_curve,
+            swu::SWUConfig,
+            wb::{IsogenyMap, WBConfig, WBMap},
         },
         models::short_weierstrass::SWCurveConfig,
         short_weierstrass::{Affine, Projective},
-        CurveConfig,
+        CurveConfig, CurveGroup,
     };
-    use ark_ff::{field_hashers::DefaultFieldHasher, fields::Fp64, MontBackend, MontFp};
+    use ark_ff::{fields::Fp64, MontBackend, MontFp};
 
     #[derive(ark_ff::MontConfig)]
     #[modulus = "127"]
@@ -310,19 +314,18 @@ mod test {
             ISOGENY_MAP_TESTWBF127;
     }
 
+
     /// The point of the test is to get a simple WB compatible curve
     /// and make simple hash
     #[test]
     fn hash_arbitrary_string_to_curve_wb() {
         use sha2::Sha256;
-        let test_wb_to_curve_hasher = MapToCurveBasedHasher::<
-            Projective<TestWBF127MapToCurveConfig>,
-            DefaultFieldHasher<Sha256, 128>,
-            WBMap<TestWBF127MapToCurveConfig>,
-        >::new(&[1])
-        .unwrap();
 
-        let hash_result = test_wb_to_curve_hasher.hash(b"if you stick a Babel fish in your ear you can instantly understand anything said to you in any form of language.").expect("fail to hash the string to curve");
+        let mut h = zpad_expander::<Projective<TestWBF127MapToCurveConfig>,WBMap<TestWBF127MapToCurveConfig>,Sha256>();
+        h.update(b"if you stick a Babel fish in your ear you can instantly understand anything said to you in any form of language.");
+
+        let hash_result: Projective<TestWBF127MapToCurveConfig> = expand_to_curve::<Projective<TestWBF127MapToCurveConfig>,WBMap<TestWBF127MapToCurveConfig>>(h, b"domain").expect("fail to hash the string to curve");
+        let hash_result = hash_result.into_affine();
 
         assert!(
             hash_result.x != F127_ZERO && hash_result.y != F127_ZERO,
