@@ -102,7 +102,7 @@ pub trait ScalarExp<Exponent: Sc>:
     fn pow_exp_base(base: &Self::ExpBase, exp: Exponent) -> Self {
         let mut res = Self::one();
         let (sign, exp) = exp.as_u64s();
-        for (i, bit) in crate::bits::BitIteratorBE::without_leading_zeros(exp).enumerate() {
+        for bit in crate::bits::BitIteratorBE::without_leading_zeros(exp) {
             res.square_in_place();
             if bit {
                 res *= base;

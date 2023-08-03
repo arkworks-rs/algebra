@@ -1,6 +1,6 @@
 use crate::{
-    module::{Scalar, ScalarMul},
-    AdditiveGroup,
+    module::{Scalar, ScalarMul, ScalarExp},
+    AdditiveGroup, MultiplicativeGroup,
 };
 use ark_std::vec::Vec;
 
@@ -60,7 +60,7 @@ impl WnafContext {
         if 1 << (self.window_size - 1) > base_table.len() {
             return None;
         }
-        let scalar_wnaf = scalar.into_bigint().find_wnaf(self.window_size).unwrap();
+        let scalar_wnaf = scalar.find_wnaf(self.window_size).unwrap();
 
         let mut result = G::zero();
 
@@ -78,6 +78,75 @@ impl WnafContext {
                     result += &base_table[(n / 2) as usize];
                 } else {
                     result -= &base_table[((-n) / 2) as usize];
+                }
+            }
+        }
+
+        Some(result)
+    }
+}
+
+
+impl WnafContext {
+    pub fn multiplicative_table<G: MultiplicativeGroup>(&self, mut base: G) -> Vec<G> {
+        let mut table = Vec::with_capacity(1 << (self.window_size - 1));
+        let sqr = base.square();
+
+        for _ in 0..(1 << (self.window_size - 1)) {
+            table.push(base);
+            base *= &sqr;
+        }
+        table
+    }
+
+    /// Computes scalar multiplication of a group element `g` by `scalar`.
+    ///
+    /// This method uses the wNAF algorithm to perform the scalar
+    /// multiplication; first, it uses `Self::table` to calculate an
+    /// appropriate table of multiples of `g`, and then uses the wNAF
+    /// algorithm to compute the scalar multiple.
+    pub fn exp<G: ScalarExp<S>, S: Scalar>(&self, g: G, scalar: &S) -> G {
+        let table = self.multiplicative_table(g);
+        self.exp_with_table(&table, scalar).unwrap()
+    }
+
+    /// Computes scalar multiplication of a group element by `scalar`.
+    /// `base_table` holds precomputed multiples of the group element; it can be
+    /// generated using `Self::table`. `scalar` is an element of
+    /// `G::ScalarField`.
+    ///
+    /// Returns `None` if the table is too small.
+    pub fn exp_with_table<G: ScalarExp<S>, S: Scalar>(
+        &self,
+        base_table: &[G],
+        scalar: &S,
+    ) -> Option<G> {
+        if 1 << (self.window_size - 1) > base_table.len() {
+            return None;
+        }
+        let scalar_wnaf = scalar.find_wnaf(self.window_size).unwrap();
+        let inv_table = if G::INVERSION_IS_FAST {
+            vec![]
+        } else {
+            G::invert_batch(base_table)
+        };
+
+        let mut result = G::one();
+
+        let mut found_non_zero = false;
+
+        for n in scalar_wnaf.iter().rev() {
+            if found_non_zero {
+                result.square_in_place();
+            }
+
+            if *n != 0 {
+                found_non_zero = true;
+
+                if *n > 0 {
+                    result *= &base_table[(n / 2) as usize];
+                } else {
+                    result *= &inv_table[(n / 2) as usize];
                 }
             }
         }

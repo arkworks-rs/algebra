@@ -139,9 +139,10 @@ pub trait MultiplicativeGroup:
         invert_and_mul_batch(v, &Self::one());
     }
 
-    fn invert_batch(v: &[Self]) {
+    fn invert_batch(v: &[Self]) -> Vec<Self> {
         let mut v = v.to_vec();
-        Self::invert_batch(&mut v);
+        Self::invert_batch_in_place(&mut v);
+        v
     }
 }
 

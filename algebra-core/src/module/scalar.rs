@@ -1,5 +1,7 @@
 use ark_std::fmt::Debug;
 
+use crate::biginteger::{signed_mod_reduction, arithmetic::{sbb_for_sub_with_borrow, adc_for_add_with_carry}};
+
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default)]
 pub enum Sign {
     Negative = -1,
@@ -25,6 +27,68 @@ pub trait Scalar: Send + Sync + Copy + Debug {
     fn as_bytes(&self) -> (Sign, Self::U8Ref);
 
     fn as_u64s(&self) -> (Sign, Self::U64Ref);
+
+    /// Returns the windowed non-adjacent form of `self`, for a window of size `w`.
+    fn find_wnaf(&self, w: usize) -> Option<Vec<i64>> {
+        // w > 2 due to definition of wNAF, and w < 64 to make sure that `i64`
+        // can fit each signed digit
+        if (2..64).contains(&w) {
+            let mut res = vec![];
+            let mut e = self.as_u64s().1.as_ref().to_vec();
+
+            while !is_zero(&e) {
+                let z: i64;
+                if is_odd(&e) {
+                    z = signed_mod_reduction(e[0], 1 << w);
+                    if z >= 0 {
+                        sub_with_borrow(&mut e, z as u64);
+                    } else {
+                        add_with_carry(&mut e,  (-z) as u64);
+                    }
+                } else {
+                    z = 0;
+                }
+                res.push(z);
+                div2(&mut e);
+            }
+
+            Some(res)
+        } else {
+            None
+        }
+    }
+}
+
+fn is_zero(a: &[u64]) -> bool {
+    a.iter().all(|x| *x == 0)
+}
+
+fn is_odd(a: &[u64]) -> bool {
+    a[0] % 2 == 1
+}
+
+fn sub_with_borrow(a: &mut [u64], b: u64) {
+    let mut borrow = sbb_for_sub_with_borrow(&mut a[0], b, 0);
+    for a in &mut a[1..] {
+        borrow = sbb_for_sub_with_borrow(a, 0, borrow);
+    }
+}
+
+fn add_with_carry(a: &mut [u64], b: u64) {
+    let mut carry = adc_for_add_with_carry(&mut a[0], b, 0);
+    for a in &mut a[1..] {
+        carry = adc_for_add_with_carry(a, 0, carry);
+    }
+}
+
+fn div2(a: &mut [u64]) {
+    let mut t = 0;
+    for a in a.iter_mut().rev() {
+        let t2 = *a << 63;
+        *a >>= 1;
+        *a |= t;
+        t = t2;
+    }
 }
 
 macro_rules! impl_scalar_unsigned {
