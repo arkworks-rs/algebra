@@ -221,7 +221,7 @@ mod tests {
     }
 
     #[test]
-    fn selector_polynomial_test() {
+    fn filter_polynomial_test() {
         for log_domain_size in 1..=4 {
             let domain_size = 1 << log_domain_size;
             let domain = Radix2EvaluationDomain::<Fr>::new(domain_size).unwrap();
@@ -247,11 +247,11 @@ mod tests {
 
                 for coset in cosets {
                     let coset_elements = coset.elements().collect::<BTreeSet<_>>();
-                    let selector_poly = domain.selector_polynomial(&coset);
-                    assert_eq!(selector_poly.degree(), domain_size - subdomain_size);
+                    let filter_poly = domain.filter_polynomial(&coset);
+                    assert_eq!(filter_poly.degree(), domain_size - subdomain_size);
                     for element in domain.elements() {
-                        let evaluation = domain.evaluate_selector_polynomial(&coset, element); 
-                        assert_eq!(evaluation, selector_poly.evaluate(&element));
+                        let evaluation = domain.evaluate_filter_polynomial(&coset, element); 
+                        assert_eq!(evaluation, filter_poly.evaluate(&element));
                         if coset_elements.contains(&element) {
                             assert_eq!(evaluation, Fr::one())
                         } else {

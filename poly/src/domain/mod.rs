@@ -234,13 +234,13 @@ pub trait EvaluationDomain<F: FftField>:
         tau.pow([self.size() as u64]) - self.coset_offset_pow_size()
     }
 
-    /// Return the selector polynomial of `self` with respect to the subdomain `subdomain`.
+    /// Return the filter polynomial of `self` with respect to the subdomain `subdomain`.
     /// Assumes that `subdomain` is contained within `self`.
     /// 
     /// # Panics
     /// 
     /// Panics if `subdomain` is not contained within `self`.
-    fn selector_polynomial(&self, subdomain: &Self) -> crate::univariate::DensePolynomial<F> {
+    fn filter_polynomial(&self, subdomain: &Self) -> crate::univariate::DensePolynomial<F> {
         use crate::univariate::DenseOrSparsePolynomial;
         let self_vanishing_poly = DenseOrSparsePolynomial::from(&self.vanishing_polynomial() * (subdomain.size_as_field_element() * subdomain.coset_offset().pow([subdomain.size() as u64]))) ;
         let subdomain_vanishing_poly = DenseOrSparsePolynomial::from(&subdomain.vanishing_polynomial() * self.size_as_field_element());
@@ -249,9 +249,9 @@ pub trait EvaluationDomain<F: FftField>:
         quotient
     }
 
-    /// This evaluates at `tau` the selector polynomial for `self` with respect
+    /// This evaluates at `tau` the filter polynomial for `self` with respect
     /// to the subdomain `subdomain`.
-    fn evaluate_selector_polynomial(&self, subdomain: &Self, tau: F) -> F {
+    fn evaluate_filter_polynomial(&self, subdomain: &Self, tau: F) -> F {
         let v_subdomain_of_tau = subdomain.evaluate_vanishing_polynomial(tau);
         if v_subdomain_of_tau.is_zero() {
             F::one()
