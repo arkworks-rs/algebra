@@ -477,7 +477,7 @@ mod no_std_tests {
         let felt2 = Fr::one() + Fr::one();
         let felt16 = felt2 * felt2 * felt2 * felt2;
 
-        assert_eq!(Fr::from(1u8),  Fr::one());
+        assert_eq!(Fr::from(1u8), Fr::one());
         assert_eq!(Fr::from(1u16), Fr::one());
         assert_eq!(Fr::from(1u32), Fr::one());
         assert_eq!(Fr::from(1u64), Fr::one());
