@@ -24,9 +24,7 @@ pub use {
     fq2::*,
     fq6::*,
     g1::{G1Affine, G1Projective},
-    g1_swu_iso::*,
     g2::{G2Affine, G2Projective},
-    g2_swu_iso::*,
 };
 
 #[cfg(test)]
