@@ -236,15 +236,23 @@ pub trait EvaluationDomain<F: FftField>:
 
     /// Return the filter polynomial of `self` with respect to the subdomain `subdomain`.
     /// Assumes that `subdomain` is contained within `self`.
-    /// 
+    ///
     /// # Panics
-    /// 
+    ///
     /// Panics if `subdomain` is not contained within `self`.
     fn filter_polynomial(&self, subdomain: &Self) -> crate::univariate::DensePolynomial<F> {
         use crate::univariate::DenseOrSparsePolynomial;
-        let self_vanishing_poly = DenseOrSparsePolynomial::from(&self.vanishing_polynomial() * (subdomain.size_as_field_element() * subdomain.coset_offset().pow([subdomain.size() as u64]))) ;
-        let subdomain_vanishing_poly = DenseOrSparsePolynomial::from(&subdomain.vanishing_polynomial() * self.size_as_field_element());
-        let (quotient, remainder) = self_vanishing_poly.divide_with_q_and_r(&subdomain_vanishing_poly).unwrap();
+        let self_vanishing_poly = DenseOrSparsePolynomial::from(
+            &self.vanishing_polynomial()
+                * (subdomain.size_as_field_element()
+                    * subdomain.coset_offset().pow([subdomain.size() as u64])),
+        );
+        let subdomain_vanishing_poly = DenseOrSparsePolynomial::from(
+            &subdomain.vanishing_polynomial() * self.size_as_field_element(),
+        );
+        let (quotient, remainder) = self_vanishing_poly
+            .divide_with_q_and_r(&subdomain_vanishing_poly)
+            .unwrap();
         assert!(remainder.is_zero());
         quotient
     }
@@ -256,10 +264,9 @@ pub trait EvaluationDomain<F: FftField>:
         if v_subdomain_of_tau.is_zero() {
             F::one()
         } else {
-            subdomain.size_as_field_element() * self.evaluate_vanishing_polynomial(tau) / 
-                (self.size_as_field_element() * v_subdomain_of_tau)
+            subdomain.size_as_field_element() * self.evaluate_vanishing_polynomial(tau)
+                / (self.size_as_field_element() * v_subdomain_of_tau)
         }
-        
     }
 
     /// Returns the `i`-th element of the domain.

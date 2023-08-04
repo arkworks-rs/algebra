@@ -178,7 +178,7 @@ mod tests {
         EvaluationDomain, Radix2EvaluationDomain,
     };
     use ark_ff::{FftField, Field, One, UniformRand, Zero};
-    use ark_std::{rand::Rng, test_rng, collections::BTreeSet};
+    use ark_std::{collections::BTreeSet, rand::Rng, test_rng};
     use ark_test_curves::bls12_381::Fr;
 
     #[test]
@@ -239,18 +239,20 @@ mod tests {
                     possible_offsets.push(offset);
                     offset *= domain_generator;
                 }
-                
+
                 assert_eq!(possible_offsets.len(), domain_size / subdomain_size);
 
                 // Get all possible cosets of `subdomain` within `domain`.
-                let cosets = possible_offsets.iter().map(|offset| subdomain.get_coset(*offset).unwrap());
+                let cosets = possible_offsets
+                    .iter()
+                    .map(|offset| subdomain.get_coset(*offset).unwrap());
 
                 for coset in cosets {
                     let coset_elements = coset.elements().collect::<BTreeSet<_>>();
                     let filter_poly = domain.filter_polynomial(&coset);
                     assert_eq!(filter_poly.degree(), domain_size - subdomain_size);
                     for element in domain.elements() {
-                        let evaluation = domain.evaluate_filter_polynomial(&coset, element); 
+                        let evaluation = domain.evaluate_filter_polynomial(&coset, element);
                         assert_eq!(evaluation, filter_poly.evaluate(&element));
                         if coset_elements.contains(&element) {
                             assert_eq!(evaluation, Fr::one())
