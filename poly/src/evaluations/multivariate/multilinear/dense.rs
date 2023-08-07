@@ -27,10 +27,6 @@ impl<F: Field> DenseMultilinearExtension<F> {
     /// Construct a new polynomial from a list of evaluations where the index
     /// represents a point in {0,1}^`num_vars` in little endian form. For
     /// example, `0b1011` represents `P(1,1,0,1)`
-    ///
-    /// #
-    ///
-    ///
     pub fn from_evaluations_slice(num_vars: usize, evaluations: &[F]) -> Self {
         Self::from_evaluations_vec(num_vars, evaluations.to_vec())
     }

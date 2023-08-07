@@ -1,5 +1,4 @@
 //! A dense univariate polynomial represented in coefficient form.
-//!
 use crate::{
     univariate::{DenseOrSparsePolynomial, SparsePolynomial},
     DenseUVPolynomial, EvaluationDomain, Evaluations, GeneralEvaluationDomain, Polynomial,
