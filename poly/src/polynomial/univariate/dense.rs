@@ -116,13 +116,39 @@ impl<F: Field> DenseUVPolynomial<F> for DensePolynomial<F> {
         &self.coeffs
     }
 
-    /// Outputs a univariate polynomial of degree `d` where
-    /// each coefficient is sampled uniformly at random.
+    /// Outputs a univariate polynomial of degree `d` where each non-leading
+    /// coefficient is sampled uniformly at random from `F` and the leading
+    /// coefficient is sampled uniformly at random from among the non-zero
+    /// elements of `F`.
+    ///
+    /// # Example
+    /// ```
+    /// use ark_std::test_rng;
+    /// use ark_test_curves::bls12_381::Fr;
+    /// use ark_poly::{univariate::DensePolynomial, Polynomial, DenseUVPolynomial};
+    ///
+    /// let rng = &mut test_rng();
+    /// let poly = DensePolynomial::<Fr>::rand(8, rng);
+    /// assert_eq!(poly.degree(), 8);
+    /// ```
     fn rand<R: Rng>(d: usize, rng: &mut R) -> Self {
         let mut random_coeffs = Vec::new();
-        for _ in 0..=d {
-            random_coeffs.push(F::rand(rng));
+
+        if d > 0 {
+            // d - 1 overflows when d = 0
+            for _ in 0..=(d - 1) {
+                random_coeffs.push(F::rand(rng));
+            }
         }
+
+        let mut leading_coefficient = F::rand(rng);
+
+        while leading_coefficient.is_zero() {
+            leading_coefficient = F::rand(rng);
+        }
+
+        random_coeffs.push(leading_coefficient);
+
         Self::from_coefficients_vec(random_coeffs)
     }
 }
@@ -610,6 +636,7 @@ impl<F: Field> Zero for DensePolynomial<F> {
 mod tests {
     use crate::{polynomial::univariate::*, EvaluationDomain, GeneralEvaluationDomain, Polynomial};
     use ark_ff::{Field, One, UniformRand, Zero};
+    use ark_ff::{Fp64, MontBackend, MontConfig};
     use ark_std::{rand::Rng, test_rng, vec::Vec};
     use ark_test_curves::bls12_381::Fr;
 
@@ -622,6 +649,23 @@ mod tests {
             }
         }
         SparsePolynomial::from_coefficients_vec(coeffs)
+    }
+
+    #[test]
+    fn rand_dense_poly_degree() {
+        #[derive(MontConfig)]
+        #[modulus = "5"]
+        #[generator = "2"]
+        pub struct F5Config;
+
+        let rng = &mut test_rng();
+        pub type F5 = Fp64<MontBackend<F5Config, 1>>;
+
+        // if the leading coefficient were uniformly sampled from all of F, this
+        // test would fail with high probabiliy ~99.9%
+        for i in 1..=30 {
+            assert_eq!(DensePolynomial::<F5>::rand(i, rng).degree(), i);
+        }
     }
 
     #[test]
