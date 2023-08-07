@@ -23,10 +23,30 @@ pub struct DenseMultilinearExtension<F: Field> {
     pub num_vars: usize,
 }
 
+#[test]
+fn example_from_evals() {
+    use ark_test_curves::bls12_381::Fr;
+
+    // The two-variate polynomial x_0 + 3 * x_0 * x_1 + 2 evaluates to [6, 3, 2, 2]
+    // in the two-dimensional hypercube with points [11, 10, 01, 00].
+    let mle = DenseMultilinearExtension::from_evaluations_vec(
+        2, vec![6, 3, 2, 2].iter().map(|x| Fr::from(*x as u64)).collect()
+    );
+
+    // By the uniqueness of MLEs, `mle` is precisely the above polynomial, which
+    // takes the value 53 at the point (1, 17)
+    let eval = mle.evaluate(&[Fr::ONE, Fr::from(17)]).unwrap();
+    assert_eq!(eval, Fr::from(53));
+}
+
 impl<F: Field> DenseMultilinearExtension<F> {
     /// Construct a new polynomial from a list of evaluations where the index
     /// represents a point in {0,1}^`num_vars` in little endian form. For
     /// example, `0b1011` represents `P(1,1,0,1)`
+    /// 
+    /// #
+    /// 
+    /// 
     pub fn from_evaluations_slice(num_vars: usize, evaluations: &[F]) -> Self {
         Self::from_evaluations_vec(num_vars, evaluations.to_vec())
     }
