@@ -23,7 +23,7 @@ num-traits = { version = "0.2", default-features = false }
 rayon = { version = "1", optional = true }
 zeroize = { version = "1", default-features = false, features = ["zeroize_derive"] }
 hashbrown = "0.14.0"
-itertools = { version = "0.10", default-features = false }
+itertools = { version = "0.11", default-features = false }
 num-bigint = "0.4.3"
 
 [dev-dependencies]
