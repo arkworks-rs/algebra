@@ -131,10 +131,10 @@ impl<F: Field> MultilinearExtension<F> for DenseMultilinearExtension<F> {
 
     /// Return the MLE resulting from binding the first variables of self
     /// to the values in `partial_point` (from left to right).
-    /// 
+    ///
     /// Note: this method can be used in combination with `relabel` or
     /// `relabel_in_place` to bind variables at arbitrary positions.
-    /// 
+    ///
     /// ```
     /// use ark_test_curves::bls12_381::Fr;
     /// # use ark_poly::{MultilinearExtension, DenseMultilinearExtension};
