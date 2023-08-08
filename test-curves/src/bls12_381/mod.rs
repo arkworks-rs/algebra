@@ -34,7 +34,7 @@ mod tests;
 pub use pairing::*;
 #[cfg(feature = "bls12_381_curve")]
 mod pairing {
-    use super::*;
+    use super::{g1, g2, Fq, Fq12Config, Fq2Config, Fq6Config};
     use ark_ec::bls12::{Bls12, Bls12Config, TwistType};
 
     pub type Bls12_381 = Bls12<Config>;

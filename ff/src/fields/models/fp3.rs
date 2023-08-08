@@ -1,5 +1,5 @@
-use super::cubic_extension::*;
-use crate::fields::*;
+use super::cubic_extension::{CubicExtConfig, CubicExtField};
+use crate::fields::{CyclotomicMultSubgroup, MulAssign, PrimeField, SqrtPrecomputation};
 use core::marker::PhantomData;
 
 /// Trait that specifies constants and methods for defining degree-three extension fields.

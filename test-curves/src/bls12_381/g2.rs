@@ -1,11 +1,11 @@
 use core::ops::Neg;
 
-use crate::bls12_381::*;
+use crate::bls12_381::{g1, g2_swu_iso, Fq, Fq2, Fr, FQ_ZERO};
 use ark_ec::{
     bls12::{self, Bls12Config},
     hashing::curve_maps::wb::{IsogenyMap, WBConfig},
     models::CurveConfig,
-    short_weierstrass::{self, *},
+    short_weierstrass::{self, Affine, Projective},
     AffineRepr, CurveGroup, PrimeGroup,
 };
 use ark_ff::{AdditiveGroup, BigInt, Field, MontFp, Zero};
