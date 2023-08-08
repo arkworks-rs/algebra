@@ -248,7 +248,7 @@ jobs:
             echo      "[patch.crates-io]";
             echo      "ark-ff = { path = 'algebra/ff' }";
             echo      "ark-serialize = { path = 'algebra/serialize' }";
-            echo      "ark-ff-macros = { path = 'algebra/ff-macros' }";
+            echo      "ark-algebra-macros = { path = 'algebra/common-macros' }";
             echo      "ark-ff-asm = { path = 'algebra/ff-asm' }";
             echo      "ark-ec = { path = 'algebra/ec' }";
             echo      "ark-algebra-bench-templates = { path = 'algebra/bench-templates' }"

@@ -1,3 +1,4 @@
+use ark_group::AdditiveGroup;
 use ark_serialize::{
     CanonicalDeserialize, CanonicalDeserializeWithFlags, CanonicalSerialize,
     CanonicalSerializeWithFlags, Compress, EmptyFlags, Flags, SerializationError, Valid, Validate,
@@ -22,7 +23,7 @@ use ark_std::rand::{
 use crate::{
     biginteger::BigInteger,
     fields::{Field, LegendreSymbol, PrimeField},
-    AdditiveGroup, SqrtPrecomputation, ToConstraintField, UniformRand,
+    SqrtPrecomputation, ToConstraintField, UniformRand,
 };
 
 /// Defines a Quadratic extension field from a quadratic non-residue.

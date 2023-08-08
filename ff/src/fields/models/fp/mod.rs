@@ -1,5 +1,6 @@
 use core::iter;
 
+use ark_group::AdditiveGroup;
 use ark_serialize::{
     buffer_byte_size, CanonicalDeserialize, CanonicalDeserializeWithFlags, CanonicalSerialize,
     CanonicalSerializeWithFlags, Compress, EmptyFlags, Flags, SerializationError, Valid, Validate,
@@ -19,7 +20,7 @@ mod montgomery_backend;
 pub use montgomery_backend::*;
 
 use crate::{
-    AdditiveGroup, BigInt, BigInteger, FftField, Field, LegendreSymbol, PrimeField,
+    BigInt, BigInteger, FftField, Field, LegendreSymbol, PrimeField,
     SqrtPrecomputation,
 };
 /// A trait that specifies the configuration of a prime field.

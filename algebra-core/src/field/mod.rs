@@ -1,32 +1,13 @@
-use core::iter::Product;
-
-use crate::UniformRand;
-use ark_group::AdditiveGroup;
+use crate::ring::Ring;
 use ark_serialize::{
-    CanonicalDeserialize, CanonicalDeserializeWithFlags, CanonicalSerialize,
-    CanonicalSerializeWithFlags, EmptyFlags, Flags,
+    CanonicalDeserializeWithFlags, CanonicalSerializeWithFlags, EmptyFlags, Flags,
 };
-use ark_std::{
-    fmt::{Debug, Display},
-    hash::Hash,
-    ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign},
-    vec::Vec,
-};
+use ark_std::vec::Vec;
 
-pub use ark_ff_macros;
-use num_traits::{One, Zero};
-use zeroize::Zeroize;
-
-pub mod utils;
+pub use ark_algebra_macros;
 
 #[macro_use]
 pub mod arithmetic;
-
-#[macro_use]
-pub mod models;
-pub use self::models::*;
-
-pub mod field_hashers;
 
 mod prime;
 pub use prime::*;
@@ -95,35 +76,9 @@ use rayon::prelude::*;
 /// assert_eq!(a.inverse().unwrap() * a, F::one()); // Euler-Fermat theorem tells us: a * a^{-1} = 1 mod p
 /// ```
 pub trait Field:
-    'static
-    + Copy
-    + Clone
-    + Debug
-    + Display
-    + Default
-    + Send
-    + Sync
-    + Eq
-    + Zero
-    + One
-    + Ord
-    + Neg<Output = Self>
-    + UniformRand
-    + Zeroize
-    + Sized
-    + Hash
-    + CanonicalSerialize
+    Ring
     + CanonicalSerializeWithFlags
-    + CanonicalDeserialize
     + CanonicalDeserializeWithFlags
-    + AdditiveGroup<Scalar = Self>
-    + Div<Self, Output = Self>
-    + DivAssign<Self>
-    + for<'a> Div<&'a Self, Output = Self>
-    + for<'a> DivAssign<&'a Self>
-    + for<'a> Div<&'a mut Self, Output = Self>
-    + for<'a> DivAssign<&'a mut Self>
-    + for<'a> core::iter::Product<&'a Self>
     + From<u128>
     + From<u64>
     + From<u32>
@@ -135,7 +90,6 @@ pub trait Field:
     + From<i16>
     + From<i8>
     + From<bool>
-    + Product<Self>
 {
     type BasePrimeField: PrimeField;
 
@@ -143,9 +97,6 @@ pub trait Field:
 
     /// Determines the algorithm for computing square roots.
     const SQRT_PRECOMP: Option<SqrtPrecomputation<Self>>;
-
-    /// The multiplicative identity of the field.
-    const ONE: Self;
 
     /// Returns the characteristic of the field,
     /// in little-endian representation.
@@ -213,21 +164,6 @@ pub trait Field:
         })
     }
 
-    /// Returns `self * self`.
-    #[must_use]
-    fn square(&self) -> Self;
-
-    /// Squares `self` in place.
-    fn square_in_place(&mut self) -> &mut Self;
-
-    /// Computes the multiplicative inverse of `self` if `self` is nonzero.
-    #[must_use]
-    fn inverse(&self) -> Option<Self>;
-
-    /// If `self.inverse().is_none()`, this just returns `None`. Otherwise, it sets
-    /// `self` to `self.inverse().unwrap()`.
-    fn inverse_in_place(&mut self) -> Option<&mut Self>;
-
     /// Returns `sum([a_i * b_i])`.
     #[inline]
     fn sum_of_products<const T: usize>(a: &[Self; T], b: &[Self; T]) -> Self {
@@ -249,40 +185,6 @@ pub trait Field:
         let mut this = *self;
         this.frobenius_map_in_place(power);
         this
-    }
-
-    /// Returns `self^exp`, where `exp` is an integer represented with `u64` limbs,
-    /// least significant limb first.
-    #[must_use]
-    fn pow<S: AsRef<[u64]>>(&self, exp: S) -> Self {
-        let mut res = Self::one();
-
-        for i in crate::BitIteratorBE::without_leading_zeros(exp) {
-            res.square_in_place();
-
-            if i {
-                res *= self;
-            }
-        }
-        res
-    }
-
-    /// Exponentiates a field element `f` by a number represented with `u64`
-    /// limbs, using a precomputed table containing as many powers of 2 of
-    /// `f` as the 1 + the floor of log2 of the exponent `exp`, starting
-    /// from the 1st power. That is, `powers_of_2` should equal `&[p, p^2,
-    /// p^4, ..., p^(2^n)]` when `exp` has at most `n` bits.
-    ///
-    /// This returns `None` when a power is missing from the table.
-    #[inline]
-    fn pow_with_table<S: AsRef<[u64]>>(powers_of_2: &[Self], exp: S) -> Option<Self> {
-        let mut res = Self::one();
-        for (pow, bit) in crate::BitIteratorLE::without_trailing_zeros(exp).enumerate() {
-            if bit {
-                res *= powers_of_2.get(pow)?;
-            }
-        }
-        Some(res)
     }
 }
 
@@ -330,7 +232,7 @@ fn serial_batch_inversion_and_mul<F: Field>(v: &mut [F], coeff: &F) {
     }
 
     // Invert `tmp`.
-    tmp = tmp.inverse().unwrap(); // Guaranteed to be nonzero.
+    tmp = tmp.invert(); // Guaranteed to be nonzero.
 
     // Multiply product by coeff, so all inverses will be scaled by coeff
     tmp *= coeff;
