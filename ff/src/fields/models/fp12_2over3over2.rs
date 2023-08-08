@@ -1,8 +1,11 @@
 use ark_std::Zero;
 
-use super::quadratic_extension::*;
+use super::quadratic_extension::{QuadExtConfig, QuadExtField};
 use crate::{
-    fields::{fp6_3over2::*, Field, Fp2, Fp2Config as Fp2ConfigTrait},
+    fields::{
+        fp6_3over2::{Fp6, Fp6Config},
+        Field, Fp2, Fp2Config as Fp2ConfigTrait,
+    },
     AdditiveGroup, CyclotomicMultSubgroup,
 };
 use core::{

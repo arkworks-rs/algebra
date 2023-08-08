@@ -1,7 +1,11 @@
 // The code below is a port of the excellent library of https://github.com/kwantam/fffft by Riad S. Wahby
 // to the arkworks APIs
 
-use crate::domain::{radix2::*, utils::compute_powers_serial, DomainCoeff};
+use crate::domain::{
+    radix2::{fft, EvaluationDomain, Radix2EvaluationDomain},
+    utils::compute_powers_serial,
+    DomainCoeff,
+};
 use ark_ff::FftField;
 use ark_std::{cfg_chunks_mut, vec::Vec};
 #[cfg(feature = "parallel")]

@@ -15,7 +15,7 @@ use syn::{
 };
 
 mod context;
-use context::*;
+use context::{AssemblyVar, Context};
 
 use std::cell::RefCell;
 

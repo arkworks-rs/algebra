@@ -1,6 +1,6 @@
 //! Modules for working with univariate or multivariate polynomials.
 use ark_ff::{Field, Zero};
-use ark_serialize::*;
+use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use ark_std::{
     fmt::Debug,
     hash::Hash,

@@ -1,5 +1,8 @@
-use crate::bls12_381::*;
-use ark_ff::{fields::*, MontFp};
+use crate::bls12_381::{Fq2, Fq6, Fq6Config, FQ2_ONE, FQ2_ZERO};
+use ark_ff::{
+    fields::{Fp12, Fp12Config, Fp2},
+    MontFp,
+};
 
 pub type Fq12 = Fp12<Fq12Config>;
 
