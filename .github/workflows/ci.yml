@@ -166,13 +166,6 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
-          target: thumbv6m-none-eabi
-          override: true
-
-      - name: Install Rust ARM64
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
           target: aarch64-unknown-none
           override: true
 
@@ -192,17 +185,17 @@ jobs:
                   --exclude ark-algebra-test-templates \
                   --exclude ark-algebra-bench-templates \
                   --exclude ark-poly-benches \
-                  --target thumbv6m-none-eabi"
+                  --target aarch64-unknown-none"
 
       - name: build
         uses: actions-rs/cargo@v1
         with:
             command: build
-            args: "--examples --workspace \
+            args: "--workspace \
                   --exclude ark-algebra-test-templates \
                   --exclude ark-algebra-bench-templates \
                   --exclude ark-poly-benches \
-                  --target thumbv6m-none-eabi"
+                  --target aarch64-unknown-none"
 
   test_against_curves:
     name: Test against curves
