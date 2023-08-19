@@ -4,6 +4,7 @@
 
 ### Breaking changes
 
+- [\#577](https://github.com/arkworks-rs/algebra/pull/577) (`ark-ff`, `ark-ec`) Add `AdditiveGroup`, a trait for additive groups (equipped with scalar field).
 - [\#593](https://github.com/arkworks-rs/algebra/pull/593) (`ark-ec`) Change `AffineRepr::xy()` to return owned values.
 
 ### Features

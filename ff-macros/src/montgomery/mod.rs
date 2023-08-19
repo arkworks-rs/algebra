@@ -5,20 +5,20 @@ use num_bigint::BigUint;
 use num_traits::One;
 
 mod biginteger;
-use biginteger::*;
+use biginteger::{add_with_carry_impl, sub_with_borrow_impl, subtract_modulus_impl};
 
 mod add;
-use add::*;
+use add::add_assign_impl;
 mod double;
-use double::*;
+use double::double_in_place_impl;
 mod mul;
-use mul::*;
+use mul::mul_assign_impl;
 
 mod square;
-use square::*;
+use square::square_in_place_impl;
 
 mod sum_of_products;
-use sum_of_products::*;
+use sum_of_products::sum_of_products_impl;
 
 use crate::utils;
 

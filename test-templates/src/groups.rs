@@ -2,7 +2,7 @@
 #[doc(hidden)]
 macro_rules! __test_group {
     ($group: ty) => {
-        type ScalarField = <$group as Group>::ScalarField;
+        type ScalarField = <$group as PrimeGroup>::ScalarField;
         #[test]
         fn test_add_properties() {
             let mut rng = &mut ark_std::test_rng();
@@ -367,6 +367,27 @@ macro_rules! __test_group {
             assert_eq!(a, <Config as MontCurveConfig>::COEFF_A);
             assert_eq!(b, <Config as MontCurveConfig>::COEFF_B);
         }
+    };
+    ($group:ty; glv) => {
+        type Config = <$group as CurveGroup>::Config;
+
+        #[test]
+        fn test_scalar_decomposition()
+        {
+            $crate::glv::glv_scalar_decomposition::<Config>();
+        }
+
+
+        #[test]
+        fn test_endomorphism_eigenvalue() {
+            $crate::glv::glv_endomorphism_eigenvalue::<Config>();
+        }
+
+        #[test]
+        fn test_glv_mul() {
+            $crate::glv::glv_projective::<Config>();
+            $crate::glv::glv_affine::<Config>();
+        }
     }
 }
 
@@ -376,7 +397,7 @@ macro_rules! test_group {
         mod $mod_name {
             use super::*;
             use ark_ff::*;
-            use ark_ec::{Group, CurveGroup, ScalarMul, AffineRepr, CurveConfig, short_weierstrass::SWCurveConfig, twisted_edwards::TECurveConfig, scalar_mul::{*, wnaf::*}};
+            use ark_ec::{PrimeGroup, CurveGroup, ScalarMul, AffineRepr, CurveConfig, short_weierstrass::SWCurveConfig, twisted_edwards::TECurveConfig, scalar_mul::{*, wnaf::*}};
             use ark_serialize::*;
             use ark_std::{io::Cursor, rand::Rng, vec::Vec, test_rng, vec, Zero, One, UniformRand};
             const ITERATIONS: usize = 500;

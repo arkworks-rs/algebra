@@ -18,7 +18,10 @@ use ark_std::{
 mod montgomery_backend;
 pub use montgomery_backend::*;
 
-use crate::{BigInt, BigInteger, FftField, Field, LegendreSymbol, PrimeField, SqrtPrecomputation};
+use crate::{
+    AdditiveGroup, BigInt, BigInteger, FftField, Field, LegendreSymbol, PrimeField,
+    SqrtPrecomputation,
+};
 /// A trait that specifies the configuration of a prime field.
 /// Also specifies how to perform arithmetic on field elements.
 pub trait FpConfig<const N: usize>: Send + Sync + 'static + Sized {
@@ -186,12 +189,35 @@ impl<P: FpConfig<N>, const N: usize> One for Fp<P, N> {
     }
 }
 
+impl<P: FpConfig<N>, const N: usize> AdditiveGroup for Fp<P, N> {
+    type Scalar = Self;
+    const ZERO: Self = P::ZERO;
+
+    #[inline]
+    fn double(&self) -> Self {
+        let mut temp = *self;
+        temp.double_in_place();
+        temp
+    }
+
+    #[inline]
+    fn double_in_place(&mut self) -> &mut Self {
+        P::double_in_place(self);
+        self
+    }
+
+    #[inline]
+    fn neg_in_place(&mut self) -> &mut Self {
+        P::neg_in_place(self);
+        self
+    }
+}
+
 impl<P: FpConfig<N>, const N: usize> Field for Fp<P, N> {
     type BasePrimeField = Self;
     type BasePrimeFieldIter = iter::Once<Self::BasePrimeField>;
 
     const SQRT_PRECOMP: Option<SqrtPrecomputation<Self>> = P::SQRT_PRECOMP;
-    const ZERO: Self = P::ZERO;
     const ONE: Self = P::ONE;
 
     fn extension_degree() -> u64 {
@@ -211,25 +237,6 @@ impl<P: FpConfig<N>, const N: usize> Field for Fp<P, N> {
             return None;
         }
         Some(elems[0])
-    }
-
-    #[inline]
-    fn double(&self) -> Self {
-        let mut temp = *self;
-        temp.double_in_place();
-        temp
-    }
-
-    #[inline]
-    fn double_in_place(&mut self) -> &mut Self {
-        P::double_in_place(self);
-        self
-    }
-
-    #[inline]
-    fn neg_in_place(&mut self) -> &mut Self {
-        P::neg_in_place(self);
-        self
     }
 
     #[inline]

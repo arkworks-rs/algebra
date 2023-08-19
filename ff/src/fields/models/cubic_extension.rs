@@ -21,7 +21,7 @@ use ark_std::rand::{
 
 use crate::{
     fields::{Field, PrimeField},
-    LegendreSymbol, SqrtPrecomputation, ToConstraintField, UniformRand,
+    AdditiveGroup, LegendreSymbol, SqrtPrecomputation, ToConstraintField, UniformRand,
 };
 
 /// Defines a Cubic extension field from a cubic non-residue.
@@ -164,14 +164,38 @@ impl<P: CubicExtConfig> One for CubicExtField<P> {
     }
 }
 
+impl<P: CubicExtConfig> AdditiveGroup for CubicExtField<P> {
+    type Scalar = Self;
+
+    const ZERO: Self = Self::new(P::BaseField::ZERO, P::BaseField::ZERO, P::BaseField::ZERO);
+
+    fn double(&self) -> Self {
+        let mut result = *self;
+        result.double_in_place();
+        result
+    }
+
+    fn double_in_place(&mut self) -> &mut Self {
+        self.c0.double_in_place();
+        self.c1.double_in_place();
+        self.c2.double_in_place();
+        self
+    }
+
+    fn neg_in_place(&mut self) -> &mut Self {
+        self.c0.neg_in_place();
+        self.c1.neg_in_place();
+        self.c2.neg_in_place();
+        self
+    }
+}
+
 type BaseFieldIter<P> = <<P as CubicExtConfig>::BaseField as Field>::BasePrimeFieldIter;
 impl<P: CubicExtConfig> Field for CubicExtField<P> {
     type BasePrimeField = P::BasePrimeField;
     type BasePrimeFieldIter = Chain<BaseFieldIter<P>, Chain<BaseFieldIter<P>, BaseFieldIter<P>>>;
 
     const SQRT_PRECOMP: Option<SqrtPrecomputation<Self>> = P::SQRT_PRECOMP;
-
-    const ZERO: Self = Self::new(P::BaseField::ZERO, P::BaseField::ZERO, P::BaseField::ZERO);
 
     const ONE: Self = Self::new(P::BaseField::ONE, P::BaseField::ZERO, P::BaseField::ZERO);
 
@@ -203,26 +227,6 @@ impl<P: CubicExtConfig> Field for CubicExtField<P> {
                 .unwrap(),
             P::BaseField::from_base_prime_field_elems(&elems[2 * base_ext_deg..]).unwrap(),
         ))
-    }
-
-    fn double(&self) -> Self {
-        let mut result = *self;
-        result.double_in_place();
-        result
-    }
-
-    fn double_in_place(&mut self) -> &mut Self {
-        self.c0.double_in_place();
-        self.c1.double_in_place();
-        self.c2.double_in_place();
-        self
-    }
-
-    fn neg_in_place(&mut self) -> &mut Self {
-        self.c0.neg_in_place();
-        self.c1.neg_in_place();
-        self.c2.neg_in_place();
-        self
     }
 
     #[inline]

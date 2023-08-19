@@ -15,7 +15,7 @@ use ark_std::{
     One, Zero,
 };
 
-use ark_ff::{fields::Field, PrimeField, ToConstraintField, UniformRand};
+use ark_ff::{fields::Field, AdditiveGroup, PrimeField, ToConstraintField, UniformRand};
 
 use zeroize::Zeroize;
 
@@ -25,7 +25,7 @@ use rayon::prelude::*;
 use super::{Affine, SWCurveConfig};
 use crate::{
     scalar_mul::{variable_base::VariableBaseMSM, ScalarMul},
-    AffineRepr, CurveGroup, Group,
+    AffineRepr, CurveGroup, PrimeGroup,
 };
 
 /// Jacobian coordinates for a point on an elliptic curve in short Weierstrass
@@ -160,13 +160,11 @@ impl<P: SWCurveConfig> Zero for Projective<P> {
     }
 }
 
-impl<P: SWCurveConfig> Group for Projective<P> {
-    type ScalarField = P::ScalarField;
+impl<P: SWCurveConfig> AdditiveGroup for Projective<P> {
+    type Scalar = P::ScalarField;
 
-    #[inline]
-    fn generator() -> Self {
-        Affine::generator().into()
-    }
+    const ZERO: Self =
+        Self::new_unchecked(P::BaseField::ONE, P::BaseField::ONE, P::BaseField::ZERO);
 
     /// Sets `self = 2 * self`. Note that Jacobian formulae are incomplete, and
     /// so doubling cannot be computed as `self + self`. Instead, this
@@ -272,6 +270,15 @@ impl<P: SWCurveConfig> Group for Projective<P> {
 
             self
         }
+    }
+}
+
+impl<P: SWCurveConfig> PrimeGroup for Projective<P> {
+    type ScalarField = P::ScalarField;
+
+    #[inline]
+    fn generator() -> Self {
+        Affine::generator().into()
     }
 
     #[inline]

@@ -1,4 +1,7 @@
-use crate::{hashing::*, AffineRepr, CurveGroup};
+use crate::{
+    hashing::{HashToCurve, HashToCurveError},
+    AffineRepr, CurveGroup,
+};
 use ark_ff::field_hashers::HashToField;
 use ark_std::marker::PhantomData;
 

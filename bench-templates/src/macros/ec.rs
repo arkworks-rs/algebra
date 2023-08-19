@@ -3,10 +3,10 @@ macro_rules! ec_bench {
     ($curve_name:expr, $Group:ident) => {
         $crate::paste! {
             mod [<$Group:lower>] {
-                use ark_ec::Group;
+                use ark_ec::PrimeGroup;
                 use super::*;
 
-                type Scalar = <$Group as Group>::ScalarField;
+                type Scalar = <$Group as PrimeGroup>::ScalarField;
                 fn rand(c: &mut $crate::criterion::Criterion) {
                     let name = format!("{}::{}", $curve_name, stringify!($Group));
                     use ark_std::UniformRand;
@@ -18,11 +18,12 @@ macro_rules! ec_bench {
                 }
 
                 fn arithmetic(c: &mut $crate::criterion::Criterion) {
-                    use ark_ec::{CurveGroup, Group};
+                    use ark_ff::AdditiveGroup;
+                    use ark_ec::{CurveGroup, PrimeGroup};
                     use ark_std::UniformRand;
                     let name = format!("{}::{}", $curve_name, stringify!($Group));
 
-                    type Scalar = <$Group as Group>::ScalarField;
+                    type Scalar = <$Group as PrimeGroup>::ScalarField;
                     const SAMPLES: usize = 1000;
                     let mut rng = ark_std::test_rng();
                     let mut arithmetic =
