@@ -4,7 +4,7 @@ macro_rules! test_pairing {
         mod $mod_name {
             pub const ITERATIONS: usize = 100;
             use ark_ec::{pairing::*, CurveGroup, PrimeGroup};
-            use ark_ff::{CyclotomicMulSubgroup, Field, PrimeField};
+            use ark_ff::{CyclotomicMultSubgroup, Field, PrimeField};
             use ark_std::{test_rng, One, UniformRand, Zero};
             #[test]
             fn test_bilinearity() {
