@@ -4,7 +4,7 @@ macro_rules! test_pairing {
         mod $mod_name {
             pub const ITERATIONS: usize = 100;
             use ark_ec::{pairing::*, CurveGroup, PrimeGroup};
-            use ark_ff::{Field, PrimeField};
+            use ark_ff::{CyclotomicMultSubgroup, Field, PrimeField};
             use ark_std::{test_rng, One, UniformRand, Zero};
             #[test]
             fn test_bilinearity() {
@@ -47,6 +47,19 @@ macro_rules! test_pairing {
                     let ans1 = <$Pairing>::pairing(a, b) + &<$Pairing>::pairing(c, d);
                     let ans2 = <$Pairing>::multi_pairing(&[a, c], &[b, d]);
                     assert_eq!(ans1, ans2);
+                }
+            }
+
+            #[test]
+            fn test_final_exp() {
+                for _ in 0..ITERATIONS {
+                    let rng = &mut test_rng();
+                    let fp_ext = <$Pairing as Pairing>::TargetField::rand(rng);
+                    let gt = <$Pairing>::final_exponentiation(MillerLoopOutput(fp_ext))
+                        .unwrap()
+                        .0;
+                    let r = <$Pairing as Pairing>::ScalarField::MODULUS;
+                    assert!(gt.cyclotomic_exp(r).is_one());
                 }
             }
         }
