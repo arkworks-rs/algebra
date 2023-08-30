@@ -1,6 +1,6 @@
 use ark_ec::{
     models::CurveConfig,
-    short_weierstrass::{self, *},
+    short_weierstrass::{self, Affine, Projective},
 };
 use ark_ff::Zero;
 

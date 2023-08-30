@@ -1,5 +1,5 @@
 use ark_ff::{AdditiveGroup, BitIteratorBE, Field, Fp2};
-use ark_serialize::*;
+use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use ark_std::{vec::Vec, One};
 
 use crate::{

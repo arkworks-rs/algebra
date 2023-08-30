@@ -1,4 +1,4 @@
-use crate::bls12_381::*;
+use crate::bls12_381::{g2, Fq, Fq2, Fr};
 use ark_ec::models::{
     short_weierstrass::{Affine, SWCurveConfig},
     CurveConfig,
@@ -137,6 +137,8 @@ pub const ISOGENY_MAP_TO_G2  : IsogenyMap<'_, SwuIsoConfig, g2::Config> = Isogen
 
 #[cfg(test)]
 mod test {
+    use crate::bls12_381::g2_swu_iso;
+
     use super::*;
 
     #[test]
