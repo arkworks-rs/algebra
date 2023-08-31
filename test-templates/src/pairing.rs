@@ -55,7 +55,7 @@ macro_rules! test_pairing {
                 for _ in 0..ITERATIONS {
                     let rng = &mut test_rng();
                     let fp_ext = <$Pairing as Pairing>::TargetField::rand(rng);
-                    let gt = <$Pairing>::final_exponentiation(MillerLoopOutput(fp_ext))
+                    let gt = <$Pairing as Pairing>::final_exponentiation(MillerLoopOutput(fp_ext))
                         .unwrap()
                         .0;
                     let r = <$Pairing as Pairing>::ScalarField::MODULUS;
