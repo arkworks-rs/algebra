@@ -16,7 +16,7 @@ rust-version = "1.63"
 ################################# Dependencies ################################
 
 [dependencies]
-criterion = { version = "0.4.0", features = [ "html_reports" ] }
+criterion = { version = "0.5.1", features = [ "html_reports" ] }
 ark-std = { version = "0.4.0", default-features = false }
 ark-ec = { version = "0.4.2", path = "../ec", default-features = false }
 ark-ff = { version = "0.4.2", path = "../ff", default-features = false }
