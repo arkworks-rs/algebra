@@ -15,7 +15,7 @@ use ark_std::{
 use num_traits::{One, Zero};
 use zeroize::Zeroize;
 
-use ark_ff::{fields::Field, PrimeField, ToConstraintField, UniformRand};
+use ark_ff::{fields::Field, AdditiveGroup, PrimeField, ToConstraintField, UniformRand};
 
 use super::{Projective, TECurveConfig, TEFlags};
 use crate::AffineRepr;
@@ -166,8 +166,8 @@ impl<P: TECurveConfig> AffineRepr for Affine<P> {
     type ScalarField = P::ScalarField;
     type Group = Projective<P>;
 
-    fn xy(&self) -> Option<(&Self::BaseField, &Self::BaseField)> {
-        (!self.is_zero()).then(|| (&self.x, &self.y))
+    fn xy(&self) -> Option<(Self::BaseField, Self::BaseField)> {
+        (!self.is_zero()).then(|| (self.x, self.y))
     }
 
     fn generator() -> Self {

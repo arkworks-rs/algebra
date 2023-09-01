@@ -9,7 +9,10 @@ use ark_std::{
 };
 use num_bigint::BigUint;
 
-use crate::*;
+use crate::{
+    CanonicalDeserialize, CanonicalSerialize, Compress, SerializationError, ToOwned, Valid,
+    Validate,
+};
 
 impl Valid for bool {
     fn check(&self) -> Result<(), SerializationError> {
@@ -507,8 +510,10 @@ impl<T: CanonicalDeserialize> CanonicalDeserialize for Vec<T> {
         compress: Compress,
         validate: Validate,
     ) -> Result<Self, SerializationError> {
-        let len = u64::deserialize_with_mode(&mut reader, compress, validate)?;
-        let mut values = Vec::new();
+        let len = u64::deserialize_with_mode(&mut reader, compress, validate)?
+            .try_into()
+            .map_err(|_| SerializationError::NotEnoughSpace)?;
+        let mut values = Vec::with_capacity(len);
         for _ in 0..len {
             values.push(T::deserialize_with_mode(
                 &mut reader,

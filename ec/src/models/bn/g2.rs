@@ -1,5 +1,8 @@
-use ark_ff::fields::{Field, Fp2};
-use ark_serialize::*;
+use ark_ff::{
+    fields::{Field, Fp2},
+    AdditiveGroup,
+};
+use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use ark_std::vec::Vec;
 use num_traits::One;
 
@@ -21,8 +24,8 @@ pub type G2Projective<P> = Projective<<P as BnConfig>::G2Config>;
     Eq(bound = "P: BnConfig")
 )]
 pub struct G2Prepared<P: BnConfig> {
-    // Stores the coefficients of the line evaluations as calculated in
-    // https://eprint.iacr.org/2013/722.pdf
+    /// Stores the coefficients of the line evaluations as calculated in
+    /// <https://eprint.iacr.org/2013/722.pdf>
     pub ell_coeffs: Vec<EllCoeff<P>>,
     pub infinity: bool,
 }

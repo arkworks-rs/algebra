@@ -4,7 +4,7 @@ use crate::{
     AffineRepr, CurveGroup,
 };
 use ark_ff::Fp3;
-use ark_serialize::*;
+use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use ark_std::vec::Vec;
 
 pub type G1Affine<P> = Affine<<P as MNT6Config>::G1Config>;

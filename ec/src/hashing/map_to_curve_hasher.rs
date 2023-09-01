@@ -1,4 +1,7 @@
-use crate::{hashing::*, AffineRepr, CurveGroup};
+use crate::{
+    hashing::{HashToCurve, HashToCurveError},
+    AffineRepr, CurveGroup,
+};
 use ark_ff::field_hashers::HashToField;
 use ark_std::marker::PhantomData;
 
@@ -42,10 +45,10 @@ where
         })
     }
 
-    // Produce a hash of the message, using the hash to field and map to curve
-    // traits. This uses the IETF hash to curve's specification for Random
-    // oracle encoding (hash_to_curve) defined by combining these components.
-    // See https://tools.ietf.org/html/draft-irtf-cfrg-hash-to-curve-09#section-3
+    /// Produce a hash of the message, using the hash to field and map to curve
+    /// traits. This uses the IETF hash to curve's specification for Random
+    /// oracle encoding (hash_to_curve) defined by combining these components.
+    /// See <https://tools.ietf.org/html/draft-irtf-cfrg-hash-to-curve-09#section-3>
     fn hash(&self, msg: &[u8]) -> Result<T::Affine, HashToCurveError> {
         // IETF spec of hash_to_curve, from hash_to_field and map_to_curve
         // sub-components

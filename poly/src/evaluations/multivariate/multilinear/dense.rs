@@ -86,6 +86,24 @@ impl<F: Field> MultilinearExtension<F> for DenseMultilinearExtension<F> {
         self.num_vars
     }
 
+    /// Evaluate the dense MLE at the given point
+    /// # Example
+    /// ```
+    /// use ark_test_curves::bls12_381::Fr;
+    /// # use ark_poly::{MultilinearExtension, DenseMultilinearExtension};
+    /// # use ark_ff::One;
+    ///
+    /// // The two-variate polynomial x_0 + 3 * x_0 * x_1 + 2 evaluates to [2, 3, 2, 6]
+    /// // in the two-dimensional hypercube with points [00, 10, 01, 11]
+    /// let mle = DenseMultilinearExtension::from_evaluations_vec(
+    ///     2, vec![2, 3, 3, 6].iter().map(|x| Fr::from(*x as u64)).collect()
+    /// );
+    ///
+    /// // By the uniqueness of MLEs, `mle` is precisely the above polynomial, which
+    /// // takes the value 54 at the point (1, 17)
+    /// let eval = mle.evaluate(&[Fr::one(), Fr::from(17)]).unwrap();
+    /// assert_eq!(eval, Fr::from(54));
+    /// ```
     fn evaluate(&self, point: &[F]) -> Option<F> {
         if point.len() == self.num_vars {
             Some(self.fix_variables(point)[0])
@@ -107,6 +125,29 @@ impl<F: Field> MultilinearExtension<F> for DenseMultilinearExtension<F> {
         copied
     }
 
+    /// Return the MLE resulting from binding the first variables of self
+    /// to the values in `partial_point` (from left to right).
+    ///
+    /// Note: this method can be used in combination with `relabel` or
+    /// `relabel_in_place` to bind variables at arbitrary positions.
+    ///
+    /// ```
+    /// use ark_test_curves::bls12_381::Fr;
+    /// # use ark_poly::{MultilinearExtension, DenseMultilinearExtension};
+    ///
+    /// // Constructing the two-variate multilinear polynomial x_0 + 2 * x_1 + 3 * x_0 * x_1
+    /// // by specifying its evaluations at [00, 10, 01, 11]
+    /// let mle = DenseMultilinearExtension::from_evaluations_vec(
+    ///     2, vec![0, 1, 2, 6].iter().map(|x| Fr::from(*x as u64)).collect()
+    /// );
+    ///
+    /// // Bind the first variable of the MLE to the value 5, resulting in
+    /// // the new polynomial 5 + 17 * x_1
+    /// let bound = mle.fix_variables(&[Fr::from(5)]);
+    ///
+    /// assert_eq!(bound.to_evaluations(), vec![Fr::from(5), Fr::from(22)]);
+    /// ```
+    /// }
     fn fix_variables(&self, partial_point: &[F]) -> Self {
         assert!(
             partial_point.len() <= self.num_vars,

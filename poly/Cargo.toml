@@ -1,6 +1,6 @@
 [package]
 name = "ark-poly"
-version = "0.4.0"
+version = "0.4.2"
 authors = [ "arkworks contributors" ]
 description = "A library for efficient polynomial arithmetic via FFTs over finite fields"
 homepage = "https://arkworks.rs"
@@ -9,17 +9,17 @@ documentation = "https://docs.rs/ark-poly/"
 keywords = ["cryptography", "finite-fields", "fft", "polynomials"]
 categories = ["cryptography"]
 include = ["Cargo.toml", "src", "README.md", "LICENSE-APACHE", "LICENSE-MIT"]
-license = "MIT/Apache-2.0"
+license = "MIT OR Apache-2.0"
 edition = "2021"
 rust-version = "1.63"
 
 [dependencies]
-ark-ff = { version = "0.4.0", path = "../ff", default-features = false }
-ark-serialize = { version = "0.4.0", path = "../serialize", default-features = false, features = ["derive"] }
+ark-ff = { version = "0.4.2", path = "../ff", default-features = false }
+ark-serialize = { version = "0.4.2", path = "../serialize", default-features = false, features = ["derive"] }
 ark-std = { version = "0.4.0", default-features = false }
 rayon = { version = "1", optional = true }
 derivative = { version = "2", default-features = false, features = [ "use_core" ] }
-hashbrown = { version = "0.13.1"}
+hashbrown = { version = "0.14.0"}
 
 [dev-dependencies]
 ark-test-curves = { path = "../test-curves", default-features = false, features = [ "bls12_381_curve", "bn384_small_two_adicity_curve", "mnt4_753_curve"] }
