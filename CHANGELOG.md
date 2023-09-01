@@ -6,6 +6,7 @@
 
 - [\#577](https://github.com/arkworks-rs/algebra/pull/577) (`ark-ff`, `ark-ec`) Add `AdditiveGroup`, a trait for additive groups (equipped with scalar field).
 - [\#593](https://github.com/arkworks-rs/algebra/pull/593) (`ark-ec`) Change `AffineRepr::xy()` to return owned values.
+- [\#633](https://github.com/arkworks-rs/algebra/pull/633) (`ark-ec`) Generic pairing implementation for the curves from the BW6 family.
 
 ### Features
 

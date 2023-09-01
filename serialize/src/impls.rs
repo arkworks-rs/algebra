@@ -9,7 +9,10 @@ use ark_std::{
 };
 use num_bigint::BigUint;
 
-use crate::*;
+use crate::{
+    CanonicalDeserialize, CanonicalSerialize, Compress, SerializationError, ToOwned, Valid,
+    Validate,
+};
 
 impl Valid for bool {
     fn check(&self) -> Result<(), SerializationError> {

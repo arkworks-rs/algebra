@@ -26,11 +26,17 @@ pub enum TwistType {
 pub trait BW6Config: 'static + Eq + Sized {
     const X: <Self::Fp as PrimeField>::BigInt;
     const X_IS_NEGATIVE: bool;
+    // [X-1]/3 for X>0, and [(-X)+1]/3 otherwise
+    const X_MINUS_1_DIV_3: <Self::Fp as PrimeField>::BigInt;
     const ATE_LOOP_COUNT_1: &'static [u64];
     const ATE_LOOP_COUNT_1_IS_NEGATIVE: bool;
     const ATE_LOOP_COUNT_2: &'static [i8];
     const ATE_LOOP_COUNT_2_IS_NEGATIVE: bool;
     const TWIST_TYPE: TwistType;
+    const H_T: i64;
+    const H_Y: i64;
+    const T_MOD_R_IS_ZERO: bool;
+
     type Fp: PrimeField + Into<<Self::Fp as PrimeField>::BigInt>;
     type Fp3Config: Fp3Config<Fp = Self::Fp>;
     type Fp6Config: Fp6Config<Fp3Config = Self::Fp3Config>;
@@ -40,22 +46,40 @@ pub trait BW6Config: 'static + Eq + Sized {
         ScalarField = <Self::G1Config as CurveConfig>::ScalarField,
     >;
 
+    // Computes the exponent of an element of the cyclotomic subgroup,
+    // and inverses the result if necessary.
+    fn cyclotomic_exp_signed(
+        f: &Fp6<Self::Fp6Config>,
+        x: impl AsRef<[u64]>,
+        invert: bool,
+    ) -> Fp6<Self::Fp6Config> {
+        let mut f = f.cyclotomic_exp(x);
+        if invert {
+            f.cyclotomic_inverse_in_place();
+        }
+        f
+    }
+
+    // Computes the exponent of an element of the cyclotomic subgroup by the curve seed
+    fn exp_by_x(f: &Fp6<Self::Fp6Config>) -> Fp6<Self::Fp6Config> {
+        Self::cyclotomic_exp_signed(f, &Self::X, Self::X_IS_NEGATIVE)
+    }
+
+    fn final_exponentiation_hard_part(f: &Fp6<Self::Fp6Config>) -> Fp6<Self::Fp6Config> {
+        BW6::<Self>::final_exponentiation_hard_part(f)
+    }
+
     fn final_exponentiation(f: MillerLoopOutput<BW6<Self>>) -> Option<PairingOutput<BW6<Self>>> {
-        let value = f.0;
-        let value_inv = value.inverse().unwrap();
-        let value_to_first_chunk =
-            BW6::<Self>::final_exponentiation_first_chunk(&value, &value_inv);
-        Some(BW6::<Self>::final_exponentiation_last_chunk(
-            &value_to_first_chunk,
-        ))
-        .map(PairingOutput)
+        let easy_part = BW6::<Self>::final_exponentiation_easy_part(f.0);
+        Some(Self::final_exponentiation_hard_part(&easy_part)).map(PairingOutput)
     }
 
     fn multi_miller_loop(
         a: impl IntoIterator<Item = impl Into<G1Prepared<Self>>>,
         b: impl IntoIterator<Item = impl Into<G2Prepared<Self>>>,
     ) -> MillerLoopOutput<BW6<Self>> {
-        // Alg.5 in https://eprint.iacr.org/2020/351.pdf
+        // Implements unoptimized version of the Miller loop for the optimal ate pairing.
+        // See formulas (4.15) and (4.17) from https://yelhousni.github.io/phd.pdf
 
         let (mut pairs_1, mut pairs_2) = a
             .into_iter()
@@ -120,7 +144,11 @@ pub trait BW6Config: 'static + Eq + Sized {
             f_2.cyclotomic_inverse_in_place();
         }
 
-        f_2.frobenius_map_in_place(1);
+        if Self::T_MOD_R_IS_ZERO {
+            f_1.frobenius_map_in_place(1);
+        } else {
+            f_2.frobenius_map_in_place(1);
+        }
 
         MillerLoopOutput(f_1 * &f_2)
     }
@@ -159,139 +187,127 @@ impl<P: BW6Config> BW6<P> {
         }
     }
 
-    fn exp_by_x(mut f: Fp6<P::Fp6Config>) -> Fp6<P::Fp6Config> {
-        f = f.cyclotomic_exp(P::X);
-        if P::X_IS_NEGATIVE {
-            f.cyclotomic_inverse_in_place();
+    fn exp_by_x_plus_1(f: &Fp6<P::Fp6Config>) -> Fp6<P::Fp6Config> {
+        P::exp_by_x(f) * f
+    }
+
+    fn exp_by_x_minus_1(f: &Fp6<P::Fp6Config>) -> Fp6<P::Fp6Config> {
+        P::exp_by_x(f) * &f.cyclotomic_inverse().unwrap()
+    }
+
+    fn exp_by_x_minus_1_div_3(f: &Fp6<P::Fp6Config>) -> Fp6<P::Fp6Config> {
+        P::cyclotomic_exp_signed(f, &P::X_MINUS_1_DIV_3, P::X_IS_NEGATIVE)
+    }
+
+    // f^[(p^3-1)(p+1)]
+    fn final_exponentiation_easy_part(f: Fp6<P::Fp6Config>) -> Fp6<P::Fp6Config> {
+        // f^(-1)
+        let f_inv = f.inverse().unwrap();
+        // f^(p^3)
+        let f_p3 = {
+            let mut f = f;
+            f.conjugate_in_place();
+            f
+        };
+        // g := f^(p^3-1) = f^(p^3) * f^(-1)
+        let g = f_p3 * f_inv;
+        // g^p
+        let g_p = {
+            let mut g = g;
+            g.frobenius_map_in_place(1);
+            g
+        };
+        // g^(p+1) = g^p * g
+        g_p * &g
+    }
+
+    fn final_exponentiation_hard_part(f: &Fp6<P::Fp6Config>) -> Fp6<P::Fp6Config> {
+        // Generic implementation of the hard part of the final exponentiation for the BW6 family.
+        // Computes (u+1)*Phi_k(p(u))/r(u)
+        if P::T_MOD_R_IS_ZERO {
+            // Algorithm 4.3 from https://yelhousni.github.io/phd.pdf
+            // Follows the implementation https://gitlab.inria.fr/zk-curves/snark-2-chains/-/blob/master/sage/pairing_bw6_bls12.py#L1036
+
+            // A = m**(u-1)
+            let a = Self::exp_by_x_minus_1(f);
+            // A = A**(u-1)
+            let a = Self::exp_by_x_minus_1(&a);
+            // A = (m * A).conjugate() * m.frobenius()
+            let a = (f * &a).cyclotomic_inverse().unwrap() * f.frobenius_map(1);
+            // B = A**(u+1) * m
+            let b = Self::exp_by_x_plus_1(&a) * f;
+            // A = A**2 * A
+            let a = a.square() * &a;
+            // A = A.conjugate()
+            let a = a.cyclotomic_inverse().unwrap();
+            // C = B**((u-1)//3)
+            let c = Self::exp_by_x_minus_1_div_3(&b);
+            // D = C**(u-1)
+            let d = Self::exp_by_x_minus_1(&c);
+            // E = (D**(u-1))**(u-1) * D
+            let e = Self::exp_by_x_minus_1(&Self::exp_by_x_minus_1(&d)) * &d;
+            // F = (E**(u+1) * C).conjugate() * D
+            let f = (Self::exp_by_x_plus_1(&e) * &c)
+                .cyclotomic_inverse()
+                .unwrap()
+                * &d;
+            // G = ((F * D)**(u+1)).conjugate() * C * B
+            let g = Self::exp_by_x_plus_1(&(f * &d))
+                .cyclotomic_inverse()
+                .unwrap()
+                * &c
+                * &b;
+            // d2 = (ht**2+3*hy**2)//4
+            let d2 = ((P::H_T * P::H_T + 3 * P::H_Y * P::H_Y) / 4) as u64;
+            // d1 = (ht-hy)//2
+            let d1 = (P::H_T - P::H_Y) / 2;
+            // H = F**d1 * E
+            let h = P::cyclotomic_exp_signed(&f, &[d1 as u64], d1 < 0) * &e;
+            // H = H**2 * H * B * G**d2
+            let h = h.square() * &h * &b * g.cyclotomic_exp(&[d2]);
+            // return A * H
+            a * &h
+        } else {
+            // Algorithm 4.4 from https://yelhousni.github.io/phd.pdf
+            // Follows the implementation https://gitlab.inria.fr/zk-curves/snark-2-chains/-/blob/master/sage/pairing_bw6_bls12.py#L969
+
+            // A = m**(u-1)
+            let a = Self::exp_by_x_minus_1(f);
+            // A = A**(u-1)
+            let a = Self::exp_by_x_minus_1(&a);
+            // A = A * m.frobenius()
+            let a = a * f.frobenius_map(1);
+            // B = A**(u+1) * m.conjugate()
+            let b = Self::exp_by_x_plus_1(&a) * f.cyclotomic_inverse().unwrap();
+            // A = A**2 * A
+            let a = a.square() * &a;
+            // C = B**((u-1)//3)
+            let c = Self::exp_by_x_minus_1_div_3(&b);
+            // D = C**(u-1)
+            let d = Self::exp_by_x_minus_1(&c);
+            // E = (D**(u-1))**(u-1) * D
+            let e = Self::exp_by_x_minus_1(&Self::exp_by_x_minus_1(&d)) * &d;
+            // D = D.conjugate()
+            let d = d.cyclotomic_inverse().unwrap();
+            // Fc = D * B
+            let fc = d * &b;
+            // G = E**(u+1) * Fc
+            let g = Self::exp_by_x_plus_1(&e) * &fc;
+            // H = G * C
+            let h = g * &c;
+            // I = (G * D)**(u+1) * Fc.conjugate()
+            let i = Self::exp_by_x_plus_1(&(g * &d)) * fc.cyclotomic_inverse().unwrap();
+            // d2 = (ht**2+3*hy**2)//4
+            let d2 = ((P::H_T * P::H_T + 3 * P::H_Y * P::H_Y) / 4) as u64;
+            // d1 = (ht+hy)//2
+            let d1 = (P::H_T + P::H_Y) / 2;
+            // J = H**d1 * E
+            let j = P::cyclotomic_exp_signed(&h, &[d1 as u64], d1 < 0) * &e;
+            // K = J**2 * J * B * I**d2
+            let k = j.square() * &j * &b * i.cyclotomic_exp(&[d2]);
+            // return A * K
+            a * &k
         }
-        f
-    }
-
-    fn final_exponentiation_first_chunk(
-        elt: &Fp6<P::Fp6Config>,
-        elt_inv: &Fp6<P::Fp6Config>,
-    ) -> Fp6<P::Fp6Config> {
-        // (q^3-1)*(q+1)
-
-        // elt_q3 = elt^(q^3)
-        let mut elt_q3 = *elt;
-        elt_q3.cyclotomic_inverse_in_place();
-        // elt_q3_over_elt = elt^(q^3-1)
-        let elt_q3_over_elt = elt_q3 * elt_inv;
-        // alpha = elt^((q^3-1) * q)
-        let mut alpha = elt_q3_over_elt;
-        alpha.frobenius_map_in_place(1);
-        // beta = elt^((q^3-1)*(q+1)
-        alpha * &elt_q3_over_elt
-    }
-
-    #[allow(clippy::let_and_return)]
-    fn final_exponentiation_last_chunk(f: &Fp6<P::Fp6Config>) -> Fp6<P::Fp6Config> {
-        // hard_part
-        // From https://eprint.iacr.org/2020/351.pdf, Alg.6
-
-        #[rustfmt::skip]
-        // R0(x) := (-103*x^7 + 70*x^6 + 269*x^5 - 197*x^4 - 314*x^3 - 73*x^2 - 263*x - 220)
-        // R1(x) := (103*x^9 - 276*x^8 + 77*x^7 + 492*x^6 - 445*x^5 - 65*x^4 + 452*x^3 - 181*x^2 + 34*x + 229)
-        // f ^ R0(u) * (f ^ q) ^ R1(u) in a 2-NAF multi-exp fashion.
-
-        // steps 1,2,3
-        let f0 = *f;
-        let mut f0p = f0;
-        f0p.frobenius_map_in_place(1);
-        let f1 = Self::exp_by_x(f0);
-        let mut f1p = f1;
-        f1p.frobenius_map_in_place(1);
-        let f2 = Self::exp_by_x(f1);
-        let mut f2p = f2;
-        f2p.frobenius_map_in_place(1);
-        let f3 = Self::exp_by_x(f2);
-        let mut f3p = f3;
-        f3p.frobenius_map_in_place(1);
-        let f4 = Self::exp_by_x(f3);
-        let mut f4p = f4;
-        f4p.frobenius_map_in_place(1);
-        let f5 = Self::exp_by_x(f4);
-        let mut f5p = f5;
-        f5p.frobenius_map_in_place(1);
-        let f6 = Self::exp_by_x(f5);
-        let mut f6p = f6;
-        f6p.frobenius_map_in_place(1);
-        let f7 = Self::exp_by_x(f6);
-        let mut f7p = f7;
-        f7p.frobenius_map_in_place(1);
-
-        // step 4
-        let f8p = Self::exp_by_x(f7p);
-        let f9p = Self::exp_by_x(f8p);
-
-        // step 5
-        let mut f5p_p3 = f5p;
-        f5p_p3.cyclotomic_inverse_in_place();
-        let result1 = f3p * &f6p * &f5p_p3;
-
-        // step 6
-        let result2 = result1.square();
-        let f4_2p = f4 * &f2p;
-        let mut tmp1_p3 = f0 * &f1 * &f3 * &f4_2p * &f8p;
-        tmp1_p3.cyclotomic_inverse_in_place();
-        let result3 = result2 * &f5 * &f0p * &tmp1_p3;
-
-        // step 7
-        let result4 = result3.square();
-        let mut f7_p3 = f7;
-        f7_p3.cyclotomic_inverse_in_place();
-        let result5 = result4 * &f9p * &f7_p3;
-
-        // step 8
-        let result6 = result5.square();
-        let f2_4p = f2 * &f4p;
-        let f4_2p_5p = f4_2p * &f5p;
-        let mut tmp2_p3 = f2_4p * &f3 * &f3p;
-        tmp2_p3.cyclotomic_inverse_in_place();
-        let result7 = result6 * &f4_2p_5p * &f6 * &f7p * &tmp2_p3;
-
-        // step 9
-        let result8 = result7.square();
-        let mut tmp3_p3 = f0p * &f9p;
-        tmp3_p3.cyclotomic_inverse_in_place();
-        let result9 = result8 * &f0 * &f7 * &f1p * &tmp3_p3;
-
-        // step 10
-        let result10 = result9.square();
-        let f6p_8p = f6p * &f8p;
-        let f5_7p = f5 * &f7p;
-        let mut tmp4_p3 = f6p_8p;
-        tmp4_p3.cyclotomic_inverse_in_place();
-        let result11 = result10 * &f5_7p * &f2p * &tmp4_p3;
-
-        // step 11
-        let result12 = result11.square();
-        let f3_6 = f3 * &f6;
-        let f1_7 = f1 * &f7;
-        let mut tmp5_p3 = f1_7 * &f2;
-        tmp5_p3.cyclotomic_inverse_in_place();
-        let result13 = result12 * &f3_6 * &f9p * &tmp5_p3;
-
-        // step 12
-        let result14 = result13.square();
-        let mut tmp6_p3 = f4_2p * &f5_7p * &f6p_8p;
-        tmp6_p3.cyclotomic_inverse_in_place();
-        let result15 = result14 * &f0 * &f0p * &f3p * &f5p * &tmp6_p3;
-
-        // step 13
-        let result16 = result15.square();
-        let mut tmp7_p3 = f3_6;
-        tmp7_p3.cyclotomic_inverse_in_place();
-        let result17 = result16 * &f1p * &tmp7_p3;
-
-        // step 14
-        let result18 = result17.square();
-        let mut tmp8_p3 = f2_4p * &f4_2p_5p * &f9p;
-        tmp8_p3.cyclotomic_inverse_in_place();
-        let result19 = result18 * &f1_7 * &f5_7p * &f0p * &tmp8_p3;
-
-        result19
     }
 }
 

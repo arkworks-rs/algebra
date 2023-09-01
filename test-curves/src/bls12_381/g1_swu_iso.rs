@@ -1,4 +1,4 @@
-use crate::bls12_381::*;
+use crate::bls12_381::{g1, Fq, Fr};
 use ark_ec::{
     hashing::curve_maps::{swu::SWUConfig, wb::IsogenyMap},
     models::{
