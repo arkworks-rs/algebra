@@ -75,17 +75,24 @@ macro_rules! pairing_bench {
                 );
 
                 const NUM_PAIRS: usize = 10;
-                
+
                 for pairs in 1..=NUM_PAIRS {
-                    pairing.bench_function(&format!("Multi Pairing for {} with {} pairs", stringify!($curve), pairs), |b| {
-                        b.iter(|| {
-                            i = (i + 1) % (SAMPLES - NUM_PAIRS);
-                            <$curve as Pairing>::multi_pairing(
-                                g1s[(i)..(i + pairs)].to_vec(),
-                                g2s[(i)..(i + pairs)].to_vec(),
-                            )
-                        })
-                    });
+                    pairing.bench_function(
+                        &format!(
+                            "Multi Pairing for {} with {} pairs",
+                            stringify!($curve),
+                            pairs
+                        ),
+                        |b| {
+                            b.iter(|| {
+                                i = (i + 1) % (SAMPLES - NUM_PAIRS);
+                                <$curve as Pairing>::multi_pairing(
+                                    g1s[(i)..(i + pairs)].to_vec(),
+                                    g2s[(i)..(i + pairs)].to_vec(),
+                                )
+                            })
+                        },
+                    );
                 }
             }
 
