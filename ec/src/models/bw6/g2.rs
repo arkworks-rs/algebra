@@ -46,6 +46,16 @@ impl<P: BW6Config> Default for G2Prepared<P> {
     }
 }
 
+// impl into G2Affine from G2HomProjective
+impl<P: BW6Config> From<G2HomProjective<P>> for G2Affine<P> {
+    fn from(q: G2HomProjective<P>) -> Self {
+        let z_inv = q.z.inverse().unwrap();
+        let x = q.x * &z_inv;
+        let y = q.y * &z_inv;
+        G2Affine::<P>::new_unchecked(x, y)
+    }
+}
+
 impl<P: BW6Config> From<G2Affine<P>> for G2Prepared<P> {
     fn from(q: G2Affine<P>) -> Self {
         if q.infinity {
@@ -56,7 +66,7 @@ impl<P: BW6Config> From<G2Affine<P>> for G2Prepared<P> {
             };
         }
 
-        // f_{u+1,Q}(P)
+        // f_{u,Q}(P)
         let mut ell_coeffs_1 = vec![];
         let mut r = G2HomProjective::<P> {
             x: q.x,
@@ -71,23 +81,34 @@ impl<P: BW6Config> From<G2Affine<P>> for G2Prepared<P> {
                 ell_coeffs_1.push(r.add_in_place(&q));
             }
         }
-
-        // f_{u^3-u^2-u,Q}(P)
-        let mut ell_coeffs_2 = vec![];
-        let mut r = G2HomProjective::<P> {
-            x: q.x,
-            y: q.y,
-            z: P::Fp::one(),
+        // TODO: this is probably the slowest part
+        // While G2 preparation is overall faster due to shortened 2nd loop,
+        // The inversion could probably be avoided by using Hom(P) + Hom(Q) addition,
+        // instead of mixed addition as is currently done.
+        let r_affine: G2Affine<P> = r.into();
+        // Swap the signs of `qu`, `r` & `neg_qu` if the loop count is negative.
+        let (qu, neg_qu) = if P::ATE_LOOP_COUNT_1_IS_NEGATIVE {
+            (-r_affine, r_affine)
+        } else {
+            (r_affine, -r_affine)
         };
 
-        let negq = -q;
+        r = G2HomProjective::<P> {
+            x: qu.x,
+            y: qu.y,
+            z: P::Fp::one(),
+        };
+        ell_coeffs_1.push(r.clone().add_in_place(&q));
 
+        let mut ell_coeffs_2 = vec![];
+
+        // f_{u^2-u-1,[u]Q}(P)
         for bit in P::ATE_LOOP_COUNT_2.iter().rev().skip(1) {
             ell_coeffs_2.push(r.double_in_place());
 
             match bit {
-                1 => ell_coeffs_2.push(r.add_in_place(&q)),
-                -1 => ell_coeffs_2.push(r.add_in_place(&negq)),
+                1 => ell_coeffs_2.push(r.add_in_place(&qu)),
+                -1 => ell_coeffs_2.push(r.add_in_place(&neg_qu)),
                 _ => continue,
             }
         }
