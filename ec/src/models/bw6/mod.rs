@@ -118,7 +118,6 @@ pub trait BW6Config: 'static + Eq + Sized {
 
         let f_u_inv;
 
-        // TODO: is it enough to get the inverse of f_1, or does f_u also need to get inverted?
         if Self::ATE_LOOP_COUNT_1_IS_NEGATIVE {
             f_u_inv = f_u;
             f_u.cyclotomic_inverse_in_place();
