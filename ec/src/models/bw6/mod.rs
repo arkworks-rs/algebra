@@ -129,8 +129,9 @@ pub trait BW6Config: 'static + Eq + Sized {
         // f_1(P) = f_(u+1)(P) = f_u(P) * l([u]q, q)(P)
         let mut f_1 = cfg_chunks_mut!(pairs_1, 4)
             .map(|pairs| {
-                pairs.iter_mut().fold(f_u, |mut f, (p, coeffs)|  {
+                pairs.iter_mut().fold(f_u, |mut f, (p, coeffs)| {
                     BW6::<Self>::ell(&mut f, &coeffs.next().unwrap(), &p.0);
+                    f
                 })
             })
             .product::<<BW6<Self> as Pairing>::TargetField>();
