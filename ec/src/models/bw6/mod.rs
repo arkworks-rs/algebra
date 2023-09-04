@@ -149,14 +149,13 @@ pub trait BW6Config: 'static + Eq + Sized {
                     let bit = Self::ATE_LOOP_COUNT_2[i - 1];
                     if bit == 1 {
                         f *= &f_u;
-                        for &mut (p, ref mut coeffs) in pairs.iter_mut() {
-                            BW6::<Self>::ell(&mut f, &coeffs.next().unwrap(), &p.0);
-                        }
                     } else if bit == -1 {
                         f *= &f_u_inv;
-                        for &mut (p, ref mut coeffs) in pairs.iter_mut() {
-                            BW6::<Self>::ell(&mut f, &coeffs.next().unwrap(), &p.0);
-                        }
+                    } else {
+                        continue;
+                    }
+                    for &mut (p, ref mut coeffs) in pairs.iter_mut() {
+                        BW6::<Self>::ell(&mut f, &coeffs.next().unwrap(), &p.0);
                     }
                 }
                 f
