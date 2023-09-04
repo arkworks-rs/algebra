@@ -86,17 +86,12 @@ impl<P: BW6Config> From<G2Affine<P>> for G2Prepared<P> {
         // The inversion could probably be avoided by using Hom(P) + Hom(Q) addition,
         // instead of mixed addition as is currently done.
         let r_affine: G2Affine<P> = r.into();
-        let qu;
-        let neg_qu;
-
         // Swap the signs of `qu`, `r` & `neg_qu` if the loop count is negative.
-        if P::ATE_LOOP_COUNT_1_IS_NEGATIVE {
-            qu = -r_affine;
-            neg_qu = r_affine;
+        let (qu, neg_qu) = if P::ATE_LOOP_COUNT_1_IS_NEGATIVE {
+            (-r_affine, r_affine)
         } else {
-            qu = r_affine;
-            neg_qu = -qu;
-        }
+            (r_affine, -r_affine)
+        };
 
         r = G2HomProjective::<P> {
             x: qu.x,
