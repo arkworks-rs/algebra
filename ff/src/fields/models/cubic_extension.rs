@@ -6,7 +6,7 @@ use ark_std::{
     cmp::{Ord, Ordering, PartialOrd},
     fmt,
     io::{Read, Write},
-    iter::{Chain,IntoIterator},
+    iter::{Chain, IntoIterator},
     ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign},
     vec::Vec,
 };
@@ -216,14 +216,16 @@ impl<P: CubicExtConfig> Field for CubicExtField<P> {
         )
     }
 
-    fn from_base_prime_field_elems(elems: impl IntoIterator<Item=Self::BasePrimeField>) -> Option<Self> {
+    fn from_base_prime_field_elems(
+        elems: impl IntoIterator<Item = Self::BasePrimeField>,
+    ) -> Option<Self> {
         let mut elems = elems.into_iter();
         let elems = elems.by_ref();
         let base_ext_deg = P::BaseField::extension_degree() as usize;
         let element = Some(Self::new(
-            P::BaseField::from_base_prime_field_elems(elems.take(base_ext_deg)) ?,
-            P::BaseField::from_base_prime_field_elems(elems.take(base_ext_deg)) ?,
-            P::BaseField::from_base_prime_field_elems(elems.take(base_ext_deg)) ?,
+            P::BaseField::from_base_prime_field_elems(elems.take(base_ext_deg))?,
+            P::BaseField::from_base_prime_field_elems(elems.take(base_ext_deg))?,
+            P::BaseField::from_base_prime_field_elems(elems.take(base_ext_deg))?,
         ));
         if elems.next().is_some() {
             None

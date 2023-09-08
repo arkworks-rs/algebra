@@ -6,9 +6,9 @@ use ark_serialize::{
     CanonicalSerializeWithFlags, EmptyFlags, Flags,
 };
 use ark_std::{
-    iter::IntoIterator,
     fmt::{Debug, Display},
     hash::Hash,
+    iter::IntoIterator,
     ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign},
     vec::Vec,
 };
@@ -225,7 +225,9 @@ pub trait Field:
 
     /// Convert a slice of base prime field elements into a field element.
     /// If the slice length != Self::extension_degree(), must return None.
-    fn from_base_prime_field_elems(elems: impl IntoIterator<Item=Self::BasePrimeField>) -> Option<Self>;
+    fn from_base_prime_field_elems(
+        elems: impl IntoIterator<Item = Self::BasePrimeField>,
+    ) -> Option<Self>;
 
     /// Constructs a field element from a single base prime field elements.
     /// ```
