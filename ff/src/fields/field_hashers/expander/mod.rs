@@ -3,9 +3,8 @@
 
 use ark_std::vec::Vec;
 
-use digest::{FixedOutputReset, ExtendableOutput, Update};
 use arrayvec::ArrayVec;
-
+use digest::{ExtendableOutput, FixedOutputReset, Update};
 
 pub trait Expander {
     fn expand(&self, msg: &[u8], length: usize) -> Vec<u8>;
@@ -15,23 +14,23 @@ const MAX_DST_LENGTH: usize = 255;
 const LONG_DST_PREFIX: &[u8; 17] = b"H2C-OVERSIZE-DST-";
 
 /// Implements section [5.3.3](https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-hash-to-curve-16#section-5.3.3)
-/// "Using DSTs longer than 255 bytes" of the 
+/// "Using DSTs longer than 255 bytes" of the
 /// [IRTF CFRG hash-to-curve draft #16](https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-hash-to-curve-16#section-5.3.3).
-pub struct DST(arrayvec::ArrayVec<u8,MAX_DST_LENGTH>);
+pub struct DST(arrayvec::ArrayVec<u8, MAX_DST_LENGTH>);
 
 impl DST {
-    pub fn new_xmd<H: FixedOutputReset+Default>(dst: &[u8]) -> DST {
+    pub fn new_xmd<H: FixedOutputReset + Default>(dst: &[u8]) -> DST {
         DST(if dst.len() > MAX_DST_LENGTH {
             let mut long = H::default();
             long.update(&LONG_DST_PREFIX[..]);
             long.update(&dst);
-            ArrayVec::try_from( long.finalize_fixed().as_ref() ).unwrap()
+            ArrayVec::try_from(long.finalize_fixed().as_ref()).unwrap()
         } else {
             ArrayVec::try_from(dst).unwrap()
         })
     }
 
-    pub fn new_xof<H: ExtendableOutput+Default>(dst: &[u8], k: usize) -> DST {
+    pub fn new_xof<H: ExtendableOutput + Default>(dst: &[u8], k: usize) -> DST {
         DST(if dst.len() > MAX_DST_LENGTH {
             let mut long = H::default();
             long.update(&LONG_DST_PREFIX[..]);
@@ -40,7 +39,7 @@ impl DST {
             let mut new_dst = [0u8; MAX_DST_LENGTH];
             let new_dst = &mut new_dst[0..((2 * k + 7) >> 3)];
             long.finalize_xof_into(new_dst);
-            ArrayVec::try_from( &*new_dst ).unwrap()
+            ArrayVec::try_from(&*new_dst).unwrap()
         } else {
             ArrayVec::try_from(dst).unwrap()
         })
@@ -52,7 +51,6 @@ impl DST {
         h.update(&[self.0.len() as u8]);
     }
 }
-
 
 pub(super) struct ExpanderXof<H: ExtendableOutput + Clone + Default> {
     pub(super) xofer: H,
@@ -105,12 +103,12 @@ impl<H: FixedOutputReset + Default + Clone> Expander for ExpanderXmd<H> {
         hasher.update(msg);
         hasher.update(&lib_str);
         hasher.update(&[0u8]);
-        dst_prime.update(& mut hasher);
+        dst_prime.update(&mut hasher);
         let b0 = hasher.finalize_fixed_reset();
 
         hasher.update(&b0);
         hasher.update(&[1u8]);
-        dst_prime.update(& mut hasher);
+        dst_prime.update(&mut hasher);
         let mut bi = hasher.finalize_fixed_reset();
 
         let mut uniform_bytes: Vec<u8> = Vec::with_capacity(n);
@@ -121,7 +119,7 @@ impl<H: FixedOutputReset + Default + Clone> Expander for ExpanderXmd<H> {
                 hasher.update(&[*l ^ *r]);
             }
             hasher.update(&[i as u8]);
-            dst_prime.update(& mut hasher);
+            dst_prime.update(&mut hasher);
             bi = hasher.finalize_fixed_reset();
             uniform_bytes.extend_from_slice(&bi);
         }

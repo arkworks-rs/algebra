@@ -3,7 +3,7 @@ mod expander;
 use crate::{Field, PrimeField};
 
 use ark_std::vec::Vec;
-use digest::{FixedOutputReset,XofReader};
+use digest::{FixedOutputReset, XofReader};
 use expander::Expander;
 
 use self::expander::ExpanderXmd;
@@ -77,13 +77,13 @@ impl<F: Field, H: FixedOutputReset + Default + Clone, const SEC_PARAM: usize> Ha
                     &uniform_bytes[elm_offset..][..self.len_per_base_elem],
                 )
             };
-            F::from_base_prime_field_elems( (0..m).map( base_prime_field_elem ) ).unwrap()
+            F::from_base_prime_field_elems((0..m).map(base_prime_field_elem)).unwrap()
         };
-        ark_std::array::from_fn::<F,N,_>(cb)
+        ark_std::array::from_fn::<F, N, _>(cb)
     }
 }
 
-pub fn hash_to_field<F: Field,H: XofReader, const SEC_PARAM: usize>(h: &mut H) -> F {
+pub fn hash_to_field<F: Field, H: XofReader, const SEC_PARAM: usize>(h: &mut H) -> F {
     // The final output of `hash_to_field` will be an array of field
     // elements from F::BaseField, each of size `len_per_elem`.
     let len_per_base_elem = get_len_per_elem::<F, SEC_PARAM>();
@@ -97,7 +97,7 @@ pub fn hash_to_field<F: Field,H: XofReader, const SEC_PARAM: usize>(h: &mut H) -
         h.read(alloca);
         F::BasePrimeField::from_be_bytes_mod_order(alloca)
     };
-    F::from_base_prime_field_elems( (0..m).map(base_prime_field_elem) ).unwrap()
+    F::from_base_prime_field_elems((0..m).map(base_prime_field_elem)).unwrap()
 }
 
 /// This function computes the length in bytes that a hash function should output
