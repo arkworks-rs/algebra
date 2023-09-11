@@ -232,11 +232,15 @@ impl<P: FpConfig<N>, const N: usize> Field for Fp<P, N> {
         iter::once(*self)
     }
 
-    fn from_base_prime_field_elems(elems: &[Self::BasePrimeField]) -> Option<Self> {
-        if elems.len() != (Self::extension_degree() as usize) {
+    fn from_base_prime_field_elems(
+        elems: impl IntoIterator<Item = Self::BasePrimeField>,
+    ) -> Option<Self> {
+        let mut elems = elems.into_iter();
+        let elem = elems.next()?;
+        if elems.next().is_some() {
             return None;
         }
-        Some(elems[0])
+        Some(elem)
     }
 
     #[inline]

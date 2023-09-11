@@ -6,7 +6,7 @@ use ark_std::{
     cmp::{Ord, Ordering, PartialOrd},
     fmt,
     io::{Read, Write},
-    iter::Chain,
+    iter::{Chain, IntoIterator},
     ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign},
     vec::Vec,
 };
@@ -242,15 +242,21 @@ impl<P: QuadExtConfig> Field for QuadExtField<P> {
             .chain(self.c1.to_base_prime_field_elements())
     }
 
-    fn from_base_prime_field_elems(elems: &[Self::BasePrimeField]) -> Option<Self> {
-        if elems.len() != (Self::extension_degree() as usize) {
-            return None;
-        }
+    fn from_base_prime_field_elems(
+        elems: impl IntoIterator<Item = Self::BasePrimeField>,
+    ) -> Option<Self> {
+        let mut elems = elems.into_iter();
+        let elems = elems.by_ref();
         let base_ext_deg = P::BaseField::extension_degree() as usize;
-        Some(Self::new(
-            P::BaseField::from_base_prime_field_elems(&elems[0..base_ext_deg]).unwrap(),
-            P::BaseField::from_base_prime_field_elems(&elems[base_ext_deg..]).unwrap(),
-        ))
+        let element = Some(Self::new(
+            P::BaseField::from_base_prime_field_elems(elems.take(base_ext_deg))?,
+            P::BaseField::from_base_prime_field_elems(elems.take(base_ext_deg))?,
+        ));
+        if elems.next().is_some() {
+            None
+        } else {
+            element
+        }
     }
 
     fn square(&self) -> Self {
@@ -794,7 +800,7 @@ mod quad_ext_tests {
             for _ in 0..d {
                 random_coeffs.push(Fq::rand(&mut test_rng()));
             }
-            let res = Fq2::from_base_prime_field_elems(&random_coeffs);
+            let res = Fq2::from_base_prime_field_elems(random_coeffs);
             assert_eq!(res, None);
         }
         // Test on slice lengths that are equal to the extension degree
@@ -805,8 +811,8 @@ mod quad_ext_tests {
             for _ in 0..ext_degree {
                 random_coeffs.push(Fq::rand(&mut test_rng()));
             }
-            let actual = Fq2::from_base_prime_field_elems(&random_coeffs).unwrap();
             let expected = Fq2::new(random_coeffs[0], random_coeffs[1]);
+            let actual = Fq2::from_base_prime_field_elems(random_coeffs).unwrap();
             assert_eq!(actual, expected);
         }
     }
@@ -822,7 +828,7 @@ mod quad_ext_tests {
             random_coeffs[0] = random_coeff;
             assert_eq!(
                 res,
-                Fq2::from_base_prime_field_elems(&random_coeffs).unwrap()
+                Fq2::from_base_prime_field_elems(random_coeffs).unwrap()
             );
         }
     }
