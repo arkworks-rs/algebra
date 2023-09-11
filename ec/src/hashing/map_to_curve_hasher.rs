@@ -24,8 +24,7 @@ where
     M2C: MapToCurve<T>,
 {
     field_hasher: H2F,
-    _curve_mapper: PhantomData<M2C>,
-    _params_t: PhantomData<T>,
+    _phantom: PhantomData<(T, M2C)>,
 }
 
 impl<T, H2F, M2C> HashToCurve<T> for MapToCurveBasedHasher<T, H2F, M2C>
@@ -39,8 +38,7 @@ where
         M2C::check_parameters()?;
         Ok(MapToCurveBasedHasher {
             field_hasher: H2F::new(domain),
-            _curve_mapper: PhantomData,
-            _params_t: PhantomData,
+            _phantom: PhantomData,
         })
     }
 
