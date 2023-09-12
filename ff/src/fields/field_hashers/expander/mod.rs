@@ -20,14 +20,15 @@ pub struct DST(arrayvec::ArrayVec<u8, MAX_DST_LENGTH>);
 
 impl DST {
     pub fn new_xmd<H: FixedOutputReset + Default>(dst: &[u8]) -> DST {
-        DST(if dst.len() > MAX_DST_LENGTH {
+        let array = if dst.len() > MAX_DST_LENGTH {
             let mut long = H::default();
             long.update(&LONG_DST_PREFIX[..]);
             long.update(&dst);
-            ArrayVec::try_from(long.finalize_fixed().as_ref()).unwrap()
+            (long.finalize_fixed().as_ref()).try_into()
         } else {
-            ArrayVec::try_from(dst).unwrap()
-        })
+            dst.try_into()
+        };
+        DST(array.unwrap())
     }
 
     pub fn new_xof<H: ExtendableOutput + Default>(dst: &[u8], k: usize) -> DST {
