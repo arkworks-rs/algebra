@@ -79,13 +79,13 @@ pub trait WBConfig: SWCurveConfig + Sized {
 }
 
 pub struct WBMap<P: WBConfig> {
-    swu_field_curve_hasher: PhantomData<SWUMap<P::IsogenousCurve>>,
+    swu_field_curve_hasher: SWUMap<P::IsogenousCurve>,
     curve_params: PhantomData<fn() -> P>,
 }
 
 impl<P: WBConfig> MapToCurve<Projective<P>> for WBMap<P> {
-    /// Checks if `P` represents a valid map.
-    fn check_parameters() -> Result<(), HashToCurveError> {
+    /// Constructs a new map if `P` represents a valid map.
+    fn new() -> Result<Self, HashToCurveError> {
         match P::ISOGENY_MAP.apply(P::IsogenousCurve::GENERATOR) {
             Ok(point_on_curve) => {
                 if !point_on_curve.is_on_curve() {
@@ -95,18 +95,21 @@ impl<P: WBConfig> MapToCurve<Projective<P>> for WBMap<P> {
             Err(e) => return Err(e),
         }
 
-        SWUMap::<P::IsogenousCurve>::check_parameters().unwrap(); // Or ?
-        Ok(())
+        Ok(WBMap {
+            swu_field_curve_hasher: SWUMap::<P::IsogenousCurve>::new().unwrap(),
+            curve_params: PhantomData,
+        })
     }
 
     /// Map random field point to a random curve point
     /// inspired from
     /// <https://github.com/zcash/pasta_curves/blob/main/src/hashtocurve.rs>
     fn map_to_curve(
+        &self,
         element: <Affine<P> as AffineRepr>::BaseField,
     ) -> Result<Affine<P>, HashToCurveError> {
         // first we need to map the field point to the isogenous curve
-        let point_on_isogenious_curve = SWUMap::<P::IsogenousCurve>::map_to_curve(element).unwrap();
+        let point_on_isogenious_curve = self.swu_field_curve_hasher.map_to_curve(element).unwrap();
         P::ISOGENY_MAP.apply(point_on_isogenious_curve)
     }
 }
