@@ -31,7 +31,7 @@ impl DST {
     }
 
     pub fn new_xof<H: ExtendableOutput + Default>(dst: &[u8], k: usize) -> DST {
-        DST(if dst.len() > MAX_DST_LENGTH {
+        let array = if dst.len() > MAX_DST_LENGTH {
             let mut long = H::default();
             long.update(&LONG_DST_PREFIX[..]);
             long.update(&dst);
@@ -39,10 +39,11 @@ impl DST {
             let mut new_dst = [0u8; MAX_DST_LENGTH];
             let new_dst = &mut new_dst[0..((2 * k + 7) >> 3)];
             long.finalize_xof_into(new_dst);
-            ArrayVec::try_from(&*new_dst).unwrap()
+            new_dst.try_into()
         } else {
-            ArrayVec::try_from(dst).unwrap()
-        })
+            dst.try_into()
+        };
+        DST(array.unwrap())
     }
 
     pub fn update<H: Update>(&self, h: &mut H) {
