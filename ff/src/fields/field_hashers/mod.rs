@@ -17,7 +17,7 @@ pub trait HashToField<F: Field>: Sized {
     /// * `domain` - bytes that get concatenated with the `msg` during hashing, in order to separate potentially interfering instantiations of the hasher.
     fn new(domain: &[u8]) -> Self;
 
-    /// Hash an arbitrary `msg` to #`count` elements from field `F`.
+    /// Hash an arbitrary `msg` to `N` elements of the field `F`.
     fn hash_to_field<const N: usize>(&self, msg: &[u8]) -> [F; N];
 }
 
@@ -65,7 +65,7 @@ impl<F: Field, H: FixedOutputReset + Default + Clone, const SEC_PARAM: usize> Ha
     fn hash_to_field<const N: usize>(&self, message: &[u8]) -> [F; N] {
         let m = F::extension_degree() as usize;
 
-        // The user imposes a `count` of elements of F_p^m to output per input msg,
+        // The user requests `N` of elements of F_p^m to output per input msg,
         // each field element comprising `m` BasePrimeField elements.
         let len_in_bytes = N * m * self.len_per_base_elem;
         let uniform_bytes = self.expander.expand(message, len_in_bytes);
