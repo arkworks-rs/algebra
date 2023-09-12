@@ -7,11 +7,11 @@ use ark_std::marker::PhantomData;
 
 /// Trait for mapping a random field element to a random curve point.
 pub trait MapToCurve<T: CurveGroup>: Sized {
-    /// Constructs a new mapping.
-    fn new() -> Result<Self, HashToCurveError>;
+    /// Checks whether supplied parameters represent a valid map.
+    fn check_parameters() -> Result<(), HashToCurveError>;
 
     /// Map an arbitary field element to a corresponding curve point.
-    fn map_to_curve(&self, point: T::BaseField) -> Result<T::Affine, HashToCurveError>;
+    fn map_to_curve(point: T::BaseField) -> Result<T::Affine, HashToCurveError>;
 }
 
 /// Helper struct that can be used to construct elements on the elliptic curve
@@ -24,8 +24,7 @@ where
     M2C: MapToCurve<T>,
 {
     field_hasher: H2F,
-    curve_mapper: M2C,
-    _params_t: PhantomData<T>,
+    _phantom: PhantomData<(T, M2C)>,
 }
 
 impl<T, H2F, M2C> HashToCurve<T> for MapToCurveBasedHasher<T, H2F, M2C>
@@ -35,13 +34,11 @@ where
     M2C: MapToCurve<T>,
 {
     fn new(domain: &[u8]) -> Result<Self, HashToCurveError> {
-        let field_hasher = H2F::new(domain);
-        let curve_mapper = M2C::new()?;
-        let _params_t = PhantomData;
+        #[cfg(test)]
+        M2C::check_parameters()?;
         Ok(MapToCurveBasedHasher {
-            field_hasher,
-            curve_mapper,
-            _params_t,
+            field_hasher: H2F::new(domain),
+            _phantom: PhantomData,
         })
     }
 
@@ -61,8 +58,8 @@ where
 
         let rand_field_elems = self.field_hasher.hash_to_field(msg, 2);
 
-        let rand_curve_elem_0 = self.curve_mapper.map_to_curve(rand_field_elems[0])?;
-        let rand_curve_elem_1 = self.curve_mapper.map_to_curve(rand_field_elems[1])?;
+        let rand_curve_elem_0 = M2C::map_to_curve(rand_field_elems[0])?;
+        let rand_curve_elem_1 = M2C::map_to_curve(rand_field_elems[1])?;
 
         let rand_curve_elem = (rand_curve_elem_0 + rand_curve_elem_1).into();
         let rand_subgroup_elem = rand_curve_elem.clear_cofactor();
