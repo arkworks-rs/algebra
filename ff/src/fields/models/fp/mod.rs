@@ -113,6 +113,9 @@ pub trait FpConfig<const N: usize>: Send + Sync + 'static + Sized {
     Eq(bound = "")
 )]
 pub struct Fp<P: FpConfig<N>, const N: usize>(
+    /// Contains the element in Montgomery form for efficient multiplication.
+    /// To convert an element to a [`BigInt`](struct@BigInt), use `into_bigint` or `into`.
+    #[doc(hidden)]
     pub BigInt<N>,
     #[derivative(Debug = "ignore")]
     #[doc(hidden)]
