@@ -2,7 +2,6 @@ mod expander;
 
 use crate::{Field, PrimeField};
 
-use ark_std::vec::Vec;
 use digest::{FixedOutputReset, XofReader};
 use expander::Expander;
 
