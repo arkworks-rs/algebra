@@ -83,21 +83,25 @@ impl<P: Elligator2Config> MapToCurve<Projective<P>> for Elligator2Map<P> {
         let x2cb = x2sq * x2;
         let gx2 = x2cb + j_on_k * x2sq + x2 * ksq_inv;
 
-        let (x, y, _sig0_y): (P::BaseField, P::BaseField, i8) = if gx1.legendre().is_qr() {
+        let (x, mut y, sgn0): (P::BaseField, P::BaseField, bool) = if gx1.legendre().is_qr() {
             (
                 x1,
                 gx1.sqrt()
                     .expect("We have checked that gx1 is a quadratic residue. Q.E.D"),
-                1,
+                true,
             )
         } else {
             (
                 x2,
                 gx2.sqrt()
                     .expect("gx2 is a quadratic residue because gx1 is not. Q.E.D"),
-                0,
+                false,
             )
         };
+        
+        if parity(&y) != sgn0 {
+            y = -y;
+        }
 
         let s = x * k;
         let t = y * k;
