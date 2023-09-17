@@ -3,7 +3,7 @@ use ark_ff::{Field, One, Zero};
 use core::marker::PhantomData;
 
 use crate::{
-    hashing::{map_to_curve_hasher::MapToCurve, curve_maps::parity, HashToCurveError},
+    hashing::{curve_maps::parity, map_to_curve_hasher::MapToCurve, HashToCurveError},
     models::short_weierstrass::{Affine, Projective},
 };
 
@@ -27,15 +27,17 @@ impl<P: SWUConfig> MapToCurve<Projective<P>> for SWUMap<P> {
     /// Constructs a new map if `P` represents a valid map.
     fn new() -> Result<Self, HashToCurveError> {
         // Verifying that ZETA is a non-square
-        debug_assert!(!P::ZETA.legendre().is_qr(),
-                "ZETA should be a quadratic non-residue for the SWU map");
+        debug_assert!(
+            !P::ZETA.legendre().is_qr(),
+            "ZETA should be a quadratic non-residue for the SWU map"
+        );
 
         // Verifying the prerequisite for applicability  of SWU map
         debug_assert!(!P::COEFF_A.is_zero() && !P::COEFF_B.is_zero(),
 		      "Simplified SWU requires a * b != 0 in the short Weierstrass form of y^2 = x^3 + a*x + b ");
-				 
+
         Ok(SWUMap(PhantomData))
-		      }
+    }
 
     /// Map an arbitrary base field element to a curve point.
     /// Based on

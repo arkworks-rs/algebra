@@ -3,9 +3,8 @@ use ark_ff::{Field, One, Zero};
 use core::marker::PhantomData;
 
 use crate::{
-    hashing::{map_to_curve_hasher::MapToCurve, curve_maps::parity, HashToCurveError},
+    hashing::{curve_maps::parity, map_to_curve_hasher::MapToCurve, HashToCurveError},
     models::twisted_edwards::{Affine, Projective},
-    
 };
 
 /// Trait defining the necessary parameters for the Elligator2 hash-to-curve method
@@ -31,8 +30,10 @@ impl<P: Elligator2Config> MapToCurve<Projective<P>> for Elligator2Map<P> {
     /// Constructs a new map if `P` represents a valid map.
     fn new() -> Result<Self, HashToCurveError> {
         // Verifying that Z is a non-square
-        debug_assert!(!P::Z.legendre().is_qr(), 
-		     "Z should be a quadratic non-residue for the Elligator2 map");
+        debug_assert!(
+            !P::Z.legendre().is_qr(),
+            "Z should be a quadratic non-residue for the Elligator2 map"
+        );
 
         // We assume that the Montgomery curve is correct and  as such we do
         // not verify the prerequisite for applicability of Elligator2 map
@@ -95,7 +96,7 @@ impl<P: Elligator2Config> MapToCurve<Projective<P>> for Elligator2Map<P> {
                 false,
             )
         };
-        
+
         if parity(&y) != sgn0 {
             y = -y;
         }
@@ -104,7 +105,7 @@ impl<P: Elligator2Config> MapToCurve<Projective<P>> for Elligator2Map<P> {
         let t = y * k;
 
         // `(s, t)` is an affine point on the Montgomery curve.
-        // Ideally, the TECurve would come with a mapping to its Montgomery curve, 
+        // Ideally, the TECurve would come with a mapping to its Montgomery curve,
         // so we could just call that mapping here.
         // This is currently not supported in arkworks, so
         // we just implement the rational map here from [\[HSSWW23\]] Appendix D

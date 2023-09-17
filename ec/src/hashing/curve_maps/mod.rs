@@ -9,7 +9,6 @@ pub mod wb;
 /// - [\[1\]] <https://datatracker.ietf.org/doc/html/rfc9380/>
 pub fn parity<F: Field>(element: &F) -> bool {
     element
-
         .to_base_prime_field_elements()
         .find(|&x| !x.is_zero())
         .map_or(false, |x| x.into_bigint().is_odd())
