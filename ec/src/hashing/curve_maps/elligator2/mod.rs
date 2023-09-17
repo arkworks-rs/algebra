@@ -43,8 +43,6 @@ impl<P: Elligator2Config> MapToCurve<Projective<P>> for Elligator2Map<P> {
     }
 
     /// Map an arbitrary base field element `element` to a curve point.
-    /// Based on
-    /// <https://github.com/zcash/pasta_curves/blob/main/src/hashtocurve.rs>.
     fn map_to_curve(&self, element: P::BaseField) -> Result<Affine<P>, HashToCurveError> {
         // 1. x1 = -(J / K) * inv0(1 + Z * u^2)
         // 2. If x1 == 0, set x1 = -(J / K)
