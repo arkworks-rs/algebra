@@ -1,10 +1,10 @@
 use crate::models::short_weierstrass::SWCurveConfig;
-use ark_ff::{BigInteger, Field, One, PrimeField, Zero};
+use ark_ff::{Field, One, Zero};
 use ark_std::string::ToString;
 use core::marker::PhantomData;
 
 use crate::{
-    hashing::{map_to_curve_hasher::MapToCurve, HashToCurveError},
+    hashing::{map_to_curve_hasher::MapToCurve, curve_maps::parity, HashToCurveError},
     models::short_weierstrass::{Affine, Projective},
 };
 
@@ -23,16 +23,6 @@ pub trait SWUConfig: SWCurveConfig {
 
 /// Represents the SWU hash-to-curve map defined by `P`.
 pub struct SWUMap<P: SWUConfig>(PhantomData<fn() -> P>);
-
-/// Trait defining a parity method on the Field elements based on [\[1\]] Section 4.1
-///
-/// - [\[1\]] <https://datatracker.ietf.org/doc/draft-irtf-cfrg-hash-to-curve/>
-pub fn parity<F: Field>(element: &F) -> bool {
-    element
-        .to_base_prime_field_elements()
-        .find(|&x| !x.is_zero())
-        .map_or(false, |x| x.into_bigint().is_odd())
-}
 
 impl<P: SWUConfig> MapToCurve<Projective<P>> for SWUMap<P> {
     /// Constructs a new map if `P` represents a valid map.

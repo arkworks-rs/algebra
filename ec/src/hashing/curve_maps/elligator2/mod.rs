@@ -4,8 +4,9 @@ use ark_std::string::ToString;
 use core::marker::PhantomData;
 
 use crate::{
-    hashing::{map_to_curve_hasher::MapToCurve, HashToCurveError},
+    hashing::{map_to_curve_hasher::MapToCurve, curve_maps::parity, HashToCurveError},
     models::twisted_edwards::{Affine, Projective},
+    
 };
 
 /// Trait defining the necessary parameters for the Elligator2 hash-to-curve method
@@ -83,7 +84,7 @@ impl<P: Elligator2Config> MapToCurve<Projective<P>> for Elligator2Map<P> {
         let x2cb = x2sq * x2;
         let gx2 = x2cb + j_on_k * x2sq + x2 * ksq_inv;
 
-        let (x, mut y, sgn0): (P::BaseField, P::BaseField, bool) = if gx1.legendre().is_qr() {
+        let (x, mut y, sgn0) = if gx1.legendre().is_qr() {
             (
                 x1,
                 gx1.sqrt()
