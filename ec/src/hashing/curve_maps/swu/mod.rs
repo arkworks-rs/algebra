@@ -1,6 +1,5 @@
 use crate::models::short_weierstrass::SWCurveConfig;
 use ark_ff::{Field, One, Zero};
-use ark_std::string::ToString;
 use core::marker::PhantomData;
 
 use crate::{
@@ -28,19 +27,15 @@ impl<P: SWUConfig> MapToCurve<Projective<P>> for SWUMap<P> {
     /// Constructs a new map if `P` represents a valid map.
     fn new() -> Result<Self, HashToCurveError> {
         // Verifying that ZETA is a non-square
-        if P::ZETA.legendre().is_qr() {
-            return Err(HashToCurveError::MapToCurveError(
-                "ZETA should be a quadratic non-residue for the SWU map".to_string(),
-            ));
-        }
+        debug_assert!(!P::ZETA.legendre().is_qr(),
+                "ZETA should be a quadratic non-residue for the SWU map");
 
         // Verifying the prerequisite for applicability  of SWU map
-        if P::COEFF_A.is_zero() || P::COEFF_B.is_zero() {
-            return Err(HashToCurveError::MapToCurveError("Simplified SWU requires a * b != 0 in the short Weierstrass form of y^2 = x^3 + a*x + b ".to_string()));
-        }
-
+        debug_assert!(!P::COEFF_A.is_zero() && !P::COEFF_B.is_zero(),
+		      "Simplified SWU requires a * b != 0 in the short Weierstrass form of y^2 = x^3 + a*x + b ");
+				 
         Ok(SWUMap(PhantomData))
-    }
+		      }
 
     /// Map an arbitrary base field element to a curve point.
     /// Based on
@@ -89,7 +84,7 @@ impl<P: SWUConfig> MapToCurve<Projective<P>> for SWUMap<P> {
         let gx1_square;
         let gx1;
 
-        assert!(
+        debug_assert!(
             !div3.is_zero(),
             "we have checked that neither a or ZETA are zero. Q.E.D."
         );
@@ -131,7 +126,7 @@ impl<P: SWUConfig> MapToCurve<Projective<P>> for SWUMap<P> {
         let x_affine = num_x / div;
         let y_affine = if parity(&y) != parity(&point) { -y } else { y };
         let point_on_curve = Affine::<P>::new_unchecked(x_affine, y_affine);
-        assert!(
+        debug_assert!(
             point_on_curve.is_on_curve(),
             "swu mapped to a point off the curve"
         );

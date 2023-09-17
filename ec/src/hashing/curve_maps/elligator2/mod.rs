@@ -1,6 +1,5 @@
 use crate::models::twisted_edwards::{MontCurveConfig, TECurveConfig};
 use ark_ff::{Field, One, Zero};
-use ark_std::string::ToString;
 use core::marker::PhantomData;
 
 use crate::{
@@ -32,11 +31,8 @@ impl<P: Elligator2Config> MapToCurve<Projective<P>> for Elligator2Map<P> {
     /// Constructs a new map if `P` represents a valid map.
     fn new() -> Result<Self, HashToCurveError> {
         // Verifying that Z is a non-square
-        if P::Z.legendre().is_qr() {
-            return Err(HashToCurveError::MapToCurveError(
-                "Z should be a quadratic non-residue for the Elligator2 map".to_string(),
-            ));
-        }
+        debug_assert!(!P::Z.legendre().is_qr(), 
+		     "Z should be a quadratic non-residue for the Elligator2 map");
 
         // We assume that the Montgomery curve is correct and  as such we do
         // not verify the prerequisite for applicability of Elligator2 map
@@ -127,7 +123,7 @@ impl<P: Elligator2Config> MapToCurve<Projective<P>> for Elligator2Map<P> {
         };
 
         let point_on_curve = Affine::<P>::new_unchecked(v, w);
-        assert!(
+        debug_assert!(
             point_on_curve.is_on_curve(),
             "Elligator2 mapped to a point off the curve"
         );
