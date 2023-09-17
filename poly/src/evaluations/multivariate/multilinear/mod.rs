@@ -64,7 +64,7 @@ pub trait MultilinearExtension<F: Field>:
     fn fix_variables(&self, partial_point: &[F]) -> Self;
 
     /// Returns a list of evaluations over the domain, which is the boolean
-    /// hypercube.
+    /// hypercube. The evaluations are in little-endian order.
     fn to_evaluations(&self) -> Vec<F>;
 }
 

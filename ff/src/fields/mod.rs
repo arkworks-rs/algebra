@@ -8,6 +8,7 @@ use ark_serialize::{
 use ark_std::{
     fmt::{Debug, Display},
     hash::Hash,
+    iter::IntoIterator,
     ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign},
     vec::Vec,
 };
@@ -192,6 +193,11 @@ pub trait Field:
     + From<u32>
     + From<u16>
     + From<u8>
+    + From<i128>
+    + From<i64>
+    + From<i32>
+    + From<i16>
+    + From<i8>
     + From<bool>
     + Product<Self>
 {
@@ -219,7 +225,9 @@ pub trait Field:
 
     /// Convert a slice of base prime field elements into a field element.
     /// If the slice length != Self::extension_degree(), must return None.
-    fn from_base_prime_field_elems(elems: &[Self::BasePrimeField]) -> Option<Self>;
+    fn from_base_prime_field_elems(
+        elems: impl IntoIterator<Item = Self::BasePrimeField>,
+    ) -> Option<Self>;
 
     /// Constructs a field element from a single base prime field elements.
     /// ```
@@ -465,6 +473,29 @@ mod no_std_tests {
                 rand_multiplier
             );
         }
+    }
+
+    #[test]
+    pub fn test_from_ints() {
+        let felt2 = Fr::one() + Fr::one();
+        let felt16 = felt2 * felt2 * felt2 * felt2;
+
+        assert_eq!(Fr::from(1u8), Fr::one());
+        assert_eq!(Fr::from(1u16), Fr::one());
+        assert_eq!(Fr::from(1u32), Fr::one());
+        assert_eq!(Fr::from(1u64), Fr::one());
+        assert_eq!(Fr::from(1u128), Fr::one());
+        assert_eq!(Fr::from(-1i8), -Fr::one());
+        assert_eq!(Fr::from(-1i64), -Fr::one());
+
+        assert_eq!(Fr::from(0), Fr::zero());
+
+        assert_eq!(Fr::from(-16i32), -felt16);
+        assert_eq!(Fr::from(16u32), felt16);
+        assert_eq!(Fr::from(16i64), felt16);
+
+        assert_eq!(Fr::from(-2i128), -felt2);
+        assert_eq!(Fr::from(2u16), felt2);
     }
 
     #[test]

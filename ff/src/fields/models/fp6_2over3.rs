@@ -1,6 +1,6 @@
 use ark_std::Zero;
 
-use super::quadratic_extension::*;
+use super::quadratic_extension::{QuadExtConfig, QuadExtField};
 use core::{
     marker::PhantomData,
     ops::{MulAssign, Not},

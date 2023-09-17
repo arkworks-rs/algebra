@@ -1,6 +1,6 @@
 use ark_std::Zero;
 
-use super::quadratic_extension::*;
+use super::quadratic_extension::{QuadExtConfig, QuadExtField};
 use crate::{fields::PrimeField, CyclotomicMultSubgroup};
 use core::{marker::PhantomData, ops::Not};
 

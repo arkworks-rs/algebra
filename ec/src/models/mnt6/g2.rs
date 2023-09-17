@@ -5,7 +5,7 @@ use crate::{
     AffineRepr, CurveGroup,
 };
 use ark_ff::fields::{Field, Fp3};
-use ark_serialize::*;
+use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use ark_std::{ops::Neg, vec::Vec};
 use num_traits::One;
 
