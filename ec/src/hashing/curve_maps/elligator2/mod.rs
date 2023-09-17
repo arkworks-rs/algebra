@@ -11,14 +11,14 @@ use crate::{
 /// Trait defining the necessary parameters for the Elligator2 hash-to-curve method
 /// for twisted edwards curves form of:
 /// `b * y² = x³ + a * x² + x` from [\[WB2019\]]
-/// according to [\[HSSWW22\]]
+/// according to [\[HSSWW23\]]
 ///
 /// - [\[BHKL13\]] <http://dx.doi.org/10.1145/2508859.2516734>
-/// - [\[HSSWW22\]] <https://tools.ietf.org/html/draft-irtf-cfrg-hash-to-curve-16>
+/// - [\[HSSWW23\]] <https://datatracker.ietf.org/doc/html/rfc9380>
 
 pub trait Elligator2Config: TECurveConfig + MontCurveConfig {
     /// An element of the base field that is not a square root see \[BHKL13, Section 5\].
-    /// When `BaseField` is a prime field, [\[HSSWW22\]] mandates that `Z` is the
+    /// When `BaseField` is a prime field, [\[HSSWW23\]] mandates that `Z` is the
     /// non-square with lowest absolute value in the `BaseField` when its elements
     /// are represented as [-(q-1)/2, (q-1)/2]
     const Z: Self::BaseField;
@@ -30,7 +30,7 @@ pub struct Elligator2Map<P: TECurveConfig>(PhantomData<fn() -> P>);
 impl<P: Elligator2Config> MapToCurve<Projective<P>> for Elligator2Map<P> {
     /// Constructs a new map if `P` represents a valid map.
     fn new() -> Result<Self, HashToCurveError> {
-        // Verifying that U is a non-square
+        // Verifying that Z is a non-square
         if P::Z.legendre().is_qr() {
             return Err(HashToCurveError::MapToCurveError(
                 "Z should be a quadratic non-residue for the Elligator2 map".to_string(),
@@ -102,9 +102,10 @@ impl<P: Elligator2Config> MapToCurve<Projective<P>> for Elligator2Map<P> {
         let s = x * k;
         let t = y * k;
 
-        // this is an affine point on the Montgomery curve ideally TECurve
-        // should come with a mapping to its montgomery curve so we could
-        // just call that mapping here, but it seems not being the case, so
+        // `(s, t)` is an affine point on the Montgomery curve.
+        // Ideally, the TECurve would come with a mapping to its Montgomery curve, 
+        // so we could just call that mapping here.
+        // This is currently not supported in arkworks, so
         // we just implement the rational map here from [\[HSSWW22\]] Appendix D
 
         let tv1 = s + <P::BaseField as One>::one();
