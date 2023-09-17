@@ -106,7 +106,7 @@ impl<P: Elligator2Config> MapToCurve<Projective<P>> for Elligator2Map<P> {
         // Ideally, the TECurve would come with a mapping to its Montgomery curve, 
         // so we could just call that mapping here.
         // This is currently not supported in arkworks, so
-        // we just implement the rational map here from [\[HSSWW22\]] Appendix D
+        // we just implement the rational map here from [\[HSSWW23\]] Appendix D
 
         let tv1 = s + <P::BaseField as One>::one();
         let tv2 = tv1 * t;
