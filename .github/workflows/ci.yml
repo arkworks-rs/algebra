@@ -218,6 +218,7 @@ jobs:
         uses: actions/checkout@v2
         with:
           repository: arkworks-rs/curves
+          path: curves
 
       - name: Checkout algebra
         uses: actions/checkout@v2
@@ -235,9 +236,9 @@ jobs:
         run: |
           ls ../
           ls
-          if  grep -q "\[patch.crates-io\]" Cargo.toml ; then
-              MATCH=$(awk '/\[patch.crates-io\]/{ print NR; exit }' Cargo.toml); 
-              sed -i "$MATCH,\$d" Cargo.toml
+          if  grep -q "\[patch.crates-io\]" curves/Cargo.toml ; then
+              MATCH=$(awk '/\[patch.crates-io\]/{ print NR; exit }' curves/Cargo.toml); 
+              sed -i "$MATCH,\$d" curves/Cargo.toml
           fi
           {
             echo      "[patch.crates-io]";
@@ -258,7 +259,7 @@ jobs:
             echo      "ark-ed-on-bls12-377 = { git = 'https://github.com/arkworks-rs/curves' }"
             echo      "ark-std = { git = 'https://github.com/arkworks-rs/std' }"
             echo      "ark-r1cs-std = { git = 'https://github.com/arkworks-rs/r1cs-std' }"
-          } >> Cargo.toml
+          } >> curves/Cargo.toml
 
       - name: Test on ${{ matrix.curve }}
-        run: "cd ${{ matrix.curve }} && cargo test --all-features"
+        run: "cd curves/${{ matrix.curve }} && cargo test --all-features"
