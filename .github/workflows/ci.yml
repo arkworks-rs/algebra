@@ -222,7 +222,7 @@ jobs:
       - name: Checkout algebra
         uses: actions/checkout@v2
         with:
-          path: ../algebra
+          path: ark-algebra
 
       - name: Install Rust
         uses: actions-rs/toolchain@v1
@@ -241,13 +241,13 @@ jobs:
           fi
           {
             echo      "[patch.crates-io]";
-            echo      "ark-ff = { path = '../algebra/ff' }";
-            echo      "ark-serialize = { path = '../algebra/serialize' }";
-            echo      "ark-ff-macros = { path = '../algebra/ff-macros' }";
-            echo      "ark-ff-asm = { path = '../algebra/ff-asm' }";
-            echo      "ark-ec = { path = '../algebra/ec' }";
-            echo      "ark-algebra-bench-templates = { path = '../algebra/bench-templates' }"
-            echo      "ark-algebra-test-templates = { path = '../algebra/test-templates' }"
+            echo      "ark-ff = { path = '../ark-algebra/ff' }";
+            echo      "ark-serialize = { path = '../ark-algebra/serialize' }";
+            echo      "ark-ff-macros = { path = '../ark-algebra/ff-macros' }";
+            echo      "ark-ff-asm = { path = '../ark-algebra/ff-asm' }";
+            echo      "ark-ec = { path = '../ark-algebra/ec' }";
+            echo      "ark-algebra-bench-templates = { path = '../ark-algebra/bench-templates' }"
+            echo      "ark-algebra-test-templates = { path = '../ark-algebra/test-templates' }"
             echo      "ark-bls12-377 = { git = 'https://github.com/arkworks-rs/curves' }"
             echo      "ark-bls12-381 = { git = 'https://github.com/arkworks-rs/curves' }"
             echo      "ark-bn254 = { git = 'https://github.com/arkworks-rs/curves' }"
