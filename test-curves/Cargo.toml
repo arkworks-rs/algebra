@@ -17,7 +17,7 @@ rustdocflags.workspace = true
 [dependencies]
 ark-std = { workspace = true, default-features = false }
 ark-ff = { workspace = true, default-features = false }
-ark-ec  = { workspace = true, default-features = false }
+ark-ec = { workspace = true, default-features = false }
 
 [dev-dependencies]
 ark-serialize  = { workspace = true, default-features = false }
