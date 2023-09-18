@@ -1,12 +1,12 @@
 [package]
 name = "ark-algebra-test-templates"
 description = "A library for tests for finite fields, elliptic curves, and pairings"
+keywords = ["cryptography", "finite-fields", "elliptic-curves" ]
 documentation = "https://docs.rs/ark-algebra-test-templates/"
 version.workspace = true
 authors.workspace = true
 homepage.workspace = true
 repository.workspace = true
-keywords.workspace = true
 categories.workspace = true
 include.workspace = true
 license.workspace = true

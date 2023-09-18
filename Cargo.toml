@@ -21,7 +21,6 @@ version = "0.4.2"
 authors = [ "arkworks contributors" ]
 homepage = "https://arkworks.rs"
 repository = "https://github.com/arkworks-rs/algebra"
-keywords = ["cryptography", "finite-fields", "elliptic-curves", "pairing"]
 categories = ["cryptography"]
 include = ["Cargo.toml", "src", "README.md", "LICENSE-APACHE", "LICENSE-MIT", "doc/katex-header.html"]
 license = "MIT OR Apache-2.0"

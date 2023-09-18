@@ -1,12 +1,12 @@
 [package]
 name = "ark-test-curves"
 description = "A library for testing ark-ec & ark-poly"
+keywords = ["cryptography", "serialization" ]
 documentation = "https://docs.rs/ark-test-curves/"
 version.workspace = true
 authors.workspace = true
 homepage.workspace = true
 repository.workspace = true
-keywords.workspace = true
 categories.workspace = true
 include.workspace = true
 license.workspace = true

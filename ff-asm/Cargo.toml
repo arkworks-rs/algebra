@@ -6,13 +6,13 @@ version.workspace = true
 authors.workspace = true
 homepage.workspace = true
 repository.workspace = true
-keywords.workspace = true
 categories.workspace = true
 include.workspace = true
 license.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 rustdocflags.workspace = true
+keywords = ["cryptography", "finite-fields", "assembly" ]
 
 [dependencies]
 quote.workspace = true
