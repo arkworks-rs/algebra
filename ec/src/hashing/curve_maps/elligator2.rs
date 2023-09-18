@@ -28,7 +28,7 @@ pub struct Elligator2Map<P: TECurveConfig>(PhantomData<fn() -> P>);
 
 impl<P: Elligator2Config> MapToCurve<Projective<P>> for Elligator2Map<P> {
     /// Constructs a new map if `P` represents a valid map.
-    fn new() -> Result<Self, HashToCurveError> {
+    fn check_parameters() -> Result<(), HashToCurveError> {
         // Verifying that Z is a non-square
         debug_assert!(
             !P::Z.legendre().is_qr(),
@@ -37,11 +37,11 @@ impl<P: Elligator2Config> MapToCurve<Projective<P>> for Elligator2Map<P> {
 
         // We assume that the Montgomery curve is correct and  as such we do
         // not verify the prerequisite for applicability of Elligator2 map
-        Ok(Elligator2Map(PhantomData))
+        Ok(())
     }
 
     /// Map an arbitrary base field element `element` to a curve point.
-    fn map_to_curve(&self, element: P::BaseField) -> Result<Affine<P>, HashToCurveError> {
+    fn map_to_curve(element: P::BaseField) -> Result<Affine<P>, HashToCurveError> {
         // 1. x1 = -(J / K) * inv0(1 + Z * u^2)
         // 2. If x1 == 0, set x1 = -(J / K)
         // 3. gx1 = x1^3 + (J / K) * x1^2 + x1 / K^2
@@ -238,14 +238,15 @@ mod test {
     /// elements should be mapped to curve successfully. everything can be mapped
     #[test]
     fn map_field_to_curve_elligator2() {
-        let test_map_to_curve = Elligator2Map::<TestElligator2MapToCurveConfig>::new().unwrap();
+        Elligator2Map::<TestElligator2MapToCurveConfig>::check_parameters().unwrap();
 
         let mut map_range: Vec<Affine<TestElligator2MapToCurveConfig>> = vec![];
         for current_field_element in 0..101 {
             map_range.push(
-                test_map_to_curve
-                    .map_to_curve(F101::from(current_field_element as u64))
-                    .unwrap(),
+                Elligator2Map::<TestElligator2MapToCurveConfig>::map_to_curve(F101::from(
+                    current_field_element as u64,
+                ))
+                .unwrap(),
             );
         }
 
