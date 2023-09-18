@@ -27,7 +27,7 @@ pub trait Elligator2Config: TECurveConfig + MontCurveConfig {
 pub struct Elligator2Map<P: TECurveConfig>(PhantomData<fn() -> P>);
 
 impl<P: Elligator2Config> MapToCurve<Projective<P>> for Elligator2Map<P> {
-    /// Constructs a new map if `P` represents a valid map.
+    /// Checks if `P` represents a valid Elligator2 map.
     fn check_parameters() -> Result<(), HashToCurveError> {
         // Verifying that Z is a non-square
         debug_assert!(
