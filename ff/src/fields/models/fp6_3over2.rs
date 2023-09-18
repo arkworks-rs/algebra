@@ -1,5 +1,7 @@
-use super::cubic_extension::*;
-use crate::fields::*;
+use super::cubic_extension::{CubicExtConfig, CubicExtField};
+use crate::fields::{
+    AddAssign, CyclotomicMultSubgroup, Fp2, Fp2Config, MulAssign, SqrtPrecomputation, SubAssign,
+};
 use core::marker::PhantomData;
 
 pub trait Fp6Config: 'static + Send + Sync + Copy {

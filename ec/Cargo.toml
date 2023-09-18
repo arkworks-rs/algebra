@@ -20,6 +20,7 @@ ark-serialize.workspace = true
 ark-ff.workspace = true
 ark-poly.workspace = true
 derivative = { workspace = true, features = ["use_core"] }
+num-bigint.workspace = true
 num-traits.workspace = true
 rayon = { workspace = true, optional = true }
 zeroize = { workspace = true, features = ["zeroize_derive"] }
@@ -39,3 +40,6 @@ hex.workspace = true
 default = []
 std = [ "ark-std/std", "ark-ff/std", "ark-serialize/std" ]
 parallel = [ "std", "rayon", "ark-std/parallel" ]
+
+[package.metadata.docs.rs]
+rustdoc-args = ["--html-in-header", "./doc/katex-header.html"]

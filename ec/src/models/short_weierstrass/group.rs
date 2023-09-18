@@ -15,7 +15,7 @@ use ark_std::{
     One, Zero,
 };
 
-use ark_ff::{fields::Field, PrimeField, ToConstraintField, UniformRand};
+use ark_ff::{fields::Field, AdditiveGroup, PrimeField, ToConstraintField, UniformRand};
 
 use zeroize::Zeroize;
 
@@ -25,7 +25,7 @@ use rayon::prelude::*;
 use super::{Affine, SWCurveConfig};
 use crate::{
     scalar_mul::{variable_base::VariableBaseMSM, ScalarMul},
-    AffineRepr, CurveGroup, Group,
+    AffineRepr, CurveGroup, PrimeGroup,
 };
 
 /// Jacobian coordinates for a point on an elliptic curve in short Weierstrass
@@ -160,13 +160,11 @@ impl<P: SWCurveConfig> Zero for Projective<P> {
     }
 }
 
-impl<P: SWCurveConfig> Group for Projective<P> {
-    type ScalarField = P::ScalarField;
+impl<P: SWCurveConfig> AdditiveGroup for Projective<P> {
+    type Scalar = P::ScalarField;
 
-    #[inline]
-    fn generator() -> Self {
-        Affine::generator().into()
-    }
+    const ZERO: Self =
+        Self::new_unchecked(P::BaseField::ONE, P::BaseField::ONE, P::BaseField::ZERO);
 
     /// Sets `self = 2 * self`. Note that Jacobian formulae are incomplete, and
     /// so doubling cannot be computed as `self + self`. Instead, this
@@ -273,6 +271,15 @@ impl<P: SWCurveConfig> Group for Projective<P> {
             self
         }
     }
+}
+
+impl<P: SWCurveConfig> PrimeGroup for Projective<P> {
+    type ScalarField = P::ScalarField;
+
+    #[inline]
+    fn generator() -> Self {
+        Affine::generator().into()
+    }
 
     #[inline]
     fn mul_bigint(&self, other: impl AsRef<[u64]>) -> Self {
@@ -330,9 +337,10 @@ impl<P: SWCurveConfig> Neg for Projective<P> {
 }
 
 impl<P: SWCurveConfig, T: Borrow<Affine<P>>> AddAssign<T> for Projective<P> {
+    /// Using <http://www.hyperelliptic.org/EFD/g1p/auto-shortw-jacobian-0.html#addition-madd-2007-bl>
     fn add_assign(&mut self, other: T) {
         let other = other.borrow();
-        if let Some((&other_x, &other_y)) = other.xy() {
+        if let Some((other_x, other_y)) = other.xy() {
             if self.is_zero() {
                 self.x = other_x;
                 self.y = other_y;
@@ -563,7 +571,7 @@ impl<P: SWCurveConfig, T: Borrow<P::ScalarField>> Mul<T> for Projective<P> {
 impl<P: SWCurveConfig> From<Affine<P>> for Projective<P> {
     #[inline]
     fn from(p: Affine<P>) -> Projective<P> {
-        p.xy().map_or(Projective::zero(), |(&x, &y)| Self {
+        p.xy().map_or(Projective::zero(), |(x, y)| Self {
             x,
             y,
             z: P::BaseField::one(),

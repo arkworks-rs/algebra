@@ -6,7 +6,7 @@ use ark_std::{
     cmp::{Ord, Ordering, PartialOrd},
     fmt,
     io::{Read, Write},
-    iter::Chain,
+    iter::{Chain, IntoIterator},
     ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign},
     vec::Vec,
 };
@@ -21,7 +21,7 @@ use ark_std::rand::{
 
 use crate::{
     fields::{Field, PrimeField},
-    LegendreSymbol, SqrtPrecomputation, ToConstraintField, UniformRand,
+    AdditiveGroup, LegendreSymbol, SqrtPrecomputation, ToConstraintField, UniformRand,
 };
 
 /// Defines a Cubic extension field from a cubic non-residue.
@@ -164,14 +164,38 @@ impl<P: CubicExtConfig> One for CubicExtField<P> {
     }
 }
 
+impl<P: CubicExtConfig> AdditiveGroup for CubicExtField<P> {
+    type Scalar = Self;
+
+    const ZERO: Self = Self::new(P::BaseField::ZERO, P::BaseField::ZERO, P::BaseField::ZERO);
+
+    fn double(&self) -> Self {
+        let mut result = *self;
+        result.double_in_place();
+        result
+    }
+
+    fn double_in_place(&mut self) -> &mut Self {
+        self.c0.double_in_place();
+        self.c1.double_in_place();
+        self.c2.double_in_place();
+        self
+    }
+
+    fn neg_in_place(&mut self) -> &mut Self {
+        self.c0.neg_in_place();
+        self.c1.neg_in_place();
+        self.c2.neg_in_place();
+        self
+    }
+}
+
 type BaseFieldIter<P> = <<P as CubicExtConfig>::BaseField as Field>::BasePrimeFieldIter;
 impl<P: CubicExtConfig> Field for CubicExtField<P> {
     type BasePrimeField = P::BasePrimeField;
     type BasePrimeFieldIter = Chain<BaseFieldIter<P>, Chain<BaseFieldIter<P>, BaseFieldIter<P>>>;
 
     const SQRT_PRECOMP: Option<SqrtPrecomputation<Self>> = P::SQRT_PRECOMP;
-
-    const ZERO: Self = Self::new(P::BaseField::ZERO, P::BaseField::ZERO, P::BaseField::ZERO);
 
     const ONE: Self = Self::new(P::BaseField::ONE, P::BaseField::ZERO, P::BaseField::ZERO);
 
@@ -192,37 +216,22 @@ impl<P: CubicExtConfig> Field for CubicExtField<P> {
         )
     }
 
-    fn from_base_prime_field_elems(elems: &[Self::BasePrimeField]) -> Option<Self> {
-        if elems.len() != (Self::extension_degree() as usize) {
-            return None;
-        }
+    fn from_base_prime_field_elems(
+        elems: impl IntoIterator<Item = Self::BasePrimeField>,
+    ) -> Option<Self> {
+        let mut elems = elems.into_iter();
+        let elems = elems.by_ref();
         let base_ext_deg = P::BaseField::extension_degree() as usize;
-        Some(Self::new(
-            P::BaseField::from_base_prime_field_elems(&elems[0..base_ext_deg]).unwrap(),
-            P::BaseField::from_base_prime_field_elems(&elems[base_ext_deg..2 * base_ext_deg])
-                .unwrap(),
-            P::BaseField::from_base_prime_field_elems(&elems[2 * base_ext_deg..]).unwrap(),
-        ))
-    }
-
-    fn double(&self) -> Self {
-        let mut result = *self;
-        result.double_in_place();
-        result
-    }
-
-    fn double_in_place(&mut self) -> &mut Self {
-        self.c0.double_in_place();
-        self.c1.double_in_place();
-        self.c2.double_in_place();
-        self
-    }
-
-    fn neg_in_place(&mut self) -> &mut Self {
-        self.c0.neg_in_place();
-        self.c1.neg_in_place();
-        self.c2.neg_in_place();
-        self
+        let element = Some(Self::new(
+            P::BaseField::from_base_prime_field_elems(elems.take(base_ext_deg))?,
+            P::BaseField::from_base_prime_field_elems(elems.take(base_ext_deg))?,
+            P::BaseField::from_base_prime_field_elems(elems.take(base_ext_deg))?,
+        ));
+        if elems.next().is_some() {
+            None
+        } else {
+            element
+        }
     }
 
     #[inline]
@@ -700,9 +709,9 @@ mod cube_ext_tests {
     use super::*;
     use ark_std::test_rng;
     use ark_test_curves::{
+        ark_ff::Field,
         bls12_381::{Fq, Fq2, Fq6},
         mnt6_753::Fq3,
-        Field,
     };
 
     #[test]
@@ -730,7 +739,7 @@ mod cube_ext_tests {
             for _ in 0..d {
                 random_coeffs.push(Fq::rand(&mut test_rng()));
             }
-            let res = Fq6::from_base_prime_field_elems(&random_coeffs);
+            let res = Fq6::from_base_prime_field_elems(random_coeffs);
             assert_eq!(res, None);
         }
         // Test on slice lengths that are equal to the extension degree
@@ -741,12 +750,13 @@ mod cube_ext_tests {
             for _ in 0..ext_degree {
                 random_coeffs.push(Fq::rand(&mut test_rng()));
             }
-            let actual = Fq6::from_base_prime_field_elems(&random_coeffs).unwrap();
 
             let expected_0 = Fq2::new(random_coeffs[0], random_coeffs[1]);
             let expected_1 = Fq2::new(random_coeffs[2], random_coeffs[3]);
             let expected_2 = Fq2::new(random_coeffs[3], random_coeffs[4]);
             let expected = Fq6::new(expected_0, expected_1, expected_2);
+
+            let actual = Fq6::from_base_prime_field_elems(random_coeffs).unwrap();
             assert_eq!(actual, expected);
         }
     }
@@ -762,7 +772,7 @@ mod cube_ext_tests {
             random_coeffs[0] = random_coeff;
             assert_eq!(
                 res,
-                Fq6::from_base_prime_field_elems(&random_coeffs).unwrap()
+                Fq6::from_base_prime_field_elems(random_coeffs).unwrap()
             );
         }
     }

@@ -1,3 +1,5 @@
+use core::iter::Product;
+
 use crate::UniformRand;
 use ark_serialize::{
     CanonicalDeserialize, CanonicalDeserializeWithFlags, CanonicalSerialize,
@@ -6,6 +8,7 @@ use ark_serialize::{
 use ark_std::{
     fmt::{Debug, Display},
     hash::Hash,
+    iter::IntoIterator,
     ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign},
     vec::Vec,
 };
@@ -42,14 +45,78 @@ use ark_std::cmp::max;
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
 
-/// The interface for a generic field.  
+pub trait AdditiveGroup:
+    Eq
+    + 'static
+    + Sized
+    + CanonicalSerialize
+    + CanonicalDeserialize
+    + Copy
+    + Clone
+    + Default
+    + Send
+    + Sync
+    + Hash
+    + Debug
+    + Display
+    + UniformRand
+    + Zeroize
+    + Zero
+    + Neg<Output = Self>
+    + Add<Self, Output = Self>
+    + Sub<Self, Output = Self>
+    + Mul<<Self as AdditiveGroup>::Scalar, Output = Self>
+    + AddAssign<Self>
+    + SubAssign<Self>
+    + MulAssign<<Self as AdditiveGroup>::Scalar>
+    + for<'a> Add<&'a Self, Output = Self>
+    + for<'a> Sub<&'a Self, Output = Self>
+    + for<'a> Mul<&'a <Self as AdditiveGroup>::Scalar, Output = Self>
+    + for<'a> AddAssign<&'a Self>
+    + for<'a> SubAssign<&'a Self>
+    + for<'a> MulAssign<&'a <Self as AdditiveGroup>::Scalar>
+    + for<'a> Add<&'a mut Self, Output = Self>
+    + for<'a> Sub<&'a mut Self, Output = Self>
+    + for<'a> Mul<&'a mut <Self as AdditiveGroup>::Scalar, Output = Self>
+    + for<'a> AddAssign<&'a mut Self>
+    + for<'a> SubAssign<&'a mut Self>
+    + for<'a> MulAssign<&'a mut <Self as AdditiveGroup>::Scalar>
+    + ark_std::iter::Sum<Self>
+    + for<'a> ark_std::iter::Sum<&'a Self>
+{
+    type Scalar: Field;
+
+    /// The additive identity of the field.
+    const ZERO: Self;
+
+    /// Doubles `self`.
+    #[must_use]
+    fn double(&self) -> Self {
+        let mut copy = *self;
+        copy.double_in_place();
+        copy
+    }
+    /// Doubles `self` in place.
+    fn double_in_place(&mut self) -> &mut Self {
+        self.add_assign(*self);
+        self
+    }
+
+    /// Negates `self` in place.
+    fn neg_in_place(&mut self) -> &mut Self {
+        *self = -(*self);
+        self
+    }
+}
+
+/// The interface for a generic field.
 /// Types implementing [`Field`] support common field operations such as addition, subtraction, multiplication, and inverses.
 ///
 /// ## Defining your own field
 /// To demonstrate the various field operations, we can first define a prime ordered field $\mathbb{F}_{p}$ with $p = 17$. When defining a field $\mathbb{F}_p$, we need to provide the modulus(the $p$ in $\mathbb{F}_p$) and a generator. Recall that a generator $g \in \mathbb{F}_p$ is a field element whose powers comprise the entire field: $\mathbb{F}_p =\\{g, g^1, \ldots, g^{p-1}\\}$.
 /// We can then manually construct the field element associated with an integer with `Fp::from` and perform field addition, subtraction, multiplication, and inversion on it.
 /// ```rust
-/// use ark_ff::fields::{Field, Fp64, MontBackend, MontConfig};
+/// use ark_ff::{AdditiveGroup, fields::{Field, Fp64, MontBackend, MontConfig}};
 ///
 /// #[derive(MontConfig)]
 /// #[modulus = "17"]
@@ -74,7 +141,7 @@ use rayon::prelude::*;
 /// ## Using pre-defined fields
 /// In the following example, we’ll use the field associated with the BLS12-381 pairing-friendly group.
 /// ```rust
-/// use ark_ff::Field;
+/// use ark_ff::{AdditiveGroup, Field};
 /// use ark_test_curves::bls12_381::Fq as F;
 /// use ark_std::{One, UniformRand, test_rng};
 ///
@@ -113,40 +180,26 @@ pub trait Field:
     + CanonicalSerializeWithFlags
     + CanonicalDeserialize
     + CanonicalDeserializeWithFlags
-    + Add<Self, Output = Self>
-    + Sub<Self, Output = Self>
-    + Mul<Self, Output = Self>
+    + AdditiveGroup<Scalar = Self>
     + Div<Self, Output = Self>
-    + AddAssign<Self>
-    + SubAssign<Self>
-    + MulAssign<Self>
     + DivAssign<Self>
-    + for<'a> Add<&'a Self, Output = Self>
-    + for<'a> Sub<&'a Self, Output = Self>
-    + for<'a> Mul<&'a Self, Output = Self>
     + for<'a> Div<&'a Self, Output = Self>
-    + for<'a> AddAssign<&'a Self>
-    + for<'a> SubAssign<&'a Self>
-    + for<'a> MulAssign<&'a Self>
     + for<'a> DivAssign<&'a Self>
-    + for<'a> Add<&'a mut Self, Output = Self>
-    + for<'a> Sub<&'a mut Self, Output = Self>
-    + for<'a> Mul<&'a mut Self, Output = Self>
     + for<'a> Div<&'a mut Self, Output = Self>
-    + for<'a> AddAssign<&'a mut Self>
-    + for<'a> SubAssign<&'a mut Self>
-    + for<'a> MulAssign<&'a mut Self>
     + for<'a> DivAssign<&'a mut Self>
-    + core::iter::Sum<Self>
-    + for<'a> core::iter::Sum<&'a Self>
-    + core::iter::Product<Self>
     + for<'a> core::iter::Product<&'a Self>
     + From<u128>
     + From<u64>
     + From<u32>
     + From<u16>
     + From<u8>
+    + From<i128>
+    + From<i64>
+    + From<i32>
+    + From<i16>
+    + From<i8>
     + From<bool>
+    + Product<Self>
 {
     type BasePrimeField: PrimeField;
 
@@ -155,8 +208,6 @@ pub trait Field:
     /// Determines the algorithm for computing square roots.
     const SQRT_PRECOMP: Option<SqrtPrecomputation<Self>>;
 
-    /// The additive identity of the field.
-    const ZERO: Self;
     /// The multiplicative identity of the field.
     const ONE: Self;
 
@@ -174,7 +225,9 @@ pub trait Field:
 
     /// Convert a slice of base prime field elements into a field element.
     /// If the slice length != Self::extension_degree(), must return None.
-    fn from_base_prime_field_elems(elems: &[Self::BasePrimeField]) -> Option<Self>;
+    fn from_base_prime_field_elems(
+        elems: impl IntoIterator<Item = Self::BasePrimeField>,
+    ) -> Option<Self>;
 
     /// Constructs a field element from a single base prime field elements.
     /// ```
@@ -185,16 +238,6 @@ pub trait Field:
     /// assert_eq!(F2::from_base_prime_field(F::one()), F2::one());
     /// ```
     fn from_base_prime_field(elem: Self::BasePrimeField) -> Self;
-
-    /// Returns `self + self`.
-    #[must_use]
-    fn double(&self) -> Self;
-
-    /// Doubles `self` in place.
-    fn double_in_place(&mut self) -> &mut Self;
-
-    /// Negates `self` in place.
-    fn neg_in_place(&mut self) -> &mut Self;
 
     /// Attempt to deserialize a field element. Returns `None` if the
     /// deserialization fails.
@@ -402,7 +445,10 @@ mod no_std_tests {
     // TODO: only Fr & FrConfig should need to be imported.
     // The rest of imports are caused by cargo not resolving the deps properly
     // from this crate and from ark_test_curves
-    use ark_test_curves::{batch_inversion, batch_inversion_and_mul, bls12_381::Fr, PrimeField};
+    use ark_test_curves::{
+        ark_ff::{batch_inversion, batch_inversion_and_mul, PrimeField},
+        bls12_381::Fr,
+    };
 
     #[test]
     fn test_batch_inversion() {
@@ -427,6 +473,29 @@ mod no_std_tests {
                 rand_multiplier
             );
         }
+    }
+
+    #[test]
+    pub fn test_from_ints() {
+        let felt2 = Fr::one() + Fr::one();
+        let felt16 = felt2 * felt2 * felt2 * felt2;
+
+        assert_eq!(Fr::from(1u8), Fr::one());
+        assert_eq!(Fr::from(1u16), Fr::one());
+        assert_eq!(Fr::from(1u32), Fr::one());
+        assert_eq!(Fr::from(1u64), Fr::one());
+        assert_eq!(Fr::from(1u128), Fr::one());
+        assert_eq!(Fr::from(-1i8), -Fr::one());
+        assert_eq!(Fr::from(-1i64), -Fr::one());
+
+        assert_eq!(Fr::from(0), Fr::zero());
+
+        assert_eq!(Fr::from(-16i32), -felt16);
+        assert_eq!(Fr::from(16u32), felt16);
+        assert_eq!(Fr::from(16i64), felt16);
+
+        assert_eq!(Fr::from(-2i128), -felt2);
+        assert_eq!(Fr::from(2u16), felt2);
     }
 
     #[test]
@@ -457,7 +526,7 @@ mod no_std_tests {
         // TODO: Eventually generate all the test vector bytes via computation with the
         // modulus
         use ark_std::{rand::Rng, string::ToString};
-        use ark_test_curves::BigInteger;
+        use ark_test_curves::ark_ff::BigInteger;
         use num_bigint::BigUint;
 
         let ref_modulus = BigUint::from_bytes_be(&Fr::MODULUS.to_bytes_be());

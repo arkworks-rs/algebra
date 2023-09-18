@@ -9,7 +9,6 @@
 #![allow(clippy::op_ref, clippy::suspicious_op_assign_impl)]
 #![deny(unsafe_code)]
 #![doc = include_str!("../README.md")]
-#![doc(html_in_header = include_str!("../../doc/katex-header.html"))]
 
 #[macro_use]
 extern crate ark_std;
@@ -19,7 +18,10 @@ extern crate derivative;
 
 #[macro_use]
 pub mod biginteger;
-pub use self::biginteger::*;
+pub use biginteger::{
+    signed_mod_reduction, BigInt, BigInteger, BigInteger128, BigInteger256, BigInteger320,
+    BigInteger384, BigInteger448, BigInteger64, BigInteger768, BigInteger832,
+};
 
 #[macro_use]
 pub mod fields;

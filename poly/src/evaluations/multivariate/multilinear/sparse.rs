@@ -102,15 +102,14 @@ impl<F: Field> SparseMultilinearExtension<F> {
 /// utility: precompute f(x) = eq(g,x)
 fn precompute_eq<F: Field>(g: &[F]) -> Vec<F> {
     let dim = g.len();
-    let mut dp = Vec::with_capacity(1 << dim);
-    dp.resize(1 << dim, F::zero());
+    let mut dp = vec![F::zero(); 1 << dim];
     dp[0] = F::one() - g[0];
     dp[1] = g[0];
     for i in 1..dim {
-        let dp_prev = dp[0..(1 << i)].to_vec();
         for b in 0..(1 << i) {
-            dp[b] = dp_prev[b] * (F::one() - g[i]);
-            dp[b + (1 << i)] = dp_prev[b] * g[i];
+            let prev = dp[b];
+            dp[b + (1 << i)] = prev * g[i];
+            dp[b] = prev - dp[b + (1 << i)];
         }
     }
     dp

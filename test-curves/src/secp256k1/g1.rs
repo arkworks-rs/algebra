@@ -1,6 +1,9 @@
 use crate::secp256k1::{Fq, Fr};
-use ark_ec::{models::CurveConfig, short_weierstrass::*};
-use ark_ff::{Field, MontFp, Zero};
+use ark_ec::{
+    models::CurveConfig,
+    short_weierstrass::{Affine, Projective, SWCurveConfig},
+};
+use ark_ff::{AdditiveGroup, Field, MontFp, Zero};
 
 pub type G1Affine = Affine<Config>;
 pub type G1Projective = Projective<Config>;

@@ -73,12 +73,27 @@ macro_rules! pairing_bench {
                         })
                     },
                 );
-                pairing.bench_function(&format!("Full Pairing for {}", stringify!($curve)), |b| {
-                    b.iter(|| {
-                        i = (i + 1) % SAMPLES;
-                        <$curve as Pairing>::multi_pairing([g1s[i]], [g2s[i]])
-                    })
-                });
+
+                const NUM_PAIRS: usize = 10;
+
+                for pairs in 1..=NUM_PAIRS {
+                    pairing.bench_function(
+                        &format!(
+                            "Multi Pairing for {} with {} pairs",
+                            stringify!($curve),
+                            pairs
+                        ),
+                        |b| {
+                            b.iter(|| {
+                                i = (i + 1) % (SAMPLES - NUM_PAIRS);
+                                <$curve as Pairing>::multi_pairing(
+                                    g1s[(i)..(i + pairs)].to_vec(),
+                                    g2s[(i)..(i + pairs)].to_vec(),
+                                )
+                            })
+                        },
+                    );
+                }
             }
 
             $crate::criterion_group!(benches, pairing);

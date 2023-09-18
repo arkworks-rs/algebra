@@ -18,7 +18,10 @@ use ark_std::{
 mod montgomery_backend;
 pub use montgomery_backend::*;
 
-use crate::{BigInt, BigInteger, FftField, Field, LegendreSymbol, PrimeField, SqrtPrecomputation};
+use crate::{
+    AdditiveGroup, BigInt, BigInteger, FftField, Field, LegendreSymbol, PrimeField,
+    SqrtPrecomputation,
+};
 /// A trait that specifies the configuration of a prime field.
 /// Also specifies how to perform arithmetic on field elements.
 pub trait FpConfig<const N: usize>: Send + Sync + 'static + Sized {
@@ -110,6 +113,9 @@ pub trait FpConfig<const N: usize>: Send + Sync + 'static + Sized {
     Eq(bound = "")
 )]
 pub struct Fp<P: FpConfig<N>, const N: usize>(
+    /// Contains the element in Montgomery form for efficient multiplication.
+    /// To convert an element to a [`BigInt`](struct@BigInt), use `into_bigint` or `into`.
+    #[doc(hidden)]
     pub BigInt<N>,
     #[derivative(Debug = "ignore")]
     #[doc(hidden)]
@@ -186,32 +192,9 @@ impl<P: FpConfig<N>, const N: usize> One for Fp<P, N> {
     }
 }
 
-impl<P: FpConfig<N>, const N: usize> Field for Fp<P, N> {
-    type BasePrimeField = Self;
-    type BasePrimeFieldIter = iter::Once<Self::BasePrimeField>;
-
-    const SQRT_PRECOMP: Option<SqrtPrecomputation<Self>> = P::SQRT_PRECOMP;
+impl<P: FpConfig<N>, const N: usize> AdditiveGroup for Fp<P, N> {
+    type Scalar = Self;
     const ZERO: Self = P::ZERO;
-    const ONE: Self = P::ONE;
-
-    fn extension_degree() -> u64 {
-        1
-    }
-
-    fn from_base_prime_field(elem: Self::BasePrimeField) -> Self {
-        elem
-    }
-
-    fn to_base_prime_field_elements(&self) -> Self::BasePrimeFieldIter {
-        iter::once(*self)
-    }
-
-    fn from_base_prime_field_elems(elems: &[Self::BasePrimeField]) -> Option<Self> {
-        if elems.len() != (Self::extension_degree() as usize) {
-            return None;
-        }
-        Some(elems[0])
-    }
 
     #[inline]
     fn double(&self) -> Self {
@@ -230,6 +213,37 @@ impl<P: FpConfig<N>, const N: usize> Field for Fp<P, N> {
     fn neg_in_place(&mut self) -> &mut Self {
         P::neg_in_place(self);
         self
+    }
+}
+
+impl<P: FpConfig<N>, const N: usize> Field for Fp<P, N> {
+    type BasePrimeField = Self;
+    type BasePrimeFieldIter = iter::Once<Self::BasePrimeField>;
+
+    const SQRT_PRECOMP: Option<SqrtPrecomputation<Self>> = P::SQRT_PRECOMP;
+    const ONE: Self = P::ONE;
+
+    fn extension_degree() -> u64 {
+        1
+    }
+
+    fn from_base_prime_field(elem: Self::BasePrimeField) -> Self {
+        elem
+    }
+
+    fn to_base_prime_field_elements(&self) -> Self::BasePrimeFieldIter {
+        iter::once(*self)
+    }
+
+    fn from_base_prime_field_elems(
+        elems: impl IntoIterator<Item = Self::BasePrimeField>,
+    ) -> Option<Self> {
+        let mut elems = elems.into_iter();
+        let elem = elems.next()?;
+        if elems.next().is_some() {
+            return None;
+        }
+        Some(elem)
     }
 
     #[inline]

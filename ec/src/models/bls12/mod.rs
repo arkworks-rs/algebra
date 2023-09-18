@@ -178,13 +178,13 @@ impl<P: Bls12Config> Bls12<P> {
 
         match P::TWIST_TYPE {
             TwistType::M => {
-                c2.mul_assign_by_fp(py);
-                c1.mul_assign_by_fp(px);
+                c2.mul_assign_by_fp(&py);
+                c1.mul_assign_by_fp(&px);
                 f.mul_by_014(&c0, &c1, &c2);
             },
             TwistType::D => {
-                c0.mul_assign_by_fp(py);
-                c1.mul_assign_by_fp(px);
+                c0.mul_assign_by_fp(&py);
+                c1.mul_assign_by_fp(&px);
                 f.mul_by_034(&c0, &c1, &c2);
             },
         }
