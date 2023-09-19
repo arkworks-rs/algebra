@@ -42,7 +42,7 @@ impl<P: SWUConfig> MapToCurve<Projective<P>> for SWUMap<P> {
     /// Map an arbitrary base field element to a curve point.
     /// Based on
     /// <https://github.com/zcash/pasta_curves/blob/main/src/hashtocurve.rs>.
-    fn map_to_curve(point: P::BaseField) -> Result<Affine<P>, HashToCurveError> {
+    fn map_to_curve(element: P::BaseField) -> Result<Affine<P>, HashToCurveError> {
         // 1. tv1 = inv0(Z^2 * u^4 + Z * u^2)
         // 2. x1 = (-B / A) * (1 + tv1)
         // 3. If tv1 == 0, set x1 = B / (Z * A)
@@ -67,7 +67,7 @@ impl<P: SWUConfig> MapToCurve<Projective<P>> for SWUMap<P> {
         let a = P::COEFF_A;
         let b = P::COEFF_B;
 
-        let zeta_u2 = P::ZETA * point.square();
+        let zeta_u2 = P::ZETA * element.square();
         let ta = zeta_u2.square() + zeta_u2;
         let num_x1 = b * (ta + <P::BaseField as One>::one());
         let div = a * if ta.is_zero() { P::ZETA } else { -ta };
@@ -121,12 +121,12 @@ impl<P: SWUConfig> MapToCurve<Projective<P>> for SWUMap<P> {
         // u^3 * y1 is a square root of gx2. Note that we don't actually need to
         // compute gx2.
 
-        let y2 = zeta_u2 * point * y1;
+        let y2 = zeta_u2 * element * y1;
         let num_x = if gx1_square { num_x1 } else { num_x2 };
         let y = if gx1_square { y1 } else { y2 };
 
         let x_affine = num_x / div;
-        let y_affine = if parity(&y) != parity(&point) { -y } else { y };
+        let y_affine = if parity(&y) != parity(&element) { -y } else { y };
         let point_on_curve = Affine::<P>::new_unchecked(x_affine, y_affine);
         debug_assert!(
             point_on_curve.is_on_curve(),
@@ -247,8 +247,8 @@ mod test {
 
         let mut map_range: Vec<Affine<TestSWUMapToCurveConfig>> = vec![];
         for current_field_element in 0..127 {
-            let point = F127::from(current_field_element as u64);
-            map_range.push(SWUMap::<TestSWUMapToCurveConfig>::map_to_curve(point).unwrap());
+            let element = F127::from(current_field_element as u64);
+            map_range.push(SWUMap::<TestSWUMapToCurveConfig>::map_to_curve(element).unwrap());
         }
 
         let mut counts = HashMap::new();
