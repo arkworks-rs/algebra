@@ -29,7 +29,7 @@ impl DST {
             ArrayVec::try_from(long.finalize_fixed().as_ref()).unwrap()
         } else {
             ArrayVec::try_from(dst).unwrap()
-       };
+        };
         DST(array)
     }
 
