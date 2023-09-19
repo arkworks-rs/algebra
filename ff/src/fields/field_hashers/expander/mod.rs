@@ -1,6 +1,8 @@
 // The below implementation is a rework of https://github.com/armfazh/h2c-rust-ref
 // With some optimisations
 
+use core::marker::PhantomData;
+
 use ark_std::vec::Vec;
 
 use arrayvec::ArrayVec;
@@ -55,7 +57,7 @@ impl DST {
 }
 
 pub(super) struct ExpanderXof<H: ExtendableOutput + Clone + Default> {
-    pub(super) xofer: H,
+    pub(super) xofer: PhantomData<H>,
     pub(super) dst: Vec<u8>,
     pub(super) k: usize,
 }
@@ -75,7 +77,7 @@ impl<H: ExtendableOutput + Clone + Default> Expander for ExpanderXof<H> {
 }
 
 pub(super) struct ExpanderXmd<H: FixedOutputReset + Default + Clone> {
-    pub(super) hasher: H,
+    pub(super) hasher: PhantomData<H>,
     pub(super) dst: Vec<u8>,
     pub(super) block_size: usize,
 }

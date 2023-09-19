@@ -1,5 +1,7 @@
 mod expander;
 
+use core::marker::PhantomData;
+
 use crate::{Field, PrimeField};
 
 use digest::{FixedOutputReset, XofReader};
@@ -50,7 +52,7 @@ impl<F: Field, H: FixedOutputReset + Default + Clone, const SEC_PARAM: usize> Ha
         let len_per_base_elem = get_len_per_elem::<F, SEC_PARAM>();
 
         let expander = ExpanderXmd {
-            hasher: H::default(),
+            hasher: PhantomData,
             dst: dst.to_vec(),
             block_size: len_per_base_elem,
         };
