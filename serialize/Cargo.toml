@@ -1,29 +1,30 @@
 [package]
 name = "ark-serialize"
-version = "0.4.2"
-authors = [ "arkworks contributors" ]
 description = "A library for serializing types in the arkworks ecosystem"
-homepage = "https://arkworks.rs"
-repository = "https://github.com/arkworks-rs/algebra"
 documentation = "https://docs.rs/ark-serialize/"
+version.workspace = true
+authors.workspace = true
+homepage.workspace = true
+repository.workspace = true
+categories.workspace = true
+include.workspace = true
+license.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+rustdocflags.workspace = true
 keywords = ["cryptography", "serialization" ]
-categories = ["cryptography"]
-include = ["Cargo.toml", "src", "README.md", "LICENSE-APACHE", "LICENSE-MIT"]
-license = "MIT OR Apache-2.0"
-edition = "2021"
-rust-version = "1.63"
 
 [dependencies]
-ark-serialize-derive = { version = "0.4.2", path = "../serialize-derive", optional = true }
-ark-std = { version = "0.4.0", default-features = false }
-digest = { version = "0.10", default-features = false }
-num-bigint = { version = "0.4", default-features = false }
+ark-serialize-derive = { workspace = true, optional = true }
+ark-std.workspace = true
+digest.workspace = true
+num-bigint.workspace = true
 
 [dev-dependencies]
-sha2 = { version = "0.10", default-features = false}
-sha3 = { version = "0.10", default-features = false}
-blake2 = { version = "0.10", default-features = false}
-ark-test-curves = { version = "0.4.2", path = "../test-curves", default-features = false, features = [ "bls12_381_curve"] }
+sha2.workspace = true
+sha3.workspace = true
+blake2.workspace = true
+ark-test-curves = { workspace = true, default-features = false, features = [ "bls12_381_curve"] }
 
 
 [features]

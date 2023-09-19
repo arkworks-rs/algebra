@@ -1,21 +1,22 @@
 [package]
 name = "ark-ff-asm"
-version = "0.4.2"
-authors = [ "arkworks contributors" ]
 description = "A library for generating x86-64 assembly for finite field multiplication"
-homepage = "https://arkworks.rs"
-repository = "https://github.com/arkworks-rs/algebra"
 documentation = "https://docs.rs/ark-ff-asm/"
+version.workspace = true
+authors.workspace = true
+homepage.workspace = true
+repository.workspace = true
+categories.workspace = true
+include.workspace = true
+license.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+rustdocflags.workspace = true
 keywords = ["cryptography", "finite-fields", "assembly" ]
-categories = ["cryptography"]
-include = ["Cargo.toml", "src", "README.md", "LICENSE-APACHE", "LICENSE-MIT"]
-license = "MIT OR Apache-2.0"
-edition = "2021"
-rust-version = "1.60"
 
 [dependencies]
-quote = "1.0.0"
-syn = { version = "1.0.0", features = ["full", "parsing", "extra-traits"]}
+quote.workspace = true
+syn = { workspace = true, features = ["full", "parsing", "extra-traits"]}
 
 [lib]
 proc-macro = true
