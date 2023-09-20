@@ -2,8 +2,6 @@
 
 ## Pending
 
-- [\#659](https://github.com/arkworks-rs/algebra/pull/659) (`ark-ec`) Add Elligator2 hash-to-curve map.
-
 ### Breaking changes
 
 - [\#659](https://github.com/arkworks-rs/algebra/pull/659) (`ark-ec`) Move auxiliary `parity` function from `ark_ec::hashing::curve_maps::swu` to `ark_ec::hashing::curve_maps`.
@@ -12,6 +10,8 @@
 - [\#633](https://github.com/arkworks-rs/algebra/pull/633) (`ark-ec`) Generic pairing implementation for the curves from the BW6 family.
 
 ### Features
+
+- [\#659](https://github.com/arkworks-rs/algebra/pull/659) (`ark-ec`) Add Elligator2 hash-to-curve map.
 
 ### Improvements
 
