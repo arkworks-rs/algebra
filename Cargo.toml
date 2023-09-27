@@ -1,5 +1,4 @@
 [workspace]
-
 members = [
     "serialize",
     "serialize-derive",
@@ -15,6 +14,61 @@ members = [
     "test-curves",
     "test-templates",
 ]
+resolver = "2"
+
+[workspace.package]
+version = "0.4.2"
+authors = [ "arkworks contributors" ]
+homepage = "https://arkworks.rs"
+repository = "https://github.com/arkworks-rs/algebra"
+categories = ["cryptography"]
+include = ["Cargo.toml", "src", "README.md", "LICENSE-APACHE", "LICENSE-MIT", "doc/katex-header.html"]
+license = "MIT OR Apache-2.0"
+edition = "2021"
+rust-version = "1.70"
+
+[workspace.metadata.docs.rs]
+rustdoc-args = [ "--html-in-header katex-header.html" ]
+
+[workspace.dependencies]
+ark-ec = { version = "0.4.2", path = "./ec", default-features = false }
+ark-ff = { version = "0.4.2", path = "./ff", default-features = false }
+ark-ff-asm = { version = "0.4.2", path = "./ff-asm" }
+ark-ff-macros = { version = "0.4.2", path = "./ff-macros" }
+ark-poly = { version = "0.4.2", path = "./poly", default-features = false }
+ark-serialize = { version = "0.4.2", path = "./serialize", default-features = false }
+ark-serialize-derive = { version = "0.4.2", path = "./serialize-derive" }
+ark-std = { version = "0.4.0", default-features = false }
+
+ark-algebra-bench-templates =  { version = "0.4.2", path = "./bench-templates", default-features = false }
+ark-algebra-test-templates = { version = "0.4.2", path = "./test-templates", default-features = false }
+ark-test-curves = { version = "0.4.2", path = "./test-curves", default-features = false }
+
+num-traits = { version = "0.2", default-features = false }
+num-bigint = { version = "0.4", default-features = false }
+num-integer = { version = "0.1", default-features = false }
+
+criterion = "0.5.0"
+derivative = "2"
+digest = { version = "0.10", default-features = false }
+hashbrown = "0.14"
+hex = "0.4"
+itertools = { version = "0.11", default-features = false }
+libtest-mimic = "0.6.0"
+paste = "1.0"
+rayon = "1"
+serde = "1.0"
+serde_derive = "1.0"
+serde_json = "1.0"
+sha2 = { version = "0.10", default-features = false }
+sha3 = { version = "0.10", default-features = false }
+blake2 = { version = "0.10", default-features = false }
+zeroize = { version = "1", default-features = false }
+
+
+proc-macro2 = "1.0"
+quote = "1.0"
+syn = "1.0"
 
 resolver = "2"
 

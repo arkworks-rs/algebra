@@ -1,39 +1,40 @@
 [package]
 name = "ark-ec"
-version = "0.4.2"
-authors = [ "arkworks contributors" ]
 description = "A library for elliptic curves and pairings"
-homepage = "https://arkworks.rs"
-repository = "https://github.com/arkworks-rs/algebra"
 documentation = "https://docs.rs/ark-ec/"
+version.workspace = true
+authors.workspace = true
+homepage.workspace = true
+repository.workspace = true
+categories.workspace = true
+include.workspace = true
+license.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+rustdocflags.workspace = true
 keywords = ["cryptography", "elliptic-curves", "pairing"]
-categories = ["cryptography"]
-include = ["Cargo.toml", "src", "doc", "README.md", "LICENSE-APACHE", "LICENSE-MIT"]
-license = "MIT OR Apache-2.0"
-edition = "2021"
-rust-version = "1.63"
 
 [dependencies]
-ark-std = { version = "0.4.0", default-features = false }
-ark-serialize = { version = "0.4.2", path = "../serialize", default-features = false }
-ark-ff = { version = "0.4.2", path = "../ff", default-features = false }
-ark-poly = { version = "0.4.2", path = "../poly", default-features = false }
-derivative = { version = "2", features = ["use_core"] }
-num-traits = { version = "0.2", default-features = false }
-rayon = { version = "1", optional = true }
-zeroize = { version = "1", default-features = false, features = ["zeroize_derive"] }
-hashbrown = "0.14.0"
-itertools = { version = "0.11", default-features = false }
-num-bigint = { version = "0.4.3", default-features = false }
+ark-std.workspace = true
+ark-serialize.workspace = true
+ark-ff.workspace = true
+ark-poly.workspace = true
+derivative = { workspace = true, features = ["use_core"] }
+num-bigint.workspace = true
+num-traits.workspace = true
+rayon = { workspace = true, optional = true }
+zeroize = { workspace = true, features = ["zeroize_derive"] }
+hashbrown.workspace = true
+itertools.workspace = true
 
 [dev-dependencies]
-ark-test-curves = { version = "0.4.2", path = "../test-curves", default-features = false, features = ["bls12_381_curve"] }
-sha2 = { version = "0.10", default-features = false }
-libtest-mimic = "0.6.0"
-serde = "1.0.110"
-serde_json = "1.0.53"
-serde_derive = "1.0.110"
-hex = "0.4"
+ark-test-curves = { workspace = true, features = ["bls12_381_curve"] }
+sha2.workspace = true
+libtest-mimic.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+serde_derive.workspace = true
+hex.workspace = true
 
 [features]
 default = []
