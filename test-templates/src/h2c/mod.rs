@@ -52,11 +52,11 @@ macro_rules! test_h2c {
 
                 for v in data.vectors.iter() {
                     // first, hash-to-field tests
-                    let got: Vec<$base_prime_field> =
-                        hasher.hash_to_field(&v.msg.as_bytes(), 2 * $m);
+                    let got: [$base_prime_field; { 2 * $m }] =
+                        hasher.hash_to_field(&v.msg.as_bytes());
                     let want: Vec<$base_prime_field> =
                         v.u.iter().map(read_fq_vec).flatten().collect();
-                    assert_eq!(got, want);
+                    assert_eq!(got[..], *want);
 
                     // then, test curve points
                     let x = read_fq_vec(&v.p.x);
