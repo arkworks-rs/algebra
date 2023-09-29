@@ -56,7 +56,7 @@ where
         // 5. P = clear_cofactor(R)
         // 6. return P
 
-        let rand_field_elems = self.field_hasher.hash_to_field(msg, 2);
+        let rand_field_elems = self.field_hasher.hash_to_field::<2>(msg);
 
         let rand_curve_elem_0 = M2C::map_to_curve(rand_field_elems[0])?;
         let rand_curve_elem_1 = M2C::map_to_curve(rand_field_elems[1])?;

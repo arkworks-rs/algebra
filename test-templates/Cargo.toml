@@ -1,31 +1,32 @@
 [package]
 name = "ark-algebra-test-templates"
-version = "0.4.2"
-authors = [ "arkworks contributors" ]
 description = "A library for tests for finite fields, elliptic curves, and pairings"
-homepage = "https://arkworks.rs"
-repository = "https://github.com/arkworks-rs/algebra"
-documentation = "https://docs.rs/ark-curve-tests/"
 keywords = ["cryptography", "finite-fields", "elliptic-curves" ]
-categories = ["cryptography"]
-include = ["Cargo.toml", "src", "README.md", "LICENSE-APACHE", "LICENSE-MIT"]
-license = "MIT OR Apache-2.0"
-edition = "2021"
-rust-version = "1.63"
+documentation = "https://docs.rs/ark-algebra-test-templates/"
+version.workspace = true
+authors.workspace = true
+homepage.workspace = true
+repository.workspace = true
+categories.workspace = true
+include.workspace = true
+license.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+rustdocflags.workspace = true
 
 [dependencies]
-ark-std = { version = "0.4.0", default-features = false }
-ark-serialize = { version = "0.4.2", path = "../serialize", default-features = false }
-ark-ff = { version = "0.4.2", path = "../ff", default-features = false }
-ark-ec = { version = "0.4.2", path = "../ec", default-features = false }
-num-bigint = { version = "0.4", default-features = false }
-num-integer = { version = "0.1", default-features = false }
-num-traits = { version = "0.2", default-features = false }
-serde = "1.0"
-serde_json = "1.0"
-serde_derive = "1.0"
-hex = "0.4"
-sha2 = { version = "0.10", default-features = false }
+ark-std.workspace = true
+ark-serialize.workspace = true
+ark-ff.workspace = true
+ark-ec.workspace = true
+num-bigint.workspace = true
+num-integer.workspace = true
+num-traits.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+serde_derive.workspace = true
+hex.workspace = true
+sha2.workspace = true
 
 [features]
 default = []
