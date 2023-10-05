@@ -21,6 +21,12 @@ pub trait Elligator2Config: TECurveConfig + MontCurveConfig {
     /// non-square with lowest absolute value in the `BaseField` when its elements
     /// are represented as [-(q-1)/2, (q-1)/2]
     const Z: Self::BaseField;
+
+    /// This must be equal to 1/(MontCurveConfig::COEFF_B)^2;
+    const ONE_OVER_COEFF_B_SQUARE: Self::BaseField;
+
+    /// This must be equal to MontCurveConfig::COEFF_A/MontCurveConfig::COEFF_B;
+    const COEFF_A_OVER_COEFF_B: Self::BaseField;
 }
 
 /// Represents the Elligator2 hash-to-curve map defined by `P`.
@@ -36,6 +42,21 @@ impl<P: Elligator2Config> Elligator2Map<P> {
         debug_assert!(
             !P::Z.legendre().is_qr(),
             "Z should be a quadratic non-residue for the Elligator2 map"
+        );
+
+        debug_assert_eq!(
+            P::ONE_OVER_COEFF_B_SQUARE,
+            <P as MontCurveConfig>::COEFF_B
+                .square()
+                .inverse()
+                .expect("B coefficient cannot be zero in Montgomery form"),
+            "ONE_OVER_COEFF_B_SQUARE is not equal to 1/COEFF_B^2 in Montgomery form"
+        );
+
+        debug_assert_eq!(
+            P::COEFF_A_OVER_COEFF_B,
+            <P as MontCurveConfig>::COEFF_A / <P as MontCurveConfig>::COEFF_B,
+            "COEFF_A_OVER_COEFF_B is not equal to COEFF_A/COEFF_B in Montgomery form"
         );
         Ok(())
     }
@@ -64,14 +85,9 @@ impl<P: Elligator2Config> MapToCurve<Projective<P>> for Elligator2Map<P> {
 
         // ark a is irtf J
         // ark b is irtf k
-        let j = <P as MontCurveConfig>::COEFF_A;
         let k = <P as MontCurveConfig>::COEFF_B;
-        let j_on_k = j / k;
-
-        let ksq_inv = k
-            .square()
-            .inverse()
-            .expect("B coefficient cannot be zero in Montgomery form");
+        let j_on_k = P::COEFF_A_OVER_COEFF_B;
+        let ksq_inv = P::ONE_OVER_COEFF_B_SQUARE;
 
         let den_1 = <P::BaseField as One>::one() + P::Z * element.square();
 
