@@ -236,8 +236,16 @@ mod test {
 
     /// sage: find_z_ell2(F101)
     /// 2
+    /// sage: F101 = FiniteField(101)
+    /// sage: 1/F101("23")^2
+    /// 80
+    /// sage: F101("76")/F101("23")
+    /// 56
     impl Elligator2Config for TestElligator2MapToCurveConfig {
         const Z: F101 = MontFp!("2");
+        const ONE_OVER_COEFF_B_SQUARE: F101 = MontFp!("80");
+
+        const COEFF_A_OVER_COEFF_B: F101 = MontFp!("56");
     }
 
     /// The point of the test is to get a simple twisted edwards curve and make
