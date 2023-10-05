@@ -1,6 +1,9 @@
 //! Multilinear polynomial represented in dense evaluation form.
 
-use crate::evaluations::multivariate::multilinear::{swap_bits, MultilinearExtension};
+use crate::{
+    evaluations::multivariate::multilinear::{swap_bits, MultilinearExtension},
+    Polynomial,
+};
 use ark_ff::{Field, Zero};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use ark_std::{
@@ -304,6 +307,18 @@ impl<F: Field> Zero for DenseMultilinearExtension<F> {
 
     fn is_zero(&self) -> bool {
         self.num_vars == 0 && self.evaluations[0].is_zero()
+    }
+}
+
+impl<F: Field> Polynomial<F> for DenseMultilinearExtension<F> {
+    type Point = Vec<F>;
+
+    fn degree(&self) -> usize {
+        1
+    }
+
+    fn evaluate(&self, point: &Self::Point) -> F {
+        MultilinearExtension::<F>::evaluate(self, point).unwrap()
     }
 }
 

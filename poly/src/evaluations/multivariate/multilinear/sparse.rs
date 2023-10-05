@@ -2,7 +2,7 @@
 
 use crate::{
     evaluations::multivariate::multilinear::swap_bits, DenseMultilinearExtension,
-    MultilinearExtension,
+    MultilinearExtension, Polynomial,
 };
 use ark_ff::{Field, Zero};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
@@ -224,6 +224,18 @@ impl<F: Field> Index<usize> for SparseMultilinearExtension<F> {
         } else {
             &self.zero
         }
+    }
+}
+
+impl<F: Field> Polynomial<F> for SparseMultilinearExtension<F> {
+    type Point = Vec<F>;
+
+    fn degree(&self) -> usize {
+        1
+    }
+
+    fn evaluate(&self, point: &Self::Point) -> F {
+        MultilinearExtension::<F>::evaluate(self, point).unwrap()
     }
 }
 

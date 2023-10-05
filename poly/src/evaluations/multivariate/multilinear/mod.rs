@@ -16,6 +16,8 @@ use ark_ff::{Field, Zero};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use ark_std::rand::Rng;
 
+use crate::Polynomial;
+
 /// This trait describes an interface for the multilinear extension
 /// of an array.
 /// The latter is a multilinear polynomial represented in terms of its
@@ -39,6 +41,7 @@ pub trait MultilinearExtension<F: Field>:
     + for<'a> AddAssign<(F, &'a Self)>
     + for<'a> SubAssign<&'a Self>
     + Index<usize>
+    + Polynomial<F>
 {
     /// Returns the number of variables in `self`
     fn num_vars(&self) -> usize;
