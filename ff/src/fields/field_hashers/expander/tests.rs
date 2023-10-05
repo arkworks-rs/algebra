@@ -5,6 +5,7 @@ use sha3::{Shake128, Shake256};
 use std::{
     fs::{read_dir, File},
     io::BufReader,
+    marker::PhantomData,
 };
 
 use super::{Expander, ExpanderXmd, ExpanderXof};
@@ -99,29 +100,29 @@ fn get_expander(id: ExpID, _dst: &[u8], k: usize) -> Box<dyn Expander> {
     match id {
         ExpID::XMD(h) => match h {
             HashID::SHA256 => Box::new(ExpanderXmd {
-                hasher: Sha256::default(),
+                hasher: PhantomData::<Sha256>,
                 block_size: 64,
                 dst,
             }),
             HashID::SHA384 => Box::new(ExpanderXmd {
-                hasher: Sha384::default(),
+                hasher: PhantomData::<Sha384>,
                 block_size: 128,
                 dst,
             }),
             HashID::SHA512 => Box::new(ExpanderXmd {
-                hasher: Sha512::default(),
+                hasher: PhantomData::<Sha512>,
                 block_size: 128,
                 dst,
             }),
         },
         ExpID::XOF(x) => match x {
             XofID::SHAKE128 => Box::new(ExpanderXof {
-                xofer: Shake128::default(),
+                xofer: PhantomData::<Shake128>,
                 k,
                 dst,
             }),
             XofID::SHAKE256 => Box::new(ExpanderXof {
-                xofer: Shake256::default(),
+                xofer: PhantomData::<Shake256>,
                 k,
                 dst,
             }),

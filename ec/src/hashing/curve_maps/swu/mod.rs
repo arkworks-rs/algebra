@@ -24,8 +24,8 @@ pub trait SWUConfig: SWCurveConfig {
 pub struct SWUMap<P: SWUConfig>(PhantomData<fn() -> P>);
 
 impl<P: SWUConfig> MapToCurve<Projective<P>> for SWUMap<P> {
-    /// Checks if `P` represents a valid map.
-    fn check_parameters() -> Result<(), HashToCurveError> {
+    /// Constructs a new map if `P` represents a valid map.
+    fn new() -> Result<Self, HashToCurveError> {
         // Verifying that ZETA is a non-square
         debug_assert!(
             !P::ZETA.legendre().is_qr(),
@@ -36,13 +36,13 @@ impl<P: SWUConfig> MapToCurve<Projective<P>> for SWUMap<P> {
         debug_assert!(!P::COEFF_A.is_zero() && !P::COEFF_B.is_zero(),
 		      "Simplified SWU requires a * b != 0 in the short Weierstrass form of y^2 = x^3 + a*x + b ");
 
-        Ok(())
+        Ok(SWUMap(PhantomData))
     }
 
     /// Map an arbitrary base field element to a curve point.
     /// Based on
     /// <https://github.com/zcash/pasta_curves/blob/main/src/hashtocurve.rs>.
-    fn map_to_curve(element: P::BaseField) -> Result<Affine<P>, HashToCurveError> {
+    fn map_to_curve(&self, element: P::BaseField) -> Result<Affine<P>, HashToCurveError> {
         // 1. tv1 = inv0(Z^2 * u^4 + Z * u^2)
         // 2. x1 = (-B / A) * (1 + tv1)
         // 3. If tv1 == 0, set x1 = B / (Z * A)
@@ -247,12 +247,17 @@ mod test {
     /// elements should be mapped to curve successfully. everything can be mapped
     #[test]
     fn map_field_to_curve_swu() {
-        SWUMap::<TestSWUMapToCurveConfig>::check_parameters().unwrap();
+        let test_map_to_curve = SWUMap::<TestSWUMapToCurveConfig>::new().unwrap();
 
         let mut map_range: Vec<Affine<TestSWUMapToCurveConfig>> = vec![];
         for current_field_element in 0..127 {
-            let element = F127::from(current_field_element as u64);
-            map_range.push(SWUMap::<TestSWUMapToCurveConfig>::map_to_curve(element).unwrap());
+	    let element = F127::from(current_field_element as u64);
+
+            map_range.push(
+                test_map_to_curve
+                    .map_to_curve(element)
+                    .unwrap(),
+            );
         }
 
         let mut counts = HashMap::new();
