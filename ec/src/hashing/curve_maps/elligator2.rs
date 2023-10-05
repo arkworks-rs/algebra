@@ -27,9 +27,9 @@ pub trait Elligator2Config: TECurveConfig + MontCurveConfig {
 pub struct Elligator2Map<P: TECurveConfig>(PhantomData<fn() -> P>);
 
 impl<P: Elligator2Config> Elligator2Map<P> {
-     /// Checks if `P` represents a valid Elligator2 map. Panics otherwise.
+    /// Checks if `P` represents a valid Elligator2 map. Panics otherwise.
     fn check_parameters() -> Result<(), HashToCurveError> {
-	// We assume that the Montgomery curve is correct and  as such we do
+        // We assume that the Montgomery curve is correct and  as such we do
         // not verify the prerequisite for applicability of Elligator2 map to the TECurveConfing.
 
         // Verifying that Z is a non-square
@@ -37,14 +37,14 @@ impl<P: Elligator2Config> Elligator2Map<P> {
             !P::Z.legendre().is_qr(),
             "Z should be a quadratic non-residue for the Elligator2 map"
         );
-	Ok(())
+        Ok(())
     }
 }
 
 impl<P: Elligator2Config> MapToCurve<Projective<P>> for Elligator2Map<P> {
     fn new() -> Result<Self, HashToCurveError> {
-	//Checking validity `Elligator2Config` so we actually representing a valid Elligator2 map.
-	Self::check_parameters()?;
+        // Checking validity `Elligator2Config` so we actually representing a valid Elligator2 map.
+        Self::check_parameters()?;
 
         Ok(Elligator2Map(PhantomData))
     }
@@ -252,14 +252,13 @@ mod test {
         let test_map_to_curve = Elligator2Map::<TestElligator2MapToCurveConfig>::new().unwrap();
 
         let mut map_range: Vec<Affine<TestElligator2MapToCurveConfig>> = vec![];
-	//We are mapping all elemnts of the field to the curve, verifying that
-	//map is not constant on that set.
+        // We are mapping all elemnts of the field to the curve, verifying that
+        // map is not constant on that set.
         for current_field_element in 0..101 {
             map_range.push(
-                test_map_to_curve.map_to_curve(F101::from(
-                    current_field_element as u64,
-                ))
-                .unwrap(),
+                test_map_to_curve
+                    .map_to_curve(F101::from(current_field_element as u64))
+                    .unwrap(),
             );
         }
 

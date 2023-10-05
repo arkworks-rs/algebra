@@ -5,7 +5,6 @@ pub mod wb;
 
 //// parity method on the Field elements based on [\[1\]] Section 4.1
 //// which is used by multiple curve maps including Elligator2 and SWU
-///
 /// - [\[1\]] <https://datatracker.ietf.org/doc/html/rfc9380/>
 pub fn parity<F: Field>(element: &F) -> bool {
     element
