@@ -26,22 +26,31 @@ pub trait Elligator2Config: TECurveConfig + MontCurveConfig {
 /// Represents the Elligator2 hash-to-curve map defined by `P`.
 pub struct Elligator2Map<P: TECurveConfig>(PhantomData<fn() -> P>);
 
-impl<P: Elligator2Config> MapToCurve<Projective<P>> for Elligator2Map<P> {
-    /// Checks if `P` represents a valid Elligator2 map.
+impl<P: Elligator2Config> Elligator2Map<P> {
+     /// Checks if `P` represents a valid Elligator2 map. Panics otherwise.
     fn check_parameters() -> Result<(), HashToCurveError> {
+	// We assume that the Montgomery curve is correct and  as such we do
+        // not verify the prerequisite for applicability of Elligator2 map to the TECurveConfing.
+
         // Verifying that Z is a non-square
         debug_assert!(
             !P::Z.legendre().is_qr(),
             "Z should be a quadratic non-residue for the Elligator2 map"
         );
+	Ok(())
+    }
+}
 
-        // We assume that the Montgomery curve is correct and  as such we do
-        // not verify the prerequisite for applicability of Elligator2 map
-        Ok(())
+impl<P: Elligator2Config> MapToCurve<Projective<P>> for Elligator2Map<P> {
+    fn new() -> Result<Self, HashToCurveError> {
+	//Checking validity `Elligator2Config` so we actually representing a valid Elligator2 map.
+	Self::check_parameters()?;
+
+        Ok(Elligator2Map(PhantomData))
     }
 
     /// Map an arbitrary base field element `element` to a curve point.
-    fn map_to_curve(element: P::BaseField) -> Result<Affine<P>, HashToCurveError> {
+    fn map_to_curve(&self, element: P::BaseField) -> Result<Affine<P>, HashToCurveError> {
         // 1. x1 = -(J / K) * inv0(1 + Z * u^2)
         // 2. If x1 == 0, set x1 = -(J / K)
         // 3. gx1 = x1^3 + (J / K) * x1^2 + x1 / K^2
@@ -139,6 +148,7 @@ mod test {
         CurveConfig,
     };
     use ark_ff::field_hashers::DefaultFieldHasher;
+    use ark_std::vec::Vec;
 
     use super::*;
     use ark_ff::{fields::Fp64, MontBackend, MontFp};
@@ -239,11 +249,14 @@ mod test {
     #[test]
     fn map_field_to_curve_elligator2() {
         Elligator2Map::<TestElligator2MapToCurveConfig>::check_parameters().unwrap();
+        let test_map_to_curve = Elligator2Map::<TestElligator2MapToCurveConfig>::new().unwrap();
 
         let mut map_range: Vec<Affine<TestElligator2MapToCurveConfig>> = vec![];
+	//We are mapping all elemnts of the field to the curve, verifying that
+	//map is not constant on that set.
         for current_field_element in 0..101 {
             map_range.push(
-                Elligator2Map::<TestElligator2MapToCurveConfig>::map_to_curve(F101::from(
+                test_map_to_curve.map_to_curve(F101::from(
                     current_field_element as u64,
                 ))
                 .unwrap(),
