@@ -9,8 +9,8 @@ use crate::{
 
 /// Trait defining the necessary parameters for the Elligator2 hash-to-curve method
 /// for twisted edwards curves form of:
-/// `b * y² = x³ + a * x² + x` from [\[WB2019\]]
-/// according to [\[HSSWW23\]]
+/// `b * y² = x³ + a * x² + x`
+/// from [\[BHKL13\]], according to [\[HSSWW23\]]
 ///
 /// - [\[BHKL13\]] <http://dx.doi.org/10.1145/2508859.2516734>
 /// - [\[HSSWW23\]] <https://datatracker.ietf.org/doc/html/rfc9380>
