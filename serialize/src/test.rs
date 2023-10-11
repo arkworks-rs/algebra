@@ -1,6 +1,6 @@
 use super::*;
 use ark_std::{
-    collections::{BTreeMap, BTreeSet},
+    collections::{BTreeMap, BTreeSet, LinkedList, VecDeque},
     rand::RngCore,
     string::String,
     vec,
@@ -130,6 +130,18 @@ fn test_array() {
 fn test_vec() {
     test_serialize(vec![1u64, 2, 3, 4, 5]);
     test_serialize(Vec::<u64>::new());
+}
+
+#[test]
+fn test_vecdeque() {
+    test_serialize([1u64, 2, 3, 4, 5].into_iter().collect::<VecDeque<_>>());
+    test_serialize(VecDeque::<u64>::new());
+}
+
+#[test]
+fn test_linkedlist() {
+    test_serialize([1u64, 2, 3, 4, 5].into_iter().collect::<LinkedList<_>>());
+    test_serialize(LinkedList::<u64>::new());
 }
 
 #[test]
