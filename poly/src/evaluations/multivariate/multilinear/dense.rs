@@ -96,7 +96,7 @@ impl<F: Field> MultilinearExtension<F> for DenseMultilinearExtension<F> {
     /// // The two-variate polynomial x_0 + 3 * x_0 * x_1 + 2 evaluates to [2, 3, 2, 6]
     /// // in the two-dimensional hypercube with points [00, 10, 01, 11]
     /// let mle = DenseMultilinearExtension::from_evaluations_vec(
-    ///     2, vec![2, 3, 3, 6].iter().map(|x| Fr::from(*x as u64)).collect()
+    ///     2, vec![2, 3, 2, 6].iter().map(|x| Fr::from(*x as u64)).collect()
     /// );
     ///
     /// // By the uniqueness of MLEs, `mle` is precisely the above polynomial, which
