@@ -89,32 +89,6 @@ impl<F: Field> MultilinearExtension<F> for DenseMultilinearExtension<F> {
         self.num_vars
     }
 
-    /// Evaluate the dense MLE at the given point
-    /// # Example
-    /// ```
-    /// use ark_test_curves::bls12_381::Fr;
-    /// # use ark_poly::{MultilinearExtension, DenseMultilinearExtension};
-    /// # use ark_ff::One;
-    ///
-    /// // The two-variate polynomial x_0 + 3 * x_0 * x_1 + 2 evaluates to [2, 3, 2, 6]
-    /// // in the two-dimensional hypercube with points [00, 10, 01, 11]
-    /// let mle = DenseMultilinearExtension::from_evaluations_vec(
-    ///     2, vec![2, 3, 2, 6].iter().map(|x| Fr::from(*x as u64)).collect()
-    /// );
-    ///
-    /// // By the uniqueness of MLEs, `mle` is precisely the above polynomial, which
-    /// // takes the value 54 at the point (1, 17)
-    /// let eval = mle.evaluate(&[Fr::one(), Fr::from(17)]).unwrap();
-    /// assert_eq!(eval, Fr::from(54));
-    /// ```
-    fn evaluate(&self, point: &[F]) -> Option<F> {
-        if point.len() == self.num_vars {
-            Some(self.fix_variables(point)[0])
-        } else {
-            None
-        }
-    }
-
     fn rand<R: Rng>(num_vars: usize, rng: &mut R) -> Self {
         Self::from_evaluations_vec(
             num_vars,
@@ -317,14 +291,33 @@ impl<F: Field> Polynomial<F> for DenseMultilinearExtension<F> {
         1
     }
 
+    /// Evaluate the dense MLE at the given point
+    /// # Example
+    /// ```
+    /// use ark_test_curves::bls12_381::Fr;
+    /// # use ark_poly::{MultilinearExtension, DenseMultilinearExtension, Polynomial};
+    /// # use ark_ff::One;
+    ///
+    /// // The two-variate polynomial x_0 + 3 * x_0 * x_1 + 2 evaluates to [2, 3, 2, 6]
+    /// // in the two-dimensional hypercube with points [00, 10, 01, 11]
+    /// let mle = DenseMultilinearExtension::from_evaluations_vec(
+    ///     2, vec![2, 3, 2, 6].iter().map(|x| Fr::from(*x as u64)).collect()
+    /// );
+    ///
+    /// // By the uniqueness of MLEs, `mle` is precisely the above polynomial, which
+    /// // takes the value 54 at the point (1, 17)
+    /// let eval = mle.evaluate(&[Fr::one(), Fr::from(17)].into());
+    /// assert_eq!(eval, Fr::from(54));
+    /// ```
     fn evaluate(&self, point: &Self::Point) -> F {
-        MultilinearExtension::<F>::evaluate(self, point).unwrap()
+        assert!(point.len() == self.num_vars);
+        self.fix_variables(&point)[0]
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::{DenseMultilinearExtension, MultilinearExtension};
+    use crate::{DenseMultilinearExtension, MultilinearExtension, Polynomial};
     use ark_ff::{Field, Zero};
     use ark_std::{ops::Neg, test_rng, vec::Vec, UniformRand};
     use ark_test_curves::bls12_381::Fr;
@@ -355,7 +348,7 @@ mod tests {
             let point: Vec<_> = (0..10).map(|_| Fr::rand(&mut rng)).collect();
             assert_eq!(
                 evaluate_data_array(&poly.evaluations, &point),
-                poly.evaluate(&point).unwrap()
+                poly.evaluate(&point)
             )
         }
     }
@@ -405,32 +398,32 @@ mod tests {
             let point: Vec<_> = (0..NV).map(|_| Fr::rand(&mut rng)).collect();
             let poly1 = DenseMultilinearExtension::rand(NV, &mut rng);
             let poly2 = DenseMultilinearExtension::rand(NV, &mut rng);
-            let v1 = poly1.evaluate(&point).unwrap();
-            let v2 = poly2.evaluate(&point).unwrap();
+            let v1 = poly1.evaluate(&point);
+            let v2 = poly2.evaluate(&point);
             // test add
-            assert_eq!((&poly1 + &poly2).evaluate(&point).unwrap(), v1 + v2);
+            assert_eq!((&poly1 + &poly2).evaluate(&point), v1 + v2);
             // test sub
-            assert_eq!((&poly1 - &poly2).evaluate(&point).unwrap(), v1 - v2);
+            assert_eq!((&poly1 - &poly2).evaluate(&point), v1 - v2);
             // test negate
-            assert_eq!(poly1.clone().neg().evaluate(&point).unwrap(), -v1);
+            assert_eq!(poly1.clone().neg().evaluate(&point), -v1);
             // test add assign
             {
                 let mut poly1 = poly1.clone();
                 poly1 += &poly2;
-                assert_eq!(poly1.evaluate(&point).unwrap(), v1 + v2)
+                assert_eq!(poly1.evaluate(&point), v1 + v2)
             }
             // test sub assign
             {
                 let mut poly1 = poly1.clone();
                 poly1 -= &poly2;
-                assert_eq!(poly1.evaluate(&point).unwrap(), v1 - v2)
+                assert_eq!(poly1.evaluate(&point), v1 - v2)
             }
             // test add assign with scalar
             {
                 let mut poly1 = poly1.clone();
                 let scalar = Fr::rand(&mut rng);
                 poly1 += (scalar, &poly2);
-                assert_eq!(poly1.evaluate(&point).unwrap(), v1 + scalar * v2)
+                assert_eq!(poly1.evaluate(&point), v1 + scalar * v2)
             }
             // test additive identity
             {
@@ -443,7 +436,7 @@ mod tests {
                     let mut zero = DenseMultilinearExtension::zero();
                     let scalar = Fr::rand(&mut rng);
                     zero += (scalar, &poly1);
-                    assert_eq!(zero.evaluate(&point).unwrap(), scalar * v1);
+                    assert_eq!(zero.evaluate(&point), scalar * v1);
                 }
             }
         }

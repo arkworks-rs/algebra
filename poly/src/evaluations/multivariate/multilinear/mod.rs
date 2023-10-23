@@ -46,10 +46,6 @@ pub trait MultilinearExtension<F: Field>:
     /// Returns the number of variables in `self`
     fn num_vars(&self) -> usize;
 
-    /// Evaluates `self` at the given the vector `point` in slice.
-    /// If the number of variables does not match, return `None`.
-    fn evaluate(&self, point: &[F]) -> Option<F>;
-
     /// Outputs an `l`-variate multilinear extension where value of evaluations
     /// are sampled uniformly at random.
     fn rand<R: Rng>(num_vars: usize, rng: &mut R) -> Self;
