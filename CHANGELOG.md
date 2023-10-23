@@ -12,6 +12,8 @@
 
 ### Features
 
+- [\#691](https://github.com/arkworks-rs/algebra/pull/691) (`ark-poly`) Implement `Polynomial` for `SparseMultilinearExtension` and `DenseMultilinearExtension`.
+
 ### Improvements
 
 ### Bugfixes
