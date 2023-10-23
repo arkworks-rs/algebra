@@ -467,7 +467,10 @@ mod tests {
             SparseMultilinearExtension::from_evaluations(1, &vec![(0, ev2[0]), (1, ev2[1])]);
 
         let x = Fr::rand(&mut rng);
-        assert_eq!(poly2.evaluate(&[x].into()), x * ev2[1] + (Fr::one() - x) * ev2[0]);
+        assert_eq!(
+            poly2.evaluate(&[x].into()),
+            x * ev2[1] + (Fr::one() - x) * ev2[0]
+        );
 
         // test single-variate polynomial with one entry missing
         let ev3 = Fr::rand(&mut rng);
