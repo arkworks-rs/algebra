@@ -2,7 +2,7 @@
 
 use crate::{
     evaluations::multivariate::multilinear::swap_bits, DenseMultilinearExtension,
-    MultilinearExtension,
+    MultilinearExtension, Polynomial,
 };
 use ark_ff::{Field, Zero};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
@@ -120,14 +120,6 @@ impl<F: Field> MultilinearExtension<F> for SparseMultilinearExtension<F> {
         self.num_vars
     }
 
-    fn evaluate(&self, point: &[F]) -> Option<F> {
-        if point.len() == self.num_vars {
-            Some(self.fix_variables(point)[0])
-        } else {
-            None
-        }
-    }
-
     /// Outputs an `l`-variate multilinear extension where value of evaluations
     /// are sampled uniformly at random. The number of nonzero entries is
     /// `sqrt(2^num_vars)` and indices of those nonzero entries are distributed
@@ -224,6 +216,19 @@ impl<F: Field> Index<usize> for SparseMultilinearExtension<F> {
         } else {
             &self.zero
         }
+    }
+}
+
+impl<F: Field> Polynomial<F> for SparseMultilinearExtension<F> {
+    type Point = Vec<F>;
+
+    fn degree(&self) -> usize {
+        self.num_vars
+    }
+
+    fn evaluate(&self, point: &Self::Point) -> F {
+        assert!(point.len() == self.num_vars);
+        self.fix_variables(point)[0]
     }
 }
 
@@ -399,7 +404,8 @@ fn hashmap_to_treemap<F: Field>(map: &HashMap<usize, F>) -> BTreeMap<usize, F> {
 #[cfg(test)]
 mod tests {
     use crate::{
-        evaluations::multivariate::multilinear::MultilinearExtension, SparseMultilinearExtension,
+        evaluations::multivariate::multilinear::MultilinearExtension, Polynomial,
+        SparseMultilinearExtension,
     };
     use ark_ff::{One, Zero};
     use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
@@ -453,7 +459,7 @@ mod tests {
         let mut rng = test_rng();
         let ev1 = Fr::rand(&mut rng);
         let poly1 = SparseMultilinearExtension::from_evaluations(0, &vec![(0, ev1)]);
-        assert_eq!(poly1.evaluate(&[]).unwrap(), ev1);
+        assert_eq!(poly1.evaluate(&[].into()), ev1);
 
         // test single-variate polynomial
         let ev2 = vec![Fr::rand(&mut rng), Fr::rand(&mut rng)];
@@ -462,7 +468,7 @@ mod tests {
 
         let x = Fr::rand(&mut rng);
         assert_eq!(
-            poly2.evaluate(&[x]).unwrap(),
+            poly2.evaluate(&[x].into()),
             x * ev2[1] + (Fr::one() - x) * ev2[0]
         );
 
@@ -471,7 +477,7 @@ mod tests {
         let poly2 = SparseMultilinearExtension::from_evaluations(1, &vec![(1, ev3)]);
 
         let x = Fr::rand(&mut rng);
-        assert_eq!(poly2.evaluate(&[x]).unwrap(), x * ev3);
+        assert_eq!(poly2.evaluate(&[x].into()), x * ev3);
     }
 
     #[test]
@@ -500,32 +506,32 @@ mod tests {
             let point: Vec<_> = (0..NV).map(|_| Fr::rand(&mut rng)).collect();
             let poly1 = SparseMultilinearExtension::rand(NV, &mut rng);
             let poly2 = SparseMultilinearExtension::rand(NV, &mut rng);
-            let v1 = poly1.evaluate(&point).unwrap();
-            let v2 = poly2.evaluate(&point).unwrap();
+            let v1 = poly1.evaluate(&point);
+            let v2 = poly2.evaluate(&point);
             // test add
-            assert_eq!((&poly1 + &poly2).evaluate(&point).unwrap(), v1 + v2);
+            assert_eq!((&poly1 + &poly2).evaluate(&point), v1 + v2);
             // test sub
-            assert_eq!((&poly1 - &poly2).evaluate(&point).unwrap(), v1 - v2);
+            assert_eq!((&poly1 - &poly2).evaluate(&point), v1 - v2);
             // test negate
-            assert_eq!(poly1.clone().neg().evaluate(&point).unwrap(), -v1);
+            assert_eq!(poly1.clone().neg().evaluate(&point), -v1);
             // test add assign
             {
                 let mut poly1 = poly1.clone();
                 poly1 += &poly2;
-                assert_eq!(poly1.evaluate(&point).unwrap(), v1 + v2)
+                assert_eq!(poly1.evaluate(&point), v1 + v2)
             }
             // test sub assign
             {
                 let mut poly1 = poly1.clone();
                 poly1 -= &poly2;
-                assert_eq!(poly1.evaluate(&point).unwrap(), v1 - v2)
+                assert_eq!(poly1.evaluate(&point), v1 - v2)
             }
             // test add assign with scalar
             {
                 let mut poly1 = poly1.clone();
                 let scalar = Fr::rand(&mut rng);
                 poly1 += (scalar, &poly2);
-                assert_eq!(poly1.evaluate(&point).unwrap(), v1 + scalar * v2)
+                assert_eq!(poly1.evaluate(&point), v1 + scalar * v2)
             }
             // test additive identity
             {
@@ -538,7 +544,7 @@ mod tests {
                     let mut zero = SparseMultilinearExtension::zero();
                     let scalar = Fr::rand(&mut rng);
                     zero += (scalar, &poly1);
-                    assert_eq!(zero.evaluate(&point).unwrap(), scalar * v1);
+                    assert_eq!(zero.evaluate(&point), scalar * v1);
                 }
             }
         }
@@ -551,29 +557,29 @@ mod tests {
             let mut poly = SparseMultilinearExtension::rand(10, &mut rng);
             let mut point: Vec<_> = (0..10).map(|_| Fr::rand(&mut rng)).collect();
 
-            let expected = poly.evaluate(&point).unwrap();
+            let expected = poly.evaluate(&point);
 
             poly = poly.relabel(2, 2, 1); // should have no effect
-            assert_eq!(expected, poly.evaluate(&point).unwrap());
+            assert_eq!(expected, poly.evaluate(&point));
 
             poly = poly.relabel(3, 4, 1); // should switch 3 and 4
             point.swap(3, 4);
-            assert_eq!(expected, poly.evaluate(&point).unwrap());
+            assert_eq!(expected, poly.evaluate(&point));
 
             poly = poly.relabel(7, 5, 1);
             point.swap(7, 5);
-            assert_eq!(expected, poly.evaluate(&point).unwrap());
+            assert_eq!(expected, poly.evaluate(&point));
 
             poly = poly.relabel(2, 5, 3);
             point.swap(2, 5);
             point.swap(3, 6);
             point.swap(4, 7);
-            assert_eq!(expected, poly.evaluate(&point).unwrap());
+            assert_eq!(expected, poly.evaluate(&point));
 
             poly = poly.relabel(7, 0, 2);
             point.swap(0, 7);
             point.swap(1, 8);
-            assert_eq!(expected, poly.evaluate(&point).unwrap());
+            assert_eq!(expected, poly.evaluate(&point));
         }
     }
 
