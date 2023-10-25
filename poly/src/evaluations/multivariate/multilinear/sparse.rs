@@ -223,7 +223,7 @@ impl<F: Field> Polynomial<F> for SparseMultilinearExtension<F> {
     type Point = Vec<F>;
 
     fn degree(&self) -> usize {
-        1
+        self.num_vars
     }
 
     fn evaluate(&self, point: &Self::Point) -> F {
