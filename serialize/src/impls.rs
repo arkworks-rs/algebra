@@ -805,6 +805,7 @@ impl_tuple!(A:0,);
 impl_tuple!(A:0, B:1,);
 impl_tuple!(A:0, B:1, C:2,);
 impl_tuple!(A:0, B:1, C:2, D:3,);
+impl_tuple!(A:0, B:1, C:2, D:3, E:4,);
 
 impl<K, V> CanonicalSerialize for BTreeMap<K, V>
 where
