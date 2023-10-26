@@ -27,8 +27,8 @@ pub use ark_serialize_derive::*;
 
 use digest::{generic_array::GenericArray, Digest, OutputSizeUser};
 
-/// Serializes the given items in sequence. `serialize_to_vec![a, b, c, d, e]` is identical to
-/// the value of `buf` after `(a, b, c, d, e).serialize_compressed(&mut buf)`.
+/// Serializes the given `CanonicalSerialize` items in sequence. `serialize_to_vec![a, b, c, d, e]`
+/// is identical to the value of `buf` after `(a, b, c, d, e).serialize_compressed(&mut buf)`.
 #[macro_export]
 macro_rules! serialize_to_vec {
     ($($x:expr),*) => ({
