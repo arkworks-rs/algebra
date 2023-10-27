@@ -23,3 +23,6 @@ num-traits.workspace = true
 
 [lib]
 proc-macro = true
+
+[features]
+zkllvm = []

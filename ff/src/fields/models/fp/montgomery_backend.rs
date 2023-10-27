@@ -588,10 +588,19 @@ pub const fn sqrt_precomputation<const N: usize, T: MontConfig<N>>(
 /// }
 /// ```
 #[macro_export]
+#[cfg(not(feature = "zkllvm"))]
 macro_rules! MontFp {
     ($c0:expr) => {{
         let (is_positive, limbs) = $crate::ark_ff_macros::to_sign_and_limbs!($c0);
         $crate::Fp::from_sign_and_limbs(is_positive, &limbs)
+    }};
+}
+
+#[macro_export]
+#[cfg(feature = "zkllvm")]
+macro_rules! MontFp {
+    ($c0:expr) => {{
+        $crate::ark_ff_macros::to_field_literal!($c0)
     }};
 }
 

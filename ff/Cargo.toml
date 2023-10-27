@@ -48,6 +48,7 @@ default = []
 std = [ "ark-std/std", "ark-serialize/std", "itertools/use_std" ]
 parallel = [ "std", "rayon", "ark-std/parallel" ]
 asm = []
+zkllvm = [ "ark-ff-macros/zkllvm" ]
 
 
 [package.metadata.docs.rs]

@@ -8,7 +8,7 @@
 #![forbid(unsafe_code)]
 
 use num_bigint::BigUint;
-use proc_macro::TokenStream;
+use proc_macro::{Literal, TokenStream, TokenTree};
 use syn::{Expr, Item, ItemFn, Lit};
 
 mod montgomery;
@@ -25,6 +25,13 @@ pub fn to_sign_and_limbs(input: TokenStream) -> TokenStream {
     let limbs_and_sign = format!("({}", is_positive) + ", [" + &limbs + "])";
     let tuple: Expr = syn::parse_str(&limbs_and_sign).unwrap();
     quote::quote!(#tuple).into()
+}
+
+#[cfg(feature = "zkllvm")]
+#[proc_macro]
+pub fn to_field_literal(input: TokenStream) -> TokenStream {
+    let num = utils::parse_string(input).expect("expected decimal string");
+    TokenTree::Literal(Literal::field(&num)).into()
 }
 
 /// Derive the `MontConfig` trait.
