@@ -27,6 +27,26 @@ pub use ark_serialize_derive::*;
 
 use digest::{generic_array::GenericArray, Digest, OutputSizeUser};
 
+/// Serializes the given `CanonicalSerialize` items in sequence. `serialize_to_vec![a, b, c, d, e]`
+/// is identical to the value of `buf` after `(a, b, c, d, e).serialize_compressed(&mut buf)`.
+#[macro_export]
+macro_rules! serialize_to_vec {
+    ($($x:expr),*) => ({
+        let mut buf = ::ark_std::vec![];
+        {$crate::serialize_to_vec!(@inner buf, $($x),*)}.map(|_| buf)
+    });
+
+    (@inner $buf:expr, $y:expr, $($x:expr),*) => ({
+        {
+            $crate::CanonicalSerialize::serialize_uncompressed(&$y, &mut $buf)
+        }.and({$crate::serialize_to_vec!(@inner $buf, $($x),*)})
+    });
+
+    (@inner $buf:expr, $x:expr) => ({
+        $crate::CanonicalSerialize::serialize_uncompressed(&$x, &mut $buf)
+    });
+}
+
 /// Whether to use a compressed version of the serialization algorithm. Specific behavior depends
 /// on implementation. If no compressed version exists (e.g. on `Fp`), mode is ignored.
 #[derive(Copy, Clone, PartialEq, Eq)]
