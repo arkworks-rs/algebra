@@ -127,11 +127,17 @@ pub trait Pairing: Sized + 'static + Copy + Debug + Sync + Send + Eq {
     Eq(bound = "P: Pairing"),
     PartialOrd(bound = "P: Pairing"),
     Ord(bound = "P: Pairing"),
-    Default(bound = "P: Pairing"),
     Hash(bound = "P: Pairing")
 )]
 #[must_use]
 pub struct PairingOutput<P: Pairing>(pub P::TargetField);
+
+impl<P: Pairing> Default for PairingOutput<P> {
+    fn default() -> Self {
+        // Default value is AdditiveGroup::ZERO (i.e., P::TargetField::one())
+        Self::ZERO
+    }
+}
 
 impl<P: Pairing> CanonicalSerialize for PairingOutput<P> {
     #[allow(unused_qualifications)]
