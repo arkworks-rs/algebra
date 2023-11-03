@@ -156,13 +156,16 @@ impl<F: Field> MultilinearExtension<F> for SparseMultilinearExtension<F> {
         let dim = partial_point.len();
         assert!(dim <= self.num_vars, "invalid partial point dimension");
 
-        let window = ark_std::log2(self.evaluations.len()) as usize;
+        let mut window = ark_std::log2(self.evaluations.len()) as usize;
+        if window == 0 {
+            window = 1;
+        }
         let mut point = partial_point;
         let mut last = treemap_to_hashmap(&self.evaluations);
 
         // batch evaluation
         while !point.is_empty() {
-            let focus_length = if window > 0 && point.len() > window {
+            let focus_length = if point.len() > window {
                 window
             } else {
                 point.len()
