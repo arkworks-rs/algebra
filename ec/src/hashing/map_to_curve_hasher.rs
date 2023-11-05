@@ -10,7 +10,7 @@ pub trait MapToCurve<T: CurveGroup>: Sized {
     /// Constructs a new mapping.
     fn new() -> Result<Self, HashToCurveError>;
 
-    /// Map an arbitary field element to a corresponding curve point.
+    /// Map an arbitrary field element to a corresponding curve point.
     fn map_to_curve(&self, point: T::BaseField) -> Result<T::Affine, HashToCurveError>;
 }
 

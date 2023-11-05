@@ -235,7 +235,7 @@ mod test {
     /// The point of the test is to get a simple SWU compatible curve and make
     /// simple hash
     #[test]
-    fn hash_arbitary_string_to_curve_swu() {
+    fn hash_arbitrary_string_to_curve_swu() {
         let test_swu_to_curve_hasher = MapToCurveBasedHasher::<
             Projective<TestSWUMapToCurveConfig>,
             DefaultFieldHasher<Sha256, 128>,

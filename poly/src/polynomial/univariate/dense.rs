@@ -662,7 +662,7 @@ mod tests {
         pub type F5 = Fp64<MontBackend<F5Config, 1>>;
 
         // if the leading coefficient were uniformly sampled from all of F, this
-        // test would fail with high probabiliy ~99.9%
+        // test would fail with high probability ~99.9%
         for i in 1..=30 {
             assert_eq!(DensePolynomial::<F5>::rand(i, rng).degree(), i);
         }
