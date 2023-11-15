@@ -1,0 +1,35 @@
+[package]
+name = "ark-bn254"
+version = "0.4.0"
+authors = [ "arkworks contributors" ]
+description = "The BN254 pairing-friendly elliptic curve"
+homepage = "https://arkworks.rs"
+repository = "https://github.com/arkworks-rs/curves"
+documentation = "https://docs.rs/ark-bn254/"
+keywords = ["cryptography", "finite-fields", "elliptic-curves" ]
+categories = ["cryptography"]
+include = ["Cargo.toml", "src", "README.md", "LICENSE-APACHE", "LICENSE-MIT"]
+license = "MIT/Apache-2.0"
+edition = "2021"
+
+[dependencies]
+ark-ff = { version= "0.4.0", default-features = false }
+ark-ec = { version= "0.4.0", default-features = false }
+ark-std = { version = "0.4.0", default-features = false }
+
+[dev-dependencies]
+ark-serialize = { version = "0.4.0", default-features = false }
+ark-algebra-test-templates = { version = "0.4.0", default-features = false }
+ark-algebra-bench-templates = { version = "0.4.0", default-features = false }
+
+[features]
+default = [ "curve" ]
+std = [ "ark-std/std", "ark-ff/std", "ark-ec/std" ]
+
+curve = [ "scalar_field" ]
+scalar_field = []
+
+[[bench]]
+name = "bn254"
+path = "benches/bn254.rs"
+harness = false

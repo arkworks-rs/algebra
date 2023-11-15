@@ -1,0 +1,115 @@
+{
+  "L": "0x40",
+  "Z": "0x1ae3a4617c510eac63b05c06ca1493b1a22d9f300f5138f1ef3622fba094800170b5d44300000008508bffffffffff6",
+  "ciphersuite": "BLS12377G1_XMD:SHA-256_SSWU_RO_",
+  "curve": "BLS12-377 G1",
+  "dst": "QUUX-V01-CS02-with-BLS12377G1_XMD:SHA-256_SSWU_RO_",
+  "expand": "XMD",
+  "field": {
+    "m": "0x1",
+    "p": "0x1ae3a4617c510eac63b05c06ca1493b1a22d9f300f5138f1ef3622fba094800170b5d44300000008508c00000000001"
+  },
+  "hash": "sha256",
+  "k": "0x80",
+  "map": {
+    "name": "SSWU"
+  },
+  "randomOracle": true,
+  "vectors": [
+    {
+      "P": {
+        "x": "0x0123184bf576b5d69c00311c57eb503e3df99ab60156a2bc34228e46cd1b0c8a15304f0de63602ae32bbb08a7f44c2c9",
+        "y": "0x017c05a4f658399a64f5028b1c5d8a928f6a955bf28525d906592b9e6aabdad838102c6b1b4a9108898931fa42ef0cdf"
+      },
+      "Q0": {
+        "x": "0x00e10a1e6c2853d3416288652f6cda34fd2363c993f4c4fdebb38f185855fd17fdae6f8b35f6586abf39b746e14c0297",
+        "y": "0x0132b86c328a4c52e82db1a43257ca0cb5a8f8e2546b92a854117ab26cf6607e9d8c207854d8597426c6987ebca42d97"
+      },
+      "Q1": {
+        "x": "0x005648e0f6aa7131780c1ae8d396bdac0dc8e76426b8a2adf6b0dee3a0f80b7152343332a9c2ad5c83113b8956fe2685",
+        "y": "0x0196b1ffad506901d481b632f7dc9ebad6e3eed84c7d03edab2c7df0b1566c5b5d376aa2bbd4c7c169abc449f3129f9c"
+      },
+      "msg": "",
+      "u": [
+        "0x00e91c93755d4dce58b4277d109ca11cb178e160d0209f0b97c0ef0a9d03206bdb93498faaaba98969d4a50f91d8fed3",
+        "0x01442032ceae5c549af8f3222a0b9fafe5ef19a001ab399c2ddbb9f7dd59671150a067bd104604bc7d7fb9b909a2b276"
+      ]
+    },
+    {
+      "P": {
+        "x": "0x015756bc7b5a8140577878f75009f8a0009bf1820719354863a52057d0758b27ff7d843e177fc618146edec267d1510f",
+        "y": "0x013b4be1db30d04593dc965b804044c2f92e366543f32377463a0deeddf7ddaa0e62e843d5590e948e5a0d9af2b917cd"
+      },
+      "Q0": {
+        "x": "0x01029fe43eca43ce7adca5d31a84b66b28fc00de3adcddd393c3ad1bd993e24cf70a9dd99b8233d2a657536943cc5000",
+        "y": "0x0011e54e8956bfbfdd17dab8b91e571a49ef5c5c7a5b3c00f9ecb045c39c6f59e3c60c3cc0d290c0e5effde15672ce8f"
+      },
+      "Q1": {
+        "x": "0x009e6c4f23e3590fb40b0a622a3cda01addda2a4ebd860ba4d87615c299f87e02c190035e593e6b80b18282d37168f3a",
+        "y": "0x0090c6fac6f33662a3b50631e367b087e144315a4400bbfbcea7c16366cba865893c85bfa79d82cad31954925363219b"
+      },
+      "msg": "abc",
+      "u": [
+        "0x00cf409921dcdce7de4b3541144bbb5c41592a95278af448bb6f6287e5a71b71c8148a03b8f98cf6e654b2a93bf89c5b",
+        "0x00bccdefe8cbec53dad21b03a0d1f05e1e4c401a7f20ff349043ff1afe8074ea4edb457a2181d6388a41be08445f1099"
+      ]
+    },
+    {
+      "P": {
+        "x": "0x01a6d66a21a28362895c867fa2a65e5e54fd85171a0a8327faec0f7272dd5fbfeaafb311d7e83c85dfabbc790fb8031f",
+        "y": "0x01183a9c2d97c91c06cb090e69cfdf0e89e92baa780b8e3c5e1d92488d3a2422896c4ab808ab099f0b4d9203c7499147"
+      },
+      "Q0": {
+        "x": "0x017397c57e444777264e21318d6e0096779eccafd05f7a95a87acad1f8730fe7fe9e1d1dbf1ddf11539515596ad71861",
+        "y": "0x01660b0335de45c1d4e7edc3b1230bbedaf598cc3943ce854fc2d86d84080486c4b0f325dbcbef0212b99ee3d0994f58"
+      },
+      "Q1": {
+        "x": "0x00cfcc6e7987859db4156bd643a7ac69357f0fa86c6fec36e039b2822001c90fd852c4afa98a5dcb00e65280299520ed",
+        "y": "0x01823e2bce6d7769163f6646e6d80944572a6c473d7760b0b55911697437e7bedbc6674a4cf55850d03bc238128e9479"
+      },
+      "msg": "abcdef0123456789",
+      "u": [
+        "0x019061c2817582abc25c57a58f08f5239bd8d0eb1980d2b911e38131a779e0991c5a5662eb8a6aad8ce0bbc0cdfb67b8",
+        "0x003d673f221f321f652ad6baac32fd04ad1c06a2c03e4974f752e9b87f5fe222b120e853c7a7c767255adda229c71a49"
+      ]
+    },
+    {
+      "P": {
+        "x": "0x009574af6ebc91ea9e337178cbd5c83ecb9d42fed22b3272c3e50b1840c5089fe5bec9808eaaba8a06ced26a30b82747",
+        "y": "0x00ccbad45957f1d493c1859e325c27dca3c63ac49177a1b2a9b5e22e14fd23845a638214e85506f46260db2827e2869a"
+      },
+      "Q0": {
+        "x": "0x00a4721db398949969915611e7a65cc43d167bc9c6b11fa69e871663aac40266a4a01ae64ac380dcce313f9975fe8f2b",
+        "y": "0x002123e943b9a1943d7a57e69e30c84c9bcebc96905b920365f2fc5a4af2f9c42bc1c7c5660d3b10de8c8b1381b8163c"
+      },
+      "Q1": {
+        "x": "0x00860490ade9e09cbf22a1f32cfe14bd1e82721b73a244d1e3e03a38ea45b0332dca194a5f43bbc8e9bc6319399a0a13",
+        "y": "0x00279ad50592f1a5b92430020566b2bca7837bef7fe0f8e08d456962b7ff6a25b4839863baa4a9659bee69af343d8ed9"
+      },
+      "msg": "q128_qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq",
+      "u": [
+        "0x000ec0c5ca9fd63019bd1f989f8b054b29a0a1833a0e3078031da7bb6446de321ddd6ba40a7cb9dfc70afca8bac538ff",
+        "0x000e110ff18deec2d60a2dfc92642fdebd6d70712114a6310e1f3eadf56e608a05058d378413fdb819c8274437f0d440"
+      ]
+    },
+    {
+      "P": {
+        "x": "0x00c54bd72909539ce2c7558b081a7ab7cf8643cb5c02e87d233f6458c69c1a9270ebb0a6c42083ba38835a2698a57cde",
+        "y": "0x01a9529726f7d9994634d1d02c1ab474e2b9c20f2cb0cfec7e566ea033f40438548e737c43d4e7d1cb2fb75bf7686533"
+      },
+      "Q0": {
+        "x": "0x003ca77f5b09d595550a258c0480381569c8ed1caf4bf69e3c8a530d1d910d3ee941a53f6abc452219aa79f22734e61c",
+        "y": "0x004d376f45eb23e03be43ea5c1e00f9290d800d01ff0141c8faa8d1b0bd88c2ee8f3bb8c7ce17ddfe21633ec2b223780"
+      },
+      "Q1": {
+        "x": "0x011f325cc402afd10b3b92a6ea9f52440d9fda541cd2fe6bf58040bf803f23a22c59c3dd494c1392f911ffec1a283b98",
+        "y": "0x00346cb1d6116a329e755b913f5d2d9c7f5405b21e8e400853791ffaefc18a1b1aa8610bbbd4961fe112aa78d1859a40"
+      },
+      "msg": "a512_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "u": [
+        "0x00d5ca54c4622a2f8ec71843ce327959689ae7ff37e7509a88212b3b852e213cbef248471eac50bfdbca3c9ce733d8e8",
+        "0x00b91b02d867e03924593529ae87f35a2adf317a87209bed9c91d5c886e801191676a272422454c7d9692b8368b02e21"
+      ]
+    }
+  ]
+}

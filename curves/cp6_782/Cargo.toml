@@ -1,0 +1,34 @@
+[package]
+name = "ark-cp6-782"
+version = "0.4.0"
+authors = [ "arkworks contributors" ]
+description = "The CP6-782 pairing-friendly elliptic curve"
+homepage = "https://arkworks.rs"
+repository = "https://github.com/arkworks-rs/curves"
+documentation = "https://docs.rs/ark-cp6-782/"
+keywords = ["cryptography", "finite-fields", "elliptic-curves" ]
+categories = ["cryptography"]
+include = ["Cargo.toml", "src", "README.md", "LICENSE-APACHE", "LICENSE-MIT"]
+license = "MIT/Apache-2.0"
+edition = "2021"
+
+[dependencies]
+ark-ff = { version = "0.4.0", default-features = false }
+ark-ec = { version = "0.4.0", default-features = false }
+ark-std = { version = "0.4.0", default-features = false }
+ark-bls12-377 = { version = "0.4.0", path = "../bls12_377", default-features = false, features = [ "base_field" ] }
+itertools = { version = "0.10", default-features = false }
+ark-serialize = { version = "0.4.0", default-features = false }
+
+[dev-dependencies]
+ark-algebra-test-templates = { version = "0.4.0", default-features = false }
+ark-algebra-bench-templates = { version = "0.4.0", default-features = false }
+
+[features]
+default = []
+std = [ "ark-std/std", "ark-ff/std", "ark-ec/std", "ark-bls12-377/std" ]
+
+[[bench]]
+name = "cp6_782"
+path = "benches/cp6_782.rs"
+harness = false

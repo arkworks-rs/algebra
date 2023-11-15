@@ -20,6 +20,7 @@ resolver = "2"
 version = "0.4.2"
 authors = [ "arkworks contributors" ]
 homepage = "https://arkworks.rs"
+exclude = ["curves/**"]
 repository = "https://github.com/arkworks-rs/algebra"
 categories = ["cryptography"]
 include = ["Cargo.toml", "src", "README.md", "LICENSE-APACHE", "LICENSE-MIT", "doc/katex-header.html"]
