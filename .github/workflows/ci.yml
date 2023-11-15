@@ -29,12 +29,9 @@ jobs:
         command: fmt
         args: --all -- --check
 
-    - name: Algebra - cargo fmt --check
-      uses: actions-rs/cargo@v1
-      with:
-        command: fmt
-        args: --all -- --check
-        working-directory: ./curves
+    - name: Curves - cargo fmt --check
+      run: cargo fmt --all -- --check
+      working-directory: ./curves
 
 
   docs:
