@@ -22,11 +22,20 @@ jobs:
         toolchain: stable
         override: true
         components: rustfmt
-    - name: Algebra--fmt
-      run: fmt --all -- --check
-    - name: Curves--fmt
-      working-directory: ./curves
-      run: fmt --all -- --check
+
+    - name: Algebra - cargo fmt --check
+      uses: actions-rs/cargo@v1
+      with:
+        command: fmt
+        args: --all -- --check
+
+    - name: Algebra - cargo fmt --check
+      uses: actions-rs/cargo@v1
+      with:
+        command: fmt
+        args: --all -- --check
+        working-directory: ./curves
+
 
   docs:
     name: Check Documentation
