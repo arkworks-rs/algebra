@@ -9,7 +9,6 @@
 - [\#156](https://github.com/arkworks-rs/curves/pull/156) Add the bw6-767 curve.
 - [\#174](https://github.com/arkworks-rs/curves/pull/174) Add the "grumpkin" curve.
 
-
 ### Improvements
 
 - [\#156](https://github.com/arkworks-rs/curves/pull/156) The hard part of the final exponentiation for bw6-761 relocated from arkworks/algebra.
@@ -43,7 +42,7 @@
 - [\#141](https://github.com/arkworks-rs/curves/pull/103) Faster cofactor clearing for BLS12-377.
 - [\#138](https://github.com/arkworks-rs/curves/pull/138) Implement WB Hash-to-Curve for bls12-381 and bls12-377
 
-### Bug fixes
+### Bugfixes
 
 ## v0.3.0 
 
@@ -58,7 +57,7 @@
 
 ### Improvements
 
-### Bug fixes
+### Bugfixes
 
 ## v0.2.0
 
@@ -89,7 +88,7 @@
 
 - [\#42](https://github.com/arkworks-rs/curves/pull/42) Remove the dependency of `rand_xorshift`.
 
-### Bug fixes
+### Bugfixes
 
 - [\#28](https://github.com/arkworks-rs/curves/pull/28), [\#49](https://github.com/arkworks-rs/curves/pull/49) Fix broken documentation links.
 - [\#38](https://github.com/arkworks-rs/curves/pull/38) Compile with `panic='abort'` in release mode, for safety of the library across FFI boundaries.
