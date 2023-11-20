@@ -19,6 +19,7 @@
 - [\#176](https://github.com/arkworks-rs/curves/pull/176) Non-canonical infinity point and bad flags in BLS12-381 serialization should fail.
 
 ## v0.4.0
+
 - [\#76](https://github.com/arkworks-rs/curves/pull/76) twisted Edwards parameters for bls12-377
 - Fixed curve benches
 
@@ -26,7 +27,7 @@
 
 - [\#104](https://github.com/arkworks-rs/curves/pull/104) Remove `QUADRATIC_NONRESIDUE` parameter from implementors of `Fp2Config`.
 - [\#129](https://github.com/arkworks-rs/curves/pull/129) Implement custom serialization for BLS12-381 for compatibility with the [Zcash lib](https://github.com/zkcrypto/bls12_381).
- 
+
 ### Features
 
 - [\#121](https://github.com/arkworks-rs/curves/pull/121) Add the ed25519 curve.
@@ -35,7 +36,7 @@
 
 ### Improvements
 
-- [\#70](https://github.com/arkworks-rs/curves/pull/70) Add prepared G2 pairing consistency test. 
+- [\#70](https://github.com/arkworks-rs/curves/pull/70) Add prepared G2 pairing consistency test.
 - [\#74](https://github.com/arkworks-rs/curves/pull/74) Use Scott's subgroup membership tests for `G1` and `G2` of BLS12-381.
 - [\#103](https://github.com/arkworks-rs/curves/pull/103) Faster cofactor clearing for BLS12-381.
 - [\#107](https://github.com/arkworks-rs/curves/pull/107/) Use 2-NAF of `ATE_LOOP_COUNT` to speed up the Miller loop in MNT curves.
@@ -44,7 +45,7 @@
 
 ### Bugfixes
 
-## v0.3.0 
+## v0.3.0
 
 ### Breaking changes
 
