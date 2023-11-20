@@ -48,6 +48,7 @@ git checkout master
 git pull upstream master
 git checkout -b $NEW_BRANCH_NAME
 ```
+
 and then work as normal on that branch, and pull request to upstream master when you're done =)
 
 ## Updating documentation
