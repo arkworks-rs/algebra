@@ -281,6 +281,7 @@ jobs:
         run: |
           cd mnt6_753/
           cargo test --all-features
+        working-directory: ./curves
 
   test-cp6_782:
     name: Test (cp6_782/)
@@ -317,6 +318,7 @@ jobs:
         run: |
           cd cp6_782/
           cargo test --all-features
+        working-directory: ./curves
 
   test_assembly:
     name: Test assembly
