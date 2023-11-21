@@ -103,7 +103,7 @@ jobs:
         working-directory: ./curves
         if: matrix.rust == 'nightly'
 
-  test-algebra:
+  test:
     name: Test
     runs-on: ubuntu-latest
     env:
