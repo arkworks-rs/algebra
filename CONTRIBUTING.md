@@ -1,6 +1,6 @@
 # Contributing
 
-Thank you for considering making contributions to `curves`!
+Thank you for considering making contributions to `algebra`!
 
 Contributing to this repository can be done in several forms, such as participating in discussion or proposing code changes.
 To ensure a smooth workflow for all contributors, the following general procedure for contributing has been established:
@@ -24,7 +24,7 @@ Looking for a good place to start contributing? How about checking out some good
 
 ## Branch Structure
 
-`curves` has its default branch as `master`, which is where PRs are merged into. Releases will be periodically made, on no set schedule.
+`algebra` has its default branch as `master`, which is where PRs are merged into. Releases will be periodically made, on no set schedule.
 All other branches should be assumed to be miscellaneous feature development branches.
 
 All downstream users of the library should be using tagged versions of the library pulled from cargo.
@@ -37,7 +37,7 @@ First fork the repository from the GitHub UI, and clone it locally.
 Then in the repository, you want to add the repository you forked from as a new remote. You do this as:
 
 ```bash
-git remote add upstream git@github.com:arkworks-rs/curves.git
+git remote add upstream git@github.com:arkworks-rs/algebra.git
 ```
 
 Then the way you make code contributions is to first think of a branch name that describes your change.
