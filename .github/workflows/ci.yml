@@ -151,18 +151,16 @@ jobs:
     name: Test
     runs-on: ubuntu-latest
     needs: [directories] # Depends on previous job
+    timeout-minutes: 30
     strategy:
       matrix:
         dir: ${{fromJson(needs.directories.outputs.dir)}} # List matrix strategy from directories dynamically
-        # rust:
-        #   - stable
-        #   - nightly
         exclude:
-          - dir: curves/scripts/
-          - dir: curves/curve-constraint-tests/
-          - dir: curves/mnt4_753/
-          - dir: curves/mnt6_753/
-          - dir: curves/cp6_782/
+          - dir: ./curves/scripts/
+          - dir: ./curves/curve-constraint-tests/
+          - dir: ./curves/mnt4_753/
+          - dir: ./curves/mnt6_753/
+          - dir: ./curves/cp6_782/
     steps:
       - name: Checkout
         uses: actions/checkout@v3
