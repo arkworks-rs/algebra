@@ -69,10 +69,10 @@ debug-assertions = true
 debug = true
 
 [patch.crates-io]
-ark-ff = { git = "https://github.com/arkworks-rs/algebra/" }
-ark-ec = { git = "https://github.com/arkworks-rs/algebra/" }
-ark-poly = { git = "https://github.com/arkworks-rs/algebra/" }
-ark-serialize = { git = "https://github.com/arkworks-rs/algebra/" }
-ark-algebra-test-templates = { git = "https://github.com/arkworks-rs/algebra/" }
-ark-algebra-bench-templates = { git = "https://github.com/arkworks-rs/algebra/" }
+ark-ff = { path = "../ff" }
+ark-ec = { path = "../ec" }
+ark-poly = { path = "../poly" }
+ark-serialize = { path = "../serialize" }
+ark-algebra-test-templates = { path = "../test-templates" }
+ark-algebra-bench-templates = { path = "../bench-templates" }
 ark-r1cs-std = { git = "https://github.com/arkworks-rs/r1cs-std/" }
