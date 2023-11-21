@@ -81,25 +81,25 @@ jobs:
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Algebra - Check examples
-        run: check --examples --all
+        run: cargo check --examples --all
       - name: Curves - Check examples
-        run: check --examples --all
+        run: cargo check --examples --all
         working-directory: ./curves
 
 
       - name: Algebra - Check examples with all features on stable
-        run: check --examples --all-features --all
+        run: cargo check --examples --all-features --all
         if: matrix.rust == 'stable'
       - name: Curves - Check examples with all features on stable
-        run: check --examples --all-features --all
+        run: cargo check --examples --all-features --all
         working-directory: ./curves
         if: matrix.rust == 'stable'
 
       - name: Algebra - Check benchmarks on nightly
-        run: check --all-features --examples --workspace --benches
+        run: cargo check --all-features --examples --workspace --benches
         if: matrix.rust == 'nightly'
       - name: Curves - Check benchmarks on nightly
-        run: check --all-features --examples --workspace --benches
+        run: cargo check --all-features --examples --workspace --benches
         working-directory: ./curves
         if: matrix.rust == 'nightly'
 
