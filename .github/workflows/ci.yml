@@ -179,9 +179,9 @@ jobs:
     outputs:
       dir: ${{ steps.set-dirs.outputs.dir }} # generate output name dir by using inner step output
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - id: set-dirs # Give it an id to handle to get step outputs in the outputs key above
-        run: echo "dir=$(ls -d */ | jq -R -s -c 'split("\n")[:-1]')" >> $GITHUB_OUTPUT
+        run: echo "dir=$(find . -mindepth 1 -maxdepth 1 -type d | jq -R -s -c 'split("\n")[:-1]')" >> $GITHUB_OUTPUT
         working-directory: ./curves
         # Define step output named dir base on ls command transformed to JSON thanks to jq
 
@@ -200,7 +200,7 @@ jobs:
           - dir: cp6_782/
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Run tests
         run: |
           cd ${{matrix.dir}}
@@ -213,7 +213,7 @@ jobs:
     timeout-minutes: 60
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Check if source code updated
         uses: dorny/paths-filter@v2.11.1
@@ -236,7 +236,6 @@ jobs:
             ~/.cargo/git
             target
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/curves/Cargo.lock') }}
-          lookup-only: true
 
       - name: Conditionally run the tests
         # if source code updated OR dependencies updated
@@ -252,7 +251,7 @@ jobs:
     timeout-minutes: 60
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Check if source code updated
         uses: dorny/paths-filter@v2.11.1
@@ -274,7 +273,6 @@ jobs:
             ~/.cargo/git
             target
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/curves/Cargo.lock') }}
-          lookup-only: true
 
       - name: Conditionally run the tests
         # if source code updated OR dependencies updated
@@ -290,7 +288,7 @@ jobs:
     timeout-minutes: 60
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Check if source code updated
         uses: dorny/paths-filter@v2.11.1
@@ -312,7 +310,6 @@ jobs:
             ~/.cargo/git
             target
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/curves/Cargo.lock') }}
-          lookup-only: true
 
       - name: Conditionally run the tests
         # if source code updated OR dependencies updated
