@@ -181,7 +181,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - id: set-dirs # Give it an id to handle to get step outputs in the outputs key above
-        run: echo "::set-output name=dir::$(find -d */ | jq -R -s -c 'split("\n")[:-1]')"
+        run: echo "dir=$(ls -d */ | jq -R -s -c 'split("\n")[:-1]')" >> $GITHUB_OUTPUT
         working-directory: ./curves
         # Define step output named dir base on ls command transformed to JSON thanks to jq
 
