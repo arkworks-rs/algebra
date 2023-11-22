@@ -181,7 +181,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - id: set-dirs # Give it an id to handle to get step outputs in the outputs key above
-        run: echo "::set-output name=dir::$(ls -d */ | jq -R -s -c 'split("\n")[:-1]')"
+        run: echo "::set-output name=dir::$(find -d */ | jq -R -s -c 'split("\n")[:-1]')"
         working-directory: ./curves
         # Define step output named dir base on ls command transformed to JSON thanks to jq
 
@@ -274,6 +274,7 @@ jobs:
             ~/.cargo/git
             target
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/curves/Cargo.lock') }}
+          lookup-only: true
 
       - name: Conditionally run the tests
         # if source code updated OR dependencies updated
@@ -311,6 +312,7 @@ jobs:
             ~/.cargo/git
             target
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/curves/Cargo.lock') }}
+          lookup-only: true
 
       - name: Conditionally run the tests
         # if source code updated OR dependencies updated
