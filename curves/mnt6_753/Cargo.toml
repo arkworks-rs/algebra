@@ -1,0 +1,37 @@
+[package]
+name = "ark-mnt6-753"
+version = "0.4.0"
+authors = [ "arkworks contributors" ]
+description = "The MNT6-753 pairing-friendly elliptic curve"
+homepage = "https://arkworks.rs"
+repository = "https://github.com/arkworks-rs/curves"
+documentation = "https://docs.rs/ark-mnt6-753/"
+keywords = ["cryptography", "finite-fields", "elliptic-curves" ]
+categories = ["cryptography"]
+include = ["Cargo.toml", "src", "README.md", "LICENSE-APACHE", "LICENSE-MIT"]
+license = "MIT/Apache-2.0"
+edition = "2021"
+
+[dependencies]
+ark-ff = { version = "0.4.0", default-features = false }
+ark-ec = { version = "0.4.0", default-features = false }
+ark-std = { version = "0.4.0", default-features = false }
+ark-r1cs-std = {  version = "0.4.0", default-features = false, optional = true }
+ark-mnt4-753 = { version = "0.4.0", path = "../mnt4_753", default-features = false, features = [ "scalar_field", "base_field" ] }
+
+[dev-dependencies]
+ark-relations = { version = "0.4.0", default-features = false }
+ark-serialize = { version = "0.4.0", default-features = false }
+ark-algebra-test-templates = { version = "0.4.0", default-features = false }
+ark-algebra-bench-templates = { version = "0.4.0", default-features = false }
+ark-curve-constraint-tests = { path = "../curve-constraint-tests", default-features = false }
+
+[features]
+default = []
+std = [ "ark-std/std", "ark-ff/std", "ark-ec/std" ]
+r1cs = ["ark-r1cs-std"]
+
+[[bench]]
+name = "mnt6_753"
+path = "benches/mnt6_753.rs"
+harness = false
