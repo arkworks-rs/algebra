@@ -59,7 +59,7 @@ fn biginteger_bitwise_ops_test<B: BigInteger>() {
     let a_clone = a.clone();
     assert_eq!(a ^ a_clone, BigInt::from(0_u64));
 
-    // Testing a xor b xor b 
+    // Testing a xor b xor b
     let a: BigInt<4> = BigInt::from(4_u64);
     let b = BigInt::from(5_u64);
     let b_clone = b.clone();
