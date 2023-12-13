@@ -1,4 +1,4 @@
-use core::ops::{BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign};
+use core::ops::{BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Not};
 
 use crate::{
     bits::{BitIteratorBE, BitIteratorLE},
@@ -738,6 +738,18 @@ impl<const N: usize> BitOr for BigInt<N> {
     }
 }
 
+impl<const N: usize> Not for BigInt<N> {
+    type Output = Self;
+
+    fn not(self) -> Self::Output {
+        let mut result = Self::zero();
+        for i in 0..N {
+            result.0[i] = !self.0[i];
+        }
+        result
+    }
+}
+
 /// Compute the signed modulo operation on a u64 representation, returning the result.
 /// If n % modulus > modulus / 2, return modulus - n
 /// # Example
@@ -800,6 +812,7 @@ pub trait BigInteger:
     + BitAnd<Self>
     + BitOrAssign<Self>
     + BitOr<Self>
+    + Not
 {
     /// Number of 64-bit limbs representing `Self`.
     const NUM_LIMBS: usize;

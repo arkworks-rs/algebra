@@ -53,44 +53,54 @@ fn biginteger_arithmetic_test<B: BigInteger>(a: B, b: B, zero: B) {
 
 // Test for BigInt's bitwise operations
 fn biginteger_bitwise_ops_test<B: BigInteger>() {
+    let mut rng = ark_std::test_rng();
+
     // Test XOR
     // a xor a = 0
-    let a: BigInt<4> = BigInt::from(4_u64);
+    let a: BigInt<4> = UniformRand::rand(&mut rng);
     let a_clone = a.clone();
     assert_eq!(a ^ a_clone, BigInt::from(0_u64));
 
     // Testing a xor b xor b
-    let a: BigInt<4> = BigInt::from(4_u64);
-    let b = BigInt::from(5_u64);
+    let a: BigInt<4> = UniformRand::rand(&mut rng);
+    let b: BigInt<4> = UniformRand::rand(&mut rng);
+    let a_clone = a.clone();
     let b_clone = b.clone();
     let xor_ab = a ^ b;
-    assert_eq!(xor_ab ^ b_clone, BigInt::from(4_u64));
+    assert_eq!(xor_ab ^ b_clone, a_clone);
 
     // Test OR
-    // 1 or 1 = 1
-    let a: BigInt<4> = BigInt::from(1_u64);
+    // a or a = a
+    let a: BigInt<4> = UniformRand::rand(&mut rng);
     let a_clone = a.clone();
-    assert_eq!(a | a_clone, BigInt::from(1_u64));
+    assert_eq!(a | a_clone, a);
 
     // Testing a or b or b
-    let a: BigInt<4> = BigInt::from(4_u64);
-    let b = BigInt::from(5_u64);
+    let a: BigInt<4> = UniformRand::rand(&mut rng);
+    let b: BigInt<4> = UniformRand::rand(&mut rng);
     let b_clone = b.clone();
     let or_ab = a | b;
-    assert_eq!(or_ab | b_clone, BigInt::from(5_u64));
+    assert_eq!(or_ab | b_clone, a | b);
 
     // Test AND
     // a and a = a
-    let a: BigInt<4> = BigInt::from(2_u64);
+    let a: BigInt<4> = UniformRand::rand(&mut rng);
     let a_clone = a.clone();
-    assert_eq!(a & a_clone, BigInt::from(2_u64));
+    assert_eq!(a & a_clone, a);
 
     // Testing a and a and b.
-    let a: BigInt<4> = BigInt::from(4_u64);
-    let b = BigInt::from(5_u64);
+    let a: BigInt<4> = UniformRand::rand(&mut rng);
+    let b: BigInt<4> = UniformRand::rand(&mut rng);
     let b_clone = b.clone();
     let and_ab = a & b;
-    assert_eq!(and_ab & b_clone, BigInt::from(4_u64));
+    assert_eq!(and_ab & b_clone, a & b);
+
+    // Testing De Morgan's law
+    let a: BigInt<4> = UniformRand::rand(&mut rng);
+    let b = UniformRand::rand(&mut rng);
+    let de_morgan_lhs = !(a | b);
+    let de_morgan_rhs = (!a) & (!b);
+    assert_eq!(de_morgan_lhs, de_morgan_rhs);
 }
 
 // Test correctness of BigInteger's bit values
