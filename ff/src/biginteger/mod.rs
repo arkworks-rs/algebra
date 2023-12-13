@@ -1,3 +1,5 @@
+use core::ops::{BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign};
+
 use crate::{
     bits::{BitIteratorBE, BitIteratorLE},
     const_for, UniformRand,
@@ -681,6 +683,61 @@ impl<const N: usize> From<BigInt<N>> for BigUint {
     }
 }
 
+// ===================================
+// Bitwise operators
+// ===================================
+
+impl<const N: usize> BitXorAssign for BigInt<N> {
+    fn bitxor_assign(&mut self, rhs: Self) {
+        for i in 0..N {
+            self.0[i] ^= rhs.0[i];
+        }
+    }
+}
+
+impl<const N: usize> BitXor for BigInt<N> {
+    type Output = Self;
+
+    fn bitxor(mut self, rhs: Self) -> Self::Output {
+        self ^= rhs;
+        self
+    }
+}
+
+impl<const N: usize> BitAndAssign for BigInt<N> {
+    fn bitand_assign(&mut self, rhs: Self) {
+        for i in 0..N {
+            self.0[i] &= rhs.0[i];
+        }
+    }
+}
+
+impl<const N: usize> BitAnd for BigInt<N> {
+    type Output = Self;
+
+    fn bitand(mut self, rhs: Self) -> Self::Output {
+        self &= rhs;
+        self
+    }
+}
+
+impl<const N: usize> BitOrAssign for BigInt<N> {
+    fn bitor_assign(&mut self, rhs: Self) {
+        for i in 0..N {
+            self.0[i] |= rhs.0[i];
+        }
+    }
+}
+
+impl<const N: usize> BitOr for BigInt<N> {
+    type Output = Self;
+
+    fn bitor(mut self, rhs: Self) -> Self::Output {
+        self |= rhs;
+        self
+    }
+}
+
 /// Compute the signed modulo operation on a u64 representation, returning the result.
 /// If n % modulus > modulus / 2, return modulus - n
 /// # Example
@@ -737,6 +794,12 @@ pub trait BigInteger:
     + From<u8>
     + TryFrom<BigUint, Error = ()>
     + Into<BigUint>
+    + BitXorAssign<Self>
+    + BitXor<Self>
+    + BitAndAssign<Self>
+    + BitAnd<Self>
+    + BitOrAssign<Self>
+    + BitOr<Self>
 {
     /// Number of 64-bit limbs representing `Self`.
     const NUM_LIMBS: usize;
