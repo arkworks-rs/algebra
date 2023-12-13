@@ -1,4 +1,5 @@
 use crate::{biginteger::BigInteger, BigInt, UniformRand};
+use ark_std::rand::Rng;
 use num_bigint::BigUint;
 
 // Test elementary math operations for BigInteger.
@@ -58,46 +59,40 @@ fn biginteger_bitwise_ops_test<B: BigInteger>() {
     // Test XOR
     // a xor a = 0
     let a: BigInt<4> = UniformRand::rand(&mut rng);
-    let a_clone = a.clone();
-    assert_eq!(a ^ a_clone, BigInt::from(0_u64));
+    assert_eq!(a ^ &a, BigInt::from(0_u64));
 
     // Testing a xor b xor b
     let a: BigInt<4> = UniformRand::rand(&mut rng);
     let b: BigInt<4> = UniformRand::rand(&mut rng);
-    let a_clone = a.clone();
-    let b_clone = b.clone();
     let xor_ab = a ^ b;
-    assert_eq!(xor_ab ^ b_clone, a_clone);
+    assert_eq!(xor_ab ^ b, a);
 
     // Test OR
     // a or a = a
-    let a: BigInt<4> = UniformRand::rand(&mut rng);
-    let a_clone = a.clone();
-    assert_eq!(a | a_clone, a);
+    let a = rng.gen::<BigInt<4>>();
+    assert_eq!(a | &a, a);
 
     // Testing a or b or b
-    let a: BigInt<4> = UniformRand::rand(&mut rng);
-    let b: BigInt<4> = UniformRand::rand(&mut rng);
-    let b_clone = b.clone();
+    let a = rng.gen::<BigInt<4>>();
+    let b = rng.gen::<BigInt<4>>();
     let or_ab = a | b;
-    assert_eq!(or_ab | b_clone, a | b);
+    assert_eq!(or_ab | &b, a | b);
 
     // Test AND
     // a and a = a
-    let a: BigInt<4> = UniformRand::rand(&mut rng);
-    let a_clone = a.clone();
-    assert_eq!(a & a_clone, a);
+    let a = rng.gen::<BigInt<4>>();
+    assert_eq!(a & (&a), a);
 
     // Testing a and a and b.
-    let a: BigInt<4> = UniformRand::rand(&mut rng);
-    let b: BigInt<4> = UniformRand::rand(&mut rng);
+    let a = rng.gen::<BigInt<4>>();
+    let b = rng.gen::<BigInt<4>>();
     let b_clone = b.clone();
     let and_ab = a & b;
     assert_eq!(and_ab & b_clone, a & b);
 
     // Testing De Morgan's law
-    let a: BigInt<4> = UniformRand::rand(&mut rng);
-    let b = UniformRand::rand(&mut rng);
+    let a = rng.gen::<BigInt<4>>();
+    let b = rng.gen::<BigInt<4>>();
     let de_morgan_lhs = !(a | b);
     let de_morgan_rhs = (!a) & (!b);
     assert_eq!(de_morgan_lhs, de_morgan_rhs);
