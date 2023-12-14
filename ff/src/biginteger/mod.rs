@@ -1,3 +1,5 @@
+use core::ops::{BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Not};
+
 use crate::{
     bits::{BitIteratorBE, BitIteratorLE},
     const_for, UniformRand,
@@ -8,6 +10,7 @@ use ark_serialize::{
     CanonicalDeserialize, CanonicalSerialize, Compress, SerializationError, Valid, Validate,
 };
 use ark_std::{
+    borrow::Borrow,
     convert::TryFrom,
     fmt::{Debug, Display, UpperHex},
     io::{Read, Write},
@@ -681,6 +684,63 @@ impl<const N: usize> From<BigInt<N>> for BigUint {
     }
 }
 
+impl<B: Borrow<Self>, const N: usize> BitXorAssign<B> for BigInt<N> {
+    fn bitxor_assign(&mut self, rhs: B) {
+        (0..N).for_each(|i| self.0[i] ^= rhs.borrow().0[i])
+    }
+}
+
+impl<B: Borrow<Self>, const N: usize> BitXor<B> for BigInt<N> {
+    type Output = Self;
+
+    fn bitxor(mut self, rhs: B) -> Self::Output {
+        self ^= rhs;
+        self
+    }
+}
+
+impl<B: Borrow<Self>, const N: usize> BitAndAssign<B> for BigInt<N> {
+    fn bitand_assign(&mut self, rhs: B) {
+        (0..N).for_each(|i| self.0[i] &= rhs.borrow().0[i])
+    }
+}
+
+impl<B: Borrow<Self>, const N: usize> BitAnd<B> for BigInt<N> {
+    type Output = Self;
+
+    fn bitand(mut self, rhs: B) -> Self::Output {
+        self &= rhs;
+        self
+    }
+}
+
+impl<B: Borrow<Self>, const N: usize> BitOrAssign<B> for BigInt<N> {
+    fn bitor_assign(&mut self, rhs: B) {
+        (0..N).for_each(|i| self.0[i] |= rhs.borrow().0[i])
+    }
+}
+
+impl<B: Borrow<Self>, const N: usize> BitOr<B> for BigInt<N> {
+    type Output = Self;
+
+    fn bitor(mut self, rhs: B) -> Self::Output {
+        self |= rhs;
+        self
+    }
+}
+
+impl<const N: usize> Not for BigInt<N> {
+    type Output = Self;
+
+    fn not(self) -> Self::Output {
+        let mut result = Self::zero();
+        for i in 0..N {
+            result.0[i] = !self.0[i];
+        }
+        result
+    }
+}
+
 /// Compute the signed modulo operation on a u64 representation, returning the result.
 /// If n % modulus > modulus / 2, return modulus - n
 /// # Example
@@ -737,6 +797,18 @@ pub trait BigInteger:
     + From<u8>
     + TryFrom<BigUint, Error = ()>
     + Into<BigUint>
+    + BitXorAssign<Self>
+    + for<'a> BitXorAssign<&'a Self>
+    + BitXor<Self>
+    + for<'a> BitXor<&'a Self, Output = Self>
+    + BitAndAssign<Self>
+    + for<'a> BitAndAssign<&'a Self>
+    + BitAnd<Self>
+    + for<'a> BitAnd<&'a Self, Output = Self>
+    + BitOrAssign<Self>
+    + for<'a> BitOrAssign<&'a Self>
+    + BitOr<Self>
+    + for<'a> BitOr<&'a Self, Output = Self>
 {
     /// Number of 64-bit limbs representing `Self`.
     const NUM_LIMBS: usize;
@@ -949,7 +1021,7 @@ pub trait BigInteger:
     /// arr[63] = true;
     /// let mut one = B::from(1u64);
     /// assert_eq!(B::from_bits_be(&arr), one);
-    /// ```   
+    /// ```
     fn from_bits_be(bits: &[bool]) -> Self;
 
     /// Returns the big integer representation of a given little endian boolean
@@ -963,7 +1035,7 @@ pub trait BigInteger:
     /// arr[0] = true;
     /// let mut one = B::from(1u64);
     /// assert_eq!(B::from_bits_le(&arr), one);
-    /// ```   
+    /// ```
     fn from_bits_le(bits: &[bool]) -> Self;
 
     /// Returns the bit representation in a big endian boolean array,
@@ -978,7 +1050,7 @@ pub trait BigInteger:
     /// let mut vec = vec![false; 64];
     /// vec[63] = true;
     /// assert_eq!(arr, vec);
-    /// ```  
+    /// ```
     fn to_bits_be(&self) -> Vec<bool> {
         BitIteratorBE::new(self).collect::<Vec<_>>()
     }

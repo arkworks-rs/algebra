@@ -1,4 +1,5 @@
-use crate::{biginteger::BigInteger, UniformRand};
+use crate::{biginteger::BigInteger, BigInt, UniformRand};
+use ark_std::rand::Rng;
 use num_bigint::BigUint;
 
 // Test elementary math operations for BigInteger.
@@ -51,6 +52,52 @@ fn biginteger_arithmetic_test<B: BigInteger>(a: B, b: B, zero: B) {
     assert_eq!(a_mul2, a_plus_a);
 }
 
+// Test for BigInt's bitwise operations
+fn biginteger_bitwise_ops_test<B: BigInteger>() {
+    let mut rng = ark_std::test_rng();
+
+    // Test XOR
+    // a xor a = 0
+    let a: BigInt<4> = UniformRand::rand(&mut rng);
+    assert_eq!(a ^ &a, BigInt::from(0_u64));
+
+    // Testing a xor b xor b
+    let a: BigInt<4> = UniformRand::rand(&mut rng);
+    let b: BigInt<4> = UniformRand::rand(&mut rng);
+    let xor_ab = a ^ b;
+    assert_eq!(xor_ab ^ b, a);
+
+    // Test OR
+    // a or a = a
+    let a = rng.gen::<BigInt<4>>();
+    assert_eq!(a | &a, a);
+
+    // Testing a or b or b
+    let a = rng.gen::<BigInt<4>>();
+    let b = rng.gen::<BigInt<4>>();
+    let or_ab = a | b;
+    assert_eq!(or_ab | &b, a | b);
+
+    // Test AND
+    // a and a = a
+    let a = rng.gen::<BigInt<4>>();
+    assert_eq!(a & (&a), a);
+
+    // Testing a and a and b.
+    let a = rng.gen::<BigInt<4>>();
+    let b = rng.gen::<BigInt<4>>();
+    let b_clone = b.clone();
+    let and_ab = a & b;
+    assert_eq!(and_ab & b_clone, a & b);
+
+    // Testing De Morgan's law
+    let a = rng.gen::<BigInt<4>>();
+    let b = rng.gen::<BigInt<4>>();
+    let de_morgan_lhs = !(a | b);
+    let de_morgan_rhs = (!a) & (!b);
+    assert_eq!(de_morgan_lhs, de_morgan_rhs);
+}
+
 // Test correctness of BigInteger's bit values
 fn biginteger_bits_test<B: BigInteger>() {
     let mut one = B::from(1u64);
@@ -93,6 +140,7 @@ fn test_biginteger<B: BigInteger>(zero: B) {
     biginteger_arithmetic_test(a, b, zero);
     biginteger_bits_test::<B>();
     biginteger_conversion_test::<B>();
+    biginteger_bitwise_ops_test::<B>()
 }
 
 #[test]
