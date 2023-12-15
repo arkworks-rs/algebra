@@ -799,15 +799,15 @@ pub trait BigInteger:
     + Into<BigUint>
     + BitXorAssign<Self>
     + for<'a> BitXorAssign<&'a Self>
-    + BitXor<Self>
+    + BitXor<Self, Output = Self>
     + for<'a> BitXor<&'a Self, Output = Self>
     + BitAndAssign<Self>
     + for<'a> BitAndAssign<&'a Self>
-    + BitAnd<Self>
+    + BitAnd<Self, Output = Self>
     + for<'a> BitAnd<&'a Self, Output = Self>
     + BitOrAssign<Self>
     + for<'a> BitOrAssign<&'a Self>
-    + BitOr<Self>
+    + BitOr<Self, Output = Self>
     + for<'a> BitOr<&'a Self, Output = Self>
 {
     /// Number of 64-bit limbs representing `Self`.
