@@ -23,6 +23,7 @@ ark-serialize = { version = "0.4.0", default-features = false }
 ark-algebra-test-templates = { version = "0.4.0", default-features = false }
 ark-algebra-bench-templates = { version = "0.4.0", default-features = false }
 ark-curve-constraint-tests = { path = "../curve-constraint-tests", default-features = false }
+ark-relations = { version = "0.4.0", default-features = false }
 
 [features]
 default = [ "curve" ]

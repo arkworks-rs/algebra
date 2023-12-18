@@ -41,3 +41,6 @@ mod fields;
 pub use curves::*;
 
 pub use fields::*;
+
+#[cfg(feature = "r1cs")]
+pub mod constraints;
