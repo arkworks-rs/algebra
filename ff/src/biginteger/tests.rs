@@ -40,7 +40,7 @@ fn biginteger_arithmetic_test<B: BigInteger>(a: B, b: B, zero: B) {
 
     // a * 1 = a
     let mut a_mul1 = a;
-    a_mul1.muln(0);
+    a_mul1 = a_mul1 << 0;
     assert_eq!(a_mul1, a);
 
     // a * 2 = a + a
@@ -49,6 +49,43 @@ fn biginteger_arithmetic_test<B: BigInteger>(a: B, b: B, zero: B) {
     let mut a_plus_a = a;
     a_plus_a.add_with_carry(&a); // Won't assert anything about carry bit.
     assert_eq!(a_mul2, a_plus_a);
+}
+
+fn biginteger_shr<B: BigInteger>() {
+    let mut rng = ark_std::test_rng();
+    let a = B::rand(&mut rng);
+    assert_eq!(a >> 0, a);
+
+    // Binary simple test
+    let a = B::from(256u64);
+    assert_eq!(a >> 2, B::from(64u64));
+
+    // Test saturated underflow
+    let a = B::from(1u64);
+    assert_eq!(a >> 5, B::from(0u64));
+
+    // Test null bits
+    let a = B::rand(&mut rng);
+    let b = a >> 3;
+    assert_eq!(b.get_bit(B::NUM_LIMBS * 64 - 1), false);
+    assert_eq!(b.get_bit(B::NUM_LIMBS * 64 - 2), false);
+    assert_eq!(b.get_bit(B::NUM_LIMBS * 64 - 3), false);
+}
+
+fn biginteger_shl<B: BigInteger>() {
+    let mut rng = ark_std::test_rng();
+    let a = B::rand(&mut rng);
+    assert_eq!(a << 0, a);
+
+    // Binary simple test
+    let a = B::from(256u64);
+    assert_eq!(a << 2, B::from(1024u64));
+
+    let a = B::rand(&mut rng);
+    let b = a << 3;
+    assert_eq!(b.get_bit(0), false);
+    assert_eq!(b.get_bit(1), false);
+    assert_eq!(b.get_bit(2), false);
 }
 
 // Test for BigInt's bitwise operations
@@ -104,7 +141,7 @@ fn biginteger_bits_test<B: BigInteger>() {
     assert!(one.get_bit(0));
     // 1st bit of BigInteger representing 1 is not 1
     assert!(!one.get_bit(1));
-    one.muln(5);
+    one = one << 5;
     let thirty_two = one;
     // 0th bit of BigInteger representing 32 is not 1
     assert!(!thirty_two.get_bit(0));
@@ -139,7 +176,9 @@ fn test_biginteger<B: BigInteger>(zero: B) {
     biginteger_arithmetic_test(a, b, zero);
     biginteger_bits_test::<B>();
     biginteger_conversion_test::<B>();
-    biginteger_bitwise_ops_test::<B>()
+    biginteger_bitwise_ops_test::<B>();
+    biginteger_shr::<B>();
+    biginteger_shl::<B>();
 }
 
 #[test]

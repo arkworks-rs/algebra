@@ -1,4 +1,4 @@
-use core::ops::{BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Not};
+use core::ops::{BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Not, Shl, Shr};
 
 use crate::{
     bits::{BitIteratorBE, BitIteratorLE},
@@ -391,34 +391,6 @@ impl<const N: usize> BigInteger for BigInt<N> {
     }
 
     #[inline]
-    fn muln(&mut self, mut n: u32) {
-        if n >= (64 * N) as u32 {
-            *self = Self::from(0u64);
-            return;
-        }
-
-        while n >= 64 {
-            let mut t = 0;
-            for i in 0..N {
-                core::mem::swap(&mut t, &mut self.0[i]);
-            }
-            n -= 64;
-        }
-
-        if n > 0 {
-            let mut t = 0;
-            #[allow(unused)]
-            for i in 0..N {
-                let a = &mut self.0[i];
-                let t2 = *a >> (64 - n);
-                *a <<= n;
-                *a |= t;
-                t = t2;
-            }
-        }
-    }
-
-    #[inline]
     fn div2(&mut self) {
         let mut t = 0;
         for i in 0..N {
@@ -427,34 +399,6 @@ impl<const N: usize> BigInteger for BigInt<N> {
             *a >>= 1;
             *a |= t;
             t = t2;
-        }
-    }
-
-    #[inline]
-    fn divn(&mut self, mut n: u32) {
-        if n >= (64 * N) as u32 {
-            *self = Self::from(0u64);
-            return;
-        }
-
-        while n >= 64 {
-            let mut t = 0;
-            for i in 0..N {
-                core::mem::swap(&mut t, &mut self.0[N - i - 1]);
-            }
-            n -= 64;
-        }
-
-        if n > 0 {
-            let mut t = 0;
-            #[allow(unused)]
-            for i in 0..N {
-                let a = &mut self.0[N - i - 1];
-                let t2 = *a << (64 - n);
-                *a >>= n;
-                *a |= t;
-                t = t2;
-            }
         }
     }
 
@@ -729,6 +673,72 @@ impl<B: Borrow<Self>, const N: usize> BitOr<B> for BigInt<N> {
     }
 }
 
+impl<const N: usize> Shr<u32> for BigInt<N> {
+    type Output = Self;
+
+    fn shr(self, mut rhs: u32) -> Self::Output {
+        let mut data = self.0.clone();
+
+        if rhs >= (64 * N) as u32 {
+            return Self::from(0u64);
+        }
+
+        while rhs >= 64 {
+            let mut t = 0;
+            for i in 0..N {
+                core::mem::swap(&mut t, &mut data[N - i - 1]);
+            }
+            rhs -= 64;
+        }
+
+        if rhs > 0 {
+            let mut t = 0;
+            for i in 0..N {
+                let a = &mut data[N - i - 1];
+                let t2 = *a << (64 - rhs);
+                *a >>= rhs;
+                *a |= t;
+                t = t2;
+            }
+        }
+        Self::new(data)
+    }
+}
+
+impl<const N: usize> Shl<u32> for BigInt<N> {
+    type Output = Self;
+
+    fn shl(self, mut rhs: u32) -> Self::Output {
+        if rhs >= (64 * N) as u32 {
+            return Self::from(0u64);
+        }
+
+        let mut data = self.0.clone();
+
+        while rhs >= 64 {
+            let mut t = 0;
+            for i in 0..N {
+                core::mem::swap(&mut t, &mut data[i]);
+            }
+            rhs -= 64;
+        }
+
+        if rhs > 0 {
+            let mut t = 0;
+            #[allow(unused)]
+            for i in 0..N {
+                let a = &mut data[i];
+                let t2 = *a >> (64 - rhs);
+                *a <<= rhs;
+                *a |= t;
+                t = t2;
+            }
+        }
+
+        Self::new(data)
+    }
+}
+
 impl<const N: usize> Not for BigInt<N> {
     type Output = Self;
 
@@ -809,6 +819,8 @@ pub trait BigInteger:
     + for<'a> BitOrAssign<&'a Self>
     + BitOr<Self, Output = Self>
     + for<'a> BitOr<&'a Self, Output = Self>
+    + Shr<u32, Output = Self>
+    + Shl<u32, Output = Self>
 {
     /// Number of 64-bit limbs representing `Self`.
     const NUM_LIMBS: usize;
@@ -881,31 +893,6 @@ pub trait BigInteger:
     /// ```
     fn mul2(&mut self) -> bool;
 
-    /// Performs a leftwise bitshift of this number by n bits, effectively multiplying
-    /// it by 2^n. Overflow is ignored.
-    /// # Example
-    ///
-    /// ```
-    /// use ark_ff::{biginteger::BigInteger64 as B, BigInteger as _};
-    ///
-    /// // Basic
-    /// let mut one_mul = B::from(1u64);
-    /// one_mul.muln(5);
-    /// assert_eq!(one_mul, B::from(32u64));
-    ///
-    /// // Edge-Case
-    /// let mut zero = B::from(0u64);
-    /// zero.muln(5);
-    /// assert_eq!(zero, B::from(0u64));
-    ///
-    /// let mut arr: [bool; 64] = [false; 64];
-    /// arr[4] = true;
-    /// let mut mul = B::from_bits_be(&arr);
-    /// mul.muln(5);
-    /// assert_eq!(mul, B::from(0u64));
-    /// ```
-    fn muln(&mut self, amt: u32);
-
     /// Performs a rightwise bitshift of this number, effectively dividing
     /// it by 2.
     /// # Example
@@ -928,26 +915,6 @@ pub trait BigInteger:
     /// assert_eq!(one, B::from(0u64));
     /// ```
     fn div2(&mut self);
-
-    /// Performs a rightwise bitshift of this number by some amount.
-    /// # Example
-    ///
-    /// ```
-    /// use ark_ff::{biginteger::BigInteger64 as B, BigInteger as _};
-    ///
-    /// // Basic
-    /// let (mut one, mut thirty_two_div) = (B::from(1u64), B::from(32u64));
-    /// thirty_two_div.divn(5);
-    /// assert_eq!(one, thirty_two_div);
-    ///
-    /// // Edge-Case
-    /// let mut arr: [bool; 64] = [false; 64];
-    /// arr[4] = true;
-    /// let mut div = B::from_bits_le(&arr);
-    /// div.divn(5);
-    /// assert_eq!(div, B::from(0u64));
-    /// ```
-    fn divn(&mut self, amt: u32);
 
     /// Returns true iff this number is odd.
     /// # Example
