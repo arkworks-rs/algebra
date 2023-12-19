@@ -82,9 +82,10 @@ fn biginteger_shl<B: BigInteger>() {
     assert_eq!(a << 2, B::from(1024u64));
 
     let a = B::rand(&mut rng);
-    let b = a << 3;
+    let b = a << 4;
     assert_eq!(b.get_bit(0), false);
     assert_eq!(b.get_bit(1), false);
+    assert_eq!(b.get_bit(2), false);
     assert_eq!(b.get_bit(2), false);
 }
 
