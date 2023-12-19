@@ -391,6 +391,34 @@ impl<const N: usize> BigInteger for BigInt<N> {
     }
 
     #[inline]
+    fn muln(&mut self, mut n: u32) {
+        if n >= (64 * N) as u32 {
+            *self = Self::from(0u64);
+            return;
+        }
+
+        while n >= 64 {
+            let mut t = 0;
+            for i in 0..N {
+                core::mem::swap(&mut t, &mut self.0[i]);
+            }
+            n -= 64;
+        }
+
+        if n > 0 {
+            let mut t = 0;
+            #[allow(unused)]
+            for i in 0..N {
+                let a = &mut self.0[i];
+                let t2 = *a >> (64 - n);
+                *a <<= n;
+                *a |= t;
+                t = t2;
+            }
+        }
+    }
+
+    #[inline]
     fn div2(&mut self) {
         let mut t = 0;
         for i in 0..N {
@@ -399,6 +427,34 @@ impl<const N: usize> BigInteger for BigInt<N> {
             *a >>= 1;
             *a |= t;
             t = t2;
+        }
+    }
+
+    #[inline]
+    fn divn(&mut self, mut n: u32) {
+        if n >= (64 * N) as u32 {
+            *self = Self::from(0u64);
+            return;
+        }
+
+        while n >= 64 {
+            let mut t = 0;
+            for i in 0..N {
+                core::mem::swap(&mut t, &mut self.0[N - i - 1]);
+            }
+            n -= 64;
+        }
+
+        if n > 0 {
+            let mut t = 0;
+            #[allow(unused)]
+            for i in 0..N {
+                let a = &mut self.0[N - i - 1];
+                let t2 = *a << (64 - n);
+                *a >>= n;
+                *a |= t;
+                t = t2;
+            }
         }
     }
 
@@ -893,6 +949,32 @@ pub trait BigInteger:
     /// ```
     fn mul2(&mut self) -> bool;
 
+    /// Performs a leftwise bitshift of this number by n bits, effectively multiplying
+    /// it by 2^n. Overflow is ignored.
+    /// # Example
+    ///
+    /// ```
+    /// use ark_ff::{biginteger::BigInteger64 as B, BigInteger as _};
+    ///
+    /// // Basic
+    /// let mut one_mul = B::from(1u64);
+    /// one_mul.muln(5);
+    /// assert_eq!(one_mul, B::from(32u64));
+    ///
+    /// // Edge-Case
+    /// let mut zero = B::from(0u64);
+    /// zero.muln(5);
+    /// assert_eq!(zero, B::from(0u64));
+    ///
+    /// let mut arr: [bool; 64] = [false; 64];
+    /// arr[4] = true;
+    /// let mut mul = B::from_bits_be(&arr);
+    /// mul.muln(5);
+    /// assert_eq!(mul, B::from(0u64));
+    /// ```
+    #[deprecated(note="please use the operator `<<` instead")]
+    fn muln(&mut self, amt: u32);
+
     /// Performs a rightwise bitshift of this number, effectively dividing
     /// it by 2.
     /// # Example
@@ -915,6 +997,27 @@ pub trait BigInteger:
     /// assert_eq!(one, B::from(0u64));
     /// ```
     fn div2(&mut self);
+
+    /// Performs a rightwise bitshift of this number by some amount.
+    /// # Example
+    ///
+    /// ```
+    /// use ark_ff::{biginteger::BigInteger64 as B, BigInteger as _};
+    ///
+    /// // Basic
+    /// let (mut one, mut thirty_two_div) = (B::from(1u64), B::from(32u64));
+    /// thirty_two_div.divn(5);
+    /// assert_eq!(one, thirty_two_div);
+    ///
+    /// // Edge-Case
+    /// let mut arr: [bool; 64] = [false; 64];
+    /// arr[4] = true;
+    /// let mut div = B::from_bits_le(&arr);
+    /// div.divn(5);
+    /// assert_eq!(div, B::from(0u64));
+    /// ```
+    #[deprecated(note="please use the operator `>>` instead")]
+    fn divn(&mut self, amt: u32);
 
     /// Returns true iff this number is odd.
     /// # Example
