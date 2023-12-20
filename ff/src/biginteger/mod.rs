@@ -1,4 +1,4 @@
-use core::ops::{BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Not, Shl, Shr};
+use core::ops::{BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Not, Shr};
 
 use crate::{
     bits::{BitIteratorBE, BitIteratorLE},
@@ -761,40 +761,6 @@ impl<const N: usize> Shr<u32> for BigInt<N> {
     }
 }
 
-impl<const N: usize> Shl<u32> for BigInt<N> {
-    type Output = Self;
-
-    fn shl(self, mut rhs: u32) -> Self::Output {
-        if rhs >= (64 * N) as u32 {
-            return Self::from(0u64);
-        }
-
-        let mut data = self.0.clone();
-
-        while rhs >= 64 {
-            let mut t = 0;
-            for i in 0..N {
-                core::mem::swap(&mut t, &mut data[i]);
-            }
-            rhs -= 64;
-        }
-
-        if rhs > 0 {
-            let mut t = 0;
-            #[allow(unused)]
-            for i in 0..N {
-                let a = &mut data[i];
-                let t2 = *a >> (64 - rhs);
-                *a <<= rhs;
-                *a |= t;
-                t = t2;
-            }
-        }
-
-        Self::new(data)
-    }
-}
-
 impl<const N: usize> Not for BigInt<N> {
     type Output = Self;
 
@@ -876,7 +842,6 @@ pub trait BigInteger:
     + BitOr<Self, Output = Self>
     + for<'a> BitOr<&'a Self, Output = Self>
     + Shr<u32, Output = Self>
-    + Shl<u32, Output = Self>
 {
     /// Number of 64-bit limbs representing `Self`.
     const NUM_LIMBS: usize;
@@ -972,7 +937,6 @@ pub trait BigInteger:
     /// mul.muln(5);
     /// assert_eq!(mul, B::from(0u64));
     /// ```
-    #[deprecated(since = "0.4.2", note = "please use the operator `<<` instead")]
     fn muln(&mut self, amt: u32);
 
     /// Performs a rightwise bitshift of this number, effectively dividing
