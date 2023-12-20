@@ -1,4 +1,6 @@
-use core::ops::{BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Not};
+use core::ops::{
+    BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Not, Shr, ShrAssign,
+};
 
 use crate::{
     bits::{BitIteratorBE, BitIteratorLE},
@@ -729,6 +731,54 @@ impl<B: Borrow<Self>, const N: usize> BitOr<B> for BigInt<N> {
     }
 }
 
+impl<const N: usize> ShrAssign<u32> for BigInt<N> {
+    /// Computes the bitwise shift right operation in place.
+    ///
+    /// Differently from the built-in numeric types (u8, u32, u64, etc.) this
+    /// operation does *not* return an underflow error if the number of bits
+    /// shifted is larger than N * 64. Instead the result will be saturated to
+    /// zero.
+    fn shr_assign(&mut self, mut rhs: u32) {
+        if rhs >= (64 * N) as u32 {
+            *self = Self::from(0u64);
+        }
+
+        while rhs >= 64 {
+            let mut t = 0;
+            for i in 0..N {
+                core::mem::swap(&mut t, &mut self.0[N - i - 1]);
+            }
+            rhs -= 64;
+        }
+
+        if rhs > 0 {
+            let mut t = 0;
+            for i in 0..N {
+                let a = &mut self.0[N - i - 1];
+                let t2 = *a << (64 - rhs);
+                *a >>= rhs;
+                *a |= t;
+                t = t2;
+            }
+        }
+    }
+}
+
+impl<const N: usize> Shr<u32> for BigInt<N> {
+    type Output = Self;
+
+    /// Computes bitwise shift right operation.
+    ///
+    /// Differently from the built-in numeric types (u8, u32, u64, etc.) this
+    /// operation does *not* return an underflow error if the number of bits
+    /// shifted is larger than N * 64. Instead the result will be saturated to
+    /// zero.
+    fn shr(mut self, rhs: u32) -> Self::Output {
+        self >>= rhs;
+        self
+    }
+}
+
 impl<const N: usize> Not for BigInt<N> {
     type Output = Self;
 
@@ -809,6 +859,8 @@ pub trait BigInteger:
     + for<'a> BitOrAssign<&'a Self>
     + BitOr<Self, Output = Self>
     + for<'a> BitOr<&'a Self, Output = Self>
+    + Shr<u32, Output = Self>
+    + ShrAssign<u32>
 {
     /// Number of 64-bit limbs representing `Self`.
     const NUM_LIMBS: usize;
@@ -947,6 +999,7 @@ pub trait BigInteger:
     /// div.divn(5);
     /// assert_eq!(div, B::from(0u64));
     /// ```
+    #[deprecated(since = "0.4.2", note = "please use the operator `>>` instead")]
     fn divn(&mut self, amt: u32);
 
     /// Returns true iff this number is odd.

@@ -14,13 +14,13 @@ members = [
     "test-curves",
     "test-templates",
 ]
+exclude = ["curves/**"]
 resolver = "2"
 
 [workspace.package]
 version = "0.4.2"
 authors = [ "arkworks contributors" ]
 homepage = "https://arkworks.rs"
-exclude = ["curves/**"]
 repository = "https://github.com/arkworks-rs/algebra"
 categories = ["cryptography"]
 include = ["Cargo.toml", "src", "README.md", "LICENSE-APACHE", "LICENSE-MIT", "doc/katex-header.html"]
@@ -30,6 +30,9 @@ rust-version = "1.70"
 
 [workspace.metadata.docs.rs]
 rustdoc-args = [ "--html-in-header katex-header.html" ]
+
+[workspace.metadata.release]
+dependent-version = "fix"
 
 [workspace.dependencies]
 ark-ec = { version = "0.4.2", path = "./ec", default-features = false }
@@ -71,8 +74,6 @@ proc-macro2 = "1.0"
 quote = "1.0"
 syn = "1.0"
 
-resolver = "2"
-
 [profile.release]
 opt-level = 3
 lto = "thin"
@@ -97,6 +98,3 @@ lto = "thin"
 incremental = true
 debug-assertions = true
 debug = true
-
-[workspace.metadata.release]
-dependent-version = "fix"

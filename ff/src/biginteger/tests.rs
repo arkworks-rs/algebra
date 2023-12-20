@@ -51,6 +51,27 @@ fn biginteger_arithmetic_test<B: BigInteger>(a: B, b: B, zero: B) {
     assert_eq!(a_mul2, a_plus_a);
 }
 
+fn biginteger_shr<B: BigInteger>() {
+    let mut rng = ark_std::test_rng();
+    let a = B::rand(&mut rng);
+    assert_eq!(a >> 0, a);
+
+    // Binary simple test
+    let a = B::from(256u64);
+    assert_eq!(a >> 2, B::from(64u64));
+
+    // Test saturated underflow
+    let a = B::from(1u64);
+    assert_eq!(a >> 5, B::from(0u64));
+
+    // Test null bits
+    let a = B::rand(&mut rng);
+    let b = a >> 3;
+    assert_eq!(b.get_bit(B::NUM_LIMBS * 64 - 1), false);
+    assert_eq!(b.get_bit(B::NUM_LIMBS * 64 - 2), false);
+    assert_eq!(b.get_bit(B::NUM_LIMBS * 64 - 3), false);
+}
+
 // Test for BigInt's bitwise operations
 fn biginteger_bitwise_ops_test<B: BigInteger>() {
     let mut rng = ark_std::test_rng();
@@ -139,7 +160,8 @@ fn test_biginteger<B: BigInteger>(zero: B) {
     biginteger_arithmetic_test(a, b, zero);
     biginteger_bits_test::<B>();
     biginteger_conversion_test::<B>();
-    biginteger_bitwise_ops_test::<B>()
+    biginteger_bitwise_ops_test::<B>();
+    biginteger_shr::<B>();
 }
 
 #[test]

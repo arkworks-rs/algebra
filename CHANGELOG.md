@@ -5,6 +5,7 @@
 - [\#689](https://github.com/arkworks-rs/algebra/pull/689) (`ark-serialize`) Add `CanonicalSerialize` and `CanonicalDeserialize` impls for `VecDeque` and `LinkedList`.
 - [\#693](https://github.com/arkworks-rs/algebra/pull/693) (`ark-serialize`) Add `serialize_to_vec!` convenience macro.
 - [\#713](https://github.com/arkworks-rs/algebra/pull/713) (`ark-ff`) Add support for bitwise operations AND, OR, and XOR between `BigInteger`.
+- [\#736](https://github.com/arkworks-rs/algebra/pull/736) (`ark-ff`) Deprecate the use of `divn()`. Instead, it is implemented the trait `core::ops::Shr`.
 
 ### Breaking changes
 
