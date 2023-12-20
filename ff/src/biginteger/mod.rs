@@ -736,7 +736,8 @@ impl<const N: usize> Shr<u32> for BigInt<N> {
     ///
     /// Differently from the built-in numeric types (u8, u32, u64, etc.) this
     /// operation does *not* return an underflow error if the number of bits
-    /// shifted is larger than N * 64.
+    /// shifted is larger than N * 64. Instead the result will be saturated to
+    /// zero.
     fn shr(self, mut rhs: u32) -> Self::Output {
         let mut data = self.0.clone();
 
