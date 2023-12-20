@@ -738,13 +738,13 @@ impl<const N: usize> ShrAssign<u32> for BigInt<N> {
     /// zero.
     fn shr_assign(&mut self, mut rhs: u32) {
         if rhs >= (64 * N) as u32 {
-            return Self::from(0u64);
+            *self = Self::from(0u64);
         }
 
         while rhs >= 64 {
             let mut t = 0;
             for i in 0..N {
-                core::mem::swap(&mut t, &mut self[N - i - 1]);
+                core::mem::swap(&mut t, &mut self.0[N - i - 1]);
             }
             rhs -= 64;
         }
@@ -752,7 +752,7 @@ impl<const N: usize> ShrAssign<u32> for BigInt<N> {
         if rhs > 0 {
             let mut t = 0;
             for i in 0..N {
-                let a = &mut self[N - i - 1];
+                let a = &mut self.0[N - i - 1];
                 let t2 = *a << (64 - rhs);
                 *a >>= rhs;
                 *a |= t;
