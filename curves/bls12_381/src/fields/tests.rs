@@ -827,7 +827,7 @@ fn test_fq_repr_shr() {
         0x16080cf4071e0b05,
         0x1225f2901aea514e,
     ]);
-    a = a >> 0;
+    a >>= 0;
     assert_eq!(
         a,
         BigInt::new([
@@ -839,7 +839,7 @@ fn test_fq_repr_shr() {
             0x1225f2901aea514e,
         ])
     );
-    a = a >> 1;
+    a >>= 1;
     assert_eq!(
         a,
         BigInt::new([
@@ -851,7 +851,7 @@ fn test_fq_repr_shr() {
             0x912f9480d7528a7,
         ])
     );
-    a = a >> 50;
+    a >>= 50;
     assert_eq!(
         a,
         BigInt::new([
@@ -863,7 +863,7 @@ fn test_fq_repr_shr() {
             0x244,
         ])
     );
-    a = a >> 130;
+    a >>= 130;
     assert_eq!(
         a,
         BigInt::new([
@@ -875,7 +875,7 @@ fn test_fq_repr_shr() {
             0x0,
         ])
     );
-    a = a >> 64;
+    a >>= 64;
     assert_eq!(
         a,
         BigInt::new([0x4067a038f0582e2a, 0x2f9480d7528a70b0, 0x91, 0x0, 0x0, 0x0])
