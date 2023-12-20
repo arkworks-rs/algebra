@@ -16,16 +16,19 @@ edition = "2021"
 ark-ff = { version= "0.4.0", default-features = false }
 ark-ec = { version= "0.4.0", default-features = false }
 ark-std = { version = "0.4.0", default-features = false }
+ark-r1cs-std = { version = "0.4.0", default-features = false, optional = true }
 
 [dev-dependencies]
 ark-serialize = { version = "0.4.0", default-features = false }
 ark-algebra-test-templates = { version = "0.4.0", default-features = false }
 ark-algebra-bench-templates = { version = "0.4.0", default-features = false }
+ark-curve-constraint-tests = { path = "../curve-constraint-tests", default-features = false }
+ark-relations = { version = "0.4.0", default-features = false }
 
 [features]
 default = [ "curve" ]
-std = [ "ark-std/std", "ark-ff/std", "ark-ec/std" ]
-
+std = [ "ark-std/std", "ark-ff/std", "ark-ec/std", "ark-r1cs-std?/std" ]
+r1cs = [ "ark-r1cs-std" ]
 curve = [ "scalar_field" ]
 scalar_field = []
 
