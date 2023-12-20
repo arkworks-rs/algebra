@@ -11,7 +11,8 @@ include.workspace = true
 license.workspace = true
 edition.workspace = true
 rust-version.workspace = true
-rustdocflags.workspace = true
+metadata.docs.rs.workspace = true
+metadata.release.workspace = true
 keywords = ["cryptography", "elliptic-curves", "pairing"]
 
 [dependencies]
@@ -40,6 +41,3 @@ hex.workspace = true
 default = []
 std = [ "ark-std/std", "ark-ff/std", "ark-serialize/std" ]
 parallel = [ "std", "rayon", "ark-std/parallel" ]
-
-[package.metadata.docs.rs]
-rustdoc-args = ["--html-in-header", "./doc/katex-header.html"]
