@@ -784,7 +784,7 @@ impl<const N: usize> ShlAssign<u32> for BigInt<N> {
     /// Computes the bitwise shift left operation in place.
     ///
     /// Differently from the built-in numeric types (u8, u32, u64, etc.) this
-    /// operation does *not* return an underflow error if the number of bits
+    /// operation does *not* return an overflow error if the number of bits
     /// shifted is larger than N * 64. Instead, the overflow will be chopped
     /// off.
     fn shl_assign(&mut self, mut rhs: u32) {
