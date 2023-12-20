@@ -51,6 +51,52 @@ fn biginteger_arithmetic_test<B: BigInteger>(a: B, b: B, zero: B) {
     assert_eq!(a_mul2, a_plus_a);
 }
 
+// Test for BigInt's bitwise operations
+fn biginteger_bitwise_ops_test<B: BigInteger>() {
+    let mut rng = ark_std::test_rng();
+
+    // Test XOR
+    // a xor a = 0
+    let a = B::rand(&mut rng);
+    assert_eq!(a ^ &a, B::from(0_u64));
+
+    // Testing a xor b xor b
+    let a = B::rand(&mut rng);
+    let b = B::rand(&mut rng);
+    let xor_ab = a ^ b;
+    assert_eq!(xor_ab ^ b, a);
+
+    // Test OR
+    // a or a = a
+    let a = B::rand(&mut rng);
+    assert_eq!(a | &a, a);
+
+    // Testing a or b or b
+    let a = B::rand(&mut rng);
+    let b = B::rand(&mut rng);
+    let or_ab = a | b;
+    assert_eq!(or_ab | &b, a | b);
+
+    // Test AND
+    // a and a = a
+    let a = B::rand(&mut rng);
+    assert_eq!(a & (&a), a);
+
+    // Testing a and a and b.
+    let a = B::rand(&mut rng);
+    let b = B::rand(&mut rng);
+    let b_clone = b.clone();
+    let and_ab = a & b;
+    assert_eq!(and_ab & b_clone, a & b);
+
+    // Testing De Morgan's law
+    let a = 0x1234567890abcdef_u64;
+    let b = 0xfedcba0987654321_u64;
+    let de_morgan_lhs = B::from(!(a | b));
+    let de_morgan_rhs = B::from(!a) & B::from(!b);
+    assert_eq!(de_morgan_lhs, de_morgan_rhs);
+}
+
 // Test correctness of BigInteger's bit values
 fn biginteger_bits_test<B: BigInteger>() {
     let mut one = B::from(1u64);
@@ -93,6 +139,7 @@ fn test_biginteger<B: BigInteger>(zero: B) {
     biginteger_arithmetic_test(a, b, zero);
     biginteger_bits_test::<B>();
     biginteger_conversion_test::<B>();
+    biginteger_bitwise_ops_test::<B>()
 }
 
 #[test]
