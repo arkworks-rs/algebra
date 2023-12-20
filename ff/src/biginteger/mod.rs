@@ -1,4 +1,6 @@
-use core::ops::{BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Not, Shr, ShrAssign};
+use core::ops::{
+    BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Not, Shr, ShrAssign,
+};
 
 use crate::{
     bits::{BitIteratorBE, BitIteratorLE},
@@ -759,7 +761,7 @@ impl<const N: usize> ShrAssign<u32> for BigInt<N> {
                 t = t2;
             }
         }
-	}
+    }
 }
 
 impl<const N: usize> Shr<u32> for BigInt<N> {
@@ -771,7 +773,7 @@ impl<const N: usize> Shr<u32> for BigInt<N> {
     /// operation does *not* return an underflow error if the number of bits
     /// shifted is larger than N * 64. Instead the result will be saturated to
     /// zero.
-    fn shr(mut self, mut rhs: u32) -> Self::Output {
+    fn shr(mut self, rhs: u32) -> Self::Output {
         self >>= rhs;
         self
     }
