@@ -1,0 +1,78 @@
+[workspace]
+
+members = [
+    "curve-constraint-tests",
+
+    "bls12_377",
+    "ed_on_bls12_377",
+
+    "bw6_761",
+    "ed_on_bw6_761",
+
+    "bw6_767",
+
+    "cp6_782",
+    "ed_on_cp6_782",
+
+    "bls12_381",
+    "ed_on_bls12_381",
+    "ed_on_bls12_381_bandersnatch",
+
+    "bn254",
+    "ed_on_bn254",
+    "grumpkin",
+
+    "mnt4_298",
+    "mnt6_298",
+    "ed_on_mnt4_298",
+
+    "mnt4_753",
+    "mnt6_753",
+    "ed_on_mnt4_753",
+
+    "pallas",
+    "vesta",
+
+    "secp256k1",
+    "secp256r1",
+    "secp384r1",
+    "secq256k1",
+
+    "curve25519",
+    "ed25519",
+]
+resolver = "2"
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+incremental = true
+panic = 'abort'
+
+[profile.bench]
+opt-level = 3
+debug = false
+rpath = false
+lto = "thin"
+incremental = true
+debug-assertions = false
+
+[profile.dev]
+opt-level = 0
+panic = 'abort'
+
+[profile.test]
+opt-level = 3
+lto = "thin"
+incremental = true
+debug-assertions = true
+debug = true
+
+[patch.crates-io]
+ark-ff = { path = "../ff" }
+ark-ec = { path = "../ec" }
+ark-poly = { path = "../poly" }
+ark-serialize = { path = "../serialize" }
+ark-algebra-test-templates = { path = "../test-templates" }
+ark-algebra-bench-templates = { path = "../bench-templates" }
+ark-r1cs-std = { git = "https://github.com/arkworks-rs/r1cs-std/" }

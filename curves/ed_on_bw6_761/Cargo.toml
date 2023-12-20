@@ -1,0 +1,27 @@
+[package]
+name = "ark-ed-on-bw6-761"
+version = "0.4.0"
+authors = [ "arkworks contributors" ]
+description = "A Twisted Edwards curve defined over the scalar field of the BW6-761 curve"
+homepage = "https://arkworks.rs"
+repository = "https://github.com/arkworks-rs/curves"
+documentation = "https://docs.rs/ark-ed-on-bw6-761/"
+keywords = ["cryptography", "finite-fields", "elliptic-curves" ]
+categories = ["cryptography"]
+include = ["Cargo.toml", "src", "README.md", "LICENSE-APACHE", "LICENSE-MIT"]
+license = "MIT/Apache-2.0"
+edition = "2021"
+
+[dependencies]
+ark-ed-on-cp6-782 = { version = "0.4.0", path = "../ed_on_cp6_782", default-features = false }
+
+[dev-dependencies]
+ark-relations = { version = "0.4.0", default-features = false }
+ark-r1cs-std = { version = "0.4.0", default-features = false }
+ark-ff = { version = "0.4.0", default-features = false }
+ark-std = { version = "0.4.0", default-features = false }
+
+[features]
+default = []
+std = [ "ark-ed-on-cp6-782/std" ]
+r1cs = [ "ark-ed-on-cp6-782/r1cs" ]
