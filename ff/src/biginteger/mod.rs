@@ -1,5 +1,6 @@
 use core::ops::{
-    BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Not, Shr, ShrAssign,
+    BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Not, Shl, ShlAssign, Shr,
+    ShrAssign,
 };
 
 use crate::{
@@ -779,6 +780,56 @@ impl<const N: usize> Shr<u32> for BigInt<N> {
     }
 }
 
+impl<const N: usize> ShlAssign<u32> for BigInt<N> {
+    /// Computes the bitwise shift left operation in place.
+    ///
+    /// Differently from the built-in numeric types (u8, u32, u64, etc.) this
+    /// operation does *not* return an overflow error if the number of bits
+    /// shifted is larger than N * 64. Instead, the overflow will be chopped
+    /// off.
+    fn shl_assign(&mut self, mut rhs: u32) {
+        if rhs >= (64 * N) as u32 {
+            *self = Self::from(0u64);
+            return;
+        }
+
+        while rhs >= 64 {
+            let mut t = 0;
+            for i in 0..N {
+                core::mem::swap(&mut t, &mut self.0[i]);
+            }
+            rhs -= 64;
+        }
+
+        if rhs > 0 {
+            let mut t = 0;
+            #[allow(unused)]
+            for i in 0..N {
+                let a = &mut self.0[i];
+                let t2 = *a >> (64 - rhs);
+                *a <<= rhs;
+                *a |= t;
+                t = t2;
+            }
+        }
+    }
+}
+
+impl<const N: usize> Shl<u32> for BigInt<N> {
+    type Output = Self;
+
+    /// Computes the bitwise shift left operation in place.
+    ///
+    /// Differently from the built-in numeric types (u8, u32, u64, etc.) this
+    /// operation does *not* return an overflow error if the number of bits
+    /// shifted is larger than N * 64. Instead, the overflow will be chopped
+    /// off.
+    fn shl(mut self, rhs: u32) -> Self::Output {
+        self <<= rhs;
+        self
+    }
+}
+
 impl<const N: usize> Not for BigInt<N> {
     type Output = Self;
 
@@ -861,6 +912,8 @@ pub trait BigInteger:
     + for<'a> BitOr<&'a Self, Output = Self>
     + Shr<u32, Output = Self>
     + ShrAssign<u32>
+    + Shl<u32, Output = Self>
+    + ShlAssign<u32>
 {
     /// Number of 64-bit limbs representing `Self`.
     const NUM_LIMBS: usize;
@@ -956,6 +1009,7 @@ pub trait BigInteger:
     /// mul.muln(5);
     /// assert_eq!(mul, B::from(0u64));
     /// ```
+    #[deprecated(since = "0.4.2", note = "please use the operator `>>` instead")]
     fn muln(&mut self, amt: u32);
 
     /// Performs a rightwise bitshift of this number, effectively dividing
