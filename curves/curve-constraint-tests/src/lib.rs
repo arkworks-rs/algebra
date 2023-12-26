@@ -236,7 +236,7 @@ pub mod curves {
     pub fn group_test<C, ConstraintF, GG>() -> Result<(), SynthesisError>
     where
         C: CurveGroup,
-        ConstraintF: Field,
+        ConstraintF: PrimeField,
         GG: CurveVar<C, ConstraintF>,
         for<'a> &'a GG: GroupOpsBounds<'a, C, GG>,
     {
