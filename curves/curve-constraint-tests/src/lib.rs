@@ -231,7 +231,7 @@ pub mod curves {
     use ark_relations::r1cs::{ConstraintSystem, SynthesisError};
     use ark_std::{test_rng, vec::Vec, UniformRand};
 
-    use ark_r1cs_std::prelude::*;
+    use ark_r1cs_std::{prelude::*, fields::nonnative::NonNativeFieldVar};
 
     pub fn group_test<C, ConstraintF, GG>() -> Result<(), SynthesisError>
     where
@@ -350,15 +350,22 @@ pub mod curves {
                 let scalar_bits: Vec<bool> = BitIteratorLE::new(&scalar).collect();
                 input =
                     Vec::new_witness(ark_relations::ns!(cs, "bits"), || Ok(scalar_bits)).unwrap();
+                let scalar = NonNativeFieldVar::new_variable(
+                    ark_relations::ns!(cs, "scalar"),
+                    || Ok(scalar),
+                    mode,
+                ).unwrap();
                 let result = a
                     .scalar_mul_le(input.iter())
                     .expect(&format!("Mode: {:?}", mode));
+                let mul_result = a * scalar;
                 let result_val = result.value()?.into_affine();
                 assert_eq!(
                     result_val, native_result,
                     "gadget & native values are diff. after scalar mul {:?}",
                     scalar,
                 );
+                assert_eq!(mul_result.value().unwrap(), native_result);
                 assert!(cs.is_satisfied().unwrap());
             }
 
