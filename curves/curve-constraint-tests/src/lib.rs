@@ -352,7 +352,6 @@ pub mod curves {
                     Vec::new_witness(ark_relations::ns!(cs, "bits"), || Ok(scalar_bits)).unwrap();
                 let scalar_var = NonNativeFieldVar::new_variable(
                     ark_relations::ns!(cs, "scalar"),
-
                     || {
                         let scalar = scalar
                             .iter()
