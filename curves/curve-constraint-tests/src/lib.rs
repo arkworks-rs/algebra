@@ -231,7 +231,7 @@ pub mod curves {
     use ark_relations::r1cs::{ConstraintSystem, SynthesisError};
     use ark_std::{test_rng, vec::Vec, UniformRand};
 
-    use ark_r1cs_std::{fields::nonnative::NonNativeFieldVar, prelude::*};
+    use ark_r1cs_std::{fields::emulated_fp::EmulatedFpVar, prelude::*};
 
     pub fn group_test<C, ConstraintF, GG>() -> Result<(), SynthesisError>
     where
@@ -350,7 +350,7 @@ pub mod curves {
                 let scalar_bits: Vec<bool> = BitIteratorLE::new(&scalar).collect();
                 input =
                     Vec::new_witness(ark_relations::ns!(cs, "bits"), || Ok(scalar_bits)).unwrap();
-                let scalar_var = NonNativeFieldVar::new_variable(
+                let scalar_var = EmulatedFpVar::new_variable(
                     ark_relations::ns!(cs, "scalar"),
                     || {
                         let scalar = scalar
