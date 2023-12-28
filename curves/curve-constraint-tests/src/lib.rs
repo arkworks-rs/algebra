@@ -231,7 +231,7 @@ pub mod curves {
     use ark_relations::r1cs::{ConstraintSystem, SynthesisError};
     use ark_std::{test_rng, vec::Vec, UniformRand};
 
-    use ark_r1cs_std::{prelude::*, fields::nonnative::NonNativeFieldVar};
+    use ark_r1cs_std::{fields::nonnative::NonNativeFieldVar, prelude::*};
 
     pub fn group_test<C, ConstraintF, GG>() -> Result<(), SynthesisError>
     where
@@ -354,7 +354,8 @@ pub mod curves {
                     ark_relations::ns!(cs, "scalar"),
                     || Ok(scalar),
                     mode,
-                ).unwrap();
+                )
+                .unwrap();
                 let result = a
                     .scalar_mul_le(input.iter())
                     .expect(&format!("Mode: {:?}", mode));
