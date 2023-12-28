@@ -195,7 +195,7 @@ pub mod fields {
     pub fn frobenius_tests<F: Field, ConstraintF, AF>(maxpower: usize) -> Result<(), SynthesisError>
     where
         F: Field,
-        ConstraintF: Field,
+        ConstraintF: PrimeField,
         AF: FieldVar<F, ConstraintF>,
         for<'a> &'a AF: FieldOpsBounds<'a, F, AF>,
     {
