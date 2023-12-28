@@ -350,23 +350,30 @@ pub mod curves {
                 let scalar_bits: Vec<bool> = BitIteratorLE::new(&scalar).collect();
                 input =
                     Vec::new_witness(ark_relations::ns!(cs, "bits"), || Ok(scalar_bits)).unwrap();
-                let scalar = NonNativeFieldVar::new_variable(
+                let scalar_var = NonNativeFieldVar::new_variable(
                     ark_relations::ns!(cs, "scalar"),
-                    || Ok(scalar),
+
+                    || {
+                        let scalar = scalar
+                            .iter()
+                            .flat_map(|b| b.to_le_bytes())
+                            .collect::<Vec<_>>();
+                        Ok(C::ScalarField::from_le_bytes_mod_order(&scalar))
+                    },
                     mode,
                 )
                 .unwrap();
                 let result = a
                     .scalar_mul_le(input.iter())
                     .expect(&format!("Mode: {:?}", mode));
-                let mul_result = a * scalar;
+                let mul_result = a.clone() * scalar_var;
                 let result_val = result.value()?.into_affine();
                 assert_eq!(
                     result_val, native_result,
                     "gadget & native values are diff. after scalar mul {:?}",
                     scalar,
                 );
-                assert_eq!(mul_result.value().unwrap(), native_result);
+                assert_eq!(mul_result.value().unwrap().into_affine(), native_result);
                 assert!(cs.is_satisfied().unwrap());
             }
 
