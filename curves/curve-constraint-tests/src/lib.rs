@@ -525,6 +525,8 @@ pub mod pairing {
     use ark_relations::r1cs::{ConstraintSystem, SynthesisError};
     use ark_std::{test_rng, vec::Vec, UniformRand};
 
+    type BasePrimeField<P> = <<P as Pairing>::BaseField as Field>::BasePrimeField;
+
     #[allow(dead_code)]
     pub fn bilinearity_test<E: Pairing, P: PairingVar<E>>() -> Result<(), SynthesisError>
     where
@@ -538,7 +540,7 @@ pub mod pairing {
             AllocationMode::Constant,
         ];
         for &mode in &modes {
-            let cs = ConstraintSystem::<<E::G1 as CurveGroup>::BaseField>::new_ref();
+            let cs = ConstraintSystem::<BasePrimeField<E>>::new_ref();
 
             let mut rng = test_rng();
             let a = E::G1::rand(&mut rng);
