@@ -535,8 +535,8 @@ pub mod pairing {
         AffineRepr, CurveGroup,
     };
     use ark_ff::{BitIteratorLE, Field, PrimeField};
-    use ark_r1cs_std::prelude::*;
     use ark_r1cs_std::convert::ToBytesGadget;
+    use ark_r1cs_std::prelude::*;
     use ark_relations::r1cs::{ConstraintSystem, SynthesisError};
     use ark_std::{test_rng, vec::Vec, UniformRand};
 
