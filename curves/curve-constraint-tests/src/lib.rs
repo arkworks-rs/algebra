@@ -299,13 +299,13 @@ pub mod curves {
             assert!(cs.is_satisfied().unwrap());
             assert_eq!(b2.value()?, b_b.value()?);
 
-            let _ = a.to_bytes()?;
+            let _ = a.to_bytes_le()?;
             assert!(cs.is_satisfied().unwrap());
-            let _ = a.to_non_unique_bytes()?;
+            let _ = a.to_non_unique_bytes_le()?;
             assert!(cs.is_satisfied().unwrap());
 
-            let _ = b.to_bytes()?;
-            let _ = b.to_non_unique_bytes()?;
+            let _ = b.to_bytes_le()?;
+            let _ = b.to_non_unique_bytes_le()?;
             if !cs.is_satisfied().unwrap() {
                 panic!(
                     "Unsatisfied in mode {:?}.\n{:?}",
@@ -656,8 +656,8 @@ pub mod pairing {
                 P::G2PreparedVar::new_variable(cs.clone(), || Ok(test_g2_prepared.clone()), mode)
                     .unwrap();
 
-            let prepared_test_g2_gadget_bytes = prepared_test_g2_gadget.to_bytes().unwrap();
-            let allocated_test_g2_gadget_bytes = allocated_test_g2_gadget.to_bytes().unwrap();
+            let prepared_test_g2_gadget_bytes = prepared_test_g2_gadget.to_bytes_le().unwrap();
+            let allocated_test_g2_gadget_bytes = allocated_test_g2_gadget.to_bytes_le().unwrap();
 
             prepared_test_g2_gadget_bytes
                 .enforce_equal(&allocated_test_g2_gadget_bytes)
