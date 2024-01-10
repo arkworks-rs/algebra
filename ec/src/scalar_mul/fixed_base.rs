@@ -9,7 +9,7 @@ use super::ScalarMul;
 pub struct FixedBase;
 
 impl FixedBase {
-    pub fn get_mul_window_size(num_scalars: usize) -> usize {
+    fn get_mul_window_size(num_scalars: usize) -> usize {
         if num_scalars < 32 {
             3
         } else {
@@ -17,7 +17,7 @@ impl FixedBase {
         }
     }
 
-    pub fn get_window_table<T: ScalarMul>(window: usize, g: T) -> Vec<Vec<T::MulBase>> {
+    fn get_window_table<T: ScalarMul>(window: usize, g: T) -> Vec<Vec<T::MulBase>> {
         let scalar_size = T::ScalarField::MODULUS_BIT_SIZE as usize;
         let in_window = 1 << window;
         let outerc = (scalar_size + window - 1) / window;
@@ -55,7 +55,7 @@ impl FixedBase {
             .collect()
     }
 
-    pub fn windowed_mul<T: ScalarMul>(
+    fn windowed_mul<T: ScalarMul>(
         outerc: usize,
         window: usize,
         multiples_of_g: &[Vec<T::MulBase>],
@@ -101,23 +101,19 @@ impl FixedBase {
     ///     powers_of_s.push(cur);
     ///     cur *= &s;
     /// }
-    /// let window_size = FixedBase::get_mul_window_size(max_degree + 1);
-    /// let g_table = FixedBase::get_window_table(window_size, g);
-    /// let powers_of_g: Vec<G> = FixedBase::msm(window_size, &g_table, &powers_of_s);
+    /// let powers_of_g: Vec<G> = FixedBase::msm(g, &powers_of_s);
     /// let naive_powers_of_g: Vec<G> = powers_of_s.iter().map(|e| g * e).collect();
     /// assert_eq!(powers_of_g, naive_powers_of_g);
     /// ```
-    pub fn msm<T: ScalarMul>(
-        window: usize,
-        table: &[Vec<T::MulBase>],
-        v: &[T::ScalarField],
-    ) -> Vec<T> {
+    pub fn msm<T: ScalarMul>(g: T, v: &[T::ScalarField]) -> Vec<T> {
+        let window_size = Self::get_mul_window_size(v.len());
+        let table = Self::get_window_table::<T>(window_size, g.clone());
         let scalar_size = T::ScalarField::MODULUS_BIT_SIZE as usize;
-        let outerc = (scalar_size + window - 1) / window;
+        let outerc = (scalar_size + window_size - 1) / window_size;
         assert!(outerc <= table.len());
 
         cfg_iter!(v)
-            .map(|e| Self::windowed_mul::<T>(outerc, window, table, e))
+            .map(|e| Self::windowed_mul::<T>(outerc, window_size, &table, e))
             .collect::<Vec<_>>()
     }
 }
