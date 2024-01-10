@@ -105,7 +105,7 @@ impl FixedBase {
     /// let naive_powers_of_g: Vec<G> = powers_of_s.iter().map(|e| g * e).collect();
     /// assert_eq!(powers_of_g, naive_powers_of_g);
     /// ```
-    pub fn msm<T: ScalarMul>(g: T, v: &[T::ScalarField]) -> Vec<T> {
+    pub fn mul<T: ScalarMul>(g: T, v: &[T::ScalarField]) -> Vec<T> {
         let window_size = Self::get_mul_window_size(v.len());
         let table = Self::get_window_table::<T>(window_size, g.clone());
         let scalar_size = T::ScalarField::MODULUS_BIT_SIZE as usize;
