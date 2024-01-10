@@ -101,7 +101,7 @@ impl FixedBase {
     ///     powers_of_s.push(cur);
     ///     cur *= &s;
     /// }
-    /// let powers_of_g: Vec<G> = FixedBase::msm(g, &powers_of_s);
+    /// let powers_of_g: Vec<G> = FixedBase::mul(g, &powers_of_s);
     /// let naive_powers_of_g: Vec<G> = powers_of_s.iter().map(|e| g * e).collect();
     /// assert_eq!(powers_of_g, naive_powers_of_g);
     /// ```
