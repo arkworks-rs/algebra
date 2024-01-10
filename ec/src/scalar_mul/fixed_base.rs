@@ -17,11 +17,8 @@ impl FixedBase {
         }
     }
 
-    pub fn get_window_table<T: ScalarMul>(
-        scalar_size: usize,
-        window: usize,
-        g: T,
-    ) -> Vec<Vec<T::MulBase>> {
+    pub fn get_window_table<T: ScalarMul>(window: usize, g: T) -> Vec<Vec<T::MulBase>> {
+        let scalar_size = T::ScalarField::MODULUS_BIT_SIZE as usize;
         let in_window = 1 << window;
         let outerc = (scalar_size + window - 1) / window;
         let last_in_window = 1 << (scalar_size - (outerc - 1) * window);
@@ -61,7 +58,7 @@ impl FixedBase {
     pub fn windowed_mul<T: ScalarMul>(
         outerc: usize,
         window: usize,
-        multiples_of_g: &[Vec<<T as ScalarMul>::MulBase>],
+        multiples_of_g: &[Vec<T::MulBase>],
         scalar: &T::ScalarField,
     ) -> T {
         let modulus_size = T::ScalarField::MODULUS_BIT_SIZE as usize;
@@ -80,14 +77,42 @@ impl FixedBase {
         res
     }
 
-    // TODO use const-generics for the scalar size and window
-    // TODO use iterators of iterators of T::Affine instead of taking owned Vec
+    /// Compute the vector v[0].G, v[1].G, ..., v[n-1].G given
+    /// - a window size `window`
+    /// - a pre-computed table from from `get_window_table` on G
+    /// - a vector of scalars `v`
+    /// using fixed-base multiplication
+    /// # Example
+    /// ```
+    /// use ark_std::{One, UniformRand};
+    /// use ark_ec::pairing::Pairing;
+    /// use ark_test_curves::bls12_381::G1Projective as G;
+    /// use ark_test_curves::bls12_381::Fr;
+    /// use ark_ec::scalar_mul::fixed_base::FixedBase;
+    ///
+    /// // Compute G, s.G, s^2.G, ..., s^9.G
+    /// let mut rng = ark_std::test_rng();
+    /// let max_degree = 10;
+    /// let s = Fr::rand(&mut rng);
+    /// let g = G::rand(&mut rng);
+    /// let mut powers_of_s = vec![Fr::one()];
+    /// let mut cur = s;
+    /// for _ in 0..max_degree {
+    ///     powers_of_s.push(cur);
+    ///     cur *= &s;
+    /// }
+    /// let window_size = FixedBase::get_mul_window_size(max_degree + 1);
+    /// let g_table = FixedBase::get_window_table(window_size, g);
+    /// let powers_of_g: Vec<G> = FixedBase::msm(window_size, &g_table, &powers_of_s);
+    /// let naive_powers_of_g: Vec<G> = powers_of_s.iter().map(|e| g * e).collect();
+    /// assert_eq!(powers_of_g, naive_powers_of_g);
+    /// ```
     pub fn msm<T: ScalarMul>(
-        scalar_size: usize,
         window: usize,
-        table: &[Vec<<T as ScalarMul>::MulBase>],
+        table: &[Vec<T::MulBase>],
         v: &[T::ScalarField],
     ) -> Vec<T> {
+        let scalar_size = T::ScalarField::MODULUS_BIT_SIZE as usize;
         let outerc = (scalar_size + window - 1) / window;
         assert!(outerc <= table.len());
 
