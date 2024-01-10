@@ -77,11 +77,10 @@ impl FixedBase {
         res
     }
 
-    /// Compute the vector v[0].G, v[1].G, ..., v[n-1].G given
-    /// - a window size `window`
-    /// - a pre-computed table from from `get_window_table` on G
-    /// - a vector of scalars `v`
-    /// using fixed-base multiplication
+    /// Compute the vector v[0].G, v[1].G, ..., v[n-1].G, given:
+    /// - an element `g`
+    /// - a list `v` of n scalars
+    ///
     /// # Example
     /// ```
     /// use ark_std::{One, UniformRand};
