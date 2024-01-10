@@ -13,6 +13,7 @@
 - [\#577](https://github.com/arkworks-rs/algebra/pull/577) (`ark-ff`, `ark-ec`) Add `AdditiveGroup`, a trait for additive groups (equipped with scalar field).
 - [\#593](https://github.com/arkworks-rs/algebra/pull/593) (`ark-ec`) Change `AffineRepr::xy()` to return owned values.
 - [\#633](https://github.com/arkworks-rs/algebra/pull/633) (`ark-ec`) Generic pairing implementation for the curves from the BW6 family.
+- [\#746](https://github.com/arkworks-rs/algebra/pull/746) (`ark-ec`) Refactor `FixedBase`: rename method `msm` → `mul`, remove its arguments `scalar_size`, `window` and change `table: &[Vec<T::MulBase>]` → `g: T`; make methods `windowed_mul` and `get_mul_window_size` private.
 
 ### Features
 
