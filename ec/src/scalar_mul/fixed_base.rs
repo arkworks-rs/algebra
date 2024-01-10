@@ -17,7 +17,7 @@ impl FixedBase {
         }
     }
 
-    fn get_window_table<T: ScalarMul>(window: usize, g: T) -> Vec<Vec<T::MulBase>> {
+    pub fn get_window_table<T: ScalarMul>(window: usize, g: T) -> Vec<Vec<T::MulBase>> {
         let scalar_size = T::ScalarField::MODULUS_BIT_SIZE as usize;
         let in_window = 1 << window;
         let outerc = (scalar_size + window - 1) / window;
