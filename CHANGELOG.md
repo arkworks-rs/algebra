@@ -22,6 +22,8 @@
 
 ### Bugfixes
 
+- [\#747](https://github.com/arkworks-rs/algebra/pull/747) (`ark-ff-macros`) Fix fetching attributes in `MontConfig` macro
+
 ## v0.4.2
 
 ### Breaking changes

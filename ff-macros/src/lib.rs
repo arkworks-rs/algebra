@@ -106,27 +106,22 @@ pub fn unroll_for_loops(args: TokenStream, input: TokenStream) -> TokenStream {
 
 /// Fetch an attribute string from the derived struct.
 fn fetch_attr(name: &str, attrs: &[syn::Attribute]) -> Option<String> {
-    for attr in attrs {
-        if let Ok(meta) = attr.parse_meta() {
-            match meta {
-                syn::Meta::NameValue(nv) => {
-                    if nv.path.get_ident().map(|i| i.to_string()) == Some(name.to_string()) {
-                        match nv.lit {
-                            syn::Lit::Str(ref s) => return Some(s.value()),
-                            _ => {
-                                panic!("attribute {} should be a string", name);
-                            },
-                        }
-                    }
-                },
-                _ => {
-                    panic!("attribute {} should be a string", name);
-                },
-            }
+    attrs.iter().find_map(|attr| {
+        let meta = attr.parse_meta().ok()?;
+        match meta {
+            syn::Meta::NameValue(nv)
+                if nv.path.get_ident().map(|i| i.to_string()) == Some(name.to_string()) =>
+            {
+                match nv.lit {
+                    syn::Lit::Str(ref s) => Some(s.value()),
+                    _ => {
+                        panic!("attribute {} should be a string", name);
+                    },
+                }
+            },
+            _ => None,
         }
-    }
-
-    None
+    })
 }
 
 #[test]
