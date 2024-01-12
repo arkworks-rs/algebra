@@ -953,4 +953,38 @@ mod tests {
             .collect::<Vec<_>>();
         assert_eq!(evaluations, zero.evaluate_over_domain(domain).evals);
     }
+
+    use crate::{univariate::DensePolynomial, DenseUVPolynomial, Radix2EvaluationDomain};
+
+    #[derive(MontConfig)]
+    #[modulus = "18446744069414584321"]
+    #[generator = "7"]
+    pub struct FrConfig64;
+    pub type Field64 = Fp64<MontBackend<FrConfig64, 1>>;
+
+    #[test]
+    fn test_eval_over_domain() {
+        type F = Field64;
+        let degree = 17;
+        let eval_domain_size = 16;
+
+        let poly = DensePolynomial::from_coefficients_vec(vec![F::ONE; degree]);
+        dbg!(poly.degree());
+        let domain = Radix2EvaluationDomain::new(eval_domain_size).unwrap();
+
+        // Now we get a coset
+        let offset = F::from(42u64);
+        let domain = domain.get_coset(offset).unwrap();
+
+        // This is the query points of the domain
+        let query_points: Vec<_> = domain.elements().collect();
+
+        let eval1 = poly.evaluate_over_domain_by_ref(domain).evals;
+        let eval2 = query_points
+            .iter()
+            .map(|x| poly.evaluate(x))
+            .collect::<Vec<_>>();
+
+        assert_eq!(eval1, eval2);
+    }
 }
