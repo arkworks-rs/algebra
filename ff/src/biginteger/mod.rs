@@ -696,6 +696,19 @@ impl<const N: usize> From<BigInt<N>> for BigUint {
     }
 }
 
+impl<const N: usize> From<BigInt<N>> for num_bigint::BigInt {
+    #[inline]
+    fn from(val: BigInt<N>) -> num_bigint::BigInt {
+        use num_bigint::Sign;
+        let sign = if val.is_zero() {
+            Sign::NoSign
+        } else {
+            Sign::Plus
+        };
+        num_bigint::BigInt::from_bytes_le(sign, &val.to_bytes_le())
+    }
+}
+
 impl<B: Borrow<Self>, const N: usize> BitXorAssign<B> for BigInt<N> {
     fn bitxor_assign(&mut self, rhs: B) {
         (0..N).for_each(|i| self.0[i] ^= rhs.borrow().0[i])

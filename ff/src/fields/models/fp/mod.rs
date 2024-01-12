@@ -655,7 +655,17 @@ impl<P: FpConfig<N>, const N: usize> FromStr for Fp<P, N> {
     /// Interpret a string of numbers as a (congruent) prime field element.
     /// Does not accept unnecessary leading zeroes or a blank string.
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        BigInt::from_str(s)
+        use num_bigint::{BigInt, BigUint};
+        use num_traits::Signed;
+
+        let modulus = BigInt::from(P::MODULUS);
+        let mut a = BigInt::from_str(s).map_err(|_| ())? % &modulus;
+        if a.is_negative() {
+            a += modulus
+        }
+        BigUint::try_from(a)
+            .map_err(|_| ())
+            .and_then(TryFrom::try_from)
             .ok()
             .and_then(Self::from_bigint)
             .ok_or(())
