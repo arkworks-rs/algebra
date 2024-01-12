@@ -233,6 +233,26 @@ impl<F: Field> SparsePolynomial<F> {
     }
 
     /// Constructs a new polynomial from a list of coefficients.
+    /// Since the function does not automatically combine like terms, the input *has to be* in the
+    /// correct form: no multiple monomials of the same degree.
+    /// # Example
+    /// ```
+    /// use ark_ff::fields::{Fp64, MontBackend, MontConfig};
+    /// use ark_poly::polynomial::univariate::SparsePolynomial;
+    ///
+    /// #[derive(MontConfig)]
+    /// #[modulus = "101"]
+    /// #[generator = "2"]
+    /// pub struct FieldConfig;
+    /// pub type FF = Fp64<MontBackend<FieldConfig, 1>>;
+    ///
+    /// // Creating the polynomial 2*x
+    /// let p1 = SparsePolynomial::from_coefficients_vec(vec![(1, FF::from(2))]);
+    /// // Creating the polynomial x + x
+    /// let p2 = SparsePolynomial::from_coefficients_vec(vec![(1, FF::from(1)), (1, FF::from(1))]);
+    /// // Checking if x + x is equal to 2*x leads to panick.
+    /// assert_eq!(p1, p2);
+    /// ```
     pub fn from_coefficients_vec(mut coeffs: Vec<(usize, F)>) -> Self {
         // While there are zeros at the end of the coefficient vector, pop them off.
         while coeffs.last().map_or(false, |(_, c)| c.is_zero()) {
