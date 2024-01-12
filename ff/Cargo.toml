@@ -12,7 +12,8 @@ include.workspace = true
 license.workspace = true
 edition.workspace = true
 rust-version.workspace = true
-rustdocflags.workspace = true
+metadata.docs.rs.workspace = true
+metadata.release.workspace = true
 
 [dependencies]
 ark-ff-asm.workspace = true
@@ -48,7 +49,3 @@ default = []
 std = [ "ark-std/std", "ark-serialize/std", "itertools/use_std" ]
 parallel = [ "std", "rayon", "ark-std/parallel" ]
 asm = []
-
-
-[package.metadata.docs.rs]
-rustdoc-args = ["--html-in-header", "./doc/katex-header.html"]

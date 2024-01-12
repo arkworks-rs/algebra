@@ -12,7 +12,8 @@ include.workspace = true
 license.workspace = true
 edition.workspace = true
 rust-version.workspace = true
-rustdocflags.workspace = true
+metadata.docs.rs.workspace = true
+metadata.release.workspace = true
 
 
 ################################# Dependencies ################################

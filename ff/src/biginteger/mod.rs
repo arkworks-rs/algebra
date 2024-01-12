@@ -1,3 +1,8 @@
+use core::ops::{
+    BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Not, Shl, ShlAssign, Shr,
+    ShrAssign,
+};
+
 use crate::{
     bits::{BitIteratorBE, BitIteratorLE},
     const_for, UniformRand,
@@ -8,6 +13,7 @@ use ark_serialize::{
     CanonicalDeserialize, CanonicalSerialize, Compress, SerializationError, Valid, Validate,
 };
 use ark_std::{
+    borrow::Borrow,
     convert::TryFrom,
     fmt::{Debug, Display, UpperHex},
     io::{Read, Write},
@@ -23,7 +29,7 @@ use zeroize::Zeroize;
 #[macro_use]
 pub mod arithmetic;
 
-#[derive(Copy, Clone, PartialEq, Eq, Debug, Hash, Zeroize)]
+#[derive(Copy, Clone, PartialEq, Eq, Hash, Zeroize)]
 pub struct BigInt<const N: usize>(pub [u64; N]);
 
 impl<const N: usize> Default for BigInt<N> {
@@ -547,6 +553,12 @@ impl<const N: usize> UpperHex for BigInt<N> {
     }
 }
 
+impl<const N: usize> Debug for BigInt<N> {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        write!(f, "{:?}", BigUint::from(*self))
+    }
+}
+
 impl<const N: usize> Display for BigInt<N> {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         write!(f, "{}", BigUint::from(*self))
@@ -681,6 +693,161 @@ impl<const N: usize> From<BigInt<N>> for BigUint {
     }
 }
 
+impl<B: Borrow<Self>, const N: usize> BitXorAssign<B> for BigInt<N> {
+    fn bitxor_assign(&mut self, rhs: B) {
+        (0..N).for_each(|i| self.0[i] ^= rhs.borrow().0[i])
+    }
+}
+
+impl<B: Borrow<Self>, const N: usize> BitXor<B> for BigInt<N> {
+    type Output = Self;
+
+    fn bitxor(mut self, rhs: B) -> Self::Output {
+        self ^= rhs;
+        self
+    }
+}
+
+impl<B: Borrow<Self>, const N: usize> BitAndAssign<B> for BigInt<N> {
+    fn bitand_assign(&mut self, rhs: B) {
+        (0..N).for_each(|i| self.0[i] &= rhs.borrow().0[i])
+    }
+}
+
+impl<B: Borrow<Self>, const N: usize> BitAnd<B> for BigInt<N> {
+    type Output = Self;
+
+    fn bitand(mut self, rhs: B) -> Self::Output {
+        self &= rhs;
+        self
+    }
+}
+
+impl<B: Borrow<Self>, const N: usize> BitOrAssign<B> for BigInt<N> {
+    fn bitor_assign(&mut self, rhs: B) {
+        (0..N).for_each(|i| self.0[i] |= rhs.borrow().0[i])
+    }
+}
+
+impl<B: Borrow<Self>, const N: usize> BitOr<B> for BigInt<N> {
+    type Output = Self;
+
+    fn bitor(mut self, rhs: B) -> Self::Output {
+        self |= rhs;
+        self
+    }
+}
+
+impl<const N: usize> ShrAssign<u32> for BigInt<N> {
+    /// Computes the bitwise shift right operation in place.
+    ///
+    /// Differently from the built-in numeric types (u8, u32, u64, etc.) this
+    /// operation does *not* return an underflow error if the number of bits
+    /// shifted is larger than N * 64. Instead the result will be saturated to
+    /// zero.
+    fn shr_assign(&mut self, mut rhs: u32) {
+        if rhs >= (64 * N) as u32 {
+            *self = Self::from(0u64);
+        }
+
+        while rhs >= 64 {
+            let mut t = 0;
+            for i in 0..N {
+                core::mem::swap(&mut t, &mut self.0[N - i - 1]);
+            }
+            rhs -= 64;
+        }
+
+        if rhs > 0 {
+            let mut t = 0;
+            for i in 0..N {
+                let a = &mut self.0[N - i - 1];
+                let t2 = *a << (64 - rhs);
+                *a >>= rhs;
+                *a |= t;
+                t = t2;
+            }
+        }
+    }
+}
+
+impl<const N: usize> Shr<u32> for BigInt<N> {
+    type Output = Self;
+
+    /// Computes bitwise shift right operation.
+    ///
+    /// Differently from the built-in numeric types (u8, u32, u64, etc.) this
+    /// operation does *not* return an underflow error if the number of bits
+    /// shifted is larger than N * 64. Instead the result will be saturated to
+    /// zero.
+    fn shr(mut self, rhs: u32) -> Self::Output {
+        self >>= rhs;
+        self
+    }
+}
+
+impl<const N: usize> ShlAssign<u32> for BigInt<N> {
+    /// Computes the bitwise shift left operation in place.
+    ///
+    /// Differently from the built-in numeric types (u8, u32, u64, etc.) this
+    /// operation does *not* return an overflow error if the number of bits
+    /// shifted is larger than N * 64. Instead, the overflow will be chopped
+    /// off.
+    fn shl_assign(&mut self, mut rhs: u32) {
+        if rhs >= (64 * N) as u32 {
+            *self = Self::from(0u64);
+            return;
+        }
+
+        while rhs >= 64 {
+            let mut t = 0;
+            for i in 0..N {
+                core::mem::swap(&mut t, &mut self.0[i]);
+            }
+            rhs -= 64;
+        }
+
+        if rhs > 0 {
+            let mut t = 0;
+            #[allow(unused)]
+            for i in 0..N {
+                let a = &mut self.0[i];
+                let t2 = *a >> (64 - rhs);
+                *a <<= rhs;
+                *a |= t;
+                t = t2;
+            }
+        }
+    }
+}
+
+impl<const N: usize> Shl<u32> for BigInt<N> {
+    type Output = Self;
+
+    /// Computes the bitwise shift left operation in place.
+    ///
+    /// Differently from the built-in numeric types (u8, u32, u64, etc.) this
+    /// operation does *not* return an overflow error if the number of bits
+    /// shifted is larger than N * 64. Instead, the overflow will be chopped
+    /// off.
+    fn shl(mut self, rhs: u32) -> Self::Output {
+        self <<= rhs;
+        self
+    }
+}
+
+impl<const N: usize> Not for BigInt<N> {
+    type Output = Self;
+
+    fn not(self) -> Self::Output {
+        let mut result = Self::zero();
+        for i in 0..N {
+            result.0[i] = !self.0[i];
+        }
+        result
+    }
+}
+
 /// Compute the signed modulo operation on a u64 representation, returning the result.
 /// If n % modulus > modulus / 2, return modulus - n
 /// # Example
@@ -737,6 +904,22 @@ pub trait BigInteger:
     + From<u8>
     + TryFrom<BigUint, Error = ()>
     + Into<BigUint>
+    + BitXorAssign<Self>
+    + for<'a> BitXorAssign<&'a Self>
+    + BitXor<Self, Output = Self>
+    + for<'a> BitXor<&'a Self, Output = Self>
+    + BitAndAssign<Self>
+    + for<'a> BitAndAssign<&'a Self>
+    + BitAnd<Self, Output = Self>
+    + for<'a> BitAnd<&'a Self, Output = Self>
+    + BitOrAssign<Self>
+    + for<'a> BitOrAssign<&'a Self>
+    + BitOr<Self, Output = Self>
+    + for<'a> BitOr<&'a Self, Output = Self>
+    + Shr<u32, Output = Self>
+    + ShrAssign<u32>
+    + Shl<u32, Output = Self>
+    + ShlAssign<u32>
 {
     /// Number of 64-bit limbs representing `Self`.
     const NUM_LIMBS: usize;
@@ -832,6 +1015,7 @@ pub trait BigInteger:
     /// mul.muln(5);
     /// assert_eq!(mul, B::from(0u64));
     /// ```
+    #[deprecated(since = "0.4.2", note = "please use the operator `>>` instead")]
     fn muln(&mut self, amt: u32);
 
     /// Performs a rightwise bitshift of this number, effectively dividing
@@ -875,6 +1059,7 @@ pub trait BigInteger:
     /// div.divn(5);
     /// assert_eq!(div, B::from(0u64));
     /// ```
+    #[deprecated(since = "0.4.2", note = "please use the operator `>>` instead")]
     fn divn(&mut self, amt: u32);
 
     /// Returns true iff this number is odd.
@@ -949,7 +1134,7 @@ pub trait BigInteger:
     /// arr[63] = true;
     /// let mut one = B::from(1u64);
     /// assert_eq!(B::from_bits_be(&arr), one);
-    /// ```   
+    /// ```
     fn from_bits_be(bits: &[bool]) -> Self;
 
     /// Returns the big integer representation of a given little endian boolean
@@ -963,7 +1148,7 @@ pub trait BigInteger:
     /// arr[0] = true;
     /// let mut one = B::from(1u64);
     /// assert_eq!(B::from_bits_le(&arr), one);
-    /// ```   
+    /// ```
     fn from_bits_le(bits: &[bool]) -> Self;
 
     /// Returns the bit representation in a big endian boolean array,
@@ -978,7 +1163,7 @@ pub trait BigInteger:
     /// let mut vec = vec![false; 64];
     /// vec[63] = true;
     /// assert_eq!(arr, vec);
-    /// ```  
+    /// ```
     fn to_bits_be(&self) -> Vec<bool> {
         BitIteratorBE::new(self).collect::<Vec<_>>()
     }

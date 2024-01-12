@@ -1,6 +1,6 @@
 use super::*;
 use ark_std::{
-    collections::{BTreeMap, BTreeSet},
+    collections::{BTreeMap, BTreeSet, LinkedList, VecDeque},
     rand::RngCore,
     string::String,
     vec,
@@ -133,6 +133,18 @@ fn test_vec() {
 }
 
 #[test]
+fn test_vecdeque() {
+    test_serialize([1u64, 2, 3, 4, 5].into_iter().collect::<VecDeque<_>>());
+    test_serialize(VecDeque::<u64>::new());
+}
+
+#[test]
+fn test_linkedlist() {
+    test_serialize([1u64, 2, 3, 4, 5].into_iter().collect::<LinkedList<_>>());
+    test_serialize(LinkedList::<u64>::new());
+}
+
+#[test]
 fn test_uint() {
     test_serialize(192830918usize);
     test_serialize(192830918u64);
@@ -254,4 +266,31 @@ fn test_biguint() {
         .serialize_with_mode(&mut bytes, Compress::No)
         .unwrap();
     assert_eq!(bytes, expected);
+}
+
+#[test]
+fn test_serialize_macro() {
+    // Make a bunch of distinctly typed values
+    let val1 = [vec![1u8, 2u8, 3u8], vec![4u8, 5u8, 6u8]]
+        .into_iter()
+        .collect::<BTreeSet<_>>();
+    let val2: core::marker::PhantomData<Dummy> = core::marker::PhantomData;
+    let val3 = Some(10u64);
+    let val4 = 192830918usize;
+    let val5 = [1u64, 2, 3, 4, 5].into_iter().collect::<LinkedList<_>>();
+
+    // Make sure the serialization macro matches just serializing them as a tuple
+    let mut tuple_bytes = Vec::new();
+    (
+        val1.clone(),
+        val2.clone(),
+        val3.clone(),
+        val4.clone(),
+        val5.clone(),
+    )
+        .serialize_uncompressed(&mut tuple_bytes)
+        .unwrap();
+    let macro_bytes = serialize_to_vec![val1, val2, val3, val4, val5].unwrap();
+
+    assert_eq!(tuple_bytes, macro_bytes);
 }

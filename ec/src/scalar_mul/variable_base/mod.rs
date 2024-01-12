@@ -102,6 +102,12 @@ fn msm_bigint_wnaf<V: VariableBaseMSM>(
 
     let num_bits = V::ScalarField::MODULUS_BIT_SIZE as usize;
     let digits_count = (num_bits + c - 1) / c;
+    #[cfg(feature = "parallel")]
+    let scalar_digits = scalars
+        .into_par_iter()
+        .flat_map_iter(|s| make_digits(s, c, num_bits))
+        .collect::<Vec<_>>();
+    #[cfg(not(feature = "parallel"))]
     let scalar_digits = scalars
         .iter()
         .flat_map(|s| make_digits(s, c, num_bits))
@@ -191,7 +197,7 @@ fn msm_bigint<V: VariableBaseMSM>(
 
                     // We right-shift by w_start, thus getting rid of the
                     // lower bits.
-                    scalar.divn(w_start as u32);
+                    scalar >>= w_start as u32;
 
                     // We mod the remaining bits by 2^{window size}, thus taking `c` bits.
                     let scalar = scalar.as_ref()[0] % (1 << c);

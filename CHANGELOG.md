@@ -2,6 +2,12 @@
 
 ## Pending
 
+- [\#689](https://github.com/arkworks-rs/algebra/pull/689) (`ark-serialize`) Add `CanonicalSerialize` and `CanonicalDeserialize` impls for `VecDeque` and `LinkedList`.
+- [\#693](https://github.com/arkworks-rs/algebra/pull/693) (`ark-serialize`) Add `serialize_to_vec!` convenience macro.
+- [\#713](https://github.com/arkworks-rs/algebra/pull/713) (`ark-ff`) Add support for bitwise operations AND, OR, and XOR between `BigInteger`.
+- [\#736](https://github.com/arkworks-rs/algebra/pull/736) (`ark-ff`) Deprecate `divn()`, and use `core::ops::{Shr, ShrAssign}` instead.
+- [\#739](https://github.com/arkworks-rs/algebra/pull/739) (`ark-ff`) Deprecate `muln()`, and use `core::ops::{Shl, ShlAssign}` instead.
+
 ### Breaking changes
 
 - [\#659](https://github.com/arkworks-rs/algebra/pull/659) (`ark-ec`) Move auxiliary `parity` function from `ark_ec::hashing::curve_maps::swu` to `ark_ec::hashing::curve_maps`.
@@ -12,10 +18,13 @@
 ### Features
 
 - [\#659](https://github.com/arkworks-rs/algebra/pull/659) (`ark-ec`) Add Elligator2 hash-to-curve map.
+- [\#691](https://github.com/arkworks-rs/algebra/pull/691) (`ark-poly`) Implement `Polynomial` for `SparseMultilinearExtension` and `DenseMultilinearExtension`.
 
 ### Improvements
 
 ### Bugfixes
+
+- [\#747](https://github.com/arkworks-rs/algebra/pull/747) (`ark-ff-macros`) Fix fetching attributes in `MontConfig` macro
 
 ## v0.4.2
 
