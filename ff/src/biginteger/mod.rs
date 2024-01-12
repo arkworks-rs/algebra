@@ -1,8 +1,3 @@
-use core::ops::{
-    BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Not, Shl, ShlAssign, Shr,
-    ShrAssign,
-};
-
 use crate::{
     bits::{BitIteratorBE, BitIteratorLE},
     const_for, UniformRand,
@@ -21,6 +16,11 @@ use ark_std::{
         distributions::{Distribution, Standard},
         Rng,
     },
+    ops::{
+        BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Not, Shl, ShlAssign, Shr,
+        ShrAssign,
+    }, 
+    str::FromStr,
     vec::Vec,
 };
 use num_bigint::BigUint;
@@ -680,6 +680,15 @@ impl<const N: usize> TryFrom<BigUint> for BigInt<N> {
     }
 }
 
+impl<const N: usize> FromStr for BigInt<N> {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let biguint = BigUint::from_str(s).map_err(|_| ())?;
+        Self::try_from(biguint)
+    }
+}
+
 impl<const N: usize> From<BigInt<N>> for BigUint {
     #[inline]
     fn from(val: BigInt<N>) -> num_bigint::BigUint {
@@ -897,6 +906,7 @@ pub trait BigInteger:
     + From<u16>
     + From<u8>
     + TryFrom<BigUint, Error = ()>
+    + FromStr
     + Into<BigUint>
     + BitXorAssign<Self>
     + for<'a> BitXorAssign<&'a Self>
