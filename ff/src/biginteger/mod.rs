@@ -12,14 +12,14 @@ use ark_std::{
     convert::TryFrom,
     fmt::{Debug, Display, UpperHex},
     io::{Read, Write},
+    ops::{
+        BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Not, Shl, ShlAssign, Shr,
+        ShrAssign,
+    },
     rand::{
         distributions::{Distribution, Standard},
         Rng,
     },
-    ops::{
-        BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Not, Shl, ShlAssign, Shr,
-        ShrAssign,
-    }, 
     str::FromStr,
     vec::Vec,
 };
