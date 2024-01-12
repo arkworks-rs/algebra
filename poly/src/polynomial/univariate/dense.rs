@@ -938,13 +938,20 @@ mod tests {
     fn evaluate_over_domain_test() {
         let rng = &mut ark_std::test_rng();
         let domain = crate::domain::Radix2EvaluationDomain::<Fr>::new(1 << 10).unwrap();
+        let offset = Fr::GENERATOR;
+        let coset = domain.get_coset(offset).unwrap();
         for _ in 0..100 {
             let poly = DensePolynomial::<Fr>::rand(1 << 11, rng);
             let evaluations = domain
                 .elements()
                 .map(|e| poly.evaluate(&e))
                 .collect::<Vec<_>>();
-            assert_eq!(evaluations, poly.evaluate_over_domain(domain).evals);
+            assert_eq!(evaluations, poly.evaluate_over_domain_by_ref(domain).evals);
+            let evaluations = coset
+                .elements()
+                .map(|e| poly.evaluate(&e))
+                .collect::<Vec<_>>();
+            assert_eq!(evaluations, poly.evaluate_over_domain(coset).evals);
         }
         let zero = DensePolynomial::zero();
         let evaluations = domain
@@ -952,5 +959,38 @@ mod tests {
             .map(|e| zero.evaluate(&e))
             .collect::<Vec<_>>();
         assert_eq!(evaluations, zero.evaluate_over_domain(domain).evals);
+    }
+
+    use crate::{univariate::DensePolynomial, DenseUVPolynomial, Radix2EvaluationDomain};
+
+    #[test]
+    fn evaluate_over_domain_regression_test() {
+        // See https://github.com/arkworks-rs/algebra/issues/745
+        #[derive(MontConfig)]
+        #[modulus = "18446744069414584321"]
+        #[generator = "7"]
+        struct FrConfig64;
+        type F = Fp64<MontBackend<FrConfig64, 1>>;
+
+        let degree = 17;
+        let eval_domain_size = 16;
+
+        let poly = DensePolynomial::from_coefficients_vec(vec![F::ONE; degree]);
+        let domain = Radix2EvaluationDomain::new(eval_domain_size).unwrap();
+
+        // Now we get a coset
+        let offset = F::from(42u64);
+        let domain = domain.get_coset(offset).unwrap();
+
+        // This is the query points of the domain
+        let query_points: Vec<_> = domain.elements().collect();
+
+        let eval1 = poly.evaluate_over_domain_by_ref(domain).evals;
+        let eval2 = query_points
+            .iter()
+            .map(|x| poly.evaluate(x))
+            .collect::<Vec<_>>();
+
+        assert_eq!(eval1, eval2);
     }
 }

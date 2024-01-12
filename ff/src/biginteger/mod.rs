@@ -29,7 +29,7 @@ use zeroize::Zeroize;
 #[macro_use]
 pub mod arithmetic;
 
-#[derive(Copy, Clone, PartialEq, Eq, Debug, Hash, Zeroize)]
+#[derive(Copy, Clone, PartialEq, Eq, Hash, Zeroize)]
 pub struct BigInt<const N: usize>(pub [u64; N]);
 
 impl<const N: usize> Default for BigInt<N> {
@@ -550,6 +550,12 @@ impl<const N: usize> BigInteger for BigInt<N> {
 impl<const N: usize> UpperHex for BigInt<N> {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         write!(f, "{:016X}", BigUint::from(*self))
+    }
+}
+
+impl<const N: usize> Debug for BigInt<N> {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        write!(f, "{:?}", BigUint::from(*self))
     }
 }
 

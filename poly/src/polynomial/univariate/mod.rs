@@ -146,41 +146,53 @@ impl<'a, F: 'a + FftField> DenseOrSparsePolynomial<'a, F> {
     }
 
     fn eval_over_domain_helper<D: EvaluationDomain<F>>(self, domain: D) -> Evaluations<F, D> {
+        let eval_sparse_poly = |s: &SparsePolynomial<F>| {
+            let evals = domain.elements().map(|elem| s.evaluate(&elem)).collect();
+            Evaluations::from_vec_and_domain(evals, domain)
+        };
+
         match self {
-            SPolynomial(Cow::Borrowed(s)) => {
-                let evals = domain.elements().map(|elem| s.evaluate(&elem)).collect();
-                Evaluations::from_vec_and_domain(evals, domain)
-            },
-            SPolynomial(Cow::Owned(s)) => {
-                let evals = domain.elements().map(|elem| s.evaluate(&elem)).collect();
-                Evaluations::from_vec_and_domain(evals, domain)
-            },
+            SPolynomial(Cow::Borrowed(s)) => eval_sparse_poly(s),
+            SPolynomial(Cow::Owned(s)) => eval_sparse_poly(&s),
             DPolynomial(Cow::Borrowed(d)) => {
                 if d.is_zero() {
-                    Evaluations::from_vec_and_domain(vec![F::zero(); domain.size()], domain)
+                    Evaluations::zero(domain)
                 } else {
-                    // Reduce the coefficients of the polynomial mod X^domain.size()
                     let mut chunks = d.coeffs.chunks(domain.size());
-                    let mut reduced = chunks.next().unwrap().to_vec();
-                    for chunk in chunks {
-                        cfg_iter_mut!(reduced).zip(chunk).for_each(|(x, y)| {
-                            *x += y;
-                        });
+                    let mut first = chunks.next().unwrap().to_vec();
+                    let offset = domain.coset_offset();
+                    // Reduce the coefficients of the polynomial mod X^domain.size()
+                    for (i, chunk) in chunks.enumerate() {
+                        if offset.is_one() {
+                            cfg_iter_mut!(first).zip(chunk).for_each(|(x, y)| *x += y);
+                        } else {
+                            let offset_power = offset.pow(&[((i + 1) * domain.size()) as u64]);
+                            cfg_iter_mut!(first)
+                                .zip(chunk)
+                                .for_each(|(x, y)| *x += offset_power * y);
+                        }
                     }
-                    Evaluations::from_vec_and_domain(domain.fft(&reduced), domain)
+                    domain.fft_in_place(&mut first);
+                    Evaluations::from_vec_and_domain(first, domain)
                 }
             },
             DPolynomial(Cow::Owned(mut d)) => {
-                // Reduce the coefficients of the polynomial mod X^domain.size()
                 if d.is_zero() {
-                    Evaluations::from_vec_and_domain(vec![F::zero(); domain.size()], domain)
+                    Evaluations::zero(domain)
                 } else {
                     let mut chunks = d.coeffs.chunks_mut(domain.size());
-                    let coeffs = chunks.next().unwrap();
-                    for chunk in chunks {
-                        cfg_iter_mut!(coeffs).zip(chunk).for_each(|(x, y)| {
-                            *x += y;
-                        });
+                    let first = chunks.next().unwrap();
+                    let offset = domain.coset_offset();
+                    // Reduce the coefficients of the polynomial mod X^domain.size()
+                    for (i, chunk) in chunks.enumerate() {
+                        if offset.is_one() {
+                            cfg_iter_mut!(first).zip(chunk).for_each(|(x, y)| *x += y);
+                        } else {
+                            let offset_power = offset.pow(&[((i + 1) * domain.size()) as u64]);
+                            cfg_iter_mut!(first)
+                                .zip(chunk)
+                                .for_each(|(x, y)| *x += offset_power * y);
+                        }
                     }
                     domain.fft_in_place(&mut d.coeffs);
                     Evaluations::from_vec_and_domain(d.coeffs, domain)
