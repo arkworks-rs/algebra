@@ -14,7 +14,6 @@ use crate::{
 ///
 /// - [\[BHKL13\]] <http://dx.doi.org/10.1145/2508859.2516734>
 /// - [\[HSSWW23\]] <https://datatracker.ietf.org/doc/html/rfc9380>
-
 pub trait Elligator2Config: TECurveConfig + MontCurveConfig {
     /// An element of the base field that is not a square root see \[BHKL13, Section 5\].
     /// When `BaseField` is a prime field, [\[HSSWW23\]] mandates that `Z` is the
@@ -201,7 +200,6 @@ mod test {
     /// (5 : 36 : 1)
     /// Point_WeierstrassToEdwards(F101, 11, 5, F101(5), F101(36), a_given=-1, d_given=12)
     /// (23, 24)
-
     impl TECurveConfig for TestElligator2MapToCurveConfig {
         /// COEFF_A = -1
         const COEFF_A: F101 = MontFp!("-1");
