@@ -88,7 +88,7 @@ pub trait Bls12Config: 'static + Sized {
     fn final_exponentiation(
         f: MillerLoopOutput<Bls12<Self>>,
     ) -> Option<PairingOutput<Bls12<Self>>> {
-        // Computing the final exponentation following
+        // Computing the final exponentiation following
         // https://eprint.iacr.org/2020/875
         // Adapted from the implementation in https://github.com/ConsenSys/gurvy/pull/29
 
@@ -111,7 +111,7 @@ pub trait Bls12Config: 'static + Sized {
             // r = f^((p^6 - 1)(p^2 + 1))
             r *= &f2;
 
-            // Hard part of the final exponentation:
+            // Hard part of the final exponentiation:
             // t[0].CyclotomicSquare(&result)
             let mut y0 = r.cyclotomic_square();
             // t[1].Expt(&result)
