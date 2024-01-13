@@ -28,7 +28,7 @@ impl<P: SWUConfig> MapToCurve<Projective<P>> for SWUMap<P> {
     fn check_parameters() -> Result<(), HashToCurveError> {
         // Verifying that ZETA is a non-square
         debug_assert!(
-            !P::ZETA.legendre().is_qr(),
+            P::ZETA.legendre().is_qnr(),
             "ZETA should be a quadratic non-residue for the SWU map"
         );
 
