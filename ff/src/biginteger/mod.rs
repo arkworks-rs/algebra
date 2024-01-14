@@ -1,8 +1,3 @@
-use core::ops::{
-    BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Not, Shl, ShlAssign, Shr,
-    ShrAssign,
-};
-
 use crate::{
     bits::{BitIteratorBE, BitIteratorLE},
     const_for, UniformRand,
@@ -17,10 +12,15 @@ use ark_std::{
     convert::TryFrom,
     fmt::{Debug, Display, UpperHex},
     io::{Read, Write},
+    ops::{
+        BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Not, Shl, ShlAssign, Shr,
+        ShrAssign,
+    },
     rand::{
         distributions::{Distribution, Standard},
         Rng,
     },
+    str::FromStr,
     vec::Vec,
 };
 use num_bigint::BigUint;
@@ -29,7 +29,7 @@ use zeroize::Zeroize;
 #[macro_use]
 pub mod arithmetic;
 
-#[derive(Copy, Clone, PartialEq, Eq, Debug, Hash, Zeroize)]
+#[derive(Copy, Clone, PartialEq, Eq, Hash, Zeroize)]
 pub struct BigInt<const N: usize>(pub [u64; N]);
 
 impl<const N: usize> Default for BigInt<N> {
@@ -553,6 +553,12 @@ impl<const N: usize> UpperHex for BigInt<N> {
     }
 }
 
+impl<const N: usize> Debug for BigInt<N> {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        write!(f, "{:?}", BigUint::from(*self))
+    }
+}
+
 impl<const N: usize> Display for BigInt<N> {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         write!(f, "{}", BigUint::from(*self))
@@ -680,10 +686,32 @@ impl<const N: usize> TryFrom<BigUint> for BigInt<N> {
     }
 }
 
+impl<const N: usize> FromStr for BigInt<N> {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let biguint = BigUint::from_str(s).map_err(|_| ())?;
+        Self::try_from(biguint)
+    }
+}
+
 impl<const N: usize> From<BigInt<N>> for BigUint {
     #[inline]
     fn from(val: BigInt<N>) -> num_bigint::BigUint {
         BigUint::from_bytes_le(&val.to_bytes_le())
+    }
+}
+
+impl<const N: usize> From<BigInt<N>> for num_bigint::BigInt {
+    #[inline]
+    fn from(val: BigInt<N>) -> num_bigint::BigInt {
+        use num_bigint::Sign;
+        let sign = if val.is_zero() {
+            Sign::NoSign
+        } else {
+            Sign::Plus
+        };
+        num_bigint::BigInt::from_bytes_le(sign, &val.to_bytes_le())
     }
 }
 
@@ -897,6 +925,7 @@ pub trait BigInteger:
     + From<u16>
     + From<u8>
     + TryFrom<BigUint, Error = ()>
+    + FromStr
     + Into<BigUint>
     + BitXorAssign<Self>
     + for<'a> BitXorAssign<&'a Self>

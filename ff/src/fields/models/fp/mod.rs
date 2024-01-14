@@ -655,45 +655,20 @@ impl<P: FpConfig<N>, const N: usize> FromStr for Fp<P, N> {
     /// Interpret a string of numbers as a (congruent) prime field element.
     /// Does not accept unnecessary leading zeroes or a blank string.
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        if s.is_empty() {
-            return Err(());
+        use num_bigint::{BigInt, BigUint};
+        use num_traits::Signed;
+
+        let modulus = BigInt::from(P::MODULUS);
+        let mut a = BigInt::from_str(s).map_err(|_| ())? % &modulus;
+        if a.is_negative() {
+            a += modulus
         }
-
-        if s == "0" {
-            return Ok(Self::zero());
-        }
-
-        let mut res = Self::zero();
-
-        let ten = Self::from(BigInt::from(10u8));
-
-        let mut first_digit = true;
-
-        for c in s.chars() {
-            match c.to_digit(10) {
-                Some(c) => {
-                    if first_digit {
-                        if c == 0 {
-                            return Err(());
-                        }
-
-                        first_digit = false;
-                    }
-
-                    res.mul_assign(&ten);
-                    let digit = Self::from(u64::from(c));
-                    res.add_assign(&digit);
-                },
-                None => {
-                    return Err(());
-                },
-            }
-        }
-        if res.is_geq_modulus() {
-            Err(())
-        } else {
-            Ok(res)
-        }
+        BigUint::try_from(a)
+            .map_err(|_| ())
+            .and_then(TryFrom::try_from)
+            .ok()
+            .and_then(Self::from_bigint)
+            .ok_or(())
     }
 }
 
