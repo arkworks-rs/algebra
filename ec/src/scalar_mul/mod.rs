@@ -96,7 +96,7 @@ pub trait ScalarMul:
     /// use ark_ec::pairing::Pairing;
     /// use ark_test_curves::bls12_381::G1Projective as G;
     /// use ark_test_curves::bls12_381::Fr;
-    /// use ark_ec::scalar_mul::fixed_base::FixedBase;
+    /// use ark_ec::scalar_mul::ScalarMul;
     ///
     /// // Compute G, s.G, s^2.G, ..., s^9.G
     /// let mut rng = ark_std::test_rng();
@@ -109,7 +109,7 @@ pub trait ScalarMul:
     ///     powers_of_s.push(cur);
     ///     cur *= &s;
     /// }
-    /// let powers_of_g: Vec<G> = g.batch_mul(&powers_of_s);
+    /// let powers_of_g = g.batch_mul(&powers_of_s);
     /// let naive_powers_of_g: Vec<G> = powers_of_s.iter().map(|e| g * e).collect();
     /// assert_eq!(powers_of_g, naive_powers_of_g);
     /// ```
