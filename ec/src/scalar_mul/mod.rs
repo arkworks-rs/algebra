@@ -138,12 +138,12 @@ pub struct BatchMulPreprocessing<T: ScalarMul> {
 
 impl<T: ScalarMul> BatchMulPreprocessing<T> {
     pub fn new(base: T, num_scalars: usize) -> Self {
-        let window = Self::window_size(num_scalars);
+        let window = Self::compute_window_size(num_scalars);
         let scalar_size = T::ScalarField::MODULUS_BIT_SIZE as usize;
         Self::with_window_and_scalar_size(base, window, scalar_size)
     }
 
-    fn window_size(num_scalars: usize) -> usize {
+    fn compute_window_size(num_scalars: usize) -> usize {
         if num_scalars < 32 {
             3
         } else {
