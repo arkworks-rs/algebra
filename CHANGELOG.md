@@ -8,6 +8,13 @@
 - [\#593](https://github.com/arkworks-rs/algebra/pull/593) (`ark-ec`) Change `AffineRepr::xy()` to return owned values.
 - [\#633](https://github.com/arkworks-rs/algebra/pull/633) (`ark-ec`) Generic pairing implementation for the curves from the BW6 family.
 - [\#659](https://github.com/arkworks-rs/algebra/pull/659) (`ark-ec`) Move auxiliary `parity` function from `ark_ec::hashing::curve_maps::swu` to `ark_ec::hashing::curve_maps`.
+- [\#746](https://github.com/arkworks-rs/algebra/pull/746) (`ark-ec`) Refactor fixed-based batch multiplication:
+    - Move functionality to `ScalarMul::batch_mul` and `ScalarMul::batch_mul_with_preprocessing`.
+    - Create new struct `BatchMulPreprocessing` for to hold preprocessed powers of `base`.
+        - Provide high-level constructor `new` that calculates window size and scalar size.
+        - Provide low-level constructor `with_window_and_scalar_size` that allows setting these parameters.
+        - Make `windowed_mul` a private method of `BatchMulPreprocessing`.
+        - Rename `get_mul_window_size` to `compute_window_size` and make it private.
 - [\#748](https://github.com/arkworks-rs/algebra/pull/748) (`ark-ff`) Add `FromStr` for `BigInteger`.
 
 ### Features
