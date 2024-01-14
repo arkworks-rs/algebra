@@ -1,10 +1,9 @@
 use crate::models::short_weierstrass::SWCurveConfig;
-use ark_ff::{BigInteger, Field, One, PrimeField, Zero};
-use ark_std::string::ToString;
+use ark_ff::{Field, One, Zero};
 use core::marker::PhantomData;
 
 use crate::{
-    hashing::{map_to_curve_hasher::MapToCurve, HashToCurveError},
+    hashing::{curve_maps::parity, map_to_curve_hasher::MapToCurve, HashToCurveError},
     models::short_weierstrass::{Affine, Projective},
 };
 
@@ -24,30 +23,18 @@ pub trait SWUConfig: SWCurveConfig {
 /// Represents the SWU hash-to-curve map defined by `P`.
 pub struct SWUMap<P: SWUConfig>(PhantomData<fn() -> P>);
 
-/// Trait defining a parity method on the Field elements based on [\[1\]] Section 4.1
-///
-/// - [\[1\]] <https://datatracker.ietf.org/doc/draft-irtf-cfrg-hash-to-curve/>
-pub fn parity<F: Field>(element: &F) -> bool {
-    element
-        .to_base_prime_field_elements()
-        .find(|&x| !x.is_zero())
-        .map_or(false, |x| x.into_bigint().is_odd())
-}
-
 impl<P: SWUConfig> MapToCurve<Projective<P>> for SWUMap<P> {
     /// Checks if `P` represents a valid map.
     fn check_parameters() -> Result<(), HashToCurveError> {
         // Verifying that ZETA is a non-square
-        if P::ZETA.legendre().is_qr() {
-            return Err(HashToCurveError::MapToCurveError(
-                "ZETA should be a quadratic non-residue for the SWU map".to_string(),
-            ));
-        }
+        debug_assert!(
+            P::ZETA.legendre().is_qnr(),
+            "ZETA should be a quadratic non-residue for the SWU map"
+        );
 
         // Verifying the prerequisite for applicability  of SWU map
-        if P::COEFF_A.is_zero() || P::COEFF_B.is_zero() {
-            return Err(HashToCurveError::MapToCurveError("Simplified SWU requires a * b != 0 in the short Weierstrass form of y^2 = x^3 + a*x + b ".to_string()));
-        }
+        debug_assert!(!P::COEFF_A.is_zero() && !P::COEFF_B.is_zero(),
+		      "Simplified SWU requires a * b != 0 in the short Weierstrass form of y^2 = x^3 + a*x + b ");
 
         Ok(())
     }
@@ -55,7 +42,7 @@ impl<P: SWUConfig> MapToCurve<Projective<P>> for SWUMap<P> {
     /// Map an arbitrary base field element to a curve point.
     /// Based on
     /// <https://github.com/zcash/pasta_curves/blob/main/src/hashtocurve.rs>.
-    fn map_to_curve(point: P::BaseField) -> Result<Affine<P>, HashToCurveError> {
+    fn map_to_curve(element: P::BaseField) -> Result<Affine<P>, HashToCurveError> {
         // 1. tv1 = inv0(Z^2 * u^4 + Z * u^2)
         // 2. x1 = (-B / A) * (1 + tv1)
         // 3. If tv1 == 0, set x1 = B / (Z * A)
@@ -80,7 +67,7 @@ impl<P: SWUConfig> MapToCurve<Projective<P>> for SWUMap<P> {
         let a = P::COEFF_A;
         let b = P::COEFF_B;
 
-        let zeta_u2 = P::ZETA * point.square();
+        let zeta_u2 = P::ZETA * element.square();
         let ta = zeta_u2.square() + zeta_u2;
         let num_x1 = b * (ta + <P::BaseField as One>::one());
         let div = a * if ta.is_zero() { P::ZETA } else { -ta };
@@ -99,7 +86,7 @@ impl<P: SWUConfig> MapToCurve<Projective<P>> for SWUMap<P> {
         let gx1_square;
         let gx1;
 
-        assert!(
+        debug_assert!(
             !div3.is_zero(),
             "we have checked that neither a or ZETA are zero. Q.E.D."
         );
@@ -134,14 +121,18 @@ impl<P: SWUConfig> MapToCurve<Projective<P>> for SWUMap<P> {
         // u^3 * y1 is a square root of gx2. Note that we don't actually need to
         // compute gx2.
 
-        let y2 = zeta_u2 * point * y1;
+        let y2 = zeta_u2 * element * y1;
         let num_x = if gx1_square { num_x1 } else { num_x2 };
         let y = if gx1_square { y1 } else { y2 };
 
         let x_affine = num_x / div;
-        let y_affine = if parity(&y) != parity(&point) { -y } else { y };
+        let y_affine = if parity(&y) != parity(&element) {
+            -y
+        } else {
+            y
+        };
         let point_on_curve = Affine::<P>::new_unchecked(x_affine, y_affine);
-        assert!(
+        debug_assert!(
             point_on_curve.is_on_curve(),
             "swu mapped to a point off the curve"
         );
@@ -260,8 +251,8 @@ mod test {
 
         let mut map_range: Vec<Affine<TestSWUMapToCurveConfig>> = vec![];
         for current_field_element in 0..127 {
-            let point = F127::from(current_field_element as u64);
-            map_range.push(SWUMap::<TestSWUMapToCurveConfig>::map_to_curve(point).unwrap());
+            let element = F127::from(current_field_element as u64);
+            map_range.push(SWUMap::<TestSWUMapToCurveConfig>::map_to_curve(element).unwrap());
         }
 
         let mut counts = HashMap::new();

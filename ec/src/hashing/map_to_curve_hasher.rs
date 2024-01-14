@@ -10,7 +10,7 @@ pub trait MapToCurve<T: CurveGroup>: Sized {
     /// Checks whether supplied parameters represent a valid map.
     fn check_parameters() -> Result<(), HashToCurveError>;
 
-    /// Map an arbitary field element to a corresponding curve point.
+    /// Map an arbitrary field element to a corresponding curve point.
     fn map_to_curve(point: T::BaseField) -> Result<T::Affine, HashToCurveError>;
 }
 

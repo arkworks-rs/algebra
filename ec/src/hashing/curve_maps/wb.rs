@@ -88,9 +88,8 @@ impl<P: WBConfig> MapToCurve<Projective<P>> for WBMap<P> {
     fn check_parameters() -> Result<(), HashToCurveError> {
         match P::ISOGENY_MAP.apply(P::IsogenousCurve::GENERATOR) {
             Ok(point_on_curve) => {
-                if !point_on_curve.is_on_curve() {
-                    return Err(HashToCurveError::MapToCurveError(format!("the isogeny maps the generator of its domain: {} into {} which does not belong to its codomain.",P::IsogenousCurve::GENERATOR, point_on_curve)));
-                }
+                debug_assert!(point_on_curve.is_on_curve(),
+			      "the isogeny maps the generator of its domain: {} into {} which does not belong to its codomain.",P::IsogenousCurve::GENERATOR, point_on_curve);
             },
             Err(e) => return Err(e),
         }
