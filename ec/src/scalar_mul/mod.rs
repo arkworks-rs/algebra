@@ -7,7 +7,7 @@ use crate::{
     short_weierstrass::{Affine, Projective, SWCurveConfig},
     PrimeGroup,
 };
-use ark_ff::{AdditiveGroup, Zero, PrimeField, BigInteger};
+use ark_ff::{AdditiveGroup, BigInteger, PrimeField, Zero};
 use ark_std::{
     cfg_iter, cfg_iter_mut,
     ops::{Add, AddAssign, Mul, Neg, Sub, SubAssign},
@@ -123,7 +123,9 @@ pub trait ScalarMul:
         v: &[Self::ScalarField],
         preprocessing: &BatchMulPreprocessing<Self>,
     ) -> Vec<Self::MulBase> {
-        let result = cfg_iter!(v).map(|e| preprocessing.windowed_mul(e)).collect::<Vec<_>>();
+        let result = cfg_iter!(v)
+            .map(|e| preprocessing.windowed_mul(e))
+            .collect::<Vec<_>>();
         Self::batch_convert_to_mul_base(&result)
     }
 }
@@ -153,11 +155,7 @@ impl<T: ScalarMul> BatchMulPreprocessing<T> {
         }
     }
 
-    pub fn with_window_and_scalar_size(
-        base: T,
-        window: usize,
-        max_scalar_size: usize,
-    ) -> Self {
+    pub fn with_window_and_scalar_size(base: T, window: usize, max_scalar_size: usize) -> Self {
         let in_window = 1 << window;
         let outerc = (max_scalar_size + window - 1) / window;
         let last_in_window = 1 << (max_scalar_size - (outerc - 1) * window);
