@@ -23,6 +23,14 @@ pub struct Evaluations<F: FftField, D: EvaluationDomain<F> = GeneralEvaluationDo
 }
 
 impl<F: FftField, D: EvaluationDomain<F>> Evaluations<F, D> {
+    /// Evaluations of the zero polynomial over `domain`.
+    pub fn zero(domain: D) -> Self {
+        Self {
+            evals: vec![F::zero(); domain.size()],
+            domain,
+        }
+    }
+
     /// Construct `Self` from evaluations and a domain.
     pub fn from_vec_and_domain(evals: Vec<F>, domain: D) -> Self {
         Self { evals, domain }

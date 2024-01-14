@@ -3,8 +3,10 @@ pub mod wnaf;
 
 pub mod variable_base;
 
-use crate::short_weierstrass::{Affine, Projective, SWCurveConfig};
-use crate::PrimeGroup;
+use crate::{
+    short_weierstrass::{Affine, Projective, SWCurveConfig},
+    PrimeGroup,
+};
 use ark_ff::{AdditiveGroup, Zero, PrimeField, BigInteger};
 use ark_std::{
     cfg_iter, cfg_iter_mut,
