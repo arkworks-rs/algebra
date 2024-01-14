@@ -7,10 +7,12 @@
 - [\#577](https://github.com/arkworks-rs/algebra/pull/577) (`ark-ff`, `ark-ec`) Add `AdditiveGroup`, a trait for additive groups (equipped with scalar field).
 - [\#593](https://github.com/arkworks-rs/algebra/pull/593) (`ark-ec`) Change `AffineRepr::xy()` to return owned values.
 - [\#633](https://github.com/arkworks-rs/algebra/pull/633) (`ark-ec`) Generic pairing implementation for the curves from the BW6 family.
+- [\#659](https://github.com/arkworks-rs/algebra/pull/659) (`ark-ec`) Move auxiliary `parity` function from `ark_ec::hashing::curve_maps::swu` to `ark_ec::hashing::curve_maps`.
 - [\#748](https://github.com/arkworks-rs/algebra/pull/748) (`ark-ff`) Add `FromStr` for `BigInteger`.
 
 ### Features
 
+- [\#659](https://github.com/arkworks-rs/algebra/pull/659) (`ark-ec`) Add Elligator2 hash-to-curve map.
 - [\#689](https://github.com/arkworks-rs/algebra/pull/689) (`ark-serialize`) Add `CanonicalSerialize` and `CanonicalDeserialize` impls for `VecDeque` and `LinkedList`.
 - [\#691](https://github.com/arkworks-rs/algebra/pull/691) (`ark-poly`) Implement `Polynomial` for `SparseMultilinearExtension` and `DenseMultilinearExtension`.
 - [\#693](https://github.com/arkworks-rs/algebra/pull/693) (`ark-serialize`) Add `serialize_to_vec!` convenience macro.
