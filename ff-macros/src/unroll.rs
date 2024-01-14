@@ -66,10 +66,8 @@ pub(crate) fn unroll_in_block(block: &Block, unroll_by: usize) -> Block {
     } = block;
     let mut new_stmts = Vec::new();
     for stmt in stmts.iter() {
-        if let Stmt::Expr(expr) = stmt {
-            new_stmts.push(Stmt::Expr(unroll(expr, unroll_by)));
-        } else if let Stmt::Semi(expr, semi) = stmt {
-            new_stmts.push(Stmt::Semi(unroll(expr, unroll_by), *semi));
+        if let Stmt::Expr(expr, semi) = stmt {
+            new_stmts.push(Stmt::Expr(unroll(expr, unroll_by), *semi));
         } else {
             new_stmts.push((*stmt).clone());
         }
@@ -109,7 +107,7 @@ fn unroll(expr: &Expr, unroll_by: usize) -> Expr {
             ident,
             subpat,
             ..
-        }) = pat
+        }) = *pat.clone()
         {
             // Don't know how to deal with these so skip and return the original.
             if !by_ref.is_none() || !mutability.is_none() || !subpat.is_none() {
@@ -118,15 +116,15 @@ fn unroll(expr: &Expr, unroll_by: usize) -> Expr {
             let idx = ident; // got the index variable name
 
             if let Expr::Range(ExprRange {
-                from, limits, to, ..
+                start, limits, end, ..
             }) = range.borrow()
             {
-                // Parse `from` in `from..to`.
-                let begin = match from {
+                // Parse `start` in `start..end`.
+                let begin = match start {
                     Some(e) => e.clone(),
                     _ => Box::new(parse_quote!(0usize)),
                 };
-                let end = match to {
+                let end = match end {
                     Some(e) => e.clone(),
                     _ => return forloop_with_body(new_body),
                 };
@@ -159,7 +157,7 @@ fn unroll(expr: &Expr, unroll_by: usize) -> Expr {
                 };
                 let loop_body = (0..unroll_by).flat_map(|_| loop_block.clone());
                 loop_expr.body.stmts.extend(loop_body);
-                block.stmts.push(Stmt::Expr(Expr::ForLoop(loop_expr)));
+                block.stmts.push(Stmt::Expr(Expr::ForLoop(loop_expr), None));
 
                 // idx = num_loops * unroll_by;
                 block
