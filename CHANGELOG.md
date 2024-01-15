@@ -16,6 +16,7 @@
         - Make `windowed_mul` a private method of `BatchMulPreprocessing`.
         - Rename `get_mul_window_size` to `compute_window_size` and make it private.
 - [\#748](https://github.com/arkworks-rs/algebra/pull/748) (`ark-ff`) Add `FromStr` for `BigInteger`.
+- [\#756](https://github.com/arkworks-rs/algebra/pull/756) (`ark-ec`) Require `Neg`, `Sub`, `SubAssign` ops on `AffineRepr`.
 
 ### Features
 
