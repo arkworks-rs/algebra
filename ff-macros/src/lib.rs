@@ -9,7 +9,7 @@
 
 use num_bigint::BigUint;
 use proc_macro::TokenStream;
-use syn::{Expr, Item, ItemFn, Lit};
+use syn::{Expr, ExprLit, Item, ItemFn, Lit, Meta};
 
 mod montgomery;
 mod unroll;
@@ -106,22 +106,28 @@ pub fn unroll_for_loops(args: TokenStream, input: TokenStream) -> TokenStream {
 
 /// Fetch an attribute string from the derived struct.
 fn fetch_attr(name: &str, attrs: &[syn::Attribute]) -> Option<String> {
-    attrs.iter().find_map(|attr| {
-        let meta = attr.parse_meta().ok()?;
-        match meta {
-            syn::Meta::NameValue(nv)
-                if nv.path.get_ident().map(|i| i.to_string()) == Some(name.to_string()) =>
-            {
-                match nv.lit {
-                    syn::Lit::Str(ref s) => Some(s.value()),
-                    _ => {
-                        panic!("attribute {} should be a string", name);
-                    },
+    // Go over each attribute
+    for attr in attrs {
+        match attr.meta {
+            // If the attribute's path matches `name`, and if the attribute is of
+            // the form `#[name = "value"]`, return `value`
+            Meta::NameValue(ref nv) if nv.path.is_ident(name) => {
+                // Extract and return the string value.
+                // If `value` is not a string, return an error
+                if let Expr::Lit(ExprLit {
+                    lit: Lit::Str(ref s),
+                    ..
+                }) = nv.value
+                {
+                    return Some(s.value());
+                } else {
+                    panic!("attribute {name} should be a string")
                 }
             },
-            _ => None,
+            _ => continue,
         }
-    })
+    }
+    None
 }
 
 #[test]

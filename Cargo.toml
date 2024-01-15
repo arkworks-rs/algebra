@@ -72,7 +72,7 @@ zeroize = { version = "1", default-features = false }
 
 proc-macro2 = "1.0"
 quote = "1.0"
-syn = "1.0"
+syn = "2.0"
 
 [profile.release]
 opt-level = 3
