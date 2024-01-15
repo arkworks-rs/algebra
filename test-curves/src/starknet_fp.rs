@@ -1,4 +1,4 @@
-//! Prime field `Fq` where `q` is the StarkNet prime.
+//! Prime field `Fq` where `q =  2^251 + 17 * 2^192 + 1` is the StarkNet prime.
 use ark_ff::fields::{Fp256, MontBackend};
 
 #[derive(ark_ff::MontConfig)]
