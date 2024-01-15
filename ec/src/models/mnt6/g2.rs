@@ -7,6 +7,7 @@ use crate::{
 use ark_ff::fields::{Field, Fp3};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use ark_std::{ops::Neg, vec::Vec};
+use derivative::Derivative;
 use num_traits::One;
 
 pub type G2Affine<P> = Affine<<P as MNT6Config>::G2Config>;

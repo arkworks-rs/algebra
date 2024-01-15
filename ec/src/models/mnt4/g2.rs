@@ -8,7 +8,8 @@ use crate::{
 };
 use ark_ff::fields::{Field, Fp2};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
-use ark_std::vec::Vec;
+use ark_std::{vec, vec::Vec};
+use derivative::Derivative;
 use num_traits::One;
 
 pub type G2Affine<P> = Affine<<P as MNT4Config>::G2Config>;
