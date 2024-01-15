@@ -11,7 +11,8 @@ use ark_ff::{
     },
     CyclotomicMultSubgroup,
 };
-use ark_std::{marker::PhantomData, vec::Vec};
+use ark_std::{cfg_chunks_mut, marker::PhantomData, vec::Vec};
+use derivative::Derivative;
 use itertools::Itertools;
 use num_traits::One;
 

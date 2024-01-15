@@ -1,5 +1,5 @@
 use ark_ff::{prelude::*, PrimeField};
-use ark_std::{borrow::Borrow, iterable::Iterable, vec::Vec};
+use ark_std::{borrow::Borrow, cfg_into_iter, iterable::Iterable, vec::Vec};
 
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;

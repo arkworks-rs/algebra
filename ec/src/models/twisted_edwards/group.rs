@@ -17,6 +17,7 @@ use ark_std::{
 
 use ark_ff::{fields::Field, AdditiveGroup, PrimeField, ToConstraintField, UniformRand};
 
+use derivative::Derivative;
 use zeroize::Zeroize;
 
 #[cfg(feature = "parallel")]
