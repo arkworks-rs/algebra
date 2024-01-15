@@ -35,7 +35,7 @@ pub trait QuadExtConfig: 'static + Send + Sync + Sized {
     /// we might see `BaseField == BasePrimeField`, it won't always hold true.
     /// E.g. for an extension tower: `BasePrimeField == Fp`, but `BaseField == Fp3`.
     type BaseField: Field<BasePrimeField = Self::BasePrimeField>;
-    /// The type of the coefficients for an efficient implemntation of the
+    /// The type of the coefficients for an efficient implementation of the
     /// Frobenius endomorphism.
     type FrobCoeff: Field;
 

@@ -102,6 +102,12 @@ fn msm_bigint_wnaf<V: VariableBaseMSM>(
 
     let num_bits = V::ScalarField::MODULUS_BIT_SIZE as usize;
     let digits_count = (num_bits + c - 1) / c;
+    #[cfg(feature = "parallel")]
+    let scalar_digits = scalars
+        .into_par_iter()
+        .flat_map_iter(|s| make_digits(s, c, num_bits))
+        .collect::<Vec<_>>();
+    #[cfg(not(feature = "parallel"))]
     let scalar_digits = scalars
         .iter()
         .flat_map(|s| make_digits(s, c, num_bits))
@@ -191,7 +197,7 @@ fn msm_bigint<V: VariableBaseMSM>(
 
                     // We right-shift by w_start, thus getting rid of the
                     // lower bits.
-                    scalar.divn(w_start as u32);
+                    scalar >>= w_start as u32;
 
                     // We mod the remaining bits by 2^{window size}, thus taking `c` bits.
                     let scalar = scalar.as_ref()[0] % (1 << c);
@@ -246,7 +252,7 @@ fn msm_bigint<V: VariableBaseMSM>(
 }
 
 // From: https://github.com/arkworks-rs/gemini/blob/main/src/kzg/msm/variable_base.rs#L20
-fn make_digits(a: &impl BigInteger, w: usize, num_bits: usize) -> Vec<i64> {
+fn make_digits(a: &impl BigInteger, w: usize, num_bits: usize) -> impl Iterator<Item = i64> + '_ {
     let scalar = a.as_ref();
     let radix: u64 = 1 << w;
     let window_mask: u64 = radix - 1;
@@ -258,8 +264,8 @@ fn make_digits(a: &impl BigInteger, w: usize, num_bits: usize) -> Vec<i64> {
         num_bits
     };
     let digits_count = (num_bits + w - 1) / w;
-    let mut digits = vec![0i64; digits_count];
-    for (i, digit) in digits.iter_mut().enumerate() {
+
+    (0..digits_count).into_iter().map(move |i| {
         // Construct a buffer of bits of the scalar, starting at `bit_offset`.
         let bit_offset = i * w;
         let u64_idx = bit_offset / 64;
@@ -279,10 +285,11 @@ fn make_digits(a: &impl BigInteger, w: usize, num_bits: usize) -> Vec<i64> {
 
         // Recenter coefficients from [0,2^w) to [-2^w/2, 2^w/2)
         carry = (coef + radix / 2) >> w;
-        *digit = (coef as i64) - (carry << w) as i64;
-    }
+        let mut digit = (coef as i64) - (carry << w) as i64;
 
-    digits[digits_count - 1] += (carry << w) as i64;
-
-    digits
+        if i == digits_count - 1 {
+            digit += (carry << w) as i64;
+        }
+        digit
+    })
 }

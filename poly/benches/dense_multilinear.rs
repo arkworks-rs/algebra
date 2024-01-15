@@ -2,7 +2,7 @@
 extern crate criterion;
 
 use ark_ff::Field;
-use ark_poly::{DenseMultilinearExtension, MultilinearExtension};
+use ark_poly::{DenseMultilinearExtension, MultilinearExtension, Polynomial};
 use ark_std::{ops::Range, test_rng};
 use ark_test_curves::bls12_381;
 use criterion::{black_box, BenchmarkId, Criterion};
@@ -40,7 +40,7 @@ fn evaluation_op_bench<F: Field>(c: &mut Criterion) {
         group.bench_with_input(BenchmarkId::from_parameter(nv), &nv, |b, &nv| {
             let poly = DenseMultilinearExtension::<F>::rand(nv, &mut rng);
             let point: Vec<_> = (0..nv).map(|_| F::rand(&mut rng)).collect();
-            b.iter(|| black_box(poly.evaluate(&point).unwrap()))
+            b.iter(|| black_box(poly.evaluate(&point)))
         });
     }
     group.finish();
