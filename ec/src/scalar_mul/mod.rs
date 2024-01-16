@@ -233,13 +233,7 @@ impl<T: ScalarMul> BatchMulPreprocessing<T> {
     }
 
     pub fn batch_mul(&self, v: &[T::ScalarField]) -> Vec<T::MulBase> {
-        assert!(
-            v.len() <= self.max_num_scalars,
-            "number of scalars exceeds the maximum number of scalars supported by this table"
-        );
-        let result = cfg_iter!(v)
-            .map(|e| self.windowed_mul(e))
-            .collect::<Vec<_>>();
+        let result: Vec<_> = cfg_iter!(v).map(|e| self.windowed_mul(e)).collect();
         T::batch_convert_to_mul_base(&result)
     }
 
