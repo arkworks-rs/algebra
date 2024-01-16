@@ -2,6 +2,8 @@
 
 ## Pending
 
+- [\#XXX](https://github.com/arkworks-rs/algebra/pull/XXX) Implement Elligator2 hash-to-curve parameters for Bandersnatch.
+
 ### Breaking changes
 
 - [\#577](https://github.com/arkworks-rs/algebra/pull/577) (`ark-ff`, `ark-ec`) Add `AdditiveGroup`, a trait for additive groups (equipped with scalar field).
