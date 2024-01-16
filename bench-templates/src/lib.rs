@@ -8,3 +8,5 @@ pub extern crate criterion;
 pub use criterion::*;
 
 pub use paste::paste;
+
+pub use rayon;

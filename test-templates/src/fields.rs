@@ -359,9 +359,12 @@ macro_rules! __test_field {
         #[test]
         fn test_fft() {
             use ark_ff::FftField;
+            use $crate::num_bigint::BigUint;
+            let two_adic_pow = (BigUint::one() << <$field>::TWO_ADICITY).to_u64_digits();
             assert_eq!(
-                <$field>::TWO_ADIC_ROOT_OF_UNITY.pow([1 << <$field>::TWO_ADICITY]),
-                <$field>::one()
+                <$field>::TWO_ADIC_ROOT_OF_UNITY.pow(two_adic_pow),
+                <$field>::one(),
+                "2-adicity is incorrect or 2-adic root of unity is invalid"
             );
 
             if let Some(small_subgroup_base) = <$field>::SMALL_SUBGROUP_BASE {

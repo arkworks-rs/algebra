@@ -21,6 +21,7 @@ macro_rules! ec_bench {
                     use ark_ff::AdditiveGroup;
                     use ark_ec::{CurveGroup, PrimeGroup};
                     use ark_std::UniformRand;
+                    use $crate::rayon::prelude::*;
                     let name = format!("{}::{}", $curve_name, stringify!($Group));
 
                     type Scalar = <$Group as PrimeGroup>::ScalarField;
@@ -28,14 +29,14 @@ macro_rules! ec_bench {
                     let mut rng = ark_std::test_rng();
                     let mut arithmetic =
                         c.benchmark_group(format!("Arithmetic for {name}"));
-                    // Efficient sampling of inputs for benchmarking
-                    let mut g_left = <$Group>::rand(&mut rng);
-                    let mut g_right = <$Group>::rand(&mut rng);
+                    // Faster sampling of inputs for benchmarking
                     let group_elements_left = (0..SAMPLES)
-                        .map(|_| g_left.double())
+                        .into_par_iter()
+                        .map(|_| <$Group>::rand(&mut ark_std::rand::thread_rng()))
                         .collect::<Vec<_>>();
                     let mut group_elements_right = (0..SAMPLES)
-                        .map(|_| g_right.double())
+                        .into_par_iter()
+                        .map(|_| <$Group>::rand(&mut ark_std::rand::thread_rng()))
                         .collect::<Vec<_>>();
                     group_elements_right.reverse();
                     let group_elements_right_affine = <$Group>::normalize_batch(&group_elements_right);
