@@ -166,7 +166,6 @@ pub trait ScalarMul:
 pub struct BatchMulPreprocessing<T: ScalarMul> {
     pub window: usize,
     pub max_scalar_size: usize,
-    pub max_num_scalars: usize,
     pub table: Vec<Vec<T::MulBase>>,
 }
 
@@ -178,10 +177,10 @@ impl<T: ScalarMul> BatchMulPreprocessing<T> {
 
     pub fn with_num_scalars_and_scalar_size(
         base: T,
-        max_num_scalars: usize,
+        num_scalars: usize,
         max_scalar_size: usize,
     ) -> Self {
-        let window = Self::compute_window_size(max_num_scalars);
+        let window = Self::compute_window_size(num_scalars);
         let in_window = 1 << window;
         let outerc = (max_scalar_size + window - 1) / window;
         let last_in_window = 1 << (max_scalar_size - (outerc - 1) * window);
@@ -219,7 +218,6 @@ impl<T: ScalarMul> BatchMulPreprocessing<T> {
         Self {
             window,
             max_scalar_size,
-            max_num_scalars,
             table,
         }
     }

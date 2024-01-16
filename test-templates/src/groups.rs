@@ -112,7 +112,7 @@ macro_rules! __test_group {
                     }
                 }
 
-                // The table size is only determined by the number of non-zero entries.
+                // num_scalars != scalars.len()
                 let mut scalars = vec![ScalarField::rand(&mut rng); 100];
                 scalars[0] = ScalarField::zero();
                 let table = BatchMulPreprocessing::new(a, scalars.len() - 1);
