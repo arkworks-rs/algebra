@@ -7,6 +7,7 @@
 - [\#713](https://github.com/arkworks-rs/algebra/pull/713) (`ark-ff`) Add support for bitwise operations AND, OR, and XOR between `BigInteger`.
 - [\#736](https://github.com/arkworks-rs/algebra/pull/736) (`ark-ff`) Deprecate `divn()`, and use `core::ops::{Shr, ShrAssign}` instead.
 - [\#739](https://github.com/arkworks-rs/algebra/pull/739) (`ark-ff`) Deprecate `muln()`, and use `core::ops::{Shl, ShlAssign}` instead.
+- [\#761](https://github.com/arkworks-rs/algebra/pull/761) (`ark-ff`) Implementation of modulus operator for `BigInteger`.
 
 ### Breaking changes
 

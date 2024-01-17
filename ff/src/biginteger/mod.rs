@@ -1,11 +1,3 @@
-use core::{
-    cmp::Ordering,
-    ops::{
-        BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Not, Rem, RemAssign, Shl,
-        ShlAssign, Shr, ShrAssign,
-    },
-};
-
 use crate::{
     bits::{BitIteratorBE, BitIteratorLE},
     const_for, UniformRand,
@@ -17,9 +9,14 @@ use ark_serialize::{
 };
 use ark_std::{
     borrow::Borrow,
+    cmp::Ordering,
     convert::TryFrom,
     fmt::{Debug, Display, UpperHex},
     io::{Read, Write},
+    ops::{
+        BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Not, Rem, RemAssign, Shl,
+        ShlAssign, Shr, ShrAssign,
+    },
     rand::{
         distributions::{Distribution, Standard},
         Rng,
@@ -1245,6 +1242,7 @@ pub trait BigInteger:
     + ShlAssign<u32>
     + Rem<Self, Output = Self>
     + for<'a> Rem<&'a Self, Output = Self>
+    + RemAssign<Self>
     + for<'a> RemAssign<&'a Self>
 {
     /// Number of 64-bit limbs representing `Self`.
