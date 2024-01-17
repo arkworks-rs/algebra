@@ -1,4 +1,4 @@
-use crate::hashing::curve_maps::swu::parity;
+use crate::hashing::curve_maps::parity;
 use ark_test_curves::bls12_381::{Fq, Fq2, Fq6};
 
 #[test]

@@ -111,6 +111,18 @@ macro_rules! __test_group {
                         assert_eq!(context.mul_with_table(&bad_table, &b), None);
                     }
                 }
+
+                // num_scalars != scalars.len()
+                let mut scalars = vec![ScalarField::rand(&mut rng); 100];
+                scalars[0] = ScalarField::zero();
+                let table = BatchMulPreprocessing::new(a, scalars.len() - 1);
+                let result = table.batch_mul(&scalars);
+                let naive_result = scalars
+                    .iter()
+                    .enumerate()
+                    .map(|(i, s)| a * s)
+                    .collect::<Vec<_>>();
+                assert_eq!(result, naive_result);
             }
         }
 

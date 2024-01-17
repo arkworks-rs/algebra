@@ -195,7 +195,7 @@ pub mod fields {
     pub fn frobenius_tests<F: Field, ConstraintF, AF>(maxpower: usize) -> Result<(), SynthesisError>
     where
         F: Field,
-        ConstraintF: Field,
+        ConstraintF: PrimeField,
         AF: FieldVar<F, ConstraintF>,
         for<'a> &'a AF: FieldOpsBounds<'a, F, AF>,
     {
@@ -231,12 +231,12 @@ pub mod curves {
     use ark_relations::r1cs::{ConstraintSystem, SynthesisError};
     use ark_std::{test_rng, vec::Vec, UniformRand};
 
-    use ark_r1cs_std::prelude::*;
+    use ark_r1cs_std::{fields::emulated_fp::EmulatedFpVar, prelude::*};
 
     pub fn group_test<C, ConstraintF, GG>() -> Result<(), SynthesisError>
     where
         C: CurveGroup,
-        ConstraintF: Field,
+        ConstraintF: PrimeField,
         GG: CurveVar<C, ConstraintF>,
         for<'a> &'a GG: GroupOpsBounds<'a, C, GG>,
     {
@@ -299,13 +299,13 @@ pub mod curves {
             assert!(cs.is_satisfied().unwrap());
             assert_eq!(b2.value()?, b_b.value()?);
 
-            let _ = a.to_bytes()?;
+            let _ = a.to_bytes_le()?;
             assert!(cs.is_satisfied().unwrap());
-            let _ = a.to_non_unique_bytes()?;
+            let _ = a.to_non_unique_bytes_le()?;
             assert!(cs.is_satisfied().unwrap());
 
-            let _ = b.to_bytes()?;
-            let _ = b.to_non_unique_bytes()?;
+            let _ = b.to_bytes_le()?;
+            let _ = b.to_non_unique_bytes_le()?;
             if !cs.is_satisfied().unwrap() {
                 panic!(
                     "Unsatisfied in mode {:?}.\n{:?}",
@@ -350,15 +350,29 @@ pub mod curves {
                 let scalar_bits: Vec<bool> = BitIteratorLE::new(&scalar).collect();
                 input =
                     Vec::new_witness(ark_relations::ns!(cs, "bits"), || Ok(scalar_bits)).unwrap();
+                let scalar_var = EmulatedFpVar::new_variable(
+                    ark_relations::ns!(cs, "scalar"),
+                    || {
+                        let scalar = scalar
+                            .iter()
+                            .flat_map(|b| b.to_le_bytes())
+                            .collect::<Vec<_>>();
+                        Ok(C::ScalarField::from_le_bytes_mod_order(&scalar))
+                    },
+                    mode,
+                )
+                .unwrap();
                 let result = a
                     .scalar_mul_le(input.iter())
                     .expect(&format!("Mode: {:?}", mode));
+                let mul_result = a.clone() * scalar_var;
                 let result_val = result.value()?.into_affine();
                 assert_eq!(
                     result_val, native_result,
                     "gadget & native values are diff. after scalar mul {:?}",
                     scalar,
                 );
+                assert_eq!(mul_result.value().unwrap().into_affine(), native_result);
                 assert!(cs.is_satisfied().unwrap());
             }
 
@@ -521,9 +535,12 @@ pub mod pairing {
         AffineRepr, CurveGroup,
     };
     use ark_ff::{BitIteratorLE, Field, PrimeField};
+    use ark_r1cs_std::convert::ToBytesGadget;
     use ark_r1cs_std::prelude::*;
     use ark_relations::r1cs::{ConstraintSystem, SynthesisError};
     use ark_std::{test_rng, vec::Vec, UniformRand};
+
+    type BasePrimeField<P> = <<P as Pairing>::BaseField as Field>::BasePrimeField;
 
     #[allow(dead_code)]
     pub fn bilinearity_test<E: Pairing, P: PairingVar<E>>() -> Result<(), SynthesisError>
@@ -538,7 +555,7 @@ pub mod pairing {
             AllocationMode::Constant,
         ];
         for &mode in &modes {
-            let cs = ConstraintSystem::<<E::G1 as CurveGroup>::BaseField>::new_ref();
+            let cs = ConstraintSystem::<BasePrimeField<E>>::new_ref();
 
             let mut rng = test_rng();
             let a = E::G1::rand(&mut rng);
@@ -639,8 +656,8 @@ pub mod pairing {
                 P::G2PreparedVar::new_variable(cs.clone(), || Ok(test_g2_prepared.clone()), mode)
                     .unwrap();
 
-            let prepared_test_g2_gadget_bytes = prepared_test_g2_gadget.to_bytes().unwrap();
-            let allocated_test_g2_gadget_bytes = allocated_test_g2_gadget.to_bytes().unwrap();
+            let prepared_test_g2_gadget_bytes = prepared_test_g2_gadget.to_bytes_le().unwrap();
+            let allocated_test_g2_gadget_bytes = allocated_test_g2_gadget.to_bytes_le().unwrap();
 
             prepared_test_g2_gadget_bytes
                 .enforce_equal(&allocated_test_g2_gadget_bytes)

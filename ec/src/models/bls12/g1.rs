@@ -5,6 +5,7 @@ use crate::{
 };
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use ark_std::vec::Vec;
+use derivative::Derivative;
 
 pub type G1Affine<P> = Affine<<P as Bls12Config>::G1Config>;
 pub type G1Projective<P> = Projective<<P as Bls12Config>::G1Config>;

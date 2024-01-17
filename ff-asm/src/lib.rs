@@ -30,7 +30,7 @@ struct AsmMulInput {
 impl Parse for AsmMulInput {
     fn parse(input: ParseStream<'_>) -> syn::Result<Self> {
         let input = input
-            .parse_terminated::<_, syn::token::Comma>(Expr::parse)?
+            .parse_terminated(Expr::parse, syn::token::Comma)?
             .into_iter()
             .collect::<Vec<_>>();
         let num_limbs = input[0].clone();
@@ -82,7 +82,7 @@ struct AsmSquareInput {
 impl Parse for AsmSquareInput {
     fn parse(input: ParseStream<'_>) -> syn::Result<Self> {
         let input = input
-            .parse_terminated::<_, syn::token::Comma>(Expr::parse)?
+            .parse_terminated(Expr::parse, syn::token::Comma)?
             .into_iter()
             .collect::<Vec<_>>();
         let num_limbs = input[0].clone();
