@@ -479,11 +479,6 @@ impl<const N: usize> BigInteger for BigInt<N> {
     }
 
     #[inline]
-    fn is_one(&self) -> bool {
-        self.0.iter().skip(1).all(|&e| e == 0) && self.0[0] == 1
-    }
-
-    #[inline]
     fn num_bits(&self) -> u32 {
         let mut ret = N as u32 * 64;
         for i in self.0.iter().rev() {
@@ -1462,7 +1457,9 @@ pub trait BigInteger:
     /// let mut one = B::from(1u64);
     /// assert!(one.is_one());
     /// ```
-    fn is_one(&self) -> bool;
+    fn is_one(&self) -> bool {
+        *self == Self::from(1u64)
+    }
 
     /// Compute the minimum number of bits needed to encode this number.
     /// # Example
