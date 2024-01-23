@@ -189,8 +189,8 @@ impl<F: Field> MultilinearExtension<F> for DenseMultilinearExtension<F> {
     ///     2, vec![0, 1, 2, 6].iter().map(|x| Fr::from(*x as u64)).collect()
     /// );
     ///
-    /// // Bind the first variable of the MLE to the value 5, resulting in
-    /// // the new polynomial 5 + 17 * x_1
+    /// // Bind the first variable of the MLE, x_0, to the value 5, resulting in
+    /// // a new polynomial in one variable: 5 + 17 * x
     /// let bound = mle.fix_variables(&[Fr::from(5)]);
     ///
     /// assert_eq!(bound.to_evaluations(), vec![Fr::from(5), Fr::from(22)]);
