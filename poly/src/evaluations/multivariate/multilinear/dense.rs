@@ -84,15 +84,47 @@ impl<F: Field> DenseMultilinearExtension<F> {
         self.evaluations.iter_mut()
     }
 
-    pub fn merge(polys: &[&Self]) -> Self {
-        let total_len: usize = polys.iter().map(|poly| poly.evaluations.len()).sum();
+    /// Concatenate the evaluation tables of multiple polynomials.
+    /// If the combined table size is not a power of two, pad the table with zeros.
+    ///
+    /// # Example
+    /// ```
+    /// use ark_test_curves::bls12_381::Fr;
+    /// use ark_poly::{MultilinearExtension, Polynomial, DenseMultilinearExtension};
+    /// use ark_ff::One;
+    ///
+    /// // Construct a 2-variate multilinear polynomial f1
+    /// // f1(x_0, x_1) = 2*(1-x_1)*(1-x_0) + 3*(1-x_1)*x_0 + 2*x_1*(1-x_0) + 6*x_1*x_0
+    /// let mle_1 = DenseMultilinearExtension::from_evaluations_vec(
+    ///     2, vec![2, 3, 2, 6].iter().map(|x| Fr::from(*x as u64)).collect()
+    /// );
+    /// // Construct another 2-variate MLE f2
+    /// // f2(x_0, x_1) = 1*x_1*x_0
+    /// let mle_2 = DenseMultilinearExtension::from_evaluations_vec(
+    ///   2, vec![0, 0, 0, 1].iter().map(|x| Fr::from(*x as u64)).collect()
+    /// );
+    /// let mle = DenseMultilinearExtension::merge(&[&mle_1, &mle_2]);
+    /// // The resulting polynomial is 3-variate:
+    /// // f3(x_0, x_1, x_2) = (1 - x_2)*f1(x_0, x_1) + x_2*f2(x_0, x_1)
+    /// // Evaluate it at a random point (1, 17, 3)
+    /// let point = vec![Fr::one(), Fr::from(17), Fr::from(3)];
+    /// let eval_1 = mle_1.evaluate(&point[..2].to_vec());
+    /// let eval_2 = mle_2.evaluate(&point[..2].to_vec());
+    /// let eval_combined = mle.evaluate(&point);
+    ///
+    /// assert_eq!(eval_combined, (Fr::one() - point[2]) * eval_1 + point[2] * eval_2);
+    pub fn merge(polys: &[impl AsRef<Self>]) -> Self {
+        let total_len: usize = polys
+            .iter()
+            .map(|poly| poly.as_ref().evaluations.len())
+            .sum();
 
         let capacity = total_len.next_power_of_two();
         let num_vars = log2(capacity);
         let mut evaluations: Vec<F> = Vec::with_capacity(total_len.next_power_of_two());
 
         for poly in polys {
-            evaluations.extend_from_slice(&poly.evaluations.as_slice());
+            evaluations.extend_from_slice(&poly.as_ref().evaluations.as_slice());
         }
 
         // pad the polynomial with zero polynomial at the end
