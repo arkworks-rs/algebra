@@ -136,7 +136,7 @@ impl<F: Field> DenseMultilinearExtension<F> {
 
         let next_pow_of_two = total_len.next_power_of_two();
         let num_vars = log2(next_pow_of_two);
-        let mut evaluations: Vec<F> = Vec::with_capacity(total_len.next_power_of_two());
+        let mut evaluations: Vec<F> = Vec::with_capacity(next_pow_of_two);
 
         for poly in polys {
             evaluations.extend_from_slice(&poly.as_ref().evaluations.as_slice());
