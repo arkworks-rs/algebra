@@ -499,7 +499,7 @@ mod tests {
     }
 
     #[test]
-    fn merge_polys() {
+    fn merge_two_equal_polys() {
         let mut rng = test_rng();
         let degree = 10;
         let poly_l = DenseMultilinearExtension::rand(degree, &mut rng);
@@ -510,6 +510,25 @@ mod tests {
             let merged = DenseMultilinearExtension::merge(&[&poly_l, &poly_r]);
             let expected = (Fr::ONE - point[10]) * poly_l.evaluate(&point[..10].to_vec())
                 + point[10] * poly_r.evaluate(&point[..10].to_vec());
+            assert_eq!(expected, merged.evaluate(&point));
+        }
+    }
+
+    #[test]
+    fn merge_unequal_polys() {
+        let mut rng = test_rng();
+        let degree = 10;
+        let poly_l = DenseMultilinearExtension::rand(degree, &mut rng);
+        // smaller poly
+        let poly_r = DenseMultilinearExtension::rand(degree - 1, &mut rng);
+        for _ in 0..10 {
+            let point: Vec<_> = (0..(degree + 1)).map(|_| Fr::rand(&mut rng)).collect();
+
+            // merged poly is (1-x_10)*poly_l + x_10*((1-x_9)*poly_r1 + x_9*poly_r2).
+            // where poly_r1 is poly_r, and poly_r2 is all zero, since we are padding.
+            let merged = DenseMultilinearExtension::merge(&[&poly_l, &poly_r]);
+            let expected = (Fr::ONE - point[10]) * poly_l.evaluate(&point[..10].to_vec())
+                + point[10] * ((Fr::ONE - point[9]) * poly_r.evaluate(&point[..9].to_vec()));
             assert_eq!(expected, merged.evaluate(&point));
         }
     }
