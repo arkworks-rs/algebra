@@ -84,7 +84,7 @@ impl<F: Field> DenseMultilinearExtension<F> {
         self.evaluations.iter_mut()
     }
 
-    pub fn merge(polys: &[Self]) -> Self {
+    pub fn merge(polys: &[&Self]) -> Self {
         let total_len: usize = polys.iter().map(|poly| poly.evaluations.len()).sum();
 
         let capacity = total_len.next_power_of_two();
@@ -92,7 +92,7 @@ impl<F: Field> DenseMultilinearExtension<F> {
         let mut evaluations: Vec<F> = Vec::with_capacity(total_len.next_power_of_two());
 
         for poly in polys {
-            evaluations.extend_from_slice(poly.evaluations.as_slice());
+            evaluations.extend_from_slice(&poly.evaluations.as_slice());
         }
 
         // pad the polynomial with zero polynomial at the end
@@ -469,7 +469,7 @@ mod tests {
         for _ in 0..10 {
             let point: Vec<_> = (0..(degree + 1)).map(|_| Fr::rand(&mut rng)).collect();
 
-            let merged = DenseMultilinearExtension::merge(&[poly_l.clone(), poly_r.clone()]);
+            let merged = DenseMultilinearExtension::merge(&[&poly_l, &poly_r]);
             let expected = (Fr::ONE - point[10]) * poly_l.evaluate(&point[..10].to_vec())
                 + point[10] * poly_r.evaluate(&point[..10].to_vec());
             assert_eq!(expected, merged.evaluate(&point));
