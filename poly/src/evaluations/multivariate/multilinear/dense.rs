@@ -134,15 +134,14 @@ impl<F: Field> DenseMultilinearExtension<F> {
             .map(|poly| poly.as_ref().evaluations.len())
             .sum();
 
-        let capacity = total_len.next_power_of_two();
-        let num_vars = log2(capacity);
+        let next_pow_of_two = total_len.next_power_of_two();
+        let num_vars = log2(next_pow_of_two);
         let mut evaluations: Vec<F> = Vec::with_capacity(total_len.next_power_of_two());
 
         for poly in polys {
             evaluations.extend_from_slice(&poly.as_ref().evaluations.as_slice());
         }
 
-        // pad the polynomial with zero polynomial at the end
         evaluations.resize(evaluations.capacity(), F::zero());
 
         Self::from_evaluations_slice(num_vars as usize, &evaluations)
