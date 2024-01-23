@@ -9,6 +9,7 @@ use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use ark_std::{
     fmt,
     fmt::Formatter,
+    log2,
     ops::{Add, AddAssign, Index, Neg, Sub, SubAssign},
     rand::Rng,
     slice::{Iter, IterMut},
@@ -81,6 +82,23 @@ impl<F: Field> DenseMultilinearExtension<F> {
     /// Returns a mutable iterator that iterates over the evaluations over {0,1}^`num_vars`
     pub fn iter_mut(&mut self) -> IterMut<'_, F> {
         self.evaluations.iter_mut()
+    }
+
+    pub fn merge(polys: &[Self]) -> Self {
+        let total_len: usize = polys.iter().map(|poly| poly.evaluations.len()).sum();
+
+        let capacity = total_len.next_power_of_two();
+        let num_vars = log2(capacity);
+        let mut evaluations: Vec<F> = Vec::with_capacity(total_len.next_power_of_two());
+
+        for poly in polys {
+            evaluations.extend_from_slice(poly.evaluations.as_slice());
+        }
+
+        // pad the polynomial with zero polynomial at the end
+        evaluations.resize(evaluations.capacity(), F::zero());
+
+        Self::from_evaluations_slice(num_vars as usize, &evaluations)
     }
 }
 
@@ -439,6 +457,22 @@ mod tests {
                     assert_eq!(zero.evaluate(&point), scalar * v1);
                 }
             }
+        }
+    }
+
+    #[test]
+    fn merge_polys() {
+        let mut rng = test_rng();
+        let degree = 10;
+        let poly_l = DenseMultilinearExtension::rand(degree, &mut rng);
+        let poly_r = DenseMultilinearExtension::rand(degree, &mut rng);
+        for _ in 0..10 {
+            let point: Vec<_> = (0..(degree + 1)).map(|_| Fr::rand(&mut rng)).collect();
+
+            let merged = DenseMultilinearExtension::merge(&[poly_l.clone(), poly_r.clone()]);
+            let expected = (Fr::ONE - point[10]) * poly_l.evaluate(&point[..10].to_vec())
+                + point[10] * poly_r.evaluate(&point[..10].to_vec());
+            assert_eq!(expected, merged.evaluate(&point));
         }
     }
 }
