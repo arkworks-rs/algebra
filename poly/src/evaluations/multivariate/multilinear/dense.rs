@@ -354,14 +354,15 @@ impl<F: Field> Polynomial<F> for DenseMultilinearExtension<F> {
     /// # use ark_poly::{MultilinearExtension, DenseMultilinearExtension, Polynomial};
     /// # use ark_ff::One;
     ///
-    /// // The two-variate polynomial x_0 + 3 * x_0 * x_1 + 2 evaluates to [2, 3, 2, 6]
-    /// // in the two-dimensional hypercube with points [00, 10, 01, 11]
+    /// // The two-variate polynomial p = x_0 + 3 * x_0 * x_1 + 2 evaluates to [2, 3, 2, 6]
+    /// // in the two-dimensional hypercube with points [00, 10, 01, 11]:
+    /// // p(x_0, x_1) = 2*(1-x_1)*(1-x_0) + 3*(1-x_1)*x_0 + 2*x_1*(1-x_0) + 6*x_1*x_0
     /// let mle = DenseMultilinearExtension::from_evaluations_vec(
     ///     2, vec![2, 3, 2, 6].iter().map(|x| Fr::from(*x as u64)).collect()
     /// );
     ///
     /// // By the uniqueness of MLEs, `mle` is precisely the above polynomial, which
-    /// // takes the value 54 at the point (1, 17)
+    /// // takes the value 54 at the point (x_0, x_1) = (1, 17)
     /// let eval = mle.evaluate(&[Fr::one(), Fr::from(17)].into());
     /// assert_eq!(eval, Fr::from(54));
     /// ```
