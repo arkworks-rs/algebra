@@ -102,6 +102,12 @@ impl<F: Field> DenseMultilinearExtension<F> {
     }
 }
 
+impl<F: Field> AsRef<DenseMultilinearExtension<F>> for DenseMultilinearExtension<F> {
+    fn as_ref(&self) -> &DenseMultilinearExtension<F> {
+        self
+    }
+}
+
 impl<F: Field> MultilinearExtension<F> for DenseMultilinearExtension<F> {
     fn num_vars(&self) -> usize {
         self.num_vars
