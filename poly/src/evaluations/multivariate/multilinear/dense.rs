@@ -37,7 +37,22 @@ impl<F: Field> DenseMultilinearExtension<F> {
 
     /// Construct a new polynomial from a list of evaluations where the index
     /// represents a point in {0,1}^`num_vars` in little endian form. For
-    /// example, `0b1011` represents `P(1,1,0,1)`
+    /// example, `0b1011` represents `P(1,1,0,1)`.
+    ///
+    /// # Example
+    /// ```
+    /// use ark_test_curves::bls12_381::Fr;
+    /// use ark_poly::{MultilinearExtension, Polynomial, DenseMultilinearExtension};
+    ///
+    /// // Construct a 2-variate MLE, which takes value 1 at (x_0, x_1) = (0, 1)
+    /// // (i.e. 0b01, or index 2 in little endian)
+    /// // f1(x_0, x_1) = x_1*(1-x_0)
+    /// let mle = DenseMultilinearExtension::from_evaluations_vec(
+    ///     2, vec![0, 0, 1, 0].iter().map(|x| Fr::from(*x as u64)).collect()
+    /// );
+    /// let eval = mle.evaluate(&vec![Fr::from(-2), Fr::from(17)]); // point = (x_0, x_1)
+    /// assert_eq!(eval, Fr::from(51));
+    /// ```
     pub fn from_evaluations_vec(num_vars: usize, evaluations: Vec<F>) -> Self {
         // assert that the number of variables matches the size of evaluations
         assert_eq!(
