@@ -9,6 +9,7 @@ use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use ark_std::{
     fmt,
     fmt::Formatter,
+    iter::IntoIterator,
     log2,
     ops::{Add, AddAssign, Index, Neg, Sub, SubAssign},
     rand::Rng,
@@ -128,9 +129,13 @@ impl<F: Field> DenseMultilinearExtension<F> {
     /// let eval_combined = mle.evaluate(&point);
     ///
     /// assert_eq!(eval_combined, (Fr::one() - point[2]) * eval_1 + point[2] * eval_2);
-    pub fn merge(polys: &[impl AsRef<Self>]) -> Self {
+    pub fn merge(polys: impl IntoIterator<Item = impl AsRef<Self>> + Clone) -> Self {
+        // for efficient allocation into the merged vector, we need to know the total length
+        // in advance, so we actually need to iterate twice. Cloning the iterator is cheap.
+        let polys_iter_cloned = polys.clone().into_iter();
+
         let total_len: usize = polys
-            .iter()
+            .into_iter()
             .map(|poly| poly.as_ref().evaluations.len())
             .sum();
 
@@ -138,11 +143,11 @@ impl<F: Field> DenseMultilinearExtension<F> {
         let num_vars = log2(next_pow_of_two);
         let mut evaluations: Vec<F> = Vec::with_capacity(next_pow_of_two);
 
-        for poly in polys {
+        for poly in polys_iter_cloned {
             evaluations.extend_from_slice(&poly.as_ref().evaluations.as_slice());
         }
 
-        evaluations.resize(evaluations.capacity(), F::zero());
+        evaluations.resize(next_pow_of_two, F::zero());
 
         Self::from_evaluations_slice(num_vars as usize, &evaluations)
     }
@@ -517,12 +522,14 @@ mod tests {
     fn merge_two_equal_polys() {
         let mut rng = test_rng();
         let degree = 10;
+
         let poly_l = DenseMultilinearExtension::rand(degree, &mut rng);
         let poly_r = DenseMultilinearExtension::rand(degree, &mut rng);
+
+        let merged = DenseMultilinearExtension::merge(&[&poly_l, &poly_r]);
         for _ in 0..10 {
             let point: Vec<_> = (0..(degree + 1)).map(|_| Fr::rand(&mut rng)).collect();
 
-            let merged = DenseMultilinearExtension::merge(&[&poly_l, &poly_r]);
             let expected = (Fr::ONE - point[10]) * poly_l.evaluate(&point[..10].to_vec())
                 + point[10] * poly_r.evaluate(&point[..10].to_vec());
             assert_eq!(expected, merged.evaluate(&point));
@@ -536,14 +543,45 @@ mod tests {
         let poly_l = DenseMultilinearExtension::rand(degree, &mut rng);
         // smaller poly
         let poly_r = DenseMultilinearExtension::rand(degree - 1, &mut rng);
+
+        let merged = DenseMultilinearExtension::merge(&[&poly_l, &poly_r]);
+
         for _ in 0..10 {
             let point: Vec<_> = (0..(degree + 1)).map(|_| Fr::rand(&mut rng)).collect();
 
             // merged poly is (1-x_10)*poly_l + x_10*((1-x_9)*poly_r1 + x_9*poly_r2).
             // where poly_r1 is poly_r, and poly_r2 is all zero, since we are padding.
-            let merged = DenseMultilinearExtension::merge(&[&poly_l, &poly_r]);
             let expected = (Fr::ONE - point[10]) * poly_l.evaluate(&point[..10].to_vec())
                 + point[10] * ((Fr::ONE - point[9]) * poly_r.evaluate(&point[..9].to_vec()));
+            assert_eq!(expected, merged.evaluate(&point));
+        }
+    }
+
+    #[test]
+    fn merge_two_iterators() {
+        let mut rng = test_rng();
+        let degree = 10;
+
+        // rather than merging two polynomials, we merge two iterators of polynomials
+        let polys_l: Vec<_> = (0..2)
+            .map(|_| DenseMultilinearExtension::rand(degree - 2, &mut test_rng()))
+            .collect();
+        let polys_r: Vec<_> = (0..2)
+            .map(|_| DenseMultilinearExtension::rand(degree - 2, &mut test_rng()))
+            .collect();
+
+        let merged = DenseMultilinearExtension::<Fr>::merge(polys_l.iter().chain(polys_r.iter()));
+
+        for _ in 0..10 {
+            let point: Vec<_> = (0..(degree)).map(|_| Fr::rand(&mut rng)).collect();
+
+            let expected = (Fr::ONE - point[9])
+                * ((Fr::ONE - point[8]) * polys_l[0].evaluate(&point[..8].to_vec())
+                    + point[8] * polys_l[1].evaluate(&point[..8].to_vec()))
+                + point[9]
+                    * ((Fr::ONE - point[8]) * polys_r[0].evaluate(&point[..8].to_vec())
+                        + point[8] * polys_r[1].evaluate(&point[..8].to_vec()));
+
             assert_eq!(expected, merged.evaluate(&point));
         }
     }
