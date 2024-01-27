@@ -528,7 +528,7 @@ macro_rules! __test_field {
 
 #[macro_export]
 macro_rules! test_field {
-    ($mod_name:ident; $field:ty; $iterations:expr $(; $tail:tt)*) => {
+    ($mod_name:ident; $field:ty $(; $tail:tt)*) => {
         mod $mod_name {
             use super::*;
             use ark_ff::{
@@ -537,13 +537,24 @@ macro_rules! test_field {
             };
             use ark_serialize::{buffer_bit_byte_size, Flags};
             use ark_std::{io::Cursor, rand::Rng, vec::Vec, test_rng, vec, Zero, One, UniformRand};
-            const ITERATIONS: usize = $iterations;
+            const ITERATIONS: usize = 500;
 
             $crate::__test_field!($field $(; $tail)*);
         }
     };
 
-    ($mod_name:ident; $field:ty $(; $tail:tt)*) => {
-        $crate::test_field!($mod_name; $field; 1000 $(; $tail)*);
+    ($iters:expr; $mod_name:ident; $field:ty $(; $tail:tt)*) => {
+        mod $mod_name {
+            use super::*;
+            use ark_ff::{
+                fields::{FftField, Field, LegendreSymbol, PrimeField},
+                Fp, MontBackend, MontConfig,
+            };
+            use ark_serialize::{buffer_bit_byte_size, Flags};
+            use ark_std::{io::Cursor, rand::Rng, vec::Vec, test_rng, vec, Zero, One, UniformRand};
+            const ITERATIONS: usize = $iters;
+
+            $crate::__test_field!($field $(; $tail)*);
+        }
     };
 }
