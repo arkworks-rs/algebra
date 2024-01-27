@@ -405,16 +405,20 @@ macro_rules! __test_group {
 
 #[macro_export]
 macro_rules! test_group {
-    ($mod_name: ident; $group: ty $(; $tail:tt)*) => {
+    ($mod_name:ident; $group:ty; $iterations:expr $(; $tail:tt)*) => {
         mod $mod_name {
             use super::*;
             use ark_ff::*;
             use ark_ec::{PrimeGroup, CurveGroup, ScalarMul, AffineRepr, CurveConfig, short_weierstrass::SWCurveConfig, twisted_edwards::TECurveConfig, scalar_mul::{*, wnaf::*}};
             use ark_serialize::*;
             use ark_std::{io::Cursor, rand::Rng, vec::Vec, test_rng, vec, Zero, One, UniformRand};
-            const ITERATIONS: usize = 500;
+            const ITERATIONS: usize = $iterations;
 
             $crate::__test_group!($group $(; $tail)*);
         }
+    };
+
+    ($mod_name:ident; $group:ty $(; $tail:tt)*) => {
+        $crate::test_group!($mod_name; $group; 500 $(; $tail)*);
     };
 }
