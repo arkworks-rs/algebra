@@ -20,6 +20,7 @@
 
 ### Features
 
+- [\#758](https://github.com/arkworks-rs/algebra/pull/758) Implement Elligator2 hash-to-curve parameters for Bandersnatch.
 - [\#659](https://github.com/arkworks-rs/algebra/pull/659) (`ark-ec`) Add Elligator2 hash-to-curve map.
 - [\#689](https://github.com/arkworks-rs/algebra/pull/689) (`ark-serialize`) Add `CanonicalSerialize` and `CanonicalDeserialize` impls for `VecDeque` and `LinkedList`.
 - [\#691](https://github.com/arkworks-rs/algebra/pull/691) (`ark-poly`) Implement `Polynomial` for `SparseMultilinearExtension` and `DenseMultilinearExtension`.
