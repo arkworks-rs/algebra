@@ -16,9 +16,11 @@
         - Make `windowed_mul` a private method of `BatchMulPreprocessing`.
         - Rename `get_mul_window_size` to `compute_window_size` and make it private.
 - [\#748](https://github.com/arkworks-rs/algebra/pull/748) (`ark-ff`) Add `FromStr` for `BigInteger`.
+- [\#756](https://github.com/arkworks-rs/algebra/pull/756) (`ark-ec`) Require `Neg`, `Sub`, `SubAssign` ops on `AffineRepr`.
 
 ### Features
 
+- [\#758](https://github.com/arkworks-rs/algebra/pull/758) Implement Elligator2 hash-to-curve parameters for Bandersnatch.
 - [\#659](https://github.com/arkworks-rs/algebra/pull/659) (`ark-ec`) Add Elligator2 hash-to-curve map.
 - [\#689](https://github.com/arkworks-rs/algebra/pull/689) (`ark-serialize`) Add `CanonicalSerialize` and `CanonicalDeserialize` impls for `VecDeque` and `LinkedList`.
 - [\#691](https://github.com/arkworks-rs/algebra/pull/691) (`ark-poly`) Implement `Polynomial` for `SparseMultilinearExtension` and `DenseMultilinearExtension`.

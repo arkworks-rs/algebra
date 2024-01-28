@@ -1,6 +1,7 @@
 use ark_ff::{AdditiveGroup, BitIteratorBE, Field, Fp2};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use ark_std::{vec::Vec, One};
+use derivative::Derivative;
 
 use crate::{
     bls12::{Bls12Config, TwistType},

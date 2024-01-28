@@ -14,6 +14,7 @@ use ark_std::{
     vec::Vec,
     UniformRand, Zero,
 };
+use derivative::Derivative;
 use zeroize::Zeroize;
 
 use crate::{AffineRepr, CurveGroup, PrimeGroup, VariableBaseMSM};

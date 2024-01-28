@@ -15,9 +15,6 @@
 #![doc = include_str!("../README.md")]
 
 #[macro_use]
-extern crate derivative;
-
-#[macro_use]
 extern crate ark_std;
 
 use ark_ff::{
@@ -28,7 +25,7 @@ use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use ark_std::{
     fmt::{Debug, Display},
     hash::Hash,
-    ops::{Add, AddAssign, Mul, MulAssign},
+    ops::{Add, AddAssign, Mul, MulAssign, Neg, Sub, SubAssign},
     vec::Vec,
 };
 pub use scalar_mul::{variable_base::VariableBaseMSM, ScalarMul};
@@ -82,8 +79,8 @@ pub trait CurveGroup:
     PrimeGroup
     + Add<Self::Affine, Output = Self>
     + AddAssign<Self::Affine>
-    // + for<'a> Add<&'a Self::Affine, Output = Self>
-    // + for<'a> AddAssign<&'a Self::Affine>
+    + Sub<Self::Affine, Output = Self>
+    + SubAssign<Self::Affine>
     + VariableBaseMSM
     + ScalarMul<MulBase = Self::Affine>
     + From<Self::Affine>
@@ -138,12 +135,17 @@ pub trait AffineRepr:
     + Debug
     + Display
     + Zeroize
+    + Neg
     + From<<Self as AffineRepr>::Group>
     + Into<<Self as AffineRepr>::Group>
     + Add<Self, Output = Self::Group>
     + for<'a> Add<&'a Self, Output = Self::Group>
     + Add<Self::Group, Output = Self::Group>
     + for<'a> Add<&'a Self::Group, Output = Self::Group>
+    + Sub<Self, Output = Self::Group>
+    + for<'a> Sub<&'a Self, Output = Self::Group>
+    + Sub<Self::Group, Output = Self::Group>
+    + for<'a> Sub<&'a Self::Group, Output = Self::Group>
     + Mul<Self::ScalarField, Output = Self::Group>
     + for<'a> Mul<&'a Self::ScalarField, Output = Self::Group>
 {
