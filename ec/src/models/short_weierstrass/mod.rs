@@ -65,13 +65,18 @@ pub trait SWCurveConfig: super::CurveConfig {
     /// Check if the provided curve point is in the prime-order subgroup.
     ///
     /// The default implementation multiplies `item` by the order `r` of the
-    /// prime-order subgroup, and checks if the result is zero.
+    /// prime-order subgroup, and checks if the result is zero. If the
+    /// curve's cofactor is one, this check automatically returns true.
     /// Implementors can choose to override this default impl
     /// if the given curve has faster methods
     /// for performing this check (for example, via leveraging curve
     /// isomorphisms).
     fn is_in_correct_subgroup_assuming_on_curve(item: &Affine<Self>) -> bool {
-        Self::mul_affine(item, Self::ScalarField::characteristic()).is_zero()
+        if Self::cofactor_is_one() {
+            true
+        } else {
+            Self::mul_affine(item, Self::ScalarField::characteristic()).is_zero()
+        }
     }
 
     /// Performs cofactor clearing.
