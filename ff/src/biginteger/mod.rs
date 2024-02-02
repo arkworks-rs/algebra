@@ -1077,7 +1077,7 @@ pub trait BigInteger:
     ///
     /// // Edge-Case
     /// let mut zero = B::from(0u64);
-    /// zero.mul(5);
+    /// zero.mul(&B::from(5u64));
     /// assert_eq!(zero, B::from(0u64));
     /// ```
     fn mul(&mut self, other: &Self);
