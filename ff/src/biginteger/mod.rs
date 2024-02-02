@@ -917,7 +917,7 @@ pub type BigInteger768 = BigInt<12>;
 pub type BigInteger832 = BigInt<13>;
 
 #[cfg(test)]
-pub mod tests;
+mod tests;
 
 /// This defines a `BigInteger`, a smart wrapper around a
 /// sequence of `u64` limbs, least-significant limb first.
