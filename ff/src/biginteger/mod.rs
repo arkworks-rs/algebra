@@ -422,6 +422,26 @@ impl<const N: usize> BigInteger for BigInt<N> {
     }
 
     #[inline]
+    fn mul(&mut self, other: &Self) {
+        if self.is_zero() || other.is_zero() {
+            *self = Self::zero();
+            return;
+        }
+
+        let mut res = Self::zero();
+        let mut carry = 0;
+
+        for i in 0..N {
+            for j in 0..(N - i) {
+                res.0[i + j] = mac_with_carry!(res.0[i + j], self.0[i], other.0[j], &mut carry);
+            }
+            carry = 0;
+        }
+
+        *self = res
+    }
+
+    #[inline]
     fn div2(&mut self) {
         let mut t = 0;
         for i in 0..N {
@@ -897,7 +917,7 @@ pub type BigInteger768 = BigInt<12>;
 pub type BigInteger832 = BigInt<13>;
 
 #[cfg(test)]
-mod tests;
+pub mod tests;
 
 /// This defines a `BigInteger`, a smart wrapper around a
 /// sequence of `u64` limbs, least-significant limb first.
@@ -1040,6 +1060,27 @@ pub trait BigInteger:
     /// ```
     #[deprecated(since = "0.4.2", note = "please use the operator `>>` instead")]
     fn muln(&mut self, amt: u32);
+
+    /// Multiplies this [`BigInteger`] by another `BigInteger`, storing the result in `self`.
+    /// Overflow is ignored.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use ark_ff::{biginteger::BigInteger64 as B, BigInteger as _};
+    ///
+    /// // Basic
+    /// let mut a = B::from(42u64);
+    /// let b = B::from(3u64);
+    /// a.mul(&b);
+    /// assert_eq!(a, B::from(126u64));
+    ///
+    /// // Edge-Case
+    /// let mut zero = B::from(0u64);
+    /// zero.mul(5);
+    /// assert_eq!(zero, B::from(0u64));
+    /// ```
+    fn mul(&mut self, other: &Self);
 
     /// Performs a rightwise bitshift of this number, effectively dividing
     /// it by 2.

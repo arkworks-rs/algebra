@@ -1,5 +1,6 @@
 use crate::{biginteger::BigInteger, UniformRand};
 use num_bigint::BigUint;
+// use std::println;
 
 // Test elementary math operations for BigInteger.
 fn biginteger_arithmetic_test<B: BigInteger>(a: B, b: B, zero: B) {
@@ -49,6 +50,33 @@ fn biginteger_arithmetic_test<B: BigInteger>(a: B, b: B, zero: B) {
     let mut a_plus_a = a;
     a_plus_a.add_with_carry(&a); // Won't assert anything about carry bit.
     assert_eq!(a_mul2, a_plus_a);
+
+    // a * 1 = a
+    let mut a_mul = a;
+    a_mul.mul(&B::from(1u64));
+    assert_eq!(a_mul, a);
+
+    // a * 2 = a
+    a_mul.mul(&B::from(2u64));
+    assert_eq!(a_mul, a_plus_a);
+
+    // a * 2 * b = b * 2 * a
+    a_mul.mul(&b);
+    let mut b_mul = b;
+    b_mul.mul(&B::from(2u64));
+    b_mul.mul(&a);
+    assert_eq!(a_mul, b_mul);
+
+    // a * 2 * b * 0 = 0
+    a_mul.mul(&zero);
+    assert!(a_mul.is_zero());
+
+    // a * 2 * ... * 2  = a * 2^n
+    let mut a_mul_n = a;
+    for _ in 0..20 {
+        a_mul_n.mul(&B::from(2u64));
+    }
+    assert_eq!(a_mul_n, a << 20);
 }
 
 fn biginteger_shr<B: BigInteger>() {
