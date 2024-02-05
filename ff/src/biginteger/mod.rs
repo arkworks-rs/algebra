@@ -1144,11 +1144,6 @@ pub trait BigInteger:
     ///
     /// // Edge-Case
     /// let mut x = B::from(u64::MAX);
-    /// let (low_bits, high_bits) = x.mul(&B::from(2u64));
-    /// assert_eq!(low_bits, B::from(u64::MAX));
-    /// assert_eq!(high_bits, B::from(u64::MAX));
-    ///
-    /// let mut x = B::from(u64::MAX);
     /// let mut max_plus_max = x;
     /// max_plus_max.add_with_carry(&x);
     /// let (low_bits, high_bits) = x.mul(&B::from(2u64));
