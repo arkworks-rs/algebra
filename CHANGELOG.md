@@ -2,6 +2,8 @@
 
 ## Pending
 
+- [\#772](https://github.com/arkworks-rs/algebra/pull/772) (`ark-ff`) Implementation of `mul` method for `BigInteger`.
+
 ### Breaking changes
 
 - [\#577](https://github.com/arkworks-rs/algebra/pull/577) (`ark-ff`, `ark-ec`) Add `AdditiveGroup`, a trait for additive groups (equipped with scalar field).

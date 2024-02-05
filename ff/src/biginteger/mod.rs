@@ -422,6 +422,53 @@ impl<const N: usize> BigInteger for BigInt<N> {
     }
 
     #[inline]
+    fn mul(&self, other: &Self) -> (Self, Self) {
+        if self.is_zero() || other.is_zero() {
+            let zero = Self::zero();
+            return (zero, zero);
+        }
+
+        let mut r = crate::const_helpers::MulBuffer::<N>::zeroed();
+
+        let mut carry = 0;
+
+        for i in 0..N {
+            for j in 0..N {
+                r[i + j] = mac_with_carry!(r[i + j], self.0[i], other.0[j], &mut carry);
+            }
+            r.b1[i] = carry;
+            carry = 0;
+        }
+
+        return (Self(r.b0), Self(r.b1));
+    }
+
+    #[inline]
+    fn mul_low(&mut self, other: &Self) {
+        if self.is_zero() || other.is_zero() {
+            *self = Self::zero();
+            return;
+        }
+
+        let mut res = Self::zero();
+        let mut carry = 0;
+
+        for i in 0..N {
+            for j in 0..(N - i) {
+                res.0[i + j] = mac_with_carry!(res.0[i + j], self.0[i], other.0[j], &mut carry);
+            }
+            carry = 0;
+        }
+
+        *self = res
+    }
+
+    #[inline]
+    fn mul_high(&self, other: &Self) -> Self {
+        self.mul(other).1
+    }
+
+    #[inline]
     fn div2(&mut self) {
         let mut t = 0;
         for i in 0..N {
@@ -1040,6 +1087,70 @@ pub trait BigInteger:
     /// ```
     #[deprecated(since = "0.4.2", note = "please use the operator `<<` instead")]
     fn muln(&mut self, amt: u32);
+
+    /// Multiplies this [`BigInteger`] by another `BigInteger`, storing the result in `self`.
+    /// Overflow is ignored.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use ark_ff::{biginteger::BigInteger64 as B, BigInteger as _};
+    ///
+    /// // Basic
+    /// let mut a = B::from(42u64);
+    /// let b = B::from(3u64);
+    /// a.mul_low(&b);
+    /// assert_eq!(a, B::from(126u64));
+    ///
+    /// // Edge-Case
+    /// let mut zero = B::from(0u64);
+    /// zero.mul_low(&B::from(5u64));
+    /// assert_eq!(zero, B::from(0u64));
+    /// ```
+    fn mul_low(&mut self, other: &Self);
+
+    /// Multiplies this [`BigInteger`] by another `BigInteger`, returning the high bits of the result.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use ark_ff::{biginteger::BigInteger64 as B, BigInteger as _};
+    ///
+    /// // Basic
+    /// let (one, x) = (B::from(1u64), B::from(2u64));
+    /// let r = x.mul_high(&one);
+    /// assert_eq!(r, B::from(0u64));
+    ///
+    /// // Edge-Case
+    /// let mut x = B::from(u64::MAX);
+    /// let r = x.mul_high(&B::from(2u64));
+    /// assert_eq!(r, B::from(1u64))
+    /// ```
+    fn mul_high(&self, other: &Self) -> Self;
+
+    /// Multiplies this [`BigInteger`] by another `BigInteger`, returning both low and high bits of the result.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use ark_ff::{biginteger::BigInteger64 as B, BigInteger as _};
+    ///
+    /// // Basic
+    /// let mut a = B::from(42u64);
+    /// let b = B::from(3u64);
+    /// let (low_bits, high_bits) = a.mul(&b);
+    /// assert_eq!(low_bits, B::from(126u64));
+    /// assert_eq!(high_bits, B::from(0u64));
+    ///
+    /// // Edge-Case
+    /// let mut x = B::from(u64::MAX);
+    /// let mut max_plus_max = x;
+    /// max_plus_max.add_with_carry(&x);
+    /// let (low_bits, high_bits) = x.mul(&B::from(2u64));
+    /// assert_eq!(low_bits, max_plus_max);
+    /// assert_eq!(high_bits, B::from(1u64));
+    /// ```
+    fn mul(&self, other: &Self) -> (Self, Self);
 
     /// Performs a rightwise bitshift of this number, effectively dividing
     /// it by 2.
