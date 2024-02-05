@@ -1058,7 +1058,7 @@ pub trait BigInteger:
     /// mul.muln(5);
     /// assert_eq!(mul, B::from(0u64));
     /// ```
-    #[deprecated(since = "0.4.2", note = "please use the operator `>>` instead")]
+    #[deprecated(since = "0.4.2", note = "please use the operator `<<` instead")]
     fn muln(&mut self, amt: u32);
 
     /// Multiplies this [`BigInteger`] by another `BigInteger`, storing the result in `self`.
