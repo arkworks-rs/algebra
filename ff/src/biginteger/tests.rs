@@ -1,6 +1,5 @@
 use crate::{biginteger::BigInteger, UniformRand};
 use num_bigint::BigUint;
-// use std::println;
 
 // Test elementary math operations for BigInteger.
 fn biginteger_arithmetic_test<B: BigInteger>(a: B, b: B, zero: B) {
