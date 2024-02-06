@@ -2,7 +2,7 @@ use crate::{biginteger::BigInteger, UniformRand};
 use num_bigint::BigUint;
 
 // Test elementary math operations for BigInteger.
-fn biginteger_arithmetic_test<B: BigInteger>(a: B, b: B, zero: B) {
+fn biginteger_arithmetic_test<B: BigInteger>(a: B, b: B, zero: B, max: B) {
     // zero == zero
     assert_eq!(zero, zero);
 
@@ -47,8 +47,62 @@ fn biginteger_arithmetic_test<B: BigInteger>(a: B, b: B, zero: B) {
     let mut a_mul2 = a;
     a_mul2.mul2();
     let mut a_plus_a = a;
-    a_plus_a.add_with_carry(&a); // Won't assert anything about carry bit.
+    let carry_a_plus_a = a_plus_a.add_with_carry(&a); // Won't assert anything about carry bit.
     assert_eq!(a_mul2, a_plus_a);
+
+    // a * 1 = a
+    let mut a_mul = a;
+    a_mul.mul_low(&B::from(1u64));
+    assert_eq!(a_mul, a);
+
+    // a * 2 = a
+    a_mul.mul_low(&B::from(2u64));
+    assert_eq!(a_mul, a_plus_a);
+
+    // a * 2 * b = b * 2 * a
+    a_mul.mul_low(&b);
+    let mut b_mul = b;
+    b_mul.mul_low(&B::from(2u64));
+    b_mul.mul_low(&a);
+    assert_eq!(a_mul, b_mul);
+
+    // a * 2 * b * 0 = 0
+    a_mul.mul_low(&zero);
+    assert!(a_mul.is_zero());
+
+    // a * 2 * ... * 2  = a * 2^n
+    let mut a_mul_n = a;
+    for _ in 0..20 {
+        a_mul_n.mul_low(&B::from(2u64));
+    }
+    assert_eq!(a_mul_n, a << 20);
+
+    // a * 0 = (0, 0)
+    assert_eq!(a.mul(&zero), (zero, zero));
+
+    // a * 1 = (a, 0)
+    assert_eq!(a.mul(&B::from(1u64)), (a, zero));
+
+    // a * 1 = 0 (high part of the result)
+    assert_eq!(a.mul_high(&B::from(1u64)), (zero));
+
+    // a * 0 = 0 (high part of the result)
+    assert!(a.mul_high(&zero).is_zero());
+
+    // If a + a has a carry
+    if carry_a_plus_a {
+        // a + a has a carry: high part of a * 2 is not zero
+        assert_ne!(a.mul_high(&B::from(2u64)), zero);
+    } else {
+        // a + a has no carry: high part of a * 2 is zero
+        assert_eq!(a.mul_high(&B::from(2u64)), zero);
+    }
+
+    // max + max = max * 2
+    let mut max_plus_max = max;
+    max_plus_max.add_with_carry(&max);
+    assert_eq!(max.mul(&B::from(2u64)), (max_plus_max, B::from(1u64)));
+    assert_eq!(max.mul_high(&B::from(2u64)), B::from(1u64));
 }
 
 fn biginteger_shr<B: BigInteger>() {
@@ -174,11 +228,11 @@ fn biginteger_conversion_test<B: BigInteger>() {
 }
 
 // Wrapper test function for BigInteger
-fn test_biginteger<B: BigInteger>(zero: B) {
+fn test_biginteger<B: BigInteger>(max: B, zero: B) {
     let mut rng = ark_std::test_rng();
     let a: B = UniformRand::rand(&mut rng);
     let b: B = UniformRand::rand(&mut rng);
-    biginteger_arithmetic_test(a, b, zero);
+    biginteger_arithmetic_test(a, b, zero, max);
     biginteger_bits_test::<B>();
     biginteger_conversion_test::<B>();
     biginteger_bitwise_ops_test::<B>();
@@ -189,41 +243,41 @@ fn test_biginteger<B: BigInteger>(zero: B) {
 #[test]
 fn test_biginteger64() {
     use crate::biginteger::BigInteger64 as B;
-    test_biginteger(B::new([0u64; 1]));
+    test_biginteger(B::new([u64::MAX; 1]), B::new([0u64; 1]));
 }
 
 #[test]
 fn test_biginteger128() {
     use crate::biginteger::BigInteger128 as B;
-    test_biginteger(B::new([0u64; 2]));
+    test_biginteger(B::new([u64::MAX; 2]), B::new([0u64; 2]));
 }
 
 #[test]
 fn test_biginteger256() {
     use crate::biginteger::BigInteger256 as B;
-    test_biginteger(B::new([0u64; 4]));
+    test_biginteger(B::new([u64::MAX; 4]), B::new([0u64; 4]));
 }
 
 #[test]
 fn test_biginteger384() {
     use crate::biginteger::BigInteger384 as B;
-    test_biginteger(B::new([0u64; 6]));
+    test_biginteger(B::new([u64::MAX; 6]), B::new([0u64; 6]));
 }
 
 #[test]
 fn test_biginteger448() {
     use crate::biginteger::BigInteger448 as B;
-    test_biginteger(B::new([0u64; 7]));
+    test_biginteger(B::new([u64::MAX; 7]), B::new([0u64; 7]));
 }
 
 #[test]
 fn test_biginteger768() {
     use crate::biginteger::BigInteger768 as B;
-    test_biginteger(B::new([0u64; 12]));
+    test_biginteger(B::new([u64::MAX; 12]), B::new([0u64; 12]));
 }
 
 #[test]
 fn test_biginteger832() {
     use crate::biginteger::BigInteger832 as B;
-    test_biginteger(B::new([0u64; 13]));
+    test_biginteger(B::new([u64::MAX; 13]), B::new([0u64; 13]));
 }
