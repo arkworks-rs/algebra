@@ -19,14 +19,14 @@ jobs:
       uses: actions-rs/toolchain@v1
       with:
         profile: minimal
-        toolchain: stable
+        toolchain: nightly
         override: true
         components: rustfmt
 
     - name: Algebra - format
-      run: cargo fmt --all -- --check
+      run: cargo +nightly fmt --all -- --check
     - name: Curves - format
-      run: cargo fmt --all -- --check
+      run: cargo +nightly fmt --all -- --check
       working-directory: ./curves
 
 
