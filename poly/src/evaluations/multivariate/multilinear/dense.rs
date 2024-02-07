@@ -115,7 +115,11 @@ impl<F: Field> MultilinearExtension<F> for DenseMultilinearExtension<F> {
     /// // Constructing the two-variate multilinear polynomial x_0 + 2 * x_1 + 3 * x_0 * x_1
     /// // by specifying its evaluations at [00, 10, 01, 11]
     /// let mle = DenseMultilinearExtension::from_evaluations_vec(
-    ///     2, vec![0, 1, 2, 6].iter().map(|x| Fr::from(*x as u64)).collect()
+    ///     2,
+    ///     vec![0, 1, 2, 6]
+    ///         .iter()
+    ///         .map(|x| Fr::from(*x as u64))
+    ///         .collect(),
     /// );
     ///
     /// // Bind the first variable of the MLE to the value 5, resulting in
@@ -301,7 +305,11 @@ impl<F: Field> Polynomial<F> for DenseMultilinearExtension<F> {
     /// // The two-variate polynomial x_0 + 3 * x_0 * x_1 + 2 evaluates to [2, 3, 2, 6]
     /// // in the two-dimensional hypercube with points [00, 10, 01, 11]
     /// let mle = DenseMultilinearExtension::from_evaluations_vec(
-    ///     2, vec![2, 3, 2, 6].iter().map(|x| Fr::from(*x as u64)).collect()
+    ///     2,
+    ///     vec![2, 3, 2, 6]
+    ///         .iter()
+    ///         .map(|x| Fr::from(*x as u64))
+    ///         .collect(),
     /// );
     ///
     /// // By the uniqueness of MLEs, `mle` is precisely the above polynomial, which

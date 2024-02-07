@@ -123,9 +123,9 @@ impl<F: Field> DenseUVPolynomial<F> for DensePolynomial<F> {
     ///
     /// # Example
     /// ```
+    /// use ark_poly::{univariate::DensePolynomial, DenseUVPolynomial, Polynomial};
     /// use ark_std::test_rng;
     /// use ark_test_curves::bls12_381::Fr;
-    /// use ark_poly::{univariate::DensePolynomial, Polynomial, DenseUVPolynomial};
     ///
     /// let rng = &mut test_rng();
     /// let poly = DensePolynomial::<Fr>::rand(8, rng);
@@ -635,8 +635,7 @@ impl<F: Field> Zero for DensePolynomial<F> {
 #[cfg(test)]
 mod tests {
     use crate::{polynomial::univariate::*, EvaluationDomain, GeneralEvaluationDomain, Polynomial};
-    use ark_ff::{Field, One, UniformRand, Zero};
-    use ark_ff::{Fp64, MontBackend, MontConfig};
+    use ark_ff::{Field, Fp64, MontBackend, MontConfig, One, UniformRand, Zero};
     use ark_std::{rand::Rng, test_rng, vec::Vec};
     use ark_test_curves::bls12_381::Fr;
 

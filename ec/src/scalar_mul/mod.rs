@@ -92,11 +92,9 @@ pub trait ScalarMul:
     ///
     /// # Example
     /// ```
+    /// use ark_ec::{pairing::Pairing, scalar_mul::ScalarMul};
     /// use ark_std::{One, UniformRand};
-    /// use ark_ec::pairing::Pairing;
-    /// use ark_test_curves::bls12_381::G1Projective as G;
-    /// use ark_test_curves::bls12_381::Fr;
-    /// use ark_ec::scalar_mul::ScalarMul;
+    /// use ark_test_curves::bls12_381::{Fr, G1Projective as G};
     ///
     /// // Compute G, s.G, s^2.G, ..., s^9.G
     /// let mut rng = ark_std::test_rng();
@@ -127,11 +125,9 @@ pub trait ScalarMul:
     ///
     /// # Example
     /// ```
+    /// use ark_ec::{pairing::Pairing, scalar_mul::*};
     /// use ark_std::{One, UniformRand};
-    /// use ark_ec::pairing::Pairing;
-    /// use ark_test_curves::bls12_381::G1Projective as G;
-    /// use ark_test_curves::bls12_381::Fr;
-    /// use ark_ec::scalar_mul::*;
+    /// use ark_test_curves::bls12_381::{Fr, G1Projective as G};
     ///
     /// // Compute G, s.G, s^2.G, ..., s^9.G
     /// let mut rng = ark_std::test_rng();
