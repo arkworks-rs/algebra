@@ -11,10 +11,10 @@
 //!
 //! ```
 //! # fn main() -> Result<(), ark_relations::r1cs::SynthesisError> {
-//! use ark_std::UniformRand;
-//! use ark_relations::r1cs::*;
+//! use ark_ed_on_mnt4_298::{constraints::*, *};
 //! use ark_r1cs_std::prelude::*;
-//! use ark_ed_on_mnt4_298::{*, constraints::*};
+//! use ark_relations::r1cs::*;
+//! use ark_std::UniformRand;
 //!
 //! let cs = ConstraintSystem::<Fq>::new_ref();
 //! // This rng is just for test purposes; do not use it
