@@ -51,29 +51,21 @@ fn biginteger_arithmetic_test<B: BigInteger>(a: B, b: B, zero: B, max: B) {
     assert_eq!(a_mul2, a_plus_a);
 
     // a * 1 = a
-    let mut a_mul = a;
-    a_mul.mul_low(&B::from(1u64));
-    assert_eq!(a_mul, a);
+    assert_eq!(a.mul_low(&B::from(1u64)), a);
 
     // a * 2 = a
-    a_mul.mul_low(&B::from(2u64));
-    assert_eq!(a_mul, a_plus_a);
+    assert_eq!(a.mul_low(&B::from(2u64)), a_plus_a);
 
-    // a * 2 * b = b * 2 * a
-    a_mul.mul_low(&b);
-    let mut b_mul = b;
-    b_mul.mul_low(&B::from(2u64));
-    b_mul.mul_low(&a);
-    assert_eq!(a_mul, b_mul);
+    // a * b = b * a
+    assert_eq!(a.mul_low(&b), b.mul_low(&a));
 
     // a * 2 * b * 0 = 0
-    a_mul.mul_low(&zero);
-    assert!(a_mul.is_zero());
+    assert!(a.mul_low(&zero).is_zero());
 
     // a * 2 * ... * 2  = a * 2^n
     let mut a_mul_n = a;
     for _ in 0..20 {
-        a_mul_n.mul_low(&B::from(2u64));
+        a_mul_n = a_mul_n.mul_low(&B::from(2u64));
     }
     assert_eq!(a_mul_n, a << 20);
 

@@ -444,10 +444,9 @@ impl<const N: usize> BigInteger for BigInt<N> {
     }
 
     #[inline]
-    fn mul_low(&mut self, other: &Self) {
+    fn mul_low(&self, other: &Self) -> Self {
         if self.is_zero() || other.is_zero() {
-            *self = Self::zero();
-            return;
+            return Self::zero();
         }
 
         let mut res = Self::zero();
@@ -460,7 +459,7 @@ impl<const N: usize> BigInteger for BigInt<N> {
             carry = 0;
         }
 
-        *self = res
+        res
     }
 
     #[inline]
@@ -1099,15 +1098,13 @@ pub trait BigInteger:
     /// // Basic
     /// let mut a = B::from(42u64);
     /// let b = B::from(3u64);
-    /// a.mul_low(&b);
-    /// assert_eq!(a, B::from(126u64));
+    /// assert_eq!(a.mul_low(&b), B::from(126u64));
     ///
     /// // Edge-Case
     /// let mut zero = B::from(0u64);
-    /// zero.mul_low(&B::from(5u64));
-    /// assert_eq!(zero, B::from(0u64));
+    /// assert_eq!(zero.mul_low(&B::from(5u64)), B::from(0u64));
     /// ```
-    fn mul_low(&mut self, other: &Self);
+    fn mul_low(&self, other: &Self) -> Self;
 
     /// Multiplies this [`BigInteger`] by another `BigInteger`, returning the high bits of the result.
     ///
