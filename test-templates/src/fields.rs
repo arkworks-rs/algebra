@@ -367,9 +367,9 @@ macro_rules! __test_field {
                 let mut a = <$field>::from_base_prime_field_elems(a).unwrap();
                 let from_naive = <$field>::from_base_prime_field_elems(naive).unwrap();
 
-                a.mul_assign_by_base_field_elem(&base_elem);
+                let computed = a.mul_by_base_field_elem(&base_elem);
 
-                assert_eq!(a, from_naive);
+                assert_eq!(computed, from_naive);
             }
         }
     };
