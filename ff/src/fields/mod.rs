@@ -350,6 +350,8 @@ pub trait Field:
         }
         Some(res)
     }
+
+    fn mul_assign_by_base_field_elem(&mut self, elem: &Self::BasePrimeField);
 }
 
 // Given a vector of field elements {v_i}, compute the vector {v_i^(-1)}

@@ -451,6 +451,11 @@ impl<P: QuadExtConfig> Field for QuadExtField<P> {
             self
         })
     }
+
+    fn mul_assign_by_base_field_elem(&mut self, elem: &Self::BasePrimeField) {
+        self.c0.mul_assign_by_base_field_elem(elem);
+        self.c1.mul_assign_by_base_field_elem(elem);
+    }
 }
 
 /// `QuadExtField` elements are ordered lexicographically.
