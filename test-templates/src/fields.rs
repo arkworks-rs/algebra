@@ -361,15 +361,16 @@ macro_rules! __test_field {
 
             for _ in 0..ITERATIONS {
                 let a = vec![<<$field as Field>::BasePrimeField>::rand(rng); <$field>::extension_degree() as usize];
-                let base_elem = <<$field as Field>::BasePrimeField>::rand(rng);
-                let naive = a.iter().map(|x| x*&base_elem).collect::<Vec<_>>();
+                let b = <<$field as Field>::BasePrimeField>::rand(rng);
 
                 let mut a = <$field>::from_base_prime_field_elems(a).unwrap();
-                let from_naive = <$field>::from_base_prime_field_elems(naive).unwrap();
+                let computed = a.mul_by_base_field_elem(&b);
 
-                let computed = a.mul_by_base_field_elem(&base_elem);
+                let embedded_b = <$field as Field>::from_base_prime_field(b);
 
-                assert_eq!(computed, from_naive);
+                let naive = a*embedded_b;
+
+                assert_eq!(computed, naive);
             }
         }
     };
