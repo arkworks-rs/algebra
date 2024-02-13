@@ -6,3 +6,5 @@ test_group!(g1; G1Projective; sw);
 test_group!(g2; G2Projective; sw);
 test_group!(pairing_output; ark_ec::pairing::PairingOutput<BW6_767>; msm);
 test_pairing!(pairing; crate::BW6_767);
+test_group!(g1_glv; G1Projective; glv);
+test_group!(g2_glv; G2Projective; glv);
