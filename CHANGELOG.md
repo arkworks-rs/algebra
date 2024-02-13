@@ -35,6 +35,7 @@
 - [\#736](https://github.com/arkworks-rs/algebra/pull/736) (`ark-ff`) Deprecate `divn()`, and use `core::ops::{Shr, ShrAssign}` instead.
 - [\#739](https://github.com/arkworks-rs/algebra/pull/739) (`ark-ff`) Deprecate `muln()`, and use `core::ops::{Shl, ShlAssign}` instead.
 - [\#771](https://github.com/arkworks-rs/algebra/pull/771) (`ark-ec`) Omit expensive  scalar multiplication in `is_in_correct_subgroup_assuming_on_curve()` for short Weierstrass curves of cofactor one.  
+- [\#778](https://github.com/arkworks-rs/algebra/pull/778) (`ark-bw6-767`, `ark-grumpkin`, `ark-secp256k1`, `ark-secq25k1`) Add the GLV implementation for BW6-767, Grumpkin, secp256k1, and secq256k1.
 
 ### Bugfixes
 
