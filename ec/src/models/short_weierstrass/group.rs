@@ -362,7 +362,7 @@ impl<P: SWCurveConfig, T: Borrow<Affine<P>>> AddAssign<T> for Projective<P> {
                 if self.y == s2 {
                     // The two points are equal, so we double.
                     self.double_in_place();
-                } else if self.y == -s2 {
+                } else {
                     // a + (-a) = 0
                     *self = Self::zero()
                 }
