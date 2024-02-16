@@ -10,7 +10,7 @@ use ark_std::{
     cmp::{Ord, Ordering, PartialOrd},
     fmt,
     io::{Read, Write},
-    iter::{Chain, IntoIterator},
+    iter::IntoIterator,
     ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign},
     rand::{
         distributions::{Distribution, Standard},
@@ -186,10 +186,8 @@ impl<P: CubicExtConfig> AdditiveGroup for CubicExtField<P> {
     }
 }
 
-type BaseFieldIter<P> = <<P as CubicExtConfig>::BaseField as Field>::BasePrimeFieldIter;
 impl<P: CubicExtConfig> Field for CubicExtField<P> {
     type BasePrimeField = P::BasePrimeField;
-    type BasePrimeFieldIter = Chain<BaseFieldIter<P>, Chain<BaseFieldIter<P>, BaseFieldIter<P>>>;
 
     const SQRT_PRECOMP: Option<SqrtPrecomputation<Self>> = P::SQRT_PRECOMP;
 
@@ -204,12 +202,11 @@ impl<P: CubicExtConfig> Field for CubicExtField<P> {
         Self::new(fe, P::BaseField::ZERO, P::BaseField::ZERO)
     }
 
-    fn to_base_prime_field_elements(&self) -> Self::BasePrimeFieldIter {
-        self.c0.to_base_prime_field_elements().chain(
-            self.c1
-                .to_base_prime_field_elements()
-                .chain(self.c2.to_base_prime_field_elements()),
-        )
+    fn to_base_prime_field_elements(&self) -> impl Iterator<Item = Self::BasePrimeField> {
+        self.c0
+            .to_base_prime_field_elements()
+            .chain(self.c1.to_base_prime_field_elements())
+            .chain(self.c2.to_base_prime_field_elements())
     }
 
     fn from_base_prime_field_elems(

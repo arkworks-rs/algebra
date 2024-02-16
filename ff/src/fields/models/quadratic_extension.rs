@@ -11,7 +11,7 @@ use ark_std::{
     cmp::{Ord, Ordering, PartialOrd},
     fmt,
     io::{Read, Write},
-    iter::{Chain, IntoIterator},
+    iter::IntoIterator,
     ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign},
     rand::{
         distributions::{Distribution, Standard},
@@ -213,11 +213,8 @@ impl<P: QuadExtConfig> AdditiveGroup for QuadExtField<P> {
     }
 }
 
-type BaseFieldIter<P> = <<P as QuadExtConfig>::BaseField as Field>::BasePrimeFieldIter;
 impl<P: QuadExtConfig> Field for QuadExtField<P> {
     type BasePrimeField = P::BasePrimeField;
-
-    type BasePrimeFieldIter = Chain<BaseFieldIter<P>, BaseFieldIter<P>>;
 
     const SQRT_PRECOMP: Option<SqrtPrecomputation<Self>> = None;
 
@@ -232,7 +229,7 @@ impl<P: QuadExtConfig> Field for QuadExtField<P> {
         Self::new(fe, P::BaseField::ZERO)
     }
 
-    fn to_base_prime_field_elements(&self) -> Self::BasePrimeFieldIter {
+    fn to_base_prime_field_elements(&self) -> impl Iterator<Item = Self::BasePrimeField> {
         self.c0
             .to_base_prime_field_elements()
             .chain(self.c1.to_base_prime_field_elements())

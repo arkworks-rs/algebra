@@ -216,7 +216,6 @@ impl<P: FpConfig<N>, const N: usize> AdditiveGroup for Fp<P, N> {
 
 impl<P: FpConfig<N>, const N: usize> Field for Fp<P, N> {
     type BasePrimeField = Self;
-    type BasePrimeFieldIter = iter::Once<Self::BasePrimeField>;
 
     const SQRT_PRECOMP: Option<SqrtPrecomputation<Self>> = P::SQRT_PRECOMP;
     const ONE: Self = P::ONE;
@@ -229,7 +228,7 @@ impl<P: FpConfig<N>, const N: usize> Field for Fp<P, N> {
         elem
     }
 
-    fn to_base_prime_field_elements(&self) -> Self::BasePrimeFieldIter {
+    fn to_base_prime_field_elements(&self) -> impl Iterator<Item = Self::BasePrimeField> {
         iter::once(*self)
     }
 
