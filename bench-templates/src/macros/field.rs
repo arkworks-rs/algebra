@@ -291,10 +291,10 @@ macro_rules! prime_field {
                     let mut tmp2 = BigInt::rand(&mut rng);
                     // Shave a few bits off to avoid overflow.
                     for _ in 0..3 {
-                        tmp1.div2();
-                        tmp2.div2();
+                        tmp1.div2_in_place();
+                        tmp2.div2_in_place();
                     }
-                    tmp2.div2();
+                    tmp2.div2_in_place();
                     (tmp1, tmp2)
                 })
                 .unzip();
@@ -304,7 +304,7 @@ macro_rules! prime_field {
                 b.iter(|| {
                     i = (i + 1) % SAMPLES;
                     let mut tmp = v1[i];
-                    (tmp, tmp.add_with_carry(&v2[i]))
+                    (tmp, tmp.add_with_carry_in_place(&v2[i]))
                 })
             });
             arithmetic.bench_function("Subtraction with borrow", |b| {
@@ -312,7 +312,7 @@ macro_rules! prime_field {
                 b.iter(|| {
                     i = (i + 1) % SAMPLES;
                     let mut tmp = v1[i];
-                    (tmp, tmp.sub_with_borrow(&v2[i]))
+                    (tmp, tmp.sub_with_borrow_in_place(&v2[i]))
                 })
             });
             arithmetic.bench_function("Multiplication by 2", |b| {
@@ -320,7 +320,7 @@ macro_rules! prime_field {
                 b.iter(|| {
                     i = (i + 1) % SAMPLES;
                     let mut tmp = v1[i];
-                    tmp.mul2()
+                    tmp.mul2_in_place()
                 })
             });
             arithmetic.bench_function("Division by 2", |b| {
@@ -328,7 +328,7 @@ macro_rules! prime_field {
                 b.iter(|| {
                     i = (i + 1) % SAMPLES;
                     let mut tmp = v1[i];
-                    tmp.div2()
+                    tmp.div2_in_place()
                 })
             });
             arithmetic.finish();
