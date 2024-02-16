@@ -149,7 +149,7 @@ pub fn find_naf(num: &[u64]) -> Vec<i8> {
             carry = adc(a, b, carry);
         }
     };
-    let div2 = |num: &mut [u64]| {
+    let div2_in_place = |num: &mut [u64]| {
         let mut t = 0;
         for i in num.iter_mut().rev() {
             let t2 = *i << 63;
@@ -175,7 +175,7 @@ pub fn find_naf(num: &[u64]) -> Vec<i8> {
             z = 0;
         }
         res.push(z);
-        div2(&mut num);
+        div2_in_place(&mut num);
     }
 
     res

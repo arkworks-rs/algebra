@@ -48,7 +48,7 @@ fn test_fq_repr_num_bits() {
     a = BigInteger256::from(1u64);
     for i in 1..257 {
         assert_eq!(i, a.num_bits());
-        a.mul2();
+        a.mul2_in_place();
     }
     assert_eq!(0, a.num_bits());
 }

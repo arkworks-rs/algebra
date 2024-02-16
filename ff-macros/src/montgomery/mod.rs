@@ -69,8 +69,8 @@ pub fn mont_config_helper(
     };
     let modulus = quote::quote! { BigInt([ #( #modulus_limbs ),* ]) };
 
-    let add_with_carry = add_with_carry_impl(limbs);
-    let sub_with_borrow = sub_with_borrow_impl(limbs);
+    let add_with_carry_in_place = add_with_carry_impl(limbs);
+    let sub_with_borrow_in_place = sub_with_borrow_impl(limbs);
     let subtract_modulus = subtract_modulus_impl(&modulus);
     let add_assign = add_assign_impl(modulus_has_spare_bit);
     let double_in_place = double_in_place_impl(modulus_has_spare_bit);
@@ -165,9 +165,9 @@ pub fn mont_config_helper(
 
             #subtract_modulus
 
-            #add_with_carry
+            #add_with_carry_in_place
 
-            #sub_with_borrow
+            #sub_with_borrow_in_place
         }
     }
 }

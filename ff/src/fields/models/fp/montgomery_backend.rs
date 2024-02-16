@@ -98,7 +98,7 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
     #[inline(always)]
     fn add_assign(a: &mut Fp<MontBackend<Self, N>, N>, b: &Fp<MontBackend<Self, N>, N>) {
         // This cannot exceed the backing capacity.
-        let c = a.0.add_with_carry(&b.0);
+        let c = a.0.add_with_carry_in_place(&b.0);
         // However, it may need to be reduced
         if Self::MODULUS_HAS_SPARE_BIT {
             a.subtract_modulus()
@@ -112,16 +112,16 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
     fn sub_assign(a: &mut Fp<MontBackend<Self, N>, N>, b: &Fp<MontBackend<Self, N>, N>) {
         // If `other` is larger than `self`, add the modulus to self first.
         if b.0 > a.0 {
-            a.0.add_with_carry(&Self::MODULUS);
+            a.0.add_with_carry_in_place(&Self::MODULUS);
         }
-        a.0.sub_with_borrow(&b.0);
+        a.0.sub_with_borrow_in_place(&b.0);
     }
 
     /// Sets `a = 2 * a`.
     #[inline(always)]
     fn double_in_place(a: &mut Fp<MontBackend<Self, N>, N>) {
         // This cannot exceed the backing capacity.
-        let c = a.0.mul2();
+        let c = a.0.mul2_in_place();
         // However, it may need to be reduced.
         if Self::MODULUS_HAS_SPARE_BIT {
             a.subtract_modulus()
@@ -135,7 +135,7 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
     fn neg_in_place(a: &mut Fp<MontBackend<Self, N>, N>) {
         if !a.is_zero() {
             let mut tmp = Self::MODULUS;
-            tmp.sub_with_borrow(&a.0);
+            tmp.sub_with_borrow_in_place(&a.0);
             a.0 = tmp;
         }
     }
@@ -311,13 +311,13 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
 
             while u != one && v != one {
                 while u.is_even() {
-                    u.div2();
+                    u.div2_in_place();
 
                     if b.0.is_even() {
-                        b.0.div2();
+                        b.0.div2_in_place();
                     } else {
-                        let carry = b.0.add_with_carry(&Self::MODULUS);
-                        b.0.div2();
+                        let carry = b.0.add_with_carry_in_place(&Self::MODULUS);
+                        b.0.div2_in_place();
                         if !Self::MODULUS_HAS_SPARE_BIT && carry {
                             (b.0).0[N - 1] |= 1 << 63;
                         }
@@ -325,13 +325,13 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
                 }
 
                 while v.is_even() {
-                    v.div2();
+                    v.div2_in_place();
 
                     if c.0.is_even() {
-                        c.0.div2();
+                        c.0.div2_in_place();
                     } else {
-                        let carry = c.0.add_with_carry(&Self::MODULUS);
-                        c.0.div2();
+                        let carry = c.0.add_with_carry_in_place(&Self::MODULUS);
+                        c.0.div2_in_place();
                         if !Self::MODULUS_HAS_SPARE_BIT && carry {
                             (c.0).0[N - 1] |= 1 << 63;
                         }
@@ -339,10 +339,10 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
                 }
 
                 if v < u {
-                    u.sub_with_borrow(&v);
+                    u.sub_with_borrow_in_place(&v);
                     b -= &c;
                 } else {
-                    v.sub_with_borrow(&u);
+                    v.sub_with_borrow_in_place(&u);
                     c -= &b;
                 }
             }
@@ -718,7 +718,7 @@ impl<T: MontConfig<N>, const N: usize> Fp<MontBackend<T, N>, N> {
     #[doc(hidden)]
     const fn const_neg(self) -> Self {
         if !self.const_is_zero() {
-            Self::new_unchecked(Self::sub_with_borrow(&T::MODULUS, &self.0))
+            Self::new_unchecked(Self::sub_with_borrow_in_place(&T::MODULUS, &self.0))
         } else {
             self
         }
@@ -802,7 +802,7 @@ impl<T: MontConfig<N>, const N: usize> Fp<MontBackend<T, N>, N> {
     #[inline]
     const fn const_subtract_modulus(mut self) -> Self {
         if !self.const_is_valid() {
-            self.0 = Self::sub_with_borrow(&self.0, &T::MODULUS);
+            self.0 = Self::sub_with_borrow_in_place(&self.0, &T::MODULUS);
         }
         self
     }
@@ -810,12 +810,12 @@ impl<T: MontConfig<N>, const N: usize> Fp<MontBackend<T, N>, N> {
     #[inline]
     const fn const_subtract_modulus_with_carry(mut self, carry: bool) -> Self {
         if carry || !self.const_is_valid() {
-            self.0 = Self::sub_with_borrow(&self.0, &T::MODULUS);
+            self.0 = Self::sub_with_borrow_in_place(&self.0, &T::MODULUS);
         }
         self
     }
 
-    const fn sub_with_borrow(a: &BigInt<N>, b: &BigInt<N>) -> BigInt<N> {
+    const fn sub_with_borrow_in_place(a: &BigInt<N>, b: &BigInt<N>) -> BigInt<N> {
         a.const_sub_with_borrow(b).0
     }
 }

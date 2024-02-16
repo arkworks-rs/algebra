@@ -32,9 +32,9 @@
 
 ### Improvements
 
-- [\#736](https://github.com/arkworks-rs/algebra/pull/736) (`ark-ff`) Deprecate `divn()`, and use `core::ops::{Shr, ShrAssign}` instead.
-- [\#739](https://github.com/arkworks-rs/algebra/pull/739) (`ark-ff`) Deprecate `muln()`, and use `core::ops::{Shl, ShlAssign}` instead.
-- [\#771](https://github.com/arkworks-rs/algebra/pull/771) (`ark-ec`) Omit expensive  scalar multiplication in `is_in_correct_subgroup_assuming_on_curve()` for short Weierstrass curves of cofactor one.  
+- [\#736](https://github.com/arkworks-rs/algebra/pull/736) (`ark-ff`) Deprecate `divn_in_place()`, and use `core::ops::{Shr, ShrAssign}` instead.
+- [\#739](https://github.com/arkworks-rs/algebra/pull/739) (`ark-ff`) Deprecate `muln_in_place()`, and use `core::ops::{Shl, ShlAssign}` instead.
+- [\#771](https://github.com/arkworks-rs/algebra/pull/771) (`ark-ec`) Omit expensive  scalar multiplication in `is_in_correct_subgroup_assuming_on_curve()` for short Weierstrass curves of cofactor one.
 
 ### Bugfixes
 
@@ -91,7 +91,7 @@
     - Rename `Fp*Parameters` to `Fp*Config`.
     - Add `From<u32>`, `From<u16>`, and `From<u8>` `impl`s for `BigInt<N>`.
     - Remove `FftConfig`; move its contents to `FftField`.
-- [\#383](https://github.com/arkworks-rs/algebra/pull/383) (`ark-ff`) Rename `BigInteger::add_nocarry` to `add_with_carry` and `sub_noborrow` to `sub_with_borrow`.
+- [\#383](https://github.com/arkworks-rs/algebra/pull/383) (`ark-ff`) Rename `BigInteger::add_nocarry` to `add_with_carry_in_place` and `sub_noborrow` to `sub_with_borrow_in_place`.
 - [\#386](https://github.com/arkworks-rs/algebra/pull/386) (`ark-ff`) Remove `PrimeField::GENERATOR`, since it already exists on `FftField`.
 - [\#393](https://github.com/arkworks-rs/algebra/pull/393) (`ark-ec`, `ark-ff`) Rename `FpXParams` to `FpXConfig` and `FpXParamsWrapper` to `FpXConfigWrapper`.
 - [\#396](https://github.com/arkworks-rs/algebra/pull/396) (`ark-ec`) Remove `mul_bits` feature, and remove default implementations of `mul` and `mul_by_cofactor_to_projective`.

@@ -772,7 +772,7 @@ fn test_fq_repr_div2() {
         0x41f82777bd13fdb,
         0xf43944578f9b771b,
     ]);
-    a.div2();
+    a.div2_in_place();
     assert_eq!(
         a,
         BigInt::new([
@@ -785,7 +785,7 @@ fn test_fq_repr_div2() {
         ])
     );
     for _ in 0..10 {
-        a.div2();
+        a.div2_in_place();
     }
     assert_eq!(
         a,
@@ -799,21 +799,21 @@ fn test_fq_repr_div2() {
         ])
     );
     for _ in 0..300 {
-        a.div2();
+        a.div2_in_place();
     }
     assert_eq!(
         a,
         BigInt::new([0x7288af1f36ee3608, 0x1e8, 0x0, 0x0, 0x0, 0x0])
     );
     for _ in 0..50 {
-        a.div2();
+        a.div2_in_place();
     }
     assert_eq!(a, BigInt::new([0x7a1ca2, 0x0, 0x0, 0x0, 0x0, 0x0]));
     for _ in 0..22 {
-        a.div2();
+        a.div2_in_place();
     }
     assert_eq!(a, BigInt::new([0x1, 0x0, 0x0, 0x0, 0x0, 0x0]));
-    a.div2();
+    a.div2_in_place();
     assert!(a.is_zero());
 }
 
@@ -885,31 +885,31 @@ fn test_fq_repr_shr() {
 #[test]
 fn test_fq_repr_mul2() {
     let mut a = BigInteger384::from(23712937547u64);
-    a.mul2();
+    a.mul2_in_place();
     assert_eq!(a, BigInt::new([0xb0acd6c96, 0x0, 0x0, 0x0, 0x0, 0x0]));
     for _ in 0..60 {
-        a.mul2();
+        a.mul2_in_place();
     }
     assert_eq!(
         a,
         BigInt::new([0x6000000000000000, 0xb0acd6c9, 0x0, 0x0, 0x0, 0x0])
     );
     for _ in 0..300 {
-        a.mul2();
+        a.mul2_in_place();
     }
     assert_eq!(
         a,
         BigInt::new([0x0, 0x0, 0x0, 0x0, 0x0, 0xcd6c960000000000])
     );
     for _ in 0..17 {
-        a.mul2();
+        a.mul2_in_place();
     }
     assert_eq!(
         a,
         BigInt::new([0x0, 0x0, 0x0, 0x0, 0x0, 0x2c00000000000000])
     );
     for _ in 0..6 {
-        a.mul2();
+        a.mul2_in_place();
     }
     assert!(a.is_zero());
 }
@@ -921,7 +921,7 @@ fn test_fq_repr_num_bits() {
     a = BigInteger384::from(1u64);
     for i in 1..385 {
         assert_eq!(i, a.num_bits());
-        a.mul2();
+        a.mul2_in_place();
     }
     assert_eq!(0, a.num_bits());
 }
@@ -938,7 +938,7 @@ fn test_fq_repr_sub_noborrow() {
         0xad0eb3948a5c34fd,
         0xd56f7b5ab8b5ce8,
     ]);
-    t.sub_with_borrow(&BigInt::new([
+    t.sub_with_borrow_in_place(&BigInt::new([
         0xc7867917187ca02b,
         0x5d75679d4911ffef,
         0x8c5b3e48b1a71c15,
@@ -962,23 +962,23 @@ fn test_fq_repr_sub_noborrow() {
         a.0[5] >>= 30;
         let mut b = a;
         for _ in 0..10 {
-            b.mul2();
+            b.mul2_in_place();
         }
         let mut c = b;
         for _ in 0..10 {
-            c.mul2();
+            c.mul2_in_place();
         }
 
         assert!(a < b);
         assert!(b < c);
 
         let mut csub_ba = c;
-        csub_ba.sub_with_borrow(&b);
-        csub_ba.sub_with_borrow(&a);
+        csub_ba.sub_with_borrow_in_place(&b);
+        csub_ba.sub_with_borrow_in_place(&a);
 
         let mut csub_ab = c;
-        csub_ab.sub_with_borrow(&a);
-        csub_ab.sub_with_borrow(&b);
+        csub_ab.sub_with_borrow_in_place(&a);
+        csub_ab.sub_with_borrow_in_place(&b);
 
         assert_eq!(csub_ab, csub_ba);
     }
@@ -992,7 +992,7 @@ fn test_fq_repr_sub_noborrow() {
         0x4b1ba7b6434bacd7,
         0x1a0111ea397fe69a,
     ]);
-    qplusone.sub_with_borrow(&BigInt::new([
+    qplusone.sub_with_borrow_in_place(&BigInt::new([
         0xb9feffffffffaaac,
         0x1eabfffeb153ffff,
         0x6730d2a0f6b0f624,
@@ -1025,7 +1025,7 @@ fn test_fq_repr_add_nocarry() {
         0xad0eb3948a5c34fd,
         0xd56f7b5ab8b5ce8,
     ]);
-    t.add_with_carry(&BigInt::new([
+    t.add_with_carry_in_place(&BigInt::new([
         0xc7867917187ca02b,
         0x5d75679d4911ffef,
         0x8c5b3e48b1a71c15,
@@ -1056,28 +1056,28 @@ fn test_fq_repr_add_nocarry() {
         c.0[5] >>= 3;
 
         let mut abc = a;
-        abc.add_with_carry(&b);
-        abc.add_with_carry(&c);
+        abc.add_with_carry_in_place(&b);
+        abc.add_with_carry_in_place(&c);
 
         let mut acb = a;
-        acb.add_with_carry(&c);
-        acb.add_with_carry(&b);
+        acb.add_with_carry_in_place(&c);
+        acb.add_with_carry_in_place(&b);
 
         let mut bac = b;
-        bac.add_with_carry(&a);
-        bac.add_with_carry(&c);
+        bac.add_with_carry_in_place(&a);
+        bac.add_with_carry_in_place(&c);
 
         let mut bca = b;
-        bca.add_with_carry(&c);
-        bca.add_with_carry(&a);
+        bca.add_with_carry_in_place(&c);
+        bca.add_with_carry_in_place(&a);
 
         let mut cab = c;
-        cab.add_with_carry(&a);
-        cab.add_with_carry(&b);
+        cab.add_with_carry_in_place(&a);
+        cab.add_with_carry_in_place(&b);
 
         let mut cba = c;
-        cba.add_with_carry(&b);
-        cba.add_with_carry(&a);
+        cba.add_with_carry_in_place(&b);
+        cba.add_with_carry_in_place(&a);
 
         assert_eq!(abc, acb);
         assert_eq!(abc, bac);
@@ -1095,7 +1095,7 @@ fn test_fq_repr_add_nocarry() {
         0xffffffffffffffff,
         0xffffffffffffffff,
     ]);
-    x.add_with_carry(&BigInteger384::from(1u64));
+    x.add_with_carry_in_place(&BigInteger384::from(1u64));
     assert!(x.is_zero());
 }
 

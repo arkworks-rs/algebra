@@ -296,7 +296,7 @@ impl<const N: usize> BigInteger for BigInt<N> {
     const NUM_LIMBS: usize = N;
 
     #[inline]
-    fn add_with_carry(&mut self, other: &Self) -> bool {
+    fn add_with_carry_in_place(&mut self, other: &Self) -> bool {
         {
             use arithmetic::adc_for_add_with_carry as adc;
 
@@ -330,7 +330,7 @@ impl<const N: usize> BigInteger for BigInt<N> {
     }
 
     #[inline]
-    fn sub_with_borrow(&mut self, other: &Self) -> bool {
+    fn sub_with_borrow_in_place(&mut self, other: &Self) -> bool {
         use arithmetic::sbb_for_sub_with_borrow as sbb;
 
         let a = &mut self.0;
@@ -363,7 +363,7 @@ impl<const N: usize> BigInteger for BigInt<N> {
 
     #[inline]
     #[allow(unused)]
-    fn mul2(&mut self) -> bool {
+    fn mul2_in_place(&mut self) -> bool {
         #[cfg(all(target_arch = "x86_64", feature = "asm"))]
         #[allow(unsafe_code)]
         {
@@ -394,7 +394,7 @@ impl<const N: usize> BigInteger for BigInt<N> {
     }
 
     #[inline]
-    fn muln(&mut self, mut n: u32) {
+    fn muln_in_place(&mut self, mut n: u32) {
         if n >= (64 * N) as u32 {
             *self = Self::from(0u64);
             return;
@@ -468,7 +468,7 @@ impl<const N: usize> BigInteger for BigInt<N> {
     }
 
     #[inline]
-    fn div2(&mut self) {
+    fn div2_in_place(&mut self) {
         let mut t = 0;
         for i in 0..N {
             let a = &mut self.0[N - i - 1];
@@ -480,7 +480,7 @@ impl<const N: usize> BigInteger for BigInt<N> {
     }
 
     #[inline]
-    fn divn(&mut self, mut n: u32) {
+    fn divn_in_place(&mut self, mut n: u32) {
         if n >= (64 * N) as u32 {
             *self = Self::from(0u64);
             return;
@@ -1003,17 +1003,17 @@ pub trait BigInteger:
     ///
     /// // Basic
     /// let (mut one, mut x) = (B::from(1u64), B::from(2u64));
-    /// let carry = x.add_with_carry(&one);
+    /// let carry = x.add_with_carry_in_place(&one);
     /// assert_eq!(x, B::from(3u64));
     /// assert_eq!(carry, false);
     ///
     /// // Edge-Case
     /// let mut x = B::from(u64::MAX);
-    /// let carry = x.add_with_carry(&one);
+    /// let carry = x.add_with_carry_in_place(&one);
     /// assert_eq!(x, B::from(0u64));
     /// assert_eq!(carry, true)
     /// ```
-    fn add_with_carry(&mut self, other: &Self) -> bool;
+    fn add_with_carry_in_place(&mut self, other: &Self) -> bool;
 
     /// Subtract another [`BigInteger`] from this one. This method stores the result in
     /// `self`, and returns a borrow.
@@ -1025,16 +1025,16 @@ pub trait BigInteger:
     ///
     /// // Basic
     /// let (mut one_sub, two, mut three_sub) = (B::from(1u64), B::from(2u64), B::from(3u64));
-    /// let borrow = three_sub.sub_with_borrow(&two);
+    /// let borrow = three_sub.sub_with_borrow_in_place(&two);
     /// assert_eq!(three_sub, one_sub);
     /// assert_eq!(borrow, false);
     ///
     /// // Edge-Case
-    /// let borrow = one_sub.sub_with_borrow(&two);
+    /// let borrow = one_sub.sub_with_borrow_in_place(&two);
     /// assert_eq!(one_sub, B::from(u64::MAX));
     /// assert_eq!(borrow, true);
     /// ```
-    fn sub_with_borrow(&mut self, other: &Self) -> bool;
+    fn sub_with_borrow_in_place(&mut self, other: &Self) -> bool;
 
     /// Performs a leftwise bitshift of this number, effectively multiplying
     /// it by 2. Overflow is ignored.
@@ -1045,21 +1045,21 @@ pub trait BigInteger:
     ///
     /// // Basic
     /// let mut two_mul = B::from(2u64);
-    /// two_mul.mul2();
+    /// two_mul.mul2_in_place();
     /// assert_eq!(two_mul, B::from(4u64));
     ///
     /// // Edge-Cases
     /// let mut zero = B::from(0u64);
-    /// zero.mul2();
+    /// zero.mul2_in_place();
     /// assert_eq!(zero, B::from(0u64));
     ///
     /// let mut arr: [bool; 64] = [false; 64];
     /// arr[0] = true;
     /// let mut mul = B::from_bits_be(&arr);
-    /// mul.mul2();
+    /// mul.mul2_in_place();
     /// assert_eq!(mul, B::from(0u64));
     /// ```
-    fn mul2(&mut self) -> bool;
+    fn mul2_in_place(&mut self) -> bool;
 
     /// Performs a leftwise bitshift of this number by n bits, effectively multiplying
     /// it by 2^n. Overflow is ignored.
@@ -1070,22 +1070,22 @@ pub trait BigInteger:
     ///
     /// // Basic
     /// let mut one_mul = B::from(1u64);
-    /// one_mul.muln(5);
+    /// one_mul.muln_in_place(5);
     /// assert_eq!(one_mul, B::from(32u64));
     ///
     /// // Edge-Case
     /// let mut zero = B::from(0u64);
-    /// zero.muln(5);
+    /// zero.muln_in_place(5);
     /// assert_eq!(zero, B::from(0u64));
     ///
     /// let mut arr: [bool; 64] = [false; 64];
     /// arr[4] = true;
     /// let mut mul = B::from_bits_be(&arr);
-    /// mul.muln(5);
+    /// mul.muln_in_place(5);
     /// assert_eq!(mul, B::from(0u64));
     /// ```
     #[deprecated(since = "0.4.2", note = "please use the operator `<<` instead")]
-    fn muln(&mut self, amt: u32);
+    fn muln_in_place(&mut self, amt: u32);
 
     /// Multiplies this [`BigInteger`] by another `BigInteger`, storing the result in `self`.
     /// Overflow is ignored.
@@ -1142,7 +1142,7 @@ pub trait BigInteger:
     /// // Edge-Case
     /// let mut x = B::from(u64::MAX);
     /// let mut max_plus_max = x;
-    /// max_plus_max.add_with_carry(&x);
+    /// max_plus_max.add_with_carry_in_place(&x);
     /// let (low_bits, high_bits) = x.mul(&B::from(2u64));
     /// assert_eq!(low_bits, max_plus_max);
     /// assert_eq!(high_bits, B::from(1u64));
@@ -1158,19 +1158,19 @@ pub trait BigInteger:
     ///
     /// // Basic
     /// let (mut two, mut four_div) = (B::from(2u64), B::from(4u64));
-    /// four_div.div2();
+    /// four_div.div2_in_place();
     /// assert_eq!(two, four_div);
     ///
     /// // Edge-Case
     /// let mut zero = B::from(0u64);
-    /// zero.div2();
+    /// zero.div2_in_place();
     /// assert_eq!(zero, B::from(0u64));
     ///
     /// let mut one = B::from(1u64);
-    /// one.div2();
+    /// one.div2_in_place();
     /// assert_eq!(one, B::from(0u64));
     /// ```
-    fn div2(&mut self);
+    fn div2_in_place(&mut self);
 
     /// Performs a rightwise bitshift of this number by some amount.
     /// # Example
@@ -1180,18 +1180,18 @@ pub trait BigInteger:
     ///
     /// // Basic
     /// let (mut one, mut thirty_two_div) = (B::from(1u64), B::from(32u64));
-    /// thirty_two_div.divn(5);
+    /// thirty_two_div.divn_in_place(5);
     /// assert_eq!(one, thirty_two_div);
     ///
     /// // Edge-Case
     /// let mut arr: [bool; 64] = [false; 64];
     /// arr[4] = true;
     /// let mut div = B::from_bits_le(&arr);
-    /// div.divn(5);
+    /// div.divn_in_place(5);
     /// assert_eq!(div, B::from(0u64));
     /// ```
     #[deprecated(since = "0.4.2", note = "please use the operator `>>` instead")]
-    fn divn(&mut self, amt: u32);
+    fn divn_in_place(&mut self, amt: u32);
 
     /// Returns true iff this number is odd.
     /// # Example
@@ -1359,15 +1359,15 @@ pub trait BigInteger:
                 if e.is_odd() {
                     z = signed_mod_reduction(e.as_ref()[0], 1 << w);
                     if z >= 0 {
-                        e.sub_with_borrow(&Self::from(z as u64));
+                        e.sub_with_borrow_in_place(&Self::from(z as u64));
                     } else {
-                        e.add_with_carry(&Self::from((-z) as u64));
+                        e.add_with_carry_in_place(&Self::from((-z) as u64));
                     }
                 } else {
                     z = 0;
                 }
                 res.push(z);
-                e.div2();
+                e.div2_in_place();
             }
 
             Some(res)

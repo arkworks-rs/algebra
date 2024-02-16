@@ -144,14 +144,14 @@ impl<P: FpConfig<N>, const N: usize> Fp<P, N> {
     #[inline]
     fn subtract_modulus(&mut self) {
         if self.is_geq_modulus() {
-            self.0.sub_with_borrow(&Self::MODULUS);
+            self.0.sub_with_borrow_in_place(&Self::MODULUS);
         }
     }
 
     #[inline]
     fn subtract_modulus_with_carry(&mut self, carry: bool) {
         if carry || self.is_geq_modulus() {
-            self.0.sub_with_borrow(&Self::MODULUS);
+            self.0.sub_with_borrow_in_place(&Self::MODULUS);
         }
     }
 

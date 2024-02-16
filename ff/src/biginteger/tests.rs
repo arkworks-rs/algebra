@@ -14,27 +14,27 @@ fn biginteger_arithmetic_test<B: BigInteger>(a: B, b: B, zero: B, max: B) {
 
     // a + 0 = a
     let mut a0_add = a;
-    let carry = a0_add.add_with_carry(&zero);
+    let carry = a0_add.add_with_carry_in_place(&zero);
     assert_eq!(a0_add, a);
     assert_eq!(carry, false);
 
     // a - 0 = a
     let mut a0_sub = a;
-    let borrow = a0_sub.sub_with_borrow(&zero);
+    let borrow = a0_sub.sub_with_borrow_in_place(&zero);
     assert_eq!(a0_sub, a);
     assert_eq!(borrow, false);
 
     // a - a = 0
     let mut aa_sub = a;
-    let borrow = aa_sub.sub_with_borrow(&a);
+    let borrow = aa_sub.sub_with_borrow_in_place(&a);
     assert_eq!(aa_sub, zero);
     assert_eq!(borrow, false);
 
     // a + b = b + a
     let mut ab_add = a;
-    let ab_carry = ab_add.add_with_carry(&b);
+    let ab_carry = ab_add.add_with_carry_in_place(&b);
     let mut ba_add = b;
-    let ba_carry = ba_add.add_with_carry(&a);
+    let ba_carry = ba_add.add_with_carry_in_place(&a);
     assert_eq!(ab_add, ba_add);
     assert_eq!(ab_carry, ba_carry);
 
@@ -45,9 +45,9 @@ fn biginteger_arithmetic_test<B: BigInteger>(a: B, b: B, zero: B, max: B) {
 
     // a * 2 = a + a
     let mut a_mul2 = a;
-    a_mul2.mul2();
+    a_mul2.mul2_in_place();
     let mut a_plus_a = a;
-    let carry_a_plus_a = a_plus_a.add_with_carry(&a); // Won't assert anything about carry bit.
+    let carry_a_plus_a = a_plus_a.add_with_carry_in_place(&a); // Won't assert anything about carry bit.
     assert_eq!(a_mul2, a_plus_a);
 
     // a * 1 = a
@@ -92,7 +92,7 @@ fn biginteger_arithmetic_test<B: BigInteger>(a: B, b: B, zero: B, max: B) {
 
     // max + max = max * 2
     let mut max_plus_max = max;
-    max_plus_max.add_with_carry(&max);
+    max_plus_max.add_with_carry_in_place(&max);
     assert_eq!(max.mul(&B::from(2u64)), (max_plus_max, B::from(1u64)));
     assert_eq!(max.mul_high(&B::from(2u64)), B::from(1u64));
 }
