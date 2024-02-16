@@ -3,6 +3,7 @@
 ## Pending
 
 - [\#772](https://github.com/arkworks-rs/algebra/pull/772) (`ark-ff`) Implementation of `mul` method for `BigInteger`.
+- [\#782](https://github.com/arkworks-rs/algebra/pull/782) (`ark-ff`) Add `in_place` suffix for `BigInteger` methods (`add_with_carry_in_place`, `sub_with_borrow_in_place`, `mul2_in_place`, `muln_in_place`, `div2_in_place`, `divn_in_place`).
 
 ### Breaking changes
 
