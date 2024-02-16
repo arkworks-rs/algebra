@@ -1,5 +1,7 @@
-use core::iter;
-
+use crate::{
+    AdditiveGroup, BigInt, BigInteger, FftField, Field, LegendreSymbol, One, PrimeField,
+    SqrtPrecomputation, Zero,
+};
 use ark_serialize::{
     buffer_byte_size, CanonicalDeserialize, CanonicalDeserializeWithFlags, CanonicalSerialize,
     CanonicalSerializeWithFlags, Compress, EmptyFlags, Flags, SerializationError, Valid, Validate,
@@ -11,17 +13,13 @@ use ark_std::{
     ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign},
     str::FromStr,
     string::ToString,
-    One, Zero,
 };
+use core::iter;
 
 #[macro_use]
 mod montgomery_backend;
 pub use montgomery_backend::*;
 
-use crate::{
-    AdditiveGroup, BigInt, BigInteger, FftField, Field, LegendreSymbol, PrimeField,
-    SqrtPrecomputation,
-};
 /// A trait that specifies the configuration of a prime field.
 /// Also specifies how to perform arithmetic on field elements.
 pub trait FpConfig<const N: usize>: Send + Sync + 'static + Sized {
