@@ -73,9 +73,9 @@ impl<P: SWUConfig> MapToCurve<Projective<P>> for SWUMap<P> {
         let div = a * if ta.is_zero() { P::ZETA } else { -ta };
 
         let num2_x1 = num_x1.square();
-        let div2_in_place = div.square();
-        let div3 = div2_in_place * div;
-        let num_gx1 = (num2_x1 + a * div2_in_place) * num_x1 + b * div3;
+        let div2 = div.square();
+        let div3 = div2 * div;
+        let num_gx1 = (num2_x1 + a * div2) * num_x1 + b * div3;
 
         // 5. x2 = Z * u^2 * x1
         let num_x2 = zeta_u2 * num_x1; // same div
