@@ -339,9 +339,7 @@ impl<P: SWCurveConfig, T: Borrow<Affine<P>>> AddAssign<T> for Projective<P> {
         let other = other.borrow();
         if let Some((other_x, other_y)) = other.xy() {
             if self.is_zero() {
-                self.x = other_x;
-                self.y = other_y;
-                self.z = P::BaseField::one();
+                *self = Self::new_unchecked(other_x, other_y, P::BaseField::one());
                 return;
             }
 
@@ -468,24 +466,18 @@ impl<'a, P: SWCurveConfig> AddAssign<&'a Self> for Projective<P> {
         let z2z2 = other.z.square();
 
         // U1 = X1*Z2Z2
-        let mut u1 = self.x;
-        u1 *= &z2z2;
+        let u1 = self.x * &z2z2;
 
         // U2 = X2*Z1Z1
-        let mut u2 = other.x;
-        u2 *= &z1z1;
+        let u2 = other.x * &z1z1;
 
         // S1 = Y1*Z2*Z2Z2
-        let mut s1 = self.y;
-        s1 *= &other.z;
-        s1 *= &z2z2;
+        let s1 = self.y * &other.z * &z2z2;
 
         // S2 = Y2*Z1*Z1Z1
-        let mut s2 = other.y;
-        s2 *= &self.z;
-        s2 *= &z1z1;
+        let s2 = other.y * &self.z * &z1z1;
 
-        if u1 == u2 && s1 == s2 {
+        if u1 == u2 {
             if s1 == s2 {
                 // The two points are equal, so we double.
                 self.double_in_place();
@@ -499,40 +491,26 @@ impl<'a, P: SWCurveConfig> AddAssign<&'a Self> for Projective<P> {
             h -= &u1;
 
             // I = (2*H)^2
-            let mut i = h;
-            i.double_in_place().square_in_place();
+            let i = h.double().square();
 
             // J = -H*I
-            let mut j = h;
-            j.neg_in_place();
-            j *= &i;
+            let j = h.neg() * &i;
 
             // r = 2*(S2-S1)
-            let mut r = s2;
-            r -= &s1;
-            r.double_in_place();
+            let r = (s2 - &s1).double();
 
             // V = U1*I
-            let mut v = u1;
-            v *= &i;
+            let v = u1 * &i;
 
             // X3 = r^2 + J - 2*V
-            self.x = r;
-            self.x.square_in_place();
-            self.x += &j;
-            self.x -= &(v.double());
+            self.x = r.square() + &j - &(v.double());
 
             // Y3 = r*(V - X3) + 2*S1*J
-            v -= &self.x;
-            self.y = s1;
-            self.y.double_in_place();
-            self.y = P::BaseField::sum_of_products(&[r, self.y], &[v, j]);
+            self.y = P::BaseField::sum_of_products(&[r, s1.double()], &[v - &self.x, j]);
 
             // Z3 = ((Z1+Z2)^2 - Z1Z1 - Z2Z2)*H
             // This is equal to Z3 = 2 * Z1 * Z2 * H, and computing it this way is faster.
-            self.z *= other.z;
-            self.z.double_in_place();
-            self.z *= &h;
+            self.z *= other.z.double() * &h;
         }
     }
 }
