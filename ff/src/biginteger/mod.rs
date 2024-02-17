@@ -9,12 +9,13 @@ use ark_serialize::{
 };
 use ark_std::{
     borrow::Borrow,
+    cmp::Ordering,
     convert::TryFrom,
     fmt::{Debug, Display, UpperHex},
     io::{Read, Write},
     ops::{
-        BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Not, Shl, ShlAssign, Shr,
-        ShrAssign,
+        BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Not, Rem, RemAssign, Shl,
+        ShlAssign, Shr, ShrAssign,
     },
     rand::{
         distributions::{Distribution, Standard},
@@ -294,6 +295,7 @@ impl<const N: usize> BigInt<N> {
 
 impl<const N: usize> BigInteger for BigInt<N> {
     const NUM_LIMBS: usize = N;
+    const RADIX: u128 = 1 << 64;
 
     #[inline]
     fn add_with_carry(&mut self, other: &Self) -> bool {
@@ -916,6 +918,328 @@ impl<const N: usize> Not for BigInt<N> {
     }
 }
 
+/// Computes a division between to BigInt with remainder.
+///
+/// This algorithm is taken from "The Art of Computer Programming" by Donald
+/// Knuth, Third Edition, Section 4.3.2, Algorithm D, with some elements taken
+/// from the repository https://github.com/rust-num/num-bigint.
+fn div_with_rem<B: Borrow<BigInt<N>>, const N: usize>(
+    a: BigInt<N>,
+    d: B,
+) -> (BigInt<N>, BigInt<N>) {
+    let d = d.borrow();
+
+    // Basic cases
+    if d.is_zero() {
+        panic!("trying to divide by zero");
+    }
+    if d.is_one() {
+        return (a, BigInt::<N>::zero());
+    }
+    if a.is_zero() {
+        return (BigInt::<N>::zero(), BigInt::<N>::zero());
+    }
+
+    // Covers the case of N = 1, for which the quotient and remainder are
+    // computed as usual.
+    if N == 1 {
+        let q: u64 = a.0[0] / d.0[0];
+        let r: u64 = a.0[0] % d.0[0];
+        return (BigInt::<N>::from(q), BigInt::<N>::from(r));
+    }
+
+    // Covers immediate cases where a <= d.
+    match a.cmp(d) {
+        Ordering::Less => return (BigInt::<N>::zero(), a),
+        Ordering::Equal => return (BigInt::<N>::one(), BigInt::<N>::zero()),
+        Ordering::Greater => {}, // This case is covered in what follows.
+    }
+
+    // Here, we are in the case where a >= d, and it's not a trivial case. We
+    // will apply the TAOCP algorithm.
+
+    // Considers the case where N is not 1, but the only non-zero limb of v is
+    // the least significant limb. We can apply unwrap here because we know that a
+    // is not zero, so there should be at least one limb with a non-zero value.
+    let index_non_zero_d = d.0.iter().rposition(|&e| e != 0).unwrap();
+    if index_non_zero_d == 0 {
+        // Removes the most significant limbs with value zero from a.
+        let index_non_zero_a = a.0.iter().rposition(|&e| e != 0).unwrap();
+        let u = a.0[..index_non_zero_a + 1].to_vec();
+
+        // Takes the only non-zero limb of v.
+        let v = d.0[index_non_zero_d];
+
+        return div_with_rem_one_digit(u, v);
+    }
+
+    // Computes the normalization factor.
+    let shift = d.0[index_non_zero_d].leading_zeros() as u32;
+
+    if shift == 0 {
+        div_with_rem_core(a.0.to_vec(), d.0.to_vec())
+    } else {
+        // Here we construct the shifted version of a without chopping the overflow.
+        // Instead, we add another limb to store the overflow and putting it as
+        // the most significant limb.
+
+        // Captures the most sifnificant limb of a before the shifting. Be careful:
+        // this limb can be zero.
+        let most_sig_a = *a.0.last().unwrap();
+
+        // Shift a
+        let shifted_a_bi = a << shift; // bi stands for BigInteger.
+        let mut a_shifted = shifted_a_bi.0.to_vec();
+
+        // Check if we need to add an overflow to a. If the most significant
+        // limb of a before the sifting is zero, we don't need to add an
+        // additional overflow.
+        if most_sig_a != 0 {
+            let overflow = most_sig_a >> (64 - shift);
+            a_shifted.push(overflow);
+        } else {
+            // If the most significant limb is zero we chop the most significant
+            // limbs that are zero after shifting a.
+            let index_non_zero_a_shifted = a_shifted.iter().rposition(|&e| e != 0).unwrap();
+            a_shifted = a_shifted[0..index_non_zero_a_shifted + 1].to_vec();
+        }
+
+        // Apply the shift to d and chop the most significant limbs with value
+        // zero to d before applying the core algorithm.
+        let shifted_d_bi = *d << shift;
+        let d_shifted = shifted_d_bi.0[0..index_non_zero_d + 1].to_vec();
+
+        let (q, r) = div_with_rem_core(a_shifted, d_shifted);
+        return (q, r >> shift);
+    }
+}
+
+/// Computes the division with remainder between u = [u_0, ..., u_(n + 1)] and v, where
+/// v has just one non-zero limbs.
+fn div_with_rem_one_digit<const N: usize>(mut u: Vec<u64>, v: u64) -> (BigInt<N>, BigInt<N>) {
+    if v == 0 {
+        panic!("trying to divide by zero.");
+    }
+
+    let mut rem = 0;
+
+    for d in u.iter_mut().rev() {
+        let (q, r) = div_with_rem_wide(rem, *d, v);
+        *d = q;
+        rem = r;
+    }
+
+    let mut q_result = [0; N];
+    let mut r_result = [0; N];
+    q_result.copy_from_slice(&u);
+    r_result[0] = rem;
+
+    (BigInt::new(q_result), BigInt::new(r_result))
+}
+
+/// Divides a two-limb number by a one limb number returning the quotient and the remainder.
+///
+/// More specifically, this method computes the divission between [lo, hi] / div.
+#[inline]
+fn div_with_rem_wide(hi: u64, lo: u64, div: u64) -> (u64, u64) {
+    let dividend = from_two_u64_to_u128(lo, hi);
+    let divisor = div as u128;
+    let q = (dividend / divisor) as u64;
+    let r = (dividend % divisor) as u64;
+    (q, r)
+}
+
+/// Core of the algorithm for long division.
+///
+/// Computes the long division between two BigInt. This function receives two
+/// `Vec<u64>` given that it is more easy to manipulate the data this way.
+/// In this algorithm, the notation is [less_sig, ..., most_sig] for
+/// the radix-b representation.
+fn div_with_rem_core<const N: usize>(mut u: Vec<u64>, v: Vec<u64>) -> (BigInt<N>, BigInt<N>) {
+    // Length of the resulting quotient
+    let q_length = u.len() - v.len() + 1;
+
+    // This vector will store the result of the quotient.
+    let mut q = vec![0; q_length];
+
+    let v0 = *v.last().unwrap(); // Most significant bit of v.
+    let v1 = v[v.len() - 2];
+
+    let mut u0 = 0; // Additional most significant limb as mentioned in Step D1.
+
+    // We procceed as in the TAOCP algorithm, Steps D2-D7.
+    for j in (0..q_length).rev() {
+        let u1 = *u.last().unwrap(); // Most significant bit of u.
+        let u2 = u[u.len() - 2]; // We can do this given that N > 1.
+
+        // Step D3.
+        let (mut q_hat, rem) = div_with_rem_wide(u0, u1, v0);
+        let mut r_hat = rem as u128;
+        loop {
+            if (q_hat as u128) == BigInt::<N>::RADIX
+                || from_two_u64_to_u128(u2, r_hat as u64) < (q_hat as u128) * (v1 as u128)
+            {
+                q_hat -= 1;
+                r_hat += v0 as u128; // Promoted to u128 to avoid overflow.
+            } else {
+                break;
+            }
+
+            // Test the previous condition again in the case that r_hat < u64::MAX, as
+            // specified in Step D3.
+            if r_hat >= BigInt::<N>::RADIX {
+                break;
+            }
+        }
+
+        // Step D4. Step D5 is not explicitly stated given that the result of the
+        // division has just one limb.
+        let mut borrow = sub_mul_with_borrow(&mut u[j..], &v, q_hat);
+
+        // Step D6.
+        if borrow > u0 {
+            q_hat -= 1;
+            borrow -= add_different_len(&mut u[j..], &v);
+        }
+
+        debug_assert!(borrow == u0);
+
+        // Deletes the most significant bit of u. At the end, u will have length N.
+        u0 = u.pop().unwrap();
+
+        // Reconstruct BigInt<N>
+        q[j] = q_hat; // It moves just one limb given that the quotient needs
+                      // just one limb by definition.
+    }
+
+    u.push(u0);
+
+    // Collect the remainder and the quotient into arrays.
+    let mut remainder = [0; N];
+    let mut quotient = [0; N];
+
+    // Append missing limbs to u and q
+    let miss_zeros_u = N - u.len();
+    for _ in 0..miss_zeros_u {
+        u.push(0);
+    }
+
+    let miss_zeros_q = N - q.len();
+    for _ in 0..miss_zeros_q {
+        q.push(0);
+    }
+
+    remainder.copy_from_slice(&u);
+    quotient.copy_from_slice(&q);
+
+    (BigInt::new(quotient), BigInt::new(remainder))
+}
+
+/// Computes `u = u - q * v`, where `u = [u_0, ..., u_(n + 1)]`, `q` has just one limb and
+/// `v = [v_0, ..., v_n]`, and returns the borrow. This source code is based in the one presented
+/// in https://github.com/rust-num/num-bigint/blob/master/src/bigint/division.rs.
+fn sub_mul_with_borrow(u: &mut [u64], v: &Vec<u64>, q: u64) -> u64 {
+    // We do this because the borrow is in the interval [-u64::MAX, 0]. Hence, to avoid overflow
+    // we compute the carry plus an offset. Then we retrieve the possitive value of the borrow
+    // by removing the offset.
+    let mut offset_carry = u64::MAX;
+
+    for (x, y) in u.iter_mut().zip(v) {
+        // x - y * q + carry
+        let offset_sum = from_two_u64_to_u128(*x, u64::MAX) - (u64::MAX as u128)
+            + (offset_carry as u128)
+            - (*y as u128) * (q as u128);
+
+        let (new_offset_carry, new_x) = get_u64_limbs_from_u128(offset_sum);
+        offset_carry = new_offset_carry;
+
+        *x = new_x;
+    }
+
+    u64::MAX - offset_carry
+}
+
+/// Obtains the 64 most significant bits as an u68 value from a u128 value.
+#[inline]
+fn get_high_u64_from_u128(n: u128) -> u64 {
+    (n >> 64) as u64
+}
+
+/// Obtains the 64 least significant bits as an u68 value from a u128 value.
+#[inline]
+fn get_low_u64_from_u128(n: u128) -> u64 {
+    // This is equivalent to the 64 least significant bits set to 1 (0xFFFFFFFFFFFFFFFF)
+    const LOW_MASK: u128 = (1_u128 << 64) - 1;
+    (n & LOW_MASK) as u64
+}
+
+/// Obtains the two limbs of a u128 value as u64 values.
+#[inline]
+fn get_u64_limbs_from_u128(n: u128) -> (u64, u64) {
+    (get_high_u64_from_u128(n), get_low_u64_from_u128(n))
+}
+
+/// Computes the sum of `carry + a + b` storing the result in `output` and returning
+/// the carry flag as `u8`.
+#[inline]
+fn add_with_carry(carry_in: u8, a: u64, b: u64, output: &mut u64) -> u8 {
+    let (out_a_b, carry_a_b) = a.overflowing_add(b);
+    let (out_ab_carry, carry_ab_carry) = out_a_b.overflowing_add(carry_in as u64);
+    let carry_sum = (carry_a_b as u8) + (carry_ab_carry as u8);
+    let (out_sum_carry, final_carry) = out_ab_carry.overflowing_add(carry_sum as u64);
+    *output = out_sum_carry;
+    final_carry as u8
+}
+
+/// Converts two u64 numbers `low` and `high` into an u128 representation of the number
+/// `[low, high]`.
+#[inline]
+fn from_two_u64_to_u128(low: u64, high: u64) -> u128 {
+    (u128::from(high) << 64) | u128::from(low)
+}
+
+/// Computes the addition two values in radix u64 and returns the carry. Those
+/// two values have not necessarily the same number of limbs. This algorithm is
+/// inspired from https://github.com/rust-num/num-bigint/blob/master/src/bigint/addition.rs.
+fn add_different_len(u: &mut [u64], v: &Vec<u64>) -> u64 {
+    let mut carry = 0;
+    let (u_low, u_high) = u.split_at_mut(v.len());
+
+    for (u, v) in u_low.iter_mut().zip(v) {
+        carry = add_with_carry(carry, *u, *v, u);
+    }
+
+    if carry != 0 {
+        for u in u_high {
+            carry = add_with_carry(carry, *u, 0, u);
+            if carry == 0 {
+                break;
+            }
+        }
+    }
+
+    carry as u64
+}
+
+impl<B: Borrow<Self>, const N: usize> Rem<B> for BigInt<N> {
+    type Output = Self;
+
+    /// Computes the remainder between two `BigInt`.
+    fn rem(mut self, rhs: B) -> Self::Output {
+        self %= rhs;
+        self
+    }
+}
+
+impl<B: Borrow<Self>, const N: usize> RemAssign<B> for BigInt<N> {
+    /// Computes the remainder between `self` and `rhs`, assigning the result to
+    /// `self`.
+    fn rem_assign(&mut self, rhs: B) {
+        let (_, rem) = div_with_rem(*self, rhs);
+        (0..N).for_each(|i| self.0[i] = rem.0[i]);
+    }
+}
+
 /// Compute the signed modulo operation on a u64 representation, returning the result.
 /// If n % modulus > modulus / 2, return modulus - n
 /// # Example
@@ -989,9 +1313,17 @@ pub trait BigInteger:
     + ShrAssign<u32>
     + Shl<u32, Output = Self>
     + ShlAssign<u32>
+    + Rem<Self, Output = Self>
+    + for<'a> Rem<&'a Self, Output = Self>
+    + RemAssign<Self>
+    + for<'a> RemAssign<&'a Self>
 {
     /// Number of 64-bit limbs representing `Self`.
     const NUM_LIMBS: usize;
+
+    /// Radix of the representation. This is the number of different "digits" that
+    /// can be represented by one limb.
+    const RADIX: u128;
 
     /// Add another [`BigInteger`] to `self`. This method stores the result in `self`,
     /// and returns a carry bit.
@@ -1225,6 +1557,19 @@ pub trait BigInteger:
     /// assert!(zero.is_zero());
     /// ```
     fn is_zero(&self) -> bool;
+
+    /// Returns true iff this number is one.
+    /// # Example
+    ///
+    /// ```
+    /// use ark_ff::{biginteger::BigInteger64 as B, BigInteger as _};
+    ///
+    /// let mut one = B::from(1u64);
+    /// assert!(one.is_one());
+    /// ```
+    fn is_one(&self) -> bool {
+        *self == Self::from(1u64)
+    }
 
     /// Compute the minimum number of bits needed to encode this number.
     /// # Example
