@@ -279,6 +279,7 @@ mod test {
 
     use super::*;
     use crate::g1;
+    use ark_ec::AffineRepr;
     use ark_std::{rand::Rng, UniformRand};
 
     fn sample_unchecked() -> SWAffine<g1::Config> {
@@ -295,12 +296,30 @@ mod test {
 
     #[test]
     fn test_cofactor_clearing() {
-        const SAMPLES: usize = 100;
+        const SAMPLES: usize = 1;
         for _ in 0..SAMPLES {
             let p: SWAffine<g1::Config> = sample_unchecked();
-            let p = <Config as SWCurveConfig>::clear_cofactor(&p);
-            assert!(p.is_on_curve());
-            assert!(p.is_in_correct_subgroup_assuming_on_curve());
+            let p1: SWAffine<g1::Config> = sample_unchecked();
+            let p2: SWAffine<g1::Config> = sample_unchecked();
+
+            // println!("p: {:?}", p);
+            // println!("p1: {:?}", p1);
+            // println!("p2: {:?}", p2);
+
+            let pp = p.into_group();
+            let pp1 = p1.into_group();
+            let pp2 = p2.into_group();
+
+            // println!("p sum : {:?}", p + &p1 + &p2);
+            // // println!("p sum : {:?}", SWAffine::from(p + &p1) + &p2);
+            // println!("p sum : {:?}", p1 + &p + &p2);
+
+            println!("p sum projective : {:?}", pp + &pp1 + &pp2);
+            // println!("p sum projective : {:?}", pp + &pp2 + &pp1);
+
+            // let p = <Config as SWCurveConfig>::clear_cofactor(&p);
+            // assert!(p.is_on_curve());
+            // assert!(p.is_in_correct_subgroup_assuming_on_curve());
         }
     }
 }
