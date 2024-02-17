@@ -3,11 +3,11 @@ use crate::{BigInteger, FftField, Field};
 use ark_std::{cmp::min, str::FromStr};
 use num_bigint::BigUint;
 
-/// The interface for a prime field, i.e. the field of integers modulo a prime $p$.  
+/// The interface for a prime field, i.e. the field of integers modulo a prime $p$.
 /// In the following example we'll use the prime field underlying the BLS12-381 G1 curve.
 /// ```rust
-/// use ark_ff::{BigInteger, Field, PrimeField};
-/// use ark_std::{test_rng, One, UniformRand, Zero};
+/// use ark_ff::{BigInteger, Field, PrimeField, Zero};
+/// use ark_std::{test_rng, One, UniformRand};
 /// use ark_test_curves::bls12_381::Fq as F;
 ///
 /// let mut rng = test_rng();
