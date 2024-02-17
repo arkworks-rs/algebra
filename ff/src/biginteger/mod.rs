@@ -881,11 +881,13 @@ fn div_with_rem<B: Borrow<BigInt<N>>, const N: usize>(
     a: BigInt<N>,
     d: B,
 ) -> (BigInt<N>, BigInt<N>) {
+    let d = d.borrow();
+
     // Basic cases
-    if d.borrow().is_zero() {
+    if d.is_zero() {
         panic!("trying to divide by zero");
     }
-    if d.borrow().is_one() {
+    if d.is_one() {
         return (a, BigInt::<N>::zero());
     }
     if a.is_zero() {
@@ -895,13 +897,13 @@ fn div_with_rem<B: Borrow<BigInt<N>>, const N: usize>(
     // Covers the case of N = 1, for which the quotient and remainder are
     // computed as usual.
     if N == 1 {
-        let q: u64 = a.0[0] / d.borrow().0[0];
-        let r: u64 = a.0[0] % d.borrow().0[0];
+        let q: u64 = a.0[0] / d.0[0];
+        let r: u64 = a.0[0] % d.0[0];
         return (BigInt::<N>::from(q), BigInt::<N>::from(r));
     }
 
     // Covers immediate cases where a <= d.
-    match a.cmp(d.borrow()) {
+    match a.cmp(d) {
         Ordering::Less => return (BigInt::<N>::zero(), a),
         Ordering::Equal => return (BigInt::<N>::one(), BigInt::<N>::zero()),
         Ordering::Greater => {}, // This case is covered in what follows.
@@ -913,23 +915,23 @@ fn div_with_rem<B: Borrow<BigInt<N>>, const N: usize>(
     // Considers the case where N is not 1, but the only non-zero limb of v is
     // the least significant limb. We can apply unwrap here because we know that a
     // is not zero, so there should be at least one limb with a non-zero value.
-    let index_non_zero_d = d.borrow().0.iter().rposition(|&e| e != 0).unwrap();
+    let index_non_zero_d = d.0.iter().rposition(|&e| e != 0).unwrap();
     if index_non_zero_d == 0 {
         // Removes the most significant limbs with value zero from a.
         let index_non_zero_a = a.0.iter().rposition(|&e| e != 0).unwrap();
         let u = a.0[..index_non_zero_a + 1].to_vec();
 
         // Takes the only non-zero limb of v.
-        let v = d.borrow().0[index_non_zero_d];
+        let v = d.0[index_non_zero_d];
 
         return div_with_rem_one_digit(u, v);
     }
 
     // Computes the normalization factor.
-    let shift = d.borrow().0[index_non_zero_d].leading_zeros() as u32;
+    let shift = d.0[index_non_zero_d].leading_zeros() as u32;
 
     if shift == 0 {
-        div_with_rem_core(a.0.to_vec(), d.borrow().0.to_vec())
+        div_with_rem_core(a.0.to_vec(), d.0.to_vec())
     } else {
         // Here we construct the shifted version of a without chopping the overflow.
         // Instead, we add another limb to store the overflow and putting it as
@@ -958,7 +960,7 @@ fn div_with_rem<B: Borrow<BigInt<N>>, const N: usize>(
 
         // Apply the shift to d and chop the most significant limbs with value
         // zero to d before applying the core algorithm.
-        let shifted_d_bi = *d.borrow() << shift;
+        let shifted_d_bi = *d << shift;
         let d_shifted = shifted_d_bi.0[0..index_non_zero_d + 1].to_vec();
 
         let (q, r) = div_with_rem_core(a_shifted, d_shifted);

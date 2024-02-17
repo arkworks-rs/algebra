@@ -2,7 +2,7 @@
 
 ## Pending
 
-- [\#761](https://github.com/arkworks-rs/algebra/pull/761) (`ark-ff`) Implementation of modulus operator for `BigInteger`.
+
 
 ### Breaking changes
 
@@ -27,6 +27,7 @@
 - [\#691](https://github.com/arkworks-rs/algebra/pull/691) (`ark-poly`) Implement `Polynomial` for `SparseMultilinearExtension` and `DenseMultilinearExtension`.
 - [\#693](https://github.com/arkworks-rs/algebra/pull/693) (`ark-serialize`) Add `serialize_to_vec!` convenience macro.
 - [\#713](https://github.com/arkworks-rs/algebra/pull/713) (`ark-ff`) Add support for bitwise operations AND, OR, and XOR between `BigInteger`.
+- [\#761](https://github.com/arkworks-rs/algebra/pull/761) (`ark-ff`) Implementation of modulus operator for `BigInteger`.
 
 ### Improvements
 
