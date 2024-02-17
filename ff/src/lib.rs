@@ -37,19 +37,16 @@ pub use ark_std::UniformRand;
 mod to_field_vec;
 pub use to_field_vec::ToConstraintField;
 
-pub use num_traits::{One, Zero};
-
 #[doc(hidden)]
 pub use ark_ff_asm::*;
 #[doc(hidden)]
 pub use ark_std::vec;
 
 pub mod prelude {
-    pub use crate::biginteger::BigInteger;
-
-    pub use crate::fields::{Field, PrimeField};
-
+    pub use crate::{
+        biginteger::BigInteger,
+        fields::{Field, PrimeField},
+        One, Zero,
+    };
     pub use ark_std::UniformRand;
-
-    pub use num_traits::{One, Zero};
 }

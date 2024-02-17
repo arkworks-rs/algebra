@@ -1,3 +1,9 @@
+use super::{Affine, SWCurveConfig};
+use crate::{
+    scalar_mul::{variable_base::VariableBaseMSM, ScalarMul},
+    AffineRepr, CurveGroup, PrimeGroup,
+};
+use ark_ff::{fields::Field, AdditiveGroup, PrimeField, ToConstraintField, UniformRand};
 use ark_serialize::{
     CanonicalDeserialize, CanonicalSerialize, Compress, SerializationError, Valid, Validate,
 };
@@ -14,20 +20,10 @@ use ark_std::{
     vec::Vec,
     One, Zero,
 };
-
-use ark_ff::{fields::Field, AdditiveGroup, PrimeField, ToConstraintField, UniformRand};
-
 use derivative::Derivative;
-use zeroize::Zeroize;
-
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
-
-use super::{Affine, SWCurveConfig};
-use crate::{
-    scalar_mul::{variable_base::VariableBaseMSM, ScalarMul},
-    AffineRepr, CurveGroup, PrimeGroup,
-};
+use zeroize::Zeroize;
 
 /// Jacobian coordinates for a point on an elliptic curve in short Weierstrass
 /// form, over the base field `P::BaseField`. This struct implements arithmetic
@@ -362,12 +358,15 @@ impl<P: SWCurveConfig, T: Borrow<Affine<P>>> AddAssign<T> for Projective<P> {
             s2 *= &other_y;
             s2 *= &z1z1;
 
-            if self.x == u2 && self.y == s2 {
-                // The two points are equal, so we double.
-                self.double_in_place();
+            if self.x == u2 {
+                if self.y == s2 {
+                    // The two points are equal, so we double.
+                    self.double_in_place();
+                } else {
+                    // a + (-a) = 0
+                    *self = Self::zero()
+                }
             } else {
-                // If we're adding -a and a together, self.z becomes zero as H becomes zero.
-
                 // H = U2-X1
                 let mut h = u2;
                 h -= &self.x;
@@ -487,11 +486,14 @@ impl<'a, P: SWCurveConfig> AddAssign<&'a Self> for Projective<P> {
         s2 *= &z1z1;
 
         if u1 == u2 && s1 == s2 {
-            // The two points are equal, so we double.
-            self.double_in_place();
+            if s1 == s2 {
+                // The two points are equal, so we double.
+                self.double_in_place();
+            } else {
+                // a + (-a) = 0
+                *self = Self::zero();
+            }
         } else {
-            // If we're adding -a and a together, self.z becomes zero as H becomes zero.
-
             // H = U2-U1
             let mut h = u2;
             h -= &u1;

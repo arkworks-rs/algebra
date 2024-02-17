@@ -1,7 +1,5 @@
-use ark_std::Zero;
-
 use super::quadratic_extension::{QuadExtConfig, QuadExtField};
-use crate::{fields::PrimeField, CyclotomicMultSubgroup};
+use crate::{fields::PrimeField, CyclotomicMultSubgroup, Zero};
 use core::{marker::PhantomData, ops::Not};
 
 /// Trait that specifies constants and methods for defining degree-two extension fields.
