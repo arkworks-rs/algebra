@@ -1,12 +1,10 @@
-use ark_std::Zero;
-
 use super::quadratic_extension::{QuadExtConfig, QuadExtField};
 use crate::{
     fields::{
         fp6_3over2::{Fp6, Fp6Config},
         Field, Fp2, Fp2Config as Fp2ConfigTrait,
     },
-    AdditiveGroup, CyclotomicMultSubgroup,
+    AdditiveGroup, CyclotomicMultSubgroup, Zero,
 };
 use core::{
     marker::PhantomData,
