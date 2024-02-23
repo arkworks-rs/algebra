@@ -295,63 +295,62 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
 
     fn inverse(a: &Fp<MontBackend<Self, N>, N>) -> Option<Fp<MontBackend<Self, N>, N>> {
         if a.is_zero() {
-            None
-        } else {
-            // Guajardo Kumar Paar Pelzl
-            // Efficient Software-Implementation of Finite Fields with Applications to
-            // Cryptography
-            // Algorithm 16 (BEA for Inversion in Fp)
+            return None;
+        }
+        // Guajardo Kumar Paar Pelzl
+        // Efficient Software-Implementation of Finite Fields with Applications to
+        // Cryptography
+        // Algorithm 16 (BEA for Inversion in Fp)
 
-            let one = BigInt::from(1u64);
+        let one = BigInt::from(1u64);
 
-            let mut u = a.0;
-            let mut v = Self::MODULUS;
-            let mut b = Fp::new_unchecked(Self::R2); // Avoids unnecessary reduction step.
-            let mut c = Fp::zero();
+        let mut u = a.0;
+        let mut v = Self::MODULUS;
+        let mut b = Fp::new_unchecked(Self::R2); // Avoids unnecessary reduction step.
+        let mut c = Fp::zero();
 
-            while u != one && v != one {
-                while u.is_even() {
-                    u.div2();
+        while u != one && v != one {
+            while u.is_even() {
+                u.div2();
 
-                    if b.0.is_even() {
-                        b.0.div2();
-                    } else {
-                        let carry = b.0.add_with_carry(&Self::MODULUS);
-                        b.0.div2();
-                        if !Self::MODULUS_HAS_SPARE_BIT && carry {
-                            (b.0).0[N - 1] |= 1 << 63;
-                        }
-                    }
-                }
-
-                while v.is_even() {
-                    v.div2();
-
-                    if c.0.is_even() {
-                        c.0.div2();
-                    } else {
-                        let carry = c.0.add_with_carry(&Self::MODULUS);
-                        c.0.div2();
-                        if !Self::MODULUS_HAS_SPARE_BIT && carry {
-                            (c.0).0[N - 1] |= 1 << 63;
-                        }
-                    }
-                }
-
-                if v < u {
-                    u.sub_with_borrow(&v);
-                    b -= &c;
+                if b.0.is_even() {
+                    b.0.div2();
                 } else {
-                    v.sub_with_borrow(&u);
-                    c -= &b;
+                    let carry = b.0.add_with_carry(&Self::MODULUS);
+                    b.0.div2();
+                    if !Self::MODULUS_HAS_SPARE_BIT && carry {
+                        (b.0).0[N - 1] |= 1 << 63;
+                    }
                 }
             }
 
-            if u == one {
-                Some(b)
-            } else {
-                Some(c)
+            while v.is_even() {
+                v.div2();
+
+                if c.0.is_even() {
+                    c.0.div2();
+                } else {
+                    let carry = c.0.add_with_carry(&Self::MODULUS);
+                    c.0.div2();
+                    if !Self::MODULUS_HAS_SPARE_BIT && carry {
+                        (c.0).0[N - 1] |= 1 << 63;
+                    }
+                }
             }
+
+            if v < u {
+                u.sub_with_borrow(&v);
+                b -= &c;
+            } else {
+                v.sub_with_borrow(&u);
+                c -= &b;
+            }
+        }
+
+        if u == one {
+            Some(b)
+        } else {
+            Some(c)
         }
     }
 

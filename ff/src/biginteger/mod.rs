@@ -470,8 +470,10 @@ impl<const N: usize> BigInteger for BigInt<N> {
     #[inline]
     fn div2(&mut self) {
         let mut t = 0;
-        for i in 0..N {
-            let a = &mut self.0[N - i - 1];
+        let mut i = N;
+        while i > 0 {
+            i -= 1;
+            let a = &mut self.0[i];
             let t2 = *a << 63;
             *a >>= 1;
             *a |= t;
