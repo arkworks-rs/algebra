@@ -10,7 +10,7 @@ use ark_std::{
     collections::BTreeMap,
     fmt,
     ops::{Add, AddAssign, Deref, DerefMut, Mul, Neg, SubAssign},
-    vec::Vec,
+    vec::*,
 };
 
 #[cfg(feature = "parallel")]
