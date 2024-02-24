@@ -293,7 +293,7 @@ impl<F: Field, T: Term> Zero for SparsePolynomial<F, T> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ark_ff::{UniformRand};
+    use ark_ff::UniformRand;
     use ark_std::test_rng;
     use ark_test_curves::bls12_381::Fr;
 

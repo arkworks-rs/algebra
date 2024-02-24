@@ -1,4 +1,4 @@
-use ark_ff::{prelude::*};
+use ark_ff::prelude::*;
 use ark_std::{borrow::Borrow, cfg_into_iter, iterable::Iterable, vec::*};
 
 #[cfg(feature = "parallel")]

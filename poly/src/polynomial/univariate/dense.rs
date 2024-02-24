@@ -635,8 +635,8 @@ impl<F: Field> Zero for DensePolynomial<F> {
 #[cfg(test)]
 mod tests {
     use crate::{polynomial::univariate::*, GeneralEvaluationDomain};
-    use ark_ff::{One, UniformRand};
     use ark_ff::{Fp64, MontBackend, MontConfig};
+    use ark_ff::{One, UniformRand};
     use ark_std::{rand::Rng, test_rng};
     use ark_test_curves::bls12_381::Fr;
 
@@ -961,7 +961,7 @@ mod tests {
         assert_eq!(evaluations, zero.evaluate_over_domain(domain).evals);
     }
 
-    use crate::{Radix2EvaluationDomain};
+    use crate::Radix2EvaluationDomain;
 
     #[test]
     fn evaluate_over_domain_regression_test() {
