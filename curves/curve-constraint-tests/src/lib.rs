@@ -229,7 +229,7 @@ pub mod curves {
     };
     use ark_ff::{BitIteratorLE, Field, One, PrimeField};
     use ark_relations::r1cs::{ConstraintSystem, SynthesisError};
-    use ark_std::{test_rng, vec::*UniformRand};
+    use ark_std::{test_rng, vec::*, UniformRand};
 
     use ark_r1cs_std::{fields::emulated_fp::EmulatedFpVar, prelude::*};
 
@@ -538,7 +538,7 @@ pub mod pairing {
     use ark_r1cs_std::convert::ToBytesGadget;
     use ark_r1cs_std::prelude::*;
     use ark_relations::r1cs::{ConstraintSystem, SynthesisError};
-    use ark_std::{test_rng, vec::*UniformRand};
+    use ark_std::{test_rng, vec::*, UniformRand};
 
     type BasePrimeField<P> = <<P as Pairing>::BaseField as Field>::BasePrimeField;
 
