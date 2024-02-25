@@ -197,7 +197,7 @@ def bls12_377_hash_to_G2(e2_p6S_iso, data):
 # e26_order = Ell2_6.order()
 # for i in primes(30):
 #     if e26_order % i == 0:
-#         print("order is divisable by ", i)
+#         print("order is divisible by ", i)
 
 def find_non_square():
     quad_non_res = 0x01ae3a4617c510eac63b05c06ca1493b1a22d9f300f5138f1ef3622fba094800170b5d44300000008508bffffffffffc
