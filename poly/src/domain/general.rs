@@ -16,7 +16,7 @@ use ark_serialize::{
 };
 use ark_std::{
     io::{Read, Write},
-    vec::Vec,
+    vec::*,
 };
 
 /// Defines a domain over which finite field (I)FFTs can be performed.

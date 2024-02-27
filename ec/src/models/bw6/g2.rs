@@ -1,6 +1,6 @@
 use ark_ff::{AdditiveGroup, BitIteratorBE, Field};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
-use ark_std::vec::Vec;
+use ark_std::vec::*;
 use derivative::Derivative;
 use num_traits::One;
 
