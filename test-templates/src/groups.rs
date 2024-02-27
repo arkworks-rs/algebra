@@ -424,7 +424,7 @@ macro_rules! test_group {
             use ark_ff::*;
             use ark_ec::{PrimeGroup, CurveGroup, ScalarMul, AffineRepr, CurveConfig, short_weierstrass::SWCurveConfig, twisted_edwards::TECurveConfig, scalar_mul::{*, wnaf::*}};
             use ark_serialize::*;
-            use ark_std::{io::Cursor, rand::Rng, vec::*test_rng, vec, Zero, One, UniformRand};
+            use ark_std::{io::Cursor, rand::Rng, vec::*, test_rng, vec, Zero, One, UniformRand};
             const ITERATIONS: usize = $iters;
 
             $crate::__test_group!($group $(; $tail)*);
