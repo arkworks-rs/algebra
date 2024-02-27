@@ -821,10 +821,8 @@ impl<const N: usize> ShrAssign<u32> for BigInt<N> {
 
         while rhs >= 64 {
             let mut t = 0;
-            let mut limb = N;
-            while limb > 0 {
-                limb -= 1;
-                core::mem::swap(&mut t, &mut self.0[limb]);
+            for limb in self.0.iter_mut().rev() {
+                core::mem::swap(&mut t, limb);
             }
             rhs -= 64;
         }
