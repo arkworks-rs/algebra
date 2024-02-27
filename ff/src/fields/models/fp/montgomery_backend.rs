@@ -371,7 +371,7 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
     #[unroll_for_loops(12)]
     #[allow(clippy::modulo_one)]
     fn into_bigint(a: Fp<MontBackend<Self, N>, N>) -> BigInt<N> {
-        let mut r = a.0 .0;
+        let mut r = (a.0).0;
         // Montgomery Reduction
         for i in 0..N {
             let k = r[i].wrapping_mul(Self::INV);
