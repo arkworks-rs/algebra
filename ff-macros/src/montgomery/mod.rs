@@ -1,4 +1,3 @@
-use quote::format_ident;
 use std::str::FromStr;
 
 use num_bigint::BigUint;
