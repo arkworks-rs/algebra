@@ -12,7 +12,7 @@ use ark_ff::{
     },
     BitIteratorBE, CyclotomicMultSubgroup, Field, PrimeField,
 };
-use ark_std::{cfg_chunks_mut, marker::PhantomData, vec::Vec};
+use ark_std::{cfg_chunks_mut, marker::PhantomData, vec::*};
 use derivative::Derivative;
 use num_traits::{One, Zero};
 
