@@ -1,4 +1,4 @@
-use ark_std::{vec, vec::Vec};
+use ark_std::{vec, vec::*};
 
 macro_rules! adc {
     ($a:expr, $b:expr, &mut $carry:expr$(,)?) => {{

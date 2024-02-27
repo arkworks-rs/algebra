@@ -26,7 +26,7 @@ use ark_std::{
     fmt::{Debug, Display},
     hash::Hash,
     ops::{Add, AddAssign, Mul, MulAssign, Neg, Sub, SubAssign},
-    vec::Vec,
+    vec::*,
 };
 pub use scalar_mul::{variable_base::VariableBaseMSM, ScalarMul};
 use zeroize::Zeroize;
