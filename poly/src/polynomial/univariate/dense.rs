@@ -9,7 +9,7 @@ use ark_std::{
     fmt,
     ops::{Add, AddAssign, Deref, DerefMut, Div, Mul, Neg, Sub, SubAssign},
     rand::Rng,
-    vec::Vec,
+    vec::*,
 };
 
 #[cfg(feature = "parallel")]
@@ -634,10 +634,10 @@ impl<F: Field> Zero for DensePolynomial<F> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{polynomial::univariate::*, EvaluationDomain, GeneralEvaluationDomain, Polynomial};
-    use ark_ff::{Field, One, UniformRand, Zero};
+    use crate::{polynomial::univariate::*, GeneralEvaluationDomain};
     use ark_ff::{Fp64, MontBackend, MontConfig};
-    use ark_std::{rand::Rng, test_rng, vec::Vec};
+    use ark_ff::{One, UniformRand};
+    use ark_std::{rand::Rng, test_rng};
     use ark_test_curves::bls12_381::Fr;
 
     fn rand_sparse_poly<R: Rng>(degree: usize, rng: &mut R) -> SparsePolynomial<Fr> {
@@ -961,7 +961,7 @@ mod tests {
         assert_eq!(evaluations, zero.evaluate_over_domain(domain).evals);
     }
 
-    use crate::{univariate::DensePolynomial, DenseUVPolynomial, Radix2EvaluationDomain};
+    use crate::Radix2EvaluationDomain;
 
     #[test]
     fn evaluate_over_domain_regression_test() {

@@ -7,16 +7,16 @@ use ark_serialize::{
     CanonicalSerializeWithFlags, Compress, EmptyFlags, Flags, SerializationError, Valid, Validate,
 };
 use ark_std::{
-    cmp::{Ord, Ordering, PartialOrd},
+    cmp::*,
     fmt,
     io::{Read, Write},
-    iter::{Chain, IntoIterator},
+    iter::*,
     ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign},
     rand::{
         distributions::{Distribution, Standard},
         Rng,
     },
-    vec::Vec,
+    vec::*,
 };
 use zeroize::Zeroize;
 

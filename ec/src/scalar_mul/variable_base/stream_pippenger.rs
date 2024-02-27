@@ -1,7 +1,7 @@
 //! A space-efficient implementation of Pippenger's algorithm.
 use ark_ff::{PrimeField, Zero};
 
-use ark_std::{borrow::Borrow, vec::Vec};
+use ark_std::{borrow::Borrow, vec::*};
 use hashbrown::HashMap;
 
 use super::VariableBaseMSM;
