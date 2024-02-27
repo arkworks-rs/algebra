@@ -5,7 +5,7 @@ use crate::{
 };
 use ark_ff::Fp3;
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
-use ark_std::vec::Vec;
+use ark_std::vec::*;
 use derivative::Derivative;
 
 pub type G1Affine<P> = Affine<<P as MNT6Config>::G1Config>;
