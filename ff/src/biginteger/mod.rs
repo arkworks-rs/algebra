@@ -397,7 +397,7 @@ impl<const N: usize> BigInteger for BigInt<N> {
             carry = 0;
         }
 
-        return (Self(r.b0), Self(r.b1));
+        (Self(r.b0), Self(r.b1))
     }
 
     #[inline]
@@ -762,20 +762,20 @@ impl<const N: usize> ShrAssign<u32> for BigInt<N> {
     fn shr_assign(&mut self, mut rhs: u32) {
         if rhs >= (64 * N) as u32 {
             *self = Self::from(0u64);
+            return;
         }
 
         while rhs >= 64 {
             let mut t = 0;
-            for i in 0..N {
-                core::mem::swap(&mut t, &mut self.0[N - i - 1]);
+            for limb in self.0.iter_mut().rev() {
+                core::mem::swap(&mut t, limb);
             }
             rhs -= 64;
         }
 
         if rhs > 0 {
             let mut t = 0;
-            for i in 0..N {
-                let a = &mut self.0[N - i - 1];
+            for a in self.0.iter_mut().rev() {
                 let t2 = *a << (64 - rhs);
                 *a >>= rhs;
                 *a |= t;
