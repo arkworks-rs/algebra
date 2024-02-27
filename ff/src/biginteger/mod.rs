@@ -506,20 +506,9 @@ impl<const N: usize> BigInteger for BigInt<N> {
 
     #[inline]
     fn from_bits_be(bits: &[bool]) -> Self {
-        let mut res = Self::default();
-        let mut acc: u64 = 0;
-
         let mut bits = bits.to_vec();
         bits.reverse();
-        for (i, bits64) in bits.chunks(64).enumerate() {
-            for bit in bits64.iter().rev() {
-                acc <<= 1;
-                acc += *bit as u64;
-            }
-            res.0[i] = acc;
-            acc = 0;
-        }
-        res
+        Self::from_bits_le(&bits)
     }
 
     fn from_bits_le(bits: &[bool]) -> Self {
