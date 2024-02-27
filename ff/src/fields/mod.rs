@@ -14,7 +14,7 @@ use ark_std::{
 };
 
 pub use ark_ff_macros;
-use num_traits::{One, Zero};
+pub use num_traits::{One, Zero};
 use zeroize::Zeroize;
 
 pub mod utils;

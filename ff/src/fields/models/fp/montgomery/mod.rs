@@ -1,8 +1,9 @@
-use ark_std::{marker::PhantomData, Zero};
-
 use super::{Fp, FpConfig};
-use crate::{biginteger::arithmetic as fa, BigInt, BigInteger, PrimeField, SqrtPrecomputation};
+use crate::{
+    biginteger::arithmetic as fa, BigInt, BigInteger, PrimeField, SqrtPrecomputation, Zero,
+};
 use ark_ff_macros::unroll_for_loops;
+use ark_std::marker::PhantomData;
 
 mod backend;
 pub use backend::*;
@@ -173,9 +174,9 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
             {
                 #[cfg(
                     all(
-                        feature = "asm", 
-                        target_feature = "bmi2", 
-                        target_feature = "adx", 
+                        feature = "asm",
+                        target_feature = "bmi2",
+                        target_feature = "adx",
                         target_arch = "x86_64"
                     )
                 )]

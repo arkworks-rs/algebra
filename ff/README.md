@@ -150,10 +150,10 @@ to implement the [`PrimeField`][prime_field] trait for it. This provides access 
 additional APIs:
 
 ```rust
-use ark_ff::{Field, PrimeField, FpConfig, BigInteger};
+use ark_ff::{Field, PrimeField, FpConfig, BigInteger, Zero};
 // Now we'll use the prime field underlying the BLS12-381 G1 curve.
 use ark_test_curves::bls12_381::Fq as F;
-use ark_std::{One, Zero, UniformRand};
+use ark_std::{One, UniformRand};
 
 let mut rng = ark_std::test_rng();
 let a = F::rand(&mut rng);
