@@ -109,8 +109,7 @@ macro_rules! const_modulo {
         // https://en.wikipedia.org/wiki/Division_algorithm
         assert!(!$divisor.const_is_zero());
         let mut remainder = Self::new([0u64; N]);
-        let end = $a.num_bits();
-        let mut i = (end - 1) as isize;
+        let mut i = ($a.num_bits() - 1) as isize;
         let mut carry;
         while i >= 0 {
             (remainder, carry) = remainder.const_mul2_with_carry();
@@ -295,69 +294,27 @@ impl<const N: usize> BigInt<N> {
 impl<const N: usize> BigInteger for BigInt<N> {
     const NUM_LIMBS: usize = N;
 
+    #[unroll_for_loops(6)]
     #[inline]
     fn add_with_carry(&mut self, other: &Self) -> bool {
-        {
-            use arithmetic::adc_for_add_with_carry as adc;
+        let mut carry = 0;
 
-            let a = &mut self.0;
-            let b = &other.0;
-            let mut carry = 0;
-
-            if N >= 1 {
-                carry = adc(&mut a[0], b[0], carry);
-            }
-            if N >= 2 {
-                carry = adc(&mut a[1], b[1], carry);
-            }
-            if N >= 3 {
-                carry = adc(&mut a[2], b[2], carry);
-            }
-            if N >= 4 {
-                carry = adc(&mut a[3], b[3], carry);
-            }
-            if N >= 5 {
-                carry = adc(&mut a[4], b[4], carry);
-            }
-            if N >= 6 {
-                carry = adc(&mut a[5], b[5], carry);
-            }
-            for i in 6..N {
-                carry = adc(&mut a[i], b[i], carry);
-            }
-            carry != 0
+        for i in 0..N {
+            carry = arithmetic::adc_for_add_with_carry(&mut self.0[i], other.0[i], carry);
         }
+
+        carry != 0
     }
 
+    #[unroll_for_loops(6)]
     #[inline]
     fn sub_with_borrow(&mut self, other: &Self) -> bool {
-        use arithmetic::sbb_for_sub_with_borrow as sbb;
+        let mut borrow = 0;
 
-        let a = &mut self.0;
-        let b = &other.0;
-        let mut borrow = 0u8;
+        for i in 0..N {
+            borrow = arithmetic::sbb_for_sub_with_borrow(&mut self.0[i], other.0[i], borrow);
+        }
 
-        if N >= 1 {
-            borrow = sbb(&mut a[0], b[0], borrow);
-        }
-        if N >= 2 {
-            borrow = sbb(&mut a[1], b[1], borrow);
-        }
-        if N >= 3 {
-            borrow = sbb(&mut a[2], b[2], borrow);
-        }
-        if N >= 4 {
-            borrow = sbb(&mut a[3], b[3], borrow);
-        }
-        if N >= 5 {
-            borrow = sbb(&mut a[4], b[4], borrow);
-        }
-        if N >= 6 {
-            borrow = sbb(&mut a[5], b[5], borrow);
-        }
-        for i in 6..N {
-            borrow = sbb(&mut a[i], b[i], borrow);
-        }
         borrow != 0
     }
 
