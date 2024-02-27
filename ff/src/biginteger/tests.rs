@@ -206,6 +206,12 @@ fn biginteger_bits_test<B: BigInteger>() {
     assert!(!thirty_two.get_bit(4));
     // 5th bit of BigInteger representing 32 is 1
     assert!(thirty_two.get_bit(5), "{:?}", thirty_two);
+
+    // Generates a random BigInteger and tests bit construction methods.
+    let mut rng = ark_std::test_rng();
+    let a: B = UniformRand::rand(&mut rng);
+    assert_eq!(B::from_bits_be(&a.to_bits_be()), a);
+    assert_eq!(B::from_bits_le(&a.to_bits_le()), a);
 }
 
 // Test conversion from BigInteger to BigUint
