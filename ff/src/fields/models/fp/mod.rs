@@ -15,8 +15,8 @@ use ark_std::{
 };
 
 #[macro_use]
-mod montgomery_backend;
-pub use montgomery_backend::*;
+mod montgomery;
+pub use montgomery::*;
 
 use crate::{
     AdditiveGroup, BigInt, BigInteger, FftField, Field, LegendreSymbol, PrimeField,

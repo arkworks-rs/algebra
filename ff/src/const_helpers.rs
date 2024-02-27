@@ -4,6 +4,7 @@ use ark_std::ops::{Index, IndexMut};
 use crate::BigInt;
 
 /// A helper macro for emulating `for` loops in a `const` context.
+/// 
 /// # Usage
 /// ```rust
 /// # use ark_ff::const_for;
