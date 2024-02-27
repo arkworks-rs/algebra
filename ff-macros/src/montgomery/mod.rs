@@ -102,7 +102,7 @@ pub fn mont_config_helper(
 
     let scope_name = format_ident!("{}___", config_name.to_string().to_lowercase());
     quote::quote! {
-        fn #scope_name() {
+        const #scope_name: () = {
             use ark_ff::{fields::Fp, BigInt, BigInteger, biginteger::arithmetic as fa, fields::*};
             type B = BigInt<#limbs>;
             type F = Fp<MontBackend<#config_name, #limbs>, #limbs>;
@@ -168,6 +168,8 @@ pub fn mont_config_helper(
             #add_with_carry
 
             #sub_with_borrow
-        }
+            
+            ()
+        };
     }
 }
