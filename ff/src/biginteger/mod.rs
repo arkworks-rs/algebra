@@ -294,7 +294,7 @@ impl<const N: usize> BigInt<N> {
 impl<const N: usize> BigInteger for BigInt<N> {
     const NUM_LIMBS: usize = N;
 
-    #[unroll_for_loops(12)]
+    #[unroll_for_loops(6)]
     #[inline]
     fn add_with_carry(&mut self, other: &Self) -> bool {
         let mut carry = 0;
@@ -306,7 +306,7 @@ impl<const N: usize> BigInteger for BigInt<N> {
         carry != 0
     }
 
-    #[unroll_for_loops(12)]
+    #[unroll_for_loops(6)]
     #[inline]
     fn sub_with_borrow(&mut self, other: &Self) -> bool {
         let mut borrow = 0;
