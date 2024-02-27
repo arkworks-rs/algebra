@@ -16,7 +16,7 @@ use crate::domain::{
 };
 use ark_ff::{fields::utils::k_adicity, FftField};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
-use ark_std::{cmp::min, convert::TryFrom, fmt, vec::Vec};
+use ark_std::{cmp::min, fmt, vec::*};
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
 
@@ -530,7 +530,7 @@ mod tests {
         use super::serial_mixed_radix_fft;
         use crate::domain::utils::parallel_fft;
         use ark_ff::PrimeField;
-        use ark_std::{test_rng, vec::Vec};
+        use ark_std::{test_rng, vec::*};
         use ark_test_curves::bn384_small_two_adicity::Fq as Fr;
         use core::cmp::min;
 

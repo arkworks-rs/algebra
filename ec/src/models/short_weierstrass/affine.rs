@@ -10,7 +10,7 @@ use ark_std::{
         distributions::{Distribution, Standard},
         Rng,
     },
-    vec::Vec,
+    vec::*,
     One, Zero,
 };
 
