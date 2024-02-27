@@ -1,6 +1,6 @@
 use ark_ff::{AdditiveGroup, BitIteratorBE, Field, Fp2};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
-use ark_std::{vec::Vec, One};
+use ark_std::{vec::*, One};
 use derivative::Derivative;
 
 use crate::{

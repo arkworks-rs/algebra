@@ -9,7 +9,7 @@ use ark_serialize::{
 };
 use ark_std::{
     borrow::Borrow,
-    convert::TryFrom,
+    // convert::TryFrom,
     fmt::{Debug, Display, UpperHex},
     io::{Read, Write},
     ops::{
@@ -21,7 +21,7 @@ use ark_std::{
         Rng,
     },
     str::FromStr,
-    vec::Vec,
+    vec::*,
 };
 use num_bigint::BigUint;
 use zeroize::Zeroize;

@@ -5,7 +5,7 @@ use ark_ec::{
 };
 use ark_ff::MontFp;
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
-use ark_std::vec::Vec;
+use ark_std::vec::*;
 
 use crate::{Fq, Fr};
 

@@ -12,7 +12,6 @@ mod error;
 mod flags;
 mod impls;
 
-use ark_std::borrow::ToOwned;
 pub use ark_std::io::{Read, Write};
 
 pub use error::*;
