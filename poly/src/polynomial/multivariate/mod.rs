@@ -6,7 +6,7 @@ use ark_std::{
     fmt::{Debug, Error, Formatter},
     hash::Hash,
     ops::Deref,
-    vec::Vec,
+    vec::*,
 };
 
 #[cfg(feature = "parallel")]
