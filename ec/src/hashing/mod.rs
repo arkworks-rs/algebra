@@ -1,5 +1,5 @@
 use crate::CurveGroup;
-use ark_std::string::String;
+use ark_std::string::*;
 use core::fmt;
 
 pub mod curve_maps;

@@ -3,7 +3,7 @@
 
 use core::marker::PhantomData;
 
-use ark_std::vec::Vec;
+use ark_std::vec::*;
 
 use arrayvec::ArrayVec;
 use digest::{ExtendableOutput, FixedOutputReset, Update};

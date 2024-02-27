@@ -7,7 +7,7 @@ pub use crate::domain::utils::Elements;
 use crate::domain::{DomainCoeff, EvaluationDomain};
 use ark_ff::FftField;
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
-use ark_std::{convert::TryFrom, fmt, vec::Vec};
+use ark_std::{fmt, vec::*};
 
 mod fft;
 
@@ -437,7 +437,7 @@ mod tests {
     #[test]
     #[cfg(feature = "parallel")]
     fn parallel_fft_consistency() {
-        use ark_std::{test_rng, vec::Vec};
+        use ark_std::{test_rng, vec::*};
         use ark_test_curves::bls12_381::Fr;
 
         // This implements the Cooley-Turkey FFT, derived from libfqfft

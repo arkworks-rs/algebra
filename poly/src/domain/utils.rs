@@ -1,6 +1,6 @@
 use crate::domain::DomainCoeff;
 use ark_ff::{FftField, Field};
-use ark_std::vec::Vec;
+use ark_std::vec::*;
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
 

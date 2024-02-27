@@ -1,6 +1,6 @@
 use crate::PrimeGroup;
 use ark_ff::{BigInteger, PrimeField};
-use ark_std::vec::Vec;
+use ark_std::vec::*;
 
 /// A helper type that contains all the context required for computing
 /// a window NAF multiplication of a group element by a scalar.
