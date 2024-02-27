@@ -168,8 +168,6 @@ pub fn mont_config_helper(
             #add_with_carry
 
             #sub_with_borrow
-            
-            ()
         };
     }
 }
