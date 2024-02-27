@@ -24,7 +24,7 @@ macro_rules! test_h2c {
                 fields::Field,
                 One, UniformRand, Zero,
             };
-            use ark_std::{format, string::String, vec::Vec};
+            use ark_std::{format, string::String, vec::*};
             use std::{
                 fs::{read_dir, File},
                 io::BufReader,

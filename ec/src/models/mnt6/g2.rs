@@ -6,7 +6,7 @@ use crate::{
 };
 use ark_ff::fields::{Field, Fp3};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
-use ark_std::{ops::Neg, vec::Vec};
+use ark_std::{ops::Neg, vec::*};
 use derivative::Derivative;
 use num_traits::One;
 

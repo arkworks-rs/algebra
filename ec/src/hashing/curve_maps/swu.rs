@@ -147,7 +147,7 @@ mod test {
         CurveConfig,
     };
     use ark_ff::field_hashers::DefaultFieldHasher;
-    use ark_std::vec::Vec;
+    use ark_std::vec::*;
 
     use super::*;
     use ark_ff::{fields::Fp64, MontBackend, MontFp};
