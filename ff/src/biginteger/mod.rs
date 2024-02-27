@@ -831,10 +831,7 @@ impl<const N: usize> ShrAssign<u32> for BigInt<N> {
 
         if rhs > 0 {
             let mut t = 0;
-            let mut limb = N;
-            while limb > 0 {
-                limb -= 1;
-                let a = &mut self.0[limb];
+            for a in self.0.iter_mut().rev() {
                 let t2 = *a << (64 - rhs);
                 *a >>= rhs;
                 *a |= t;
