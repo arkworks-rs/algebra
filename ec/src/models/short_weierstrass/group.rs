@@ -485,7 +485,7 @@ impl<'a, P: SWCurveConfig> AddAssign<&'a Self> for Projective<P> {
         s2 *= &self.z;
         s2 *= &z1z1;
 
-        if u1 == u2 && s1 == s2 {
+        if u1 == u2 {
             if s1 == s2 {
                 // The two points are equal, so we double.
                 self.double_in_place();
