@@ -21,7 +21,7 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
 
     /// Let `M` be the power of 2^64 nearest to `Self::MODULUS_BITS`. Then
     /// `R = M % Self::MODULUS`.
-    /// 
+    ///
     /// Can be computed if the `BigInt` type has a `montgomery_r` method.
     /// For example, via `Self::MODULUS.montgomery_r()`
     const R: BigInt<N>;
@@ -33,7 +33,7 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
     const R2: BigInt<N>;
 
     /// INV = -MODULUS^{-1} mod 2^64
-    /// 
+    ///
     /// Can be computed if the `BigInt` type has a suitable `montgomery_inv` method.
     /// For example, via `Self::MODULUS.montgomery_inv()`
     const INV: u64;
@@ -49,7 +49,7 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
     /// This optimization applies if
     /// (a) `Self::MODULUS[N-1] < u64::MAX >> 1`, and
     /// (b) the bits of the modulus are not all 1.
-    /// 
+    ///
     /// Can be computed automatically via the `can_use_no_carry_mul_optimization` method.
     #[doc(hidden)]
     const CAN_USE_NO_CARRY_MUL_OPT: bool;
@@ -60,7 +60,7 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
     /// This optimization applies if
     /// (a) `Self::MODULUS[N-1] < u64::MAX >> 2`, and
     /// (b) the bits of the modulus are not all 1.
-    /// 
+    ///
     /// Can be computed automatically via the `can_use_no_carry_mul_optimization` method.
     #[doc(hidden)]
     const CAN_USE_NO_CARRY_SQUARE_OPT: bool;
@@ -69,14 +69,14 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
     ///
     /// This condition applies if
     /// (a) `Self::MODULUS[N-1] >> 63 == 0`
-    /// 
+    ///
     /// Can be computed if the `BigInt` type has a `msb()` method as `Self::MODULUS.msb() == 0`
     #[doc(hidden)]
     const MODULUS_HAS_SPARE_BIT: bool;
 
     /// The 2-adicity of the modulus.
     /// This is the largest integer `s` such that `2^s` divides `MODULUS - 1`.
-    /// 
+    ///
     /// Can be computed if the `BigInt` type has a `two_adic_valuation()` method.
     const TWO_ADICITY: u32;
 
@@ -101,7 +101,7 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
     const SQRT_PRECOMP: Option<SqrtPrecomputation<Fp<MontBackend<Self, N>, N>>>;
 
     /// (MODULUS + 1) / 4 when MODULUS % 4 == 3. Used for square root precomputations.
-    /// 
+    ///
     /// Can be computed if the `BigInt` type has a `plus_one_div_four` method.
     #[doc(hidden)]
     const MODULUS_PLUS_ONE_DIV_FOUR: Option<BigInt<N>>;
@@ -504,7 +504,6 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
         }
     }
 }
-
 
 #[inline]
 pub const fn can_use_no_carry_mul_optimization<T: MontConfig<N>, const N: usize>() -> bool {

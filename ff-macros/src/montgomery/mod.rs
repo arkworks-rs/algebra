@@ -44,7 +44,9 @@ pub fn mont_config_helper(
         trace >>= 1u8;
     }
 
-    let two_adicity = (&modulus - 1u8).trailing_zeros().expect("two_adicity should fit in u32") as u32;
+    let two_adicity = (&modulus - 1u8)
+        .trailing_zeros()
+        .expect("two_adicity should fit in u32") as u32;
 
     // Compute 2^s root of unity given the generator
     let remaining_subgroup_size = match (small_subgroup_base, small_subgroup_power) {
@@ -172,7 +174,7 @@ pub fn mont_config_helper(
 
                 /// (MODULUS + 1) / 4 when MODULUS % 4 == 3. Used for square root precomputations.
                 #[doc(hidden)]
-                const MODULUS_PLUS_ONE_DIV_FOUR: Option<B> = #modulus_plus_one_div_four; 
+                const MODULUS_PLUS_ONE_DIV_FOUR: Option<B> = #modulus_plus_one_div_four;
 
                 const SQRT_PRECOMP: Option<SqrtPrecomputation<F>> = #sqrt_precomp;
 
