@@ -267,10 +267,10 @@ impl<T: MontConfig<N>, const N: usize> Fp<MontBackend<T, N>, N> {
                 None => None,
             },
             _ => Some(SqrtPrecomputation::TonelliShanks {
-                two_adicity: <MontBackend<T, N>>::TWO_ADICITY,
+                two_adicity: T::TWO_ADICITY,
                 quadratic_nonresidue_to_trace: T::TWO_ADIC_ROOT_OF_UNITY,
                 trace_of_modulus_minus_one_div_two:
-                    &<Fp<MontBackend<T, N>, N>>::TRACE_MINUS_ONE_DIV_TWO.0,
+                    &Self::TRACE_MINUS_ONE_DIV_TWO.0,
             }),
         }
     }
