@@ -3,7 +3,7 @@ use ark_ff::{
     AdditiveGroup,
 };
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
-use ark_std::vec::Vec;
+use ark_std::vec::*;
 use derivative::Derivative;
 use num_traits::One;
 
