@@ -198,7 +198,7 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
                     }
                     r[N - 1] = carry1 + carry2;
                 }
-                (a.0).0 = r;
+                (a.0).0.copy_from_slice(&r);
             }
             a.subtract_modulus();
         } else {
@@ -278,7 +278,7 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
         let mut carry2 = 0;
         for i in 0..N {
             let k = r[i].wrapping_mul(Self::INV);
-            let mut carry = 0;
+            carry = 0;
             fa::mac_discard(r[i], k, Self::MODULUS.0[0], &mut carry);
             for j in 1..N {
                 r[j + i] = fa::mac_with_carry(r[j + i], k, Self::MODULUS.0[j], &mut carry);
@@ -517,12 +517,11 @@ pub const fn inv<T: MontConfig<N>, const N: usize>() -> u64 {
 #[inline]
 pub const fn can_use_no_carry_mul_optimization<T: MontConfig<N>, const N: usize>() -> bool {
     // Checking the modulus at compile time
-    let top_bit_is_zero = T::MODULUS.0[N - 1] >> 63 == 0;
     let mut all_remaining_bits_are_one = T::MODULUS.0[N - 1] == u64::MAX >> 1;
     crate::const_for!((i in 1..N) {
         all_remaining_bits_are_one  &= T::MODULUS.0[N - i - 1] == u64::MAX;
     });
-    top_bit_is_zero && !all_remaining_bits_are_one
+    modulus_has_spare_bit::<T, N>() && !all_remaining_bits_are_one
 }
 
 #[inline]
