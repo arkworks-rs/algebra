@@ -6,7 +6,7 @@ use ark_std::{
     hash::Hash,
     ops::{Add, AddAssign, Neg, SubAssign},
     rand::Rng,
-    vec::Vec,
+    vec::*,
 };
 
 pub mod multivariate;

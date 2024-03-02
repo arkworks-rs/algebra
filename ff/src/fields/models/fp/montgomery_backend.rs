@@ -198,7 +198,7 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
                     }
                     r[N - 1] = carry1 + carry2;
                 }
-                (a.0).0 = r;
+                (a.0).0.copy_from_slice(&r);
             }
             a.subtract_modulus();
         } else {
@@ -278,7 +278,7 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
         let mut carry2 = 0;
         for i in 0..N {
             let k = r[i].wrapping_mul(Self::INV);
-            let mut carry = 0;
+            carry = 0;
             fa::mac_discard(r[i], k, Self::MODULUS.0[0], &mut carry);
             for j in 1..N {
                 r[j + i] = fa::mac_with_carry(r[j + i], k, Self::MODULUS.0[j], &mut carry);
@@ -295,63 +295,62 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
 
     fn inverse(a: &Fp<MontBackend<Self, N>, N>) -> Option<Fp<MontBackend<Self, N>, N>> {
         if a.is_zero() {
-            None
-        } else {
-            // Guajardo Kumar Paar Pelzl
-            // Efficient Software-Implementation of Finite Fields with Applications to
-            // Cryptography
-            // Algorithm 16 (BEA for Inversion in Fp)
+            return None;
+        }
+        // Guajardo Kumar Paar Pelzl
+        // Efficient Software-Implementation of Finite Fields with Applications to
+        // Cryptography
+        // Algorithm 16 (BEA for Inversion in Fp)
 
-            let one = BigInt::from(1u64);
+        let one = BigInt::from(1u64);
 
-            let mut u = a.0;
-            let mut v = Self::MODULUS;
-            let mut b = Fp::new_unchecked(Self::R2); // Avoids unnecessary reduction step.
-            let mut c = Fp::zero();
+        let mut u = a.0;
+        let mut v = Self::MODULUS;
+        let mut b = Fp::new_unchecked(Self::R2); // Avoids unnecessary reduction step.
+        let mut c = Fp::zero();
 
-            while u != one && v != one {
-                while u.is_even() {
-                    u.div2();
+        while u != one && v != one {
+            while u.is_even() {
+                u.div2();
 
-                    if b.0.is_even() {
-                        b.0.div2();
-                    } else {
-                        let carry = b.0.add_with_carry(&Self::MODULUS);
-                        b.0.div2();
-                        if !Self::MODULUS_HAS_SPARE_BIT && carry {
-                            (b.0).0[N - 1] |= 1 << 63;
-                        }
-                    }
-                }
-
-                while v.is_even() {
-                    v.div2();
-
-                    if c.0.is_even() {
-                        c.0.div2();
-                    } else {
-                        let carry = c.0.add_with_carry(&Self::MODULUS);
-                        c.0.div2();
-                        if !Self::MODULUS_HAS_SPARE_BIT && carry {
-                            (c.0).0[N - 1] |= 1 << 63;
-                        }
-                    }
-                }
-
-                if v < u {
-                    u.sub_with_borrow(&v);
-                    b -= &c;
+                if b.0.is_even() {
+                    b.0.div2();
                 } else {
-                    v.sub_with_borrow(&u);
-                    c -= &b;
+                    let carry = b.0.add_with_carry(&Self::MODULUS);
+                    b.0.div2();
+                    if !Self::MODULUS_HAS_SPARE_BIT && carry {
+                        (b.0).0[N - 1] |= 1 << 63;
+                    }
                 }
             }
 
-            if u == one {
-                Some(b)
-            } else {
-                Some(c)
+            while v.is_even() {
+                v.div2();
+
+                if c.0.is_even() {
+                    c.0.div2();
+                } else {
+                    let carry = c.0.add_with_carry(&Self::MODULUS);
+                    c.0.div2();
+                    if !Self::MODULUS_HAS_SPARE_BIT && carry {
+                        (c.0).0[N - 1] |= 1 << 63;
+                    }
+                }
             }
+
+            if v < u {
+                u.sub_with_borrow(&v);
+                b -= &c;
+            } else {
+                v.sub_with_borrow(&u);
+                c -= &b;
+            }
+        }
+
+        if u == one {
+            Some(b)
+        } else {
+            Some(c)
         }
     }
 
@@ -368,11 +367,11 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
     }
 
     #[inline]
-    #[unroll_for_loops(12)]
+    #[cfg_attr(not(target_family = "wasm"), unroll_for_loops(12))]
+    #[cfg_attr(target_family = "wasm", unroll_for_loops(6))]
     #[allow(clippy::modulo_one)]
     fn into_bigint(a: Fp<MontBackend<Self, N>, N>) -> BigInt<N> {
-        let mut tmp = a.0;
-        let mut r = tmp.0;
+        let mut r = (a.0).0;
         // Montgomery Reduction
         for i in 0..N {
             let k = r[i].wrapping_mul(Self::INV);
@@ -385,8 +384,8 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
             }
             r[i % N] = carry;
         }
-        tmp.0 = r;
-        tmp
+
+        BigInt::new(r)
     }
 
     #[unroll_for_loops(12)]
@@ -518,12 +517,11 @@ pub const fn inv<T: MontConfig<N>, const N: usize>() -> u64 {
 #[inline]
 pub const fn can_use_no_carry_mul_optimization<T: MontConfig<N>, const N: usize>() -> bool {
     // Checking the modulus at compile time
-    let top_bit_is_zero = T::MODULUS.0[N - 1] >> 63 == 0;
     let mut all_remaining_bits_are_one = T::MODULUS.0[N - 1] == u64::MAX >> 1;
     crate::const_for!((i in 1..N) {
         all_remaining_bits_are_one  &= T::MODULUS.0[N - i - 1] == u64::MAX;
     });
-    top_bit_is_zero && !all_remaining_bits_are_one
+    modulus_has_spare_bit::<T, N>() && !all_remaining_bits_are_one
 }
 
 #[inline]
@@ -822,7 +820,7 @@ impl<T: MontConfig<N>, const N: usize> Fp<MontBackend<T, N>, N> {
 
 #[cfg(test)]
 mod test {
-    use ark_std::{str::FromStr, vec::Vec};
+    use ark_std::{str::FromStr, vec::*};
     use ark_test_curves::secp256k1::Fr;
     use num_bigint::{BigInt, BigUint, Sign};
 

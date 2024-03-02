@@ -557,7 +557,7 @@ macro_rules! test_field {
                 Fp, MontBackend, MontConfig,
             };
             use ark_serialize::{buffer_bit_byte_size, Flags};
-            use ark_std::{io::Cursor, rand::Rng, vec::Vec, test_rng, vec, Zero, One, UniformRand};
+            use ark_std::{io::Cursor, rand::Rng, vec::*, test_rng, vec, Zero, One, UniformRand};
             const ITERATIONS: usize = 1000;
 
             $crate::__test_field!($field $(; $tail)*);
@@ -572,7 +572,7 @@ macro_rules! test_field {
                 Fp, MontBackend, MontConfig,
             };
             use ark_serialize::{buffer_bit_byte_size, Flags};
-            use ark_std::{io::Cursor, rand::Rng, vec::Vec, test_rng, vec, Zero, One, UniformRand};
+            use ark_std::{io::Cursor, rand::Rng, vec::*, test_rng, vec, Zero, One, UniformRand};
             const ITERATIONS: usize = $iters;
 
             $crate::__test_field!($field $(; $tail)*);

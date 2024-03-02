@@ -7,7 +7,7 @@ use ark_ff::{batch_inversion, FftField};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use ark_std::{
     ops::{Add, AddAssign, Div, DivAssign, Index, Mul, MulAssign, Sub, SubAssign},
-    vec::Vec,
+    vec::*,
 };
 
 #[cfg(feature = "parallel")]

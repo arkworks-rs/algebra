@@ -8,7 +8,7 @@ use crate::{
 };
 use ark_ff::fields::{Field, Fp2};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
-use ark_std::{vec, vec::Vec};
+use ark_std::{vec, vec::*};
 use derivative::Derivative;
 use num_traits::One;
 

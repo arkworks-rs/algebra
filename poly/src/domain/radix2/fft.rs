@@ -7,7 +7,7 @@ use crate::domain::{
     DomainCoeff,
 };
 use ark_ff::FftField;
-use ark_std::{cfg_chunks_mut, vec::Vec};
+use ark_std::{cfg_chunks_mut, vec::*};
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
 

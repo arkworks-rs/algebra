@@ -7,12 +7,12 @@ use ark_serialize::{
     CanonicalSerializeWithFlags, Compress, EmptyFlags, Flags, SerializationError, Valid, Validate,
 };
 use ark_std::{
-    cmp::{Ord, Ordering, PartialOrd},
+    cmp::*,
     fmt::{Display, Formatter, Result as FmtResult},
     marker::PhantomData,
     ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign},
     str::FromStr,
-    string::ToString,
+    string::*,
 };
 use core::iter;
 

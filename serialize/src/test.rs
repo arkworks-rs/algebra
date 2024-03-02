@@ -2,9 +2,9 @@ use super::*;
 use ark_std::{
     collections::{BTreeMap, BTreeSet, LinkedList, VecDeque},
     rand::RngCore,
-    string::String,
+    string::*,
     vec,
-    vec::Vec,
+    vec::*,
 };
 use num_bigint::BigUint;
 
