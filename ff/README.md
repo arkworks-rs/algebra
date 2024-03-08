@@ -16,7 +16,7 @@ This crate contains two types of traits:
 
 The available field traits are:
 
-- [`AdditiveGroup`](/ff/src/lib.rs) - Interface for additive groups that have a "scalar multiplication" operation with respect to the `Scalar` associated type. This applies to to prime-order fields, field extensions, and elliptic-curve groups used in cryptography.
+- [`AdditiveGroup`](https://github.com/arkworks-rs/algebra/blob/master/ff/src/fields/mod.rs#L46) - Interface for additive groups that have a "scalar multiplication" operation with respect to the `Scalar` associated type. This applies to to prime-order fields, field extensions, and elliptic-curve groups used in cryptography.
 - [`Field`](https://github.com/arkworks-rs/algebra/blob/master/ff/src/fields/mod.rs#L161) - Interface for a generic finite field.
 - [`FftField`](https://github.com/arkworks-rs/algebra/blob/master/ff/src/fields/fft_friendly.rs#L2) - Exposes methods that allow for performing efficient FFTs on field elements.
 - [`PrimeField`](https://github.com/arkworks-rs/algebra/blob/master/ff/src/fields/prime.rs#L27) - Field with a prime `p` number of elements, also referred to as `Fp`.
