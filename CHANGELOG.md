@@ -40,6 +40,7 @@
 ### Bugfixes
 
 - [\#747](https://github.com/arkworks-rs/algebra/pull/747) (`ark-ff-macros`) Fix fetching attributes in `MontConfig` macro
+- [\#803](https://github.com/arkworks-rs/algebra/pull/803) (`ark-ec`, `ark-test-template`) Fix incorrect decomposition in GLV
 
 ## v0.4.2
 
