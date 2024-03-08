@@ -3,10 +3,10 @@ use crate::{
     AdditiveGroup, CurveGroup,
 };
 use ark_ff::{PrimeField, Zero};
-use num_bigint::{BigInt, BigUint, Sign};
-use num_traits::{One, Signed};
-use num_integer::Integer;
 use ark_std::ops::{AddAssign, Neg};
+use num_bigint::{BigInt, BigUint, Sign};
+use num_integer::Integer;
+use num_traits::{One, Signed};
 
 /// The GLV parameters for computing the endomorphism and scalar decomposition.
 pub trait GLVConfig: Send + Sync + 'static + SWCurveConfig {

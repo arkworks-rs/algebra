@@ -4,7 +4,7 @@ use ark_ec::{
     AffineRepr, CurveGroup, PrimeGroup,
 };
 use ark_ff::{BigInteger, PrimeField};
-use ark_std::{UniformRand, ops::Mul};
+use ark_std::{ops::Mul, UniformRand};
 
 pub fn glv_scalar_decomposition<P: GLVConfig>() {
     let mut rng = ark_std::test_rng();
@@ -29,8 +29,16 @@ pub fn glv_scalar_decomposition<P: GLVConfig>() {
 
         // check if k1 and k2 are indeed small.
         let expected_max_bits = (P::ScalarField::MODULUS_BIT_SIZE + 1) / 2;
-        assert!(k1.into_bigint().num_bits() <= expected_max_bits, "k1 has {} bits", k1.into_bigint().num_bits());
-        assert!(k2.into_bigint().num_bits() <= expected_max_bits, "k2 has {} bits", k2.into_bigint().num_bits());
+        assert!(
+            k1.into_bigint().num_bits() <= expected_max_bits,
+            "k1 has {} bits",
+            k1.into_bigint().num_bits()
+        );
+        assert!(
+            k2.into_bigint().num_bits() <= expected_max_bits,
+            "k2 has {} bits",
+            k2.into_bigint().num_bits()
+        );
     }
 }
 
