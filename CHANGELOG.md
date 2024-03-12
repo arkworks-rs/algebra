@@ -40,6 +40,7 @@
 ### Bugfixes
 
 - [\#747](https://github.com/arkworks-rs/algebra/pull/747) (`ark-ff-macros`) Fix fetching attributes in `MontConfig` macro
+- [\#806](https://github.com/arkworks-rs/algebra/pull/806) (`ark-ff`) Fix the impl for `Display`ing zero element in Fp
 
 ## v0.4.2
 
