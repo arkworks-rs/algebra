@@ -3,7 +3,7 @@ use ark_ec::{
     scalar_mul::glv::GLVConfig,
     short_weierstrass::{Affine, Projective},
 };
-use ark_ff::{AdditiveGroup, BigInt, MontFp, PrimeField, Zero};
+use ark_ff::{AdditiveGroup, BigInt64, MontFp, PrimeField, Zero};
 
 use crate::{Fq, Fq2, Fr};
 

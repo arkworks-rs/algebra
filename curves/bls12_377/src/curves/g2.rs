@@ -7,7 +7,7 @@ use ark_ec::{
     AffineRepr, CurveConfig, CurveGroup, PrimeGroup,
 };
 
-use ark_ff::{AdditiveGroup, BigInt, Field, MontFp, PrimeField, Zero};
+use ark_ff::{AdditiveGroup, BigInt64, Field, MontFp, PrimeField, Zero};
 use ark_std::ops::Neg;
 
 use crate::*;

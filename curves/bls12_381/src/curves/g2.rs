@@ -9,7 +9,7 @@ use ark_ec::{
     short_weierstrass::{Affine, Projective, SWCurveConfig},
     AffineRepr, CurveGroup, PrimeGroup,
 };
-use ark_ff::{AdditiveGroup, BigInt, Field, MontFp, PrimeField, Zero};
+use ark_ff::{AdditiveGroup, BigInt64, Field, MontFp, PrimeField, Zero};
 use ark_serialize::{Compress, SerializationError};
 
 use super::{

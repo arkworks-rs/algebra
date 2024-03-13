@@ -740,7 +740,7 @@ fn test_frob_coeffs() {
 
 #[test]
 fn test_fq_repr_from() {
-    assert_eq!(BigInt::from(100u64), BigInt::new([100, 0, 0, 0, 0, 0]));
+    assert_eq!(BigInt::from(100u64), BigInt64::new([100, 0, 0, 0, 0, 0]));
 }
 
 #[test]
@@ -808,11 +808,11 @@ fn test_fq_repr_div2() {
     for _ in 0..50 {
         a.div2();
     }
-    assert_eq!(a, BigInt::new([0x7a1ca2, 0x0, 0x0, 0x0, 0x0, 0x0]));
+    assert_eq!(a, BigInt64::new([0x7a1ca2, 0x0, 0x0, 0x0, 0x0, 0x0]));
     for _ in 0..22 {
         a.div2();
     }
-    assert_eq!(a, BigInt::new([0x1, 0x0, 0x0, 0x0, 0x0, 0x0]));
+    assert_eq!(a, BigInt64::new([0x1, 0x0, 0x0, 0x0, 0x0, 0x0]));
     a.div2();
     assert!(a.is_zero());
 }
@@ -886,7 +886,7 @@ fn test_fq_repr_shr() {
 fn test_fq_repr_mul2() {
     let mut a = BigInteger384::from(23712937547u64);
     a.mul2();
-    assert_eq!(a, BigInt::new([0xb0acd6c96, 0x0, 0x0, 0x0, 0x0, 0x0]));
+    assert_eq!(a, BigInt64::new([0xb0acd6c96, 0x0, 0x0, 0x0, 0x0, 0x0]));
     for _ in 0..60 {
         a.mul2();
     }

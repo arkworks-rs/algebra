@@ -1,5 +1,5 @@
 use ark_ec::models::mnt4::{MNT4Config, MNT4};
-use ark_ff::{biginteger::BigInteger320, AdditiveGroup, BigInt, Field, MontFp};
+use ark_ff::{biginteger::BigInteger320, AdditiveGroup, BigInt64, Field, MontFp};
 
 use crate::{Fq, Fq2, Fq2Config, Fq4Config, Fr};
 

@@ -19,7 +19,7 @@ test_field!(fq12; Fq12);
 
 #[test]
 fn test_fq_repr_from() {
-    assert_eq!(BigInteger256::from(100u64), BigInt::new([100, 0, 0, 0]));
+    assert_eq!(BigInteger256::from(100u64), BigInt64::new([100, 0, 0, 0]));
 }
 
 #[test]

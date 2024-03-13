@@ -3,7 +3,7 @@ use ark_ec::{
     scalar_mul::glv::GLVConfig,
     short_weierstrass::{self as sw, SWCurveConfig},
 };
-use ark_ff::{AdditiveGroup, BigInt, Field, MontFp, PrimeField, Zero};
+use ark_ff::{AdditiveGroup, BigInt64, Field, MontFp, PrimeField, Zero};
 
 use crate::{fq::Fq, fr::Fr};
 

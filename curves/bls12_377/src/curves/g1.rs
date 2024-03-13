@@ -11,7 +11,7 @@ use ark_ec::{
     scalar_mul::glv::GLVConfig,
     CurveConfig,
 };
-use ark_ff::{AdditiveGroup, BigInt, Field, MontFp, PrimeField, Zero};
+use ark_ff::{AdditiveGroup, BigInt64, Field, MontFp, PrimeField, Zero};
 use ark_std::{ops::Neg, One};
 
 use super::g1_swu_iso::{SwuIsoConfig, ISOGENY_MAP_TO_G1};

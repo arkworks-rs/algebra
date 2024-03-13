@@ -2,7 +2,7 @@ use ark_ec::{
     models::mnt6::{MNT6Config, MNT6},
     short_weierstrass::SWCurveConfig,
 };
-use ark_ff::{biginteger::BigInteger320, AdditiveGroup, BigInt, Field, Fp3};
+use ark_ff::{biginteger::BigInteger320, AdditiveGroup, BigInt64, Field, Fp3};
 
 use crate::{Fq, Fq3Config, Fq6Config, Fr};
 

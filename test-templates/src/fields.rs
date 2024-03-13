@@ -477,7 +477,7 @@ macro_rules! __test_field {
         #[test]
         pub fn test_montgomery_config() {
             use ark_ff::{FpConfig, BigInteger};
-            use $crate::num_bigint::{BigUint, BigInt};
+            use $crate::num_bigint::{BigUint, BigInt64};
             use $crate::num_integer::Integer;
             use $crate::num_traits::{Signed, cast::ToPrimitive};
 

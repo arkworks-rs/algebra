@@ -85,7 +85,7 @@ impl<const N: usize> CanonicalDeserialize for BigInt64<N> {
 /// const ONE: BigInt<6> = BigInt64!("1");
 ///
 /// fn check_correctness() {
-///     assert_eq!(ONE, BigInt::from(1u8));
+///     assert_eq!(ONE, BigInt64::from(1u8));
 /// }
 /// ```
 #[macro_export]

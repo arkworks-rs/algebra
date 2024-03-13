@@ -3,7 +3,7 @@ use ark_ec::{
     bw6::{BW6Config, TwistType, BW6},
 };
 use ark_ff::{
-    biginteger::BigInteger768 as BigInteger, fp6_2over3::Fp6, BigInt, CyclotomicMultSubgroup, Field,
+    biginteger::BigInteger768 as BigInteger, fp6_2over3::Fp6, BigInt64, CyclotomicMultSubgroup, Field,
 };
 
 use crate::*;
