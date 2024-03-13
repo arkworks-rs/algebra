@@ -1,6 +1,6 @@
 use ark_algebra_test_templates::*;
 use ark_ff::{
-    biginteger::{BigInt, BigInteger, BigInteger384},
+    biginteger::{BigInt64, BigInteger, BigInteger384},
     fields::{FftField, Field, Fp6Config, PrimeField},
     Fp384, One, UniformRand, Zero,
 };
@@ -20,7 +20,7 @@ test_field!(fq12; Fq12);
 
 #[test]
 fn test_fq_repr_from() {
-    assert_eq!(BigInt::from(100u64), BigInt::new([100, 0, 0, 0, 0, 0]));
+    assert_eq!(BigInt::from(100u64), BigInt64::new([100, 0, 0, 0, 0, 0]));
 }
 
 #[test]
@@ -39,7 +39,7 @@ fn test_fq_repr_is_odd() {
 fn test_fq_repr_is_zero() {
     assert!(BigInteger384::from(0u64).is_zero());
     assert!(!BigInteger384::from(1u64).is_zero());
-    assert!(!BigInt::new([0, 0, 0, 0, 1, 0]).is_zero());
+    assert!(!BigInt64::new([0, 0, 0, 0, 1, 0]).is_zero());
 }
 
 #[test]

@@ -1,6 +1,6 @@
 use super::{Fp, FpConfig};
 use crate::{
-    biginteger::arithmetic as fa, BigInt, BigInteger, PrimeField, SqrtPrecomputation, Zero,
+    biginteger::arithmetic as fa, BigInt64, BigInteger, PrimeField, SqrtPrecomputation, Zero,
 };
 use ark_ff_macros::unroll_for_loops;
 use ark_std::marker::PhantomData;
@@ -17,20 +17,20 @@ pub use backend::*;
 /// [`MontConfig`][`ark_ff_macros::MontConfig`] derive macro should be used.
 pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
     /// The modulus of the field.
-    const MODULUS: BigInt<N>;
+    const MODULUS: BigInt64<N>;
 
     /// Let `M` be the power of 2^64 nearest to `Self::MODULUS_BITS`. Then
     /// `R = M % Self::MODULUS`.
     ///
     /// Can be computed if the `BigInt` type has a `montgomery_r` method.
     /// For example, via `Self::MODULUS.montgomery_r()`
-    const R: BigInt<N>;
+    const R: BigInt64<N>;
 
     /// R2 = R^2 % Self::MODULUS
     ///
     /// Can be computed if the `BigInt` type has a `montgomery_r2` method.
     /// For example, via `Self::MODULUS.montgomery_r2()`
-    const R2: BigInt<N>;
+    const R2: BigInt64<N>;
 
     /// INV = -MODULUS^{-1} mod 2^64
     ///
@@ -104,7 +104,7 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
     ///
     /// Can be computed if the `BigInt` type has a `plus_one_div_four` method.
     #[doc(hidden)]
-    const MODULUS_PLUS_ONE_DIV_FOUR: Option<BigInt<N>>;
+    const MODULUS_PLUS_ONE_DIV_FOUR: Option<BigInt64<N>>;
 
     /// Sets `a = a + b`.
     #[inline(always)]
@@ -314,7 +314,7 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
         // Cryptography
         // Algorithm 16 (BEA for Inversion in Fp)
 
-        let one = BigInt::from(1u64);
+        let one = BigInt64::from(1u64);
 
         let mut u = a.0;
         let mut v = Self::MODULUS;
@@ -366,7 +366,7 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
         }
     }
 
-    fn from_bigint(r: BigInt<N>) -> Option<Fp<MontBackend<Self, N>, N>> {
+    fn from_bigint(r: BigInt64<N>) -> Option<Fp<MontBackend<Self, N>, N>> {
         let mut r = Fp::new_unchecked(r);
         if r.is_zero() {
             Some(r)
@@ -382,7 +382,7 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
     #[cfg_attr(not(target_family = "wasm"), unroll_for_loops(12))]
     #[cfg_attr(target_family = "wasm", unroll_for_loops(6))]
     #[allow(clippy::modulo_one)]
-    fn into_bigint(a: Fp<MontBackend<Self, N>, N>) -> BigInt<N> {
+    fn into_bigint(a: Fp<MontBackend<Self, N>, N>) -> BigInt64<N> {
         let mut r = (a.0).0;
         // Montgomery Reduction
         for i in 0..N {
@@ -397,7 +397,7 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
             r[i % N] = carry;
         }
 
-        BigInt::new(r)
+        BigInt64::new(r)
     }
 
     #[unroll_for_loops(12)]
@@ -427,7 +427,7 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
             a.iter().zip(b).map(|(a, b)| *a * b).sum()
         } else if M == 2 {
             // Algorithm 2, line 2
-            let result = (0..N).fold(BigInt::zero(), |mut result, j| {
+            let result = (0..N).fold(BigInt64::zero(), |mut result, j| {
                 // Algorithm 2, line 3
                 let mut carry_a = 0;
                 let mut carry_b = 0;
@@ -466,7 +466,7 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
                 .zip(b.chunks(chunk_size))
                 .map(|(a, b)| {
                     // Algorithm 2, line 2
-                    let result = (0..N).fold(BigInt::zero(), |mut result, j| {
+                    let result = (0..N).fold(BigInt64::zero(), |mut result, j| {
                         // Algorithm 2, line 3
                         let (temp, carry) = a.iter().zip(b).fold(
                             (result, 0),
@@ -535,7 +535,7 @@ pub const fn sqrt_precomputation<const N: usize, T: MontConfig<N>>(
 ) -> Option<SqrtPrecomputation<Fp<MontBackend<T, N>, N>>> {
     match T::MODULUS.mod_4() {
         3 => match T::MODULUS_PLUS_ONE_DIV_FOUR.as_ref() {
-            Some(BigInt(modulus_plus_one_div_four)) => Some(SqrtPrecomputation::Case3Mod4 {
+            Some(BigInt64(modulus_plus_one_div_four)) => Some(SqrtPrecomputation::Case3Mod4 {
                 modulus_plus_one_div_four,
             }),
             None => None,

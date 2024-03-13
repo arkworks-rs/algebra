@@ -2,7 +2,7 @@ use ark_ec::{
     bw6,
     bw6::{BW6Config, TwistType, BW6},
 };
-use ark_ff::{biginteger::BigInteger768 as BigInteger, BigInt};
+use ark_ff::{biginteger::BigInteger768 as BigInteger, BigInt64};
 
 use crate::*;
 
@@ -17,11 +17,11 @@ pub struct Config;
 
 impl BW6Config for Config {
     // X is the same as in bls12_381
-    const X: BigInteger = BigInt!("0xd201000000010000");
+    const X: BigInteger = BigInt64!("0xd201000000010000");
     const X_IS_NEGATIVE: bool = true;
     // X
     const ATE_LOOP_COUNT_1: &'static [u64] = &[0xd201000000010000];
-    const X_MINUS_1_DIV_3: BigInteger = BigInt!("0x460055555555aaab");
+    const X_MINUS_1_DIV_3: BigInteger = BigInt64!("0x460055555555aaab");
     const ATE_LOOP_COUNT_1_IS_NEGATIVE: bool = true;
     // X^2-X-1
     const ATE_LOOP_COUNT_2: &'static [i8] = &[

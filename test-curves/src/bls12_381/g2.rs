@@ -8,7 +8,7 @@ use ark_ec::{
     short_weierstrass::{self, Affine, Projective},
     AffineRepr, CurveGroup, PrimeGroup,
 };
-use ark_ff::{AdditiveGroup, BigInt, Field, MontFp, Zero};
+use ark_ff::{AdditiveGroup, BigInt64, Field, MontFp, Zero};
 
 pub type G2Affine = bls12::G2Affine<crate::bls12_381::Config>;
 pub type G2Projective = bls12::G2Projective<crate::bls12_381::Config>;
@@ -64,7 +64,7 @@ impl short_weierstrass::SWCurveConfig for Config {
         // Checks that [p]P = [X]P
 
         let mut x_times_point =
-            point.mul_bigint(BigInt::new([crate::bls12_381::Config::X[0], 0, 0, 0]));
+            point.mul_bigint(BigInt64::new([crate::bls12_381::Config::X[0], 0, 0, 0]));
         if crate::bls12_381::Config::X_IS_NEGATIVE {
             x_times_point = -x_times_point;
         }

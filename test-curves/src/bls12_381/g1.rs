@@ -5,7 +5,7 @@ use ark_ec::{
     scalar_mul::glv::GLVConfig,
     short_weierstrass::{self, Affine, Projective},
 };
-use ark_ff::{BigInt, MontFp, PrimeField, Zero};
+use ark_ff::{BigInt64, MontFp, PrimeField, Zero};
 
 pub type G1Affine = Affine<Config>;
 pub type G1Projective = Projective<Config>;
@@ -89,11 +89,11 @@ impl GLVConfig for Config {
     /// from Guide to Pairing Based Cryptography by El Mrabet
     const SCALAR_DECOMP_COEFFS: [(bool, <Self::ScalarField as PrimeField>::BigInt); 4] = [
         // v_2 = (X^2, 1)
-        (true, BigInt!("228988810152649578064853576960394133504")),
-        (true, BigInt!("1")),
+        (true, BigInt64!("228988810152649578064853576960394133504")),
+        (true, BigInt64!("1")),
         // v_1 = (-1, X^2-1)
-        (false, BigInt!("1")),
-        (true, BigInt!("228988810152649578064853576960394133503")),
+        (false, BigInt64!("1")),
+        (true, BigInt64!("228988810152649578064853576960394133503")),
     ];
 
     fn endomorphism(p: &Projective<Self>) -> Projective<Self> {

@@ -3,7 +3,7 @@ use ark_ec::{
     bw6::{BW6Config, TwistType, BW6},
 };
 use ark_ff::{
-    biginteger::BigInteger768 as BigInteger, fp6_2over3::Fp6, BigInt, CyclotomicMultSubgroup, Field,
+    biginteger::BigInteger768 as BigInteger, fp6_2over3::Fp6, BigInt64, CyclotomicMultSubgroup, Field,
 };
 
 use crate::*;
@@ -18,13 +18,13 @@ mod tests;
 pub struct Config;
 
 impl BW6Config for Config {
-    const X: BigInteger = BigInt!("0x8508c00000000001");
+    const X: BigInteger = BigInt64!("0x8508c00000000001");
     /// `x` is positive.
     const X_IS_NEGATIVE: bool = false;
     // X
     const ATE_LOOP_COUNT_1: &'static [u64] = &[0x8508c00000000001];
     // (X-1)/3
-    const X_MINUS_1_DIV_3: BigInteger = BigInt!("0x2c58400000000000");
+    const X_MINUS_1_DIV_3: BigInteger = BigInt64!("0x2c58400000000000");
     // X+1
     const ATE_LOOP_COUNT_1_IS_NEGATIVE: bool = false;
     // X^2-X-1

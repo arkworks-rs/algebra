@@ -3,7 +3,7 @@ use ark_ec::{
     scalar_mul::glv::GLVConfig,
     short_weierstrass::{Affine, Projective},
 };
-use ark_ff::{AdditiveGroup, BigInt, MontFp, PrimeField};
+use ark_ff::{AdditiveGroup, BigInt64, MontFp, PrimeField};
 
 use crate::{Fq, Fr};
 
@@ -61,19 +61,19 @@ impl GLVConfig for Config {
     const SCALAR_DECOMP_COEFFS: [(bool, <Self::ScalarField as PrimeField>::BigInt); 4] = [
         (
             true,
-            BigInt!("293634935485640680722085584138834120324914961969255022593"),
+            BigInt64!("293634935485640680722085584138834120324914961969255022593"),
         ),
         (
             false,
-            BigInt!("293634935485640680722085584138834120315328839056164388863"),
+            BigInt64!("293634935485640680722085584138834120315328839056164388863"),
         ),
         (
             true,
-            BigInt!("293634935485640680722085584138834120315328839056164388863"),
+            BigInt64!("293634935485640680722085584138834120315328839056164388863"),
         ),
         (
             true,
-            BigInt!("587269870971281361444171168277668240640243801025419411456"),
+            BigInt64!("587269870971281361444171168277668240640243801025419411456"),
         ),
     ];
 
