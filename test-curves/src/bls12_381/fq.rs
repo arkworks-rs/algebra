@@ -26,7 +26,7 @@ mod tests {
         // R = 3380320199399472671518931668520476396067793891014375699959770179129436917079669831430077592723774664465579537268733
         assert_eq!(
             FqConfig::R,
-            BigInt::<6>([
+            BigInt64::<6>([
                 0x760900000002fffd,
                 0xebf4000bc40c0002,
                 0x5f48985753c758ba,
@@ -38,7 +38,7 @@ mod tests {
 
         assert_eq!(
             FqConfig::R2,
-            BigInt::<6>([
+            BigInt64::<6>([
                 0xf4df1f341c341746,
                 0xa76e6a609d104f1,
                 0x8de5476c4c95b6d5,
@@ -50,7 +50,7 @@ mod tests {
 
         assert_eq!(
             Fq::TRACE,
-            BigInt::<6>([
+            BigInt64::<6>([
                 0xdcff7fffffffd555,
                 0xf55ffff58a9ffff,
                 0xb39869507b587b12,
@@ -61,7 +61,7 @@ mod tests {
         );
         assert_eq!(
             Fq::MODULUS_MINUS_ONE_DIV_TWO,
-            BigInt::<6>([
+            BigInt64::<6>([
                 0xdcff7fffffffd555,
                 0xf55ffff58a9ffff,
                 0xb39869507b587b12,
@@ -73,7 +73,7 @@ mod tests {
 
         assert_eq!(
             Fq::TRACE_MINUS_ONE_DIV_TWO,
-            BigInt::<6>([
+            BigInt64::<6>([
                 0xee7fbfffffffeaaa,
                 0x7aaffffac54ffff,
                 0xd9cc34a83dac3d89,

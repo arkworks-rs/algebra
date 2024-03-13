@@ -43,7 +43,7 @@ pub(super) fn sum_of_products_impl(num_limbs: usize, modulus: &[u64]) -> proc_ma
         body.extend(quote! {
             if M <= #chunk_size {
                 // Algorithm 2, line 2
-                let result = (0..#num_limbs).fold(BigInt::zero(), |mut result, j| {
+                let result = (0..#num_limbs).fold(BigInt64::zero(), |mut result, j| {
                     // Algorithm 2, line 3
                     let mut carry_a = 0;
                     let mut carry_b = 0;
