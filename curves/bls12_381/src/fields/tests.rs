@@ -1,6 +1,6 @@
 use ark_algebra_test_templates::*;
 use ark_ff::{
-    biginteger::{BigInt, BigInteger, BigInteger384},
+    biginteger::{BigInt64, BigInteger, BigInteger384},
     fields::{FftField, Field, Fp12Config, Fp2Config, Fp6Config, PrimeField},
     AdditiveGroup, One, UniformRand, Zero,
 };

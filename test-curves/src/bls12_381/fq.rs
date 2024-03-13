@@ -14,7 +14,7 @@ mod tests {
     use core::marker::PhantomData;
 
     use super::*;
-    use ark_ff::{BigInt, FpConfig, One};
+    use ark_ff::{BigInt64, FpConfig, One};
 
     #[test]
     fn test_constants() {
