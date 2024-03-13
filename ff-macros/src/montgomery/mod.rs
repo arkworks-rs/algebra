@@ -1,6 +1,7 @@
 use std::str::FromStr;
 
 use num_bigint::BigUint;
+use num_integer::Integer;
 use num_traits::One;
 
 mod biginteger;
@@ -21,6 +22,35 @@ use sum_of_products::sum_of_products_impl;
 
 use crate::utils;
 
+struct LimbMetadata {
+    size: usize,
+    biguint_macro: proc_macro2::TokenStream,
+    bigint_type: proc_macro2::TokenStream,
+}
+
+// new LimbMetadata based on the enum
+impl LimbMetadata {
+    fn new(variant: LimbVariant) -> Self {
+        match variant {
+            LimbVariant::U32 => Self {
+                size: 32,
+                biguint_macro: quote::quote!(ark_ff::BigInt32!),
+                bigint_type: quote::quote!(BigInt32),
+            },
+            LimbVariant::U64 => Self {
+                size: 64,
+                biguint_macro: quote::quote!(ark_ff::BigInt64!),
+                bigint_type: quote::quote!(BigInt64),
+            },
+        }
+    }
+}
+
+enum LimbVariant {
+    U32,
+    U64,
+}
+
 pub fn mont_config_helper(
     // The modulus p of the field
     modulus: BigUint,
@@ -29,12 +59,23 @@ pub fn mont_config_helper(
     small_subgroup_power: Option<u32>,
     config_name: proc_macro2::Ident,
 ) -> proc_macro2::TokenStream {
+    // we can figure out the limb size by inspecting the modulus
+    let limb_meta: LimbMetadata = if modulus.next_multiple_of(&BigUint::from(1u64 << 32))
+        == modulus.next_multiple_of(&BigUint::from(1u128 << 64))
+    {
+        LimbMetadata::new(LimbVariant::U64)
+    } else {
+        // TODO uncomment this once we have u32 limbs support
+        // LimbMetadata::new(LimbVariant::U32)
+        LimbMetadata::new(LimbVariant::U64)
+    };
+
     let mut limbs = 1usize;
     {
-        let mut cur = BigUint::one() << 64; // always 64-bit limbs for now
+        let mut cur = BigUint::one() << limb_meta.size; // always 64-bit limbs for now
         while cur < modulus {
             limbs += 1;
-            cur <<= 64;
+            cur <<= limb_meta.size;
         }
     }
 
@@ -60,7 +101,7 @@ pub fn mont_config_helper(
         .map(|e| generator.modpow(e, &modulus).to_string());
 
     // Compute R = 2**(64 * limbs) mod m
-    let r = (BigUint::one() << (limbs * 64)) % &modulus;
+    let r = (BigUint::one() << (limbs * limb_meta.size)) % &modulus;
     let r_squared = ((&r * &r) % &modulus).to_string();
     let r = r.to_string();
     let modulus_mod_4 = (&modulus % 4u64).try_into().unwrap();
@@ -79,8 +120,10 @@ pub fn mont_config_helper(
         _ => panic!("Modulus must be odd"),
     };
 
+    let bigint_import = limb_meta.bigint_type.clone();
+
     let modulus_plus_one_div_four = if modulus_mod_4 == 3u8 {
-        quote::quote! { Some(BigInt([ #( #modulus_plus_one_div_four  ),* ])) }
+        quote::quote! { Some(#bigint_import([ #( #modulus_plus_one_div_four  ),* ])) }
     } else {
         quote::quote! { None }
     };
@@ -107,7 +150,7 @@ pub fn mont_config_helper(
     }
     inv = inv.wrapping_neg();
 
-    let modulus = quote::quote! { BigInt([ #( #modulus_limbs ),* ]) };
+    let modulus = quote::quote! { #bigint_import([ #( #modulus_limbs ),* ]) };
 
     let add_with_carry = add_with_carry_impl(limbs);
     let sub_with_borrow = sub_with_borrow_impl(limbs);
@@ -140,10 +183,25 @@ pub fn mont_config_helper(
         quote::quote! {}
     };
 
+    let mut bigint_type: proc_macro2::TokenStream = limb_meta.bigint_type.clone();
+    bigint_type.extend(quote::quote! {<#limbs>});
+
+    let mut r_def = quote::quote! {
+       const R: B =
+    };
+    r_def.extend(limb_meta.biguint_macro.clone());
+    r_def.extend(quote::quote! {(#r);});
+
+    let mut r2_def = quote::quote! {
+       const R2: B =
+    };
+    r2_def.extend(limb_meta.biguint_macro.clone());
+    r2_def.extend(quote::quote! {(#r_squared);});
+
     quote::quote! {
         const _: () = {
-            use ark_ff::{fields::Fp, BigInt, BigInteger, biginteger::arithmetic as fa, fields::*};
-            type B = BigInt<#limbs>;
+            use ark_ff::{fields::Fp, #bigint_import, BigInteger, biginteger::arithmetic as fa, fields::*};
+            type B = #bigint_type;
             type F = Fp<MontBackend<#config_name, #limbs>, #limbs>;
 
             #[automatically_derived]
@@ -156,9 +214,9 @@ pub fn mont_config_helper(
 
                 const TWO_ADIC_ROOT_OF_UNITY: F = ark_ff::MontFp!(#two_adic_root_of_unity);
 
-                const R: B = ark_ff::BigInt!(#r);
+                #r_def
 
-                const R2: B = ark_ff::BigInt!(#r_squared);
+                #r2_def
 
                 const INV: u64 = #inv;
 

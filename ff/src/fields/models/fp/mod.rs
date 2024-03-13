@@ -1,5 +1,5 @@
 use crate::{
-    AdditiveGroup, BigInt, BigInteger, FftField, Field, LegendreSymbol, One, PrimeField,
+    AdditiveGroup, BigInt64, BigInteger, FftField, Field, LegendreSymbol, One, PrimeField,
     SqrtPrecomputation, Zero,
 };
 use ark_serialize::{
@@ -24,7 +24,7 @@ pub use montgomery::*;
 /// Also specifies how to perform arithmetic on field elements.
 pub trait FpConfig<const N: usize>: Send + Sync + 'static + Sized {
     /// The modulus of the field.
-    const MODULUS: crate::BigInt<N>;
+    const MODULUS: crate::BigInt64<N>;
 
     /// A multiplicative generator of the field.
     /// `Self::GENERATOR` is an element having multiplicative order
@@ -92,11 +92,11 @@ pub trait FpConfig<const N: usize>: Send + Sync + 'static + Sized {
     /// Construct a field element from an integer in the range
     /// `0..(Self::MODULUS - 1)`. Returns `None` if the integer is outside
     /// this range.
-    fn from_bigint(other: BigInt<N>) -> Option<Fp<Self, N>>;
+    fn from_bigint(other: BigInt64<N>) -> Option<Fp<Self, N>>;
 
     /// Convert a field element to an integer in the range `0..(Self::MODULUS -
     /// 1)`.
-    fn into_bigint(other: Fp<Self, N>) -> BigInt<N>;
+    fn into_bigint(other: Fp<Self, N>) -> BigInt64<N>;
 }
 
 /// Represents an element of the prime field F_p, where `p == P::MODULUS`.
@@ -114,7 +114,7 @@ pub struct Fp<P: FpConfig<N>, const N: usize>(
     /// Contains the element in Montgomery form for efficient multiplication.
     /// To convert an element to a [`BigInt`](struct@BigInt), use `into_bigint` or `into`.
     #[doc(hidden)]
-    pub BigInt<N>,
+    pub BigInt64<N>,
     #[derivative(Debug = "ignore")]
     #[doc(hidden)]
     pub PhantomData<P>,
@@ -347,7 +347,7 @@ impl<P: FpConfig<N>, const N: usize> Field for Fp<P, N> {
 }
 
 impl<P: FpConfig<N>, const N: usize> PrimeField for Fp<P, N> {
-    type BigInt = BigInt<N>;
+    type BigInt = BigInt64<N>;
     const MODULUS: Self::BigInt = P::MODULUS;
     const MODULUS_MINUS_ONE_DIV_TWO: Self::BigInt = P::MODULUS.divide_by_2_round_down();
     const MODULUS_BIT_SIZE: u32 = P::MODULUS.const_num_bits();
@@ -355,11 +355,11 @@ impl<P: FpConfig<N>, const N: usize> PrimeField for Fp<P, N> {
     const TRACE_MINUS_ONE_DIV_TWO: Self::BigInt = Self::TRACE.divide_by_2_round_down();
 
     #[inline]
-    fn from_bigint(r: BigInt<N>) -> Option<Self> {
+    fn from_bigint(r: BigInt64<N>) -> Option<Self> {
         P::from_bigint(r)
     }
 
-    fn into_bigint(self) -> BigInt<N> {
+    fn into_bigint(self) -> BigInt64<N> {
         P::into_bigint(self)
     }
 }
@@ -401,7 +401,7 @@ impl<P: FpConfig<N>, const N: usize> PartialOrd for Fp<P, N> {
 
 impl<P: FpConfig<N>, const N: usize> From<u128> for Fp<P, N> {
     fn from(mut other: u128) -> Self {
-        let mut result = BigInt::default();
+        let mut result = BigInt64::default();
         if N == 1 {
             result.0[0] = (other % u128::from(P::MODULUS.0[0])) as u64;
         } else if N == 2 || P::MODULUS.0[2..].iter().all(|&x| x == 0) {
@@ -431,9 +431,9 @@ impl<P: FpConfig<N>, const N: usize> From<i128> for Fp<P, N> {
 impl<P: FpConfig<N>, const N: usize> From<bool> for Fp<P, N> {
     fn from(other: bool) -> Self {
         if N == 1 {
-            Self::from_bigint(BigInt::from(u64::from(other) % P::MODULUS.0[0])).unwrap()
+            Self::from_bigint(BigInt64::from(u64::from(other) % P::MODULUS.0[0])).unwrap()
         } else {
-            Self::from_bigint(BigInt::from(u64::from(other))).unwrap()
+            Self::from_bigint(BigInt64::from(u64::from(other))).unwrap()
         }
     }
 }
@@ -441,9 +441,9 @@ impl<P: FpConfig<N>, const N: usize> From<bool> for Fp<P, N> {
 impl<P: FpConfig<N>, const N: usize> From<u64> for Fp<P, N> {
     fn from(other: u64) -> Self {
         if N == 1 {
-            Self::from_bigint(BigInt::from(other % P::MODULUS.0[0])).unwrap()
+            Self::from_bigint(BigInt64::from(other % P::MODULUS.0[0])).unwrap()
         } else {
-            Self::from_bigint(BigInt::from(other)).unwrap()
+            Self::from_bigint(BigInt64::from(other)).unwrap()
         }
     }
 }
@@ -462,9 +462,9 @@ impl<P: FpConfig<N>, const N: usize> From<i64> for Fp<P, N> {
 impl<P: FpConfig<N>, const N: usize> From<u32> for Fp<P, N> {
     fn from(other: u32) -> Self {
         if N == 1 {
-            Self::from_bigint(BigInt::from(u64::from(other) % P::MODULUS.0[0])).unwrap()
+            Self::from_bigint(BigInt64::from(u64::from(other) % P::MODULUS.0[0])).unwrap()
         } else {
-            Self::from_bigint(BigInt::from(other)).unwrap()
+            Self::from_bigint(BigInt64::from(other)).unwrap()
         }
     }
 }
@@ -483,9 +483,9 @@ impl<P: FpConfig<N>, const N: usize> From<i32> for Fp<P, N> {
 impl<P: FpConfig<N>, const N: usize> From<u16> for Fp<P, N> {
     fn from(other: u16) -> Self {
         if N == 1 {
-            Self::from_bigint(BigInt::from(u64::from(other) % P::MODULUS.0[0])).unwrap()
+            Self::from_bigint(BigInt64::from(u64::from(other) % P::MODULUS.0[0])).unwrap()
         } else {
-            Self::from_bigint(BigInt::from(other)).unwrap()
+            Self::from_bigint(BigInt64::from(other)).unwrap()
         }
     }
 }
@@ -504,9 +504,9 @@ impl<P: FpConfig<N>, const N: usize> From<i16> for Fp<P, N> {
 impl<P: FpConfig<N>, const N: usize> From<u8> for Fp<P, N> {
     fn from(other: u8) -> Self {
         if N == 1 {
-            Self::from_bigint(BigInt::from(u64::from(other) % P::MODULUS.0[0])).unwrap()
+            Self::from_bigint(BigInt64::from(u64::from(other) % P::MODULUS.0[0])).unwrap()
         } else {
-            Self::from_bigint(BigInt::from(other)).unwrap()
+            Self::from_bigint(BigInt64::from(other)).unwrap()
         }
     }
 }
@@ -1007,17 +1007,17 @@ impl<P: FpConfig<N>, const N: usize> From<Fp<P, N>> for num_bigint::BigUint {
     }
 }
 
-impl<P: FpConfig<N>, const N: usize> From<Fp<P, N>> for BigInt<N> {
+impl<P: FpConfig<N>, const N: usize> From<Fp<P, N>> for BigInt64<N> {
     #[inline(always)]
     fn from(fp: Fp<P, N>) -> Self {
         fp.into_bigint()
     }
 }
 
-impl<P: FpConfig<N>, const N: usize> From<BigInt<N>> for Fp<P, N> {
+impl<P: FpConfig<N>, const N: usize> From<BigInt64<N>> for Fp<P, N> {
     /// Converts `Self::BigInteger` into `Self`
     #[inline(always)]
-    fn from(int: BigInt<N>) -> Self {
+    fn from(int: BigInt64<N>) -> Self {
         Self::from_bigint(int).unwrap()
     }
 }

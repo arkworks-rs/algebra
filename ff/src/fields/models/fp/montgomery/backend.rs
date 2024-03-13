@@ -43,7 +43,7 @@ pub struct MontBackend<T: MontConfig<N>, const N: usize>(PhantomData<T>);
 
 impl<T: MontConfig<N>, const N: usize> FpConfig<N> for MontBackend<T, N> {
     /// The modulus of the field.
-    const MODULUS: crate::BigInt<N> = T::MODULUS;
+    const MODULUS: crate::BigInt64<N> = T::MODULUS;
 
     /// A multiplicative generator of the field.
     /// `Self::GENERATOR` is an element having multiplicative order
@@ -52,7 +52,7 @@ impl<T: MontConfig<N>, const N: usize> FpConfig<N> for MontBackend<T, N> {
 
     /// Additive identity of the field, i.e. the element `e`
     /// such that, for all elements `f` of the field, `e + f = f`.
-    const ZERO: Fp<Self, N> = Fp::new_unchecked(BigInt([0u64; N]));
+    const ZERO: Fp<Self, N> = Fp::new_unchecked(BigInt64([0u64; N]));
 
     /// Multiplicative identity of the field, i.e. the element `e`
     /// such that, for all elements `f` of the field, `e * f = f`.
@@ -106,29 +106,29 @@ impl<T: MontConfig<N>, const N: usize> FpConfig<N> for MontBackend<T, N> {
         T::inverse(a)
     }
 
-    fn from_bigint(r: BigInt<N>) -> Option<Fp<Self, N>> {
+    fn from_bigint(r: BigInt64<N>) -> Option<Fp<Self, N>> {
         T::from_bigint(r)
     }
 
     #[inline]
     #[allow(clippy::modulo_one)]
-    fn into_bigint(a: Fp<Self, N>) -> BigInt<N> {
+    fn into_bigint(a: Fp<Self, N>) -> BigInt64<N> {
         T::into_bigint(a)
     }
 }
 
 impl<T: MontConfig<N>, const N: usize> Fp<MontBackend<T, N>, N> {
     #[doc(hidden)]
-    pub const R: BigInt<N> = T::R;
+    pub const R: BigInt64<N> = T::R;
     #[doc(hidden)]
-    pub const R2: BigInt<N> = T::R2;
+    pub const R2: BigInt64<N> = T::R2;
     #[doc(hidden)]
     pub const INV: u64 = T::INV;
 
     /// Construct a new field element from its underlying
     /// [`struct@BigInt`] data type.
     #[inline]
-    pub const fn new(element: BigInt<N>) -> Self {
+    pub const fn new(element: BigInt64<N>) -> Self {
         let mut r = Self(element, PhantomData);
         if r.const_is_zero() {
             r
@@ -146,7 +146,7 @@ impl<T: MontConfig<N>, const N: usize> Fp<MontBackend<T, N>, N> {
     /// an element from an integer that has already been put in
     /// Montgomery form.
     #[inline]
-    pub const fn new_unchecked(element: BigInt<N>) -> Self {
+    pub const fn new_unchecked(element: BigInt64<N>) -> Self {
         Self(element, PhantomData)
     }
 
@@ -168,7 +168,7 @@ impl<T: MontConfig<N>, const N: usize> Fp<MontBackend<T, N>, N> {
     /// of this method
     #[doc(hidden)]
     pub const fn from_sign_and_limbs(is_positive: bool, limbs: &[u64]) -> Self {
-        let mut repr = BigInt::<N>([0; N]);
+        let mut repr = BigInt64::<N>([0; N]);
         assert!(limbs.len() <= N);
         crate::const_for!((i in 0..(limbs.len())) {
             repr.0[i] = limbs[i];
@@ -254,7 +254,7 @@ impl<T: MontConfig<N>, const N: usize> Fp<MontBackend<T, N>, N> {
         self
     }
 
-    const fn sub_with_borrow(a: &BigInt<N>, b: &BigInt<N>) -> BigInt<N> {
+    const fn sub_with_borrow(a: &BigInt64<N>, b: &BigInt64<N>) -> BigInt64<N> {
         a.const_sub_with_borrow(b).0
     }
 

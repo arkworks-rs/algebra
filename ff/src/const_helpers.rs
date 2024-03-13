@@ -1,7 +1,7 @@
 use ark_serialize::{Read, Write};
 use ark_std::ops::{Index, IndexMut};
 
-use crate::BigInt;
+use crate::BigInt64;
 
 /// A helper macro for emulating `for` loops in a `const` context.
 ///
@@ -154,8 +154,8 @@ impl<const N: usize> SerBuffer<N> {
     }
 
     #[inline(always)]
-    pub(super) fn to_bigint(self) -> BigInt<N> {
-        let mut self_integer = BigInt::from(0u64);
+    pub(super) fn to_bigint(self) -> BigInt64<N> {
+        let mut self_integer = BigInt64::from(0u64);
         self_integer
             .0
             .iter_mut()
