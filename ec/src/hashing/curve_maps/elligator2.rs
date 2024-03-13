@@ -264,7 +264,7 @@ mod test {
         Elligator2Map::<TestElligator2MapToCurveConfig>::check_parameters().unwrap();
 
         let mut map_range: Vec<Affine<TestElligator2MapToCurveConfig>> = vec![];
-        // We are mapping all elemnts of the field to the curve, verifying that
+        // We are mapping all elements of the field to the curve, verifying that
         // map is not constant on that set.
         for current_field_element in 0..101 {
             map_range.push(

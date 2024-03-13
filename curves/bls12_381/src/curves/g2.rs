@@ -257,7 +257,7 @@ const DOUBLE_P_POWER_ENDOMORPHISM_COEFF_0: Fq2 = Fq2::new(
     Fq::ZERO
 );
 
-/// psi(P) is the untwist-Frobenius-twist endomorhism on E'(Fq2)
+/// psi(P) is the untwist-Frobenius-twist endomorphism on E'(Fq2)
 fn p_power_endomorphism(p: &Affine<Config>) -> Affine<Config> {
     // The p-power endomorphism for G2 is defined as follows:
     // 1. Note that G2 is defined on curve E': y^2 = x^3 + 4(u+1).
@@ -295,7 +295,7 @@ fn double_p_power_endomorphism(p: &Projective<Config>) -> Projective<Config> {
     res
 }
 
-// Parametres from the [IETF draft v16, section E.3](https://www.ietf.org/archive/id/draft-irtf-cfrg-hash-to-curve-16.html#name-3-isogeny-map-for-bls12-381).
+// Parameters from the [IETF draft v16, section E.3](https://www.ietf.org/archive/id/draft-irtf-cfrg-hash-to-curve-16.html#name-3-isogeny-map-for-bls12-381).
 impl WBConfig for Config {
     type IsogenousCurve = g2_swu_iso::SwuIsoConfig;
 
