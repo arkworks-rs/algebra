@@ -18,13 +18,13 @@ mod tests;
 pub struct Config;
 
 impl BW6Config for Config {
-    const X: BigInteger = BigInt!("0x8508c00000000001");
+    const X: BigInteger = BigInt64!("0x8508c00000000001");
     /// `x` is positive.
     const X_IS_NEGATIVE: bool = false;
     // X
     const ATE_LOOP_COUNT_1: &'static [u64] = &[0x8508c00000000001];
     // (X-1)/3
-    const X_MINUS_1_DIV_3: BigInteger = BigInt!("0x2c58400000000000");
+    const X_MINUS_1_DIV_3: BigInteger = BigInt64!("0x2c58400000000000");
     // X+1
     const ATE_LOOP_COUNT_1_IS_NEGATIVE: bool = false;
     // X^2-X-1

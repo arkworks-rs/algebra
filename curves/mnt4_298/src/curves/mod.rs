@@ -38,11 +38,11 @@ impl MNT4Config for Config {
         0, 0, 0, 0, 0, 0,
     ];
     const ATE_IS_LOOP_COUNT_NEG: bool = false;
-    const FINAL_EXPONENT_LAST_CHUNK_1: BigInteger320 = BigInt!("0x1");
+    const FINAL_EXPONENT_LAST_CHUNK_1: BigInteger320 = BigInt64!("0x1");
     const FINAL_EXPONENT_LAST_CHUNK_W0_IS_NEG: bool = false;
     // https://github.com/o1-labs/snarky/blob/9c21ab2bb23874604640740d646a932e813432c3/snarkette/mnt4_80.ml#L96
     const FINAL_EXPONENT_LAST_CHUNK_ABS_OF_W0: BigInteger320 =
-        BigInt!("689871209842287392837045615510547309923794945");
+        BigInt64!("689871209842287392837045615510547309923794945");
     type Fp = Fq;
     type Fr = Fr;
     type Fp2Config = Fq2Config;

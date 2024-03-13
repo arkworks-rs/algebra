@@ -75,10 +75,10 @@ impl GLVConfig for Config {
         MontFp!("8444461749428370424248824938781546531284005582649182570233710176290576793600");
 
     const SCALAR_DECOMP_COEFFS: [(bool, <Self::ScalarField as PrimeField>::BigInt); 4] = [
-        (true, BigInt!("91893752504881257701523279626832445441")),
-        (true, BigInt!("1")),
-        (false, BigInt!("1")),
-        (true, BigInt!("91893752504881257701523279626832445440")),
+        (true, BigInt64!("91893752504881257701523279626832445441")),
+        (true, BigInt64!("1")),
+        (false, BigInt64!("1")),
+        (true, BigInt64!("91893752504881257701523279626832445440")),
     ];
 
     fn endomorphism(p: &SWProjective<Self>) -> SWProjective<Self> {

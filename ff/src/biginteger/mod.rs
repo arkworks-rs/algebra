@@ -82,7 +82,7 @@ impl<const N: usize> CanonicalDeserialize for BigInt64<N> {
 /// # Usage
 /// ```rust
 /// # use ark_ff::BigInt;
-/// const ONE: BigInt<6> = BigInt!("1");
+/// const ONE: BigInt<6> = BigInt64!("1");
 ///
 /// fn check_correctness() {
 ///     assert_eq!(ONE, BigInt::from(1u8));
