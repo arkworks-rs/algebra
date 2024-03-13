@@ -39,7 +39,7 @@ fn test_fq_repr_is_odd() {
 fn test_fq_repr_is_zero() {
     assert!(BigInteger384::from(0u64).is_zero());
     assert!(!BigInteger384::from(1u64).is_zero());
-    assert!(!BigInt::new([0, 0, 0, 0, 1, 0]).is_zero());
+    assert!(!BigInt64::new([0, 0, 0, 0, 1, 0]).is_zero());
 }
 
 #[test]

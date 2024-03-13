@@ -89,7 +89,7 @@ mod tests {
         assert_eq!(
             FqConfig::GENERATOR,
             ark_ff::Fp(
-                BigInt::new([
+                BigInt64::new([
                     0x321300000006554f,
                     0xb93c0018d6c40005,
                     0x57605e0db0ddbb51,
