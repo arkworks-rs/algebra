@@ -242,11 +242,9 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
             #[allow(unsafe_code, unused_mut)]
             #[rustfmt::skip]
             match N {
-                2 => { ark_ff_asm::x86_64_asm_square!(2, (a.0).0); },
-                3 => { ark_ff_asm::x86_64_asm_square!(3, (a.0).0); },
-                4 => { ark_ff_asm::x86_64_asm_square!(4, (a.0).0); },
-                5 => { ark_ff_asm::x86_64_asm_square!(5, (a.0).0); },
-                6 => { ark_ff_asm::x86_64_asm_square!(6, (a.0).0); },
+                2..=6 => {
+                    ark_ff_asm::x86_64_asm_square!(N, (a.0).0);
+                },
                 _ => unsafe { ark_std::hint::unreachable_unchecked() },
             };
             a.subtract_modulus();
