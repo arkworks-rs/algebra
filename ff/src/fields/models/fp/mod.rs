@@ -83,7 +83,7 @@ pub trait FpConfig<const N: usize>: Send + Sync + 'static + Sized {
     /// Compute the inner product `<a, b>`.
     fn sum_of_products<const T: usize>(a: &[Fp<Self, N>; T], b: &[Fp<Self, N>; T]) -> Fp<Self, N>;
 
-    /// Set a *= b.
+    /// Set a *= a.
     fn square_in_place(a: &mut Fp<Self, N>);
 
     /// Compute a^{-1} if `a` is not zero.
