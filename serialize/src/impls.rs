@@ -332,7 +332,7 @@ impl<T: CanonicalDeserialize + Sync> CanonicalDeserialize for Rc<T> {
     }
 }
 
-#[cfg(feature = "std")]
+#[cfg(target_has_atomic = "ptr")]
 impl<T: CanonicalSerialize + ToOwned> CanonicalSerialize for ark_std::sync::Arc<T> {
     #[inline]
     fn serialize_with_mode<W: Write>(
