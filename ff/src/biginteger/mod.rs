@@ -189,8 +189,8 @@ impl<const N: usize> BigInt<N> {
     /// Compute the largest integer `s` such that `self = 2**s * t + 1` for odd `t`.
     #[doc(hidden)]
     pub const fn two_adic_valuation(mut self) -> u32 {
-        let mut two_adicity = 0;
         assert!(self.const_is_odd());
+        let mut two_adicity = 0;
         // Since `self` is odd, we can always subtract one
         // without a borrow
         self.0[0] -= 1;
