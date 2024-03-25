@@ -227,9 +227,7 @@ impl<T: Valid> Valid for Option<T> {
     }
 
     #[inline]
-    fn batch_check<'a>(
-        batch: impl Iterator<Item = &'a Self> + Send,
-    ) -> Result<(), SerializationError>
+    fn batch_check<'a>(batch: impl Iterator<Item = &'a Self>) -> Result<(), SerializationError>
     where
         Self: 'a,
     {
@@ -332,9 +330,7 @@ impl<T: Valid + Sync + Send> Valid for ark_std::sync::Arc<T> {
 
     #[inline]
 
-    fn batch_check<'a>(
-        batch: impl Iterator<Item = &'a Self> + Send,
-    ) -> Result<(), SerializationError>
+    fn batch_check<'a>(batch: impl Iterator<Item = &'a Self>) -> Result<(), SerializationError>
     where
         Self: 'a,
     {
@@ -386,9 +382,7 @@ where
 
     #[inline]
 
-    fn batch_check<'a>(
-        batch: impl Iterator<Item = &'a Self> + Send,
-    ) -> Result<(), SerializationError>
+    fn batch_check<'a>(batch: impl Iterator<Item = &'a Self>) -> Result<(), SerializationError>
     where
         Self: 'a,
     {
@@ -441,9 +435,7 @@ impl<T: CanonicalDeserialize, const N: usize> Valid for [T; N] {
     }
 
     #[inline]
-    fn batch_check<'a>(
-        batch: impl Iterator<Item = &'a Self> + Send,
-    ) -> Result<(), SerializationError>
+    fn batch_check<'a>(batch: impl Iterator<Item = &'a Self>) -> Result<(), SerializationError>
     where
         Self: 'a,
     {
@@ -491,9 +483,7 @@ impl<T: Valid> Valid for Vec<T> {
     }
 
     #[inline]
-    fn batch_check<'a>(
-        batch: impl Iterator<Item = &'a Self> + Send,
-    ) -> Result<(), SerializationError>
+    fn batch_check<'a>(batch: impl Iterator<Item = &'a Self>) -> Result<(), SerializationError>
     where
         Self: 'a,
     {
@@ -587,9 +577,7 @@ impl<T: Valid> Valid for VecDeque<T> {
     }
 
     #[inline]
-    fn batch_check<'a>(
-        batch: impl Iterator<Item = &'a Self> + Send,
-    ) -> Result<(), SerializationError>
+    fn batch_check<'a>(batch: impl Iterator<Item = &'a Self>) -> Result<(), SerializationError>
     where
         Self: 'a,
     {
@@ -648,9 +636,7 @@ impl<T: Valid> Valid for LinkedList<T> {
     }
 
     #[inline]
-    fn batch_check<'a>(
-        batch: impl Iterator<Item = &'a Self> + Send,
-    ) -> Result<(), SerializationError>
+    fn batch_check<'a>(batch: impl Iterator<Item = &'a Self>) -> Result<(), SerializationError>
     where
         Self: 'a,
     {
@@ -904,9 +890,7 @@ impl<V: Valid> Valid for BTreeSet<V> {
     }
 
     #[inline]
-    fn batch_check<'a>(
-        batch: impl Iterator<Item = &'a Self> + Send,
-    ) -> Result<(), SerializationError>
+    fn batch_check<'a>(batch: impl Iterator<Item = &'a Self>) -> Result<(), SerializationError>
     where
         Self: 'a,
     {
