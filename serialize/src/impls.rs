@@ -349,7 +349,7 @@ impl<T: CanonicalSerialize + ToOwned> CanonicalSerialize for ark_std::sync::Arc<
     }
 }
 
-#[cfg(feature = "std")]
+#[cfg(target_has_atomic = "ptr")]
 impl<T: Valid + Sync + Send> Valid for ark_std::sync::Arc<T> {
     #[inline]
     fn check(&self) -> Result<(), SerializationError> {
@@ -366,7 +366,7 @@ impl<T: Valid + Sync + Send> Valid for ark_std::sync::Arc<T> {
     }
 }
 
-#[cfg(feature = "std")]
+#[cfg(target_has_atomic = "ptr")]
 impl<T: CanonicalDeserialize + ToOwned + Sync + Send> CanonicalDeserialize
     for ark_std::sync::Arc<T>
 {
