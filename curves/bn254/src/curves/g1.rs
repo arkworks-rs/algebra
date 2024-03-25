@@ -47,6 +47,12 @@ impl SWCurveConfig for Config {
         let s = Self::ScalarField::from_sign_and_limbs(true, scalar);
         GLVConfig::glv_mul_projective(*p, s)
     }
+
+    #[inline]
+    fn is_in_correct_subgroup_assuming_on_curve(_p: &G1Affine) -> bool {
+        // G1 = E(Fq) so if the point is on the curve, it is also in the subgroup.
+        true
+    }
 }
 
 impl GLVConfig for Config {
