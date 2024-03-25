@@ -21,6 +21,7 @@
 - [\#748](https://github.com/arkworks-rs/algebra/pull/748) (`ark-ff`) Add `FromStr` for `BigInteger`.
 - [\#756](https://github.com/arkworks-rs/algebra/pull/756) (`ark-ec`) Require `Neg`, `Sub`, `SubAssign` ops on `AffineRepr`.
 - [\#767](https://github.com/arkworks-rs/algebra/pull/767) (`ark-curve25519`) Change (negate) generator of curve25519 for inter-operability with curve25519-dalek.
+- [\#811](https://github.com/arkworks-rs/algebra/pull/811) (`ark-serialize`) Remove `Send` trait bound from `Valid`.
 
 ### Features
 
@@ -30,6 +31,7 @@
 - [\#691](https://github.com/arkworks-rs/algebra/pull/691) (`ark-poly`) Implement `Polynomial` for `SparseMultilinearExtension` and `DenseMultilinearExtension`.
 - [\#693](https://github.com/arkworks-rs/algebra/pull/693) (`ark-serialize`) Add `serialize_to_vec!` convenience macro.
 - [\#713](https://github.com/arkworks-rs/algebra/pull/713) (`ark-ff`) Add support for bitwise operations AND, OR, and XOR between `BigInteger`.
+- [\#811](https://github.com/arkworks-rs/algebra/pull/811) (`ark-serialize`) Implement `Valid` & `CanonicalDeserialize` for `Rc`.
 
 ### Improvements
 
