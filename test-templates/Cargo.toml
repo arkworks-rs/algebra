@@ -30,5 +30,5 @@ hex.workspace = true
 sha2.workspace = true
 
 [features]
-default = []
+default = ["ark-ec/variable_base_msm"]
 std = [ "ark-std/std", "ark-ff/std", "ark-serialize/std", "ark-ec/std" ]

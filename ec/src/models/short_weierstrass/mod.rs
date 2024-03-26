@@ -6,10 +6,11 @@ use ark_std::io::{Read, Write};
 
 use ark_ff::{fields::Field, AdditiveGroup};
 
+#[cfg(feature = "variable_base_msm")]
+use crate::scalar_mul::variable_base::VariableBaseMSM;
+
 use crate::{
-    scalar_mul::{
-        sw_double_and_add_affine, sw_double_and_add_projective, variable_base::VariableBaseMSM,
-    },
+    scalar_mul::{sw_double_and_add_affine, sw_double_and_add_projective},
     AffineRepr,
 };
 use num_traits::Zero;
@@ -103,9 +104,17 @@ pub trait SWCurveConfig: super::CurveConfig {
         bases: &[Affine<Self>],
         scalars: &[Self::ScalarField],
     ) -> Result<Projective<Self>, usize> {
-        (bases.len() == scalars.len())
-            .then(|| VariableBaseMSM::msm_unchecked(bases, scalars))
-            .ok_or(bases.len().min(scalars.len()))
+        #[cfg(feature = "variable_base_msm")]
+        {
+            return (bases.len() == scalars.len())
+                .then(|| VariableBaseMSM::msm_unchecked(bases, scalars))
+                .ok_or(bases.len().min(scalars.len()));
+        }
+
+        #[cfg(not(feature = "variable_base_msm"))]
+        {
+            unimplemented!()
+        }
     }
 
     /// If uncompressed, serializes both x and y coordinates as well as a bit for whether it is

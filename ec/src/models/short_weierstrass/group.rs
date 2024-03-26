@@ -1,8 +1,9 @@
 use super::{Affine, SWCurveConfig};
-use crate::{
-    scalar_mul::{variable_base::VariableBaseMSM, ScalarMul},
-    AffineRepr, CurveGroup, PrimeGroup,
-};
+use crate::{scalar_mul::ScalarMul, AffineRepr, CurveGroup, PrimeGroup};
+
+#[cfg(feature = "variable_base_msm")]
+use crate::scalar_mul::variable_base::VariableBaseMSM;
+
 use ark_ff::{fields::Field, AdditiveGroup, PrimeField, ToConstraintField, UniformRand};
 use ark_serialize::{
     CanonicalDeserialize, CanonicalSerialize, Compress, SerializationError, Valid, Validate,
@@ -646,6 +647,7 @@ impl<P: SWCurveConfig> ScalarMul for Projective<P> {
     }
 }
 
+#[cfg(feature = "variable_base_msm")]
 impl<P: SWCurveConfig> VariableBaseMSM for Projective<P> {
     fn msm(bases: &[Self::MulBase], bigints: &[Self::ScalarField]) -> Result<Self, usize> {
         P::msm(bases, bigints)

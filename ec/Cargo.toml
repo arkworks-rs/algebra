@@ -26,8 +26,8 @@ num-traits.workspace = true
 num-integer.workspace = true
 rayon = { workspace = true, optional = true }
 zeroize = { workspace = true, features = ["zeroize_derive"] }
-hashbrown.workspace = true
 itertools.workspace = true
+hashbrown = { workspace = true, optional = true }
 
 [dev-dependencies]
 ark-test-curves = { workspace = true, features = ["bls12_381_curve"] }
@@ -37,8 +37,10 @@ serde.workspace = true
 serde_json.workspace = true
 serde_derive.workspace = true
 hex.workspace = true
+hashbrown.workspace = true
 
 [features]
 default = []
+variable_base_msm = ["hashbrown"]
 std = [ "ark-std/std", "ark-ff/std", "ark-serialize/std" ]
 parallel = [ "std", "rayon", "ark-std/parallel" ]

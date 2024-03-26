@@ -24,10 +24,10 @@ use zeroize::Zeroize;
 use rayon::prelude::*;
 
 use super::{Affine, MontCurveConfig, TECurveConfig};
-use crate::{
-    scalar_mul::{variable_base::VariableBaseMSM, ScalarMul},
-    AffineRepr, CurveGroup, PrimeGroup,
-};
+use crate::{scalar_mul::ScalarMul, AffineRepr, CurveGroup, PrimeGroup};
+
+#[cfg(feature = "variable_base_msm")]
+use crate::scalar_mul::variable_base::VariableBaseMSM;
 
 /// `Projective` implements Extended Twisted Edwards Coordinates
 /// as described in [\[HKCD08\]](https://eprint.iacr.org/2008/522.pdf).
@@ -500,6 +500,7 @@ impl<P: TECurveConfig> ScalarMul for Projective<P> {
     }
 }
 
+#[cfg(feature = "variable_base_msm")]
 impl<P: TECurveConfig> VariableBaseMSM for Projective<P> {
     fn msm(bases: &[Self::MulBase], bigints: &[Self::ScalarField]) -> Result<Self, usize> {
         P::msm(bases, bigints)

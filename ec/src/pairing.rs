@@ -17,7 +17,10 @@ use ark_std::{
 use derivative::Derivative;
 use zeroize::Zeroize;
 
-use crate::{AffineRepr, CurveGroup, PrimeGroup, VariableBaseMSM};
+use crate::{AffineRepr, CurveGroup, PrimeGroup};
+
+#[cfg(feature = "variable_base_msm")]
+use crate::VariableBaseMSM;
 
 /// Collection of types (mainly fields and curves) that together describe
 /// how to compute a pairing over a pairing-friendly curve.
@@ -324,6 +327,7 @@ impl<P: Pairing> crate::ScalarMul for PairingOutput<P> {
     }
 }
 
+#[cfg(feature = "variable_base_msm")]
 impl<P: Pairing> VariableBaseMSM for PairingOutput<P> {}
 
 /// Represents the output of the Miller loop of the pairing.

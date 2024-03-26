@@ -4,8 +4,11 @@ use ark_serialize::{
 };
 use ark_std::io::{Read, Write};
 
-use crate::{scalar_mul::variable_base::VariableBaseMSM, AffineRepr};
+use crate::AffineRepr;
 use num_traits::Zero;
+
+#[cfg(feature = "variable_base_msm")]
+use crate::scalar_mul::variable_base::VariableBaseMSM;
 
 use ark_ff::{fields::Field, AdditiveGroup};
 
@@ -90,9 +93,17 @@ pub trait TECurveConfig: super::CurveConfig {
         bases: &[Affine<Self>],
         scalars: &[Self::ScalarField],
     ) -> Result<Projective<Self>, usize> {
-        (bases.len() == scalars.len())
-            .then(|| VariableBaseMSM::msm_unchecked(bases, scalars))
-            .ok_or(bases.len().min(scalars.len()))
+        #[cfg(feature = "variable_base_msm")]
+        {
+            return (bases.len() == scalars.len())
+                .then(|| VariableBaseMSM::msm_unchecked(bases, scalars))
+                .ok_or(bases.len().min(scalars.len()));
+        }
+
+        #[cfg(not(feature = "variable_base_msm"))]
+        {
+            unimplemented!()
+        }
     }
 
     /// If uncompressed, serializes both x and y coordinates.

@@ -1,6 +1,7 @@
 pub mod glv;
 pub mod wnaf;
 
+#[cfg(feature = "variable_base_msm")]
 pub mod variable_base;
 
 use crate::{

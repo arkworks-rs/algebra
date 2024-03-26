@@ -29,12 +29,16 @@ pub mod polynomial;
 pub use domain::{
     EvaluationDomain, GeneralEvaluationDomain, MixedRadixEvaluationDomain, Radix2EvaluationDomain,
 };
+
+#[cfg(feature = "multivariate")]
 pub use evaluations::{
     multivariate::multilinear::{
         DenseMultilinearExtension, MultilinearExtension, SparseMultilinearExtension,
     },
     univariate::Evaluations,
 };
+
+pub use evaluations::univariate::Evaluations;
 pub use polynomial::{multivariate, univariate, DenseMVPolynomial, DenseUVPolynomial, Polynomial};
 
 #[cfg(test)]

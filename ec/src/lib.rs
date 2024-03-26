@@ -28,7 +28,11 @@ use ark_std::{
     ops::{Add, AddAssign, Mul, MulAssign, Neg, Sub, SubAssign},
     vec::*,
 };
-pub use scalar_mul::{variable_base::VariableBaseMSM, ScalarMul};
+
+#[cfg(feature = "variable_base_msm")]
+pub use scalar_mul::variable_base::VariableBaseMSM;
+
+pub use scalar_mul::ScalarMul;
 use zeroize::Zeroize;
 
 pub use ark_ff::AdditiveGroup;
@@ -75,6 +79,46 @@ pub trait PrimeGroup: AdditiveGroup<Scalar = Self::ScalarField> {
 /// for efficient group arithmetic.
 ///
 /// The point is guaranteed to be in the correct prime order subgroup.
+#[cfg(not(feature = "variable_base_msm"))]
+pub trait CurveGroup:
+    PrimeGroup
+    + Add<Self::Affine, Output = Self>
+    + AddAssign<Self::Affine>
+    + Sub<Self::Affine, Output = Self>
+    + SubAssign<Self::Affine>
+    + ScalarMul<MulBase = Self::Affine>
+    + From<Self::Affine>
+    + Into<Self::Affine>
+    + core::iter::Sum<Self::Affine>
+    + for<'a> core::iter::Sum<&'a Self::Affine>
+{
+    type Config: CurveConfig<ScalarField = Self::ScalarField, BaseField = Self::BaseField>;
+    /// The field over which this curve is defined.
+    type BaseField: Field;
+    /// The affine representation of this element.
+    type Affine: AffineRepr<
+            Config = Self::Config,
+            Group = Self,
+            ScalarField = Self::ScalarField,
+            BaseField = Self::BaseField,
+        > + From<Self>
+        + Into<Self>;
+
+    /// Type representing an element of the full elliptic curve group, not just the
+    /// prime order subgroup.
+    type FullGroup;
+
+    /// Normalizes a slice of group elements into affine.
+    #[must_use]
+    fn normalize_batch(v: &[Self]) -> Vec<Self::Affine>;
+
+    /// Converts `self` into the affine representation.
+    fn into_affine(self) -> Self::Affine {
+        self.into()
+    }
+}
+
+#[cfg(feature = "variable_base_msm")]
 pub trait CurveGroup:
     PrimeGroup
     + Add<Self::Affine, Output = Self>

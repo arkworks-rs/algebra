@@ -21,18 +21,18 @@ ark-serialize = { workspace = true, features = ["derive"] }
 ark-std.workspace = true
 rayon = { workspace = true, optional = true }
 derivative = { workspace = true, features = [ "use_core" ] }
-hashbrown.workspace = true
+hashbrown = { workspace = true, optional = true }
 
 [dev-dependencies]
 ark-test-curves = { path = "../test-curves", default-features = false, features = [ "bls12_381_curve", "bn384_small_two_adicity_curve", "mnt4_753_curve"] }
 criterion = "0.5.1"
-
+hashbrown.workspace = true
 
 [features]
 default = []
+multivariate = ["hashbrown"]
 std = [ "ark-std/std", "ark-ff/std" ]
 parallel = [ "std", "ark-ff/parallel", "rayon", "ark-std/parallel" ]
-
 
 [[bench]]
 name = "fft"
