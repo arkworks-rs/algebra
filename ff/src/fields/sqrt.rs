@@ -96,7 +96,7 @@ impl<F: crate::Field> SqrtPrecomputation<F> {
                 // Check at the end of the algorithm if x was a square root
                 // Begin Tonelli-Shanks
                 let mut z = *quadratic_nonresidue_to_trace;
-                let mut w = elem.pow(trace_of_modulus_minus_one_div_two);
+                let mut w = elem.pow_u64(trace_of_modulus_minus_one_div_two);
                 let mut x = w * elem;
                 let mut b = x * &w;
 
@@ -141,7 +141,7 @@ impl<F: crate::Field> SqrtPrecomputation<F> {
             Self::Case3Mod4 {
                 modulus_plus_one_div_four,
             } => {
-                let result = elem.pow(modulus_plus_one_div_four.as_ref());
+                let result = elem.pow_u64(modulus_plus_one_div_four.as_ref());
                 (result.square() == *elem).then_some(result)
             },
         }

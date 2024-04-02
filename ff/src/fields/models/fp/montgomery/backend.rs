@@ -41,43 +41,53 @@ pub use MontFp;
 
 pub struct MontBackend<T: MontConfig<N>, const N: usize>(PhantomData<T>);
 
-impl<T: MontConfig<N>, const N: usize> FpConfig<N> for MontBackend<T, N> {
+impl<T: MontConfig<N>, const N: usize> FpConfig for MontBackend<T, N> {
+    type BigInt = BigInt<N>;
+
     /// The modulus of the field.
     const MODULUS: crate::BigInt<N> = T::MODULUS;
+    
+    
+    /// The modulus of the field.
+    const MODULUS_BIT_SIZE: u32 = T::MODULUS_BIT_SIZE;
 
+    const MODULUS_MINUS_ONE_DIV_TWO: Self::BigInt = T::MODULUS_MINUS_ONE_DIV_TWO;
+    
     /// A multiplicative generator of the field.
     /// `Self::GENERATOR` is an element having multiplicative order
     /// `Self::MODULUS - 1`.
-    const GENERATOR: Fp<Self, N> = T::GENERATOR;
+    const GENERATOR: Fp<Self> = T::GENERATOR;
 
     /// Additive identity of the field, i.e. the element `e`
     /// such that, for all elements `f` of the field, `e + f = f`.
-    const ZERO: Fp<Self, N> = Fp::new_unchecked(BigInt([0u64; N]));
+    const ZERO: Fp<Self> = Fp::new_unchecked(BigInt([0u64; N]));
 
     /// Multiplicative identity of the field, i.e. the element `e`
     /// such that, for all elements `f` of the field, `e * f = f`.
-    const ONE: Fp<Self, N> = Fp::new_unchecked(T::R);
+    const ONE: Fp<Self> = Fp::new_unchecked(T::R);
 
     const TWO_ADICITY: u32 = T::TWO_ADICITY;
-    const TWO_ADIC_ROOT_OF_UNITY: Fp<Self, N> = T::TWO_ADIC_ROOT_OF_UNITY;
+    const TWO_ADIC_ROOT_OF_UNITY: Fp<Self> = T::TWO_ADIC_ROOT_OF_UNITY;
+    const TRACE: Self::BigInt = T::TRACE;
+    const TRACE_MINUS_ONE_DIV_TWO: Self::BigInt = T::TRACE_MINUS_ONE_DIV_TWO;
     const SMALL_SUBGROUP_BASE: Option<u32> = T::SMALL_SUBGROUP_BASE;
     const SMALL_SUBGROUP_BASE_ADICITY: Option<u32> = T::SMALL_SUBGROUP_BASE_ADICITY;
-    const LARGE_SUBGROUP_ROOT_OF_UNITY: Option<Fp<Self, N>> = T::LARGE_SUBGROUP_ROOT_OF_UNITY;
-    const SQRT_PRECOMP: Option<crate::SqrtPrecomputation<Fp<Self, N>>> = T::SQRT_PRECOMP;
+    const LARGE_SUBGROUP_ROOT_OF_UNITY: Option<Fp<Self>> = T::LARGE_SUBGROUP_ROOT_OF_UNITY;
+    const SQRT_PRECOMP: Option<crate::SqrtPrecomputation<Fp<Self>>> = T::SQRT_PRECOMP;
 
-    fn add_assign(a: &mut Fp<Self, N>, b: &Fp<Self, N>) {
+    fn add_assign(a: &mut Fp<Self>, b: &Fp<Self>) {
         T::add_assign(a, b)
     }
 
-    fn sub_assign(a: &mut Fp<Self, N>, b: &Fp<Self, N>) {
+    fn sub_assign(a: &mut Fp<Self>, b: &Fp<Self>) {
         T::sub_assign(a, b)
     }
 
-    fn double_in_place(a: &mut Fp<Self, N>) {
+    fn double_in_place(a: &mut Fp<Self>) {
         T::double_in_place(a)
     }
 
-    fn neg_in_place(a: &mut Fp<Self, N>) {
+    fn neg_in_place(a: &mut Fp<Self>) {
         T::neg_in_place(a)
     }
 
@@ -88,36 +98,38 @@ impl<T: MontConfig<N>, const N: usize> FpConfig<N> for MontBackend<T, N> {
     /// `P::MODULUS` has (a) a non-zero MSB, and (b) at least one
     /// zero bit in the rest of the modulus.
     #[inline]
-    fn mul_assign(a: &mut Fp<Self, N>, b: &Fp<Self, N>) {
+    fn mul_assign(a: &mut Fp<Self>, b: &Fp<Self>) {
         T::mul_assign(a, b)
     }
 
-    fn sum_of_products<const M: usize>(a: &[Fp<Self, N>; M], b: &[Fp<Self, N>; M]) -> Fp<Self, N> {
+    fn sum_of_products<const M: usize>(a: &[Fp<Self>; M], b: &[Fp<Self>; M]) -> Fp<Self> {
         T::sum_of_products(a, b)
     }
 
     #[inline]
     #[allow(unused_braces, clippy::absurd_extreme_comparisons)]
-    fn square_in_place(a: &mut Fp<Self, N>) {
+    fn square_in_place(a: &mut Fp<Self>) {
         T::square_in_place(a)
     }
 
-    fn inverse(a: &Fp<Self, N>) -> Option<Fp<Self, N>> {
+    fn inverse(a: &Fp<Self>) -> Option<Fp<Self>> {
         T::inverse(a)
     }
 
-    fn from_bigint(r: BigInt<N>) -> Option<Fp<Self, N>> {
+    fn from_bigint(r: BigInt<N>) -> Option<Fp<Self>> {
         T::from_bigint(r)
     }
 
     #[inline]
     #[allow(clippy::modulo_one)]
-    fn into_bigint(a: Fp<Self, N>) -> BigInt<N> {
+    fn into_bigint(a: Fp<Self>) -> BigInt<N> {
         T::into_bigint(a)
     }
+    
+    
 }
 
-impl<T: MontConfig<N>, const N: usize> Fp<MontBackend<T, N>, N> {
+impl<T: MontConfig<N>, const N: usize> Fp<MontBackend<T, N>> {
     #[doc(hidden)]
     pub const R: BigInt<N> = T::R;
     #[doc(hidden)]
@@ -129,11 +141,11 @@ impl<T: MontConfig<N>, const N: usize> Fp<MontBackend<T, N>, N> {
     /// [`struct@BigInt`] data type.
     #[inline]
     pub const fn new(element: BigInt<N>) -> Self {
-        let mut r = Self(element, PhantomData);
+        let mut r = Self(element);
         if r.const_is_zero() {
             r
         } else {
-            r = r.mul(&Fp(T::R2, PhantomData));
+            r = r.mul(&Fp(T::R2));
             r
         }
     }
@@ -147,7 +159,7 @@ impl<T: MontConfig<N>, const N: usize> Fp<MontBackend<T, N>, N> {
     /// Montgomery form.
     #[inline]
     pub const fn new_unchecked(element: BigInt<N>) -> Self {
-        Self(element, PhantomData)
+        Self(element)
     }
 
     const fn const_is_zero(&self) -> bool {

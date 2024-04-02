@@ -1,6 +1,7 @@
 use super::{Fp, FpConfig};
 use crate::{
-    biginteger::arithmetic as fa, BigInt, BigInteger, PrimeField, SqrtPrecomputation, Zero,
+    biginteger::bigint_64::BigInt,
+    biginteger::arithmetic as fa, BigInteger, PrimeField, SqrtPrecomputation, Zero,
 };
 use ark_ff_macros::unroll_for_loops;
 use ark_std::marker::PhantomData;
@@ -18,6 +19,12 @@ pub use backend::*;
 pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
     /// The modulus of the field.
     const MODULUS: BigInt<N>;
+    
+    /// The size of the modulus in bits.
+    const MODULUS_BIT_SIZE: u32;
+    
+    /// The value `(MODULUS - 1) / 2`.
+    const MODULUS_MINUS_ONE_DIV_TWO: BigInt<N>;
 
     /// Let `M` be the power of 2^64 nearest to `Self::MODULUS_BITS`. Then
     /// `R = M % Self::MODULUS`.
@@ -41,7 +48,7 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
     /// A multiplicative generator of the field.
     /// `Self::GENERATOR` is an element having multiplicative order
     /// `Self::MODULUS - 1`.
-    const GENERATOR: Fp<MontBackend<Self, N>, N>;
+    const GENERATOR: Fp<MontBackend<Self, N>>;
 
     /// Can we use the no-carry optimization for multiplication
     /// outlined [here](https://hackmd.io/@gnark/modular_multiplication)?
@@ -81,7 +88,13 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
     const TWO_ADICITY: u32;
 
     /// 2^s root of unity computed by GENERATOR^t
-    const TWO_ADIC_ROOT_OF_UNITY: Fp<MontBackend<Self, N>, N>;
+    const TWO_ADIC_ROOT_OF_UNITY: Fp<MontBackend<Self, N>>;
+    
+    /// The value `(MODULUS - 1) / 2^s`.
+    const TRACE: BigInt<N>;
+    
+    /// The value `(TRACE - 1) / 2`.
+    const TRACE_MINUS_ONE_DIV_TWO: BigInt<N>;
 
     /// An integer `b` such that there exists a multiplicative subgroup
     /// of size `b^k` for some integer `k`.
@@ -94,11 +107,11 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
     /// GENERATOR^((MODULUS-1) / (2^s *
     /// SMALL_SUBGROUP_BASE^SMALL_SUBGROUP_BASE_ADICITY)).
     /// Used for mixed-radix FFT.
-    const LARGE_SUBGROUP_ROOT_OF_UNITY: Option<Fp<MontBackend<Self, N>, N>> = None;
+    const LARGE_SUBGROUP_ROOT_OF_UNITY: Option<Fp<MontBackend<Self, N>>> = None;
 
     /// Precomputed material for use when computing square roots.
     /// The default is to use the standard Tonelli-Shanks algorithm.
-    const SQRT_PRECOMP: Option<SqrtPrecomputation<Fp<MontBackend<Self, N>, N>>>;
+    const SQRT_PRECOMP: Option<SqrtPrecomputation<Fp<MontBackend<Self, N>>>>;
 
     /// (MODULUS + 1) / 4 when MODULUS % 4 == 3. Used for square root precomputations.
     ///
@@ -108,7 +121,7 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
 
     /// Sets `a = a + b`.
     #[inline(always)]
-    fn add_assign(a: &mut Fp<MontBackend<Self, N>, N>, b: &Fp<MontBackend<Self, N>, N>) {
+    fn add_assign(a: &mut Fp<MontBackend<Self, N>>, b: &Fp<MontBackend<Self, N>>) {
         // This cannot exceed the backing capacity.
         let c = a.0.add_with_carry(&b.0);
         // However, it may need to be reduced
@@ -121,7 +134,7 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
 
     /// Sets `a = a - b`.
     #[inline(always)]
-    fn sub_assign(a: &mut Fp<MontBackend<Self, N>, N>, b: &Fp<MontBackend<Self, N>, N>) {
+    fn sub_assign(a: &mut Fp<MontBackend<Self, N>>, b: &Fp<MontBackend<Self, N>>) {
         // If `other` is larger than `self`, add the modulus to self first.
         if b.0 > a.0 {
             a.0.add_with_carry(&Self::MODULUS);
@@ -131,7 +144,7 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
 
     /// Sets `a = 2 * a`.
     #[inline(always)]
-    fn double_in_place(a: &mut Fp<MontBackend<Self, N>, N>) {
+    fn double_in_place(a: &mut Fp<MontBackend<Self, N>>) {
         // This cannot exceed the backing capacity.
         let c = a.0.mul2();
         // However, it may need to be reduced.
@@ -144,7 +157,7 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
 
     /// Sets `a = -a`.
     #[inline(always)]
-    fn neg_in_place(a: &mut Fp<MontBackend<Self, N>, N>) {
+    fn neg_in_place(a: &mut Fp<MontBackend<Self, N>>) {
         if !a.is_zero() {
             let mut tmp = Self::MODULUS;
             tmp.sub_with_borrow(&a.0);
@@ -160,7 +173,7 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
     /// zero bit in the rest of the modulus.
     #[unroll_for_loops(12)]
     #[inline(always)]
-    fn mul_assign(a: &mut Fp<MontBackend<Self, N>, N>, b: &Fp<MontBackend<Self, N>, N>) {
+    fn mul_assign(a: &mut Fp<MontBackend<Self, N>>, b: &Fp<MontBackend<Self, N>>) {
         // No-carry optimisation applied to CIOS
         if Self::CAN_USE_NO_CARRY_MUL_OPT {
             if N <= 6
@@ -229,7 +242,7 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
 
     #[inline(always)]
     #[unroll_for_loops(12)]
-    fn square_in_place(a: &mut Fp<MontBackend<Self, N>, N>) {
+    fn square_in_place(a: &mut Fp<MontBackend<Self, N>>) {
         if N == 1 {
             // We default to multiplying with `a` using the `Mul` impl
             // for the N == 1 case
@@ -305,7 +318,7 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
         }
     }
 
-    fn inverse(a: &Fp<MontBackend<Self, N>, N>) -> Option<Fp<MontBackend<Self, N>, N>> {
+    fn inverse(a: &Fp<MontBackend<Self, N>>) -> Option<Fp<MontBackend<Self, N>>> {
         if a.is_zero() {
             return None;
         }
@@ -338,14 +351,15 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
 
             while v.is_even() {
                 v.div2();
+                let mut c_inner: BigInt<N> = c.0;
 
-                if c.0.is_even() {
-                    c.0.div2();
+                if c_inner.is_even() {
+                    c_inner.div2();
                 } else {
-                    let carry = c.0.add_with_carry(&Self::MODULUS);
-                    c.0.div2();
+                    let carry = c_inner.add_with_carry(&Self::MODULUS);
+                    c_inner.div2();
                     if !Self::MODULUS_HAS_SPARE_BIT && carry {
-                        (c.0).0[N - 1] |= 1 << 63;
+                        c_inner.0[N - 1] |= 1 << 63;
                     }
                 }
             }
@@ -366,7 +380,7 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
         }
     }
 
-    fn from_bigint(r: BigInt<N>) -> Option<Fp<MontBackend<Self, N>, N>> {
+    fn from_bigint(r: BigInt<N>) -> Option<Fp<MontBackend<Self, N>>> {
         let mut r = Fp::new_unchecked(r);
         if r.is_zero() {
             Some(r)
@@ -382,7 +396,7 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
     #[cfg_attr(not(target_family = "wasm"), unroll_for_loops(12))]
     #[cfg_attr(target_family = "wasm", unroll_for_loops(6))]
     #[allow(clippy::modulo_one)]
-    fn into_bigint(a: Fp<MontBackend<Self, N>, N>) -> BigInt<N> {
+    fn into_bigint(a: Fp<MontBackend<Self, N>>) -> BigInt<N> {
         let mut r = (a.0).0;
         // Montgomery Reduction
         for i in 0..N {
@@ -402,9 +416,9 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
 
     #[unroll_for_loops(12)]
     fn sum_of_products<const M: usize>(
-        a: &[Fp<MontBackend<Self, N>, N>; M],
-        b: &[Fp<MontBackend<Self, N>, N>; M],
-    ) -> Fp<MontBackend<Self, N>, N> {
+        a: &[Fp<MontBackend<Self, N>>; M],
+        b: &[Fp<MontBackend<Self, N>>; M],
+    ) -> Fp<MontBackend<Self, N>> {
         // Adapted from https://github.com/zkcrypto/bls12_381/pull/84 by @str4d.
 
         // For a single `a x b` multiplication, operand scanning (schoolbook) takes each
@@ -455,7 +469,7 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
             let mut result = Fp::new_unchecked(result);
             result.subtract_modulus();
             debug_assert_eq!(
-                a.iter().zip(b).map(|(a, b)| *a * b).sum::<Fp<_, N>>(),
+                a.iter().zip(b).map(|(a, b)| *a * b).sum::<Fp<_>>(),
                 result
             );
             result
@@ -470,7 +484,7 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
                         // Algorithm 2, line 3
                         let (temp, carry) = a.iter().zip(b).fold(
                             (result, 0),
-                            |(mut temp, mut carry), (Fp(a, _), Fp(b, _))| {
+                            |(mut temp, mut carry), (Fp(a), Fp(b))| {
                                 let mut carry2 = 0;
                                 temp.0[0] = fa::mac(temp.0[0], a.0[j], b.0[0], &mut carry2);
                                 for k in 1..N {
@@ -495,7 +509,7 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
                     let mut result = Fp::new_unchecked(result);
                     result.subtract_modulus();
                     debug_assert_eq!(
-                        a.iter().zip(b).map(|(a, b)| *a * b).sum::<Fp<_, N>>(),
+                        a.iter().zip(b).map(|(a, b)| *a * b).sum::<Fp<_>>(),
                         result
                     );
                     result
@@ -533,7 +547,7 @@ pub const fn can_use_no_carry_square_optimization<T: MontConfig<N>, const N: usi
 }
 
 pub const fn sqrt_precomputation<const N: usize, T: MontConfig<N>>(
-) -> Option<SqrtPrecomputation<Fp<MontBackend<T, N>, N>>> {
+) -> Option<SqrtPrecomputation<Fp<MontBackend<T, N>>>> {
     match T::MODULUS.mod_4() {
         3 => match T::MODULUS_PLUS_ONE_DIV_FOUR.as_ref() {
             Some(BigInt(modulus_plus_one_div_four)) => Some(SqrtPrecomputation::Case3Mod4 {
@@ -545,7 +559,7 @@ pub const fn sqrt_precomputation<const N: usize, T: MontConfig<N>>(
             two_adicity: <MontBackend<T, N>>::TWO_ADICITY,
             quadratic_nonresidue_to_trace: T::TWO_ADIC_ROOT_OF_UNITY,
             trace_of_modulus_minus_one_div_two:
-                &<Fp<MontBackend<T, N>, N>>::TRACE_MINUS_ONE_DIV_TWO.0,
+                &<Fp<MontBackend<T, N>>>::TRACE_MINUS_ONE_DIV_TWO.0,
         }),
     }
 }

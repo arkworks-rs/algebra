@@ -1,5 +1,5 @@
 use crate::{
-    AdditiveGroup, BigInt, BigInteger, FftField, Field, LegendreSymbol, One, PrimeField,
+    AdditiveGroup, BigInteger, FftField, Field, LegendreSymbol, One, PrimeField,
     SqrtPrecomputation, Zero,
 };
 use ark_serialize::{
@@ -9,10 +9,10 @@ use ark_serialize::{
 use ark_std::{
     cmp::*,
     fmt::{Display, Formatter, Result as FmtResult},
-    marker::PhantomData,
     ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign},
     str::FromStr,
     string::*,
+    UniformRand,
 };
 use core::iter;
 
@@ -22,22 +22,30 @@ pub use montgomery::*;
 
 /// A trait that specifies the configuration of a prime field.
 /// Also specifies how to perform arithmetic on field elements.
-pub trait FpConfig<const N: usize>: Send + Sync + 'static + Sized {
+pub trait FpConfig: Send + Sync + 'static + Sized {
+    type BigInt: BigInteger;
+
     /// The modulus of the field.
-    const MODULUS: crate::BigInt<N>;
+    const MODULUS: Self::BigInt;
+
+    /// The value `(MODULUS - 1) / 2`.
+    const MODULUS_MINUS_ONE_DIV_TWO: Self::BigInt;
+
+    /// The size of the modulus in bits.
+    const MODULUS_BIT_SIZE: u32;
 
     /// A multiplicative generator of the field.
     /// `Self::GENERATOR` is an element having multiplicative order
     /// `Self::MODULUS - 1`.
-    const GENERATOR: Fp<Self, N>;
+    const GENERATOR: Fp<Self>;
 
     /// Additive identity of the field, i.e. the element `e`
     /// such that, for all elements `f` of the field, `e + f = f`.
-    const ZERO: Fp<Self, N>;
+    const ZERO: Fp<Self>;
 
     /// Multiplicative identity of the field, i.e. the element `e`
     /// such that, for all elements `f` of the field, `e * f = f`.
-    const ONE: Fp<Self, N>;
+    const ONE: Fp<Self>;
 
     /// Let `N` be the size of the multiplicative group defined by the field.
     /// Then `TWO_ADICITY` is the two-adicity of `N`, i.e. the integer `s`
@@ -45,7 +53,15 @@ pub trait FpConfig<const N: usize>: Send + Sync + 'static + Sized {
     const TWO_ADICITY: u32;
 
     /// 2^s root of unity computed by GENERATOR^t
-    const TWO_ADIC_ROOT_OF_UNITY: Fp<Self, N>;
+    const TWO_ADIC_ROOT_OF_UNITY: Fp<Self>;
+    
+    
+    /// The trace of the field is defined as the smallest odd integer `t` such that
+    /// `2^s * t = p - 1`. That is, `t = (p - 1) / 2^SELF::TWO_ADICITY`.
+    const TRACE: Self::BigInt;
+    
+    /// The value `(t - 1)/ 2`.
+    const TRACE_MINUS_ONE_DIV_TWO: Self::BigInt;
 
     /// An integer `b` such that there exists a multiplicative subgroup
     /// of size `b^k` for some integer `k`.
@@ -58,45 +74,45 @@ pub trait FpConfig<const N: usize>: Send + Sync + 'static + Sized {
     /// GENERATOR^((MODULUS-1) / (2^s *
     /// SMALL_SUBGROUP_BASE^SMALL_SUBGROUP_BASE_ADICITY)) Used for mixed-radix
     /// FFT.
-    const LARGE_SUBGROUP_ROOT_OF_UNITY: Option<Fp<Self, N>> = None;
+    const LARGE_SUBGROUP_ROOT_OF_UNITY: Option<Fp<Self>> = None;
 
     /// Precomputed material for use when computing square roots.
     /// Currently uses the generic Tonelli-Shanks,
     /// which works for every modulus.
-    const SQRT_PRECOMP: Option<SqrtPrecomputation<Fp<Self, N>>>;
+    const SQRT_PRECOMP: Option<SqrtPrecomputation<Fp<Self>>>;
 
     /// Set a += b.
-    fn add_assign(a: &mut Fp<Self, N>, b: &Fp<Self, N>);
+    fn add_assign(a: &mut Fp<Self>, b: &Fp<Self>);
 
     /// Set a -= b.
-    fn sub_assign(a: &mut Fp<Self, N>, b: &Fp<Self, N>);
+    fn sub_assign(a: &mut Fp<Self>, b: &Fp<Self>);
 
     /// Set a = a + a.
-    fn double_in_place(a: &mut Fp<Self, N>);
+    fn double_in_place(a: &mut Fp<Self>);
 
     /// Set a = -a;
-    fn neg_in_place(a: &mut Fp<Self, N>);
+    fn neg_in_place(a: &mut Fp<Self>);
 
     /// Set a *= b.
-    fn mul_assign(a: &mut Fp<Self, N>, b: &Fp<Self, N>);
+    fn mul_assign(a: &mut Fp<Self>, b: &Fp<Self>);
 
     /// Compute the inner product `<a, b>`.
-    fn sum_of_products<const T: usize>(a: &[Fp<Self, N>; T], b: &[Fp<Self, N>; T]) -> Fp<Self, N>;
+    fn sum_of_products<const T: usize>(a: &[Fp<Self>; T], b: &[Fp<Self>; T]) -> Fp<Self>;
 
     /// Set a *= b.
-    fn square_in_place(a: &mut Fp<Self, N>);
+    fn square_in_place(a: &mut Fp<Self>);
 
     /// Compute a^{-1} if `a` is not zero.
-    fn inverse(a: &Fp<Self, N>) -> Option<Fp<Self, N>>;
+    fn inverse(a: &Fp<Self>) -> Option<Fp<Self>>;
 
     /// Construct a field element from an integer in the range
     /// `0..(Self::MODULUS - 1)`. Returns `None` if the integer is outside
     /// this range.
-    fn from_bigint(other: BigInt<N>) -> Option<Fp<Self, N>>;
+    fn from_bigint(other: Self::BigInt) -> Option<Fp<Self>>;
 
     /// Convert a field element to an integer in the range `0..(Self::MODULUS -
     /// 1)`.
-    fn into_bigint(other: Fp<Self, N>) -> BigInt<N>;
+    fn into_bigint(other: Fp<Self>) -> Self::BigInt;
 }
 
 /// Represents an element of the prime field F_p, where `p == P::MODULUS`.
@@ -110,31 +126,14 @@ pub trait FpConfig<const N: usize>: Send + Sync + 'static + Sized {
     PartialEq(bound = ""),
     Eq(bound = "")
 )]
-pub struct Fp<P: FpConfig<N>, const N: usize>(
+pub struct Fp<P: FpConfig>(
     /// Contains the element in Montgomery form for efficient multiplication.
     /// To convert an element to a [`BigInt`](struct@BigInt), use `into_bigint` or `into`.
     #[doc(hidden)]
-    pub BigInt<N>,
-    #[derivative(Debug = "ignore")]
-    #[doc(hidden)]
-    pub PhantomData<P>,
+    pub P::BigInt,
 );
 
-pub type Fp64<P> = Fp<P, 1>;
-pub type Fp128<P> = Fp<P, 2>;
-pub type Fp192<P> = Fp<P, 3>;
-pub type Fp256<P> = Fp<P, 4>;
-pub type Fp320<P> = Fp<P, 5>;
-pub type Fp384<P> = Fp<P, 6>;
-pub type Fp448<P> = Fp<P, 7>;
-pub type Fp512<P> = Fp<P, 8>;
-pub type Fp576<P> = Fp<P, 9>;
-pub type Fp640<P> = Fp<P, 10>;
-pub type Fp704<P> = Fp<P, 11>;
-pub type Fp768<P> = Fp<P, 12>;
-pub type Fp832<P> = Fp<P, 13>;
-
-impl<P: FpConfig<N>, const N: usize> Fp<P, N> {
+impl<P: FpConfig> Fp<P> {
     #[doc(hidden)]
     #[inline]
     pub fn is_geq_modulus(&self) -> bool {
@@ -156,17 +155,17 @@ impl<P: FpConfig<N>, const N: usize> Fp<P, N> {
     }
 
     fn num_bits_to_shave() -> usize {
-        64 * N - (Self::MODULUS_BIT_SIZE as usize)
+        P::BigInt::BIT_SIZE - (Self::MODULUS_BIT_SIZE as usize)
     }
 }
 
-impl<P: FpConfig<N>, const N: usize> ark_std::fmt::Debug for Fp<P, N> {
+impl<P: FpConfig> ark_std::fmt::Debug for Fp<P> {
     fn fmt(&self, f: &mut Formatter<'_>) -> ark_std::fmt::Result {
         ark_std::fmt::Debug::fmt(&self.into_bigint(), f)
     }
 }
 
-impl<P: FpConfig<N>, const N: usize> Zero for Fp<P, N> {
+impl<P: FpConfig> Zero for Fp<P> {
     #[inline]
     fn zero() -> Self {
         P::ZERO
@@ -178,7 +177,7 @@ impl<P: FpConfig<N>, const N: usize> Zero for Fp<P, N> {
     }
 }
 
-impl<P: FpConfig<N>, const N: usize> One for Fp<P, N> {
+impl<P: FpConfig> One for Fp<P> {
     #[inline]
     fn one() -> Self {
         P::ONE
@@ -190,7 +189,7 @@ impl<P: FpConfig<N>, const N: usize> One for Fp<P, N> {
     }
 }
 
-impl<P: FpConfig<N>, const N: usize> AdditiveGroup for Fp<P, N> {
+impl<P: FpConfig> AdditiveGroup for Fp<P> {
     type Scalar = Self;
     const ZERO: Self = P::ZERO;
 
@@ -214,7 +213,7 @@ impl<P: FpConfig<N>, const N: usize> AdditiveGroup for Fp<P, N> {
     }
 }
 
-impl<P: FpConfig<N>, const N: usize> Field for Fp<P, N> {
+impl<P: FpConfig> Field for Fp<P> {
     type BasePrimeField = Self;
     type BasePrimeFieldIter = iter::Once<Self::BasePrimeField>;
 
@@ -245,59 +244,13 @@ impl<P: FpConfig<N>, const N: usize> Field for Fp<P, N> {
     }
 
     #[inline]
-    fn characteristic() -> &'static [u64] {
-        P::MODULUS.as_ref()
+    fn characteristic() -> impl BigInteger {
+        P::MODULUS
     }
 
     #[inline]
     fn sum_of_products<const T: usize>(a: &[Self; T], b: &[Self; T]) -> Self {
         P::sum_of_products(a, b)
-    }
-
-    #[inline]
-    fn from_random_bytes_with_flags<F: Flags>(bytes: &[u8]) -> Option<(Self, F)> {
-        if F::BIT_SIZE > 8 {
-            None
-        } else {
-            let shave_bits = Self::num_bits_to_shave();
-            let mut result_bytes = crate::const_helpers::SerBuffer::<N>::zeroed();
-            // Copy the input into a temporary buffer.
-            result_bytes.copy_from_u8_slice(bytes);
-            // This mask retains everything in the last limb
-            // that is below `P::MODULUS_BIT_SIZE`.
-            let last_limb_mask =
-                (u64::MAX.checked_shr(shave_bits as u32).unwrap_or(0)).to_le_bytes();
-            let mut last_bytes_mask = [0u8; 9];
-            last_bytes_mask[..8].copy_from_slice(&last_limb_mask);
-
-            // Length of the buffer containing the field element and the flag.
-            let output_byte_size = buffer_byte_size(Self::MODULUS_BIT_SIZE as usize + F::BIT_SIZE);
-            // Location of the flag is the last byte of the serialized
-            // form of the field element.
-            let flag_location = output_byte_size - 1;
-
-            // At which byte is the flag located in the last limb?
-            let flag_location_in_last_limb = flag_location.saturating_sub(8 * (N - 1));
-
-            // Take all but the last 9 bytes.
-            let last_bytes = result_bytes.last_n_plus_1_bytes_mut();
-
-            // The mask only has the last `F::BIT_SIZE` bits set
-            let flags_mask = u8::MAX.checked_shl(8 - (F::BIT_SIZE as u32)).unwrap_or(0);
-
-            // Mask away the remaining bytes, and try to reconstruct the
-            // flag
-            let mut flags: u8 = 0;
-            for (i, (b, m)) in last_bytes.zip(&last_bytes_mask).enumerate() {
-                if i == flag_location_in_last_limb {
-                    flags = *b & flags_mask
-                }
-                *b &= m;
-            }
-            Self::deserialize_compressed(&result_bytes.as_slice()[..(N * 8)])
-                .ok()
-                .and_then(|f| F::from_u8(flags).map(|flag| (f, flag)))
-        }
     }
 
     #[inline]
@@ -335,7 +288,7 @@ impl<P: FpConfig<N>, const N: usize> Field for Fp<P, N> {
         use crate::fields::LegendreSymbol::*;
 
         // s = self^((MODULUS - 1) // 2)
-        let s = self.pow(Self::MODULUS_MINUS_ONE_DIV_TWO);
+        let s = self.pow(Self::MODULUS_MINUS_ONE_DIV_TWO.bits_le_iter());
         if s.is_zero() {
             Zero
         } else if s.is_one() {
@@ -346,25 +299,25 @@ impl<P: FpConfig<N>, const N: usize> Field for Fp<P, N> {
     }
 }
 
-impl<P: FpConfig<N>, const N: usize> PrimeField for Fp<P, N> {
-    type BigInt = BigInt<N>;
+impl<P: FpConfig> PrimeField for Fp<P> {
+    type BigInt = P::BigInt;
     const MODULUS: Self::BigInt = P::MODULUS;
-    const MODULUS_MINUS_ONE_DIV_TWO: Self::BigInt = P::MODULUS.divide_by_2_round_down();
-    const MODULUS_BIT_SIZE: u32 = P::MODULUS.const_num_bits();
-    const TRACE: Self::BigInt = P::MODULUS.two_adic_coefficient();
-    const TRACE_MINUS_ONE_DIV_TWO: Self::BigInt = Self::TRACE.divide_by_2_round_down();
+    const MODULUS_MINUS_ONE_DIV_TWO: Self::BigInt = P::MODULUS_MINUS_ONE_DIV_TWO;
+    const MODULUS_BIT_SIZE: u32 = P::MODULUS_BIT_SIZE;
+    const TRACE: Self::BigInt = P::TRACE;
+    const TRACE_MINUS_ONE_DIV_TWO: Self::BigInt = P::TRACE_MINUS_ONE_DIV_TWO;
 
     #[inline]
-    fn from_bigint(r: BigInt<N>) -> Option<Self> {
+    fn from_bigint(r: Self::BigInt) -> Option<Self> {
         P::from_bigint(r)
     }
 
-    fn into_bigint(self) -> BigInt<N> {
+    fn into_bigint(self) -> Self::BigInt {
         P::into_bigint(self)
     }
 }
 
-impl<P: FpConfig<N>, const N: usize> FftField for Fp<P, N> {
+impl<P: FpConfig> FftField for Fp<P> {
     const GENERATOR: Self = P::GENERATOR;
     const TWO_ADICITY: u32 = P::TWO_ADICITY;
     const TWO_ADIC_ROOT_OF_UNITY: Self = P::TWO_ADIC_ROOT_OF_UNITY;
@@ -379,7 +332,7 @@ impl<P: FpConfig<N>, const N: usize> FftField for Fp<P, N> {
 /// as such, users should use this `Ord` for applications where
 /// any ordering suffices (like in a BTreeMap), and not in applications
 /// where a particular ordering is required.
-impl<P: FpConfig<N>, const N: usize> Ord for Fp<P, N> {
+impl<P: FpConfig> Ord for Fp<P> {
     #[inline(always)]
     fn cmp(&self, other: &Self) -> Ordering {
         self.into_bigint().cmp(&other.into_bigint())
@@ -392,32 +345,21 @@ impl<P: FpConfig<N>, const N: usize> Ord for Fp<P, N> {
 /// as such, users should use this `PartialOrd` for applications where
 /// any ordering suffices (like in a BTreeMap), and not in applications
 /// where a particular ordering is required.
-impl<P: FpConfig<N>, const N: usize> PartialOrd for Fp<P, N> {
+impl<P: FpConfig> PartialOrd for Fp<P> {
     #[inline(always)]
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }
 
-impl<P: FpConfig<N>, const N: usize> From<u128> for Fp<P, N> {
+impl<P: FpConfig> From<u128> for Fp<P> {
     fn from(mut other: u128) -> Self {
-        let mut result = BigInt::default();
-        if N == 1 {
-            result.0[0] = (other % u128::from(P::MODULUS.0[0])) as u64;
-        } else if N == 2 || P::MODULUS.0[2..].iter().all(|&x| x == 0) {
-            let mod_as_u128 = P::MODULUS.0[0] as u128 + ((P::MODULUS.0[1] as u128) << 64);
-            other %= mod_as_u128;
-            result.0[0] = ((other << 64) >> 64) as u64;
-            result.0[1] = (other >> 64) as u64;
-        } else {
-            result.0[0] = ((other << 64) >> 64) as u64;
-            result.0[1] = (other >> 64) as u64;
-        }
-        Self::from_bigint(result).unwrap()
+        todo!();
+        // P::BigInt::from(other).and_then(Self::from_bigint).unwrap()
     }
 }
 
-impl<P: FpConfig<N>, const N: usize> From<i128> for Fp<P, N> {
+impl<P: FpConfig> From<i128> for Fp<P> {
     fn from(other: i128) -> Self {
         let abs = Self::from(other.unsigned_abs());
         if other.is_positive() {
@@ -428,27 +370,27 @@ impl<P: FpConfig<N>, const N: usize> From<i128> for Fp<P, N> {
     }
 }
 
-impl<P: FpConfig<N>, const N: usize> From<bool> for Fp<P, N> {
+impl<P: FpConfig> From<bool> for Fp<P> {
     fn from(other: bool) -> Self {
-        if N == 1 {
-            Self::from_bigint(BigInt::from(u64::from(other) % P::MODULUS.0[0])).unwrap()
+        if other {
+            Self::ONE
         } else {
-            Self::from_bigint(BigInt::from(u64::from(other))).unwrap()
+            Self::ZERO
         }
     }
 }
 
-impl<P: FpConfig<N>, const N: usize> From<u64> for Fp<P, N> {
+impl<P: FpConfig> From<u64> for Fp<P> {
     fn from(other: u64) -> Self {
-        if N == 1 {
-            Self::from_bigint(BigInt::from(other % P::MODULUS.0[0])).unwrap()
+        if Self::MODULUS_BIT_SIZE > 64 {
+            Self::from_bigint(P::BigInt::from(other)).unwrap()
         } else {
-            Self::from_bigint(BigInt::from(other)).unwrap()
+            todo!()
         }
     }
 }
 
-impl<P: FpConfig<N>, const N: usize> From<i64> for Fp<P, N> {
+impl<P: FpConfig> From<i64> for Fp<P> {
     fn from(other: i64) -> Self {
         let abs = Self::from(other.unsigned_abs());
         if other.is_positive() {
@@ -459,17 +401,17 @@ impl<P: FpConfig<N>, const N: usize> From<i64> for Fp<P, N> {
     }
 }
 
-impl<P: FpConfig<N>, const N: usize> From<u32> for Fp<P, N> {
+impl<P: FpConfig> From<u32> for Fp<P> {
     fn from(other: u32) -> Self {
-        if N == 1 {
-            Self::from_bigint(BigInt::from(u64::from(other) % P::MODULUS.0[0])).unwrap()
+        if Self::MODULUS_BIT_SIZE > 32 {
+            Self::from_bigint(P::BigInt::from(other)).unwrap()
         } else {
-            Self::from_bigint(BigInt::from(other)).unwrap()
+            todo!()
         }
     }
 }
 
-impl<P: FpConfig<N>, const N: usize> From<i32> for Fp<P, N> {
+impl<P: FpConfig> From<i32> for Fp<P> {
     fn from(other: i32) -> Self {
         let abs = Self::from(other.unsigned_abs());
         if other.is_positive() {
@@ -480,17 +422,17 @@ impl<P: FpConfig<N>, const N: usize> From<i32> for Fp<P, N> {
     }
 }
 
-impl<P: FpConfig<N>, const N: usize> From<u16> for Fp<P, N> {
+impl<P: FpConfig> From<u16> for Fp<P> {
     fn from(other: u16) -> Self {
-        if N == 1 {
-            Self::from_bigint(BigInt::from(u64::from(other) % P::MODULUS.0[0])).unwrap()
+        if Self::MODULUS_BIT_SIZE > 16 {
+            Self::from_bigint(P::BigInt::from(other)).unwrap()
         } else {
-            Self::from_bigint(BigInt::from(other)).unwrap()
+            todo!()
         }
     }
 }
 
-impl<P: FpConfig<N>, const N: usize> From<i16> for Fp<P, N> {
+impl<P: FpConfig> From<i16> for Fp<P> {
     fn from(other: i16) -> Self {
         let abs = Self::from(other.unsigned_abs());
         if other.is_positive() {
@@ -501,17 +443,17 @@ impl<P: FpConfig<N>, const N: usize> From<i16> for Fp<P, N> {
     }
 }
 
-impl<P: FpConfig<N>, const N: usize> From<u8> for Fp<P, N> {
+impl<P: FpConfig> From<u8> for Fp<P> {
     fn from(other: u8) -> Self {
-        if N == 1 {
-            Self::from_bigint(BigInt::from(u64::from(other) % P::MODULUS.0[0])).unwrap()
+        if Self::MODULUS_BIT_SIZE > 8 {
+            Self::from_bigint(P::BigInt::from(other)).unwrap()
         } else {
-            Self::from_bigint(BigInt::from(other)).unwrap()
+            todo!()
         }
     }
 }
 
-impl<P: FpConfig<N>, const N: usize> From<i8> for Fp<P, N> {
+impl<P: FpConfig> From<i8> for Fp<P> {
     fn from(other: i8) -> Self {
         let abs = Self::from(other.unsigned_abs());
         if other.is_positive() {
@@ -522,29 +464,15 @@ impl<P: FpConfig<N>, const N: usize> From<i8> for Fp<P, N> {
     }
 }
 
-impl<P: FpConfig<N>, const N: usize> ark_std::rand::distributions::Distribution<Fp<P, N>>
+impl<P: FpConfig> ark_std::rand::distributions::Distribution<Fp<P>>
     for ark_std::rand::distributions::Standard
 {
     #[inline]
-    fn sample<R: ark_std::rand::Rng + ?Sized>(&self, rng: &mut R) -> Fp<P, N> {
+    fn sample<R: ark_std::rand::Rng + ?Sized>(&self, rng: &mut R) -> Fp<P> {
         loop {
-            let mut tmp = Fp(
-                rng.sample(ark_std::rand::distributions::Standard),
-                PhantomData,
-            );
-            let shave_bits = Fp::<P, N>::num_bits_to_shave();
-            // Mask away the unused bits at the beginning.
-            assert!(shave_bits <= 64);
-            let mask = if shave_bits == 64 {
-                0
-            } else {
-                u64::MAX >> shave_bits
-            };
-
-            if let Some(val) = tmp.0 .0.last_mut() {
-                *val &= mask
-            }
-
+            let mut tmp: P::BigInt = P::BigInt::rand(rng);
+            tmp.clear_msbs(Fp::<P>::num_bits_to_shave());
+            let tmp = Fp(tmp);
             if !tmp.is_geq_modulus() {
                 return tmp;
             }
@@ -552,10 +480,10 @@ impl<P: FpConfig<N>, const N: usize> ark_std::rand::distributions::Distribution<
     }
 }
 
-impl<P: FpConfig<N>, const N: usize> CanonicalSerializeWithFlags for Fp<P, N> {
+impl<P: FpConfig> CanonicalSerializeWithFlags for Fp<P> {
     fn serialize_with_flags<W: ark_std::io::Write, F: Flags>(
         &self,
-        writer: W,
+        mut writer: W,
         flags: F,
     ) -> Result<(), SerializationError> {
         // All reasonable `Flags` should be less than 8 bits in size
@@ -568,16 +496,18 @@ impl<P: FpConfig<N>, const N: usize> CanonicalSerializeWithFlags for Fp<P, N> {
         // serialized with `flags`. If `F::BIT_SIZE < 8`,
         // this is at most `N * 8 + 1`
         let output_byte_size = buffer_byte_size(Self::MODULUS_BIT_SIZE as usize + F::BIT_SIZE);
-
-        // Write out `self` to a temporary buffer.
-        // The size of the buffer is $byte_size + 1 because `F::BIT_SIZE`
-        // is at most 8 bits.
-        let mut bytes = crate::const_helpers::SerBuffer::zeroed();
-        bytes.copy_from_u64_slice(&self.into_bigint().0);
-        // Mask out the bits of the last byte that correspond to the flag.
-        bytes[output_byte_size - 1] |= flags.u8_bitmask();
-
-        bytes.write_up_to(writer, output_byte_size)?;
+        
+        // If `output_byte_size` equals `N * 8 + 1`, then the flag is stored in an extra byte.
+        // Otherwise, the `take` call truncates to `output_byte_size`, which is the optimal amount.
+        let bytes = self.into_bigint().bytes_le_iter().chain([0u8]).take(output_byte_size);
+        
+        for (i, byte) in bytes.enumerate() {
+            if i == output_byte_size - 1 {
+                writer.write_all(&[flags.u8_bitmask() | byte])?;
+            } else {
+                writer.write_all(&[byte])?;
+            }
+        }
         Ok(())
     }
 
@@ -590,7 +520,7 @@ impl<P: FpConfig<N>, const N: usize> CanonicalSerializeWithFlags for Fp<P, N> {
     }
 }
 
-impl<P: FpConfig<N>, const N: usize> CanonicalSerialize for Fp<P, N> {
+impl<P: FpConfig> CanonicalSerialize for Fp<P> {
     #[inline]
     fn serialize_with_mode<W: ark_std::io::Write>(
         &self,
@@ -606,9 +536,9 @@ impl<P: FpConfig<N>, const N: usize> CanonicalSerialize for Fp<P, N> {
     }
 }
 
-impl<P: FpConfig<N>, const N: usize> CanonicalDeserializeWithFlags for Fp<P, N> {
+impl<P: FpConfig> CanonicalDeserializeWithFlags for Fp<P> {
     fn deserialize_with_flags<R: ark_std::io::Read, F: Flags>(
-        reader: R,
+        mut reader: R,
     ) -> Result<(Self, F), SerializationError> {
         // All reasonable `Flags` should be less than 8 bits in size
         // (256 values are enough for anyone!)
@@ -617,27 +547,35 @@ impl<P: FpConfig<N>, const N: usize> CanonicalDeserializeWithFlags for Fp<P, N> 
         }
         // Calculate the number of bytes required to represent a field element
         // serialized with `flags`.
-        let output_byte_size = Self::zero().serialized_size_with_flags::<F>();
+        let output_byte_size = buffer_byte_size(Self::MODULUS_BIT_SIZE as usize + F::BIT_SIZE);
+        
+        let mut flags = F::default();
+        let bytes = iter::repeat(())
+            .take(output_byte_size)
+            .enumerate()
+            .map(|(i, _)| {
+                let mut byte = u8::deserialize_uncompressed_unchecked(&mut reader).unwrap();
+                // If we are at the last byte, we need to extract the flags
+                if i == output_byte_size - 1 {
+                    flags = F::from_u8_remove_flags(&mut byte).unwrap();
+                } 
+                byte
+            });
 
-        let mut masked_bytes = crate::const_helpers::SerBuffer::zeroed();
-        masked_bytes.read_exact_up_to(reader, output_byte_size)?;
-        let flags = F::from_u8_remove_flags(&mut masked_bytes[output_byte_size - 1])
-            .ok_or(SerializationError::UnexpectedFlags)?;
 
-        let self_integer = masked_bytes.to_bigint();
-        Self::from_bigint(self_integer)
+        Self::from_bigint(P::BigInt::from_bytes_le_iter(bytes))
             .map(|v| (v, flags))
             .ok_or(SerializationError::InvalidData)
     }
 }
 
-impl<P: FpConfig<N>, const N: usize> Valid for Fp<P, N> {
+impl<P: FpConfig> Valid for Fp<P> {
     fn check(&self) -> Result<(), SerializationError> {
         Ok(())
     }
 }
 
-impl<P: FpConfig<N>, const N: usize> CanonicalDeserialize for Fp<P, N> {
+impl<P: FpConfig> CanonicalDeserialize for Fp<P> {
     fn deserialize_with_mode<R: ark_std::io::Read>(
         reader: R,
         _compress: Compress,
@@ -647,7 +585,7 @@ impl<P: FpConfig<N>, const N: usize> CanonicalDeserialize for Fp<P, N> {
     }
 }
 
-impl<P: FpConfig<N>, const N: usize> FromStr for Fp<P, N> {
+impl<P: FpConfig> FromStr for Fp<P> {
     type Err = ();
 
     /// Interpret a string of numbers as a (congruent) prime field element.
@@ -656,7 +594,7 @@ impl<P: FpConfig<N>, const N: usize> FromStr for Fp<P, N> {
         use num_bigint::{BigInt, BigUint};
         use num_traits::Signed;
 
-        let modulus = BigInt::from(P::MODULUS);
+        let modulus: BigInt = P::MODULUS.into();
         let mut a = BigInt::from_str(s).map_err(|_| ())? % &modulus;
         if a.is_negative() {
             a += modulus
@@ -672,7 +610,7 @@ impl<P: FpConfig<N>, const N: usize> FromStr for Fp<P, N> {
 
 /// Outputs a string containing the value of `self`,
 /// represented as a decimal without leading zeroes.
-impl<P: FpConfig<N>, const N: usize> Display for Fp<P, N> {
+impl<P: FpConfig> Display for Fp<P> {
     #[inline]
     fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
         let string = self.into_bigint().to_string();
@@ -680,7 +618,7 @@ impl<P: FpConfig<N>, const N: usize> Display for Fp<P, N> {
     }
 }
 
-impl<P: FpConfig<N>, const N: usize> Neg for Fp<P, N> {
+impl<P: FpConfig> Neg for Fp<P> {
     type Output = Self;
     #[inline]
     #[must_use]
@@ -690,7 +628,7 @@ impl<P: FpConfig<N>, const N: usize> Neg for Fp<P, N> {
     }
 }
 
-impl<'a, P: FpConfig<N>, const N: usize> Add<&'a Fp<P, N>> for Fp<P, N> {
+impl<'a, P: FpConfig> Add<&'a Fp<P>> for Fp<P> {
     type Output = Self;
 
     #[inline]
@@ -700,7 +638,7 @@ impl<'a, P: FpConfig<N>, const N: usize> Add<&'a Fp<P, N>> for Fp<P, N> {
     }
 }
 
-impl<'a, P: FpConfig<N>, const N: usize> Sub<&'a Fp<P, N>> for Fp<P, N> {
+impl<'a, P: FpConfig> Sub<&'a Fp<P>> for Fp<P> {
     type Output = Self;
 
     #[inline]
@@ -710,7 +648,7 @@ impl<'a, P: FpConfig<N>, const N: usize> Sub<&'a Fp<P, N>> for Fp<P, N> {
     }
 }
 
-impl<'a, P: FpConfig<N>, const N: usize> Mul<&'a Fp<P, N>> for Fp<P, N> {
+impl<'a, P: FpConfig> Mul<&'a Fp<P>> for Fp<P> {
     type Output = Self;
 
     #[inline]
@@ -720,7 +658,7 @@ impl<'a, P: FpConfig<N>, const N: usize> Mul<&'a Fp<P, N>> for Fp<P, N> {
     }
 }
 
-impl<'a, P: FpConfig<N>, const N: usize> Div<&'a Fp<P, N>> for Fp<P, N> {
+impl<'a, P: FpConfig> Div<&'a Fp<P>> for Fp<P> {
     type Output = Self;
 
     /// Returns `self * other.inverse()` if `other.inverse()` is `Some`, and
@@ -732,58 +670,58 @@ impl<'a, P: FpConfig<N>, const N: usize> Div<&'a Fp<P, N>> for Fp<P, N> {
     }
 }
 
-impl<'a, 'b, P: FpConfig<N>, const N: usize> Add<&'b Fp<P, N>> for &'a Fp<P, N> {
-    type Output = Fp<P, N>;
+impl<'a, 'b, P: FpConfig> Add<&'b Fp<P>> for &'a Fp<P> {
+    type Output = Fp<P>;
 
     #[inline]
-    fn add(self, other: &'b Fp<P, N>) -> Fp<P, N> {
+    fn add(self, other: &'b Fp<P>) -> Fp<P> {
         let mut result = *self;
         result.add_assign(other);
         result
     }
 }
 
-impl<'a, 'b, P: FpConfig<N>, const N: usize> Sub<&'b Fp<P, N>> for &'a Fp<P, N> {
-    type Output = Fp<P, N>;
+impl<'a, 'b, P: FpConfig> Sub<&'b Fp<P>> for &'a Fp<P> {
+    type Output = Fp<P>;
 
     #[inline]
-    fn sub(self, other: &Fp<P, N>) -> Fp<P, N> {
+    fn sub(self, other: &Fp<P>) -> Fp<P> {
         let mut result = *self;
         result.sub_assign(other);
         result
     }
 }
 
-impl<'a, 'b, P: FpConfig<N>, const N: usize> Mul<&'b Fp<P, N>> for &'a Fp<P, N> {
-    type Output = Fp<P, N>;
+impl<'a, 'b, P: FpConfig> Mul<&'b Fp<P>> for &'a Fp<P> {
+    type Output = Fp<P>;
 
     #[inline]
-    fn mul(self, other: &Fp<P, N>) -> Fp<P, N> {
+    fn mul(self, other: &Fp<P>) -> Fp<P> {
         let mut result = *self;
         result.mul_assign(other);
         result
     }
 }
 
-impl<'a, 'b, P: FpConfig<N>, const N: usize> Div<&'b Fp<P, N>> for &'a Fp<P, N> {
-    type Output = Fp<P, N>;
+impl<'a, 'b, P: FpConfig> Div<&'b Fp<P>> for &'a Fp<P> {
+    type Output = Fp<P>;
 
     #[inline]
-    fn div(self, other: &Fp<P, N>) -> Fp<P, N> {
+    fn div(self, other: &Fp<P>) -> Fp<P> {
         let mut result = *self;
         result.div_assign(other);
         result
     }
 }
 
-impl<'a, P: FpConfig<N>, const N: usize> AddAssign<&'a Self> for Fp<P, N> {
+impl<'a, P: FpConfig> AddAssign<&'a Self> for Fp<P> {
     #[inline]
     fn add_assign(&mut self, other: &Self) {
         P::add_assign(self, other)
     }
 }
 
-impl<'a, P: FpConfig<N>, const N: usize> SubAssign<&'a Self> for Fp<P, N> {
+impl<'a, P: FpConfig> SubAssign<&'a Self> for Fp<P> {
     #[inline]
     fn sub_assign(&mut self, other: &Self) {
         P::sub_assign(self, other);
@@ -791,7 +729,7 @@ impl<'a, P: FpConfig<N>, const N: usize> SubAssign<&'a Self> for Fp<P, N> {
 }
 
 #[allow(unused_qualifications)]
-impl<P: FpConfig<N>, const N: usize> core::ops::Add<Self> for Fp<P, N> {
+impl<P: FpConfig> core::ops::Add<Self> for Fp<P> {
     type Output = Self;
 
     #[inline]
@@ -802,7 +740,7 @@ impl<P: FpConfig<N>, const N: usize> core::ops::Add<Self> for Fp<P, N> {
 }
 
 #[allow(unused_qualifications)]
-impl<'a, P: FpConfig<N>, const N: usize> core::ops::Add<&'a mut Self> for Fp<P, N> {
+impl<'a, P: FpConfig> core::ops::Add<&'a mut Self> for Fp<P> {
     type Output = Self;
 
     #[inline]
@@ -813,7 +751,7 @@ impl<'a, P: FpConfig<N>, const N: usize> core::ops::Add<&'a mut Self> for Fp<P, 
 }
 
 #[allow(unused_qualifications)]
-impl<P: FpConfig<N>, const N: usize> core::ops::Sub<Self> for Fp<P, N> {
+impl<P: FpConfig> core::ops::Sub<Self> for Fp<P> {
     type Output = Self;
 
     #[inline]
@@ -824,7 +762,7 @@ impl<P: FpConfig<N>, const N: usize> core::ops::Sub<Self> for Fp<P, N> {
 }
 
 #[allow(unused_qualifications)]
-impl<'a, P: FpConfig<N>, const N: usize> core::ops::Sub<&'a mut Self> for Fp<P, N> {
+impl<'a, P: FpConfig> core::ops::Sub<&'a mut Self> for Fp<P> {
     type Output = Self;
 
     #[inline]
@@ -835,21 +773,21 @@ impl<'a, P: FpConfig<N>, const N: usize> core::ops::Sub<&'a mut Self> for Fp<P, 
 }
 
 #[allow(unused_qualifications)]
-impl<P: FpConfig<N>, const N: usize> core::iter::Sum<Self> for Fp<P, N> {
+impl<P: FpConfig> core::iter::Sum<Self> for Fp<P> {
     fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
         iter.fold(Self::zero(), core::ops::Add::add)
     }
 }
 
 #[allow(unused_qualifications)]
-impl<'a, P: FpConfig<N>, const N: usize> core::iter::Sum<&'a Self> for Fp<P, N> {
+impl<'a, P: FpConfig> core::iter::Sum<&'a Self> for Fp<P> {
     fn sum<I: Iterator<Item = &'a Self>>(iter: I) -> Self {
         iter.fold(Self::zero(), core::ops::Add::add)
     }
 }
 
 #[allow(unused_qualifications)]
-impl<P: FpConfig<N>, const N: usize> core::ops::AddAssign<Self> for Fp<P, N> {
+impl<P: FpConfig> core::ops::AddAssign<Self> for Fp<P> {
     #[inline(always)]
     fn add_assign(&mut self, other: Self) {
         self.add_assign(&other)
@@ -857,7 +795,7 @@ impl<P: FpConfig<N>, const N: usize> core::ops::AddAssign<Self> for Fp<P, N> {
 }
 
 #[allow(unused_qualifications)]
-impl<P: FpConfig<N>, const N: usize> core::ops::SubAssign<Self> for Fp<P, N> {
+impl<P: FpConfig> core::ops::SubAssign<Self> for Fp<P> {
     #[inline(always)]
     fn sub_assign(&mut self, other: Self) {
         self.sub_assign(&other)
@@ -865,7 +803,7 @@ impl<P: FpConfig<N>, const N: usize> core::ops::SubAssign<Self> for Fp<P, N> {
 }
 
 #[allow(unused_qualifications)]
-impl<'a, P: FpConfig<N>, const N: usize> core::ops::AddAssign<&'a mut Self> for Fp<P, N> {
+impl<'a, P: FpConfig> core::ops::AddAssign<&'a mut Self> for Fp<P> {
     #[inline(always)]
     fn add_assign(&mut self, other: &'a mut Self) {
         self.add_assign(&*other)
@@ -873,14 +811,14 @@ impl<'a, P: FpConfig<N>, const N: usize> core::ops::AddAssign<&'a mut Self> for 
 }
 
 #[allow(unused_qualifications)]
-impl<'a, P: FpConfig<N>, const N: usize> core::ops::SubAssign<&'a mut Self> for Fp<P, N> {
+impl<'a, P: FpConfig> core::ops::SubAssign<&'a mut Self> for Fp<P> {
     #[inline(always)]
     fn sub_assign(&mut self, other: &'a mut Self) {
         self.sub_assign(&*other)
     }
 }
 
-impl<'a, P: FpConfig<N>, const N: usize> MulAssign<&'a Self> for Fp<P, N> {
+impl<'a, P: FpConfig> MulAssign<&'a Self> for Fp<P> {
     fn mul_assign(&mut self, other: &Self) {
         P::mul_assign(self, other)
     }
@@ -888,7 +826,7 @@ impl<'a, P: FpConfig<N>, const N: usize> MulAssign<&'a Self> for Fp<P, N> {
 
 /// Computes `self *= other.inverse()` if `other.inverse()` is `Some`, and
 /// panics otherwise.
-impl<'a, P: FpConfig<N>, const N: usize> DivAssign<&'a Self> for Fp<P, N> {
+impl<'a, P: FpConfig> DivAssign<&'a Self> for Fp<P> {
     #[inline(always)]
     fn div_assign(&mut self, other: &Self) {
         self.mul_assign(&other.inverse().unwrap());
@@ -896,7 +834,7 @@ impl<'a, P: FpConfig<N>, const N: usize> DivAssign<&'a Self> for Fp<P, N> {
 }
 
 #[allow(unused_qualifications)]
-impl<P: FpConfig<N>, const N: usize> core::ops::Mul<Self> for Fp<P, N> {
+impl<P: FpConfig> core::ops::Mul<Self> for Fp<P> {
     type Output = Self;
 
     #[inline(always)]
@@ -907,7 +845,7 @@ impl<P: FpConfig<N>, const N: usize> core::ops::Mul<Self> for Fp<P, N> {
 }
 
 #[allow(unused_qualifications)]
-impl<P: FpConfig<N>, const N: usize> core::ops::Div<Self> for Fp<P, N> {
+impl<P: FpConfig> core::ops::Div<Self> for Fp<P> {
     type Output = Self;
 
     #[inline(always)]
@@ -918,7 +856,7 @@ impl<P: FpConfig<N>, const N: usize> core::ops::Div<Self> for Fp<P, N> {
 }
 
 #[allow(unused_qualifications)]
-impl<'a, P: FpConfig<N>, const N: usize> core::ops::Mul<&'a mut Self> for Fp<P, N> {
+impl<'a, P: FpConfig> core::ops::Mul<&'a mut Self> for Fp<P> {
     type Output = Self;
 
     #[inline(always)]
@@ -929,7 +867,7 @@ impl<'a, P: FpConfig<N>, const N: usize> core::ops::Mul<&'a mut Self> for Fp<P, 
 }
 
 #[allow(unused_qualifications)]
-impl<'a, P: FpConfig<N>, const N: usize> core::ops::Div<&'a mut Self> for Fp<P, N> {
+impl<'a, P: FpConfig> core::ops::Div<&'a mut Self> for Fp<P> {
     type Output = Self;
 
     #[inline(always)]
@@ -940,21 +878,21 @@ impl<'a, P: FpConfig<N>, const N: usize> core::ops::Div<&'a mut Self> for Fp<P, 
 }
 
 #[allow(unused_qualifications)]
-impl<P: FpConfig<N>, const N: usize> core::iter::Product<Self> for Fp<P, N> {
+impl<P: FpConfig> core::iter::Product<Self> for Fp<P> {
     fn product<I: Iterator<Item = Self>>(iter: I) -> Self {
         iter.fold(Self::one(), core::ops::Mul::mul)
     }
 }
 
 #[allow(unused_qualifications)]
-impl<'a, P: FpConfig<N>, const N: usize> core::iter::Product<&'a Self> for Fp<P, N> {
+impl<'a, P: FpConfig> core::iter::Product<&'a Self> for Fp<P> {
     fn product<I: Iterator<Item = &'a Self>>(iter: I) -> Self {
         iter.fold(Self::one(), Mul::mul)
     }
 }
 
 #[allow(unused_qualifications)]
-impl<P: FpConfig<N>, const N: usize> core::ops::MulAssign<Self> for Fp<P, N> {
+impl<P: FpConfig> core::ops::MulAssign<Self> for Fp<P> {
     #[inline(always)]
     fn mul_assign(&mut self, other: Self) {
         self.mul_assign(&other)
@@ -962,7 +900,7 @@ impl<P: FpConfig<N>, const N: usize> core::ops::MulAssign<Self> for Fp<P, N> {
 }
 
 #[allow(unused_qualifications)]
-impl<'a, P: FpConfig<N>, const N: usize> core::ops::DivAssign<&'a mut Self> for Fp<P, N> {
+impl<'a, P: FpConfig> core::ops::DivAssign<&'a mut Self> for Fp<P> {
     #[inline(always)]
     fn div_assign(&mut self, other: &'a mut Self) {
         self.div_assign(&*other)
@@ -970,7 +908,7 @@ impl<'a, P: FpConfig<N>, const N: usize> core::ops::DivAssign<&'a mut Self> for 
 }
 
 #[allow(unused_qualifications)]
-impl<'a, P: FpConfig<N>, const N: usize> core::ops::MulAssign<&'a mut Self> for Fp<P, N> {
+impl<'a, P: FpConfig> core::ops::MulAssign<&'a mut Self> for Fp<P> {
     #[inline(always)]
     fn mul_assign(&mut self, other: &'a mut Self) {
         self.mul_assign(&*other)
@@ -978,14 +916,14 @@ impl<'a, P: FpConfig<N>, const N: usize> core::ops::MulAssign<&'a mut Self> for 
 }
 
 #[allow(unused_qualifications)]
-impl<P: FpConfig<N>, const N: usize> core::ops::DivAssign<Self> for Fp<P, N> {
+impl<P: FpConfig> core::ops::DivAssign<Self> for Fp<P> {
     #[inline(always)]
     fn div_assign(&mut self, other: Self) {
         self.div_assign(&other)
     }
 }
 
-impl<P: FpConfig<N>, const N: usize> zeroize::Zeroize for Fp<P, N> {
+impl<P: FpConfig> zeroize::Zeroize for Fp<P> {
     // The phantom data does not contain element-specific data
     // and thus does not need to be zeroized.
     fn zeroize(&mut self) {
@@ -993,31 +931,24 @@ impl<P: FpConfig<N>, const N: usize> zeroize::Zeroize for Fp<P, N> {
     }
 }
 
-impl<P: FpConfig<N>, const N: usize> From<num_bigint::BigUint> for Fp<P, N> {
+impl<P: FpConfig> From<num_bigint::BigUint> for Fp<P> {
     #[inline]
-    fn from(val: num_bigint::BigUint) -> Fp<P, N> {
-        Fp::<P, N>::from_le_bytes_mod_order(&val.to_bytes_le())
+    fn from(val: num_bigint::BigUint) -> Fp<P> {
+        Fp::<P>::from_le_bytes_mod_order(&val.to_bytes_le())
     }
 }
 
-impl<P: FpConfig<N>, const N: usize> From<Fp<P, N>> for num_bigint::BigUint {
+impl<P: FpConfig> From<Fp<P>> for num_bigint::BigUint {
     #[inline(always)]
-    fn from(other: Fp<P, N>) -> Self {
+    fn from(other: Fp<P>) -> Self {
         other.into_bigint().into()
     }
 }
 
-impl<P: FpConfig<N>, const N: usize> From<Fp<P, N>> for BigInt<N> {
-    #[inline(always)]
-    fn from(fp: Fp<P, N>) -> Self {
-        fp.into_bigint()
-    }
-}
-
-impl<P: FpConfig<N>, const N: usize> From<BigInt<N>> for Fp<P, N> {
+/* impl<P: FpConfig> From<P::BigInt> for Fp<P> {
     /// Converts `Self::BigInteger` into `Self`
     #[inline(always)]
-    fn from(int: BigInt<N>) -> Self {
+    fn from(int: P::BigInt) -> Self {
         Self::from_bigint(int).unwrap()
     }
-}
+} */

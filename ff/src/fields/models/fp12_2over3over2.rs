@@ -3,8 +3,7 @@ use crate::{
     fields::{
         fp6_3over2::{Fp6, Fp6Config},
         Field, Fp2, Fp2Config as Fp2ConfigTrait,
-    },
-    AdditiveGroup, CyclotomicMultSubgroup, Zero,
+    }, AdditiveGroup, BigInteger, CyclotomicMultSubgroup, Zero
 };
 use core::{
     marker::PhantomData,
@@ -112,18 +111,8 @@ impl<P: Fp12Config> Fp12<P> {
     }
 }
 
-pub const fn characteristic_square_mod_6_is_one(characteristic: &[u64]) -> bool {
-    // char mod 6 = (a_0 + 2**64 * a_1 + ...) mod 6
-    //            = a_0 mod 6 + (2**64 * a_1 mod 6) + (...) mod 6
-    //            = a_0 mod 6 + (4 * a_1 mod 6) + (4 * ...) mod 6
-    let mut char_mod_6 = 0u64;
-    crate::const_for!((i in 0..(characteristic.len())) {
-        char_mod_6 += if i == 0 {
-            characteristic[i] % 6
-        } else {
-            (4 * (characteristic[i] % 6)) % 6
-        };
-    });
+pub fn characteristic_square_mod_6_is_one(characteristic: impl BigInteger) -> bool {
+    let char_mod_6 = characteristic % 6;
     (char_mod_6 * char_mod_6) % 6 == 1
 }
 

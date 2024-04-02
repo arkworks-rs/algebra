@@ -28,8 +28,6 @@ pub trait PrimeField:
     Field<BasePrimeField = Self>
     + FftField
     + FromStr
-    + From<<Self as PrimeField>::BigInt>
-    + Into<<Self as PrimeField>::BigInt>
     + From<BigUint>
     + Into<BigUint>
 {
@@ -70,27 +68,15 @@ pub trait PrimeField:
     /// If the integer represented by `bytes` is larger than the modulus `p`, this method
     /// performs the appropriate reduction.
     fn from_le_bytes_mod_order(bytes: &[u8]) -> Self {
-        let num_modulus_bytes = ((Self::MODULUS_BIT_SIZE + 7) / 8) as usize;
-        let num_bytes_to_directly_convert = min(num_modulus_bytes - 1, bytes.len());
-        // Copy the leading little-endian bytes directly into a field element.
-        // The number of bytes directly converted must be less than the
-        // number of bytes needed to represent the modulus, as we must begin
-        // modular reduction once the data is of the same number of bytes as the
-        // modulus.
-        let (bytes, bytes_to_directly_convert) =
-            bytes.split_at(bytes.len() - num_bytes_to_directly_convert);
-        // Guaranteed to not be None, as the input is less than the modulus size.
-        let mut res = Self::from_random_bytes(&bytes_to_directly_convert).unwrap();
-
-        // Update the result, byte by byte.
-        // We go through existing field arithmetic, which handles the reduction.
-        // TODO: If we need higher speeds, parse more bytes at once, or implement
-        // modular multiplication by a u64
+        let mut result = Self::ZERO;
         let window_size = Self::from(256u64);
-        for byte in bytes.iter().rev() {
-            res *= window_size;
-            res += Self::from(*byte);
+        let mut multiplier = Self::ONE;
+        for &byte in bytes {
+            if byte != 0 {
+                result += Self::from(byte) * multiplier;
+            }
+            multiplier *= window_size;
         }
-        res
+        result
     }
 }

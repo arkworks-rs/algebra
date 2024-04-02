@@ -43,7 +43,7 @@ impl<ConstraintF: PrimeField> ToConstraintField<ConstraintF> for [u8] {
     #[inline]
     fn to_field_elements(&self) -> Option<Vec<ConstraintF>> {
         let max_size = ((ConstraintF::MODULUS_BIT_SIZE - 1) / 8) as usize;
-        let bigint_size = <ConstraintF as PrimeField>::BigInt::NUM_LIMBS * 8;
+        let bigint_size = <ConstraintF as PrimeField>::BigInt::BIT_SIZE / 8;
         let fes = self
             .chunks(max_size)
             .map(|chunk| {

@@ -261,24 +261,6 @@ impl<P: QuadExtConfig> Field for QuadExtField<P> {
         result
     }
 
-    #[inline]
-    fn from_random_bytes_with_flags<F: Flags>(bytes: &[u8]) -> Option<(Self, F)> {
-        let split_at = bytes.len() / 2;
-        if let Some(c0) = P::BaseField::from_random_bytes(&bytes[..split_at]) {
-            if let Some((c1, flags)) =
-                P::BaseField::from_random_bytes_with_flags(&bytes[split_at..])
-            {
-                return Some((QuadExtField::new(c0, c1), flags));
-            }
-        }
-        None
-    }
-
-    #[inline]
-    fn from_random_bytes(bytes: &[u8]) -> Option<Self> {
-        Self::from_random_bytes_with_flags::<EmptyFlags>(bytes).map(|f| f.0)
-    }
-
     fn square_in_place(&mut self) -> &mut Self {
         // (c0, c1)^2 = (c0 + x*c1)^2
         //            = c0^2 + 2 c0 c1 x + c1^2 x^2
@@ -411,7 +393,7 @@ impl<P: QuadExtConfig> Field for QuadExtField<P> {
         two_inv.add_with_carry(&1u64.into());
         two_inv.div2();
 
-        let two_inv = P::BasePrimeField::from(two_inv);
+        let two_inv = P::BasePrimeField::from_bigint(two_inv).unwrap();
         let two_inv = P::BaseField::from_base_prime_field(two_inv);
 
         alpha.sqrt().and_then(|alpha| {

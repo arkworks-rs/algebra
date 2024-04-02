@@ -1,7 +1,7 @@
-use crate::UniformRand;
+use crate::{BigInteger, BitIteratorLE, UniformRand};
 use ark_serialize::{
     CanonicalDeserialize, CanonicalDeserializeWithFlags, CanonicalSerialize,
-    CanonicalSerializeWithFlags, EmptyFlags, Flags,
+    CanonicalSerializeWithFlags,
 };
 use ark_std::{
     fmt::{Debug, Display},
@@ -211,7 +211,7 @@ pub trait Field:
 
     /// Returns the characteristic of the field,
     /// in little-endian representation.
-    fn characteristic() -> &'static [u64] {
+    fn characteristic() -> impl BigInteger {
         Self::BasePrimeField::characteristic()
     }
 
@@ -236,23 +236,6 @@ pub trait Field:
     /// assert_eq!(F2::from_base_prime_field(F::one()), F2::one());
     /// ```
     fn from_base_prime_field(elem: Self::BasePrimeField) -> Self;
-
-    /// Attempt to deserialize a field element. Returns `None` if the
-    /// deserialization fails.
-    ///
-    /// This function is primarily intended for sampling random field elements
-    /// from a hash-function or RNG output.
-    fn from_random_bytes(bytes: &[u8]) -> Option<Self> {
-        Self::from_random_bytes_with_flags::<EmptyFlags>(bytes).map(|f| f.0)
-    }
-
-    /// Attempt to deserialize a field element, splitting the bitflags metadata
-    /// according to `F` specification. Returns `None` if the deserialization
-    /// fails.
-    ///
-    /// This function is primarily intended for sampling random field elements
-    /// from a hash-function or RNG output.
-    fn from_random_bytes_with_flags<F: Flags>(bytes: &[u8]) -> Option<(Self, F)>;
 
     /// Returns a `LegendreSymbol`, which indicates whether this field element
     /// is  1 : a quadratic residue
@@ -315,20 +298,23 @@ pub trait Field:
         this
     }
 
-    /// Returns `self^exp`, where `exp` is an integer represented with `u64` limbs,
-    /// least significant limb first.
+    /// Returns `self^exp`, where `exp` is the little-endian bit representation of the exponent.
     #[must_use]
-    fn pow<S: AsRef<[u64]>>(&self, exp: S) -> Self {
+    fn pow(&self, exp: impl Iterator<Item = bool>) -> Self {
         let mut res = Self::one();
-
-        for i in crate::BitIteratorBE::without_leading_zeros(exp) {
-            res.square_in_place();
-
-            if i {
+        for bit in exp {
+            if bit {
                 res *= self;
             }
+            res.square_in_place();
         }
         res
+    }
+    
+    /// Returns `self^exp`, where `exp` is represented as u64-limbs in little-endian order.
+    #[must_use]
+    fn pow_u64(&self, exp: impl AsRef<[u64]>) -> Self {
+        self.pow(BitIteratorLE::without_trailing_zeros(exp))
     }
 
     /// Exponentiates a field element `f` by a number represented with `u64`
