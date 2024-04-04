@@ -2,11 +2,12 @@
 // https://github.com/AztecProtocol/barretenberg/blob/97ccf76c42db581a8b8f8bfbcffe8ca015a3dd22/cpp/src/barretenberg/ecc/curves/grumpkin/grumpkin.hpp
 
 use crate::{fq::Fq, fr::Fr};
+use ark_ec::scalar_mul::glv::GLVConfig;
 use ark_ec::{
     models::CurveConfig,
     short_weierstrass::{self as sw, SWCurveConfig},
 };
-use ark_ff::{AdditiveGroup, Field, MontFp, Zero};
+use ark_ff::{AdditiveGroup, BigInt, Field, MontFp, PrimeField, Zero};
 
 #[cfg(test)]
 mod tests;
@@ -41,6 +42,32 @@ impl SWCurveConfig for GrumpkinConfig {
     #[inline(always)]
     fn mul_by_a(_: Self::BaseField) -> Self::BaseField {
         Self::BaseField::zero()
+    }
+}
+
+impl GLVConfig for GrumpkinConfig {
+    const ENDO_COEFFS: &'static [Self::BaseField] = &[MontFp!(
+        "21888242871839275217838484774961031246154997185409878258781734729429964517155"
+    )];
+    const LAMBDA: Self::ScalarField =
+        (MontFp!("21888242871839275220042445260109153167277707414472061641714758635765020556616"));
+    const SCALAR_DECOMP_COEFFS: [(bool, <Self::ScalarField as PrimeField>::BigInt); 4] = [
+        (false, BigInt!("9931322734385697762")),
+        (false, BigInt!("147946756881789319010696353538189108491")),
+        (false, BigInt!("147946756881789319000765030803803410729")),
+        (true, BigInt!("9931322734385697762")),
+    ];
+
+    fn endomorphism(p: &Projective) -> Projective {
+        let mut res = (*p).clone();
+        res.x *= Self::ENDO_COEFFS[0];
+        res
+    }
+
+    fn endomorphism_affine(p: &Affine) -> Affine {
+        let mut res = (*p).clone();
+        res.x *= Self::ENDO_COEFFS[0];
+        res
     }
 }
 
