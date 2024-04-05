@@ -31,7 +31,7 @@ pub struct G2Prepared<P: BnConfig> {
     pub infinity: bool,
 }
 
-pub(crate) type EllCoeff<P> = (
+pub type EllCoeff<P> = (
     Fp2<<P as BnConfig>::Fp2Config>,
     Fp2<<P as BnConfig>::Fp2Config>,
     Fp2<<P as BnConfig>::Fp2Config>,
@@ -43,14 +43,14 @@ pub(crate) type EllCoeff<P> = (
     Copy(bound = "P: BnConfig"),
     Debug(bound = "P: BnConfig")
 )]
-struct G2HomProjective<P: BnConfig> {
+pub struct G2HomProjective<P: BnConfig> {
     x: Fp2<P::Fp2Config>,
     y: Fp2<P::Fp2Config>,
     z: Fp2<P::Fp2Config>,
 }
 
 impl<P: BnConfig> G2HomProjective<P> {
-    fn double_in_place(&mut self, two_inv: &P::Fp) -> EllCoeff<P> {
+    pub fn double_in_place(&mut self, two_inv: &P::Fp) -> EllCoeff<P> {
         // Formula for line function when working with
         // homogeneous projective coordinates.
 
@@ -76,7 +76,7 @@ impl<P: BnConfig> G2HomProjective<P> {
         }
     }
 
-    fn add_in_place(&mut self, q: &G2Affine<P>) -> EllCoeff<P> {
+    pub fn add_in_place(&mut self, q: &G2Affine<P>) -> EllCoeff<P> {
         // Formula for line function when working with
         // homogeneous projective coordinates.
         let theta = self.y - &(q.y * &self.z);

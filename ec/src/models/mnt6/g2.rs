@@ -105,11 +105,11 @@ impl<'a, P: MNT6Config> From<&'a G2Projective<P>> for G2Prepared<P> {
     }
 }
 
-pub(super) struct G2ProjectiveExtended<P: MNT6Config> {
-    pub(crate) x: Fp3<P::Fp3Config>,
-    pub(crate) y: Fp3<P::Fp3Config>,
-    pub(crate) z: Fp3<P::Fp3Config>,
-    pub(crate) t: Fp3<P::Fp3Config>,
+pub struct G2ProjectiveExtended<P: MNT6Config> {
+    pub x: Fp3<P::Fp3Config>,
+    pub y: Fp3<P::Fp3Config>,
+    pub z: Fp3<P::Fp3Config>,
+    pub t: Fp3<P::Fp3Config>,
 }
 
 #[derive(Derivative, CanonicalSerialize, CanonicalDeserialize)]
