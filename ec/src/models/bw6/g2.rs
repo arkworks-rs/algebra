@@ -35,7 +35,7 @@ pub struct G2Prepared<P: BW6Config> {
     Copy(bound = "P: BW6Config"),
     Debug(bound = "P: BW6Config")
 )]
-struct G2HomProjective<P: BW6Config> {
+pub struct G2HomProjective<P: BW6Config> {
     x: P::Fp,
     y: P::Fp,
     z: P::Fp,
@@ -147,7 +147,7 @@ impl<P: BW6Config> G2Prepared<P> {
 }
 
 impl<P: BW6Config> G2HomProjective<P> {
-    fn double_in_place(&mut self) -> (P::Fp, P::Fp, P::Fp) {
+    pub fn double_in_place(&mut self) -> (P::Fp, P::Fp, P::Fp) {
         // Formula for line function when working with
         // homogeneous projective coordinates, as described in
         // <https://eprint.iacr.org/2013/722.pdf>.
@@ -173,7 +173,7 @@ impl<P: BW6Config> G2HomProjective<P> {
         }
     }
 
-    fn add_in_place(&mut self, q: &G2Affine<P>) -> (P::Fp, P::Fp, P::Fp) {
+    pub fn add_in_place(&mut self, q: &G2Affine<P>) -> (P::Fp, P::Fp, P::Fp) {
         // Formula for line function when working with
         // homogeneous projective coordinates, as described in https://eprint.iacr.org/2013/722.pdf.
         let theta = self.y - &(q.y * &self.z);

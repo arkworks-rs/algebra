@@ -27,7 +27,7 @@ pub struct G2Prepared<P: Bls12Config> {
     pub infinity: bool,
 }
 
-pub(crate) type EllCoeff<P> = (
+pub type EllCoeff<P> = (
     Fp2<<P as Bls12Config>::Fp2Config>,
     Fp2<<P as Bls12Config>::Fp2Config>,
     Fp2<<P as Bls12Config>::Fp2Config>,
@@ -39,7 +39,7 @@ pub(crate) type EllCoeff<P> = (
     Copy(bound = "P: Bls12Config"),
     Debug(bound = "P: Bls12Config")
 )]
-struct G2HomProjective<P: Bls12Config> {
+pub struct G2HomProjective<P: Bls12Config> {
     x: Fp2<P::Fp2Config>,
     y: Fp2<P::Fp2Config>,
     z: Fp2<P::Fp2Config>,
