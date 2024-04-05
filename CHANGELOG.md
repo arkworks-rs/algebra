@@ -36,11 +36,12 @@
 - [\#736](https://github.com/arkworks-rs/algebra/pull/736) (`ark-ff`) Deprecate `divn()`, and use `core::ops::{Shr, ShrAssign}` instead.
 - [\#739](https://github.com/arkworks-rs/algebra/pull/739) (`ark-ff`) Deprecate `muln()`, and use `core::ops::{Shl, ShlAssign}` instead.
 - [\#771](https://github.com/arkworks-rs/algebra/pull/771) (`ark-ec`) Omit expensive  scalar multiplication in `is_in_correct_subgroup_assuming_on_curve()` for short Weierstrass curves of cofactor one.  
+- [\#817](https://github.com/arkworks-rs/algebra/pull/817) (`ark-ec`) Relax the visibility for G2 ell coeffs and related algorithms.
 
 ### Bugfixes
 
-- [\#747](https://github.com/arkworks-rs/algebra/pull/747) (`ark-ff-macros`) Fix fetching attributes in `MontConfig` macro
-- [\#803](https://github.com/arkworks-rs/algebra/pull/803) (`ark-ec`, `ark-test-template`) Fix incorrect decomposition in GLV
+- [\#747](https://github.com/arkworks-rs/algebra/pull/747) (`ark-ff-macros`) Fix fetching attributes in `MontConfig` macro.
+- [\#803](https://github.com/arkworks-rs/algebra/pull/803) (`ark-ec`, `ark-test-template`) Fix incorrect decomposition in GLV.
 
 ## v0.4.2
 
