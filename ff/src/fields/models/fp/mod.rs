@@ -347,7 +347,7 @@ impl<P: FpConfig<N>, const N: usize> Field for Fp<P, N> {
 
     /// Fp is already a "BasePrimeField", so it's just mul by self
     #[inline]
-    fn mul_by_base_field_elem(&self, elem: &Self::BasePrimeField) -> Self {
+    fn mul_by_base_prime_field(&self, elem: &Self::BasePrimeField) -> Self {
         *self * elem
     }
 }

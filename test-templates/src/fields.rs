@@ -364,7 +364,7 @@ macro_rules! __test_field {
                 let b = <<$field as Field>::BasePrimeField>::rand(rng);
 
                 let mut a = <$field>::from_base_prime_field_elems(a).unwrap();
-                let computed = a.mul_by_base_field_elem(&b);
+                let computed = a.mul_by_base_prime_field(&b);
 
                 let embedded_b = <$field as Field>::from_base_prime_field(b);
 
