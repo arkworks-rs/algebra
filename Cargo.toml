@@ -98,3 +98,6 @@ lto = "thin"
 incremental = true
 debug-assertions = true
 debug = true
+
+[patch.crates-io]
+ark-std = { git = "https://github.com/arkworks-rs/std/" }
