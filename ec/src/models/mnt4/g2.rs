@@ -110,11 +110,11 @@ impl<'a, P: MNT4Config> From<&'a G2Projective<P>> for G2Prepared<P> {
     }
 }
 
-pub(super) struct G2ProjectiveExtended<P: MNT4Config> {
-    pub(crate) x: Fp2<P::Fp2Config>,
-    pub(crate) y: Fp2<P::Fp2Config>,
-    pub(crate) z: Fp2<P::Fp2Config>,
-    pub(crate) t: Fp2<P::Fp2Config>,
+pub struct G2ProjectiveExtended<P: MNT4Config> {
+    pub x: Fp2<P::Fp2Config>,
+    pub y: Fp2<P::Fp2Config>,
+    pub z: Fp2<P::Fp2Config>,
+    pub t: Fp2<P::Fp2Config>,
 }
 
 #[derive(Derivative, CanonicalSerialize, CanonicalDeserialize)]
