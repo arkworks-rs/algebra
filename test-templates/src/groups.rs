@@ -67,6 +67,9 @@ macro_rules! __test_group {
 
                 assert_eq!(a - zero, a);
                 assert_eq!(b - zero, b);
+
+                // Affine - Projective
+                assert_eq!(a.into_affine() - b, a - b);
             }
         }
 
