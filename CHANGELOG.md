@@ -45,6 +45,7 @@
 - [\#747](https://github.com/arkworks-rs/algebra/pull/747) (`ark-ff-macros`) Fix fetching attributes in `MontConfig` macro.
 - [\#803](https://github.com/arkworks-rs/algebra/pull/803) (`ark-ec`, `ark-test-template`) Fix incorrect decomposition in GLV.
 - [\#806](https://github.com/arkworks-rs/algebra/pull/806) (`ark-ff`) Fix the impl for `Display`ing zero element in Fp.
+- [\#822](https://github.com/arkworks-rs/algebra/pull/822) (`ark-ec`, `ark-test-template`) Fix the incorrect `Affine - Projective` implementation
 
 ## v0.4.2
 
