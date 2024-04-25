@@ -305,14 +305,14 @@ impl<P: SWCurveConfig, T: Borrow<Self>> Sub<T> for Affine<P> {
 impl<P: SWCurveConfig> Sub<Projective<P>> for Affine<P> {
     type Output = Projective<P>;
     fn sub(self, other: Projective<P>) -> Projective<P> {
-        other - self
+        self + (-other)
     }
 }
 
 impl<'a, P: SWCurveConfig> Sub<&'a Projective<P>> for Affine<P> {
     type Output = Projective<P>;
     fn sub(self, other: &'a Projective<P>) -> Projective<P> {
-        *other - self
+        self + (-*other)
     }
 }
 
