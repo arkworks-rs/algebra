@@ -27,6 +27,7 @@ num-integer.workspace = true
 rayon = { workspace = true, optional = true }
 zeroize = { workspace = true, features = ["zeroize_derive"] }
 hashbrown.workspace = true
+fnv.workspace = true
 itertools.workspace = true
 
 [dev-dependencies]

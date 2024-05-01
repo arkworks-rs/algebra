@@ -275,7 +275,8 @@ mod test {
             );
         }
 
-        let mut counts = HashMap::new();
+        let mut counts =
+            HashMap::with_hasher(core::hash::BuildHasherDefault::<fnv::FnvHasher>::default());
 
         let mode = map_range
             .iter()

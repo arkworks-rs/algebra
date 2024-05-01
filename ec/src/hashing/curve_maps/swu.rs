@@ -255,7 +255,8 @@ mod test {
             map_range.push(SWUMap::<TestSWUMapToCurveConfig>::map_to_curve(element).unwrap());
         }
 
-        let mut counts = HashMap::new();
+        let mut counts =
+            HashMap::with_hasher(core::hash::BuildHasherDefault::<fnv::FnvHasher>::default());
 
         let mode = map_range
             .iter()

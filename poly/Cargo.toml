@@ -22,6 +22,7 @@ ark-std.workspace = true
 rayon = { workspace = true, optional = true }
 derivative = { workspace = true, features = [ "use_core" ] }
 hashbrown.workspace = true
+fnv.workspace = true
 
 [dev-dependencies]
 ark-test-curves = { path = "../test-curves", default-features = false, features = [ "bls12_381_curve", "bn384_small_two_adicity_curve", "mnt4_753_curve"] }
