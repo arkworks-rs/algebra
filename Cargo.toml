@@ -57,7 +57,7 @@ derivative = "2"
 digest = { version = "0.10", default-features = false }
 hashbrown = "0.14"
 hex = "0.4"
-itertools = { version = "0.12", default-features = false }
+itertools = { version = "0.13", default-features = false }
 libtest-mimic = "0.7.0"
 paste = "1.0"
 rayon = "1"
