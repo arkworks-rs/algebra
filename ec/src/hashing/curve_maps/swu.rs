@@ -142,6 +142,24 @@ impl<P: SWUConfig> MapToCurve<Projective<P>> for SWUMap<P> {
 
 #[cfg(test)]
 mod test {
+    #[cfg(all(
+        target_has_atomic = "8",
+        target_has_atomic = "16",
+        target_has_atomic = "32",
+        target_has_atomic = "64",
+        target_has_atomic = "ptr"
+    ))]
+    type DefaultHasher = ahash::AHasher;
+
+    #[cfg(not(all(
+        target_has_atomic = "8",
+        target_has_atomic = "16",
+        target_has_atomic = "32",
+        target_has_atomic = "64",
+        target_has_atomic = "ptr"
+    )))]
+    type DefaultHasher = fnv::FnvHasher;
+
     use crate::{
         hashing::{map_to_curve_hasher::MapToCurveBasedHasher, HashToCurve},
         CurveConfig,
@@ -256,7 +274,7 @@ mod test {
         }
 
         let mut counts =
-            HashMap::with_hasher(core::hash::BuildHasherDefault::<fnv::FnvHasher>::default());
+            HashMap::with_hasher(core::hash::BuildHasherDefault::<DefaultHasher>::default());
 
         let mode = map_range
             .iter()
