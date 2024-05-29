@@ -7,7 +7,7 @@ use ark_ff::{
     fp6_2over3::{Fp6, Fp6Config},
     AdditiveGroup, CyclotomicMultSubgroup, Field, PrimeField,
 };
-use derivative::Derivative;
+use educe::Educe;
 use itertools::Itertools;
 use num_traits::{One, Zero};
 
@@ -75,8 +75,8 @@ pub trait MNT6Config: 'static + Sized {
     }
 }
 
-#[derive(Derivative)]
-#[derivative(Copy, Clone, PartialEq, Eq, Debug, Hash)]
+#[derive(Educe)]
+#[educe(Copy, Clone, PartialEq, Eq, Debug, Hash)]
 pub struct MNT6<P: MNT6Config>(PhantomData<fn() -> P>);
 
 impl<P: MNT6Config> MNT6<P> {

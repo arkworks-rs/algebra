@@ -11,7 +11,7 @@ use ark_ff::{
     BitIteratorBE, CyclotomicMultSubgroup,
 };
 use ark_std::cfg_chunks_mut;
-use derivative::Derivative;
+use educe::Educe;
 use itertools::Itertools;
 use num_traits::One;
 
@@ -185,8 +185,8 @@ pub use self::{
     g2::{G2Affine, G2Prepared, G2Projective},
 };
 
-#[derive(Derivative)]
-#[derivative(Copy, Clone, PartialEq, Eq, Debug, Hash)]
+#[derive(Educe)]
+#[educe(Copy, Clone, PartialEq, Eq, Debug, Hash)]
 pub struct BW6<P: BW6Config>(PhantomData<fn() -> P>);
 
 impl<P: BW6Config> BW6<P> {

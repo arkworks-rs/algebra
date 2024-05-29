@@ -13,7 +13,7 @@ use ark_ff::{
     BitIteratorBE, CyclotomicMultSubgroup, Field, PrimeField,
 };
 use ark_std::{cfg_chunks_mut, marker::PhantomData, vec::*};
-use derivative::Derivative;
+use educe::Educe;
 use num_traits::{One, Zero};
 
 #[cfg(feature = "parallel")]
@@ -165,8 +165,8 @@ pub use self::{
     g2::{G2Affine, G2Prepared, G2Projective},
 };
 
-#[derive(Derivative)]
-#[derivative(Copy, Clone, PartialEq, Eq, Debug, Hash)]
+#[derive(Educe)]
+#[educe(Copy, Clone, PartialEq, Eq, Debug, Hash)]
 pub struct Bls12<P: Bls12Config>(PhantomData<fn() -> P>);
 
 impl<P: Bls12Config> Bls12<P> {

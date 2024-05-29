@@ -5,19 +5,13 @@ use crate::{
 };
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use ark_std::vec::*;
-use derivative::Derivative;
+use educe::Educe;
 
 pub type G1Affine<P> = Affine<<P as BW6Config>::G1Config>;
 pub type G1Projective<P> = Projective<<P as BW6Config>::G1Config>;
 
-#[derive(Derivative, CanonicalSerialize, CanonicalDeserialize)]
-#[derivative(
-    Copy(bound = "P: BW6Config"),
-    Clone(bound = "P: BW6Config"),
-    Debug(bound = "P: BW6Config"),
-    PartialEq(bound = "P: BW6Config"),
-    Eq(bound = "P: BW6Config")
-)]
+#[derive(Educe, CanonicalSerialize, CanonicalDeserialize)]
+#[educe(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct G1Prepared<P: BW6Config>(pub G1Affine<P>);
 
 impl<P: BW6Config> From<G1Affine<P>> for G1Prepared<P> {

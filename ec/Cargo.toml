@@ -20,7 +20,7 @@ ark-std.workspace = true
 ark-serialize.workspace = true
 ark-ff.workspace = true
 ark-poly.workspace = true
-derivative = { workspace = true, features = ["use_core"] }
+educe.workspace = true
 num-bigint.workspace = true
 num-traits.workspace = true
 num-integer.workspace = true

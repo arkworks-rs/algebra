@@ -16,7 +16,7 @@
 )]
 
 #[macro_use]
-extern crate derivative;
+extern crate educe;
 
 #[macro_use]
 extern crate ark_std;

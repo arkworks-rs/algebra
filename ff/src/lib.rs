@@ -14,7 +14,7 @@
 extern crate ark_std;
 
 #[macro_use]
-extern crate derivative;
+extern crate educe;
 
 #[macro_use]
 pub mod biginteger;

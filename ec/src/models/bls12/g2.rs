@@ -1,7 +1,7 @@
 use ark_ff::{AdditiveGroup, BitIteratorBE, Field, Fp2};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use ark_std::{vec::*, One};
-use derivative::Derivative;
+use educe::Educe;
 
 use crate::{
     bls12::{Bls12Config, TwistType},
@@ -13,13 +13,8 @@ use crate::{
 pub type G2Affine<P> = Affine<<P as Bls12Config>::G2Config>;
 pub type G2Projective<P> = Projective<<P as Bls12Config>::G2Config>;
 
-#[derive(Derivative, CanonicalSerialize, CanonicalDeserialize)]
-#[derivative(
-    Clone(bound = "P: Bls12Config"),
-    Debug(bound = "P: Bls12Config"),
-    PartialEq(bound = "P: Bls12Config"),
-    Eq(bound = "P: Bls12Config")
-)]
+#[derive(Educe, CanonicalSerialize, CanonicalDeserialize)]
+#[educe(Clone, Debug, PartialEq, Eq)]
 pub struct G2Prepared<P: Bls12Config> {
     /// Stores the coefficients of the line evaluations as calculated in
     /// <https://eprint.iacr.org/2013/722.pdf>
@@ -33,12 +28,8 @@ pub type EllCoeff<P> = (
     Fp2<<P as Bls12Config>::Fp2Config>,
 );
 
-#[derive(Derivative)]
-#[derivative(
-    Clone(bound = "P: Bls12Config"),
-    Copy(bound = "P: Bls12Config"),
-    Debug(bound = "P: Bls12Config")
-)]
+#[derive(Educe)]
+#[educe(Clone, Copy, Debug)]
 pub struct G2HomProjective<P: Bls12Config> {
     x: Fp2<P::Fp2Config>,
     y: Fp2<P::Fp2Config>,
