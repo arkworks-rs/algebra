@@ -30,5 +30,6 @@ ark-test-curves = { workspace = true, default-features = false, features = [ "bl
 
 [features]
 default = []
-std = [ "ark-std/std", ]
+parallel = []
+std = [ "ark-std/std" ]
 derive = [ "ark-serialize-derive" ]
