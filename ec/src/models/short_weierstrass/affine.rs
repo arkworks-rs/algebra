@@ -1,5 +1,6 @@
 use ark_serialize::{
-    CanonicalDeserialize, CanonicalSerialize, Compress, SerializationError, Valid, Validate,
+    batch_check_helper, CanonicalDeserialize, CanonicalSerialize, Compress, SerializationError,
+    Valid, Validate,
 };
 use ark_std::{
     borrow::Borrow,
@@ -381,6 +382,13 @@ impl<P: SWCurveConfig> Valid for Affine<P> {
         } else {
             Err(SerializationError::InvalidData)
         }
+    }
+
+    fn batch_check<'a>(batch: impl Iterator<Item = &'a Self>) -> Result<(), SerializationError>
+    where
+        Self: 'a,
+    {
+        batch_check_helper(batch)
     }
 }
 

@@ -69,16 +69,8 @@ pub trait Valid: Sized {
     where
         Self: 'a,
     {
-        #[cfg(feature = "parallel")]
-        {
-            use rayon::{iter::ParallelBridge, prelude::ParallelIterator};
-            batch.par_bridge().try_for_each(|e| e.check())?;
-        }
-        #[cfg(not(feature = "parallel"))]
-        {
-            for item in batch {
-                item.check()?;
-            }
+        for item in batch {
+            item.check()?;
         }
         Ok(())
     }
@@ -240,4 +232,29 @@ pub fn buffer_bit_byte_size(modulus_bits: usize) -> (usize, usize) {
 #[inline]
 pub const fn buffer_byte_size(modulus_bits: usize) -> usize {
     (modulus_bits + 7) / 8
+}
+
+pub fn batch_check_helper<'a, T>(
+    batch: impl Iterator<Item = &'a T>,
+) -> Result<(), SerializationError>
+where
+    T: 'a + Valid + Send + Clone,
+{
+    #[cfg(feature = "parallel")]
+    {
+        use ark_std::vec::Vec;
+        use rayon::prelude::{IntoParallelIterator, ParallelIterator};
+        batch
+            .map(|x| (*x).clone())
+            .collect::<Vec<T>>()
+            .into_par_iter()
+            .try_for_each(|e| e.check())?;
+    }
+    #[cfg(not(feature = "parallel"))]
+    {
+        for item in batch {
+            item.check()?;
+        }
+    }
+    Ok(())
 }
