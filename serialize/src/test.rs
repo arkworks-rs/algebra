@@ -201,6 +201,13 @@ fn test_bool() {
 }
 
 #[test]
+fn test_rc_arc() {
+    use ark_std::sync::Arc;
+    test_serialize(Arc::new(Dummy));
+    test_serialize(Arc::new(10u64));
+}
+
+#[test]
 fn test_btreemap() {
     let mut map = BTreeMap::new();
     map.insert(0u64, Dummy);
