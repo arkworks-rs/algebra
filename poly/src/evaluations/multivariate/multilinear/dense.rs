@@ -9,6 +9,8 @@ use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use ark_std::{
     fmt,
     fmt::Formatter,
+    iter::IntoIterator,
+    log2,
     ops::{Add, AddAssign, Index, Neg, Sub, SubAssign},
     rand::Rng,
     slice::{Iter, IterMut},
@@ -36,7 +38,22 @@ impl<F: Field> DenseMultilinearExtension<F> {
 
     /// Construct a new polynomial from a list of evaluations where the index
     /// represents a point in {0,1}^`num_vars` in little endian form. For
-    /// example, `0b1011` represents `P(1,1,0,1)`
+    /// example, `0b1011` represents `P(1,1,0,1)`.
+    ///
+    /// # Example
+    /// ```
+    /// use ark_test_curves::bls12_381::Fr;
+    /// use ark_poly::{MultilinearExtension, Polynomial, DenseMultilinearExtension};
+    ///
+    /// // Construct a 2-variate MLE, which takes value 1 at (x_0, x_1) = (0, 1)
+    /// // (i.e. 0b01, or index 2 in little endian)
+    /// // f1(x_0, x_1) = x_1*(1-x_0)
+    /// let mle = DenseMultilinearExtension::from_evaluations_vec(
+    ///     2, vec![0, 0, 1, 0].iter().map(|x| Fr::from(*x as u64)).collect()
+    /// );
+    /// let eval = mle.evaluate(&vec![Fr::from(-2), Fr::from(17)]); // point = (x_0, x_1)
+    /// assert_eq!(eval, Fr::from(51));
+    /// ```
     pub fn from_evaluations_vec(num_vars: usize, evaluations: Vec<F>) -> Self {
         // assert that the number of variables matches the size of evaluations
         assert_eq!(
@@ -82,6 +99,64 @@ impl<F: Field> DenseMultilinearExtension<F> {
     pub fn iter_mut(&mut self) -> IterMut<'_, F> {
         self.evaluations.iter_mut()
     }
+
+    /// Concatenate the evaluation tables of multiple polynomials.
+    /// If the combined table size is not a power of two, pad the table with zeros.
+    ///
+    /// # Example
+    /// ```
+    /// use ark_test_curves::bls12_381::Fr;
+    /// use ark_poly::{MultilinearExtension, Polynomial, DenseMultilinearExtension};
+    /// use ark_ff::One;
+    ///
+    /// // Construct a 2-variate multilinear polynomial f1
+    /// // f1(x_0, x_1) = 2*(1-x_1)*(1-x_0) + 3*(1-x_1)*x_0 + 2*x_1*(1-x_0) + 6*x_1*x_0
+    /// let mle_1 = DenseMultilinearExtension::from_evaluations_vec(
+    ///     2, vec![2, 3, 2, 6].iter().map(|x| Fr::from(*x as u64)).collect()
+    /// );
+    /// // Construct another 2-variate MLE f2
+    /// // f2(x_0, x_1) = 1*x_1*x_0
+    /// let mle_2 = DenseMultilinearExtension::from_evaluations_vec(
+    ///   2, vec![0, 0, 0, 1].iter().map(|x| Fr::from(*x as u64)).collect()
+    /// );
+    /// let mle = DenseMultilinearExtension::concat(&[&mle_1, &mle_2]);
+    /// // The resulting polynomial is 3-variate:
+    /// // f3(x_0, x_1, x_2) = (1 - x_2)*f1(x_0, x_1) + x_2*f2(x_0, x_1)
+    /// // Evaluate it at a random point (1, 17, 3)
+    /// let point = vec![Fr::one(), Fr::from(17), Fr::from(3)];
+    /// let eval_1 = mle_1.evaluate(&point[..2].to_vec());
+    /// let eval_2 = mle_2.evaluate(&point[..2].to_vec());
+    /// let eval_combined = mle.evaluate(&point);
+    ///
+    /// assert_eq!(eval_combined, (Fr::one() - point[2]) * eval_1 + point[2] * eval_2);
+    pub fn concat(polys: impl IntoIterator<Item = impl AsRef<Self>> + Clone) -> Self {
+        // for efficient allocation into the concatenated vector, we need to know the total length
+        // in advance, so we actually need to iterate twice. Cloning the iterator is cheap.
+        let polys_iter_cloned = polys.clone().into_iter();
+
+        let total_len: usize = polys
+            .into_iter()
+            .map(|poly| poly.as_ref().evaluations.len())
+            .sum();
+
+        let next_pow_of_two = total_len.next_power_of_two();
+        let num_vars = log2(next_pow_of_two);
+        let mut evaluations: Vec<F> = Vec::with_capacity(next_pow_of_two);
+
+        for poly in polys_iter_cloned {
+            evaluations.extend_from_slice(&poly.as_ref().evaluations.as_slice());
+        }
+
+        evaluations.resize(next_pow_of_two, F::zero());
+
+        Self::from_evaluations_slice(num_vars as usize, &evaluations)
+    }
+}
+
+impl<F: Field> AsRef<DenseMultilinearExtension<F>> for DenseMultilinearExtension<F> {
+    fn as_ref(&self) -> &DenseMultilinearExtension<F> {
+        self
+    }
 }
 
 impl<F: Field> MultilinearExtension<F> for DenseMultilinearExtension<F> {
@@ -118,8 +193,8 @@ impl<F: Field> MultilinearExtension<F> for DenseMultilinearExtension<F> {
     ///     2, vec![0, 1, 2, 6].iter().map(|x| Fr::from(*x as u64)).collect()
     /// );
     ///
-    /// // Bind the first variable of the MLE to the value 5, resulting in
-    /// // the new polynomial 5 + 17 * x_1
+    /// // Bind the first variable of the MLE, x_0, to the value 5, resulting in
+    /// // a new polynomial in one variable: 5 + 17 * x
     /// let bound = mle.fix_variables(&[Fr::from(5)]);
     ///
     /// assert_eq!(bound.to_evaluations(), vec![Fr::from(5), Fr::from(22)]);
@@ -298,14 +373,15 @@ impl<F: Field> Polynomial<F> for DenseMultilinearExtension<F> {
     /// # use ark_poly::{MultilinearExtension, DenseMultilinearExtension, Polynomial};
     /// # use ark_ff::One;
     ///
-    /// // The two-variate polynomial x_0 + 3 * x_0 * x_1 + 2 evaluates to [2, 3, 2, 6]
-    /// // in the two-dimensional hypercube with points [00, 10, 01, 11]
+    /// // The two-variate polynomial p = x_0 + 3 * x_0 * x_1 + 2 evaluates to [2, 3, 2, 6]
+    /// // in the two-dimensional hypercube with points [00, 10, 01, 11]:
+    /// // p(x_0, x_1) = 2*(1-x_1)*(1-x_0) + 3*(1-x_1)*x_0 + 2*x_1*(1-x_0) + 6*x_1*x_0
     /// let mle = DenseMultilinearExtension::from_evaluations_vec(
     ///     2, vec![2, 3, 2, 6].iter().map(|x| Fr::from(*x as u64)).collect()
     /// );
     ///
     /// // By the uniqueness of MLEs, `mle` is precisely the above polynomial, which
-    /// // takes the value 54 at the point (1, 17)
+    /// // takes the value 54 at the point (x_0, x_1) = (1, 17)
     /// let eval = mle.evaluate(&[Fr::one(), Fr::from(17)].into());
     /// assert_eq!(eval, Fr::from(54));
     /// ```
@@ -439,6 +515,74 @@ mod tests {
                     assert_eq!(zero.evaluate(&point), scalar * v1);
                 }
             }
+        }
+    }
+
+    #[test]
+    fn concat_two_equal_polys() {
+        let mut rng = test_rng();
+        let degree = 10;
+
+        let poly_l = DenseMultilinearExtension::rand(degree, &mut rng);
+        let poly_r = DenseMultilinearExtension::rand(degree, &mut rng);
+
+        let merged = DenseMultilinearExtension::concat(&[&poly_l, &poly_r]);
+        for _ in 0..10 {
+            let point: Vec<_> = (0..(degree + 1)).map(|_| Fr::rand(&mut rng)).collect();
+
+            let expected = (Fr::ONE - point[10]) * poly_l.evaluate(&point[..10].to_vec())
+                + point[10] * poly_r.evaluate(&point[..10].to_vec());
+            assert_eq!(expected, merged.evaluate(&point));
+        }
+    }
+
+    #[test]
+    fn concat_unequal_polys() {
+        let mut rng = test_rng();
+        let degree = 10;
+        let poly_l = DenseMultilinearExtension::rand(degree, &mut rng);
+        // smaller poly
+        let poly_r = DenseMultilinearExtension::rand(degree - 1, &mut rng);
+
+        let merged = DenseMultilinearExtension::concat(&[&poly_l, &poly_r]);
+
+        for _ in 0..10 {
+            let point: Vec<_> = (0..(degree + 1)).map(|_| Fr::rand(&mut rng)).collect();
+
+            // merged poly is (1-x_10)*poly_l + x_10*((1-x_9)*poly_r1 + x_9*poly_r2).
+            // where poly_r1 is poly_r, and poly_r2 is all zero, since we are padding.
+            let expected = (Fr::ONE - point[10]) * poly_l.evaluate(&point[..10].to_vec())
+                + point[10] * ((Fr::ONE - point[9]) * poly_r.evaluate(&point[..9].to_vec()));
+            assert_eq!(expected, merged.evaluate(&point));
+        }
+    }
+
+    #[test]
+    fn concat_two_iterators() {
+        let mut rng = test_rng();
+        let degree = 10;
+
+        // rather than merging two polynomials, we merge two iterators of polynomials
+        let polys_l: Vec<_> = (0..2)
+            .map(|_| DenseMultilinearExtension::rand(degree - 2, &mut test_rng()))
+            .collect();
+        let polys_r: Vec<_> = (0..2)
+            .map(|_| DenseMultilinearExtension::rand(degree - 2, &mut test_rng()))
+            .collect();
+
+        let merged = DenseMultilinearExtension::<Fr>::concat(polys_l.iter().chain(polys_r.iter()));
+
+        for _ in 0..10 {
+            let point: Vec<_> = (0..(degree)).map(|_| Fr::rand(&mut rng)).collect();
+
+            let expected = (Fr::ONE - point[9])
+                * ((Fr::ONE - point[8]) * polys_l[0].evaluate(&point[..8].to_vec())
+                    + point[8] * polys_l[1].evaluate(&point[..8].to_vec()))
+                + point[9]
+                    * ((Fr::ONE - point[8]) * polys_r[0].evaluate(&point[..8].to_vec())
+                        + point[8] * polys_r[1].evaluate(&point[..8].to_vec()));
+
+            assert_eq!(expected, merged.evaluate(&point));
         }
     }
 }
