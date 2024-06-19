@@ -348,6 +348,8 @@ pub trait Field:
         }
         Some(res)
     }
+
+    fn mul_by_base_prime_field(&self, elem: &Self::BasePrimeField) -> Self;
 }
 
 // Given a vector of field elements {v_i}, compute the vector {v_i^(-1)}

@@ -447,6 +447,13 @@ impl<P: QuadExtConfig> Field for QuadExtField<P> {
             self
         })
     }
+
+    fn mul_by_base_prime_field(&self, elem: &Self::BasePrimeField) -> Self {
+        let mut result = *self;
+        result.c0 = result.c0.mul_by_base_prime_field(elem);
+        result.c1 = result.c1.mul_by_base_prime_field(elem);
+        result
+    }
 }
 
 /// `QuadExtField` elements are ordered lexicographically.

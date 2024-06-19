@@ -340,6 +340,14 @@ impl<P: CubicExtConfig> Field for CubicExtField<P> {
 
         P::mul_base_field_by_frob_coeff(&mut self.c1, &mut self.c2, power);
     }
+
+    fn mul_by_base_prime_field(&self, elem: &Self::BasePrimeField) -> Self {
+        let mut result = *self;
+        result.c0 = result.c0.mul_by_base_prime_field(elem);
+        result.c1 = result.c1.mul_by_base_prime_field(elem);
+        result.c2 = result.c2.mul_by_base_prime_field(elem);
+        result
+    }
 }
 
 /// `CubicExtField` elements are ordered lexicographically.
