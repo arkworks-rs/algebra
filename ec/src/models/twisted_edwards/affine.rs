@@ -10,8 +10,9 @@ use ark_std::{
         distributions::{Distribution, Standard},
         Rng,
     },
-    vec::Vec,
+    vec::*,
 };
+use derivative::Derivative;
 use num_traits::{One, Zero};
 use zeroize::Zeroize;
 
@@ -248,6 +249,20 @@ impl<P: TECurveConfig, T: Borrow<Self>> Sub<T> for Affine<P> {
         let mut copy = self.into_group();
         copy -= other.borrow();
         copy
+    }
+}
+
+impl<P: TECurveConfig> Sub<Projective<P>> for Affine<P> {
+    type Output = Projective<P>;
+    fn sub(self, other: Projective<P>) -> Projective<P> {
+        self + (-other)
+    }
+}
+
+impl<'a, P: TECurveConfig> Sub<&'a Projective<P>> for Affine<P> {
+    type Output = Projective<P>;
+    fn sub(self, other: &'a Projective<P>) -> Projective<P> {
+        self + (-*other)
     }
 }
 

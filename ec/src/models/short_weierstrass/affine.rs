@@ -10,12 +10,13 @@ use ark_std::{
         distributions::{Distribution, Standard},
         Rng,
     },
-    vec::Vec,
+    vec::*,
     One, Zero,
 };
 
 use ark_ff::{fields::Field, AdditiveGroup, PrimeField, ToConstraintField, UniformRand};
 
+use derivative::Derivative;
 use zeroize::Zeroize;
 
 use super::{Projective, SWCurveConfig, SWFlags};
@@ -298,6 +299,20 @@ impl<P: SWCurveConfig, T: Borrow<Self>> Sub<T> for Affine<P> {
         let mut copy = self.into_group();
         copy -= other.borrow();
         copy
+    }
+}
+
+impl<P: SWCurveConfig> Sub<Projective<P>> for Affine<P> {
+    type Output = Projective<P>;
+    fn sub(self, other: Projective<P>) -> Projective<P> {
+        self + (-other)
+    }
+}
+
+impl<'a, P: SWCurveConfig> Sub<&'a Projective<P>> for Affine<P> {
+    type Output = Projective<P>;
+    fn sub(self, other: &'a Projective<P>) -> Projective<P> {
+        self + (-*other)
     }
 }
 

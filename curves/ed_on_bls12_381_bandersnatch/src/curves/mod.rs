@@ -1,4 +1,5 @@
 use ark_ec::{
+    hashing::curve_maps::elligator2::Elligator2Config,
     models::CurveConfig,
     short_weierstrass::{self, SWCurveConfig},
     twisted_edwards::{Affine, MontCurveConfig, Projective, TECurveConfig},
@@ -136,4 +137,56 @@ impl SWCurveConfig for BandersnatchConfig {
 
     /// generators
     const GENERATOR: SWAffine = SWAffine::new_unchecked(SW_GENERATOR_X, SW_GENERATOR_Y);
+}
+
+// Elligator hash to curve Bandersnatch
+// sage: find_z_ell2(GF(52435875175126190479447740508185965837690552500527637822603658699938581184513))
+// 5
+//
+// sage: Fq = GF(52435875175126190479447740508185965837690552500527637822603658699938581184513)
+// sage: 1/Fq(25465760566081946422412445027709227188579564747101592991722834452325077642517)^2
+// sage: COEFF_A = Fq(29978822694968839326280996386011761570173833766074948509196803838190355340952)
+// sage: COEFF_B = Fq(25465760566081946422412445027709227188579564747101592991722834452325077642517)
+// sage: 1/COEFF_B^2
+// 35484827650731063748396669747216844996598387089274032563585525486049249153249
+// sage: COEFF_A/COEFF_B
+// 22511181562295907836254750456843438087744031914659733450388350895537307167857
+impl Elligator2Config for BandersnatchConfig {
+    const Z: Fq = MontFp!("5");
+
+    /// This must be equal to 1/(MontCurveConfig::COEFF_B)^2;
+    const ONE_OVER_COEFF_B_SQUARE: Fq =
+        MontFp!("35484827650731063748396669747216844996598387089274032563585525486049249153249");
+
+    /// This must be equal to MontCurveConfig::COEFF_A/MontCurveConfig::COEFF_B;
+    const COEFF_A_OVER_COEFF_B: Fq =
+        MontFp!("22511181562295907836254750456843438087744031914659733450388350895537307167857");
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use ark_ec::hashing::{
+        curve_maps::elligator2::Elligator2Map, map_to_curve_hasher::MapToCurveBasedHasher,
+        HashToCurve,
+    };
+    use ark_ff::field_hashers::DefaultFieldHasher;
+    use sha2::Sha512;
+
+    #[test]
+    fn test_elligtor2_hash2curve_hashes_to_curve() {
+        let test_elligator2_to_curve_hasher = MapToCurveBasedHasher::<
+            Projective<BandersnatchConfig>,
+            DefaultFieldHasher<Sha512, 128>,
+            Elligator2Map<BandersnatchConfig>,
+        >::new(&[1])
+        .unwrap();
+
+        let hash_result = test_elligator2_to_curve_hasher.hash(b"if you stick a Babel fish in your ear you can instantly understand anything said to you in any form of language.").expect("fail to hash the string to curve");
+
+        assert!(
+            hash_result.is_on_curve(),
+            "hash results into a point off the curve"
+        );
+    }
 }

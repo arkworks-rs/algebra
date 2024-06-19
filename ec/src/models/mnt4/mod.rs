@@ -7,10 +7,11 @@ use ark_ff::{
     fp4::{Fp4, Fp4Config},
     AdditiveGroup, CyclotomicMultSubgroup, Field, PrimeField,
 };
+use derivative::Derivative;
 use itertools::Itertools;
 use num_traits::{One, Zero};
 
-use ark_std::{marker::PhantomData, vec::Vec};
+use ark_std::{marker::PhantomData, vec::*};
 
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
@@ -52,7 +53,7 @@ pub trait MNT4Config: 'static + Sized {
             .zip_eq(b)
             .map(|(a, b)| (a.into(), b.into()))
             .collect::<Vec<_>>();
-        let result = cfg_into_iter!(pairs)
+        let result = ark_std::cfg_into_iter!(pairs)
             .map(|(a, b)| MNT4::<Self>::ate_miller_loop(&a, &b))
             .product();
         MillerLoopOutput(result)

@@ -57,8 +57,8 @@ derivative = "2"
 digest = { version = "0.10", default-features = false }
 hashbrown = "0.14"
 hex = "0.4"
-itertools = { version = "0.12", default-features = false }
-libtest-mimic = "0.6.0"
+itertools = { version = "0.13", default-features = false }
+libtest-mimic = "0.7.0"
 paste = "1.0"
 rayon = "1"
 serde = "1.0"
@@ -72,7 +72,7 @@ zeroize = { version = "1", default-features = false }
 
 proc-macro2 = "1.0"
 quote = "1.0"
-syn = "1.0"
+syn = "2.0"
 
 [profile.release]
 opt-level = 3
@@ -98,3 +98,6 @@ lto = "thin"
 incremental = true
 debug-assertions = true
 debug = true
+
+[patch.crates-io]
+ark-std = { git = "https://github.com/arkworks-rs/std/" }

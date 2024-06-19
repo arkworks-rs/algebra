@@ -12,7 +12,7 @@ use ark_std::{
     ops::{Add, AddAssign, Index, Neg, Sub, SubAssign},
     rand::Rng,
     slice::{Iter, IterMut},
-    vec::Vec,
+    vec::*,
 };
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
@@ -319,7 +319,7 @@ impl<F: Field> Polynomial<F> for DenseMultilinearExtension<F> {
 mod tests {
     use crate::{DenseMultilinearExtension, MultilinearExtension, Polynomial};
     use ark_ff::{Field, Zero};
-    use ark_std::{ops::Neg, test_rng, vec::Vec, UniformRand};
+    use ark_std::{ops::Neg, test_rng, vec::*, UniformRand};
     use ark_test_curves::bls12_381::Fr;
 
     /// utility: evaluate multilinear extension (in form of data array) at a random point

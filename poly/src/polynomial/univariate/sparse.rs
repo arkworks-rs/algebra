@@ -10,7 +10,7 @@ use ark_std::{
     collections::BTreeMap,
     fmt,
     ops::{Add, AddAssign, Deref, DerefMut, Mul, Neg, SubAssign},
-    vec::Vec,
+    vec::*,
 };
 
 #[cfg(feature = "parallel")]
@@ -233,6 +233,8 @@ impl<F: Field> SparsePolynomial<F> {
     }
 
     /// Constructs a new polynomial from a list of coefficients.
+    /// The function does not combine like terms and so multiple monomials
+    /// of the same degree are ignored.
     pub fn from_coefficients_vec(mut coeffs: Vec<(usize, F)>) -> Self {
         // While there are zeros at the end of the coefficient vector, pop them off.
         while coeffs.last().map_or(false, |(_, c)| c.is_zero()) {

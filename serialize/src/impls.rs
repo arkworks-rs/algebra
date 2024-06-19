@@ -1,18 +1,16 @@
+use crate::{
+    CanonicalDeserialize, CanonicalSerialize, Compress, SerializationError, Valid, Validate,
+};
 use ark_std::{
-    borrow::{Borrow, Cow},
+    borrow::*,
     collections::{BTreeMap, BTreeSet, LinkedList, VecDeque},
     io::{Read, Write},
     marker::PhantomData,
     rc::Rc,
-    string::String,
-    vec::Vec,
+    string::*,
+    vec::*,
 };
 use num_bigint::BigUint;
-
-use crate::{
-    CanonicalDeserialize, CanonicalSerialize, Compress, SerializationError, ToOwned, Valid,
-    Validate,
-};
 
 impl Valid for bool {
     fn check(&self) -> Result<(), SerializationError> {
@@ -308,7 +306,7 @@ impl<T: CanonicalSerialize + ToOwned> CanonicalSerialize for Rc<T> {
     }
 }
 
-#[cfg(feature = "std")]
+#[cfg(target_has_atomic = "ptr")]
 impl<T: CanonicalSerialize + ToOwned> CanonicalSerialize for ark_std::sync::Arc<T> {
     #[inline]
     fn serialize_with_mode<W: Write>(
@@ -325,7 +323,7 @@ impl<T: CanonicalSerialize + ToOwned> CanonicalSerialize for ark_std::sync::Arc<
     }
 }
 
-#[cfg(feature = "std")]
+#[cfg(target_has_atomic = "ptr")]
 impl<T: Valid + Sync + Send> Valid for ark_std::sync::Arc<T> {
     #[inline]
     fn check(&self) -> Result<(), SerializationError> {
@@ -344,7 +342,7 @@ impl<T: Valid + Sync + Send> Valid for ark_std::sync::Arc<T> {
     }
 }
 
-#[cfg(feature = "std")]
+#[cfg(target_has_atomic = "ptr")]
 impl<T: CanonicalDeserialize + ToOwned + Sync + Send> CanonicalDeserialize
     for ark_std::sync::Arc<T>
 {

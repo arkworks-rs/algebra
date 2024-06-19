@@ -11,9 +11,10 @@ use ark_std::{
         distributions::{Distribution, Standard},
         Rng,
     },
-    vec::Vec,
+    vec::*,
     UniformRand, Zero,
 };
+use derivative::Derivative;
 use zeroize::Zeroize;
 
 use crate::{AffineRepr, CurveGroup, PrimeGroup, VariableBaseMSM};

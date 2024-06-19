@@ -41,11 +41,8 @@ serde_json.workspace = true
 serde_derive.workspace = true
 hex.workspace = true
 
-[build-dependencies]
-rustc_version = "0.4"
-
 [features]
 default = []
 std = [ "ark-std/std", "ark-serialize/std", "itertools/use_std" ]
-parallel = [ "std", "rayon", "ark-std/parallel" ]
+parallel = [ "std", "rayon", "ark-std/parallel", "ark-serialize/parallel" ]
 asm = []

@@ -67,6 +67,9 @@ macro_rules! __test_group {
 
                 assert_eq!(a - zero, a);
                 assert_eq!(b - zero, b);
+
+                // Affine - Projective
+                assert_eq!(a.into_affine() - b, a - b);
             }
         }
 
@@ -111,6 +114,18 @@ macro_rules! __test_group {
                         assert_eq!(context.mul_with_table(&bad_table, &b), None);
                     }
                 }
+
+                // num_scalars != scalars.len()
+                let mut scalars = vec![ScalarField::rand(&mut rng); 100];
+                scalars[0] = ScalarField::zero();
+                let table = BatchMulPreprocessing::new(a, scalars.len() - 1);
+                let result = table.batch_mul(&scalars);
+                let naive_result = scalars
+                    .iter()
+                    .enumerate()
+                    .map(|(i, s)| a * s)
+                    .collect::<Vec<_>>();
+                assert_eq!(result, naive_result);
             }
         }
 
@@ -393,14 +408,27 @@ macro_rules! __test_group {
 
 #[macro_export]
 macro_rules! test_group {
-    ($mod_name: ident; $group: ty $(; $tail:tt)*) => {
+    ($mod_name:ident; $group:ty $(; $tail:tt)* ) => {
         mod $mod_name {
             use super::*;
             use ark_ff::*;
             use ark_ec::{PrimeGroup, CurveGroup, ScalarMul, AffineRepr, CurveConfig, short_weierstrass::SWCurveConfig, twisted_edwards::TECurveConfig, scalar_mul::{*, wnaf::*}};
             use ark_serialize::*;
-            use ark_std::{io::Cursor, rand::Rng, vec::Vec, test_rng, vec, Zero, One, UniformRand};
+            use ark_std::{io::Cursor, rand::Rng, vec::*, test_rng, vec, Zero, One, UniformRand};
             const ITERATIONS: usize = 500;
+
+            $crate::__test_group!($group $(; $tail)*);
+        }
+    };
+
+    ($iters:expr; $mod_name:ident; $group:ty $(; $tail:tt)* ) => {
+        mod $mod_name {
+            use super::*;
+            use ark_ff::*;
+            use ark_ec::{PrimeGroup, CurveGroup, ScalarMul, AffineRepr, CurveConfig, short_weierstrass::SWCurveConfig, twisted_edwards::TECurveConfig, scalar_mul::{*, wnaf::*}};
+            use ark_serialize::*;
+            use ark_std::{io::Cursor, rand::Rng, vec::*, test_rng, vec, Zero, One, UniformRand};
+            const ITERATIONS: usize = $iters;
 
             $crate::__test_group!($group $(; $tail)*);
         }

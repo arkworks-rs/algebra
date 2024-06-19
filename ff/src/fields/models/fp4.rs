@@ -1,12 +1,9 @@
-use ark_std::Zero;
-
 use super::quadratic_extension::{QuadExtConfig, QuadExtField};
-use core::{marker::PhantomData, ops::Not};
-
 use crate::{
     fields::{Fp2, Fp2Config},
-    CyclotomicMultSubgroup,
+    CyclotomicMultSubgroup, Zero,
 };
+use core::{marker::PhantomData, ops::Not};
 
 pub trait Fp4Config: 'static + Send + Sync {
     type Fp2Config: Fp2Config;

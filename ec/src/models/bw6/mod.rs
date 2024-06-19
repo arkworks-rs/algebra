@@ -10,10 +10,12 @@ use ark_ff::{
     },
     BitIteratorBE, CyclotomicMultSubgroup,
 };
+use ark_std::cfg_chunks_mut;
+use derivative::Derivative;
 use itertools::Itertools;
 use num_traits::One;
 
-use ark_std::{marker::PhantomData, vec::Vec};
+use ark_std::{marker::PhantomData, vec::*};
 
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
