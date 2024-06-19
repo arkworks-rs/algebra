@@ -457,7 +457,9 @@ impl<P: TECurveConfig> Valid for Projective<P> {
         self.into_affine().check()
     }
 
-    fn batch_check<'a>(batch: impl Iterator<Item = &'a Self>) -> Result<(), SerializationError>
+    fn batch_check<'a>(
+        batch: impl Iterator<Item = &'a Self> + Send,
+    ) -> Result<(), SerializationError>
     where
         Self: 'a,
     {
