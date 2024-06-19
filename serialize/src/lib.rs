@@ -6,7 +6,7 @@
     rust_2018_idioms,
     rust_2021_compatibility
 )]
-#![forbid(unsafe_code)]
+// TODO #![forbid(unsafe_code)]
 #![doc = include_str!("../README.md")]
 mod error;
 mod flags;

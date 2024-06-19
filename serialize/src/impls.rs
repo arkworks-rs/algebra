@@ -6,6 +6,8 @@ use ark_std::{
     collections::{BTreeMap, BTreeSet, LinkedList, VecDeque},
     io::{Read, Write},
     marker::PhantomData,
+    mem,
+    mem::MaybeUninit,
     rc::Rc,
     string::*,
     vec::*,
@@ -458,13 +460,28 @@ impl<T: CanonicalDeserialize, const N: usize> CanonicalDeserialize for [T; N] {
         compress: Compress,
         validate: Validate,
     ) -> Result<Self, SerializationError> {
-        let result = core::array::from_fn(|_| {
-            T::deserialize_with_mode(&mut reader, compress, Validate::No).unwrap()
-        });
-        if let Validate::Yes = validate {
-            T::batch_check(result.iter())?
+        let mut array: [MaybeUninit<T>; N] = unsafe { MaybeUninit::uninit().assume_init() };
+
+        for i in 0..N {
+            // NOTE: If this `deserialize_with_mode` panics, then we have a memory leak.
+            array[i].write(T::deserialize_with_mode(
+                &mut reader,
+                compress,
+                Validate::No,
+            )?);
         }
-        Ok(result)
+        // SAFETY: All elements have been initialized and the size of `Dst` and `Src` are the same.
+        debug_assert_eq!(
+            mem::size_of::<[T; N]>(),
+            mem::size_of::<[MaybeUninit<T>; N]>()
+        );
+        let array: [T; N] = unsafe { mem::transmute_copy(&array) };
+
+        if let Validate::Yes = validate {
+            T::batch_check(array.iter())?
+        }
+
+        Ok(array)
     }
 }
 
