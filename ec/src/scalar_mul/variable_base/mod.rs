@@ -9,6 +9,24 @@ pub use stream_pippenger::*;
 
 use super::ScalarMul;
 
+#[cfg(all(
+    target_has_atomic = "8",
+    target_has_atomic = "16",
+    target_has_atomic = "32",
+    target_has_atomic = "64",
+    target_has_atomic = "ptr"
+))]
+type DefaultHasher = ahash::AHasher;
+
+#[cfg(not(all(
+    target_has_atomic = "8",
+    target_has_atomic = "16",
+    target_has_atomic = "32",
+    target_has_atomic = "64",
+    target_has_atomic = "ptr"
+)))]
+type DefaultHasher = fnv::FnvHasher;
+
 pub trait VariableBaseMSM: ScalarMul {
     /// Computes an inner product between the [`PrimeField`] elements in `scalars`
     /// and the corresponding group elements in `bases`.

@@ -29,6 +29,12 @@ zeroize = { workspace = true, features = ["zeroize_derive"] }
 hashbrown.workspace = true
 itertools.workspace = true
 
+[target.'cfg(all(target_has_atomic = "8", target_has_atomic = "16", target_has_atomic = "32", target_has_atomic = "64", target_has_atomic = "ptr"))'.dependencies]
+ahash = { version = "0.8", default-features = false}
+
+[target.'cfg(not(all(target_has_atomic = "8", target_has_atomic = "16", target_has_atomic = "32", target_has_atomic = "64", target_has_atomic = "ptr")))'.dependencies]
+fnv = { version = "1.0", default-features = false }
+
 [dev-dependencies]
 ark-test-curves = { workspace = true, features = ["bls12_381_curve"] }
 sha2.workspace = true

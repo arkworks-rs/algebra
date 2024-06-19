@@ -23,6 +23,12 @@ rayon = { workspace = true, optional = true }
 derivative = { workspace = true, features = [ "use_core" ] }
 hashbrown.workspace = true
 
+[target.'cfg(all(target_has_atomic = "8", target_has_atomic = "16", target_has_atomic = "32", target_has_atomic = "64", target_has_atomic = "ptr"))'.dependencies]
+ahash = { version = "0.8", default-features = false}
+
+[target.'cfg(not(all(target_has_atomic = "8", target_has_atomic = "16", target_has_atomic = "32", target_has_atomic = "64", target_has_atomic = "ptr")))'.dependencies]
+fnv = { version = "1.0", default-features = false }
+
 [dev-dependencies]
 ark-test-curves = { path = "../test-curves", default-features = false, features = [ "bls12_381_curve", "bn384_small_two_adicity_curve", "mnt4_753_curve"] }
 criterion = "0.5.1"
