@@ -10,6 +10,7 @@ use ark_std::{
     string::*,
     vec::*,
 };
+use arrayvec::ArrayVec;
 use num_bigint::BigUint;
 
 impl Valid for bool {
@@ -458,13 +459,18 @@ impl<T: CanonicalDeserialize, const N: usize> CanonicalDeserialize for [T; N] {
         compress: Compress,
         validate: Validate,
     ) -> Result<Self, SerializationError> {
-        let result = core::array::from_fn(|_| {
-            T::deserialize_with_mode(&mut reader, compress, Validate::No).unwrap()
-        });
-        if let Validate::Yes = validate {
-            T::batch_check(result.iter())?
+        let mut array = ArrayVec::<T, N>::new();
+        for _ in 0..N {
+            array.push(T::deserialize_with_mode(
+                &mut reader,
+                compress,
+                Validate::No,
+            )?);
         }
-        Ok(result)
+        if let Validate::Yes = validate {
+            T::batch_check(array.iter())?
+        }
+        Ok(array.into_inner().ok().unwrap())
     }
 }
 
