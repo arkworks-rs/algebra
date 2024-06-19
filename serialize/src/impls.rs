@@ -461,19 +461,16 @@ impl<T: CanonicalDeserialize, const N: usize> CanonicalDeserialize for [T; N] {
     ) -> Result<Self, SerializationError> {
         let mut array = ArrayVec::<T, N>::new();
         for _ in 0..N {
-            let elem = T::deserialize_with_mode(&mut reader, compress, Validate::No)?;
-            // Defensively use `try_push` error to ensure that we *never* panic:
-            array
-                .try_push(elem)
-                .map_err(|_| SerializationError::NotEnoughSpace)?;
+            array.push(T::deserialize_with_mode(
+                &mut reader,
+                compress,
+                Validate::No,
+            )?);
         }
         if let Validate::Yes = validate {
             T::batch_check(array.iter())?
         }
-        Ok(array
-            .into_inner()
-            // Defensive error return:
-            .map_err(|_| SerializationError::NotEnoughSpace)?)
+        Ok(array.into_inner().unwrap_or_else(|_| unreachable!()))
     }
 }
 
