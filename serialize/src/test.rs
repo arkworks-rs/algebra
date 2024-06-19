@@ -2,9 +2,9 @@ use super::*;
 use ark_std::{
     collections::{BTreeMap, BTreeSet, LinkedList, VecDeque},
     rand::RngCore,
-    string::String,
+    string::*,
     vec,
-    vec::Vec,
+    vec::*,
 };
 use num_bigint::BigUint;
 
@@ -198,6 +198,13 @@ fn test_bool() {
         ensure_non_malleable_encoding(true, valid_mutation);
         ensure_non_malleable_encoding(false, valid_mutation);
     }
+}
+
+#[test]
+fn test_rc_arc() {
+    use ark_std::sync::Arc;
+    test_serialize(Arc::new(Dummy));
+    test_serialize(Arc::new(10u64));
 }
 
 #[test]

@@ -9,7 +9,7 @@ use ark_serialize::{
 };
 use ark_std::{
     borrow::Borrow,
-    convert::TryFrom,
+    // convert::TryFrom,
     fmt::{Debug, Display, UpperHex},
     io::{Read, Write},
     ops::{
@@ -21,7 +21,7 @@ use ark_std::{
         Rng,
     },
     str::FromStr,
-    vec::Vec,
+    vec::*,
 };
 use num_bigint::BigUint;
 use zeroize::Zeroize;
@@ -109,8 +109,7 @@ macro_rules! const_modulo {
         // https://en.wikipedia.org/wiki/Division_algorithm
         assert!(!$divisor.const_is_zero());
         let mut remainder = Self::new([0u64; N]);
-        let end = $a.num_bits();
-        let mut i = (end - 1) as isize;
+        let mut i = ($a.num_bits() - 1) as isize;
         let mut carry;
         while i >= 0 {
             (remainder, carry) = remainder.const_mul2_with_carry();
@@ -190,8 +189,8 @@ impl<const N: usize> BigInt<N> {
     /// Compute the largest integer `s` such that `self = 2**s * t + 1` for odd `t`.
     #[doc(hidden)]
     pub const fn two_adic_valuation(mut self) -> u32 {
-        let mut two_adicity = 0;
         assert!(self.const_is_odd());
+        let mut two_adicity = 0;
         // Since `self` is odd, we can always subtract one
         // without a borrow
         self.0[0] -= 1;
@@ -295,69 +294,27 @@ impl<const N: usize> BigInt<N> {
 impl<const N: usize> BigInteger for BigInt<N> {
     const NUM_LIMBS: usize = N;
 
+    #[unroll_for_loops(6)]
     #[inline]
     fn add_with_carry(&mut self, other: &Self) -> bool {
-        {
-            use arithmetic::adc_for_add_with_carry as adc;
+        let mut carry = 0;
 
-            let a = &mut self.0;
-            let b = &other.0;
-            let mut carry = 0;
-
-            if N >= 1 {
-                carry = adc(&mut a[0], b[0], carry);
-            }
-            if N >= 2 {
-                carry = adc(&mut a[1], b[1], carry);
-            }
-            if N >= 3 {
-                carry = adc(&mut a[2], b[2], carry);
-            }
-            if N >= 4 {
-                carry = adc(&mut a[3], b[3], carry);
-            }
-            if N >= 5 {
-                carry = adc(&mut a[4], b[4], carry);
-            }
-            if N >= 6 {
-                carry = adc(&mut a[5], b[5], carry);
-            }
-            for i in 6..N {
-                carry = adc(&mut a[i], b[i], carry);
-            }
-            carry != 0
+        for i in 0..N {
+            carry = arithmetic::adc_for_add_with_carry(&mut self.0[i], other.0[i], carry);
         }
+
+        carry != 0
     }
 
+    #[unroll_for_loops(6)]
     #[inline]
     fn sub_with_borrow(&mut self, other: &Self) -> bool {
-        use arithmetic::sbb_for_sub_with_borrow as sbb;
+        let mut borrow = 0;
 
-        let a = &mut self.0;
-        let b = &other.0;
-        let mut borrow = 0u8;
+        for i in 0..N {
+            borrow = arithmetic::sbb_for_sub_with_borrow(&mut self.0[i], other.0[i], borrow);
+        }
 
-        if N >= 1 {
-            borrow = sbb(&mut a[0], b[0], borrow);
-        }
-        if N >= 2 {
-            borrow = sbb(&mut a[1], b[1], borrow);
-        }
-        if N >= 3 {
-            borrow = sbb(&mut a[2], b[2], borrow);
-        }
-        if N >= 4 {
-            borrow = sbb(&mut a[3], b[3], borrow);
-        }
-        if N >= 5 {
-            borrow = sbb(&mut a[4], b[4], borrow);
-        }
-        if N >= 6 {
-            borrow = sbb(&mut a[5], b[5], borrow);
-        }
-        for i in 6..N {
-            borrow = sbb(&mut a[i], b[i], borrow);
-        }
         borrow != 0
     }
 
@@ -440,14 +397,13 @@ impl<const N: usize> BigInteger for BigInt<N> {
             carry = 0;
         }
 
-        return (Self(r.b0), Self(r.b1));
+        (Self(r.b0), Self(r.b1))
     }
 
     #[inline]
-    fn mul_low(&mut self, other: &Self) {
+    fn mul_low(&self, other: &Self) -> Self {
         if self.is_zero() || other.is_zero() {
-            *self = Self::zero();
-            return;
+            return Self::zero();
         }
 
         let mut res = Self::zero();
@@ -460,7 +416,7 @@ impl<const N: usize> BigInteger for BigInt<N> {
             carry = 0;
         }
 
-        *self = res
+        res
     }
 
     #[inline]
@@ -471,8 +427,7 @@ impl<const N: usize> BigInteger for BigInt<N> {
     #[inline]
     fn div2(&mut self) {
         let mut t = 0;
-        for i in 0..N {
-            let a = &mut self.0[N - i - 1];
+        for a in self.0.iter_mut().rev() {
             let t2 = *a << 63;
             *a >>= 1;
             *a |= t;
@@ -550,20 +505,9 @@ impl<const N: usize> BigInteger for BigInt<N> {
 
     #[inline]
     fn from_bits_be(bits: &[bool]) -> Self {
-        let mut res = Self::default();
-        let mut acc: u64 = 0;
-
         let mut bits = bits.to_vec();
         bits.reverse();
-        for (i, bits64) in bits.chunks(64).enumerate() {
-            for bit in bits64.iter().rev() {
-                acc <<= 1;
-                acc += *bit as u64;
-            }
-            res.0[i] = acc;
-            acc = 0;
-        }
-        res
+        Self::from_bits_le(&bits)
     }
 
     fn from_bits_le(bits: &[bool]) -> Self {
@@ -817,20 +761,20 @@ impl<const N: usize> ShrAssign<u32> for BigInt<N> {
     fn shr_assign(&mut self, mut rhs: u32) {
         if rhs >= (64 * N) as u32 {
             *self = Self::from(0u64);
+            return;
         }
 
         while rhs >= 64 {
             let mut t = 0;
-            for i in 0..N {
-                core::mem::swap(&mut t, &mut self.0[N - i - 1]);
+            for limb in self.0.iter_mut().rev() {
+                core::mem::swap(&mut t, limb);
             }
             rhs -= 64;
         }
 
         if rhs > 0 {
             let mut t = 0;
-            for i in 0..N {
-                let a = &mut self.0[N - i - 1];
+            for a in self.0.iter_mut().rev() {
                 let t2 = *a << (64 - rhs);
                 *a >>= rhs;
                 *a |= t;
@@ -1099,15 +1043,13 @@ pub trait BigInteger:
     /// // Basic
     /// let mut a = B::from(42u64);
     /// let b = B::from(3u64);
-    /// a.mul_low(&b);
-    /// assert_eq!(a, B::from(126u64));
+    /// assert_eq!(a.mul_low(&b), B::from(126u64));
     ///
     /// // Edge-Case
     /// let mut zero = B::from(0u64);
-    /// zero.mul_low(&B::from(5u64));
-    /// assert_eq!(zero, B::from(0u64));
+    /// assert_eq!(zero.mul_low(&B::from(5u64)), B::from(0u64));
     /// ```
-    fn mul_low(&mut self, other: &Self);
+    fn mul_low(&self, other: &Self) -> Self;
 
     /// Multiplies this [`BigInteger`] by another `BigInteger`, returning the high bits of the result.
     ///

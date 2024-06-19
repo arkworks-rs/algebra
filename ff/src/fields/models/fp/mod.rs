@@ -1,27 +1,25 @@
-use core::iter;
-
+use crate::{
+    AdditiveGroup, BigInt, BigInteger, FftField, Field, LegendreSymbol, One, PrimeField,
+    SqrtPrecomputation, Zero,
+};
 use ark_serialize::{
     buffer_byte_size, CanonicalDeserialize, CanonicalDeserializeWithFlags, CanonicalSerialize,
     CanonicalSerializeWithFlags, Compress, EmptyFlags, Flags, SerializationError, Valid, Validate,
 };
 use ark_std::{
-    cmp::{Ord, Ordering, PartialOrd},
+    cmp::*,
     fmt::{Display, Formatter, Result as FmtResult},
     marker::PhantomData,
     ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign},
     str::FromStr,
-    string::ToString,
-    One, Zero,
+    string::*,
 };
+use core::iter;
 
 #[macro_use]
 mod montgomery_backend;
 pub use montgomery_backend::*;
 
-use crate::{
-    AdditiveGroup, BigInt, BigInteger, FftField, Field, LegendreSymbol, PrimeField,
-    SqrtPrecomputation,
-};
 /// A trait that specifies the configuration of a prime field.
 /// Also specifies how to perform arithmetic on field elements.
 pub trait FpConfig<const N: usize>: Send + Sync + 'static + Sized {
@@ -85,7 +83,7 @@ pub trait FpConfig<const N: usize>: Send + Sync + 'static + Sized {
     /// Compute the inner product `<a, b>`.
     fn sum_of_products<const T: usize>(a: &[Fp<Self, N>; T], b: &[Fp<Self, N>; T]) -> Fp<Self, N>;
 
-    /// Set a *= b.
+    /// Set a *= a.
     fn square_in_place(a: &mut Fp<Self, N>);
 
     /// Compute a^{-1} if `a` is not zero.
@@ -678,7 +676,7 @@ impl<P: FpConfig<N>, const N: usize> Display for Fp<P, N> {
     #[inline]
     fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
         let string = self.into_bigint().to_string();
-        write!(f, "{}", string.trim_start_matches('0'))
+        write!(f, "{}", string)
     }
 }
 

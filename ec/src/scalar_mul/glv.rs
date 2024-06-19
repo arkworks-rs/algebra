@@ -3,8 +3,10 @@ use crate::{
     AdditiveGroup, CurveGroup,
 };
 use ark_ff::{PrimeField, Zero};
+use ark_std::ops::{AddAssign, Neg};
 use num_bigint::{BigInt, BigUint, Sign};
-use num_traits::Signed;
+use num_integer::Integer;
+use num_traits::{One, Signed};
 
 /// The GLV parameters for computing the endomorphism and scalar decomposition.
 pub trait GLVConfig: Send + Sync + 'static + SWCurveConfig {
@@ -39,8 +41,20 @@ pub trait GLVConfig: Send + Sync + 'static + SWCurveConfig {
         // The inverse of N is 1/r * Matrix([[n22, -n12], [-n21, n11]]).
         // so β = (k*n22, -k*n12)/r
 
-        let beta_1 = &scalar * &n22 / &r;
-        let beta_2 = &scalar * &n12 / &r;
+        let beta_1 = {
+            let (mut div, rem) = (&scalar * &n22).div_rem(&r);
+            if (&rem + &rem) > r {
+                div.add_assign(BigInt::one());
+            }
+            div
+        };
+        let beta_2 = {
+            let (mut div, rem) = (&scalar * &n12.clone().neg()).div_rem(&r);
+            if (&rem + &rem) > r {
+                div.add_assign(BigInt::one());
+            }
+            div
+        };
 
         // b = vector([int(beta[0]), int(beta[1])]) * self.curve.N
         // b = (β1N11 + β2N21, β1N12 + β2N22) with the signs!

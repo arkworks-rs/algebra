@@ -3,7 +3,7 @@
 
 use core::marker::PhantomData;
 
-use ark_std::vec::Vec;
+use ark_std::vec::*;
 
 use arrayvec::ArrayVec;
 use digest::{ExtendableOutput, FixedOutputReset, Update};
@@ -33,6 +33,7 @@ impl DST {
         DST(array)
     }
 
+    #[allow(dead_code)]
     pub fn new_xof<H: ExtendableOutput + Default>(dst: &[u8], k: usize) -> DST {
         let array = if dst.len() > MAX_DST_LENGTH {
             let mut long = H::default();
@@ -56,6 +57,7 @@ impl DST {
     }
 }
 
+#[allow(dead_code)]
 pub(super) struct ExpanderXof<H: ExtendableOutput + Clone + Default> {
     pub(super) xofer: PhantomData<H>,
     pub(super) dst: Vec<u8>,

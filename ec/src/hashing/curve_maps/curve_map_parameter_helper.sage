@@ -24,7 +24,7 @@ def find_z_sswu(F, A, B):
         ctr += 1
 
 # Finds the smallest z in term of non-zero bit
-# in sage representation for consturcting
+# in sage representation for constructing
 # elligator2 map for a curve defined over field F.
 # Argument:
 # - F, a field object, e.g., F = GF(2^255 - 19)

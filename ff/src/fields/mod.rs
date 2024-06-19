@@ -1,5 +1,3 @@
-use core::iter::Product;
-
 use crate::UniformRand;
 use ark_serialize::{
     CanonicalDeserialize, CanonicalDeserializeWithFlags, CanonicalSerialize,
@@ -8,13 +6,13 @@ use ark_serialize::{
 use ark_std::{
     fmt::{Debug, Display},
     hash::Hash,
-    iter::IntoIterator,
+    iter::*,
     ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign},
-    vec::Vec,
+    vec::*,
 };
 
 pub use ark_ff_macros;
-use num_traits::{One, Zero};
+pub use num_traits::{One, Zero};
 use zeroize::Zeroize;
 
 pub mod utils;

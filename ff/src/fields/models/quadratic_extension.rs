@@ -1,29 +1,25 @@
+use crate::{
+    biginteger::BigInteger,
+    fields::{Field, LegendreSymbol, PrimeField},
+    AdditiveGroup, One, SqrtPrecomputation, ToConstraintField, UniformRand, Zero,
+};
 use ark_serialize::{
     CanonicalDeserialize, CanonicalDeserializeWithFlags, CanonicalSerialize,
     CanonicalSerializeWithFlags, Compress, EmptyFlags, Flags, SerializationError, Valid, Validate,
 };
 use ark_std::{
-    cmp::{Ord, Ordering, PartialOrd},
+    cmp::*,
     fmt,
     io::{Read, Write},
-    iter::{Chain, IntoIterator},
+    iter::*,
     ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign},
-    vec::Vec,
+    rand::{
+        distributions::{Distribution, Standard},
+        Rng,
+    },
+    vec::*,
 };
-
-use num_traits::{One, Zero};
 use zeroize::Zeroize;
-
-use ark_std::rand::{
-    distributions::{Distribution, Standard},
-    Rng,
-};
-
-use crate::{
-    biginteger::BigInteger,
-    fields::{Field, LegendreSymbol, PrimeField},
-    AdditiveGroup, SqrtPrecomputation, ToConstraintField, UniformRand,
-};
 
 /// Defines a Quadratic extension field from a quadratic non-residue.
 pub trait QuadExtConfig: 'static + Send + Sync + Sized {

@@ -8,7 +8,7 @@ use ark_std::{
     fmt::Debug,
     hash::Hash,
     ops::{Add, AddAssign, Index, Neg, SubAssign},
-    vec::Vec,
+    vec::*,
 };
 
 use ark_ff::{Field, Zero};
