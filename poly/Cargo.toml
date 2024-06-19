@@ -30,8 +30,8 @@ criterion = "0.5.1"
 
 [features]
 default = []
-std = [ "ark-std/std", "ark-ff/std" ]
-parallel = [ "std", "ark-ff/parallel", "rayon", "ark-std/parallel" ]
+std = [ "ark-std/std", "ark-ff/std", "ark-serialize/std" ]
+parallel = [ "std", "ark-ff/parallel", "rayon", "ark-std/parallel", "ark-serialize/parallel" ]
 
 
 [[bench]]

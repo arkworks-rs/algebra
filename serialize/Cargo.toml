@@ -20,6 +20,7 @@ ark-serialize-derive = { workspace = true, optional = true }
 ark-std.workspace = true
 digest.workspace = true
 num-bigint.workspace = true
+rayon = { workspace = true, optional = true }
 
 [dev-dependencies]
 sha2.workspace = true
@@ -30,5 +31,6 @@ ark-test-curves = { workspace = true, default-features = false, features = [ "bl
 
 [features]
 default = []
-std = [ "ark-std/std", ]
+parallel = [ "rayon" ]
+std = [ "ark-std/std" ]
 derive = [ "ark-serialize-derive" ]

@@ -41,4 +41,4 @@ hex.workspace = true
 [features]
 default = []
 std = [ "ark-std/std", "ark-ff/std", "ark-serialize/std" ]
-parallel = [ "std", "rayon", "ark-std/parallel" ]
+parallel = [ "std", "rayon", "ark-std/parallel", "ark-serialize/parallel" ]

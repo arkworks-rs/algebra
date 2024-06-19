@@ -62,10 +62,12 @@ pub enum Validate {
     No,
 }
 
-pub trait Valid: Sized {
+pub trait Valid: Sized + Sync {
     fn check(&self) -> Result<(), SerializationError>;
 
-    fn batch_check<'a>(batch: impl Iterator<Item = &'a Self>) -> Result<(), SerializationError>
+    fn batch_check<'a>(
+        batch: impl Iterator<Item = &'a Self> + Send,
+    ) -> Result<(), SerializationError>
     where
         Self: 'a,
     {
