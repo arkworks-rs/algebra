@@ -108,8 +108,7 @@ pub struct Fp<P: FpConfig<N>, const N: usize>(
     /// To convert an element to a [`BigInt`](struct@BigInt), use `into_bigint` or `into`.
     #[doc(hidden)]
     pub BigInt<N>,
-    #[doc(hidden)] 
-    pub PhantomData<P>,
+    #[doc(hidden)] pub PhantomData<P>,
 );
 
 pub type Fp64<P> = Fp<P, 1>;
