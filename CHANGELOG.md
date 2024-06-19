@@ -31,6 +31,7 @@
 - [\#691](https://github.com/arkworks-rs/algebra/pull/691) (`ark-poly`) Implement `Polynomial` for `SparseMultilinearExtension` and `DenseMultilinearExtension`.
 - [\#693](https://github.com/arkworks-rs/algebra/pull/693) (`ark-serialize`) Add `serialize_to_vec!` convenience macro.
 - [\#713](https://github.com/arkworks-rs/algebra/pull/713) (`ark-ff`) Add support for bitwise operations AND, OR, and XOR between `BigInteger`.
+- [\#763](https://github.com/arkworks-rs/algebra/pull/763) (`ark-poly`) Add `concat` to concatenate evaluation tables of `DenseMultilinearPolynomial`s.
 - [\#811](https://github.com/arkworks-rs/algebra/pull/811) (`ark-serialize`) Implement `Valid` & `CanonicalDeserialize` for `Rc`.
 
 ### Improvements
