@@ -344,6 +344,12 @@ impl<P: FpConfig<N>, const N: usize> Field for Fp<P, N> {
             QuadraticNonResidue
         }
     }
+
+    /// Fp is already a "BasePrimeField", so it's just mul by self
+    #[inline]
+    fn mul_by_base_prime_field(&self, elem: &Self::BasePrimeField) -> Self {
+        *self * elem
+    }
 }
 
 impl<P: FpConfig<N>, const N: usize> PrimeField for Fp<P, N> {
