@@ -6,12 +6,11 @@ use ark_std::{
     collections::{BTreeMap, BTreeSet, LinkedList, VecDeque},
     io::{Read, Write},
     marker::PhantomData,
-    mem,
-    mem::MaybeUninit,
     rc::Rc,
     string::*,
     vec::*,
 };
+use arrayvec::ArrayVec;
 use num_bigint::BigUint;
 
 impl Valid for bool {
@@ -460,28 +459,21 @@ impl<T: CanonicalDeserialize, const N: usize> CanonicalDeserialize for [T; N] {
         compress: Compress,
         validate: Validate,
     ) -> Result<Self, SerializationError> {
-        let mut array: [MaybeUninit<T>; N] = unsafe { MaybeUninit::uninit().assume_init() };
-
-        for i in 0..N {
-            // NOTE: If this `deserialize_with_mode` panics, then we have a memory leak.
-            array[i].write(T::deserialize_with_mode(
-                &mut reader,
-                compress,
-                Validate::No,
-            )?);
+        let mut array = ArrayVec::<T, N>::new();
+        for _ in 0..N {
+            let elem = T::deserialize_with_mode(&mut reader, compress, Validate::No)?;
+            // Defensively use `try_push` error to ensure that we *never* panic:
+            array
+                .try_push(elem)
+                .map_err(|_| SerializationError::NotEnoughSpace)?;
         }
-        // SAFETY: All elements have been initialized and the size of `Dst` and `Src` are the same.
-        debug_assert_eq!(
-            mem::size_of::<[T; N]>(),
-            mem::size_of::<[MaybeUninit<T>; N]>()
-        );
-        let array: [T; N] = unsafe { mem::transmute_copy(&array) };
-
         if let Validate::Yes = validate {
             T::batch_check(array.iter())?
         }
-
-        Ok(array)
+        Ok(array
+            .into_inner()
+            // Defensive error return:
+            .map_err(|_| SerializationError::NotEnoughSpace)?)
     }
 }
 

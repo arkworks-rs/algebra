@@ -20,7 +20,7 @@ ark-ff-asm.workspace = true
 ark-ff-macros.workspace = true
 ark-std.workspace = true
 ark-serialize.workspace = true
-arrayvec = { version = "0.7", default-features = false }
+arrayvec.workspace = true
 educe.workspace = true
 num-traits.workspace = true
 paste.workspace = true
