@@ -7,19 +7,14 @@ use crate::{
 use ark_ff::fields::{Field, Fp3};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use ark_std::{ops::Neg, vec::*};
-use derivative::Derivative;
+use educe::Educe;
 use num_traits::One;
 
 pub type G2Affine<P> = Affine<<P as MNT6Config>::G2Config>;
 pub type G2Projective<P> = Projective<<P as MNT6Config>::G2Config>;
 
-#[derive(Derivative, CanonicalSerialize, CanonicalDeserialize)]
-#[derivative(
-    Clone(bound = "P: MNT6Config"),
-    Debug(bound = "P: MNT6Config"),
-    PartialEq(bound = "P: MNT6Config"),
-    Eq(bound = "P: MNT6Config")
-)]
+#[derive(Educe, CanonicalSerialize, CanonicalDeserialize)]
+#[educe(Clone, Debug, PartialEq, Eq)]
 pub struct G2Prepared<P: MNT6Config> {
     pub x: Fp3<P::Fp3Config>,
     pub y: Fp3<P::Fp3Config>,
@@ -112,13 +107,8 @@ pub struct G2ProjectiveExtended<P: MNT6Config> {
     pub t: Fp3<P::Fp3Config>,
 }
 
-#[derive(Derivative, CanonicalSerialize, CanonicalDeserialize)]
-#[derivative(
-    Clone(bound = "P: MNT6Config"),
-    Debug(bound = "P: MNT6Config"),
-    PartialEq(bound = "P: MNT6Config"),
-    Eq(bound = "P: MNT6Config")
-)]
+#[derive(Educe, CanonicalSerialize, CanonicalDeserialize)]
+#[educe(Clone, Debug, PartialEq, Eq)]
 pub struct AteDoubleCoefficients<P: MNT6Config> {
     pub c_h: Fp3<P::Fp3Config>,
     pub c_4c: Fp3<P::Fp3Config>,
@@ -126,13 +116,8 @@ pub struct AteDoubleCoefficients<P: MNT6Config> {
     pub c_l: Fp3<P::Fp3Config>,
 }
 
-#[derive(Derivative, CanonicalSerialize, CanonicalDeserialize)]
-#[derivative(
-    Clone(bound = "P: MNT6Config"),
-    Debug(bound = "P: MNT6Config"),
-    PartialEq(bound = "P: MNT6Config"),
-    Eq(bound = "P: MNT6Config")
-)]
+#[derive(Educe, CanonicalSerialize, CanonicalDeserialize)]
+#[educe(Clone, Debug, PartialEq, Eq)]
 pub struct AteAdditionCoefficients<P: MNT6Config> {
     pub c_l1: Fp3<P::Fp3Config>,
     pub c_rz: Fp3<P::Fp3Config>,

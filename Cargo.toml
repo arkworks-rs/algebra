@@ -53,7 +53,7 @@ num-bigint = { version = "0.4", default-features = false }
 num-integer = { version = "0.1", default-features = false }
 
 criterion = "0.5.0"
-derivative = "2"
+educe = "0.5.0"
 digest = { version = "0.10", default-features = false }
 hashbrown = { version = "0.14", default-features = false, features = ["inline-more", "allocator-api2"] }
 hex = "0.4"

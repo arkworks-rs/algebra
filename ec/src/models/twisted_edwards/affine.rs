@@ -12,7 +12,7 @@ use ark_std::{
     },
     vec::*,
 };
-use derivative::Derivative;
+use educe::Educe;
 use num_traits::{One, Zero};
 use zeroize::Zeroize;
 
@@ -23,14 +23,8 @@ use crate::AffineRepr;
 
 /// Affine coordinates for a point on a twisted Edwards curve, over the
 /// base field `P::BaseField`.
-#[derive(Derivative)]
-#[derivative(
-    Copy(bound = "P: TECurveConfig"),
-    Clone(bound = "P: TECurveConfig"),
-    PartialEq(bound = "P: TECurveConfig"),
-    Eq(bound = "P: TECurveConfig"),
-    Hash(bound = "P: TECurveConfig")
-)]
+#[derive(Educe)]
+#[educe(Copy, Clone, PartialEq, Eq, Hash)]
 #[must_use]
 pub struct Affine<P: TECurveConfig> {
     /// X coordinate of the point represented as a field element

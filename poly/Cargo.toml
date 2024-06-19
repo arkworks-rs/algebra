@@ -20,7 +20,7 @@ ark-ff.workspace = true
 ark-serialize = { workspace = true, features = ["derive"] }
 ark-std.workspace = true
 rayon = { workspace = true, optional = true }
-derivative = { workspace = true, features = [ "use_core" ] }
+educe.workspace = true
 hashbrown.workspace = true
 
 [target.'cfg(all(target_has_atomic = "8", target_has_atomic = "16", target_has_atomic = "32", target_has_atomic = "64", target_has_atomic = "ptr"))'.dependencies]

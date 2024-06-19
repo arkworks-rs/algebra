@@ -14,7 +14,7 @@ use ark_std::{
     vec::*,
     UniformRand, Zero,
 };
-use derivative::Derivative;
+use educe::Educe;
 use zeroize::Zeroize;
 
 use crate::{AffineRepr, CurveGroup, PrimeGroup, VariableBaseMSM};
@@ -119,17 +119,8 @@ pub trait Pairing: Sized + 'static + Copy + Debug + Sync + Send + Eq {
 
 /// Represents the target group of a pairing. This struct is a
 /// wrapper around the field that the target group is embedded in.
-#[derive(Derivative)]
-#[derivative(
-    Copy(bound = "P: Pairing"),
-    Clone(bound = "P: Pairing"),
-    Debug(bound = "P: Pairing"),
-    PartialEq(bound = "P: Pairing"),
-    Eq(bound = "P: Pairing"),
-    PartialOrd(bound = "P: Pairing"),
-    Ord(bound = "P: Pairing"),
-    Hash(bound = "P: Pairing")
-)]
+#[derive(Educe)]
+#[educe(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[must_use]
 pub struct PairingOutput<P: Pairing>(pub P::TargetField);
 
@@ -327,16 +318,8 @@ impl<P: Pairing> crate::ScalarMul for PairingOutput<P> {
 impl<P: Pairing> VariableBaseMSM for PairingOutput<P> {}
 
 /// Represents the output of the Miller loop of the pairing.
-#[derive(Derivative)]
-#[derivative(
-    Copy(bound = "P: Pairing"),
-    Clone(bound = "P: Pairing"),
-    Debug(bound = "P: Pairing"),
-    PartialEq(bound = "P: Pairing"),
-    Eq(bound = "P: Pairing"),
-    PartialOrd(bound = "P: Pairing"),
-    Ord(bound = "P: Pairing")
-)]
+#[derive(Educe)]
+#[educe(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 #[must_use]
 pub struct MillerLoopOutput<P: Pairing>(pub P::TargetField);
 

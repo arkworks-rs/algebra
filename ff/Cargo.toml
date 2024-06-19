@@ -21,7 +21,7 @@ ark-ff-macros.workspace = true
 ark-std.workspace = true
 ark-serialize.workspace = true
 arrayvec = { version = "0.7", default-features = false }
-derivative = { workspace = true, features = ["use_core"] }
+educe.workspace = true
 num-traits.workspace = true
 paste.workspace = true
 rayon = { workspace = true, optional = true }

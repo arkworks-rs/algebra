@@ -17,7 +17,7 @@ use ark_std::{
 
 use ark_ff::{fields::Field, AdditiveGroup, PrimeField, ToConstraintField, UniformRand};
 
-use derivative::Derivative;
+use educe::Educe;
 use zeroize::Zeroize;
 
 #[cfg(feature = "parallel")]
@@ -34,13 +34,8 @@ use crate::{
 ///
 /// This implementation uses the unified addition formulae from that paper (see
 /// Section 3.1).
-#[derive(Derivative)]
-#[derivative(
-    Copy(bound = "P: TECurveConfig"),
-    Clone(bound = "P: TECurveConfig"),
-    Eq(bound = "P: TECurveConfig"),
-    Debug(bound = "P: TECurveConfig")
-)]
+#[derive(Educe)]
+#[educe(Copy, Clone, Eq(bound(P: TECurveConfig)), Debug)]
 #[must_use]
 pub struct Projective<P: TECurveConfig> {
     pub x: P::BaseField,
@@ -408,15 +403,8 @@ impl<P: TECurveConfig> From<Affine<P>> for Projective<P> {
     }
 }
 
-#[derive(Derivative)]
-#[derivative(
-    Copy(bound = "P: MontCurveConfig"),
-    Clone(bound = "P: MontCurveConfig"),
-    PartialEq(bound = "P: MontCurveConfig"),
-    Eq(bound = "P: MontCurveConfig"),
-    Debug(bound = "P: MontCurveConfig"),
-    Hash(bound = "P: MontCurveConfig")
-)]
+#[derive(Educe)]
+#[educe(Copy, Clone, PartialEq, Eq, Debug, Hash)]
 pub struct MontgomeryAffine<P: MontCurveConfig> {
     pub x: P::BaseField,
     pub y: P::BaseField,
