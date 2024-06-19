@@ -130,7 +130,7 @@ impl<F: Field> DenseMultilinearExtension<F> {
     ///
     /// assert_eq!(eval_combined, (Fr::one() - point[2]) * eval_1 + point[2] * eval_2);
     pub fn concat(polys: impl IntoIterator<Item = impl AsRef<Self>> + Clone) -> Self {
-        // for efficient allocation into the merged vector, we need to know the total length
+        // for efficient allocation into the concatenated vector, we need to know the total length
         // in advance, so we actually need to iterate twice. Cloning the iterator is cheap.
         let polys_iter_cloned = polys.clone().into_iter();
 
