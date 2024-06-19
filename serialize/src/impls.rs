@@ -470,7 +470,7 @@ impl<T: CanonicalDeserialize, const N: usize> CanonicalDeserialize for [T; N] {
         if let Validate::Yes = validate {
             T::batch_check(array.iter())?
         }
-        Ok(array.into_inner().unwrap_or_else(|_| unreachable!()))
+        Ok(array.into_inner().ok().unwrap())
     }
 }
 
