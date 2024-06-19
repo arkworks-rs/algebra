@@ -119,7 +119,7 @@ impl<F: Field> DenseMultilinearExtension<F> {
     /// let mle_2 = DenseMultilinearExtension::from_evaluations_vec(
     ///   2, vec![0, 0, 0, 1].iter().map(|x| Fr::from(*x as u64)).collect()
     /// );
-    /// let mle = DenseMultilinearExtension::merge(&[&mle_1, &mle_2]);
+    /// let mle = DenseMultilinearExtension::concat(&[&mle_1, &mle_2]);
     /// // The resulting polynomial is 3-variate:
     /// // f3(x_0, x_1, x_2) = (1 - x_2)*f1(x_0, x_1) + x_2*f2(x_0, x_1)
     /// // Evaluate it at a random point (1, 17, 3)
@@ -129,7 +129,7 @@ impl<F: Field> DenseMultilinearExtension<F> {
     /// let eval_combined = mle.evaluate(&point);
     ///
     /// assert_eq!(eval_combined, (Fr::one() - point[2]) * eval_1 + point[2] * eval_2);
-    pub fn merge(polys: impl IntoIterator<Item = impl AsRef<Self>> + Clone) -> Self {
+    pub fn concat(polys: impl IntoIterator<Item = impl AsRef<Self>> + Clone) -> Self {
         // for efficient allocation into the merged vector, we need to know the total length
         // in advance, so we actually need to iterate twice. Cloning the iterator is cheap.
         let polys_iter_cloned = polys.clone().into_iter();
@@ -519,14 +519,14 @@ mod tests {
     }
 
     #[test]
-    fn merge_two_equal_polys() {
+    fn concat_two_equal_polys() {
         let mut rng = test_rng();
         let degree = 10;
 
         let poly_l = DenseMultilinearExtension::rand(degree, &mut rng);
         let poly_r = DenseMultilinearExtension::rand(degree, &mut rng);
 
-        let merged = DenseMultilinearExtension::merge(&[&poly_l, &poly_r]);
+        let merged = DenseMultilinearExtension::concat(&[&poly_l, &poly_r]);
         for _ in 0..10 {
             let point: Vec<_> = (0..(degree + 1)).map(|_| Fr::rand(&mut rng)).collect();
 
@@ -537,14 +537,14 @@ mod tests {
     }
 
     #[test]
-    fn merge_unequal_polys() {
+    fn concat_unequal_polys() {
         let mut rng = test_rng();
         let degree = 10;
         let poly_l = DenseMultilinearExtension::rand(degree, &mut rng);
         // smaller poly
         let poly_r = DenseMultilinearExtension::rand(degree - 1, &mut rng);
 
-        let merged = DenseMultilinearExtension::merge(&[&poly_l, &poly_r]);
+        let merged = DenseMultilinearExtension::concat(&[&poly_l, &poly_r]);
 
         for _ in 0..10 {
             let point: Vec<_> = (0..(degree + 1)).map(|_| Fr::rand(&mut rng)).collect();
@@ -558,7 +558,7 @@ mod tests {
     }
 
     #[test]
-    fn merge_two_iterators() {
+    fn concat_two_iterators() {
         let mut rng = test_rng();
         let degree = 10;
 
@@ -570,7 +570,7 @@ mod tests {
             .map(|_| DenseMultilinearExtension::rand(degree - 2, &mut test_rng()))
             .collect();
 
-        let merged = DenseMultilinearExtension::<Fr>::merge(polys_l.iter().chain(polys_r.iter()));
+        let merged = DenseMultilinearExtension::<Fr>::concat(polys_l.iter().chain(polys_r.iter()));
 
         for _ in 0..10 {
             let point: Vec<_> = (0..(degree)).map(|_| Fr::rand(&mut rng)).collect();
