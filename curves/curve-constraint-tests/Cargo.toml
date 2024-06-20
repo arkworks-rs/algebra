@@ -1,16 +1,16 @@
 [package]
 name = "ark-curve-constraint-tests"
-version = "0.4.0"
-authors = [ "arkworks contributors" ]
+version.workspace = true
+authors.workspace = true
 description = "A library for testing constraints for finite fields, elliptic curves, and pairings"
-homepage = "https://arkworks.rs"
-repository = "https://github.com/arkworks-rs/algebra"
+homepage.workspace = true
+repository.workspace = true
 documentation = "https://docs.rs/ark-curve-constraint-tests/"
 keywords = ["cryptography", "finite-fields", "elliptic-curves", "r1cs" ]
-categories = ["cryptography"]
-include = ["Cargo.toml", "src", "README.md", "LICENSE-APACHE", "LICENSE-MIT"]
-license = "MIT/Apache-2.0"
-edition = "2021"
+categories.workspace = true
+include.workspace = true
+license.workspace = true
+edition.workspace = true
 
 [dependencies]
 ark-std = { version = "0.4.0", default-features = false }
