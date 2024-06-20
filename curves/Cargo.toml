@@ -77,7 +77,7 @@ ark-curve25519 = { version = "0.5.0-alpha", path = "./curve25519" }
 ark-curve-constraint-tests = { version = "0.5.0-alpha", path = "./curve-constraint-tests" }
 
 ark-std = { version = "0.5.0-alpha", default-features = false }
-ark-r1cs-std = { version = "0.4.0", default-features = false }
+ark-r1cs-std = { version = "0.5.0-alpha", default-features = false }
 ark-relations = {version = "0.5.0-alpha", default-features = false }
 
 [profile.release]
