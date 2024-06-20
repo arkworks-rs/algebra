@@ -23,11 +23,11 @@ digest.workspace = true
 num-bigint.workspace = true
 rayon = { workspace = true, optional = true }
 
-[dev-dependencies]
-sha2.workspace = true
-sha3.workspace = true
-blake2.workspace = true
-ark-test-curves = { workspace = true, default-features = false, features = [ "bls12_381_curve"] }
+# [dev-dependencies]
+# sha2.workspace = true
+# sha3.workspace = true
+# blake2.workspace = true
+# ark-test-curves = { workspace = true, default-features = false, features = [ "bls12_381_curve"] }
 
 
 [features]
