@@ -13,13 +13,13 @@ license.workspace = true
 edition.workspace = true
 
 [dependencies]
-ark-ed-on-cp6-782 = { version = "0.4.0", path = "../ed_on_cp6_782", default-features = false }
+ark-ed-on-cp6-782 = { workspace = true }
 
 [dev-dependencies]
-ark-relations = { version = "0.4.0", default-features = false }
-ark-r1cs-std = { version = "0.4.0", default-features = false }
-ark-ff = { version = "0.4.0", default-features = false }
-ark-std = { version = "0.4.0", default-features = false }
+ark-relations = { workspace = true }
+ark-r1cs-std = { workspace = true }
+ark-ff = { workspace = true }
+ark-std = { workspace = true }
 
 [features]
 default = []
