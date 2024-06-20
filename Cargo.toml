@@ -42,7 +42,7 @@ ark-ff-macros = { version = "0.5.0-alpha", path = "./ff-macros" }
 ark-poly = { version = "0.5.0-alpha", path = "./poly", default-features = false }
 ark-serialize = { version = "0.5.0-alpha", path = "./serialize", default-features = false }
 ark-serialize-derive = { version = "0.5.0-alpha", path = "./serialize-derive" }
-ark-std = { version = "0.4.0", default-features = false }
+ark-std = { version = "0.5.0-alpha", default-features = false }
 
 ark-algebra-bench-templates =  { version = "0.5.0-alpha", path = "./bench-templates", default-features = false }
 ark-algebra-test-templates = { version = "0.5.0-alpha", path = "./test-templates", default-features = false }
