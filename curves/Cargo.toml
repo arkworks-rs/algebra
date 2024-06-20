@@ -78,7 +78,7 @@ ark-curve-constraint-tests = { version = "0.5.0-alpha", path = "./curve-constrai
 
 ark-std = { version = "0.5.0-alpha", default-features = false }
 ark-r1cs-std = { version = "0.4.0", default-features = false }
-ark-relations = {version = "0.4.0", default-features = false }
+ark-relations = {version = "0.5.0-alpha", default-features = false }
 
 [profile.release]
 opt-level = 3
