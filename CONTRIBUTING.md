@@ -17,7 +17,7 @@ To ensure a smooth workflow for all contributors, the following general procedur
     * Be sure to include a relevant changelog entry in the Pending section of CHANGELOG.md (see file for log format)
         * If the change is breaking, we may add migration instructions.
 
-Note that for very small or clear problems (such as typos), or well isolated improvements, it is not required to an open issue to submit a PR.
+Note that for very small or clear problems (such as typos), or well-isolated improvements, it is not required to an open issue to submit a PR.
 But be aware that for more complex problems/features touching multiple parts of the codebase, if a PR is opened before an adequate design discussion has taken place in a GitHub issue, that PR runs a larger likelihood of being rejected.
 
 Looking for a good place to start contributing? How about checking out some good first issues
