@@ -2,7 +2,7 @@
 
 Thank you for considering making contributions to `algebra`!
 
-Contributing to this repository can be done in several forms, such as participating in discussion or proposing code changes.
+Contributing to this repository can be done in several forms, such as participating in discussions or proposing code changes.
 To ensure a smooth workflow for all contributors, the following general procedure for contributing has been established:
 
 1) Either open or find an issue you'd like to help with
