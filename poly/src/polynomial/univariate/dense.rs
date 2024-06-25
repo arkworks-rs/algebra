@@ -487,6 +487,15 @@ impl<'a, 'b, F: Field> Sub<&'a DensePolynomial<F>> for &'b DensePolynomial<F> {
     }
 }
 
+impl<F: Field> Sub<DensePolynomial<F>> for DensePolynomial<F> {
+    type Output = DensePolynomial<F>;
+
+    #[inline]
+    fn sub(self, other: DensePolynomial<F>) -> DensePolynomial<F> {
+        &self - &other
+    }
+}
+
 impl<'a, 'b, F: Field> Sub<&'a SparsePolynomial<F>> for &'b DensePolynomial<F> {
     type Output = DensePolynomial<F>;
 
@@ -584,6 +593,15 @@ impl<'a, 'b, F: Field> Div<&'a DensePolynomial<F>> for &'b DensePolynomial<F> {
     }
 }
 
+impl<F: Field> Div<DensePolynomial<F>> for DensePolynomial<F> {
+    type Output = DensePolynomial<F>;
+
+    #[inline]
+    fn div(self, divisor: DensePolynomial<F>) -> DensePolynomial<F> {
+        &self / &divisor
+    }
+}
+
 impl<'b, F: Field> Mul<F> for &'b DensePolynomial<F> {
     type Output = DensePolynomial<F>;
 
@@ -617,6 +635,15 @@ impl<'a, 'b, F: FftField> Mul<&'a DensePolynomial<F>> for &'b DensePolynomial<F>
             self_evals *= &other_evals;
             self_evals.interpolate()
         }
+    }
+}
+
+impl<F: FftField> Mul<DensePolynomial<F>> for DensePolynomial<F> {
+    type Output = DensePolynomial<F>;
+
+    #[inline]
+    fn mul(self, other: DensePolynomial<F>) -> DensePolynomial<F> {
+        &self * &other
     }
 }
 
