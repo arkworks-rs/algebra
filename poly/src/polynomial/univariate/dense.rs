@@ -285,14 +285,6 @@ impl<F: Field> DerefMut for DensePolynomial<F> {
     }
 }
 
-impl<F: Field> Add for DensePolynomial<F> {
-    type Output = DensePolynomial<F>;
-
-    fn add(self, other: DensePolynomial<F>) -> Self {
-        &self + &other
-    }
-}
-
 impl<'a, 'b, F: Field> Add<&'a DensePolynomial<F>> for &'b DensePolynomial<F> {
     type Output = DensePolynomial<F>;
 
@@ -487,15 +479,6 @@ impl<'a, 'b, F: Field> Sub<&'a DensePolynomial<F>> for &'b DensePolynomial<F> {
     }
 }
 
-impl<F: Field> Sub<DensePolynomial<F>> for DensePolynomial<F> {
-    type Output = DensePolynomial<F>;
-
-    #[inline]
-    fn sub(self, other: DensePolynomial<F>) -> DensePolynomial<F> {
-        &self - &other
-    }
-}
-
 impl<'a, 'b, F: Field> Sub<&'a SparsePolynomial<F>> for &'b DensePolynomial<F> {
     type Output = DensePolynomial<F>;
 
@@ -593,15 +576,6 @@ impl<'a, 'b, F: Field> Div<&'a DensePolynomial<F>> for &'b DensePolynomial<F> {
     }
 }
 
-impl<F: Field> Div<DensePolynomial<F>> for DensePolynomial<F> {
-    type Output = DensePolynomial<F>;
-
-    #[inline]
-    fn div(self, divisor: DensePolynomial<F>) -> DensePolynomial<F> {
-        &self / &divisor
-    }
-}
-
 impl<'b, F: Field> Mul<F> for &'b DensePolynomial<F> {
     type Output = DensePolynomial<F>;
 
@@ -647,13 +621,35 @@ impl<'a, 'b, F: FftField> Mul<&'a DensePolynomial<F>> for &'b DensePolynomial<F>
     }
 }
 
-impl<F: FftField> Mul<DensePolynomial<F>> for DensePolynomial<F> {
-    type Output = DensePolynomial<F>;
+macro_rules! impl_op {
+    ($trait:ident, $method:ident, $field_bound:ident) => {
+        impl<F: $field_bound> $trait<DensePolynomial<F>> for DensePolynomial<F> {
+            type Output = DensePolynomial<F>;
 
-    #[inline]
-    fn mul(self, other: DensePolynomial<F>) -> DensePolynomial<F> {
-        &self * &other
-    }
+            #[inline]
+            fn $method(self, other: DensePolynomial<F>) -> DensePolynomial<F> {
+                (&self).$method(&other)
+            }
+        }
+
+        impl<'a, F: $field_bound> $trait<&'a DensePolynomial<F>> for DensePolynomial<F> {
+            type Output = DensePolynomial<F>;
+
+            #[inline]
+            fn $method(self, other: &'a DensePolynomial<F>) -> DensePolynomial<F> {
+                (&self).$method(other)
+            }
+        }
+
+        impl<'a, F: $field_bound> $trait<DensePolynomial<F>> for &'a DensePolynomial<F> {
+            type Output = DensePolynomial<F>;
+
+            #[inline]
+            fn $method(self, other: DensePolynomial<F>) -> DensePolynomial<F> {
+                self.$method(&other)
+            }
+        }
+    };
 }
 
 impl<F: Field> Zero for DensePolynomial<F> {
@@ -667,6 +663,11 @@ impl<F: Field> Zero for DensePolynomial<F> {
         self.coeffs.is_empty() || self.coeffs.iter().all(|coeff| coeff.is_zero())
     }
 }
+
+impl_op!(Add, add, Field);
+impl_op!(Sub, sub, Field);
+impl_op!(Mul, mul, FftField);
+impl_op!(Div, div, Field);
 
 #[cfg(test)]
 mod tests {
