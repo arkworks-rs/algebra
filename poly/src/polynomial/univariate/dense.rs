@@ -593,6 +593,15 @@ impl<'b, F: Field> Mul<F> for &'b DensePolynomial<F> {
     }
 }
 
+impl<F: Field> Mul<F> for DensePolynomial<F> {
+    type Output = DensePolynomial<F>;
+
+    #[inline]
+    fn mul(self, elem: F) -> DensePolynomial<F> {
+        &self * elem
+    }
+}
+
 /// Performs O(nlogn) multiplication of polynomials if F is smooth.
 impl<'a, 'b, F: FftField> Mul<&'a DensePolynomial<F>> for &'b DensePolynomial<F> {
     type Output = DensePolynomial<F>;
