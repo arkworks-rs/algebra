@@ -348,9 +348,7 @@ impl<'a, 'b, F: Field> Mul<&'a F> for &'b DenseMultilinearExtension<F> {
         } else if scalar.is_one() {
             return self.clone();
         }
-        let result: Vec<F> = self.evaluations.iter()
-            .map(|&x| x * scalar)
-            .collect();
+        let result: Vec<F> = self.evaluations.iter().map(|&x| x * scalar).collect();
 
         DenseMultilinearExtension {
             num_vars: self.num_vars,
@@ -359,13 +357,13 @@ impl<'a, 'b, F: Field> Mul<&'a F> for &'b DenseMultilinearExtension<F> {
     }
 }
 
-impl <F: Field> MulAssign<F> for DenseMultilinearExtension<F> {
+impl<F: Field> MulAssign<F> for DenseMultilinearExtension<F> {
     fn mul_assign(&mut self, scalar: F) {
         *self = &*self * &scalar
     }
 }
 
-impl <'a, F: Field> MulAssign<&'a F> for DenseMultilinearExtension<F> {
+impl<'a, F: Field> MulAssign<&'a F> for DenseMultilinearExtension<F> {
     fn mul_assign(&mut self, scalar: &'a F) {
         *self = &*self * scalar
     }
