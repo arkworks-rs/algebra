@@ -5,6 +5,7 @@
 - [\#772](https://github.com/arkworks-rs/algebra/pull/772) (`ark-ff`) Implementation of `mul` method for `BigInteger`.
 - [\#794](https://github.com/arkworks-rs/algebra/pull/794) (`ark-ff`) Fix `wasm` compilation.
 - [\#837](https://github.com/arkworks-rs/algebra/pull/837) (`ark-serialize`) Fix array deserialization panic.
+- [\#845](https://github.com/arkworks-rs/algebra/pull/845) (`Algebra`) Implementation of `mul` method for `DenseMultilinearExtension<F> * F`.
 
 ### Breaking changes
 

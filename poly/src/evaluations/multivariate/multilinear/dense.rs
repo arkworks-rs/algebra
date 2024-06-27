@@ -11,7 +11,7 @@ use ark_std::{
     fmt::Formatter,
     iter::IntoIterator,
     log2,
-    ops::{Add, AddAssign, Index, Neg, Sub, SubAssign},
+    ops::{Add, AddAssign, Index, Mul, MulAssign, Neg, Sub, SubAssign},
     rand::Rng,
     slice::{Iter, IterMut},
     vec::*,
@@ -331,6 +331,44 @@ impl<'a, F: Field> SubAssign<&'a DenseMultilinearExtension<F>> for DenseMultilin
     }
 }
 
+impl<F: Field> Mul<F> for DenseMultilinearExtension<F> {
+    type Output = DenseMultilinearExtension<F>;
+
+    fn mul(self, scalar: F) -> Self::Output {
+        &self * &scalar
+    }
+}
+
+impl<'a, 'b, F: Field> Mul<&'a F> for &'b DenseMultilinearExtension<F> {
+    type Output = DenseMultilinearExtension<F>;
+
+    fn mul(self, scalar: &'a F) -> Self::Output {
+        if scalar.is_zero() {
+            return DenseMultilinearExtension::zero();
+        } else if scalar.is_one() {
+            return self.clone();
+        }
+        let result: Vec<F> = self.evaluations.iter().map(|&x| x * scalar).collect();
+
+        DenseMultilinearExtension {
+            num_vars: self.num_vars,
+            evaluations: result,
+        }
+    }
+}
+
+impl<F: Field> MulAssign<F> for DenseMultilinearExtension<F> {
+    fn mul_assign(&mut self, scalar: F) {
+        *self = &*self * &scalar
+    }
+}
+
+impl<'a, F: Field> MulAssign<&'a F> for DenseMultilinearExtension<F> {
+    fn mul_assign(&mut self, scalar: &'a F) {
+        *self = &*self * scalar
+    }
+}
+
 impl<F: Field> fmt::Debug for DenseMultilinearExtension<F> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), fmt::Error> {
         write!(f, "DenseML(nv = {}, evaluations = [", self.num_vars)?;
@@ -394,7 +432,7 @@ impl<F: Field> Polynomial<F> for DenseMultilinearExtension<F> {
 #[cfg(test)]
 mod tests {
     use crate::{DenseMultilinearExtension, MultilinearExtension, Polynomial};
-    use ark_ff::{Field, Zero};
+    use ark_ff::{Field, One, Zero};
     use ark_std::{ops::Neg, test_rng, vec::*, UniformRand};
     use ark_test_curves::bls12_381::Fr;
 
@@ -471,6 +509,7 @@ mod tests {
         const NV: usize = 10;
         let mut rng = test_rng();
         for _ in 0..20 {
+            let scalar = Fr::rand(&mut rng);
             let point: Vec<_> = (0..NV).map(|_| Fr::rand(&mut rng)).collect();
             let poly1 = DenseMultilinearExtension::rand(NV, &mut rng);
             let poly2 = DenseMultilinearExtension::rand(NV, &mut rng);
@@ -482,6 +521,8 @@ mod tests {
             assert_eq!((&poly1 - &poly2).evaluate(&point), v1 - v2);
             // test negate
             assert_eq!(poly1.clone().neg().evaluate(&point), -v1);
+            // test mul poly by scalar
+            assert_eq!((&poly1 * &scalar).evaluate(&point), v1 * scalar);
             // test add assign
             {
                 let mut poly1 = poly1.clone();
@@ -514,6 +555,16 @@ mod tests {
                     zero += (scalar, &poly1);
                     assert_eq!(zero.evaluate(&point), scalar * v1);
                 }
+            }
+            // test mul_assign for poly * scalar
+            {
+                let mut poly1_cloned = poly1.clone();
+                poly1_cloned *= Fr::one();
+                assert_eq!(poly1_cloned.evaluate(&point), v1);
+                poly1_cloned *= scalar;
+                assert_eq!(poly1_cloned.evaluate(&point), v1 * scalar);
+                poly1_cloned *= Fr::zero();
+                assert_eq!(poly1_cloned, DenseMultilinearExtension::zero());
             }
         }
     }
