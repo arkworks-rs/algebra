@@ -14,21 +14,25 @@ macro_rules! test_pairing {
                 let g2: <$Pairing as Pairing>::G2 = UniformRand::rand(&mut rng);
                 let s1: <$Pairing as Pairing>::ScalarField = UniformRand::rand(&mut rng);
                 let s2: <$Pairing as Pairing>::ScalarField = UniformRand::rand(&mut rng);
-                let s3 = s1 * s2;
-                // let ans = <$Pairing>::multi_pairing(&[-g1, g1 * s2, g1], &[g2 * s1, g2, g2 * s3]);
-                // assert_eq!(ans, PairingOutput::zero());
+                let s3 = s1 + s2;
+
                 let (p1, p2, p3) = (g1.into_affine(), (g1 * s2).into_affine(), g1.into_affine());
                 let (q1, q2, q3) = (
                     (g2 * s1).into_affine(),
                     g2.into_affine(),
-                    (g2).into_affine(),
+                    (g2 * s3).into_affine(),
                 );
                 let e1 = <$Pairing>::pairing(p1, q1);
                 let e2 = <$Pairing>::pairing(p2, q2);
                 let e3 = <$Pairing>::pairing(p3, q3);
                 let e33 = <$Pairing>::multi_pairing(&[p1, p2], &[q1, q2]);
-                assert_eq!(e1 + e2, e3 * s3);
-                // assert_eq!(e1 + e2, e33);
+                assert_eq!(e1 + e2, e3);
+                assert_eq!(e3, e33);
+
+                let e4 = <$Pairing>::multi_pairing(&[-p1, p2, p3], &[q1, q2, q3]);
+                let e5 = <$Pairing>::multi_pairing(&[p1, p2, -p3], &[q1, q2, q3]);
+                assert_eq!(e4, e5);
+                assert_eq!(e4, PairingOutput::zero());
             }
 
             #[test]
