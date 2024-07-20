@@ -8,6 +8,50 @@ macro_rules! test_pairing {
             use ark_std::{test_rng, One, UniformRand, Zero};
 
             #[test]
+            fn test_multi_pairing_bilinearity_affine() {
+                let mut rng = test_rng();
+                let g1: <$Pairing as Pairing>::G1 = UniformRand::rand(&mut rng);
+                let g2: <$Pairing as Pairing>::G2 = UniformRand::rand(&mut rng);
+                let s1: <$Pairing as Pairing>::ScalarField = UniformRand::rand(&mut rng);
+                let s2: <$Pairing as Pairing>::ScalarField = UniformRand::rand(&mut rng);
+                let s3 = s1 + s2;
+
+                let (p1, p2, p3) = (g1.into_affine(), (g1 * s2).into_affine(), g1.into_affine());
+                // affine mode
+                let (q1, q2, q3) = (
+                    (g2 * s1).into_affine(),
+                    g2.into_affine(),
+                    (g2 * s3).into_affine(),
+                );
+                let e1 = <$Pairing>::pairing_affine(p1, q1);
+                let e2 = <$Pairing>::pairing_affine(p2, q2);
+                let e3 = <$Pairing>::pairing_affine(p3, q3);
+                let e33 = <$Pairing>::multi_pairing_affine(&[p1, p2], &[q1, q2]);
+                assert_eq!(e1 + e2, e3);
+                assert_eq!(e3, e33);
+            }
+
+            #[test]
+            fn test_multi_pairing_bilinearity_projective() {
+                let mut rng = test_rng();
+                let g1: <$Pairing as Pairing>::G1 = UniformRand::rand(&mut rng);
+                let g2: <$Pairing as Pairing>::G2 = UniformRand::rand(&mut rng);
+                let s1: <$Pairing as Pairing>::ScalarField = UniformRand::rand(&mut rng);
+                let s2: <$Pairing as Pairing>::ScalarField = UniformRand::rand(&mut rng);
+                let s3 = s1 + s2;
+
+                let (p1, p2, p3) = (g1.into_affine(), (g1 * s2).into_affine(), g1.into_affine());
+                // projective mode
+                let (q1, q2, q3) = (g2 * s1, g2, g2 * s3);
+                let e1 = <$Pairing>::pairing(p1, q1);
+                let e2 = <$Pairing>::pairing(p2, q2);
+                let e3 = <$Pairing>::pairing(p3, q3);
+                let e33 = <$Pairing>::multi_pairing(&[p1, p2], &[q1, q2]);
+                assert_eq!(e1 + e2, e3);
+                assert_eq!(e3, e33);
+            }
+
+            #[test]
             fn test_bilinearity_projective() {
                 for _ in 0..100 {
                     let mut rng = test_rng();
