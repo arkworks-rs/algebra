@@ -1,7 +1,5 @@
-use num_traits::ConstZero;
-
 use super::quadratic_extension::{QuadExtConfig, QuadExtField};
-use crate::{fields::PrimeField, CyclotomicMultSubgroup, FftField, Zero};
+use crate::{fields::PrimeField, CyclotomicMultSubgroup, Zero};
 use core::{marker::PhantomData, ops::Not};
 
 /// Trait that specifies constants and methods for defining degree-two extension fields.
@@ -138,21 +136,4 @@ impl<P: Fp2Config> CyclotomicMultSubgroup for Fp2<P> {
             self
         })
     }
-}
-
-impl<P: Fp2Config> FftField for Fp2<P>
-where
-    P::Fp: FftField + ConstZero,
-{
-    const GENERATOR: Self = Fp2::new(P::Fp::GENERATOR, P::Fp::ZERO);
-    const TWO_ADICITY: u32 = P::Fp::TWO_ADICITY;
-    const TWO_ADIC_ROOT_OF_UNITY: Self = Fp2::new(P::Fp::TWO_ADIC_ROOT_OF_UNITY, P::Fp::ZERO);
-    const SMALL_SUBGROUP_BASE: Option<u32> = P::Fp::SMALL_SUBGROUP_BASE;
-    const SMALL_SUBGROUP_BASE_ADICITY: Option<u32> = P::Fp::SMALL_SUBGROUP_BASE_ADICITY;
-    const LARGE_SUBGROUP_ROOT_OF_UNITY: Option<Self> =
-        if let Some(x) = P::Fp::LARGE_SUBGROUP_ROOT_OF_UNITY {
-            Some(Fp2::new(x, P::Fp::ZERO))
-        } else {
-            None
-        };
 }
