@@ -1,5 +1,10 @@
+use num_traits::ConstZero;
+
 use super::cubic_extension::{CubicExtConfig, CubicExtField};
-use crate::fields::{CyclotomicMultSubgroup, MulAssign, PrimeField, SqrtPrecomputation};
+use crate::{
+    fields::{CyclotomicMultSubgroup, MulAssign, PrimeField, SqrtPrecomputation},
+    FftField,
+};
 use core::marker::PhantomData;
 
 /// Trait that specifies constants and methods for defining degree-three extension fields.
@@ -39,7 +44,6 @@ impl<P: Fp3Config> CubicExtConfig for Fp3ConfigWrapper<P> {
     type FrobCoeff = P::Fp;
 
     const DEGREE_OVER_BASE_PRIME_FIELD: usize = 3;
-
     const NONRESIDUE: Self::BaseField = P::NONRESIDUE;
 
     const SQRT_PRECOMP: Option<SqrtPrecomputation<CubicExtField<Self>>> =
@@ -101,3 +105,21 @@ impl<P: Fp3Config> Fp3<P> {
 
 // We just use the default algorithms; there don't seem to be any faster ones.
 impl<P: Fp3Config> CyclotomicMultSubgroup for Fp3<P> {}
+
+impl<P: Fp3Config> FftField for Fp3<P>
+where
+    P::Fp: FftField + ConstZero,
+{
+    const GENERATOR: Self = Fp3::new(P::Fp::GENERATOR, P::Fp::ZERO, P::Fp::ZERO);
+    const TWO_ADICITY: u32 = P::Fp::TWO_ADICITY;
+    const TWO_ADIC_ROOT_OF_UNITY: Self =
+        Fp3::new(P::Fp::TWO_ADIC_ROOT_OF_UNITY, P::Fp::ZERO, P::Fp::ZERO);
+    const SMALL_SUBGROUP_BASE: Option<u32> = P::Fp::SMALL_SUBGROUP_BASE;
+    const SMALL_SUBGROUP_BASE_ADICITY: Option<u32> = P::Fp::SMALL_SUBGROUP_BASE_ADICITY;
+    const LARGE_SUBGROUP_ROOT_OF_UNITY: Option<Self> =
+        if let Some(x) = P::Fp::LARGE_SUBGROUP_ROOT_OF_UNITY {
+            Some(Fp3::new(x, P::Fp::ZERO, P::Fp::ZERO))
+        } else {
+            None
+        };
+}
