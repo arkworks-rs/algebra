@@ -4,7 +4,7 @@ use ark_ff::{
 };
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use ark_std::vec::*;
-use derivative::Derivative;
+use educe::Educe;
 use num_traits::One;
 
 use crate::{
@@ -17,13 +17,8 @@ use crate::{
 pub type G2Affine<P> = Affine<<P as BnConfig>::G2Config>;
 pub type G2Projective<P> = Projective<<P as BnConfig>::G2Config>;
 
-#[derive(Derivative, CanonicalSerialize, CanonicalDeserialize)]
-#[derivative(
-    Clone(bound = "P: BnConfig"),
-    Debug(bound = "P: BnConfig"),
-    PartialEq(bound = "P: BnConfig"),
-    Eq(bound = "P: BnConfig")
-)]
+#[derive(Educe, CanonicalSerialize, CanonicalDeserialize)]
+#[educe(Clone, Debug, PartialEq, Eq)]
 pub struct G2Prepared<P: BnConfig> {
     /// Stores the coefficients of the line evaluations as calculated in
     /// <https://eprint.iacr.org/2013/722.pdf>
@@ -37,12 +32,8 @@ pub type EllCoeff<P> = (
     Fp2<<P as BnConfig>::Fp2Config>,
 );
 
-#[derive(Derivative)]
-#[derivative(
-    Clone(bound = "P: BnConfig"),
-    Copy(bound = "P: BnConfig"),
-    Debug(bound = "P: BnConfig")
-)]
+#[derive(Educe)]
+#[educe(Clone, Copy, Debug)]
 pub struct G2HomProjective<P: BnConfig> {
     x: Fp2<P::Fp2Config>,
     y: Fp2<P::Fp2Config>,

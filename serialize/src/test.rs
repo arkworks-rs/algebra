@@ -127,6 +127,13 @@ fn test_array() {
 }
 
 #[test]
+fn test_array_bad_input() {
+    // Does not panic on invalid data:
+    let serialized = vec![0u8; 1];
+    assert!(<[u8; 2]>::deserialize_compressed(&serialized[..]).is_err());
+}
+
+#[test]
 fn test_vec() {
     test_serialize(vec![1u64, 2, 3, 4, 5]);
     test_serialize(Vec::<u64>::new());
@@ -202,10 +209,6 @@ fn test_bool() {
 
 #[test]
 fn test_rc_arc() {
-    use ark_std::rc::Rc;
-    test_serialize(Rc::new(Dummy));
-    test_serialize(Rc::new(10u64));
-
     use ark_std::sync::Arc;
     test_serialize(Arc::new(Dummy));
     test_serialize(Arc::new(10u64));

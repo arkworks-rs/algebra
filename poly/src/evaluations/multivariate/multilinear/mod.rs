@@ -18,6 +18,24 @@ use ark_std::rand::Rng;
 
 use crate::Polynomial;
 
+#[cfg(all(
+    target_has_atomic = "8",
+    target_has_atomic = "16",
+    target_has_atomic = "32",
+    target_has_atomic = "64",
+    target_has_atomic = "ptr"
+))]
+type DefaultHasher = ahash::AHasher;
+
+#[cfg(not(all(
+    target_has_atomic = "8",
+    target_has_atomic = "16",
+    target_has_atomic = "32",
+    target_has_atomic = "64",
+    target_has_atomic = "ptr"
+)))]
+type DefaultHasher = fnv::FnvHasher;
+
 /// This trait describes an interface for the multilinear extension
 /// of an array.
 /// The latter is a multilinear polynomial represented in terms of its

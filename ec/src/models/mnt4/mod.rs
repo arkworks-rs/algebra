@@ -7,7 +7,7 @@ use ark_ff::{
     fp4::{Fp4, Fp4Config},
     AdditiveGroup, CyclotomicMultSubgroup, Field, PrimeField,
 };
-use derivative::Derivative;
+use educe::Educe;
 use itertools::Itertools;
 use num_traits::{One, Zero};
 
@@ -74,8 +74,8 @@ pub trait MNT4Config: 'static + Sized {
     }
 }
 
-#[derive(Derivative)]
-#[derivative(Copy, Clone, PartialEq, Eq, Debug, Hash)]
+#[derive(Educe)]
+#[educe(Copy, Clone, PartialEq, Eq, Debug, Hash)]
 pub struct MNT4<P: MNT4Config>(PhantomData<fn() -> P>);
 
 impl<P: MNT4Config> MNT4<P> {

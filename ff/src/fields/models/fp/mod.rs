@@ -101,23 +101,14 @@ pub trait FpConfig<const N: usize>: Send + Sync + 'static + Sized {
 
 /// Represents an element of the prime field F_p, where `p == P::MODULUS`.
 /// This type can represent elements in any field of size at most N * 64 bits.
-#[derive(Derivative)]
-#[derivative(
-    Default(bound = ""),
-    Hash(bound = ""),
-    Clone(bound = ""),
-    Copy(bound = ""),
-    PartialEq(bound = ""),
-    Eq(bound = "")
-)]
+#[derive(Educe)]
+#[educe(Default, Hash, Clone, Copy, PartialEq, Eq)]
 pub struct Fp<P: FpConfig<N>, const N: usize>(
     /// Contains the element in Montgomery form for efficient multiplication.
     /// To convert an element to a [`BigInt`](struct@BigInt), use `into_bigint` or `into`.
     #[doc(hidden)]
     pub BigInt<N>,
-    #[derivative(Debug = "ignore")]
-    #[doc(hidden)]
-    pub PhantomData<P>,
+    #[doc(hidden)] pub PhantomData<P>,
 );
 
 pub type Fp64<P> = Fp<P, 1>;
@@ -216,7 +207,6 @@ impl<P: FpConfig<N>, const N: usize> AdditiveGroup for Fp<P, N> {
 
 impl<P: FpConfig<N>, const N: usize> Field for Fp<P, N> {
     type BasePrimeField = Self;
-    type BasePrimeFieldIter = iter::Once<Self::BasePrimeField>;
 
     const SQRT_PRECOMP: Option<SqrtPrecomputation<Self>> = P::SQRT_PRECOMP;
     const ONE: Self = P::ONE;
@@ -229,7 +219,7 @@ impl<P: FpConfig<N>, const N: usize> Field for Fp<P, N> {
         elem
     }
 
-    fn to_base_prime_field_elements(&self) -> Self::BasePrimeFieldIter {
+    fn to_base_prime_field_elements(&self) -> impl Iterator<Item = Self::BasePrimeField> {
         iter::once(*self)
     }
 
@@ -343,6 +333,12 @@ impl<P: FpConfig<N>, const N: usize> Field for Fp<P, N> {
         } else {
             QuadraticNonResidue
         }
+    }
+
+    /// Fp is already a "BasePrimeField", so it's just mul by self
+    #[inline]
+    fn mul_by_base_prime_field(&self, elem: &Self::BasePrimeField) -> Self {
+        *self * elem
     }
 }
 

@@ -17,11 +17,11 @@ use ark_std::{
 use rayon::prelude::*;
 
 /// Stores a sparse multivariate polynomial in coefficient form.
-#[derive(Derivative, CanonicalSerialize, CanonicalDeserialize)]
-#[derivative(Clone, PartialEq, Eq, Hash, Default)]
+#[derive(Educe, CanonicalSerialize, CanonicalDeserialize)]
+#[educe(Clone, PartialEq, Eq, Hash, Default)]
 pub struct SparsePolynomial<F: Field, T: Term> {
     /// The number of variables the polynomial supports
-    #[derivative(PartialEq = "ignore")]
+    #[educe(PartialEq(ignore))]
     pub num_vars: usize,
     /// List of each term along with its coefficient
     pub terms: Vec<(F, T)>,

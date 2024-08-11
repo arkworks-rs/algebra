@@ -352,6 +352,27 @@ macro_rules! __test_field {
                 }
             }
         }
+
+
+        #[test]
+        fn test_mul_by_base_field_elem() {
+            use ark_std::UniformRand;
+            let rng = &mut test_rng();
+
+            for _ in 0..ITERATIONS {
+                let a = vec![<<$field as Field>::BasePrimeField>::rand(rng); <$field>::extension_degree() as usize];
+                let b = <<$field as Field>::BasePrimeField>::rand(rng);
+
+                let mut a = <$field>::from_base_prime_field_elems(a).unwrap();
+                let computed = a.mul_by_base_prime_field(&b);
+
+                let embedded_b = <$field as Field>::from_base_prime_field(b);
+
+                let naive = a*embedded_b;
+
+                assert_eq!(computed, naive);
+            }
+        }
     };
     ($field: ty; fft) => {
         $crate::__test_field!($field);

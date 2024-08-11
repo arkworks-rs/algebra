@@ -74,16 +74,8 @@ pub trait CubicExtConfig: 'static + Send + Sync + Sized {
 
 /// An element of a cubic extension field F_p\[X\]/(X^3 - P::NONRESIDUE) is
 /// represented as c0 + c1 * X + c2 * X^2, for c0, c1, c2 in `P::BaseField`.
-#[derive(Derivative)]
-#[derivative(
-    Default(bound = "P: CubicExtConfig"),
-    Hash(bound = "P: CubicExtConfig"),
-    Clone(bound = "P: CubicExtConfig"),
-    Copy(bound = "P: CubicExtConfig"),
-    Debug(bound = "P: CubicExtConfig"),
-    PartialEq(bound = "P: CubicExtConfig"),
-    Eq(bound = "P: CubicExtConfig")
-)]
+#[derive(Educe)]
+#[educe(Default, Hash, Clone, Copy, Debug, PartialEq, Eq)]
 pub struct CubicExtField<P: CubicExtConfig> {
     pub c0: P::BaseField,
     pub c1: P::BaseField,
@@ -186,10 +178,8 @@ impl<P: CubicExtConfig> AdditiveGroup for CubicExtField<P> {
     }
 }
 
-type BaseFieldIter<P> = <<P as CubicExtConfig>::BaseField as Field>::BasePrimeFieldIter;
 impl<P: CubicExtConfig> Field for CubicExtField<P> {
     type BasePrimeField = P::BasePrimeField;
-    type BasePrimeFieldIter = Chain<BaseFieldIter<P>, Chain<BaseFieldIter<P>, BaseFieldIter<P>>>;
 
     const SQRT_PRECOMP: Option<SqrtPrecomputation<Self>> = P::SQRT_PRECOMP;
 
@@ -204,12 +194,11 @@ impl<P: CubicExtConfig> Field for CubicExtField<P> {
         Self::new(fe, P::BaseField::ZERO, P::BaseField::ZERO)
     }
 
-    fn to_base_prime_field_elements(&self) -> Self::BasePrimeFieldIter {
-        self.c0.to_base_prime_field_elements().chain(
-            self.c1
-                .to_base_prime_field_elements()
-                .chain(self.c2.to_base_prime_field_elements()),
-        )
+    fn to_base_prime_field_elements(&self) -> impl Iterator<Item = Self::BasePrimeField> {
+        self.c0
+            .to_base_prime_field_elements()
+            .chain(self.c1.to_base_prime_field_elements())
+            .chain(self.c2.to_base_prime_field_elements())
     }
 
     fn from_base_prime_field_elems(
@@ -339,6 +328,14 @@ impl<P: CubicExtConfig> Field for CubicExtField<P> {
         self.c2.frobenius_map_in_place(power);
 
         P::mul_base_field_by_frob_coeff(&mut self.c1, &mut self.c2, power);
+    }
+
+    fn mul_by_base_prime_field(&self, elem: &Self::BasePrimeField) -> Self {
+        let mut result = *self;
+        result.c0 = result.c0.mul_by_base_prime_field(elem);
+        result.c1 = result.c1.mul_by_base_prime_field(elem);
+        result.c2 = result.c2.mul_by_base_prime_field(elem);
+        result
     }
 }
 

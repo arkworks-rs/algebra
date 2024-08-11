@@ -4,7 +4,7 @@ use ark_ff::{PrimeField, Zero};
 use ark_std::{borrow::Borrow, vec::*};
 use hashbrown::HashMap;
 
-use super::VariableBaseMSM;
+use super::{DefaultHasher, VariableBaseMSM};
 
 /// Struct for the chunked Pippenger algorithm.
 pub struct ChunkedPippenger<G: VariableBaseMSM> {
@@ -67,7 +67,7 @@ impl<G: VariableBaseMSM> ChunkedPippenger<G> {
 
 /// Hash map struct for Pippenger algorithm.
 pub struct HashMapPippenger<G: VariableBaseMSM> {
-    buffer: HashMap<G::MulBase, G::ScalarField>,
+    buffer: HashMap<G::MulBase, G::ScalarField, core::hash::BuildHasherDefault<DefaultHasher>>,
     result: G,
     buf_size: usize,
 }
@@ -76,7 +76,10 @@ impl<G: VariableBaseMSM> HashMapPippenger<G> {
     /// Produce a new hash map with the maximum msm buffer size.
     pub fn new(max_msm_buffer: usize) -> Self {
         Self {
-            buffer: HashMap::with_capacity(max_msm_buffer),
+            buffer: HashMap::with_capacity_and_hasher(
+                max_msm_buffer,
+                core::hash::BuildHasherDefault::<DefaultHasher>::default(),
+            ),
             result: G::zero(),
             buf_size: max_msm_buffer,
         }

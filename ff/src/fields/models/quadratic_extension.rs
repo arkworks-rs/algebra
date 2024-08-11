@@ -89,16 +89,8 @@ pub trait QuadExtConfig: 'static + Send + Sync + Sized {
 
 /// An element of a quadratic extension field F_p\[X\]/(X^2 - P::NONRESIDUE) is
 /// represented as c0 + c1 * X, for c0, c1 in `P::BaseField`.
-#[derive(Derivative)]
-#[derivative(
-    Default(bound = "P: QuadExtConfig"),
-    Hash(bound = "P: QuadExtConfig"),
-    Clone(bound = "P: QuadExtConfig"),
-    Copy(bound = "P: QuadExtConfig"),
-    Debug(bound = "P: QuadExtConfig"),
-    PartialEq(bound = "P: QuadExtConfig"),
-    Eq(bound = "P: QuadExtConfig")
-)]
+#[derive(Educe)]
+#[educe(Default, Hash, Clone, Copy, Debug, PartialEq, Eq)]
 pub struct QuadExtField<P: QuadExtConfig> {
     /// Coefficient `c0` in the representation of the field element `c = c0 + c1 * X`
     pub c0: P::BaseField,
@@ -213,11 +205,8 @@ impl<P: QuadExtConfig> AdditiveGroup for QuadExtField<P> {
     }
 }
 
-type BaseFieldIter<P> = <<P as QuadExtConfig>::BaseField as Field>::BasePrimeFieldIter;
 impl<P: QuadExtConfig> Field for QuadExtField<P> {
     type BasePrimeField = P::BasePrimeField;
-
-    type BasePrimeFieldIter = Chain<BaseFieldIter<P>, BaseFieldIter<P>>;
 
     const SQRT_PRECOMP: Option<SqrtPrecomputation<Self>> = None;
 
@@ -232,7 +221,7 @@ impl<P: QuadExtConfig> Field for QuadExtField<P> {
         Self::new(fe, P::BaseField::ZERO)
     }
 
-    fn to_base_prime_field_elements(&self) -> Self::BasePrimeFieldIter {
+    fn to_base_prime_field_elements(&self) -> impl Iterator<Item = Self::BasePrimeField> {
         self.c0
             .to_base_prime_field_elements()
             .chain(self.c1.to_base_prime_field_elements())
@@ -446,6 +435,13 @@ impl<P: QuadExtConfig> Field for QuadExtField<P> {
             *self = sqrt;
             self
         })
+    }
+
+    fn mul_by_base_prime_field(&self, elem: &Self::BasePrimeField) -> Self {
+        let mut result = *self;
+        result.c0 = result.c0.mul_by_base_prime_field(elem);
+        result.c1 = result.c1.mul_by_base_prime_field(elem);
+        result
     }
 }
 

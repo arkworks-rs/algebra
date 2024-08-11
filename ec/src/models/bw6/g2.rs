@@ -1,7 +1,7 @@
 use ark_ff::{AdditiveGroup, BitIteratorBE, Field};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use ark_std::vec::*;
-use derivative::Derivative;
+use educe::Educe;
 use num_traits::One;
 
 use crate::{
@@ -14,13 +14,8 @@ use crate::{
 pub type G2Affine<P> = Affine<<P as BW6Config>::G2Config>;
 pub type G2Projective<P> = Projective<<P as BW6Config>::G2Config>;
 
-#[derive(Derivative, CanonicalSerialize, CanonicalDeserialize)]
-#[derivative(
-    Clone(bound = "P: BW6Config"),
-    Debug(bound = "P: BW6Config"),
-    PartialEq(bound = "P: BW6Config"),
-    Eq(bound = "P: BW6Config")
-)]
+#[derive(Educe, CanonicalSerialize, CanonicalDeserialize)]
+#[educe(Clone, Debug, PartialEq, Eq)]
 pub struct G2Prepared<P: BW6Config> {
     /// Stores the coefficients of the line evaluations as calculated in
     /// <https://eprint.iacr.org/2013/722.pdf>
@@ -29,12 +24,8 @@ pub struct G2Prepared<P: BW6Config> {
     pub infinity: bool,
 }
 
-#[derive(Derivative, CanonicalSerialize, CanonicalDeserialize)]
-#[derivative(
-    Clone(bound = "P: BW6Config"),
-    Copy(bound = "P: BW6Config"),
-    Debug(bound = "P: BW6Config")
-)]
+#[derive(Educe, CanonicalSerialize, CanonicalDeserialize)]
+#[educe(Clone, Copy, Debug)]
 pub struct G2HomProjective<P: BW6Config> {
     x: P::Fp,
     y: P::Fp,

@@ -20,7 +20,7 @@ use ark_std::{
     vec::*,
     One, Zero,
 };
-use derivative::Derivative;
+use educe::Educe;
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
 use zeroize::Zeroize;
@@ -28,8 +28,8 @@ use zeroize::Zeroize;
 /// Jacobian coordinates for a point on an elliptic curve in short Weierstrass
 /// form, over the base field `P::BaseField`. This struct implements arithmetic
 /// via the Jacobian formulae
-#[derive(Derivative)]
-#[derivative(Copy(bound = "P: SWCurveConfig"), Clone(bound = "P: SWCurveConfig"))]
+#[derive(Educe)]
+#[educe(Copy, Clone)]
 #[must_use]
 pub struct Projective<P: SWCurveConfig> {
     /// `X / Z` projection of the affine `X`
@@ -604,7 +604,9 @@ impl<P: SWCurveConfig> Valid for Projective<P> {
         self.into_affine().check()
     }
 
-    fn batch_check<'a>(batch: impl Iterator<Item = &'a Self>) -> Result<(), SerializationError>
+    fn batch_check<'a>(
+        batch: impl Iterator<Item = &'a Self> + Send,
+    ) -> Result<(), SerializationError>
     where
         Self: 'a,
     {

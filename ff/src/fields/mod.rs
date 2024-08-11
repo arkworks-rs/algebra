@@ -201,8 +201,6 @@ pub trait Field:
 {
     type BasePrimeField: PrimeField;
 
-    type BasePrimeFieldIter: Iterator<Item = Self::BasePrimeField>;
-
     /// Determines the algorithm for computing square roots.
     const SQRT_PRECOMP: Option<SqrtPrecomputation<Self>>;
 
@@ -219,7 +217,7 @@ pub trait Field:
     /// to `Self::BasePrimeField`.
     fn extension_degree() -> u64;
 
-    fn to_base_prime_field_elements(&self) -> Self::BasePrimeFieldIter;
+    fn to_base_prime_field_elements(&self) -> impl Iterator<Item = Self::BasePrimeField>;
 
     /// Convert a slice of base prime field elements into a field element.
     /// If the slice length != Self::extension_degree(), must return None.
@@ -348,6 +346,8 @@ pub trait Field:
         }
         Some(res)
     }
+
+    fn mul_by_base_prime_field(&self, elem: &Self::BasePrimeField) -> Self;
 }
 
 // Given a vector of field elements {v_i}, compute the vector {v_i^(-1)}

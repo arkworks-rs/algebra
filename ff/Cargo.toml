@@ -20,8 +20,8 @@ ark-ff-asm.workspace = true
 ark-ff-macros.workspace = true
 ark-std.workspace = true
 ark-serialize.workspace = true
-arrayvec = { version = "0.7", default-features = false }
-derivative = { workspace = true, features = ["use_core"] }
+arrayvec.workspace = true
+educe.workspace = true
 num-traits.workspace = true
 paste.workspace = true
 rayon = { workspace = true, optional = true }
@@ -44,5 +44,5 @@ hex.workspace = true
 [features]
 default = []
 std = [ "ark-std/std", "ark-serialize/std", "itertools/use_std" ]
-parallel = [ "std", "rayon", "ark-std/parallel" ]
+parallel = [ "std", "rayon", "ark-std/parallel", "ark-serialize/parallel" ]
 asm = []

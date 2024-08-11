@@ -16,7 +16,7 @@ use ark_std::{
 
 use ark_ff::{fields::Field, AdditiveGroup, PrimeField, ToConstraintField, UniformRand};
 
-use derivative::Derivative;
+use educe::Educe;
 use zeroize::Zeroize;
 
 use super::{Projective, SWCurveConfig, SWFlags};
@@ -24,14 +24,8 @@ use crate::AffineRepr;
 
 /// Affine coordinates for a point on an elliptic curve in short Weierstrass
 /// form, over the base field `P::BaseField`.
-#[derive(Derivative)]
-#[derivative(
-    Copy(bound = "P: SWCurveConfig"),
-    Clone(bound = "P: SWCurveConfig"),
-    PartialEq(bound = "P: SWCurveConfig"),
-    Eq(bound = "P: SWCurveConfig"),
-    Hash(bound = "P: SWCurveConfig")
-)]
+#[derive(Educe)]
+#[educe(Copy, Clone, PartialEq, Eq, Hash)]
 #[must_use]
 pub struct Affine<P: SWCurveConfig> {
     #[doc(hidden)]
@@ -305,14 +299,14 @@ impl<P: SWCurveConfig, T: Borrow<Self>> Sub<T> for Affine<P> {
 impl<P: SWCurveConfig> Sub<Projective<P>> for Affine<P> {
     type Output = Projective<P>;
     fn sub(self, other: Projective<P>) -> Projective<P> {
-        other - self
+        self + (-other)
     }
 }
 
 impl<'a, P: SWCurveConfig> Sub<&'a Projective<P>> for Affine<P> {
     type Output = Projective<P>;
     fn sub(self, other: &'a Projective<P>) -> Projective<P> {
-        *other - self
+        self + (-*other)
     }
 }
 

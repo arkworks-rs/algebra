@@ -19,6 +19,8 @@ use hashbrown::HashMap;
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
 
+use super::DefaultHasher;
+
 /// Stores a multilinear polynomial in sparse evaluation form.
 #[derive(Clone, PartialEq, Eq, Hash, Default, CanonicalSerialize, CanonicalDeserialize)]
 pub struct SparseMultilinearExtension<F: Field> {
@@ -66,7 +68,8 @@ impl<F: Field> SparseMultilinearExtension<F> {
     ) -> Self {
         assert!(num_nonzero_entries <= (1 << num_vars));
 
-        let mut map = HashMap::new();
+        let mut map =
+            HashMap::with_hasher(core::hash::BuildHasherDefault::<DefaultHasher>::default());
         for _ in 0..num_nonzero_entries {
             let mut index = usize::rand(rng) & ((1 << num_vars) - 1);
             while map.get(&index).is_some() {
@@ -173,7 +176,8 @@ impl<F: Field> MultilinearExtension<F> for SparseMultilinearExtension<F> {
             point = &point[focus_length..];
             let pre = precompute_eq(focus);
             let dim = focus.len();
-            let mut result = HashMap::new();
+            let mut result =
+                HashMap::with_hasher(core::hash::BuildHasherDefault::<DefaultHasher>::default());
             for src_entry in last.iter() {
                 let old_idx = *src_entry.0;
                 let gz = pre[old_idx & ((1 << dim) - 1)];
@@ -261,7 +265,8 @@ impl<'a, 'b, F: Field> Add<&'a SparseMultilinearExtension<F>>
             "trying to add non-zero polynomial with different number of variables"
         );
         // simply merge the evaluations
-        let mut evaluations = HashMap::new();
+        let mut evaluations =
+            HashMap::with_hasher(core::hash::BuildHasherDefault::<DefaultHasher>::default());
         for (&i, &v) in self.evaluations.iter().chain(rhs.evaluations.iter()) {
             *(evaluations.entry(i).or_insert(F::zero())) += v;
         }
@@ -395,11 +400,13 @@ fn tuples_to_treemap<F: Field>(tuples: &[(usize, F)]) -> BTreeMap<usize, F> {
     BTreeMap::from_iter(tuples.iter().map(|(i, v)| (*i, *v)))
 }
 
-fn treemap_to_hashmap<F: Field>(map: &BTreeMap<usize, F>) -> HashMap<usize, F> {
+fn treemap_to_hashmap<F: Field>(
+    map: &BTreeMap<usize, F>,
+) -> HashMap<usize, F, core::hash::BuildHasherDefault<DefaultHasher>> {
     HashMap::from_iter(map.iter().map(|(i, v)| (*i, *v)))
 }
 
-fn hashmap_to_treemap<F: Field>(map: &HashMap<usize, F>) -> BTreeMap<usize, F> {
+fn hashmap_to_treemap<F: Field, S>(map: &HashMap<usize, F, S>) -> BTreeMap<usize, F> {
     BTreeMap::from_iter(map.iter().map(|(i, v)| (*i, *v)))
 }
 

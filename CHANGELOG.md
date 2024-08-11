@@ -4,6 +4,8 @@
 
 - [\#772](https://github.com/arkworks-rs/algebra/pull/772) (`ark-ff`) Implementation of `mul` method for `BigInteger`.
 - [\#794](https://github.com/arkworks-rs/algebra/pull/794) (`ark-ff`) Fix `wasm` compilation.
+- [\#837](https://github.com/arkworks-rs/algebra/pull/837) (`ark-serialize`) Fix array deserialization panic.
+- [\#845](https://github.com/arkworks-rs/algebra/pull/845) (`Algebra`) Implementation of `mul` method for `DenseMultilinearExtension<F> * F`.
 
 ### Breaking changes
 
@@ -31,6 +33,7 @@
 - [\#691](https://github.com/arkworks-rs/algebra/pull/691) (`ark-poly`) Implement `Polynomial` for `SparseMultilinearExtension` and `DenseMultilinearExtension`.
 - [\#693](https://github.com/arkworks-rs/algebra/pull/693) (`ark-serialize`) Add `serialize_to_vec!` convenience macro.
 - [\#713](https://github.com/arkworks-rs/algebra/pull/713) (`ark-ff`) Add support for bitwise operations AND, OR, and XOR between `BigInteger`.
+- [\#763](https://github.com/arkworks-rs/algebra/pull/763) (`ark-poly`) Add `concat` to concatenate evaluation tables of `DenseMultilinearPolynomial`s.
 - [\#811](https://github.com/arkworks-rs/algebra/pull/811) (`ark-serialize`) Implement `Valid` & `CanonicalDeserialize` for `Rc`.
 
 ### Improvements
@@ -45,6 +48,7 @@
 - [\#747](https://github.com/arkworks-rs/algebra/pull/747) (`ark-ff-macros`) Fix fetching attributes in `MontConfig` macro.
 - [\#803](https://github.com/arkworks-rs/algebra/pull/803) (`ark-ec`, `ark-test-template`) Fix incorrect decomposition in GLV.
 - [\#806](https://github.com/arkworks-rs/algebra/pull/806) (`ark-ff`) Fix the impl for `Display`ing zero element in Fp.
+- [\#822](https://github.com/arkworks-rs/algebra/pull/822) (`ark-ec`, `ark-test-template`) Fix the incorrect `Affine - Projective` implementation
 
 ## v0.4.2
 

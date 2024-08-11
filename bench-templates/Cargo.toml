@@ -28,4 +28,4 @@ paste.workspace = true
 
 [features]
 asm = [ "ark-ff/asm" ]
-parallel = [ "ark-std/parallel", "ark-ff/parallel",  "ark-ec/parallel", ]
+parallel = [ "ark-std/parallel", "ark-ff/parallel",  "ark-ec/parallel", "ark-serialize/parallel" ]
