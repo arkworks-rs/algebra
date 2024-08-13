@@ -170,12 +170,12 @@ impl<F: FftField> DensePolynomial<F> {
     pub fn divide_by_vanishing_poly<D: EvaluationDomain<F>>(
         &self,
         domain: D,
-    ) -> Option<(DensePolynomial<F>, DensePolynomial<F>)> {
+    ) -> (DensePolynomial<F>, DensePolynomial<F>) {
         let domain_size = domain.size();
 
         if self.coeffs.len() < domain_size {
             // If degree(self) < len(Domain), then the quotient is zero, and the entire polynomial is the remainder
-            Some((DensePolynomial::<F>::zero(), self.clone()))
+            (DensePolynomial::<F>::zero(), self.clone())
         } else {
             // Compute the quotient
             //
@@ -211,7 +211,7 @@ impl<F: FftField> DensePolynomial<F> {
 
             let quotient = DensePolynomial::<F>::from_coefficients_vec(quotient_vec);
             let remainder = DensePolynomial::<F>::from_coefficients_vec(remainder_vec);
-            Some((quotient, remainder))
+            (quotient, remainder)
         }
     }
 }
@@ -936,7 +936,7 @@ mod tests {
             let domain = GeneralEvaluationDomain::new(1 << size).unwrap();
             for degree in 0..12 {
                 let p = DensePolynomial::<Fr>::rand(degree * 100, rng);
-                let (quotient, remainder) = p.divide_by_vanishing_poly(domain).unwrap();
+                let (quotient, remainder) = p.divide_by_vanishing_poly(domain);
                 let p_recovered = quotient.mul_by_vanishing_poly(domain) + remainder;
                 assert_eq!(p, p_recovered);
             }
