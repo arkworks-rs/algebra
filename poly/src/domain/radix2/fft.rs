@@ -224,11 +224,9 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
         max_threads: usize,
         gap: usize,
     ) {
-        if xi.len() <= 16 {
+        if xi.len() <= MIN_INPUT_SIZE_FOR_PARALLELIZATION {
             xi.chunks_mut(chunk_size).for_each(|cxi| {
                 let (lo, hi) = cxi.split_at_mut(gap);
-                // If the chunk is sufficiently big that parallelism helps,
-                // we parallelize the butterfly operation within the chunk.
                 lo.iter_mut()
                     .zip(hi)
                     .zip(roots.iter().step_by(step))
@@ -240,7 +238,7 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
                 // If the chunk is sufficiently big that parallelism helps,
                 // we parallelize the butterfly operation within the chunk.
 
-                if gap > MIN_GAP_SIZE_FOR_PARALLELISATION && num_chunks < max_threads {
+                if gap > MIN_GAP_SIZE_FOR_PARALLELIZATION && num_chunks < max_threads {
                     cfg_iter_mut!(lo)
                         .zip(hi)
                         .zip(cfg_iter!(roots).step_by(step))
@@ -361,7 +359,13 @@ const MIN_NUM_CHUNKS_FOR_COMPACTION: usize = 1 << 7;
 
 /// The minimum size of a chunk at which parallelization of `butterfly`s is
 /// beneficial. This value was chosen empirically.
-const MIN_GAP_SIZE_FOR_PARALLELISATION: usize = 1 << 10;
+const MIN_GAP_SIZE_FOR_PARALLELIZATION: usize = 1 << 10;
+
+
+/// The minimum size of a chunk at which parallelization of `butterfly`s is
+/// beneficial. This value was chosen empirically.
+const MIN_INPUT_SIZE_FOR_PARALLELIZATION: usize = 1 << 10;
+
 
 // minimum size at which to parallelize.
 #[cfg(feature = "parallel")]
