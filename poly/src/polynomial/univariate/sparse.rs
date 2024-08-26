@@ -538,8 +538,7 @@ mod tests {
 
                 // Test interpolation works, by checking that interpolated polynomial agrees with the original on the domain
                 let (_q, r) = (dense_poly.clone() + -sparse_evals.interpolate())
-                    .divide_by_vanishing_poly(domain)
-                    .unwrap();
+                    .divide_by_vanishing_poly(domain);
                 assert_eq!(
                     r,
                     DensePolynomial::<Fr>::zero(),
@@ -550,8 +549,7 @@ mod tests {
 
                 // Consistency check that the dense polynomials interpolation is correct.
                 let (_q, r) = (dense_poly.clone() + -dense_evals.interpolate())
-                    .divide_by_vanishing_poly(domain)
-                    .unwrap();
+                    .divide_by_vanishing_poly(domain);
                 assert_eq!(
                     r,
                     DensePolynomial::<Fr>::zero(),
