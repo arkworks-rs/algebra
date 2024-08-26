@@ -39,7 +39,6 @@ impl<P: Fp3Config> CubicExtConfig for Fp3ConfigWrapper<P> {
     type FrobCoeff = P::Fp;
 
     const DEGREE_OVER_BASE_PRIME_FIELD: usize = 3;
-
     const NONRESIDUE: Self::BaseField = P::NONRESIDUE;
 
     const SQRT_PRECOMP: Option<SqrtPrecomputation<CubicExtField<Self>>> =
