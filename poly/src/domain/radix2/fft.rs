@@ -361,11 +361,9 @@ const MIN_NUM_CHUNKS_FOR_COMPACTION: usize = 1 << 7;
 /// beneficial. This value was chosen empirically.
 const MIN_GAP_SIZE_FOR_PARALLELIZATION: usize = 1 << 10;
 
-
 /// The minimum size of a chunk at which parallelization of `butterfly`s is
 /// beneficial. This value was chosen empirically.
 const MIN_INPUT_SIZE_FOR_PARALLELIZATION: usize = 1 << 10;
-
 
 // minimum size at which to parallelize.
 #[cfg(feature = "parallel")]
