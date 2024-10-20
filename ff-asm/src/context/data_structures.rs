@@ -5,6 +5,7 @@ pub enum AssemblyVar {
     Memory(String),
     Variable(String),
     Fixed(String),
+    Constant(String),
 }
 
 impl AssemblyVar {
@@ -28,7 +29,7 @@ impl AssemblyVar {
 impl fmt::Display for AssemblyVar {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
         match self {
-            Self::Variable(a) | Self::Fixed(a) | Self::Memory(a) => write!(f, "{}", a),
+            Self::Variable(a) | Self::Fixed(a) | Self::Memory(a) | Self::Constant(a) => write!(f, "{}", a),
         }
     }
 }
@@ -42,6 +43,12 @@ impl<'a> From<Declaration<'a>> for AssemblyVar {
 impl<'a> From<Register<'a>> for AssemblyVar {
     fn from(other: Register<'a>) -> Self {
         Self::Fixed(format!("%{}", other.0))
+    }
+}
+
+impl<'a> From<Constant<'a>> for AssemblyVar {
+    fn from(other: Constant<'a>) -> Self {
+        Self::Constant(format!("{{{}}}", other.name))
     }
 }
 
@@ -64,5 +71,21 @@ pub struct Declaration<'a> {
 impl fmt::Display for Declaration<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
         write!(f, "{} = in(reg) {},", self.name, self.expr)
+    }
+}
+
+
+#[derive(Copy, Clone)]
+pub struct Constant<'a> {
+    /// Name of the assembly template variable declared by `self`.
+    pub name: &'a str,
+    /// Rust expression whose value is declared in `self`.
+    pub expr: &'a str,
+}
+
+
+impl fmt::Display for Constant<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
+        write!(f, "{} = const {},", self.name, self.expr)
     }
 }

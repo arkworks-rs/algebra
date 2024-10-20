@@ -133,7 +133,7 @@ fn construct_asm_mul(ctx: &Context<'_>, limbs: usize) -> Vec<String> {
     let a: AssemblyVar = ctx.get_decl("a").into();
     let b: AssemblyVar = ctx.get_decl_with_fallback("b", "a").into(); // "b" is not available during squaring.
     let modulus: AssemblyVar = ctx.get_decl("modulus").into();
-    let mod_inv: AssemblyVar = ctx.get_decl("mod_inv").into();
+    let mod_inv: AssemblyVar = ctx.get_const("mod_inv").into();
 
     let asm_instructions = RefCell::new(Vec::new());
 
@@ -277,7 +277,7 @@ fn generate_impl(num_limbs: usize, is_mul: bool) -> String {
         ctx.add_declaration("b", "b");
     }
     ctx.add_declaration("modulus", "&Self::MODULUS.0");
-    ctx.add_declaration("mod_inv", "Self::INV");
+    ctx.add_constant("mod_inv", "Self::INV");
 
     if num_limbs > MAX_REGS {
         ctx.add_buffer(2 * num_limbs);

@@ -5,6 +5,7 @@ pub use data_structures::*;
 pub struct Context<'a> {
     assembly_instructions: Vec<String>,
     declarations: Vec<Declaration<'a>>,
+    constants: Vec<Constant<'a>>,
     used_registers: Vec<Register<'a>>,
 }
 
@@ -30,13 +31,11 @@ impl<'a> Context<'a> {
             assembly_instructions: Vec::new(),
             declarations: Vec::new(),
             used_registers: Vec::new(),
+            constants: Vec::new(),
         }
     }
 
-    fn find(&self, name: &str) -> Option<&Declaration<'_>> {
-        self.declarations.iter().find(|item| item.name == name)
-    }
-
+        
     fn append(&mut self, other: &str) {
         self.assembly_instructions.push(format!("\"{}\",", other));
     }
@@ -46,11 +45,19 @@ impl<'a> Context<'a> {
     }
 
     fn get_decl_name(&self, name: &str) -> Option<&Declaration<'_>> {
-        self.find(name)
+        self.declarations.iter().find(|item| item.name == name)
     }
 
     pub fn get_decl(&self, name: &str) -> Declaration<'_> {
-        *self.get_decl_name(name).unwrap()
+        *self.get_decl_name(name).expect(&format!("Couldn't find {name}"))
+    }
+    
+    fn get_const_name(&self, name: &str) -> Option<&Constant<'_>> {
+        self.constants.iter().find(|item| item.name == name)
+    }
+
+    pub fn get_const(&self, name: &str) -> Constant<'_> {
+        *self.get_const_name(name).expect(&format!("Couldn't find {name}"))
     }
 
     pub fn get_decl_with_fallback(&self, name: &str, fallback_name: &str) -> Declaration<'_> {
@@ -62,6 +69,11 @@ impl<'a> Context<'a> {
     pub fn add_declaration(&mut self, name: &'a str, expr: &'a str) {
         let declaration = Declaration { name, expr };
         self.declarations.push(declaration);
+    }
+    
+    pub fn add_constant(&mut self, name: &'a str, expr: &'a str) {
+        let constant = Constant { name, expr };
+        self.constants.push(constant);
     }
 
     pub fn add_buffer(&mut self, extra_reg: usize) {
@@ -94,6 +106,12 @@ impl<'a> Context<'a> {
             .map(ToString::to_string)
             .collect::<Vec<String>>()
             .join("\n");
+        let constants: String = self
+            .constants
+            .iter()
+            .map(ToString::to_string)
+            .collect::<Vec<String>>()
+            .join("\n");
         let clobbers = self
             .used_registers
             .iter()
@@ -106,6 +124,7 @@ impl<'a> Context<'a> {
             "unsafe {".to_string(),
             "ark_std::arch::asm!(".to_string(),
             assembly,
+            constants,
             declarations,
             clobbers,
             options,
