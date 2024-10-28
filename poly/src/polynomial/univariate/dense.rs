@@ -170,12 +170,12 @@ impl<F: FftField> DensePolynomial<F> {
     pub fn divide_by_vanishing_poly<D: EvaluationDomain<F>>(
         &self,
         domain: D,
-    ) -> Option<(DensePolynomial<F>, DensePolynomial<F>)> {
+    ) -> (DensePolynomial<F>, DensePolynomial<F>) {
         let domain_size = domain.size();
 
         if self.coeffs.len() < domain_size {
             // If degree(self) < len(Domain), then the quotient is zero, and the entire polynomial is the remainder
-            Some((DensePolynomial::<F>::zero(), self.clone()))
+            (DensePolynomial::<F>::zero(), self.clone())
         } else {
             // Compute the quotient
             //
@@ -211,7 +211,7 @@ impl<F: FftField> DensePolynomial<F> {
 
             let quotient = DensePolynomial::<F>::from_coefficients_vec(quotient_vec);
             let remainder = DensePolynomial::<F>::from_coefficients_vec(remainder_vec);
-            Some((quotient, remainder))
+            (quotient, remainder)
         }
     }
 }
@@ -282,14 +282,6 @@ impl<F: Field> Deref for DensePolynomial<F> {
 impl<F: Field> DerefMut for DensePolynomial<F> {
     fn deref_mut(&mut self) -> &mut [F] {
         &mut self.coeffs
-    }
-}
-
-impl<F: Field> Add for DensePolynomial<F> {
-    type Output = DensePolynomial<F>;
-
-    fn add(self, other: DensePolynomial<F>) -> Self {
-        &self + &other
     }
 }
 
@@ -601,6 +593,15 @@ impl<'b, F: Field> Mul<F> for &'b DensePolynomial<F> {
     }
 }
 
+impl<F: Field> Mul<F> for DensePolynomial<F> {
+    type Output = DensePolynomial<F>;
+
+    #[inline]
+    fn mul(self, elem: F) -> DensePolynomial<F> {
+        &self * elem
+    }
+}
+
 /// Performs O(nlogn) multiplication of polynomials if F is smooth.
 impl<'a, 'b, F: FftField> Mul<&'a DensePolynomial<F>> for &'b DensePolynomial<F> {
     type Output = DensePolynomial<F>;
@@ -620,6 +621,37 @@ impl<'a, 'b, F: FftField> Mul<&'a DensePolynomial<F>> for &'b DensePolynomial<F>
     }
 }
 
+macro_rules! impl_op {
+    ($trait:ident, $method:ident, $field_bound:ident) => {
+        impl<F: $field_bound> $trait<DensePolynomial<F>> for DensePolynomial<F> {
+            type Output = DensePolynomial<F>;
+
+            #[inline]
+            fn $method(self, other: DensePolynomial<F>) -> DensePolynomial<F> {
+                (&self).$method(&other)
+            }
+        }
+
+        impl<'a, F: $field_bound> $trait<&'a DensePolynomial<F>> for DensePolynomial<F> {
+            type Output = DensePolynomial<F>;
+
+            #[inline]
+            fn $method(self, other: &'a DensePolynomial<F>) -> DensePolynomial<F> {
+                (&self).$method(other)
+            }
+        }
+
+        impl<'a, F: $field_bound> $trait<DensePolynomial<F>> for &'a DensePolynomial<F> {
+            type Output = DensePolynomial<F>;
+
+            #[inline]
+            fn $method(self, other: DensePolynomial<F>) -> DensePolynomial<F> {
+                self.$method(&other)
+            }
+        }
+    };
+}
+
 impl<F: Field> Zero for DensePolynomial<F> {
     /// Returns the zero polynomial.
     fn zero() -> Self {
@@ -631,6 +663,11 @@ impl<F: Field> Zero for DensePolynomial<F> {
         self.coeffs.is_empty() || self.coeffs.iter().all(|coeff| coeff.is_zero())
     }
 }
+
+impl_op!(Add, add, Field);
+impl_op!(Sub, sub, Field);
+impl_op!(Mul, mul, FftField);
+impl_op!(Div, div, Field);
 
 #[cfg(test)]
 mod tests {
@@ -899,7 +936,7 @@ mod tests {
             let domain = GeneralEvaluationDomain::new(1 << size).unwrap();
             for degree in 0..12 {
                 let p = DensePolynomial::<Fr>::rand(degree * 100, rng);
-                let (quotient, remainder) = p.divide_by_vanishing_poly(domain).unwrap();
+                let (quotient, remainder) = p.divide_by_vanishing_poly(domain);
                 let p_recovered = quotient.mul_by_vanishing_poly(domain) + remainder;
                 assert_eq!(p, p_recovered);
             }
