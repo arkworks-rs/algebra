@@ -44,7 +44,7 @@ members = [
 resolver = "2"
 
 [workspace.package]
-version = "0.5.0-alpha.0"
+version = "0.5.0"
 authors = [ "arkworks contributors" ]
 homepage = "https://arkworks.rs"
 repository = "https://github.com/arkworks-rs/algebra"
@@ -56,29 +56,29 @@ edition = "2021"
 rust-version = "1.75"
 
 [workspace.dependencies]
-ark-ec = { version = "0.5.0-alpha", path = "../ec", default-features = false }
-ark-ff = { version = "0.5.0-alpha", path = "../ff", default-features = false }
-ark-ff-asm = { version = "0.5.0-alpha", path = "../ff-asm" }
-ark-poly = { version = "0.5.0-alpha", path = "../poly", default-features = false }
-ark-serialize = { version = "0.5.0-alpha", path = "../serialize", default-features = false }
-ark-algebra-test-templates = { version = "0.5.0-alpha", path = "../test-templates", default-features = false }
-ark-algebra-bench-templates =  { version = "0.5.0-alpha", path = "../bench-templates", default-features = false }
+ark-ec = { version = "0.5.0", path = "../ec", default-features = false }
+ark-ff = { version = "0.5.0", path = "../ff", default-features = false }
+ark-ff-asm = { version = "0.5.0", path = "../ff-asm" }
+ark-poly = { version = "0.5.0", path = "../poly", default-features = false }
+ark-serialize = { version = "0.5.0", path = "../serialize", default-features = false }
+ark-algebra-test-templates = { version = "0.5.0", path = "../test-templates", default-features = false }
+ark-algebra-bench-templates =  { version = "0.5.0", path = "../bench-templates", default-features = false }
 
-ark-bls12-377 = { version = "0.5.0-alpha", path = "./bls12_377", default-features = false }
-ark-bls12-381 = { version = "0.5.0-alpha", path = "./bls12_381", default-features = false }
-ark-ed-on-cp6-782 = { version = "0.5.0-alpha", path = "./ed_on_cp6_782", default-features = false }
-ark-bn254 = { version = "0.5.0-alpha", path = "./bn254", default-features = false }
-ark-mnt4-298 = { version = "0.5.0-alpha", path = "./mnt4_298", default-features = false }
-ark-mnt4-753 = { version = "0.5.0-alpha", path = "./mnt4_753", default-features = false }
-ark-pallas = { version = "0.5.0-alpha", path = "./pallas", default-features = false }
-ark-secp256k1 = { version = "0.5.0-alpha", path = "./secp256k1" }
-ark-curve25519 = { version = "0.5.0-alpha", path = "./curve25519" }
+ark-bls12-377 = { version = "0.5.0", path = "./bls12_377", default-features = false }
+ark-bls12-381 = { version = "0.5.0", path = "./bls12_381", default-features = false }
+ark-ed-on-cp6-782 = { version = "0.5.0", path = "./ed_on_cp6_782", default-features = false }
+ark-bn254 = { version = "0.5.0", path = "./bn254", default-features = false }
+ark-mnt4-298 = { version = "0.5.0", path = "./mnt4_298", default-features = false }
+ark-mnt4-753 = { version = "0.5.0", path = "./mnt4_753", default-features = false }
+ark-pallas = { version = "0.5.0", path = "./pallas", default-features = false }
+ark-secp256k1 = { version = "0.5.0", path = "./secp256k1" }
+ark-curve25519 = { version = "0.5.0", path = "./curve25519" }
 
-ark-curve-constraint-tests = { version = "0.5.0-alpha", path = "./curve-constraint-tests" }
+ark-curve-constraint-tests = { version = "0.5.0", path = "./curve-constraint-tests" }
 
-ark-std = { version = "0.5.0-alpha", default-features = false }
-ark-r1cs-std = { version = "0.5.0-alpha", default-features = false }
-ark-relations = {version = "0.5.0-alpha", default-features = false }
+ark-std = { version = "0.5.0", default-features = false }
+ark-r1cs-std = { version = "0.5.0", default-features = false }
+ark-relations = {version = "0.5.0", default-features = false }
 
 [profile.release]
 opt-level = 3
@@ -106,12 +106,11 @@ debug-assertions = true
 debug = true
 
 [patch.crates-io]
-ark-r1cs-std = { git = "https://github.com/arkworks-rs/r1cs-std/" }
-ark-std = { git = "https://github.com/arkworks-rs/std/" }
-ark-relations = { git = "https://github.com/arkworks-rs/snark/" }
-ark-ff = { path = "../ff" }
 ark-ec = { path = "../ec" }
+ark-ff = { path = "../ff" }
+ark-ff-asm = { path = "../ff-asm" }
 ark-poly = { path = "../poly" }
 ark-serialize = { path = "../serialize" }
 ark-algebra-test-templates = { path = "../test-templates" }
 ark-algebra-bench-templates = { path = "../bench-templates" }
+ark-curve-constraint-tests = { path = "./curve-constraint-tests" }
