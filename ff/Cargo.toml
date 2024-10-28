@@ -30,16 +30,16 @@ num-bigint.workspace = true
 digest = { workspace = true, features = ["alloc"] }
 itertools.workspace = true
 
-# [dev-dependencies]
-# ark-test-curves = { workspace = true, features = [ "bls12_381_curve", "mnt6_753", "secp256k1"] }
-# blake2.workspace = true
-# sha3.workspace = true
-# sha2.workspace = true
-# libtest-mimic.workspace = true
-# serde.workspace = true
-# serde_json.workspace = true
-# serde_derive.workspace = true
-# hex.workspace = true
+[dev-dependencies]
+ark-test-curves = { workspace = true, features = [ "bls12_381_curve", "mnt6_753", "secp256k1"] }
+blake2.workspace = true
+sha3.workspace = true
+sha2.workspace = true
+libtest-mimic.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+serde_derive.workspace = true
+hex.workspace = true
 
 [features]
 default = []
