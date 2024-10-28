@@ -6,6 +6,16 @@
 
 ### Features
 
+### Improvements
+
+### Bugfixes
+
+## v0.5.0
+
+### Breaking changes
+
+### Features
+
 - [\#156](https://github.com/arkworks-rs/curves/pull/156) Add the bw6-767 curve.
 - [\#174](https://github.com/arkworks-rs/curves/pull/174) Add the "grumpkin" curve.
 
