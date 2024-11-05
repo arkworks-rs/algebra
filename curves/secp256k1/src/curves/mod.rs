@@ -56,10 +56,23 @@ impl CurveConfig for ConfigIsogenous {
     const COFACTOR: &'static [u64] = Config::COFACTOR;
     const COFACTOR_INV: Self::ScalarField = Config::COFACTOR_INV;
 }
+type TheIsoCurveAffine = sw::Affine<ConfigIsogenous>;
 impl SWCurveConfig for ConfigIsogenous {
     const COEFF_A: Self::BaseField = MontFp!("0x3f8731abdd661adca08a5558f0f5d272e953d363cb6f0e5d405447c01a444533");
     const COEFF_B: Self::BaseField = MontFp!("1771");
-    const GENERATOR: sw::Affine<Self> = todo!();
+    const GENERATOR: TheIsoCurveAffine = TheIsoCurveAffine::new_unchecked(
+        MontFp!("75295888890003590383366995344834012177557063699577440394299653383124903397514"), 
+        MontFp!("82553647407850972504999846303729620951309077682374043495922869307182479212755")
+    );
+    /* $ sage iso_values.sage 
+    ** SECP256k1
+
+    generator
+    (55066263022277343669578718895168534326250603453777594175500187360389116729240 : 32670510020758816978083085130507043184471273380659243275938904335757337482424 : 1)
+    isogenous generator
+    (75295888890003590383366995344834012177557063699577440394299653383124903397514 : 82553647407850972504999846303729620951309077682374043495922869307182479212755 : 1)
+    does it looks good?
+    True */
 }
 impl SWUConfig for ConfigIsogenous {
     const ZETA: Self::BaseField = MontFp!("-11");
