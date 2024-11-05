@@ -14,13 +14,13 @@ use super::swu::{SWUConfig, SWUMap};
 type BaseField<MP> = <MP as CurveConfig>::BaseField;
 
 /// [`IsogenyMap`] defines an isogeny between curves of
-/// form `Phi(x, y) := (a(x), b(x)*y).
-/// The `x` coordinate of the codomain point only depends on the
-/// `x`-coordinate of the domain point, and the
-/// `y`-coordinate of the codomain point is a multiple of the `y`-coordinate of the domain point.
-/// The multiplier depends on the `x`-coordinate of the domain point.
+/// form `Phi(x, y) := (a(x), b(x)*y)`.
+/// The $x$ coordinate of the codomain point only depends on the
+/// $x$ coordinate of the domain point, and the
+/// $y$ coordinate of the codomain point is a multiple of the $y$ coordinate of the domain point.
+/// The multiplier depends on the $x$ coordinate of the domain point.
 /// All isogeny maps of curves of short Weierstrass form can be written in this way. See
-/// [\[Ga18]\]. Theorem 9.7.5 for details.
+/// [\[Ga18]\] <Theorem 9.7.5> for details.
 ///
 /// We assume that `Domain` and `Codomain` have the same `BaseField` but we use both
 /// `BaseField<Domain>` and `BaseField<Codomain>` in our fields' definitions to avoid
