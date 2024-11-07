@@ -110,7 +110,7 @@ fn unroll(expr: &Expr, unroll_by: usize) -> Expr {
         }) = *pat.clone()
         {
             // Don't know how to deal with these so skip and return the original.
-            if !by_ref.is_none() || !mutability.is_none() || !subpat.is_none() {
+            if by_ref.is_some() || mutability.is_some() || subpat.is_some() {
                 return forloop_with_body(new_body);
             }
             let idx = ident; // got the index variable name
