@@ -385,7 +385,9 @@ impl<'a, F: Field> AddAssign<(F, &'a DensePolynomial<F>)> for DensePolynomial<F>
 
         // If the first polynomial is zero, just copy the second one and scale by f.
         if self.is_zero() {
-            self.coeffs = other.coeffs.iter().map(|&c| f * c).collect();
+            self.coeffs.clear();
+            self.coeffs.extend_from_slice(&other.coeffs);
+            self.coeffs.iter_mut().for_each(|c| *c *= &f);
             return;
         }
 
