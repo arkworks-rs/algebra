@@ -289,9 +289,7 @@ impl<'a, 'b, F: Field> Add<&'a DensePolynomial<F>> for &'b DensePolynomial<F> {
     type Output = DensePolynomial<F>;
 
     fn add(self, other: &'a DensePolynomial<F>) -> DensePolynomial<F> {
-        println!("iciiiiiii");
         let mut result = if self.is_zero() {
-            println!("111111111");
             other.clone()
         } else if other.is_zero() {
             self.clone()
@@ -353,13 +351,10 @@ impl<'a, 'b, F: Field> Add<&'a SparsePolynomial<F>> for &'b DensePolynomial<F> {
 
 impl<'a, F: Field> AddAssign<&'a DensePolynomial<F>> for DensePolynomial<F> {
     fn add_assign(&mut self, other: &'a DensePolynomial<F>) {
-        println!("iciiiiiii");
         if self.is_zero() {
-            println!("11111111");
             self.coeffs.truncate(0);
             self.coeffs.extend_from_slice(&other.coeffs);
         } else if other.is_zero() {
-            println!("222222222");
         } else if self.degree() >= other.degree() {
             self.coeffs
                 .iter_mut()
