@@ -378,27 +378,34 @@ impl<'a, F: Field> AddAssign<&'a DensePolynomial<F>> for DensePolynomial<F> {
 
 impl<'a, F: Field> AddAssign<(F, &'a DensePolynomial<F>)> for DensePolynomial<F> {
     fn add_assign(&mut self, (f, other): (F, &'a DensePolynomial<F>)) {
+        // No need to modify self if other is zero
+        if other.is_zero() {
+            return;
+        }
+
+        // If the first polynomial is zero, just copy the second one and scale by f.
         if self.is_zero() {
-            self.coeffs.truncate(0);
+            self.coeffs.clear();
             self.coeffs.extend_from_slice(&other.coeffs);
             self.coeffs.iter_mut().for_each(|c| *c *= &f);
             return;
-        } else if other.is_zero() {
-            return;
-        } else if self.degree() >= other.degree() {
-        } else {
-            // Add the necessary number of zero coefficients.
+        }
+
+        // If the degree of the first polynomial is smaller, resize it.
+        if self.degree() < other.degree() {
             self.coeffs.resize(other.coeffs.len(), F::zero());
         }
+
+        // Add corresponding coefficients from the second polynomial, scaled by f.
         self.coeffs
             .iter_mut()
             .zip(&other.coeffs)
-            .for_each(|(a, b)| {
-                *a += &(f * b);
-            });
+            .for_each(|(a, b)| *a += f * b);
+
         // If the leading coefficient ends up being zero, pop it off.
-        // This can happen if they were the same degree, or if a
-        // polynomial's coefficients were constructed with leading zeros.
+        // This can happen:
+        // - if they were the same degree,
+        // - if a polynomial's coefficients were constructed with leading zeros.
         self.truncate_leading_zeros();
     }
 }
@@ -1029,5 +1036,106 @@ mod tests {
             .collect::<Vec<_>>();
 
         assert_eq!(eval1, eval2);
+    }
+
+    #[test]
+    fn test_add_assign_with_zero_self() {
+        // Create a polynomial poly1 which is a zero polynomial
+        let mut poly1 = DensePolynomial::<Fr> { coeffs: Vec::new() };
+
+        // Create another polynomial poly2, which is: 2 + 3x (coefficients [2, 3])
+        let poly2 = DensePolynomial {
+            coeffs: vec![Fr::from(2), Fr::from(3)],
+        };
+
+        // Add poly2 to the zero polynomial
+        // Since poly1 is zero, it should just take the coefficients of poly2.
+        poly1 += (Fr::from(1), &poly2);
+
+        // After addition, poly1 should be equal to poly2
+        assert_eq!(poly1.coeffs, vec![Fr::from(2), Fr::from(3)]);
+    }
+
+    #[test]
+    fn test_add_assign_with_zero_other() {
+        // Create a polynomial poly1: 2 + 3x (coefficients [2, 3])
+        let mut poly1 = DensePolynomial {
+            coeffs: vec![Fr::from(2), Fr::from(3)],
+        };
+
+        // Create an empty polynomial poly2 (zero polynomial)
+        let poly2 = DensePolynomial::<Fr> { coeffs: Vec::new() };
+
+        // Add zero polynomial poly2 to poly1.
+        // Since poly2 is zero, poly1 should remain unchanged.
+        poly1 += (Fr::from(1), &poly2);
+
+        // After addition, poly1 should still be [2, 3]
+        assert_eq!(poly1.coeffs, vec![Fr::from(2), Fr::from(3)]);
+    }
+
+    #[test]
+    fn test_add_assign_with_different_degrees() {
+        // Create polynomial poly1: 1 + 2x + 3x^2 (coefficients [1, 2, 3])
+        let mut poly1 = DensePolynomial {
+            coeffs: vec![Fr::from(1), Fr::from(2), Fr::from(3)],
+        };
+
+        // Create another polynomial poly2: 4 + 5x (coefficients [4, 5])
+        let poly2 = DensePolynomial {
+            coeffs: vec![Fr::from(4), Fr::from(5)],
+        };
+
+        // Add poly2 to poly1.
+        // poly1 is degree 2, poly2 is degree 1, so poly2 will be padded with a zero
+        // to match the degree of poly1.
+        poly1 += (Fr::from(1), &poly2);
+
+        // After addition, the result should be:
+        // 5 + 7x + 3x^2 (coefficients [5, 7, 3])
+        assert_eq!(poly1.coeffs, vec![Fr::from(5), Fr::from(7), Fr::from(3)]);
+    }
+
+    #[test]
+    fn test_add_assign_with_equal_degrees() {
+        // Create polynomial poly1: 1 + 2x + 3x^2 (coefficients [1, 2, 3])
+        let mut poly1 = DensePolynomial {
+            coeffs: vec![Fr::from(1), Fr::from(2), Fr::from(3)],
+        };
+
+        // Create polynomial poly2: 4 + 5x + 6x^2 (coefficients [4, 5, 6])
+        let poly2 = DensePolynomial {
+            coeffs: vec![Fr::from(4), Fr::from(5), Fr::from(6)],
+        };
+
+        // Add poly2 to poly1.
+        // Since both polynomials have the same degree, we can directly add corresponding terms.
+        poly1 += (Fr::from(1), &poly2);
+
+        // After addition, the result should be:
+        // 5 + 7x + 9x^2 (coefficients [5, 7, 9])
+        assert_eq!(poly1.coeffs, vec![Fr::from(5), Fr::from(7), Fr::from(9)]);
+    }
+
+    #[test]
+    fn test_add_assign_with_smaller_degrees() {
+        // Create polynomial poly1: 1 + 2x (degree 1)
+        let mut poly1 = DensePolynomial {
+            coeffs: vec![Fr::from(1), Fr::from(2)],
+        };
+
+        // Create polynomial poly2: 3 + 4x + 5x^2 (degree 2)
+        let poly2 = DensePolynomial {
+            coeffs: vec![Fr::from(3), Fr::from(4), Fr::from(5)],
+        };
+
+        // Add poly2 to poly1.
+        // poly1 has degree 1, poly2 has degree 2. So poly1 must be padded with zero coefficients
+        // for the higher degree terms to match poly2's degree.
+        poly1 += (Fr::from(1), &poly2);
+
+        // After addition, the result should be:
+        // 4 + 6x + 5x^2 (coefficients [4, 6, 5])
+        assert_eq!(poly1.coeffs, vec![Fr::from(4), Fr::from(6), Fr::from(5)]);
     }
 }
