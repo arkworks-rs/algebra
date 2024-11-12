@@ -400,7 +400,10 @@ impl<'a, F: Field> AddAssign<(F, &'a DensePolynomial<F>)> for DensePolynomial<F>
             .zip(&other.coeffs)
             .for_each(|(a, b)| *a += f * b);
 
-        // Remove any leading zeros.
+        // If the leading coefficient ends up being zero, pop it off.
+        // This can happen:
+        // - if they were the same degree,
+        // - if a polynomial's coefficients were constructed with leading zeros.
         self.truncate_leading_zeros();
     }
 }
