@@ -13,7 +13,7 @@ license.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 metadata.docs.rs.workspace = true
-metadata.release.workspace = true
+package.metadata.release.workspace = true
 
 [dependencies]
 ark-ff-asm.workspace = true
