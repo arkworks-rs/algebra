@@ -1,28 +1,29 @@
 [package]
 name = "ark-ed-on-bls12-381-bandersnatch"
-version = "0.4.0"
+version.workspace = true
 authors = [ "zhenfei zhang", "arkworks contributors" ]
 description = "Bandersnatch: a curve defined over the scalar field of the BLS12-381 curve"
-repository = "https://github.com/zhenfeizhang/bandersnatch-rust"
-keywords = ["cryptography", "finite-fields", "elliptic-curves" ]
-categories = ["cryptography"]
-include = ["Cargo.toml", "src", "README.md", "LICENSE-APACHE", "LICENSE-MIT"]
-license = "MIT/Apache-2.0"
-edition = "2021"
+homepage.workspace = true
+repository.workspace = true
+keywords.workspace = true
+categories.workspace = true
+include.workspace = true
+license.workspace = true
+edition.workspace = true
 
 [dependencies]
-ark-ff = { version = "0.4.0", default-features = false }
-ark-ec = { version = "0.4.0", default-features = false }
-ark-std = { version = "0.4.0", default-features = false }
-ark-r1cs-std = { version = "0.4.0", default-features = false, optional = true }
-ark-bls12-381 = { version = "0.4.0", path = "../bls12_381", default-features = false, features = [ "scalar_field" ] }
+ark-ff = { workspace = true }
+ark-ec = { workspace = true }
+ark-std = { workspace = true }
+ark-r1cs-std = { workspace = true, optional = true }
+ark-bls12-381 = { workspace = true, features = [ "scalar_field" ] }
 
 [dev-dependencies]
-ark-relations = { version = "0.4.0", default-features = false }
-ark-serialize = { version = "0.4.0", default-features = false }
-ark-algebra-test-templates = { version = "0.4.0", default-features = false }
-ark-curve-constraint-tests = { path = "../curve-constraint-tests", default-features = false }
-sha2 = { version = "0.10", default-features = false }
+ark-relations = { workspace = true }
+ark-serialize = { workspace = true }
+ark-algebra-test-templates = { workspace = true }
+ark-curve-constraint-tests = { path = "../curve-constraint-tests" }
+sha2 = { version = "0.10" }
 
 [features]
 default = []

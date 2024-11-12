@@ -2,6 +2,16 @@
 
 ## Pending
 
+### Breaking changes
+
+### Features
+
+### Improvements
+
+### Bugfixes
+
+## v0.5.0
+
 - [\#772](https://github.com/arkworks-rs/algebra/pull/772) (`ark-ff`) Implementation of `mul` method for `BigInteger`.
 - [\#794](https://github.com/arkworks-rs/algebra/pull/794) (`ark-ff`) Fix `wasm` compilation.
 - [\#837](https://github.com/arkworks-rs/algebra/pull/837) (`ark-serialize`) Fix array deserialization panic.
