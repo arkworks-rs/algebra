@@ -1,30 +1,31 @@
 [package]
 name = "ark-grumpkin"
-version = "0.4.0"
+version.workspace = true
 authors = [ "CPerezz", "arkworks contributors" ]
 description = "The Grumpkin prime-order elliptic curve"
-homepage = "https://arkworks.rs"
-repository = "https://github.com/arkworks-rs/algebra"
+homepage.workspace = true
+repository.workspace = true
 documentation = "https://docs.rs/ark-grumpkin/"
-keywords = ["cryptography", "finite-fields", "elliptic-curves" ]
-categories = ["cryptography"]
-include = ["Cargo.toml", "src"]
-license = "MIT/Apache-2.0"
-edition = "2021"
+keywords.workspace = true
+categories.workspace = true
+include.workspace = true
+license.workspace = true
+edition.workspace = true
 
 [dependencies]
-ark-ff = { version = "0.4.0", default-features = false }
-ark-ec = { version = "0.4.0", default-features = false }
-ark-r1cs-std = { version = "0.4.0", default-features = false, optional = true }
-ark-std = { version = "0.4.0", default-features = false }
-ark-bn254 = { version = "0.4.0", path = "../bn254", default-features = false, features = [ "scalar_field", "curve" ] }
+ark-ff = { workspace = true }
+ark-ec = { workspace = true }
+ark-r1cs-std = { workspace = true, optional = true }
+ark-std = { workspace = true }
+ark-bn254 = { workspace = true, features = [ "scalar_field", "curve" ] }
+
 
 [dev-dependencies]
-ark-relations = { version = "0.4.0", default-features = false }
-ark-serialize = { version = "0.4.0", default-features = false }
-ark-algebra-test-templates = { version = "0.4.0", default-features = false }
-ark-algebra-bench-templates = { version = "0.4.0", default-features = false }
-ark-curve-constraint-tests = { path = "../curve-constraint-tests", default-features = false }
+ark-relations = { workspace = true }
+ark-serialize = { workspace = true }
+ark-algebra-test-templates = { workspace = true }
+ark-algebra-bench-templates = { workspace = true }
+ark-curve-constraint-tests = { path = "../curve-constraint-tests" }
 
 [features]
 default = []
