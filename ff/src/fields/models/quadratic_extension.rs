@@ -587,7 +587,7 @@ impl<P: QuadExtConfig> Distribution<QuadExtField<P>> for Standard {
     }
 }
 
-impl<'a, P: QuadExtConfig> Add<&'a QuadExtField<P>> for QuadExtField<P> {
+impl<P: QuadExtConfig> Add<&QuadExtField<P>> for QuadExtField<P> {
     type Output = Self;
 
     #[inline]
@@ -597,7 +597,7 @@ impl<'a, P: QuadExtConfig> Add<&'a QuadExtField<P>> for QuadExtField<P> {
     }
 }
 
-impl<'a, P: QuadExtConfig> Sub<&'a QuadExtField<P>> for QuadExtField<P> {
+impl<P: QuadExtConfig> Sub<&QuadExtField<P>> for QuadExtField<P> {
     type Output = Self;
 
     #[inline(always)]
@@ -607,7 +607,7 @@ impl<'a, P: QuadExtConfig> Sub<&'a QuadExtField<P>> for QuadExtField<P> {
     }
 }
 
-impl<'a, P: QuadExtConfig> Mul<&'a QuadExtField<P>> for QuadExtField<P> {
+impl<P: QuadExtConfig> Mul<&QuadExtField<P>> for QuadExtField<P> {
     type Output = Self;
 
     #[inline(always)]
@@ -617,7 +617,7 @@ impl<'a, P: QuadExtConfig> Mul<&'a QuadExtField<P>> for QuadExtField<P> {
     }
 }
 
-impl<'a, P: QuadExtConfig> Div<&'a QuadExtField<P>> for QuadExtField<P> {
+impl<P: QuadExtConfig> Div<&QuadExtField<P>> for QuadExtField<P> {
     type Output = Self;
 
     #[inline]
@@ -627,7 +627,7 @@ impl<'a, P: QuadExtConfig> Div<&'a QuadExtField<P>> for QuadExtField<P> {
     }
 }
 
-impl<'a, P: QuadExtConfig> AddAssign<&'a Self> for QuadExtField<P> {
+impl<P: QuadExtConfig> AddAssign<&Self> for QuadExtField<P> {
     #[inline]
     fn add_assign(&mut self, other: &Self) {
         self.c0 += &other.c0;
@@ -635,7 +635,7 @@ impl<'a, P: QuadExtConfig> AddAssign<&'a Self> for QuadExtField<P> {
     }
 }
 
-impl<'a, P: QuadExtConfig> SubAssign<&'a Self> for QuadExtField<P> {
+impl<P: QuadExtConfig> SubAssign<&Self> for QuadExtField<P> {
     #[inline]
     fn sub_assign(&mut self, other: &Self) {
         self.c0 -= &other.c0;
@@ -646,7 +646,7 @@ impl<'a, P: QuadExtConfig> SubAssign<&'a Self> for QuadExtField<P> {
 impl_additive_ops_from_ref!(QuadExtField, QuadExtConfig);
 impl_multiplicative_ops_from_ref!(QuadExtField, QuadExtConfig);
 
-impl<'a, P: QuadExtConfig> MulAssign<&'a Self> for QuadExtField<P> {
+impl<P: QuadExtConfig> MulAssign<&Self> for QuadExtField<P> {
     #[inline]
     fn mul_assign(&mut self, other: &Self) {
         if Self::extension_degree() == 2 {
@@ -674,7 +674,7 @@ impl<'a, P: QuadExtConfig> MulAssign<&'a Self> for QuadExtField<P> {
     }
 }
 
-impl<'a, P: QuadExtConfig> DivAssign<&'a Self> for QuadExtField<P> {
+impl<P: QuadExtConfig> DivAssign<&Self> for QuadExtField<P> {
     #[inline]
     fn div_assign(&mut self, other: &Self) {
         self.mul_assign(&other.inverse().unwrap());
@@ -770,6 +770,24 @@ where
     }
 }
 
+impl<P: QuadExtConfig> FftField for QuadExtField<P>
+where
+    P::BaseField: FftField,
+{
+    const GENERATOR: Self = Self::new(P::BaseField::GENERATOR, P::BaseField::ZERO);
+    const TWO_ADICITY: u32 = P::BaseField::TWO_ADICITY;
+    const TWO_ADIC_ROOT_OF_UNITY: Self =
+        Self::new(P::BaseField::TWO_ADIC_ROOT_OF_UNITY, P::BaseField::ZERO);
+    const SMALL_SUBGROUP_BASE: Option<u32> = P::BaseField::SMALL_SUBGROUP_BASE;
+    const SMALL_SUBGROUP_BASE_ADICITY: Option<u32> = P::BaseField::SMALL_SUBGROUP_BASE_ADICITY;
+    const LARGE_SUBGROUP_ROOT_OF_UNITY: Option<Self> =
+        if let Some(x) = P::BaseField::LARGE_SUBGROUP_ROOT_OF_UNITY {
+            Some(Self::new(x, P::BaseField::ZERO))
+        } else {
+            None
+        };
+}
+
 #[cfg(test)]
 mod quad_ext_tests {
     use super::*;
@@ -824,22 +842,4 @@ mod quad_ext_tests {
             );
         }
     }
-}
-
-impl<P: QuadExtConfig> FftField for QuadExtField<P>
-where
-    P::BaseField: FftField,
-{
-    const GENERATOR: Self = Self::new(P::BaseField::GENERATOR, P::BaseField::ZERO);
-    const TWO_ADICITY: u32 = P::BaseField::TWO_ADICITY;
-    const TWO_ADIC_ROOT_OF_UNITY: Self =
-        Self::new(P::BaseField::TWO_ADIC_ROOT_OF_UNITY, P::BaseField::ZERO);
-    const SMALL_SUBGROUP_BASE: Option<u32> = P::BaseField::SMALL_SUBGROUP_BASE;
-    const SMALL_SUBGROUP_BASE_ADICITY: Option<u32> = P::BaseField::SMALL_SUBGROUP_BASE_ADICITY;
-    const LARGE_SUBGROUP_ROOT_OF_UNITY: Option<Self> =
-        if let Some(x) = P::BaseField::LARGE_SUBGROUP_ROOT_OF_UNITY {
-            Some(Self::new(x, P::BaseField::ZERO))
-        } else {
-            None
-        };
 }

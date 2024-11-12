@@ -332,7 +332,6 @@ impl<T: Valid + Sync + Send> Valid for ark_std::sync::Arc<T> {
     }
 
     #[inline]
-
     fn batch_check<'a>(
         batch: impl Iterator<Item = &'a Self> + Send,
     ) -> Result<(), SerializationError>
@@ -359,7 +358,7 @@ impl<T: CanonicalDeserialize + ToOwned + Sync + Send> CanonicalDeserialize
     }
 }
 
-impl<'a, T: CanonicalSerialize + ToOwned> CanonicalSerialize for Cow<'a, T> {
+impl<T: CanonicalSerialize + ToOwned> CanonicalSerialize for Cow<'_, T> {
     #[inline]
     fn serialize_with_mode<W: Write>(
         &self,
@@ -375,7 +374,7 @@ impl<'a, T: CanonicalSerialize + ToOwned> CanonicalSerialize for Cow<'a, T> {
     }
 }
 
-impl<'b, T> Valid for Cow<'b, T>
+impl<T> Valid for Cow<'_, T>
 where
     T: ToOwned + Sync + Valid + Send,
     <T as ToOwned>::Owned: CanonicalDeserialize + Send,
@@ -386,7 +385,6 @@ where
     }
 
     #[inline]
-
     fn batch_check<'a>(
         batch: impl Iterator<Item = &'a Self> + Send,
     ) -> Result<(), SerializationError>
@@ -398,7 +396,7 @@ where
     }
 }
 
-impl<'a, T> CanonicalDeserialize for Cow<'a, T>
+impl<T> CanonicalDeserialize for Cow<'_, T>
 where
     T: ToOwned + Valid + Valid + Sync + Send,
     <T as ToOwned>::Owned: CanonicalDeserialize + Valid + Send,
@@ -708,7 +706,7 @@ impl<T: CanonicalSerialize> CanonicalSerialize for [T] {
     }
 }
 
-impl<'a, T: CanonicalSerialize> CanonicalSerialize for &'a [T] {
+impl<T: CanonicalSerialize> CanonicalSerialize for &[T] {
     #[inline]
     fn serialize_with_mode<W: Write>(
         &self,

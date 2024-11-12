@@ -14,9 +14,14 @@ pub trait MapToCurve<T: CurveGroup>: Sized {
     fn map_to_curve(point: T::BaseField) -> Result<T::Affine, HashToCurveError>;
 }
 
-/// Helper struct that can be used to construct elements on the elliptic curve
-/// from arbitrary messages, by first hashing the message onto a field element
-/// and then mapping it to the elliptic curve defined over that field.
+/// A helper struct used to construct elements on an elliptic curve
+/// from arbitrary messages.
+///
+/// The process works in two stages:
+///
+/// 1. First, the message is hashed into a field element.
+/// 2. Then, the resulting field element is mapped to the elliptic curve
+///    defined over that field.
 pub struct MapToCurveBasedHasher<T, H2F, M2C>
 where
     T: CurveGroup,

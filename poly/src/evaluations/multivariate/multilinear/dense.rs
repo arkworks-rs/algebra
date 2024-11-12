@@ -144,7 +144,7 @@ impl<F: Field> DenseMultilinearExtension<F> {
         let mut evaluations: Vec<F> = Vec::with_capacity(next_pow_of_two);
 
         for poly in polys_iter_cloned {
-            evaluations.extend_from_slice(&poly.as_ref().evaluations.as_slice());
+            evaluations.extend_from_slice(poly.as_ref().evaluations.as_slice());
         }
 
         evaluations.resize(next_pow_of_two, F::zero());
@@ -247,7 +247,7 @@ impl<F: Field> Add for DenseMultilinearExtension<F> {
     }
 }
 
-impl<'a, 'b, F: Field> Add<&'a DenseMultilinearExtension<F>> for &'b DenseMultilinearExtension<F> {
+impl<'a, F: Field> Add<&'a DenseMultilinearExtension<F>> for &DenseMultilinearExtension<F> {
     type Output = DenseMultilinearExtension<F>;
 
     fn add(self, rhs: &'a DenseMultilinearExtension<F>) -> Self::Output {
@@ -311,7 +311,7 @@ impl<F: Field> Sub for DenseMultilinearExtension<F> {
     }
 }
 
-impl<'a, 'b, F: Field> Sub<&'a DenseMultilinearExtension<F>> for &'b DenseMultilinearExtension<F> {
+impl<'a, F: Field> Sub<&'a DenseMultilinearExtension<F>> for &DenseMultilinearExtension<F> {
     type Output = DenseMultilinearExtension<F>;
 
     fn sub(self, rhs: &'a DenseMultilinearExtension<F>) -> Self::Output {
@@ -339,7 +339,7 @@ impl<F: Field> Mul<F> for DenseMultilinearExtension<F> {
     }
 }
 
-impl<'a, 'b, F: Field> Mul<&'a F> for &'b DenseMultilinearExtension<F> {
+impl<'a, F: Field> Mul<&'a F> for &DenseMultilinearExtension<F> {
     type Output = DenseMultilinearExtension<F>;
 
     fn mul(self, scalar: &'a F) -> Self::Output {
@@ -425,7 +425,7 @@ impl<F: Field> Polynomial<F> for DenseMultilinearExtension<F> {
     /// ```
     fn evaluate(&self, point: &Self::Point) -> F {
         assert!(point.len() == self.num_vars);
-        self.fix_variables(&point)[0]
+        self.fix_variables(point)[0]
     }
 }
 

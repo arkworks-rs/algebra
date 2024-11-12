@@ -33,7 +33,7 @@ fn default_size_range() -> Vec<usize> {
     )
 }
 
-fn setup_bench<F: Field>(c: &mut Criterion, name: &str, bench_fn: fn(&mut Bencher, &usize)) {
+fn setup_bench(c: &mut Criterion, name: &str, bench_fn: fn(&mut Bencher, &usize)) {
     let mut group = c.benchmark_group(name);
     for degree in default_size_range().iter() {
         group.bench_with_input(BenchmarkId::from_parameter(degree), degree, bench_fn);
@@ -101,23 +101,23 @@ fn bench_div_by_vanishing_poly<F: FftField>(b: &mut Bencher, degree: &usize) {
 fn poly_benches<F: FftField>(c: &mut Criterion, name: &'static str) {
     if ENABLE_ADD_BENCH {
         let cur_name = format!("{:?} - add_polynomial", name);
-        setup_bench::<F>(c, &cur_name, bench_poly_add::<F>);
+        setup_bench(c, &cur_name, bench_poly_add::<F>);
     }
     if ENABLE_ADD_ASSIGN_BENCH {
         let cur_name = format!("{:?} - add_assign_polynomial", name);
-        setup_bench::<F>(c, &cur_name, bench_poly_add_assign::<F>);
+        setup_bench(c, &cur_name, bench_poly_add_assign::<F>);
     }
     if ENABLE_EVALUATE_BENCH {
         let cur_name = format!("{:?} - evaluate_polynomial", name);
-        setup_bench::<F>(c, &cur_name, bench_poly_evaluate::<F>);
+        setup_bench(c, &cur_name, bench_poly_evaluate::<F>);
     }
     if ENABLE_SPARSE_EVALUATE_BENCH {
         let cur_name = format!("{:?} - evaluate_sparse_polynomial", name);
-        setup_bench::<F>(c, &cur_name, bench_sparse_poly_evaluate::<F>);
+        setup_bench(c, &cur_name, bench_sparse_poly_evaluate::<F>);
     }
     if ENABLE_DIV_BY_VANISHING_POLY_BENCH {
         let cur_name = format!("{:?} - evaluate_div_by_vanishing_poly", name);
-        setup_bench::<F>(c, &cur_name, bench_div_by_vanishing_poly::<F>);
+        setup_bench(c, &cur_name, bench_div_by_vanishing_poly::<F>);
     }
 }
 

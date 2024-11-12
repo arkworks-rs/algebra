@@ -572,11 +572,10 @@ impl<const N: usize> Ord for BigInt<N> {
         }
         #[cfg(not(target_arch = "x86_64"))]
         for (a, b) in self.0.iter().rev().zip(other.0.iter().rev()) {
-            if a < b {
-                return Ordering::Less;
-            } else if a > b {
-                return Ordering::Greater;
-            }
+            match a.cmp(b) {
+                Ordering::Equal => {},
+                order => return order,
+            };
         }
         Ordering::Equal
     }
@@ -662,15 +661,11 @@ impl<const N: usize> TryFrom<BigUint> for BigInt<N> {
         } else {
             let mut limbs = [0u64; N];
 
-            bytes
-                .chunks(8)
-                .into_iter()
-                .enumerate()
-                .for_each(|(i, chunk)| {
-                    let mut chunk_padded = [0u8; 8];
-                    chunk_padded[..chunk.len()].copy_from_slice(chunk);
-                    limbs[i] = u64::from_le_bytes(chunk_padded)
-                });
+            bytes.chunks(8).enumerate().for_each(|(i, chunk)| {
+                let mut chunk_padded = [0u8; 8];
+                chunk_padded[..chunk.len()].copy_from_slice(chunk);
+                limbs[i] = u64::from_le_bytes(chunk_padded)
+            });
 
             Ok(Self(limbs))
         }

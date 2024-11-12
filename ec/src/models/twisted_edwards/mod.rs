@@ -19,8 +19,9 @@ mod serialization_flags;
 pub use serialization_flags::*;
 
 /// Constants and convenience functions that collectively define the [Twisted Edwards model](https://www.hyperelliptic.org/EFD/g1p/auto-twisted.html)
-/// of the curve. In this model, the curve equation is
-/// `a * x² + y² = 1 + d * x² * y²`, for constants `a` and `d`.
+/// of the curve.
+///
+/// In this model, the curve equation is `a * x² + y² = 1 + d * x² * y²`, for constants `a` and `d`.
 pub trait TECurveConfig: super::CurveConfig {
     /// Coefficient `a` of the curve equation.
     const COEFF_A: Self::BaseField;
@@ -159,8 +160,9 @@ pub trait TECurveConfig: super::CurveConfig {
 }
 
 /// Constants and convenience functions that collectively define the [Montgomery model](https://www.hyperelliptic.org/EFD/g1p/auto-montgom.html)
-/// of the curve. In this model, the curve equation is
-/// `b * y² = x³ + a * x² + x`, for constants `a` and `b`.
+/// of the curve.
+///
+/// In this model, the curve equation is `b * y² = x³ + a * x² + x`, for constants `a` and `b`.
 pub trait MontCurveConfig: super::CurveConfig {
     /// Coefficient `a` of the curve equation.
     const COEFF_A: Self::BaseField;

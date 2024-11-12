@@ -7,6 +7,7 @@ use crate::{
 use ark_ff::{FftField, Field, Zero};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use ark_std::{
+    cmp::Ordering,
     collections::BTreeMap,
     fmt,
     ops::{Add, AddAssign, Deref, DerefMut, Mul, Neg, SubAssign},
@@ -108,7 +109,7 @@ impl<F: Field> Add for SparsePolynomial<F> {
     }
 }
 
-impl<'a, 'b, F: Field> Add<&'a SparsePolynomial<F>> for &'b SparsePolynomial<F> {
+impl<'a, F: Field> Add<&'a SparsePolynomial<F>> for &SparsePolynomial<F> {
     type Output = SparsePolynomial<F>;
 
     fn add(self, other: &'a SparsePolynomial<F>) -> SparsePolynomial<F> {
@@ -139,21 +140,23 @@ impl<'a, 'b, F: Field> Add<&'a SparsePolynomial<F>> for &'b SparsePolynomial<F> 
             let (self_term_degree, self_term_coeff) = self.coeffs[self_index];
             let (other_term_degree, other_term_coeff) = other.coeffs[other_index];
             // add the lower degree term to our sorted set.
-            if self_term_degree < other_term_degree {
-                result.coeffs.push((self_term_degree, self_term_coeff));
-                self_index += 1;
-            } else if self_term_degree == other_term_degree {
-                let term_sum = self_term_coeff + other_term_coeff;
-                if !term_sum.is_zero() {
-                    result
-                        .coeffs
-                        .push((self_term_degree, self_term_coeff + other_term_coeff));
-                }
-                self_index += 1;
-                other_index += 1;
-            } else {
-                result.coeffs.push((other_term_degree, other_term_coeff));
-                other_index += 1;
+            match self_term_degree.cmp(&other_term_degree) {
+                Ordering::Less => {
+                    result.coeffs.push((self_term_degree, self_term_coeff));
+                    self_index += 1;
+                },
+                Ordering::Equal => {
+                    let term_sum = self_term_coeff + other_term_coeff;
+                    if !term_sum.is_zero() {
+                        result.coeffs.push((self_term_degree, term_sum));
+                    }
+                    self_index += 1;
+                    other_index += 1;
+                },
+                Ordering::Greater => {
+                    result.coeffs.push((other_term_degree, other_term_coeff));
+                    other_index += 1;
+                },
             }
         }
     }
@@ -197,7 +200,7 @@ impl<'a, F: Field> SubAssign<&'a SparsePolynomial<F>> for SparsePolynomial<F> {
     }
 }
 
-impl<'b, F: Field> Mul<F> for &'b SparsePolynomial<F> {
+impl<F: Field> Mul<F> for &SparsePolynomial<F> {
     type Output = SparsePolynomial<F>;
 
     #[inline]

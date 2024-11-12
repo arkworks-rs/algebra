@@ -6,9 +6,9 @@ fn test_parity_of_prime_field_elements() {
     let a1 = Fq::from(0);
     let a2 = Fq::from(1);
     let a3 = Fq::from(10);
-    assert_eq!(parity(&a1), false);
-    assert_eq!(parity(&a2), true);
-    assert_eq!(parity(&a3), false);
+    assert!(!parity(&a1));
+    assert!(parity(&a2));
+    assert!(!parity(&a3));
 }
 
 #[test]
@@ -17,10 +17,10 @@ fn test_parity_of_quadratic_extension_elements() {
     let element_test2 = Fq2::new(Fq::from(1), Fq::from(0));
     let element_test3 = Fq2::new(Fq::from(10), Fq::from(5));
     let element_test4 = Fq2::new(Fq::from(5), Fq::from(10));
-    assert_eq!(parity(&element_test1), true, "parity is the oddness of first non-zero coefficient of element represented over the prime field" );
-    assert_eq!(parity(&element_test2), true);
-    assert_eq!(parity(&element_test3), false);
-    assert_eq!(parity(&element_test4), true);
+    assert!(parity(&element_test1), "parity is the oddness of first non-zero coefficient of element represented over the prime field" );
+    assert!(parity(&element_test2));
+    assert!(!parity(&element_test3));
+    assert!(parity(&element_test4));
 }
 
 #[test]
@@ -37,9 +37,9 @@ fn test_parity_of_cubic_extension_elements() {
     let element_test4 = Fq6::new(a4, a1, a2);
     let element_test5 = Fq6::new(a1, a5, a2);
 
-    assert_eq!(parity(&element_test1), true, "parity is the oddness of first non-zero coefficient of element represented over the prime field");
-    assert_eq!(parity(&element_test2), true, "parity is the oddness of first non-zero coefficient of element represented over the prime field");
-    assert_eq!(parity(&element_test3), true);
-    assert_eq!(parity(&element_test4), true);
-    assert_eq!(parity(&element_test5), false);
+    assert!(parity(&element_test1), "parity is the oddness of first non-zero coefficient of element represented over the prime field");
+    assert!(parity(&element_test2), "parity is the oddness of first non-zero coefficient of element represented over the prime field");
+    assert!(parity(&element_test3));
+    assert!(parity(&element_test4));
+    assert!(!parity(&element_test5));
 }

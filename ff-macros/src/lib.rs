@@ -88,10 +88,10 @@ pub fn unroll_for_loops(args: TokenStream, input: TokenStream) -> TokenStream {
 
     if let Item::Fn(item_fn) = item {
         let new_block = {
-            let &ItemFn {
+            let ItemFn {
                 block: ref box_block,
                 ..
-            } = &item_fn;
+            } = item_fn;
             unroll::unroll_in_block(box_block, unroll_by)
         };
         let new_item = Item::Fn(ItemFn {
@@ -138,7 +138,8 @@ fn test_str_to_limbs() {
             let number = 1i128 << i;
             let signed_number = match sign {
                 Minus => -number,
-                Plus | _ => number,
+                Plus => number,
+                _ => number,
             };
             for base in [2, 8, 16, 10] {
                 let mut string = match base {
@@ -151,10 +152,10 @@ fn test_str_to_limbs() {
                 if sign == Minus {
                     string.insert(0, '-');
                 }
-                let (is_positive, limbs) = utils::str_to_limbs(&format!("{}", string));
+                let (is_positive, limbs) = utils::str_to_limbs(&string.to_string());
                 assert_eq!(
                     limbs[0],
-                    format!("{}u64", signed_number.abs() as u64),
+                    format!("{}u64", signed_number.unsigned_abs() as u64),
                     "{signed_number}, {i}"
                 );
                 if i > 63 {

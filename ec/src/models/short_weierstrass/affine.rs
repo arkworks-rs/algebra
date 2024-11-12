@@ -201,7 +201,7 @@ impl<P: SWCurveConfig> AffineRepr for Affine<P> {
     type Group = Projective<P>;
 
     fn xy(&self) -> Option<(Self::BaseField, Self::BaseField)> {
-        (!self.infinity).then(|| (self.x, self.y))
+        (!self.infinity).then_some((self.x, self.y))
     }
 
     #[inline]

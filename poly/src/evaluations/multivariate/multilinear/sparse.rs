@@ -246,9 +246,7 @@ impl<F: Field> Add for SparseMultilinearExtension<F> {
     }
 }
 
-impl<'a, 'b, F: Field> Add<&'a SparseMultilinearExtension<F>>
-    for &'b SparseMultilinearExtension<F>
-{
+impl<'a, F: Field> Add<&'a SparseMultilinearExtension<F>> for &SparseMultilinearExtension<F> {
     type Output = SparseMultilinearExtension<F>;
 
     fn add(self, rhs: &'a SparseMultilinearExtension<F>) -> Self::Output {
@@ -340,9 +338,7 @@ impl<F: Field> Sub for SparseMultilinearExtension<F> {
     }
 }
 
-impl<'a, 'b, F: Field> Sub<&'a SparseMultilinearExtension<F>>
-    for &'b SparseMultilinearExtension<F>
-{
+impl<'a, F: Field> Sub<&'a SparseMultilinearExtension<F>> for &SparseMultilinearExtension<F> {
     type Output = SparseMultilinearExtension<F>;
 
     fn sub(self, rhs: &'a SparseMultilinearExtension<F>) -> Self::Output {
@@ -452,8 +448,8 @@ mod tests {
             let dense = sparse.to_dense_multilinear_extension();
             let point: Vec<_> = (0..NV).map(|_| Fr::rand(&mut rng)).collect();
             assert_eq!(sparse.evaluate(&point), dense.evaluate(&point));
-            let sparse_partial = sparse.fix_variables(&point[..3].to_vec());
-            let dense_partial = dense.fix_variables(&point[..3].to_vec());
+            let sparse_partial = sparse.fix_variables(&point[..3]);
+            let dense_partial = dense.fix_variables(&point[..3]);
             let point2: Vec<_> = (0..(NV - 3)).map(|_| Fr::rand(&mut rng)).collect();
             assert_eq!(
                 sparse_partial.evaluate(&point2),
@@ -471,7 +467,7 @@ mod tests {
         assert_eq!(poly1.evaluate(&[].into()), ev1);
 
         // test single-variate polynomial
-        let ev2 = vec![Fr::rand(&mut rng), Fr::rand(&mut rng)];
+        let ev2 = [Fr::rand(&mut rng), Fr::rand(&mut rng)];
         let poly2 =
             SparseMultilinearExtension::from_evaluations(1, &vec![(0, ev2[0]), (1, ev2[1])]);
 

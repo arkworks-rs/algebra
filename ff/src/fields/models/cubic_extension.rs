@@ -503,7 +503,7 @@ impl<P: CubicExtConfig> Distribution<CubicExtField<P>> for Standard {
     }
 }
 
-impl<'a, P: CubicExtConfig> Add<&'a CubicExtField<P>> for CubicExtField<P> {
+impl<P: CubicExtConfig> Add<&CubicExtField<P>> for CubicExtField<P> {
     type Output = Self;
 
     #[inline]
@@ -513,7 +513,7 @@ impl<'a, P: CubicExtConfig> Add<&'a CubicExtField<P>> for CubicExtField<P> {
     }
 }
 
-impl<'a, P: CubicExtConfig> Sub<&'a CubicExtField<P>> for CubicExtField<P> {
+impl<P: CubicExtConfig> Sub<&CubicExtField<P>> for CubicExtField<P> {
     type Output = Self;
 
     #[inline]
@@ -523,7 +523,7 @@ impl<'a, P: CubicExtConfig> Sub<&'a CubicExtField<P>> for CubicExtField<P> {
     }
 }
 
-impl<'a, P: CubicExtConfig> Mul<&'a CubicExtField<P>> for CubicExtField<P> {
+impl<P: CubicExtConfig> Mul<&CubicExtField<P>> for CubicExtField<P> {
     type Output = Self;
 
     #[inline]
@@ -533,7 +533,7 @@ impl<'a, P: CubicExtConfig> Mul<&'a CubicExtField<P>> for CubicExtField<P> {
     }
 }
 
-impl<'a, P: CubicExtConfig> Div<&'a CubicExtField<P>> for CubicExtField<P> {
+impl<P: CubicExtConfig> Div<&CubicExtField<P>> for CubicExtField<P> {
     type Output = Self;
 
     #[inline]
@@ -545,7 +545,7 @@ impl<'a, P: CubicExtConfig> Div<&'a CubicExtField<P>> for CubicExtField<P> {
 
 impl_additive_ops_from_ref!(CubicExtField, CubicExtConfig);
 impl_multiplicative_ops_from_ref!(CubicExtField, CubicExtConfig);
-impl<'a, P: CubicExtConfig> AddAssign<&'a Self> for CubicExtField<P> {
+impl<P: CubicExtConfig> AddAssign<&Self> for CubicExtField<P> {
     #[inline]
     fn add_assign(&mut self, other: &Self) {
         self.c0.add_assign(&other.c0);
@@ -554,7 +554,7 @@ impl<'a, P: CubicExtConfig> AddAssign<&'a Self> for CubicExtField<P> {
     }
 }
 
-impl<'a, P: CubicExtConfig> SubAssign<&'a Self> for CubicExtField<P> {
+impl<P: CubicExtConfig> SubAssign<&Self> for CubicExtField<P> {
     #[inline]
     fn sub_assign(&mut self, other: &Self) {
         self.c0.sub_assign(&other.c0);
@@ -563,7 +563,7 @@ impl<'a, P: CubicExtConfig> SubAssign<&'a Self> for CubicExtField<P> {
     }
 }
 
-impl<'a, P: CubicExtConfig> MulAssign<&'a Self> for CubicExtField<P> {
+impl<P: CubicExtConfig> MulAssign<&Self> for CubicExtField<P> {
     #[inline]
     #[allow(clippy::many_single_char_names)]
     fn mul_assign(&mut self, other: &Self) {
@@ -593,7 +593,7 @@ impl<'a, P: CubicExtConfig> MulAssign<&'a Self> for CubicExtField<P> {
     }
 }
 
-impl<'a, P: CubicExtConfig> DivAssign<&'a Self> for CubicExtField<P> {
+impl<P: CubicExtConfig> DivAssign<&Self> for CubicExtField<P> {
     #[inline]
     fn div_assign(&mut self, other: &Self) {
         self.mul_assign(&other.inverse().unwrap());
@@ -698,6 +698,31 @@ where
     }
 }
 
+impl<P: CubicExtConfig> FftField for CubicExtField<P>
+where
+    P::BaseField: FftField,
+{
+    const GENERATOR: Self = Self::new(
+        P::BaseField::GENERATOR,
+        P::BaseField::ZERO,
+        P::BaseField::ZERO,
+    );
+    const TWO_ADICITY: u32 = P::BaseField::TWO_ADICITY;
+    const TWO_ADIC_ROOT_OF_UNITY: Self = Self::new(
+        P::BaseField::TWO_ADIC_ROOT_OF_UNITY,
+        P::BaseField::ZERO,
+        P::BaseField::ZERO,
+    );
+    const SMALL_SUBGROUP_BASE: Option<u32> = P::BaseField::SMALL_SUBGROUP_BASE;
+    const SMALL_SUBGROUP_BASE_ADICITY: Option<u32> = P::BaseField::SMALL_SUBGROUP_BASE_ADICITY;
+    const LARGE_SUBGROUP_ROOT_OF_UNITY: Option<Self> =
+        if let Some(x) = P::BaseField::LARGE_SUBGROUP_ROOT_OF_UNITY {
+            Some(Self::new(x, P::BaseField::ZERO, P::BaseField::ZERO))
+        } else {
+            None
+        };
+}
+
 #[cfg(test)]
 mod cube_ext_tests {
     use super::*;
@@ -770,29 +795,4 @@ mod cube_ext_tests {
             );
         }
     }
-}
-
-impl<P: CubicExtConfig> FftField for CubicExtField<P>
-where
-    P::BaseField: FftField,
-{
-    const GENERATOR: Self = Self::new(
-        P::BaseField::GENERATOR,
-        P::BaseField::ZERO,
-        P::BaseField::ZERO,
-    );
-    const TWO_ADICITY: u32 = P::BaseField::TWO_ADICITY;
-    const TWO_ADIC_ROOT_OF_UNITY: Self = Self::new(
-        P::BaseField::TWO_ADIC_ROOT_OF_UNITY,
-        P::BaseField::ZERO,
-        P::BaseField::ZERO,
-    );
-    const SMALL_SUBGROUP_BASE: Option<u32> = P::BaseField::SMALL_SUBGROUP_BASE;
-    const SMALL_SUBGROUP_BASE_ADICITY: Option<u32> = P::BaseField::SMALL_SUBGROUP_BASE_ADICITY;
-    const LARGE_SUBGROUP_ROOT_OF_UNITY: Option<Self> =
-        if let Some(x) = P::BaseField::LARGE_SUBGROUP_ROOT_OF_UNITY {
-            Some(Self::new(x, P::BaseField::ZERO, P::BaseField::ZERO))
-        } else {
-            None
-        };
 }

@@ -69,9 +69,9 @@ pub trait VariableBaseMSM: ScalarMul {
 
     /// Streaming multi-scalar multiplication algorithm with hard-coded chunk
     /// size.
-    fn msm_chunks<I: ?Sized, J>(bases_stream: &J, scalars_stream: &I) -> Self
+    fn msm_chunks<I, J>(bases_stream: &J, scalars_stream: &I) -> Self
     where
-        I: Iterable,
+        I: Iterable + ?Sized,
         I::Item: Borrow<Self::ScalarField>,
         J: Iterable,
         J::Item: Borrow<Self::MulBase>,
@@ -88,7 +88,7 @@ pub trait VariableBaseMSM: ScalarMul {
         let mut bases = bases_init.skip(bases_stream.len() - scalars_stream.len());
         let step: usize = 1 << 20;
         let mut result = Self::zero();
-        for _ in 0..(scalars_stream.len() + step - 1) / step {
+        for _ in 0..scalars_stream.len().div_ceil(step) {
             let bases_step = (&mut bases)
                 .take(step)
                 .map(|b| *b.borrow())
@@ -119,7 +119,7 @@ fn msm_bigint_wnaf<V: VariableBaseMSM>(
     };
 
     let num_bits = V::ScalarField::MODULUS_BIT_SIZE as usize;
-    let digits_count = (num_bits + c - 1) / c;
+    let digits_count = num_bits.div_ceil(c);
     #[cfg(feature = "parallel")]
     let scalar_digits = scalars
         .into_par_iter()
@@ -281,9 +281,9 @@ fn make_digits(a: &impl BigInteger, w: usize, num_bits: usize) -> impl Iterator<
     } else {
         num_bits
     };
-    let digits_count = (num_bits + w - 1) / w;
+    let digits_count = num_bits.div_ceil(w);
 
-    (0..digits_count).into_iter().map(move |i| {
+    (0..digits_count).map(move |i| {
         // Construct a buffer of bits of the scalar, starting at `bit_offset`.
         let bit_offset = i * w;
         let u64_idx = bit_offset / 64;

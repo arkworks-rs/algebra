@@ -67,7 +67,7 @@ impl<'a, F: 'a + Field> TryInto<SparsePolynomial<F>> for DenseOrSparsePolynomial
     }
 }
 
-impl<'a, F: Field> DenseOrSparsePolynomial<'a, F> {
+impl<F: Field> DenseOrSparsePolynomial<'_, F> {
     /// Checks if the given polynomial is zero.
     pub fn is_zero(&self) -> bool {
         match self {
@@ -166,7 +166,7 @@ impl<'a, F: 'a + FftField> DenseOrSparsePolynomial<'a, F> {
                         if offset.is_one() {
                             cfg_iter_mut!(first).zip(chunk).for_each(|(x, y)| *x += y);
                         } else {
-                            let offset_power = offset.pow(&[((i + 1) * domain.size()) as u64]);
+                            let offset_power = offset.pow([((i + 1) * domain.size()) as u64]);
                             cfg_iter_mut!(first)
                                 .zip(chunk)
                                 .for_each(|(x, y)| *x += offset_power * y);
@@ -188,7 +188,7 @@ impl<'a, F: 'a + FftField> DenseOrSparsePolynomial<'a, F> {
                         if offset.is_one() {
                             cfg_iter_mut!(first).zip(chunk).for_each(|(x, y)| *x += y);
                         } else {
-                            let offset_power = offset.pow(&[((i + 1) * domain.size()) as u64]);
+                            let offset_power = offset.pow([((i + 1) * domain.size()) as u64]);
                             cfg_iter_mut!(first)
                                 .zip(chunk)
                                 .for_each(|(x, y)| *x += offset_power * y);

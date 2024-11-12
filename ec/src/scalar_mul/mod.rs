@@ -182,7 +182,7 @@ impl<T: ScalarMul> BatchMulPreprocessing<T> {
     ) -> Self {
         let window = Self::compute_window_size(num_scalars);
         let in_window = 1 << window;
-        let outerc = (max_scalar_size + window - 1) / window;
+        let outerc = max_scalar_size.div_ceil(window);
         let last_in_window = 1 << (max_scalar_size - (outerc - 1) * window);
 
         let mut multiples_of_g = vec![vec![T::zero(); in_window]; outerc];
@@ -236,7 +236,7 @@ impl<T: ScalarMul> BatchMulPreprocessing<T> {
     }
 
     fn windowed_mul(&self, scalar: &T::ScalarField) -> T {
-        let outerc = (self.max_scalar_size + self.window - 1) / self.window;
+        let outerc = self.max_scalar_size.div_ceil(self.window);
         let modulus_size = T::ScalarField::MODULUS_BIT_SIZE as usize;
         let scalar_val = scalar.into_bigint().to_bits_le();
 

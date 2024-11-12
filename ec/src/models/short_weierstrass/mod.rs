@@ -24,8 +24,9 @@ mod serialization_flags;
 pub use serialization_flags::*;
 
 /// Constants and convenience functions that collectively define the [Short Weierstrass model](https://www.hyperelliptic.org/EFD/g1p/auto-shortw.html)
-/// of the curve. In this model, the curve equation is `y² = x³ + a * x + b`,
-/// for constants `a` and `b`.
+/// of the curve.
+///
+/// In this model, the curve equation is `y² = x³ + a * x + b`, for constants `a` and `b`.
 pub trait SWCurveConfig: super::CurveConfig {
     /// Coefficient `a` of the curve equation.
     const COEFF_A: Self::BaseField;

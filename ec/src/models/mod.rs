@@ -11,6 +11,7 @@ pub mod twisted_edwards;
 
 /// Elliptic curves can be represented via different "models" with varying
 /// efficiency properties.
+///
 /// `CurveConfig` bundles together the types that are common
 /// to all models of the given curve, namely the `BaseField` over which the
 /// curve is defined, and the `ScalarField` defined by the appropriate

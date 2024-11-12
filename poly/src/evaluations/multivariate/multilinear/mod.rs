@@ -38,6 +38,7 @@ type DefaultHasher = fnv::FnvHasher;
 
 /// This trait describes an interface for the multilinear extension
 /// of an array.
+///
 /// The latter is a multilinear polynomial represented in terms of its
 /// evaluations over the domain {0,1}^`num_vars` (i.e. the Boolean hypercube).
 ///

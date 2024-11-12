@@ -120,8 +120,8 @@ mod test {
         let mut rng = ark_std::test_rng();
 
         let mut g_s = [G1Projective::zero(); 100];
-        for i in 0..100 {
-            g_s[i] = G1Projective::rand(&mut rng);
+        for gs in &mut g_s {
+            *gs = G1Projective::rand(&mut rng);
         }
 
         let mut g_s_affine_naive = [G1Affine::identity(); 100];

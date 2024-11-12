@@ -196,7 +196,7 @@ pub trait CanonicalDeserializeWithFlags: Sized {
 // std::io::Write instance of most digest::Digest implementations by value
 struct HashMarshaller<'a, H: Digest>(&'a mut H);
 
-impl<'a, H: Digest> ark_std::io::Write for HashMarshaller<'a, H> {
+impl<H: Digest> ark_std::io::Write for HashMarshaller<'_, H> {
     #[inline]
     fn write(&mut self, buf: &[u8]) -> ark_std::io::Result<usize> {
         Digest::update(self.0, buf);
