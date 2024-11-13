@@ -131,7 +131,7 @@ impl<P: SWUConfig> MapToCurve<Projective<P>> for SWUMap<P> {
         } else {
             y
         };
-        let point_on_curve = Affine::<P>::new_unchecked(x_affine, y_affine);
+        let point_on_curve = Affine::new_unchecked(x_affine, y_affine);
         debug_assert!(
             point_on_curve.is_on_curve(),
             "swu mapped to a point off the curve"

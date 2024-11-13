@@ -60,7 +60,7 @@ pub trait TECurveConfig: super::CurveConfig {
     /// Default implementation of group multiplication for projective
     /// coordinates
     fn mul_projective(base: &Projective<Self>, scalar: &[u64]) -> Projective<Self> {
-        let mut res = Projective::<Self>::zero();
+        let mut res = Projective::zero();
         for b in ark_ff::BitIteratorBE::without_leading_zeros(scalar) {
             res.double_in_place();
             if b {
@@ -74,7 +74,7 @@ pub trait TECurveConfig: super::CurveConfig {
     /// Default implementation of group multiplication for affine
     /// coordinates
     fn mul_affine(base: &Affine<Self>, scalar: &[u64]) -> Projective<Self> {
-        let mut res = Projective::<Self>::zero();
+        let mut res = Projective::zero();
         for b in ark_ff::BitIteratorBE::without_leading_zeros(scalar) {
             res.double_in_place();
             if b {
@@ -141,7 +141,7 @@ pub trait TECurveConfig: super::CurveConfig {
                 (x, y)
             },
         };
-        let point = Affine::<Self>::new_unchecked(x, y);
+        let point = Affine::new_unchecked(x, y);
         if let Validate::Yes = validate {
             point.check()?;
         }
