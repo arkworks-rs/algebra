@@ -69,31 +69,27 @@ impl<F: FftField> CanonicalSerialize for GeneralEvaluationDomain<F> {
         compress: Compress,
     ) -> Result<(), SerializationError> {
         let variant = match self {
-            GeneralEvaluationDomain::Radix2(_) => 0u8,
-            GeneralEvaluationDomain::MixedRadix(_) => 1u8,
+            Self::Radix2(_) => 0u8,
+            Self::MixedRadix(_) => 1u8,
         };
         variant.serialize_with_mode(&mut writer, compress)?;
 
         match self {
-            GeneralEvaluationDomain::Radix2(domain) => {
-                domain.serialize_with_mode(&mut writer, compress)
-            },
-            GeneralEvaluationDomain::MixedRadix(domain) => {
-                domain.serialize_with_mode(&mut writer, compress)
-            },
+            Self::Radix2(domain) => domain.serialize_with_mode(&mut writer, compress),
+            Self::MixedRadix(domain) => domain.serialize_with_mode(&mut writer, compress),
         }
     }
 
     fn serialized_size(&self, compress: Compress) -> usize {
         let type_id = match self {
-            GeneralEvaluationDomain::Radix2(_) => 0u8,
-            GeneralEvaluationDomain::MixedRadix(_) => 1u8,
+            Self::Radix2(_) => 0u8,
+            Self::MixedRadix(_) => 1u8,
         };
 
         type_id.serialized_size(compress)
             + match self {
-                GeneralEvaluationDomain::Radix2(domain) => domain.serialized_size(compress),
-                GeneralEvaluationDomain::MixedRadix(domain) => domain.serialized_size(compress),
+                Self::Radix2(domain) => domain.serialized_size(compress),
+                Self::MixedRadix(domain) => domain.serialized_size(compress),
             }
     }
 }
@@ -130,18 +126,14 @@ impl<F: FftField> EvaluationDomain<F> for GeneralEvaluationDomain<F> {
     /// the radix-2 FFT cannot be constructed, this method tries
     /// constructing a mixed-radix FFT instead.
     fn new(num_coeffs: usize) -> Option<Self> {
-        let domain = Radix2EvaluationDomain::new(num_coeffs);
-        if let Some(domain) = domain {
-            return Some(GeneralEvaluationDomain::Radix2(domain));
-        }
-
-        if F::SMALL_SUBGROUP_BASE.is_some() {
-            return Some(GeneralEvaluationDomain::MixedRadix(
-                MixedRadixEvaluationDomain::new(num_coeffs)?,
-            ));
-        }
-
-        None
+        Radix2EvaluationDomain::new(num_coeffs)
+            .map(Self::Radix2)
+            .or_else(|| {
+                F::SMALL_SUBGROUP_BASE
+                    .is_some()
+                    .then(|| MixedRadixEvaluationDomain::new(num_coeffs).map(Self::MixedRadix))
+                    .flatten()
+            })
     }
 
     fn get_coset(&self, offset: F) -> Option<Self> {
@@ -152,16 +144,12 @@ impl<F: FftField> EvaluationDomain<F> for GeneralEvaluationDomain<F> {
     }
 
     fn compute_size_of_domain(num_coeffs: usize) -> Option<usize> {
-        let domain_size = Radix2EvaluationDomain::<F>::compute_size_of_domain(num_coeffs);
-        if let Some(domain_size) = domain_size {
-            return Some(domain_size);
-        }
-
-        if F::SMALL_SUBGROUP_BASE.is_some() {
-            return MixedRadixEvaluationDomain::<F>::compute_size_of_domain(num_coeffs);
-        }
-
-        None
+        Radix2EvaluationDomain::<F>::compute_size_of_domain(num_coeffs).or_else(|| {
+            F::SMALL_SUBGROUP_BASE
+                .is_some()
+                .then(|| MixedRadixEvaluationDomain::<F>::compute_size_of_domain(num_coeffs))
+                .flatten()
+        })
     }
 
     #[inline]
