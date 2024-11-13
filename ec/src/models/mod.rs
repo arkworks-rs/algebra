@@ -1,4 +1,4 @@
-use ark_ff::{Field, PrimeField};
+use ark_ff::{Field, PrimeField, Zero};
 
 pub mod bls12;
 pub mod bn;
@@ -27,6 +27,6 @@ pub trait CurveConfig: Send + Sync + Sized + 'static {
     const COFACTOR_INV: Self::ScalarField;
 
     fn cofactor_is_one() -> bool {
-        Self::COFACTOR[0] == 1 && Self::COFACTOR.iter().skip(1).all(|&e| e == 0)
+        Self::COFACTOR[0] == 1 && Self::COFACTOR.iter().skip(1).all(Zero::is_zero)
     }
 }
