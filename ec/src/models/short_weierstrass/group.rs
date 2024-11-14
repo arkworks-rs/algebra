@@ -589,7 +589,7 @@ impl<P: SWCurveConfig> CanonicalSerialize for Projective<P> {
         writer: W,
         compress: Compress,
     ) -> Result<(), SerializationError> {
-        let aff = Affine::<P>::from(*self);
+        let aff = Affine::from(*self);
         P::serialize_with_mode(&aff, writer, compress)
     }
 

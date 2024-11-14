@@ -406,8 +406,8 @@ pub mod curves {
 
             let cs = ConstraintSystem::<<P::BaseField as Field>::BasePrimeField>::new_ref();
 
-            let a = SWProjective::<P>::rand(&mut rng);
-            let b = SWProjective::<P>::rand(&mut rng);
+            let a = SWProjective::rand(&mut rng);
+            let b = SWProjective::rand(&mut rng);
             let a_affine = a.into_affine();
             let b_affine = b.into_affine();
 
@@ -477,8 +477,8 @@ pub mod curves {
 
             let cs = ConstraintSystem::<<P::BaseField as Field>::BasePrimeField>::new_ref();
 
-            let a = TEProjective::<P>::rand(&mut rng);
-            let b = TEProjective::<P>::rand(&mut rng);
+            let a = TEProjective::rand(&mut rng);
+            let b = TEProjective::rand(&mut rng);
             let a_affine = a.into_affine();
             let b_affine = b.into_affine();
 
