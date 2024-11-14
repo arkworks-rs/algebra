@@ -57,7 +57,7 @@ where
                 batch_inversion(&mut v);
                 let img_x = x_num.evaluate(&x) * v[0];
                 let img_y = (y_num.evaluate(&x) * y) * v[1];
-                Ok(Affine::<Codomain>::new_unchecked(img_x, img_y))
+                Ok(Affine::new_unchecked(img_x, img_y))
             },
             None => Ok(Affine::identity()),
         }

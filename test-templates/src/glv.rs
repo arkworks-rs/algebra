@@ -43,7 +43,7 @@ pub fn glv_scalar_decomposition<P: GLVConfig>() {
 }
 
 pub fn glv_endomorphism_eigenvalue<P: GLVConfig>() {
-    let g = Projective::<P>::generator();
+    let g = Projective::generator();
     let endo_g = <P as GLVConfig>::endomorphism(&g);
     assert_eq!(endo_g, g.mul(P::LAMBDA));
 }
@@ -52,7 +52,7 @@ pub fn glv_projective<P: GLVConfig>() {
     // check that glv_mul indeed computes the scalar multiplication
     let mut rng = ark_std::test_rng();
 
-    let g = Projective::<P>::generator();
+    let g = Projective::generator();
     for _i in 0..100 {
         let k = P::ScalarField::rand(&mut rng);
 
@@ -66,7 +66,7 @@ pub fn glv_affine<P: GLVConfig>() {
     // check that glv_mul indeed computes the scalar multiplication
     let mut rng = ark_std::test_rng();
 
-    let g = Affine::<P>::generator();
+    let g = Affine::generator();
     for _i in 0..100 {
         let k = P::ScalarField::rand(&mut rng);
 

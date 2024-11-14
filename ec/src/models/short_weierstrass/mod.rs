@@ -172,9 +172,9 @@ pub trait SWCurveConfig: super::CurveConfig {
             },
         };
         if flags.is_infinity() {
-            Ok(Affine::<Self>::identity())
+            Ok(Affine::identity())
         } else {
-            let point = Affine::<Self>::new_unchecked(x, y);
+            let point = Affine::new_unchecked(x, y);
             if let Validate::Yes = validate {
                 point.check()?;
             }

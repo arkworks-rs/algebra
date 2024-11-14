@@ -138,7 +138,7 @@ impl<P: Elligator2Config> MapToCurve<Projective<P>> for Elligator2Map<P> {
             (v, w)
         };
 
-        let point_on_curve = Affine::<P>::new_unchecked(v, w);
+        let point_on_curve = Affine::new_unchecked(v, w);
         debug_assert!(
             point_on_curve.is_on_curve(),
             "Elligator2 mapped to a point off the curve"
