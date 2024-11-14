@@ -17,10 +17,10 @@ fn test_parity_of_quadratic_extension_elements() {
     let element_test2 = Fq2::new(Fq::from(1), Fq::from(0));
     let element_test3 = Fq2::new(Fq::from(10), Fq::from(5));
     let element_test4 = Fq2::new(Fq::from(5), Fq::from(10));
-    assert!(parity(&element_test1), "parity is the oddness of first non-zero coefficient of element represented over the prime field" );
-    assert!(parity(&element_test2));
-    assert!(!parity(&element_test3));
-    assert!(parity(&element_test4));
+    assert_eq!(parity(&element_test1), true, "parity is the oddness of first non-zero coefficient of element represented over the prime field" );
+    assert_eq!(parity(&element_test2), true);
+    assert_eq!(parity(&element_test3), false);
+    assert_eq!(parity(&element_test4), true);
 }
 
 #[test]
