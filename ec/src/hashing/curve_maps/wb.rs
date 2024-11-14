@@ -74,7 +74,7 @@ where
 ///
 /// For more information, refer to [WB2019].
 ///
-/// - [WB2019] <http://dx.doi.org/10.46586/tches.v2019.i4.154-179>
+/// - [\[WB2019\]] <http://dx.doi.org/10.46586/tches.v2019.i4.154-179>
 pub trait WBConfig: SWCurveConfig + Sized {
     // The isogenous curve should be defined over the same base field but it can have
     // different scalar field type IsogenousCurveScalarField :
