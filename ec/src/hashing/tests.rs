@@ -6,9 +6,9 @@ fn test_parity_of_prime_field_elements() {
     let a1 = Fq::from(0);
     let a2 = Fq::from(1);
     let a3 = Fq::from(10);
-    assert!(!parity(&a1));
-    assert!(parity(&a2));
-    assert!(!parity(&a3));
+    assert_eq!(parity(&a1), false);
+    assert_eq!(parity(&a2), true);
+    assert_eq!(parity(&a3), false);
 }
 
 #[test]
