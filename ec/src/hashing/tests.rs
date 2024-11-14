@@ -37,9 +37,9 @@ fn test_parity_of_cubic_extension_elements() {
     let element_test4 = Fq6::new(a4, a1, a2);
     let element_test5 = Fq6::new(a1, a5, a2);
 
-    assert!(parity(&element_test1), "parity is the oddness of first non-zero coefficient of element represented over the prime field");
-    assert!(parity(&element_test2), "parity is the oddness of first non-zero coefficient of element represented over the prime field");
-    assert!(parity(&element_test3));
-    assert!(parity(&element_test4));
-    assert!(!parity(&element_test5));
+    assert_eq!(parity(&element_test1), true, "parity is the oddness of first non-zero coefficient of element represented over the prime field");
+    assert_eq!(parity(&element_test2), true, "parity is the oddness of first non-zero coefficient of element represented over the prime field");
+    assert_eq!(parity(&element_test3), true);
+    assert_eq!(parity(&element_test4), true);
+    assert_eq!(parity(&element_test5), false);
 }
