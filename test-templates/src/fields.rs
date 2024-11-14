@@ -461,7 +461,7 @@ macro_rules! __test_field {
                 let check = ((&modulus + 1u8) / 4u8).to_u64_digits();
                 let len = check.len();
                 assert_eq!(&modulus_plus_one_div_four[..len], &check);
-                assert!(modulus_plus_one_div_four[len..].iter().all(|l| *l == 0));
+                assert!(modulus_plus_one_div_four[len..].iter().all(Zero::is_zero));
             }
 
             let mut two_adicity = 0;
