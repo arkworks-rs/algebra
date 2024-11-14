@@ -445,6 +445,9 @@ impl<'a, F: Field> AddAssign<&'a SparsePolynomial<F>> for DensePolynomial<F> {
                 }
             }
         }
+
+        // Truncate leading zeros after addition
+        self.truncate_leading_zeros();
     }
 }
 
@@ -1259,5 +1262,27 @@ mod tests {
             poly1.coeffs,
             vec![Fr::from(4), Fr::from(6), Fr::from(3), Fr::from(4)]
         );
+    }
+
+    #[test]
+    fn test_truncate_leading_zeros_after_addition() {
+        // Create a DensePolynomial: 1 + 2x + 3x^2 (coefficients [1, 2, 3])
+        let mut poly1 = DensePolynomial {
+            coeffs: vec![Fr::from(1), Fr::from(2), Fr::from(3)],
+        };
+
+        // Create a SparsePolynomial: -1 - 2x - 3x^2 (coefficients [-1, -2, -3])
+        let poly2 = SparsePolynomial::from_coefficients_slice(&[
+            (0, -Fr::from(1)),
+            (1, -Fr::from(2)),
+            (2, -Fr::from(3)),
+        ]);
+
+        // Add poly2 to poly1, which should result in a zero polynomial
+        poly1 += &poly2;
+
+        // The resulting polynomial should be zero, with an empty coefficient vector
+        assert!(poly1.is_zero());
+        assert_eq!(poly1.coeffs, vec![]);
     }
 }
