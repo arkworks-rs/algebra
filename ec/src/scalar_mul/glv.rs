@@ -108,7 +108,7 @@ pub trait GLVConfig: Send + Sync + 'static + SWCurveConfig {
         let iter_k1 = ark_ff::BitIteratorBE::new(k1.into_bigint());
         let iter_k2 = ark_ff::BitIteratorBE::new(k2.into_bigint());
 
-        let mut res = Projective::<Self>::zero();
+        let mut res = Projective::zero();
         let mut skip_zeros = true;
         for pair in iter_k1.zip(iter_k2) {
             if skip_zeros && pair == (false, false) {
@@ -144,7 +144,7 @@ pub trait GLVConfig: Send + Sync + 'static + SWCurveConfig {
         let iter_k1 = ark_ff::BitIteratorBE::new(k1.into_bigint());
         let iter_k2 = ark_ff::BitIteratorBE::new(k2.into_bigint());
 
-        let mut res = Projective::<Self>::zero();
+        let mut res = Projective::zero();
         let mut skip_zeros = true;
         for pair in iter_k1.zip(iter_k2) {
             if skip_zeros && pair == (false, false) {

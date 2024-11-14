@@ -22,6 +22,7 @@ use ark_std::{
     },
     str::FromStr,
     vec::*,
+    Zero,
 };
 use num_bigint::BigUint;
 use zeroize::Zeroize;
@@ -475,7 +476,7 @@ impl<const N: usize> BigInteger for BigInt<N> {
 
     #[inline]
     fn is_zero(&self) -> bool {
-        self.0.iter().all(|&e| e == 0)
+        self.0.iter().all(Zero::is_zero)
     }
 
     #[inline]

@@ -400,7 +400,7 @@ impl<P: FpConfig<N>, const N: usize> From<u128> for Fp<P, N> {
         let mut result = BigInt::default();
         if N == 1 {
             result.0[0] = (other % u128::from(P::MODULUS.0[0])) as u64;
-        } else if N == 2 || P::MODULUS.0[2..].iter().all(|&x| x == 0) {
+        } else if N == 2 || P::MODULUS.0[2..].iter().all(Zero::is_zero) {
             let mod_as_u128 = P::MODULUS.0[0] as u128 + ((P::MODULUS.0[1] as u128) << 64);
             other %= mod_as_u128;
             result.0[0] = ((other << 64) >> 64) as u64;

@@ -1,3 +1,4 @@
+use ark_std::Zero;
 use ark_std::{vec, vec::*};
 
 macro_rules! adc {
@@ -152,7 +153,7 @@ pub fn mac_with_carry(a: u64, b: u64, c: u64, carry: &mut u64) -> u64 {
 
 /// Compute the NAF (non-adjacent form) of num
 pub fn find_naf(num: &[u64]) -> Vec<i8> {
-    let is_zero = |num: &[u64]| num.iter().all(|x| *x == 0u64);
+    let is_zero = |num: &[u64]| num.iter().all(Zero::is_zero);
     let is_odd = |num: &[u64]| num[0] & 1 == 1;
     let sub_noborrow = |num: &mut [u64], z: u64| {
         let mut other = vec![0u64; num.len()];
