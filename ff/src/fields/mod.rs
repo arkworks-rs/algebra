@@ -450,7 +450,7 @@ mod no_std_tests {
 
     #[test]
     fn test_batch_inversion() {
-        let mut random_coeffs = Vec::<Fr>::new();
+        let mut random_coeffs = Vec::new();
         let vec_size = 1000;
 
         for _ in 0..=vec_size {
@@ -458,7 +458,7 @@ mod no_std_tests {
         }
 
         let mut random_coeffs_inv = random_coeffs.clone();
-        batch_inversion::<Fr>(&mut random_coeffs_inv);
+        batch_inversion(&mut random_coeffs_inv);
         for i in 0..=vec_size {
             assert_eq!(random_coeffs_inv[i] * random_coeffs[i], Fr::one());
         }

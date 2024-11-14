@@ -75,15 +75,14 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
     /// Precomputed material for use when computing square roots.
     /// The default is to use the standard Tonelli-Shanks algorithm.
     const SQRT_PRECOMP: Option<SqrtPrecomputation<Fp<MontBackend<Self, N>, N>>> =
-        sqrt_precomputation::<N, Self>();
+        sqrt_precomputation();
 
     /// (MODULUS + 1) / 4 when MODULUS % 4 == 3. Used for square root precomputations.
     #[doc(hidden)]
     const MODULUS_PLUS_ONE_DIV_FOUR: Option<BigInt<N>> = {
         match Self::MODULUS.mod_4() == 3 {
             true => {
-                let (modulus_plus_one, carry) =
-                    Self::MODULUS.const_add_with_carry(&BigInt::<N>::one());
+                let (modulus_plus_one, carry) = Self::MODULUS.const_add_with_carry(&BigInt::one());
                 let mut result = modulus_plus_one.divide_by_2_round_down();
                 // Since modulus_plus_one is even, dividing by 2 results in a MSB of 0.
                 // Thus we can set MSB to `carry` to get the correct result of (MODULUS + 1) // 2:
@@ -727,7 +726,7 @@ impl<T: MontConfig<N>, const N: usize> Fp<MontBackend<T, N>, N> {
     /// of this method
     #[doc(hidden)]
     pub const fn from_sign_and_limbs(is_positive: bool, limbs: &[u64]) -> Self {
-        let mut repr = BigInt::<N>([0; N]);
+        let mut repr = BigInt([0; N]);
         assert!(limbs.len() <= N);
         crate::const_for!((i in 0..(limbs.len())) {
             repr.0[i] = limbs[i];

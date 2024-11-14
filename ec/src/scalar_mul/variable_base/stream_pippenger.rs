@@ -78,7 +78,7 @@ impl<G: VariableBaseMSM> HashMapPippenger<G> {
         Self {
             buffer: HashMap::with_capacity_and_hasher(
                 max_msm_buffer,
-                core::hash::BuildHasherDefault::<DefaultHasher>::default(),
+                core::hash::BuildHasherDefault::default(),
             ),
             result: G::zero(),
             buf_size: max_msm_buffer,

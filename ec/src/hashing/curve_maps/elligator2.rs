@@ -226,7 +226,7 @@ mod test {
         const COEFF_D: F101 = MontFp!("12");
 
         const GENERATOR: Affine<TestElligator2MapToCurveConfig> =
-            Affine::<TestElligator2MapToCurveConfig>::new_unchecked(MontFp!("23"), MontFp!("24"));
+            Affine::new_unchecked(MontFp!("23"), MontFp!("24"));
 
         type MontCurveConfig = TestElligator2MapToCurveConfig;
     }
@@ -286,10 +286,7 @@ mod test {
         // map is not constant on that set.
         for current_field_element in 0..101 {
             map_range.push(
-                Elligator2Map::<TestElligator2MapToCurveConfig>::map_to_curve(F101::from(
-                    current_field_element as u64,
-                ))
-                .unwrap(),
+                Elligator2Map::map_to_curve(F101::from(current_field_element as u64)).unwrap(),
             );
         }
 

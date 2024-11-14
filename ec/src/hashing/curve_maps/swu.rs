@@ -270,7 +270,7 @@ mod test {
         let mut map_range: Vec<Affine<TestSWUMapToCurveConfig>> = vec![];
         for current_field_element in 0..127 {
             let element = F127::from(current_field_element as u64);
-            map_range.push(SWUMap::<TestSWUMapToCurveConfig>::map_to_curve(element).unwrap());
+            map_range.push(SWUMap::map_to_curve(element).unwrap());
         }
 
         let mut counts =

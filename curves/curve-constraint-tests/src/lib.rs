@@ -205,7 +205,7 @@ pub mod fields {
             AllocationMode::Constant,
         ];
         for &mode in &modes {
-            let cs = ConstraintSystem::<ConstraintF>::new_ref();
+            let cs = ConstraintSystem::new_ref();
             let mut rng = test_rng();
             for i in 0..=maxpower {
                 let mut a = F::rand(&mut rng);
@@ -246,7 +246,7 @@ pub mod curves {
             AllocationMode::Constant,
         ];
         for &mode in &modes {
-            let cs = ConstraintSystem::<ConstraintF>::new_ref();
+            let cs = ConstraintSystem::new_ref();
 
             let mut rng = test_rng();
             let a_native = C::rand(&mut rng);
@@ -554,7 +554,7 @@ pub mod pairing {
             AllocationMode::Constant,
         ];
         for &mode in &modes {
-            let cs = ConstraintSystem::<BasePrimeField<E>>::new_ref();
+            let cs = ConstraintSystem::new_ref();
 
             let mut rng = test_rng();
             let a = E::G1::rand(&mut rng);
