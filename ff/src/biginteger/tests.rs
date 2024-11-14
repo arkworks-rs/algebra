@@ -17,7 +17,7 @@ fn biginteger_arithmetic_test<B: BigInteger>(a: B, b: B, zero: B, max: B) {
     let mut a0_add = a;
     let carry = a0_add.add_with_carry(&zero);
     assert_eq!(a0_add, a);
-    assert!(!carry);
+    assert_eq!(carry, false);
 
     // a - 0 = a
     let mut a0_sub = a;
