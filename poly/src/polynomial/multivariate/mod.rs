@@ -146,13 +146,15 @@ impl PartialOrd for SparseTerm {
         } else {
             // Iterate through all variables and return the corresponding ordering
             // if they differ in variable numbering or power
-            for (cur, other) in self.iter().zip(other.iter()) {
-                if other.0 == cur.0 {
-                    if cur.1 != other.1 {
-                        return Some((cur.1).cmp(&other.1));
+            for ((cur_variable, cur_power), (other_variable, other_power)) in
+                self.iter().zip(other.iter())
+            {
+                if other_variable == cur_variable {
+                    if cur_power != other_power {
+                        return Some(cur_power.cmp(other_power));
                     }
                 } else {
-                    return Some((other.0).cmp(&cur.0));
+                    return Some(other_variable.cmp(cur_variable));
                 }
             }
             Some(Ordering::Equal)
