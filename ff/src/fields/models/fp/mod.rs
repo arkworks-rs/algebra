@@ -711,7 +711,7 @@ impl<'a, P: FpConfig<N>, const N: usize> Mul<&'a Fp<P, N>> for Fp<P, N> {
 
     #[inline]
     fn mul(mut self, other: &Self) -> Self {
-        self.mul_assign(other);
+        self *= other;
         self
     }
 }
@@ -723,7 +723,7 @@ impl<'a, P: FpConfig<N>, const N: usize> Div<&'a Fp<P, N>> for Fp<P, N> {
     /// panics otherwise.
     #[inline]
     fn div(mut self, other: &Self) -> Self {
-        self.mul_assign(&other.inverse().unwrap());
+        self *= &other.inverse().unwrap();
         self
     }
 }
@@ -756,7 +756,7 @@ impl<'a, 'b, P: FpConfig<N>, const N: usize> Mul<&'b Fp<P, N>> for &'a Fp<P, N> 
     #[inline]
     fn mul(self, other: &Fp<P, N>) -> Fp<P, N> {
         let mut result = *self;
-        result.mul_assign(other);
+        result *= other;
         result
     }
 }
@@ -887,7 +887,7 @@ impl<'a, P: FpConfig<N>, const N: usize> MulAssign<&'a Self> for Fp<P, N> {
 impl<'a, P: FpConfig<N>, const N: usize> DivAssign<&'a Self> for Fp<P, N> {
     #[inline(always)]
     fn div_assign(&mut self, other: &Self) {
-        self.mul_assign(&other.inverse().unwrap());
+        *self *= &other.inverse().unwrap();
     }
 }
 
@@ -897,7 +897,7 @@ impl<P: FpConfig<N>, const N: usize> core::ops::Mul<Self> for Fp<P, N> {
 
     #[inline(always)]
     fn mul(mut self, other: Self) -> Self {
-        self.mul_assign(&other);
+        self *= &other;
         self
     }
 }
@@ -919,7 +919,7 @@ impl<'a, P: FpConfig<N>, const N: usize> core::ops::Mul<&'a mut Self> for Fp<P, 
 
     #[inline(always)]
     fn mul(mut self, other: &'a mut Self) -> Self {
-        self.mul_assign(&*other);
+        self *= &*other;
         self
     }
 }
@@ -953,7 +953,7 @@ impl<'a, P: FpConfig<N>, const N: usize> core::iter::Product<&'a Self> for Fp<P,
 impl<P: FpConfig<N>, const N: usize> core::ops::MulAssign<Self> for Fp<P, N> {
     #[inline(always)]
     fn mul_assign(&mut self, other: Self) {
-        self.mul_assign(&other)
+        *self *= &other
     }
 }
 
@@ -969,7 +969,7 @@ impl<'a, P: FpConfig<N>, const N: usize> core::ops::DivAssign<&'a mut Self> for 
 impl<'a, P: FpConfig<N>, const N: usize> core::ops::MulAssign<&'a mut Self> for Fp<P, N> {
     #[inline(always)]
     fn mul_assign(&mut self, other: &'a mut Self) {
-        self.mul_assign(&*other)
+        *self *= &*other
     }
 }
 

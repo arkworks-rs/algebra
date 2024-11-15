@@ -109,9 +109,9 @@ impl<P: CubicExtConfig> CubicExtField<P> {
     }
 
     pub fn mul_assign_by_base_field(&mut self, value: &P::BaseField) {
-        self.c0.mul_assign(value);
-        self.c1.mul_assign(value);
-        self.c2.mul_assign(value);
+        self.c0 *= value;
+        self.c1 *= value;
+        self.c2 *= value;
     }
 
     /// Calculate the norm of an element with respect to the base field
@@ -528,7 +528,7 @@ impl<'a, P: CubicExtConfig> Mul<&'a CubicExtField<P>> for CubicExtField<P> {
 
     #[inline]
     fn mul(mut self, other: &Self) -> Self {
-        self.mul_assign(other);
+        self *= other;
         self
     }
 }
@@ -538,7 +538,7 @@ impl<'a, P: CubicExtConfig> Div<&'a CubicExtField<P>> for CubicExtField<P> {
 
     #[inline]
     fn div(mut self, other: &Self) -> Self {
-        self.mul_assign(&other.inverse().unwrap());
+        self *= &other.inverse().unwrap();
         self
     }
 }
@@ -596,7 +596,7 @@ impl<'a, P: CubicExtConfig> MulAssign<&'a Self> for CubicExtField<P> {
 impl<'a, P: CubicExtConfig> DivAssign<&'a Self> for CubicExtField<P> {
     #[inline]
     fn div_assign(&mut self, other: &Self) {
-        self.mul_assign(&other.inverse().unwrap());
+        *self *= &other.inverse().unwrap();
     }
 }
 

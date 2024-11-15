@@ -174,7 +174,7 @@ macro_rules! impl_multiplicative_ops_from_ref {
             #[inline]
             fn mul(self, other: Self) -> Self {
                 let mut result = self;
-                result.mul_assign(&other);
+                result *= &other;
                 result
             }
         }
@@ -198,7 +198,7 @@ macro_rules! impl_multiplicative_ops_from_ref {
             #[inline]
             fn mul(self, other: &'a mut Self) -> Self {
                 let mut result = self;
-                result.mul_assign(&*other);
+                result *= &*other;
                 result
             }
         }
@@ -220,7 +220,7 @@ macro_rules! impl_multiplicative_ops_from_ref {
 
             #[inline]
             fn mul(self, mut other: $type<P>) -> $type<P> {
-                other.mul_assign(self);
+                other *= self;
                 other
             }
         }
@@ -232,7 +232,7 @@ macro_rules! impl_multiplicative_ops_from_ref {
             #[inline]
             fn mul(self, other: &'a $type<P>) -> $type<P> {
                 let mut result = *self;
-                result.mul_assign(&*other);
+                result *= &*other;
                 result
             }
         }
@@ -301,7 +301,7 @@ macro_rules! impl_multiplicative_ops_from_ref {
         #[allow(unused_qualifications)]
         impl<P: $params> core::ops::MulAssign<Self> for $type<P> {
             fn mul_assign(&mut self, other: Self) {
-                self.mul_assign(&other)
+                *self *= &other
             }
         }
 
@@ -315,7 +315,7 @@ macro_rules! impl_multiplicative_ops_from_ref {
         #[allow(unused_qualifications)]
         impl<'a, P: $params> core::ops::MulAssign<&'a mut Self> for $type<P> {
             fn mul_assign(&mut self, other: &'a mut Self) {
-                self.mul_assign(&*other)
+                *self *= &*other
             }
         }
 
