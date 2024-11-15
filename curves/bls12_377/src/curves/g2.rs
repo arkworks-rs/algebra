@@ -201,7 +201,7 @@ fn double_p_power_endomorphism(p: &Projective<Config>) -> Projective<Config> {
 
     res.x *= DOUBLE_P_POWER_ENDOMORPHISM_COEFF_0;
     // u^((p^2 - 1)/2) == -1
-    res.y = res.y.neg();
+    res.y = -res.y;
 
     res
 }

@@ -1,5 +1,3 @@
-use ark_std::ops::Neg;
-
 use crate::{
     mnt4::MNT4Config,
     models::mnt4::MNT4,
@@ -52,7 +50,7 @@ impl<P: MNT4Config> From<G2Affine<P>> for G2Prepared<P> {
             t: <Fp2<P::Fp2Config>>::one(),
         };
 
-        let neg_g = g.neg();
+        let neg_g = -g;
         for bit in P::ATE_LOOP_COUNT.iter().skip(1) {
             let (r2, coeff) = MNT4::<P>::doubling_for_flipped_miller_loop(&r);
             g_prep.double_coefficients.push(coeff);

@@ -165,7 +165,7 @@ impl TECurveConfig for Config {
     /// Multiplication by `a` is multiply by `-1`.
     #[inline(always)]
     fn mul_by_a(elem: Self::BaseField) -> Self::BaseField {
-        elem.neg()
+        -elem
     }
 }
 
