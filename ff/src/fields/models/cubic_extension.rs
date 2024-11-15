@@ -548,18 +548,18 @@ impl_multiplicative_ops_from_ref!(CubicExtField, CubicExtConfig);
 impl<'a, P: CubicExtConfig> AddAssign<&'a Self> for CubicExtField<P> {
     #[inline]
     fn add_assign(&mut self, other: &Self) {
-        self.c0.add_assign(&other.c0);
-        self.c1.add_assign(&other.c1);
-        self.c2.add_assign(&other.c2);
+        self.c0 += &other.c0;
+        self.c1 += &other.c1;
+        self.c2 += &other.c2;
     }
 }
 
 impl<'a, P: CubicExtConfig> SubAssign<&'a Self> for CubicExtField<P> {
     #[inline]
     fn sub_assign(&mut self, other: &Self) {
-        self.c0.sub_assign(&other.c0);
-        self.c1.sub_assign(&other.c1);
-        self.c2.sub_assign(&other.c2);
+        self.c0 -= &other.c0;
+        self.c1 -= &other.c1;
+        self.c2 -= &other.c2;
     }
 }
 
@@ -596,7 +596,7 @@ impl<'a, P: CubicExtConfig> MulAssign<&'a Self> for CubicExtField<P> {
 impl<'a, P: CubicExtConfig> DivAssign<&'a Self> for CubicExtField<P> {
     #[inline]
     fn div_assign(&mut self, other: &Self) {
-        self.mul_assign(&other.inverse().unwrap());
+        *self *= &other.inverse().unwrap();
     }
 }
 
@@ -651,7 +651,7 @@ impl<P: CubicExtConfig> CanonicalDeserializeWithFlags for CubicExtField<P> {
         let c0 = CanonicalDeserialize::deserialize_compressed(&mut reader)?;
         let c1 = CanonicalDeserialize::deserialize_compressed(&mut reader)?;
         let (c2, flags) = CanonicalDeserializeWithFlags::deserialize_with_flags(&mut reader)?;
-        Ok((CubicExtField::new(c0, c1, c2), flags))
+        Ok((Self::new(c0, c1, c2), flags))
     }
 }
 
@@ -670,13 +670,10 @@ impl<P: CubicExtConfig> CanonicalDeserialize for CubicExtField<P> {
         compress: Compress,
         validate: Validate,
     ) -> Result<Self, SerializationError> {
-        let c0: P::BaseField =
-            CanonicalDeserialize::deserialize_with_mode(&mut reader, compress, validate)?;
-        let c1: P::BaseField =
-            CanonicalDeserialize::deserialize_with_mode(&mut reader, compress, validate)?;
-        let c2: P::BaseField =
-            CanonicalDeserialize::deserialize_with_mode(&mut reader, compress, validate)?;
-        Ok(CubicExtField::new(c0, c1, c2))
+        let c0 = CanonicalDeserialize::deserialize_with_mode(&mut reader, compress, validate)?;
+        let c1 = CanonicalDeserialize::deserialize_with_mode(&mut reader, compress, validate)?;
+        let c2 = CanonicalDeserialize::deserialize_with_mode(&mut reader, compress, validate)?;
+        Ok(Self::new(c0, c1, c2))
     }
 }
 
@@ -685,15 +682,9 @@ where
     P::BaseField: ToConstraintField<P::BasePrimeField>,
 {
     fn to_field_elements(&self) -> Option<Vec<P::BasePrimeField>> {
-        let mut res = Vec::new();
-        let mut c0_elems = self.c0.to_field_elements()?;
-        let mut c1_elems = self.c1.to_field_elements()?;
-        let mut c2_elems = self.c2.to_field_elements()?;
-
-        res.append(&mut c0_elems);
-        res.append(&mut c1_elems);
-        res.append(&mut c2_elems);
-
+        let mut res = self.c0.to_field_elements()?;
+        res.extend(self.c1.to_field_elements()?);
+        res.extend(self.c2.to_field_elements()?);
         Some(res)
     }
 }
