@@ -8,7 +8,6 @@ use ark_ec::{
 };
 
 use ark_ff::{AdditiveGroup, BigInt, Field, MontFp, PrimeField, Zero};
-use ark_std::ops::Neg;
 
 use crate::*;
 
