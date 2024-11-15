@@ -4,10 +4,7 @@ use ark_ff::{
     fields::{FftField, Field, Fp6Config, PrimeField},
     One, UniformRand, Zero,
 };
-use ark_std::{
-    cmp::Ordering,
-    ops::{AddAssign, MulAssign},
-};
+use ark_std::{cmp::Ordering, ops::MulAssign};
 
 use crate::{Fq, Fq12, Fq2, Fq6, Fq6Config, Fr};
 
