@@ -3,7 +3,7 @@ use crate::{
     AdditiveGroup, CurveGroup,
 };
 use ark_ff::{PrimeField, Zero};
-use ark_std::ops::{AddAssign, Neg};
+use ark_std::ops::Neg;
 use num_bigint::{BigInt, BigUint, Sign};
 use num_integer::Integer;
 use num_traits::{One, Signed};
@@ -44,14 +44,14 @@ pub trait GLVConfig: Send + Sync + 'static + SWCurveConfig {
         let beta_1 = {
             let (mut div, rem) = (&scalar * &n22).div_rem(&r);
             if (&rem + &rem) > r {
-                div.add_assign(BigInt::one());
+                div += BigInt::one();
             }
             div
         };
         let beta_2 = {
             let (mut div, rem) = (&scalar * &n12.clone().neg()).div_rem(&r);
             if (&rem + &rem) > r {
-                div.add_assign(BigInt::one());
+                div += BigInt::one();
             }
             div
         };

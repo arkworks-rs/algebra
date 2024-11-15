@@ -508,7 +508,7 @@ impl<'a, P: CubicExtConfig> Add<&'a CubicExtField<P>> for CubicExtField<P> {
 
     #[inline]
     fn add(mut self, other: &Self) -> Self {
-        self.add_assign(other);
+        self += other;
         self
     }
 }
@@ -518,7 +518,7 @@ impl<'a, P: CubicExtConfig> Sub<&'a CubicExtField<P>> for CubicExtField<P> {
 
     #[inline]
     fn sub(mut self, other: &Self) -> Self {
-        self.sub_assign(other);
+        self -= other;
         self
     }
 }
@@ -548,18 +548,18 @@ impl_multiplicative_ops_from_ref!(CubicExtField, CubicExtConfig);
 impl<'a, P: CubicExtConfig> AddAssign<&'a Self> for CubicExtField<P> {
     #[inline]
     fn add_assign(&mut self, other: &Self) {
-        self.c0.add_assign(&other.c0);
-        self.c1.add_assign(&other.c1);
-        self.c2.add_assign(&other.c2);
+        self.c0 += &other.c0;
+        self.c1 += &other.c1;
+        self.c2 += &other.c2;
     }
 }
 
 impl<'a, P: CubicExtConfig> SubAssign<&'a Self> for CubicExtField<P> {
     #[inline]
     fn sub_assign(&mut self, other: &Self) {
-        self.c0.sub_assign(&other.c0);
-        self.c1.sub_assign(&other.c1);
-        self.c2.sub_assign(&other.c2);
+        self.c0 -= &other.c0;
+        self.c1 -= &other.c1;
+        self.c2 -= &other.c2;
     }
 }
 

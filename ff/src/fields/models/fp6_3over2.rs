@@ -1,5 +1,5 @@
 use super::cubic_extension::{CubicExtConfig, CubicExtField};
-use crate::fields::{AddAssign, CyclotomicMultSubgroup, Fp2, Fp2Config, SqrtPrecomputation};
+use crate::fields::{CyclotomicMultSubgroup, Fp2, Fp2Config, SqrtPrecomputation};
 use core::marker::PhantomData;
 
 pub trait Fp6Config: 'static + Send + Sync + Copy {
@@ -120,7 +120,7 @@ impl<P: Fp6Config> Fp6<P> {
             t1 *= &tmp;
             t1 -= &b_b;
             P::mul_fp2_by_nonresidue_in_place(&mut t1);
-            t1.add_assign(&a_a);
+            t1 += &a_a;
         }
 
         let mut t3 = *c0;
@@ -134,10 +134,10 @@ impl<P: Fp6Config> Fp6<P> {
         }
 
         let mut t2 = *c0;
-        t2.add_assign(c1);
+        t2 += c1;
         {
             let mut tmp = self.c0;
-            tmp.add_assign(&self.c1);
+            tmp += &self.c1;
 
             t2 *= &tmp;
             t2 -= &a_a;

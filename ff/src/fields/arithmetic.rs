@@ -9,7 +9,7 @@ macro_rules! impl_additive_ops_from_ref {
             #[inline]
             fn add(self, other: Self) -> Self {
                 let mut result = self;
-                result.add_assign(&other);
+                result += &other;
                 result
             }
         }
@@ -21,7 +21,7 @@ macro_rules! impl_additive_ops_from_ref {
             #[inline]
             fn add(self, other: &'a mut Self) -> Self {
                 let mut result = self;
-                result.add_assign(&*other);
+                result += &*other;
                 result
             }
         }
@@ -31,7 +31,7 @@ macro_rules! impl_additive_ops_from_ref {
 
             #[inline]
             fn add(self, mut other: $type<P>) -> $type<P> {
-                other.add_assign(self);
+                other += self;
                 other
             }
         }
@@ -43,7 +43,7 @@ macro_rules! impl_additive_ops_from_ref {
             #[inline]
             fn add(self, other: &'a $type<P>) -> $type<P> {
                 let mut result = *self;
-                result.add_assign(&*other);
+                result += &*other;
                 result
             }
         }
@@ -55,7 +55,7 @@ macro_rules! impl_additive_ops_from_ref {
             #[inline]
             fn add(self, other: &'a mut $type<P>) -> $type<P> {
                 let mut result = *self;
-                result.add_assign(&*other);
+                result += &*other;
                 result
             }
         }
@@ -66,7 +66,7 @@ macro_rules! impl_additive_ops_from_ref {
             #[inline]
             fn sub(self, other: $type<P>) -> $type<P> {
                 let mut result = *self;
-                result.sub_assign(&other);
+                result -= &other;
                 result
             }
         }
@@ -78,7 +78,7 @@ macro_rules! impl_additive_ops_from_ref {
             #[inline]
             fn sub(self, other: &'a $type<P>) -> $type<P> {
                 let mut result = *self;
-                result.sub_assign(&*other);
+                result -= &*other;
                 result
             }
         }
@@ -90,7 +90,7 @@ macro_rules! impl_additive_ops_from_ref {
             #[inline]
             fn sub(self, other: &'a mut $type<P>) -> $type<P> {
                 let mut result = *self;
-                result.sub_assign(&*other);
+                result -= &*other;
                 result
             }
         }
@@ -102,7 +102,7 @@ macro_rules! impl_additive_ops_from_ref {
             #[inline]
             fn sub(self, other: Self) -> Self {
                 let mut result = self;
-                result.sub_assign(&other);
+                result -= &other;
                 result
             }
         }
@@ -114,7 +114,7 @@ macro_rules! impl_additive_ops_from_ref {
             #[inline]
             fn sub(self, other: &'a mut Self) -> Self {
                 let mut result = self;
-                result.sub_assign(&*other);
+                result -= &*other;
                 result
             }
         }
@@ -136,28 +136,28 @@ macro_rules! impl_additive_ops_from_ref {
         #[allow(unused_qualifications)]
         impl<P: $params> core::ops::AddAssign<Self> for $type<P> {
             fn add_assign(&mut self, other: Self) {
-                self.add_assign(&other)
+                *self += &other
             }
         }
 
         #[allow(unused_qualifications)]
         impl<P: $params> core::ops::SubAssign<Self> for $type<P> {
             fn sub_assign(&mut self, other: Self) {
-                self.sub_assign(&other)
+                *self -= &other
             }
         }
 
         #[allow(unused_qualifications)]
         impl<'a, P: $params> core::ops::AddAssign<&'a mut Self> for $type<P> {
             fn add_assign(&mut self, other: &'a mut Self) {
-                self.add_assign(&*other)
+                *self += &*other
             }
         }
 
         #[allow(unused_qualifications)]
         impl<'a, P: $params> core::ops::SubAssign<&'a mut Self> for $type<P> {
             fn sub_assign(&mut self, other: &'a mut Self) {
-                self.sub_assign(&*other)
+                *self -= &*other
             }
         }
     };
@@ -244,7 +244,7 @@ macro_rules! impl_multiplicative_ops_from_ref {
             #[inline]
             fn mul(self, other: &'a mut $type<P>) -> $type<P> {
                 let mut result = *self;
-                result.mul_assign(&*other);
+                result *= &*other;
                 result
             }
         }

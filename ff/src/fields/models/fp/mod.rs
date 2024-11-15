@@ -691,7 +691,7 @@ impl<'a, P: FpConfig<N>, const N: usize> Add<&'a Fp<P, N>> for Fp<P, N> {
 
     #[inline]
     fn add(mut self, other: &Self) -> Self {
-        self.add_assign(other);
+        self += other;
         self
     }
 }
@@ -701,7 +701,7 @@ impl<'a, P: FpConfig<N>, const N: usize> Sub<&'a Fp<P, N>> for Fp<P, N> {
 
     #[inline]
     fn sub(mut self, other: &Self) -> Self {
-        self.sub_assign(other);
+        self -= other;
         self
     }
 }
@@ -734,7 +734,7 @@ impl<'a, 'b, P: FpConfig<N>, const N: usize> Add<&'b Fp<P, N>> for &'a Fp<P, N> 
     #[inline]
     fn add(self, other: &'b Fp<P, N>) -> Fp<P, N> {
         let mut result = *self;
-        result.add_assign(other);
+        result += other;
         result
     }
 }
@@ -745,7 +745,7 @@ impl<'a, 'b, P: FpConfig<N>, const N: usize> Sub<&'b Fp<P, N>> for &'a Fp<P, N> 
     #[inline]
     fn sub(self, other: &Fp<P, N>) -> Fp<P, N> {
         let mut result = *self;
-        result.sub_assign(other);
+        result -= other;
         result
     }
 }
@@ -792,7 +792,7 @@ impl<P: FpConfig<N>, const N: usize> core::ops::Add<Self> for Fp<P, N> {
 
     #[inline]
     fn add(mut self, other: Self) -> Self {
-        self.add_assign(&other);
+        self += &other;
         self
     }
 }
@@ -803,7 +803,7 @@ impl<'a, P: FpConfig<N>, const N: usize> core::ops::Add<&'a mut Self> for Fp<P, 
 
     #[inline]
     fn add(mut self, other: &'a mut Self) -> Self {
-        self.add_assign(&*other);
+        self += &*other;
         self
     }
 }
@@ -814,7 +814,7 @@ impl<P: FpConfig<N>, const N: usize> core::ops::Sub<Self> for Fp<P, N> {
 
     #[inline]
     fn sub(mut self, other: Self) -> Self {
-        self.sub_assign(&other);
+        self -= &other;
         self
     }
 }
@@ -825,7 +825,7 @@ impl<'a, P: FpConfig<N>, const N: usize> core::ops::Sub<&'a mut Self> for Fp<P, 
 
     #[inline]
     fn sub(mut self, other: &'a mut Self) -> Self {
-        self.sub_assign(&*other);
+        self -= &*other;
         self
     }
 }
@@ -848,7 +848,7 @@ impl<'a, P: FpConfig<N>, const N: usize> core::iter::Sum<&'a Self> for Fp<P, N> 
 impl<P: FpConfig<N>, const N: usize> core::ops::AddAssign<Self> for Fp<P, N> {
     #[inline(always)]
     fn add_assign(&mut self, other: Self) {
-        self.add_assign(&other)
+        *self += &other
     }
 }
 
@@ -856,7 +856,7 @@ impl<P: FpConfig<N>, const N: usize> core::ops::AddAssign<Self> for Fp<P, N> {
 impl<P: FpConfig<N>, const N: usize> core::ops::SubAssign<Self> for Fp<P, N> {
     #[inline(always)]
     fn sub_assign(&mut self, other: Self) {
-        self.sub_assign(&other)
+        *self -= &other
     }
 }
 
@@ -864,7 +864,7 @@ impl<P: FpConfig<N>, const N: usize> core::ops::SubAssign<Self> for Fp<P, N> {
 impl<'a, P: FpConfig<N>, const N: usize> core::ops::AddAssign<&'a mut Self> for Fp<P, N> {
     #[inline(always)]
     fn add_assign(&mut self, other: &'a mut Self) {
-        self.add_assign(&*other)
+        *self += &*other
     }
 }
 
@@ -872,7 +872,7 @@ impl<'a, P: FpConfig<N>, const N: usize> core::ops::AddAssign<&'a mut Self> for 
 impl<'a, P: FpConfig<N>, const N: usize> core::ops::SubAssign<&'a mut Self> for Fp<P, N> {
     #[inline(always)]
     fn sub_assign(&mut self, other: &'a mut Self) {
-        self.sub_assign(&*other)
+        *self -= &*other
     }
 }
 

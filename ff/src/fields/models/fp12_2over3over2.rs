@@ -6,10 +6,7 @@ use crate::{
     },
     AdditiveGroup, CyclotomicMultSubgroup, Zero,
 };
-use core::{
-    marker::PhantomData,
-    ops::{AddAssign, Not, SubAssign},
-};
+use core::{marker::PhantomData, ops::Not};
 
 type Fp2Config<P> = <<P as Fp12Config>::Fp6Config as Fp6Config>::Fp2Config;
 
@@ -101,14 +98,14 @@ impl<P: Fp12Config> Fp12<P> {
         let mut bb = self.c1;
         bb.mul_by_1(c4);
         let mut o = *c1;
-        o.add_assign(c4);
-        self.c1.add_assign(&self.c0);
+        o += c4;
+        self.c1 += &self.c0;
         self.c1.mul_by_01(c0, &o);
-        self.c1.sub_assign(&aa);
-        self.c1.sub_assign(&bb);
+        self.c1 -= &aa;
+        self.c1 -= &bb;
         self.c0 = bb;
         P::mul_fp6_by_nonresidue_in_place(&mut self.c0);
-        self.c0.add_assign(&aa);
+        self.c0 += &aa;
     }
 }
 

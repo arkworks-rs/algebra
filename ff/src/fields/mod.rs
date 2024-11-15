@@ -96,7 +96,7 @@ pub trait AdditiveGroup:
     }
     /// Doubles `self` in place.
     fn double_in_place(&mut self) -> &mut Self {
-        self.add_assign(*self);
+        *self += *self;
         self
     }
 
