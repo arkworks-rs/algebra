@@ -415,7 +415,7 @@ impl<P: FpConfig<N>, const N: usize> From<u128> for Fp<P, N> {
 
 impl<P: FpConfig<N>, const N: usize> From<i128> for Fp<P, N> {
     fn from(other: i128) -> Self {
-        let abs = Self::from(other.unsigned_abs());
+        let abs = other.unsigned_abs().into();
         if other.is_positive() {
             abs
         } else {
@@ -446,7 +446,7 @@ impl<P: FpConfig<N>, const N: usize> From<u64> for Fp<P, N> {
 
 impl<P: FpConfig<N>, const N: usize> From<i64> for Fp<P, N> {
     fn from(other: i64) -> Self {
-        let abs = Self::from(other.unsigned_abs());
+        let abs = other.unsigned_abs().into();
         if other.is_positive() {
             abs
         } else {
@@ -467,7 +467,7 @@ impl<P: FpConfig<N>, const N: usize> From<u32> for Fp<P, N> {
 
 impl<P: FpConfig<N>, const N: usize> From<i32> for Fp<P, N> {
     fn from(other: i32) -> Self {
-        let abs = Self::from(other.unsigned_abs());
+        let abs = other.unsigned_abs().into();
         if other.is_positive() {
             abs
         } else {
@@ -488,7 +488,7 @@ impl<P: FpConfig<N>, const N: usize> From<u16> for Fp<P, N> {
 
 impl<P: FpConfig<N>, const N: usize> From<i16> for Fp<P, N> {
     fn from(other: i16) -> Self {
-        let abs = Self::from(other.unsigned_abs());
+        let abs = other.unsigned_abs().into();
         if other.is_positive() {
             abs
         } else {
@@ -509,7 +509,7 @@ impl<P: FpConfig<N>, const N: usize> From<u8> for Fp<P, N> {
 
 impl<P: FpConfig<N>, const N: usize> From<i8> for Fp<P, N> {
     fn from(other: i8) -> Self {
-        let abs = Self::from(other.unsigned_abs());
+        let abs = other.unsigned_abs().into();
         if other.is_positive() {
             abs
         } else {
