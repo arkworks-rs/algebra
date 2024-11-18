@@ -530,12 +530,7 @@ impl<const N: usize> BigInteger for BigInt<N> {
 
     #[inline]
     fn to_bytes_le(&self) -> Vec<u8> {
-        let array_map = self.0.iter().map(|limb| limb.to_le_bytes());
-        let mut res = Vec::with_capacity(N * 8);
-        for limb in array_map {
-            res.extend_from_slice(&limb);
-        }
-        res
+        self.0.iter().flat_map(|&limb| limb.to_le_bytes()).collect()
     }
 }
 
@@ -573,10 +568,8 @@ impl<const N: usize> Ord for BigInt<N> {
         }
         #[cfg(not(target_arch = "x86_64"))]
         for (a, b) in self.0.iter().rev().zip(other.0.iter().rev()) {
-            if a < b {
-                return Ordering::Less;
-            } else if a > b {
-                return Ordering::Greater;
+            if let order @ (Ordering::Less | Ordering::Greater) = a.cmp(b) {
+                return order;
             }
         }
         Ordering::Equal
@@ -592,11 +585,7 @@ impl<const N: usize> PartialOrd for BigInt<N> {
 
 impl<const N: usize> Distribution<BigInt<N>> for Standard {
     fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> BigInt<N> {
-        let mut res = [0u64; N];
-        for item in res.iter_mut() {
-            *item = rng.gen();
-        }
-        BigInt::<N>(res)
+        BigInt([(); N].map(|_| rng.gen()))
     }
 }
 
@@ -627,7 +616,7 @@ impl<const N: usize> From<u32> for BigInt<N> {
     #[inline]
     fn from(val: u32) -> BigInt<N> {
         let mut repr = Self::default();
-        repr.0[0] = u64::from(val);
+        repr.0[0] = val.into();
         repr
     }
 }
@@ -636,7 +625,7 @@ impl<const N: usize> From<u16> for BigInt<N> {
     #[inline]
     fn from(val: u16) -> BigInt<N> {
         let mut repr = Self::default();
-        repr.0[0] = u64::from(val);
+        repr.0[0] = val.into();
         repr
     }
 }
@@ -645,7 +634,7 @@ impl<const N: usize> From<u8> for BigInt<N> {
     #[inline]
     fn from(val: u8) -> BigInt<N> {
         let mut repr = Self::default();
-        repr.0[0] = u64::from(val);
+        repr.0[0] = val.into();
         repr
     }
 }
