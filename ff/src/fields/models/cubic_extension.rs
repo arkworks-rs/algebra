@@ -109,9 +109,9 @@ impl<P: CubicExtConfig> CubicExtField<P> {
     }
 
     pub fn mul_assign_by_base_field(&mut self, value: &P::BaseField) {
-        self.c0.mul_assign(value);
-        self.c1.mul_assign(value);
-        self.c2.mul_assign(value);
+        self.c0 *= value;
+        self.c1 *= value;
+        self.c2 *= value;
     }
 
     /// Calculate the norm of an element with respect to the base field
@@ -342,18 +342,10 @@ impl<P: CubicExtConfig> Field for CubicExtField<P> {
 impl<P: CubicExtConfig> Ord for CubicExtField<P> {
     #[inline(always)]
     fn cmp(&self, other: &Self) -> Ordering {
-        let c2_cmp = self.c2.cmp(&other.c2);
-        let c1_cmp = self.c1.cmp(&other.c1);
-        let c0_cmp = self.c0.cmp(&other.c0);
-        if c2_cmp == Ordering::Equal {
-            if c1_cmp == Ordering::Equal {
-                c0_cmp
-            } else {
-                c1_cmp
-            }
-        } else {
-            c2_cmp
-        }
+        self.c2
+            .cmp(&other.c2)
+            .then_with(|| self.c1.cmp(&other.c1))
+            .then_with(|| self.c0.cmp(&other.c0))
     }
 }
 
@@ -376,8 +368,7 @@ impl<P: CubicExtConfig> Zeroize for CubicExtField<P> {
 
 impl<P: CubicExtConfig> From<u128> for CubicExtField<P> {
     fn from(other: u128) -> Self {
-        let fe: P::BaseField = other.into();
-        Self::new(fe, P::BaseField::ZERO, P::BaseField::ZERO)
+        Self::new(other.into(), P::BaseField::ZERO, P::BaseField::ZERO)
     }
 }
 
@@ -395,8 +386,7 @@ impl<P: CubicExtConfig> From<i128> for CubicExtField<P> {
 
 impl<P: CubicExtConfig> From<u64> for CubicExtField<P> {
     fn from(other: u64) -> Self {
-        let fe: P::BaseField = other.into();
-        Self::new(fe, P::BaseField::ZERO, P::BaseField::ZERO)
+        Self::new(other.into(), P::BaseField::ZERO, P::BaseField::ZERO)
     }
 }
 
@@ -414,8 +404,7 @@ impl<P: CubicExtConfig> From<i64> for CubicExtField<P> {
 
 impl<P: CubicExtConfig> From<u32> for CubicExtField<P> {
     fn from(other: u32) -> Self {
-        let fe: P::BaseField = other.into();
-        Self::new(fe, P::BaseField::ZERO, P::BaseField::ZERO)
+        Self::new(other.into(), P::BaseField::ZERO, P::BaseField::ZERO)
     }
 }
 
@@ -433,8 +422,7 @@ impl<P: CubicExtConfig> From<i32> for CubicExtField<P> {
 
 impl<P: CubicExtConfig> From<u16> for CubicExtField<P> {
     fn from(other: u16) -> Self {
-        let fe: P::BaseField = other.into();
-        Self::new(fe, P::BaseField::ZERO, P::BaseField::ZERO)
+        Self::new(other.into(), P::BaseField::ZERO, P::BaseField::ZERO)
     }
 }
 
@@ -452,8 +440,7 @@ impl<P: CubicExtConfig> From<i16> for CubicExtField<P> {
 
 impl<P: CubicExtConfig> From<u8> for CubicExtField<P> {
     fn from(other: u8) -> Self {
-        let fe: P::BaseField = other.into();
-        Self::new(fe, P::BaseField::ZERO, P::BaseField::ZERO)
+        Self::new(other.into(), P::BaseField::ZERO, P::BaseField::ZERO)
     }
 }
 
@@ -471,11 +458,7 @@ impl<P: CubicExtConfig> From<i8> for CubicExtField<P> {
 
 impl<P: CubicExtConfig> From<bool> for CubicExtField<P> {
     fn from(other: bool) -> Self {
-        Self::new(
-            u8::from(other).into(),
-            P::BaseField::ZERO,
-            P::BaseField::ZERO,
-        )
+        other.into()
     }
 }
 
@@ -506,7 +489,7 @@ impl<'a, P: CubicExtConfig> Add<&'a CubicExtField<P>> for CubicExtField<P> {
 
     #[inline]
     fn add(mut self, other: &Self) -> Self {
-        self.add_assign(other);
+        self += other;
         self
     }
 }
@@ -516,7 +499,7 @@ impl<'a, P: CubicExtConfig> Sub<&'a CubicExtField<P>> for CubicExtField<P> {
 
     #[inline]
     fn sub(mut self, other: &Self) -> Self {
-        self.sub_assign(other);
+        self -= other;
         self
     }
 }
@@ -526,7 +509,7 @@ impl<'a, P: CubicExtConfig> Mul<&'a CubicExtField<P>> for CubicExtField<P> {
 
     #[inline]
     fn mul(mut self, other: &Self) -> Self {
-        self.mul_assign(other);
+        self *= other;
         self
     }
 }
@@ -536,7 +519,7 @@ impl<'a, P: CubicExtConfig> Div<&'a CubicExtField<P>> for CubicExtField<P> {
 
     #[inline]
     fn div(mut self, other: &Self) -> Self {
-        self.mul_assign(&other.inverse().unwrap());
+        self *= &other.inverse().unwrap();
         self
     }
 }
@@ -546,18 +529,18 @@ impl_multiplicative_ops_from_ref!(CubicExtField, CubicExtConfig);
 impl<'a, P: CubicExtConfig> AddAssign<&'a Self> for CubicExtField<P> {
     #[inline]
     fn add_assign(&mut self, other: &Self) {
-        self.c0.add_assign(&other.c0);
-        self.c1.add_assign(&other.c1);
-        self.c2.add_assign(&other.c2);
+        self.c0 += &other.c0;
+        self.c1 += &other.c1;
+        self.c2 += &other.c2;
     }
 }
 
 impl<'a, P: CubicExtConfig> SubAssign<&'a Self> for CubicExtField<P> {
     #[inline]
     fn sub_assign(&mut self, other: &Self) {
-        self.c0.sub_assign(&other.c0);
-        self.c1.sub_assign(&other.c1);
-        self.c2.sub_assign(&other.c2);
+        self.c0 -= &other.c0;
+        self.c1 -= &other.c1;
+        self.c2 -= &other.c2;
     }
 }
 
@@ -594,7 +577,7 @@ impl<'a, P: CubicExtConfig> MulAssign<&'a Self> for CubicExtField<P> {
 impl<'a, P: CubicExtConfig> DivAssign<&'a Self> for CubicExtField<P> {
     #[inline]
     fn div_assign(&mut self, other: &Self) {
-        self.mul_assign(&other.inverse().unwrap());
+        *self *= &other.inverse().unwrap();
     }
 }
 
@@ -767,6 +750,86 @@ mod cube_ext_tests {
                 Fq6::from_base_prime_field_elems(random_coeffs).unwrap()
             );
         }
+    }
+
+    #[test]
+    fn test_cubic_ext_field_cmp_equal_elements() {
+        // Generate random coefficients
+        let mut rng = test_rng();
+        let c0 = Fq2::rand(&mut rng);
+        let c1 = Fq2::rand(&mut rng);
+        let c2 = Fq2::rand(&mut rng);
+
+        // Create two identical Fq6 elements
+        let element1 = Fq6::new(c0, c1, c2);
+        let element2 = Fq6::new(c0, c1, c2);
+
+        // The elements should be equal
+        assert_eq!(element1.cmp(&element2), Ordering::Equal);
+    }
+
+    #[test]
+    fn test_cubic_ext_field_cmp_less_than_elements() {
+        // Generate random coefficients
+        let mut rng = test_rng();
+        let c0 = Fq2::rand(&mut rng);
+        let c1 = Fq2::rand(&mut rng);
+        let c2 = Fq2::rand(&mut rng);
+
+        // Create two Fq6 elements, where element1 is less than element2
+        let element1 = Fq6::new(c0, c1, c2);
+        let element2 = Fq6::new(c0, c1, c2 + Fq2::one()); // Increment c2 to ensure element2 is greater
+
+        // element1 should be less than element2
+        assert_eq!(element1.cmp(&element2), Ordering::Less);
+    }
+
+    #[test]
+    fn test_cubic_ext_field_cmp_greater_than_elements() {
+        // Generate random coefficients
+        let mut rng = test_rng();
+        let c0 = Fq2::rand(&mut rng);
+        let c1 = Fq2::rand(&mut rng);
+        let c2 = Fq2::rand(&mut rng);
+
+        // Create two Fq6 elements, where element1 is greater than element2
+        let element1 = Fq6::new(c0, c1, c2 + Fq2::one()); // Increment c2 to ensure element1 is greater
+        let element2 = Fq6::new(c0, c1, c2);
+
+        // element1 should be greater than element2
+        assert_eq!(element1.cmp(&element2), Ordering::Greater);
+    }
+
+    #[test]
+    fn test_cubic_ext_field_cmp_with_different_c1() {
+        // Generate random coefficients
+        let mut rng = test_rng();
+        let c0 = Fq2::rand(&mut rng);
+        let c1 = Fq2::rand(&mut rng);
+        let c2 = Fq2::rand(&mut rng);
+
+        // Create two Fq6 elements with different c1 coefficients
+        let element1 = Fq6::new(c0, c1, c2);
+        let element2 = Fq6::new(c0, c1 + Fq2::one(), c2); // Increment c1 to ensure element2 is greater
+
+        // element1 should be less than element2 due to c1 comparison
+        assert_eq!(element1.cmp(&element2), Ordering::Less);
+    }
+
+    #[test]
+    fn test_cubic_ext_field_cmp_with_different_c0() {
+        // Generate random coefficients
+        let mut rng = test_rng();
+        let c0 = Fq2::rand(&mut rng);
+        let c1 = Fq2::rand(&mut rng);
+        let c2 = Fq2::rand(&mut rng);
+
+        // Create two Fq6 elements with different c0 coefficients
+        let element1 = Fq6::new(c0, c1, c2);
+        let element2 = Fq6::new(c0 + Fq2::one(), c1, c2); // Increment c0 to ensure element2 is greater
+
+        // element1 should be less than element2 due to c0 comparison
+        assert_eq!(element1.cmp(&element2), Ordering::Less);
     }
 }
 
