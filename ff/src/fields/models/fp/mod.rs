@@ -407,13 +407,13 @@ impl<P: FpConfig<N>, const N: usize> From<u128> for Fp<P, N> {
             result.0[0] = ((other << 64) >> 64) as u64;
             result.0[1] = (other >> 64) as u64;
         }
-        Self::from_bigint(result).unwrap()
+        result.into()
     }
 }
 
 impl<P: FpConfig<N>, const N: usize> From<i128> for Fp<P, N> {
     fn from(other: i128) -> Self {
-        let abs = Self::from(other.unsigned_abs());
+        let abs = other.unsigned_abs().into();
         if other.is_positive() {
             abs
         } else {
@@ -425,9 +425,9 @@ impl<P: FpConfig<N>, const N: usize> From<i128> for Fp<P, N> {
 impl<P: FpConfig<N>, const N: usize> From<bool> for Fp<P, N> {
     fn from(other: bool) -> Self {
         if N == 1 {
-            Self::from_bigint(BigInt::from(u64::from(other) % P::MODULUS.0[0])).unwrap()
+            BigInt::from(u64::from(other) % P::MODULUS.0[0]).into()
         } else {
-            Self::from_bigint(BigInt::from(u64::from(other))).unwrap()
+            BigInt::from(u64::from(other)).into()
         }
     }
 }
@@ -435,16 +435,16 @@ impl<P: FpConfig<N>, const N: usize> From<bool> for Fp<P, N> {
 impl<P: FpConfig<N>, const N: usize> From<u64> for Fp<P, N> {
     fn from(other: u64) -> Self {
         if N == 1 {
-            Self::from_bigint(BigInt::from(other % P::MODULUS.0[0])).unwrap()
+            BigInt::from(other % P::MODULUS.0[0]).into()
         } else {
-            Self::from_bigint(BigInt::from(other)).unwrap()
+            BigInt::from(other).into()
         }
     }
 }
 
 impl<P: FpConfig<N>, const N: usize> From<i64> for Fp<P, N> {
     fn from(other: i64) -> Self {
-        let abs = Self::from(other.unsigned_abs());
+        let abs = other.unsigned_abs().into();
         if other.is_positive() {
             abs
         } else {
@@ -456,16 +456,16 @@ impl<P: FpConfig<N>, const N: usize> From<i64> for Fp<P, N> {
 impl<P: FpConfig<N>, const N: usize> From<u32> for Fp<P, N> {
     fn from(other: u32) -> Self {
         if N == 1 {
-            Self::from_bigint(BigInt::from(u64::from(other) % P::MODULUS.0[0])).unwrap()
+            BigInt::from(u64::from(other) % P::MODULUS.0[0]).into()
         } else {
-            Self::from_bigint(BigInt::from(other)).unwrap()
+            BigInt::from(other).into()
         }
     }
 }
 
 impl<P: FpConfig<N>, const N: usize> From<i32> for Fp<P, N> {
     fn from(other: i32) -> Self {
-        let abs = Self::from(other.unsigned_abs());
+        let abs = other.unsigned_abs().into();
         if other.is_positive() {
             abs
         } else {
@@ -477,16 +477,16 @@ impl<P: FpConfig<N>, const N: usize> From<i32> for Fp<P, N> {
 impl<P: FpConfig<N>, const N: usize> From<u16> for Fp<P, N> {
     fn from(other: u16) -> Self {
         if N == 1 {
-            Self::from_bigint(BigInt::from(u64::from(other) % P::MODULUS.0[0])).unwrap()
+            BigInt::from(u64::from(other) % P::MODULUS.0[0]).into()
         } else {
-            Self::from_bigint(BigInt::from(other)).unwrap()
+            BigInt::from(other).into()
         }
     }
 }
 
 impl<P: FpConfig<N>, const N: usize> From<i16> for Fp<P, N> {
     fn from(other: i16) -> Self {
-        let abs = Self::from(other.unsigned_abs());
+        let abs = other.unsigned_abs().into();
         if other.is_positive() {
             abs
         } else {
@@ -498,16 +498,16 @@ impl<P: FpConfig<N>, const N: usize> From<i16> for Fp<P, N> {
 impl<P: FpConfig<N>, const N: usize> From<u8> for Fp<P, N> {
     fn from(other: u8) -> Self {
         if N == 1 {
-            Self::from_bigint(BigInt::from(u64::from(other) % P::MODULUS.0[0])).unwrap()
+            BigInt::from(u64::from(other) % P::MODULUS.0[0]).into()
         } else {
-            Self::from_bigint(BigInt::from(other)).unwrap()
+            BigInt::from(other).into()
         }
     }
 }
 
 impl<P: FpConfig<N>, const N: usize> From<i8> for Fp<P, N> {
     fn from(other: i8) -> Self {
-        let abs = Self::from(other.unsigned_abs());
+        let abs = other.unsigned_abs().into();
         if other.is_positive() {
             abs
         } else {
