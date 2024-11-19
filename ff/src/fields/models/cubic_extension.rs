@@ -315,12 +315,10 @@ impl<P: CubicExtConfig> Field for CubicExtField<P> {
     }
 
     fn inverse_in_place(&mut self) -> Option<&mut Self> {
-        if let Some(inverse) = self.inverse() {
+        self.inverse().map(|inverse| {
             *self = inverse;
-            Some(self)
-        } else {
-            None
-        }
+            self
+        })
     }
 
     fn frobenius_map_in_place(&mut self, power: usize) {
