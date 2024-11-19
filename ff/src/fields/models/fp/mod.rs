@@ -308,12 +308,10 @@ impl<P: FpConfig<N>, const N: usize> Field for Fp<P, N> {
     }
 
     fn inverse_in_place(&mut self) -> Option<&mut Self> {
-        if let Some(inverse) = self.inverse() {
+        self.inverse().map(|inverse| {
             *self = inverse;
-            Some(self)
-        } else {
-            None
-        }
+            self
+        })
     }
 
     /// The Frobenius map has no effect in a prime field.
@@ -409,13 +407,13 @@ impl<P: FpConfig<N>, const N: usize> From<u128> for Fp<P, N> {
             result.0[0] = ((other << 64) >> 64) as u64;
             result.0[1] = (other >> 64) as u64;
         }
-        Self::from_bigint(result).unwrap()
+        result.into()
     }
 }
 
 impl<P: FpConfig<N>, const N: usize> From<i128> for Fp<P, N> {
     fn from(other: i128) -> Self {
-        let abs = Self::from(other.unsigned_abs());
+        let abs = other.unsigned_abs().into();
         if other.is_positive() {
             abs
         } else {
@@ -427,9 +425,9 @@ impl<P: FpConfig<N>, const N: usize> From<i128> for Fp<P, N> {
 impl<P: FpConfig<N>, const N: usize> From<bool> for Fp<P, N> {
     fn from(other: bool) -> Self {
         if N == 1 {
-            Self::from_bigint(BigInt::from(u64::from(other) % P::MODULUS.0[0])).unwrap()
+            BigInt::from(u64::from(other) % P::MODULUS.0[0]).into()
         } else {
-            Self::from_bigint(BigInt::from(u64::from(other))).unwrap()
+            BigInt::from(u64::from(other)).into()
         }
     }
 }
@@ -437,16 +435,16 @@ impl<P: FpConfig<N>, const N: usize> From<bool> for Fp<P, N> {
 impl<P: FpConfig<N>, const N: usize> From<u64> for Fp<P, N> {
     fn from(other: u64) -> Self {
         if N == 1 {
-            Self::from_bigint(BigInt::from(other % P::MODULUS.0[0])).unwrap()
+            BigInt::from(other % P::MODULUS.0[0]).into()
         } else {
-            Self::from_bigint(BigInt::from(other)).unwrap()
+            BigInt::from(other).into()
         }
     }
 }
 
 impl<P: FpConfig<N>, const N: usize> From<i64> for Fp<P, N> {
     fn from(other: i64) -> Self {
-        let abs = Self::from(other.unsigned_abs());
+        let abs = other.unsigned_abs().into();
         if other.is_positive() {
             abs
         } else {
@@ -458,16 +456,16 @@ impl<P: FpConfig<N>, const N: usize> From<i64> for Fp<P, N> {
 impl<P: FpConfig<N>, const N: usize> From<u32> for Fp<P, N> {
     fn from(other: u32) -> Self {
         if N == 1 {
-            Self::from_bigint(BigInt::from(u64::from(other) % P::MODULUS.0[0])).unwrap()
+            BigInt::from(u64::from(other) % P::MODULUS.0[0]).into()
         } else {
-            Self::from_bigint(BigInt::from(other)).unwrap()
+            BigInt::from(other).into()
         }
     }
 }
 
 impl<P: FpConfig<N>, const N: usize> From<i32> for Fp<P, N> {
     fn from(other: i32) -> Self {
-        let abs = Self::from(other.unsigned_abs());
+        let abs = other.unsigned_abs().into();
         if other.is_positive() {
             abs
         } else {
@@ -479,16 +477,16 @@ impl<P: FpConfig<N>, const N: usize> From<i32> for Fp<P, N> {
 impl<P: FpConfig<N>, const N: usize> From<u16> for Fp<P, N> {
     fn from(other: u16) -> Self {
         if N == 1 {
-            Self::from_bigint(BigInt::from(u64::from(other) % P::MODULUS.0[0])).unwrap()
+            BigInt::from(u64::from(other) % P::MODULUS.0[0]).into()
         } else {
-            Self::from_bigint(BigInt::from(other)).unwrap()
+            BigInt::from(other).into()
         }
     }
 }
 
 impl<P: FpConfig<N>, const N: usize> From<i16> for Fp<P, N> {
     fn from(other: i16) -> Self {
-        let abs = Self::from(other.unsigned_abs());
+        let abs = other.unsigned_abs().into();
         if other.is_positive() {
             abs
         } else {
@@ -500,16 +498,16 @@ impl<P: FpConfig<N>, const N: usize> From<i16> for Fp<P, N> {
 impl<P: FpConfig<N>, const N: usize> From<u8> for Fp<P, N> {
     fn from(other: u8) -> Self {
         if N == 1 {
-            Self::from_bigint(BigInt::from(u64::from(other) % P::MODULUS.0[0])).unwrap()
+            BigInt::from(u64::from(other) % P::MODULUS.0[0]).into()
         } else {
-            Self::from_bigint(BigInt::from(other)).unwrap()
+            BigInt::from(other).into()
         }
     }
 }
 
 impl<P: FpConfig<N>, const N: usize> From<i8> for Fp<P, N> {
     fn from(other: i8) -> Self {
-        let abs = Self::from(other.unsigned_abs());
+        let abs = other.unsigned_abs().into();
         if other.is_positive() {
             abs
         } else {
@@ -691,7 +689,7 @@ impl<'a, P: FpConfig<N>, const N: usize> Add<&'a Fp<P, N>> for Fp<P, N> {
 
     #[inline]
     fn add(mut self, other: &Self) -> Self {
-        self.add_assign(other);
+        self += other;
         self
     }
 }
@@ -701,7 +699,7 @@ impl<'a, P: FpConfig<N>, const N: usize> Sub<&'a Fp<P, N>> for Fp<P, N> {
 
     #[inline]
     fn sub(mut self, other: &Self) -> Self {
-        self.sub_assign(other);
+        self -= other;
         self
     }
 }
@@ -711,7 +709,7 @@ impl<'a, P: FpConfig<N>, const N: usize> Mul<&'a Fp<P, N>> for Fp<P, N> {
 
     #[inline]
     fn mul(mut self, other: &Self) -> Self {
-        self.mul_assign(other);
+        self *= other;
         self
     }
 }
@@ -723,7 +721,7 @@ impl<'a, P: FpConfig<N>, const N: usize> Div<&'a Fp<P, N>> for Fp<P, N> {
     /// panics otherwise.
     #[inline]
     fn div(mut self, other: &Self) -> Self {
-        self.mul_assign(&other.inverse().unwrap());
+        self *= &other.inverse().unwrap();
         self
     }
 }
@@ -734,7 +732,7 @@ impl<'a, 'b, P: FpConfig<N>, const N: usize> Add<&'b Fp<P, N>> for &'a Fp<P, N> 
     #[inline]
     fn add(self, other: &'b Fp<P, N>) -> Fp<P, N> {
         let mut result = *self;
-        result.add_assign(other);
+        result += other;
         result
     }
 }
@@ -745,7 +743,7 @@ impl<'a, 'b, P: FpConfig<N>, const N: usize> Sub<&'b Fp<P, N>> for &'a Fp<P, N> 
     #[inline]
     fn sub(self, other: &Fp<P, N>) -> Fp<P, N> {
         let mut result = *self;
-        result.sub_assign(other);
+        result -= other;
         result
     }
 }
@@ -756,7 +754,7 @@ impl<'a, 'b, P: FpConfig<N>, const N: usize> Mul<&'b Fp<P, N>> for &'a Fp<P, N> 
     #[inline]
     fn mul(self, other: &Fp<P, N>) -> Fp<P, N> {
         let mut result = *self;
-        result.mul_assign(other);
+        result *= other;
         result
     }
 }
@@ -792,7 +790,7 @@ impl<P: FpConfig<N>, const N: usize> core::ops::Add<Self> for Fp<P, N> {
 
     #[inline]
     fn add(mut self, other: Self) -> Self {
-        self.add_assign(&other);
+        self += &other;
         self
     }
 }
@@ -803,7 +801,7 @@ impl<'a, P: FpConfig<N>, const N: usize> core::ops::Add<&'a mut Self> for Fp<P, 
 
     #[inline]
     fn add(mut self, other: &'a mut Self) -> Self {
-        self.add_assign(&*other);
+        self += &*other;
         self
     }
 }
@@ -814,7 +812,7 @@ impl<P: FpConfig<N>, const N: usize> core::ops::Sub<Self> for Fp<P, N> {
 
     #[inline]
     fn sub(mut self, other: Self) -> Self {
-        self.sub_assign(&other);
+        self -= &other;
         self
     }
 }
@@ -825,7 +823,7 @@ impl<'a, P: FpConfig<N>, const N: usize> core::ops::Sub<&'a mut Self> for Fp<P, 
 
     #[inline]
     fn sub(mut self, other: &'a mut Self) -> Self {
-        self.sub_assign(&*other);
+        self -= &*other;
         self
     }
 }
@@ -848,7 +846,7 @@ impl<'a, P: FpConfig<N>, const N: usize> core::iter::Sum<&'a Self> for Fp<P, N> 
 impl<P: FpConfig<N>, const N: usize> core::ops::AddAssign<Self> for Fp<P, N> {
     #[inline(always)]
     fn add_assign(&mut self, other: Self) {
-        self.add_assign(&other)
+        *self += &other
     }
 }
 
@@ -856,7 +854,7 @@ impl<P: FpConfig<N>, const N: usize> core::ops::AddAssign<Self> for Fp<P, N> {
 impl<P: FpConfig<N>, const N: usize> core::ops::SubAssign<Self> for Fp<P, N> {
     #[inline(always)]
     fn sub_assign(&mut self, other: Self) {
-        self.sub_assign(&other)
+        *self -= &other
     }
 }
 
@@ -864,7 +862,7 @@ impl<P: FpConfig<N>, const N: usize> core::ops::SubAssign<Self> for Fp<P, N> {
 impl<'a, P: FpConfig<N>, const N: usize> core::ops::AddAssign<&'a mut Self> for Fp<P, N> {
     #[inline(always)]
     fn add_assign(&mut self, other: &'a mut Self) {
-        self.add_assign(&*other)
+        *self += &*other
     }
 }
 
@@ -872,7 +870,7 @@ impl<'a, P: FpConfig<N>, const N: usize> core::ops::AddAssign<&'a mut Self> for 
 impl<'a, P: FpConfig<N>, const N: usize> core::ops::SubAssign<&'a mut Self> for Fp<P, N> {
     #[inline(always)]
     fn sub_assign(&mut self, other: &'a mut Self) {
-        self.sub_assign(&*other)
+        *self -= &*other
     }
 }
 
@@ -887,7 +885,7 @@ impl<'a, P: FpConfig<N>, const N: usize> MulAssign<&'a Self> for Fp<P, N> {
 impl<'a, P: FpConfig<N>, const N: usize> DivAssign<&'a Self> for Fp<P, N> {
     #[inline(always)]
     fn div_assign(&mut self, other: &Self) {
-        self.mul_assign(&other.inverse().unwrap());
+        *self *= &other.inverse().unwrap();
     }
 }
 
@@ -897,7 +895,7 @@ impl<P: FpConfig<N>, const N: usize> core::ops::Mul<Self> for Fp<P, N> {
 
     #[inline(always)]
     fn mul(mut self, other: Self) -> Self {
-        self.mul_assign(&other);
+        self *= &other;
         self
     }
 }
@@ -919,7 +917,7 @@ impl<'a, P: FpConfig<N>, const N: usize> core::ops::Mul<&'a mut Self> for Fp<P, 
 
     #[inline(always)]
     fn mul(mut self, other: &'a mut Self) -> Self {
-        self.mul_assign(&*other);
+        self *= &*other;
         self
     }
 }
@@ -953,7 +951,7 @@ impl<'a, P: FpConfig<N>, const N: usize> core::iter::Product<&'a Self> for Fp<P,
 impl<P: FpConfig<N>, const N: usize> core::ops::MulAssign<Self> for Fp<P, N> {
     #[inline(always)]
     fn mul_assign(&mut self, other: Self) {
-        self.mul_assign(&other)
+        *self *= &other
     }
 }
 
@@ -969,7 +967,7 @@ impl<'a, P: FpConfig<N>, const N: usize> core::ops::DivAssign<&'a mut Self> for 
 impl<'a, P: FpConfig<N>, const N: usize> core::ops::MulAssign<&'a mut Self> for Fp<P, N> {
     #[inline(always)]
     fn mul_assign(&mut self, other: &'a mut Self) {
-        self.mul_assign(&*other)
+        *self *= &*other
     }
 }
 

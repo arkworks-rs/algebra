@@ -262,8 +262,7 @@ impl<F: Field> SparsePolynomial<F> {
                     *cur_coeff += &(*self_coeff * other_coeff);
                 }
             }
-            let result = result.into_iter().collect::<Vec<_>>();
-            SparsePolynomial::from_coefficients_vec(result)
+            SparsePolynomial::from_coefficients_vec(result.into_iter().collect())
         }
     }
 
@@ -272,9 +271,7 @@ impl<F: Field> SparsePolynomial<F> {
     // being higher than self.degree()
     fn append_coeffs(&mut self, append_coeffs: &[(usize, F)]) {
         assert!(append_coeffs.is_empty() || self.degree() < append_coeffs[0].0);
-        for (i, elem) in append_coeffs.iter() {
-            self.coeffs.push((*i, *elem));
-        }
+        self.coeffs.extend_from_slice(append_coeffs);
     }
 }
 
@@ -285,13 +282,13 @@ impl<F: FftField> SparsePolynomial<F> {
         domain: D,
     ) -> Evaluations<F, D> {
         let poly: DenseOrSparsePolynomial<'_, F> = self.into();
-        DenseOrSparsePolynomial::<F>::evaluate_over_domain(poly, domain)
+        DenseOrSparsePolynomial::evaluate_over_domain(poly, domain)
     }
 
     /// Evaluate `self` over `domain`.
     pub fn evaluate_over_domain<D: EvaluationDomain<F>>(self, domain: D) -> Evaluations<F, D> {
         let poly: DenseOrSparsePolynomial<'_, F> = self.into();
-        DenseOrSparsePolynomial::<F>::evaluate_over_domain(poly, domain)
+        DenseOrSparsePolynomial::evaluate_over_domain(poly, domain)
     }
 }
 
@@ -307,14 +304,14 @@ impl<F: Field> From<SparsePolynomial<F>> for DensePolynomial<F> {
 
 impl<F: Field> From<DensePolynomial<F>> for SparsePolynomial<F> {
     fn from(dense_poly: DensePolynomial<F>) -> SparsePolynomial<F> {
-        let coeffs = dense_poly.coeffs();
-        let mut sparse_coeffs = Vec::<(usize, F)>::new();
-        for (i, coeff) in coeffs.iter().enumerate() {
-            if !coeff.is_zero() {
-                sparse_coeffs.push((i, *coeff));
-            }
-        }
-        SparsePolynomial::from_coefficients_vec(sparse_coeffs)
+        SparsePolynomial::from_coefficients_vec(
+            dense_poly
+                .coeffs()
+                .iter()
+                .enumerate()
+                .filter_map(|(i, coeff)| (!coeff.is_zero()).then(|| (i, *coeff)))
+                .collect(),
+        )
     }
 }
 

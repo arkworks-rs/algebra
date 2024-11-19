@@ -181,7 +181,7 @@ pub fn double_p_power_endomorphism(p: &Projective<Config>) -> Projective<Config>
     let mut res = *p;
 
     res.x *= DOUBLE_P_POWER_ENDOMORPHISM;
-    res.y = res.y.neg();
+    res.y = -res.y;
 
     res
 }

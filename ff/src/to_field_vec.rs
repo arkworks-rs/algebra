@@ -44,15 +44,13 @@ impl<ConstraintF: PrimeField> ToConstraintField<ConstraintF> for [u8] {
     fn to_field_elements(&self) -> Option<Vec<ConstraintF>> {
         let max_size = ((ConstraintF::MODULUS_BIT_SIZE - 1) / 8) as usize;
         let bigint_size = <ConstraintF as PrimeField>::BigInt::NUM_LIMBS * 8;
-        let fes = self
-            .chunks(max_size)
+        self.chunks(max_size)
             .map(|chunk| {
                 let mut bigint = vec![0u8; bigint_size];
                 bigint.iter_mut().zip(chunk).for_each(|(a, b)| *a = *b);
                 ConstraintF::deserialize_compressed(bigint.as_slice()).ok()
             })
-            .collect::<Option<Vec<_>>>()?;
-        Some(fes)
+            .collect()
     }
 }
 
