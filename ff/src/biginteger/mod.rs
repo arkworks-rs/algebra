@@ -290,6 +290,44 @@ impl<const N: usize> BigInt<N> {
             crate::const_helpers::R2Buffer::<N>([0u64; N], [0u64; N], 1);
         const_modulo!(two_pow_n_times_64_square, self)
     }
+
+    /// Compute `-self^{-1}` mod 2^64.
+    pub const fn montgomery_inv(&self) -> u64 {
+        // We compute this as follows.
+        // First, MODULUS mod 2^64 is just the lower 64 bits of MODULUS.
+        // Hence MODULUS mod 2^64 = MODULUS.0[0] mod 2^64.
+        //
+        // Next, computing the inverse mod 2^64 involves exponentiating by
+        // the multiplicative group order, which is euler_totient(2^64) - 1.
+        // Now, euler_totient(2^64) = 1 << 63, and so
+        // euler_totient(2^64) - 1 = (1 << 63) - 1 = 1111111... (63 digits).
+        // We compute this powering via standard square and multiply.
+        let mut inv = 1u64;
+        crate::const_for!((_i in 0..63) {
+            // Square
+            inv = inv.wrapping_mul(inv);
+            // Multiply
+            inv = inv.wrapping_mul(self.0[0]);
+        });
+        inv.wrapping_neg()
+    }
+
+    pub const fn msb(&self) -> bool {
+        self.0[N - 1] >> 63 == 1
+    }
+
+    pub const fn plus_one_div_four(&self) -> Option<Self> {
+        if self.mod_4() == 3 {
+            let (modulus_plus_one, carry) = self.const_add_with_carry(&BigInt::<N>::one());
+            let mut result = modulus_plus_one.divide_by_2_round_down();
+            // Since modulus_plus_one is even, dividing by 2 results in a MSB of 0.
+            // Thus we can set MSB to `carry` to get the correct result of (MODULUS + 1) // 2:
+            result.0[N - 1] |= (carry as u64) << 63;
+            Some(result.divide_by_2_round_down())
+        } else {
+            None
+        }
+    }
 }
 
 impl<const N: usize> BigInteger for BigInt<N> {

@@ -22,6 +22,7 @@ use sum_of_products::sum_of_products_impl;
 use crate::utils;
 
 pub fn mont_config_helper(
+    // The modulus p of the field
     modulus: BigUint,
     generator: BigUint,
     small_subgroup_base: Option<u32>,
@@ -37,11 +38,15 @@ pub fn mont_config_helper(
         }
     }
 
-    // modulus - 1 = 2^s * t
+    // Compute trace t and 2-adicity s such that p - 1 = 2^s * t
     let mut trace = &modulus - BigUint::from_str("1").unwrap();
     while !trace.bit(0) {
         trace >>= 1u8;
     }
+
+    let two_adicity = (&modulus - 1u8)
+        .trailing_zeros()
+        .expect("two_adicity should fit in u32") as u32;
 
     // Compute 2^s root of unity given the generator
     let remaining_subgroup_size = match (small_subgroup_base, small_subgroup_power) {
@@ -53,9 +58,37 @@ pub fn mont_config_helper(
     let large_subgroup_generator = remaining_subgroup_size
         .as_ref()
         .map(|e| generator.modpow(e, &modulus).to_string());
+
+    // Compute R = 2**(64 * limbs) mod m
+    let r = (BigUint::one() << (limbs * 64)) % &modulus;
+    let r_squared = ((&r * &r) % &modulus).to_string();
+    let r = r.to_string();
+    let modulus_mod_4 = (&modulus % 4u64).try_into().unwrap();
+
+    let modulus_plus_one_div_four = ((&modulus + 1u8) / 4u8).to_u64_digits();
+    let trace_minus_one_div_two = ((&trace - 1u8) / 2u8).to_u64_digits();
+    let sqrt_precomp = match modulus_mod_4 {
+        3 => quote::quote!(Some(SqrtPrecomputation::Case3Mod4 {
+            modulus_plus_one_div_four: &[ #( #modulus_plus_one_div_four ),* ]
+        })),
+        1 => quote::quote!(Some(SqrtPrecomputation::TonelliShanks  {
+            two_adicity: Self::TWO_ADICITY,
+            quadratic_nonresidue_to_trace: Self::TWO_ADIC_ROOT_OF_UNITY,
+            trace_of_modulus_minus_one_div_two: &[ #( #trace_minus_one_div_two ),* ]
+        })),
+        _ => panic!("Modulus must be odd"),
+    };
+
+    let modulus_plus_one_div_four = if modulus_mod_4 == 3u8 {
+        quote::quote! { Some(BigInt([ #( #modulus_plus_one_div_four  ),* ])) }
+    } else {
+        quote::quote! { None }
+    };
+
     let modulus = modulus.to_string();
     let generator = generator.to_string();
     let two_adic_root_of_unity = two_adic_root_of_unity.to_string();
+
     let modulus_limbs = utils::str_to_limbs_u64(&modulus).1;
     let modulus_has_spare_bit = modulus_limbs.last().unwrap() >> 63 == 0;
     let can_use_no_carry_mul_opt = {
@@ -66,6 +99,14 @@ pub fn mont_config_helper(
             first_limb_check
         }
     };
+
+    let mut inv = 1u64;
+    for _ in 0..63 {
+        inv = inv.wrapping_mul(inv);
+        inv = inv.wrapping_mul(modulus_limbs[0]);
+    }
+    inv = inv.wrapping_neg();
+
     let modulus = quote::quote! { BigInt([ #( #modulus_limbs ),* ]) };
 
     let add_with_carry = add_with_carry_impl(limbs);
@@ -111,7 +152,31 @@ pub fn mont_config_helper(
 
                 const GENERATOR: F = ark_ff::MontFp!(#generator);
 
+                const TWO_ADICITY: u32 = #two_adicity;
+
                 const TWO_ADIC_ROOT_OF_UNITY: F = ark_ff::MontFp!(#two_adic_root_of_unity);
+
+                const R: B = ark_ff::BigInt!(#r);
+
+                const R2: B = ark_ff::BigInt!(#r_squared);
+
+                const INV: u64 = #inv;
+
+                #[doc(hidden)]
+                const CAN_USE_NO_CARRY_MUL_OPT: bool = #can_use_no_carry_mul_opt;
+
+                #[doc(hidden)]
+                const CAN_USE_NO_CARRY_SQUARE_OPT: bool = #can_use_no_carry_mul_opt;
+
+                #[doc(hidden)]
+                const MODULUS_HAS_SPARE_BIT: bool = #modulus_has_spare_bit;
+
+
+                /// (MODULUS + 1) / 4 when MODULUS % 4 == 3. Used for square root precomputations.
+                #[doc(hidden)]
+                const MODULUS_PLUS_ONE_DIV_FOUR: Option<B> = #modulus_plus_one_div_four;
+
+                const SQRT_PRECOMP: Option<SqrtPrecomputation<F>> = #sqrt_precomp;
 
                 #mixed_radix
 
