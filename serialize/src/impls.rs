@@ -173,7 +173,7 @@ impl CanonicalDeserialize for BigUint {
         compress: Compress,
         validate: Validate,
     ) -> Result<Self, SerializationError> {
-        Ok(BigUint::from_bytes_le(&Vec::<u8>::deserialize_with_mode(
+        Ok(BigUint::from_bytes_le(&Vec::deserialize_with_mode(
             reader, compress, validate,
         )?))
     }
@@ -214,7 +214,7 @@ impl<T: CanonicalSerialize> CanonicalSerialize for Option<T> {
         1 + self
             .as_ref()
             .map(|s| s.serialized_size(compress))
-            .unwrap_or(0)
+            .unwrap_or_default()
     }
 }
 
@@ -386,7 +386,6 @@ where
     }
 
     #[inline]
-
     fn batch_check<'a>(
         batch: impl Iterator<Item = &'a Self> + Send,
     ) -> Result<(), SerializationError>
@@ -430,9 +429,7 @@ impl<T: CanonicalSerialize, const N: usize> CanonicalSerialize for [T; N] {
 
     #[inline]
     fn serialized_size(&self, compress: Compress) -> usize {
-        self.iter()
-            .map(|item| item.serialized_size(compress))
-            .sum::<usize>()
+        self.iter().map(|item| item.serialized_size(compress)).sum()
     }
 }
 impl<T: CanonicalDeserialize, const N: usize> Valid for [T; N] {
@@ -934,5 +931,165 @@ where
         (0..len)
             .map(|_| V::deserialize_with_mode(&mut reader, compress, validate))
             .collect()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use ark_std::{collections::BTreeMap, collections::BTreeSet, io::Cursor, vec};
+    use num_bigint::BigUint;
+
+    /// A utility function to simplify serialization and deserialization tests.
+    /// This function:
+    /// - Serializes `value` into a `Vec<u8>`.
+    /// - Deserializes the bytes back into `T`.
+    /// - Asserts that the original and deserialized values are equal.
+    ///
+    /// # Arguments
+    /// - `value`: The value to be serialized and deserialized.
+    fn test_serialize_deserialize<T>(value: T)
+    where
+        T: CanonicalSerialize + CanonicalDeserialize + PartialEq + core::fmt::Debug,
+    {
+        // Create a vector to store the serialized bytes
+        let mut serialized_data = vec![];
+
+        // Serialize the value into the vector using no compression
+        value
+            .serialize_with_mode(&mut serialized_data, Compress::No)
+            .unwrap();
+
+        // Deserialize the bytes back into a value of type `T`
+        let deserialized: T =
+            T::deserialize_with_mode(Cursor::new(serialized_data), Compress::No, Validate::Yes)
+                .unwrap();
+
+        // Assert that the original value and the deserialized value are equal
+        assert_eq!(
+            value, deserialized,
+            "Deserialized value does not match original"
+        );
+    }
+
+    #[test]
+    fn test_bool_serialization() {
+        // Test the serialization and deserialization of `true`
+        test_serialize_deserialize(true);
+        // Test the serialization and deserialization of `false`
+        test_serialize_deserialize(false);
+    }
+
+    #[test]
+    fn test_uint_serialization() {
+        // Test serialization and deserialization of `u8` values
+        test_serialize_deserialize(255u8);
+        // Test serialization and deserialization of `u16` values
+        test_serialize_deserialize(65535u16);
+        // Test serialization and deserialization of `u32` values
+        test_serialize_deserialize(4294967295u32);
+        // Test serialization and deserialization of `u64` values
+        test_serialize_deserialize(18446744073709551615u64);
+    }
+
+    #[test]
+    fn test_usize_serialization() {
+        // Test serialization and deserialization of `usize` values
+        test_serialize_deserialize(usize::MAX);
+    }
+
+    #[test]
+    fn test_biguint_serialization() {
+        // Test serialization and deserialization of a `BigUint` value
+        let value = BigUint::from(123456789u64);
+        test_serialize_deserialize(value);
+    }
+
+    #[test]
+    fn test_option_serialization() {
+        // Test serialization and deserialization of `Some` value
+        let some_value: Option<u8> = Some(100);
+        test_serialize_deserialize(some_value);
+
+        // Test serialization and deserialization of `None` value
+        let none_value: Option<u8> = None;
+        test_serialize_deserialize(none_value);
+    }
+
+    #[test]
+    fn test_btreemap_serialization() {
+        // Create a `BTreeMap` and add some key-value pairs
+        let mut map = BTreeMap::new();
+        map.insert(1u8, "one".to_string());
+        map.insert(2u8, "two".to_string());
+        map.insert(3u8, "three".to_string());
+
+        // Test serialization and deserialization of the `BTreeMap`
+        test_serialize_deserialize(map);
+    }
+
+    #[test]
+    fn test_btreeset_serialization() {
+        // Create a `BTreeSet` and add some values
+        let mut set = BTreeSet::new();
+        set.insert(1u8);
+        set.insert(2u8);
+        set.insert(3u8);
+
+        // Test serialization and deserialization of the `BTreeSet`
+        test_serialize_deserialize(set);
+    }
+
+    #[test]
+    fn test_bool_serialized_size() {
+        // `bool` should always have a serialized size of 1 byte
+        assert_eq!(true.serialized_size(Compress::No), 1);
+        assert_eq!(false.serialized_size(Compress::No), 1);
+    }
+
+    #[test]
+    fn test_u8_serialized_size() {
+        // `u8` should always have a serialized size of 1 byte
+        let value: u8 = 255;
+        assert_eq!(value.serialized_size(Compress::No), 1);
+    }
+
+    #[test]
+    fn test_u16_serialized_size() {
+        // `u16` should always have a serialized size of 2 bytes
+        let value: u16 = 65535;
+        assert_eq!(value.serialized_size(Compress::No), 2);
+    }
+
+    #[test]
+    fn test_u32_serialized_size() {
+        // `u32` should always have a serialized size of 4 bytes
+        let value: u32 = 4294967295;
+        assert_eq!(value.serialized_size(Compress::No), 4);
+    }
+
+    #[test]
+    fn test_u64_serialized_size() {
+        // `u64` should always have a serialized size of 8 bytes
+        let value: u64 = 18446744073709551615;
+        assert_eq!(value.serialized_size(Compress::No), 8);
+    }
+
+    #[test]
+    fn test_option_serialized_size() {
+        // `Option<u8>` should have a serialized size of:
+        // - 1 byte for `None`
+        // - 2 bytes for `Some` (1 byte for the flag + 1 byte for `u8`)
+        let some_value: Option<u8> = Some(100);
+        let none_value: Option<u8> = None;
+        assert_eq!(some_value.serialized_size(Compress::No), 2);
+        assert_eq!(none_value.serialized_size(Compress::No), 1);
+    }
+
+    #[test]
+    fn test_vec_serialized_size() {
+        // `Vec<u8>` serialized size should be 8 bytes for the length (u64) + 1 byte per element
+        let vec: Vec<u8> = vec![10, 20, 30];
+        assert_eq!(vec.serialized_size(Compress::No), 8 + 3);
     }
 }
