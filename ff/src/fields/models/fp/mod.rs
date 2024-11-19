@@ -308,12 +308,10 @@ impl<P: FpConfig<N>, const N: usize> Field for Fp<P, N> {
     }
 
     fn inverse_in_place(&mut self) -> Option<&mut Self> {
-        if let Some(inverse) = self.inverse() {
+        self.inverse().map(|inverse| {
             *self = inverse;
-            Some(self)
-        } else {
-            None
-        }
+            self
+        })
     }
 
     /// The Frobenius map has no effect in a prime field.
