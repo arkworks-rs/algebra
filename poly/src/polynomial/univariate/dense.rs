@@ -413,30 +413,41 @@ impl<'a, F: Field> AddAssign<(F, &'a DensePolynomial<F>)> for DensePolynomial<F>
 impl<'a, F: Field> AddAssign<&'a SparsePolynomial<F>> for DensePolynomial<F> {
     #[inline]
     fn add_assign(&mut self, other: &'a SparsePolynomial<F>) {
-        if self.is_zero() {
-            self.coeffs.truncate(0);
-            self.coeffs.resize(other.degree() + 1, F::zero());
+        // No need to modify self if other is zero
+        if other.is_zero() {
+            return;
+        }
 
+        // If the first polynomial is zero, just copy the second one.
+        if self.is_zero() {
+            self.coeffs.clear();
+            self.coeffs.resize(other.degree() + 1, F::zero());
             for (i, coeff) in other.iter() {
                 self.coeffs[*i] = *coeff;
             }
-        } else if other.is_zero() {
         } else {
-            // If `other` has higher degree than `self`, create a dense vector
-            // storing the upper coefficients of the addition
-            let mut upper_coeffs = match other.degree() > self.degree() {
-                true => vec![F::zero(); other.degree() - self.degree()],
-                false => Vec::new(),
-            };
+            // If neither polynomial is zero, we proceed to add the terms.
+            let lhs_degree = self.degree();
+
+            // Resize the coefficients of the left-hand side if necessary.
+            // This is done to ensure that the left-hand side has enough coefficients.
+            let max_degree = lhs_degree.max(other.degree());
+            self.coeffs.resize(max_degree + 1, F::zero());
+
+            // Add the coefficients of the right-hand side to the left-hand side.
+            // - For pow <= lhs_degree, add the coefficients.
+            // - For pow > lhs_degree, set the coefficients (no addition is needed).
             for (pow, coeff) in other.iter() {
-                if *pow <= self.degree() {
+                if *pow <= lhs_degree {
                     self.coeffs[*pow] += coeff;
                 } else {
-                    upper_coeffs[*pow - self.degree() - 1] = *coeff;
+                    self.coeffs[*pow] = *coeff;
                 }
             }
-            self.coeffs.extend(upper_coeffs);
         }
+
+        // Truncate leading zeros after addition
+        self.truncate_leading_zeros();
     }
 }
 
@@ -1137,5 +1148,141 @@ mod tests {
         // After addition, the result should be:
         // 4 + 6x + 5x^2 (coefficients [4, 6, 5])
         assert_eq!(poly1.coeffs, vec![Fr::from(4), Fr::from(6), Fr::from(5)]);
+    }
+
+    #[test]
+    fn test_add_assign_mixed_with_zero_self() {
+        // Create a zero DensePolynomial
+        let mut poly1 = DensePolynomial::<Fr> { coeffs: Vec::new() };
+
+        // Create a SparsePolynomial: 2 + 3x (coefficients [2, 3])
+        let poly2 =
+            SparsePolynomial::from_coefficients_slice(&[(0, Fr::from(2)), (1, Fr::from(3))]);
+
+        // Add poly2 to the zero polynomial
+        poly1 += &poly2;
+
+        // After addition, the result should be 2 + 3x
+        assert_eq!(poly1.coeffs, vec![Fr::from(2), Fr::from(3)]);
+    }
+
+    #[test]
+    fn test_add_assign_mixed_with_zero_other() {
+        // Create a DensePolynomial: 2 + 3x (coefficients [2, 3])
+        let mut poly1 = DensePolynomial {
+            coeffs: vec![Fr::from(2), Fr::from(3)],
+        };
+
+        // Create a zero SparsePolynomial
+        let poly2 = SparsePolynomial::from_coefficients_slice(&[]);
+
+        // Add poly2 to poly1
+        poly1 += &poly2;
+
+        // After addition, the result should still be 2 + 3x
+        assert_eq!(poly1.coeffs, vec![Fr::from(2), Fr::from(3)]);
+    }
+
+    #[test]
+    fn test_add_assign_mixed_with_different_degrees() {
+        // Create a DensePolynomial: 1 + 2x + 3x^2 (coefficients [1, 2, 3])
+        let mut poly1 = DensePolynomial {
+            coeffs: vec![Fr::from(1), Fr::from(2), Fr::from(3)],
+        };
+
+        // Create a SparsePolynomial: 4 + 5x (coefficients [4, 5])
+        let poly2 =
+            SparsePolynomial::from_coefficients_slice(&[(0, Fr::from(4)), (1, Fr::from(5))]);
+
+        // Add poly2 to poly1
+        poly1 += &poly2;
+
+        // After addition, the result should be 5 + 7x + 3x^2 (coefficients [5, 7, 3])
+        assert_eq!(poly1.coeffs, vec![Fr::from(5), Fr::from(7), Fr::from(3)]);
+    }
+
+    #[test]
+    fn test_add_assign_mixed_with_smaller_degree() {
+        // Create a DensePolynomial: 1 + 2x (degree 1)
+        let mut poly1 = DensePolynomial {
+            coeffs: vec![Fr::from(1), Fr::from(2)],
+        };
+
+        // Create a SparsePolynomial: 3 + 4x + 5x^2 (degree 2)
+        let poly2 = SparsePolynomial::from_coefficients_slice(&[
+            (0, Fr::from(3)),
+            (1, Fr::from(4)),
+            (2, Fr::from(5)),
+        ]);
+
+        // Add poly2 to poly1
+        poly1 += &poly2;
+
+        // After addition, the result should be: 4 + 6x + 5x^2 (coefficients [4, 6, 5])
+        assert_eq!(poly1.coeffs, vec![Fr::from(4), Fr::from(6), Fr::from(5)]);
+    }
+
+    #[test]
+    fn test_add_assign_mixed_with_equal_degrees() {
+        // Create a DensePolynomial: 1 + 2x + 3x^2 (coefficients [1, 2, 3])
+        let mut poly1 = DensePolynomial {
+            coeffs: vec![Fr::from(1), Fr::from(2), Fr::from(3)],
+        };
+
+        // Create a SparsePolynomial: 4 + 5x + 6x^2 (coefficients [4, 5, 6])
+        let poly2 = SparsePolynomial::from_coefficients_slice(&[
+            (0, Fr::from(4)),
+            (1, Fr::from(5)),
+            (2, Fr::from(6)),
+        ]);
+
+        // Add poly2 to poly1
+        poly1 += &poly2;
+
+        // After addition, the result should be 5 + 7x + 9x^2 (coefficients [5, 7, 9])
+        assert_eq!(poly1.coeffs, vec![Fr::from(5), Fr::from(7), Fr::from(9)]);
+    }
+
+    #[test]
+    fn test_add_assign_mixed_with_larger_degree() {
+        // Create a DensePolynomial: 1 + 2x + 3x^2 + 4x^3 (degree 3)
+        let mut poly1 = DensePolynomial {
+            coeffs: vec![Fr::from(1), Fr::from(2), Fr::from(3), Fr::from(4)],
+        };
+
+        // Create a SparsePolynomial: 3 + 4x (degree 1)
+        let poly2 =
+            SparsePolynomial::from_coefficients_slice(&[(0, Fr::from(3)), (1, Fr::from(4))]);
+
+        // Add poly2 to poly1
+        poly1 += &poly2;
+
+        // After addition, the result should be: 4 + 6x + 3x^2 + 4x^3 (coefficients [4, 6, 3, 4])
+        assert_eq!(
+            poly1.coeffs,
+            vec![Fr::from(4), Fr::from(6), Fr::from(3), Fr::from(4)]
+        );
+    }
+
+    #[test]
+    fn test_truncate_leading_zeros_after_addition() {
+        // Create a DensePolynomial: 1 + 2x + 3x^2 (coefficients [1, 2, 3])
+        let mut poly1 = DensePolynomial {
+            coeffs: vec![Fr::from(1), Fr::from(2), Fr::from(3)],
+        };
+
+        // Create a SparsePolynomial: -1 - 2x - 3x^2 (coefficients [-1, -2, -3])
+        let poly2 = SparsePolynomial::from_coefficients_slice(&[
+            (0, -Fr::from(1)),
+            (1, -Fr::from(2)),
+            (2, -Fr::from(3)),
+        ]);
+
+        // Add poly2 to poly1, which should result in a zero polynomial
+        poly1 += &poly2;
+
+        // The resulting polynomial should be zero, with an empty coefficient vector
+        assert!(poly1.is_zero());
+        assert_eq!(poly1.coeffs, vec![]);
     }
 }
