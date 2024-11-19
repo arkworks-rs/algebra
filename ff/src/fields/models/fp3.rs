@@ -1,5 +1,5 @@
 use super::cubic_extension::{CubicExtConfig, CubicExtField};
-use crate::fields::{CyclotomicMultSubgroup, MulAssign, PrimeField, SqrtPrecomputation};
+use crate::fields::{CyclotomicMultSubgroup, PrimeField, SqrtPrecomputation};
 use core::marker::PhantomData;
 
 /// Trait that specifies constants and methods for defining degree-three extension fields.
@@ -92,9 +92,9 @@ impl<P: Fp3Config> Fp3<P> {
     /// assert_eq!(ext_element.c2, c2 * base_field_element);
     /// ```
     pub fn mul_assign_by_fp(&mut self, value: &P::Fp) {
-        self.c0.mul_assign(value);
-        self.c1.mul_assign(value);
-        self.c2.mul_assign(value);
+        self.c0 *= value;
+        self.c1 *= value;
+        self.c2 *= value;
     }
 }
 

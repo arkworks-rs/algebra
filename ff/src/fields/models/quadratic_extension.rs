@@ -620,7 +620,7 @@ impl<'a, P: QuadExtConfig> Div<&'a QuadExtField<P>> for QuadExtField<P> {
 
     #[inline]
     fn div(mut self, other: &Self) -> Self {
-        self.mul_assign(&other.inverse().unwrap());
+        self *= &other.inverse().unwrap();
         self
     }
 }
@@ -675,7 +675,7 @@ impl<'a, P: QuadExtConfig> MulAssign<&'a Self> for QuadExtField<P> {
 impl<'a, P: QuadExtConfig> DivAssign<&'a Self> for QuadExtField<P> {
     #[inline]
     fn div_assign(&mut self, other: &Self) {
-        self.mul_assign(&other.inverse().unwrap());
+        *self *= &other.inverse().unwrap();
     }
 }
 

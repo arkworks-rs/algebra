@@ -493,7 +493,7 @@ impl<'a, 'b, F: Field> Sub<&'a SparsePolynomial<F>> for &'b DensePolynomial<F> {
     fn sub(self, other: &'a SparsePolynomial<F>) -> DensePolynomial<F> {
         if self.is_zero() {
             let result = other.clone();
-            result.neg().into()
+            (-result).into()
         } else if other.is_zero() {
             self.clone()
         } else {

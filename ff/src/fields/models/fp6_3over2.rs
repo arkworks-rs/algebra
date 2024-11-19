@@ -1,7 +1,5 @@
 use super::cubic_extension::{CubicExtConfig, CubicExtField};
-use crate::fields::{
-    AddAssign, CyclotomicMultSubgroup, Fp2, Fp2Config, MulAssign, SqrtPrecomputation, SubAssign,
-};
+use crate::fields::{CyclotomicMultSubgroup, Fp2, Fp2Config, SqrtPrecomputation};
 use core::marker::PhantomData;
 
 pub trait Fp6Config: 'static + Send + Sync + Copy {
@@ -75,32 +73,32 @@ impl<P: Fp6Config> Fp6<P> {
     }
 
     pub fn mul_by_fp2(&mut self, element: &Fp2<P::Fp2Config>) {
-        self.c0.mul_assign(element);
-        self.c1.mul_assign(element);
-        self.c2.mul_assign(element);
+        self.c0 *= element;
+        self.c1 *= element;
+        self.c2 *= element;
     }
 
     pub fn mul_by_1(&mut self, c1: &Fp2<P::Fp2Config>) {
         let mut b_b = self.c1;
-        b_b.mul_assign(c1);
+        b_b *= c1;
 
         let mut t1 = *c1;
         {
             let mut tmp = self.c1;
-            tmp.add_assign(&self.c2);
+            tmp += &self.c2;
 
-            t1.mul_assign(&tmp);
-            t1.sub_assign(&b_b);
+            t1 *= &tmp;
+            t1 -= &b_b;
             P::mul_fp2_by_nonresidue_in_place(&mut t1);
         }
 
         let mut t2 = *c1;
         {
             let mut tmp = self.c0;
-            tmp.add_assign(&self.c1);
+            tmp += &self.c1;
 
-            t2.mul_assign(&tmp);
-            t2.sub_assign(&b_b);
+            t2 *= &tmp;
+            t2 -= &b_b;
         }
 
         self.c0 = t1;
@@ -111,39 +109,39 @@ impl<P: Fp6Config> Fp6<P> {
     pub fn mul_by_01(&mut self, c0: &Fp2<P::Fp2Config>, c1: &Fp2<P::Fp2Config>) {
         let mut a_a = self.c0;
         let mut b_b = self.c1;
-        a_a.mul_assign(c0);
-        b_b.mul_assign(c1);
+        a_a *= c0;
+        b_b *= c1;
 
         let mut t1 = *c1;
         {
             let mut tmp = self.c1;
-            tmp.add_assign(&self.c2);
+            tmp += &self.c2;
 
-            t1.mul_assign(&tmp);
-            t1.sub_assign(&b_b);
+            t1 *= &tmp;
+            t1 -= &b_b;
             P::mul_fp2_by_nonresidue_in_place(&mut t1);
-            t1.add_assign(&a_a);
+            t1 += &a_a;
         }
 
         let mut t3 = *c0;
         {
             let mut tmp = self.c0;
-            tmp.add_assign(&self.c2);
+            tmp += &self.c2;
 
-            t3.mul_assign(&tmp);
-            t3.sub_assign(&a_a);
-            t3.add_assign(&b_b);
+            t3 *= &tmp;
+            t3 -= &a_a;
+            t3 += &b_b;
         }
 
         let mut t2 = *c0;
-        t2.add_assign(c1);
+        t2 += c1;
         {
             let mut tmp = self.c0;
-            tmp.add_assign(&self.c1);
+            tmp += &self.c1;
 
-            t2.mul_assign(&tmp);
-            t2.sub_assign(&a_a);
-            t2.sub_assign(&b_b);
+            t2 *= &tmp;
+            t2 -= &a_a;
+            t2 -= &b_b;
         }
 
         self.c0 = t1;

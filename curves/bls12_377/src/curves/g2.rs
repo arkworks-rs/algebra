@@ -8,7 +8,6 @@ use ark_ec::{
 };
 
 use ark_ff::{AdditiveGroup, BigInt, Field, MontFp, PrimeField, Zero};
-use ark_std::ops::Neg;
 
 use crate::*;
 
@@ -201,7 +200,7 @@ fn double_p_power_endomorphism(p: &Projective<Config>) -> Projective<Config> {
 
     res.x *= DOUBLE_P_POWER_ENDOMORPHISM_COEFF_0;
     // u^((p^2 - 1)/2) == -1
-    res.y = res.y.neg();
+    res.y = -res.y;
 
     res
 }
