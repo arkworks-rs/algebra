@@ -277,10 +277,102 @@ impl<const N: usize> R2Buffer<N> {
     }
 }
 
+#[cfg(test)]
 mod tests {
+    use super::*;
+
+    #[test]
+    fn test_const_for_macro() {
+        let mut array = [0usize; 4];
+        const_for!((i in 0..(array.len())) {
+            array[i] = i;
+        });
+        assert_eq!(array, [0, 1, 2, 3]);
+    }
+
+    #[test]
+    fn test_mul_buffer_new_and_get() {
+        type Buf = MulBuffer<4>;
+        let buf = Buf::new([1u64, 2u64, 3u64, 4u64], [5u64, 6u64, 7u64, 8u64]);
+
+        assert_eq!(*buf.get(0), 1);
+        assert_eq!(*buf.get(3), 4);
+        assert_eq!(*buf.get(4), 5);
+        assert_eq!(*buf.get(7), 8);
+    }
+
+    #[test]
+    fn test_mul_buffer_get_mut() {
+        type Buf = MulBuffer<4>;
+        let mut buf = Buf::zeroed();
+        *buf.get_mut(2) = 42;
+        assert_eq!(buf.b0[2], 42);
+
+        *buf.get_mut(5) = 99;
+        assert_eq!(buf.b1[1], 99);
+    }
+
+    #[test]
+    fn test_ser_buffer_zeroed_and_get() {
+        type Ser = SerBuffer<2>;
+        let buf = Ser::zeroed();
+        assert_eq!(*buf.get(0), 0);
+        assert_eq!(*buf.get(15), 0);
+        assert_eq!(*buf.get(16), 0); // Check the `last` byte
+    }
+
+    #[test]
+    fn test_ser_buffer_copy_from_u8_slice() {
+        type Ser = SerBuffer<2>;
+        let mut buf = Ser::zeroed();
+        let data: &[u8] = &[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17];
+        buf.copy_from_u8_slice(data);
+
+        assert_eq!(buf.buffers[0], [1, 2, 3, 4, 5, 6, 7, 8]);
+        assert_eq!(buf.buffers[1], [9, 10, 11, 12, 13, 14, 15, 16]);
+        assert_eq!(buf.last, 17);
+    }
+
+    #[test]
+    fn test_ser_buffer_copy_from_u64_slice() {
+        type Ser = SerBuffer<2>;
+        let mut buf = Ser::zeroed();
+        let data: &[u64; 2] = &[0x123456789ABCDEF0, 0x0FEDCBA987654321];
+        buf.copy_from_u64_slice(data);
+
+        assert_eq!(buf.buffers[0], 0x123456789ABCDEF0u64.to_le_bytes());
+        assert_eq!(buf.buffers[1], 0x0FEDCBA987654321u64.to_le_bytes());
+    }
+
+    #[test]
+    fn test_rbuffer_get_bit() {
+        // Create an instance of RBuffer
+        let buf = RBuffer([0x0, 0x8000000000000000], 0x1); // Second value has MSB set, and last has LSB set
+
+        assert!(!buf.get_bit(63)); // Check the 63rd bit of the first part
+        assert!(buf.get_bit(127)); // Check the MSB of the second part
+        assert!(buf.get_bit(128)); // Check the LSB of the third part
+    }
+
+    #[test]
+    fn test_ser_buffer_write_and_read() {
+        type Ser = SerBuffer<2>;
+        let buf = Ser::zeroed();
+        let mut data = vec![];
+        buf.write_up_to(&mut data, 16)
+            .expect("Failed to write buffer");
+
+        let mut new_buf = Ser::zeroed();
+        new_buf
+            .read_exact_up_to(&data[..], 16)
+            .expect("Failed to read buffer");
+
+        assert_eq!(buf.buffers, new_buf.buffers);
+        assert_eq!(buf.last, new_buf.last);
+    }
+
     #[test]
     fn test_mul_buffer_correctness() {
-        use super::*;
         type Buf = MulBuffer<10>;
         let temp = Buf::new([10u64; 10], [20u64; 10]);
 
@@ -296,7 +388,6 @@ mod tests {
     #[test]
     #[should_panic]
     fn test_mul_buffer_soundness() {
-        use super::*;
         type Buf = MulBuffer<10>;
         let temp = Buf::new([10u64; 10], [10u64; 10]);
 
