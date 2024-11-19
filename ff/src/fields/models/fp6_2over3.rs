@@ -3,10 +3,7 @@ use crate::{
     fields::{Fp3, Fp3Config},
     CyclotomicMultSubgroup, Zero,
 };
-use core::{
-    marker::PhantomData,
-    ops::{MulAssign, Not},
-};
+use core::{marker::PhantomData, ops::Not};
 
 pub trait Fp6Config: 'static + Send + Sync {
     type Fp3Config: Fp3Config;
@@ -72,9 +69,9 @@ impl<P: Fp6Config> Fp6<P> {
         let x4 = *c4;
 
         let mut tmp1 = x3;
-        tmp1.mul_assign(&<P::Fp3Config as Fp3Config>::NONRESIDUE);
+        tmp1 *= &<P::Fp3Config as Fp3Config>::NONRESIDUE;
         let mut tmp2 = x4;
-        tmp2.mul_assign(&<P::Fp3Config as Fp3Config>::NONRESIDUE);
+        tmp2 *= &<P::Fp3Config as Fp3Config>::NONRESIDUE;
 
         self.c0.c0 = x0 * &z0 + &(tmp1 * &z5) + &(tmp2 * &z4);
         self.c0.c1 = x0 * &z1 + &(x3 * &z3) + &(tmp2 * &z5);
@@ -102,9 +99,9 @@ impl<P: Fp6Config> Fp6<P> {
         let x4 = *c4;
 
         let mut tmp1 = x1;
-        tmp1.mul_assign(&<P::Fp3Config as Fp3Config>::NONRESIDUE);
+        tmp1 *= &<P::Fp3Config as Fp3Config>::NONRESIDUE;
         let mut tmp2 = x4;
-        tmp2.mul_assign(&<P::Fp3Config as Fp3Config>::NONRESIDUE);
+        tmp2 *= &<P::Fp3Config as Fp3Config>::NONRESIDUE;
 
         self.c0.c0 = x0 * &z0 + &(tmp1 * &z2) + &(tmp2 * &z4);
         self.c0.c1 = x0 * &z1 + &(x1 * &z0) + &(tmp2 * &z5);

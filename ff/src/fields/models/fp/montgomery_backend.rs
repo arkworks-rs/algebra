@@ -437,7 +437,7 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
                     result.0[i - 1] =
                         fa::mac_with_carry(result.0[i], k, Self::MODULUS.0[i], &mut carry2);
                 }
-                result.0[N - 1] = fa::adc_no_carry(carry_a, carry_b, &mut carry2);
+                result.0[N - 1] = fa::adc_no_carry(carry_a, carry_b, &carry2);
                 result
             });
             let mut result = Fp::new_unchecked(result);
@@ -465,7 +465,7 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
                                     temp.0[k] =
                                         fa::mac_with_carry(temp.0[k], a.0[j], b.0[k], &mut carry2);
                                 }
-                                carry = fa::adc_no_carry(carry, 0, &mut carry2);
+                                carry = fa::adc_no_carry(carry, 0, &carry2);
                                 (temp, carry)
                             },
                         );
@@ -477,7 +477,7 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
                             result.0[i - 1] =
                                 fa::mac_with_carry(temp.0[i], k, Self::MODULUS.0[i], &mut carry2);
                         }
-                        result.0[N - 1] = fa::adc_no_carry(carry, 0, &mut carry2);
+                        result.0[N - 1] = fa::adc_no_carry(carry, 0, &carry2);
                         result
                     });
                     let mut result = Fp::new_unchecked(result);

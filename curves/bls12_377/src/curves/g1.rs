@@ -12,7 +12,7 @@ use ark_ec::{
     CurveConfig,
 };
 use ark_ff::{AdditiveGroup, BigInt, Field, MontFp, PrimeField, Zero};
-use ark_std::{ops::Neg, One};
+use ark_std::One;
 
 use super::g1_swu_iso::{SwuIsoConfig, ISOGENY_MAP_TO_G1};
 use crate::{Fq, Fr};
@@ -165,7 +165,7 @@ impl TECurveConfig for Config {
     /// Multiplication by `a` is multiply by `-1`.
     #[inline(always)]
     fn mul_by_a(elem: Self::BaseField) -> Self::BaseField {
-        elem.neg()
+        -elem
     }
 }
 

@@ -88,17 +88,15 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
     }
 
     fn fft_helper_in_place<T: DomainCoeff<F>>(&self, x_s: &mut [T], ord: FFTOrder) {
-        use FFTOrder::*;
-
         let log_len = ark_std::log2(x_s.len());
 
-        if ord == OI {
+        if ord == FFTOrder::OI {
             self.oi_helper(x_s, self.group_gen, 1);
         } else {
             self.io_helper(x_s, self.group_gen);
         }
 
-        if ord == II {
+        if ord == FFTOrder::II {
             derange(x_s, log_len);
         }
     }
@@ -107,15 +105,13 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
     // The results here must all be divided by |x_s|,
     // which is left up to the caller to do.
     fn ifft_helper_in_place<T: DomainCoeff<F>>(&self, x_s: &mut [T], ord: FFTOrder) {
-        use FFTOrder::*;
-
         let log_len = ark_std::log2(x_s.len());
 
-        if ord == II {
+        if ord == FFTOrder::II {
             derange(x_s, log_len);
         }
 
-        if ord == IO {
+        if ord == FFTOrder::IO {
             self.io_helper(x_s, self.group_gen_inv);
         } else {
             self.oi_helper(x_s, self.group_gen_inv, 1);

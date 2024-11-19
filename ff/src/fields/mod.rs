@@ -96,7 +96,7 @@ pub trait AdditiveGroup:
     }
     /// Doubles `self` in place.
     fn double_in_place(&mut self) -> &mut Self {
-        self.add_assign(*self);
+        *self += *self;
         self
     }
 
@@ -389,7 +389,7 @@ fn serial_batch_inversion_and_mul<F: Field>(v: &mut [F], coeff: &F) {
     let mut prod = Vec::with_capacity(v.len());
     let mut tmp = F::one();
     for f in v.iter().filter(|f| !f.is_zero()) {
-        tmp.mul_assign(f);
+        tmp *= f;
         prod.push(tmp);
     }
 
