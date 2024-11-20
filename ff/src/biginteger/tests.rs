@@ -114,9 +114,9 @@ fn biginteger_shr<B: BigInteger>() {
     // Test null bits
     let a = B::rand(&mut rng);
     let b = a >> 3;
-    assert!(!b.get_bit(B::NUM_LIMBS * 64 - 1));
-    assert!(!b.get_bit(B::NUM_LIMBS * 64 - 2));
-    assert!(!b.get_bit(B::NUM_LIMBS * 64 - 3));
+    assert_eq!(b.get_bit(B::NUM_LIMBS * 64 - 1), false);
+    assert_eq!(b.get_bit(B::NUM_LIMBS * 64 - 2), false);
+    assert_eq!(b.get_bit(B::NUM_LIMBS * 64 - 3), false);
 }
 
 fn biginteger_shl<B: BigInteger>() {
