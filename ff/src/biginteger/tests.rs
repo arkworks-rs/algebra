@@ -23,7 +23,7 @@ fn biginteger_arithmetic_test<B: BigInteger>(a: B, b: B, zero: B, max: B) {
     let mut a0_sub = a;
     let borrow = a0_sub.sub_with_borrow(&zero);
     assert_eq!(a0_sub, a);
-    assert!(!borrow);
+    assert_eq!(borrow, false);
 
     // a - a = 0
     let mut aa_sub = a;
