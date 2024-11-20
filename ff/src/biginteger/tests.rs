@@ -135,9 +135,9 @@ fn biginteger_shl<B: BigInteger>() {
     // Test null bits
     let a = B::rand(&mut rng);
     let b = a << 3;
-    assert!(!b.get_bit(0));
-    assert!(!b.get_bit(1));
-    assert!(!b.get_bit(2));
+    assert_eq!(b.get_bit(0), false);
+    assert_eq!(b.get_bit(1), false);
+    assert_eq!(b.get_bit(2), false);
 }
 
 // Test for BigInt's bitwise operations
