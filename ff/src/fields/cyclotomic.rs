@@ -1,5 +1,6 @@
 /// Fields that have a cyclotomic multiplicative subgroup, and which can
 /// leverage efficient inversion and squaring algorithms for elements in this subgroup.
+///
 /// If a field has multiplicative order p^d - 1, the cyclotomic subgroups refer to subgroups of order φ_n(p),
 /// for any n < d, where φ_n is the [n-th cyclotomic polynomial](https://en.wikipedia.org/wiki/Cyclotomic_polynomial).
 ///

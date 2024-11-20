@@ -80,17 +80,14 @@ impl<F: Field> DensePolynomial<F> {
         // 2) Do polynomial evaluation via horner's method for the thread's coefficients
         // 3) Scale the result point^{thread coefficient start index}
         // Then obtain the final polynomial evaluation by summing each threads result.
-        let result = self
-            .coeffs
+        self.coeffs
             .par_chunks(num_elem_per_thread)
             .enumerate()
             .map(|(i, chunk)| {
-                let mut thread_result = Self::horner_evaluate(&chunk, point);
-                thread_result *= point.pow(&[(i * num_elem_per_thread) as u64]);
-                thread_result
+                Self::horner_evaluate(&chunk, point)
+                    * point.pow(&[(i * num_elem_per_thread) as u64])
             })
-            .sum();
-        result
+            .sum()
     }
 }
 
@@ -285,7 +282,7 @@ impl<F: Field> DerefMut for DensePolynomial<F> {
     }
 }
 
-impl<'a, 'b, F: Field> Add<&'a DensePolynomial<F>> for &'b DensePolynomial<F> {
+impl<'a, F: Field> Add<&'a DensePolynomial<F>> for &DensePolynomial<F> {
     type Output = DensePolynomial<F>;
 
     fn add(self, other: &'a DensePolynomial<F>) -> DensePolynomial<F> {
@@ -319,7 +316,7 @@ impl<'a, 'b, F: Field> Add<&'a DensePolynomial<F>> for &'b DensePolynomial<F> {
     }
 }
 
-impl<'a, 'b, F: Field> Add<&'a SparsePolynomial<F>> for &'b DensePolynomial<F> {
+impl<'a, F: Field> Add<&'a SparsePolynomial<F>> for &DensePolynomial<F> {
     type Output = DensePolynomial<F>;
 
     #[inline]
@@ -463,7 +460,7 @@ impl<F: Field> Neg for DensePolynomial<F> {
     }
 }
 
-impl<'a, 'b, F: Field> Sub<&'a DensePolynomial<F>> for &'b DensePolynomial<F> {
+impl<'a, F: Field> Sub<&'a DensePolynomial<F>> for &DensePolynomial<F> {
     type Output = DensePolynomial<F>;
 
     #[inline]
@@ -497,7 +494,7 @@ impl<'a, 'b, F: Field> Sub<&'a DensePolynomial<F>> for &'b DensePolynomial<F> {
     }
 }
 
-impl<'a, 'b, F: Field> Sub<&'a SparsePolynomial<F>> for &'b DensePolynomial<F> {
+impl<'a, F: Field> Sub<&'a SparsePolynomial<F>> for &DensePolynomial<F> {
     type Output = DensePolynomial<F>;
 
     #[inline]
@@ -583,7 +580,7 @@ impl<'a, F: Field> SubAssign<&'a SparsePolynomial<F>> for DensePolynomial<F> {
     }
 }
 
-impl<'a, 'b, F: Field> Div<&'a DensePolynomial<F>> for &'b DensePolynomial<F> {
+impl<'a, F: Field> Div<&'a DensePolynomial<F>> for &DensePolynomial<F> {
     type Output = DensePolynomial<F>;
 
     #[inline]
@@ -594,7 +591,7 @@ impl<'a, 'b, F: Field> Div<&'a DensePolynomial<F>> for &'b DensePolynomial<F> {
     }
 }
 
-impl<'b, F: Field> Mul<F> for &'b DensePolynomial<F> {
+impl<F: Field> Mul<F> for &DensePolynomial<F> {
     type Output = DensePolynomial<F>;
 
     #[inline]
@@ -621,7 +618,7 @@ impl<F: Field> Mul<F> for DensePolynomial<F> {
 }
 
 /// Performs O(nlogn) multiplication of polynomials if F is smooth.
-impl<'a, 'b, F: FftField> Mul<&'a DensePolynomial<F>> for &'b DensePolynomial<F> {
+impl<'a, F: FftField> Mul<&'a DensePolynomial<F>> for &DensePolynomial<F> {
     type Output = DensePolynomial<F>;
 
     #[inline]
@@ -902,7 +899,7 @@ mod tests {
             let point: Fr = Fr::rand(rng);
             let mut total = Fr::zero();
             for (i, coeff) in p.coeffs.iter().enumerate() {
-                total += &(point.pow(&[i as u64]) * coeff);
+                total += &(point.pow([i as u64]) * coeff);
             }
             assert_eq!(p.evaluate(&point), total);
         }

@@ -24,6 +24,7 @@ pub trait HashToField<F: Field>: Sized {
 
 /// This field hasher constructs a Hash-To-Field based on a fixed-output hash function,
 /// like SHA2, SHA3 or Blake2.
+///
 /// The implementation aims to follow the specification in [Hashing to Elliptic Curves (draft)](https://tools.ietf.org/pdf/draft-irtf-cfrg-hash-to-curve-13.pdf).
 ///
 /// # Examples

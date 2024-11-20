@@ -557,8 +557,9 @@ pub const fn sqrt_precomputation<const N: usize, T: MontConfig<N>>(
     }
 }
 
-/// Construct a [`Fp<MontBackend<T, N>, N>`] element from a literal string. This
-/// should be used primarily for constructing constant field elements; in a
+/// Construct a [`Fp<MontBackend<T, N>, N>`] element from a literal string.
+///
+/// This should be used primarily for constructing constant field elements; in a
 /// non-const context, [`Fp::from_str`](`ark_std::str::FromStr::from_str`) is
 /// preferable.
 ///

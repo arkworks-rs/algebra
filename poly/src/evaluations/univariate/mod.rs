@@ -62,9 +62,7 @@ impl<F: FftField, D: EvaluationDomain<F>> Index<usize> for Evaluations<F, D> {
     }
 }
 
-impl<'a, 'b, F: FftField, D: EvaluationDomain<F>> Mul<&'a Evaluations<F, D>>
-    for &'b Evaluations<F, D>
-{
+impl<'a, F: FftField, D: EvaluationDomain<F>> Mul<&'a Evaluations<F, D>> for &Evaluations<F, D> {
     type Output = Evaluations<F, D>;
 
     #[inline]
@@ -87,7 +85,7 @@ impl<'a, F: FftField, D: EvaluationDomain<F>> MulAssign<&'a Evaluations<F, D>>
     }
 }
 
-impl<'a, F: FftField, D: EvaluationDomain<F>> Mul<F> for &'a Evaluations<F, D> {
+impl<F: FftField, D: EvaluationDomain<F>> Mul<F> for &Evaluations<F, D> {
     type Output = Evaluations<F, D>;
 
     #[inline]
@@ -100,9 +98,7 @@ impl<'a, F: FftField, D: EvaluationDomain<F>> Mul<F> for &'a Evaluations<F, D> {
     }
 }
 
-impl<'a, 'b, F: FftField, D: EvaluationDomain<F>> Add<&'a Evaluations<F, D>>
-    for &'b Evaluations<F, D>
-{
+impl<'a, F: FftField, D: EvaluationDomain<F>> Add<&'a Evaluations<F, D>> for &Evaluations<F, D> {
     type Output = Evaluations<F, D>;
 
     #[inline]
@@ -125,9 +121,7 @@ impl<'a, F: FftField, D: EvaluationDomain<F>> AddAssign<&'a Evaluations<F, D>>
     }
 }
 
-impl<'a, 'b, F: FftField, D: EvaluationDomain<F>> Sub<&'a Evaluations<F, D>>
-    for &'b Evaluations<F, D>
-{
+impl<'a, F: FftField, D: EvaluationDomain<F>> Sub<&'a Evaluations<F, D>> for &Evaluations<F, D> {
     type Output = Evaluations<F, D>;
 
     #[inline]
@@ -150,9 +144,7 @@ impl<'a, F: FftField, D: EvaluationDomain<F>> SubAssign<&'a Evaluations<F, D>>
     }
 }
 
-impl<'a, 'b, F: FftField, D: EvaluationDomain<F>> Div<&'a Evaluations<F, D>>
-    for &'b Evaluations<F, D>
-{
+impl<'a, F: FftField, D: EvaluationDomain<F>> Div<&'a Evaluations<F, D>> for &Evaluations<F, D> {
     type Output = Evaluations<F, D>;
 
     #[inline]

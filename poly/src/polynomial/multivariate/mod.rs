@@ -140,6 +140,7 @@ impl PartialOrd for SparseTerm {
     /// Sort by total degree. If total degree is equal then ordering
     /// is given by exponent weight in lower-numbered variables
     /// ie. `x_1 > x_2`, `x_1^2 > x_1 * x_2`, etc.
+    #[allow(clippy::non_canonical_partial_ord_impl)]
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         if self.degree() != other.degree() {
             Some(self.degree().cmp(&other.degree()))

@@ -1,5 +1,6 @@
-/// Represents metadata to be appended to an object's serialization. For
-/// example, when serializing elliptic curve points, one can
+/// Represents metadata to be appended to an object's serialization.
+///
+/// For example, when serializing elliptic curve points, one can
 /// use a `Flag` to represent whether the serialization is the point
 /// at infinity, or whether the `y` coordinate is positive or not.
 /// These bits will be appended to the end of the point's serialization,

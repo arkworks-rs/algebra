@@ -20,6 +20,7 @@ use ark_std::{
 };
 
 /// Defines a domain over which finite field (I)FFTs can be performed.
+///
 /// Generally tries to build a radix-2 domain and falls back to a mixed-radix
 /// domain if the radix-2 multiplicative subgroup is too small.
 ///
@@ -159,7 +160,7 @@ impl<F: FftField> EvaluationDomain<F> for GeneralEvaluationDomain<F> {
 
     #[inline]
     fn log_size_of_group(&self) -> u64 {
-        map!(self, log_size_of_group) as u64
+        map!(self, log_size_of_group)
     }
 
     #[inline]

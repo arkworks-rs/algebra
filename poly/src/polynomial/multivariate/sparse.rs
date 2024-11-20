@@ -176,7 +176,7 @@ impl<F: Field, T: Term> Add for SparsePolynomial<F, T> {
     }
 }
 
-impl<'a, 'b, F: Field, T: Term> Add<&'a SparsePolynomial<F, T>> for &'b SparsePolynomial<F, T> {
+impl<'a, F: Field, T: Term> Add<&'a SparsePolynomial<F, T>> for &SparsePolynomial<F, T> {
     type Output = SparsePolynomial<F, T>;
 
     fn add(self, other: &'a SparsePolynomial<F, T>) -> SparsePolynomial<F, T> {
@@ -248,7 +248,7 @@ impl<F: Field, T: Term> Neg for SparsePolynomial<F, T> {
     }
 }
 
-impl<'a, 'b, F: Field, T: Term> Sub<&'a SparsePolynomial<F, T>> for &'b SparsePolynomial<F, T> {
+impl<'a, F: Field, T: Term> Sub<&'a SparsePolynomial<F, T>> for &SparsePolynomial<F, T> {
     type Output = SparsePolynomial<F, T>;
 
     #[inline]
@@ -308,14 +308,13 @@ mod tests {
         random_terms.push((Fr::rand(rng), SparseTerm::new(vec![])));
         for _ in 1..num_terms {
             let term = (0..l)
-                .map(|i| {
+                .filter_map(|i| {
                     if rng.gen_bool(0.5) {
                         Some((i, rng.gen_range(1..(d + 1))))
                     } else {
                         None
                     }
                 })
-                .flatten()
                 .collect();
             let coeff = Fr::rand(rng);
             random_terms.push((coeff, SparseTerm::new(term)));
@@ -389,7 +388,7 @@ mod tests {
                 let mut summand = *coeff;
                 for var in term.iter() {
                     let eval = point.get(var.0).unwrap();
-                    summand *= eval.pow(&[var.1 as u64]);
+                    summand *= eval.pow([var.1 as u64]);
                 }
                 total += summand;
             }

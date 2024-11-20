@@ -23,13 +23,20 @@ authors = [ "arkworks contributors" ]
 homepage = "https://arkworks.rs"
 repository = "https://github.com/arkworks-rs/algebra"
 categories = ["cryptography"]
-include = ["Cargo.toml", "src", "README.md", "LICENSE-APACHE", "LICENSE-MIT", "doc/katex-header.html"]
+include = [
+    "Cargo.toml",
+    "src",
+    "README.md",
+    "LICENSE-APACHE",
+    "LICENSE-MIT",
+    "doc/katex-header.html",
+]
 license = "MIT OR Apache-2.0"
 edition = "2021"
 rust-version = "1.75"
 
 [workspace.metadata.docs.rs]
-rustdoc-args = [ "--html-in-header katex-header.html" ]
+rustdoc-args = ["--html-in-header katex-header.html"]
 
 [workspace.metadata.release]
 dependent-version = "fix"
@@ -56,7 +63,10 @@ arrayvec = { version = "0.7", default-features = false }
 criterion = "0.5.0"
 educe = "0.6.0"
 digest = { version = "0.10", default-features = false }
-hashbrown = { version = "0.15", default-features = false, features = ["inline-more", "allocator-api2"] }
+hashbrown = { version = "0.15", default-features = false, features = [
+    "inline-more",
+    "allocator-api2",
+] }
 hex = "0.4"
 itertools = { version = "0.13", default-features = false }
 libtest-mimic = "0.8.1"

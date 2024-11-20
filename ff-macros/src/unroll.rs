@@ -60,7 +60,7 @@ use syn::{
 
 /// Routine to unroll for loops within a block
 pub(crate) fn unroll_in_block(block: &Block, unroll_by: usize) -> Block {
-    let &Block {
+    let Block {
         ref brace_token,
         ref stmts,
     } = block;

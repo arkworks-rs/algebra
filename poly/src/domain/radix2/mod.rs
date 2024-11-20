@@ -1,7 +1,8 @@
 //! This module defines `Radix2EvaluationDomain`, an `EvaluationDomain`
 //! for performing various kinds of polynomial arithmetic on top of
-//! fields that are FFT-friendly. `Radix2EvaluationDomain` supports
-//! FFTs of size at most `2^F::TWO_ADICITY`.
+//! fields that are FFT-friendly.
+//!
+//! `Radix2EvaluationDomain` supports FFTs of size at most `2^F::TWO_ADICITY`.
 
 pub use crate::domain::utils::Elements;
 use crate::domain::{DomainCoeff, EvaluationDomain};

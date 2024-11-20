@@ -15,6 +15,7 @@ type BaseField<MP> = <MP as CurveConfig>::BaseField;
 
 /// [`IsogenyMap`] defines an isogeny between curves of
 /// form `Phi(x, y) := (a(x), b(x)*y).
+///
 /// The `x` coordinate of the codomain point only depends on the
 /// `x`-coordinate of the domain point, and the
 /// `y`-coordinate of the codomain point is a multiple of the `y`-coordinate of the domain point.
@@ -39,7 +40,7 @@ pub struct IsogenyMap<
     pub y_map_denominator: &'a [BaseField<Codomain>],
 }
 
-impl<'a, Domain, Codomain> IsogenyMap<'a, Domain, Codomain>
+impl<Domain, Codomain> IsogenyMap<'_, Domain, Codomain>
 where
     Domain: SWCurveConfig,
     Codomain: SWCurveConfig<BaseField = BaseField<Domain>>,
@@ -64,10 +65,14 @@ where
     }
 }
 
-/// Trait defining the necessary parameters for the WB hash-to-curve method
-/// for the curves of Weierstrass form of:
-/// of y^2 = x^3 + a*x + b where b != 0 but `a` can be zero like BLS-381 curve.
-/// From [\[WB2019\]]
+/// Trait defining the necessary parameters for the WB hash-to-curve method.
+///
+/// This method is used for curves in Weierstrass form defined by:
+///
+/// `y^2 = x^3 + a*x + b` where `b != 0`, but `a` can be zero,
+/// as seen in curves like BLS-381.
+///
+/// For more information, refer to [WB2019].
 ///
 /// - [\[WB2019\]] <http://dx.doi.org/10.46586/tches.v2019.i4.154-179>
 pub trait WBConfig: SWCurveConfig + Sized {

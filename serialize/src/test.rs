@@ -129,7 +129,7 @@ fn test_array() {
 #[test]
 fn test_array_bad_input() {
     // Does not panic on invalid data:
-    let serialized = vec![0u8; 1];
+    let serialized = [0u8; 1];
     assert!(<[u8; 2]>::deserialize_compressed(&serialized[..]).is_err());
 }
 
@@ -295,13 +295,7 @@ fn test_serialize_macro() {
 
     // Make sure the serialization macro matches just serializing them as a tuple
     let mut tuple_bytes = Vec::new();
-    (
-        val1.clone(),
-        val2.clone(),
-        val3.clone(),
-        val4.clone(),
-        val5.clone(),
-    )
+    (val1.clone(), val2, val3, val4, val5.clone())
         .serialize_uncompressed(&mut tuple_bytes)
         .unwrap();
     let macro_bytes = serialize_to_vec![val1, val2, val3, val4, val5].unwrap();

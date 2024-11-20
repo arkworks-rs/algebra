@@ -65,7 +65,7 @@ pub trait BW6Config: 'static + Eq + Sized {
 
     // Computes the exponent of an element of the cyclotomic subgroup by the curve seed
     fn exp_by_x(f: &Fp6<Self::Fp6Config>) -> Fp6<Self::Fp6Config> {
-        Self::cyclotomic_exp_signed(f, &Self::X, Self::X_IS_NEGATIVE)
+        Self::cyclotomic_exp_signed(f, Self::X, Self::X_IS_NEGATIVE)
     }
 
     fn final_exponentiation_hard_part(f: &Fp6<Self::Fp6Config>) -> Fp6<Self::Fp6Config> {
@@ -74,7 +74,9 @@ pub trait BW6Config: 'static + Eq + Sized {
 
     fn final_exponentiation(f: MillerLoopOutput<BW6<Self>>) -> Option<PairingOutput<BW6<Self>>> {
         let easy_part = BW6::<Self>::final_exponentiation_easy_part(f.0);
-        Some(Self::final_exponentiation_hard_part(&easy_part)).map(PairingOutput)
+        Some(PairingOutput(Self::final_exponentiation_hard_part(
+            &easy_part,
+        )))
     }
 
     fn multi_miller_loop(
@@ -219,7 +221,7 @@ impl<P: BW6Config> BW6<P> {
     }
 
     fn exp_by_x_minus_1_div_3(f: &Fp6<P::Fp6Config>) -> Fp6<P::Fp6Config> {
-        P::cyclotomic_exp_signed(f, &P::X_MINUS_1_DIV_3, P::X_IS_NEGATIVE)
+        P::cyclotomic_exp_signed(f, P::X_MINUS_1_DIV_3, P::X_IS_NEGATIVE)
     }
 
     // f^[(p^3-1)(p+1)]
@@ -285,9 +287,9 @@ impl<P: BW6Config> BW6<P> {
             // d1 = (ht-hy)//2
             let d1 = (P::H_T - P::H_Y) / 2;
             // H = F**d1 * E
-            let h = P::cyclotomic_exp_signed(&f, &[d1 as u64], d1 < 0) * &e;
+            let h = P::cyclotomic_exp_signed(&f, [d1 as u64], d1 < 0) * &e;
             // H = H**2 * H * B * G**d2
-            let h = h.square() * &h * &b * g.cyclotomic_exp(&[d2]);
+            let h = h.square() * &h * &b * g.cyclotomic_exp([d2]);
             // return A * H
             a * &h
         } else {
@@ -325,9 +327,9 @@ impl<P: BW6Config> BW6<P> {
             // d1 = (ht+hy)//2
             let d1 = (P::H_T + P::H_Y) / 2;
             // J = H**d1 * E
-            let j = P::cyclotomic_exp_signed(&h, &[d1 as u64], d1 < 0) * &e;
+            let j = P::cyclotomic_exp_signed(&h, [d1 as u64], d1 < 0) * &e;
             // K = J**2 * J * B * I**d2
-            let k = j.square() * &j * &b * i.cyclotomic_exp(&[d2]);
+            let k = j.square() * &j * &b * i.cyclotomic_exp([d2]);
             // return A * K
             a * &k
         }
