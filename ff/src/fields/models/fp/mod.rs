@@ -990,7 +990,7 @@ impl<P: FpConfig<N>, const N: usize> zeroize::Zeroize for Fp<P, N> {
 impl<P: FpConfig<N>, const N: usize> From<num_bigint::BigUint> for Fp<P, N> {
     #[inline]
     fn from(val: num_bigint::BigUint) -> Fp<P, N> {
-        Fp::<P, N>::from_le_bytes_mod_order(&val.to_bytes_le())
+        Fp::from_le_bytes_mod_order(&val.to_bytes_le())
     }
 }
 

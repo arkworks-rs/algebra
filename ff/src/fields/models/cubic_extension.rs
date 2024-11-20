@@ -701,7 +701,7 @@ mod cube_ext_tests {
             if d == ext_degree {
                 continue;
             }
-            let mut random_coeffs = Vec::<Fq>::new();
+            let mut random_coeffs = Vec::new();
             for _ in 0..d {
                 random_coeffs.push(Fq::rand(&mut test_rng()));
             }
@@ -712,7 +712,7 @@ mod cube_ext_tests {
         // We test consistency against Fq2::new
         let number_of_tests = 10;
         for _ in 0..number_of_tests {
-            let mut random_coeffs = Vec::<Fq>::new();
+            let mut random_coeffs = Vec::new();
             for _ in 0..ext_degree {
                 random_coeffs.push(Fq::rand(&mut test_rng()));
             }

@@ -52,13 +52,13 @@ impl<P: MNT6Config> From<G2Affine<P>> for G2Prepared<P> {
 
         let neg_g = -g;
         for bit in P::ATE_LOOP_COUNT.iter().skip(1) {
-            let (r2, coeff) = MNT6::<P>::doubling_for_flipped_miller_loop(&r);
+            let (r2, coeff) = MNT6::doubling_for_flipped_miller_loop(&r);
             g_prep.double_coefficients.push(coeff);
             r = r2;
 
             let (r_temp, add_coeff) = match bit {
-                1 => MNT6::<P>::mixed_addition_for_flipper_miller_loop(&g.x, &g.y, &r),
-                -1 => MNT6::<P>::mixed_addition_for_flipper_miller_loop(&neg_g.x, &neg_g.y, &r),
+                1 => MNT6::mixed_addition_for_flipper_miller_loop(&g.x, &g.y, &r),
+                -1 => MNT6::mixed_addition_for_flipper_miller_loop(&neg_g.x, &neg_g.y, &r),
                 0 => continue,
                 _ => unreachable!(),
             };
@@ -75,7 +75,7 @@ impl<P: MNT6Config> From<G2Affine<P>> for G2Prepared<P> {
             let minus_r_y = -r.y * &rz3_inv;
 
             let add_result =
-                MNT6::<P>::mixed_addition_for_flipper_miller_loop(&minus_r_x, &minus_r_y, &r);
+                MNT6::mixed_addition_for_flipper_miller_loop(&minus_r_x, &minus_r_y, &r);
             g_prep.addition_coefficients.push(add_result.1);
         }
 

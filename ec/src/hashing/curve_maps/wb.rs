@@ -105,7 +105,7 @@ impl<P: WBConfig> MapToCurve<Projective<P>> for WBMap<P> {
         element: <Affine<P> as AffineRepr>::BaseField,
     ) -> Result<Affine<P>, HashToCurveError> {
         // first we need to map the field point to the isogenous curve
-        let point_on_isogenious_curve = SWUMap::<P::IsogenousCurve>::map_to_curve(element).unwrap();
+        let point_on_isogenious_curve = SWUMap::map_to_curve(element).unwrap();
         P::ISOGENY_MAP.apply(point_on_isogenious_curve)
     }
 }

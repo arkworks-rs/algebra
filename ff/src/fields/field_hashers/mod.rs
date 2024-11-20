@@ -80,7 +80,7 @@ impl<F: Field, H: FixedOutputReset + Default + Clone, const SEC_PARAM: usize> Ha
             };
             F::from_base_prime_field_elems((0..m).map(base_prime_field_elem)).unwrap()
         };
-        ark_std::array::from_fn::<F, N, _>(cb)
+        ark_std::array::from_fn(cb)
     }
 }
 

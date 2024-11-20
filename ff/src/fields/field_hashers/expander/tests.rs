@@ -34,7 +34,7 @@ pub struct TestExpander {
 #[test]
 fn expander() {
     let args = Arguments::from_args();
-    let mut tests = Vec::<Trial>::new();
+    let mut tests = Vec::new();
 
     for filename in read_dir("./src/fields/field_hashers/expander/testdata").unwrap() {
         let ff = filename.unwrap();

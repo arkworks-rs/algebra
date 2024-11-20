@@ -65,7 +65,7 @@ impl<const N: usize> CanonicalDeserialize for BigInt<N> {
         compress: Compress,
         validate: Validate,
     ) -> Result<Self, SerializationError> {
-        Ok(BigInt::<N>(<[u64; N]>::deserialize_with_mode(
+        Ok(BigInt(<[u64; N]>::deserialize_with_mode(
             reader, compress, validate,
         )?))
     }
@@ -279,15 +279,14 @@ impl<const N: usize> BigInt<N> {
     /// Computes the Montgomery R constant modulo `self`.
     #[doc(hidden)]
     pub const fn montgomery_r(&self) -> Self {
-        let two_pow_n_times_64 = crate::const_helpers::RBuffer::<N>([0u64; N], 1);
+        let two_pow_n_times_64 = crate::const_helpers::RBuffer([0u64; N], 1);
         const_modulo!(two_pow_n_times_64, self)
     }
 
     /// Computes the Montgomery R2 constant modulo `self`.
     #[doc(hidden)]
     pub const fn montgomery_r2(&self) -> Self {
-        let two_pow_n_times_64_square =
-            crate::const_helpers::R2Buffer::<N>([0u64; N], [0u64; N], 1);
+        let two_pow_n_times_64_square = crate::const_helpers::R2Buffer([0u64; N], [0u64; N], 1);
         const_modulo!(two_pow_n_times_64_square, self)
     }
 }
@@ -386,7 +385,7 @@ impl<const N: usize> BigInteger for BigInt<N> {
             return (zero, zero);
         }
 
-        let mut r = crate::const_helpers::MulBuffer::<N>::zeroed();
+        let mut r = crate::const_helpers::MulBuffer::zeroed();
 
         let mut carry = 0;
 
@@ -1231,7 +1230,7 @@ pub trait BigInteger:
     /// assert_eq!(arr, vec);
     /// ```
     fn to_bits_be(&self) -> Vec<bool> {
-        BitIteratorBE::new(self).collect::<Vec<_>>()
+        BitIteratorBE::new(self).collect()
     }
 
     /// Returns the bit representation in a little endian boolean array,
@@ -1248,7 +1247,7 @@ pub trait BigInteger:
     /// assert_eq!(arr, vec);
     /// ```
     fn to_bits_le(&self) -> Vec<bool> {
-        BitIteratorLE::new(self).collect::<Vec<_>>()
+        BitIteratorLE::new(self).collect()
     }
 
     /// Returns the byte representation in a big endian byte array,
