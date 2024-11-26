@@ -13,6 +13,7 @@ pub mod multivariate;
 pub mod univariate;
 
 /// Describes the common interface for univariate and multivariate polynomials
+#[allow(clippy::trait_duplication_in_bounds)]
 pub trait Polynomial<F: Field>:
     Sized
     + Clone
@@ -26,6 +27,7 @@ pub trait Polynomial<F: Field>:
     + CanonicalSerialize
     + CanonicalDeserialize
     + for<'a> AddAssign<&'a Self>
+    + for<'a> AddAssign<(F, &'a Self)>
     + for<'a> SubAssign<&'a Self>
 {
     /// The type of evaluation points for this polynomial.
