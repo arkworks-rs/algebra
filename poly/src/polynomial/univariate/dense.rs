@@ -321,30 +321,24 @@ impl<'a, F: Field> Add<&'a SparsePolynomial<F>> for &DensePolynomial<F> {
 
     #[inline]
     fn add(self, other: &'a SparsePolynomial<F>) -> DensePolynomial<F> {
-        // If `self` is zero, the result is `other` (as adding zero doesn't change anything).
         if self.is_zero() {
             return other.clone().into();
         }
 
-        // If `other` is zero, the result is `self` (as adding zero doesn't change anything).
         if other.is_zero() {
             return self.clone();
         }
 
         let mut result = self.clone();
 
-        // Prepare a vector to store the coefficients of the upper terms of the addition.
+        // If `other` has higher degree than `self`, create a dense vector
+        // storing the upper coefficients of the addition
         let mut upper_coeffs = vec![F::zero(); other.degree().saturating_sub(result.degree())];
 
-        // Iterate over the sparse polynomial's non-zero terms.
         for (pow, coeff) in other.iter() {
-            // If the power `pow` is within the degree of `result`, add the coefficient to the corresponding term.
             if let Some(target) = result.coeffs.get_mut(*pow) {
                 *target += coeff;
             } else {
-                // Otherwise, store the coefficient in the `upper_coeffs` vector at the appropriate position.
-                //
-                // The index is adjusted by subtracting the current length of `result.coeffs`.
                 upper_coeffs[pow - result.coeffs.len()] = *coeff;
             }
         }
@@ -352,7 +346,7 @@ impl<'a, F: Field> Add<&'a SparsePolynomial<F>> for &DensePolynomial<F> {
         // Extend the coefficient vector of `result` with the upper terms.
         result.coeffs.extend(upper_coeffs);
 
-        // Remove any trailing zeros from the coefficient vector to ensure it represents the correct polynomial.
+        // Remove any leading zeros.
         // For example: `0 * x^2 + 0 * x + 1` should be represented as `1`.
         result.truncate_leading_zeros();
 
