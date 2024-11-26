@@ -331,20 +331,22 @@ impl<'a, F: Field> Add<&'a SparsePolynomial<F>> for &DensePolynomial<F> {
 
         let mut result = self.clone();
 
-        // If `other` has higher degree than `self`, create a dense vector
-        // storing the upper coefficients of the addition
-        let mut upper_coeffs = vec![F::zero(); other.degree().saturating_sub(result.degree())];
+        // Reserve space for additional coefficients if `other` has a higher degree.
+        let additional_len = other.degree().saturating_sub(result.degree());
+        result.coeffs.reserve(additional_len);
 
+        // Process each term in `other`.
         for (pow, coeff) in other.iter() {
             if let Some(target) = result.coeffs.get_mut(*pow) {
                 *target += coeff;
             } else {
-                upper_coeffs[pow - result.coeffs.len()] = *coeff;
+                // Extend with zeros if the power exceeds the current length.
+                result
+                    .coeffs
+                    .extend(ark_std::iter::repeat(F::zero()).take(pow - result.coeffs.len()));
+                result.coeffs.push(*coeff);
             }
         }
-
-        // Extend the coefficient vector of `result` with the upper terms.
-        result.coeffs.extend(upper_coeffs);
 
         // Remove any leading zeros.
         // For example: `0 * x^2 + 0 * x + 1` should be represented as `1`.
