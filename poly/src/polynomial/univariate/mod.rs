@@ -15,7 +15,7 @@ pub use sparse::SparsePolynomial;
 use rayon::prelude::*;
 
 /// Represents either a sparse polynomial or a dense one.
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub enum DenseOrSparsePolynomial<'a, F: Field> {
     /// Represents the case where `self` is a sparse polynomial
     SPolynomial(Cow<'a, SparsePolynomial<F>>),
