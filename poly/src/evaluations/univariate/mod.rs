@@ -73,9 +73,7 @@ impl<'a, F: FftField, D: EvaluationDomain<F>> Mul<&'a Evaluations<F, D>> for &Ev
     }
 }
 
-impl<'a, F: FftField, D: EvaluationDomain<F>> MulAssign<&'a Self>
-    for Evaluations<F, D>
-{
+impl<'a, F: FftField, D: EvaluationDomain<F>> MulAssign<&'a Self> for Evaluations<F, D> {
     #[inline]
     fn mul_assign(&mut self, other: &'a Self) {
         assert_eq!(self.domain, other.domain, "domains are unequal");
@@ -109,9 +107,7 @@ impl<'a, F: FftField, D: EvaluationDomain<F>> Add<&'a Evaluations<F, D>> for &Ev
     }
 }
 
-impl<'a, F: FftField, D: EvaluationDomain<F>> AddAssign<&'a Self>
-    for Evaluations<F, D>
-{
+impl<'a, F: FftField, D: EvaluationDomain<F>> AddAssign<&'a Self> for Evaluations<F, D> {
     #[inline]
     fn add_assign(&mut self, other: &'a Self) {
         assert_eq!(self.domain, other.domain, "domains are unequal");
@@ -132,9 +128,7 @@ impl<'a, F: FftField, D: EvaluationDomain<F>> Sub<&'a Evaluations<F, D>> for &Ev
     }
 }
 
-impl<'a, F: FftField, D: EvaluationDomain<F>> SubAssign<&'a Self>
-    for Evaluations<F, D>
-{
+impl<'a, F: FftField, D: EvaluationDomain<F>> SubAssign<&'a Self> for Evaluations<F, D> {
     #[inline]
     fn sub_assign(&mut self, other: &'a Self) {
         assert_eq!(self.domain, other.domain, "domains are unequal");

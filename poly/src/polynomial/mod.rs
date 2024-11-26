@@ -14,7 +14,19 @@ pub mod univariate;
 
 /// Describes the common interface for univariate and multivariate polynomials
 pub trait Polynomial<F: Field>:
-    Sized + Clone + Debug + Hash + PartialEq + Eq + Add + Neg + Zero + CanonicalSerialize + CanonicalDeserialize + for<'a> AddAssign<&'a Self> + for<'a> SubAssign<&'a Self>
+    Sized
+    + Clone
+    + Debug
+    + Hash
+    + PartialEq
+    + Eq
+    + Add
+    + Neg
+    + Zero
+    + CanonicalSerialize
+    + CanonicalDeserialize
+    + for<'a> AddAssign<&'a Self>
+    + for<'a> SubAssign<&'a Self>
 {
     /// The type of evaluation points for this polynomial.
     type Point: Sized + Clone + Ord + Debug + Sync + Hash;

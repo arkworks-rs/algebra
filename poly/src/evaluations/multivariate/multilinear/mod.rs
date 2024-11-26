@@ -45,7 +45,21 @@ type DefaultHasher = fnv::FnvHasher;
 /// Index represents a point, which is a vector in {0,1}^`num_vars` in little
 /// endian form. For example, `0b1011` represents `P(1,1,0,1)`
 pub trait MultilinearExtension<F: Field>:
-    Sized + Clone + Debug + Hash + PartialEq + Eq + Add + Neg + Zero + CanonicalSerialize + CanonicalDeserialize + for<'a> AddAssign<&'a Self> + for<'a> SubAssign<&'a Self> + Index<usize> + Polynomial<F, Point = Vec<F>>
+    Sized
+    + Clone
+    + Debug
+    + Hash
+    + PartialEq
+    + Eq
+    + Add
+    + Neg
+    + Zero
+    + CanonicalSerialize
+    + CanonicalDeserialize
+    + for<'a> AddAssign<&'a Self>
+    + for<'a> SubAssign<&'a Self>
+    + Index<usize>
+    + Polynomial<F, Point = Vec<F>>
 {
     /// Returns the number of variables in `self`
     fn num_vars(&self) -> usize;

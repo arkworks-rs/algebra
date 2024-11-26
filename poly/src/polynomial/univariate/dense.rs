@@ -163,10 +163,7 @@ impl<F: FftField> DensePolynomial<F> {
 
     /// Divide `self` by the vanishing polynomial for the domain `domain`.
     /// Returns the quotient and remainder of the division.
-    pub fn divide_by_vanishing_poly<D: EvaluationDomain<F>>(
-        &self,
-        domain: D,
-    ) -> (Self, Self) {
+    pub fn divide_by_vanishing_poly<D: EvaluationDomain<F>>(&self, domain: D) -> (Self, Self) {
         let domain_size = domain.size();
 
         if self.coeffs.len() < domain_size {
