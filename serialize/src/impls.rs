@@ -26,7 +26,7 @@ impl CanonicalSerialize for bool {
         mut writer: W,
         _compress: Compress,
     ) -> Result<(), SerializationError> {
-        writer.write(&[*self as u8])?;
+        writer.write_all(&[*self as u8])?;
         Ok(())
     }
 

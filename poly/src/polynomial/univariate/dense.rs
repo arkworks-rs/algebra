@@ -84,8 +84,7 @@ impl<F: Field> DensePolynomial<F> {
             .par_chunks(num_elem_per_thread)
             .enumerate()
             .map(|(i, chunk)| {
-                Self::horner_evaluate(&chunk, point)
-                    * point.pow(&[(i * num_elem_per_thread) as u64])
+                Self::horner_evaluate(chunk, point) * point.pow([(i * num_elem_per_thread) as u64])
             })
             .sum()
     }
