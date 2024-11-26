@@ -457,7 +457,7 @@ impl<P: CubicExtConfig> From<i8> for CubicExtField<P> {
 }
 
 impl<P: CubicExtConfig> From<bool> for CubicExtField<P> {
-    #[allow(clippy::suspicious_arithmetic_impl)]
+    #[allow(clippy::unconditional_recursion)]
     fn from(other: bool) -> Self {
         other.into()
     }

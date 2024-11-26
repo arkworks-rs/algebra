@@ -1,4 +1,3 @@
-extern crate criterion;
 mod common;
 
 use ark_ff::{FftField, Field};
@@ -33,15 +32,15 @@ fn default_size_range() -> Vec<usize> {
     )
 }
 
-fn setup_bench(c: &mut Criterion, name: &str, bench_fn: fn(&mut Bencher, &usize)) {
+fn setup_bench(c: &mut Criterion, name: &str, bench_fn: fn(&mut Bencher<'_>, &usize)) {
     let mut group = c.benchmark_group(name);
-    for degree in default_size_range().iter() {
+    for degree in &default_size_range() {
         group.bench_with_input(BenchmarkId::from_parameter(degree), degree, bench_fn);
     }
     group.finish();
 }
 
-fn bench_sparse_poly_evaluate<F: Field>(b: &mut Bencher, non_zero_entries: &usize) {
+fn bench_sparse_poly_evaluate<F: Field>(b: &mut Bencher<'_>, non_zero_entries: &usize) {
     const MAX_DEGREE: usize = 1 << 15;
     // Per benchmark setup
     let mut rng = &mut ark_std::test_rng();
@@ -56,7 +55,7 @@ fn bench_sparse_poly_evaluate<F: Field>(b: &mut Bencher, non_zero_entries: &usiz
     });
 }
 
-fn bench_poly_evaluate<F: Field>(b: &mut Bencher, degree: &usize) {
+fn bench_poly_evaluate<F: Field>(b: &mut Bencher<'_>, degree: &usize) {
     // Per benchmark setup
     let mut rng = &mut ark_std::test_rng();
     let poly = DensePolynomial::<F>::rand(*degree, &mut rng);
@@ -67,7 +66,7 @@ fn bench_poly_evaluate<F: Field>(b: &mut Bencher, degree: &usize) {
     });
 }
 
-fn bench_poly_add<F: Field>(b: &mut Bencher, degree: &usize) {
+fn bench_poly_add<F: Field>(b: &mut Bencher<'_>, degree: &usize) {
     // Per benchmark setup
     let mut rng = &mut ark_std::test_rng();
     let poly_one = DensePolynomial::<F>::rand(*degree, &mut rng);
@@ -78,7 +77,7 @@ fn bench_poly_add<F: Field>(b: &mut Bencher, degree: &usize) {
     });
 }
 
-fn bench_poly_add_assign<F: Field>(b: &mut Bencher, degree: &usize) {
+fn bench_poly_add_assign<F: Field>(b: &mut Bencher<'_>, degree: &usize) {
     // Per benchmark setup
     let mut rng = &mut ark_std::test_rng();
     let mut poly_one = DensePolynomial::<F>::rand(*degree, &mut rng);
@@ -89,7 +88,7 @@ fn bench_poly_add_assign<F: Field>(b: &mut Bencher, degree: &usize) {
     });
 }
 
-fn bench_div_by_vanishing_poly<F: FftField>(b: &mut Bencher, degree: &usize) {
+fn bench_div_by_vanishing_poly<F: FftField>(b: &mut Bencher<'_>, degree: &usize) {
     // Per benchmark setup
     let mut rng = &mut ark_std::test_rng();
     let p = DensePolynomial::<F>::rand(*degree, &mut rng);

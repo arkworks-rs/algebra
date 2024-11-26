@@ -65,7 +65,7 @@ pub(crate) fn compute_powers<F: Field>(size: usize, g: F) -> Vec<F> {
 }
 
 #[cfg(feature = "parallel")]
-fn log2_floor(num: usize) -> u32 {
+const fn log2_floor(num: usize) -> u32 {
     if num == 0 {
         0
     } else {
