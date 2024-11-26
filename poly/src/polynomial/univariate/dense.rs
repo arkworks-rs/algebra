@@ -322,27 +322,37 @@ impl<'a, F: Field> Add<&'a SparsePolynomial<F>> for &DensePolynomial<F> {
     #[inline]
     fn add(self, other: &'a SparsePolynomial<F>) -> DensePolynomial<F> {
         if self.is_zero() {
-            other.clone().into()
-        } else if other.is_zero() {
-            self.clone()
-        } else {
-            let mut result = self.clone();
-            // If `other` has higher degree than `self`, create a dense vector
-            // storing the upper coefficients of the addition
-            let mut upper_coeffs = match other.degree() > result.degree() {
-                true => vec![F::zero(); other.degree() - result.degree()],
-                false => Vec::new(),
-            };
-            for (pow, coeff) in other.iter() {
-                if *pow <= result.degree() {
-                    result.coeffs[*pow] += coeff;
-                } else {
-                    upper_coeffs[*pow - result.degree() - 1] = *coeff;
-                }
-            }
-            result.coeffs.extend(upper_coeffs);
-            result
+            return other.clone().into();
         }
+
+        if other.is_zero() {
+            return self.clone();
+        }
+
+        let mut result = self.clone();
+
+        // Reserve space for additional coefficients if `other` has a higher degree.
+        let additional_len = other.degree().saturating_sub(result.degree());
+        result.coeffs.reserve(additional_len);
+
+        // Process each term in `other`.
+        for (pow, coeff) in other.iter() {
+            if let Some(target) = result.coeffs.get_mut(*pow) {
+                *target += coeff;
+            } else {
+                // Extend with zeros if the power exceeds the current length.
+                result
+                    .coeffs
+                    .extend(ark_std::iter::repeat(F::zero()).take(pow - result.coeffs.len()));
+                result.coeffs.push(*coeff);
+            }
+        }
+
+        // Remove any leading zeros.
+        // For example: `0 * x^2 + 0 * x + 1` should be represented as `1`.
+        result.truncate_leading_zeros();
+
+        result
     }
 }
 
@@ -1281,5 +1291,28 @@ mod tests {
         // The resulting polynomial should be zero, with an empty coefficient vector
         assert!(poly1.is_zero());
         assert_eq!(poly1.coeffs, vec![]);
+    }
+
+    #[test]
+    fn test_truncate_leading_zeros_after_sparse_addition() {
+        // Create a DensePolynomial with leading non-zero coefficients.
+        let poly1 = DensePolynomial {
+            coeffs: vec![Fr::from(3), Fr::from(2), Fr::from(1)],
+        };
+
+        // Create a SparsePolynomial to subtract the coefficients of poly1,
+        // leaving trailing zeros after addition.
+        let poly2 = SparsePolynomial::from_coefficients_slice(&[
+            (0, -Fr::from(3)),
+            (1, -Fr::from(2)),
+            (2, -Fr::from(1)),
+        ]);
+
+        // Perform addition using the Add implementation.
+        let result = &poly1 + &poly2;
+
+        // Assert that the resulting polynomial is zero.
+        assert!(result.is_zero(), "The resulting polynomial should be zero.");
+        assert_eq!(result.coeffs, vec![], "Leading zeros were not truncated.");
     }
 }
