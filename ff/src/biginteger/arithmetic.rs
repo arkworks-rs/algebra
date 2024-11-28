@@ -1,4 +1,3 @@
-use ark_std::Zero;
 use ark_std::{vec, vec::*};
 
 macro_rules! adc {
