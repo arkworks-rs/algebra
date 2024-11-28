@@ -435,7 +435,7 @@ mod tests {
     fn test_find_naf_zero() {
         // Test for zero input
         let naf = find_naf(&[0]);
-        assert_eq!(naf, vec![]);
+        assert!(naf.is_empty());
     }
 
     #[test]
