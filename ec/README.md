@@ -98,7 +98,7 @@ use ark_std::{Zero, UniformRand};
 let mut rng = ark_std::test_rng();
 // Let's generate an elliptic curve group element in the `CurveGroup` representation
 let a = G::rand(&mut rng);
-// We can convert it the `AffineRepr` representation...
+// We can convert it to the `AffineRepr` representation...
 let a_aff = a.into_affine();
 // ... and check that the two representations are equal.
 assert_eq!(a_aff, a);
