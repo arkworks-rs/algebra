@@ -21,7 +21,7 @@ pub mod fields {
             AllocationMode::Constant,
         ];
         for &mode in &modes {
-            let cs = ConstraintSystem::<ConstraintF>::new_ref();
+            let cs = ConstraintSystem::new_ref();
 
             let mut rng = test_rng();
             let a_native = F::rand(&mut rng);
@@ -152,10 +152,7 @@ pub mod fields {
             for c in &mut constants {
                 *c = UniformRand::rand(&mut test_rng());
             }
-            let bits = [
-                Boolean::<ConstraintF>::constant(false),
-                Boolean::constant(true),
-            ];
+            let bits = [Boolean::constant(false), Boolean::constant(true)];
             let lookup_result = AF::two_bit_lookup(&bits, constants.as_ref())?;
             assert_eq!(lookup_result.value()?, constants[2]);
             assert!(cs.is_satisfied().unwrap());
