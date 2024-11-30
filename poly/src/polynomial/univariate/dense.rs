@@ -358,26 +358,25 @@ impl<'a, F: Field> Add<&'a SparsePolynomial<F>> for &DensePolynomial<F> {
 
 impl<'a, F: Field> AddAssign<&'a DensePolynomial<F>> for DensePolynomial<F> {
     fn add_assign(&mut self, other: &'a DensePolynomial<F>) {
+        if other.is_zero() {
+            self.truncate_leading_zeros();
+            return;
+        }
+
         if self.is_zero() {
-            self.coeffs.truncate(0);
+            self.coeffs.clear();
             self.coeffs.extend_from_slice(&other.coeffs);
-        } else if other.is_zero() {
-        } else if self.degree() >= other.degree() {
-            self.coeffs
-                .iter_mut()
-                .zip(&other.coeffs)
-                .for_each(|(a, b)| {
-                    *a += b;
-                });
         } else {
-            // Add the necessary number of zero coefficients.
-            self.coeffs.resize(other.coeffs.len(), F::zero());
+            let other_coeffs_len = other.coeffs.len();
+            if other_coeffs_len > self.coeffs.len() {
+                // Add the necessary number of zero coefficients.
+                self.coeffs.resize(other_coeffs_len, F::zero());
+            }
+
             self.coeffs
                 .iter_mut()
                 .zip(&other.coeffs)
-                .for_each(|(a, b)| {
-                    *a += b;
-                });
+                .for_each(|(a, b)| *a += b);
         }
         self.truncate_leading_zeros();
     }
@@ -1314,5 +1313,116 @@ mod tests {
         // Assert that the resulting polynomial is zero.
         assert!(result.is_zero(), "The resulting polynomial should be zero.");
         assert_eq!(result.coeffs, vec![], "Leading zeros were not truncated.");
+    }
+
+    #[test]
+    fn test_dense_dense_add_assign_with_zero_self() {
+        // Create a zero polynomial
+        let mut poly1 = DensePolynomial { coeffs: Vec::new() };
+
+        // Create a non-zero polynomial: 2 + 3x
+        let poly2 = DensePolynomial {
+            coeffs: vec![Fr::from(2), Fr::from(3)],
+        };
+
+        // Add the non-zero polynomial to the zero polynomial
+        poly1 += &poly2;
+
+        // Check that poly1 now equals poly2
+        assert_eq!(poly1.coeffs, poly2.coeffs);
+    }
+
+    #[test]
+    fn test_dense_dense_add_assign_with_zero_other() {
+        // Create a non-zero polynomial: 2 + 3x
+        let mut poly1 = DensePolynomial {
+            coeffs: vec![Fr::from(2), Fr::from(3)],
+        };
+
+        // Create a zero polynomial
+        let poly2 = DensePolynomial { coeffs: Vec::new() };
+
+        // Add the zero polynomial to poly1
+        poly1 += &poly2;
+
+        // Check that poly1 remains unchanged
+        assert_eq!(poly1.coeffs, vec![Fr::from(2), Fr::from(3)]);
+    }
+
+    #[test]
+    fn test_dense_dense_add_assign_with_different_degrees() {
+        // Create a polynomial: 1 + 2x + 3x^2
+        let mut poly1 = DensePolynomial {
+            coeffs: vec![Fr::from(1), Fr::from(2), Fr::from(3)],
+        };
+
+        // Create a smaller polynomial: 4 + 5x
+        let poly2 = DensePolynomial {
+            coeffs: vec![Fr::from(4), Fr::from(5)],
+        };
+
+        // Add the smaller polynomial to the larger one
+        poly1 += &poly2;
+
+        assert_eq!(poly1.coeffs, vec![Fr::from(5), Fr::from(7), Fr::from(3)]);
+    }
+
+    #[test]
+    fn test_dense_dense_truncate_leading_zeros_after_addition() {
+        // Create a first polynomial
+        let mut poly1 = DensePolynomial {
+            coeffs: vec![Fr::from(1), Fr::from(2)],
+        };
+
+        // Create another polynomial that will cancel out the first two terms
+        let poly2 = DensePolynomial {
+            coeffs: vec![-poly1.coeffs[0], -poly1.coeffs[1]],
+        };
+
+        // Add the two polynomials
+        poly1 += &poly2;
+
+        // Check that the resulting polynomial is zero (empty coefficients)
+        assert!(poly1.is_zero());
+        assert_eq!(poly1.coeffs, vec![]);
+    }
+
+    #[test]
+    fn test_dense_dense_add_assign_with_equal_degrees() {
+        // Create two polynomials with the same degree
+        let mut poly1 = DensePolynomial {
+            coeffs: vec![Fr::from(1), Fr::from(2), Fr::from(3)],
+        };
+        let poly2 = DensePolynomial {
+            coeffs: vec![Fr::from(4), Fr::from(5), Fr::from(6)],
+        };
+
+        // Add the polynomials
+        poly1 += &poly2;
+
+        // Check the resulting coefficients
+        assert_eq!(poly1.coeffs, vec![Fr::from(5), Fr::from(7), Fr::from(9)]);
+    }
+
+    #[test]
+    fn test_dense_dense_add_assign_with_other_zero_truncates_leading_zeros() {
+        use ark_test_curves::bls12_381::Fr;
+
+        // Create a polynomial with leading zeros: 1 + 2x + 0x^2 + 0x^3
+        let mut poly1 = DensePolynomial {
+            coeffs: vec![Fr::from(1), Fr::from(2), Fr::from(0), Fr::from(0)],
+        };
+
+        // Create a zero polynomial
+        let poly2 = DensePolynomial { coeffs: Vec::new() };
+
+        // Add the zero polynomial to poly1
+        poly1 += &poly2;
+
+        // Check that the leading zeros are truncated
+        assert_eq!(poly1.coeffs, vec![Fr::from(1), Fr::from(2)]);
+
+        // Ensure the polynomial is not zero (as it has non-zero coefficients)
+        assert!(!poly1.is_zero());
     }
 }
