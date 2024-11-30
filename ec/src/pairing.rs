@@ -333,12 +333,10 @@ impl<P: Pairing> Mul<P::ScalarField> for MillerLoopOutput<P> {
 
 /// Preprocesses a G1 element for use in a pairing.
 pub fn prepare_g1<E: Pairing>(g: impl Into<E::G1Affine>) -> E::G1Prepared {
-    let g: E::G1Affine = g.into();
-    E::G1Prepared::from(g)
+    E::G1Prepared::from(g.into())
 }
 
 /// Preprocesses a G2 element for use in a pairing.
 pub fn prepare_g2<E: Pairing>(g: impl Into<E::G2Affine>) -> E::G2Prepared {
-    let g: E::G2Affine = g.into();
-    E::G2Prepared::from(g)
+    E::G2Prepared::from(g.into())
 }
