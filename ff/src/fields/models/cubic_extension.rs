@@ -457,6 +457,7 @@ impl<P: CubicExtConfig> From<i8> for CubicExtField<P> {
 }
 
 impl<P: CubicExtConfig> From<bool> for CubicExtField<P> {
+    #[allow(clippy::unconditional_recursion)]
     fn from(other: bool) -> Self {
         other.into()
     }
@@ -518,6 +519,7 @@ impl<P: CubicExtConfig> Div<&CubicExtField<P>> for CubicExtField<P> {
     type Output = Self;
 
     #[inline]
+    #[allow(clippy::suspicious_arithmetic_impl)]
     fn div(mut self, other: &Self) -> Self {
         self *= &other.inverse().unwrap();
         self

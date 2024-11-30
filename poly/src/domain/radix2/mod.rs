@@ -73,7 +73,7 @@ impl<F: FftField> EvaluationDomain<F> for Radix2EvaluationDomain<F> {
         let size_as_field_element = F::from(size);
         let size_inv = size_as_field_element.inverse()?;
 
-        Some(Radix2EvaluationDomain {
+        Some(Self {
             size,
             log_size_of_group,
             size_as_field_element,
@@ -87,7 +87,7 @@ impl<F: FftField> EvaluationDomain<F> for Radix2EvaluationDomain<F> {
     }
 
     fn get_coset(&self, offset: F) -> Option<Self> {
-        Some(Radix2EvaluationDomain {
+        Some(Self {
             offset,
             offset_inv: offset.inverse()?,
             offset_pow_size: offset.pow([self.size]),
