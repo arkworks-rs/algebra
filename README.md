@@ -8,7 +8,7 @@
     <a href="https://discord.gg/UNtS7QXyPk"><img src="https://img.shields.io/discord/908465643727253524?label=Discord&logo=discord"></a>
 </p>
 
-The arkworks ecosystem consist of Rust libraries for designing and working with *zero knowledge succinct non-interactive arguments (zkSNARKs)*. This repository contains efficient implementations of the key algebraic components underlying zkSNARKs: finite fields, elliptic curves, and polynomials.
+The arkworks ecosystem consists of Rust libraries for designing and working with *zero knowledge succinct non-interactive arguments (zkSNARKs)*. This repository contains efficient implementations of the key algebraic components underlying zkSNARKs: finite fields, elliptic curves, and polynomials.
 
 This library is released under the MIT License and the Apache v2 License (see [License](#license)).
 
