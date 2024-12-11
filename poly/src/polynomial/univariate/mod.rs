@@ -3,7 +3,7 @@
 use crate::{DenseUVPolynomial, EvaluationDomain, Evaluations, Polynomial};
 use ark_ff::{FftField, Field, Zero};
 use ark_std::{borrow::Cow, vec::*};
-use DenseOrSparsePolynomial::*;
+use DenseOrSparsePolynomial::{DPolynomial, SPolynomial};
 
 mod dense;
 mod sparse;
@@ -48,7 +48,7 @@ impl<'a, F: Field> From<&'a SparsePolynomial<F>> for DenseOrSparsePolynomial<'a,
 }
 
 impl<'a, F: Field> From<DenseOrSparsePolynomial<'a, F>> for DensePolynomial<F> {
-    fn from(other: DenseOrSparsePolynomial<'a, F>) -> DensePolynomial<F> {
+    fn from(other: DenseOrSparsePolynomial<'a, F>) -> Self {
         match other {
             DPolynomial(p) => p.into_owned(),
             SPolynomial(p) => p.into_owned().into(),
@@ -96,7 +96,7 @@ impl<F: Field> DenseOrSparsePolynomial<'_, F> {
     fn iter_with_index(&self) -> Vec<(usize, F)> {
         match self {
             SPolynomial(p) => p.to_vec(),
-            DPolynomial(p) => p.iter().cloned().enumerate().collect(),
+            DPolynomial(p) => p.iter().copied().enumerate().collect(),
         }
     }
 
@@ -126,7 +126,7 @@ impl<F: Field> DenseOrSparsePolynomial<'_, F> {
                 for (i, div_coeff) in divisor.iter_with_index() {
                     remainder[cur_q_degree + i] -= &(cur_q_coeff * div_coeff);
                 }
-                while let Some(true) = remainder.coeffs.last().map(|c| c.is_zero()) {
+                while remainder.coeffs.last().map(|c| c.is_zero()) == Some(true) {
                     remainder.coeffs.pop();
                 }
             }

@@ -19,7 +19,7 @@ resolver = "2"
 
 [workspace.package]
 version = "0.5.0"
-authors = [ "arkworks contributors" ]
+authors = ["arkworks contributors"]
 homepage = "https://arkworks.rs"
 repository = "https://github.com/arkworks-rs/algebra"
 categories = ["cryptography"]
@@ -41,6 +41,100 @@ rustdoc-args = ["--html-in-header katex-header.html"]
 [workspace.metadata.release]
 dependent-version = "fix"
 
+[workspace.lints]
+rust.rust_2018_idioms = { level = "deny", priority = -1 }
+rust.unreachable_pub = "warn"
+rust.unused_must_use = "deny"
+rustdoc.all = "warn"
+# rust.unnameable-types = "warn"
+
+[workspace.lints.clippy]
+# These are some of clippy's nursery (i.e., experimental) lints that we like.
+# By default, nursery lints are allowed. Some of the lints below have made good
+# suggestions which we fixed. The others didn't have any findings, so we can
+# assume they don't have that many false positives. Let's enable them to
+# prevent future problems.
+borrow_as_ptr = "warn"
+branches_sharing_code = "warn"
+clear_with_drain = "warn"
+cloned_instead_of_copied = "warn"
+collection_is_never_read = "warn"
+dbg_macro = "warn"
+derive_partial_eq_without_eq = "warn"
+empty_line_after_doc_comments = "warn"
+empty_line_after_outer_attr = "warn"
+enum_glob_use = "warn"
+equatable_if_let = "warn"
+explicit_into_iter_loop = "warn"
+explicit_iter_loop = "warn"
+flat_map_option = "warn"
+from_iter_instead_of_collect = "warn"
+if_not_else = "warn"
+if_then_some_else_none = "warn"
+implicit_clone = "warn"
+imprecise_flops = "warn"
+iter_on_empty_collections = "warn"
+iter_on_single_items = "warn"
+iter_with_drain = "warn"
+iter_without_into_iter = "warn"
+large_stack_frames = "warn"
+manual_assert = "warn"
+manual_clamp = "warn"
+manual_is_variant_and = "warn"
+manual_string_new = "warn"
+match_same_arms = "warn"
+missing_const_for_fn = "warn"
+mutex_integer = "warn"
+naive_bytecount = "warn"
+needless_bitwise_bool = "warn"
+needless_continue = "warn"
+needless_for_each = "warn"
+needless_pass_by_ref_mut = "warn"
+nonstandard_macro_braces = "warn"
+option_as_ref_cloned = "warn"
+or_fun_call = "warn"
+path_buf_push_overwrite = "warn"
+read_zero_byte_vec = "warn"
+redundant_clone = "warn"
+redundant_else = "warn"
+single_char_pattern = "warn"
+string_lit_as_bytes = "warn"
+string_lit_chars_any = "warn"
+suboptimal_flops = "warn"
+suspicious_operation_groupings = "warn"
+trailing_empty_array = "warn"
+trait_duplication_in_bounds = "warn"
+transmute_undefined_repr = "warn"
+trivial_regex = "warn"
+tuple_array_conversions = "warn"
+type_repetition_in_bounds = "warn"
+uninhabited_references = "warn"
+unnecessary_self_imports = "warn"
+unnecessary_struct_initialization = "warn"
+unnested_or_patterns = "warn"
+unused_peekable = "warn"
+unused_rounding = "warn"
+use_self = "warn"
+useless_let_if_seq = "warn"
+while_float = "warn"
+zero_sized_map_values = "warn"
+
+# These are nursery lints which have findings. Allow them for now. Some are not
+# quite mature enough for use in our codebase and some we don't really want.
+# Explicitly listing should make it easier to fix in the future.
+as_ptr_cast_mut = "allow"
+cognitive_complexity = "allow"
+debug_assert_with_mut_call = "allow"
+doc_markdown = "allow"
+fallible_impl_from = "allow"
+future_not_send = "allow"
+needless_collect = "allow"
+non_send_fields_in_send_ty = "allow"
+redundant_pub_crate = "allow"
+significant_drop_in_scrutinee = "allow"
+significant_drop_tightening = "allow"
+too_long_first_doc_paragraph = "allow"
+
 [workspace.dependencies]
 ark-ec = { version = "0.5.0", path = "./ec", default-features = false }
 ark-ff = { version = "0.5.0", path = "./ff", default-features = false }
@@ -51,7 +145,7 @@ ark-serialize = { version = "0.5.0", path = "./serialize", default-features = fa
 ark-serialize-derive = { version = "0.5.0", path = "./serialize-derive" }
 ark-std = { version = "0.5.0", default-features = false }
 
-ark-algebra-bench-templates =  { version = "0.5.0", path = "./bench-templates", default-features = false }
+ark-algebra-bench-templates = { version = "0.5.0", path = "./bench-templates", default-features = false }
 ark-algebra-test-templates = { version = "0.5.0", path = "./test-templates", default-features = false }
 ark-test-curves = { version = "0.5.0", path = "./test-curves", default-features = false }
 

@@ -44,6 +44,7 @@ type DefaultHasher = fnv::FnvHasher;
 ///
 /// Index represents a point, which is a vector in {0,1}^`num_vars` in little
 /// endian form. For example, `0b1011` represents `P(1,1,0,1)`
+#[allow(clippy::trait_duplication_in_bounds)]
 pub trait MultilinearExtension<F: Field>:
     Sized
     + Clone
@@ -87,7 +88,7 @@ pub trait MultilinearExtension<F: Field>:
 }
 
 /// swap the bits of `x` from position `a..a+n` to `b..b+n` and from `b..b+n` to `a..a+n` in little endian order
-pub(crate) fn swap_bits(x: usize, a: usize, b: usize, n: usize) -> usize {
+pub(crate) const fn swap_bits(x: usize, a: usize, b: usize, n: usize) -> usize {
     let a_bits = (x >> a) & ((1usize << n) - 1);
     let b_bits = (x >> b) & ((1usize << n) - 1);
     let local_xor_mask = a_bits ^ b_bits;

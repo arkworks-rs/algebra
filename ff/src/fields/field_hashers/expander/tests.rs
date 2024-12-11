@@ -51,6 +51,7 @@ fn expander() {
 }
 
 #[derive(Copy, Clone)]
+#[allow(clippy::upper_case_acronyms)]
 pub enum ExpID {
     XMD(HashID),
     XOF(XofID),
