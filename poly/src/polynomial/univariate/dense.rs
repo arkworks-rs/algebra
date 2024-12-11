@@ -352,7 +352,6 @@ impl<'a, F: Field> Add<&'a SparsePolynomial<F>> for &DensePolynomial<F> {
     }
 }
 
-
 impl<'a, F: Field> AddAssign<&'a Self> for DensePolynomial<F> {
     fn add_assign(&mut self, other: &'a Self) {
         if other.is_zero() {
