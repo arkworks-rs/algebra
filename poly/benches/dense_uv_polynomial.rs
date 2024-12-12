@@ -59,7 +59,7 @@ fn bench_sparse_poly_evaluate<F: Field>(b: &mut Bencher, non_zero_entries: &usiz
 fn bench_poly_evaluate<F: Field>(b: &mut Bencher, degree: &usize) {
     // Per benchmark setup
     let mut rng = &mut ark_std::test_rng();
-    let poly = DensePolynomial::<F>::rand(*degree, &mut rng);
+    let poly = DensePolynomial::rand(*degree, &mut rng);
     b.iter(|| {
         // Per benchmark iteration
         let pt = F::rand(&mut rng);
@@ -71,7 +71,7 @@ fn bench_poly_add<F: Field>(b: &mut Bencher, degree: &usize) {
     // Per benchmark setup
     let mut rng = &mut ark_std::test_rng();
     let poly_one = DensePolynomial::<F>::rand(*degree, &mut rng);
-    let poly_two = DensePolynomial::<F>::rand(*degree, &mut rng);
+    let poly_two = DensePolynomial::rand(*degree, &mut rng);
     b.iter(|| {
         // Per benchmark iteration
         let _poly_three = &poly_one + &poly_two;
