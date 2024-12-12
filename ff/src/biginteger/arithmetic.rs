@@ -155,27 +155,51 @@ pub fn find_naf(num: &[u64]) -> Vec<i8> {
     let mut num = num.to_vec();
     let mut res = vec![];
 
-    while num.iter().any(|&x| x != 0) {
-        let z = if num[0] & 1 == 1 {
-            let z = 2 - (num[0] % 4) as i8;
-            // Choose the appropriate operation: subtract (sbb) if z >= 0, otherwise add (adc).
-            let op = if z >= 0 { sbb } else { adc };
-            num.iter_mut()
-                .zip(ark_std::iter::once(&(z.abs() as u64)).chain(ark_std::iter::repeat(&0)))
-                .fold(0, |carry, (a, b)| op(a, *b, carry));
-            z
-        } else {
-            0
-        };
-
-        res.push(z);
-
-        // Perform an in-place division of `num` by 2, using bit-shifting.
+    // Helper functions for arithmetic operations
+    // Check if the number is non-zero
+    let is_non_zero = |num: &[u64]| num.iter().any(|&x| x != 0);
+    // Check if the number is odd
+    let is_odd = |num: &[u64]| num[0] & 1 == 1;
+    // Subtract a value `z` without borrow propagation
+    let sub_noborrow = |num: &mut [u64], z: u64| {
+        num.iter_mut()
+            .zip(ark_std::iter::once(z).chain(ark_std::iter::repeat(0)))
+            .fold(0, |borrow, (a, b)| sbb(a, b, borrow));
+    };
+    // Add a value `z` without carry propagation
+    let add_nocarry = |num: &mut [u64], z: u64| {
+        num.iter_mut()
+            .zip(ark_std::iter::once(z).chain(ark_std::iter::repeat(0)))
+            .fold(0, |carry, (a, b)| adc(a, b, carry));
+    };
+    // Perform an in-place division of the number by 2
+    let div2 = |num: &mut [u64]| {
         num.iter_mut().rev().fold(0, |carry, x| {
             let next_carry = *x << 63;
             *x = (*x >> 1) | carry;
             next_carry
         });
+    };
+
+    // Main loop for NAF computation
+    while is_non_zero(&num) {
+        // Determine the current digit of the NAF representation
+        let z = if is_odd(&num) {
+            let z = 2 - (num[0] % 4) as i8;
+            if z >= 0 {
+                sub_noborrow(&mut num, z as u64);
+            } else {
+                add_nocarry(&mut num, (-z) as u64);
+            }
+            z
+        } else {
+            0
+        };
+
+        // Append the digit to the result
+        res.push(z);
+        // Divide the number by 2 for the next iteration
+        div2(&mut num);
     }
 
     res
