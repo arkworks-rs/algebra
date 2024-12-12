@@ -172,7 +172,7 @@ impl<F: FftField> DensePolynomial<F> {
 
         if self.coeffs.len() < domain_size {
             // If degree(self) < len(Domain), then the quotient is zero, and the entire polynomial is the remainder
-            (DensePolynomial::<F>::zero(), self.clone())
+            (DensePolynomial::zero(), self.clone())
         } else {
             // Compute the quotient
             //
@@ -206,8 +206,8 @@ impl<F: FftField> DensePolynomial<F> {
                 .zip(&quotient_vec)
                 .for_each(|(s, c)| *s += c);
 
-            let quotient = DensePolynomial::<F>::from_coefficients_vec(quotient_vec);
-            let remainder = DensePolynomial::<F>::from_coefficients_vec(remainder_vec);
+            let quotient = DensePolynomial::from_coefficients_vec(quotient_vec);
+            let remainder = DensePolynomial::from_coefficients_vec(remainder_vec);
             (quotient, remainder)
         }
     }
