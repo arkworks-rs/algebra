@@ -15,7 +15,7 @@ impl BinaryFieldElement {
     // Method for addition in GF(2^k)
     pub fn add(&self, other: &Self) -> Self {
         // Addition in binary fields is done with XOR
-        BinaryFieldElement::new(&self.value ^ &other.value)
+        Self::new(&self.value ^ &other.value)
     }
     
     pub fn sub(&self, other: &Self) -> Self {
