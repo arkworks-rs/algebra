@@ -24,7 +24,7 @@ impl BinaryFieldElement {
 
     // Method for multiplication in GF(2^k)
     pub fn mul(&self, other: &Self) -> Self {
-        BinaryFieldElement::new(binmul(self.value.clone(), other.value.clone(), None))
+        Self::new(binmul(self.value.clone(), other.value.clone(), None))
     }
 
     // Method for division (multiplication by the inverse)
