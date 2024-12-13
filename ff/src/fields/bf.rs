@@ -9,7 +9,7 @@ pub struct BinaryFieldElement {
 impl BinaryFieldElement {
     // Constructor to create a new [`BinaryFieldElement`]
     pub fn new(value: BigUint) -> Self {
-        BinaryFieldElement { value }
+        Self { value }
     }
 
     // Method for addition in GF(2^k)
