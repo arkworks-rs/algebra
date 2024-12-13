@@ -7,7 +7,7 @@ pub struct BinaryFieldElement {
 }
 
 impl BinaryFieldElement {
-    // Constructor to create a new BinaryFieldElement
+    // Constructor to create a new [`BinaryFieldElement`]
     pub fn new(value: BigUint) -> Self {
         BinaryFieldElement { value }
     }
