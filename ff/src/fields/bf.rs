@@ -1,21 +1,23 @@
 use num_bigint::BigUint;
 use num_traits::{Zero, One};
+use core::ops::{Add, AddAssign, Sub, SubAssign, Mul, MulAssign, Div, DivAssign};
 
-#[derive( Clone, PartialEq, Eq)]
+
+#[derive( Clone, PartialEq, Eq, Debug)]
 pub struct BinaryFieldElement {
     value: BigUint,
 }
 
 impl BinaryFieldElement {
-    // Constructor to create a new [`BinaryFieldElement`]
+    // Constructor to create a new BinaryFieldElement
     pub fn new(value: BigUint) -> Self {
-        Self { value }
+        BinaryFieldElement { value }
     }
 
     // Method for addition in GF(2^k)
     pub fn add(&self, other: &Self) -> Self {
         // Addition in binary fields is done with XOR
-        Self::new(&self.value ^ &other.value)
+        BinaryFieldElement::new(&self.value ^ &other.value)
     }
     
     pub fn sub(&self, other: &Self) -> Self {
@@ -24,7 +26,7 @@ impl BinaryFieldElement {
 
     // Method for multiplication in GF(2^k)
     pub fn mul(&self, other: &Self) -> Self {
-        Self::new(binmul(self.value.clone(), other.value.clone(), None))
+        BinaryFieldElement::new(binmul(self.value.clone(), other.value.clone(), None))
     }
 
     // Method for division (multiplication by the inverse)
@@ -43,7 +45,7 @@ impl BinaryFieldElement {
             self.clone()
         } else if exponent % 2 == 0 {
             let half_pow = self.pow(exponent / 2);
-            half_pow.mul(&half_pow)
+            half_pow.clone().mul(&half_pow)
         } else {
             self.mul(&self.pow(exponent - 1))
         }
@@ -91,12 +93,81 @@ fn binmul(v1: BigUint, v2: BigUint, length: Option<usize>) -> BigUint {
     l1l2.clone() ^ r1r2.clone() ^ ((z3 ^ l1l2 ^ r1r2 ^ r1r2_high) << halflen)
 }
 
+// Implementations to be able to use +-*/
+// Add implementations
+impl<'a> AddAssign<&'a BinaryFieldElement> for BinaryFieldElement {
+    #[inline]
+    fn add_assign(&mut self, other: &'a BinaryFieldElement) {
+        *self = BinaryFieldElement::add(self, other);
+    }
+}
 
+impl<'a> Add<&'a BinaryFieldElement> for BinaryFieldElement {
+    type Output = Self;
+
+    #[inline]
+    fn add(self, other: &'a Self) -> Self {
+        BinaryFieldElement::add(&self, other)
+    }
+}
+
+// Sub implementations
+impl<'a> SubAssign<&'a BinaryFieldElement> for BinaryFieldElement {
+    #[inline]
+    fn sub_assign(&mut self, other: &'a BinaryFieldElement) {
+        *self = BinaryFieldElement::sub(self, other);
+    }
+}
+
+impl<'a> Sub<&'a BinaryFieldElement> for BinaryFieldElement {
+    type Output = Self;
+
+    #[inline]
+    fn sub(self, other: &'a Self) -> Self {
+        BinaryFieldElement::sub(&self, other)
+    }
+}
+
+// Mul implementations
+impl<'a> MulAssign<&'a BinaryFieldElement> for BinaryFieldElement {
+    #[inline]
+    fn mul_assign(&mut self, other: &'a BinaryFieldElement) {
+        *self = BinaryFieldElement::mul(self, other);
+    }
+}
+
+impl<'a> Mul<&'a BinaryFieldElement> for BinaryFieldElement {
+    type Output = Self;
+
+    #[inline]
+    fn mul(self, other: &'a Self) -> Self {
+        BinaryFieldElement::mul(&self, other)
+    }
+}
+
+// Div implementations
+impl<'a> DivAssign<&'a BinaryFieldElement> for BinaryFieldElement {
+    #[inline]
+    fn div_assign(&mut self, other: &'a BinaryFieldElement) {
+        *self = BinaryFieldElement::div(self, other);
+    }
+}
+
+impl<'a> Div<&'a BinaryFieldElement> for BinaryFieldElement {
+    type Output = Self;
+
+    #[inline]
+    fn div(self, other: &'a Self) -> Self {
+        BinaryFieldElement::div(&self, other)
+    }
+}
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use num_bigint::ToBigUint;
+    use ark_std::{test_rng, rand::RngCore};  // Changed to RngCore
+
 
     #[test]
     fn add_test() {
@@ -105,9 +176,9 @@ mod tests {
         let c = BinaryFieldElement::new(100u64.to_biguint().unwrap());
 
         // Test cases
-        assert_eq!(a.add(&b), BinaryFieldElement::new(1u64.to_biguint().unwrap()));
-        assert_eq!(a.add(&a), BinaryFieldElement::new(0u64.to_biguint().unwrap())); // 1 + 1 in GF(2) should be 0
-        assert_eq!(a.add(&c), BinaryFieldElement::new(101u64.to_biguint().unwrap())); // 1 + 100 = 101 in binary (XOR)
+        assert_eq!(a.clone().add(&b), BinaryFieldElement::new(1u64.to_biguint().unwrap()));
+        assert_eq!(a.clone().add(&a), BinaryFieldElement::new(0u64.to_biguint().unwrap())); // 1 + 1 in GF(2) should be 0
+        assert_eq!(a.clone().add(&c), BinaryFieldElement::new(101u64.to_biguint().unwrap())); // 1 + 100 = 101 in binary (XOR)
         assert_eq!(b.add(&c), BinaryFieldElement::new(100u64.to_biguint().unwrap())); // 0 + 100 = 100
     }
 
@@ -116,38 +187,91 @@ mod tests {
         let a = BinaryFieldElement::new(1u64.to_biguint().unwrap());
         let b = BinaryFieldElement::new(100u64.to_biguint().unwrap());
 
-        assert_eq!(a.sub(&b), BinaryFieldElement::new(101u64.to_biguint().unwrap())); // 1 - 100 in GF(2) should be 101 (same as add)
+        assert_eq!(a.clone().sub(&b), BinaryFieldElement::new(101u64.to_biguint().unwrap())); // 1 - 100 in GF(2) should be 101 (same as add)
     }
 
     #[test]
     fn neg_test() {
         let a = BinaryFieldElement::new(15u64.to_biguint().unwrap());
-        assert_eq!(a.neg(), a); // Negation in GF(2) has no effect, so a == -a
+        assert_eq!(a.clone().neg(), a); // Negation in GF(2) has no effect, so a == -a
     }
 
     #[test]
     fn multiplication_test() {
         let a = BinaryFieldElement::new(7u64.to_biguint().unwrap());
         let b = BinaryFieldElement::new(13u64.to_biguint().unwrap());
-        assert_eq!(a.mul(&b), BinaryFieldElement::new(8u64.to_biguint().unwrap())); // 7 * 13 = 8
+        assert_eq!(a.clone().mul(&b), BinaryFieldElement::new(8u64.to_biguint().unwrap())); // 7 * 13 = 8
     }
 
     #[test]
     fn exponentiation_test() {
         let a = BinaryFieldElement::new(7u64.to_biguint().unwrap());
-        assert_eq!(a.pow(3), BinaryFieldElement::new(4u64.to_biguint().unwrap())); // 7 ** 3 = 4
+        assert_eq!(a.clone().pow(3), BinaryFieldElement::new(4u64.to_biguint().unwrap())); // 7 ** 3 = 4
     }
 
     #[test]
     fn inverse_test() {
         let a = BinaryFieldElement::new(7u64.to_biguint().unwrap());
-        assert_eq!(a.inv(), BinaryFieldElement::new(15u64.to_biguint().unwrap())); // Inverse of 7 = 15
+        assert_eq!(a.clone().inv(), BinaryFieldElement::new(15u64.to_biguint().unwrap())); // Inverse of 7 = 15
     }
 
     #[test]
     fn division_test() {
         let a = BinaryFieldElement::new(7u64.to_biguint().unwrap());
         let b = BinaryFieldElement::new(13u64.to_biguint().unwrap());
-        assert_eq!(a.div(&b), BinaryFieldElement::new(10u64.to_biguint().unwrap())); // 7 / 13 = 10
+        assert_eq!(a.clone().div(&b), BinaryFieldElement::new(10u64.to_biguint().unwrap())); // 7 / 13 = 10
+    }
+
+    #[test]
+    fn test_random_operations() {
+        let mut rng = test_rng();
+
+        // Generate some random values (using smaller numbers for testing)
+        for _ in 0..100 {  // Run 100 random tests
+            // Generate non-zero random values between 1 and 255
+            let value1 = ((rng.next_u64() % 255) + 1).to_biguint().unwrap();
+            let value2 = ((rng.next_u64() % 255) + 1).to_biguint().unwrap();    
+
+            let a = BinaryFieldElement::new(value1.clone());
+            let b = BinaryFieldElement::new(value2.clone());
+
+            // Test that a + b = b + a (commutativity of addition)
+            assert_eq!(a.clone().add(&b), b.clone().add(&a));
+
+            // Test that (a + b) + c = a + (b + c) (associativity of addition)
+            let c = BinaryFieldElement::new((rng.next_u64() % 256).to_biguint().unwrap());
+            assert_eq!(
+                a.clone().add(&b).add(&c),
+                a.clone().add(&b.clone().add(&c))
+            );
+
+            // Test that a + 0 = a (identity of addition)
+            let zero = BinaryFieldElement::new(0u64.to_biguint().unwrap());
+            assert_eq!(a.clone().add(&zero), a.clone());
+
+            // Test that a + a = 0 (characteristic 2)
+            assert_eq!(a.clone().add(&a), zero);
+
+            // Test multiplication properties
+            assert_eq!(a.clone().mul(&b), b.clone().mul(&a));  // commutativity
+
+            // Test that a * (b * c) = (a * b) * c (associativity of multiplication)
+            assert_eq!(
+                a.clone().mul(&b.clone().mul(&c)),
+                a.clone().mul(&b).mul(&c)
+            );
+
+            // Test distributive property: a * (b + c) = (a * b) + (a * c)
+            assert_eq!(
+                a.clone().mul(&b.clone().add(&c)),
+                a.clone().mul(&b).add(&a.clone().mul(&c))
+            );
+
+            // Test inverse (if not zero)
+            if !a.value.is_zero() {
+                let a_inv = a.clone().inv();
+                assert_eq!(a.clone().mul(&a_inv), BinaryFieldElement::new(1u64.to_biguint().unwrap()));
+            }
+        }
     }
 }
