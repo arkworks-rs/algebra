@@ -253,7 +253,6 @@ impl<F: Field> SparsePolynomial<F> {
     }
 
     /// Perform a naive n^2 multiplication of `self` by `other`.
-    #[allow(clippy::or_fun_call)]
     pub fn mul(&self, other: &Self) -> Self {
         if self.is_zero() || other.is_zero() {
             SparsePolynomial::zero()
@@ -261,8 +260,10 @@ impl<F: Field> SparsePolynomial<F> {
             let mut result = BTreeMap::new();
             for (i, self_coeff) in self.coeffs.iter() {
                 for (j, other_coeff) in other.coeffs.iter() {
-                    let cur_coeff = result.entry(i + j).or_insert(F::zero());
-                    *cur_coeff += &(*self_coeff * other_coeff);
+                    result
+                        .entry(i + j)
+                        .and_modify(|cur_coeff| *cur_coeff += &(*self_coeff * other_coeff))
+                        .or_insert_with(|| *self_coeff * other_coeff);
                 }
             }
             SparsePolynomial::from_coefficients_vec(result.into_iter().collect())
