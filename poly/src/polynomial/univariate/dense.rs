@@ -509,8 +509,7 @@ impl<'a, F: Field> Sub<&'a SparsePolynomial<F>> for &DensePolynomial<F> {
     #[inline]
     fn sub(self, other: &'a SparsePolynomial<F>) -> DensePolynomial<F> {
         if self.is_zero() {
-            let result = other.clone();
-            (-result).into()
+            (-other.clone()).into()
         } else if other.is_zero() {
             self.clone()
         } else {
@@ -538,24 +537,21 @@ impl<'a, F: Field> SubAssign<&'a DensePolynomial<F>> for DensePolynomial<F> {
     #[inline]
     fn sub_assign(&mut self, other: &'a DensePolynomial<F>) {
         if self.is_zero() {
-            self.coeffs.resize(other.coeffs.len(), F::zero());
-        } else if other.is_zero() {
-            return;
-        } else if self.degree() >= other.degree() {
-        } else {
-            // Add the necessary number of zero coefficients.
-            self.coeffs.resize(other.coeffs.len(), F::zero());
+            self.coeffs = other.coeffs.iter().map(|&x| -x).collect();
+        } else if !other.is_zero() {
+            if self.degree() < other.degree() {
+                self.coeffs.resize(other.coeffs.len(), F::zero());
+            }
+            self.coeffs
+                .iter_mut()
+                .zip(&other.coeffs)
+                .for_each(|(a, b)| *a -= b);
+
+            // If the leading coefficient ends up being zero, pop it off.
+            // This can happen if they were the same degree, or if other's
+            // coefficients were constructed with leading zeros.
+            self.truncate_leading_zeros();
         }
-        self.coeffs
-            .iter_mut()
-            .zip(&other.coeffs)
-            .for_each(|(a, b)| {
-                *a -= b;
-            });
-        // If the leading coefficient ends up being zero, pop it off.
-        // This can happen if they were the same degree, or if other's
-        // coefficients were constructed with leading zeros.
-        self.truncate_leading_zeros();
     }
 }
 
