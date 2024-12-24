@@ -262,7 +262,7 @@ impl<F: Field> SparsePolynomial<F> {
                 for (j, other_coeff) in other.coeffs.iter() {
                     result
                         .entry(i + j)
-                        .and_modify(|cur_coeff| *cur_coeff += &(*self_coeff * other_coeff))
+                        .and_modify(|cur_coeff| *cur_coeff += *self_coeff * other_coeff)
                         .or_insert_with(|| *self_coeff * other_coeff);
                 }
             }
