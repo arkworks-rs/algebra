@@ -261,10 +261,7 @@ pub trait Field:
     /// Returns the square root of self, if it exists.
     #[must_use]
     fn sqrt(&self) -> Option<Self> {
-        match Self::SQRT_PRECOMP {
-            Some(tv) => tv.sqrt(self),
-            None => unimplemented!(),
-        }
+        Self::SQRT_PRECOMP?.sqrt(self)
     }
 
     /// Sets `self` to be the square root of `self`, if it exists.
