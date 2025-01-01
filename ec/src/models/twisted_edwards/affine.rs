@@ -83,7 +83,7 @@ impl<P: TECurveConfig> Affine<P> {
         self.x.is_zero() && self.y.is_one()
     }
 
-    /// Attempts to construct an affine point given an y-coordinate. The
+    /// Attempts to construct an affine point given a y-coordinate. The
     /// point is not guaranteed to be in the prime order subgroup.
     ///
     /// If and only if `greatest` is set will the lexicographically
@@ -104,7 +104,7 @@ impl<P: TECurveConfig> Affine<P> {
         })
     }
 
-    /// Attempts to recover the x-coordinate given an y-coordinate. The
+    /// Attempts to recover the x-coordinate given a y-coordinate. The
     /// resulting point is not guaranteed to be in the prime order subgroup.
     ///
     /// If and only if `greatest` is set will the lexicographically
