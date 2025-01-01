@@ -1,6 +1,6 @@
 //! This module contains a `GeneralEvaluationDomain` for
 //! performing various kinds of polynomial arithmetic on top of
-//! a FFT-friendly finite field.
+//! an FFT-friendly finite field.
 //!
 //! It is a wrapper around specific implementations of `EvaluationDomain` that
 //! automatically chooses the most efficient implementation
