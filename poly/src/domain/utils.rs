@@ -132,7 +132,7 @@ pub(crate) fn parallel_fft<T: DomainCoeff<F>, F: FftField>(
     let new_two_adicity = ark_ff::utils::k_adicity(2, coset_size as u64);
 
     // For each coset, we first build a polynomial of degree |coset size|,
-    // whose evaluations over coset k will agree with the evaluations of a over the coset.
+    // whose evaluations over coset k will agree with the evaluations of an over the coset.
     // Denote the kth such polynomial as poly_k
     tmp.par_iter_mut()
         .enumerate()
