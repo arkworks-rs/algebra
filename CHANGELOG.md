@@ -10,6 +10,8 @@
 
 ### Bugfixes
 
+- (`ark-poly`) Fix handling of duplicate terms in `SparsePolynomial::from_coefficients_vec`. Terms with the same degree are now correctly merged, and zero coefficient terms are removed.
+
 ## v0.5.0
 
 - [\#772](https://github.com/arkworks-rs/algebra/pull/772) (`ark-ff`) Implementation of `mul` method for `BigInteger`.
