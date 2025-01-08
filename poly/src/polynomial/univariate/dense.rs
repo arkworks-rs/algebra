@@ -251,6 +251,11 @@ impl<F: FftField> DensePolynomial<F> {
         let poly: DenseOrSparsePolynomial<'_, F> = self.into();
         DenseOrSparsePolynomial::<F>::evaluate_over_domain(poly, domain)
     }
+
+    /// Consumes `self` and returns a coefficients vec.
+    pub fn to_coefficients_vec(self) -> Vec<F> {
+        self.coeffs
+    }
 }
 
 impl<F: Field> fmt::Debug for DensePolynomial<F> {
