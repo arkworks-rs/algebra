@@ -2,7 +2,7 @@
 name = "ark-tom256"
 version.workspace = true
 authors.workspace = true
-description = "The secp256k1 curve"
+description = "The Tom-256 curve"
 homepage.workspace = true
 repository.workspace = true
 documentation = "https://docs.rs/ark-tom256/"
