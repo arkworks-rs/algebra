@@ -3,6 +3,7 @@
 members = [
     "curve-constraint-tests",
 
+    "baby_jubjub",
     "bls12_377",
     "ed_on_bls12_377",
 
