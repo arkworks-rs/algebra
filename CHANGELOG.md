@@ -1,7 +1,7 @@
 # CHANGELOG
 
 ## Pending
--   [\#926](git@github.com:vasemkin/ark-algebra.git) Add the circom compatible Baby Jubjub curve
+-   [\#926](https://github.com/arkworks-rs/algebra/pull/926) Add the circom compatible Baby Jubjub curve
 
 ### Breaking changes
 
