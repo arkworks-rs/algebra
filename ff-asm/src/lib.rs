@@ -230,7 +230,7 @@ fn construct_asm_mul(ctx: &Context<'_>, limbs: usize) -> Vec<String> {
         ($a:ident, $mod_inv:ident, $i:ident, $limbs:expr) => {
             comment(&format!("mul_add_shift_1 start for iteration {}", $i));
             movq!($mod_inv, rdx);
-            mulxq!(r[$i], rdx, rax);
+            mulxq!(r[$i], $mod_inv, rax);
             mulxq!($a[0], rax, rsi);
             adcxq!(r[$i % $limbs], rax);
             adoxq!(rsi, r[($i + 1) % $limbs]);
