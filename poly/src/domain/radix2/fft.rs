@@ -366,7 +366,7 @@ const MIN_INPUT_SIZE_FOR_PARALLELIZATION: usize = 1 << 10;
 const LOG_ROOTS_OF_UNITY_PARALLEL_SIZE: u32 = 7;
 
 #[inline]
-fn bitrev(a: u64, log_len: u32) -> u64 {
+const fn bitrev(a: u64, log_len: u32) -> u64 {
     a.reverse_bits().wrapping_shr(64 - log_len)
 }
 

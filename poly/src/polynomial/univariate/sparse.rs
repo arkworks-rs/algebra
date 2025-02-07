@@ -102,9 +102,9 @@ impl<F: Field> Polynomial<F> for SparsePolynomial<F> {
 }
 
 impl<F: Field> Add for SparsePolynomial<F> {
-    type Output = SparsePolynomial<F>;
+    type Output = Self;
 
-    fn add(self, other: SparsePolynomial<F>) -> Self {
+    fn add(self, other: Self) -> Self {
         &self + &other
     }
 }
@@ -162,16 +162,16 @@ impl<'a, F: Field> Add<&'a SparsePolynomial<F>> for &SparsePolynomial<F> {
     }
 }
 
-impl<'a, F: Field> AddAssign<&'a SparsePolynomial<F>> for SparsePolynomial<F> {
+impl<'a, F: Field> AddAssign<&'a Self> for SparsePolynomial<F> {
     // TODO: Reduce number of clones
-    fn add_assign(&mut self, other: &'a SparsePolynomial<F>) {
+    fn add_assign(&mut self, other: &'a Self) {
         self.coeffs = (self.clone() + other.clone()).coeffs;
     }
 }
 
-impl<'a, F: Field> AddAssign<(F, &'a SparsePolynomial<F>)> for SparsePolynomial<F> {
+impl<'a, F: Field> AddAssign<(F, &'a Self)> for SparsePolynomial<F> {
     // TODO: Reduce number of clones
-    fn add_assign(&mut self, (f, other): (F, &'a SparsePolynomial<F>)) {
+    fn add_assign(&mut self, (f, other): (F, &'a Self)) {
         self.coeffs = (self.clone() + other.clone()).coeffs;
         for i in 0..self.coeffs.len() {
             self.coeffs[i].1 *= f;
@@ -180,10 +180,10 @@ impl<'a, F: Field> AddAssign<(F, &'a SparsePolynomial<F>)> for SparsePolynomial<
 }
 
 impl<F: Field> Neg for SparsePolynomial<F> {
-    type Output = SparsePolynomial<F>;
+    type Output = Self;
 
     #[inline]
-    fn neg(mut self) -> SparsePolynomial<F> {
+    fn neg(mut self) -> Self {
         for (_, coeff) in &mut self.coeffs {
             *coeff = -*coeff;
         }
@@ -191,10 +191,10 @@ impl<F: Field> Neg for SparsePolynomial<F> {
     }
 }
 
-impl<'a, F: Field> SubAssign<&'a SparsePolynomial<F>> for SparsePolynomial<F> {
+impl<'a, F: Field> SubAssign<&'a Self> for SparsePolynomial<F> {
     // TODO: Reduce number of clones
     #[inline]
-    fn sub_assign(&mut self, other: &'a SparsePolynomial<F>) {
+    fn sub_assign(&mut self, other: &'a Self) {
         let self_copy = -self.clone();
         self.coeffs = (self_copy + other.clone()).coeffs;
     }
@@ -256,16 +256,16 @@ impl<F: Field> SparsePolynomial<F> {
     #[allow(clippy::or_fun_call)]
     pub fn mul(&self, other: &Self) -> Self {
         if self.is_zero() || other.is_zero() {
-            SparsePolynomial::zero()
+            Self::zero()
         } else {
             let mut result = BTreeMap::new();
-            for (i, self_coeff) in self.coeffs.iter() {
-                for (j, other_coeff) in other.coeffs.iter() {
+            for (i, self_coeff) in &self.coeffs {
+                for (j, other_coeff) in &other.coeffs {
                     let cur_coeff = result.entry(i + j).or_insert(F::zero());
                     *cur_coeff += &(*self_coeff * other_coeff);
                 }
             }
-            SparsePolynomial::from_coefficients_vec(result.into_iter().collect())
+            Self::from_coefficients_vec(result.into_iter().collect())
         }
     }
 
@@ -301,18 +301,19 @@ impl<F: Field> From<SparsePolynomial<F>> for DensePolynomial<F> {
         for (i, coeff) in other.coeffs {
             result[i] = coeff;
         }
-        DensePolynomial::from_coefficients_vec(result)
+        Self::from_coefficients_vec(result)
     }
 }
 
 impl<F: Field> From<DensePolynomial<F>> for SparsePolynomial<F> {
-    fn from(dense_poly: DensePolynomial<F>) -> SparsePolynomial<F> {
-        SparsePolynomial::from_coefficients_vec(
+    fn from(dense_poly: DensePolynomial<F>) -> Self {
+        Self::from_coefficients_vec(
             dense_poly
                 .coeffs()
                 .iter()
                 .enumerate()
-                .filter_map(|(i, coeff)| (!coeff.is_zero()).then(|| (i, *coeff)))
+                .filter(|&(_, coeff)| (!coeff.is_zero()))
+                .map(|(i, coeff)| (i, *coeff))
                 .collect(),
         )
     }
