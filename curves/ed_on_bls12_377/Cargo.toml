@@ -30,6 +30,7 @@ ark-curve-constraint-tests = { path = "../curve-constraint-tests" }
 default = []
 std = [ "ark-std/std", "ark-ff/std", "ark-ec/std", "ark-bls12-377/std" ]
 r1cs = [ "ark-r1cs-std" ]
+asm = [ "ark-ff/asm" ]
 
 [[bench]]
 name = "ed_on_bls12_377"
