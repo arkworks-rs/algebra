@@ -8,13 +8,27 @@
     <a href="https://discord.gg/UNtS7QXyPk"><img src="https://img.shields.io/discord/908465643727253524?label=Discord&logo=discord"></a>
 </p>
 
-The arkworks ecosystem consist of Rust libraries for designing and working with *zero knowledge succinct non-interactive arguments (zkSNARKs)*. This repository contains efficient implementations of the key algebraic components underlying zkSNARKs: finite fields, elliptic curves, and polynomials.
+The arkworks ecosystem consists of Rust libraries for designing and working with *zero knowledge succinct non-interactive arguments (zkSNARKs)*. This repository contains efficient implementations of the key algebraic components underlying zkSNARKs: finite fields, elliptic curves, and polynomials.
+
+## Table of Contents
+- [Overview](#overview)
+- [Directory Structure](#directory-structure)
+- [Installation](#build-guide)
+- [Usage Examples](#usage-examples)
+- [Tests](#tests)
+- [Benchmarks](#benchmarks)
+- [Assembly Backend](#assembly-backend-for-field-arithmetic)
+- [Contributing](#contributing)
+- [License](#license)
+- [Acknowledgements](#acknowledgements)
+
+## Overview
 
 This library is released under the MIT License and the Apache v2 License (see [License](#license)).
 
 **WARNING:** This is an academic proof-of-concept prototype, and in particular has not received careful code review. This implementation is NOT ready for production use.
 
-## Directory structure
+## Directory Structure
 
 This repository contains several Rust crates:
 
@@ -25,7 +39,29 @@ This repository contains several Rust crates:
 
 In addition, the [`curves`](https://github.com/arkworks-rs/algebra/tree/master/curves) repository contains concrete implementations of popular elliptic curves; see [here](https://github.com/arkworks-rs/algebra/blob/master/curves/README.md) for details.
 
-## Build guide
+## Usage Examples
+
+Here are some basic examples of how to use the library:
+
+```rust
+use ark_ff::Field;
+use ark_ec::Group;
+
+// Example 1: Working with finite fields
+use ark_test_curves::bls12_381::Fr;
+let a = Fr::from(2u64);
+let b = Fr::from(3u64);
+let c = a + b; // Field addition
+
+// Example 2: Working with elliptic curves
+use ark_test_curves::BLS12_381;
+let generator = BLS12_381::generator();
+let point = generator.double(); // Point doubling
+```
+
+For more examples, please check the `tests` directory in each crate.
+
+## Build Guide
 
 The library compiles on the `stable` toolchain of the Rust compiler (v 1.51+). To install the latest version of Rust, first install `rustup` by following the instructions [here](https://rustup.rs/), or via your platform's package manager. Once `rustup` is installed, install the Rust toolchain by invoking:
 
@@ -72,6 +108,25 @@ ark-ff = { version = "0.4", features = [ "asm" ] }
 ```
 
 Note that because inline assembly support in Rust is currently unstable, using this backend requires using the Nightly compiler at the moment.
+
+## Contributing
+
+We welcome contributions to arkworks! Please follow these steps to contribute:
+
+1. Fork the repository
+2. Create a new branch for your feature
+3. Implement your changes
+4. Add tests if applicable
+5. Run the test suite with `cargo test --all`
+6. Submit a pull request
+
+Before submitting your PR, please:
+- Format your code with `cargo fmt`
+- Ensure your code passes `cargo clippy`
+- Add documentation for new features
+- Update the README if necessary
+
+For more detailed guidelines, check our [Contributing Guide](CONTRIBUTING.md).
 
 ## License
 
