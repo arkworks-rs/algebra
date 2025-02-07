@@ -182,14 +182,14 @@ mod test {
     #[derive(ark_ff::MontConfig)]
     #[modulus = "101"]
     #[generator = "2"]
-    pub struct F101Config;
-    pub type F101 = Fp64<MontBackend<F101Config, 1>>;
+    pub(crate) struct F101Config;
+    pub(crate) type F101 = Fp64<MontBackend<F101Config, 1>>;
 
     #[derive(ark_ff::MontConfig)]
     #[modulus = "11"]
     #[generator = "2"]
-    pub struct F11Config;
-    pub type F11 = Fp64<MontBackend<F11Config, 1>>;
+    pub(crate) struct F11Config;
+    pub(crate) type F11 = Fp64<MontBackend<F11Config, 1>>;
 
     struct TestElligator2MapToCurveConfig;
 
@@ -225,10 +225,9 @@ mod test {
         /// COEFF_D = 12
         const COEFF_D: F101 = MontFp!("12");
 
-        const GENERATOR: Affine<TestElligator2MapToCurveConfig> =
-            Affine::new_unchecked(MontFp!("23"), MontFp!("24"));
+        const GENERATOR: Affine<Self> = Affine::new_unchecked(MontFp!("23"), MontFp!("24"));
 
-        type MontCurveConfig = TestElligator2MapToCurveConfig;
+        type MontCurveConfig = Self;
     }
 
     impl MontCurveConfig for TestElligator2MapToCurveConfig {
@@ -238,7 +237,7 @@ mod test {
         /// COEFF_B = 23
         const COEFF_B: F101 = MontFp!("23");
 
-        type TECurveConfig = TestElligator2MapToCurveConfig;
+        type TECurveConfig = Self;
     }
 
     /// sage: find_z_ell2(F101)
