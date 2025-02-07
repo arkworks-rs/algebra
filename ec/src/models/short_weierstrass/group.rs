@@ -72,10 +72,10 @@ impl<P: SWCurveConfig> PartialEq for Projective<P> {
         let z1z1 = self.z.square();
         let z2z2 = other.z.square();
 
-        if self.x * &z2z2 != other.x * &z1z1 {
-            false
-        } else {
+        if self.x * &z2z2 == other.x * &z1z1 {
             self.y * &(z2z2 * &other.z) == other.y * &(z1z1 * &self.z)
+        } else {
+            false
         }
     }
 }
@@ -189,20 +189,17 @@ impl<P: SWCurveConfig> AdditiveGroup for Projective<P> {
             // D = 2*((X1+B)^2-A-C)
             //   = 2 * (X1 + Y1^2)^2 - A - C
             //   = 2 * 2 * X1 * Y1^2
-            let d = if [1, 2].contains(&P::BaseField::extension_degree()) {
-                let mut d = self.x;
+            let mut d = self.x;
+            if [1, 2].contains(&P::BaseField::extension_degree()) {
                 d *= &b;
                 d.double_in_place().double_in_place();
-                d
             } else {
-                let mut d = self.x;
                 d += &b;
                 d.square_in_place();
                 d -= a;
                 d -= c;
                 d.double_in_place();
-                d
-            };
+            }
 
             // E = 3*A
             let e = a + &*a.double_in_place();
@@ -222,7 +219,6 @@ impl<P: SWCurveConfig> AdditiveGroup for Projective<P> {
             self.y -= &self.x;
             self.y *= &e;
             self.y -= c.double_in_place().double_in_place().double_in_place();
-            self
         } else {
             // http://www.hyperelliptic.org/EFD/g1p/auto-shortw-jacobian-0.html#doubling-dbl-2009-l
             // XX = X1^2
@@ -264,9 +260,9 @@ impl<P: SWCurveConfig> AdditiveGroup for Projective<P> {
             self.y -= &self.x;
             self.y *= &m;
             self.y -= yyyy.double_in_place().double_in_place().double_in_place();
-
-            self
         }
+
+        self
     }
 }
 
@@ -573,8 +569,8 @@ impl<P: SWCurveConfig, T: Borrow<P::ScalarField>> Mul<T> for Projective<P> {
 // coordinates with Z = 1.
 impl<P: SWCurveConfig> From<Affine<P>> for Projective<P> {
     #[inline]
-    fn from(p: Affine<P>) -> Projective<P> {
-        p.xy().map_or(Projective::zero(), |(x, y)| Self {
+    fn from(p: Affine<P>) -> Self {
+        p.xy().map_or_else(Self::zero, |(x, y)| Self {
             x,
             y,
             z: P::BaseField::one(),
@@ -654,6 +650,6 @@ impl<P: SWCurveConfig> VariableBaseMSM for Projective<P> {
 
 impl<P: SWCurveConfig, T: Borrow<Affine<P>>> core::iter::Sum<T> for Projective<P> {
     fn sum<I: Iterator<Item = T>>(iter: I) -> Self {
-        iter.fold(Projective::zero(), |sum, x| sum + x.borrow())
+        iter.fold(Self::zero(), |sum, x| sum + x.borrow())
     }
 }

@@ -165,7 +165,7 @@ impl<P: Pairing> CanonicalDeserialize for PairingOutput<P> {
         validate: Validate,
     ) -> Result<Self, SerializationError> {
         let f = P::TargetField::deserialize_with_mode(reader, compress, validate).map(Self)?;
-        if let Validate::Yes = validate {
+        if validate == Validate::Yes {
             f.check()?;
         }
         Ok(f)

@@ -13,15 +13,15 @@ impl TEFlags {
     #[inline]
     pub fn from_x_coordinate(x: impl Field) -> Self {
         if x <= -x {
-            TEFlags::XIsPositive
+            Self::XIsPositive
         } else {
-            TEFlags::XIsNegative
+            Self::XIsNegative
         }
     }
 
     #[inline]
-    pub fn is_negative(&self) -> bool {
-        matches!(*self, TEFlags::XIsNegative)
+    pub const fn is_negative(&self) -> bool {
+        matches!(*self, Self::XIsNegative)
     }
 }
 
@@ -29,7 +29,7 @@ impl Default for TEFlags {
     #[inline]
     fn default() -> Self {
         // XIsPositive doesn't change the serialization
-        TEFlags::XIsPositive
+        Self::XIsPositive
     }
 }
 
@@ -39,7 +39,7 @@ impl Flags for TEFlags {
     #[inline]
     fn u8_bitmask(&self) -> u8 {
         let mut mask = 0;
-        if let Self::XIsNegative = self {
+        if matches!(self, Self::XIsNegative) {
             mask |= 1 << 7;
         }
         mask
