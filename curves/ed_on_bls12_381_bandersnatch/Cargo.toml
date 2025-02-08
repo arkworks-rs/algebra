@@ -34,3 +34,4 @@ std = [
     "ark-bls12-381/std"
 ]
 r1cs = ["ark-r1cs-std"]
+asm = [ "ark-ff/asm" ]

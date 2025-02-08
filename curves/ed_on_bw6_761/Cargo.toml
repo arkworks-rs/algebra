@@ -25,3 +25,4 @@ ark-std = { workspace = true }
 default = []
 std = [ "ark-ed-on-cp6-782/std" ]
 r1cs = [ "ark-ed-on-cp6-782/r1cs" ]
+asm = [ "ark-ff/asm" ]
