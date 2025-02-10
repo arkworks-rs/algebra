@@ -89,7 +89,7 @@ impl<F: FftField> EvaluationDomain<F> for MixedRadixEvaluationDomain<F> {
         let size_as_field_element = F::from(size);
         let size_inv = size_as_field_element.inverse()?;
 
-        Some(MixedRadixEvaluationDomain {
+        Some(Self {
             size,
             log_size_of_group,
             size_as_field_element,
@@ -103,7 +103,7 @@ impl<F: FftField> EvaluationDomain<F> for MixedRadixEvaluationDomain<F> {
     }
 
     fn get_coset(&self, offset: F) -> Option<Self> {
-        Some(MixedRadixEvaluationDomain {
+        Some(Self {
             offset,
             offset_inv: offset.inverse()?,
             offset_pow_size: offset.pow([self.size]),
@@ -124,11 +124,7 @@ impl<F: FftField> EvaluationDomain<F> for MixedRadixEvaluationDomain<F> {
         let two_adicity = k_adicity(2, num_coeffs);
         let two_part = 2u64.checked_pow(two_adicity)?;
 
-        if num_coeffs == q_part * two_part {
-            Some(num_coeffs as usize)
-        } else {
-            None
-        }
+        (num_coeffs == q_part * two_part).then_some(num_coeffs as usize)
     }
 
     #[inline]
