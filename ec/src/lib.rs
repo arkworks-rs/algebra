@@ -135,7 +135,7 @@ pub trait AffineRepr:
     + Debug
     + Display
     + Zeroize
-    + Neg
+    + Neg<Output = Self>
     + From<<Self as AffineRepr>::Group>
     + Into<<Self as AffineRepr>::Group>
     + Add<Self, Output = Self::Group>

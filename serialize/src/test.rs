@@ -50,7 +50,7 @@ impl CanonicalDeserialize for Dummy {
                 assert_eq!(<[u8; 2]>::deserialize_compressed(reader)?, [100u8, 200u8])
             },
         }
-        Ok(Dummy)
+        Ok(Self)
     }
 }
 
@@ -215,6 +215,7 @@ fn test_rc_arc() {
 }
 
 #[test]
+#[allow(clippy::zero_sized_map_values)]
 fn test_btreemap() {
     let mut map = BTreeMap::new();
     map.insert(0u64, Dummy);
