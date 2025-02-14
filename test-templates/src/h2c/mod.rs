@@ -1,7 +1,7 @@
 pub mod json;
-extern crate hex;
-extern crate serde_json;
-extern crate sha2;
+use hex;
+use serde_json;
+use sha2;
 pub use hex::decode;
 pub use serde_json::from_reader;
 pub use sha2::Sha256;
