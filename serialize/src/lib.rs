@@ -232,7 +232,7 @@ pub trait CanonicalSerializeHashExt: CanonicalSerialize {
 impl<T: CanonicalSerialize> CanonicalSerializeHashExt for T {}
 
 #[inline]
-pub fn buffer_bit_byte_size(modulus_bits: usize) -> (usize, usize) {
+pub const fn buffer_bit_byte_size(modulus_bits: usize) -> (usize, usize) {
     let byte_size = buffer_byte_size(modulus_bits);
     ((byte_size * 8), byte_size)
 }
