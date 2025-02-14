@@ -40,11 +40,12 @@ impl<F: Field> Polynomial<F> for DensePolynomial<F> {
     /// Evaluates `self` at the given `point` in `Self::Point`.
     fn evaluate(&self, point: &F) -> F {
         if self.is_zero() {
-            return F::zero();
+            F::zero()
         } else if point.is_zero() {
-            return self.coeffs[0];
+            self.coeffs[0]
+        } else {
+            self.internal_evaluate(point)
         }
-        self.internal_evaluate(point)
     }
 }
 
