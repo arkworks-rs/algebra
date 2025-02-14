@@ -93,7 +93,7 @@ pub trait TECurveConfig: super::CurveConfig {
     ) -> Result<Projective<Self>, usize> {
         (bases.len() == scalars.len())
             .then(|| VariableBaseMSM::msm_unchecked(bases, scalars))
-            .ok_or(bases.len().min(scalars.len()))
+            .ok_or_else(|| bases.len().min(scalars.len()))
     }
 
     /// If uncompressed, serializes both x and y coordinates.
@@ -143,7 +143,7 @@ pub trait TECurveConfig: super::CurveConfig {
             },
         };
         let point = Affine::new_unchecked(x, y);
-        if let Validate::Yes = validate {
+        if validate == Validate::Yes {
             point.check()?;
         }
         Ok(point)

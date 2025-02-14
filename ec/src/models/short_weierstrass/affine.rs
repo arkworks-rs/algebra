@@ -137,15 +137,15 @@ impl<P: SWCurveConfig> Affine<P> {
 
     /// Checks if `self` is a valid point on the curve.
     pub fn is_on_curve(&self) -> bool {
-        if !self.infinity {
+        if self.infinity {
+            true
+        } else {
             // Rust does not optimise away addition with zero
             let mut x3b = P::add_b(self.x.square() * self.x);
             if !P::COEFF_A.is_zero() {
                 x3b += P::mul_by_a(self.x);
             };
             self.y.square() == x3b
-        } else {
-            true
         }
     }
 
@@ -330,12 +330,12 @@ impl<P: SWCurveConfig, T: Borrow<P::ScalarField>> Mul<T> for Affine<P> {
 // coordinates as X/Z^2, Y/Z^3.
 impl<P: SWCurveConfig> From<Projective<P>> for Affine<P> {
     #[inline]
-    fn from(p: Projective<P>) -> Affine<P> {
+    fn from(p: Projective<P>) -> Self {
         if p.is_zero() {
-            Affine::identity()
+            Self::identity()
         } else if p.z.is_one() {
             // If Z is one, the point is already normalized.
-            Affine::new_unchecked(p.x, p.y)
+            Self::new_unchecked(p.x, p.y)
         } else {
             // Z is nonzero, so it must have an inverse in a field.
             let zinv = p.z.inverse().unwrap();
@@ -347,7 +347,7 @@ impl<P: SWCurveConfig> From<Projective<P>> for Affine<P> {
             // Y/Z^3
             let y = p.y * &(zinv_squared * &zinv);
 
-            Affine::new_unchecked(x, y)
+            Self::new_unchecked(x, y)
         }
     }
 }

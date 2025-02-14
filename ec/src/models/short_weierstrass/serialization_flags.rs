@@ -15,8 +15,8 @@ pub enum SWFlags {
 
 impl SWFlags {
     #[inline]
-    pub fn infinity() -> Self {
-        SWFlags::PointAtInfinity
+    pub const fn infinity() -> Self {
+        Self::PointAtInfinity
     }
 
     #[inline]
@@ -29,16 +29,16 @@ impl SWFlags {
     }
 
     #[inline]
-    pub fn is_infinity(&self) -> bool {
-        matches!(self, SWFlags::PointAtInfinity)
+    pub const fn is_infinity(&self) -> bool {
+        matches!(self, Self::PointAtInfinity)
     }
 
     #[inline]
-    pub fn is_positive(&self) -> Option<bool> {
+    pub const fn is_positive(&self) -> Option<bool> {
         match self {
-            SWFlags::PointAtInfinity => None,
-            SWFlags::YIsPositive => Some(true),
-            SWFlags::YIsNegative => Some(false),
+            Self::PointAtInfinity => None,
+            Self::YIsPositive => Some(true),
+            Self::YIsNegative => Some(false),
         }
     }
 }
@@ -47,7 +47,7 @@ impl Default for SWFlags {
     #[inline]
     fn default() -> Self {
         // YIsNegative doesn't change the serialization
-        SWFlags::YIsNegative
+        Self::YIsNegative
     }
 }
 
@@ -58,8 +58,8 @@ impl Flags for SWFlags {
     fn u8_bitmask(&self) -> u8 {
         let mut mask = 0;
         match self {
-            SWFlags::PointAtInfinity => mask |= 1 << 6,
-            SWFlags::YIsNegative => mask |= 1 << 7,
+            Self::PointAtInfinity => mask |= 1 << 6,
+            Self::YIsNegative => mask |= 1 << 7,
             _ => (),
         }
         mask
@@ -73,9 +73,9 @@ impl Flags for SWFlags {
             // This is invalid because we only want *one* way to serialize
             // the point at infinity.
             (true, true) => None,
-            (false, true) => Some(SWFlags::PointAtInfinity),
-            (true, false) => Some(SWFlags::YIsNegative),
-            (false, false) => Some(SWFlags::YIsPositive),
+            (false, true) => Some(Self::PointAtInfinity),
+            (true, false) => Some(Self::YIsNegative),
+            (false, false) => Some(Self::YIsPositive),
         }
     }
 }

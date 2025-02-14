@@ -126,10 +126,10 @@ impl<P: SWUConfig> MapToCurve<Projective<P>> for SWUMap<P> {
         let y = if gx1_square { y1 } else { y2 };
 
         let x_affine = num_x / div;
-        let y_affine = if parity(&y) != parity(&element) {
-            -y
-        } else {
+        let y_affine = if parity(&y) == parity(&element) {
             y
+        } else {
+            -y
         };
         let point_on_curve = Affine::new_unchecked(x_affine, y_affine);
         debug_assert!(
@@ -175,8 +175,8 @@ mod test {
     #[derive(ark_ff::MontConfig)]
     #[modulus = "127"]
     #[generator = "6"]
-    pub struct F127Config;
-    pub type F127 = Fp64<MontBackend<F127Config, 1>>;
+    pub(crate) struct F127Config;
+    pub(crate) type F127 = Fp64<MontBackend<F127Config, 1>>;
 
     const F127_ONE: F127 = MontFp!("1");
 
