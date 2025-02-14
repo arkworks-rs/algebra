@@ -236,20 +236,27 @@ impl<F: Field> SparsePolynomial<F> {
     }
 
     /// Constructs a new polynomial from a list of coefficients.
-    /// The function does not combine like terms and so multiple monomials
-    /// of the same degree are ignored.
     pub fn from_coefficients_vec(mut coeffs: Vec<(usize, F)>) -> Self {
-        // While there are zeros at the end of the coefficient vector, pop them off.
-        while coeffs.last().map_or(false, |(_, c)| c.is_zero()) {
-            coeffs.pop();
-        }
-        // Ensure that coeffs are in ascending order.
+        // Sort terms by degree
         coeffs.sort_by(|(c1, _), (c2, _)| c1.cmp(c2));
-        // Check that either the coefficients vec is empty or that the last coeff is
-        // non-zero.
-        assert!(coeffs.last().map_or(true, |(_, c)| !c.is_zero()));
-
-        Self { coeffs }
+    
+        // Merge duplicate terms
+        let mut merged_coeffs: Vec<(usize, F)> = Vec::new();
+        for (degree, coeff) in coeffs {
+            if let Some((last_degree, last_coeff)) = merged_coeffs.last_mut() {
+                if *last_degree == degree {
+                    *last_coeff += coeff; // Combine coefficients for duplicate degrees
+                    continue;
+                }
+            }
+            merged_coeffs.push((degree, coeff));
+        }
+    
+        // Remove zero coefficient terms
+        merged_coeffs.retain(|(_, coeff)| !coeff.is_zero());
+    
+        // Create the SparsePolynomial
+        Self { coeffs: merged_coeffs }
     }
 
     /// Perform a naive n^2 multiplication of `self` by `other`.
