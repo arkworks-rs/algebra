@@ -119,8 +119,10 @@ pub trait CurveGroup:
 /// to this group element.
 ///
 /// The point is guaranteed to be in the correct prime order subgroup.
+#[allow(clippy::trait_duplication_in_bounds)]
 pub trait AffineRepr:
     Eq
+    + 'static
     + Sized
     + CanonicalSerialize
     + CanonicalDeserialize
@@ -139,8 +141,12 @@ pub trait AffineRepr:
     + Into<<Self as AffineRepr>::Group>
     + Add<Self, Output = Self::Group>
     + for<'a> Add<&'a Self, Output = Self::Group>
+    + Add<Self::Group, Output = Self::Group>
+    + for<'a> Add<&'a Self::Group, Output = Self::Group>
     + Sub<Self, Output = Self::Group>
     + for<'a> Sub<&'a Self, Output = Self::Group>
+    + Sub<Self::Group, Output = Self::Group>
+    + for<'a> Sub<&'a Self::Group, Output = Self::Group>
     + Mul<Self::ScalarField, Output = Self::Group>
     + for<'a> Mul<&'a Self::ScalarField, Output = Self::Group>
 {
