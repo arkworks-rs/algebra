@@ -1,21 +1,21 @@
 use std::fmt;
 
 #[derive(Clone)]
-pub enum AssemblyVar {
+pub(crate) enum AssemblyVar {
     Memory(String),
     Variable(String),
     Fixed(String),
 }
 
 impl AssemblyVar {
-    pub fn memory_access(&self, offset: usize) -> Option<AssemblyVar> {
+    pub(crate) fn memory_access(&self, offset: usize) -> Option<Self> {
         match self {
             Self::Variable(a) | Self::Fixed(a) => Some(Self::Memory(format!("{}({})", offset, a))),
             _ => None,
         }
     }
 
-    pub fn memory_accesses(&self, range: usize) -> Vec<AssemblyVar> {
+    pub(crate) fn memory_accesses(&self, range: usize) -> Vec<Self> {
         (0..range)
             .map(|i| {
                 let offset = i * 8;
@@ -46,7 +46,7 @@ impl<'a> From<Register<'a>> for AssemblyVar {
 }
 
 #[derive(Copy, Clone, PartialEq, Eq)]
-pub struct Register<'a>(pub &'a str);
+pub(crate) struct Register<'a>(pub &'a str);
 impl fmt::Display for Register<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
         write!(f, "\"{}\"", self.0)
@@ -54,7 +54,7 @@ impl fmt::Display for Register<'_> {
 }
 
 #[derive(Copy, Clone)]
-pub struct Declaration<'a> {
+pub(crate) struct Declaration<'a> {
     /// Name of the assembly template variable declared by `self`.
     pub name: &'a str,
     /// Rust expression whose value is declared in `self`.

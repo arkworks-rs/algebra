@@ -1,20 +1,20 @@
 mod data_structures;
-pub use data_structures::*;
+pub(crate) use data_structures::*;
 
 #[derive(Clone)]
-pub struct Context<'a> {
+pub(crate) struct Context<'a> {
     assembly_instructions: Vec<String>,
     declarations: Vec<Declaration<'a>>,
     used_registers: Vec<Register<'a>>,
 }
 
 impl<'a> Context<'a> {
-    pub const RAX: Register<'static> = Register("rax");
-    pub const RSI: Register<'static> = Register("rsi");
-    pub const RCX: Register<'static> = Register("rcx");
-    pub const RDX: Register<'static> = Register("rdx");
+    pub(crate) const RAX: Register<'static> = Register("rax");
+    pub(crate) const RSI: Register<'static> = Register("rsi");
+    pub(crate) const RCX: Register<'static> = Register("rcx");
+    pub(crate) const RDX: Register<'static> = Register("rdx");
 
-    pub const R: [Register<'static>; 8] = [
+    pub(crate) const R: [Register<'static>; 8] = [
         Register("r8"),
         Register("r9"),
         Register("r10"),
@@ -25,7 +25,7 @@ impl<'a> Context<'a> {
         Register("r15"),
     ];
 
-    pub fn new() -> Self {
+    pub(crate) const fn new() -> Self {
         Self {
             assembly_instructions: Vec::new(),
             declarations: Vec::new(),
@@ -49,45 +49,45 @@ impl<'a> Context<'a> {
         self.find(name)
     }
 
-    pub fn get_decl(&self, name: &str) -> Declaration<'_> {
+    pub(crate) fn get_decl(&self, name: &str) -> Declaration<'_> {
         *self.get_decl_name(name).unwrap()
     }
 
-    pub fn get_decl_with_fallback(&self, name: &str, fallback_name: &str) -> Declaration<'_> {
+    pub(crate) fn get_decl_with_fallback(&self, name: &str, fallback_name: &str) -> Declaration<'_> {
         self.get_decl_name(name)
             .copied()
             .unwrap_or_else(|| self.get_decl(fallback_name))
     }
 
-    pub fn add_declaration(&mut self, name: &'a str, expr: &'a str) {
+    pub(crate) fn add_declaration(&mut self, name: &'a str, expr: &'a str) {
         let declaration = Declaration { name, expr };
         self.declarations.push(declaration);
     }
 
-    pub fn add_buffer(&mut self, extra_reg: usize) {
+    pub(crate) fn add_buffer(&mut self, extra_reg: usize) {
         self.append(&format!(
             "let mut spill_buffer = core::mem::MaybeUninit::<[u64; {}]>::uninit();",
             extra_reg
         ));
     }
 
-    pub fn add_asm(&mut self, asm_instructions: &[String]) {
+    pub(crate) fn add_asm(&mut self, asm_instructions: &[String]) {
         for instruction in asm_instructions {
             self.append(instruction)
         }
     }
 
-    pub fn add_clobbers(&mut self, clobbers: impl Iterator<Item = Register<'a>>) {
+    pub(crate) fn add_clobbers(&mut self, clobbers: impl Iterator<Item = Register<'a>>) {
         for clobber in clobbers {
             self.add_clobber(clobber)
         }
     }
 
-    pub fn add_clobber(&mut self, clobber: Register<'a>) {
+    pub(crate) fn add_clobber(&mut self, clobber: Register<'a>) {
         self.used_registers.push(clobber);
     }
 
-    pub fn build(self) -> String {
+    pub(crate) fn build(self) -> String {
         let declarations: String = self
             .declarations
             .iter()

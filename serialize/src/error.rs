@@ -17,21 +17,21 @@ pub enum SerializationError {
 impl ark_std::error::Error for SerializationError {}
 
 impl From<io::Error> for SerializationError {
-    fn from(e: io::Error) -> SerializationError {
-        SerializationError::IoError(e)
+    fn from(e: io::Error) -> Self {
+        Self::IoError(e)
     }
 }
 
 impl fmt::Display for SerializationError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
         match self {
-            SerializationError::NotEnoughSpace => write!(
+            Self::NotEnoughSpace => write!(
                 f,
                 "the last byte does not have enough space to encode the extra info bits"
             ),
-            SerializationError::InvalidData => write!(f, "the input buffer contained invalid data"),
-            SerializationError::UnexpectedFlags => write!(f, "the call expects empty flags"),
-            SerializationError::IoError(err) => write!(f, "I/O error: {:?}", err),
+            Self::InvalidData => write!(f, "the input buffer contained invalid data"),
+            Self::UnexpectedFlags => write!(f, "the call expects empty flags"),
+            Self::IoError(err) => write!(f, "I/O error: {:?}", err),
         }
     }
 }

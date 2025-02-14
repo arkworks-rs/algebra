@@ -1,7 +1,7 @@
 [package]
 name = "ark-test-curves"
 description = "A library for testing ark-ec & ark-poly"
-keywords = ["cryptography", "serialization" ]
+keywords = ["cryptography", "serialization"]
 documentation = "https://docs.rs/ark-test-curves/"
 version.workspace = true
 authors.workspace = true
@@ -15,36 +15,42 @@ rust-version.workspace = true
 metadata.docs.rs.workspace = true
 package.metadata.release.workspace = true
 
+[lints]
+workspace = true
+
 [dependencies]
 ark-std = { workspace = true, default-features = false }
 ark-ff = { workspace = true, default-features = false }
 ark-ec = { workspace = true, default-features = false }
 
 [dev-dependencies]
-ark-serialize  = { workspace = true, default-features = false }
+ark-serialize = { workspace = true, default-features = false }
 ark-algebra-test-templates = { workspace = true, default-features = false }
 ark-algebra-bench-templates = { workspace = true, default-features = false }
 
 [features]
 default = []
 
-asm = [ "ark-ff/asm" ]
+asm = ["ark-ff/asm"]
 
-parallel = [ "ark-ff/parallel", "ark-ec/parallel", "ark-std/parallel" ]
+parallel = ["ark-ff/parallel", "ark-ec/parallel", "ark-std/parallel"]
 
 bls12_381_scalar_field = []
-bls12_381_curve = [ "bls12_381_scalar_field" ]
-ed_on_bls12_381 = [ "bls12_381_scalar_field" ]
+bls12_381_curve = ["bls12_381_scalar_field"]
+ed_on_bls12_381 = ["bls12_381_scalar_field"]
 
 mnt4_753_scalar_field = []
 mnt4_753_base_field = []
-mnt4_753_curve = [ "mnt4_753_scalar_field", "mnt4_753_base_field" ]
+mnt4_753_curve = ["mnt4_753_scalar_field", "mnt4_753_base_field"]
 
-mnt6_753 = [ "mnt4_753_scalar_field", "mnt4_753_base_field" ]
+mnt6_753 = ["mnt4_753_scalar_field", "mnt4_753_base_field"]
 
 bn384_small_two_adicity_scalar_field = []
 bn384_small_two_adicity_base_field = []
-bn384_small_two_adicity_curve = [ "bn384_small_two_adicity_scalar_field", "bn384_small_two_adicity_base_field" ]
+bn384_small_two_adicity_curve = [
+    "bn384_small_two_adicity_scalar_field",
+    "bn384_small_two_adicity_base_field",
+]
 
 secp256k1 = []
 

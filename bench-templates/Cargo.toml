@@ -15,11 +15,11 @@ rust-version.workspace = true
 metadata.docs.rs.workspace = true
 package.metadata.release.workspace = true
 
-
-################################# Dependencies ################################
+[lints]
+workspace = true
 
 [dependencies]
-criterion = { workspace = true, features = [ "html_reports" ] }
+criterion = { workspace = true, features = ["html_reports"] }
 ark-std.workspace = true
 ark-ec.workspace = true
 ark-ff.workspace = true
@@ -27,5 +27,10 @@ ark-serialize.workspace = true
 paste.workspace = true
 
 [features]
-asm = [ "ark-ff/asm" ]
-parallel = [ "ark-std/parallel", "ark-ff/parallel",  "ark-ec/parallel", "ark-serialize/parallel" ]
+asm = ["ark-ff/asm"]
+parallel = [
+    "ark-std/parallel",
+    "ark-ff/parallel",
+    "ark-ec/parallel",
+    "ark-serialize/parallel",
+]
