@@ -120,34 +120,7 @@ pub trait CurveGroup:
 ///
 /// The point is guaranteed to be in the correct prime order subgroup.
 pub trait AffineRepr:
-    Eq
-    + 'static
-    + Sized
-    + CanonicalSerialize
-    + CanonicalDeserialize
-    + Copy
-    + Clone
-    + Default
-    + UniformRand
-    + Send
-    + Sync
-    + Hash
-    + Debug
-    + Display
-    + Zeroize
-    + Neg<Output = Self>
-    + From<<Self as AffineRepr>::Group>
-    + Into<<Self as AffineRepr>::Group>
-    + Add<Self, Output = Self::Group>
-    + for<'a> Add<&'a Self, Output = Self::Group>
-    + Add<Self::Group, Output = Self::Group>
-    + for<'a> Add<&'a Self::Group, Output = Self::Group>
-    + Sub<Self, Output = Self::Group>
-    + for<'a> Sub<&'a Self, Output = Self::Group>
-    + Sub<Self::Group, Output = Self::Group>
-    + for<'a> Sub<&'a Self::Group, Output = Self::Group>
-    + Mul<Self::ScalarField, Output = Self::Group>
-    + for<'a> Mul<&'a Self::ScalarField, Output = Self::Group>
+    Eq + Sized + CanonicalSerialize + CanonicalDeserialize + Copy + Clone + Default + UniformRand + Send + Sync + Hash + Debug + Display + Zeroize + Neg<Output = Self> + From<<Self as AffineRepr>::Group> + Into<<Self as AffineRepr>::Group> + Add<Self, Output = Self::Group> + for<'a> Add<&'a Self, Output = Self::Group> + Sub<Self, Output = Self::Group> + for<'a> Sub<&'a Self, Output = Self::Group> + Mul<Self::ScalarField, Output = Self::Group> + for<'a> Mul<&'a Self::ScalarField, Output = Self::Group>
 {
     type Config: CurveConfig<ScalarField = Self::ScalarField, BaseField = Self::BaseField>;
     type ScalarField: PrimeField + Into<<Self::ScalarField as PrimeField>::BigInt>;

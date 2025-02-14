@@ -37,10 +37,7 @@ use crate::{
 #[derive(Educe)]
 #[educe(Copy, Clone, Eq, Debug)]
 #[must_use]
-pub struct Projective<P>
-where
-    P: TECurveConfig,
-{
+pub struct Projective<P: TECurveConfig> {
     pub x: P::BaseField,
     pub y: P::BaseField,
     pub t: P::BaseField,
