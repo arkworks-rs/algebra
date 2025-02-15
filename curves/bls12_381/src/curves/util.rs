@@ -10,7 +10,7 @@ pub const G2_SERIALIZED_SIZE: usize = 96;
 pub struct EncodingFlags {
     pub is_compressed: bool,
     pub is_infinity: bool,
-    pub is_lexographically_largest: bool,
+    pub is_lexicographically_largest: bool,
 }
 
 impl EncodingFlags {
@@ -22,16 +22,16 @@ impl EncodingFlags {
 
         let is_compressed = compression_flag_set == 1;
         let is_infinity = infinity_flag_set == 1;
-        let is_lexographically_largest = sort_flag_set == 1;
+        let is_lexicographically_largest = sort_flag_set == 1;
 
-        if is_lexographically_largest && (!is_compressed || is_infinity) {
+        if is_lexicographically_largest && (!is_compressed || is_infinity) {
             return Err(SerializationError::InvalidData);
         }
 
         Ok(Self {
             is_compressed,
             is_infinity,
-            is_lexographically_largest,
+            is_lexicographically_largest,
         })
     }
 
@@ -45,7 +45,7 @@ impl EncodingFlags {
             bytes[0] |= 1 << 6;
         }
 
-        if self.is_compressed && !self.is_infinity && self.is_lexographically_largest {
+        if self.is_compressed && !self.is_infinity && self.is_lexicographically_largest {
             bytes[0] |= 1 << 5;
         }
     }
@@ -130,7 +130,7 @@ pub(crate) fn read_g1_compressed<R: ark_serialize::Read>(
     }
 
     let x = deserialize_fq(x_bytes).ok_or(SerializationError::InvalidData)?;
-    let p = G1Affine::get_point_from_x_unchecked(x, flags.is_lexographically_largest)
+    let p = G1Affine::get_point_from_x_unchecked(x, flags.is_lexicographically_largest)
         .ok_or(SerializationError::InvalidData)?;
 
     Ok(p)
@@ -202,7 +202,7 @@ pub(crate) fn read_g2_compressed<R: ark_serialize::Read>(
     let xc0 = deserialize_fq(xc0_bytes).ok_or(SerializationError::InvalidData)?;
     let x = Fq2::new(xc0, xc1);
 
-    let p = G2Affine::get_point_from_x_unchecked(x, flags.is_lexographically_largest)
+    let p = G2Affine::get_point_from_x_unchecked(x, flags.is_lexicographically_largest)
         .ok_or(SerializationError::InvalidData)?;
 
     Ok(p)
