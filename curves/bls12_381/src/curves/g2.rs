@@ -142,7 +142,7 @@ impl SWCurveConfig for Config {
         let encoding = EncodingFlags {
             is_compressed: compress == ark_serialize::Compress::Yes,
             is_infinity: item.is_zero(),
-            is_lexographically_largest: item.y > -item.y,
+            is_lexicographically_largest: item.y > -item.y,
         };
         let mut p = *item;
         if encoding.is_infinity {
