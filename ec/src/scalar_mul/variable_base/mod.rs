@@ -52,7 +52,7 @@ pub trait VariableBaseMSM: ScalarMul {
     fn msm(bases: &[Self::MulBase], scalars: &[Self::ScalarField]) -> Result<Self, usize> {
         (bases.len() == scalars.len())
             .then(|| Self::msm_unchecked(bases, scalars))
-            .ok_or(bases.len().min(scalars.len()))
+            .ok_or_else(|| bases.len().min(scalars.len()))
     }
 
     /// Optimized implementation of multi-scalar multiplication.

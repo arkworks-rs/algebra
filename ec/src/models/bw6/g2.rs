@@ -44,7 +44,7 @@ impl<P: BW6Config> From<G2HomProjective<P>> for G2Affine<P> {
         let z_inv = q.z.inverse().unwrap();
         let x = q.x * &z_inv;
         let y = q.y * &z_inv;
-        G2Affine::<P>::new_unchecked(x, y)
+        Self::new_unchecked(x, y)
     }
 }
 
@@ -132,7 +132,7 @@ impl<P: BW6Config> From<G2Projective<P>> for G2Prepared<P> {
 }
 
 impl<P: BW6Config> G2Prepared<P> {
-    pub fn is_zero(&self) -> bool {
+    pub const fn is_zero(&self) -> bool {
         self.infinity
     }
 }
