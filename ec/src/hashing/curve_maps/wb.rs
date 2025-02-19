@@ -135,8 +135,8 @@ mod test {
     #[derive(ark_ff::MontConfig)]
     #[modulus = "127"]
     #[generator = "6"]
-    pub struct F127Config;
-    pub type F127 = Fp64<MontBackend<F127Config, 1>>;
+    pub(crate) struct F127Config;
+    pub(crate) type F127 = Fp64<MontBackend<F127Config, 1>>;
 
     const F127_ZERO: F127 = MontFp!("0");
     const F127_ONE: F127 = MontFp!("1");
