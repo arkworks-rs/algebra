@@ -27,6 +27,7 @@ ark-algebra-bench-templates = { workspace = true }
 [features]
 default = []
 std = [ "ark-std/std", "ark-ff/std", "ark-ec/std", "ark-bls12-377/std" ]
+asm = [ "ark-ff/asm" ]
 
 [[bench]]
 name = "cp6_782"
