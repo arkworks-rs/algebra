@@ -53,7 +53,11 @@ impl<'a> Context<'a> {
         *self.get_decl_name(name).unwrap()
     }
 
-    pub(crate) fn get_decl_with_fallback(&self, name: &str, fallback_name: &str) -> Declaration<'_> {
+    pub(crate) fn get_decl_with_fallback(
+        &self,
+        name: &str,
+        fallback_name: &str,
+    ) -> Declaration<'_> {
         self.get_decl_name(name)
             .copied()
             .unwrap_or_else(|| self.get_decl(fallback_name))
