@@ -120,7 +120,7 @@ pub(super) fn impl_canonical_deserialize(ast: &syn::DeriveInput) -> TokenStream 
         Data::Struct(ref data_struct) => {
             let mut field_cases = Vec::<TokenStream>::with_capacity(data_struct.fields.len());
             let mut tuple = false;
-            for field in data_struct.fields.iter() {
+            for field in &data_struct.fields {
                 match &field.ident {
                     None => {
                         tuple = true;

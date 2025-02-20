@@ -119,6 +119,7 @@ pub trait CurveGroup:
 /// to this group element.
 ///
 /// The point is guaranteed to be in the correct prime order subgroup.
+#[allow(clippy::trait_duplication_in_bounds)]
 pub trait AffineRepr:
     Eq
     + 'static
@@ -135,7 +136,7 @@ pub trait AffineRepr:
     + Debug
     + Display
     + Zeroize
-    + Neg
+    + Neg<Output = Self>
     + From<<Self as AffineRepr>::Group>
     + Into<<Self as AffineRepr>::Group>
     + Add<Self, Output = Self::Group>

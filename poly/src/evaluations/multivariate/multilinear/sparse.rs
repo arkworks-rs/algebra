@@ -77,12 +77,6 @@ impl<F: Field> SparseMultilinearExtension<F> {
             }
             map.entry(index).or_insert(F::rand(rng));
         }
-        let mut buf = Vec::new();
-        for (arg, v) in map.iter() {
-            if *v != F::zero() {
-                buf.push((*arg, *v));
-            }
-        }
         let evaluations = hashmap_to_treemap(&map);
         Self {
             num_vars,
@@ -94,7 +88,7 @@ impl<F: Field> SparseMultilinearExtension<F> {
     /// Convert the sparse multilinear polynomial to dense form.
     pub fn to_dense_multilinear_extension(&self) -> DenseMultilinearExtension<F> {
         let mut evaluations: Vec<_> = (0..(1 << self.num_vars)).map(|_| F::zero()).collect();
-        for (&i, &v) in self.evaluations.iter() {
+        for (&i, &v) in &self.evaluations {
             evaluations[i] = v;
         }
         DenseMultilinearExtension::from_evaluations_vec(self.num_vars, evaluations)
@@ -178,7 +172,7 @@ impl<F: Field> MultilinearExtension<F> for SparseMultilinearExtension<F> {
             let dim = focus.len();
             let mut result =
                 HashMap::with_hasher(core::hash::BuildHasherDefault::<DefaultHasher>::default());
-            for src_entry in last.iter() {
+            for src_entry in &last {
                 let old_idx = *src_entry.0;
                 let gz = pre[old_idx & ((1 << dim) - 1)];
                 let new_idx = old_idx >> dim;
@@ -239,9 +233,9 @@ impl<F: Field> Polynomial<F> for SparseMultilinearExtension<F> {
 }
 
 impl<F: Field> Add for SparseMultilinearExtension<F> {
-    type Output = SparseMultilinearExtension<F>;
+    type Output = Self;
 
-    fn add(self, other: SparseMultilinearExtension<F>) -> Self {
+    fn add(self, other: Self) -> Self {
         &self + &other
     }
 }
@@ -287,16 +281,14 @@ impl<F: Field> AddAssign for SparseMultilinearExtension<F> {
     }
 }
 
-impl<'a, F: Field> AddAssign<&'a SparseMultilinearExtension<F>> for SparseMultilinearExtension<F> {
-    fn add_assign(&mut self, other: &'a SparseMultilinearExtension<F>) {
+impl<'a, F: Field> AddAssign<&'a Self> for SparseMultilinearExtension<F> {
+    fn add_assign(&mut self, other: &'a Self) {
         *self = &*self + other;
     }
 }
 
-impl<'a, F: Field> AddAssign<(F, &'a SparseMultilinearExtension<F>)>
-    for SparseMultilinearExtension<F>
-{
-    fn add_assign(&mut self, (f, other): (F, &'a SparseMultilinearExtension<F>)) {
+impl<'a, F: Field> AddAssign<(F, &'a Self)> for SparseMultilinearExtension<F> {
+    fn add_assign(&mut self, (f, other): (F, &'a Self)) {
         if !self.is_zero() && !other.is_zero() {
             assert_eq!(
                 other.num_vars, self.num_vars,
@@ -316,7 +308,7 @@ impl<'a, F: Field> AddAssign<(F, &'a SparseMultilinearExtension<F>)>
 }
 
 impl<F: Field> Neg for SparseMultilinearExtension<F> {
-    type Output = SparseMultilinearExtension<F>;
+    type Output = Self;
 
     fn neg(self) -> Self::Output {
         let ev: Vec<_> = cfg_iter!(self.evaluations)
@@ -331,9 +323,9 @@ impl<F: Field> Neg for SparseMultilinearExtension<F> {
 }
 
 impl<F: Field> Sub for SparseMultilinearExtension<F> {
-    type Output = SparseMultilinearExtension<F>;
+    type Output = Self;
 
-    fn sub(self, other: SparseMultilinearExtension<F>) -> Self {
+    fn sub(self, other: Self) -> Self {
         &self - &other
     }
 }
@@ -352,8 +344,8 @@ impl<F: Field> SubAssign for SparseMultilinearExtension<F> {
     }
 }
 
-impl<'a, F: Field> SubAssign<&'a SparseMultilinearExtension<F>> for SparseMultilinearExtension<F> {
-    fn sub_assign(&mut self, other: &'a SparseMultilinearExtension<F>) {
+impl<'a, F: Field> SubAssign<&'a Self> for SparseMultilinearExtension<F> {
+    fn sub_assign(&mut self, other: &'a Self) {
         *self = &*self - other;
     }
 }
@@ -393,17 +385,17 @@ impl<F: Field> Debug for SparseMultilinearExtension<F> {
 
 /// Utility: Convert tuples to hashmap.
 fn tuples_to_treemap<F: Field>(tuples: &[(usize, F)]) -> BTreeMap<usize, F> {
-    BTreeMap::from_iter(tuples.iter().map(|(i, v)| (*i, *v)))
+    tuples.iter().map(|(i, v)| (*i, *v)).collect()
 }
 
 fn treemap_to_hashmap<F: Field>(
     map: &BTreeMap<usize, F>,
 ) -> HashMap<usize, F, core::hash::BuildHasherDefault<DefaultHasher>> {
-    HashMap::from_iter(map.iter().map(|(i, v)| (*i, *v)))
+    map.iter().map(|(i, v)| (*i, *v)).collect()
 }
 
 fn hashmap_to_treemap<F: Field, S>(map: &HashMap<usize, F, S>) -> BTreeMap<usize, F> {
-    BTreeMap::from_iter(map.iter().map(|(i, v)| (*i, *v)))
+    map.iter().map(|(i, v)| (*i, *v)).collect()
 }
 
 #[cfg(test)]

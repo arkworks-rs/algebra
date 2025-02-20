@@ -34,7 +34,7 @@ impl<P: MNT4Config> From<G2Affine<P>> for G2Prepared<P> {
     fn from(g: G2Affine<P>) -> Self {
         let twist_inv = P::TWIST.inverse().unwrap();
 
-        let mut g_prep = G2Prepared {
+        let mut g_prep = Self {
             x: g.x,
             y: g.y,
             x_over_twist: g.x * &twist_inv,
