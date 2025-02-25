@@ -1,9 +1,9 @@
 pub mod json;
 use hex;
-use serde_json;
-use sha2;
 pub use hex::decode;
+use serde_json;
 pub use serde_json::from_reader;
+use sha2;
 pub use sha2::Sha256;
 
 #[macro_export]
