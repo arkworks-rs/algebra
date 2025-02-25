@@ -63,7 +63,7 @@ impl<F: Field> Polynomial<F> for SparsePolynomial<F> {
         if self.is_zero() {
             0
         } else {
-            assert!(self.coeffs.last().map_or(false, |(_, c)| !c.is_zero()));
+            assert!(self.coeffs.last().is_some_and(|(_, c)| !c.is_zero()));
             self.coeffs.last().unwrap().0
         }
     }
@@ -240,7 +240,7 @@ impl<F: Field> SparsePolynomial<F> {
     /// of the same degree are ignored.
     pub fn from_coefficients_vec(mut coeffs: Vec<(usize, F)>) -> Self {
         // While there are zeros at the end of the coefficient vector, pop them off.
-        while coeffs.last().map_or(false, |(_, c)| c.is_zero()) {
+        while coeffs.last().is_some_and(|(_, c)| c.is_zero()) {
             coeffs.pop();
         }
         // Ensure that coeffs are in ascending order.
