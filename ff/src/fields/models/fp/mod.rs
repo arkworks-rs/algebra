@@ -677,7 +677,6 @@ impl<P: FpConfig<N>, const N: usize> Display for Fp<P, N> {
 impl<P: FpConfig<N>, const N: usize> Neg for Fp<P, N> {
     type Output = Self;
     #[inline]
-    #[must_use]
     fn neg(mut self) -> Self {
         P::neg_in_place(&mut self);
         self

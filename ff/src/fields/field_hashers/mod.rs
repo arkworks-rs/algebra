@@ -113,6 +113,6 @@ const fn get_len_per_elem<F: Field, const SEC_PARAM: usize>() -> usize {
     let base_field_size_with_security_padding_in_bits = base_field_size_in_bits + SEC_PARAM;
     // ceil( (ceil(log(p)) + security_parameter) / 8)
     let bytes_per_base_field_elem =
-        ((base_field_size_with_security_padding_in_bits + 7) / 8) as u64;
+        base_field_size_with_security_padding_in_bits.div_ceil(8) as u64;
     bytes_per_base_field_elem as usize
 }

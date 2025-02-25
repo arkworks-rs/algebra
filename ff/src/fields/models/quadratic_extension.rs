@@ -570,7 +570,6 @@ impl<P: QuadExtConfig> From<bool> for QuadExtField<P> {
 impl<P: QuadExtConfig> Neg for QuadExtField<P> {
     type Output = Self;
     #[inline]
-    #[must_use]
     fn neg(mut self) -> Self {
         self.c0.neg_in_place();
         self.c1.neg_in_place();
