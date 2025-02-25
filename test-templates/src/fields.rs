@@ -14,7 +14,7 @@ impl ark_serialize::Flags for DummyFlags {
     }
 
     fn from_u8(_value: u8) -> Option<Self> {
-        Some(DummyFlags)
+        Some(Self)
     }
 }
 
