@@ -241,5 +241,5 @@ pub const fn buffer_bit_byte_size(modulus_bits: usize) -> (usize, usize) {
 /// into the number of bytes required to represent it.
 #[inline]
 pub const fn buffer_byte_size(modulus_bits: usize) -> usize {
-    (modulus_bits + 7) / 8
+    modulus_bits.div_ceil(8)
 }
