@@ -22,7 +22,7 @@ if repo_name == "":
 
 for line in fileinput.input(inplace=True):
     line = re.sub(
-        r"\- #([0-9]*)",
+        r"\- ?#([0-9]*)",
         r"- [\#\1](https://github.com/arkworks-rs/" + repo_name + r"/pull/\1)",
         line.rstrip(),
     )
