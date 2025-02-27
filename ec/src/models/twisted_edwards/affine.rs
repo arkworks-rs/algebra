@@ -184,7 +184,6 @@ impl<P: TECurveConfig> AffineRepr for Affine<P> {
 
     /// Multiplies this element by the cofactor and output the
     /// resulting projective element.
-    #[must_use]
     fn mul_by_cofactor_to_group(&self) -> Self::Group {
         P::mul_affine(self, Self::Config::COFACTOR)
     }
