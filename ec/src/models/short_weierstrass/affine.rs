@@ -158,45 +158,6 @@ impl<P: SWCurveConfig> Affine<P> {
             SWFlags::YIsNegative
         }
     }
-
-    /// Doubles this affine point.
-    /// Uses the formula for doubling in affine coordinates, then converts to projective.
-    pub fn double(&self) -> Projective<P> {
-        if self.is_zero() {
-            return Projective::zero();
-        }
-
-        // Formula for doubling in affine coordinates:
-        // lambda = (3 * x^2 + a) / (2 * y)
-        // x3 = lambda^2 - 2 * x
-        // y3 = lambda * (x - x3) - y
-
-        // Calculate lambda = (3 * x^2 + a) / (2 * y)
-        let mut lambda = self.x;
-        lambda.square_in_place();
-        lambda *= P::BaseField::from(3u64);
-        lambda += &P::COEFF_A;
-
-        let mut two_y = self.y;
-        two_y.double_in_place();
-        
-        lambda *= &two_y.inverse().unwrap();
-
-        // Calculate x3 = lambda^2 - 2 * x
-        let mut x3 = lambda;
-        x3.square_in_place();
-        let mut two_x = self.x;
-        two_x.double_in_place();
-        x3 -= &two_x;
-
-        // Calculate y3 = lambda * (x - x3) - y
-        let mut y3 = self.x;
-        y3 -= &x3;
-        y3 *= &lambda;
-        y3 -= &self.y;
-
-        Projective::new(x3, y3, P::BaseField::one())
-    }
 }
 
 impl<P: SWCurveConfig> Affine<P> {
@@ -305,50 +266,12 @@ impl<P: SWCurveConfig> Neg for Affine<P> {
 impl<P: SWCurveConfig, T: Borrow<Self>> Add<T> for Affine<P> {
     type Output = Projective<P>;
     fn add(self, other: T) -> Projective<P> {
-        // Implemented more efficient formulae for z1 = z2 = 1
-        let other = other.borrow();
-        
-        // Handle special cases involving infinity
-        if self.is_zero() {
-            return other.into_group();
-        }
-        if other.is_zero() {
-            return self.into_group();
-        }
-        
-        // Check if points are equal or negatives of each other
-        if self.x == other.x {
-            if self.y == other.y {
-                // Points are equal, so we double
-                return self.double();
-            } else {
-                // Points are negatives of each other
-                return Projective::zero();
-            }
-        }
-        
-        // Compute lambda = (y2 - y1) / (x2 - x1)
-        let mut x_diff = other.x;
-        x_diff -= &self.x;
-        
-        let mut y_diff = other.y;
-        y_diff -= &self.y;
-        
-        let lambda = y_diff * &x_diff.inverse().unwrap();
-        
-        // Compute x3 = lambda^2 - x1 - x2
-        let mut x3 = lambda;
-        x3.square_in_place();
-        x3 -= &self.x;
-        x3 -= &other.x;
-        
-        // Compute y3 = lambda * (x1 - x3) - y1
-        let mut y3 = self.x;
-        y3 -= &x3;
-        y3 *= &lambda;
-        y3 -= &self.y;
-        
-        Projective::new(x3, y3, P::BaseField::one())
+        // TODO implement more efficient formulae when z1 = z2 = 1.
+        // Note: Using projective coordinates is actually more efficient than
+        // implementing a direct formula with inversions in the affine space.
+        let mut copy = self.into_group();
+        copy += other.borrow();
+        copy
     }
 }
 
