@@ -10,7 +10,7 @@
 
 ### Bugfixes
 
-- [\#915](https://github.com/arkworks-rs/algebra/pull/915) (`ark-poly`) Added `is_valid_coefficients_vec` to `SparsePolynomial::from_coefficients_vec` to remove duplicates and zero coefficients before polynomial creation.
+- [\#915](https://github.com/arkworks-rs/algebra/pull/915) (`ark-poly`) Added `is_valid_coefficients_vec` to `SparsePolynomial` to remove duplicates and zero coefficients before polynomial creation.
 
 ## v0.5.0
 
