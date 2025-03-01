@@ -241,6 +241,12 @@ pub enum CoeffVecError {
     DuplicateDegree,
 }
 
+#[derive(Debug)]
+pub enum CoeffVecError {
+    ZeroCoefficient,
+    DuplicateDegree,
+}
+
 impl<F: Field> SparsePolynomial<F> {
 
     // Function to validate that the input coefficient vector is simplified
