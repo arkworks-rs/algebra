@@ -232,20 +232,22 @@ impl<F: Field> Zero for SparsePolynomial<F> {
 impl<F: Field> SparsePolynomial<F> {
 
     // Function to validate that the input coefficient vector is simplified
-    pub fn is_valid_coefficients_vec(coeffs: &[(usize, F)]) -> bool {
+    pub fn is_valid_coefficients_vec(coeffs: &[(usize, F)]) -> Result<(), CoeffVecError> {
         let mut last_degree = None;
         for &(degree, ref coeff) in coeffs {
             if coeff.is_zero() {
-                return false; // Zero coefficients are not allowed
+                // zero term has no effect
+                return Err(CoeffVecError::ZeroCoefficient);
             }
             if let Some(last) = last_degree {
                 if last == degree {
-                    return false; // Duplicate degrees are not allowed
+                    // like terms should be combined
+                    return Err(CoeffVecError::DuplicateDegree);
                 }
             }
             last_degree = Some(degree);
         }
-        true
+        Ok(())
     }
     
     /// Constructs a new polynomial from a list of coefficients.
