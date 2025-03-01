@@ -238,9 +238,11 @@ pub enum CoeffVecError {
 impl<F: Field> SparsePolynomial<F> {
 
     // Function to validate that the input coefficient vector is simplified
-    pub fn is_valid_coefficients_vec(coeffs: &[(usize, F)]) -> Result<(), CoeffVecError> {
+    pub fn is_valid_coefficients_vec(coeffs: &mut [(usize, F)]) -> Result<(), CoeffVecError> {
+        coeffs.sort_by(|a, b| a.0.cmp(&b.0));
+
         let mut last_degree = None;
-        for &(degree, ref coeff) in coeffs {
+        for &mut (degree, ref mut coeff) in coeffs {
             if coeff.is_zero() {
                 // zero term has no effect
                 return Err(CoeffVecError::ZeroCoefficient);
@@ -371,8 +373,8 @@ mod tests {
 
     #[test]
     fn test_valid_coefficients() {
-        let coeffs = vec![(1, Fr::from(2)), (2, Fr::from(3)), (3, Fr::from(4))];
-        let validation = SparsePolynomial::is_valid_coefficients_vec(&coeffs);
+        let mut coeffs = vec![(1, Fr::from(2)), (2, Fr::from(3)), (3, Fr::from(4))];
+        let validation = SparsePolynomial::is_valid_coefficients_vec(&mut coeffs);
         assert!(validation.is_ok());
 
         let poly = SparsePolynomial::from_coefficients_vec(coeffs);
@@ -381,15 +383,15 @@ mod tests {
 
     #[test]
     fn test_invalid_zero_coefficient() {
-        let coeffs = vec![(1, Fr::from(0)), (2, Fr::from(3))];
-        let validation = SparsePolynomial::is_valid_coefficients_vec(&coeffs);
+        let mut coeffs = vec![(1, Fr::from(0)), (2, Fr::from(3))];
+        let validation = SparsePolynomial::is_valid_coefficients_vec(&mut coeffs);
         assert!(matches!(validation, Err(CoeffVecError::ZeroCoefficient)));
     }
 
     #[test]
     fn test_invalid_duplicate_degrees() {
-        let coeffs = vec![(1, Fr::from(2)), (1, Fr::from(3))];
-        let validation = SparsePolynomial::is_valid_coefficients_vec(&coeffs);
+        let mut coeffs = vec![(1, Fr::from(2)), (1, Fr::from(3))];
+        let validation = SparsePolynomial::is_valid_coefficients_vec(&mut coeffs);
         assert!(matches!(validation, Err(CoeffVecError::DuplicateDegree)));
     }
 
