@@ -10,7 +10,7 @@
 
 ### Bugfixes
 
-- (`ark-poly`) Fix handling of duplicate terms in `SparsePolynomial::from_coefficients_vec`. Terms with the same degree are now correctly merged, and zero coefficient terms are removed.
+- [\#915](https://github.com/arkworks-rs/algebra/pull/915) (`ark-poly`) Added `is_valid_coefficients_vec` to `SparsePolynomial::from_coefficients_vec` to remove duplicates and zero coefficients before polynomial creation.
 
 ## v0.5.0
 

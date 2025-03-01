@@ -230,33 +230,44 @@ impl<F: Field> Zero for SparsePolynomial<F> {
 }
 
 impl<F: Field> SparsePolynomial<F> {
+
+    // Function to validate that the input coefficient vector is simplified
+    pub fn is_valid_coefficients_vec(coeffs: &[(usize, F)]) -> bool {
+        let mut last_degree = None;
+        for &(degree, ref coeff) in coeffs {
+            if coeff.is_zero() {
+                return false; // Zero coefficients are not allowed
+            }
+            if let Some(last) = last_degree {
+                if last == degree {
+                    return false; // Duplicate degrees are not allowed
+                }
+            }
+            last_degree = Some(degree);
+        }
+        true
+    }
+    
     /// Constructs a new polynomial from a list of coefficients.
     pub fn from_coefficients_slice(coeffs: &[(usize, F)]) -> Self {
         Self::from_coefficients_vec(coeffs.to_vec())
     }
 
     /// Constructs a new polynomial from a list of coefficients.
+    /// The function does not combine like terms and so multiple monomials
+    /// of the same degree are ignored.
     pub fn from_coefficients_vec(mut coeffs: Vec<(usize, F)>) -> Self {
-        // Sort terms by degree
-        coeffs.sort_by(|(c1, _), (c2, _)| c1.cmp(c2));
-    
-        // Merge duplicate terms
-        let mut merged_coeffs: Vec<(usize, F)> = Vec::new();
-        for (degree, coeff) in coeffs {
-            if let Some((last_degree, last_coeff)) = merged_coeffs.last_mut() {
-                if *last_degree == degree {
-                    *last_coeff += coeff; // Combine coefficients for duplicate degrees
-                    continue;
-                }
-            }
-            merged_coeffs.push((degree, coeff));
+        // While there are zeros at the end of the coefficient vector, pop them off.
+        while coeffs.last().map_or(false, |(_, c)| c.is_zero()) {
+            coeffs.pop();
         }
-    
-        // Remove zero coefficient terms
-        merged_coeffs.retain(|(_, coeff)| !coeff.is_zero());
-    
-        // Create the SparsePolynomial
-        Self { coeffs: merged_coeffs }
+        // Ensure that coeffs are in ascending order.
+        coeffs.sort_by(|(c1, _), (c2, _)| c1.cmp(c2));
+        // Check that either the coefficients vec is empty or that the last coeff is
+        // non-zero.
+        assert!(coeffs.last().map_or(true, |(_, c)| !c.is_zero()));
+
+        Self { coeffs }
     }
 
     /// Perform a naive n^2 multiplication of `self` by `other`.
