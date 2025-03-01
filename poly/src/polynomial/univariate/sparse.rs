@@ -229,6 +229,12 @@ impl<F: Field> Zero for SparsePolynomial<F> {
     }
 }
 
+#[derive(Debug)]
+pub enum CoeffVecError {
+    ZeroCoefficient,
+    DuplicateDegree,
+}
+
 impl<F: Field> SparsePolynomial<F> {
 
     // Function to validate that the input coefficient vector is simplified
