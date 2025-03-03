@@ -1,4 +1,3 @@
-extern crate criterion;
 mod common;
 
 use ark_ff::FftField;
@@ -43,11 +42,11 @@ fn default_size_range_mnt6_753() -> Vec<usize> {
 fn setup_bench(
     c: &mut Criterion,
     name: &str,
-    bench_fn: fn(&mut Bencher, &usize),
+    bench_fn: fn(&mut Bencher<'_>, &usize),
     size_range: &[usize],
 ) {
     let mut group = c.benchmark_group(name);
-    for degree in size_range.iter() {
+    for degree in size_range {
         group.bench_with_input(BenchmarkId::from_parameter(degree), degree, bench_fn);
     }
     group.finish();
@@ -69,7 +68,7 @@ fn fft_setup_with_domain_size<F: FftField, D: EvaluationDomain<F>>(
     (domain, a)
 }
 
-fn bench_fft_in_place<F: FftField, D: EvaluationDomain<F>>(b: &mut Bencher, degree: &usize) {
+fn bench_fft_in_place<F: FftField, D: EvaluationDomain<F>>(b: &mut Bencher<'_>, degree: &usize) {
     // Per benchmark setup
     let (domain, mut a) = fft_setup::<F, D>(*degree);
     b.iter(|| {
@@ -79,7 +78,7 @@ fn bench_fft_in_place<F: FftField, D: EvaluationDomain<F>>(b: &mut Bencher, degr
 }
 
 fn bench_large_domain_fft_in_place<F: FftField, D: EvaluationDomain<F>>(
-    b: &mut Bencher,
+    b: &mut Bencher<'_>,
     degree: &usize,
 ) {
     // Per benchmark setup
@@ -90,7 +89,7 @@ fn bench_large_domain_fft_in_place<F: FftField, D: EvaluationDomain<F>>(
     });
 }
 
-fn bench_ifft_in_place<F: FftField, D: EvaluationDomain<F>>(b: &mut Bencher, degree: &usize) {
+fn bench_ifft_in_place<F: FftField, D: EvaluationDomain<F>>(b: &mut Bencher<'_>, degree: &usize) {
     // Per benchmark setup
     let (domain, mut a) = fft_setup::<F, D>(*degree);
     b.iter(|| {
@@ -99,7 +98,10 @@ fn bench_ifft_in_place<F: FftField, D: EvaluationDomain<F>>(b: &mut Bencher, deg
     });
 }
 
-fn bench_coset_fft_in_place<F: FftField, D: EvaluationDomain<F>>(b: &mut Bencher, degree: &usize) {
+fn bench_coset_fft_in_place<F: FftField, D: EvaluationDomain<F>>(
+    b: &mut Bencher<'_>,
+    degree: &usize,
+) {
     // Per benchmark setup
     let (domain, mut a) = fft_setup::<F, D>(*degree);
     let coset_domain = domain.get_coset(F::GENERATOR).unwrap();
@@ -109,7 +111,10 @@ fn bench_coset_fft_in_place<F: FftField, D: EvaluationDomain<F>>(b: &mut Bencher
     });
 }
 
-fn bench_coset_ifft_in_place<F: FftField, D: EvaluationDomain<F>>(b: &mut Bencher, degree: &usize) {
+fn bench_coset_ifft_in_place<F: FftField, D: EvaluationDomain<F>>(
+    b: &mut Bencher<'_>,
+    degree: &usize,
+) {
     // Per benchmark setup
     let (domain, mut a) = fft_setup::<F, D>(*degree);
     let coset_domain = domain.get_coset(F::GENERATOR).unwrap();

@@ -718,6 +718,7 @@ impl<P: FpConfig<N>, const N: usize> Div<&Fp<P, N>> for Fp<P, N> {
     /// Returns `self * other.inverse()` if `other.inverse()` is `Some`, and
     /// panics otherwise.
     #[inline]
+    #[allow(clippy::suspicious_arithmetic_impl)]
     fn div(mut self, other: &Self) -> Self {
         self *= &other.inverse().unwrap();
         self

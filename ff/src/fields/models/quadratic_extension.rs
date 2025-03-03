@@ -619,6 +619,7 @@ impl<P: QuadExtConfig> Div<&QuadExtField<P>> for QuadExtField<P> {
     type Output = Self;
 
     #[inline]
+    #[allow(clippy::suspicious_arithmetic_impl)]
     fn div(mut self, other: &Self) -> Self {
         self *= &other.inverse().unwrap();
         self
