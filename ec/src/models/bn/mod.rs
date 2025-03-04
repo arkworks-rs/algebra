@@ -102,6 +102,71 @@ pub trait BnConfig: 'static + Sized {
         MillerLoopOutput(f)
     }
 
+    fn multi_miller_loop_affine(
+        a: impl IntoIterator<Item = impl Into<G1Prepared<Self>>>,
+        b: impl IntoIterator<Item = impl Into<G2Prepared<Self>>>,
+    ) -> MillerLoopOutput<Bn<Self>> {
+        let mut pairs = a
+            .into_iter()
+            .zip_eq(b)
+            .filter_map(|(p, q)| {
+                // if input q is projective coordinates, then we will enter `into`` computing pairing mode
+                // otherwise if input q is affine coordinates, then we will enter `into` verifying pairing mode
+                let (p, q) = (p.into(), q.into());
+                match !p.is_zero() && !q.is_zero() {
+                    true => Some((
+                        -p.0.x / p.0.y,
+                        p.0.y.inverse().unwrap(),
+                        q.ell_coeffs.into_iter(),
+                    )),
+                    false => None,
+                }
+            })
+            .collect::<Vec<_>>();
+
+        let mut f = cfg_chunks_mut!(pairs, 4)
+            .map(|pairs| {
+                let mut f = <Bn<Self> as Pairing>::TargetField::one();
+                for i in (1..Self::ATE_LOOP_COUNT.len()).rev() {
+                    if i != Self::ATE_LOOP_COUNT.len() - 1 {
+                        f.square_in_place();
+                    }
+
+                    for (coeff_1, coeff_2, coeffs) in pairs.iter_mut() {
+                        Bn::<Self>::ell_affine(&mut f, &coeffs.next().unwrap(), &coeff_1, &coeff_2);
+                    }
+
+                    let bit = Self::ATE_LOOP_COUNT[i - 1];
+                    if bit == 1 || bit == -1 {
+                        for (coeff_1, coeff_2, coeffs) in pairs.iter_mut() {
+                            Bn::<Self>::ell_affine(
+                                &mut f,
+                                &coeffs.next().unwrap(),
+                                &coeff_1,
+                                &coeff_2,
+                            );
+                        }
+                    }
+                }
+                f
+            })
+            .product::<<Bn<Self> as Pairing>::TargetField>();
+
+        if Self::X_IS_NEGATIVE {
+            f.cyclotomic_inverse_in_place();
+        }
+
+        for (coeff_1, coeff_2, coeffs) in &mut pairs {
+            Bn::<Self>::ell_affine(&mut f, &coeffs.next().unwrap(), &coeff_1, &coeff_2);
+        }
+
+        for (coeff_1, coeff_2, coeffs) in &mut pairs {
+            Bn::<Self>::ell_affine(&mut f, &coeffs.next().unwrap(), &coeff_1, &coeff_2);
+        }
+
+        MillerLoopOutput(f)
+    }
+
     #[allow(clippy::let_and_return)]
     fn final_exponentiation(f: MillerLoopOutput<Bn<Self>>) -> Option<PairingOutput<Bn<Self>>> {
         // Easy part: result = elt^((q^6-1)*(q^2+1)).
@@ -180,7 +245,7 @@ pub use self::{
 pub struct Bn<P: BnConfig>(PhantomData<fn() -> P>);
 
 impl<P: BnConfig> Bn<P> {
-    /// Evaluates the line function at point p.
+    /// Evaluates the line function at point p, where the line function is in projective mode
     fn ell(f: &mut Fp12<P::Fp12Config>, coeffs: &g2::EllCoeff<P>, p: &G1Affine<P>) {
         let mut c0 = coeffs.0;
         let mut c1 = coeffs.1;
@@ -196,6 +261,35 @@ impl<P: BnConfig> Bn<P> {
                 c0.mul_assign_by_fp(&p.y);
                 c1.mul_assign_by_fp(&p.x);
                 f.mul_by_034(&c0, &c1, &c2);
+            },
+        }
+    }
+
+    /// Evaluates the line function at point p, where the line function is in affine mode
+    /// input:
+    ///     f, Fq12
+    ///     coeffs, (1, alpha, bias)
+    ///     x' = -p.x / p.y
+    ///     y' = 1 / p.y
+    /// output:
+    ///     f = f * f_Q(P)', where f_Q(P)' is a vairant of f_Q(P), f_Q(P) = y' * f_Q(P)
+    fn ell_affine(f: &mut Fp12<P::Fp12Config>, coeffs: &g2::EllCoeff<P>, xx: &P::Fp, yy: &P::Fp) {
+        // c0 is a trival value 1
+        let c0 = coeffs.0;
+        let mut c1 = coeffs.1;
+        let mut c2 = coeffs.2;
+
+        match P::TWIST_TYPE {
+            TwistType::M => {
+                c1.mul_assign_by_fp(&xx);
+                c2.mul_assign_by_fp(&yy);
+                f.mul_by_014(&c0, &c1, &c2);
+            },
+            // line evaluation is y' * f_Q(P), coefficients are (1, x' * lambda, -y' * bias)
+            TwistType::D => {
+                c1.mul_assign_by_fp(&xx);
+                c2.mul_assign_by_fp(&yy);
+                f.mul_by_034(&c0, &c1, &(c2));
             },
         }
     }
@@ -225,6 +319,13 @@ impl<P: BnConfig> Pairing for Bn<P> {
         b: impl IntoIterator<Item = impl Into<Self::G2Prepared>>,
     ) -> MillerLoopOutput<Self> {
         P::multi_miller_loop(a, b)
+    }
+
+    fn multi_miller_loop_affine(
+        a: impl IntoIterator<Item = impl Into<Self::G1Prepared>>,
+        b: impl IntoIterator<Item = impl Into<Self::G2Prepared>>,
+    ) -> MillerLoopOutput<Self> {
+        P::multi_miller_loop_affine(a, b)
     }
 
     fn final_exponentiation(f: MillerLoopOutput<Self>) -> Option<PairingOutput<Self>> {
