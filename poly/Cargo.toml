@@ -38,7 +38,7 @@ ark-test-curves = { path = "../test-curves", default-features = false, features 
     "bn384_small_two_adicity_curve",
     "mnt4_753_curve",
 ] }
-criterion = "0.5.1"
+criterion = { workspace = true }
 
 
 [features]

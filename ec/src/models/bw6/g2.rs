@@ -101,7 +101,7 @@ impl<P: BW6Config> From<G2Affine<P>> for G2Prepared<P> {
             match bit {
                 1 => ell_coeffs_2.push(r.add_in_place(&qu)),
                 -1 => ell_coeffs_2.push(r.add_in_place(&neg_qu)),
-                _ => continue,
+                _ => {},
             }
         }
 

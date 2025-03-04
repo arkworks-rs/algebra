@@ -10,5 +10,5 @@ pub fn parity<F: Field>(element: &F) -> bool {
     element
         .to_base_prime_field_elements()
         .find(|&x| !x.is_zero())
-        .map_or(false, |x| x.into_bigint().is_odd())
+        .is_some_and(|x| x.into_bigint().is_odd())
 }

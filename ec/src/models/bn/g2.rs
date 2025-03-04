@@ -120,7 +120,7 @@ impl<P: BnConfig> From<G2Affine<P>> for G2Prepared<P> {
                 match bit {
                     1 => ell_coeffs.push(r.add_in_place(&q)),
                     -1 => ell_coeffs.push(r.add_in_place(&neg_q)),
-                    _ => continue,
+                    _ => {},
                 }
             }
 

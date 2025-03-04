@@ -28,7 +28,7 @@ pub fn glv_scalar_decomposition<P: GLVConfig>() {
         }
 
         // check if k1 and k2 are indeed small.
-        let expected_max_bits = (P::ScalarField::MODULUS_BIT_SIZE + 1) / 2;
+        let expected_max_bits = P::ScalarField::MODULUS_BIT_SIZE.div_ceil(2);
         assert!(
             k1.into_bigint().num_bits() <= expected_max_bits,
             "k1 has {} bits",

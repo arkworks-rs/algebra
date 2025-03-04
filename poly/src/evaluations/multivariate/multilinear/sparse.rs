@@ -194,7 +194,7 @@ impl<F: Field> MultilinearExtension<F> for SparseMultilinearExtension<F> {
         self.evaluations
             .iter()
             .map(|(&i, &v)| evaluations[i] = v)
-            .last();
+            .next_back();
         evaluations
     }
 }
