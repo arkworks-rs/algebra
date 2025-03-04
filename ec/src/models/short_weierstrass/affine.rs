@@ -265,10 +265,12 @@ impl<P: SWCurveConfig> Neg for Affine<P> {
 impl<P: SWCurveConfig, T: Borrow<Self>> Add<T> for Affine<P> {
     type Output = Projective<P>;
     fn add(self, other: T) -> Projective<P> {
-        // TODO implement more efficient formulae when z1 = z2 = 1.
-        let mut copy = self.into_group();
-        copy += other.borrow();
-        copy
+        // When both points are in affine coordinates, we can use the specialized
+        // mixed addition formula which is more efficient than general addition.
+        // Converting to projective and using the optimized formula avoids expensive field inversions.
+        let mut result = Projective::new(self.x, self.y, P::BaseField::one());
+        result += other.borrow();
+        result
     }
 }
 
