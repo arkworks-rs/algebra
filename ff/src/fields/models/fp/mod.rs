@@ -320,16 +320,14 @@ impl<P: FpConfig<N>, const N: usize> Field for Fp<P, N> {
 
     #[inline]
     fn legendre(&self) -> LegendreSymbol {
-        use crate::fields::LegendreSymbol::*;
-
         // s = self^((MODULUS - 1) // 2)
         let s = self.pow(Self::MODULUS_MINUS_ONE_DIV_TWO);
         if s.is_zero() {
-            Zero
+            LegendreSymbol::Zero
         } else if s.is_one() {
-            QuadraticResidue
+            LegendreSymbol::QuadraticResidue
         } else {
-            QuadraticNonResidue
+            LegendreSymbol::QuadraticNonResidue
         }
     }
 
