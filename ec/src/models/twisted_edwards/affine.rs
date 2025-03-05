@@ -184,7 +184,6 @@ impl<P: TECurveConfig> AffineRepr for Affine<P> {
 
     /// Multiplies this element by the cofactor and output the
     /// resulting projective element.
-    #[must_use]
     fn mul_by_cofactor_to_group(&self) -> Self::Group {
         P::mul_affine(self, Self::Config::COFACTOR)
     }
@@ -294,18 +293,18 @@ impl<P: TECurveConfig, T: Borrow<P::ScalarField>> Mul<T> for Affine<P> {
 // The projective point X, Y, T, Z is represented in the affine
 // coordinates as X/Z, Y/Z.
 impl<P: TECurveConfig> From<Projective<P>> for Affine<P> {
-    fn from(p: Projective<P>) -> Affine<P> {
+    fn from(p: Projective<P>) -> Self {
         if p.is_zero() {
-            Affine::zero()
+            Self::zero()
         } else if p.z.is_one() {
             // If Z is one, the point is already normalized.
-            Affine::new_unchecked(p.x, p.y)
+            Self::new_unchecked(p.x, p.y)
         } else {
             // Z is nonzero, so it must have an inverse in a field.
             let z_inv = p.z.inverse().unwrap();
             let x = p.x * &z_inv;
             let y = p.y * &z_inv;
-            Affine::new_unchecked(x, y)
+            Self::new_unchecked(x, y)
         }
     }
 }

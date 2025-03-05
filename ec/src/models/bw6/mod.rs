@@ -247,16 +247,17 @@ impl<P: BW6Config> BW6<P> {
     }
 
     fn final_exponentiation_hard_part(f: &Fp6<P::Fp6Config>) -> Fp6<P::Fp6Config> {
+        // A = m**(u-1)
+        let a = Self::exp_by_x_minus_1(f);
+        // A = A**(u-1)
+        let a = Self::exp_by_x_minus_1(&a);
+
         // Generic implementation of the hard part of the final exponentiation for the BW6 family.
         // Computes (u+1)*Phi_k(p(u))/r(u)
         if P::T_MOD_R_IS_ZERO {
             // Algorithm 4.3 from https://yelhousni.github.io/phd.pdf
             // Follows the implementation https://gitlab.inria.fr/zk-curves/snark-2-chains/-/blob/master/sage/pairing_bw6_bls12.py#L1036
 
-            // A = m**(u-1)
-            let a = Self::exp_by_x_minus_1(f);
-            // A = A**(u-1)
-            let a = Self::exp_by_x_minus_1(&a);
             // A = (m * A).conjugate() * m.frobenius()
             let a = (f * &a).cyclotomic_inverse().unwrap() * f.frobenius_map(1);
             // B = A**(u+1) * m
@@ -296,10 +297,6 @@ impl<P: BW6Config> BW6<P> {
             // Algorithm 4.4 from https://yelhousni.github.io/phd.pdf
             // Follows the implementation https://gitlab.inria.fr/zk-curves/snark-2-chains/-/blob/master/sage/pairing_bw6_bls12.py#L969
 
-            // A = m**(u-1)
-            let a = Self::exp_by_x_minus_1(f);
-            // A = A**(u-1)
-            let a = Self::exp_by_x_minus_1(&a);
             // A = A * m.frobenius()
             let a = a * f.frobenius_map(1);
             // B = A**(u+1) * m.conjugate()

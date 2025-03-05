@@ -33,6 +33,7 @@ curve = [ "scalar_field", "base_field" ]
 scalar_field = []
 base_field = []
 r1cs = [ "base_field", "ark-r1cs-std" ]
+asm = [ "ark-ff/asm" ]
 
 [[bench]]
 name = "mnt4_298"
