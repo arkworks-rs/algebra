@@ -104,7 +104,7 @@ impl Term for SparseTerm {
 
     /// Returns whether `self` is a constant
     fn is_constant(&self) -> bool {
-        self.len() == 0 || self.degree() == 0
+        self.is_empty() || self.degree() == 0
     }
 
     /// Evaluates `self` at the given `point` in the field.
