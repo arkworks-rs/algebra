@@ -1,3 +1,4 @@
+#![allow(clippy::bool_assert_comparison)]
 use crate::{biginteger::BigInteger, UniformRand};
 use num_bigint::BigUint;
 

@@ -84,8 +84,7 @@ impl<F: Field> DensePolynomial<F> {
             .par_chunks(num_elem_per_thread)
             .enumerate()
             .map(|(i, chunk)| {
-                Self::horner_evaluate(&chunk, point)
-                    * point.pow(&[(i * num_elem_per_thread) as u64])
+                Self::horner_evaluate(chunk, point) * point.pow([(i * num_elem_per_thread) as u64])
             })
             .sum()
     }
@@ -153,26 +152,23 @@ impl<F: Field> DenseUVPolynomial<F> for DensePolynomial<F> {
 impl<F: FftField> DensePolynomial<F> {
     /// Multiply `self` by the vanishing polynomial for the domain `domain`.
     /// Returns the result of the multiplication.
-    pub fn mul_by_vanishing_poly<D: EvaluationDomain<F>>(&self, domain: D) -> DensePolynomial<F> {
+    pub fn mul_by_vanishing_poly<D: EvaluationDomain<F>>(&self, domain: D) -> Self {
         let mut shifted = vec![F::zero(); domain.size()];
         shifted.extend_from_slice(&self.coeffs);
         cfg_iter_mut!(shifted)
             .zip(&self.coeffs)
             .for_each(|(s, c)| *s -= c);
-        DensePolynomial::from_coefficients_vec(shifted)
+        Self::from_coefficients_vec(shifted)
     }
 
     /// Divide `self` by the vanishing polynomial for the domain `domain`.
     /// Returns the quotient and remainder of the division.
-    pub fn divide_by_vanishing_poly<D: EvaluationDomain<F>>(
-        &self,
-        domain: D,
-    ) -> (DensePolynomial<F>, DensePolynomial<F>) {
+    pub fn divide_by_vanishing_poly<D: EvaluationDomain<F>>(&self, domain: D) -> (Self, Self) {
         let domain_size = domain.size();
 
         if self.coeffs.len() < domain_size {
             // If degree(self) < len(Domain), then the quotient is zero, and the entire polynomial is the remainder
-            (DensePolynomial::<F>::zero(), self.clone())
+            (Self::zero(), self.clone())
         } else {
             // Compute the quotient
             //
@@ -206,8 +202,8 @@ impl<F: FftField> DensePolynomial<F> {
                 .zip(&quotient_vec)
                 .for_each(|(s, c)| *s += c);
 
-            let quotient = DensePolynomial::<F>::from_coefficients_vec(quotient_vec);
-            let remainder = DensePolynomial::<F>::from_coefficients_vec(remainder_vec);
+            let quotient = Self::from_coefficients_vec(quotient_vec);
+            let remainder = Self::from_coefficients_vec(remainder_vec);
             (quotient, remainder)
         }
     }
@@ -223,7 +219,7 @@ impl<F: Field> DensePolynomial<F> {
     /// Perform a naive n^2 multiplication of `self` by `other`.
     pub fn naive_mul(&self, other: &Self) -> Self {
         if self.is_zero() || other.is_zero() {
-            DensePolynomial::zero()
+            Self::zero()
         } else {
             let mut result = vec![F::zero(); self.degree() + other.degree() + 1];
             for (i, self_coeff) in self.coeffs.iter().enumerate() {
@@ -231,7 +227,7 @@ impl<F: Field> DensePolynomial<F> {
                     result[i + j] += &(*self_coeff * other_coeff);
                 }
             }
-            DensePolynomial::from_coefficients_vec(result)
+            Self::from_coefficients_vec(result)
         }
     }
 }
@@ -356,35 +352,34 @@ impl<'a, F: Field> Add<&'a SparsePolynomial<F>> for &DensePolynomial<F> {
     }
 }
 
-impl<'a, F: Field> AddAssign<&'a DensePolynomial<F>> for DensePolynomial<F> {
-    fn add_assign(&mut self, other: &'a DensePolynomial<F>) {
+impl<'a, F: Field> AddAssign<&'a Self> for DensePolynomial<F> {
+    fn add_assign(&mut self, other: &'a Self) {
+        if other.is_zero() {
+            self.truncate_leading_zeros();
+            return;
+        }
+
         if self.is_zero() {
-            self.coeffs.truncate(0);
+            self.coeffs.clear();
             self.coeffs.extend_from_slice(&other.coeffs);
-        } else if other.is_zero() {
-        } else if self.degree() >= other.degree() {
-            self.coeffs
-                .iter_mut()
-                .zip(&other.coeffs)
-                .for_each(|(a, b)| {
-                    *a += b;
-                });
         } else {
-            // Add the necessary number of zero coefficients.
-            self.coeffs.resize(other.coeffs.len(), F::zero());
+            let other_coeffs_len = other.coeffs.len();
+            if other_coeffs_len > self.coeffs.len() {
+                // Add the necessary number of zero coefficients.
+                self.coeffs.resize(other_coeffs_len, F::zero());
+            }
+
             self.coeffs
                 .iter_mut()
                 .zip(&other.coeffs)
-                .for_each(|(a, b)| {
-                    *a += b;
-                });
+                .for_each(|(a, b)| *a += b);
         }
         self.truncate_leading_zeros();
     }
 }
 
-impl<'a, F: Field> AddAssign<(F, &'a DensePolynomial<F>)> for DensePolynomial<F> {
-    fn add_assign(&mut self, (f, other): (F, &'a DensePolynomial<F>)) {
+impl<'a, F: Field> AddAssign<(F, &'a Self)> for DensePolynomial<F> {
+    fn add_assign(&mut self, (f, other): (F, &'a Self)) {
         // No need to modify self if other is zero
         if other.is_zero() {
             return;
@@ -459,10 +454,10 @@ impl<'a, F: Field> AddAssign<&'a SparsePolynomial<F>> for DensePolynomial<F> {
 }
 
 impl<F: Field> Neg for DensePolynomial<F> {
-    type Output = DensePolynomial<F>;
+    type Output = Self;
 
     #[inline]
-    fn neg(mut self) -> DensePolynomial<F> {
+    fn neg(mut self) -> Self {
         self.coeffs.iter_mut().for_each(|coeff| {
             *coeff = -*coeff;
         });
@@ -535,9 +530,9 @@ impl<'a, F: Field> Sub<&'a SparsePolynomial<F>> for &DensePolynomial<F> {
     }
 }
 
-impl<'a, F: Field> SubAssign<&'a DensePolynomial<F>> for DensePolynomial<F> {
+impl<'a, F: Field> SubAssign<&'a Self> for DensePolynomial<F> {
     #[inline]
-    fn sub_assign(&mut self, other: &'a DensePolynomial<F>) {
+    fn sub_assign(&mut self, other: &'a Self) {
         if self.is_zero() {
             self.coeffs.resize(other.coeffs.len(), F::zero());
         } else if other.is_zero() {
@@ -619,10 +614,10 @@ impl<F: Field> Mul<F> for &DensePolynomial<F> {
 }
 
 impl<F: Field> Mul<F> for DensePolynomial<F> {
-    type Output = DensePolynomial<F>;
+    type Output = Self;
 
     #[inline]
-    fn mul(self, elem: F) -> DensePolynomial<F> {
+    fn mul(self, elem: F) -> Self {
         &self * elem
     }
 }
@@ -718,10 +713,10 @@ mod tests {
         #[derive(MontConfig)]
         #[modulus = "5"]
         #[generator = "2"]
-        pub struct F5Config;
+        pub(crate) struct F5Config;
 
         let rng = &mut test_rng();
-        pub type F5 = Fp64<MontBackend<F5Config, 1>>;
+        pub(crate) type F5 = Fp64<MontBackend<F5Config, 1>>;
 
         // if the leading coefficient were uniformly sampled from all of F, this
         // test would fail with high probability ~99.9%
@@ -1314,5 +1309,116 @@ mod tests {
         // Assert that the resulting polynomial is zero.
         assert!(result.is_zero(), "The resulting polynomial should be zero.");
         assert_eq!(result.coeffs, vec![], "Leading zeros were not truncated.");
+    }
+
+    #[test]
+    fn test_dense_dense_add_assign_with_zero_self() {
+        // Create a zero polynomial
+        let mut poly1 = DensePolynomial { coeffs: Vec::new() };
+
+        // Create a non-zero polynomial: 2 + 3x
+        let poly2 = DensePolynomial {
+            coeffs: vec![Fr::from(2), Fr::from(3)],
+        };
+
+        // Add the non-zero polynomial to the zero polynomial
+        poly1 += &poly2;
+
+        // Check that poly1 now equals poly2
+        assert_eq!(poly1.coeffs, poly2.coeffs);
+    }
+
+    #[test]
+    fn test_dense_dense_add_assign_with_zero_other() {
+        // Create a non-zero polynomial: 2 + 3x
+        let mut poly1 = DensePolynomial {
+            coeffs: vec![Fr::from(2), Fr::from(3)],
+        };
+
+        // Create a zero polynomial
+        let poly2 = DensePolynomial { coeffs: Vec::new() };
+
+        // Add the zero polynomial to poly1
+        poly1 += &poly2;
+
+        // Check that poly1 remains unchanged
+        assert_eq!(poly1.coeffs, vec![Fr::from(2), Fr::from(3)]);
+    }
+
+    #[test]
+    fn test_dense_dense_add_assign_with_different_degrees() {
+        // Create a polynomial: 1 + 2x + 3x^2
+        let mut poly1 = DensePolynomial {
+            coeffs: vec![Fr::from(1), Fr::from(2), Fr::from(3)],
+        };
+
+        // Create a smaller polynomial: 4 + 5x
+        let poly2 = DensePolynomial {
+            coeffs: vec![Fr::from(4), Fr::from(5)],
+        };
+
+        // Add the smaller polynomial to the larger one
+        poly1 += &poly2;
+
+        assert_eq!(poly1.coeffs, vec![Fr::from(5), Fr::from(7), Fr::from(3)]);
+    }
+
+    #[test]
+    fn test_dense_dense_truncate_leading_zeros_after_addition() {
+        // Create a first polynomial
+        let mut poly1 = DensePolynomial {
+            coeffs: vec![Fr::from(1), Fr::from(2)],
+        };
+
+        // Create another polynomial that will cancel out the first two terms
+        let poly2 = DensePolynomial {
+            coeffs: vec![-poly1.coeffs[0], -poly1.coeffs[1]],
+        };
+
+        // Add the two polynomials
+        poly1 += &poly2;
+
+        // Check that the resulting polynomial is zero (empty coefficients)
+        assert!(poly1.is_zero());
+        assert_eq!(poly1.coeffs, vec![]);
+    }
+
+    #[test]
+    fn test_dense_dense_add_assign_with_equal_degrees() {
+        // Create two polynomials with the same degree
+        let mut poly1 = DensePolynomial {
+            coeffs: vec![Fr::from(1), Fr::from(2), Fr::from(3)],
+        };
+        let poly2 = DensePolynomial {
+            coeffs: vec![Fr::from(4), Fr::from(5), Fr::from(6)],
+        };
+
+        // Add the polynomials
+        poly1 += &poly2;
+
+        // Check the resulting coefficients
+        assert_eq!(poly1.coeffs, vec![Fr::from(5), Fr::from(7), Fr::from(9)]);
+    }
+
+    #[test]
+    fn test_dense_dense_add_assign_with_other_zero_truncates_leading_zeros() {
+        use ark_test_curves::bls12_381::Fr;
+
+        // Create a polynomial with leading zeros: 1 + 2x + 0x^2 + 0x^3
+        let mut poly1 = DensePolynomial {
+            coeffs: vec![Fr::from(1), Fr::from(2), Fr::from(0), Fr::from(0)],
+        };
+
+        // Create a zero polynomial
+        let poly2 = DensePolynomial { coeffs: Vec::new() };
+
+        // Add the zero polynomial to poly1
+        poly1 += &poly2;
+
+        // Check that the leading zeros are truncated
+        assert_eq!(poly1.coeffs, vec![Fr::from(1), Fr::from(2)]);
+
+        // Ensure the polynomial is not zero (as it has non-zero coefficients)
+        assert!(!poly1.is_zero());
     }
 }

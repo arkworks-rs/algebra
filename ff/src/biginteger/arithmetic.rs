@@ -291,20 +291,20 @@ mod tests {
     #[test]
     fn test_adc_no_carry() {
         // Test addition without initial carry
-        let mut carry = 0;
-        let result = adc_no_carry(5u64, 10u64, &mut carry);
+        let carry = 0;
+        let result = adc_no_carry(5u64, 10u64, &carry);
         assert_eq!(result, 15); // 5 + 10 = 15
         assert_eq!(carry, 0); // No carry should be generated
 
         // Test addition with a non-zero initial carry
-        let mut carry = 1;
-        let result = adc_no_carry(5u64, 10u64, &mut carry);
+        let carry = 1;
+        let result = adc_no_carry(5u64, 10u64, &carry);
         assert_eq!(result, 16); // 5 + 10 + 1 = 16
         assert_eq!(carry, 1); // No overflow, so carry remains 1
 
         // Test addition that causes a carry
-        let mut carry = 1;
-        let result = adc_no_carry(u64::MAX, 1u64, &mut carry);
+        let carry = 1;
+        let result = adc_no_carry(u64::MAX, 1u64, &carry);
         assert_eq!(result, 1); // u64::MAX + 1 + 1 -> 1
         assert_eq!(carry, 1); // Carry is 1 due to overflow
     }

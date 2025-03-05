@@ -320,16 +320,14 @@ impl<P: FpConfig<N>, const N: usize> Field for Fp<P, N> {
 
     #[inline]
     fn legendre(&self) -> LegendreSymbol {
-        use crate::fields::LegendreSymbol::*;
-
         // s = self^((MODULUS - 1) // 2)
         let s = self.pow(Self::MODULUS_MINUS_ONE_DIV_TWO);
         if s.is_zero() {
-            Zero
+            LegendreSymbol::Zero
         } else if s.is_one() {
-            QuadraticResidue
+            LegendreSymbol::QuadraticResidue
         } else {
-            QuadraticNonResidue
+            LegendreSymbol::QuadraticNonResidue
         }
     }
 
@@ -677,7 +675,6 @@ impl<P: FpConfig<N>, const N: usize> Display for Fp<P, N> {
 impl<P: FpConfig<N>, const N: usize> Neg for Fp<P, N> {
     type Output = Self;
     #[inline]
-    #[must_use]
     fn neg(mut self) -> Self {
         P::neg_in_place(&mut self);
         self
@@ -720,6 +717,7 @@ impl<P: FpConfig<N>, const N: usize> Div<&Fp<P, N>> for Fp<P, N> {
     /// Returns `self * other.inverse()` if `other.inverse()` is `Some`, and
     /// panics otherwise.
     #[inline]
+    #[allow(clippy::suspicious_arithmetic_impl)]
     fn div(mut self, other: &Self) -> Self {
         self *= &other.inverse().unwrap();
         self

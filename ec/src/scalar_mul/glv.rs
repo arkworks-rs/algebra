@@ -31,12 +31,10 @@ pub trait GLVConfig: Send + Sync + 'static + SWCurveConfig {
     ) -> ((bool, Self::ScalarField), (bool, Self::ScalarField)) {
         let scalar: BigInt = k.into_bigint().into().into();
 
-        let coeff_bigints: [BigInt; 4] = Self::SCALAR_DECOMP_COEFFS.map(|x| {
+        let [n11, n12, n21, n22] = Self::SCALAR_DECOMP_COEFFS.map(|x| {
             let sign = if x.0 { Sign::Plus } else { Sign::Minus };
             BigInt::from_biguint(sign, x.1.into())
         });
-
-        let [n11, n12, n21, n22] = coeff_bigints;
 
         let r = BigInt::from(Self::ScalarField::MODULUS.into());
 
@@ -81,8 +79,8 @@ pub trait GLVConfig: Send + Sync + 'static + SWCurveConfig {
         let k2_abs = BigUint::try_from(k2.abs()).unwrap();
 
         (
-            (k1.sign() == Sign::Plus, Self::ScalarField::from(k1_abs)),
-            (k2.sign() == Sign::Plus, Self::ScalarField::from(k2_abs)),
+            (k1.sign() == Sign::Plus, k1_abs.into()),
+            (k2.sign() == Sign::Plus, k2_abs.into()),
         )
     }
 
