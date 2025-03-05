@@ -4,7 +4,7 @@ extern crate ark_relations;
 pub mod fields {
     use ark_ff::{BitIteratorLE, Field, PrimeField, UniformRand};
     use ark_r1cs_std::prelude::*;
-    use ark_relations::r1cs::{ConstraintSystem, SynthesisError};
+    use ark_relations::gr1cs::{ConstraintSystem, SynthesisError};
     use ark_std::{test_rng, vec::*};
 
     pub fn field_test<F, ConstraintF, AF>() -> Result<(), SynthesisError>
@@ -181,7 +181,7 @@ pub mod fields {
                 panic!(
                     "Unsatisfied in mode {:?}.\n{:?}",
                     mode,
-                    cs.which_is_unsatisfied().unwrap()
+                    cs.which_predicate_is_unsatisfied().unwrap()
                 );
             }
             assert!(cs.is_satisfied().unwrap());
@@ -225,7 +225,7 @@ pub mod curves {
         AdditiveGroup, CurveGroup,
     };
     use ark_ff::{BitIteratorLE, Field, One, PrimeField};
-    use ark_relations::r1cs::{ConstraintSystem, SynthesisError};
+    use ark_relations::gr1cs::{ConstraintSystem, SynthesisError};
     use ark_std::{test_rng, vec::*, UniformRand};
 
     use ark_r1cs_std::{fields::emulated_fp::EmulatedFpVar, prelude::*};
@@ -307,7 +307,7 @@ pub mod curves {
                 panic!(
                     "Unsatisfied in mode {:?}.\n{:?}",
                     mode,
-                    cs.which_is_unsatisfied().unwrap()
+                    cs.which_predicate_is_unsatisfied().unwrap()
                 );
             }
             assert!(cs.is_satisfied().unwrap());
@@ -417,7 +417,7 @@ pub mod curves {
             assert_eq!(gadget_a.value()?.into_affine().y, a_affine.y);
             assert_eq!(gadget_b.value()?.into_affine().x, b_affine.x);
             assert_eq!(gadget_b.value()?.into_affine().y, b_affine.y);
-            assert_eq!(cs.which_is_unsatisfied().unwrap(), None);
+            assert_eq!(cs.which_predicate_is_unsatisfied().unwrap(), None);
 
             // Check addition
             let ab = a + &b;
@@ -448,7 +448,7 @@ pub mod curves {
                 panic!(
                     "Unsatisfied in mode {:?}.\n{:?}",
                     mode,
-                    cs.which_is_unsatisfied().unwrap()
+                    cs.which_predicate_is_unsatisfied().unwrap()
                 );
             }
 
@@ -488,7 +488,7 @@ pub mod curves {
             assert_eq!(gadget_a.value()?.into_affine().y, a_affine.y);
             assert_eq!(gadget_b.value()?.into_affine().x, b_affine.x);
             assert_eq!(gadget_b.value()?.into_affine().y, b_affine.y);
-            assert_eq!(cs.which_is_unsatisfied()?, None);
+            assert_eq!(cs.which_predicate_is_unsatisfied()?, None);
 
             // Check addition
             let ab = a + &b;
@@ -516,7 +516,7 @@ pub mod curves {
                 panic!(
                     "Unsatisfied in mode {:?}.\n{:?}",
                     mode,
-                    cs.which_is_unsatisfied().unwrap()
+                    cs.which_predicate_is_unsatisfied().unwrap()
                 );
             }
 
@@ -533,7 +533,7 @@ pub mod pairing {
     };
     use ark_ff::{BitIteratorLE, Field, PrimeField};
     use ark_r1cs_std::prelude::*;
-    use ark_relations::r1cs::{ConstraintSystem, SynthesisError};
+    use ark_relations::gr1cs::{ConstraintSystem, SynthesisError};
     use ark_std::{test_rng, vec::*, UniformRand};
 
     #[allow(dead_code)]
@@ -619,7 +619,7 @@ pub mod pairing {
                 panic!(
                     "Unsatisfied in mode {:?}.\n{:?}",
                     mode,
-                    cs.which_is_unsatisfied().unwrap()
+                    cs.which_predicate_is_unsatisfied().unwrap()
                 );
             }
 

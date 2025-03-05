@@ -11,9 +11,9 @@
 //! One can perform standard algebraic operations on `FqVar`:
 //!
 //! ```
-//! # fn main() -> Result<(), ark_relations::r1cs::SynthesisError> {
+//! # fn main() -> Result<(), ark_relations::gr1cs::SynthesisError> {
 //! use ark_std::UniformRand;
-//! use ark_relations::r1cs::*;
+//! use ark_relations::gr1cs::*;
 //! use ark_r1cs_std::prelude::*;
 //! use ark_ed_on_cp6_782::{*, constraints::*};
 //!
@@ -60,9 +60,9 @@
 //! One can also perform standard algebraic operations on `EdwardsVar`:
 //!
 //! ```
-//! # fn main() -> Result<(), ark_relations::r1cs::SynthesisError> {
+//! # fn main() -> Result<(), ark_relations::gr1cs::SynthesisError> {
 //! # use ark_std::UniformRand;
-//! # use ark_relations::r1cs::*;
+//! # use ark_relations::gr1cs::*;
 //! # use ark_r1cs_std::prelude::*;
 //! # use ark_ed_on_cp6_782::{*, constraints::*};
 //!
