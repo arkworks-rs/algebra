@@ -53,6 +53,6 @@ impl Flags for EmptyFlags {
 
     #[inline]
     fn from_u8(_: u8) -> Option<Self> {
-        Some(EmptyFlags)
+        Some(Self)
     }
 }

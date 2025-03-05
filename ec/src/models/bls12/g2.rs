@@ -45,7 +45,7 @@ impl<P: Bls12Config> Default for G2Prepared<P> {
 impl<P: Bls12Config> From<G2Affine<P>> for G2Prepared<P> {
     fn from(q: G2Affine<P>) -> Self {
         let two_inv = P::Fp::one().double().inverse().unwrap();
-        let zero = G2Prepared {
+        let zero = Self {
             ell_coeffs: vec![],
             infinity: true,
         };
@@ -92,7 +92,7 @@ impl<'a, P: Bls12Config> From<&'a G2Projective<P>> for G2Prepared<P> {
 }
 
 impl<P: Bls12Config> G2Prepared<P> {
-    pub fn is_zero(&self) -> bool {
+    pub const fn is_zero(&self) -> bool {
         self.infinity
     }
 }

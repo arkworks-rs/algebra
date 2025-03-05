@@ -15,6 +15,9 @@ metadata.docs.rs.workspace = true
 package.metadata.release.workspace = true
 keywords = ["cryptography", "elliptic-curves", "pairing"]
 
+[lints]
+workspace = true
+
 [dependencies]
 ark-std.workspace = true
 ark-serialize.workspace = true
@@ -30,7 +33,7 @@ hashbrown.workspace = true
 itertools.workspace = true
 
 [target.'cfg(all(target_has_atomic = "8", target_has_atomic = "16", target_has_atomic = "32", target_has_atomic = "64", target_has_atomic = "ptr"))'.dependencies]
-ahash = { version = "0.8", default-features = false}
+ahash = { version = "0.8", default-features = false }
 
 [target.'cfg(not(all(target_has_atomic = "8", target_has_atomic = "16", target_has_atomic = "32", target_has_atomic = "64", target_has_atomic = "ptr")))'.dependencies]
 fnv = { version = "1.0", default-features = false }
@@ -46,5 +49,5 @@ hex.workspace = true
 
 [features]
 default = []
-std = [ "ark-std/std", "ark-ff/std", "ark-serialize/std" ]
-parallel = [ "std", "rayon", "ark-std/parallel", "ark-serialize/parallel" ]
+std = ["ark-std/std", "ark-ff/std", "ark-serialize/std"]
+parallel = ["std", "rayon", "ark-std/parallel", "ark-serialize/parallel"]
