@@ -163,19 +163,121 @@ impl<'a, F: Field> Add<&'a SparsePolynomial<F>> for &SparsePolynomial<F> {
 }
 
 impl<'a, F: Field> AddAssign<&'a Self> for SparsePolynomial<F> {
-    // TODO: Reduce number of clones
     fn add_assign(&mut self, other: &'a Self) {
-        self.coeffs = (self.clone() + other.clone()).coeffs;
+        if other.is_zero() {
+            return;
+        } else if self.is_zero() {
+            self.coeffs = other.coeffs.clone();
+            return;
+        }
+
+        // Create a new vector to store the result
+        let mut result_coeffs = Vec::new();
+        
+        // our current index in each vector
+        let mut self_index = 0;
+        let mut other_index = 0;
+        
+        // Single pass add algorithm (merging two sorted sets)
+        while self_index < self.coeffs.len() || other_index < other.coeffs.len() {
+            // If we've reached the end of one vector, just append the other vector to our result
+            if self_index == self.coeffs.len() {
+                result_coeffs.extend_from_slice(&other.coeffs[other_index..]);
+                break;
+            } else if other_index == other.coeffs.len() {
+                result_coeffs.extend_from_slice(&self.coeffs[self_index..]);
+                break;
+            }
+
+            // Get the current degree / coeff for each
+            let (self_term_degree, self_term_coeff) = self.coeffs[self_index];
+            let (other_term_degree, other_term_coeff) = other.coeffs[other_index];
+            
+            // Add the lower degree term to our sorted set
+            match self_term_degree.cmp(&other_term_degree) {
+                Ordering::Less => {
+                    result_coeffs.push((self_term_degree, self_term_coeff));
+                    self_index += 1;
+                },
+                Ordering::Equal => {
+                    let term_sum = self_term_coeff + other_term_coeff;
+                    if !term_sum.is_zero() {
+                        result_coeffs.push((self_term_degree, term_sum));
+                    }
+                    self_index += 1;
+                    other_index += 1;
+                },
+                Ordering::Greater => {
+                    result_coeffs.push((other_term_degree, other_term_coeff));
+                    other_index += 1;
+                },
+            }
+        }
+        
+        // Replace the coefficients with the result
+        self.coeffs = result_coeffs;
     }
 }
 
 impl<'a, F: Field> AddAssign<(F, &'a Self)> for SparsePolynomial<F> {
-    // TODO: Reduce number of clones
     fn add_assign(&mut self, (f, other): (F, &'a Self)) {
-        self.coeffs = (self.clone() + other.clone()).coeffs;
-        for i in 0..self.coeffs.len() {
-            self.coeffs[i].1 *= f;
+        if f.is_zero() || other.is_zero() {
+            return;
+        } else if self.is_zero() {
+            self.coeffs = other.coeffs.iter()
+                .map(|(deg, coeff)| (*deg, *coeff * f))
+                .collect();
+            return;
         }
+
+        // Create a new vector to store the result
+        let mut result_coeffs = Vec::new();
+        
+        // our current index in each vector
+        let mut self_index = 0;
+        let mut other_index = 0;
+        
+        // Single pass add algorithm (merging two sorted sets)
+        while self_index < self.coeffs.len() || other_index < other.coeffs.len() {
+            // If we've reached the end of one vector, just append the other vector to our result
+            if self_index == self.coeffs.len() {
+                // Apply the scalar multiplication to the remaining terms
+                result_coeffs.extend(other.coeffs[other_index..].iter()
+                    .map(|(deg, coeff)| (*deg, *coeff * f)));
+                break;
+            } else if other_index == other.coeffs.len() {
+                result_coeffs.extend_from_slice(&self.coeffs[self_index..]);
+                break;
+            }
+
+            // Get the current degree / coeff for each
+            let (self_term_degree, self_term_coeff) = self.coeffs[self_index];
+            let (other_term_degree, other_term_coeff) = other.coeffs[other_index];
+            let scaled_other_coeff = other_term_coeff * f;
+            
+            // Add the lower degree term to our sorted set
+            match self_term_degree.cmp(&other_term_degree) {
+                Ordering::Less => {
+                    result_coeffs.push((self_term_degree, self_term_coeff));
+                    self_index += 1;
+                },
+                Ordering::Equal => {
+                    let term_sum = self_term_coeff + scaled_other_coeff;
+                    if !term_sum.is_zero() {
+                        result_coeffs.push((self_term_degree, term_sum));
+                    }
+                    self_index += 1;
+                    other_index += 1;
+                },
+                Ordering::Greater => {
+                    result_coeffs.push((other_term_degree, scaled_other_coeff));
+                    other_index += 1;
+                },
+            }
+        }
+        
+        // Replace the coefficients with the result
+        self.coeffs = result_coeffs;
     }
 }
 
@@ -192,11 +294,64 @@ impl<F: Field> Neg for SparsePolynomial<F> {
 }
 
 impl<'a, F: Field> SubAssign<&'a Self> for SparsePolynomial<F> {
-    // TODO: Reduce number of clones
     #[inline]
     fn sub_assign(&mut self, other: &'a Self) {
-        let self_copy = -self.clone();
-        self.coeffs = (self_copy + other.clone()).coeffs;
+        if other.is_zero() {
+            return;
+        } else if self.is_zero() {
+            self.coeffs = other.coeffs.iter()
+                .map(|(deg, coeff)| (*deg, -(*coeff)))
+                .collect();
+            return;
+        }
+
+        // Create a new vector to store the result
+        let mut result_coeffs = Vec::new();
+        
+        // our current index in each vector
+        let mut self_index = 0;
+        let mut other_index = 0;
+        
+        // Single pass subtract algorithm (merging two sorted sets)
+        while self_index < self.coeffs.len() || other_index < other.coeffs.len() {
+            // If we've reached the end of one vector, just append the other vector to our result
+            if self_index == self.coeffs.len() {
+                // Negate the remaining terms from other
+                result_coeffs.extend(other.coeffs[other_index..].iter()
+                    .map(|(deg, coeff)| (*deg, -(*coeff))));
+                break;
+            } else if other_index == other.coeffs.len() {
+                result_coeffs.extend_from_slice(&self.coeffs[self_index..]);
+                break;
+            }
+
+            // Get the current degree / coeff for each
+            let (self_term_degree, self_term_coeff) = self.coeffs[self_index];
+            let (other_term_degree, other_term_coeff) = other.coeffs[other_index];
+            
+            // Subtract the lower degree term to our sorted set
+            match self_term_degree.cmp(&other_term_degree) {
+                Ordering::Less => {
+                    result_coeffs.push((self_term_degree, self_term_coeff));
+                    self_index += 1;
+                },
+                Ordering::Equal => {
+                    let term_diff = self_term_coeff - other_term_coeff;
+                    if !term_diff.is_zero() {
+                        result_coeffs.push((self_term_degree, term_diff));
+                    }
+                    self_index += 1;
+                    other_index += 1;
+                },
+                Ordering::Greater => {
+                    result_coeffs.push((other_term_degree, -other_term_coeff));
+                    other_index += 1;
+                },
+            }
+        }
+        
+        // Replace the coefficients with the result
+        self.coeffs = result_coeffs;
     }
 }
 
