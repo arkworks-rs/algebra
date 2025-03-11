@@ -161,6 +161,20 @@ fn test_uint() {
 }
 
 #[test]
+fn test_int() {
+    test_serialize(192830918isize);
+    test_serialize(-192830918isize);
+    test_serialize(192830918i64);
+    test_serialize(-192830918i64);
+    test_serialize(192830918i32);
+    test_serialize(-192830918i32);
+    test_serialize(22313i16);
+    test_serialize(-22313i16);
+    test_serialize(123i8);
+    test_serialize(-123i8);
+}
+
+#[test]
 fn test_string() {
     test_serialize(String::from("arkworks"));
 }
