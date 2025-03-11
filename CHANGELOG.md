@@ -6,6 +6,8 @@
 
 ### Features
 
+- (`ark-serialize`) Implementation of `CanonicalSerialize` and `CanonicalDeserialize` for signed integer types
+
 ### Improvements
 
 ### Bugfixes
