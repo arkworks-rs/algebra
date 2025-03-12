@@ -236,7 +236,6 @@ pub enum CoeffVecError {
 }
 
 impl<F: Field> SparsePolynomial<F> {
-
     // Function to validate that the input coefficient vector is simplified
     pub fn is_valid_coefficients_vec(coeffs: &mut [(usize, F)]) -> Result<(), CoeffVecError> {
         coeffs.sort_by(|a, b| a.0.cmp(&b.0));
@@ -257,7 +256,7 @@ impl<F: Field> SparsePolynomial<F> {
         }
         Ok(())
     }
-    
+
     /// Constructs a new polynomial from a list of coefficients.
     pub fn from_coefficients_slice(coeffs: &[(usize, F)]) -> Self {
         Self::from_coefficients_vec(coeffs.to_vec())
