@@ -3,7 +3,8 @@
 /// * `interval = log_interval`
 /// * `min      = ceil(log_2(min_degree))`
 /// * `max      = ceil(log_2(max_degree))`
-pub fn size_range(
+#[allow(dead_code)]
+pub(crate) fn size_range(
     log_interval: usize,
     min_degree: usize,
     max_degree: usize,

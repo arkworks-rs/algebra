@@ -26,7 +26,7 @@ impl CanonicalSerialize for bool {
         mut writer: W,
         _compress: Compress,
     ) -> Result<(), SerializationError> {
-        writer.write(&[*self as u8])?;
+        writer.write_all(&[*self as u8])?;
         Ok(())
     }
 
@@ -105,6 +105,10 @@ impl_uint!(u8);
 impl_uint!(u16);
 impl_uint!(u32);
 impl_uint!(u64);
+impl_uint!(i8);
+impl_uint!(i16);
+impl_uint!(i32);
+impl_uint!(i64);
 
 impl CanonicalSerialize for usize {
     #[inline]
@@ -146,7 +150,51 @@ impl CanonicalDeserialize for usize {
     ) -> Result<Self, SerializationError> {
         let mut bytes = [0u8; core::mem::size_of::<u64>()];
         reader.read_exact(&mut bytes)?;
-        Ok(<u64>::from_le_bytes(bytes) as usize)
+        Ok(<u64>::from_le_bytes(bytes) as Self)
+    }
+}
+
+impl CanonicalSerialize for isize {
+    #[inline]
+    fn serialize_with_mode<W: Write>(
+        &self,
+        mut writer: W,
+        _compress: Compress,
+    ) -> Result<(), SerializationError> {
+        Ok(writer.write_all(&(*self as i64).to_le_bytes())?)
+    }
+
+    #[inline]
+    fn serialized_size(&self, _compress: Compress) -> usize {
+        core::mem::size_of::<i64>()
+    }
+}
+
+impl Valid for isize {
+    #[inline]
+    fn check(&self) -> Result<(), SerializationError> {
+        Ok(())
+    }
+
+    #[inline]
+    fn batch_check<'a>(_batch: impl Iterator<Item = &'a Self>) -> Result<(), SerializationError>
+    where
+        Self: 'a,
+    {
+        Ok(())
+    }
+}
+
+impl CanonicalDeserialize for isize {
+    #[inline]
+    fn deserialize_with_mode<R: Read>(
+        mut reader: R,
+        _compress: Compress,
+        _validate: Validate,
+    ) -> Result<Self, SerializationError> {
+        let mut bytes = [0u8; core::mem::size_of::<i64>()];
+        reader.read_exact(&mut bytes)?;
+        Ok(<i64>::from_le_bytes(bytes) as Self)
     }
 }
 
@@ -173,7 +221,7 @@ impl CanonicalDeserialize for BigUint {
         compress: Compress,
         validate: Validate,
     ) -> Result<Self, SerializationError> {
-        Ok(BigUint::from_bytes_le(&Vec::<u8>::deserialize_with_mode(
+        Ok(Self::from_bytes_le(&Vec::<u8>::deserialize_with_mode(
             reader, compress, validate,
         )?))
     }
@@ -234,7 +282,7 @@ impl<T: Valid> Valid for Option<T> {
     where
         Self: 'a,
     {
-        T::batch_check(batch.map(Option::as_ref).filter(Option::is_some).flatten())
+        T::batch_check(batch.map(Self::as_ref).filter(Option::is_some).flatten())
     }
 }
 
@@ -246,11 +294,9 @@ impl<T: CanonicalDeserialize> CanonicalDeserialize for Option<T> {
         validate: Validate,
     ) -> Result<Self, SerializationError> {
         let is_some = bool::deserialize_with_mode(&mut reader, compress, validate)?;
-        let data = if is_some {
-            Some(T::deserialize_with_mode(&mut reader, compress, validate)?)
-        } else {
-            None
-        };
+        let data = is_some
+            .then(|| T::deserialize_with_mode(&mut reader, compress, validate))
+            .transpose()?;
 
         Ok(data)
     }
@@ -287,7 +333,7 @@ impl<T: Send + Sync> CanonicalDeserialize for PhantomData<T> {
         _compress: Compress,
         _validate: Validate,
     ) -> Result<Self, SerializationError> {
-        Ok(PhantomData)
+        Ok(Self)
     }
 }
 
@@ -352,7 +398,7 @@ impl<T: CanonicalDeserialize + ToOwned + Sync + Send> CanonicalDeserialize
         compress: Compress,
         validate: Validate,
     ) -> Result<Self, SerializationError> {
-        Ok(ark_std::sync::Arc::new(T::deserialize_with_mode(
+        Ok(Self::new(T::deserialize_with_mode(
             reader, compress, validate,
         )?))
     }
@@ -398,7 +444,7 @@ where
 
 impl<T> CanonicalDeserialize for Cow<'_, T>
 where
-    T: ToOwned + Valid + Valid + Sync + Send,
+    T: ToOwned + Valid + Sync + Send,
     <T as ToOwned>::Owned: CanonicalDeserialize + Valid + Send,
 {
     #[inline]
@@ -420,7 +466,7 @@ impl<T: CanonicalSerialize, const N: usize> CanonicalSerialize for [T; N] {
         mut writer: W,
         compress: Compress,
     ) -> Result<(), SerializationError> {
-        for item in self.iter() {
+        for item in self {
             item.serialize_with_mode(&mut writer, compress)?;
         }
         Ok(())
@@ -465,7 +511,7 @@ impl<T: CanonicalDeserialize, const N: usize> CanonicalDeserialize for [T; N] {
                 Validate::No,
             )?);
         }
-        if let Validate::Yes = validate {
+        if validate == Validate::Yes {
             T::batch_check(array.iter())?
         }
         Ok(array.into_inner().ok().unwrap())
@@ -515,7 +561,7 @@ impl<T: CanonicalDeserialize> CanonicalDeserialize for Vec<T> {
         let len = u64::deserialize_with_mode(&mut reader, compress, validate)?
             .try_into()
             .map_err(|_| SerializationError::NotEnoughSpace)?;
-        let mut values = Vec::with_capacity(len);
+        let mut values = Self::with_capacity(len);
         for _ in 0..len {
             values.push(T::deserialize_with_mode(
                 &mut reader,
@@ -524,7 +570,7 @@ impl<T: CanonicalDeserialize> CanonicalDeserialize for Vec<T> {
             )?);
         }
 
-        if let Validate::Yes = validate {
+        if validate == Validate::Yes {
             T::batch_check(values.iter())?
         }
         Ok(values)
@@ -612,7 +658,7 @@ impl<T: CanonicalDeserialize> CanonicalDeserialize for VecDeque<T> {
         let len = u64::deserialize_with_mode(&mut reader, compress, validate)?
             .try_into()
             .map_err(|_| SerializationError::NotEnoughSpace)?;
-        let mut values = VecDeque::with_capacity(len);
+        let mut values = Self::with_capacity(len);
         for _ in 0..len {
             values.push_back(T::deserialize_with_mode(
                 &mut reader,
@@ -621,7 +667,7 @@ impl<T: CanonicalDeserialize> CanonicalDeserialize for VecDeque<T> {
             )?);
         }
 
-        if let Validate::Yes = validate {
+        if validate == Validate::Yes {
             T::batch_check(values.iter())?
         }
         Ok(values)
@@ -674,7 +720,7 @@ impl<T: CanonicalDeserialize> CanonicalDeserialize for LinkedList<T> {
         let len = u64::deserialize_with_mode(&mut reader, compress, validate)?
             .try_into()
             .map_err(|_| SerializationError::NotEnoughSpace)?;
-        let mut values = LinkedList::new();
+        let mut values = Self::new();
         for _ in 0..len {
             values.push_back(T::deserialize_with_mode(
                 &mut reader,
@@ -683,7 +729,7 @@ impl<T: CanonicalDeserialize> CanonicalDeserialize for LinkedList<T> {
             )?);
         }
 
-        if let Validate::Yes = validate {
+        if validate == Validate::Yes {
             T::batch_check(values.iter())?
         }
         Ok(values)
@@ -753,7 +799,7 @@ impl CanonicalDeserialize for String {
         validate: Validate,
     ) -> Result<Self, SerializationError> {
         let bytes = <Vec<u8>>::deserialize_with_mode(reader, compress, validate)?;
-        String::from_utf8(bytes).map_err(|_| SerializationError::InvalidData)
+        Self::from_utf8(bytes).map_err(|_| SerializationError::InvalidData)
     }
 }
 
@@ -822,7 +868,7 @@ where
     ) -> Result<(), SerializationError> {
         let len = self.len() as u64;
         len.serialize_with_mode(&mut writer, compress)?;
-        for (k, v) in self.iter() {
+        for (k, v) in self {
             k.serialize_with_mode(&mut writer, compress)?;
             v.serialize_with_mode(&mut writer, compress)?;
         }

@@ -16,7 +16,7 @@ pub struct G1Prepared<P: BnConfig>(pub G1Affine<P>);
 
 impl<P: BnConfig> From<G1Affine<P>> for G1Prepared<P> {
     fn from(other: G1Affine<P>) -> Self {
-        G1Prepared(other)
+        Self(other)
     }
 }
 
@@ -28,7 +28,7 @@ impl<P: BnConfig> From<G1Projective<P>> for G1Prepared<P> {
 
 impl<'a, P: BnConfig> From<&'a G1Affine<P>> for G1Prepared<P> {
     fn from(other: &'a G1Affine<P>) -> Self {
-        G1Prepared(*other)
+        Self(*other)
     }
 }
 
@@ -39,13 +39,13 @@ impl<'a, P: BnConfig> From<&'a G1Projective<P>> for G1Prepared<P> {
 }
 
 impl<P: BnConfig> G1Prepared<P> {
-    pub fn is_zero(&self) -> bool {
+    pub const fn is_zero(&self) -> bool {
         self.0.infinity
     }
 }
 
 impl<P: BnConfig> Default for G1Prepared<P> {
     fn default() -> Self {
-        G1Prepared(G1Affine::<P>::generator())
+        Self(G1Affine::<P>::generator())
     }
 }

@@ -21,7 +21,7 @@ use sum_of_products::sum_of_products_impl;
 
 use crate::utils;
 
-pub fn mont_config_helper(
+pub(crate) fn mont_config_helper(
     modulus: BigUint,
     generator: BigUint,
     small_subgroup_base: Option<u32>,
@@ -60,10 +60,10 @@ pub fn mont_config_helper(
     let modulus_has_spare_bit = modulus_limbs.last().unwrap() >> 63 == 0;
     let can_use_no_carry_mul_opt = {
         let first_limb_check = *modulus_limbs.last().unwrap() < (u64::MAX >> 1);
-        if limbs != 1 {
-            first_limb_check && modulus_limbs[..limbs - 1].iter().any(|l| *l != u64::MAX)
-        } else {
+        if limbs == 1 {
             first_limb_check
+        } else {
+            first_limb_check && modulus_limbs[..limbs - 1].iter().any(|l| *l != u64::MAX)
         }
     };
     let modulus = quote::quote! { BigInt([ #( #modulus_limbs ),* ]) };
