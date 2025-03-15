@@ -29,13 +29,16 @@ pub trait Pairing: Sized + 'static + Copy + Debug + Sync + Send + Eq {
     type ScalarField: PrimeField;
 
     /// An element in G1.
-    type G1: CurveGroup<ScalarField = Self::ScalarField, Affine = Self::G1Affine>
-        + From<Self::G1Affine>
+    type G1: CurveGroup<
+            BaseField = Self::BaseField,
+            ScalarField = Self::ScalarField,
+            Affine = Self::G1Affine,
+        > + From<Self::G1Affine>
         + Into<Self::G1Affine>
         // needed due to https://github.com/rust-lang/rust/issues/69640
         + MulAssign<Self::ScalarField>;
 
-    type G1Affine: AffineRepr<Group = Self::G1, ScalarField = Self::ScalarField>
+    type G1Affine: AffineRepr<Group = Self::G1, BaseField = Self::BaseField, ScalarField = Self::ScalarField>
         + From<Self::G1>
         + Into<Self::G1>
         + Into<Self::G1Prepared>;
@@ -54,15 +57,21 @@ pub trait Pairing: Sized + 'static + Copy + Debug + Sync + Send + Eq {
         + From<Self::G1Affine>;
 
     /// An element of G2.
-    type G2: CurveGroup<ScalarField = Self::ScalarField, Affine = Self::G2Affine>
-        + From<Self::G2Affine>
+    type G2: CurveGroup<
+            ScalarField = Self::ScalarField,
+            Affine = Self::G2Affine,
+            BaseField: Field<BasePrimeField = Self::BaseField>,
+        > + From<Self::G2Affine>
         + Into<Self::G2Affine>
         // needed due to https://github.com/rust-lang/rust/issues/69640
         + MulAssign<Self::ScalarField>;
 
     /// The affine representation of an element in G2.
-    type G2Affine: AffineRepr<Group = Self::G2, ScalarField = Self::ScalarField>
-        + From<Self::G2>
+    type G2Affine: AffineRepr<
+            Group = Self::G2,
+            ScalarField = Self::ScalarField,
+            BaseField: Field<BasePrimeField = Self::BaseField>,
+        > + From<Self::G2>
         + Into<Self::G2>
         + Into<Self::G2Prepared>;
 
