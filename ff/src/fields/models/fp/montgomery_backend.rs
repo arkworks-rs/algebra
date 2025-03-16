@@ -167,7 +167,7 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
                         target_arch = "x86_64"
                     )
                 )]
-                #[allow(unsafe_code, unused_mut)]
+                #[allow(unsafe_code)]
                 #[rustfmt::skip]
 
                 // Tentatively avoid using assembly for `N == 1`.
@@ -238,7 +238,7 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
                 target_feature = "adx",
                 target_arch = "x86_64"
             ))]
-            #[allow(unsafe_code, unused_mut)]
+            #[allow(unsafe_code)]
             #[rustfmt::skip]
             match N {
                 2 => { ark_ff_asm::x86_64_asm_square!(2, (a.0).0); },
@@ -656,7 +656,6 @@ impl<T: MontConfig<N>, const N: usize> FpConfig<N> for MontBackend<T, N> {
     }
 
     #[inline]
-    #[allow(unused_braces, clippy::absurd_extreme_comparisons)]
     fn square_in_place(a: &mut Fp<Self, N>) {
         T::square_in_place(a)
     }
@@ -670,7 +669,6 @@ impl<T: MontConfig<N>, const N: usize> FpConfig<N> for MontBackend<T, N> {
     }
 
     #[inline]
-    #[allow(clippy::modulo_one)]
     fn into_bigint(a: Fp<Self, N>) -> BigInt<N> {
         T::into_bigint(a)
     }
