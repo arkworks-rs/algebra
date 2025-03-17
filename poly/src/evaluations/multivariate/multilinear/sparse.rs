@@ -490,7 +490,7 @@ mod tests {
         points
             .into_iter()
             .map(|(i, v)| assert_eq!(poly[i], v))
-            .last();
+            .next_back();
         assert_eq!(poly[0], Fr::zero());
         assert_eq!(poly[1], Fr::zero());
     }

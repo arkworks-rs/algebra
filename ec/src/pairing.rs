@@ -141,7 +141,6 @@ impl<P: Pairing> Default for PairingOutput<P> {
 }
 
 impl<P: Pairing> CanonicalSerialize for PairingOutput<P> {
-    #[allow(unused_qualifications)]
     #[inline]
     fn serialize_with_mode<W: Write>(
         &self,

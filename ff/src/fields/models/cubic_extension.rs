@@ -548,7 +548,6 @@ impl<P: CubicExtConfig> SubAssign<&Self> for CubicExtField<P> {
 
 impl<P: CubicExtConfig> MulAssign<&Self> for CubicExtField<P> {
     #[inline]
-    #[allow(clippy::many_single_char_names)]
     fn mul_assign(&mut self, other: &Self) {
         // Devegili OhEig Scott Dahab --- Multiplication and Squaring on
         // AbstractPairing-Friendly

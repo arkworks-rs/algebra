@@ -2,11 +2,7 @@
 //! fields, including FFTs.
 #![cfg_attr(not(feature = "std"), no_std)]
 #![forbid(unsafe_code)]
-#![allow(
-    clippy::many_single_char_names,
-    clippy::suspicious_op_assign_impl,
-    clippy::suspicious_arithmetic_impl
-)]
+#![allow(clippy::suspicious_op_assign_impl, clippy::suspicious_arithmetic_impl)]
 
 #[macro_use]
 extern crate educe;

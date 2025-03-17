@@ -7,11 +7,7 @@
     rust_2021_compatibility
 )]
 #![forbid(unsafe_code)]
-#![allow(
-    clippy::op_ref,
-    clippy::suspicious_op_assign_impl,
-    clippy::many_single_char_names
-)]
+#![allow(clippy::op_ref, clippy::suspicious_op_assign_impl)]
 #![doc = include_str!("../README.md")]
 
 #[macro_use]
@@ -119,7 +115,6 @@ pub trait CurveGroup:
 /// to this group element.
 ///
 /// The point is guaranteed to be in the correct prime order subgroup.
-#[allow(clippy::trait_duplication_in_bounds)]
 pub trait AffineRepr:
     Eq
     + 'static
