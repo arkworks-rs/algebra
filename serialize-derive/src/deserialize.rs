@@ -72,12 +72,10 @@ fn impl_valid(ast: &syn::DeriveInput) -> TokenStream {
 
     let gen = quote! {
         impl #impl_generics ark_serialize::Valid for #name #ty_generics #where_clause {
-            #[allow(unused_mut, unused_variables)]
             fn check(&self) -> Result<(), ark_serialize::SerializationError> {
                 #(#check_body)*
                 Ok(())
             }
-            #[allow(unused_mut, unused_variables)]
             fn batch_check<'a>(batch: impl Iterator<Item = &'a Self> + Send) -> Result<(), ark_serialize::SerializationError>
                 where
             Self: 'a
@@ -157,7 +155,6 @@ pub(super) fn impl_canonical_deserialize(ast: &syn::DeriveInput) -> TokenStream 
 
     let mut gen = quote! {
         impl #impl_generics CanonicalDeserialize for #name #ty_generics #where_clause {
-            #[allow(unused_mut,unused_variables)]
             fn deserialize_with_mode<R: ark_serialize::Read>(
                 mut reader: R,
                 compress: ark_serialize::Compress,

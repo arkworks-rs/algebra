@@ -2,7 +2,6 @@ use crate::{
     bits::{BitIteratorBE, BitIteratorLE},
     const_for, UniformRand,
 };
-#[allow(unused)]
 use ark_ff_macros::unroll_for_loops;
 use ark_serialize::{
     CanonicalDeserialize, CanonicalSerialize, Compress, SerializationError, Valid, Validate,
@@ -319,7 +318,6 @@ impl<const N: usize> BigInteger for BigInt<N> {
     }
 
     #[inline]
-    #[allow(unused)]
     fn mul2(&mut self) -> bool {
         #[cfg(all(target_arch = "x86_64", feature = "asm"))]
         #[allow(unsafe_code)]
@@ -367,7 +365,6 @@ impl<const N: usize> BigInteger for BigInt<N> {
 
         if n > 0 {
             let mut t = 0;
-            #[allow(unused)]
             for i in 0..N {
                 let a = &mut self.0[i];
                 let t2 = *a >> (64 - n);
@@ -452,7 +449,6 @@ impl<const N: usize> BigInteger for BigInt<N> {
 
         if n > 0 {
             let mut t = 0;
-            #[allow(unused)]
             for i in 0..N {
                 let a = &mut self.0[N - i - 1];
                 let t2 = *a << (64 - n);
@@ -807,7 +803,6 @@ impl<const N: usize> ShlAssign<u32> for BigInt<N> {
 
         if rhs > 0 {
             let mut t = 0;
-            #[allow(unused)]
             for i in 0..N {
                 let a = &mut self.0[i];
                 let t2 = *a >> (64 - rhs);

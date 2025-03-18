@@ -44,7 +44,6 @@ type DefaultHasher = fnv::FnvHasher;
 ///
 /// Index represents a point, which is a vector in {0,1}^`num_vars` in little
 /// endian form. For example, `0b1011` represents `P(1,1,0,1)`
-#[allow(clippy::trait_duplication_in_bounds)]
 pub trait MultilinearExtension<F: Field>:
     Sized
     + Clone

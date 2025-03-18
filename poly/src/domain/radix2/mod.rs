@@ -53,11 +53,8 @@ impl<F: FftField> EvaluationDomain<F> for Radix2EvaluationDomain<F> {
     /// Construct a domain that is large enough for evaluations of a polynomial
     /// having `num_coeffs` coefficients.
     fn new(num_coeffs: usize) -> Option<Self> {
-        let size = if num_coeffs.is_power_of_two() {
-            num_coeffs
-        } else {
-            num_coeffs.checked_next_power_of_two()?
-        } as u64;
+        let size = num_coeffs.next_power_of_two() as u64;
+
         let log_size_of_group = size.trailing_zeros();
 
         // libfqfft uses > https://github.com/scipr-lab/libfqfft/blob/e0183b2cef7d4c5deb21a6eaf3fe3b586d738fe0/libfqfft/evaluation_domain/domains/basic_radix2_domain.tcc#L33
@@ -71,18 +68,17 @@ impl<F: FftField> EvaluationDomain<F> for Radix2EvaluationDomain<F> {
         // Check that it is indeed the 2^(log_size_of_group) root of unity.
         debug_assert_eq!(group_gen.pow([size]), F::one());
         let size_as_field_element = F::from(size);
-        let size_inv = size_as_field_element.inverse()?;
 
         Some(Self {
             size,
             log_size_of_group,
             size_as_field_element,
-            size_inv,
+            size_inv: size_as_field_element.inverse()?,
             group_gen,
             group_gen_inv: group_gen.inverse()?,
-            offset: F::one(),
-            offset_inv: F::one(),
-            offset_pow_size: F::one(),
+            offset: F::ONE,
+            offset_inv: F::ONE,
+            offset_pow_size: F::ONE,
         })
     }
 
@@ -97,16 +93,12 @@ impl<F: FftField> EvaluationDomain<F> for Radix2EvaluationDomain<F> {
 
     fn compute_size_of_domain(num_coeffs: usize) -> Option<usize> {
         let size = num_coeffs.checked_next_power_of_two()?;
-        if size.trailing_zeros() > F::TWO_ADICITY {
-            None
-        } else {
-            Some(size)
-        }
+        (size.trailing_zeros() <= F::TWO_ADICITY).then_some(size)
     }
 
     #[inline]
     fn size(&self) -> usize {
-        usize::try_from(self.size).unwrap()
+        self.size.try_into().unwrap()
     }
 
     #[inline]
@@ -546,5 +538,95 @@ mod tests {
         let rng = &mut test_rng();
 
         test_consistency(rng, 10);
+    }
+
+    #[test]
+    fn test_domain_creation() {
+        // Test powers of 2
+        let domain_8 = Radix2EvaluationDomain::<Fr>::new(8).unwrap();
+        assert_eq!(domain_8.size(), 8);
+        assert_eq!(domain_8.log_size_of_group(), 3);
+
+        // Test rounding to next power of 2
+        let domain_7 = Radix2EvaluationDomain::<Fr>::new(7).unwrap();
+        assert_eq!(domain_7.size(), 8);
+    }
+
+    #[test]
+    fn test_root_of_unity() {
+        let domain = Radix2EvaluationDomain::<Fr>::new(8).unwrap();
+        let root = domain.group_gen();
+
+        // Check order: root^8 should be 1
+        let expected = root.pow([8]);
+        assert_eq!(expected, Fr::one());
+    }
+
+    #[test]
+    fn test_inverse_root_of_unity() {
+        let domain = Radix2EvaluationDomain::<Fr>::new(8).unwrap();
+        let root = domain.group_gen();
+        let root_inv = domain.group_gen_inv();
+
+        // root * root_inv should be 1
+        let expected = root * root_inv;
+        assert_eq!(expected, Fr::one());
+    }
+
+    #[test]
+    fn test_size_inverse() {
+        let domain = Radix2EvaluationDomain::<Fr>::new(8).unwrap();
+        let size_inv = domain.size_inv();
+        let expected = Fr::from(8).inverse().unwrap();
+
+        assert_eq!(size_inv, expected);
+    }
+
+    #[test]
+    fn test_fft_ifft_identity() {
+        let domain = Radix2EvaluationDomain::<Fr>::new(8).unwrap();
+        let mut coeffs = vec![
+            Fr::from(1),
+            Fr::from(2),
+            Fr::from(3),
+            Fr::from(4),
+            Fr::from(5),
+            Fr::from(6),
+            Fr::from(7),
+            Fr::from(8),
+        ];
+
+        let original = coeffs.clone();
+        domain.fft_in_place(&mut coeffs);
+        domain.ifft_in_place(&mut coeffs);
+
+        // Check if IFFT(FFT(coeffs)) == coeffs
+        assert_eq!(coeffs, original);
+    }
+
+    #[test]
+    fn test_vanishing_polynomial() {
+        let domain = Radix2EvaluationDomain::<Fr>::new(4).unwrap();
+        let z = domain.vanishing_polynomial();
+
+        for elem in domain.elements() {
+            assert_eq!(z.evaluate(&elem), Fr::zero());
+        }
+    }
+
+    #[test]
+    fn test_compute_size_of_domain() {
+        assert_eq!(
+            Radix2EvaluationDomain::<Fr>::compute_size_of_domain(7),
+            Some(8)
+        );
+        assert_eq!(
+            Radix2EvaluationDomain::<Fr>::compute_size_of_domain(8),
+            Some(8)
+        );
+        assert_eq!(
+            Radix2EvaluationDomain::<Fr>::compute_size_of_domain(15),
+            Some(16)
+        );
     }
 }

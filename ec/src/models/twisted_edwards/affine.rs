@@ -93,7 +93,6 @@ impl<P: TECurveConfig> Affine<P> {
     /// a * X^2 - d * X^2 * Y^2 = 1 - Y^2
     /// X^2 * (a - d * Y^2) = 1 - Y^2
     /// X^2 = (1 - Y^2) / (a - d * Y^2)
-    #[allow(dead_code)]
     pub fn get_point_from_y_unchecked(y: P::BaseField, greatest: bool) -> Option<Self> {
         Self::get_xs_from_y_unchecked(y).map(|(x, neg_x)| {
             if greatest {
@@ -114,7 +113,6 @@ impl<P: TECurveConfig> Affine<P> {
     /// a * X^2 - d * X^2 * Y^2 = 1 - Y^2
     /// X^2 * (a - d * Y^2) = 1 - Y^2
     /// X^2 = (1 - Y^2) / (a - d * Y^2)
-    #[allow(dead_code)]
     pub fn get_xs_from_y_unchecked(y: P::BaseField) -> Option<(P::BaseField, P::BaseField)> {
         let y2 = y.square();
 

@@ -423,7 +423,6 @@ impl<P: MontCurveConfig> MontgomeryAffine<P> {
 }
 
 impl<P: TECurveConfig> CanonicalSerialize for Projective<P> {
-    #[allow(unused_qualifications)]
     #[inline]
     fn serialize_with_mode<W: Write>(
         &self,
@@ -458,7 +457,6 @@ impl<P: TECurveConfig> Valid for Projective<P> {
 }
 
 impl<P: TECurveConfig> CanonicalDeserialize for Projective<P> {
-    #[allow(unused_qualifications)]
     fn deserialize_with_mode<R: Read>(
         reader: R,
         compress: Compress,

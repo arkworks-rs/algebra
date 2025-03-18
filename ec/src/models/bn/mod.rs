@@ -102,7 +102,6 @@ pub trait BnConfig: 'static + Sized {
         MillerLoopOutput(f)
     }
 
-    #[allow(clippy::let_and_return)]
     fn final_exponentiation(f: MillerLoopOutput<Bn<Self>>) -> Option<PairingOutput<Bn<Self>>> {
         // Easy part: result = elt^((q^6-1)*(q^2+1)).
         // Follows, e.g., Beuchat et al page 9, by computing result as follows:
