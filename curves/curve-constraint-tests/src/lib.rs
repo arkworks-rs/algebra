@@ -181,7 +181,7 @@ pub mod fields {
                 panic!(
                     "Unsatisfied in mode {:?}.\n{:?}",
                     mode,
-                    cs.which_predicate_is_unsatisfied().unwrap()
+                    cs.which_is_unsatisfied().unwrap()
                 );
             }
             assert!(cs.is_satisfied().unwrap());
@@ -307,7 +307,7 @@ pub mod curves {
                 panic!(
                     "Unsatisfied in mode {:?}.\n{:?}",
                     mode,
-                    cs.which_predicate_is_unsatisfied().unwrap()
+                    cs.which_is_unsatisfied().unwrap()
                 );
             }
             assert!(cs.is_satisfied().unwrap());
@@ -417,7 +417,7 @@ pub mod curves {
             assert_eq!(gadget_a.value()?.into_affine().y, a_affine.y);
             assert_eq!(gadget_b.value()?.into_affine().x, b_affine.x);
             assert_eq!(gadget_b.value()?.into_affine().y, b_affine.y);
-            assert_eq!(cs.which_predicate_is_unsatisfied().unwrap(), None);
+            assert_eq!(cs.which_is_unsatisfied().unwrap(), None);
 
             // Check addition
             let ab = a + &b;
@@ -448,7 +448,7 @@ pub mod curves {
                 panic!(
                     "Unsatisfied in mode {:?}.\n{:?}",
                     mode,
-                    cs.which_predicate_is_unsatisfied().unwrap()
+                    cs.which_is_unsatisfied().unwrap()
                 );
             }
 
@@ -488,7 +488,7 @@ pub mod curves {
             assert_eq!(gadget_a.value()?.into_affine().y, a_affine.y);
             assert_eq!(gadget_b.value()?.into_affine().x, b_affine.x);
             assert_eq!(gadget_b.value()?.into_affine().y, b_affine.y);
-            assert_eq!(cs.which_predicate_is_unsatisfied()?, None);
+            assert_eq!(cs.which_is_unsatisfied()?, None);
 
             // Check addition
             let ab = a + &b;
@@ -516,7 +516,7 @@ pub mod curves {
                 panic!(
                     "Unsatisfied in mode {:?}.\n{:?}",
                     mode,
-                    cs.which_predicate_is_unsatisfied().unwrap()
+                    cs.which_is_unsatisfied().unwrap()
                 );
             }
 
@@ -619,7 +619,7 @@ pub mod pairing {
                 panic!(
                     "Unsatisfied in mode {:?}.\n{:?}",
                     mode,
-                    cs.which_predicate_is_unsatisfied().unwrap()
+                    cs.which_is_unsatisfied().unwrap()
                 );
             }
 
