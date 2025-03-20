@@ -145,7 +145,7 @@ pub trait BW6Config: 'static + Eq + Sized {
                 for i in (1..Self::ATE_LOOP_COUNT_2.len()).rev() {
                     f.square_in_place();
 
-                    for (p, ref mut coeffs) in pairs.iter_mut() {
+                    for (p, coeffs) in pairs.iter_mut() {
                         BW6::<Self>::ell(&mut f, &coeffs.next().unwrap(), &p.0);
                     }
 

@@ -50,14 +50,14 @@ impl Parse for AsmMulInput {
 #[proc_macro]
 pub fn x86_64_asm_mul(input: TokenStream) -> TokenStream {
     let AsmMulInput { num_limbs, a, b } = syn::parse_macro_input!(input);
-    let num_limbs = if let Expr::Lit(syn::ExprLit {
-        lit: syn::Lit::Int(ref lit_int),
-        ..
-    }) = &*num_limbs
-    {
-        lit_int.base10_parse::<usize>().unwrap()
-    } else {
-        panic!("The number of limbs must be a literal");
+    let num_limbs = match &*num_limbs {
+        Expr::Lit(syn::ExprLit {
+            lit: syn::Lit::Int(lit_int),
+            ..
+        }) => lit_int.base10_parse::<usize>().unwrap(),
+        _ => {
+            panic!("The number of limbs must be a literal");
+        },
     };
     if num_limbs <= 6 {
         let impl_block = generate_impl(num_limbs, true);
@@ -88,10 +88,9 @@ impl Parse for AsmSquareInput {
         let num_limbs = input[0].clone();
         let a = input[1].clone();
 
-        let num_limbs = if let Expr::Group(syn::ExprGroup { expr, .. }) = num_limbs {
-            expr
-        } else {
-            Box::new(num_limbs)
+        let num_limbs = match num_limbs {
+            Expr::Group(syn::ExprGroup { expr, .. }) => expr,
+            _ => Box::new(num_limbs),
         };
         let output = Self { num_limbs, a };
         Ok(output)
@@ -101,14 +100,14 @@ impl Parse for AsmSquareInput {
 #[proc_macro]
 pub fn x86_64_asm_square(input: TokenStream) -> TokenStream {
     let AsmSquareInput { num_limbs, a } = syn::parse_macro_input!(input);
-    let num_limbs = if let Expr::Lit(syn::ExprLit {
-        lit: syn::Lit::Int(ref lit_int),
-        ..
-    }) = &*num_limbs
-    {
-        lit_int.base10_parse::<usize>().unwrap()
-    } else {
-        panic!("The number of limbs must be a literal");
+    let num_limbs = match &*num_limbs {
+        Expr::Lit(syn::ExprLit {
+            lit: syn::Lit::Int(lit_int),
+            ..
+        }) => lit_int.base10_parse::<usize>().unwrap(),
+        _ => {
+            panic!("The number of limbs must be a literal");
+        },
     };
     if num_limbs <= 6 {
         let impl_block = generate_impl(num_limbs, false);
