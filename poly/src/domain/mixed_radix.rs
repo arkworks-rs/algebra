@@ -403,7 +403,7 @@ mod tests {
             let z = domain.vanishing_polynomial();
             let coset_z = coset_domain.vanishing_polynomial();
             for _ in 0..100 {
-                let point: Fr = rng.gen();
+                let point: Fr = rng.r#gen();
                 assert_eq!(
                     z.evaluate(&point),
                     domain.evaluate_vanishing_polynomial(point)
