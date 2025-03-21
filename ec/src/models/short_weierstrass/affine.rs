@@ -326,7 +326,7 @@ impl<P: SWCurveConfig, T: Borrow<P::ScalarField>> Mul<T> for Affine<P> {
 }
 
 // The projective point X, Y, Z is represented in the affine
-// coordinates as X/Z^2, Y/Z^3.
+// coordinates as X/Z, Y/Z.
 impl<P: SWCurveConfig> From<Projective<P>> for Affine<P> {
     #[inline]
     fn from(p: Projective<P>) -> Self {
