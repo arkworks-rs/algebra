@@ -20,7 +20,7 @@ pub(crate) fn bitreverse(mut n: u32, l: u32) -> u32 {
 }
 
 #[inline]
-pub(crate) fn bitreverse_permutation_in_place<T>(a: &mut [T], width: u32) {
+pub fn bitreverse_permutation_in_place<T>(a: &mut [T], width: u32) {
     // swapping in place (from Storer's book)
     let n = a.len();
     for k in 0..n {
