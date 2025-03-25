@@ -158,7 +158,7 @@ impl<P: SWCurveConfig> Affine<P> {
             SWFlags::YIsNegative
         }
     }
-    
+
     pub fn double_to_bucket(&self) -> Bucket<P> {
         if self.infinity {
             Bucket::ZERO

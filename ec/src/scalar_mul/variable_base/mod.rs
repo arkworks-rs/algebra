@@ -1,7 +1,11 @@
-use core::ops::{Add, AddAssign, SubAssign};
-
 use ark_ff::prelude::*;
-use ark_std::{borrow::Borrow, cfg_into_iter, iterable::Iterable, vec::*};
+use ark_std::{
+    borrow::Borrow,
+    cfg_into_iter,
+    iterable::Iterable,
+    ops::{AddAssign, SubAssign},
+    vec::*,
+};
 
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
@@ -29,24 +33,20 @@ type DefaultHasher = ahash::AHasher;
 )))]
 type DefaultHasher = fnv::FnvHasher;
 
-pub trait VariableBaseMSM: ScalarMul {
-    type Bucket: 
-        Default 
-        + Copy 
-        + Clone 
-        + AddAssign<Self::Bucket> 
-        + SubAssign<Self::Bucket>
+pub trait VariableBaseMSM: ScalarMul + for<'a> AddAssign<&'a Self::Bucket> {
+    type Bucket: Default
+        + Copy
+        + Clone
         + for<'a> AddAssign<&'a Self::Bucket>
         + for<'a> SubAssign<&'a Self::Bucket>
         + AddAssign<Self::MulBase>
         + SubAssign<Self::MulBase>
         + for<'a> AddAssign<&'a Self::MulBase>
         + for<'a> SubAssign<&'a Self::MulBase>
-        + Add<Self, Output = Self>
         + Send
         + Sync
         + Into<Self>;
-    
+
     const ZERO_BUCKET: Self::Bucket;
     /// Computes an inner product between the [`PrimeField`] elements in `scalars`
     /// and the corresponding group elements in `bases`.
@@ -184,7 +184,7 @@ fn msm_bigint_wnaf<V: VariableBaseMSM>(
             .iter()
             .rev()
             .fold(V::zero(), |mut total, sum_i| {
-                total = *sum_i + total;
+                total += sum_i;
                 for _ in 0..c {
                     total.double_in_place();
                 }
@@ -281,7 +281,7 @@ fn msm_bigint<V: VariableBaseMSM>(
             .iter()
             .rev()
             .fold(V::zero(), |mut total, sum_i| {
-                total = *sum_i + total;
+                total += sum_i;
                 for _ in 0..c {
                     total.double_in_place();
                 }

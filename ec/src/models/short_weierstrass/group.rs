@@ -1,4 +1,4 @@
-use super::{Affine, SWCurveConfig};
+use super::{bucket::Bucket, Affine, SWCurveConfig};
 use crate::{
     scalar_mul::{variable_base::VariableBaseMSM, ScalarMul},
     AffineRepr, CurveGroup, PrimeGroup,
@@ -647,8 +647,8 @@ impl<P: SWCurveConfig> ScalarMul for Projective<P> {
 }
 
 impl<P: SWCurveConfig> VariableBaseMSM for Projective<P> {
-    type Bucket = Self;
-    const ZERO_BUCKET: Self::Bucket = Self::ZERO;
+    type Bucket = Bucket<P>;
+    const ZERO_BUCKET: Self::Bucket = Bucket::ZERO;
 
     fn msm(bases: &[Self::MulBase], bigints: &[Self::ScalarField]) -> Result<Self, usize> {
         P::msm(bases, bigints)

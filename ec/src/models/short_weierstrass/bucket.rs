@@ -1,4 +1,4 @@
-use super::{Affine, SWCurveConfig};
+use super::{Affine, Projective, SWCurveConfig};
 use crate::AffineRepr;
 use ark_ff::{fields::Field, AdditiveGroup};
 use ark_std::{
@@ -74,14 +74,23 @@ impl<P: SWCurveConfig> Default for Bucket<P> {
 }
 
 impl<P: SWCurveConfig> Bucket<P> {
-    pub const ZERO: Self =
-        Self::new_unchecked(P::BaseField::ONE, P::BaseField::ONE, P::BaseField::ZERO, P::BaseField::ZERO);
+    pub const ZERO: Self = Self::new_unchecked(
+        P::BaseField::ONE,
+        P::BaseField::ONE,
+        P::BaseField::ZERO,
+        P::BaseField::ZERO,
+    );
     /// Constructs a new group element without checking whether the coordinates
     /// specify a point in the subgroup.
-    pub const fn new_unchecked(x: P::BaseField, y: P::BaseField, zz: P::BaseField, zzz: P::BaseField) -> Self {
+    pub const fn new_unchecked(
+        x: P::BaseField,
+        y: P::BaseField,
+        zz: P::BaseField,
+        zzz: P::BaseField,
+    ) -> Self {
         Self { x, y, zz, zzz }
     }
-    
+
     /// Returns the point at infinity, which always has Z = 0.
     #[inline]
     fn zero() -> Self {
@@ -107,7 +116,7 @@ impl<P: SWCurveConfig> Bucket<P> {
         // V = U^2
         let mut v = u;
         v.square_in_place();
-        
+
         // W = U*V
         let mut w = u;
         w *= &v;
@@ -191,19 +200,19 @@ impl<P: SWCurveConfig, T: Borrow<Affine<P>>> AddAssign<T> for Bucket<P> {
                 // P = (U2 - X1);
                 let mut p = u2;
                 p -= &self.x;
-                
+
                 // R = S2-Y1
                 let mut r = s2;
                 r -= &self.y;
-                
+
                 // PP = P^2
                 let mut pp = p;
                 pp.square_in_place();
-                
+
                 // PPP = P*PP
                 let mut ppp = pp;
                 ppp *= &p;
-                
+
                 // Q = X1 * PP;
                 let mut q = self.x;
                 q *= &pp;
@@ -290,23 +299,23 @@ impl<'a, P: SWCurveConfig> AddAssign<&'a Self> for Bucket<P> {
             // P = U2-U1
             let mut p = u2;
             p -= &u1;
-            
+
             // R = S2-S1
             let mut r = s2;
             r -= &s1;
-            
+
             // PP = P^2
             let mut pp = p;
             pp.square_in_place();
-            
+
             // PPP = P*PP
             let mut ppp = pp;
             ppp *= &p;
-            
+
             // Q = U1*PP
             let mut q = u1;
             q *= &pp;
-            
+
             // X3 = R^2 - PPP - 2*Q
             self.x = r.square();
             self.x -= &ppp;
@@ -315,11 +324,11 @@ impl<'a, P: SWCurveConfig> AddAssign<&'a Self> for Bucket<P> {
             // Y3 = R*(Q-X3)-S1*PPP
             q -= &self.x;
             self.y = P::BaseField::sum_of_products(&[r, -s1], &[q, ppp]);
-            
+
             // ZZ3 = ZZ1*ZZ2*PP
             self.zz *= &pp;
             self.zz *= &other.zz;
-            
+
             // ZZZ3 = ZZZ1*ZZZ2*PPP
             self.zzz *= &ppp;
             self.zzz *= &other.zzz;
@@ -330,6 +339,106 @@ impl<'a, P: SWCurveConfig> AddAssign<&'a Self> for Bucket<P> {
 impl<'a, P: SWCurveConfig> SubAssign<&'a Self> for Bucket<P> {
     fn sub_assign(&mut self, other: &'a Self) {
         *self += &(-(*other));
+    }
+}
+
+impl<'a, P: SWCurveConfig> AddAssign<&'a Bucket<P>> for Projective<P> {
+    fn add_assign(&mut self, other: &'a Bucket<P>) {
+        if self.is_zero() {
+            *self = (*other).into();
+            return;
+        }
+
+        if other.is_zero() {
+            return;
+        }
+
+        *self += Self::from(*other);
+        //
+        // if self.is_zero() {
+        //     *self = (*other).into();
+        //     return;
+        // }
+
+        // if other.is_zero() {
+        //     return;
+        // }
+
+        // // http://www.hyperelliptic.org/EFD/g1p/auto-shortw-jacobian-0.html#addition-add-2007-bl
+        // // Works for all curves.
+
+        // // Z1Z1 = Z1^2
+        // let z1z1 = self.z.square();
+
+        // // Z2Z2 = Z2^2
+        // let z2z2 = other.zz;
+
+        // // U1 = X1*Z2Z2
+        // let mut u1 = self.x;
+        // u1 *= &z2z2;
+
+        // // U2 = X2*Z1Z1
+        // let mut u2 = other.x;
+        // u2 *= &z1z1;
+
+        // // S1 = Y1*Z2*Z2Z2
+        // let mut s1 = self.y;
+        // s1 *= &other.zzz;
+
+        // // S2 = Y2*Z1*Z1Z1
+        // let mut s2 = other.y;
+        // s2 *= &self.z;
+        // s2 *= &z1z1;
+
+        // if u1 == u2 {
+        //     if s1 == s2 {
+        //         // The two points are equal, so we double.
+        //         self.double_in_place();
+        //     } else {
+        //         // a + (-a) = 0
+        //         *self = Self::zero();
+        //     }
+        // } else {
+        //     // H = U2-U1
+        //     let mut h = u2;
+        //     h -= &u1;
+
+        //     // I = (2*H)^2
+        //     let mut i = h;
+        //     i.double_in_place().square_in_place();
+
+        //     // J = -H*I
+        //     let mut j = h;
+        //     j.neg_in_place();
+        //     j *= &i;
+
+        //     // r = 2*(S2-S1)
+        //     let mut r = s2;
+        //     r -= &s1;
+        //     r.double_in_place();
+
+        //     // V = U1*I
+        //     let mut v = u1;
+        //     v *= &i;
+
+        //     // X3 = r^2 + J - 2*V
+        //     self.x = r;
+        //     self.x.square_in_place();
+        //     self.x += &j;
+        //     self.x -= &(v.double());
+
+        //     // Y3 = r*(V - X3) + 2*S1*J
+        //     v -= &self.x;
+        //     self.y = s1;
+        //     self.y.double_in_place();
+        //     self.y = P::BaseField::sum_of_products(&[r, self.y], &[v, j]);
+
+        //     // Z3 = ((Z1+Z2)^2 - Z1Z1 - Z2Z2)*H
+        //     // This is equal to Z3 = 2 * Z1 * Z2 * H, and computing it this way is faster.
+        //     self.z *= other.zz;
+        //     self.z.double_in_place();
+        //     self.z *= &h;
+        // }
     }
 }
 
@@ -358,5 +467,16 @@ impl<P: SWCurveConfig> From<Bucket<P>> for Affine<P> {
             let y = p.y * zzz_inv;
             Affine::new_unchecked(x, y)
         })
+    }
+}
+
+impl<P: SWCurveConfig> From<Bucket<P>> for Projective<P> {
+    #[inline]
+    fn from(p: Bucket<P>) -> Self {
+        if p.is_zero() {
+            Projective::zero()
+        } else {
+            Projective::new_unchecked(p.x * &p.zz, p.y * &p.zzz, p.zz)
+        }
     }
 }
