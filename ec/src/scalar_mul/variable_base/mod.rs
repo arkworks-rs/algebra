@@ -1,3 +1,5 @@
+use core::ops::{Add, AddAssign, SubAssign};
+
 use ark_ff::prelude::*;
 use ark_std::{borrow::Borrow, cfg_into_iter, iterable::Iterable, vec::*};
 
@@ -28,6 +30,24 @@ type DefaultHasher = ahash::AHasher;
 type DefaultHasher = fnv::FnvHasher;
 
 pub trait VariableBaseMSM: ScalarMul {
+    type Bucket: 
+        Default 
+        + Copy 
+        + Clone 
+        + AddAssign<Self::Bucket> 
+        + SubAssign<Self::Bucket>
+        + for<'a> AddAssign<&'a Self::Bucket>
+        + for<'a> SubAssign<&'a Self::Bucket>
+        + AddAssign<Self::MulBase>
+        + SubAssign<Self::MulBase>
+        + for<'a> AddAssign<&'a Self::MulBase>
+        + for<'a> SubAssign<&'a Self::MulBase>
+        + Add<Self, Output = Self>
+        + Send
+        + Sync
+        + Into<Self>;
+    
+    const ZERO_BUCKET: Self::Bucket;
     /// Computes an inner product between the [`PrimeField`] elements in `scalars`
     /// and the corresponding group elements in `bases`.
     ///
@@ -130,7 +150,7 @@ fn msm_bigint_wnaf<V: VariableBaseMSM>(
         .iter()
         .flat_map(|s| make_digits(s, c, num_bits))
         .collect::<Vec<_>>();
-    let zero = V::zero();
+    let zero = V::ZERO_BUCKET;
     let window_sums: Vec<_> = ark_std::cfg_into_iter!(0..digits_count)
         .map(|i| {
             let mut buckets = vec![zero; 1 << c];
@@ -145,8 +165,8 @@ fn msm_bigint_wnaf<V: VariableBaseMSM>(
                 }
             }
 
-            let mut running_sum = V::zero();
-            let mut res = V::zero();
+            let mut running_sum = V::ZERO_BUCKET;
+            let mut res = V::ZERO_BUCKET;
             buckets.into_iter().rev().for_each(|b| {
                 running_sum += &b;
                 res += &running_sum;
@@ -156,15 +176,15 @@ fn msm_bigint_wnaf<V: VariableBaseMSM>(
         .collect();
 
     // We store the sum for the lowest window.
-    let lowest = *window_sums.first().unwrap();
+    let lowest: V = (*window_sums.first().unwrap()).into();
 
     // We're traversing windows from high to low.
     lowest
         + &window_sums[1..]
             .iter()
             .rev()
-            .fold(zero, |mut total, sum_i| {
-                total += sum_i;
+            .fold(V::zero(), |mut total, sum_i| {
+                total = *sum_i + total;
                 for _ in 0..c {
                     total.double_in_place();
                 }
@@ -191,7 +211,7 @@ fn msm_bigint<V: VariableBaseMSM>(
     let num_bits = V::ScalarField::MODULUS_BIT_SIZE as usize;
     let one = V::ScalarField::one().into_bigint();
 
-    let zero = V::zero();
+    let zero = V::ZERO_BUCKET;
     let window_starts: Vec<_> = (0..num_bits).step_by(c).collect();
 
     // Each window is of size `c`.
@@ -243,7 +263,7 @@ fn msm_bigint<V: VariableBaseMSM>(
 
             // `running_sum` = sum_{j in i..num_buckets} bucket[j],
             // where we iterate backward from i = num_buckets to 0.
-            let mut running_sum = V::zero();
+            let mut running_sum = V::ZERO_BUCKET;
             buckets.into_iter().rev().for_each(|b| {
                 running_sum += &b;
                 res += &running_sum;
@@ -253,15 +273,15 @@ fn msm_bigint<V: VariableBaseMSM>(
         .collect();
 
     // We store the sum for the lowest window.
-    let lowest = *window_sums.first().unwrap();
+    let lowest = (*window_sums.first().unwrap()).into();
 
     // We're traversing windows from high to low.
     lowest
         + &window_sums[1..]
             .iter()
             .rev()
-            .fold(zero, |mut total, sum_i| {
-                total += sum_i;
+            .fold(V::zero(), |mut total, sum_i| {
+                total = *sum_i + total;
                 for _ in 0..c {
                     total.double_in_place();
                 }

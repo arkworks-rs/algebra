@@ -19,7 +19,7 @@ use ark_ff::{fields::Field, AdditiveGroup, PrimeField, ToConstraintField, Unifor
 use educe::Educe;
 use zeroize::Zeroize;
 
-use super::{Projective, SWCurveConfig, SWFlags};
+use super::{bucket::Bucket, Projective, SWCurveConfig, SWFlags};
 use crate::AffineRepr;
 
 /// Affine coordinates for a point on an elliptic curve in short Weierstrass
@@ -156,6 +156,39 @@ impl<P: SWCurveConfig> Affine<P> {
             SWFlags::YIsPositive
         } else {
             SWFlags::YIsNegative
+        }
+    }
+    
+    pub fn double_to_bucket(&self) -> Bucket<P> {
+        if self.infinity {
+            Bucket::ZERO
+        } else {
+            // U = 2*Y1
+            // V = U^2
+            // W = U*V
+            // S = X1*V
+            // M = 3*X1^2+a
+            // X3 = M^2-2*S
+            // Y3 = M*(S-X3)-W*Y1
+            // ZZ3 = V
+            // ZZZ3 = W
+            let u = self.y.double();
+            let v = u.square();
+            let w = u * &v;
+            let s = self.x * &v;
+            let mut m = self.x.square();
+            m += m.double();
+            if !P::COEFF_A.is_zero() {
+                m += P::COEFF_A;
+            }
+            let x = m.square() - s.double();
+            let y = m * (s - x) - w * self.y;
+            Bucket {
+                x,
+                y,
+                zz: v,
+                zzz: w,
+            }
         }
     }
 }

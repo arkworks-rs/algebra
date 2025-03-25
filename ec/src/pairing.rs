@@ -323,7 +323,11 @@ impl<P: Pairing> crate::ScalarMul for PairingOutput<P> {
     }
 }
 
-impl<P: Pairing> VariableBaseMSM for PairingOutput<P> {}
+impl<P: Pairing> VariableBaseMSM for PairingOutput<P> {
+    type Bucket = Self;
+    const ZERO_BUCKET: Self::Bucket = Self::ZERO;
+
+}
 
 /// Represents the output of the Miller loop of the pairing.
 #[derive(Educe)]

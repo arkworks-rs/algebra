@@ -20,6 +20,8 @@ pub use affine::*;
 mod group;
 pub use group::*;
 
+mod bucket;
+
 mod serialization_flags;
 pub use serialization_flags::*;
 
