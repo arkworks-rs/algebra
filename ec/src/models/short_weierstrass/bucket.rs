@@ -12,7 +12,7 @@ use educe::Educe;
 use zeroize::Zeroize;
 
 /// Extended Jacobian coordinates for a point on an elliptic curve in short Weierstrass
-/// form, over the base field `P::BaseField`. 
+/// form, over the base field `P::BaseField`.
 /// This struct implements arithmetic via the extended Jacobian arithmetic outlined here:
 /// <https://www.hyperelliptic.org/EFD/g1p/auto-shortw-xyzz.html>
 #[derive(Educe)]
