@@ -12,8 +12,9 @@ use educe::Educe;
 use zeroize::Zeroize;
 
 /// Extended Jacobian coordinates for a point on an elliptic curve in short Weierstrass
-/// form, over the base field `P::BaseField`. This struct implements arithmetic
-/// via the Jacobian formulae
+/// form, over the base field `P::BaseField`. 
+/// This struct implements arithmetic via the extended Jacobian arithmetic outlined here:
+/// <https://www.hyperelliptic.org/EFD/g1p/auto-shortw-xyzz.html>
 #[derive(Educe)]
 #[educe(Copy, Clone)]
 #[must_use]
@@ -109,6 +110,7 @@ impl<P: SWCurveConfig> Bucket<P> {
     }
 
     pub fn double_in_place(&mut self) {
+        // From https://www.hyperelliptic.org/EFD/g1p/auto-shortw-xyzz.html#doubling-dbl-2008-s-1
         // U = 2*Y1
         let mut u = self.y;
         u.double_in_place();
@@ -164,7 +166,7 @@ impl<P: SWCurveConfig> Neg for Bucket<P> {
 }
 
 impl<P: SWCurveConfig, T: Borrow<Affine<P>>> AddAssign<T> for Bucket<P> {
-    /// Using <http://www.hyperelliptic.org/EFD/g1p/auto-shortw-jacobian-0.html#addition-madd-2007-bl>
+    /// Using <https://www.hyperelliptic.org/EFD/g1p/auto-shortw-xyzz.html#addition-madd-2008-s>
     fn add_assign(&mut self, other: T) {
         let other = other.borrow();
         // If the other point is not at infinity, set `self` to the other point.
@@ -264,7 +266,7 @@ impl<'a, P: SWCurveConfig> AddAssign<&'a Self> for Bucket<P> {
             return;
         }
 
-        // http://www.hyperelliptic.org/EFD/g1p/auto-shortw-jacobian-0.html#addition-add-2007-bl
+        // https://www.hyperelliptic.org/EFD/g1p/auto-shortw-xyzz.html#addition-add-2008-s
         // Works for all curves.
 
         // Z1Z1 = Z1^2
@@ -353,92 +355,8 @@ impl<'a, P: SWCurveConfig> AddAssign<&'a Bucket<P>> for Projective<P> {
             return;
         }
 
+        // TODO: optimize using an explicit formula.
         *self += Self::from(*other);
-        //
-        // if self.is_zero() {
-        //     *self = (*other).into();
-        //     return;
-        // }
-
-        // if other.is_zero() {
-        //     return;
-        // }
-
-        // // http://www.hyperelliptic.org/EFD/g1p/auto-shortw-jacobian-0.html#addition-add-2007-bl
-        // // Works for all curves.
-
-        // // Z1Z1 = Z1^2
-        // let z1z1 = self.z.square();
-
-        // // Z2Z2 = Z2^2
-        // let z2z2 = other.zz;
-
-        // // U1 = X1*Z2Z2
-        // let mut u1 = self.x;
-        // u1 *= &z2z2;
-
-        // // U2 = X2*Z1Z1
-        // let mut u2 = other.x;
-        // u2 *= &z1z1;
-
-        // // S1 = Y1*Z2*Z2Z2
-        // let mut s1 = self.y;
-        // s1 *= &other.zzz;
-
-        // // S2 = Y2*Z1*Z1Z1
-        // let mut s2 = other.y;
-        // s2 *= &self.z;
-        // s2 *= &z1z1;
-
-        // if u1 == u2 {
-        //     if s1 == s2 {
-        //         // The two points are equal, so we double.
-        //         self.double_in_place();
-        //     } else {
-        //         // a + (-a) = 0
-        //         *self = Self::zero();
-        //     }
-        // } else {
-        //     // H = U2-U1
-        //     let mut h = u2;
-        //     h -= &u1;
-
-        //     // I = (2*H)^2
-        //     let mut i = h;
-        //     i.double_in_place().square_in_place();
-
-        //     // J = -H*I
-        //     let mut j = h;
-        //     j.neg_in_place();
-        //     j *= &i;
-
-        //     // r = 2*(S2-S1)
-        //     let mut r = s2;
-        //     r -= &s1;
-        //     r.double_in_place();
-
-        //     // V = U1*I
-        //     let mut v = u1;
-        //     v *= &i;
-
-        //     // X3 = r^2 + J - 2*V
-        //     self.x = r;
-        //     self.x.square_in_place();
-        //     self.x += &j;
-        //     self.x -= &(v.double());
-
-        //     // Y3 = r*(V - X3) + 2*S1*J
-        //     v -= &self.x;
-        //     self.y = s1;
-        //     self.y.double_in_place();
-        //     self.y = P::BaseField::sum_of_products(&[r, self.y], &[v, j]);
-
-        //     // Z3 = ((Z1+Z2)^2 - Z1Z1 - Z2Z2)*H
-        //     // This is equal to Z3 = 2 * Z1 * Z2 * H, and computing it this way is faster.
-        //     self.z *= other.zz;
-        //     self.z.double_in_place();
-        //     self.z *= &h;
-        // }
     }
 }
 
