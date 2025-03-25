@@ -604,7 +604,7 @@ mod no_std_tests {
         // Add random bytestrings to the test vector list
         for i in 1..512 {
             let mut rng = test_rng();
-            let data: Vec<u8> = (0..i).map(|_| rng.gen()).collect();
+            let data: Vec<u8> = (0..i).map(|_| rng.r#gen()).collect();
             test_vectors.push(data);
         }
         for i in test_vectors {
