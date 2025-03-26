@@ -219,17 +219,15 @@ impl<P: SWCurveConfig, T: Borrow<Affine<P>>> AddAssign<T> for Bucket<P> {
                 let mut q = self.x;
                 q *= &pp;
 
-                // X3 = r^2 -PPP - 2*V
+                // X3 = r^2 -PPP - 2*Q
                 self.x = r.square();
                 self.x -= &ppp;
                 self.x -= &q.double();
 
                 // Y3 = R*(Q-X3)-Y1*PPP
                 q -= &self.x;
-                self.y.double_in_place();
-                self.y = P::BaseField::sum_of_products(&[r, self.y], &[q, ppp]);
+                self.y = P::BaseField::sum_of_products(&[r, -self.y], &[q, ppp]);
 
-                // Z3 = 2 * Z1 * H;
                 // ZZ3 = ZZ1*PP
                 // ZZZ3 = ZZZ1*PPP
                 self.zz *= &pp;
