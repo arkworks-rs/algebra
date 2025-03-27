@@ -50,7 +50,6 @@ impl BW6Config for Config {
         // hard_part
         // From https://eprint.iacr.org/2020/351.pdf, Alg.6
 
-        #[rustfmt::skip]
         // R0(x) := (-103*x^7 + 70*x^6 + 269*x^5 - 197*x^4 - 314*x^3 - 73*x^2 - 263*x - 220)
         // R1(x) := (103*x^9 - 276*x^8 + 77*x^7 + 492*x^6 - 445*x^5 - 65*x^4 + 452*x^3 - 181*x^2 + 34*x + 229)
         // f ^ R0(u) * (f ^ q) ^ R1(u) in a 2-NAF multi-exp fashion.

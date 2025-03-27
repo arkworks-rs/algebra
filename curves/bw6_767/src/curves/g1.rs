@@ -18,7 +18,6 @@ impl CurveConfig for Config {
 
     /// COFACTOR =
     /// 124074696211871689196744963988542244365937182994917792082847997279938522233341057826255097957635256182243502012934844
-    #[rustfmt::skip]
     const COFACTOR: &'static [u64] = &[
         0x9fed0006fffaaabc,
         0xfae29bffb34d7c0d,

@@ -29,15 +29,14 @@ pub use polynomial::{multivariate, univariate, DenseMVPolynomial, DenseUVPolynom
 #[cfg(test)]
 mod test;
 
-#[rustfmt::skip]
 #[cfg(doctest)]
 mod test_readme {
-  macro_rules! external_doc_test {
-    ($x:expr) => {
-        #[doc = $x]
-        extern {}
-    };
-  }
+    macro_rules! external_doc_test {
+        ($x:expr) => {
+            #[doc = $x]
+            extern "C" {}
+        };
+    }
 
-  external_doc_test!(include_str!("../README.md"));
+    external_doc_test!(include_str!("../README.md"));
 }
