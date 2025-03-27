@@ -11,6 +11,7 @@
 - (`ark-serialize`) Implementation of `CanonicalSerialize` and `CanonicalDeserialize` for signed integer types
 
 ### Improvements
+- [\#752](https://github.com/arkworks-rs/algebra/pull/752) Fix duplicate KaTeX header
 
 ### Bugfixes
 
