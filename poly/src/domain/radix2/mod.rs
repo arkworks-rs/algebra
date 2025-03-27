@@ -4,7 +4,7 @@
 //!
 //! `Radix2EvaluationDomain` supports FFTs of size at most `2^F::TWO_ADICITY`.
 
-pub use crate::domain::utils::Elements;
+pub use crate::domain::utils::{bitreverse_permutation_in_place, Elements};
 use crate::domain::{DomainCoeff, EvaluationDomain};
 use ark_ff::FftField;
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
@@ -442,12 +442,7 @@ mod tests {
             assert_eq!(n, 1 << log_n);
 
             // swap coefficients in place
-            for k in 0..n {
-                let rk = crate::domain::utils::bitreverse(k, log_n);
-                if k < rk {
-                    a.swap(rk as usize, k as usize);
-                }
-            }
+            crate::domain::utils::bitreverse_permutation_in_place(a, log_n);
 
             let mut m = 1;
             for _i in 1..=log_n {
