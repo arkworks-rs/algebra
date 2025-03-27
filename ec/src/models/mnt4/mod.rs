@@ -30,7 +30,7 @@ pub type GT<P> = Fp4<P>;
 pub trait MNT4Config: 'static + Sized {
     const TWIST: Fp2<Self::Fp2Config>;
     const TWIST_COEFF_A: Fp2<Self::Fp2Config>;
-    const ATE_LOOP_COUNT: &'static [i8];
+    const ATE_LOOP_COUNT: &[i8];
     const ATE_IS_LOOP_COUNT_NEG: bool;
     const FINAL_EXPONENT_LAST_CHUNK_1: <Self::Fp as PrimeField>::BigInt;
     const FINAL_EXPONENT_LAST_CHUNK_W0_IS_NEG: bool;

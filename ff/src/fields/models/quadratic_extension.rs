@@ -42,7 +42,7 @@ pub trait QuadExtConfig: 'static + Send + Sync + Sized {
     const NONRESIDUE: Self::BaseField;
 
     /// Coefficients for the Frobenius automorphism.
-    const FROBENIUS_COEFF_C1: &'static [Self::FrobCoeff];
+    const FROBENIUS_COEFF_C1: &[Self::FrobCoeff];
 
     /// A specializable method for multiplying an element of the base field by
     /// the quadratic non-residue. This is used in Karatsuba multiplication

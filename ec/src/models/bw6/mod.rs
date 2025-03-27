@@ -30,10 +30,10 @@ pub trait BW6Config: 'static + Eq + Sized {
     const X_IS_NEGATIVE: bool;
     // [X-1]/3 for X>0, and [(-X)+1]/3 otherwise
     const X_MINUS_1_DIV_3: <Self::Fp as PrimeField>::BigInt;
-    const ATE_LOOP_COUNT_1: &'static [u64];
+    const ATE_LOOP_COUNT_1: &[u64];
     const ATE_LOOP_COUNT_1_IS_NEGATIVE: bool;
     // X^2 - X - 1
-    const ATE_LOOP_COUNT_2: &'static [i8];
+    const ATE_LOOP_COUNT_2: &[i8];
     const ATE_LOOP_COUNT_2_IS_NEGATIVE: bool;
     const TWIST_TYPE: TwistType;
     const H_T: i64;
