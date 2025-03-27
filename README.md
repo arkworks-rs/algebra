@@ -36,7 +36,7 @@ rustup install stable
 After that, use `cargo`, the standard Rust build tool, to build the libraries:
 
 ```bash
-git clone https://github.com/arkworks-rs/algebra.git
+git clone https://github.com/arkworks-rs/algebra
 cd algebra
 cargo build --release
 ```
