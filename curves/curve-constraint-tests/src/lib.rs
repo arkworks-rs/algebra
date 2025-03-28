@@ -4,7 +4,7 @@ extern crate ark_relations;
 pub mod fields {
     use ark_ff::{BitIteratorLE, Field, PrimeField, UniformRand};
     use ark_r1cs_std::prelude::*;
-    use ark_relations::r1cs::{ConstraintSystem, SynthesisError};
+    use ark_relations::gr1cs::{ConstraintSystem, SynthesisError};
     use ark_std::{test_rng, vec::*};
 
     pub fn field_test<F, ConstraintF, AF>() -> Result<(), SynthesisError>
@@ -225,7 +225,7 @@ pub mod curves {
         AdditiveGroup, CurveGroup,
     };
     use ark_ff::{BitIteratorLE, Field, One, PrimeField};
-    use ark_relations::r1cs::{ConstraintSystem, SynthesisError};
+    use ark_relations::gr1cs::{ConstraintSystem, SynthesisError};
     use ark_std::{test_rng, vec::*, UniformRand};
 
     use ark_r1cs_std::{fields::emulated_fp::EmulatedFpVar, prelude::*};
@@ -533,7 +533,7 @@ pub mod pairing {
     };
     use ark_ff::{BitIteratorLE, Field, PrimeField};
     use ark_r1cs_std::prelude::*;
-    use ark_relations::r1cs::{ConstraintSystem, SynthesisError};
+    use ark_relations::gr1cs::{ConstraintSystem, SynthesisError};
     use ark_std::{test_rng, vec::*, UniformRand};
 
     #[allow(dead_code)]

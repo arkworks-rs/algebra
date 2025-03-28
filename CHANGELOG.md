@@ -2,6 +2,8 @@
 
 ## Pending
 
+- Consolidated logic into `bitreverse_permutation_in_place` and made it public.
+
 ### Breaking changes
 
 ### Features
