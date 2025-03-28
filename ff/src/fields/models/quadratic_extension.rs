@@ -230,18 +230,13 @@ impl<P: QuadExtConfig> Field for QuadExtField<P> {
     fn from_base_prime_field_elems(
         elems: impl IntoIterator<Item = Self::BasePrimeField>,
     ) -> Option<Self> {
-        let mut elems = elems.into_iter();
-        let elems = elems.by_ref();
-        let base_ext_deg = P::BaseField::extension_degree() as usize;
-        let element = Some(Self::new(
-            P::BaseField::from_base_prime_field_elems(elems.take(base_ext_deg))?,
-            P::BaseField::from_base_prime_field_elems(elems.take(base_ext_deg))?,
-        ));
-        if elems.next().is_some() {
-            None
-        } else {
-            element
-        }
+        let mut iter = elems.into_iter();
+        let d = P::BaseField::extension_degree() as usize;
+
+        let a = P::BaseField::from_base_prime_field_elems(iter.by_ref().take(d))?;
+        let b = P::BaseField::from_base_prime_field_elems(iter.by_ref().take(d))?;
+
+        iter.next().is_none().then(|| Self::new(a, b))
     }
 
     fn square(&self) -> Self {
