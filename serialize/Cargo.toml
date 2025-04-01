@@ -25,6 +25,7 @@ arrayvec.workspace = true
 digest.workspace = true
 num-bigint.workspace = true
 rayon = { workspace = true, optional = true }
+serde = { workspace = true, optional = true }
 
 [dev-dependencies]
 sha2.workspace = true
@@ -40,3 +41,4 @@ default = []
 parallel = ["rayon"]
 std = ["ark-std/std"]
 derive = ["ark-serialize-derive"]
+serde = ["dep:serde"]
