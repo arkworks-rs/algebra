@@ -66,7 +66,9 @@ macro_rules! impl_serde {
                 self.0
                     .serialize_with_mode(&mut buf, $compress)
                     .map_err(|e| serde::ser::Error::custom(e.to_string()))?;
-                serializer.serialize_bytes(&buf)
+                serde_encoded_bytes::SliceLike::<serde_encoded_bytes::Base64>::serialize(
+                    &buf, serializer,
+                )
             }
         }
 
@@ -79,7 +81,9 @@ macro_rules! impl_serde {
             where
                 D: serde::Deserializer<'de>,
             {
-                let buf = <ark_std::vec::Vec<u8>>::deserialize(deserializer)?;
+                let buf: ark_std::vec::Vec<u8> = <serde_encoded_bytes::SliceLike<
+                    serde_encoded_bytes::Base64,
+                >>::deserialize(deserializer)?;
                 let t = T::deserialize_with_mode(&buf[..], $compress, $validate)
                     .map_err(|e| serde::de::Error::custom(e.to_string()))?;
                 Ok(Self(t))

@@ -26,6 +26,7 @@ digest.workspace = true
 num-bigint.workspace = true
 rayon = { workspace = true, optional = true }
 serde = { workspace = true, optional = true }
+serde-encoded-bytes = { workspace = true, optional = true, features = ["base64"] }
 
 [dev-dependencies]
 sha2.workspace = true
@@ -41,4 +42,4 @@ default = []
 parallel = ["rayon"]
 std = ["ark-std/std"]
 derive = ["ark-serialize-derive"]
-serde = ["dep:serde"]
+serde = ["dep:serde", "dep:serde-encoded-bytes"]
