@@ -1,4 +1,4 @@
-use ark_std::ops::{Deref,DerefMut};
+use ark_std::ops::{Deref, DerefMut};
 
 #[cfg(feature = "serde")]
 use ark_std::string::ToString;
