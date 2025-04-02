@@ -116,7 +116,8 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
     const MODULUS_MINUS_ONE_DIV_FOUR: Option<BigInt<N>> = {
         match Self::MODULUS.mod_8() == 5 {
             true => {
-                let (modulus_plus_three, borrow) = Self::MODULUS.const_sub_with_borrow(&BigInt::one());
+                let (modulus_plus_three, borrow) =
+                    Self::MODULUS.const_sub_with_borrow(&BigInt::one());
                 let mut result = modulus_plus_three.divide_by_2_round_down();
                 Some(result.divide_by_2_round_down())
             },
@@ -580,8 +581,14 @@ pub const fn sqrt_precomputation<const N: usize, T: MontConfig<N>>(
             None => None,
         },
         _ => match T::MODULUS.mod_8() {
-            5 => match (T::MODULUS_PLUS_THREE_DIV_EIGHT.as_ref(), T::MODULUS_MINUS_ONE_DIV_FOUR.as_ref()) {
-                (Some(BigInt(modulus_plus_three_div_eight)), Some(BigInt(modulus_minus_one_div_four))) => Some(SqrtPrecomputation::Case5Mod8 {
+            5 => match (
+                T::MODULUS_PLUS_THREE_DIV_EIGHT.as_ref(),
+                T::MODULUS_MINUS_ONE_DIV_FOUR.as_ref(),
+            ) {
+                (
+                    Some(BigInt(modulus_plus_three_div_eight)),
+                    Some(BigInt(modulus_minus_one_div_four)),
+                ) => Some(SqrtPrecomputation::Case5Mod8 {
                     modulus_plus_three_div_eight,
                     modulus_minus_one_div_four,
                 }),
@@ -591,9 +598,9 @@ pub const fn sqrt_precomputation<const N: usize, T: MontConfig<N>>(
                 two_adicity: <MontBackend<T, N>>::TWO_ADICITY,
                 quadratic_nonresidue_to_trace: T::TWO_ADIC_ROOT_OF_UNITY,
                 trace_of_modulus_minus_one_div_two:
-                &<Fp<MontBackend<T, N>, N>>::TRACE_MINUS_ONE_DIV_TWO.0,
+                    &<Fp<MontBackend<T, N>, N>>::TRACE_MINUS_ONE_DIV_TWO.0,
             }),
-        }
+        },
     }
 }
 

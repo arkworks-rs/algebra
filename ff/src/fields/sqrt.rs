@@ -82,7 +82,6 @@ pub enum SqrtPrecomputation<F: crate::Field> {
     },
 }
 
-
 impl<F: crate::Field> SqrtPrecomputation<F> {
     pub fn sqrt(&self, elem: &F) -> Option<F> {
         match self {
@@ -166,8 +165,9 @@ impl<F: crate::Field> SqrtPrecomputation<F> {
                     result = elem.pow(modulus_plus_three_div_eight.as_ref());
                 } else if check_value.neg().is_one() {
                     let two: F = 2.into();
-                    result = elem.pow(modulus_plus_three_div_eight.as_ref())
-                            .mul(two.pow(modulus_minus_one_div_four.as_ref()))
+                    result = elem
+                        .pow(modulus_plus_three_div_eight.as_ref())
+                        .mul(two.pow(modulus_minus_one_div_four.as_ref()))
                 } else {
                     return None;
                 }
