@@ -3,6 +3,7 @@
 ## Pending
 
 - Consolidated logic into `bitreverse_permutation_in_place` and made it public.
+- (`ark-serialize`) serde-compatible wrapper types.
 
 ### Breaking changes
 
