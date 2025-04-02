@@ -154,6 +154,10 @@ impl<F: crate::Field> SqrtPrecomputation<F> {
                 modulus_plus_three_div_eight,
                 modulus_minus_one_div_four,
             } => {
+                if elem.is_zero() {
+                    return Some(F::zero());
+                }
+
                 let result;
 
                 // We have different solutions, if check_value is 1 or -1.
