@@ -15,8 +15,7 @@ impl Fp6Config for Fq6Config {
     /// NONRESIDUE = (U + 1)
     const NONRESIDUE: Fq2 = Fq2::new(MontFp!("1"), MontFp!("1"));
 
-    #[rustfmt::skip]
-    const FROBENIUS_COEFF_FP6_C1: &'static [Fq2] = &[
+    const FROBENIUS_COEFF_FP6_C1: &[Fq2] = &[
         // Fp2::NONRESIDUE^(((q^0) - 1) / 3)
         Fq2::new(MontFp!("1"), MontFp!("0")),
 
@@ -47,8 +46,7 @@ impl Fp6Config for Fq6Config {
         ),
 ];
 
-    #[rustfmt::skip]
-    const FROBENIUS_COEFF_FP6_C2: &'static [Fq2] = &[
+    const FROBENIUS_COEFF_FP6_C2: &[Fq2] = &[
         // Fq2(u + 1)**(((2q^0) - 2) / 3)
         Fq2::new(
             MontFp!("1"),
