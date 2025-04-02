@@ -75,7 +75,13 @@ pub enum SqrtPrecomputation<F: crate::Field> {
     Case3Mod4 {
         modulus_plus_one_div_four: &'static [u64],
     },
+    /// To be used when the modulus is 5 mod 8.
+    Case5Mod8 {
+        modulus_plus_three_div_eight: &'static [u64],
+        modulus_minus_one_div_four: &'static [u64],
+    },
 }
+
 
 impl<F: crate::Field> SqrtPrecomputation<F> {
     pub fn sqrt(&self, elem: &F) -> Option<F> {
@@ -142,6 +148,26 @@ impl<F: crate::Field> SqrtPrecomputation<F> {
                 modulus_plus_one_div_four,
             } => {
                 let result = elem.pow(modulus_plus_one_div_four.as_ref());
+                (result.square() == *elem).then_some(result)
+            },
+            Self::Case5Mod8 {
+                modulus_plus_three_div_eight,
+                modulus_minus_one_div_four,
+            } => {
+                let result;
+
+                // We have different solutions, if check_value is 1 or -1.
+                let check_value = elem.pow(modulus_minus_one_div_four.as_ref());
+                if check_value.is_one() {
+                    result = elem.pow(modulus_plus_three_div_eight.as_ref());
+                } else if check_value.neg().is_one() {
+                    let two: F = 2.into();
+                    result = elem.pow(modulus_plus_three_div_eight.as_ref())
+                            .mul(two.pow(modulus_minus_one_div_four.as_ref()))
+                } else {
+                    return None;
+                }
+
                 (result.square() == *elem).then_some(result)
             },
         }
