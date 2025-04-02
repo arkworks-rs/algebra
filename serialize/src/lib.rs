@@ -12,7 +12,7 @@ mod error;
 mod flags;
 mod impls;
 
-pub mod serde;
+mod serde;
 
 pub use ark_std::io::{Read, Write};
 
