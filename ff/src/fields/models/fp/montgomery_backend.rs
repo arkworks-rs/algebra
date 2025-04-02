@@ -116,8 +116,7 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
     const MODULUS_MINUS_ONE_DIV_FOUR: Option<BigInt<N>> = {
         match Self::MODULUS.mod_8() == 5 {
             true => {
-                let (modulus_plus_three, _) =
-                    Self::MODULUS.const_sub_with_borrow(&BigInt::one());
+                let (modulus_plus_three, _) = Self::MODULUS.const_sub_with_borrow(&BigInt::one());
                 let result = modulus_plus_three.divide_by_2_round_down();
                 Some(result.divide_by_2_round_down())
             },
