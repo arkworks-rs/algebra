@@ -1,4 +1,4 @@
-use ark_std::ops::{Deref, DerefMut};
+use ark_std::ops::{Deref,DerefMut};
 
 #[cfg(feature = "serde")]
 use ark_std::string::ToString;
@@ -21,8 +21,8 @@ pub struct CompressedChecked<T>(pub T);
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default)]
 pub struct UncompressedChecked<T>(pub T);
 
-macro_rules! impl_deref {
-    ($type:ty) => {
+macro_rules! impl_ops {
+    ($type:ty, $cons:expr) => {
         impl<T> Deref for $type {
             type Target = T;
 
@@ -34,6 +34,18 @@ macro_rules! impl_deref {
         impl<T> DerefMut for $type {
             fn deref_mut(&mut self) -> &mut Self::Target {
                 &mut self.0
+            }
+        }
+
+        impl<T> From<T> for $type {
+            fn from(value: T) -> $type {
+                $cons(value)
+            }
+        }
+
+        impl<T: Valid> Valid for $type {
+            fn check(&self) -> Result<(), SerializationError> {
+                self.0.check()
             }
         }
     };
@@ -109,20 +121,10 @@ macro_rules! impl_canonical {
     };
 }
 
-macro_rules! impl_valid {
-    ($type:ty) => {
-        impl<T: Valid> Valid for $type {
-            fn check(&self) -> Result<(), SerializationError> {
-                self.0.check()
-            }
-        }
-    };
-}
-
-impl_deref!(CompressedUnchecked<T>);
-impl_deref!(UncompressedUnchecked<T>);
-impl_deref!(CompressedChecked<T>);
-impl_deref!(UncompressedChecked<T>);
+impl_ops!(CompressedUnchecked<T>, CompressedUnchecked);
+impl_ops!(UncompressedUnchecked<T>, UncompressedUnchecked);
+impl_ops!(CompressedChecked<T>, CompressedChecked);
+impl_ops!(UncompressedChecked<T>, UncompressedChecked);
 
 impl_serde!(CompressedUnchecked<T>, Compress::Yes, Validate::No);
 impl_serde!(UncompressedUnchecked<T>, Compress::No, Validate::No);
@@ -133,8 +135,3 @@ impl_canonical!(CompressedUnchecked<T>, Compress::Yes, Validate::No);
 impl_canonical!(UncompressedUnchecked<T>, Compress::No, Validate::No);
 impl_canonical!(CompressedChecked<T>, Compress::Yes, Validate::Yes);
 impl_canonical!(UncompressedChecked<T>, Compress::No, Validate::Yes);
-
-impl_valid!(CompressedUnchecked<T>);
-impl_valid!(UncompressedUnchecked<T>);
-impl_valid!(CompressedChecked<T>);
-impl_valid!(UncompressedChecked<T>);
