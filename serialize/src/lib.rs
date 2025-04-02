@@ -11,14 +11,14 @@
 mod error;
 mod flags;
 mod impls;
-#[path = "serde.rs"]
-mod serde_;
+
+pub mod serde;
 
 pub use ark_std::io::{Read, Write};
 
 pub use error::*;
 pub use flags::*;
-pub use serde_::*;
+pub use serde::*;
 
 #[cfg(test)]
 mod test;

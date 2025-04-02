@@ -52,20 +52,20 @@ macro_rules! impl_ops {
 }
 
 macro_rules! impl_serde {
-    ($type:ty, $compress:expr, $validate:expr) => {
+    ($type:ty, $constr:ident, $compress:expr, $validate:expr, $vecmod:ident) => {
         #[cfg(feature = "serde")]
-        impl<T> serde::Serialize for $type
+        impl<T> ::serde::Serialize for $type
         where
             T: CanonicalSerialize,
         {
             fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
             where
-                S: serde::Serializer,
+                S: ::serde::Serializer,
             {
                 let mut buf = ark_std::vec![];
                 self.0
                     .serialize_with_mode(&mut buf, $compress)
-                    .map_err(|e| serde::ser::Error::custom(e.to_string()))?;
+                    .map_err(|e| ::serde::ser::Error::custom(e.to_string()))?;
                 serde_encoded_bytes::SliceLike::<serde_encoded_bytes::Base64>::serialize(
                     &buf, serializer,
                 )
@@ -73,20 +73,109 @@ macro_rules! impl_serde {
         }
 
         #[cfg(feature = "serde")]
-        impl<'de, T> serde::Deserialize<'de> for $type
+        impl<'de, T> ::serde::Deserialize<'de> for $type
         where
             T: CanonicalDeserialize,
         {
             fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
             where
-                D: serde::Deserializer<'de>,
+                D: ::serde::Deserializer<'de>,
             {
                 let buf: ark_std::vec::Vec<u8> = <serde_encoded_bytes::SliceLike<
                     serde_encoded_bytes::Base64,
                 >>::deserialize(deserializer)?;
                 let t = T::deserialize_with_mode(&buf[..], $compress, $validate)
-                    .map_err(|e| serde::de::Error::custom(e.to_string()))?;
+                    .map_err(|e| ::serde::de::Error::custom(e.to_string()))?;
                 Ok(Self(t))
+            }
+        }
+
+        #[cfg(feature = "serde_with")]
+        impl<T> serde_with::SerializeAs<T> for $type
+        where
+            T: CanonicalSerialize,
+        {
+            fn serialize_as<S>(value: &T, serializer: S) -> Result<S::Ok, S::Error>
+            where
+                S: ::serde::Serializer,
+            {
+                use ::serde::Serialize;
+                $constr(value).serialize(serializer)
+            }
+        }
+
+        #[cfg(feature = "serde_with")]
+        impl<'de, T> serde_with::DeserializeAs<'de, T> for $type
+        where
+            T: CanonicalDeserialize,
+        {
+            fn deserialize_as<D>(deserializer: D) -> Result<T, D::Error>
+            where
+                D: ::serde::Deserializer<'de>,
+            {
+                use ::serde::Deserialize;
+                let val: Self = Self::deserialize(deserializer)?;
+                Ok(val.0)
+            }
+        }
+
+        #[cfg(feature = "serde")]
+        pub mod $vecmod {
+            use crate::{CanonicalDeserialize, CanonicalSerialize, CompressedChecked};
+            use ::serde::ser::SerializeSeq;
+            use ::serde::{Deserializer, Serializer};
+            use ark_std::fmt;
+            use ark_std::vec::Vec;
+
+            pub fn serialize<S, T>(
+                value: &impl AsRef<[T]>,
+                serializer: S,
+            ) -> Result<S::Ok, S::Error>
+            where
+                S: Serializer,
+                T: CanonicalSerialize,
+            {
+                let values = value.as_ref();
+                let mut seq = serializer.serialize_seq(Some(values.len()))?;
+                for val in values {
+                    seq.serialize_element(&CompressedChecked(val))?;
+                }
+                seq.end()
+            }
+
+            pub fn deserialize<'de, D, T>(deserializer: D) -> Result<Vec<T>, D::Error>
+            where
+                D: Deserializer<'de>,
+                T: CanonicalDeserialize,
+            {
+                struct VecCanonicalVisitor<T> {
+                    accum: Vec<T>,
+                }
+                impl<'de, T> serde::de::Visitor<'de> for VecCanonicalVisitor<T>
+                where
+                    T: CanonicalDeserialize,
+                {
+                    type Value = Vec<T>;
+
+                    fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+                        write!(
+                            formatter,
+                            "a sequence of CompressedChecked<{}>",
+                            ark_std::any::type_name::<T>()
+                        )
+                    }
+
+                    fn visit_seq<A>(mut self, mut seq: A) -> Result<Self::Value, A::Error>
+                    where
+                        A: serde::de::SeqAccess<'de>,
+                    {
+                        while let Some(elt) = seq.next_element::<CompressedChecked<T>>()? {
+                            self.accum.push(elt.0);
+                        }
+                        Ok(self.accum)
+                    }
+                }
+                deserializer.deserialize_seq(VecCanonicalVisitor { accum: Vec::new() })
             }
         }
     };
@@ -130,10 +219,34 @@ impl_ops!(UncompressedUnchecked<T>, UncompressedUnchecked);
 impl_ops!(CompressedChecked<T>, CompressedChecked);
 impl_ops!(UncompressedChecked<T>, UncompressedChecked);
 
-impl_serde!(CompressedUnchecked<T>, Compress::Yes, Validate::No);
-impl_serde!(UncompressedUnchecked<T>, Compress::No, Validate::No);
-impl_serde!(CompressedChecked<T>, Compress::Yes, Validate::Yes);
-impl_serde!(UncompressedChecked<T>, Compress::No, Validate::Yes);
+impl_serde!(
+    CompressedUnchecked<T>,
+    CompressedUnchecked,
+    Compress::Yes,
+    Validate::No,
+    vec_compressed_unchecked
+);
+impl_serde!(
+    UncompressedUnchecked<T>,
+    UncompressedUnchecked,
+    Compress::No,
+    Validate::No,
+    vec_uncompressed_unchecked
+);
+impl_serde!(
+    CompressedChecked<T>,
+    CompressedChecked,
+    Compress::Yes,
+    Validate::Yes,
+    vec_compressed_checked
+);
+impl_serde!(
+    UncompressedChecked<T>,
+    UncompressedChecked,
+    Compress::No,
+    Validate::Yes,
+    vec_uncompressed_checked
+);
 
 impl_canonical!(CompressedUnchecked<T>, Compress::Yes, Validate::No);
 impl_canonical!(UncompressedUnchecked<T>, Compress::No, Validate::No);
