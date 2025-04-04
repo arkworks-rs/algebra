@@ -294,12 +294,12 @@ macro_rules! __test_field {
                 assert_eq!(a, result);
 
                 // Commutativity
-                let e1: [u64; 10] = rng.gen();
-                let e2: [u64; 10] = rng.gen();
+                let e1: [u64; 10] = rng.r#gen();
+                let e2: [u64; 10] = rng.r#gen();
                 assert_eq!(a.pow(&e1).pow(&e2), a.pow(&e2).pow(&e1));
 
                 // Distributivity
-                let e3: [u64; 10] = rng.gen();
+                let e3: [u64; 10] = rng.r#gen();
                 let a_to_e1 = a.pow(e1);
                 let a_to_e2 = a.pow(e2);
                 let a_to_e1_plus_e2 = a.pow(e1) * a.pow(e2);

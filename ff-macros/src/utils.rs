@@ -7,12 +7,10 @@ use syn::{Expr, Lit};
 
 pub(crate) fn parse_string(input: TokenStream) -> Option<String> {
     let input: Expr = syn::parse(input).unwrap();
-    let input = if let Expr::Group(syn::ExprGroup { expr, .. }) = input {
-        expr
-    } else {
+    let Expr::Group(syn::ExprGroup { expr, .. }) = input else {
         panic!("could not parse");
     };
-    match *input {
+    match *expr {
         Expr::Lit(expr_lit) => match expr_lit.lit {
             Lit::Str(s) => Some(s.value()),
             _ => None,
