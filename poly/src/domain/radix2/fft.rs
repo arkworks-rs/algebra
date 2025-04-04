@@ -46,15 +46,16 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
         // so we handle this in initialization, and reduce the number of loops that are performing arithmetic.
         // The number of times we copy each initial non-zero element is as below:
 
-        let duplicity_of_initials = 1 << log_n.checked_sub(log_d).expect("domain is too small");
-
+        let num_coeffs = coeffs.len();
         coeffs.resize(n, T::zero());
 
         // swap coefficients in place
         for i in 0..num_coeffs as u64 {
             let ri = fft::bitrev(i, log_n);
             if i < ri {
-                coeffs.swap(i as usize, ri as usize);
+                if ri < n as u64 {
+                    coeffs.swap(i as usize, ri as usize);
+                    }
             }
         }
 
