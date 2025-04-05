@@ -995,18 +995,18 @@ pub trait BigInteger:
     ///
     /// // Basic
     /// let mut one_mul = B::from(1u64);
-    /// one_mul.muln(5);
+    /// one_mul <<= 5;
     /// assert_eq!(one_mul, B::from(32u64));
     ///
     /// // Edge-Case
     /// let mut zero = B::from(0u64);
-    /// zero.muln(5);
+    /// zero <<= 5;
     /// assert_eq!(zero, B::from(0u64));
     ///
     /// let mut arr: [bool; 64] = [false; 64];
     /// arr[4] = true;
     /// let mut mul = B::from_bits_be(&arr);
-    /// mul.muln(5);
+    /// mul <<= 5;
     /// assert_eq!(mul, B::from(0u64));
     /// ```
     #[deprecated(since = "0.4.2", note = "please use the operator `<<` instead")]
@@ -1105,14 +1105,14 @@ pub trait BigInteger:
     ///
     /// // Basic
     /// let (mut one, mut thirty_two_div) = (B::from(1u64), B::from(32u64));
-    /// thirty_two_div.divn(5);
+    /// thirty_two_div >>= 5;
     /// assert_eq!(one, thirty_two_div);
     ///
     /// // Edge-Case
     /// let mut arr: [bool; 64] = [false; 64];
     /// arr[4] = true;
     /// let mut div = B::from_bits_le(&arr);
-    /// div.divn(5);
+    /// div >>= 5;
     /// assert_eq!(div, B::from(0u64));
     /// ```
     #[deprecated(since = "0.4.2", note = "please use the operator `>>` instead")]
