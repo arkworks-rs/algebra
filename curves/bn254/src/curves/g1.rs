@@ -1,6 +1,7 @@
 use ark_ec::{
     bn,
     models::{short_weierstrass::SWCurveConfig, CurveConfig},
+    hashing::curve_maps::svdw::SVDWConfig,
     scalar_mul::glv::GLVConfig,
     short_weierstrass::{Affine, Projective},
 };
@@ -53,6 +54,19 @@ impl SWCurveConfig for Config {
         // G1 = E(Fq) so if the point is on the curve, it is also in the subgroup.
         true
     }
+}
+
+impl SVDWConfig for Config {
+    const ZETA: Self::BaseField =
+        MontFp!("6350874878119819312338956282401532409788428879151445726012394534686998597021");
+    const C1: Self::BaseField =
+        MontFp!("3515256640640002027109419384348854550457404359307959241360540244102768179501");
+    const C2: Self::BaseField =
+        MontFp!("7768683996859727954953724731427871339453941139073188968338321679979113805781");
+    const C3: Self::BaseField =
+        MontFp!("5174556184976127869173189452163337195348491024958816448391141365979064675186");
+    const C4: Self::BaseField =
+        MontFp!("2609072103093089037936242735953952295622231240021995565748958972744717830193");
 }
 
 impl GLVConfig for Config {

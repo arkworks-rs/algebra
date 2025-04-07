@@ -1,5 +1,6 @@
 use ark_ec::AffineRepr;
 use ark_ec::{
+    hashing::curve_maps::svdw::SVDWConfig,
     models::{short_weierstrass::SWCurveConfig, CurveConfig},
     scalar_mul::glv::GLVConfig,
     short_weierstrass::{Affine, Projective},
@@ -60,6 +61,26 @@ impl SWCurveConfig for Config {
         let p_times_point = p_power_endomorphism(point);
         x_times_point.eq(&p_times_point)
     }
+}
+
+impl SVDWConfig for Config {
+    const ZETA: Self::BaseField = Fq2::new(Fq::ZERO, Fq::ONE);
+    const C1: Self::BaseField = Fq2::new(
+        MontFp!("19485874751759354771024239261021720505790618469301721065564631296452457478373"),
+        MontFp!("266929791119991161246907387137283842545076965332900288569378510910307636689"),
+    );
+    const C2: Self::BaseField = Fq2::new(
+        Fq::ZERO,
+        MontFp!("10944121435919637611123202872628637544348155578648911831344518947322613104291"),
+    );
+    const C3: Self::BaseField = Fq2::new(
+        MontFp!("8270257801618377462829664163334948115088143961679076698731296916415895764198"),
+        MontFp!("15403170217607925661891511707918230497750592932893890913125906786266381721360"),
+    );
+    const C4: Self::BaseField = Fq2::new(
+        MontFp!("18685085378399381287283517099609868978155387573303020199856495763721534568303"),
+        MontFp!("355906388159988214995876516183045123393435953777200384759171347880410182252"),
+    );
 }
 
 impl GLVConfig for Config {
