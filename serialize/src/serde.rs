@@ -42,12 +42,6 @@ macro_rules! impl_ops {
                 $cons(value)
             }
         }
-
-        impl<T: Valid> Valid for $type {
-            fn check(&self) -> Result<(), SerializationError> {
-                self.0.check()
-            }
-        }
     };
 }
 
@@ -197,6 +191,12 @@ macro_rules! impl_canonical {
 
             fn serialized_size(&self, _compress: Compress) -> usize {
                 self.0.serialized_size($compress)
+            }
+        }
+
+        impl<T: Valid> Valid for $type {
+            fn check(&self) -> Result<(), SerializationError> {
+                self.0.check()
             }
         }
 
