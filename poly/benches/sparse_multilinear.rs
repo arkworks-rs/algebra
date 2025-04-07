@@ -14,7 +14,7 @@ fn arithmetic_op_bench<F: Field>(c: &mut Criterion) {
 
     let mut group = c.benchmark_group("SparseMultilinear");
     for nv in NUM_VARIABLES_RANGE {
-        let num_nonzero_entries = 1 << (dbg!(nv) / 2);
+        let num_nonzero_entries = 1 << (nv / 2);
         group.bench_with_input(
             BenchmarkId::new(format!("Add with num_vars = {nv}"), num_nonzero_entries),
             &num_nonzero_entries,

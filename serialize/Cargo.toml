@@ -13,7 +13,10 @@ edition.workspace = true
 rust-version.workspace = true
 metadata.docs.rs.workspace = true
 package.metadata.release.workspace = true
-keywords = ["cryptography", "serialization" ]
+keywords = ["cryptography", "serialization"]
+
+[lints]
+workspace = true
 
 [dependencies]
 ark-serialize-derive = { workspace = true, optional = true }
@@ -27,11 +30,13 @@ rayon = { workspace = true, optional = true }
 sha2.workspace = true
 sha3.workspace = true
 blake2.workspace = true
-ark-test-curves = { workspace = true, default-features = false, features = [ "bls12_381_curve"] }
+ark-test-curves = { workspace = true, default-features = false, features = [
+    "bls12_381_curve",
+] }
 
 
 [features]
 default = []
-parallel = [ "rayon" ]
-std = [ "ark-std/std" ]
-derive = [ "ark-serialize-derive" ]
+parallel = ["rayon"]
+std = ["ark-std/std"]
+derive = ["ark-serialize-derive"]

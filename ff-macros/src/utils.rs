@@ -5,7 +5,7 @@ use num_traits::Num;
 use proc_macro::TokenStream;
 use syn::{Expr, Lit};
 
-pub fn parse_string(input: TokenStream) -> Option<String> {
+pub(crate) fn parse_string(input: TokenStream) -> Option<String> {
     let input: Expr = syn::parse(input).unwrap();
     let input = if let Expr::Group(syn::ExprGroup { expr, .. }) = input {
         expr
@@ -21,12 +21,12 @@ pub fn parse_string(input: TokenStream) -> Option<String> {
     }
 }
 
-pub fn str_to_limbs(num: &str) -> (bool, Vec<String>) {
+pub(crate) fn str_to_limbs(num: &str) -> (bool, Vec<String>) {
     let (sign, limbs) = str_to_limbs_u64(num);
     (sign, limbs.into_iter().map(|l| format!("{l}u64")).collect())
 }
 
-pub fn str_to_limbs_u64(num: &str) -> (bool, Vec<u64>) {
+pub(crate) fn str_to_limbs_u64(num: &str) -> (bool, Vec<u64>) {
     let is_negative = num.starts_with('-');
     let num = if is_negative { &num[1..] } else { num };
     let number = if num.starts_with("0x") || num.starts_with("0X") {

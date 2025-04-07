@@ -50,7 +50,7 @@ impl CanonicalDeserialize for Dummy {
                 assert_eq!(<[u8; 2]>::deserialize_compressed(reader)?, [100u8, 200u8])
             },
         }
-        Ok(Dummy)
+        Ok(Self)
     }
 }
 
@@ -161,6 +161,20 @@ fn test_uint() {
 }
 
 #[test]
+fn test_int() {
+    test_serialize(192830918isize);
+    test_serialize(-192830918isize);
+    test_serialize(192830918i64);
+    test_serialize(-192830918i64);
+    test_serialize(192830918i32);
+    test_serialize(-192830918i32);
+    test_serialize(22313i16);
+    test_serialize(-22313i16);
+    test_serialize(123i8);
+    test_serialize(-123i8);
+}
+
+#[test]
 fn test_string() {
     test_serialize(String::from("arkworks"));
 }
@@ -215,6 +229,7 @@ fn test_rc_arc() {
 }
 
 #[test]
+#[allow(clippy::zero_sized_map_values)]
 fn test_btreemap() {
     let mut map = BTreeMap::new();
     map.insert(0u64, Dummy);

@@ -29,13 +29,16 @@ pub trait Pairing: Sized + 'static + Copy + Debug + Sync + Send + Eq {
     type ScalarField: PrimeField;
 
     /// An element in G1.
-    type G1: CurveGroup<ScalarField = Self::ScalarField, Affine = Self::G1Affine>
-        + From<Self::G1Affine>
+    type G1: CurveGroup<
+            BaseField = Self::BaseField,
+            ScalarField = Self::ScalarField,
+            Affine = Self::G1Affine,
+        > + From<Self::G1Affine>
         + Into<Self::G1Affine>
         // needed due to https://github.com/rust-lang/rust/issues/69640
         + MulAssign<Self::ScalarField>;
 
-    type G1Affine: AffineRepr<Group = Self::G1, ScalarField = Self::ScalarField>
+    type G1Affine: AffineRepr<Group = Self::G1, BaseField = Self::BaseField, ScalarField = Self::ScalarField>
         + From<Self::G1>
         + Into<Self::G1>
         + Into<Self::G1Prepared>;
@@ -48,21 +51,25 @@ pub trait Pairing: Sized + 'static + Copy + Debug + Sync + Send + Eq {
         + Debug
         + CanonicalSerialize
         + CanonicalDeserialize
-        + for<'a> From<&'a Self::G1>
-        + for<'a> From<&'a Self::G1Affine>
         + From<Self::G1>
         + From<Self::G1Affine>;
 
     /// An element of G2.
-    type G2: CurveGroup<ScalarField = Self::ScalarField, Affine = Self::G2Affine>
-        + From<Self::G2Affine>
+    type G2: CurveGroup<
+            ScalarField = Self::ScalarField,
+            Affine = Self::G2Affine,
+            BaseField: Field<BasePrimeField = Self::BaseField>,
+        > + From<Self::G2Affine>
         + Into<Self::G2Affine>
         // needed due to https://github.com/rust-lang/rust/issues/69640
         + MulAssign<Self::ScalarField>;
 
     /// The affine representation of an element in G2.
-    type G2Affine: AffineRepr<Group = Self::G2, ScalarField = Self::ScalarField>
-        + From<Self::G2>
+    type G2Affine: AffineRepr<
+            Group = Self::G2,
+            ScalarField = Self::ScalarField,
+            BaseField: Field<BasePrimeField = Self::BaseField>,
+        > + From<Self::G2>
         + Into<Self::G2>
         + Into<Self::G2Prepared>;
 
@@ -74,8 +81,6 @@ pub trait Pairing: Sized + 'static + Copy + Debug + Sync + Send + Eq {
         + Debug
         + CanonicalSerialize
         + CanonicalDeserialize
-        + for<'a> From<&'a Self::G2>
-        + for<'a> From<&'a Self::G2Affine>
         + From<Self::G2>
         + From<Self::G2Affine>;
 
@@ -132,7 +137,6 @@ impl<P: Pairing> Default for PairingOutput<P> {
 }
 
 impl<P: Pairing> CanonicalSerialize for PairingOutput<P> {
-    #[allow(unused_qualifications)]
     #[inline]
     fn serialize_with_mode<W: Write>(
         &self,
@@ -165,7 +169,7 @@ impl<P: Pairing> CanonicalDeserialize for PairingOutput<P> {
         validate: Validate,
     ) -> Result<Self, SerializationError> {
         let f = P::TargetField::deserialize_with_mode(reader, compress, validate).map(Self)?;
-        if let Validate::Yes = validate {
+        if validate == Validate::Yes {
             f.check()?;
         }
         Ok(f)

@@ -55,7 +55,7 @@ impl short_weierstrass::SWCurveConfig for Config {
         // It is enough to multiply by (x - 1), instead of (x - 1)^2 / 3
         // sqrt(76329603384216526031706109802092473003*3) = 15132376222941642753
         let h_eff: &[u64] = &[0xd201000000010001];
-        Config::mul_affine(p, h_eff).into()
+        Self::mul_affine(p, h_eff).into()
     }
 }
 
