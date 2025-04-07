@@ -140,7 +140,7 @@ use serde::{Serialize, Deserialize};
 pub struct Proof(pub G1Affine);
 
 #[derive(Clone, Debug, PartialEq, Eq, CanonicalSerialize, CanonicalDeserialize)]
-#[derive(Serialize,Deserialize)]
+#[derive(Serialize, Deserialize)]
 #[serde(from = "CompressedChecked<Self>", into = "CompressedChecked<Self>")]
 pub struct Signature {
     /// Aggregated BLS signature σ' = H(m)^aSK.
