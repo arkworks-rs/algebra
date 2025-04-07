@@ -33,6 +33,7 @@ serde_with = { workspace = true, optional = true, default-features = false }
 sha2.workspace = true
 sha3.workspace = true
 blake2.workspace = true
+serde_json.workspace = true
 ark-test-curves = { workspace = true, default-features = false, features = [
     "bls12_381_curve",
 ] }
