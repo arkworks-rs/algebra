@@ -1,6 +1,6 @@
 use crate::{
     hashing::curve_maps::svdw::SVDWConfig,
-    models::{short_weierstrass::SWCurveConfig, CurveConfig},
+    models::CurveConfig,
     pairing::{MillerLoopOutput, Pairing, PairingOutput},
 };
 use ark_ff::{

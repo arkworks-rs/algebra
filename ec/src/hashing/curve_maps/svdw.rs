@@ -22,7 +22,7 @@ pub trait SVDWConfig: SWCurveConfig {
     const C1: Self::BaseField;
     /// c2 = -Z / 2
     const C2: Self::BaseField;
-    /// c3 = sqrt(-g(Z) * (3 * Z^2 + 4 * A)) , with sgn0(c3) == 0
+    /// c3 = sqrt(-g(Z) * (3 * Z^2 + 4 * A)) , with parity(c3) == 0
     const C3: Self::BaseField;
     /// c4 = -4 * g(Z) / (3 * Z^2 + 4 * A)
     const C4: Self::BaseField;
@@ -92,7 +92,7 @@ impl<P: SVDWConfig> MapToCurve<Projective<P>> for SVDWMap<P> {
             "Argument for C3 sqrt must be square"
         );
         debug_assert_eq!(P::C3.square(), neg_gz_den, "C3^2 != -g(Z)*(3*Z^2+4*A)");
-        debug_assert_eq!(parity(&P::C3), false, "sgn0(C3) must be false");
+        debug_assert!(!parity(&P::C3), "parity(C3) must be false");
 
         // c4 = -4 * g(Z) / den
         let den_inv = den.inverse().expect("Denominator already checked non-zero");
@@ -147,6 +147,7 @@ impl<P: SVDWConfig> MapToCurve<Projective<P>> for SVDWMap<P> {
         // 20. gx2 = gx2 + B
         gx2 += P::COEFF_B;
         // 21.  e2 = is_square(gx2) AND NOT e1 # Avoid short-circuit logic ops
+        #[allow(clippy::needless_bitwise_bool)]
         let e2 = Self::is_square(&gx2) & !e1;
         // 22.  x3 = tv2^2
         let mut x3 = tv2.square();
