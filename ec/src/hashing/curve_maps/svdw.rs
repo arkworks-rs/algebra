@@ -9,7 +9,7 @@ use crate::{
 
 /// Trait defining the necessary parameters for the SVDW hash-to-curve method
 /// for the curves of Weierstrass form of:
-/// y^2 = x^3 + a*x + b where ab != 0. From IETF draft draft-irtf-cfrg-hash-to-curve-16
+/// y^2 = x^3 + a*x + b. From IETF draft draft-irtf-cfrg-hash-to-curve-16
 /// <https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-hash-to-curve-16#section-6.6.1>
 pub trait SVDWConfig: SWCurveConfig {
     /// An element Z of the base field F such that Z is non-zero,
