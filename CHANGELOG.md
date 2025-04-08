@@ -4,6 +4,7 @@
 
 - Consolidated logic into `bitreverse_permutation_in_place` and made it public.
 - Remove redundant type constraints from `Pairing::G1Prepared`.
+- SVDW map-to-curve for Bn254
 
 ### Breaking changes
 
