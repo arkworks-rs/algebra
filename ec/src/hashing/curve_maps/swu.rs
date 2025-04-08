@@ -183,9 +183,8 @@ mod test {
     struct TestSWUMapToCurveConfig;
 
     impl CurveConfig for TestSWUMapToCurveConfig {
-        const COFACTOR: &'static [u64] = &[1];
+        const COFACTOR: &[u64] = &[1];
 
-    #[rustfmt::skip]
         const COFACTOR_INV: F127 = F127_ONE;
 
         type BaseField = F127;

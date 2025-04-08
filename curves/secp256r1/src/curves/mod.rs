@@ -23,8 +23,7 @@ impl CurveConfig for Config {
     const COFACTOR: &'static [u64] = &[0x1];
 
     /// COFACTOR_INV = COFACTOR^{-1} mod r = 1
-    #[rustfmt::skip]
-    const COFACTOR_INV: Fr =  Fr::ONE;
+    const COFACTOR_INV: Fr = Fr::ONE;
 }
 
 impl SWCurveConfig for Config {
