@@ -1,6 +1,7 @@
 # CHANGELOG
 
 ## Pending
+-   [\#926](https://github.com/arkworks-rs/algebra/pull/926) Add the circom compatible Baby Jubjub curve
 
 - Consolidated logic into `bitreverse_permutation_in_place` and made it public.
 - Remove redundant type constraints from `Pairing::G1Prepared`.
