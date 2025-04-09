@@ -303,7 +303,7 @@ impl<P: Pairing> PrimeGroup for PairingOutput<P> {
                 chunk
                     .iter()
                     .enumerate()
-                    .fold(0, |r, (i, bit)| r | u64::from(*bit) << i)
+                    .fold(0, |r, (i, bit)| r | (u64::from(*bit) << i))
             })
             .collect::<Vec<_>>();
         Self(self.0.cyclotomic_exp(&other))

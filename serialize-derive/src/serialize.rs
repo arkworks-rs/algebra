@@ -46,14 +46,10 @@ pub(super) fn impl_canonical_serialize(ast: &syn::DeriveInput) -> TokenStream {
 
     let (impl_generics, ty_generics, where_clause) = ast.generics.split_for_impl();
 
-    let len = if let Data::Struct(ref data_struct) = ast.data {
-        data_struct.fields.len()
-    } else {
-        panic!(
-            "`CanonicalSerialize` can only be derived for structs, {} is not a struct",
-            name
-        );
+    let Data::Struct(ref data_struct) = ast.data else {
+        panic!("`CanonicalSerialize` can only be derived for structs, {name} is not a struct")
     };
+    let len = data_struct.fields.len();
 
     let mut serialize_body = Vec::<TokenStream>::with_capacity(len);
     let mut serialized_size_body = Vec::<TokenStream>::with_capacity(len);
@@ -83,13 +79,12 @@ pub(super) fn impl_canonical_serialize(ast: &syn::DeriveInput) -> TokenStream {
                 idents.clear();
             }
         },
-        _ => panic!(
-            "`CanonicalSerialize` can only be derived for structs, {} is not a struct",
-            name
-        ),
+        _ => {
+            panic!("`CanonicalSerialize` can only be derived for structs, {name} is not a struct")
+        },
     };
 
-    let gen = quote! {
+    let codegen = quote! {
         impl #impl_generics ark_serialize::CanonicalSerialize for #name #ty_generics #where_clause {
             fn serialize_with_mode<W: ark_serialize::Write>(&self, mut writer: W, compress: ark_serialize::Compress) -> Result<(), ark_serialize::SerializationError> {
                 #(#serialize_body)*
@@ -102,5 +97,5 @@ pub(super) fn impl_canonical_serialize(ast: &syn::DeriveInput) -> TokenStream {
             }
         }
     };
-    gen
+    codegen
 }

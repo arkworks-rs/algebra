@@ -86,21 +86,22 @@ pub fn unroll_for_loops(args: TokenStream, input: TokenStream) -> TokenStream {
 
     let item: Item = syn::parse(input).expect("Failed to parse input.");
 
-    if let Item::Fn(item_fn) = item {
-        let new_block = {
-            let ItemFn {
-                block: ref box_block,
-                ..
-            } = item_fn;
-            unroll::unroll_in_block(box_block, unroll_by)
-        };
-        let new_item = Item::Fn(ItemFn {
-            block: Box::new(new_block),
-            ..item_fn
-        });
-        quote::quote! ( #new_item ).into()
-    } else {
-        quote::quote! ( #item ).into()
+    match item {
+        Item::Fn(item_fn) => {
+            let new_block = {
+                let ItemFn {
+                    block: ref box_block,
+                    ..
+                } = item_fn;
+                unroll::unroll_in_block(box_block, unroll_by)
+            };
+            let new_item = Item::Fn(ItemFn {
+                block: Box::new(new_block),
+                ..item_fn
+            });
+            quote::quote! ( #new_item ).into()
+        },
+        _ => quote::quote! ( #item ).into(),
     }
 }
 
