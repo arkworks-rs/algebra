@@ -980,3 +980,31 @@ where
             .collect()
     }
 }
+
+impl<T: CanonicalSerialize> CanonicalSerialize for &T {
+    fn serialize_with_mode<W: Write>(
+        &self,
+        writer: W,
+        compress: Compress,
+    ) -> Result<(), SerializationError> {
+        (*self).serialize_with_mode(writer, compress)
+    }
+
+    fn serialized_size(&self, compress: Compress) -> usize {
+        (*self).serialized_size(compress)
+    }
+}
+
+impl<T: CanonicalSerialize> CanonicalSerialize for &mut T {
+    fn serialize_with_mode<W: Write>(
+        &self,
+        writer: W,
+        compress: Compress,
+    ) -> Result<(), SerializationError> {
+        (**self).serialize_with_mode(writer, compress)
+    }
+
+    fn serialized_size(&self, compress: Compress) -> usize {
+        (**self).serialized_size(compress)
+    }
+}
