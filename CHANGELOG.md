@@ -16,6 +16,8 @@
 
 ### Improvements
 
+- [\#752](https://github.com/arkworks-rs/algebra/pull/752) Fix duplicate KaTeX header
+
 ### Bugfixes
 
 ## v0.5.0
