@@ -337,7 +337,7 @@ impl<T: Send + Sync> CanonicalDeserialize for PhantomData<T> {
     }
 }
 
-impl<T: CanonicalSerialize + ToOwned> CanonicalSerialize for Rc<T> {
+impl<T: ?Sized + CanonicalSerialize + ToOwned> CanonicalSerialize for Rc<T> {
     #[inline]
     fn serialize_with_mode<W: Write>(
         &self,
@@ -354,7 +354,7 @@ impl<T: CanonicalSerialize + ToOwned> CanonicalSerialize for Rc<T> {
 }
 
 #[cfg(target_has_atomic = "ptr")]
-impl<T: CanonicalSerialize + ToOwned> CanonicalSerialize for ark_std::sync::Arc<T> {
+impl<T: ?Sized + CanonicalSerialize + ToOwned> CanonicalSerialize for ark_std::sync::Arc<T> {
     #[inline]
     fn serialize_with_mode<W: Write>(
         &self,
@@ -371,7 +371,7 @@ impl<T: CanonicalSerialize + ToOwned> CanonicalSerialize for ark_std::sync::Arc<
 }
 
 #[cfg(target_has_atomic = "ptr")]
-impl<T: Valid + Sync + Send> Valid for ark_std::sync::Arc<T> {
+impl<T: ?Sized + Valid + Sync + Send> Valid for ark_std::sync::Arc<T> {
     #[inline]
     fn check(&self) -> Result<(), SerializationError> {
         self.as_ref().check()
@@ -389,7 +389,7 @@ impl<T: Valid + Sync + Send> Valid for ark_std::sync::Arc<T> {
 }
 
 #[cfg(target_has_atomic = "ptr")]
-impl<T: CanonicalDeserialize + ToOwned + Sync + Send> CanonicalDeserialize
+impl<T: ?Sized + CanonicalDeserialize + ToOwned + Sync + Send> CanonicalDeserialize
     for ark_std::sync::Arc<T>
 {
     #[inline]
@@ -404,7 +404,7 @@ impl<T: CanonicalDeserialize + ToOwned + Sync + Send> CanonicalDeserialize
     }
 }
 
-impl<T: CanonicalSerialize + ToOwned> CanonicalSerialize for Cow<'_, T> {
+impl<T: ?Sized + CanonicalSerialize + ToOwned> CanonicalSerialize for Cow<'_, T> {
     #[inline]
     fn serialize_with_mode<W: Write>(
         &self,
@@ -422,7 +422,7 @@ impl<T: CanonicalSerialize + ToOwned> CanonicalSerialize for Cow<'_, T> {
 
 impl<T> Valid for Cow<'_, T>
 where
-    T: ToOwned + Sync + Valid + Send,
+    T: ?Sized + ToOwned + Sync + Valid + Send,
     <T as ToOwned>::Owned: CanonicalDeserialize + Send,
 {
     #[inline]
@@ -444,7 +444,7 @@ where
 
 impl<T> CanonicalDeserialize for Cow<'_, T>
 where
-    T: ToOwned + Valid + Sync + Send,
+    T: ?Sized + ToOwned + Valid + Sync + Send,
     <T as ToOwned>::Owned: CanonicalDeserialize + Valid + Send,
 {
     #[inline]
