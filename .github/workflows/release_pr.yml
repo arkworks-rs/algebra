@@ -25,7 +25,7 @@ jobs:
         with:
           tool: cargo-release
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: cargo-bins/release-pr@v2
         with:
           pr-template-file: .github/release-pr-template.ejs
