@@ -1,28 +1,27 @@
-use quote::format_ident;
 use std::str::FromStr;
 
 use num_bigint::BigUint;
 use num_traits::One;
 
 mod biginteger;
-use biginteger::*;
+use biginteger::{add_with_carry_impl, sub_with_borrow_impl, subtract_modulus_impl};
 
 mod add;
-use add::*;
+use add::add_assign_impl;
 mod double;
-use double::*;
+use double::double_in_place_impl;
 mod mul;
-use mul::*;
+use mul::mul_assign_impl;
 
 mod square;
-use square::*;
+use square::square_in_place_impl;
 
 mod sum_of_products;
-use sum_of_products::*;
+use sum_of_products::sum_of_products_impl;
 
 use crate::utils;
 
-pub fn mont_config_helper(
+pub(crate) fn mont_config_helper(
     modulus: BigUint,
     generator: BigUint,
     small_subgroup_base: Option<u32>,
@@ -61,10 +60,10 @@ pub fn mont_config_helper(
     let modulus_has_spare_bit = modulus_limbs.last().unwrap() >> 63 == 0;
     let can_use_no_carry_mul_opt = {
         let first_limb_check = *modulus_limbs.last().unwrap() < (u64::MAX >> 1);
-        if limbs != 1 {
-            first_limb_check && modulus_limbs[..limbs - 1].iter().any(|l| *l != u64::MAX)
-        } else {
+        if limbs == 1 {
             first_limb_check
+        } else {
+            first_limb_check && modulus_limbs[..limbs - 1].iter().any(|l| *l != u64::MAX)
         }
     };
     let modulus = quote::quote! { BigInt([ #( #modulus_limbs ),* ]) };
@@ -100,9 +99,8 @@ pub fn mont_config_helper(
         quote::quote! {}
     };
 
-    let scope_name = format_ident!("{}___", config_name.to_string().to_lowercase());
     quote::quote! {
-        fn #scope_name() {
+        const _: () = {
             use ark_ff::{fields::Fp, BigInt, BigInteger, biginteger::arithmetic as fa, fields::*};
             type B = BigInt<#limbs>;
             type F = Fp<MontBackend<#config_name, #limbs>, #limbs>;
@@ -168,6 +166,6 @@ pub fn mont_config_helper(
             #add_with_carry
 
             #sub_with_borrow
-        }
+        };
     }
 }
