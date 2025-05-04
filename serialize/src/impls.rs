@@ -371,7 +371,7 @@ impl<T: ?Sized + CanonicalSerialize + ToOwned> CanonicalSerialize for ark_std::s
 }
 
 #[cfg(target_has_atomic = "ptr")]
-impl<T: ?Sized + Valid + Sync + Send> Valid for ark_std::sync::Arc<T> {
+impl<T: Valid + Sync + Send> Valid for ark_std::sync::Arc<T> {
     #[inline]
     fn check(&self) -> Result<(), SerializationError> {
         self.as_ref().check()
@@ -389,7 +389,7 @@ impl<T: ?Sized + Valid + Sync + Send> Valid for ark_std::sync::Arc<T> {
 }
 
 #[cfg(target_has_atomic = "ptr")]
-impl<T: ?Sized + CanonicalDeserialize + ToOwned + Sync + Send> CanonicalDeserialize
+impl<T: CanonicalDeserialize + ToOwned + Sync + Send> CanonicalDeserialize
     for ark_std::sync::Arc<T>
 {
     #[inline]
@@ -422,7 +422,7 @@ impl<T: ?Sized + CanonicalSerialize + ToOwned> CanonicalSerialize for Cow<'_, T>
 
 impl<T> Valid for Cow<'_, T>
 where
-    T: ?Sized + ToOwned + Sync + Valid + Send,
+    T: ToOwned + Sync + Valid + Send,
     <T as ToOwned>::Owned: CanonicalDeserialize + Send,
 {
     #[inline]
@@ -444,7 +444,7 @@ where
 
 impl<T> CanonicalDeserialize for Cow<'_, T>
 where
-    T: ?Sized + ToOwned + Valid + Sync + Send,
+    T: ToOwned + Valid + Sync + Send,
     <T as ToOwned>::Owned: CanonicalDeserialize + Valid + Send,
 {
     #[inline]
