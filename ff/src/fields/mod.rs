@@ -378,7 +378,7 @@ pub fn batch_inversion_and_mul<F: Field>(v: &mut [F], coeff: &F) {
 
 /// Given a vector of field elements {v_i}, compute the vector {coeff * v_i^(-1)}.
 /// This method is explicitly single-threaded.
-fn serial_batch_inversion_and_mul<F: Field>(v: &mut [F], coeff: &F) {
+pub fn serial_batch_inversion_and_mul<F: Field>(v: &mut [F], coeff: &F) {
     // Montgomery’s Trick and Fast Implementation of Masked AES
     // Genelle, Prouff and Quisquater
     // Section 3.2
