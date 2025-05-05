@@ -1,7 +1,7 @@
 use ark_ec::{
     bn,
-    models::{short_weierstrass::SWCurveConfig, CurveConfig},
     hashing::curve_maps::svdw::SVDWConfig,
+    models::{short_weierstrass::SWCurveConfig, CurveConfig},
     scalar_mul::glv::GLVConfig,
     short_weierstrass::{Affine, Projective},
 };
