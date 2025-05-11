@@ -12,7 +12,7 @@
 
 pub use crate::domain::utils::Elements;
 use crate::domain::{
-    utils::{best_fft, bitreverse},
+    utils::{best_fft, bitreverse_permutation_in_place},
     DomainCoeff, EvaluationDomain,
 };
 use ark_ff::{fields::utils::k_adicity, FftField};
@@ -354,13 +354,7 @@ pub(crate) fn serial_mixed_radix_fft<T: DomainCoeff<F>, F: FftField>(
             m *= q;
         }
     } else {
-        // swapping in place (from Storer's book)
-        for k in 0..n {
-            let rk = bitreverse(k as u32, two_adicity) as usize;
-            if k < rk {
-                a.swap(k, rk);
-            }
-        }
+        bitreverse_permutation_in_place(a, two_adicity);
     }
 
     for _ in 0..two_adicity {

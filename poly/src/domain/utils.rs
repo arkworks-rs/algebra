@@ -19,6 +19,18 @@ pub(crate) fn bitreverse(mut n: u32, l: u32) -> u32 {
     r
 }
 
+#[inline]
+pub fn bitreverse_permutation_in_place<T>(a: &mut [T], width: u32) {
+    // swapping in place (from Storer's book)
+    let n = a.len();
+    for k in 0..n {
+        let rk = bitreverse(k as u32, width) as usize;
+        if k < rk {
+            a.swap(k, rk);
+        }
+    }
+}
+
 pub(crate) fn compute_powers_serial<F: Field>(size: usize, root: F) -> Vec<F> {
     compute_powers_and_mul_by_const_serial(size, root, F::one())
 }
