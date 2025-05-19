@@ -154,7 +154,7 @@ num-bigint = { version = "0.4", default-features = false }
 num-integer = { version = "0.1", default-features = false }
 
 arrayvec = { version = "0.7", default-features = false }
-criterion = "0.5.0"
+criterion = "0.6.0"
 educe = "0.6.0"
 digest = { version = "0.10", default-features = false }
 hashbrown = { version = "0.15", default-features = false, features = [
