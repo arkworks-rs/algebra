@@ -12,10 +12,13 @@ mod error;
 mod flags;
 mod impls;
 
+mod serde;
+
 pub use ark_std::io::{Read, Write};
 
 pub use error::*;
 pub use flags::*;
+pub use serde::*;
 
 #[cfg(test)]
 mod test;
