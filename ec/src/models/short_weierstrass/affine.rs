@@ -19,7 +19,7 @@ use ark_ff::{fields::Field, AdditiveGroup, PrimeField, ToConstraintField, Unifor
 use educe::Educe;
 use zeroize::Zeroize;
 
-use super::{Projective, SWCurveConfig, SWFlags};
+use super::{bucket::Bucket, Projective, SWCurveConfig, SWFlags};
 use crate::AffineRepr;
 
 /// Affine coordinates for a point on an elliptic curve in short Weierstrass
@@ -156,6 +156,40 @@ impl<P: SWCurveConfig> Affine<P> {
             SWFlags::YIsPositive
         } else {
             SWFlags::YIsNegative
+        }
+    }
+
+    pub fn double_to_bucket(&self) -> Bucket<P> {
+        if self.infinity {
+            Bucket::ZERO
+        } else {
+            // https://www.hyperelliptic.org/EFD/g1p/auto-shortw-xyzz.html#doubling-mdbl-2008-s-1
+            // U = 2*Y1
+            let u = self.y.double();
+            // V = U^2
+            let v = u.square();
+            // W = U*V
+            let w = u * &v;
+            // S = X1*V
+            let s = self.x * &v;
+            // M = 3*X1^2+a
+            let mut m = self.x.square();
+            m += m.double();
+            if !P::COEFF_A.is_zero() {
+                m += P::COEFF_A;
+            }
+            // X3 = M^2-2*S
+            let x = m.square() - s.double();
+            // Y3 = M*(S-X3)-W*Y1
+            let y = m * (s - x) - w * self.y;
+            Bucket {
+                x,
+                y,
+                // ZZ3 = V
+                zz: v,
+                // ZZZ3 = W
+                zzz: w,
+            }
         }
     }
 }

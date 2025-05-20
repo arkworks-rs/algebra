@@ -1,4 +1,4 @@
-use super::{Affine, SWCurveConfig};
+use super::{bucket::Bucket, Affine, SWCurveConfig};
 use crate::{
     scalar_mul::{variable_base::VariableBaseMSM, ScalarMul},
     AffineRepr, CurveGroup, PrimeGroup,
@@ -27,14 +27,14 @@ use zeroize::Zeroize;
 
 /// Jacobian coordinates for a point on an elliptic curve in short Weierstrass
 /// form, over the base field `P::BaseField`. This struct implements arithmetic
-/// via the Jacobian formulae
+/// via the Jacobian formulae.
 #[derive(Educe)]
 #[educe(Copy, Clone)]
 #[must_use]
 pub struct Projective<P: SWCurveConfig> {
-    /// `X / Z` projection of the affine `X`
+    /// `X / Z^2` projection of the affine `X`
     pub x: P::BaseField,
-    /// `Y / Z` projection of the affine `Y`
+    /// `Y / Z^3` projection of the affine `Y`
     pub y: P::BaseField,
     /// Projective multiplicative inverse. Will be `0` only at infinity.
     pub z: P::BaseField,
@@ -333,6 +333,10 @@ impl<P: SWCurveConfig, T: Borrow<Affine<P>>> AddAssign<T> for Projective<P> {
     /// Using <http://www.hyperelliptic.org/EFD/g1p/auto-shortw-jacobian-0.html#addition-madd-2007-bl>
     fn add_assign(&mut self, other: T) {
         let other = other.borrow();
+
+        // If the other point is not at infinity, set `self` to the other point.
+        // If the other point *is* at infinity, `other.xy()` will be `None`, and we
+        // will do nothing
         if let Some((other_x, other_y)) = other.xy() {
             if self.is_zero() {
                 self.x = other_x;
@@ -643,6 +647,9 @@ impl<P: SWCurveConfig> ScalarMul for Projective<P> {
 }
 
 impl<P: SWCurveConfig> VariableBaseMSM for Projective<P> {
+    type Bucket = Bucket<P>;
+    const ZERO_BUCKET: Self::Bucket = Bucket::ZERO;
+
     fn msm(bases: &[Self::MulBase], bigints: &[Self::ScalarField]) -> Result<Self, usize> {
         P::msm(bases, bigints)
     }
