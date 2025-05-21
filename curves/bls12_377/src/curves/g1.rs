@@ -28,7 +28,7 @@ impl CurveConfig for Config {
     type ScalarField = Fr;
 
     /// COFACTOR = (x - 1)^2 / 3  = 30631250834960419227450344600217059328
-    const COFACTOR: &'static [u64] = &[0x0, 0x170b5d4430000000];
+    const COFACTOR: &[u64] = &[0x0, 0x170b5d4430000000];
 
     /// COFACTOR_INV = COFACTOR^{-1} mod r
     /// = 5285428838741532253824584287042945485047145357130994810877
@@ -67,7 +67,7 @@ impl SWCurveConfig for Config {
 }
 
 impl GLVConfig for Config {
-    const ENDO_COEFFS: &'static[Self::BaseField] = &[
+    const ENDO_COEFFS: &[Self::BaseField] = &[
         MontFp!("258664426012969093929703085429980814127835149614277183275038967946009968870203535512256352201271898244626862047231")
     ];
 
