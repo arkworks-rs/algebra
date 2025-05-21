@@ -159,30 +159,24 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
                     target_arch = "x86_64"
                 ))
             {
-                #[cfg(all(
-                    feature = "asm",
-                    target_feature = "bmi2",
-                    target_feature = "adx",
-                    target_arch = "x86_64"
-                ))]
+                #[cfg(
+                    all(
+                        feature = "asm",
+                        target_feature = "bmi2",
+                        target_feature = "adx",
+                        target_arch = "x86_64"
+                    )
+                )]
                 #[allow(unsafe_code)]
+                #[rustfmt::skip]
+
                 // Tentatively avoid using assembly for `N == 1`.
                 match N {
-                    2 => {
-                        ark_ff_asm::x86_64_asm_mul!(2, (a.0).0, (b.0).0);
-                    },
-                    3 => {
-                        ark_ff_asm::x86_64_asm_mul!(3, (a.0).0, (b.0).0);
-                    },
-                    4 => {
-                        ark_ff_asm::x86_64_asm_mul!(4, (a.0).0, (b.0).0);
-                    },
-                    5 => {
-                        ark_ff_asm::x86_64_asm_mul!(5, (a.0).0, (b.0).0);
-                    },
-                    6 => {
-                        ark_ff_asm::x86_64_asm_mul!(6, (a.0).0, (b.0).0);
-                    },
+                    2 => { ark_ff_asm::x86_64_asm_mul!(2, (a.0).0, (b.0).0); },
+                    3 => { ark_ff_asm::x86_64_asm_mul!(3, (a.0).0, (b.0).0); },
+                    4 => { ark_ff_asm::x86_64_asm_mul!(4, (a.0).0, (b.0).0); },
+                    5 => { ark_ff_asm::x86_64_asm_mul!(5, (a.0).0, (b.0).0); },
+                    6 => { ark_ff_asm::x86_64_asm_mul!(6, (a.0).0, (b.0).0); },
                     _ => unsafe { ark_std::hint::unreachable_unchecked() },
                 };
             } else {
