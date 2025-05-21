@@ -1,5 +1,6 @@
 use crate::{
-    models::{short_weierstrass::SWCurveConfig, CurveConfig},
+    hashing::curve_maps::svdw::SVDWConfig,
+    models::CurveConfig,
     pairing::{MillerLoopOutput, Pairing, PairingOutput},
 };
 use ark_ff::{
@@ -42,8 +43,8 @@ pub trait BnConfig: 'static + Sized {
     type Fp2Config: Fp2Config<Fp = Self::Fp>;
     type Fp6Config: Fp6Config<Fp2Config = Self::Fp2Config>;
     type Fp12Config: Fp12Config<Fp6Config = Self::Fp6Config>;
-    type G1Config: SWCurveConfig<BaseField = Self::Fp>;
-    type G2Config: SWCurveConfig<
+    type G1Config: SVDWConfig<BaseField = Self::Fp>;
+    type G2Config: SVDWConfig<
         BaseField = Fp2<Self::Fp2Config>,
         ScalarField = <Self::G1Config as CurveConfig>::ScalarField,
     >;

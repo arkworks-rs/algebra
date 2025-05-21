@@ -1,5 +1,6 @@
 use ark_ff::{BigInteger, Field, PrimeField, Zero};
 pub mod elligator2;
+pub mod svdw;
 pub mod swu;
 pub mod wb;
 
