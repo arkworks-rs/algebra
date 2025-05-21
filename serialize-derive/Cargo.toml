@@ -15,7 +15,8 @@ metadata.docs.rs.workspace = true
 package.metadata.release.workspace = true
 keywords = ["cryptography", "finite-fields", "elliptic-curves", "serialization"]
 
-################################# Dependencies ################################
+[lints]
+workspace = true
 
 [lib]
 proc-macro = true

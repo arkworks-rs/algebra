@@ -120,17 +120,17 @@ fn fetch_attr(name: &str, attrs: &[syn::Attribute]) -> Option<String> {
                 }) = nv.value
                 {
                     return Some(s.value());
-                } else {
-                    panic!("attribute {name} should be a string")
                 }
+                panic!("attribute {name} should be a string")
             },
-            _ => continue,
+            _ => {},
         }
     }
     None
 }
 
 #[test]
+#[allow(clippy::match_same_arms)]
 fn test_str_to_limbs() {
     use num_bigint::Sign::*;
     for i in 0..100 {

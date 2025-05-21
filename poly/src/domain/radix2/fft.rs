@@ -167,7 +167,7 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
 
         // recursive case:
         // 1. split log_powers in half
-        let (lr_lo, lr_hi) = log_powers.split_at((1 + log_powers.len()) / 2);
+        let (lr_lo, lr_hi) = log_powers.split_at(log_powers.len().div_ceil(2));
         let mut scr_lo = vec![F::default(); 1 << lr_lo.len()];
         let mut scr_hi = vec![F::default(); 1 << lr_hi.len()];
         // 2. compute each half individually
@@ -366,7 +366,7 @@ const MIN_INPUT_SIZE_FOR_PARALLELIZATION: usize = 1 << 10;
 const LOG_ROOTS_OF_UNITY_PARALLEL_SIZE: u32 = 7;
 
 #[inline]
-fn bitrev(a: u64, log_len: u32) -> u64 {
+const fn bitrev(a: u64, log_len: u32) -> u64 {
     a.reverse_bits().wrapping_shr(64 - log_len)
 }
 

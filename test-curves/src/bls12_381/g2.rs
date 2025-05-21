@@ -87,7 +87,7 @@ impl short_weierstrass::SWCurveConfig for Config {
         let p_projective = p.into_group();
 
         // [x]P
-        let x_p = Config::mul_affine(p, x).neg();
+        let x_p = Self::mul_affine(p, x).neg();
         // ψ(P)
         let psi_p = p_power_endomorphism(p);
         // (ψ^2)(2P)

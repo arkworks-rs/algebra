@@ -70,7 +70,7 @@ pub trait PrimeField:
     /// If the integer represented by `bytes` is larger than the modulus `p`, this method
     /// performs the appropriate reduction.
     fn from_le_bytes_mod_order(bytes: &[u8]) -> Self {
-        let num_modulus_bytes = ((Self::MODULUS_BIT_SIZE + 7) / 8) as usize;
+        let num_modulus_bytes = Self::MODULUS_BIT_SIZE.div_ceil(8) as usize;
         let num_bytes_to_directly_convert = min(num_modulus_bytes - 1, bytes.len());
         // Copy the leading little-endian bytes directly into a field element.
         // The number of bytes directly converted must be less than the

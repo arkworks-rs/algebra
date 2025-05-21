@@ -7,11 +7,7 @@
     rust_2021_compatibility
 )]
 #![forbid(unsafe_code)]
-#![allow(
-    clippy::op_ref,
-    clippy::suspicious_op_assign_impl,
-    clippy::many_single_char_names
-)]
+#![allow(clippy::op_ref, clippy::suspicious_op_assign_impl)]
 #![doc = include_str!("../README.md")]
 
 #[macro_use]
@@ -135,7 +131,7 @@ pub trait AffineRepr:
     + Debug
     + Display
     + Zeroize
-    + Neg
+    + Neg<Output = Self>
     + From<<Self as AffineRepr>::Group>
     + Into<<Self as AffineRepr>::Group>
     + Add<Self, Output = Self::Group>

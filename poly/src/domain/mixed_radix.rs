@@ -12,7 +12,7 @@
 
 pub use crate::domain::utils::Elements;
 use crate::domain::{
-    utils::{best_fft, bitreverse},
+    utils::{best_fft, bitreverse_permutation_in_place},
     DomainCoeff, EvaluationDomain,
 };
 use ark_ff::{fields::utils::k_adicity, FftField};
@@ -89,7 +89,7 @@ impl<F: FftField> EvaluationDomain<F> for MixedRadixEvaluationDomain<F> {
         let size_as_field_element = F::from(size);
         let size_inv = size_as_field_element.inverse()?;
 
-        Some(MixedRadixEvaluationDomain {
+        Some(Self {
             size,
             log_size_of_group,
             size_as_field_element,
@@ -103,7 +103,7 @@ impl<F: FftField> EvaluationDomain<F> for MixedRadixEvaluationDomain<F> {
     }
 
     fn get_coset(&self, offset: F) -> Option<Self> {
-        Some(MixedRadixEvaluationDomain {
+        Some(Self {
             offset,
             offset_inv: offset.inverse()?,
             offset_pow_size: offset.pow([self.size]),
@@ -124,16 +124,12 @@ impl<F: FftField> EvaluationDomain<F> for MixedRadixEvaluationDomain<F> {
         let two_adicity = k_adicity(2, num_coeffs);
         let two_part = 2u64.checked_pow(two_adicity)?;
 
-        if num_coeffs == q_part * two_part {
-            Some(num_coeffs as usize)
-        } else {
-            None
-        }
+        (num_coeffs == q_part * two_part).then_some(num_coeffs as usize)
     }
 
     #[inline]
     fn size(&self) -> usize {
-        usize::try_from(self.size).unwrap()
+        self.size.try_into().unwrap()
     }
 
     #[inline]
@@ -358,13 +354,7 @@ pub(crate) fn serial_mixed_radix_fft<T: DomainCoeff<F>, F: FftField>(
             m *= q;
         }
     } else {
-        // swapping in place (from Storer's book)
-        for k in 0..n {
-            let rk = bitreverse(k as u32, two_adicity) as usize;
-            if k < rk {
-                a.swap(k, rk);
-            }
-        }
+        bitreverse_permutation_in_place(a, two_adicity);
     }
 
     for _ in 0..two_adicity {
@@ -565,5 +555,78 @@ mod tests {
         let rng = &mut test_rng();
 
         test_consistency::<Fr, _>(rng, 16);
+    }
+
+    #[test]
+    fn test_root_of_unity() {
+        let domain = MixedRadixEvaluationDomain::<Fr>::new(8).unwrap();
+        let root = domain.group_gen();
+
+        let expected = root.pow([domain.size() as u64]);
+        assert_eq!(expected, Fr::one());
+    }
+
+    #[test]
+    fn test_inverse_root_of_unity() {
+        let domain = MixedRadixEvaluationDomain::<Fr>::new(8).unwrap();
+        let root = domain.group_gen();
+        let root_inv = domain.group_gen_inv();
+
+        assert_eq!(root * root_inv, Fr::one());
+    }
+
+    #[test]
+    fn test_size_inverse() {
+        let domain = MixedRadixEvaluationDomain::<Fr>::new(8).unwrap();
+        let size_inv = domain.size_inv();
+        let expected = Fr::from(domain.size() as u64).inverse().unwrap();
+
+        assert_eq!(size_inv, expected);
+    }
+
+    #[test]
+    fn test_fft_ifft_identity() {
+        let domain = MixedRadixEvaluationDomain::<Fr>::new(8).unwrap();
+        let mut coeffs = vec![
+            Fr::from(1),
+            Fr::from(2),
+            Fr::from(3),
+            Fr::from(4),
+            Fr::from(5),
+            Fr::from(6),
+            Fr::from(7),
+            Fr::from(8),
+        ];
+
+        let original = coeffs.clone();
+        domain.fft_in_place(&mut coeffs);
+        domain.ifft_in_place(&mut coeffs);
+
+        assert_eq!(coeffs, original);
+    }
+
+    #[test]
+    fn test_vanishing_polynomial() {
+        let domain = MixedRadixEvaluationDomain::<Fr>::new(4).unwrap();
+        let z = domain.vanishing_polynomial();
+
+        for elem in domain.elements() {
+            assert_eq!(z.evaluate(&elem), Fr::zero());
+        }
+    }
+
+    #[test]
+    fn test_get_coset() {
+        let domain = MixedRadixEvaluationDomain::<Fr>::new(4).unwrap();
+        let offset = Fr::from(3);
+        let coset_domain = domain.get_coset(offset).unwrap();
+
+        assert_eq!(coset_domain.coset_offset(), Fr::from(3));
+    }
+
+    #[test]
+    fn test_compute_size_of_domain() {
+        assert!(MixedRadixEvaluationDomain::<Fr>::compute_size_of_domain(7).is_some());
+        assert!(MixedRadixEvaluationDomain::<Fr>::compute_size_of_domain(16).is_some());
     }
 }
