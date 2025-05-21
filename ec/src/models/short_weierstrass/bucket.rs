@@ -377,7 +377,7 @@ impl<P: SWCurveConfig> From<Affine<P>> for Bucket<P> {
 impl<P: SWCurveConfig> From<Bucket<P>> for Affine<P> {
     #[inline]
     fn from(p: Bucket<P>) -> Self {
-        p.zzz.inverse().map_or(Affine::zero(), |zzz_inv| {
+        p.zzz.inverse().map_or_else(Affine::zero, |zzz_inv| {
             let b = p.zz.square();
             let x = p.x * &b;
             let y = p.y * zzz_inv;
