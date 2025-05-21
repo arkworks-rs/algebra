@@ -51,8 +51,6 @@ pub trait Pairing: Sized + 'static + Copy + Debug + Sync + Send + Eq {
         + Debug
         + CanonicalSerialize
         + CanonicalDeserialize
-        + for<'a> From<&'a Self::G1>
-        + for<'a> From<&'a Self::G1Affine>
         + From<Self::G1>
         + From<Self::G1Affine>;
 
@@ -83,8 +81,6 @@ pub trait Pairing: Sized + 'static + Copy + Debug + Sync + Send + Eq {
         + Debug
         + CanonicalSerialize
         + CanonicalDeserialize
-        + for<'a> From<&'a Self::G2>
-        + for<'a> From<&'a Self::G2Affine>
         + From<Self::G2>
         + From<Self::G2Affine>;
 
@@ -323,7 +319,10 @@ impl<P: Pairing> crate::ScalarMul for PairingOutput<P> {
     }
 }
 
-impl<P: Pairing> VariableBaseMSM for PairingOutput<P> {}
+impl<P: Pairing> VariableBaseMSM for PairingOutput<P> {
+    type Bucket = Self;
+    const ZERO_BUCKET: Self::Bucket = Self::ZERO;
+}
 
 /// Represents the output of the Miller loop of the pairing.
 #[derive(Educe)]

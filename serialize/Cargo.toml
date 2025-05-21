@@ -25,11 +25,15 @@ arrayvec.workspace = true
 digest.workspace = true
 num-bigint.workspace = true
 rayon = { workspace = true, optional = true }
+serde = { workspace = true, optional = true }
+serde-encoded-bytes = { workspace = true, optional = true, features = ["base64"] }
+serde_with = { workspace = true, optional = true, default-features = false }
 
 [dev-dependencies]
 sha2.workspace = true
 sha3.workspace = true
 blake2.workspace = true
+serde_json.workspace = true
 ark-test-curves = { workspace = true, default-features = false, features = [
     "bls12_381_curve",
 ] }
@@ -38,5 +42,7 @@ ark-test-curves = { workspace = true, default-features = false, features = [
 [features]
 default = []
 parallel = ["rayon"]
-std = ["ark-std/std"]
+std = ["ark-std/std", "serde_with?/std"]
 derive = ["ark-serialize-derive"]
+serde = ["dep:serde", "dep:serde-encoded-bytes", "dep:serde_with"]
+serde_with = ["serde", "dep:serde_with"]
