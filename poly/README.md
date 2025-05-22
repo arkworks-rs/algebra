@@ -13,7 +13,7 @@ This crate implements traits and implementations for polynomials, FFT-friendly s
 The `polynomial` module provides the following traits for defining polynomials in coefficient form:
 
 - [`Polynomial`](./src/polynomial/mod.rs#L16):
-Requires implementors to support common operations on polynomials,
+Requires implementers to support common operations on polynomials,
 such as `Add`, `Sub`, `Zero`, evaluation at a point, degree, etc,
 and defines methods to serialize to and from the coefficient representation of the polynomial.
 - [`DenseUVPolynomial`](./src/polynomial/mod.rs#L43) :
