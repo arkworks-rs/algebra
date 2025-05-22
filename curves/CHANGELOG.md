@@ -35,7 +35,7 @@
 
 ### Breaking changes
 
-- [\#104](https://github.com/arkworks-rs/curves/pull/104) Remove `QUADRATIC_NONRESIDUE` parameter from implementors of `Fp2Config`.
+- [\#104](https://github.com/arkworks-rs/curves/pull/104) Remove `QUADRATIC_NONRESIDUE` parameter from implementers of `Fp2Config`.
 - [\#129](https://github.com/arkworks-rs/curves/pull/129) Implement custom serialization for BLS12-381 for compatibility with the [Zcash lib](https://github.com/zkcrypto/bls12_381).
 
 ### Features
