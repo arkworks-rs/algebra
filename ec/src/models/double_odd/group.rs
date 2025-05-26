@@ -169,6 +169,9 @@ impl<P: DOCurveConfig> AdditiveGroup for Projective<P> {
         P::BaseField::ZERO,
     );
 
+    // Implements extended coordinates doubling as per the DO website:
+    // https://doubleodd.group/formulas-eu.html#extended-coordinates
+    // https://web.archive.org/web/20240718235643/https://doubleodd.group/formulas-eu.html#extended-coordinates
     fn double_in_place(&mut self) -> &mut Self {
         self.z = -P::get_c().double() * self.t.square(); // Self.z == -2cT^2
         self.t = self.e;
