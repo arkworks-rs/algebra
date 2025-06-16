@@ -257,7 +257,7 @@ mod test {
     /// The point of the test is to get a simple twisted edwards curve and make
     /// simple hash
     #[test]
-    fn hash_arbitary_string_to_curve_elligator2() {
+    fn hash_arbitrary_string_to_curve_elligator2() {
         let test_elligator2_to_curve_hasher = MapToCurveBasedHasher::<
             Projective<TestElligator2MapToCurveConfig>,
             DefaultFieldHasher<Sha256, 128>,
