@@ -13,7 +13,7 @@ pub trait GLVConfig: Send + Sync + 'static + SWCurveConfig {
     /// Constant used to calculate `phi(G) := lambda*G`.
     ///
     /// The coefficients of the endomorphism
-    const ENDO_COEFFS: &'static [Self::BaseField];
+    const ENDO_COEFFS: &[Self::BaseField];
 
     /// Constant used to calculate `phi(G) := lambda*G`.
     ///
