@@ -390,7 +390,7 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
                 r[(j + i) % N] =
                     fa::mac_with_carry(r[(j + i) % N], k, Self::MODULUS.0[j], &mut carry);
             }
-            r[i % N] = carry;
+            r[i] = carry;
         }
 
         BigInt::new(r)
