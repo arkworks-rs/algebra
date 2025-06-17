@@ -180,8 +180,7 @@ fn msm_bigint_wnaf<V: VariableBaseMSM>(
 
     // We're traversing windows from high to low.
     lowest
-        + &window_sums[1..]
-            .iter()
+        + cfg_iter!(&window_sums[1..])
             .rev()
             .fold(V::zero(), |mut total, sum_i| {
                 total += sum_i;
