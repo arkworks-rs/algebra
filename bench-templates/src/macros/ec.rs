@@ -209,8 +209,9 @@ macro_rules! ec_bench {
                     use ark_ff::PrimeField;
                     use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
                     use ark_std::UniformRand;
+                    let mut c = c.benchmark_group("MSM");
 
-                    const SAMPLES: usize = 131072;
+                    const SAMPLES: usize = 1 << 20;
 
                     let name = format!("{}::{}", $curve_name, stringify!($Group));
                     let mut rng = ark_std::test_rng();
@@ -280,6 +281,7 @@ macro_rules! ec_bench {
                             result
                         })
                     });
+                    c.sample_size(10);
                 }
                 
                 $crate::criterion_group!(benches, rand, arithmetic, serialization, msm_131072);
