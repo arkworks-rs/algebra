@@ -377,11 +377,11 @@ impl<P: SWCurveConfig> From<Affine<P>> for Bucket<P> {
 impl<P: SWCurveConfig> From<Bucket<P>> for Affine<P> {
     #[inline]
     fn from(p: Bucket<P>) -> Self {
-        p.zzz.inverse().map_or(Affine::zero(), |zzz_inv| {
+        p.zzz.inverse().map_or_else(Self::zero, |zzz_inv| {
             let b = p.zz.square();
             let x = p.x * &b;
             let y = p.y * zzz_inv;
-            Affine::new_unchecked(x, y)
+            Self::new_unchecked(x, y)
         })
     }
 }
@@ -390,9 +390,9 @@ impl<P: SWCurveConfig> From<Bucket<P>> for Projective<P> {
     #[inline]
     fn from(p: Bucket<P>) -> Self {
         if p.is_zero() {
-            Projective::zero()
+            Self::zero()
         } else {
-            Projective::new_unchecked(p.x * &p.zz, p.y * &p.zzz, p.zz)
+            Self::new_unchecked(p.x * &p.zz, p.y * &p.zzz, p.zz)
         }
     }
 }

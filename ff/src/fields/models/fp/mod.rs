@@ -147,7 +147,7 @@ impl<P: FpConfig<N>, const N: usize> Fp<P, N> {
         }
     }
 
-    fn num_bits_to_shave() -> usize {
+    const fn num_bits_to_shave() -> usize {
         64 * N - (Self::MODULUS_BIT_SIZE as usize)
     }
 }

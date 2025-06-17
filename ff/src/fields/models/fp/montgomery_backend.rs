@@ -223,38 +223,22 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
             *a *= *a;
             return;
         }
-        if Self::CAN_USE_NO_CARRY_SQUARE_OPT
-            && (2..=6).contains(&N)
-            && cfg!(all(
-                feature = "asm",
-                target_feature = "bmi2",
-                target_feature = "adx",
-                target_arch = "x86_64"
-            ))
-        {
-            #[cfg(all(
-                feature = "asm",
-                target_feature = "bmi2",
-                target_feature = "adx",
-                target_arch = "x86_64"
-            ))]
-            #[allow(unsafe_code)]
+        #[cfg(all(
+            feature = "asm",
+            target_feature = "bmi2",
+            target_feature = "adx",
+            target_arch = "x86_64"
+        ))]
+        #[allow(unsafe_code)]
+        if Self::CAN_USE_NO_CARRY_SQUARE_OPT && (2..=6).contains(&N) {
+            use ark_ff_asm::x86_64_asm_square;
+            #[rustfmt::skip]
             match N {
-                2 => {
-                    ark_ff_asm::x86_64_asm_square!(2, (a.0).0);
-                },
-                3 => {
-                    ark_ff_asm::x86_64_asm_square!(3, (a.0).0);
-                },
-                4 => {
-                    ark_ff_asm::x86_64_asm_square!(4, (a.0).0);
-                },
-                5 => {
-                    ark_ff_asm::x86_64_asm_square!(5, (a.0).0);
-                },
-                6 => {
-                    ark_ff_asm::x86_64_asm_square!(6, (a.0).0);
-                },
+                2 => { x86_64_asm_square!(2, (a.0).0); },
+                3 => { x86_64_asm_square!(3, (a.0).0); },
+                4 => { x86_64_asm_square!(4, (a.0).0); },
+                5 => { x86_64_asm_square!(5, (a.0).0); },
+                6 => { x86_64_asm_square!(6, (a.0).0); },
                 _ => unsafe { ark_std::hint::unreachable_unchecked() },
             };
             a.subtract_modulus();
@@ -754,9 +738,9 @@ impl<T: MontConfig<N>, const N: usize> Fp<MontBackend<T, N>, N> {
             crate::const_for!((j in 0..N) {
                 let k = i + j;
                 if k >= N {
-                    hi[k - N] = mac_with_carry!(hi[k - N], (self.0).0[i], (other.0).0[j], &mut carry);
+                    hi[k - N] = fa::mac_with_carry(hi[k - N], (self.0).0[i], (other.0).0[j], &mut carry);
                 } else {
-                    lo[k] = mac_with_carry!(lo[k], (self.0).0[i], (other.0).0[j], &mut carry);
+                    lo[k] = fa::mac_with_carry(lo[k], (self.0).0[i], (other.0).0[j], &mut carry);
                 }
             });
             hi[i] = carry;
@@ -765,17 +749,17 @@ impl<T: MontConfig<N>, const N: usize> Fp<MontBackend<T, N>, N> {
         let mut carry2 = 0;
         crate::const_for!((i in 0..N) {
             let tmp = lo[i].wrapping_mul(T::INV);
-            let mut carry;
-            mac!(lo[i], tmp, T::MODULUS.0[0], &mut carry);
+            let mut carry = 0;
+            fa::mac(lo[i], tmp, T::MODULUS.0[0], &mut carry);
             crate::const_for!((j in 1..N) {
                 let k = i + j;
                 if k >= N {
-                    hi[k - N] = mac_with_carry!(hi[k - N], tmp, T::MODULUS.0[j], &mut carry);
+                    hi[k - N] = fa::mac_with_carry(hi[k - N], tmp, T::MODULUS.0[j], &mut carry);
                 }  else {
-                    lo[k] = mac_with_carry!(lo[k], tmp, T::MODULUS.0[j], &mut carry);
+                    lo[k] = fa::mac_with_carry(lo[k], tmp, T::MODULUS.0[j], &mut carry);
                 }
             });
-            hi[i] = adc!(hi[i], carry, &mut carry2);
+            carry2 = fa::adc(&mut hi[i], carry, carry2);
         });
 
         crate::const_for!((i in 0..N) {

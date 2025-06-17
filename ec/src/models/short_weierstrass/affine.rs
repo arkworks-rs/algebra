@@ -234,6 +234,12 @@ impl<P: SWCurveConfig> AffineRepr for Affine<P> {
     type ScalarField = P::ScalarField;
     type Group = Projective<P>;
 
+    const ZERO: Self = Affine {
+        x: P::BaseField::ZERO,
+        y: P::BaseField::ZERO,
+        infinity: true,
+    };
+
     fn xy(&self) -> Option<(Self::BaseField, Self::BaseField)> {
         (!self.infinity).then_some((self.x, self.y))
     }
@@ -244,11 +250,7 @@ impl<P: SWCurveConfig> AffineRepr for Affine<P> {
     }
 
     fn zero() -> Self {
-        Self {
-            x: P::BaseField::ZERO,
-            y: P::BaseField::ZERO,
-            infinity: true,
-        }
+        Self::ZERO
     }
 
     fn from_random_bytes(bytes: &[u8]) -> Option<Self> {

@@ -1,17 +1,9 @@
-use ark_std::{vec, vec::*};
-
-macro_rules! adc {
-    ($a:expr, $b:expr, &mut $carry:expr$(,)?) => {{
-        let tmp = ($a as u128) + ($b as u128) + ($carry as u128);
-        $carry = (tmp >> 64) as u64;
-        tmp as u64
-    }};
-}
+use ark_std::{vec, vec::Vec};
 
 /// Sets a = a + b + carry, and returns the new carry.
 #[inline(always)]
 #[doc(hidden)]
-pub fn adc(a: &mut u64, b: u64, carry: u64) -> u64 {
+pub const fn adc(a: &mut u64, b: u64, carry: u64) -> u64 {
     let tmp = *a as u128 + b as u128 + carry as u128;
     *a = tmp as u64;
     (tmp >> 64) as u64
@@ -38,23 +30,14 @@ pub fn adc_for_add_with_carry(a: &mut u64, b: u64, carry: u8) -> u8 {
 /// Calculate a + b + carry, returning the sum
 #[inline(always)]
 #[doc(hidden)]
-pub fn adc_no_carry(a: u64, b: u64, carry: &u64) -> u64 {
+pub const fn adc_no_carry(a: u64, b: u64, carry: &u64) -> u64 {
     let tmp = a as u128 + b as u128 + *carry as u128;
     tmp as u64
 }
 
-#[macro_export]
-macro_rules! sbb {
-    ($a:expr, $b:expr, &mut $borrow:expr$(,)?) => {{
-        let tmp = (1u128 << 64) + ($a as u128) - ($b as u128) - ($borrow as u128);
-        $borrow = if tmp >> 64 == 0 { 1 } else { 0 };
-        tmp as u64
-    }};
-}
-
 /// Sets a = a - b - borrow, and returns the borrow.
 #[inline(always)]
-pub(crate) fn sbb(a: &mut u64, b: u64, borrow: u64) -> u64 {
+pub(crate) const fn sbb(a: &mut u64, b: u64, borrow: u64) -> u64 {
     let tmp = (1u128 << 64) + (*a as u128) - (b as u128) - (borrow as u128);
     *a = tmp as u64;
     (tmp >> 64 == 0) as u64
@@ -64,13 +47,13 @@ pub(crate) fn sbb(a: &mut u64, b: u64, borrow: u64) -> u64 {
 #[inline(always)]
 #[doc(hidden)]
 pub fn sbb_for_sub_with_borrow(a: &mut u64, b: u64, borrow: u8) -> u8 {
-    #[cfg(all(target_arch = "x86_64", feature = "asm"))]
+    #[cfg(target_arch = "x86_64")]
     #[allow(unsafe_code)]
     unsafe {
         use core::arch::x86_64::_subborrow_u64;
         _subborrow_u64(borrow, *a, b, a)
     }
-    #[cfg(not(all(target_arch = "x86_64", feature = "asm")))]
+    #[cfg(not(target_arch = "x86_64"))]
     {
         let tmp = (1u128 << 64) + (*a as u128) - (b as u128) - (borrow as u128);
         *a = tmp as u64;
@@ -104,7 +87,7 @@ pub const fn widening_mul(a: u64, b: u64) -> u128 {
 /// `carry` to the upper 64 bits.
 #[inline(always)]
 #[doc(hidden)]
-pub fn mac(a: u64, b: u64, c: u64, carry: &mut u64) -> u64 {
+pub const fn mac(a: u64, b: u64, c: u64, carry: &mut u64) -> u64 {
     let tmp = (a as u128) + widening_mul(b, c);
     *carry = (tmp >> 64) as u64;
     tmp as u64
@@ -114,33 +97,16 @@ pub fn mac(a: u64, b: u64, c: u64, carry: &mut u64) -> u64 {
 /// `carry` to the upper 64 bits.
 #[inline(always)]
 #[doc(hidden)]
-pub fn mac_discard(a: u64, b: u64, c: u64, carry: &mut u64) {
+pub const fn mac_discard(a: u64, b: u64, c: u64, carry: &mut u64) {
     let tmp = (a as u128) + widening_mul(b, c);
     *carry = (tmp >> 64) as u64;
-}
-
-macro_rules! mac_with_carry {
-    ($a:expr, $b:expr, $c:expr, &mut $carry:expr$(,)?) => {{
-        let tmp =
-            ($a as u128) + $crate::biginteger::arithmetic::widening_mul($b, $c) + ($carry as u128);
-        $carry = (tmp >> 64) as u64;
-        tmp as u64
-    }};
-}
-
-macro_rules! mac {
-    ($a:expr, $b:expr, $c:expr, &mut $carry:expr$(,)?) => {{
-        let tmp = ($a as u128) + $crate::biginteger::arithmetic::widening_mul($b, $c);
-        $carry = (tmp >> 64) as u64;
-        tmp as u64
-    }};
 }
 
 /// Calculate a + (b * c) + carry, returning the least significant digit
 /// and setting carry to the most significant digit.
 #[inline(always)]
 #[doc(hidden)]
-pub fn mac_with_carry(a: u64, b: u64, c: u64, carry: &mut u64) -> u64 {
+pub const fn mac_with_carry(a: u64, b: u64, c: u64, carry: &mut u64) -> u64 {
     let tmp = (a as u128) + widening_mul(b, c) + (*carry as u128);
     *carry = (tmp >> 64) as u64;
     tmp as u64

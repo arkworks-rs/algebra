@@ -65,7 +65,7 @@ pub enum Validate {
     No,
 }
 
-pub trait Valid: Sized + Sync {
+pub trait Valid: Sync {
     fn check(&self) -> Result<(), SerializationError>;
 
     fn batch_check<'a>(
@@ -148,7 +148,7 @@ pub trait CanonicalSerialize {
 ///     b: (u64, (u64, u64)),
 /// }
 /// ```
-pub trait CanonicalDeserialize: Valid {
+pub trait CanonicalDeserialize: Valid + Sized {
     /// The general deserialize method that takes in customization flags.
     fn deserialize_with_mode<R: Read>(
         reader: R,
