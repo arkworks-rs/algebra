@@ -39,8 +39,8 @@ impl<P: MNT6Config> From<G2Affine<P>> for G2Prepared<P> {
             y: g.y,
             x_over_twist: g.x * &twist_inv,
             y_over_twist: g.y * &twist_inv,
-            double_coefficients: vec![],
-            addition_coefficients: vec![],
+            double_coefficients: Vec::new(),
+            addition_coefficients: Vec::new(),
         };
 
         let mut r = G2ProjectiveExtended {

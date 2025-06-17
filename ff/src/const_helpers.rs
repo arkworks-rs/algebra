@@ -122,7 +122,7 @@ impl<const N: usize> SerBuffer<N> {
     }
 
     #[allow(unsafe_code)]
-    pub(super) fn as_slice(&self) -> &[u8] {
+    pub(super) const fn as_slice(&self) -> &[u8] {
         unsafe { ark_std::slice::from_raw_parts((self as *const Self) as *const u8, 8 * N + 1) }
     }
 

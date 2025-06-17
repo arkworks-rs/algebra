@@ -12,7 +12,7 @@ license.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 metadata.docs.rs.workspace = true
-package.metadata.release.workspace = true
+metadata.release.workspace = true
 keywords = ["cryptography", "finite-fields", "fft", "polynomials"]
 
 [lints]
@@ -33,11 +33,7 @@ ahash = { version = "0.8", default-features = false }
 fnv = { version = "1.0", default-features = false }
 
 [dev-dependencies]
-ark-test-curves = { path = "../test-curves", default-features = false, features = [
-    "bls12_381_curve",
-    "bn384_small_two_adicity_curve",
-    "mnt4_753_curve",
-] }
+ark-test-curves = { path = "../test-curves", features = ["bls12_381_curve", "bn384_small_two_adicity_curve", "mnt4_753_curve"], version = "*" }
 criterion = { workspace = true }
 
 

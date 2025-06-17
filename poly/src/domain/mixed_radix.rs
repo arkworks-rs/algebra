@@ -17,7 +17,7 @@ use crate::domain::{
 };
 use ark_ff::{fields::utils::k_adicity, FftField, Field};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
-use ark_std::{cmp::min, fmt, vec::*};
+use ark_std::{cmp::min, fmt, vec, vec::*};
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
 

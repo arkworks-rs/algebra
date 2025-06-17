@@ -2,6 +2,7 @@
 use ark_ff::Field;
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use ark_std::{
+    cfg_into_iter,
     cmp::Ordering,
     fmt::{Debug, Error, Formatter},
     hash::Hash,

@@ -6,9 +6,10 @@ use crate::{
 use ark_ff::{FftField, Field, Zero};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use ark_std::{
-    fmt,
+    cfg_iter_mut, fmt,
     ops::{Add, AddAssign, Deref, DerefMut, Div, Mul, Neg, Sub, SubAssign},
     rand::Rng,
+    vec,
     vec::*,
 };
 

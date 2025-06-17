@@ -75,7 +75,7 @@ pub trait CubicExtConfig: 'static + Send + Sync + Sized {
 
 /// An element of a cubic extension field F_p\[X\]/(X^3 - P::NONRESIDUE) is
 /// represented as c0 + c1 * X + c2 * X^2, for c0, c1, c2 in `P::BaseField`.
-#[derive(Educe)]
+#[derive(educe::Educe)]
 #[educe(Default, Hash, Clone, Copy, Debug, PartialEq, Eq)]
 pub struct CubicExtField<P: CubicExtConfig> {
     pub c0: P::BaseField,
