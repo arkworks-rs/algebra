@@ -4,12 +4,6 @@
 #![forbid(unsafe_code)]
 #![allow(clippy::suspicious_op_assign_impl, clippy::suspicious_arithmetic_impl)]
 
-#[macro_use]
-extern crate educe;
-
-#[macro_use]
-extern crate ark_std;
-
 pub mod domain;
 
 pub mod evaluations;

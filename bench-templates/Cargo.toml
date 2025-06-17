@@ -19,7 +19,7 @@ metadata.release.workspace = true
 workspace = true
 
 [dependencies]
-criterion = { workspace = true, features = ["html_reports"] }
+criterion.workspace = true
 ark-std.workspace = true
 ark-ec.workspace = true
 ark-ff.workspace = true

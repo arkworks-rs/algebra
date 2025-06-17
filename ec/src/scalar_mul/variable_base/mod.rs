@@ -4,6 +4,7 @@ use ark_std::{
     cfg_into_iter,
     iterable::Iterable,
     ops::{AddAssign, SubAssign},
+    vec,
     vec::*,
 };
 
@@ -180,7 +181,8 @@ fn msm_bigint_wnaf<V: VariableBaseMSM>(
 
     // We're traversing windows from high to low.
     lowest
-        + cfg_iter!(&window_sums[1..])
+        + (&window_sums[1..])
+            .iter()
             .rev()
             .fold(V::zero(), |mut total, sum_i| {
                 total += sum_i;

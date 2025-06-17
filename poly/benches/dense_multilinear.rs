@@ -1,11 +1,8 @@
-#[macro_use]
-extern crate criterion;
-
 use ark_ff::Field;
 use ark_poly::{DenseMultilinearExtension, MultilinearExtension, Polynomial};
 use ark_std::{ops::Range, test_rng};
 use ark_test_curves::bls12_381;
-use criterion::{BenchmarkId, Criterion};
+use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
 use std::hint::black_box;
 
 const NUM_VARIABLES_RANGE: Range<usize> = 10..21;

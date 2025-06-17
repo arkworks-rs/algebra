@@ -11,9 +11,6 @@
 #![allow(clippy::op_ref, clippy::suspicious_op_assign_impl)]
 #![doc = include_str!("../README.md")]
 
-#[macro_use]
-extern crate ark_std;
-
 use ark_ff::{
     fields::{Field, PrimeField},
     UniformRand,

@@ -29,9 +29,15 @@ use zeroize::Zeroize;
 #[macro_use]
 pub mod arithmetic;
 
-#[derive(Copy, Clone, PartialEq, Eq, Hash, Zeroize)]
+#[derive(Copy, Clone, PartialEq, Eq, Hash)]
 #[must_use]
 pub struct BigInt<const N: usize>(pub [u64; N]);
+
+impl<const N: usize> Zeroize for BigInt<N> {
+    fn zeroize(&mut self) {
+        self.0.zeroize();
+    }
+}
 
 impl<const N: usize> Default for BigInt<N> {
     fn default() -> Self {
@@ -1278,7 +1284,7 @@ pub trait BigInteger:
         // w > 2 due to definition of wNAF, and w < 64 to make sure that `i64`
         // can fit each signed digit
         if (2..64).contains(&w) {
-            let mut res = vec![];
+            let mut res = Vec::new();
             let mut e = *self;
 
             while !e.is_zero() {

@@ -52,14 +52,14 @@ impl<P: BW6Config> From<G2Affine<P>> for G2Prepared<P> {
     fn from(q: G2Affine<P>) -> Self {
         if q.infinity {
             return Self {
-                ell_coeffs_1: vec![],
-                ell_coeffs_2: vec![],
+                ell_coeffs_1: Vec::new(),
+                ell_coeffs_2: Vec::new(),
                 infinity: true,
             };
         }
 
         // f_{u,Q}(P)
-        let mut ell_coeffs_1 = vec![];
+        let mut ell_coeffs_1 = Vec::new();
         let mut r = G2HomProjective::<P> {
             x: q.x,
             y: q.y,
@@ -92,7 +92,7 @@ impl<P: BW6Config> From<G2Affine<P>> for G2Prepared<P> {
         };
         ell_coeffs_1.push(r.clone().add_in_place(&q));
 
-        let mut ell_coeffs_2 = vec![];
+        let mut ell_coeffs_2 = Vec::new();
 
         // f_{u^2-u-1,[u]Q}(P)
         for bit in P::ATE_LOOP_COUNT_2.iter().rev().skip(1) {

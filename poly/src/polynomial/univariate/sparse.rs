@@ -7,10 +7,12 @@ use crate::{
 use ark_ff::{FftField, Field, Zero};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use ark_std::{
+    cfg_iter_mut,
     cmp::Ordering,
     collections::BTreeMap,
     fmt,
     ops::{Add, AddAssign, Deref, DerefMut, Mul, Neg, SubAssign},
+    vec,
     vec::*,
 };
 

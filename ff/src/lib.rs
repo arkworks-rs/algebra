@@ -12,12 +12,6 @@
 #![doc = include_str!("../README.md")]
 
 #[macro_use]
-extern crate ark_std;
-
-#[macro_use]
-extern crate educe;
-
-#[macro_use]
 pub mod biginteger;
 pub use biginteger::{
     signed_mod_reduction, BigInt, BigInteger, BigInteger128, BigInteger256, BigInteger320,
