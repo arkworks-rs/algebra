@@ -6,7 +6,7 @@
 
 pub use crate::domain::utils::{bitreverse_permutation_in_place, Elements};
 use crate::domain::{DomainCoeff, EvaluationDomain};
-use ark_ff::FftField;
+use ark_ff::{FftField, Field};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use ark_std::{fmt, vec::*};
 
@@ -19,7 +19,7 @@ const DEGREE_AWARE_FFT_THRESHOLD_FACTOR: usize = 1 << 2;
 /// only for fields that have a large multiplicative subgroup of size that is
 /// a power-of-2.
 #[derive(Copy, Clone, Hash, Eq, PartialEq, CanonicalSerialize, CanonicalDeserialize)]
-pub struct Radix2EvaluationDomain<F: FftField> {
+pub struct Radix2EvaluationDomain<F: Field> {
     /// The size of the domain.
     pub size: u64,
     /// `log_2(self.size)`.
@@ -41,7 +41,7 @@ pub struct Radix2EvaluationDomain<F: FftField> {
     pub offset_pow_size: F,
 }
 
-impl<F: FftField> fmt::Debug for Radix2EvaluationDomain<F> {
+impl<F: Field> fmt::Debug for Radix2EvaluationDomain<F> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "Radix-2 multiplicative subgroup of size {}", self.size)
     }
