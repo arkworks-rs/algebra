@@ -219,88 +219,62 @@ macro_rules! ec_bench {
                         .map(|_| <$Group>::rand(&mut rng))
                         .collect();
                     let v = <$Group>::normalize_batch(&v);
-                    let scalars: Vec<_> = (0..SAMPLES)
-                        .map(|_| Scalar::rand(&mut rng).into_bigint())
-                        .collect();
+
                     c.bench_function(&format!("MSM-random for {name}"), |b| {
+                        let scalars: Vec<_> = (0..SAMPLES)
+                            .map(|_| Scalar::rand(&mut rng).into_bigint())
+                            .collect();
                         b.iter(|| {
                             let result: $Group = VariableBaseMSM::msm_bigint(&v, &scalars);
                             result
                         })
                     });
-                }
-                
-                fn msm_131072_bool(c: &mut $crate::criterion::Criterion) {
-                    use ark_ec::{scalar_mul::variable_base::VariableBaseMSM, CurveGroup};
-                    use ark_ff::PrimeField;
-                    use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
-                    use ark_std::UniformRand;
 
-                    const SAMPLES: usize = 131072;
-
-                    let name = format!("{}::{}", $curve_name, stringify!($Group));
-                    let mut rng = ark_std::test_rng();
-
-                    let v: Vec<_> = (0..SAMPLES)
-                        .map(|_| <$Group>::rand(&mut rng))
-                        .collect();
-                    let v = <$Group>::normalize_batch(&v);
-                    let scalars: Vec<_> = (0..SAMPLES)
-                        .map(|_| Scalar::from(bool::rand(&mut rng)).into_bigint())
-                        .collect();
+                    
                     c.bench_function(&format!("MSM-bool for {name}"), |b| {
+                        let scalars: Vec<_> = (0..SAMPLES)
+                            .map(|_| Scalar::from(bool::rand(&mut rng)).into_bigint())
+                            .collect();
                         b.iter(|| {
                             let result: $Group = VariableBaseMSM::msm_bigint(&v, &scalars);
                             result
                         })
                     });
-                }
-                
-                fn msm_131072_u8(c: &mut $crate::criterion::Criterion) {
-                    use ark_ec::{scalar_mul::variable_base::VariableBaseMSM, CurveGroup};
-                    use ark_ff::PrimeField;
-                    use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
-                    use ark_std::UniformRand;
 
-                    const SAMPLES: usize = 131072;
-
-                    let name = format!("{}::{}", $curve_name, stringify!($Group));
-                    let mut rng = ark_std::test_rng();
-
-                    let v: Vec<_> = (0..SAMPLES)
-                        .map(|_| <$Group>::rand(&mut rng))
-                        .collect();
-                    let v = <$Group>::normalize_batch(&v);
-                    let scalars: Vec<_> = (0..SAMPLES)
-                        .map(|_| Scalar::from(u8::rand(&mut rng)).into_bigint())
-                        .collect();
                     c.bench_function(&format!("MSM-u8 for {name}"), |b| {
+                        let scalars: Vec<_> = (0..SAMPLES)
+                            .map(|_| Scalar::from(u8::rand(&mut rng)).into_bigint())
+                            .collect();
                         b.iter(|| {
                             let result: $Group = VariableBaseMSM::msm_bigint(&v, &scalars);
                             result
                         })
                     });
-                }
-                
-                fn msm_131072_u16(c: &mut $crate::criterion::Criterion) {
-                    use ark_ec::{scalar_mul::variable_base::VariableBaseMSM, CurveGroup};
-                    use ark_ff::PrimeField;
-                    use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
-                    use ark_std::UniformRand;
 
-                    const SAMPLES: usize = 131072;
-
-                    let name = format!("{}::{}", $curve_name, stringify!($Group));
-                    let mut rng = ark_std::test_rng();
-
-                    let v: Vec<_> = (0..SAMPLES)
-                        .map(|_| <$Group>::rand(&mut rng))
-                        .collect();
-                    let v = <$Group>::normalize_batch(&v);
-                    let scalars: Vec<_> = (0..SAMPLES)
-                        .map(|_| Scalar::from(u16::rand(&mut rng)).into_bigint())
-                        .collect();
                     c.bench_function(&format!("MSM-u16 for {name}"), |b| {
+                        let scalars: Vec<_> = (0..SAMPLES)
+                            .map(|_| Scalar::from(u16::rand(&mut rng)).into_bigint())
+                            .collect();
+                        b.iter(|| {
+                            let result: $Group = VariableBaseMSM::msm_bigint(&v, &scalars);
+                            result
+                        })
+                    });
+                    
+                    c.bench_function(&format!("MSM-u32 for {name}"), |b| {
+                        let scalars: Vec<_> = (0..SAMPLES)
+                            .map(|_| Scalar::from(u32::rand(&mut rng)).into_bigint())
+                            .collect();
+                        b.iter(|| {
+                            let result: $Group = VariableBaseMSM::msm_bigint(&v, &scalars);
+                            result
+                        })
+                    });
+
+                    c.bench_function(&format!("MSM-u64 for {name}"), |b| {
+                        let scalars: Vec<_> = (0..SAMPLES)
+                            .map(|_| Scalar::from(u64::rand(&mut rng)).into_bigint())
+                            .collect();
                         b.iter(|| {
                             let result: $Group = VariableBaseMSM::msm_bigint(&v, &scalars);
                             result
@@ -308,59 +282,7 @@ macro_rules! ec_bench {
                     });
                 }
                 
-                fn msm_131072_u32(c: &mut $crate::criterion::Criterion) {
-                    use ark_ec::{scalar_mul::variable_base::VariableBaseMSM, CurveGroup};
-                    use ark_ff::PrimeField;
-                    use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
-                    use ark_std::UniformRand;
-
-                    const SAMPLES: usize = 131072;
-
-                    let name = format!("{}::{}", $curve_name, stringify!($Group));
-                    let mut rng = ark_std::test_rng();
-
-                    let v: Vec<_> = (0..SAMPLES)
-                        .map(|_| <$Group>::rand(&mut rng))
-                        .collect();
-                    let v = <$Group>::normalize_batch(&v);
-                    let scalars: Vec<_> = (0..SAMPLES)
-                        .map(|_| Scalar::from(u32::rand(&mut rng)).into_bigint())
-                        .collect();
-                    c.bench_function(&format!("MSM-u32 for {name}"), |b| {
-                        b.iter(|| {
-                            let result: $Group = VariableBaseMSM::msm_bigint(&v, &scalars);
-                            result
-                        })
-                    });
-                }
-
-                fn msm_131072_u64(c: &mut $crate::criterion::Criterion) {
-                    use ark_ec::{scalar_mul::variable_base::VariableBaseMSM, CurveGroup};
-                    use ark_ff::PrimeField;
-                    use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
-                    use ark_std::UniformRand;
-
-                    const SAMPLES: usize = 131072;
-
-                    let name = format!("{}::{}", $curve_name, stringify!($Group));
-                    let mut rng = ark_std::test_rng();
-
-                    let v: Vec<_> = (0..SAMPLES)
-                        .map(|_| <$Group>::rand(&mut rng))
-                        .collect();
-                    let v = <$Group>::normalize_batch(&v);
-                    let scalars: Vec<_> = (0..SAMPLES)
-                        .map(|_| Scalar::from(u64::rand(&mut rng)).into_bigint())
-                        .collect();
-                    c.bench_function(&format!("MSM-u64 for {name}"), |b| {
-                        b.iter(|| {
-                            let result: $Group = VariableBaseMSM::msm_bigint(&v, &scalars);
-                            result
-                        })
-                    });
-                }
-
-                $crate::criterion_group!(benches, rand, arithmetic, serialization, msm_131072, msm_131072_bool, msm_131072_u8, msm_131072_u16, msm_131072_u32, msm_131072_u64);
+                $crate::criterion_group!(benches, rand, arithmetic, serialization, msm_131072);
             }
         }
     };
