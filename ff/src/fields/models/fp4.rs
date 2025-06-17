@@ -14,7 +14,7 @@ pub trait Fp4Config: 'static + Send + Sync {
 
     /// Coefficients for the Frobenius automorphism.
     /// non_residue^((modulus^i-1)/4) for i=0,1,2,3
-    const FROBENIUS_COEFF_FP4_C1: &'static [<Self::Fp2Config as Fp2Config>::Fp];
+    const FROBENIUS_COEFF_FP4_C1: &[<Self::Fp2Config as Fp2Config>::Fp];
 
     #[inline(always)]
     fn mul_fp2_by_nonresidue_in_place(fe: &mut Fp2<Self::Fp2Config>) -> &mut Fp2<Self::Fp2Config> {
@@ -38,7 +38,7 @@ impl<P: Fp4Config> QuadExtConfig for Fp4ConfigWrapper<P> {
 
     const NONRESIDUE: Self::BaseField = P::NONRESIDUE;
 
-    const FROBENIUS_COEFF_C1: &'static [Self::FrobCoeff] = P::FROBENIUS_COEFF_FP4_C1;
+    const FROBENIUS_COEFF_C1: &[Self::FrobCoeff] = P::FROBENIUS_COEFF_FP4_C1;
 
     #[inline(always)]
     fn mul_base_field_by_nonresidue_in_place(fe: &mut Self::BaseField) -> &mut Self::BaseField {
