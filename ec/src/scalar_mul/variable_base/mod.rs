@@ -529,6 +529,7 @@ fn msm_bigint_wnaf_parallel<V: VariableBaseMSM>(
             })
 }
 
+#[cfg(feature = "parallel")]
 const THREADS_PER_CHUNK: usize = 2;
 
 /// Computes an MSM using the windowed non-adjacent form (WNAF) algorithm.
