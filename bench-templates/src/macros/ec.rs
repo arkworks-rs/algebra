@@ -299,7 +299,7 @@ macro_rules! ec_bench {
                             .collect();
                         b.iter(|| <$Group>::msm_u32(&v, &s))
                     });
-                    
+
                     c.bench_function(&format!("MSM-i32 for {name}"), |b| {
                         let s: Vec<_> = (0..SAMPLES)
                             .map(|_| Scalar::from(i32::rand(&mut rng)).into_bigint())

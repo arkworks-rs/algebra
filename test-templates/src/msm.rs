@@ -74,35 +74,35 @@ pub fn test_var_base_msm_mixed_scalars<G: VariableBaseMSM>() {
 pub fn test_var_base_msm_specialized<G: VariableBaseMSM>() {
     const SAMPLES: usize = (1 << 10) * 5;
 
-    let mut rng = ark_std::test_rng();
-    let g = (0..SAMPLES).map(|_| G::rand(&mut rng)).collect::<Vec<_>>();
+    let rng = &mut ark_std::test_rng();
+    let g = (0..SAMPLES).map(|_| G::rand(rng)).collect::<Vec<_>>();
     let g = G::batch_convert_to_mul_base(&g);
 
-    let v = (0..SAMPLES).map(|_| bool::rand(&mut rng)).collect::<Vec<_>>();
+    let v = (0..SAMPLES).map(|_| bool::rand(rng)).collect::<Vec<_>>();
     let v_fe = v.iter().map(|&b| F::<G>::from(b)).collect::<Vec<_>>();
     let naive = naive_var_base_msm::<G>(g.as_slice(), v_fe.as_slice());
     let fast = G::msm_u1(g.as_slice(), v.as_slice());
     assert_eq!(naive, fast);
-    
-    let v = (0..SAMPLES).map(|_| u8::rand(&mut rng)).collect::<Vec<_>>();
+
+    let v = (0..SAMPLES).map(|_| u8::rand(rng)).collect::<Vec<_>>();
     let v_fe = v.iter().map(|&b| F::<G>::from(b)).collect::<Vec<_>>();
     let naive = naive_var_base_msm::<G>(g.as_slice(), v_fe.as_slice());
     let fast = G::msm_u8(g.as_slice(), v.as_slice());
     assert_eq!(naive, fast);
 
-    let v = (0..SAMPLES).map(|_| u16::rand(&mut rng)).collect::<Vec<_>>();
+    let v = (0..SAMPLES).map(|_| u16::rand(rng)).collect::<Vec<_>>();
     let v_fe = v.iter().map(|&b| F::<G>::from(b)).collect::<Vec<_>>();
     let naive = naive_var_base_msm::<G>(g.as_slice(), v_fe.as_slice());
     let fast = G::msm_u16(g.as_slice(), v.as_slice());
     assert_eq!(naive, fast);
 
-    let v = (0..SAMPLES).map(|_| u32::rand(&mut rng)).collect::<Vec<_>>();
+    let v = (0..SAMPLES).map(|_| u32::rand(rng)).collect::<Vec<_>>();
     let v_fe = v.iter().map(|&b| F::<G>::from(b)).collect::<Vec<_>>();
     let naive = naive_var_base_msm::<G>(g.as_slice(), v_fe.as_slice());
     let fast = G::msm_u32(g.as_slice(), v.as_slice());
     assert_eq!(naive, fast);
 
-    let v = (0..SAMPLES).map(|_| u64::rand(&mut rng)).collect::<Vec<_>>();
+    let v = (0..SAMPLES).map(|_| u64::rand(rng)).collect::<Vec<_>>();
     let v_fe = v.iter().map(|&b| F::<G>::from(b)).collect::<Vec<_>>();
     let naive = naive_var_base_msm::<G>(g.as_slice(), v_fe.as_slice());
     let fast = G::msm_u64(g.as_slice(), v.as_slice());
