@@ -57,7 +57,7 @@ pub fn test_var_base_msm_mixed_scalars<G: VariableBaseMSM>() {
     // Positive and negative u64s
     v.extend((0..SAMPLES).map(|_| F::<G>::from(u64::rand(&mut rng))));
     v.extend((0..SAMPLES).map(|_| -F::<G>::from(u64::rand(&mut rng))));
-    
+
     // Random scalars
     v.extend((0..SAMPLES).map(|_| F::<G>::from(G::ScalarField::rand(&mut rng))));
     v.shuffle(&mut rng);

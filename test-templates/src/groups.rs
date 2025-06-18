@@ -191,7 +191,7 @@ macro_rules! __test_group {
         fn test_var_base_msm() {
             $crate::msm::test_var_base_msm::<$group>();
         }
-        
+
         #[test]
         fn test_var_base_msm_mixed_scalars() {
             $crate::msm::test_var_base_msm_mixed_scalars::<$group>();

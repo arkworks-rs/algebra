@@ -232,7 +232,7 @@ macro_rules! ec_bench {
                         })
                     });
 
-                    
+
                     c.bench_function(&format!("MSM-bool for {name}"), |b| {
                         let scalars: Vec<_> = (0..SAMPLES)
                             .map(|_| Scalar::from(bool::rand(&mut rng)).into_bigint())
@@ -252,7 +252,7 @@ macro_rules! ec_bench {
                             result
                         })
                     });
-                    
+
                     c.bench_function(&format!("MSM-i8 for {name}"), |b| {
                         let scalars: Vec<_> = (0..SAMPLES)
                             .map(|_| Scalar::from(i8::rand(&mut rng)).into_bigint())
@@ -272,7 +272,7 @@ macro_rules! ec_bench {
                             result
                         })
                     });
-                    
+
                     c.bench_function(&format!("MSM-i16 for {name}"), |b| {
                         let scalars: Vec<_> = (0..SAMPLES)
                             .map(|_| Scalar::from(i16::rand(&mut rng)).into_bigint())
@@ -282,7 +282,7 @@ macro_rules! ec_bench {
                             result
                         })
                     });
-                    
+
                     c.bench_function(&format!("MSM-u32 for {name}"), |b| {
                         let scalars: Vec<_> = (0..SAMPLES)
                             .map(|_| Scalar::from(u32::rand(&mut rng)).into_bigint())
@@ -321,7 +321,7 @@ macro_rules! ec_bench {
                             result
                         })
                     });
-                    
+
                     c.bench_function(&format!("MSM-mixed for {name}"), |b| {
                         const S: usize = SAMPLES / 11;
                         let mut s = Vec::with_capacity(S * 11);
@@ -344,7 +344,7 @@ macro_rules! ec_bench {
                         // Positive and negative u64s
                         s.extend((0..S).map(|_| Scalar::from(u64::rand(&mut rng))));
                         s.extend((0..S).map(|_| -Scalar::from(u64::rand(&mut rng))));
-                        
+
                         // Random scalars
                         s.extend((0..S).map(|_| Scalar::rand(&mut rng)));
                         s.shuffle(&mut rng);
@@ -358,7 +358,7 @@ macro_rules! ec_bench {
                         })
                     });
                 }
-                
+
                 $crate::criterion_group!(benches, rand, arithmetic, serialization, msm_131072);
             }
         }
