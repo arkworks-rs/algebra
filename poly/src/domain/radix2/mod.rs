@@ -171,7 +171,7 @@ mod tests {
         EvaluationDomain, Radix2EvaluationDomain,
     };
     use ark_ff::{FftField, Field, One, UniformRand, Zero};
-    use ark_std::{collections::BTreeSet, rand::Rng, test_rng};
+    use ark_std::{collections::BTreeSet, rand::Rng, test_rng, vec};
     use ark_test_curves::bls12_381::Fr;
 
     #[test]

@@ -204,13 +204,15 @@ macro_rules! ec_bench {
                     );
                 }
 
-                fn msm_131072(c: &mut $crate::criterion::Criterion) {
+                fn msm(c: &mut $crate::criterion::Criterion) {
                     use ark_ec::{scalar_mul::variable_base::VariableBaseMSM, CurveGroup};
                     use ark_ff::PrimeField;
                     use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
-                    use ark_std::UniformRand;
+                    use ark_std::{UniformRand, rand::seq::SliceRandom};
+                    let mut c = c.benchmark_group("MSM");
+                    c.sample_size(10);
 
-                    const SAMPLES: usize = 131072;
+                    const SAMPLES: usize = 1 << 20;
 
                     let name = format!("{}::{}", $curve_name, stringify!($Group));
                     let mut rng = ark_std::test_rng();
@@ -219,18 +221,147 @@ macro_rules! ec_bench {
                         .map(|_| <$Group>::rand(&mut rng))
                         .collect();
                     let v = <$Group>::normalize_batch(&v);
-                    let scalars: Vec<_> = (0..SAMPLES)
-                        .map(|_| Scalar::rand(&mut rng).into_bigint())
-                        .collect();
-                    c.bench_function(&format!("MSM for {name}"), |b| {
-                        b.iter(|| {
-                            let result: $Group = VariableBaseMSM::msm_bigint(&v, &scalars);
-                            result
-                        })
+
+                    c.bench_function(&format!("MSM-random for {name}"), |b| {
+                        let s: Vec<_> = (0..SAMPLES)
+                            .map(|_| Scalar::rand(&mut rng).into_bigint())
+                            .collect();
+                        b.iter(|| <$Group as VariableBaseMSM>::msm_bigint(&v, &s))
+                    });
+
+
+                    c.bench_function(&format!("MSM-bool for {name}"), |b| {
+                        let s: Vec<_> = (0..SAMPLES)
+                            .map(|_| Scalar::from(bool::rand(&mut rng)).into_bigint())
+                            .collect();
+                        b.iter(|| <$Group as VariableBaseMSM>::msm_bigint(&v, &s))
+                    });
+
+                    c.bench_function(&format!("MSM-bool-direct for {name}"), |b| {
+                        let s: Vec<_> = (0..SAMPLES)
+                            .map(|_| bool::rand(&mut rng))
+                            .collect();
+                        b.iter(|| <$Group as VariableBaseMSM>::msm_u1(&v, &s))
+                    });
+
+                    c.bench_function(&format!("MSM-u8 for {name}"), |b| {
+                        let s: Vec<_> = (0..SAMPLES)
+                            .map(|_| Scalar::from(u8::rand(&mut rng)).into_bigint())
+                            .collect();
+                        b.iter(|| <$Group as VariableBaseMSM>::msm_bigint(&v, &s))
+                    });
+
+                    c.bench_function(&format!("MSM-u8-direct for {name}"), |b| {
+                        let s: Vec<_> = (0..SAMPLES)
+                            .map(|_| u8::rand(&mut rng))
+                            .collect();
+                        b.iter(|| <$Group as VariableBaseMSM>::msm_u8(&v, &s))
+                    });
+
+                    c.bench_function(&format!("MSM-i8 for {name}"), |b| {
+                        let s: Vec<_> = (0..SAMPLES)
+                            .map(|_| Scalar::from(i8::rand(&mut rng)).into_bigint())
+                            .collect();
+                        b.iter(|| <$Group as VariableBaseMSM>::msm_bigint(&v, &s))
+                    });
+
+                    c.bench_function(&format!("MSM-u16 for {name}"), |b| {
+                        let s: Vec<_> = (0..SAMPLES)
+                            .map(|_| Scalar::from(u16::rand(&mut rng)).into_bigint())
+                            .collect();
+                        b.iter(|| <$Group as VariableBaseMSM>::msm_bigint(&v, &s))
+                    });
+
+                    c.bench_function(&format!("MSM-u16-direct for {name}"), |b| {
+                        let s: Vec<_> = (0..SAMPLES)
+                            .map(|_| u16::rand(&mut rng))
+                            .collect();
+                        b.iter(|| <$Group>::msm_u16(&v, &s))
+                    });
+
+                    c.bench_function(&format!("MSM-i16 for {name}"), |b| {
+                        let s: Vec<_> = (0..SAMPLES)
+                            .map(|_| Scalar::from(i16::rand(&mut rng)).into_bigint())
+                            .collect();
+                        b.iter(|| <$Group as VariableBaseMSM>::msm_bigint(&v, &s))
+                    });
+
+                    c.bench_function(&format!("MSM-u32 for {name}"), |b| {
+                        let s: Vec<_> = (0..SAMPLES)
+                            .map(|_| Scalar::from(u32::rand(&mut rng)).into_bigint())
+                            .collect();
+                        b.iter(|| <$Group as VariableBaseMSM>::msm_bigint(&v, &s))
+                    });
+
+                    c.bench_function(&format!("MSM-u32-direct for {name}"), |b| {
+                        let s: Vec<_> = (0..SAMPLES)
+                            .map(|_| u32::rand(&mut rng))
+                            .collect();
+                        b.iter(|| <$Group>::msm_u32(&v, &s))
+                    });
+
+                    c.bench_function(&format!("MSM-i32 for {name}"), |b| {
+                        let s: Vec<_> = (0..SAMPLES)
+                            .map(|_| Scalar::from(i32::rand(&mut rng)).into_bigint())
+                            .collect();
+                        b.iter(|| <$Group as VariableBaseMSM>::msm_bigint(&v, &s))
+                    });
+
+                    c.bench_function(&format!("MSM-u64 for {name}"), |b| {
+                        let s: Vec<_> = (0..SAMPLES)
+                            .map(|_| Scalar::from(u64::rand(&mut rng)).into_bigint())
+                            .collect();
+                        b.iter(|| <$Group as VariableBaseMSM>::msm_bigint(&v, &s))
+                    });
+
+                    c.bench_function(&format!("MSM-u64-direct for {name}"), |b| {
+                        let s: Vec<_> = (0..SAMPLES)
+                            .map(|_| u64::rand(&mut rng))
+                            .collect();
+                        b.iter(|| <$Group>::msm_u64(&v, &s))
+                    });
+                    c.bench_function(&format!("MSM-i64 for {name}"), |b| {
+                        let s: Vec<_> = (0..SAMPLES)
+                            .map(|_| Scalar::from(i64::rand(&mut rng)).into_bigint())
+                            .collect();
+                        b.iter(|| <$Group as VariableBaseMSM>::msm_bigint(&v, &s))
+                    });
+
+                    c.bench_function(&format!("MSM-mixed for {name}"), |b| {
+                        const S: usize = SAMPLES / 11;
+                        let mut s = Vec::with_capacity(S * 11);
+                        // Positive and negative u1s
+                        s.extend((0..S).map(|_| Scalar::from(bool::rand(&mut rng))));
+                        s.extend((0..S).map(|_| -Scalar::from(bool::rand(&mut rng))));
+
+                        // Positive and negative u8s
+                        s.extend((0..S).map(|_| Scalar::from(u8::rand(&mut rng))));
+                        s.extend((0..S).map(|_| -Scalar::from(u8::rand(&mut rng))));
+
+                        // Positive and negative u16s
+                        s.extend((0..S).map(|_| Scalar::from(u16::rand(&mut rng))));
+                        s.extend((0..S).map(|_| -Scalar::from(u16::rand(&mut rng))));
+
+                        // Positive and negative u32s
+                        s.extend((0..S).map(|_| Scalar::from(u32::rand(&mut rng))));
+                        s.extend((0..S).map(|_| -Scalar::from(u32::rand(&mut rng))));
+
+                        // Positive and negative u64s
+                        s.extend((0..S).map(|_| Scalar::from(u64::rand(&mut rng))));
+                        s.extend((0..S).map(|_| -Scalar::from(u64::rand(&mut rng))));
+
+                        // Random s
+                        s.extend((0..S).map(|_| Scalar::rand(&mut rng)));
+                        s.shuffle(&mut rng);
+                        let s = s
+                            .into_iter()
+                            .map(|s| s.into_bigint())
+                            .collect::<Vec<_>>();
+                        b.iter(|| <$Group as VariableBaseMSM>::msm_bigint(&v, &s))
                     });
                 }
 
-                $crate::criterion_group!(benches, rand, arithmetic, serialization, msm_131072,);
+                $crate::criterion_group!(benches, rand, arithmetic, serialization, msm);
             }
         }
     };
