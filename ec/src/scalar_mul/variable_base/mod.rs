@@ -89,8 +89,33 @@ pub trait VariableBaseMSM: ScalarMul + for<'a> AddAssign<&'a Self::Bucket> {
     }
 
     /// Performs multi-scalar multiplication when the scalars are known to be boolean.
-    fn msm_bool(bases: &[Self::MulBase], scalars: &[bool]) -> Self {
+    /// The default implementation is faster than [`Self::msm_bigint`].
+    fn msm_u1(bases: &[Self::MulBase], scalars: &[bool]) -> Self {
         msm_binary(bases, scalars)
+    }
+
+    /// Performs multi-scalar multiplication when the scalars are known to be `u8`-sized.
+    /// The default implementation is faster than [`Self::msm_bigint`].
+    fn msm_u8(bases: &[Self::MulBase], scalars: &[u8]) -> Self {
+        msm_u8(bases, scalars)
+    }
+
+    /// Performs multi-scalar multiplication when the scalars are known to be `u16`-sized.
+    /// The default implementation is faster than [`Self::msm_bigint`].
+    fn msm_u16(bases: &[Self::MulBase], scalars: &[u16]) -> Self {
+        msm_u16(bases, scalars)
+    }
+
+    /// Performs multi-scalar multiplication when the scalars are known to be `u32`-sized.
+    /// The default implementation is faster than [`Self::msm_bigint`].
+    fn msm_u32(bases: &[Self::MulBase], scalars: &[u32]) -> Self {
+        msm_u32(bases, scalars)
+    }
+
+    /// Performs multi-scalar multiplication when the scalars are known to be `u64`-sized.
+    /// The default implementation is faster than [`Self::msm_bigint`].
+    fn msm_u64(bases: &[Self::MulBase], scalars: &[u64]) -> Self {
+        msm_u64(bases, scalars)
     }
 
     /// Streaming multi-scalar multiplication algorithm with hard-coded chunk
