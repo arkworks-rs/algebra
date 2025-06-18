@@ -522,7 +522,7 @@ mod tests {
         use super::serial_mixed_radix_fft;
         use crate::domain::utils::parallel_fft;
         use ark_ff::PrimeField;
-        use ark_std::{test_rng, vec::*};
+        use ark_std::{test_rng, vec::Vec};
         use ark_test_curves::bn384_small_two_adicity::Fq as Fr;
         use core::cmp::min;
 
@@ -587,7 +587,7 @@ mod tests {
     #[test]
     fn test_fft_ifft_identity() {
         let domain = MixedRadixEvaluationDomain::<Fr>::new(8).unwrap();
-        let mut coeffs = vec![
+        let mut coeffs = ark_std::vec![
             Fr::from(1),
             Fr::from(2),
             Fr::from(3),

@@ -518,6 +518,7 @@ mod no_std_tests {
 
     #[test]
     fn test_from_be_bytes_mod_order() {
+        use ark_std::vec;
         // Each test vector is a byte array,
         // and its tested by parsing it with from_bytes_mod_order, and the num-bigint
         // library. The bytes are currently generated from scripts/test_vectors.py.

@@ -407,7 +407,7 @@ mod tests {
     };
     use ark_ff::{One, Zero};
     use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
-    use ark_std::{ops::Neg, test_rng, vec::*, UniformRand};
+    use ark_std::{ops::Neg, test_rng, vec, vec::*, UniformRand};
     use ark_test_curves::bls12_381::Fr;
     /// Some sanity test to ensure random sparse polynomial make sense.
     #[test]

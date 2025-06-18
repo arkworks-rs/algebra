@@ -174,6 +174,7 @@ impl Ord for SparseTerm {
 mod tests {
     use super::*;
     use ark_ff::{Fp64, MontBackend, MontConfig};
+    use ark_std::vec;
 
     #[derive(MontConfig)]
     #[modulus = "5"]

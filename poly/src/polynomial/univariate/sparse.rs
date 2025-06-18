@@ -330,7 +330,7 @@ mod tests {
         EvaluationDomain, GeneralEvaluationDomain,
     };
     use ark_ff::{UniformRand, Zero};
-    use ark_std::{cmp::max, ops::Mul, rand::Rng, test_rng};
+    use ark_std::{cmp::max, ops::Mul, rand::Rng, test_rng, vec};
     use ark_test_curves::bls12_381::Fr;
 
     // probability of rand sparse polynomial having a particular coefficient be 0
