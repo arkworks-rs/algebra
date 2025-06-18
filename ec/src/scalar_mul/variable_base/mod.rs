@@ -460,7 +460,7 @@ fn msm_u64<V: VariableBaseMSM>(mut bases: &[V::MulBase], mut scalars: &[u64]) ->
 }
 
 // Compute msm using windowed non-adjacent form
-fn msm_bigint_wnaf<V: VariableBaseMSM>(
+fn msm_bigint_wnaf_parallel<V: VariableBaseMSM>(
     bases: &[V::MulBase],
     bigints: &[<V::ScalarField as PrimeField>::BigInt],
 ) -> V {
@@ -527,6 +527,60 @@ fn msm_bigint_wnaf<V: VariableBaseMSM>(
                 }
                 total
             })
+}
+
+const THREADS_PER_CHUNK: usize = 2;
+
+/// Computes an MSM using the windowed non-adjacent form (WNAF) algorithm.
+/// To improve parallelism, when number of threads is at least 2, this
+/// function will split the input into enough chunks so that each chunk
+/// can be processed with 2 threads.
+fn msm_bigint_wnaf<V: VariableBaseMSM>(
+    mut bases: &[V::MulBase],
+    mut scalars: &[<V::ScalarField as PrimeField>::BigInt],
+) -> V {
+    let size = bases.len().min(scalars.len());
+    if size == 0 {
+        return V::zero();
+    }
+
+    #[cfg(feature = "parallel")]
+    let chunk_size = {
+        let cur_num_threads = rayon::current_num_threads();
+        let num_chunks = if cur_num_threads < THREADS_PER_CHUNK {
+            1
+        } else {
+            cur_num_threads / THREADS_PER_CHUNK
+        };
+        let chunk_size = size / num_chunks;
+        if chunk_size == 0 {
+            size
+        } else {
+            chunk_size
+        }
+    };
+    #[cfg(not(feature = "parallel"))]
+    let chunk_size = size;
+
+    bases = &bases[..size];
+    scalars = &scalars[..size];
+
+    cfg_chunks!(bases, chunk_size)
+        .zip(cfg_chunks!(scalars, chunk_size))
+        .map(|(bases, scalars)| {
+            #[cfg(feature = "parallel")]
+            let result = rayon::ThreadPoolBuilder::new()
+                .num_threads(THREADS_PER_CHUNK.min(rayon::current_num_threads()))
+                .build()
+                .unwrap()
+                .install(|| msm_bigint_wnaf_parallel::<V>(bases, scalars));
+
+            #[cfg(not(feature = "parallel"))]
+            let result = msm_bigint_wnaf_parallel::<V>(bases, scalars);
+
+            result
+        })
+        .sum()
 }
 
 /// Optimized implementation of multi-scalar multiplication.
