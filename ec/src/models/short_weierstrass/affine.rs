@@ -19,7 +19,7 @@ use ark_ff::{fields::Field, AdditiveGroup, PrimeField, ToConstraintField, Unifor
 use educe::Educe;
 use zeroize::Zeroize;
 
-use super::{bucket::Bucket, Projective, SWCurveConfig, SWFlags, ZeroInd};
+use super::{bucket::Bucket, Projective, SWCurveConfig, SWFlags, ZeroFlag};
 use crate::AffineRepr;
 
 /// Affine coordinates for a point on an elliptic curve in short Weierstrass
@@ -33,7 +33,7 @@ pub struct Affine<P: SWCurveConfig> {
     #[doc(hidden)]
     pub y: P::BaseField,
     #[doc(hidden)]
-    pub infinity: P::ZeroIndicator,
+    pub infinity: P::ZeroFlag,
 }
 
 impl<P: SWCurveConfig> PartialEq<Projective<P>> for Affine<P> {
@@ -67,7 +67,7 @@ impl<P: SWCurveConfig> Affine<P> {
         let point = Self {
             x,
             y,
-            infinity: P::ZeroIndicator::IS_NOT_ZERO,
+            infinity: P::ZeroFlag::IS_NOT_ZERO,
         };
         assert!(point.is_on_curve());
         assert!(point.is_in_correct_subgroup_assuming_on_curve());
@@ -84,18 +84,22 @@ impl<P: SWCurveConfig> Affine<P> {
         Self {
             x,
             y,
-            infinity: P::ZeroIndicator::IS_NOT_ZERO,
+            infinity: P::ZeroFlag::IS_NOT_ZERO,
         }
     }
 
     pub const fn identity() -> Self {
         // Setting these to zero is *load-bearing* and important.
         // These are the values that represent the identity element
-        // when `P::ZeroIndicator` is `()`.
+        // when `P::ZeroFlag` is `()`.
+        // 
+        // We cannot ask `P::ZeroFlag` to provide the zero values
+        // via a `const fn` because constant functions in traits
+        // are not yet supported in Rust.
         Self {
             x: P::BaseField::ZERO,
             y: P::BaseField::ZERO,
-            infinity: P::ZeroIndicator::IS_ZERO,
+            infinity: P::ZeroFlag::IS_ZERO,
         }
     }
 
@@ -250,6 +254,10 @@ impl<P: SWCurveConfig> AffineRepr for Affine<P> {
 
     fn zero() -> Self {
         Self::ZERO
+    }
+    
+    fn is_zero(&self) -> bool {
+        P::ZeroFlag::is_zero(self)
     }
 
     fn from_random_bytes(bytes: &[u8]) -> Option<Self> {
@@ -425,7 +433,7 @@ impl<P: SWCurveConfig> CanonicalDeserialize for Affine<P> {
 impl<M: SWCurveConfig, ConstraintF: Field> ToConstraintField<ConstraintF> for Affine<M>
 where
     M::BaseField: ToConstraintField<ConstraintF>,
-    M::ZeroIndicator: ToConstraintField<ConstraintF>,
+    M::ZeroFlag: ToConstraintField<ConstraintF>,
 {
     #[inline]
     fn to_field_elements(&self) -> Option<Vec<ConstraintF>> {

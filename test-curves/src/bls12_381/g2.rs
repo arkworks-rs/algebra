@@ -50,7 +50,7 @@ impl short_weierstrass::SWCurveConfig for Config {
     /// AFFINE_GENERATOR_COEFFS = (G2_GENERATOR_X, G2_GENERATOR_Y)
     const GENERATOR: G2Affine = G2Affine::new_unchecked(G2_GENERATOR_X, G2_GENERATOR_Y);
 
-    type ZeroIndicator = bool;
+    type ZeroFlag = bool;
 
     #[inline(always)]
     fn mul_by_a(_: Self::BaseField) -> Self::BaseField {

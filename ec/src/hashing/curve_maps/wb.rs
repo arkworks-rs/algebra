@@ -166,7 +166,7 @@ mod test {
         const GENERATOR: Affine<Self> = Affine::new_unchecked(MontFp!("62"), MontFp!("70"));
 
         /// We use `()` because the point (0, 0) is not on the curve.
-        type ZeroIndicator = ();
+        type ZeroFlag = ();
     }
 
     /// Testing WB19 hashing on a small curve
@@ -200,7 +200,7 @@ mod test {
         const GENERATOR: Affine<Self> = Affine::new_unchecked(MontFp!("84"), MontFp!("2"));
 
         /// We use `bool because the point (0, 0) could be on the curve.
-        type ZeroIndicator = bool;
+        type ZeroFlag = bool;
     }
 
     /// SWU parameters for E_isogenous

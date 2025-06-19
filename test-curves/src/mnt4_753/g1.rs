@@ -35,7 +35,7 @@ impl short_weierstrass::SWCurveConfig for Config {
     const GENERATOR: G1Affine = G1Affine::new_unchecked(G1_GENERATOR_X, G1_GENERATOR_Y);
 
     /// We use `bool because `(0, 0)` could be on the curve.
-    type ZeroIndicator = bool;
+    type ZeroFlag = bool;
 }
 
 // Generator of G1

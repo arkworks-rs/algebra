@@ -216,7 +216,7 @@ mod test {
         const GENERATOR: Affine<Self> = Affine::new_unchecked(MontFp!("62"), MontFp!("70"));
 
         /// We use `bool` because the point (0, 0) could be on the curve.
-        type ZeroIndicator = bool;
+        type ZeroFlag = bool;
     }
 
     impl SWUConfig for TestSWUMapToCurveConfig {

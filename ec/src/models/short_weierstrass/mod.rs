@@ -42,7 +42,7 @@ pub trait SWCurveConfig: super::CurveConfig {
     const GENERATOR: Affine<Self>;
 
     /// A type that is stored in `Affine<Self>` to indicate whether the point is at infinity.
-    type ZeroIndicator: ZeroInd<Self>;
+    type ZeroFlag: ZeroFlag<Self>;
 
     /// Helper method for computing `elem * Self::COEFF_A`.
     ///
@@ -202,7 +202,7 @@ pub trait SWCurveConfig: super::CurveConfig {
     }
 }
 
-pub trait ZeroInd<C: SWCurveConfig>:
+pub trait ZeroFlag<C: SWCurveConfig>:
     Hash + Ord + Eq + Copy + Sync + Send + Sized + 'static
 {
     const IS_ZERO: Self;
@@ -213,7 +213,7 @@ pub trait ZeroInd<C: SWCurveConfig>:
     }
 }
 
-impl<C: SWCurveConfig<ZeroIndicator = bool>> ZeroInd<C> for bool {
+impl<C: SWCurveConfig<ZeroFlag = bool>> ZeroFlag<C> for bool {
     const IS_ZERO: Self = true;
     const IS_NOT_ZERO: Self = false;
     fn is_zero(point: &Affine<C>) -> bool {
@@ -221,7 +221,7 @@ impl<C: SWCurveConfig<ZeroIndicator = bool>> ZeroInd<C> for bool {
     }
 }
 
-impl<C: SWCurveConfig> ZeroInd<C> for () {
+impl<C: SWCurveConfig> ZeroFlag<C> for () {
     const IS_ZERO: Self = ();
     const IS_NOT_ZERO: Self = ();
     fn is_zero(point: &Affine<C>) -> bool {

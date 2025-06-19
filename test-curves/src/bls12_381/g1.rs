@@ -36,7 +36,7 @@ impl short_weierstrass::SWCurveConfig for Config {
     /// AFFINE_GENERATOR_COEFFS = (G1_GENERATOR_X, G1_GENERATOR_Y)
     const GENERATOR: G1Affine = G1Affine::new_unchecked(G1_GENERATOR_X, G1_GENERATOR_Y);
 
-    type ZeroIndicator = ();
+    type ZeroFlag = ();
 
     #[inline(always)]
     fn mul_by_a(_: Self::BaseField) -> Self::BaseField {
@@ -127,6 +127,7 @@ mod test {
         for (i, g) in g_s.iter().enumerate() {
             g_s_affine_naive[i] = g.into_affine();
         }
+        
 
         let g_s_affine_fast = G1Projective::normalize_batch(&g_s);
         assert_eq!(g_s_affine_naive.as_ref(), g_s_affine_fast.as_slice());

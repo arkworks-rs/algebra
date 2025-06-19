@@ -38,7 +38,7 @@ impl SWCurveConfig for Config {
     }
 
     /// We use `()` because `(0, 0)` cannot be on the curve.
-    type ZeroIndicator = ();
+    type ZeroFlag = ();
 }
 
 /// G_GENERATOR_X = 55066263022277343669578718895168534326250603453777594175500187360389116729240

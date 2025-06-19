@@ -34,7 +34,7 @@ impl short_weierstrass::SWCurveConfig for Config {
     const GENERATOR: G1Affine = G1Affine::new_unchecked(G1_GENERATOR_X, G1_GENERATOR_Y);
 
     /// We can use `()`, because the point `(0, 0)` is not on the curve.
-    type ZeroIndicator = ();
+    type ZeroFlag = ();
 
     #[inline(always)]
     fn mul_by_a(_: Self::BaseField) -> Self::BaseField {
