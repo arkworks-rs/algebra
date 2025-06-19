@@ -1,0 +1,35 @@
+[package]
+name = "ark-cp6-782"
+version.workspace = true
+authors.workspace = true
+description = "The CP6-782 pairing-friendly elliptic curve"
+homepage.workspace = true
+repository.workspace = true
+documentation = "https://docs.rs/ark-cp6-782/"
+keywords.workspace = true
+categories.workspace = true
+include.workspace = true
+license.workspace = true
+edition.workspace = true
+
+[dependencies]
+ark-ff = { workspace = true }
+ark-ec = { workspace = true }
+ark-std = { workspace = true }
+ark-bls12-377 = { workspace = true, features = [ "base_field" ] }
+itertools = { version = "0.10" }
+ark-serialize = { workspace = true }
+
+[dev-dependencies]
+ark-algebra-test-templates = { workspace = true }
+ark-algebra-bench-templates = { workspace = true }
+
+[features]
+default = []
+std = [ "ark-std/std", "ark-ff/std", "ark-ec/std", "ark-bls12-377/std" ]
+asm = [ "ark-ff/asm" ]
+
+[[bench]]
+name = "cp6_782"
+path = "benches/cp6_782.rs"
+harness = false

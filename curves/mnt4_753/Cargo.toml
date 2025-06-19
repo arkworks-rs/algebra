@@ -1,0 +1,41 @@
+[package]
+name = "ark-mnt4-753"
+version.workspace = true
+authors.workspace = true
+description = "The MNT4-753 pairing-friendly elliptic curve"
+homepage.workspace = true
+repository.workspace = true
+documentation = "https://docs.rs/ark-mnt4-753/"
+keywords.workspace = true
+categories.workspace = true
+include.workspace = true
+license.workspace = true
+edition.workspace = true
+
+[dependencies]
+ark-ff = { workspace = true }
+ark-ec = { workspace = true }
+ark-std = { workspace = true }
+ark-r1cs-std = { workspace = true, optional = true }
+
+[dev-dependencies]
+ark-relations = { workspace = true }
+ark-serialize = { workspace = true }
+ark-algebra-test-templates = { workspace = true }
+ark-algebra-bench-templates = { workspace = true }
+ark-curve-constraint-tests = { path = "../curve-constraint-tests" }
+
+[features]
+default = [ "curve" ]
+std = [ "ark-std/std", "ark-ff/std", "ark-ec/std" ]
+
+curve = [ "scalar_field", "base_field" ]
+scalar_field = []
+base_field = []
+r1cs = [ "base_field", "ark-r1cs-std" ]
+asm = [ "ark-ff/asm" ]
+
+[[bench]]
+name = "mnt4_753"
+path = "benches/mnt4_753.rs"
+harness = false

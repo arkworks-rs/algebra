@@ -1,3 +1,9 @@
+use super::{bucket::Bucket, Affine, SWCurveConfig};
+use crate::{
+    scalar_mul::{variable_base::VariableBaseMSM, ScalarMul},
+    AffineRepr, CurveGroup, PrimeGroup,
+};
+use ark_ff::{fields::Field, AdditiveGroup, PrimeField, ToConstraintField, UniformRand};
 use ark_serialize::{
     CanonicalDeserialize, CanonicalSerialize, Compress, SerializationError, Valid, Validate,
 };
@@ -11,33 +17,24 @@ use ark_std::{
         distributions::{Distribution, Standard},
         Rng,
     },
-    vec::Vec,
+    vec::*,
     One, Zero,
 };
-
-use ark_ff::{fields::Field, PrimeField, ToConstraintField, UniformRand};
-
-use zeroize::Zeroize;
-
+use educe::Educe;
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
-
-use super::{Affine, SWCurveConfig};
-use crate::{
-    scalar_mul::{variable_base::VariableBaseMSM, ScalarMul},
-    AffineRepr, CurveGroup, Group,
-};
+use zeroize::Zeroize;
 
 /// Jacobian coordinates for a point on an elliptic curve in short Weierstrass
 /// form, over the base field `P::BaseField`. This struct implements arithmetic
-/// via the Jacobian formulae
-#[derive(Derivative)]
-#[derivative(Copy(bound = "P: SWCurveConfig"), Clone(bound = "P: SWCurveConfig"))]
+/// via the Jacobian formulae.
+#[derive(Educe)]
+#[educe(Copy, Clone)]
 #[must_use]
 pub struct Projective<P: SWCurveConfig> {
-    /// `X / Z` projection of the affine `X`
+    /// `X / Z^2` projection of the affine `X`
     pub x: P::BaseField,
-    /// `Y / Z` projection of the affine `Y`
+    /// `Y / Z^3` projection of the affine `Y`
     pub y: P::BaseField,
     /// Projective multiplicative inverse. Will be `0` only at infinity.
     pub z: P::BaseField,
@@ -75,10 +72,10 @@ impl<P: SWCurveConfig> PartialEq for Projective<P> {
         let z1z1 = self.z.square();
         let z2z2 = other.z.square();
 
-        if self.x * &z2z2 != other.x * &z1z1 {
-            false
-        } else {
+        if self.x * &z2z2 == other.x * &z1z1 {
             self.y * &(z2z2 * &other.z) == other.y * &(z1z1 * &self.z)
+        } else {
+            false
         }
     }
 }
@@ -160,13 +157,11 @@ impl<P: SWCurveConfig> Zero for Projective<P> {
     }
 }
 
-impl<P: SWCurveConfig> Group for Projective<P> {
-    type ScalarField = P::ScalarField;
+impl<P: SWCurveConfig> AdditiveGroup for Projective<P> {
+    type Scalar = P::ScalarField;
 
-    #[inline]
-    fn generator() -> Self {
-        Affine::generator().into()
-    }
+    const ZERO: Self =
+        Self::new_unchecked(P::BaseField::ONE, P::BaseField::ONE, P::BaseField::ZERO);
 
     /// Sets `self = 2 * self`. Note that Jacobian formulae are incomplete, and
     /// so doubling cannot be computed as `self + self`. Instead, this
@@ -194,20 +189,17 @@ impl<P: SWCurveConfig> Group for Projective<P> {
             // D = 2*((X1+B)^2-A-C)
             //   = 2 * (X1 + Y1^2)^2 - A - C
             //   = 2 * 2 * X1 * Y1^2
-            let d = if [1, 2].contains(&P::BaseField::extension_degree()) {
-                let mut d = self.x;
+            let mut d = self.x;
+            if [1, 2].contains(&P::BaseField::extension_degree()) {
                 d *= &b;
                 d.double_in_place().double_in_place();
-                d
             } else {
-                let mut d = self.x;
                 d += &b;
                 d.square_in_place();
                 d -= a;
                 d -= c;
                 d.double_in_place();
-                d
-            };
+            }
 
             // E = 3*A
             let e = a + &*a.double_in_place();
@@ -227,7 +219,6 @@ impl<P: SWCurveConfig> Group for Projective<P> {
             self.y -= &self.x;
             self.y *= &e;
             self.y -= c.double_in_place().double_in_place().double_in_place();
-            self
         } else {
             // http://www.hyperelliptic.org/EFD/g1p/auto-shortw-jacobian-0.html#doubling-dbl-2009-l
             // XX = X1^2
@@ -269,9 +260,18 @@ impl<P: SWCurveConfig> Group for Projective<P> {
             self.y -= &self.x;
             self.y *= &m;
             self.y -= yyyy.double_in_place().double_in_place().double_in_place();
-
-            self
         }
+
+        self
+    }
+}
+
+impl<P: SWCurveConfig> PrimeGroup for Projective<P> {
+    type ScalarField = P::ScalarField;
+
+    #[inline]
+    fn generator() -> Self {
+        Affine::generator().into()
     }
 
     #[inline]
@@ -333,7 +333,11 @@ impl<P: SWCurveConfig, T: Borrow<Affine<P>>> AddAssign<T> for Projective<P> {
     /// Using <http://www.hyperelliptic.org/EFD/g1p/auto-shortw-jacobian-0.html#addition-madd-2007-bl>
     fn add_assign(&mut self, other: T) {
         let other = other.borrow();
-        if let Some((&other_x, &other_y)) = other.xy() {
+
+        // If the other point is not at infinity, set `self` to the other point.
+        // If the other point *is* at infinity, `other.xy()` will be `None`, and we
+        // will do nothing
+        if let Some((other_x, other_y)) = other.xy() {
             if self.is_zero() {
                 self.x = other_x;
                 self.y = other_y;
@@ -354,12 +358,15 @@ impl<P: SWCurveConfig, T: Borrow<Affine<P>>> AddAssign<T> for Projective<P> {
             s2 *= &other_y;
             s2 *= &z1z1;
 
-            if self.x == u2 && self.y == s2 {
-                // The two points are equal, so we double.
-                self.double_in_place();
+            if self.x == u2 {
+                if self.y == s2 {
+                    // The two points are equal, so we double.
+                    self.double_in_place();
+                } else {
+                    // a + (-a) = 0
+                    *self = Self::zero()
+                }
             } else {
-                // If we're adding -a and a together, self.z becomes zero as H becomes zero.
-
                 // H = U2-X1
                 let mut h = u2;
                 h -= &self.x;
@@ -478,12 +485,15 @@ impl<'a, P: SWCurveConfig> AddAssign<&'a Self> for Projective<P> {
         s2 *= &self.z;
         s2 *= &z1z1;
 
-        if u1 == u2 && s1 == s2 {
-            // The two points are equal, so we double.
-            self.double_in_place();
+        if u1 == u2 {
+            if s1 == s2 {
+                // The two points are equal, so we double.
+                self.double_in_place();
+            } else {
+                // a + (-a) = 0
+                *self = Self::zero();
+            }
         } else {
-            // If we're adding -a and a together, self.z becomes zero as H becomes zero.
-
             // H = U2-U1
             let mut h = u2;
             h -= &u1;
@@ -563,8 +573,8 @@ impl<P: SWCurveConfig, T: Borrow<P::ScalarField>> Mul<T> for Projective<P> {
 // coordinates with Z = 1.
 impl<P: SWCurveConfig> From<Affine<P>> for Projective<P> {
     #[inline]
-    fn from(p: Affine<P>) -> Projective<P> {
-        p.xy().map_or(Projective::zero(), |(&x, &y)| Self {
+    fn from(p: Affine<P>) -> Self {
+        p.xy().map_or_else(Self::zero, |(x, y)| Self {
             x,
             y,
             z: P::BaseField::one(),
@@ -579,7 +589,7 @@ impl<P: SWCurveConfig> CanonicalSerialize for Projective<P> {
         writer: W,
         compress: Compress,
     ) -> Result<(), SerializationError> {
-        let aff = Affine::<P>::from(*self);
+        let aff = Affine::from(*self);
         P::serialize_with_mode(&aff, writer, compress)
     }
 
@@ -638,6 +648,9 @@ impl<P: SWCurveConfig> ScalarMul for Projective<P> {
 }
 
 impl<P: SWCurveConfig> VariableBaseMSM for Projective<P> {
+    type Bucket = Bucket<P>;
+    const ZERO_BUCKET: Self::Bucket = Bucket::ZERO;
+
     fn msm(bases: &[Self::MulBase], bigints: &[Self::ScalarField]) -> Result<Self, usize> {
         P::msm(bases, bigints)
     }
@@ -645,6 +658,6 @@ impl<P: SWCurveConfig> VariableBaseMSM for Projective<P> {
 
 impl<P: SWCurveConfig, T: Borrow<Affine<P>>> core::iter::Sum<T> for Projective<P> {
     fn sum<I: Iterator<Item = T>>(iter: I) -> Self {
-        iter.fold(Projective::zero(), |sum, x| sum + x.borrow())
+        iter.fold(Self::zero(), |sum, x| sum + x.borrow())
     }
 }

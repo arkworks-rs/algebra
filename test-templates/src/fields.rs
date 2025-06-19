@@ -2,6 +2,7 @@
 #![allow(clippy::eq_op)]
 
 use ark_std::rand::Rng;
+
 #[derive(Default, Clone, Copy, Debug)]
 pub struct DummyFlags;
 
@@ -13,7 +14,7 @@ impl ark_serialize::Flags for DummyFlags {
     }
 
     fn from_u8(_value: u8) -> Option<Self> {
-        Some(DummyFlags)
+        Some(Self)
     }
 }
 
@@ -141,6 +142,8 @@ macro_rules! __test_field {
         #[test]
         fn test_add_properties() {
             use ark_std::UniformRand;
+            use ark_ff::AdditiveGroup;
+
             let mut rng = test_rng();
             let zero = <$field>::zero();
             assert_eq!(-zero, zero);
@@ -258,9 +261,9 @@ macro_rules! __test_field {
                 assert_eq!(a * (b + c), a * b + a * c, "Distributivity failed");
                 assert_eq!(b * (a + c), b * a + b * c, "Distributivity failed");
                 assert_eq!(c * (a + b), c * a + c * b, "Distributivity failed");
-                assert_eq!((a + b).square(), a.square() + b.square() + a * b.double(), "Distributivity for square failed");
-                assert_eq!((b + c).square(), c.square() + b.square() + c * b.double(), "Distributivity for square failed");
-                assert_eq!((c + a).square(), a.square() + c.square() + a * c.double(), "Distributivity for square failed");
+                assert_eq!((a + b).square(), a.square() + b.square() + a * ark_ff::AdditiveGroup::double(&b), "Distributivity for square failed");
+                assert_eq!((b + c).square(), c.square() + b.square() + c * ark_ff::AdditiveGroup::double(&b), "Distributivity for square failed");
+                assert_eq!((c + a).square(), a.square() + c.square() + a * ark_ff::AdditiveGroup::double(&c), "Distributivity for square failed");
             }
         }
 
@@ -349,6 +352,27 @@ macro_rules! __test_field {
                 }
             }
         }
+
+
+        #[test]
+        fn test_mul_by_base_field_elem() {
+            use ark_std::UniformRand;
+            let rng = &mut test_rng();
+
+            for _ in 0..ITERATIONS {
+                let a = vec![<<$field as Field>::BasePrimeField>::rand(rng); <$field>::extension_degree() as usize];
+                let b = <<$field as Field>::BasePrimeField>::rand(rng);
+
+                let mut a = <$field>::from_base_prime_field_elems(a).unwrap();
+                let computed = a.mul_by_base_prime_field(&b);
+
+                let embedded_b = <$field as Field>::from_base_prime_field(b);
+
+                let naive = a*embedded_b;
+
+                assert_eq!(computed, naive);
+            }
+        }
     };
     ($field: ty; fft) => {
         $crate::__test_field!($field);
@@ -389,7 +413,8 @@ macro_rules! __test_field {
 
         #[test]
         fn test_sum_of_products_edge_case() {
-            use ark_ff::BigInteger;
+            use ark_ff::{AdditiveGroup, BigInteger};
+
             let mut a_max = <$field>::ZERO.into_bigint();
             for (i, limb) in a_max.as_mut().iter_mut().enumerate() {
                 if i == <$field as PrimeField>::BigInt::NUM_LIMBS - 1 {
@@ -436,7 +461,7 @@ macro_rules! __test_field {
                 let check = ((&modulus + 1u8) / 4u8).to_u64_digits();
                 let len = check.len();
                 assert_eq!(&modulus_plus_one_div_four[..len], &check);
-                assert!(modulus_plus_one_div_four[len..].iter().all(|l| *l == 0));
+                assert!(modulus_plus_one_div_four[len..].iter().all(Zero::is_zero));
             }
 
             let mut two_adicity = 0;
@@ -524,7 +549,7 @@ macro_rules! __test_field {
 
 #[macro_export]
 macro_rules! test_field {
-    ($mod_name: ident; $field: ty $(; $tail:tt)*) => {
+    ($mod_name:ident; $field:ty $(; $tail:tt)*) => {
         mod $mod_name {
             use super::*;
             use ark_ff::{
@@ -532,8 +557,23 @@ macro_rules! test_field {
                 Fp, MontBackend, MontConfig,
             };
             use ark_serialize::{buffer_bit_byte_size, Flags};
-            use ark_std::{io::Cursor, rand::Rng, vec::Vec, test_rng, vec, Zero, One, UniformRand};
+            use ark_std::{io::Cursor, rand::Rng, vec::*, test_rng, vec, Zero, One, UniformRand};
             const ITERATIONS: usize = 1000;
+
+            $crate::__test_field!($field $(; $tail)*);
+        }
+    };
+
+    ($iters:expr; $mod_name:ident; $field:ty $(; $tail:tt)*) => {
+        mod $mod_name {
+            use super::*;
+            use ark_ff::{
+                fields::{FftField, Field, LegendreSymbol, PrimeField},
+                Fp, MontBackend, MontConfig,
+            };
+            use ark_serialize::{buffer_bit_byte_size, Flags};
+            use ark_std::{io::Cursor, rand::Rng, vec::*, test_rng, vec, Zero, One, UniformRand};
+            const ITERATIONS: usize = $iters;
 
             $crate::__test_field!($field $(; $tail)*);
         }

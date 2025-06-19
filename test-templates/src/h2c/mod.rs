@@ -1,9 +1,9 @@
 pub mod json;
-extern crate hex;
-extern crate serde_json;
-extern crate sha2;
+use hex;
 pub use hex::decode;
+use serde_json;
 pub use serde_json::from_reader;
+use sha2;
 pub use sha2::Sha256;
 
 #[macro_export]
@@ -24,7 +24,7 @@ macro_rules! test_h2c {
                 fields::Field,
                 One, UniformRand, Zero,
             };
-            use ark_std::{format, string::String, vec::Vec};
+            use ark_std::{format, string::String, vec::*};
             use std::{
                 fs::{read_dir, File},
                 io::BufReader,
@@ -52,19 +52,19 @@ macro_rules! test_h2c {
 
                 for v in data.vectors.iter() {
                     // first, hash-to-field tests
-                    let got: Vec<$base_prime_field> =
-                        hasher.hash_to_field(&v.msg.as_bytes(), 2 * $m);
+                    let got: [$base_prime_field; { 2 * $m }] =
+                        hasher.hash_to_field(&v.msg.as_bytes());
                     let want: Vec<$base_prime_field> =
                         v.u.iter().map(read_fq_vec).flatten().collect();
-                    assert_eq!(got, want);
+                    assert_eq!(got[..], *want);
 
                     // then, test curve points
                     let x = read_fq_vec(&v.p.x);
                     let y = read_fq_vec(&v.p.y);
                     let got = g1_mapper.hash(&v.msg.as_bytes()).unwrap();
                     let want = Affine::<$group>::new_unchecked(
-                        <$field>::from_base_prime_field_elems(&x[..]).unwrap(),
-                        <$field>::from_base_prime_field_elems(&y[..]).unwrap(),
+                        <$field>::from_base_prime_field_elems(x).unwrap(),
+                        <$field>::from_base_prime_field_elems(y).unwrap(),
                     );
                     assert!(got.is_on_curve());
                     assert!(want.is_on_curve());

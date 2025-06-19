@@ -1,0 +1,32 @@
+[package]
+name = "ark-ed-on-mnt4-753"
+version.workspace = true
+authors.workspace = true
+description = "A Twisted Edwards curve defined over the scalar field of the MNT4-753 curve"
+homepage.workspace = true
+repository.workspace = true
+documentation = "https://docs.rs/ark-ed-on-mnt4-753/"
+keywords.workspace = true
+categories.workspace = true
+include.workspace = true
+license.workspace = true
+edition.workspace = true
+
+[dependencies]
+ark-ff = { workspace = true }
+ark-ec = { workspace = true }
+ark-std = { workspace = true }
+ark-r1cs-std = { workspace = true, optional = true }
+ark-mnt4-753 = { workspace = true, features = [ "scalar_field" ] }
+
+[dev-dependencies]
+ark-relations = { workspace = true }
+ark-serialize = { workspace = true }
+ark-algebra-test-templates = { workspace = true }
+ark-curve-constraint-tests = { path = "../curve-constraint-tests" }
+
+[features]
+default = []
+std = [ "ark-std/std", "ark-ff/std", "ark-ec/std", "ark-mnt4-753/std" ]
+r1cs = ["ark-r1cs-std"]
+asm = [ "ark-ff/asm" ]

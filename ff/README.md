@@ -7,7 +7,7 @@
 </p>
 
 This crate defines Finite Field traits and useful abstraction models that follow these traits.
-Implementations of concrete finite fields for some popular elliptic curves can be found in [`arkworks-rs/curves`](https://github.com/arkworks-rs/curves/README.md) under `arkworks-rs/curves/<your favourite curve>/src/fields/`.
+Implementations of concrete finite fields for some popular elliptic curves can be found in [`arkworks-rs/curves`](https://github.com/arkworks-rs/algebra/blob/master/curves/README.md) under `arkworks-rs/curves/<your favourite curve>/src/fields/`.
 
 This crate contains two types of traits:
 
@@ -16,40 +16,75 @@ This crate contains two types of traits:
 
 The available field traits are:
 
-- [`Field`](https://github.com/arkworks-rs/algebra/blob/master/ff/src/fields/mod.rs#L66) - Interface for a generic finite field.
-- [`FftField`](https://github.com/arkworks-rs/algebra/blob/master/ff/src/fields/mod.rs#L419) - Exposes methods that allow for performing efficient FFTs on field elements.
-- [`PrimeField`](https://github.com/arkworks-rs/algebra/blob/master/ff/src/fields/mod.rs#L523) - Field with a prime `p` number of elements, also referred to as `Fp`.
+- [`AdditiveGroup`](https://github.com/arkworks-rs/algebra/blob/master/ff/src/fields/mod.rs#L46) - Interface for additive groups that have a "scalar multiplication" operation with respect to the `Scalar` associated type. This applies to prime-order fields, field extensions, and elliptic-curve groups used in cryptography.
+- [`Field`](https://github.com/arkworks-rs/algebra/blob/master/ff/src/fields/mod.rs#L161) - Interface for a generic finite field.
+- [`FftField`](https://github.com/arkworks-rs/algebra/blob/master/ff/src/fields/fft_friendly.rs#L2) - Exposes methods that allow for performing efficient FFTs on field elements.
+- [`PrimeField`](https://github.com/arkworks-rs/algebra/blob/master/ff/src/fields/prime.rs#L27) - Field with a prime `p` number of elements, also referred to as `Fp`.
 
 The models implemented are:
 
 - [`Quadratic Extension`](https://github.com/arkworks-rs/algebra/blob/master/ff/src/fields/models/quadratic_extension.rs)
-    - [`QuadExtField`](https://github.com/arkworks-rs/algebra/blob/master/ff/src/fields/models/quadratic_extension.rs#L140) - Struct representing a quadratic extension field, in this case holding two base field elements
-    - [`QuadExtConfig`](https://github.com/arkworks-rs/algebra/blob/master/ff/src/fields/models/quadratic_extension.rs#L27) - Trait defining the necessary parameters needed to instantiate a Quadratic Extension Field
+    - [`QuadExtField`](https://github.com/arkworks-rs/algebra/blob/master/ff/src/fields/models/quadratic_extension.rs#L113) - Struct representing a quadratic extension field, in this case holding two base field elements
+    - [`QuadExtConfig`](https://github.com/arkworks-rs/algebra/blob/master/ff/src/fields/models/quadratic_extension.rs#L29) - Trait defining the necessary parameters needed to instantiate a Quadratic Extension Field
 - [`Cubic Extension`](https://github.com/arkworks-rs/algebra/blob/master/ff/src/fields/models/cubic_extension.rs)
-    - [`CubicExtField`](https://github.com/arkworks-rs/algebra/blob/master/ff/src/fields/models/cubic_extension.rs#L72) - Struct representing a cubic extension field, holds three base field elements
-    - [`CubicExtConfig`](https://github.com/arkworks-rs/algebra/blob/master/ff/src/fields/models/cubic_extension.rs#L27) - Trait defining the necessary parameters needed to instantiate a Cubic Extension Field
-  
+    - [`CubicExtField`](https://github.com/arkworks-rs/algebra/blob/master/ff/src/fields/models/cubic_extension.rs#L97) - Struct representing a cubic extension field, holds three base field elements
+    - [`CubicExtConfig`](https://github.com/arkworks-rs/algebra/blob/master/ff/src/fields/models/cubic_extension.rs#L28) - Trait defining the necessary parameters needed to instantiate a Cubic Extension Field
+
 The above two models serve as abstractions for constructing the extension fields `Fp^m` directly (i.e. `m` equal 2 or 3) or for creating extension towers to arrive at higher `m`. The latter is done by applying the extensions iteratively, e.g. cubic extension over a quadratic extension field.
 
-- [`Fp2`](https://github.com/arkworks-rs/algebra/blob/master/ff/src/fields/models/fp2.rs#L103) - Quadratic extension directly on the prime field, i.e. `BaseField == BasePrimeField`
-- [`Fp3`](https://github.com/arkworks-rs/algebra/blob/master/ff/src/fields/models/fp3.rs#L54) - Cubic extension directly on the prime field, i.e. `BaseField == BasePrimeField`
-- [`Fp6_2over3`](https://github.com/arkworks-rs/algebra/blob/master/ff/src/fields/models/fp6_2over3.rs#L48) - Extension tower: quadratic extension on a cubic extension field, i.e. `BaseField = Fp3`, but `BasePrimeField = Fp`.
-- [`Fp6_3over2`](https://github.com/arkworks-rs/algebra/blob/master/ff/src/fields/models/fp6_3over2.rs#L49) - Extension tower, similar to the above except that the towering order is reversed: it's a cubic extension on a quadratic extension field, i.e. `BaseField = Fp2`, but `BasePrimeField = Fp`. Only this latter one is exported by default as `Fp6`.
-- [`Fp12_2over3over2`](https://github.com/arkworks-rs/algebra/blob/master/ff/src/fields/models/fp12_2over3over2.rs#L83) - Extension tower: quadratic extension of `Fp6_3over2`, i.e. `BaseField = Fp6`.
+- [`Fp2`](https://github.com/arkworks-rs/algebra/blob/master/ff/src/fields/models/fp2.rs#L99) - Quadratic extension directly on the prime field, i.e. `BaseField == BasePrimeField`
+- [`Fp3`](https://github.com/arkworks-rs/algebra/blob/master/ff/src/fields/models/fp3.rs#L72) - Cubic extension directly on the prime field, i.e. `BaseField == BasePrimeField`
+- [`Fp6_2over3`](https://github.com/arkworks-rs/algebra/blob/master/ff/src/fields/models/fp6_2over3.rs#L59) - Extension tower: quadratic extension on a cubic extension field, i.e. `BaseField = Fp3`, but `BasePrimeField = Fp`.
+- [`Fp6_3over2`](https://github.com/arkworks-rs/algebra/blob/master/ff/src/fields/models/fp6_3over2.rs#L64) - Extension tower, similar to the above except that the towering order is reversed: it's a cubic extension on a quadratic extension field, i.e. `BaseField = Fp2`, but `BasePrimeField = Fp`. Only this latter one is exported by default as `Fp6`.
+- [`Fp12_2over3over2`](https://github.com/arkworks-rs/algebra/blob/master/ff/src/fields/models/fp12_2over3over2.rs#L66) - Extension tower: quadratic extension of `Fp6_3over2`, i.e. `BaseField = Fp6`.
 
 ## Usage
 
 There are two important traits when working with finite fields: [`Field`],
 and [`PrimeField`]. Let's explore these via examples.
 
-### [`Field`]
+### [`AdditiveGroup`][additive_group]
 
-The [`Field`] trait provides a generic interface for any finite field.
-Types implementing [`Field`] support common field operations
-such as addition, subtraction, multiplication, and inverses.
+The [`AdditiveGroup`][additive_group] trait provides a generic interface for additive groups that have an associated scalar multiplication operations. Types implementing this trait support common group operations such as addition, subtraction, negation, as well as scalar multiplication by the [`Scalar`][group_scalar_type] associated type.
 
 ```rust
-use ark_ff::Field;
+use ark_ff::AdditiveGroup;
+// We'll use a field associated with the BLS12-381 pairing-friendly
+// group for this example.
+use ark_test_curves::bls12_381::Fq2 as F;
+// `ark-std` is a utility crate that enables `arkworks` libraries
+// to easily support `std` and `no_std` workloads, and also re-exports
+// useful crates that should be common across the entire ecosystem, such as `rand`.
+use ark_std::{One, UniformRand};
+
+let mut rng = ark_std::test_rng();
+// Let's sample uniformly random field elements:
+let a = F::rand(&mut rng);
+let b = F::rand(&mut rng);
+let c = <F as AdditiveGroup>::Scalar::rand(&mut rng);
+
+// We can add...
+let c = a + b;
+// ... subtract ...
+let d = a - b;
+// ... double elements ...
+assert_eq!(c + d, a.double());
+// ... negate them ...
+assert_ne!(d, -d);
+
+// ... and multiply them by scalars:
+let e = d * c;
+```
+
+### [`Field`][field]
+
+The [`Field`][field] trait provides a generic interface for any finite field.
+Types implementing [`Field`][field] support common field operations
+such as addition, subtraction, multiplication, and inverses, and are required
+to be [`AdditiveGroup`][additive_group]s too.
+
+```rust
+use ark_ff::{AdditiveGroup, Field};
 // We'll use a field associated with the BLS12-381 pairing-friendly
 // group for this example.
 use ark_test_curves::bls12_381::Fq2 as F;
@@ -63,6 +98,7 @@ let mut rng = ark_std::test_rng();
 let a = F::rand(&mut rng);
 let b = F::rand(&mut rng);
 
+// We can perform all the operations from the `AdditiveGroup` trait:
 // We can add...
 let c = a + b;
 // ... subtract ...
@@ -76,7 +112,7 @@ let e = c * d;
 assert_eq!(e, a.square() - b.square());
 
 // ... and compute inverses ...
-assert_eq!(a.inverse().unwrap() * a, F::one()); // have to to unwrap, as `a` could be zero.
+assert_eq!(a.inverse().unwrap() * a, F::one()); // have to unwrap, as `a` could be zero.
 ```
 
 In some cases, it is useful to be able to compute square roots of field elements
@@ -107,17 +143,17 @@ if a.legendre().is_qr() {
 }
 ```
 
-### [`PrimeField`]
+### [`PrimeField`][prime_field]
 
 If the field is of prime order, then users can choose
-to implement the [`PrimeField`] trait for it. This provides access to the following
+to implement the [`PrimeField`][prime_field] trait for it. This provides access to the following
 additional APIs:
 
 ```rust
-use ark_ff::{Field, PrimeField, FpConfig, BigInteger};
+use ark_ff::{Field, PrimeField, FpConfig, BigInteger, Zero};
 // Now we'll use the prime field underlying the BLS12-381 G1 curve.
 use ark_test_curves::bls12_381::Fq as F;
-use ark_std::{One, Zero, UniformRand};
+use ark_std::{One, UniformRand};
 
 let mut rng = ark_std::test_rng();
 let a = F::rand(&mut rng);
@@ -133,3 +169,8 @@ assert_eq!(one, num_bigint::BigUint::one());
 let n = F::from_le_bytes_mod_order(&modulus.to_bytes_le());
 assert_eq!(n, F::zero());
 ```
+
+[additive_group]: https://docs.rs/ark-ff/latest/ark_ff/fields/trait.AdditiveGroup.html
+[group_scalar_type]: https://docs.rs/ark-ff/latest/ark_ff/fields/trait.AdditiveGroup.html#associatedtype.Scalar
+[field]: https://docs.rs/ark-ff/latest/ark_ff/fields/trait.Field.html
+[prime_field]: https://docs.rs/ark-ff/latest/ark_ff/fields/trait.PrimeField.html

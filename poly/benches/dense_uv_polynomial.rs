@@ -1,4 +1,3 @@
-extern crate criterion;
 mod common;
 
 use ark_ff::{FftField, Field};
@@ -33,15 +32,15 @@ fn default_size_range() -> Vec<usize> {
     )
 }
 
-fn setup_bench<F: Field>(c: &mut Criterion, name: &str, bench_fn: fn(&mut Bencher, &usize)) {
+fn setup_bench(c: &mut Criterion, name: &str, bench_fn: fn(&mut Bencher<'_>, &usize)) {
     let mut group = c.benchmark_group(name);
-    for degree in default_size_range().iter() {
+    for degree in &default_size_range() {
         group.bench_with_input(BenchmarkId::from_parameter(degree), degree, bench_fn);
     }
     group.finish();
 }
 
-fn bench_sparse_poly_evaluate<F: Field>(b: &mut Bencher, non_zero_entries: &usize) {
+fn bench_sparse_poly_evaluate<F: Field>(b: &mut Bencher<'_>, non_zero_entries: &usize) {
     const MAX_DEGREE: usize = 1 << 15;
     // Per benchmark setup
     let mut rng = &mut ark_std::test_rng();
@@ -56,10 +55,10 @@ fn bench_sparse_poly_evaluate<F: Field>(b: &mut Bencher, non_zero_entries: &usiz
     });
 }
 
-fn bench_poly_evaluate<F: Field>(b: &mut Bencher, degree: &usize) {
+fn bench_poly_evaluate<F: Field>(b: &mut Bencher<'_>, degree: &usize) {
     // Per benchmark setup
     let mut rng = &mut ark_std::test_rng();
-    let poly = DensePolynomial::<F>::rand(*degree, &mut rng);
+    let poly = DensePolynomial::rand(*degree, &mut rng);
     b.iter(|| {
         // Per benchmark iteration
         let pt = F::rand(&mut rng);
@@ -67,18 +66,18 @@ fn bench_poly_evaluate<F: Field>(b: &mut Bencher, degree: &usize) {
     });
 }
 
-fn bench_poly_add<F: Field>(b: &mut Bencher, degree: &usize) {
+fn bench_poly_add<F: Field>(b: &mut Bencher<'_>, degree: &usize) {
     // Per benchmark setup
     let mut rng = &mut ark_std::test_rng();
     let poly_one = DensePolynomial::<F>::rand(*degree, &mut rng);
-    let poly_two = DensePolynomial::<F>::rand(*degree, &mut rng);
+    let poly_two = DensePolynomial::rand(*degree, &mut rng);
     b.iter(|| {
         // Per benchmark iteration
         let _poly_three = &poly_one + &poly_two;
     });
 }
 
-fn bench_poly_add_assign<F: Field>(b: &mut Bencher, degree: &usize) {
+fn bench_poly_add_assign<F: Field>(b: &mut Bencher<'_>, degree: &usize) {
     // Per benchmark setup
     let mut rng = &mut ark_std::test_rng();
     let mut poly_one = DensePolynomial::<F>::rand(*degree, &mut rng);
@@ -89,7 +88,7 @@ fn bench_poly_add_assign<F: Field>(b: &mut Bencher, degree: &usize) {
     });
 }
 
-fn bench_div_by_vanishing_poly<F: FftField>(b: &mut Bencher, degree: &usize) {
+fn bench_div_by_vanishing_poly<F: FftField>(b: &mut Bencher<'_>, degree: &usize) {
     // Per benchmark setup
     let mut rng = &mut ark_std::test_rng();
     let p = DensePolynomial::<F>::rand(*degree, &mut rng);
@@ -100,24 +99,24 @@ fn bench_div_by_vanishing_poly<F: FftField>(b: &mut Bencher, degree: &usize) {
 
 fn poly_benches<F: FftField>(c: &mut Criterion, name: &'static str) {
     if ENABLE_ADD_BENCH {
-        let cur_name = format!("{:?} - add_polynomial", name.clone());
-        setup_bench::<F>(c, &cur_name, bench_poly_add::<F>);
+        let cur_name = format!("{:?} - add_polynomial", name);
+        setup_bench(c, &cur_name, bench_poly_add::<F>);
     }
     if ENABLE_ADD_ASSIGN_BENCH {
-        let cur_name = format!("{:?} - add_assign_polynomial", name.clone());
-        setup_bench::<F>(c, &cur_name, bench_poly_add_assign::<F>);
+        let cur_name = format!("{:?} - add_assign_polynomial", name);
+        setup_bench(c, &cur_name, bench_poly_add_assign::<F>);
     }
     if ENABLE_EVALUATE_BENCH {
-        let cur_name = format!("{:?} - evaluate_polynomial", name.clone());
-        setup_bench::<F>(c, &cur_name, bench_poly_evaluate::<F>);
+        let cur_name = format!("{:?} - evaluate_polynomial", name);
+        setup_bench(c, &cur_name, bench_poly_evaluate::<F>);
     }
     if ENABLE_SPARSE_EVALUATE_BENCH {
-        let cur_name = format!("{:?} - evaluate_sparse_polynomial", name.clone());
-        setup_bench::<F>(c, &cur_name, bench_sparse_poly_evaluate::<F>);
+        let cur_name = format!("{:?} - evaluate_sparse_polynomial", name);
+        setup_bench(c, &cur_name, bench_sparse_poly_evaluate::<F>);
     }
     if ENABLE_DIV_BY_VANISHING_POLY_BENCH {
-        let cur_name = format!("{:?} - evaluate_div_by_vanishing_poly", name.clone());
-        setup_bench::<F>(c, &cur_name, bench_div_by_vanishing_poly::<F>);
+        let cur_name = format!("{:?} - evaluate_div_by_vanishing_poly", name);
+        setup_bench(c, &cur_name, bench_div_by_vanishing_poly::<F>);
     }
 }
 

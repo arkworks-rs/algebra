@@ -1,25 +1,8 @@
 //! This crate implements functions for manipulating polynomials over finite
 //! fields, including FFTs.
 #![cfg_attr(not(feature = "std"), no_std)]
-#![warn(
-    unused,
-    future_incompatible,
-    nonstandard_style,
-    rust_2018_idioms,
-    rust_2021_compatibility
-)]
 #![forbid(unsafe_code)]
-#![allow(
-    clippy::many_single_char_names,
-    clippy::suspicious_op_assign_impl,
-    clippy::suspicious_arithmetic_impl
-)]
-
-#[macro_use]
-extern crate derivative;
-
-#[macro_use]
-extern crate ark_std;
+#![allow(clippy::suspicious_op_assign_impl, clippy::suspicious_arithmetic_impl)]
 
 pub mod domain;
 
@@ -40,15 +23,14 @@ pub use polynomial::{multivariate, univariate, DenseMVPolynomial, DenseUVPolynom
 #[cfg(test)]
 mod test;
 
-#[rustfmt::skip]
 #[cfg(doctest)]
 mod test_readme {
-  macro_rules! external_doc_test {
-    ($x:expr) => {
-        #[doc = $x]
-        extern {}
-    };
-  }
+    macro_rules! external_doc_test {
+        ($x:expr) => {
+            #[doc = $x]
+            extern "C" {}
+        };
+    }
 
-  external_doc_test!(include_str!("../README.md"));
+    external_doc_test!(include_str!("../README.md"));
 }

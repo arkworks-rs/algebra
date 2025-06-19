@@ -16,14 +16,14 @@ This library is released under the MIT License and the Apache v2 License (see [L
 
 ## Directory structure
 
-This repository contains several Rust crates:  
+This repository contains several Rust crates:
 
 * [`ark-ff`](ff): Generic abstractions for, and implementations of various kinds of finite fields
 * [`ark-ec`](ec): Generic abstractions for prime-order groups, and implementations of various kinds of (pairing-friendly and standard) elliptic curves
 * [`ark-poly`](poly): Interfaces for univariate, multivariate, and multilinear polynomials, and FFTs over finite fields
 * [`ark-serialize`](serialize): Efficient interfaces for serialization and point compression for finite fields and elliptic curves
 
-In addition, the [`curves`](https://github.com/arkworks-rs/curves) repository contains concrete implementations of popular elliptic curves; see [here](https://github.com/arkworks-rs/curves/README.md) for details.
+In addition, the [`curves`](https://github.com/arkworks-rs/algebra/tree/master/curves) repository contains concrete implementations of popular elliptic curves; see [here](https://github.com/arkworks-rs/algebra/blob/master/curves/README.md) for details.
 
 ## Build guide
 
@@ -62,7 +62,7 @@ cargo +nightly bench
 The `ark-ff` crate contains (off-by-default) optimized assembly implementations of field arithmetic that rely on the `adcxq`, `adoxq` and `mulxq` instructions. These are available on most `x86_64` platforms (Broadwell onwards for Intel and Ryzen onwards for AMD). Using this backend can lead to a 30-70% speedup in finite field and elliptic curve arithmetic. To build with this backend enabled, run the following command:
 
 ```bash
-RUSTFLAGS="-C target-feature=+bmi2,+adx" cargo +nightly [test/build/bench] --features asm
+RUSTFLAGS="-C target-feature=+bmi2,+adx" cargo [test/build/bench] --features asm
 ```
 
 To enable this in the `Cargo.toml` of your own projects, enable the `asm` feature flag:

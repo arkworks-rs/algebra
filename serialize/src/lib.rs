@@ -12,11 +12,13 @@ mod error;
 mod flags;
 mod impls;
 
-use ark_std::borrow::ToOwned;
+mod serde;
+
 pub use ark_std::io::{Read, Write};
 
 pub use error::*;
 pub use flags::*;
+pub use serde::*;
 
 #[cfg(test)]
 mod test;
@@ -26,6 +28,26 @@ mod test;
 pub use ark_serialize_derive::*;
 
 use digest::{generic_array::GenericArray, Digest, OutputSizeUser};
+
+/// Serializes the given `CanonicalSerialize` items in sequence. `serialize_to_vec![a, b, c, d, e]`
+/// is identical to the value of `buf` after `(a, b, c, d, e).serialize_compressed(&mut buf)`.
+#[macro_export]
+macro_rules! serialize_to_vec {
+    ($($x:expr),*) => ({
+        let mut buf = ::ark_std::vec![];
+        {$crate::serialize_to_vec!(@inner buf, $($x),*)}.map(|_| buf)
+    });
+
+    (@inner $buf:expr, $y:expr, $($x:expr),*) => ({
+        {
+            $crate::CanonicalSerialize::serialize_uncompressed(&$y, &mut $buf)
+        }.and({$crate::serialize_to_vec!(@inner $buf, $($x),*)})
+    });
+
+    (@inner $buf:expr, $x:expr) => ({
+        $crate::CanonicalSerialize::serialize_uncompressed(&$x, &mut $buf)
+    });
+}
 
 /// Whether to use a compressed version of the serialization algorithm. Specific behavior depends
 /// on implementation. If no compressed version exists (e.g. on `Fp`), mode is ignored.
@@ -43,7 +65,7 @@ pub enum Validate {
     No,
 }
 
-pub trait Valid: Sized + Sync {
+pub trait Valid: Sync {
     fn check(&self) -> Result<(), SerializationError>;
 
     fn batch_check<'a>(
@@ -126,7 +148,7 @@ pub trait CanonicalSerialize {
 ///     b: (u64, (u64, u64)),
 /// }
 /// ```
-pub trait CanonicalDeserialize: Valid {
+pub trait CanonicalDeserialize: Valid + Sized {
     /// The general deserialize method that takes in customization flags.
     fn deserialize_with_mode<R: Read>(
         reader: R,
@@ -177,7 +199,7 @@ pub trait CanonicalDeserializeWithFlags: Sized {
 // std::io::Write instance of most digest::Digest implementations by value
 struct HashMarshaller<'a, H: Digest>(&'a mut H);
 
-impl<'a, H: Digest> ark_std::io::Write for HashMarshaller<'a, H> {
+impl<H: Digest> ark_std::io::Write for HashMarshaller<'_, H> {
     #[inline]
     fn write(&mut self, buf: &[u8]) -> ark_std::io::Result<usize> {
         Digest::update(self.0, buf);
@@ -213,7 +235,7 @@ pub trait CanonicalSerializeHashExt: CanonicalSerialize {
 impl<T: CanonicalSerialize> CanonicalSerializeHashExt for T {}
 
 #[inline]
-pub fn buffer_bit_byte_size(modulus_bits: usize) -> (usize, usize) {
+pub const fn buffer_bit_byte_size(modulus_bits: usize) -> (usize, usize) {
     let byte_size = buffer_byte_size(modulus_bits);
     ((byte_size * 8), byte_size)
 }
@@ -222,5 +244,5 @@ pub fn buffer_bit_byte_size(modulus_bits: usize) -> (usize, usize) {
 /// into the number of bytes required to represent it.
 #[inline]
 pub const fn buffer_byte_size(modulus_bits: usize) -> usize {
-    (modulus_bits + 7) / 8
+    modulus_bits.div_ceil(8)
 }

@@ -1,0 +1,25 @@
+[package]
+name = "ark-curve-constraint-tests"
+version.workspace = true
+authors.workspace = true
+description = "A library for testing constraints for finite fields, elliptic curves, and pairings"
+homepage.workspace = true
+repository.workspace = true
+documentation = "https://docs.rs/ark-curve-constraint-tests/"
+keywords = ["cryptography", "finite-fields", "elliptic-curves", "r1cs" ]
+categories.workspace = true
+include.workspace = true
+license.workspace = true
+edition.workspace = true
+
+[dependencies]
+ark-std = { workspace = true }
+ark-serialize = { workspace = true }
+ark-ff = { workspace = true }
+ark-relations = { workspace = true }
+ark-r1cs-std = { workspace = true }
+ark-ec = { workspace = true }
+
+[features]
+default = []
+std = [ "ark-std/std", "ark-ff/std", "ark-serialize/std", "ark-ec/std", "ark-relations/std", "ark-r1cs-std/std" ]

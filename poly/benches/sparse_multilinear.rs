@@ -1,11 +1,9 @@
-#[macro_use]
-extern crate criterion;
-
 use ark_ff::Field;
-use ark_poly::{MultilinearExtension, SparseMultilinearExtension};
+use ark_poly::{Polynomial, SparseMultilinearExtension};
 use ark_std::{ops::Range, test_rng};
 use ark_test_curves::bls12_381;
-use criterion::{black_box, BenchmarkId, Criterion};
+use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
+use std::hint::black_box;
 
 const NUM_VARIABLES_RANGE: Range<usize> = 12..23;
 
@@ -14,7 +12,7 @@ fn arithmetic_op_bench<F: Field>(c: &mut Criterion) {
 
     let mut group = c.benchmark_group("SparseMultilinear");
     for nv in NUM_VARIABLES_RANGE {
-        let num_nonzero_entries = 1 << (dbg!(nv) / 2);
+        let num_nonzero_entries = 1 << (nv / 2);
         group.bench_with_input(
             BenchmarkId::new(format!("Add with num_vars = {nv}"), num_nonzero_entries),
             &num_nonzero_entries,
@@ -72,7 +70,7 @@ fn evaluation_op_bench<F: Field>(c: &mut Criterion) {
                     &mut rng,
                 );
                 let point: Vec<_> = (0..nv).map(|_| F::rand(&mut rng)).collect();
-                b.iter(|| black_box(poly.evaluate(&point).unwrap()))
+                b.iter(|| black_box(poly.evaluate(&point)))
             },
         );
     }

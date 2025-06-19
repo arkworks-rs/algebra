@@ -7,7 +7,8 @@ use ark_ff::{batch_inversion, FftField};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use ark_std::{
     ops::{Add, AddAssign, Div, DivAssign, Index, Mul, MulAssign, Sub, SubAssign},
-    vec::Vec,
+    vec,
+    vec::*,
 };
 
 #[cfg(feature = "parallel")]
@@ -23,8 +24,16 @@ pub struct Evaluations<F: FftField, D: EvaluationDomain<F> = GeneralEvaluationDo
 }
 
 impl<F: FftField, D: EvaluationDomain<F>> Evaluations<F, D> {
+    /// Evaluations of the zero polynomial over `domain`.
+    pub fn zero(domain: D) -> Self {
+        Self {
+            evals: vec![F::zero(); domain.size()],
+            domain,
+        }
+    }
+
     /// Construct `Self` from evaluations and a domain.
-    pub fn from_vec_and_domain(evals: Vec<F>, domain: D) -> Self {
+    pub const fn from_vec_and_domain(evals: Vec<F>, domain: D) -> Self {
         Self { evals, domain }
     }
 
@@ -41,7 +50,7 @@ impl<F: FftField, D: EvaluationDomain<F>> Evaluations<F, D> {
     }
 
     /// Return the domain `self` is defined over
-    pub fn domain(&self) -> D {
+    pub const fn domain(&self) -> D {
         self.domain
     }
 }
@@ -54,9 +63,7 @@ impl<F: FftField, D: EvaluationDomain<F>> Index<usize> for Evaluations<F, D> {
     }
 }
 
-impl<'a, 'b, F: FftField, D: EvaluationDomain<F>> Mul<&'a Evaluations<F, D>>
-    for &'b Evaluations<F, D>
-{
+impl<'a, F: FftField, D: EvaluationDomain<F>> Mul<&'a Evaluations<F, D>> for &Evaluations<F, D> {
     type Output = Evaluations<F, D>;
 
     #[inline]
@@ -67,11 +74,9 @@ impl<'a, 'b, F: FftField, D: EvaluationDomain<F>> Mul<&'a Evaluations<F, D>>
     }
 }
 
-impl<'a, F: FftField, D: EvaluationDomain<F>> MulAssign<&'a Evaluations<F, D>>
-    for Evaluations<F, D>
-{
+impl<'a, F: FftField, D: EvaluationDomain<F>> MulAssign<&'a Self> for Evaluations<F, D> {
     #[inline]
-    fn mul_assign(&mut self, other: &'a Evaluations<F, D>) {
+    fn mul_assign(&mut self, other: &'a Self) {
         assert_eq!(self.domain, other.domain, "domains are unequal");
         ark_std::cfg_iter_mut!(self.evals)
             .zip(&other.evals)
@@ -79,7 +84,7 @@ impl<'a, F: FftField, D: EvaluationDomain<F>> MulAssign<&'a Evaluations<F, D>>
     }
 }
 
-impl<'a, F: FftField, D: EvaluationDomain<F>> Mul<F> for &'a Evaluations<F, D> {
+impl<F: FftField, D: EvaluationDomain<F>> Mul<F> for &Evaluations<F, D> {
     type Output = Evaluations<F, D>;
 
     #[inline]
@@ -92,9 +97,7 @@ impl<'a, F: FftField, D: EvaluationDomain<F>> Mul<F> for &'a Evaluations<F, D> {
     }
 }
 
-impl<'a, 'b, F: FftField, D: EvaluationDomain<F>> Add<&'a Evaluations<F, D>>
-    for &'b Evaluations<F, D>
-{
+impl<'a, F: FftField, D: EvaluationDomain<F>> Add<&'a Evaluations<F, D>> for &Evaluations<F, D> {
     type Output = Evaluations<F, D>;
 
     #[inline]
@@ -105,11 +108,9 @@ impl<'a, 'b, F: FftField, D: EvaluationDomain<F>> Add<&'a Evaluations<F, D>>
     }
 }
 
-impl<'a, F: FftField, D: EvaluationDomain<F>> AddAssign<&'a Evaluations<F, D>>
-    for Evaluations<F, D>
-{
+impl<'a, F: FftField, D: EvaluationDomain<F>> AddAssign<&'a Self> for Evaluations<F, D> {
     #[inline]
-    fn add_assign(&mut self, other: &'a Evaluations<F, D>) {
+    fn add_assign(&mut self, other: &'a Self) {
         assert_eq!(self.domain, other.domain, "domains are unequal");
         ark_std::cfg_iter_mut!(self.evals)
             .zip(&other.evals)
@@ -117,9 +118,7 @@ impl<'a, F: FftField, D: EvaluationDomain<F>> AddAssign<&'a Evaluations<F, D>>
     }
 }
 
-impl<'a, 'b, F: FftField, D: EvaluationDomain<F>> Sub<&'a Evaluations<F, D>>
-    for &'b Evaluations<F, D>
-{
+impl<'a, F: FftField, D: EvaluationDomain<F>> Sub<&'a Evaluations<F, D>> for &Evaluations<F, D> {
     type Output = Evaluations<F, D>;
 
     #[inline]
@@ -130,11 +129,9 @@ impl<'a, 'b, F: FftField, D: EvaluationDomain<F>> Sub<&'a Evaluations<F, D>>
     }
 }
 
-impl<'a, F: FftField, D: EvaluationDomain<F>> SubAssign<&'a Evaluations<F, D>>
-    for Evaluations<F, D>
-{
+impl<'a, F: FftField, D: EvaluationDomain<F>> SubAssign<&'a Self> for Evaluations<F, D> {
     #[inline]
-    fn sub_assign(&mut self, other: &'a Evaluations<F, D>) {
+    fn sub_assign(&mut self, other: &'a Self) {
         assert_eq!(self.domain, other.domain, "domains are unequal");
         ark_std::cfg_iter_mut!(self.evals)
             .zip(&other.evals)
@@ -142,9 +139,7 @@ impl<'a, F: FftField, D: EvaluationDomain<F>> SubAssign<&'a Evaluations<F, D>>
     }
 }
 
-impl<'a, 'b, F: FftField, D: EvaluationDomain<F>> Div<&'a Evaluations<F, D>>
-    for &'b Evaluations<F, D>
-{
+impl<'a, F: FftField, D: EvaluationDomain<F>> Div<&'a Evaluations<F, D>> for &Evaluations<F, D> {
     type Output = Evaluations<F, D>;
 
     #[inline]
@@ -155,11 +150,9 @@ impl<'a, 'b, F: FftField, D: EvaluationDomain<F>> Div<&'a Evaluations<F, D>>
     }
 }
 
-impl<'a, F: FftField, D: EvaluationDomain<F>> DivAssign<&'a Evaluations<F, D>>
-    for Evaluations<F, D>
-{
+impl<'a, F: FftField, D: EvaluationDomain<F>> DivAssign<&'a Self> for Evaluations<F, D> {
     #[inline]
-    fn div_assign(&mut self, other: &'a Evaluations<F, D>) {
+    fn div_assign(&mut self, other: &'a Self) {
         assert_eq!(self.domain, other.domain, "domains are unequal");
         let mut other_copy = other.clone();
         batch_inversion(other_copy.evals.as_mut_slice());

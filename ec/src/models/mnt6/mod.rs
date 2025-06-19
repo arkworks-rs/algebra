@@ -5,12 +5,13 @@ use crate::{
 use ark_ff::{
     fp3::{Fp3, Fp3Config},
     fp6_2over3::{Fp6, Fp6Config},
-    CyclotomicMultSubgroup, Field, PrimeField,
+    AdditiveGroup, CyclotomicMultSubgroup, Field, PrimeField,
 };
+use educe::Educe;
 use itertools::Itertools;
 use num_traits::{One, Zero};
 
-use ark_std::{marker::PhantomData, vec::Vec};
+use ark_std::{marker::PhantomData, vec::*};
 
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
@@ -29,7 +30,7 @@ pub type GT<P> = Fp6<P>;
 pub trait MNT6Config: 'static + Sized {
     const TWIST: Fp3<Self::Fp3Config>;
     const TWIST_COEFF_A: Fp3<Self::Fp3Config>;
-    const ATE_LOOP_COUNT: &'static [i8];
+    const ATE_LOOP_COUNT: &[i8];
     const ATE_IS_LOOP_COUNT_NEG: bool;
     const FINAL_EXPONENT_LAST_CHUNK_1: <Self::Fp as PrimeField>::BigInt;
     const FINAL_EXPONENT_LAST_CHUNK_W0_IS_NEG: bool;
@@ -53,8 +54,8 @@ pub trait MNT6Config: 'static + Sized {
             .zip_eq(b)
             .map(|(a, b)| (a.into(), b.into()))
             .collect::<Vec<_>>();
-        let result = cfg_into_iter!(pairs)
-            .map(|(a, b)| MNT6::<Self>::ate_miller_loop(&a, &b))
+        let result = ark_std::cfg_into_iter!(pairs)
+            .map(|(a, b)| MNT6::ate_miller_loop(&a, &b))
             .product();
         MillerLoopOutput(result)
     }
@@ -74,8 +75,8 @@ pub trait MNT6Config: 'static + Sized {
     }
 }
 
-#[derive(Derivative)]
-#[derivative(Copy, Clone, PartialEq, Eq, Debug, Hash)]
+#[derive(Educe)]
+#[educe(Copy, Clone, PartialEq, Eq, Debug, Hash)]
 pub struct MNT6<P: MNT6Config>(PhantomData<fn() -> P>);
 
 impl<P: MNT6Config> MNT6<P> {

@@ -53,7 +53,6 @@ pub(super) fn mul_assign_impl(
                             target_arch = "x86_64"
                         )
                     )]
-                    #[allow(unsafe_code, unused_mut)]
                     ark_ff::x86_64_asm_mul!(#num_limbs, (a.0).0, (b.0).0);
                 } else {
                     #[cfg(
@@ -94,8 +93,7 @@ pub(super) fn mul_assign_impl(
                 let mut carry = 0u64;
                 fa::mac(scratch[#i], tmp, #modulus_0, &mut carry);
             });
-            for j in 1..num_limbs {
-                let modulus_j = modulus_limbs[j];
+            for (j, modulus_j) in modulus_limbs.iter().enumerate().take(num_limbs).skip(1) {
                 let k = i + j;
                 body.extend(quote!(scratch[#k] = fa::mac_with_carry(scratch[#k], tmp, #modulus_j, &mut carry);));
             }

@@ -10,27 +10,22 @@ use ark_std::{
         distributions::{Distribution, Standard},
         Rng,
     },
-    vec::Vec,
+    vec::*,
     One, Zero,
 };
 
-use ark_ff::{fields::Field, PrimeField, ToConstraintField, UniformRand};
+use ark_ff::{fields::Field, AdditiveGroup, PrimeField, ToConstraintField, UniformRand};
 
+use educe::Educe;
 use zeroize::Zeroize;
 
-use super::{Projective, SWCurveConfig, SWFlags, ZeroInd};
+use super::{bucket::Bucket, Projective, SWCurveConfig, SWFlags, ZeroInd};
 use crate::AffineRepr;
 
 /// Affine coordinates for a point on an elliptic curve in short Weierstrass
 /// form, over the base field `P::BaseField`.
-#[derive(Derivative)]
-#[derivative(
-    Copy(bound = "P: SWCurveConfig"),
-    Clone(bound = "P: SWCurveConfig"),
-    PartialEq(bound = "P: SWCurveConfig"),
-    Eq(bound = "P: SWCurveConfig"),
-    Hash(bound = "P: SWCurveConfig")
-)]
+#[derive(Educe)]
+#[educe(Copy, Clone, PartialEq, Eq, Hash)]
 #[must_use]
 pub struct Affine<P: SWCurveConfig> {
     #[doc(hidden)]
@@ -145,15 +140,15 @@ impl<P: SWCurveConfig> Affine<P> {
 
     /// Checks if `self` is a valid point on the curve.
     pub fn is_on_curve(&self) -> bool {
-        if !self.is_zero() {
+        if self.is_zero() {
+            true
+        } else {
             // Rust does not optimise away addition with zero
             let mut x3b = P::add_b(self.x.square() * self.x);
             if !P::COEFF_A.is_zero() {
                 x3b += P::mul_by_a(self.x);
             };
             self.y.square() == x3b
-        } else {
-            true
         }
     }
 
@@ -164,6 +159,40 @@ impl<P: SWCurveConfig> Affine<P> {
             SWFlags::YIsPositive
         } else {
             SWFlags::YIsNegative
+        }
+    }
+
+    pub fn double_to_bucket(&self) -> Bucket<P> {
+        if self.is_zero() {
+            Bucket::ZERO
+        } else {
+            // https://www.hyperelliptic.org/EFD/g1p/auto-shortw-xyzz.html#doubling-mdbl-2008-s-1
+            // U = 2*Y1
+            let u = self.y.double();
+            // V = U^2
+            let v = u.square();
+            // W = U*V
+            let w = u * &v;
+            // S = X1*V
+            let s = self.x * &v;
+            // M = 3*X1^2+a
+            let mut m = self.x.square();
+            m += m.double();
+            if !P::COEFF_A.is_zero() {
+                m += P::COEFF_A;
+            }
+            // X3 = M^2-2*S
+            let x = m.square() - s.double();
+            // Y3 = M*(S-X3)-W*Y1
+            let y = m * (s - x) - w * self.y;
+            Bucket {
+                x,
+                y,
+                // ZZ3 = V
+                zz: v,
+                // ZZZ3 = W
+                zzz: w,
+            }
         }
     }
 }
@@ -208,8 +237,10 @@ impl<P: SWCurveConfig> AffineRepr for Affine<P> {
     type ScalarField = P::ScalarField;
     type Group = Projective<P>;
 
-    fn xy(&self) -> Option<(&Self::BaseField, &Self::BaseField)> {
-        (!self.is_zero()).then(|| (&self.x, &self.y))
+    const ZERO: Self = Self::identity();
+
+    fn xy(&self) -> Option<(Self::BaseField, Self::BaseField)> {
+        (!self.is_zero()).then(|| (self.x, self.y))
     }
 
     #[inline]
@@ -218,7 +249,7 @@ impl<P: SWCurveConfig> AffineRepr for Affine<P> {
     }
 
     fn zero() -> Self {
-        Self::identity()
+        Self::ZERO
     }
 
     fn from_random_bytes(bytes: &[u8]) -> Option<Self> {
@@ -242,7 +273,6 @@ impl<P: SWCurveConfig> AffineRepr for Affine<P> {
 
     /// Multiplies this element by the cofactor and output the
     /// resulting projective element.
-    #[must_use]
     fn mul_by_cofactor_to_group(&self) -> Self::Group {
         P::mul_affine(self, Self::Config::COFACTOR)
     }
@@ -300,6 +330,20 @@ impl<P: SWCurveConfig, T: Borrow<Self>> Sub<T> for Affine<P> {
     }
 }
 
+impl<P: SWCurveConfig> Sub<Projective<P>> for Affine<P> {
+    type Output = Projective<P>;
+    fn sub(self, other: Projective<P>) -> Projective<P> {
+        self + (-other)
+    }
+}
+
+impl<'a, P: SWCurveConfig> Sub<&'a Projective<P>> for Affine<P> {
+    type Output = Projective<P>;
+    fn sub(self, other: &'a Projective<P>) -> Projective<P> {
+        self + (-*other)
+    }
+}
+
 impl<P: SWCurveConfig> Default for Affine<P> {
     #[inline]
     fn default() -> Self {
@@ -320,12 +364,12 @@ impl<P: SWCurveConfig, T: Borrow<P::ScalarField>> Mul<T> for Affine<P> {
 // coordinates as X/Z^2, Y/Z^3.
 impl<P: SWCurveConfig> From<Projective<P>> for Affine<P> {
     #[inline]
-    fn from(p: Projective<P>) -> Affine<P> {
+    fn from(p: Projective<P>) -> Self {
         if p.is_zero() {
-            Affine::identity()
+            Self::identity()
         } else if p.z.is_one() {
             // If Z is one, the point is already normalized.
-            Affine::new_unchecked(p.x, p.y)
+            Self::new_unchecked(p.x, p.y)
         } else {
             // Z is nonzero, so it must have an inverse in a field.
             let zinv = p.z.inverse().unwrap();
@@ -337,7 +381,7 @@ impl<P: SWCurveConfig> From<Projective<P>> for Affine<P> {
             // Y/Z^3
             let y = p.y * &(zinv_squared * &zinv);
 
-            Affine::new_unchecked(x, y)
+            Self::new_unchecked(x, y)
         }
     }
 }

@@ -12,7 +12,8 @@ use ark_ff::{
     },
     BitIteratorBE, CyclotomicMultSubgroup, Field, PrimeField,
 };
-use ark_std::{marker::PhantomData, vec::Vec};
+use ark_std::{cfg_chunks_mut, marker::PhantomData, vec::*};
+use educe::Educe;
 use num_traits::{One, Zero};
 
 #[cfg(feature = "parallel")]
@@ -27,7 +28,7 @@ pub enum TwistType {
 
 pub trait Bls12Config: 'static + Sized {
     /// Parameterizes the BLS12 family.
-    const X: &'static [u64];
+    const X: &[u64];
     /// Is `Self::X` negative?
     const X_IS_NEGATIVE: bool;
     /// What kind of twist is this?
@@ -88,7 +89,7 @@ pub trait Bls12Config: 'static + Sized {
     fn final_exponentiation(
         f: MillerLoopOutput<Bls12<Self>>,
     ) -> Option<PairingOutput<Bls12<Self>>> {
-        // Computing the final exponentation following
+        // Computing the final exponentiation following
         // https://eprint.iacr.org/2020/875
         // Adapted from the implementation in https://github.com/ConsenSys/gurvy/pull/29
 
@@ -111,7 +112,7 @@ pub trait Bls12Config: 'static + Sized {
             // r = f^((p^6 - 1)(p^2 + 1))
             r *= &f2;
 
-            // Hard part of the final exponentation:
+            // Hard part of the final exponentiation:
             // t[0].CyclotomicSquare(&result)
             let mut y0 = r.cyclotomic_square();
             // t[1].Expt(&result)
@@ -164,8 +165,8 @@ pub use self::{
     g2::{G2Affine, G2Prepared, G2Projective},
 };
 
-#[derive(Derivative)]
-#[derivative(Copy, Clone, PartialEq, Eq, Debug, Hash)]
+#[derive(Educe)]
+#[educe(Copy, Clone, PartialEq, Eq, Debug, Hash)]
 pub struct Bls12<P: Bls12Config>(PhantomData<fn() -> P>);
 
 impl<P: Bls12Config> Bls12<P> {
@@ -178,13 +179,13 @@ impl<P: Bls12Config> Bls12<P> {
 
         match P::TWIST_TYPE {
             TwistType::M => {
-                c2.mul_assign_by_fp(py);
-                c1.mul_assign_by_fp(px);
+                c2.mul_assign_by_fp(&py);
+                c1.mul_assign_by_fp(&px);
                 f.mul_by_014(&c0, &c1, &c2);
             },
             TwistType::D => {
-                c0.mul_assign_by_fp(py);
-                c1.mul_assign_by_fp(px);
+                c0.mul_assign_by_fp(&py);
+                c1.mul_assign_by_fp(&px);
                 f.mul_by_034(&c0, &c1, &c2);
             },
         }

@@ -10,10 +10,10 @@
 use syn::{parse_macro_input, DeriveInput};
 
 mod serialize;
-use serialize::*;
+use serialize::impl_canonical_serialize;
 
 mod deserialize;
-use deserialize::*;
+use deserialize::impl_canonical_deserialize;
 
 #[proc_macro_derive(CanonicalSerialize)]
 pub fn derive_canonical_serialize(input: proc_macro::TokenStream) -> proc_macro::TokenStream {

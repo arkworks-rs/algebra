@@ -2,7 +2,7 @@
 #[doc(hidden)]
 macro_rules! __test_group {
     ($group: ty) => {
-        type ScalarField = <$group as Group>::ScalarField;
+        type ScalarField = <$group as PrimeGroup>::ScalarField;
         #[test]
         fn test_add_properties() {
             let mut rng = &mut ark_std::test_rng();
@@ -67,6 +67,9 @@ macro_rules! __test_group {
 
                 assert_eq!(a - zero, a);
                 assert_eq!(b - zero, b);
+
+                // Affine - Projective
+                assert_eq!(a.into_affine() - b, a - b);
             }
         }
 
@@ -111,6 +114,18 @@ macro_rules! __test_group {
                         assert_eq!(context.mul_with_table(&bad_table, &b), None);
                     }
                 }
+
+                // num_scalars != scalars.len()
+                let mut scalars = vec![ScalarField::rand(&mut rng); 100];
+                scalars[0] = ScalarField::zero();
+                let table = BatchMulPreprocessing::new(a, scalars.len() - 1);
+                let result = table.batch_mul(&scalars);
+                let naive_result = scalars
+                    .iter()
+                    .enumerate()
+                    .map(|(i, s)| a * s)
+                    .collect::<Vec<_>>();
+                assert_eq!(result, naive_result);
             }
         }
 
@@ -175,6 +190,16 @@ macro_rules! __test_group {
         #[test]
         fn test_var_base_msm() {
             $crate::msm::test_var_base_msm::<$group>();
+        }
+
+        #[test]
+        fn test_var_base_msm_mixed_scalars() {
+            $crate::msm::test_var_base_msm_mixed_scalars::<$group>();
+        }
+
+        #[test]
+        fn test_var_base_msm_specialized() {
+            $crate::msm::test_var_base_msm_specialized::<$group>();
         }
 
         #[test]
@@ -263,6 +288,7 @@ macro_rules! __test_group {
 
         #[test]
         fn test_sw_properties() {
+            use ark_ec::models::short_weierstrass::Bucket;
             let mut rng = &mut ark_std::test_rng();
 
             let generator = <$group>::generator().into_affine();
@@ -312,6 +338,18 @@ macro_rules! __test_group {
                         assert_eq!(a, b);
                     }
 
+                }
+            }
+            {
+                for _ in 0..ITERATIONS {
+                    let a = Affine::rand(rng);
+                    let b = Affine::rand(rng);
+                    let mut a_bucket = Bucket::from(a);
+                    a_bucket += &b;
+                    assert_eq!(a + b, <$group>::from(a_bucket), "bucket + affine failed");
+                    let mut a_group = <$group>::from(a);
+                    a_group += &Bucket::from(b);
+                    assert_eq!(a + b, <$group>::from(a_group), "group + bucket failed");
                 }
             }
         }
@@ -367,19 +405,53 @@ macro_rules! __test_group {
             assert_eq!(a, <Config as MontCurveConfig>::COEFF_A);
             assert_eq!(b, <Config as MontCurveConfig>::COEFF_B);
         }
+    };
+    ($group:ty; glv) => {
+        type Config = <$group as CurveGroup>::Config;
+
+        #[test]
+        fn test_scalar_decomposition()
+        {
+            $crate::glv::glv_scalar_decomposition::<Config>();
+        }
+
+
+        #[test]
+        fn test_endomorphism_eigenvalue() {
+            $crate::glv::glv_endomorphism_eigenvalue::<Config>();
+        }
+
+        #[test]
+        fn test_glv_mul() {
+            $crate::glv::glv_projective::<Config>();
+            $crate::glv::glv_affine::<Config>();
+        }
     }
 }
 
 #[macro_export]
 macro_rules! test_group {
-    ($mod_name: ident; $group: ty $(; $tail:tt)*) => {
+    ($mod_name:ident; $group:ty $(; $tail:tt)* ) => {
         mod $mod_name {
             use super::*;
             use ark_ff::*;
-            use ark_ec::{Group, CurveGroup, ScalarMul, AffineRepr, CurveConfig, short_weierstrass::SWCurveConfig, twisted_edwards::TECurveConfig, scalar_mul::{*, wnaf::*}};
+            use ark_ec::{PrimeGroup, CurveGroup, ScalarMul, AffineRepr, CurveConfig, short_weierstrass::SWCurveConfig, twisted_edwards::TECurveConfig, scalar_mul::{*, wnaf::*}};
             use ark_serialize::*;
-            use ark_std::{io::Cursor, rand::Rng, vec::Vec, test_rng, vec, Zero, One, UniformRand};
+            use ark_std::{io::Cursor, rand::Rng, vec::*, test_rng, vec, Zero, One, UniformRand};
             const ITERATIONS: usize = 500;
+
+            $crate::__test_group!($group $(; $tail)*);
+        }
+    };
+
+    ($iters:expr; $mod_name:ident; $group:ty $(; $tail:tt)* ) => {
+        mod $mod_name {
+            use super::*;
+            use ark_ff::*;
+            use ark_ec::{PrimeGroup, CurveGroup, ScalarMul, AffineRepr, CurveConfig, short_weierstrass::SWCurveConfig, twisted_edwards::TECurveConfig, scalar_mul::{*, wnaf::*}};
+            use ark_serialize::*;
+            use ark_std::{io::Cursor, rand::Rng, vec::*, test_rng, vec, Zero, One, UniformRand};
+            const ITERATIONS: usize = $iters;
 
             $crate::__test_group!($group $(; $tail)*);
         }

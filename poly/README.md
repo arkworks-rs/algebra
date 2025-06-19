@@ -120,7 +120,7 @@ let g: DenseMultilinearExtension<Fq> = DenseMultilinearExtension::from_evaluatio
 );
 // when evaluated at any point within the Boolean hypercube, f and g should be equal
 let point_within_hypercube = &vec![Fq::from(0), Fq::from(1), Fq::from(1)];
-assert_eq!(f.evaluate(&point_within_hypercube), g.evaluate(&point_within_hypercube).unwrap());
+assert_eq!(f.evaluate(&point_within_hypercube), g.evaluate(&point_within_hypercube));
 
 // We can also define a MLE g'(x_0, x_1, x_2) by providing the list of non-zero evaluations:
 let g_prime: SparseMultilinearExtension<Fq> = SparseMultilinearExtension::from_evaluations(
@@ -135,7 +135,7 @@ let g_prime: SparseMultilinearExtension<Fq> = SparseMultilinearExtension::from_e
 );
 // at any random point (X0, X1, X2), g == g' with negligible probability, unless they are the same function
 let random_point = &vec![Fq::from(123), Fq::from(456), Fq::from(789)];
-assert_eq!(g_prime.evaluate(&random_point).unwrap(), g.evaluate(&random_point).unwrap());
+assert_eq!(g_prime.evaluate(&random_point), g.evaluate(&random_point));
 
 ```
 

@@ -63,6 +63,8 @@ macro_rules! f_bench {
 macro_rules! field_common {
     ($bench_group_name:expr, $F:ident) => {
         fn arithmetic(c: &mut $crate::criterion::Criterion) {
+            use ark_ff::AdditiveGroup;
+
             let name = format!("{}::{}", $bench_group_name, stringify!($F));
             const SAMPLES: usize = 1000;
             let mut rng = ark_std::test_rng();
@@ -346,7 +348,7 @@ macro_rules! prime_field {
                 let mut i = 0;
                 b.iter(|| {
                     i = (i + 1) % SAMPLES;
-                    BigInt::from_bits_be(&v_bits_le[i]);
+                    BigInt::from_bits_be(&v_bits_le[i])
                 })
             });
             let v_bits_be = v1
@@ -357,7 +359,7 @@ macro_rules! prime_field {
                 let mut i = 0;
                 b.iter(|| {
                     i = (i + 1) % SAMPLES;
-                    BigInt::from_bits_be(&v_bits_be[i]);
+                    BigInt::from_bits_be(&v_bits_be[i])
                 })
             });
             bits.bench_function("Comparison", |b| {

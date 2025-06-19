@@ -1,6 +1,9 @@
 use crate::secp256k1::{Fq, Fr};
-use ark_ec::{models::CurveConfig, short_weierstrass::*};
-use ark_ff::{Field, MontFp, Zero};
+use ark_ec::{
+    models::CurveConfig,
+    short_weierstrass::{Affine, Projective, SWCurveConfig},
+};
+use ark_ff::{AdditiveGroup, Field, MontFp, Zero};
 
 pub type G1Affine = Affine<Config>;
 pub type G1Projective = Projective<Config>;
@@ -13,11 +16,10 @@ impl CurveConfig for Config {
     type ScalarField = Fr;
 
     /// COFACTOR = 1
-    const COFACTOR: &'static [u64] = &[0x1];
+    const COFACTOR: &[u64] = &[0x1];
 
     /// COFACTOR_INV = COFACTOR^{-1} mod r = 1
-    #[rustfmt::skip]
-    const COFACTOR_INV: Fr =  Fr::ONE;
+    const COFACTOR_INV: Fr = Fr::ONE;
 }
 
 impl SWCurveConfig for Config {

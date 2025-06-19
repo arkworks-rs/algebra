@@ -1,6 +1,6 @@
-use crate::Group;
+use crate::PrimeGroup;
 use ark_ff::{BigInteger, PrimeField};
-use ark_std::vec::Vec;
+use ark_std::vec::*;
 
 /// A helper type that contains all the context required for computing
 /// a window NAF multiplication of a group element by a scalar.
@@ -20,7 +20,7 @@ impl WnafContext {
         Self { window_size }
     }
 
-    pub fn table<G: Group>(&self, mut base: G) -> Vec<G> {
+    pub fn table<G: PrimeGroup>(&self, mut base: G) -> Vec<G> {
         let mut table = Vec::with_capacity(1 << (self.window_size - 1));
         let dbl = base.double();
 
@@ -37,7 +37,7 @@ impl WnafContext {
     /// multiplication; first, it uses `Self::table` to calculate an
     /// appropriate table of multiples of `g`, and then uses the wNAF
     /// algorithm to compute the scalar multiple.
-    pub fn mul<G: Group>(&self, g: G, scalar: &G::ScalarField) -> G {
+    pub fn mul<G: PrimeGroup>(&self, g: G, scalar: &G::ScalarField) -> G {
         let table = self.table(g);
         self.mul_with_table(&table, scalar).unwrap()
     }
@@ -48,7 +48,11 @@ impl WnafContext {
     /// `G::ScalarField`.
     ///
     /// Returns `None` if the table is too small.
-    pub fn mul_with_table<G: Group>(&self, base_table: &[G], scalar: &G::ScalarField) -> Option<G> {
+    pub fn mul_with_table<G: PrimeGroup>(
+        &self,
+        base_table: &[G],
+        scalar: &G::ScalarField,
+    ) -> Option<G> {
         if 1 << (self.window_size - 1) > base_table.len() {
             return None;
         }

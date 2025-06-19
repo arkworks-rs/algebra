@@ -1,48 +1,56 @@
 [package]
 name = "ark-test-curves"
-version = "0.4.2"
-authors = [ "arkworks contributors" ]
 description = "A library for testing ark-ec & ark-poly"
-homepage = "https://arkworks.rs"
-repository = "https://github.com/arkworks-rs/algebra"
+keywords = ["cryptography", "serialization"]
 documentation = "https://docs.rs/ark-test-curves/"
-keywords = ["cryptography", "serialization" ]
-categories = ["cryptography"]
-include = ["Cargo.toml", "src", "README.md", "LICENSE-APACHE", "LICENSE-MIT"]
-license = "MIT/Apache-2.0"
-edition = "2021"
-rust-version = "1.63"
+version.workspace = true
+authors.workspace = true
+homepage.workspace = true
+repository.workspace = true
+categories.workspace = true
+include.workspace = true
+license.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+metadata.docs.rs.workspace = true
+metadata.release.workspace = true
+
+[lints]
+workspace = true
 
 [dependencies]
-ark-std = { version = "0.4.0", default-features = false }
-ark-ff = { version = "0.4.2", path = "../ff", default-features = false }
-ark-ec = { version = "0.4.2", path = "../ec", default-features = false }
+ark-std = { workspace = true, default-features = false }
+ark-ff = { workspace = true, default-features = false }
+ark-ec = { workspace = true, default-features = false }
 
 [dev-dependencies]
-ark-serialize = { version = "0.4.2", path = "../serialize", default-features = false }
-ark-algebra-test-templates = { version = "0.4.2", path = "../test-templates", default-features = false }
-ark-algebra-bench-templates =  { version = "0.4.2", path = "../bench-templates", default-features = false }
+ark-serialize = { workspace = true, default-features = false }
+ark-algebra-test-templates = { workspace = true, default-features = false }
+ark-algebra-bench-templates = { workspace = true, default-features = false }
 
 [features]
 default = []
 
-asm = [ "ark-ff/asm" ]
+asm = ["ark-ff/asm"]
 
-parallel = [ "ark-ff/parallel", "ark-ec/parallel", "ark-std/parallel" ]
+parallel = ["ark-ff/parallel", "ark-ec/parallel", "ark-std/parallel"]
 
 bls12_381_scalar_field = []
-bls12_381_curve = [ "bls12_381_scalar_field" ]
-ed_on_bls12_381 = [ "bls12_381_scalar_field" ]
+bls12_381_curve = ["bls12_381_scalar_field"]
+ed_on_bls12_381 = ["bls12_381_scalar_field"]
 
 mnt4_753_scalar_field = []
 mnt4_753_base_field = []
-mnt4_753_curve = [ "mnt4_753_scalar_field", "mnt4_753_base_field" ]
+mnt4_753_curve = ["mnt4_753_scalar_field", "mnt4_753_base_field"]
 
-mnt6_753 = [ "mnt4_753_scalar_field", "mnt4_753_base_field" ]
+mnt6_753 = ["mnt4_753_scalar_field", "mnt4_753_base_field"]
 
 bn384_small_two_adicity_scalar_field = []
 bn384_small_two_adicity_base_field = []
-bn384_small_two_adicity_curve = [ "bn384_small_two_adicity_scalar_field", "bn384_small_two_adicity_base_field" ]
+bn384_small_two_adicity_curve = [
+    "bn384_small_two_adicity_scalar_field",
+    "bn384_small_two_adicity_base_field",
+]
 
 secp256k1 = []
 

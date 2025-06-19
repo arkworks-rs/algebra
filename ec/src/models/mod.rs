@@ -1,4 +1,4 @@
-use ark_ff::{Field, PrimeField};
+use ark_ff::{Field, PrimeField, Zero};
 
 pub mod bls12;
 pub mod bn;
@@ -11,6 +11,7 @@ pub mod twisted_edwards;
 
 /// Elliptic curves can be represented via different "models" with varying
 /// efficiency properties.
+///
 /// `CurveConfig` bundles together the types that are common
 /// to all models of the given curve, namely the `BaseField` over which the
 /// curve is defined, and the `ScalarField` defined by the appropriate
@@ -23,10 +24,10 @@ pub trait CurveConfig: Send + Sync + Sized + 'static {
     type ScalarField: PrimeField + Into<<Self::ScalarField as PrimeField>::BigInt>;
 
     /// The cofactor of this curve, represented as a sequence of little-endian limbs.
-    const COFACTOR: &'static [u64];
+    const COFACTOR: &[u64];
     const COFACTOR_INV: Self::ScalarField;
 
     fn cofactor_is_one() -> bool {
-        Self::COFACTOR[0] == 1 && Self::COFACTOR.iter().skip(1).all(|&e| e == 0)
+        Self::COFACTOR[0] == 1 && Self::COFACTOR.iter().skip(1).all(Zero::is_zero)
     }
 }

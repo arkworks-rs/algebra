@@ -1,10 +1,10 @@
 use super::*;
 use ark_std::{
-    collections::{BTreeMap, BTreeSet},
+    collections::{BTreeMap, BTreeSet, LinkedList, VecDeque},
     rand::RngCore,
-    string::String,
+    string::*,
     vec,
-    vec::Vec,
+    vec::*,
 };
 use num_bigint::BigUint;
 
@@ -50,13 +50,40 @@ impl CanonicalDeserialize for Dummy {
                 assert_eq!(<[u8; 2]>::deserialize_compressed(reader)?, [100u8, 200u8])
             },
         }
-        Ok(Dummy)
+        Ok(Self)
     }
 }
 
 fn test_serialize<T: PartialEq + core::fmt::Debug + CanonicalSerialize + CanonicalDeserialize>(
     data: T,
 ) {
+    #[cfg(feature = "serde")]
+    let serde_ser = |compress: Compress, validate: Validate| -> Result<String, serde_json::Error> {
+        match (compress, validate) {
+            (Compress::Yes, Validate::Yes) => serde_json::to_string(&CompressedChecked(&data)),
+            (Compress::Yes, Validate::No) => serde_json::to_string(&CompressedUnchecked(&data)),
+            (Compress::No, Validate::Yes) => serde_json::to_string(&UncompressedChecked(&data)),
+            (Compress::No, Validate::No) => serde_json::to_string(&UncompressedUnchecked(&data)),
+        }
+    };
+    #[cfg(feature = "serde")]
+    let serde_de =
+        |compress: Compress, validate: Validate, input: &str| -> Result<T, serde_json::Error> {
+            Ok(match (compress, validate) {
+                (Compress::Yes, Validate::Yes) => {
+                    serde_json::from_str::<CompressedChecked<T>>(input)?.0
+                },
+                (Compress::Yes, Validate::No) => {
+                    serde_json::from_str::<CompressedUnchecked<T>>(input)?.0
+                },
+                (Compress::No, Validate::Yes) => {
+                    serde_json::from_str::<UncompressedChecked<T>>(input)?.0
+                },
+                (Compress::No, Validate::No) => {
+                    serde_json::from_str::<UncompressedUnchecked<T>>(input)?.0
+                },
+            })
+        };
     for compress in [Compress::Yes, Compress::No] {
         for validate in [Validate::Yes, Validate::No] {
             let mut serialized = vec![0; data.serialized_size(compress)];
@@ -64,6 +91,12 @@ fn test_serialize<T: PartialEq + core::fmt::Debug + CanonicalSerialize + Canonic
                 .unwrap();
             let de = T::deserialize_with_mode(&serialized[..], compress, validate).unwrap();
             assert_eq!(data, de);
+            #[cfg(feature = "serde")]
+            {
+                let serde_serialized = serde_ser(compress, validate).unwrap();
+                let serde_de = serde_de(compress, validate, &serde_serialized).unwrap();
+                assert_eq!(data, serde_de);
+            }
         }
     }
 }
@@ -127,9 +160,28 @@ fn test_array() {
 }
 
 #[test]
+fn test_array_bad_input() {
+    // Does not panic on invalid data:
+    let serialized = [0u8; 1];
+    assert!(<[u8; 2]>::deserialize_compressed(&serialized[..]).is_err());
+}
+
+#[test]
 fn test_vec() {
     test_serialize(vec![1u64, 2, 3, 4, 5]);
     test_serialize(Vec::<u64>::new());
+}
+
+#[test]
+fn test_vecdeque() {
+    test_serialize([1u64, 2, 3, 4, 5].into_iter().collect::<VecDeque<_>>());
+    test_serialize(VecDeque::<u64>::new());
+}
+
+#[test]
+fn test_linkedlist() {
+    test_serialize([1u64, 2, 3, 4, 5].into_iter().collect::<LinkedList<_>>());
+    test_serialize(LinkedList::<u64>::new());
 }
 
 #[test]
@@ -139,6 +191,20 @@ fn test_uint() {
     test_serialize(192830918u32);
     test_serialize(22313u16);
     test_serialize(123u8);
+}
+
+#[test]
+fn test_int() {
+    test_serialize(192830918isize);
+    test_serialize(-192830918isize);
+    test_serialize(192830918i64);
+    test_serialize(-192830918i64);
+    test_serialize(192830918i32);
+    test_serialize(-192830918i32);
+    test_serialize(22313i16);
+    test_serialize(-22313i16);
+    test_serialize(123i8);
+    test_serialize(-123i8);
 }
 
 #[test]
@@ -189,6 +255,14 @@ fn test_bool() {
 }
 
 #[test]
+fn test_rc_arc() {
+    use ark_std::sync::Arc;
+    test_serialize(Arc::new(Dummy));
+    test_serialize(Arc::new(10u64));
+}
+
+#[test]
+#[allow(clippy::zero_sized_map_values)]
 fn test_btreemap() {
     let mut map = BTreeMap::new();
     map.insert(0u64, Dummy);
@@ -254,4 +328,25 @@ fn test_biguint() {
         .serialize_with_mode(&mut bytes, Compress::No)
         .unwrap();
     assert_eq!(bytes, expected);
+}
+
+#[test]
+fn test_serialize_macro() {
+    // Make a bunch of distinctly typed values
+    let val1 = [vec![1u8, 2u8, 3u8], vec![4u8, 5u8, 6u8]]
+        .into_iter()
+        .collect::<BTreeSet<_>>();
+    let val2: core::marker::PhantomData<Dummy> = core::marker::PhantomData;
+    let val3 = Some(10u64);
+    let val4 = 192830918usize;
+    let val5 = [1u64, 2, 3, 4, 5].into_iter().collect::<LinkedList<_>>();
+
+    // Make sure the serialization macro matches just serializing them as a tuple
+    let mut tuple_bytes = Vec::new();
+    (val1.clone(), val2, val3, val4, val5.clone())
+        .serialize_uncompressed(&mut tuple_bytes)
+        .unwrap();
+    let macro_bytes = serialize_to_vec![val1, val2, val3, val4, val5].unwrap();
+
+    assert_eq!(tuple_bytes, macro_bytes);
 }

@@ -1,5 +1,8 @@
-use crate::bls12_381::*;
-use ark_ff::{fields::*, MontFp};
+use crate::bls12_381::{Fq2, Fq6, Fq6Config, FQ2_ONE, FQ2_ZERO};
+use ark_ff::{
+    fields::{Fp12, Fp12Config, Fp2},
+    MontFp,
+};
 
 pub type Fq12 = Fp12<Fq12Config>;
 
@@ -11,7 +14,7 @@ impl Fp12Config for Fq12Config {
 
     const NONRESIDUE: Fq6 = Fq6::new(FQ2_ZERO, FQ2_ONE, FQ2_ZERO);
 
-    const FROBENIUS_COEFF_FP12_C1: &'static [Fq2] = &[
+    const FROBENIUS_COEFF_FP12_C1: &[Fq2] = &[
         // Fp2::NONRESIDUE^(((q^0) - 1) / 6)
         Fp2::new(MontFp!("1"), MontFp!("0")),
         // Fp2::NONRESIDUE^(((q^1) - 1) / 6)

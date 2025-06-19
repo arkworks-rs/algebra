@@ -1,12 +1,12 @@
 //! Modules for working with univariate or multivariate polynomials.
 use ark_ff::{Field, Zero};
-use ark_serialize::*;
+use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use ark_std::{
     fmt::Debug,
     hash::Hash,
     ops::{Add, AddAssign, Neg, SubAssign},
     rand::Rng,
-    vec::Vec,
+    vec::*,
 };
 
 pub mod multivariate;

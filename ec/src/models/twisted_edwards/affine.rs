@@ -10,26 +10,21 @@ use ark_std::{
         distributions::{Distribution, Standard},
         Rng,
     },
-    vec::Vec,
+    vec::*,
 };
+use educe::Educe;
 use num_traits::{One, Zero};
 use zeroize::Zeroize;
 
-use ark_ff::{fields::Field, PrimeField, ToConstraintField, UniformRand};
+use ark_ff::{fields::Field, AdditiveGroup, PrimeField, ToConstraintField, UniformRand};
 
 use super::{Projective, TECurveConfig, TEFlags};
 use crate::AffineRepr;
 
 /// Affine coordinates for a point on a twisted Edwards curve, over the
 /// base field `P::BaseField`.
-#[derive(Derivative)]
-#[derivative(
-    Copy(bound = "P: TECurveConfig"),
-    Clone(bound = "P: TECurveConfig"),
-    PartialEq(bound = "P: TECurveConfig"),
-    Eq(bound = "P: TECurveConfig"),
-    Hash(bound = "P: TECurveConfig")
-)]
+#[derive(Educe)]
+#[educe(Copy, Clone, PartialEq, Eq, Hash)]
 #[must_use]
 pub struct Affine<P: TECurveConfig> {
     /// X coordinate of the point represented as a field element
@@ -98,7 +93,6 @@ impl<P: TECurveConfig> Affine<P> {
     /// a * X^2 - d * X^2 * Y^2 = 1 - Y^2
     /// X^2 * (a - d * Y^2) = 1 - Y^2
     /// X^2 = (1 - Y^2) / (a - d * Y^2)
-    #[allow(dead_code)]
     pub fn get_point_from_y_unchecked(y: P::BaseField, greatest: bool) -> Option<Self> {
         Self::get_xs_from_y_unchecked(y).map(|(x, neg_x)| {
             if greatest {
@@ -119,7 +113,6 @@ impl<P: TECurveConfig> Affine<P> {
     /// a * X^2 - d * X^2 * Y^2 = 1 - Y^2
     /// X^2 * (a - d * Y^2) = 1 - Y^2
     /// X^2 = (1 - Y^2) / (a - d * Y^2)
-    #[allow(dead_code)]
     pub fn get_xs_from_y_unchecked(y: P::BaseField) -> Option<(P::BaseField, P::BaseField)> {
         let y2 = y.square();
 
@@ -166,8 +159,10 @@ impl<P: TECurveConfig> AffineRepr for Affine<P> {
     type ScalarField = P::ScalarField;
     type Group = Projective<P>;
 
-    fn xy(&self) -> Option<(&Self::BaseField, &Self::BaseField)> {
-        (!self.is_zero()).then(|| (&self.x, &self.y))
+    const ZERO: Self = Self::new_unchecked(P::BaseField::ZERO, P::BaseField::ONE);
+
+    fn xy(&self) -> Option<(Self::BaseField, Self::BaseField)> {
+        (!self.is_zero()).then_some((self.x, self.y))
     }
 
     fn generator() -> Self {
@@ -175,7 +170,7 @@ impl<P: TECurveConfig> AffineRepr for Affine<P> {
     }
 
     fn zero() -> Self {
-        Self::new_unchecked(P::BaseField::ZERO, P::BaseField::ONE)
+        Self::ZERO
     }
 
     fn from_random_bytes(bytes: &[u8]) -> Option<Self> {
@@ -189,7 +184,6 @@ impl<P: TECurveConfig> AffineRepr for Affine<P> {
 
     /// Multiplies this element by the cofactor and output the
     /// resulting projective element.
-    #[must_use]
     fn mul_by_cofactor_to_group(&self) -> Self::Group {
         P::mul_affine(self, Self::Config::COFACTOR)
     }
@@ -251,6 +245,20 @@ impl<P: TECurveConfig, T: Borrow<Self>> Sub<T> for Affine<P> {
     }
 }
 
+impl<P: TECurveConfig> Sub<Projective<P>> for Affine<P> {
+    type Output = Projective<P>;
+    fn sub(self, other: Projective<P>) -> Projective<P> {
+        self + (-other)
+    }
+}
+
+impl<'a, P: TECurveConfig> Sub<&'a Projective<P>> for Affine<P> {
+    type Output = Projective<P>;
+    fn sub(self, other: &'a Projective<P>) -> Projective<P> {
+        self + (-*other)
+    }
+}
+
 impl<P: TECurveConfig> Default for Affine<P> {
     #[inline]
     fn default() -> Self {
@@ -285,18 +293,18 @@ impl<P: TECurveConfig, T: Borrow<P::ScalarField>> Mul<T> for Affine<P> {
 // The projective point X, Y, T, Z is represented in the affine
 // coordinates as X/Z, Y/Z.
 impl<P: TECurveConfig> From<Projective<P>> for Affine<P> {
-    fn from(p: Projective<P>) -> Affine<P> {
+    fn from(p: Projective<P>) -> Self {
         if p.is_zero() {
-            Affine::zero()
+            Self::zero()
         } else if p.z.is_one() {
             // If Z is one, the point is already normalized.
-            Affine::new_unchecked(p.x, p.y)
+            Self::new_unchecked(p.x, p.y)
         } else {
             // Z is nonzero, so it must have an inverse in a field.
             let z_inv = p.z.inverse().unwrap();
             let x = p.x * &z_inv;
             let y = p.y * &z_inv;
-            Affine::new_unchecked(x, y)
+            Self::new_unchecked(x, y)
         }
     }
 }

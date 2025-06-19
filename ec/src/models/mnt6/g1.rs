@@ -4,20 +4,15 @@ use crate::{
     AffineRepr, CurveGroup,
 };
 use ark_ff::Fp3;
-use ark_serialize::*;
-use ark_std::vec::Vec;
+use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
+use ark_std::vec::*;
+use educe::Educe;
 
 pub type G1Affine<P> = Affine<<P as MNT6Config>::G1Config>;
 pub type G1Projective<P> = Projective<<P as MNT6Config>::G1Config>;
 
-#[derive(Derivative, CanonicalSerialize, CanonicalDeserialize)]
-#[derivative(
-    Copy(bound = "P: MNT6Config"),
-    Clone(bound = "P: MNT6Config"),
-    Debug(bound = "P: MNT6Config"),
-    PartialEq(bound = "P: MNT6Config"),
-    Eq(bound = "P: MNT6Config")
-)]
+#[derive(Educe, CanonicalSerialize, CanonicalDeserialize)]
+#[educe(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct G1Prepared<P: MNT6Config> {
     pub x: P::Fp,
     pub y: P::Fp,

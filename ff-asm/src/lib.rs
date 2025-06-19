@@ -15,7 +15,7 @@ use syn::{
 };
 
 mod context;
-use context::*;
+use context::{AssemblyVar, Context};
 
 use std::cell::RefCell;
 
@@ -30,7 +30,7 @@ struct AsmMulInput {
 impl Parse for AsmMulInput {
     fn parse(input: ParseStream<'_>) -> syn::Result<Self> {
         let input = input
-            .parse_terminated::<_, syn::token::Comma>(Expr::parse)?
+            .parse_terminated(Expr::parse, syn::token::Comma)?
             .into_iter()
             .collect::<Vec<_>>();
         let num_limbs = input[0].clone();
@@ -59,7 +59,7 @@ pub fn x86_64_asm_mul(input: TokenStream) -> TokenStream {
     } else {
         panic!("The number of limbs must be a literal");
     };
-    if num_limbs <= 6 && num_limbs <= 3 * MAX_REGS {
+    if num_limbs <= 6 {
         let impl_block = generate_impl(num_limbs, true);
 
         let inner_ts: Expr = syn::parse_str(&impl_block).unwrap();
@@ -82,7 +82,7 @@ struct AsmSquareInput {
 impl Parse for AsmSquareInput {
     fn parse(input: ParseStream<'_>) -> syn::Result<Self> {
         let input = input
-            .parse_terminated::<_, syn::token::Comma>(Expr::parse)?
+            .parse_terminated(Expr::parse, syn::token::Comma)?
             .into_iter()
             .collect::<Vec<_>>();
         let num_limbs = input[0].clone();
@@ -110,7 +110,7 @@ pub fn x86_64_asm_square(input: TokenStream) -> TokenStream {
     } else {
         panic!("The number of limbs must be a literal");
     };
-    if num_limbs <= 6 && num_limbs <= 3 * MAX_REGS {
+    if num_limbs <= 6 {
         let impl_block = generate_impl(num_limbs, false);
 
         let inner_ts: Expr = syn::parse_str(&impl_block).unwrap();

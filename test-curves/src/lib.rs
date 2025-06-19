@@ -1,15 +1,13 @@
 #![no_std]
 
-pub use ark_ff;
-pub use ark_ff::{fields::models::*, FftField, Field, LegendreSymbol, MontFp, PrimeField};
+pub use ark_ff::{self, fields::models::*, FftField, Field, LegendreSymbol, MontFp, PrimeField};
 
-pub use ark_ec;
-pub use ark_ec::*;
+pub use ark_ec::{self, *};
 
 #[cfg(any(feature = "bls12_381_scalar_field", feature = "bls12_381_curve"))]
 pub mod bls12_381;
 
-#[cfg(feature = "ed_on_bls12_381")]
+#[cfg(any(feature = "bls12_381_scalar_field", feature = "ed_on_bls12_381"))]
 pub mod ed_on_bls12_381;
 
 #[cfg(feature = "mnt6_753")]

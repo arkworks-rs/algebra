@@ -4,17 +4,12 @@
     future_incompatible,
     nonstandard_style,
     rust_2018_idioms,
-    rust_2021_compatibility
+    rust_2021_compatibility,
+    clippy::missing_const_for_fn
 )]
 #![allow(clippy::op_ref, clippy::suspicious_op_assign_impl)]
 #![deny(unsafe_code)]
 #![doc = include_str!("../README.md")]
-
-#[macro_use]
-extern crate ark_std;
-
-#[macro_use]
-extern crate derivative;
 
 #[macro_use]
 pub mod biginteger;
@@ -37,19 +32,16 @@ pub use ark_std::UniformRand;
 mod to_field_vec;
 pub use to_field_vec::ToConstraintField;
 
-pub use num_traits::{One, Zero};
-
 #[doc(hidden)]
 pub use ark_ff_asm::*;
 #[doc(hidden)]
 pub use ark_std::vec;
 
 pub mod prelude {
-    pub use crate::biginteger::BigInteger;
-
-    pub use crate::fields::{Field, PrimeField};
-
+    pub use crate::{
+        biginteger::BigInteger,
+        fields::{Field, PrimeField},
+        One, Zero,
+    };
     pub use ark_std::UniformRand;
-
-    pub use num_traits::{One, Zero};
 }

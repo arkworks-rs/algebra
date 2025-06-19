@@ -9,7 +9,7 @@
 
 use num_bigint::BigUint;
 use proc_macro::TokenStream;
-use syn::{Expr, Item, ItemFn, Lit};
+use syn::{Expr, ExprLit, Item, ItemFn, Lit, Meta};
 
 mod montgomery;
 mod unroll;
@@ -88,10 +88,10 @@ pub fn unroll_for_loops(args: TokenStream, input: TokenStream) -> TokenStream {
 
     if let Item::Fn(item_fn) = item {
         let new_block = {
-            let &ItemFn {
+            let ItemFn {
                 block: ref box_block,
                 ..
-            } = &item_fn;
+            } = item_fn;
             unroll::unroll_in_block(box_block, unroll_by)
         };
         let new_item = Item::Fn(ItemFn {
@@ -106,30 +106,31 @@ pub fn unroll_for_loops(args: TokenStream, input: TokenStream) -> TokenStream {
 
 /// Fetch an attribute string from the derived struct.
 fn fetch_attr(name: &str, attrs: &[syn::Attribute]) -> Option<String> {
+    // Go over each attribute
     for attr in attrs {
-        if let Ok(meta) = attr.parse_meta() {
-            match meta {
-                syn::Meta::NameValue(nv) => {
-                    if nv.path.get_ident().map(|i| i.to_string()) == Some(name.to_string()) {
-                        match nv.lit {
-                            syn::Lit::Str(ref s) => return Some(s.value()),
-                            _ => {
-                                panic!("attribute {} should be a string", name);
-                            },
-                        }
-                    }
-                },
-                _ => {
-                    panic!("attribute {} should be a string", name);
-                },
-            }
+        match attr.meta {
+            // If the attribute's path matches `name`, and if the attribute is of
+            // the form `#[name = "value"]`, return `value`
+            Meta::NameValue(ref nv) if nv.path.is_ident(name) => {
+                // Extract and return the string value.
+                // If `value` is not a string, return an error
+                if let Expr::Lit(ExprLit {
+                    lit: Lit::Str(ref s),
+                    ..
+                }) = nv.value
+                {
+                    return Some(s.value());
+                }
+                panic!("attribute {name} should be a string")
+            },
+            _ => {},
         }
     }
-
     None
 }
 
 #[test]
+#[allow(clippy::match_same_arms)]
 fn test_str_to_limbs() {
     use num_bigint::Sign::*;
     for i in 0..100 {
@@ -137,7 +138,8 @@ fn test_str_to_limbs() {
             let number = 1i128 << i;
             let signed_number = match sign {
                 Minus => -number,
-                Plus | _ => number,
+                Plus => number,
+                _ => number,
             };
             for base in [2, 8, 16, 10] {
                 let mut string = match base {
@@ -150,10 +152,10 @@ fn test_str_to_limbs() {
                 if sign == Minus {
                     string.insert(0, '-');
                 }
-                let (is_positive, limbs) = utils::str_to_limbs(&format!("{}", string));
+                let (is_positive, limbs) = utils::str_to_limbs(&string.to_string());
                 assert_eq!(
                     limbs[0],
-                    format!("{}u64", signed_number.abs() as u64),
+                    format!("{}u64", signed_number.unsigned_abs() as u64),
                     "{signed_number}, {i}"
                 );
                 if i > 63 {

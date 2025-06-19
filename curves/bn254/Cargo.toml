@@ -1,0 +1,39 @@
+[package]
+name = "ark-bn254"
+version.workspace = true
+authors.workspace = true
+description = "The BN254 pairing-friendly elliptic curve"
+homepage.workspace = true
+repository.workspace = true
+documentation = "https://docs.rs/ark-bn254/"
+keywords.workspace = true
+categories.workspace = true
+include.workspace = true
+license.workspace = true
+edition.workspace = true
+
+[dependencies]
+ark-ff = { workspace = true }
+ark-ec = { workspace = true }
+ark-std = { workspace = true }
+ark-r1cs-std = { workspace = true, optional = true }
+
+[dev-dependencies]
+ark-serialize = { workspace = true }
+ark-algebra-test-templates = { workspace = true }
+ark-algebra-bench-templates = { workspace = true }
+ark-curve-constraint-tests = { path = "../curve-constraint-tests" }
+ark-relations = { workspace = true }
+
+[features]
+default = [ "curve" ]
+std = [ "ark-std/std", "ark-ff/std", "ark-ec/std", "ark-r1cs-std?/std" ]
+r1cs = [ "ark-r1cs-std" ]
+curve = [ "scalar_field" ]
+scalar_field = []
+asm = [ "ark-ff/asm" ]
+
+[[bench]]
+name = "bn254"
+path = "benches/bn254.rs"
+harness = false

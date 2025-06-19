@@ -1,6 +1,6 @@
 use ark_ec::{
     models::CurveConfig,
-    short_weierstrass::{self, *},
+    short_weierstrass::{self, Affine, Projective},
 };
 use ark_ff::Zero;
 
@@ -17,7 +17,7 @@ impl CurveConfig for Config {
     type ScalarField = Fr;
 
     /// COFACTOR = 1
-    const COFACTOR: &'static [u64] = &[1];
+    const COFACTOR: &[u64] = &[1];
 
     /// COFACTOR_INV = COFACTOR^{-1} mod r = 1
     const COFACTOR_INV: Fr = FR_ONE;

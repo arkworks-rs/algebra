@@ -1,0 +1,34 @@
+[package]
+name = "ark-bw6-767"
+version.workspace = true
+authors.workspace = true
+description = "The BW6-767 pairing-friendly elliptic curve"
+homepage.workspace = true
+repository.workspace = true
+documentation = "https://docs.rs/ark-bw6-767/"
+keywords.workspace = true
+categories.workspace = true
+include.workspace = true
+license.workspace = true
+edition.workspace = true
+
+[dependencies]
+ark-ff = { workspace = true }
+ark-ec = { workspace = true }
+ark-std = { workspace = true }
+ark-bls12-381 = { workspace = true, features = [ "curve" ] }
+
+[dev-dependencies]
+ark-serialize = { workspace = true }
+ark-algebra-test-templates = { workspace = true }
+ark-algebra-bench-templates = { workspace = true }
+
+[features]
+default = []
+std = [ "ark-std/std", "ark-ff/std", "ark-ec/std", "ark-bls12-381/std" ]
+asm = [ "ark-ff/asm" ]
+
+[[bench]]
+name = "bw6_767"
+path = "benches/bw6_767.rs"
+harness = false

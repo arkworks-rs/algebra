@@ -3,11 +3,11 @@ use crate::{BigInteger, FftField, Field};
 use ark_std::{cmp::min, str::FromStr};
 use num_bigint::BigUint;
 
-/// The interface for a prime field, i.e. the field of integers modulo a prime $p$.  
+/// The interface for a prime field, i.e. the field of integers modulo a prime $p$.
 /// In the following example we'll use the prime field underlying the BLS12-381 G1 curve.
 /// ```rust
-/// use ark_ff::{BigInteger, Field, PrimeField};
-/// use ark_std::{test_rng, One, UniformRand, Zero};
+/// use ark_ff::{BigInteger, Field, PrimeField, Zero};
+/// use ark_std::{test_rng, One, UniformRand};
 /// use ark_test_curves::bls12_381::Fq as F;
 ///
 /// let mut rng = test_rng();
@@ -70,7 +70,7 @@ pub trait PrimeField:
     /// If the integer represented by `bytes` is larger than the modulus `p`, this method
     /// performs the appropriate reduction.
     fn from_le_bytes_mod_order(bytes: &[u8]) -> Self {
-        let num_modulus_bytes = ((Self::MODULUS_BIT_SIZE + 7) / 8) as usize;
+        let num_modulus_bytes = Self::MODULUS_BIT_SIZE.div_ceil(8) as usize;
         let num_bytes_to_directly_convert = min(num_modulus_bytes - 1, bytes.len());
         // Copy the leading little-endian bytes directly into a field element.
         // The number of bytes directly converted must be less than the
@@ -80,7 +80,7 @@ pub trait PrimeField:
         let (bytes, bytes_to_directly_convert) =
             bytes.split_at(bytes.len() - num_bytes_to_directly_convert);
         // Guaranteed to not be None, as the input is less than the modulus size.
-        let mut res = Self::from_random_bytes(&bytes_to_directly_convert).unwrap();
+        let mut res = Self::from_random_bytes(bytes_to_directly_convert).unwrap();
 
         // Update the result, byte by byte.
         // We go through existing field arithmetic, which handles the reduction.

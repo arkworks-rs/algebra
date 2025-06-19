@@ -1,0 +1,28 @@
+[package]
+name = "ark-ed-on-bw6-761"
+version.workspace = true
+authors.workspace = true
+description = "A Twisted Edwards curve defined over the scalar field of the BW6-761 curve"
+homepage.workspace = true
+repository.workspace = true
+documentation = "https://docs.rs/ark-ed-on-bw6-761/"
+keywords.workspace = true
+categories.workspace = true
+include.workspace = true
+license.workspace = true
+edition.workspace = true
+
+[dependencies]
+ark-ed-on-cp6-782 = { workspace = true }
+
+[dev-dependencies]
+ark-relations = { workspace = true }
+ark-r1cs-std = { workspace = true }
+ark-ff = { workspace = true }
+ark-std = { workspace = true }
+
+[features]
+default = []
+std = [ "ark-ed-on-cp6-782/std" ]
+r1cs = [ "ark-ed-on-cp6-782/r1cs" ]
+asm = [ "ark-ff/asm" ]
