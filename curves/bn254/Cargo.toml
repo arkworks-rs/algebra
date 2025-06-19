@@ -24,6 +24,7 @@ ark-algebra-test-templates = { workspace = true }
 ark-algebra-bench-templates = { workspace = true }
 ark-curve-constraint-tests = { path = "../curve-constraint-tests" }
 ark-relations = { workspace = true }
+sha2 = { workspace = true }
 
 [features]
 default = [ "curve" ]
