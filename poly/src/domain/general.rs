@@ -249,7 +249,7 @@ mod tests {
             let domain = GeneralEvaluationDomain::<Fr>::new(coeffs).unwrap();
             let z = domain.vanishing_polynomial();
             for _ in 0..100 {
-                let point = rng.gen();
+                let point = rng.r#gen();
                 assert_eq!(
                     z.evaluate(&point),
                     domain.evaluate_vanishing_polynomial(point)
@@ -261,7 +261,7 @@ mod tests {
             let domain = GeneralEvaluationDomain::<BNFr>::new(coeffs).unwrap();
             let z = domain.vanishing_polynomial();
             for _ in 0..100 {
-                let point = rng.gen();
+                let point = rng.r#gen();
                 assert_eq!(
                     z.evaluate(&point),
                     domain.evaluate_vanishing_polynomial(point)

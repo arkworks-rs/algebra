@@ -132,8 +132,8 @@ mod test {
 
     #[test]
     fn test_gen() {
-        let gen: G1Affine = SwuIsoConfig::GENERATOR;
-        assert!(gen.is_on_curve());
-        assert!(gen.is_in_correct_subgroup_assuming_on_curve());
+        let generated: G1Affine = SwuIsoConfig::GENERATOR;
+        assert!(generated.is_on_curve());
+        assert!(generated.is_in_correct_subgroup_assuming_on_curve());
     }
 }
