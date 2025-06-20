@@ -17,6 +17,7 @@ ark-ed-on-cp6-782 = { workspace = true }
 
 [dev-dependencies]
 ark-relations = { workspace = true }
+ark-r1cs-std = { workspace = true }
 ark-ff = { workspace = true }
 ark-std = { workspace = true }
 
