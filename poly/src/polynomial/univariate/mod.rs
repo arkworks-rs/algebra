@@ -76,7 +76,7 @@ impl<F: Field> DenseOrSparsePolynomial<'_, F> {
         }
     }
 
-    /// Return the degree of `self.
+    /// Return the degree of `self`.
     pub fn degree(&self) -> usize {
         match self {
             SPolynomial(s) => s.degree(),
