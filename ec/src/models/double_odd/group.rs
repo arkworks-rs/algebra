@@ -258,11 +258,12 @@ impl<P: DOCurveConfig, T: Borrow<Affine<P>>> AddAssign<T> for Projective<P> {
 
         let n5 = self.z * othert + self.t;
         let n6 = (self.e + self.u) * (other.e + other.u) - n1 - n3;
-        let n7 = n2 - P::get_c() * n4;
+        let c = P::get_c();
+        let n7 = n2 - c * n4;
 
         let n3d = n3.double();
 
-        self.e = (n2 - n4) * (n1 + n3d) - n3d * n5;
+        self.e = (n2 + c * n4) * (n1 - P::COEFF_A * n3d) + c * n3d * n5;
         self.z = n7.square();
         self.t = n6.square();
         self.u = n7 * n6;
@@ -322,11 +323,12 @@ impl<'a, P: DOCurveConfig> AddAssign<&'a Self> for Projective<P> {
 
         let n5 = (self.z + self.t) * (other.z + other.t) - n2 - n4;
         self.t = (self.e + self.u) * (other.e + other.u) - n1 - n3;
-        self.z = n2 - P::get_c() * n4;
+        let c = P::get_c();
+        self.z = n2 - c * n4;
 
         let n3d = n3.double();
 
-        self.e = (n2 - n4) * (n1 + n3d) - n3d * n5;
+        self.e = (n2 + c * n4) * (n1 - P::COEFF_A * n3d) + c * n3d * n5;
         self.u = self.z * self.t;
         self.z.square_in_place();
         self.t.square_in_place();
