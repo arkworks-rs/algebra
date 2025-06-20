@@ -306,9 +306,7 @@ impl<'a, F: Field> Add<&'a DensePolynomial<F>> for &DensePolynomial<F> {
 
         // Iterate through the coefficients of the `shorter` polynomial.
         // Add them to the corresponding coefficients in the `longer` polynomial.
-        result
-            .coeffs
-            .iter_mut()
+        cfg_iter_mut!(result)
             .zip(&shorter.coeffs)
             .for_each(|(a, b)| *a += b);
 
