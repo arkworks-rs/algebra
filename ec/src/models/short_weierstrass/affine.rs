@@ -92,7 +92,7 @@ impl<P: SWCurveConfig> Affine<P> {
         // Setting these to zero is *load-bearing* and important.
         // These are the values that represent the identity element
         // when `P::ZeroFlag` is `()`.
-        // 
+        //
         // We cannot ask `P::ZeroFlag` to provide the zero values
         // via a `const fn` because constant functions in traits
         // are not yet supported in Rust.
@@ -255,7 +255,7 @@ impl<P: SWCurveConfig> AffineRepr for Affine<P> {
     fn zero() -> Self {
         Self::ZERO
     }
-    
+
     fn is_zero(&self) -> bool {
         P::ZeroFlag::is_zero(self)
     }

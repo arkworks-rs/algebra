@@ -173,7 +173,6 @@ impl<P: TECurveConfig> AffineRepr for Affine<P> {
         self.x.is_zero() && self.y.is_one()
     }
 
-
     fn from_random_bytes(bytes: &[u8]) -> Option<Self> {
         P::BaseField::from_random_bytes_with_flags::<TEFlags>(bytes)
             .and_then(|(y, flags)| Self::get_point_from_y_unchecked(y, flags.is_negative()))

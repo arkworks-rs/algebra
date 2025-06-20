@@ -127,7 +127,6 @@ mod test {
         for (i, g) in g_s.iter().enumerate() {
             g_s_affine_naive[i] = g.into_affine();
         }
-        
 
         let g_s_affine_fast = G1Projective::normalize_batch(&g_s);
         assert_eq!(g_s_affine_naive.as_ref(), g_s_affine_fast.as_slice());
