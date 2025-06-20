@@ -13,7 +13,7 @@ license.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 metadata.docs.rs.workspace = true
-package.metadata.release.workspace = true
+metadata.release.workspace = true
 
 [dependencies]
 ark-ff-asm.workspace = true
@@ -23,15 +23,14 @@ ark-serialize.workspace = true
 arrayvec.workspace = true
 educe.workspace = true
 num-traits.workspace = true
-paste.workspace = true
 rayon = { workspace = true, optional = true }
-zeroize = { workspace = true, features = ["zeroize_derive"] }
+zeroize = { workspace = true }
 num-bigint.workspace = true
 digest = { workspace = true, features = ["alloc"] }
 itertools.workspace = true
 
 [dev-dependencies]
-ark-test-curves = { workspace = true, features = [ "bls12_381_curve", "mnt6_753", "secp256k1"] }
+ark-test-curves = { workspace = true, features = ["bls12_381_curve", "mnt6_753", "secp256k1"] }
 blake2.workspace = true
 sha3.workspace = true
 sha2.workspace = true

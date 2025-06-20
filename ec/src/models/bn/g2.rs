@@ -100,12 +100,12 @@ impl<P: BnConfig> From<G2Affine<P>> for G2Prepared<P> {
     fn from(q: G2Affine<P>) -> Self {
         if q.infinity {
             Self {
-                ell_coeffs: vec![],
+                ell_coeffs: Vec::new(),
                 infinity: true,
             }
         } else {
             let two_inv = P::Fp::one().double().inverse().unwrap();
-            let mut ell_coeffs = vec![];
+            let mut ell_coeffs = Vec::new();
             let mut r = G2HomProjective::<P> {
                 x: q.x,
                 y: q.y,

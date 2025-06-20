@@ -13,13 +13,13 @@ license.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 metadata.docs.rs.workspace = true
-package.metadata.release.workspace = true
+metadata.release.workspace = true
 
 [lints]
 workspace = true
 
 [dependencies]
-criterion = { workspace = true, features = ["html_reports"] }
+criterion.workspace = true
 ark-std.workspace = true
 ark-ec.workspace = true
 ark-ff.workspace = true

@@ -348,7 +348,7 @@ macro_rules! prime_field {
                 let mut i = 0;
                 b.iter(|| {
                     i = (i + 1) % SAMPLES;
-                    BigInt::from_bits_be(&v_bits_le[i]);
+                    BigInt::from_bits_be(&v_bits_le[i])
                 })
             });
             let v_bits_be = v1
@@ -359,7 +359,7 @@ macro_rules! prime_field {
                 let mut i = 0;
                 b.iter(|| {
                     i = (i + 1) % SAMPLES;
-                    BigInt::from_bits_be(&v_bits_be[i]);
+                    BigInt::from_bits_be(&v_bits_be[i])
                 })
             });
             bits.bench_function("Comparison", |b| {

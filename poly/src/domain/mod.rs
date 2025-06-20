@@ -9,7 +9,7 @@
 
 use ark_ff::{FftField, Zero};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
-use ark_std::{fmt, hash, rand::Rng, vec::*};
+use ark_std::{fmt, hash, rand::Rng, vec, vec::*};
 
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;

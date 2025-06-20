@@ -1,6 +1,3 @@
-#![macro_use]
-extern crate ark_relations;
-
 pub mod fields {
     use ark_ff::{BitIteratorLE, Field, PrimeField, UniformRand};
     use ark_r1cs_std::prelude::*;

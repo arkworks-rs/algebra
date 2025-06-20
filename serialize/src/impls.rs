@@ -389,7 +389,7 @@ impl<T: ?Sized + Valid + Sync + Send> Valid for ark_std::sync::Arc<T> {
 }
 
 #[cfg(target_has_atomic = "ptr")]
-impl<T: ?Sized + CanonicalDeserialize + ToOwned + Sync + Send> CanonicalDeserialize
+impl<T: CanonicalDeserialize + ToOwned + Sync + Send> CanonicalDeserialize
     for ark_std::sync::Arc<T>
 {
     #[inline]

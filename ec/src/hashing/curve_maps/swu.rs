@@ -183,9 +183,8 @@ mod test {
     struct TestSWUMapToCurveConfig;
 
     impl CurveConfig for TestSWUMapToCurveConfig {
-        const COFACTOR: &'static [u64] = &[1];
+        const COFACTOR: &[u64] = &[1];
 
-    #[rustfmt::skip]
         const COFACTOR_INV: F127 = F127_ONE;
 
         type BaseField = F127;
@@ -267,7 +266,7 @@ mod test {
     fn map_field_to_curve_swu() {
         SWUMap::<TestSWUMapToCurveConfig>::check_parameters().unwrap();
 
-        let mut map_range: Vec<Affine<TestSWUMapToCurveConfig>> = vec![];
+        let mut map_range: Vec<Affine<TestSWUMapToCurveConfig>> = Vec::with_capacity(128);
         for current_field_element in 0..127 {
             let element = F127::from(current_field_element as u64);
             map_range.push(SWUMap::map_to_curve(element).unwrap());

@@ -7,10 +7,12 @@ use crate::{
 use ark_ff::{FftField, Field, Zero};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use ark_std::{
+    cfg_iter_mut,
     cmp::Ordering,
     collections::BTreeMap,
     fmt,
     ops::{Add, AddAssign, Deref, DerefMut, Mul, Neg, SubAssign},
+    vec,
     vec::*,
 };
 
@@ -328,7 +330,7 @@ mod tests {
         EvaluationDomain, GeneralEvaluationDomain,
     };
     use ark_ff::{UniformRand, Zero};
-    use ark_std::{cmp::max, ops::Mul, rand::Rng, test_rng};
+    use ark_std::{cmp::max, ops::Mul, rand::Rng, test_rng, vec};
     use ark_test_curves::bls12_381::Fr;
 
     // probability of rand sparse polynomial having a particular coefficient be 0

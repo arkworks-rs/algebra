@@ -20,7 +20,7 @@ use ark_std::{
         Rng,
     },
     str::FromStr,
-    vec::*,
+    vec::Vec,
     Zero,
 };
 use num_bigint::BigUint;
@@ -29,8 +29,15 @@ use zeroize::Zeroize;
 #[macro_use]
 pub mod arithmetic;
 
-#[derive(Copy, Clone, PartialEq, Eq, Hash, Zeroize)]
+#[derive(Copy, Clone, PartialEq, Eq, Hash)]
+#[must_use]
 pub struct BigInt<const N: usize>(pub [u64; N]);
+
+impl<const N: usize> Zeroize for BigInt<N> {
+    fn zeroize(&mut self) {
+        self.0.zeroize();
+    }
+}
 
 impl<const N: usize> Default for BigInt<N> {
     fn default() -> Self {
@@ -238,7 +245,7 @@ impl<const N: usize> BigInt<N> {
         let mut borrow = 0;
 
         const_for!((i in 0..N) {
-            self.0[i] = sbb!(self.0[i], other.0[i], &mut borrow);
+            borrow = arithmetic::sbb(&mut self.0[i], other.0[i], borrow);
         });
 
         (self, borrow != 0)
@@ -249,7 +256,7 @@ impl<const N: usize> BigInt<N> {
         let mut carry = 0;
 
         crate::const_for!((i in 0..N) {
-            self.0[i] = adc!(self.0[i], other.0[i], &mut carry);
+            carry = arithmetic::adc(&mut self.0[i], other.0[i], carry);
         });
 
         (self, carry != 0)
@@ -319,7 +326,7 @@ impl<const N: usize> BigInteger for BigInt<N> {
 
     #[inline]
     fn mul2(&mut self) -> bool {
-        #[cfg(all(target_arch = "x86_64", feature = "asm"))]
+        #[cfg(target_arch = "x86_64")]
         #[allow(unsafe_code)]
         {
             let mut carry = 0;
@@ -334,7 +341,7 @@ impl<const N: usize> BigInteger for BigInt<N> {
             carry != 0
         }
 
-        #[cfg(not(all(target_arch = "x86_64", feature = "asm")))]
+        #[cfg(not(target_arch = "x86_64"))]
         {
             let mut last = 0;
             for i in 0..N {
@@ -388,7 +395,7 @@ impl<const N: usize> BigInteger for BigInt<N> {
 
         for i in 0..N {
             for j in 0..N {
-                r[i + j] = mac_with_carry!(r[i + j], self.0[i], other.0[j], &mut carry);
+                r[i + j] = arithmetic::mac_with_carry(r[i + j], self.0[i], other.0[j], &mut carry);
             }
             r.b1[i] = carry;
             carry = 0;
@@ -408,7 +415,8 @@ impl<const N: usize> BigInteger for BigInt<N> {
 
         for i in 0..N {
             for j in 0..(N - i) {
-                res.0[i + j] = mac_with_carry!(res.0[i + j], self.0[i], other.0[j], &mut carry);
+                res.0[i + j] =
+                    arithmetic::mac_with_carry(res.0[i + j], self.0[i], other.0[j], &mut carry);
             }
             carry = 0;
         }
@@ -849,7 +857,7 @@ impl<const N: usize> Not for BigInt<N> {
 /// let res = signed_mod_reduction(6u64, 8u64);
 /// assert_eq!(res, -2i64);
 /// ```
-pub fn signed_mod_reduction(n: u64, modulus: u64) -> i64 {
+pub const fn signed_mod_reduction(n: u64, modulus: u64) -> i64 {
     let t = (n % modulus) as i64;
     if t as u64 >= (modulus / 2) {
         t - (modulus as i64)
@@ -1276,7 +1284,7 @@ pub trait BigInteger:
         // w > 2 due to definition of wNAF, and w < 64 to make sure that `i64`
         // can fit each signed digit
         if (2..64).contains(&w) {
-            let mut res = vec![];
+            let mut res = Vec::new();
             let mut e = *self;
 
             while !e.is_zero() {

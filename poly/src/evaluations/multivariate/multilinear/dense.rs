@@ -7,13 +7,14 @@ use crate::{
 use ark_ff::{Field, Zero};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use ark_std::{
-    fmt,
-    fmt::Formatter,
+    cfg_iter,
+    fmt::{self, Formatter},
     iter::IntoIterator,
     log2,
     ops::{Add, AddAssign, Index, Mul, MulAssign, Neg, Sub, SubAssign},
     rand::Rng,
     slice::{Iter, IterMut},
+    vec,
     vec::*,
 };
 #[cfg(feature = "parallel")]
@@ -278,7 +279,7 @@ impl<'a, F: Field> Add<&'a DenseMultilinearExtension<F>> for &DenseMultilinearEx
         }
         assert_eq!(self.num_vars, rhs.num_vars);
         let result: Vec<F> = cfg_iter!(self.evaluations)
-            .zip(cfg_iter!(rhs.evaluations))
+            .zip(&rhs.evaluations)
             .map(|(a, b)| *a + *b)
             .collect();
 

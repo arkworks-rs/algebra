@@ -45,8 +45,8 @@ pub trait CubicExtConfig: 'static + Send + Sync + Sized {
     const NONRESIDUE: Self::BaseField;
 
     /// Coefficients for the Frobenius automorphism.
-    const FROBENIUS_COEFF_C1: &'static [Self::FrobCoeff];
-    const FROBENIUS_COEFF_C2: &'static [Self::FrobCoeff];
+    const FROBENIUS_COEFF_C1: &[Self::FrobCoeff];
+    const FROBENIUS_COEFF_C2: &[Self::FrobCoeff];
 
     /// A specializable method for multiplying an element of the base field by
     /// the quadratic non-residue. This is used in multiplication and squaring.
@@ -75,7 +75,7 @@ pub trait CubicExtConfig: 'static + Send + Sync + Sized {
 
 /// An element of a cubic extension field F_p\[X\]/(X^3 - P::NONRESIDUE) is
 /// represented as c0 + c1 * X + c2 * X^2, for c0, c1, c2 in `P::BaseField`.
-#[derive(Educe)]
+#[derive(educe::Educe)]
 #[educe(Default, Hash, Clone, Copy, Debug, PartialEq, Eq)]
 pub struct CubicExtField<P: CubicExtConfig> {
     pub c0: P::BaseField,
@@ -694,7 +694,7 @@ where
 #[cfg(test)]
 mod cube_ext_tests {
     use super::*;
-    use ark_std::test_rng;
+    use ark_std::{test_rng, vec};
     use ark_test_curves::{
         ark_ff::Field,
         bls12_381::{Fq, Fq2, Fq6},

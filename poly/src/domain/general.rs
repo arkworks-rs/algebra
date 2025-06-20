@@ -10,7 +10,7 @@ pub use crate::domain::utils::Elements;
 use crate::domain::{
     DomainCoeff, EvaluationDomain, MixedRadixEvaluationDomain, Radix2EvaluationDomain,
 };
-use ark_ff::FftField;
+use ark_ff::{FftField, Field};
 use ark_serialize::{
     CanonicalDeserialize, CanonicalSerialize, Compress, SerializationError, Valid, Validate,
 };
@@ -47,7 +47,7 @@ use ark_std::{
 /// let new_evals = large_domain.fft(&coeffs);
 /// ```
 #[derive(Copy, Clone, Hash, Eq, PartialEq, Debug)]
-pub enum GeneralEvaluationDomain<F: FftField> {
+pub enum GeneralEvaluationDomain<F: Field> {
     /// Radix-2 domain
     Radix2(Radix2EvaluationDomain<F>),
     /// Mixed-radix domain

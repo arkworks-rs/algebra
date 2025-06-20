@@ -102,7 +102,7 @@ pub trait FpConfig<const N: usize>: Send + Sync + 'static + Sized {
 
 /// Represents an element of the prime field F_p, where `p == P::MODULUS`.
 /// This type can represent elements in any field of size at most N * 64 bits.
-#[derive(Educe)]
+#[derive(educe::Educe)]
 #[educe(Default, Hash, Clone, Copy, PartialEq, Eq)]
 pub struct Fp<P: FpConfig<N>, const N: usize>(
     /// Contains the element in Montgomery form for efficient multiplication.
@@ -147,7 +147,7 @@ impl<P: FpConfig<N>, const N: usize> Fp<P, N> {
         }
     }
 
-    fn num_bits_to_shave() -> usize {
+    const fn num_bits_to_shave() -> usize {
         64 * N - (Self::MODULUS_BIT_SIZE as usize)
     }
 }

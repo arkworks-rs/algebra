@@ -42,7 +42,7 @@ pub trait QuadExtConfig: 'static + Send + Sync + Sized {
     const NONRESIDUE: Self::BaseField;
 
     /// Coefficients for the Frobenius automorphism.
-    const FROBENIUS_COEFF_C1: &'static [Self::FrobCoeff];
+    const FROBENIUS_COEFF_C1: &[Self::FrobCoeff];
 
     /// A specializable method for multiplying an element of the base field by
     /// the quadratic non-residue. This is used in Karatsuba multiplication
@@ -89,7 +89,7 @@ pub trait QuadExtConfig: 'static + Send + Sync + Sized {
 
 /// An element of a quadratic extension field F_p\[X\]/(X^2 - P::NONRESIDUE) is
 /// represented as c0 + c1 * X, for c0, c1 in `P::BaseField`.
-#[derive(Educe)]
+#[derive(educe::Educe)]
 #[educe(Default, Hash, Clone, Copy, Debug, PartialEq, Eq)]
 pub struct QuadExtField<P: QuadExtConfig> {
     /// Coefficient `c0` in the representation of the field element `c = c0 + c1 * X`
@@ -822,10 +822,9 @@ mod quad_ext_tests {
 
     #[test]
     fn test_from_base_prime_field_element() {
-        let ext_degree = Fq2::extension_degree() as usize;
         let max_num_elems_to_test = 10;
         for _ in 0..max_num_elems_to_test {
-            let mut random_coeffs = vec![Fq::zero(); ext_degree];
+            let mut random_coeffs = [Fq::zero(); 2];
             let random_coeff = Fq::rand(&mut test_rng());
             let res = Fq2::from_base_prime_field(random_coeff);
             random_coeffs[0] = random_coeff;
