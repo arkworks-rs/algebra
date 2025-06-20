@@ -36,6 +36,9 @@ impl SWCurveConfig for Config {
     fn mul_by_a(_: Self::BaseField) -> Self::BaseField {
         Self::BaseField::zero()
     }
+
+    /// We use `()` because `(0, 0)` cannot be on the curve.
+    type ZeroFlag = ();
 }
 
 /// G_GENERATOR_X = 55066263022277343669578718895168534326250603453777594175500187360389116729240

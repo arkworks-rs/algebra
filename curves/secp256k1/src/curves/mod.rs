@@ -36,6 +36,13 @@ impl SWCurveConfig for Config {
     /// GENERATOR = (G_GENERATOR_X, G_GENERATOR_Y)
     const GENERATOR: Affine = Affine::new_unchecked(G_GENERATOR_X, G_GENERATOR_Y);
 
+    /// Correctness:
+    /// The curve equation is y^2 = x^3  + b
+    /// Substituting (0, 0) gives 0^2 = 0^3 + b which simplifies to 0 = b.
+    /// Since b is not zero, the point (0, 0) is not on the curve.
+    /// Therefore, we can safely use (0, 0) as a flag for the zero point.
+    type ZeroFlag = ();
+
     #[inline(always)]
     fn mul_by_a(_: Self::BaseField) -> Self::BaseField {
         Self::BaseField::zero()

@@ -50,7 +50,7 @@ impl<P: BW6Config> From<G2HomProjective<P>> for G2Affine<P> {
 
 impl<P: BW6Config> From<G2Affine<P>> for G2Prepared<P> {
     fn from(q: G2Affine<P>) -> Self {
-        if q.infinity {
+        if q.is_zero() {
             return Self {
                 ell_coeffs_1: Vec::new(),
                 ell_coeffs_2: Vec::new(),
