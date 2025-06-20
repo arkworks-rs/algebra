@@ -81,11 +81,7 @@ pub trait VariableBaseMSM: ScalarMul + for<'a> AddAssign<&'a Self::Bucket> {
         bases: &[Self::MulBase],
         bigints: &[<Self::ScalarField as PrimeField>::BigInt],
     ) -> Self {
-        if Self::NEGATION_IS_CHEAP {
-            msm_signed(bases, bigints)
-        } else {
-            msm_unsigned(bases, bigints)
-        }
+        msm_signed(bases, bigints)
     }
 
     /// Performs multi-scalar multiplication when the scalars are known to be boolean.
@@ -155,111 +151,23 @@ pub trait VariableBaseMSM: ScalarMul + for<'a> AddAssign<&'a Self::Bucket> {
 }
 
 #[inline]
-fn get_group<const N: usize, A: Send + Sync, B: Send + Sync>(
-    grouped: &[u64],
+fn large_value_unzip<A: Send + Sync, B: Send + Sync>(
+    grouped: &[PackedIndex],
     f: impl Fn(usize) -> (A, B) + Send + Sync,
 ) -> (Vec<A>, Vec<B>) {
-    let extract_index = |i| ((i << N) >> N) as usize;
     cfg_iter!(grouped)
-        .map(|&i| f(extract_index(i)))
+        .map(|&i| f(i.index()))
         .unzip::<_, _, Vec<_>, Vec<_>>()
 }
 
 #[inline]
-fn uget_group<A: Send + Sync, B: Send + Sync>(
-    grouped: &[u64],
-    f: impl Fn(usize) -> (A, B) + Send + Sync,
+fn small_value_unzip<A: Send + Sync, B: Send + Sync>(
+    grouped: &[PackedIndex],
+    f: impl Fn(usize, u16) -> (A, B) + Send + Sync,
 ) -> (Vec<A>, Vec<B>) {
-    get_group::<3, _, _>(grouped, f)
-}
-
-#[inline]
-fn iget_group<A: Send + Sync, B: Send + Sync>(
-    grouped: &[u64],
-    f: impl Fn(usize) -> (A, B) + Send + Sync,
-) -> (Vec<A>, Vec<B>) {
-    get_group::<4, _, _>(grouped, f)
-}
-
-/// Computes multi-scalar multiplication where the scalars
-/// are positive.
-/// Should be used when the negation is expensive, i.e. when
-/// `V::NEGATION_IS_CHEAP` is `false`.
-fn msm_unsigned<V: VariableBaseMSM>(
-    bases: &[V::MulBase],
-    scalars: &[<V::ScalarField as PrimeField>::BigInt],
-) -> V {
-    // Partition scalars according to whether
-    // 1. they are in the range {0, 1};
-    // 3. they are in the range [0, 255];
-    // 4. they are small-sized (< 16 bits);
-    // 4. they are intermediate-sized (< 32 bits);
-    // 6. they are medium-sized (< 64 bits);
-    // 7. the rest.
-
-    let size = bases.len().min(scalars.len());
-    let bases = &bases[..size];
-    let scalars = &scalars[..size];
-
-    let mut grouped = cfg_iter!(scalars)
-        .enumerate()
-        .filter(|(_, scalar)| !scalar.is_zero())
-        .map(|(i, scalar)| {
-            let num_bits = scalar.num_bits();
-            let group = if num_bits <= 1 {
-                1u8
-            } else if num_bits <= 8 {
-                3u8
-            } else if num_bits <= 16 {
-                4u8
-            } else if num_bits <= 32 {
-                5u8
-            } else if num_bits <= 64 {
-                6u8
-            } else {
-                7u8
-            };
-            // group is at most 7, so we can fit it in 3 bits.
-            (i as u64) ^ ((group as u64) << 61)
-        })
-        .collect::<Vec<_>>();
-    let extract_group = |i| (i >> 61) as u8;
-    #[cfg(feature = "parallel")]
-    grouped.par_sort_unstable_by_key(|i| extract_group(*i));
-    #[cfg(not(feature = "parallel"))]
-    grouped.sort_unstable_by_key(|i| extract_group(*i));
-
-    let s1 = 0;
-    let s3 = s1 + grouped[s1..].partition_point(|i| extract_group(*i) < 3);
-    let s4 = s3 + grouped[s3..].partition_point(|i| extract_group(*i) < 4);
-    let s5 = s4 + grouped[s4..].partition_point(|i| extract_group(*i) < 5);
-    let s6 = s5 + grouped[s5..].partition_point(|i| extract_group(*i) < 6);
-    let s7 = s6 + grouped[s6..].partition_point(|i| extract_group(*i) < 7);
-
-    let (b1, s1) = uget_group(&grouped[s1..s3], |i| {
-        (bases[i], scalars[i].as_ref()[0] == 1)
-    });
-    let (b3, s3) = uget_group(&grouped[s3..s4], |i| {
-        (bases[i], scalars[i].as_ref()[0] as u8)
-    });
-    let (b4, s4) = uget_group(&grouped[s4..s5], |i| {
-        (bases[i], scalars[i].as_ref()[0] as u16)
-    });
-    let (b5, s5) = uget_group(&grouped[s5..s6], |i| {
-        (bases[i], scalars[i].as_ref()[0] as u32)
-    });
-    let (b6, s6) = uget_group(&grouped[s6..s7], |i| {
-        (bases[i], scalars[i].as_ref()[0] as u64)
-    });
-    let (b7, s7) = uget_group(&grouped[s7..], |i| (bases[i], scalars[i]));
-
-    let result: V = msm_binary::<V>(&b1, &s1)
-        + msm_u8::<V>(&b3, &s3)
-        + msm_u16::<V>(&b4, &s4)
-        + msm_u32::<V>(&b5, &s5)
-        + msm_u64::<V>(&b6, &s6)
-        + msm_bigint::<V>(&b7, &s7, V::ScalarField::MODULUS_BIT_SIZE as usize);
-    result.into()
+    cfg_iter!(grouped)
+        .map(|&i| (f(i.index(), i.value())))
+        .unzip::<_, _, Vec<_>, Vec<_>>()
 }
 
 #[inline(always)]
@@ -267,6 +175,64 @@ fn sub<B: BigInteger>(m: &B, scalar: &B) -> u64 {
     let mut negated = *m;
     negated.sub_with_borrow(scalar);
     negated.as_ref()[0]
+}
+
+// 44 zeroes, 1 in the next 16 bits, 0 rest
+const VALUE_MASK: u64 = (u16::MAX as u64) << 44;
+
+#[repr(u8)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum ScalarSize {
+    U1 = 0,
+    NegU1 = 1,
+    U8 = 2,
+    NegU8 = 3,
+    U16 = 4,
+    NegU16 = 5,
+    U32 = 6,
+    NegU32 = 7,
+    U64 = 8,
+    NegU64 = 9,
+    BigInt = 10,
+}
+
+impl ScalarSize {
+    #[inline]
+    fn partition_point(self, v: &[PackedIndex]) -> usize {
+        v.partition_point(|i| i.group() < self as u8 + 1)
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[repr(transparent)]
+pub struct PackedIndex(pub u64);
+
+impl PackedIndex {
+    #[inline(always)]
+    fn new(index: usize, group: ScalarSize, value: u16) -> Self {
+        // Pack the index, group, and value into a single u64.
+        let index_bits = ((index as u64) << 20) >> 20;
+        let group_bits = (group as u64) << 60;
+        let value_bits = (value as u64) << 44;
+
+        PackedIndex(index_bits | value_bits | group_bits)
+    }
+    /// Extracts the index from the packed value.
+    #[inline(always)]
+    fn index(self) -> usize {
+        ((self.0 << 20) >> 20) as usize
+    }
+
+    /// Extracts the group from the packed value.
+    #[inline(always)]
+    fn group(self) -> u8 {
+        (self.0 >> 60) as u8
+    }
+
+    #[inline(always)]
+    fn value(self) -> u16 {
+        ((self.0 & VALUE_MASK) >> 44) as u16
+    }
 }
 
 /// Computes multi-scalar multiplication where the scalars
@@ -277,124 +243,107 @@ fn msm_signed<V: VariableBaseMSM>(
     bases: &[V::MulBase],
     scalars: &[<V::ScalarField as PrimeField>::BigInt],
 ) -> V {
-    // Partition scalars according to whether
-    // 1. they are in the range {-1, 0, 1};
-    // 2. they are in the range [-127, 127];
-    // 3. they are in the range [0, 255];
-    // 4. they are small-sized (< 16 bits);
-    // 4. they are intermediate-sized (< 32 bits);
-    // 6. they are medium-sized (< 64 bits);
-    // 7. the rest.
-
     let size = bases.len().min(scalars.len());
     let bases = &bases[..size];
     let scalars = &scalars[..size];
 
+    // Partition scalars according to their size.
     let mut grouped = cfg_iter!(scalars)
         .enumerate()
         .filter(|(_, scalar)| !scalar.is_zero())
         .map(|(i, scalar)| {
-            let mut p_minus_scalar = V::ScalarField::MODULUS;
-            p_minus_scalar.sub_with_borrow(scalar);
-            let num_bits = scalar.num_bits();
-            let neg_num_bits = p_minus_scalar.num_bits();
-            let group = if num_bits <= 1 {
-                0u8
-            } else if neg_num_bits <= 1 {
-                1u8
-            } else if num_bits <= 8 {
-                2u8
-            } else if neg_num_bits <= 8 {
-                3u8
-            } else if num_bits <= 16 {
-                4u8
-            } else if neg_num_bits <= 16 {
-                5u8
-            } else if num_bits <= 32 {
-                6u8
-            } else if neg_num_bits <= 32 {
-                7u8
-            } else if num_bits <= 64 {
-                8u8
-            } else if neg_num_bits <= 64 {
-                9u8
-            } else {
-                10u8
+            use ScalarSize::*;
+            let mut value = 0;
+            let group = match scalar.num_bits() {
+                0..=1 => U1,
+                2..=8 => U8,
+                9..=16 => U16,
+                17..=32 => U32,
+                33..=64 => U64,
+                _ => {
+                    let mut p_minus_scalar = V::ScalarField::MODULUS;
+                    p_minus_scalar.sub_with_borrow(scalar);
+                    let group = match p_minus_scalar.num_bits() {
+                        0..=1 => NegU1,
+                        2..=8 => NegU8,
+                        9..=16 => NegU16,
+                        17..=32 => NegU32,
+                        33..=64 => NegU64,
+                        _ => ScalarSize::BigInt,
+                    };
+                    if matches!(group, NegU1 | NegU8 | NegU16) {
+                        value = p_minus_scalar.as_ref()[0] as u16
+                    }
+                    group
+                },
             };
-            // group is at most 10, so we can fit it in 4 bits.
-            // hence, we can use the first 60 bits for the index,
-            // and the last 4 bits for the group.
-            (((i as u64) << 4) >> 4) ^ ((group as u64) << 60)
+            if matches!(group, U1 | U8 | U16) {
+                value = (scalar.as_ref()[0]) as u16;
+            };
+            PackedIndex::new(i, group, value)
         })
         .collect::<Vec<_>>();
-    let extract_group = |i| (i >> 60) as u8;
 
     #[cfg(feature = "parallel")]
-    grouped.par_sort_unstable_by_key(|i| extract_group(*i));
+    grouped.par_sort_unstable_by_key(|i| i.group());
     #[cfg(not(feature = "parallel"))]
-    grouped.sort_unstable_by_key(|i| extract_group(*i));
+    grouped.sort_unstable_by_key(|i| i.group());
 
-    let su1 = 0;
-    let si1 = su1 + grouped[su1..].partition_point(|i| extract_group(*i) < 1);
-    let su8 = si1 + grouped[si1..].partition_point(|i| extract_group(*i) < 2);
-    let si8 = su8 + grouped[su8..].partition_point(|i| extract_group(*i) < 3);
-    let su16 = si8 + grouped[si8..].partition_point(|i| extract_group(*i) < 4);
-    let si16 = su16 + grouped[su16..].partition_point(|i| extract_group(*i) < 5);
-    let su32 = si16 + grouped[si16..].partition_point(|i| extract_group(*i) < 6);
-    let si32 = su32 + grouped[su32..].partition_point(|i| extract_group(*i) < 7);
-    let su64 = si32 + grouped[si32..].partition_point(|i| extract_group(*i) < 8);
-    let si64 = su64 + grouped[su64..].partition_point(|i| extract_group(*i) < 9);
-    let sf = si64 + grouped[si64..].partition_point(|i| extract_group(*i) < 10);
+    let (u1s, rest) = grouped.split_at(ScalarSize::U1.partition_point(&grouped));
+    let (i1s, rest) = rest.split_at(ScalarSize::NegU1.partition_point(rest));
+    let (u8s, rest) = rest.split_at(ScalarSize::U8.partition_point(rest));
+    let (i8s, rest) = rest.split_at(ScalarSize::NegU8.partition_point(rest));
+    let (u16s, rest) = rest.split_at(ScalarSize::U16.partition_point(rest));
+    let (i16s, rest) = rest.split_at(ScalarSize::NegU16.partition_point(rest));
+    let (u32s, rest) = rest.split_at(ScalarSize::U32.partition_point(rest));
+    let (i32s, rest) = rest.split_at(ScalarSize::NegU32.partition_point(rest));
+    let (u64s, rest) = rest.split_at(ScalarSize::U64.partition_point(rest));
+    let (i64s, rest) = rest.split_at(ScalarSize::NegU64.partition_point(rest));
+    let (bigints, _) = rest.split_at(ScalarSize::BigInt.partition_point(rest));
 
     let m = V::ScalarField::MODULUS;
-    let mut result: V;
+    let mut add_result: V;
+    let mut sub_result: V;
 
     // Handle the scalars in the range {-1, 0, 1}.
-    let (ub, us) = iget_group(&grouped[su1..si1], |i| {
-        (bases[i], scalars[i].as_ref()[0] == 1)
-    });
-    let (ib, is) = iget_group(&grouped[si1..su8], |i| {
-        (bases[i], sub(&m, &scalars[i]) == 1)
-    });
-    result = msm_binary::<V>(&ub, &us) - msm_binary::<V>(&ib, &is);
+    let (ub, us) = small_value_unzip(&u1s, |i, v| (bases[i], v == 1));
+    let (ib, is) = small_value_unzip(&i1s, |i, v| (bases[i], v == 1));
+    add_result = msm_binary::<V>(&ub, &us);
+    sub_result = msm_binary::<V>(&ib, &is);
 
     // Handle positive and negative u8 scalars.
-    let (ub, us) = iget_group(&grouped[su8..si8], |i| {
-        (bases[i], scalars[i].as_ref()[0] as u8)
-    });
-    let (ib, is) = iget_group(&grouped[si8..su16], |i| {
-        (bases[i], sub(&m, &scalars[i]) as u8)
-    });
-    result += msm_u8::<V>(&ub, &us) - msm_u8::<V>(&ib, &is);
+    let (ub, us) = small_value_unzip(u8s, |i, v| (bases[i], v as u8));
+    let (ib, is) = small_value_unzip(i8s, |i, v| (bases[i], v as u8));
+    add_result += msm_u8::<V>(&ub, &us);
+    sub_result += msm_u8::<V>(&ib, &is);
 
     // Handle positive and negative u16 scalars.
-    let (ub, us) = iget_group(&grouped[su16..si16], |i| {
-        (bases[i], scalars[i].as_ref()[0] as u16)
-    });
-    let (ib, is) = iget_group(&grouped[si16..su32], |i| {
-        (bases[i], sub(&m, &scalars[i]) as u16)
-    });
-    result += msm_u16::<V>(&ub, &us) - msm_u16::<V>(&ib, &is);
+    let (ub, us) = small_value_unzip(u16s, |i, v| (bases[i], v as u16));
+    let (ib, is) = small_value_unzip(i16s, |i, v| (bases[i], v as u16));
+    add_result += msm_u16::<V>(&ub, &us);
+    sub_result += msm_u16::<V>(&ib, &is);
 
     // Handle positive and negative u32 scalars.
-    let (ub, us) = iget_group(&grouped[su32..si32], |i| {
-        (bases[i], scalars[i].as_ref()[0] as u32)
-    });
-    let (ib, is) = iget_group(&grouped[si32..su64], |i| {
-        (bases[i], sub(&m, &scalars[i]) as u32)
-    });
-    result += msm_u32::<V>(&ub, &us) - msm_u32::<V>(&ib, &is);
+    let (ub, us) = large_value_unzip(u32s, |i| (bases[i], scalars[i].as_ref()[0] as u32));
+    let (ib, is) = large_value_unzip(i32s, |i| (bases[i], sub(&m, &scalars[i]) as u32));
+    add_result += msm_u32::<V>(&ub, &us);
+    sub_result += msm_u32::<V>(&ib, &is);
 
     // Handle positive and negative u64 scalars.
-    let (ub, us) = iget_group(&grouped[su64..si64], |i| (bases[i], scalars[i].as_ref()[0]));
-    let (ib, is) = iget_group(&grouped[si64..sf], |i| (bases[i], sub(&m, &scalars[i])));
-    result += msm_u64::<V>(&ub, &us) - msm_u64::<V>(&ib, &is);
+    let (ub, us) = large_value_unzip(u64s, |i| (bases[i], scalars[i].as_ref()[0]));
+    let (ib, is) = large_value_unzip(i64s, |i| (bases[i], sub(&m, &scalars[i])));
+    add_result += msm_u64::<V>(&ub, &us);
+    sub_result += msm_u64::<V>(&ib, &is);
 
     // Handle the rest of the scalars.
-    let (bf, sf) = iget_group(&grouped[sf..], |i| (bases[i], scalars[i]));
-    result += msm_bigint_wnaf::<V>(&bf, &sf);
+    let (bf, sf) = large_value_unzip(&bigints, |i| (bases[i], scalars[i]));
+    if V::NEGATION_IS_CHEAP {
+        add_result += msm_bigint_wnaf::<V>(&bf, &sf);
+    } else {
+        add_result += msm_bigint::<V>(&bf, &sf);
+    }
 
-    result.into()
+    (add_result - sub_result).into()
 }
 
 fn preamble<A, B>(bases: &mut &[A], scalars: &mut &[B]) -> Option<usize> {
@@ -517,7 +466,6 @@ fn msm_bigint_wnaf_parallel<V: VariableBaseMSM>(
             let mut buckets = vec![zero; 1 << c];
             for (digits, base) in scalar_digits.chunks(digits_count).zip(bases) {
                 use ark_std::cmp::Ordering;
-                // digits is the digits thing of the first scalar?
                 let scalar = digits[i];
                 match 0.cmp(&scalar) {
                     Ordering::Less => buckets[(scalar - 1) as usize] += base,
@@ -613,7 +561,6 @@ fn msm_bigint_wnaf<V: VariableBaseMSM>(
 fn msm_bigint<V: VariableBaseMSM>(
     mut bases: &[V::MulBase],
     mut scalars: &[<V::ScalarField as PrimeField>::BigInt],
-    num_bits: usize,
 ) -> V {
     if preamble(&mut bases, &mut scalars).is_none() {
         return V::zero();
@@ -628,8 +575,8 @@ fn msm_bigint<V: VariableBaseMSM>(
     };
 
     let one = V::ScalarField::one().into_bigint();
-
     let zero = V::ZERO_BUCKET;
+    let num_bits = V::ScalarField::MODULUS_BIT_SIZE as usize;
 
     // Each window is of size `c`.
     // We divide up the bits 0..num_bits into windows of size `c`, and
