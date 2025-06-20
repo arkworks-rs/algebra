@@ -136,6 +136,11 @@ impl<P: DOCurveConfig> AffineRepr for Affine<P> {
     type ScalarField = P::ScalarField;
     type Group = Projective<P>;
 
+    const ZERO: Self = Self {
+        e: P::BaseField::ONE,
+        u: P::BaseField::ZERO,
+    };
+
     fn xy(&self) -> Option<(Self::BaseField, Self::BaseField)> {
         Some((self.e, self.u))
     }
@@ -252,7 +257,7 @@ impl<P: DOCurveConfig, T: Borrow<P::ScalarField>> Mul<T> for Affine<P> {
 impl<P: DOCurveConfig> From<Projective<P>> for Affine<P> {
     #[inline]
     fn from(p: Projective<P>) -> Affine<P> {
-        use crate::ark_std::Zero;
+        use ark_std::Zero;
 
         if p.is_zero() {
             Self::identity()
