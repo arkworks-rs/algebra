@@ -43,7 +43,7 @@ impl SWCurveConfig for Config {
     );
 
     /// Correctness:
-    /// The curve equation is y^2 = x^3  + b 
+    /// The curve equation is y^2 = x^3  + b
     /// Substituting (0, 0) gives 0^2 = 0^3 + b which simplifies to 0 = b.
     /// Since b is not zero, the point (0, 0) is not on the curve.
     /// Therefore, we can safely use (0, 0) as a flag for the zero point.

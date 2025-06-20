@@ -47,7 +47,7 @@ impl SWCurveConfig for Config {
 
     /// AFFINE_GENERATOR_COEFFS = (G1_GENERATOR_X, G1_GENERATOR_Y)
     const GENERATOR: G1Affine = G1Affine::new_unchecked(G1_GENERATOR_X, G1_GENERATOR_Y);
-    
+
     /// Correctness:
     /// Substituting (0, 0) into the curve equation gives 0^2 = b.
     /// Since b is not zero, the point (0, 0) is not on the curve.

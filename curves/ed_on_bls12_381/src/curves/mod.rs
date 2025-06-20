@@ -123,7 +123,6 @@ impl SWCurveConfig for JubjubConfig {
     /// Since b is not zero, the point (0, 0) is not on the curve.
     /// Therefore, we can safely use (0, 0) as a flag for the zero point.
     type ZeroFlag = ();
-
 }
 
 /// x coordinate for SW curve generator
