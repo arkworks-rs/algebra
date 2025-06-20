@@ -45,12 +45,12 @@ impl<P: Bls12Config> Default for G2Prepared<P> {
 impl<P: Bls12Config> From<G2Affine<P>> for G2Prepared<P> {
     fn from(q: G2Affine<P>) -> Self {
         let two_inv = P::Fp::one().double().inverse().unwrap();
-        let zero = G2Prepared {
-            ell_coeffs: vec![],
+        let zero = Self {
+            ell_coeffs: Vec::new(),
             infinity: true,
         };
         q.xy().map_or(zero, |(q_x, q_y)| {
-            let mut ell_coeffs = vec![];
+            let mut ell_coeffs = Vec::new();
             let mut r = G2HomProjective::<P> {
                 x: q_x,
                 y: q_y,
@@ -92,7 +92,7 @@ impl<'a, P: Bls12Config> From<&'a G2Projective<P>> for G2Prepared<P> {
 }
 
 impl<P: Bls12Config> G2Prepared<P> {
-    pub fn is_zero(&self) -> bool {
+    pub const fn is_zero(&self) -> bool {
         self.infinity
     }
 }

@@ -50,13 +50,40 @@ impl CanonicalDeserialize for Dummy {
                 assert_eq!(<[u8; 2]>::deserialize_compressed(reader)?, [100u8, 200u8])
             },
         }
-        Ok(Dummy)
+        Ok(Self)
     }
 }
 
 fn test_serialize<T: PartialEq + core::fmt::Debug + CanonicalSerialize + CanonicalDeserialize>(
     data: T,
 ) {
+    #[cfg(feature = "serde")]
+    let serde_ser = |compress: Compress, validate: Validate| -> Result<String, serde_json::Error> {
+        match (compress, validate) {
+            (Compress::Yes, Validate::Yes) => serde_json::to_string(&CompressedChecked(&data)),
+            (Compress::Yes, Validate::No) => serde_json::to_string(&CompressedUnchecked(&data)),
+            (Compress::No, Validate::Yes) => serde_json::to_string(&UncompressedChecked(&data)),
+            (Compress::No, Validate::No) => serde_json::to_string(&UncompressedUnchecked(&data)),
+        }
+    };
+    #[cfg(feature = "serde")]
+    let serde_de =
+        |compress: Compress, validate: Validate, input: &str| -> Result<T, serde_json::Error> {
+            Ok(match (compress, validate) {
+                (Compress::Yes, Validate::Yes) => {
+                    serde_json::from_str::<CompressedChecked<T>>(input)?.0
+                },
+                (Compress::Yes, Validate::No) => {
+                    serde_json::from_str::<CompressedUnchecked<T>>(input)?.0
+                },
+                (Compress::No, Validate::Yes) => {
+                    serde_json::from_str::<UncompressedChecked<T>>(input)?.0
+                },
+                (Compress::No, Validate::No) => {
+                    serde_json::from_str::<UncompressedUnchecked<T>>(input)?.0
+                },
+            })
+        };
     for compress in [Compress::Yes, Compress::No] {
         for validate in [Validate::Yes, Validate::No] {
             let mut serialized = vec![0; data.serialized_size(compress)];
@@ -64,6 +91,12 @@ fn test_serialize<T: PartialEq + core::fmt::Debug + CanonicalSerialize + Canonic
                 .unwrap();
             let de = T::deserialize_with_mode(&serialized[..], compress, validate).unwrap();
             assert_eq!(data, de);
+            #[cfg(feature = "serde")]
+            {
+                let serde_serialized = serde_ser(compress, validate).unwrap();
+                let serde_de = serde_de(compress, validate, &serde_serialized).unwrap();
+                assert_eq!(data, serde_de);
+            }
         }
     }
 }
@@ -161,6 +194,20 @@ fn test_uint() {
 }
 
 #[test]
+fn test_int() {
+    test_serialize(192830918isize);
+    test_serialize(-192830918isize);
+    test_serialize(192830918i64);
+    test_serialize(-192830918i64);
+    test_serialize(192830918i32);
+    test_serialize(-192830918i32);
+    test_serialize(22313i16);
+    test_serialize(-22313i16);
+    test_serialize(123i8);
+    test_serialize(-123i8);
+}
+
+#[test]
 fn test_string() {
     test_serialize(String::from("arkworks"));
 }
@@ -215,6 +262,7 @@ fn test_rc_arc() {
 }
 
 #[test]
+#[allow(clippy::zero_sized_map_values)]
 fn test_btreemap() {
     let mut map = BTreeMap::new();
     map.insert(0u64, Dummy);

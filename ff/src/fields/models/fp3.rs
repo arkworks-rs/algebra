@@ -11,12 +11,12 @@ pub trait Fp3Config: 'static + Send + Sync + Sized {
     /// `f(X) = X^3 - Self::NONRESIDUE` in Fp\[X\] is irreducible in `Self::Fp`.
     const NONRESIDUE: Self::Fp;
 
-    const FROBENIUS_COEFF_FP3_C1: &'static [Self::Fp];
-    const FROBENIUS_COEFF_FP3_C2: &'static [Self::Fp];
+    const FROBENIUS_COEFF_FP3_C1: &[Self::Fp];
+    const FROBENIUS_COEFF_FP3_C2: &[Self::Fp];
 
     /// p^3 - 1 = 2^s * t, where t is odd.
     const TWO_ADICITY: u32;
-    const TRACE_MINUS_ONE_DIV_TWO: &'static [u64];
+    const TRACE_MINUS_ONE_DIV_TWO: &[u64];
     /// t-th power of a quadratic nonresidue in Fp3.
     const QUADRATIC_NONRESIDUE_TO_T: Fp3<Self>;
 
@@ -48,8 +48,8 @@ impl<P: Fp3Config> CubicExtConfig for Fp3ConfigWrapper<P> {
             trace_of_modulus_minus_one_div_two: P::TRACE_MINUS_ONE_DIV_TWO,
         });
 
-    const FROBENIUS_COEFF_C1: &'static [Self::FrobCoeff] = P::FROBENIUS_COEFF_FP3_C1;
-    const FROBENIUS_COEFF_C2: &'static [Self::FrobCoeff] = P::FROBENIUS_COEFF_FP3_C2;
+    const FROBENIUS_COEFF_C1: &[Self::FrobCoeff] = P::FROBENIUS_COEFF_FP3_C1;
+    const FROBENIUS_COEFF_C2: &[Self::FrobCoeff] = P::FROBENIUS_COEFF_FP3_C2;
 
     #[inline(always)]
     fn mul_base_field_by_nonresidue_in_place(fe: &mut Self::BaseField) -> &mut Self::BaseField {

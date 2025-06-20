@@ -4,18 +4,12 @@
     future_incompatible,
     nonstandard_style,
     rust_2018_idioms,
-    rust_2021_compatibility
+    rust_2021_compatibility,
+    clippy::missing_const_for_fn
 )]
 #![forbid(unsafe_code)]
-#![allow(
-    clippy::op_ref,
-    clippy::suspicious_op_assign_impl,
-    clippy::many_single_char_names
-)]
+#![allow(clippy::op_ref, clippy::suspicious_op_assign_impl)]
 #![doc = include_str!("../README.md")]
-
-#[macro_use]
-extern crate ark_std;
 
 use ark_ff::{
     fields::{Field, PrimeField},
@@ -135,7 +129,7 @@ pub trait AffineRepr:
     + Debug
     + Display
     + Zeroize
-    + Neg
+    + Neg<Output = Self>
     + From<<Self as AffineRepr>::Group>
     + Into<<Self as AffineRepr>::Group>
     + Add<Self, Output = Self::Group>
@@ -163,6 +157,8 @@ pub trait AffineRepr:
         > + From<Self>
         + Into<Self>
         + MulAssign<Self::ScalarField>; // needed due to https://github.com/rust-lang/rust/issues/69640
+
+    const ZERO: Self;
 
     /// Returns the x and y coordinates of this affine point.
     fn xy(&self) -> Option<(Self::BaseField, Self::BaseField)>;

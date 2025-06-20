@@ -7,13 +7,14 @@ use crate::{
 use ark_ff::{Field, Zero};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use ark_std::{
-    fmt,
-    fmt::Formatter,
+    cfg_iter,
+    fmt::{self, Formatter},
     iter::IntoIterator,
     log2,
     ops::{Add, AddAssign, Index, Mul, MulAssign, Neg, Sub, SubAssign},
     rand::Rng,
     slice::{Iter, IterMut},
+    vec,
     vec::*,
 };
 #[cfg(feature = "parallel")]
@@ -153,8 +154,26 @@ impl<F: Field> DenseMultilinearExtension<F> {
     }
 }
 
-impl<F: Field> AsRef<DenseMultilinearExtension<F>> for DenseMultilinearExtension<F> {
-    fn as_ref(&self) -> &DenseMultilinearExtension<F> {
+impl<'a, F: Field> IntoIterator for &'a DenseMultilinearExtension<F> {
+    type IntoIter = ark_std::slice::Iter<'a, F>;
+    type Item = &'a F;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
+    }
+}
+
+impl<'a, F: Field> IntoIterator for &'a mut DenseMultilinearExtension<F> {
+    type IntoIter = ark_std::slice::IterMut<'a, F>;
+    type Item = &'a mut F;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter_mut()
+    }
+}
+
+impl<F: Field> AsRef<Self> for DenseMultilinearExtension<F> {
+    fn as_ref(&self) -> &Self {
         self
     }
 }
@@ -205,7 +224,7 @@ impl<F: Field> MultilinearExtension<F> for DenseMultilinearExtension<F> {
             partial_point.len() <= self.num_vars,
             "invalid size of partial point"
         );
-        let mut poly = self.evaluations.to_vec();
+        let mut poly = self.evaluations.clone();
         let nv = self.num_vars;
         let dim = partial_point.len();
         // evaluate single variable of partial point from left to right
@@ -221,7 +240,7 @@ impl<F: Field> MultilinearExtension<F> for DenseMultilinearExtension<F> {
     }
 
     fn to_evaluations(&self) -> Vec<F> {
-        self.evaluations.to_vec()
+        self.evaluations.clone()
     }
 }
 
@@ -240,9 +259,9 @@ impl<F: Field> Index<usize> for DenseMultilinearExtension<F> {
 }
 
 impl<F: Field> Add for DenseMultilinearExtension<F> {
-    type Output = DenseMultilinearExtension<F>;
+    type Output = Self;
 
-    fn add(self, other: DenseMultilinearExtension<F>) -> Self {
+    fn add(self, other: Self) -> Self {
         &self + &other
     }
 }
@@ -260,7 +279,7 @@ impl<'a, F: Field> Add<&'a DenseMultilinearExtension<F>> for &DenseMultilinearEx
         }
         assert_eq!(self.num_vars, rhs.num_vars);
         let result: Vec<F> = cfg_iter!(self.evaluations)
-            .zip(cfg_iter!(rhs.evaluations))
+            .zip(&rhs.evaluations)
             .map(|(a, b)| *a + *b)
             .collect();
 
@@ -274,16 +293,14 @@ impl<F: Field> AddAssign for DenseMultilinearExtension<F> {
     }
 }
 
-impl<'a, F: Field> AddAssign<&'a DenseMultilinearExtension<F>> for DenseMultilinearExtension<F> {
-    fn add_assign(&mut self, other: &'a DenseMultilinearExtension<F>) {
+impl<'a, F: Field> AddAssign<&'a Self> for DenseMultilinearExtension<F> {
+    fn add_assign(&mut self, other: &'a Self) {
         *self = &*self + other;
     }
 }
 
-impl<'a, F: Field> AddAssign<(F, &'a DenseMultilinearExtension<F>)>
-    for DenseMultilinearExtension<F>
-{
-    fn add_assign(&mut self, (f, other): (F, &'a DenseMultilinearExtension<F>)) {
+impl<'a, F: Field> AddAssign<(F, &'a Self)> for DenseMultilinearExtension<F> {
+    fn add_assign(&mut self, (f, other): (F, &'a Self)) {
         let other = Self {
             num_vars: other.num_vars,
             evaluations: cfg_iter!(other.evaluations).map(|x| f * x).collect(),
@@ -293,7 +310,7 @@ impl<'a, F: Field> AddAssign<(F, &'a DenseMultilinearExtension<F>)>
 }
 
 impl<F: Field> Neg for DenseMultilinearExtension<F> {
-    type Output = DenseMultilinearExtension<F>;
+    type Output = Self;
 
     fn neg(self) -> Self::Output {
         Self::Output {
@@ -304,9 +321,9 @@ impl<F: Field> Neg for DenseMultilinearExtension<F> {
 }
 
 impl<F: Field> Sub for DenseMultilinearExtension<F> {
-    type Output = DenseMultilinearExtension<F>;
+    type Output = Self;
 
-    fn sub(self, other: DenseMultilinearExtension<F>) -> Self {
+    fn sub(self, other: Self) -> Self {
         &self - &other
     }
 }
@@ -325,14 +342,14 @@ impl<F: Field> SubAssign for DenseMultilinearExtension<F> {
     }
 }
 
-impl<'a, F: Field> SubAssign<&'a DenseMultilinearExtension<F>> for DenseMultilinearExtension<F> {
-    fn sub_assign(&mut self, other: &'a DenseMultilinearExtension<F>) {
+impl<'a, F: Field> SubAssign<&'a Self> for DenseMultilinearExtension<F> {
+    fn sub_assign(&mut self, other: &'a Self) {
         *self = &*self - other;
     }
 }
 
 impl<F: Field> Mul<F> for DenseMultilinearExtension<F> {
-    type Output = DenseMultilinearExtension<F>;
+    type Output = Self;
 
     fn mul(self, scalar: F) -> Self::Output {
         &self * &scalar
@@ -438,9 +455,10 @@ mod tests {
 
     /// utility: evaluate multilinear extension (in form of data array) at a random point
     fn evaluate_data_array<F: Field>(data: &[F], point: &[F]) -> F {
-        if data.len() != (1 << point.len()) {
-            panic!("Data size mismatch with number of variables. ")
-        }
+        assert!(
+            data.len() == (1 << point.len()),
+            "Data size mismatch with number of variables. "
+        );
 
         let nv = point.len();
         let mut a = data.to_vec();

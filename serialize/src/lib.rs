@@ -12,10 +12,13 @@ mod error;
 mod flags;
 mod impls;
 
+mod serde;
+
 pub use ark_std::io::{Read, Write};
 
 pub use error::*;
 pub use flags::*;
+pub use serde::*;
 
 #[cfg(test)]
 mod test;
@@ -62,7 +65,7 @@ pub enum Validate {
     No,
 }
 
-pub trait Valid: Sized + Sync {
+pub trait Valid: Sync {
     fn check(&self) -> Result<(), SerializationError>;
 
     fn batch_check<'a>(
@@ -145,7 +148,7 @@ pub trait CanonicalSerialize {
 ///     b: (u64, (u64, u64)),
 /// }
 /// ```
-pub trait CanonicalDeserialize: Valid {
+pub trait CanonicalDeserialize: Valid + Sized {
     /// The general deserialize method that takes in customization flags.
     fn deserialize_with_mode<R: Read>(
         reader: R,
@@ -232,7 +235,7 @@ pub trait CanonicalSerializeHashExt: CanonicalSerialize {
 impl<T: CanonicalSerialize> CanonicalSerializeHashExt for T {}
 
 #[inline]
-pub fn buffer_bit_byte_size(modulus_bits: usize) -> (usize, usize) {
+pub const fn buffer_bit_byte_size(modulus_bits: usize) -> (usize, usize) {
     let byte_size = buffer_byte_size(modulus_bits);
     ((byte_size * 8), byte_size)
 }
@@ -241,5 +244,5 @@ pub fn buffer_bit_byte_size(modulus_bits: usize) -> (usize, usize) {
 /// into the number of bytes required to represent it.
 #[inline]
 pub const fn buffer_byte_size(modulus_bits: usize) -> usize {
-    (modulus_bits + 7) / 8
+    modulus_bits.div_ceil(8)
 }

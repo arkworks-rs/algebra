@@ -35,7 +35,7 @@ use crate::{
 /// This implementation uses the unified addition formulae from that paper (see
 /// Section 3.1).
 #[derive(Educe)]
-#[educe(Copy, Clone, Eq(bound(P: TECurveConfig)), Debug)]
+#[educe(Copy, Clone, Eq, Debug)]
 #[must_use]
 pub struct Projective<P: TECurveConfig> {
     pub x: P::BaseField,
@@ -398,7 +398,7 @@ impl<P: TECurveConfig, T: Borrow<Affine<P>>> ark_std::iter::Sum<T> for Projectiv
 // The affine point (X, Y) is represented in the Extended Projective coordinates
 // with Z = 1.
 impl<P: TECurveConfig> From<Affine<P>> for Projective<P> {
-    fn from(p: Affine<P>) -> Projective<P> {
+    fn from(p: Affine<P>) -> Self {
         Self::new_unchecked(p.x, p.y, p.x * &p.y, P::BaseField::one())
     }
 }
@@ -417,13 +417,12 @@ impl<P: MontCurveConfig> Display for MontgomeryAffine<P> {
 }
 
 impl<P: MontCurveConfig> MontgomeryAffine<P> {
-    pub fn new(x: P::BaseField, y: P::BaseField) -> Self {
+    pub const fn new(x: P::BaseField, y: P::BaseField) -> Self {
         Self { x, y }
     }
 }
 
 impl<P: TECurveConfig> CanonicalSerialize for Projective<P> {
-    #[allow(unused_qualifications)]
     #[inline]
     fn serialize_with_mode<W: Write>(
         &self,
@@ -458,7 +457,6 @@ impl<P: TECurveConfig> Valid for Projective<P> {
 }
 
 impl<P: TECurveConfig> CanonicalDeserialize for Projective<P> {
-    #[allow(unused_qualifications)]
     fn deserialize_with_mode<R: Read>(
         reader: R,
         compress: Compress,
@@ -489,6 +487,9 @@ impl<P: TECurveConfig> ScalarMul for Projective<P> {
 }
 
 impl<P: TECurveConfig> VariableBaseMSM for Projective<P> {
+    type Bucket = Self;
+    const ZERO_BUCKET: Self = Self::ZERO;
+
     fn msm(bases: &[Self::MulBase], bigints: &[Self::ScalarField]) -> Result<Self, usize> {
         P::msm(bases, bigints)
     }

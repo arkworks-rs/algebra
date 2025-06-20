@@ -2,6 +2,7 @@
 use ark_ff::Field;
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use ark_std::{
+    cfg_into_iter,
     cmp::Ordering,
     fmt::{Debug, Error, Formatter},
     hash::Hash,
@@ -104,7 +105,7 @@ impl Term for SparseTerm {
 
     /// Returns whether `self` is a constant
     fn is_constant(&self) -> bool {
-        self.len() == 0 || self.degree() == 0
+        self.is_empty() || self.degree() == 0
     }
 
     /// Evaluates `self` at the given `point` in the field.
@@ -142,9 +143,7 @@ impl PartialOrd for SparseTerm {
     /// ie. `x_1 > x_2`, `x_1^2 > x_1 * x_2`, etc.
     #[allow(clippy::non_canonical_partial_ord_impl)]
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        if self.degree() != other.degree() {
-            Some(self.degree().cmp(&other.degree()))
-        } else {
+        if self.degree() == other.degree() {
             // Iterate through all variables and return the corresponding ordering
             // if they differ in variable numbering or power
             for ((cur_variable, cur_power), (other_variable, other_power)) in
@@ -159,6 +158,8 @@ impl PartialOrd for SparseTerm {
                 }
             }
             Some(Ordering::Equal)
+        } else {
+            Some(self.degree().cmp(&other.degree()))
         }
     }
 }
@@ -173,13 +174,14 @@ impl Ord for SparseTerm {
 mod tests {
     use super::*;
     use ark_ff::{Fp64, MontBackend, MontConfig};
+    use ark_std::vec;
 
     #[derive(MontConfig)]
     #[modulus = "5"]
     #[generator = "2"]
-    pub struct F5Config;
+    pub(crate) struct F5Config;
 
-    pub type F5 = Fp64<MontBackend<F5Config, 1>>;
+    pub(crate) type F5 = Fp64<MontBackend<F5Config, 1>>;
 
     #[test]
     fn test_sparse_term_combine() {
