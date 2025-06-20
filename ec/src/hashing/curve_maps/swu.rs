@@ -126,10 +126,10 @@ impl<P: SWUConfig> MapToCurve<Projective<P>> for SWUMap<P> {
         let y = if gx1_square { y1 } else { y2 };
 
         let x_affine = num_x / div;
-        let y_affine = if parity(&y) != parity(&element) {
-            -y
-        } else {
+        let y_affine = if parity(&y) == parity(&element) {
             y
+        } else {
+            -y
         };
         let point_on_curve = Affine::new_unchecked(x_affine, y_affine);
         debug_assert!(
@@ -175,17 +175,16 @@ mod test {
     #[derive(ark_ff::MontConfig)]
     #[modulus = "127"]
     #[generator = "6"]
-    pub struct F127Config;
-    pub type F127 = Fp64<MontBackend<F127Config, 1>>;
+    pub(crate) struct F127Config;
+    pub(crate) type F127 = Fp64<MontBackend<F127Config, 1>>;
 
     const F127_ONE: F127 = MontFp!("1");
 
     struct TestSWUMapToCurveConfig;
 
     impl CurveConfig for TestSWUMapToCurveConfig {
-        const COFACTOR: &'static [u64] = &[1];
+        const COFACTOR: &[u64] = &[1];
 
-    #[rustfmt::skip]
         const COFACTOR_INV: F127 = F127_ONE;
 
         type BaseField = F127;
@@ -267,7 +266,7 @@ mod test {
     fn map_field_to_curve_swu() {
         SWUMap::<TestSWUMapToCurveConfig>::check_parameters().unwrap();
 
-        let mut map_range: Vec<Affine<TestSWUMapToCurveConfig>> = vec![];
+        let mut map_range: Vec<Affine<TestSWUMapToCurveConfig>> = Vec::with_capacity(128);
         for current_field_element in 0..127 {
             let element = F127::from(current_field_element as u64);
             map_range.push(SWUMap::map_to_curve(element).unwrap());

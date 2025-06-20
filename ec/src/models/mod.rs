@@ -24,7 +24,7 @@ pub trait CurveConfig: Send + Sync + Sized + 'static {
     type ScalarField: PrimeField + Into<<Self::ScalarField as PrimeField>::BigInt>;
 
     /// The cofactor of this curve, represented as a sequence of little-endian limbs.
-    const COFACTOR: &'static [u64];
+    const COFACTOR: &[u64];
     const COFACTOR_INV: Self::ScalarField;
 
     fn cofactor_is_one() -> bool {

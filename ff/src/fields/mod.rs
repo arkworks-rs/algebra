@@ -371,14 +371,14 @@ pub fn batch_inversion_and_mul<F: Field>(v: &mut [F], coeff: &F) {
     let num_elem_per_thread = max(num_elems / num_cpus_available, min_elements_per_thread);
 
     // Batch invert in parallel, without copying the vector
-    v.par_chunks_mut(num_elem_per_thread).for_each(|mut chunk| {
-        serial_batch_inversion_and_mul(&mut chunk, coeff);
+    v.par_chunks_mut(num_elem_per_thread).for_each(|chunk| {
+        serial_batch_inversion_and_mul(chunk, coeff);
     });
 }
 
 /// Given a vector of field elements {v_i}, compute the vector {coeff * v_i^(-1)}.
 /// This method is explicitly single-threaded.
-fn serial_batch_inversion_and_mul<F: Field>(v: &mut [F], coeff: &F) {
+pub fn serial_batch_inversion_and_mul<F: Field>(v: &mut [F], coeff: &F) {
     // Montgomery’s Trick and Fast Implementation of Masked AES
     // Genelle, Prouff and Quisquater
     // Section 3.2
@@ -518,6 +518,7 @@ mod no_std_tests {
 
     #[test]
     fn test_from_be_bytes_mod_order() {
+        use ark_std::vec;
         // Each test vector is a byte array,
         // and its tested by parsing it with from_bytes_mod_order, and the num-bigint
         // library. The bytes are currently generated from scripts/test_vectors.py.

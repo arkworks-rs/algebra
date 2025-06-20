@@ -18,7 +18,7 @@ pub trait Fp12Config: 'static + Send + Sync + Copy {
     const NONRESIDUE: Fp6<Self::Fp6Config>;
 
     /// Coefficients for the Frobenius automorphism.
-    const FROBENIUS_COEFF_FP12_C1: &'static [Fp2<Fp2Config<Self>>];
+    const FROBENIUS_COEFF_FP12_C1: &[Fp2<Fp2Config<Self>>];
 
     /// Multiply by quadratic nonresidue v.
     #[inline(always)]
@@ -44,7 +44,7 @@ impl<P: Fp12Config> QuadExtConfig for Fp12ConfigWrapper<P> {
 
     const NONRESIDUE: Self::BaseField = P::NONRESIDUE;
 
-    const FROBENIUS_COEFF_C1: &'static [Self::FrobCoeff] = P::FROBENIUS_COEFF_FP12_C1;
+    const FROBENIUS_COEFF_C1: &[Self::FrobCoeff] = P::FROBENIUS_COEFF_FP12_C1;
 
     #[inline(always)]
     fn mul_base_field_by_nonresidue_in_place(fe: &mut Self::BaseField) -> &mut Self::BaseField {

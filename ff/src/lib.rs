@@ -4,17 +4,12 @@
     future_incompatible,
     nonstandard_style,
     rust_2018_idioms,
-    rust_2021_compatibility
+    rust_2021_compatibility,
+    clippy::missing_const_for_fn
 )]
 #![allow(clippy::op_ref, clippy::suspicious_op_assign_impl)]
 #![deny(unsafe_code)]
 #![doc = include_str!("../README.md")]
-
-#[macro_use]
-extern crate ark_std;
-
-#[macro_use]
-extern crate educe;
 
 #[macro_use]
 pub mod biginteger;
