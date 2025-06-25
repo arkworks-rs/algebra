@@ -12,13 +12,15 @@ mod error;
 mod flags;
 mod impls;
 
-mod serde;
+pub mod serde;
 
 pub use ark_std::io::{Read, Write};
 
 pub use error::*;
 pub use flags::*;
-pub use serde::*;
+pub use serde::{
+    CompressedChecked, CompressedUnchecked, UncompressedChecked, UncompressedUnchecked,
+};
 
 #[cfg(test)]
 mod test;
