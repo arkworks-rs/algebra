@@ -1,11 +1,11 @@
 [package]
-name = "ark-grumpkin"
+name = "ark-starkcurve"
 version.workspace = true
 authors = [ "CPerezz", "arkworks contributors" ]
-description = "The Grumpkin prime-order elliptic curve"
+description = "Stark friendly elliptic curve defined over 2^251 + 17 * 2^192 + 1"
 homepage.workspace = true
 repository.workspace = true
-documentation = "https://docs.rs/ark-grumpkin/"
+documentation = "https://docs.rs/ark-starkcurve/"
 keywords.workspace = true
 categories.workspace = true
 include.workspace = true
@@ -34,6 +34,6 @@ r1cs = [ "ark-r1cs-std" ]
 asm = [ "ark-ff/asm" ]
 
 [[bench]]
-name = "grumpkin"
-path = "benches/grumpkin.rs"
+name = "starkcurve"
+path = "benches/starkcurve.rs"
 harness = false

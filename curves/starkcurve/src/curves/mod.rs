@@ -1,20 +1,21 @@
 // The parameters for the curve have been taken from
-// https://github.com/AztecProtocol/barretenberg/blob/97ccf76c42db581a8b8f8bfbcffe8ca015a3dd22/cpp/src/barretenberg/ecc/curves/grumpkin/grumpkin.hpp
+// https://github.com/starkware-libs/cairo/blob/main/corelib/src/ec.cairo
+// https://docs.starknet.io/architecture/cryptography/
 
-use crate::{fq::Fq, fr::Fr};
+use crate::{Fq, Fr};
 use ark_ec::{
     models::CurveConfig,
     short_weierstrass::{self as sw, SWCurveConfig},
 };
-use ark_ff::{AdditiveGroup, Field, MontFp, Zero};
+use ark_ff::{Field, MontFp};
 
 #[cfg(test)]
 mod tests;
 
 #[derive(Copy, Clone, Default, PartialEq, Eq)]
-pub struct GrumpkinConfig;
+pub struct StarkCurveConfig;
 
-impl CurveConfig for GrumpkinConfig {
+impl CurveConfig for StarkCurveConfig {
     type BaseField = Fq;
     type ScalarField = Fr;
 
@@ -25,28 +26,26 @@ impl CurveConfig for GrumpkinConfig {
     const COFACTOR_INV: Fr = Fr::ONE;
 }
 
-pub type Affine = sw::Affine<GrumpkinConfig>;
-pub type Projective = sw::Projective<GrumpkinConfig>;
+pub type Affine = sw::Affine<StarkCurveConfig>;
+pub type Projective = sw::Projective<StarkCurveConfig>;
 
-impl SWCurveConfig for GrumpkinConfig {
-    /// COEFF_A = 0
-    const COEFF_A: Fq = Fq::ZERO;
+impl SWCurveConfig for StarkCurveConfig {
+    const COEFF_A: Fq = Fq::ONE;
 
-    /// COEFF_B = -17
-    const COEFF_B: Fq = MontFp!("-17");
+    const COEFF_B: Fq =
+        MontFp!("3141592653589793238462643383279502884197169399375105820974944592307816406665");
 
     /// AFFINE_GENERATOR_COEFFS = (G1_GENERATOR_X, G1_GENERATOR_Y)
     const GENERATOR: Affine = Affine::new_unchecked(G_GENERATOR_X, G_GENERATOR_Y);
 
     #[inline(always)]
-    fn mul_by_a(_: Self::BaseField) -> Self::BaseField {
-        Self::BaseField::zero()
+    fn mul_by_a(elem: Self::BaseField) -> Self::BaseField {
+        elem
     }
 }
 
-/// G_GENERATOR_X = 1
-pub const G_GENERATOR_X: Fq = MontFp!("1");
+pub const G_GENERATOR_X: Fq =
+    MontFp!("874739451078007766457464989774322083649278607533249481151382481072868806602");
 
-/// G_GENERATOR_Y = sqrt(-16)
 pub const G_GENERATOR_Y: Fq =
-    MontFp!("17631683881184975370165255887551781615748388533673675138860");
+    MontFp!("152666792071518830868575557812948353041420400780739481342941381225525861407");
