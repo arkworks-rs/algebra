@@ -1015,7 +1015,7 @@ where
     K: CanonicalSerialize,
     V: CanonicalSerialize,
 {
-    /// Serializes a `BTreeMap` as `len(map) || key 1 || value 1 || ... || key n || value n`.
+    /// Serializes a `HashMap` as `len(map) || key 1 || value 1 || ... || key n || value n`.
     fn serialize_with_mode<W: Write>(
         &self,
         mut writer: W,
@@ -1063,7 +1063,7 @@ where
     K: core::hash::Hash + Eq + CanonicalDeserialize,
     V: CanonicalDeserialize,
 {
-    /// Deserializes a `BTreeMap` from `len(map) || key 1 || value 1 || ... || key n || value n`.
+    /// Deserializes a `HashMap` from `len(map) || key 1 || value 1 || ... || key n || value n`.
     fn deserialize_with_mode<R: Read>(
         mut reader: R,
         compress: Compress,
@@ -1083,7 +1083,7 @@ where
 
 #[cfg(feature = "std")]
 impl<V: CanonicalSerialize> CanonicalSerialize for std::collections::HashSet<V> {
-    /// Serializes a `BTreeSet` as `len(set) || value 1 || value 2 || ... || value n`.
+    /// Serializes a `HashSet` as `len(set) || value 1 || value 2 || ... || value n`.
     fn serialize_with_mode<W: Write>(
         &self,
         mut writer: W,
@@ -1128,7 +1128,7 @@ impl<V> CanonicalDeserialize for std::collections::HashSet<V>
 where
     V: core::hash::Hash + Eq + CanonicalDeserialize,
 {
-    /// Deserializes a `BTreeSet` from `len(map) || value 1 || ... || value n`.
+    /// Deserializes a `HashSet` from `len(map) || value 1 || ... || value n`.
     fn deserialize_with_mode<R: Read>(
         mut reader: R,
         compress: Compress,

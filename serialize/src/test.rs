@@ -295,7 +295,7 @@ fn test_hashmap() {
     map.insert(0u64, Dummy);
     map.insert(5u64, Dummy);
     test_serialize(map);
-    let mut map = BTreeMap::new();
+    let mut map = HashMap::new();
     map.insert(10u64, vec![1u8, 2u8, 3u8]);
     map.insert(50u64, vec![4u8, 5u8, 6u8]);
     test_serialize(map);
@@ -307,7 +307,7 @@ fn test_hashset() {
     set.insert(Dummy);
     set.insert(Dummy);
     test_serialize(set);
-    let mut set = BTreeSet::new();
+    let mut set = HashSet::new();
     set.insert(vec![1u8, 2u8, 3u8]);
     set.insert(vec![4u8, 5u8, 6u8]);
     test_serialize(set);
