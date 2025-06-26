@@ -1,3 +1,5 @@
+use num_bigint::BigUint;
+
 /// Calculates the k-adicity of n, i.e., the number of trailing 0s in a base-k
 /// representation.
 pub const fn k_adicity(k: u64, mut n: u64) -> u32 {
@@ -6,6 +8,21 @@ pub const fn k_adicity(k: u64, mut n: u64) -> u32 {
         if n % k == 0 {
             r += 1;
             n /= k;
+        } else {
+            return r;
+        }
+    }
+    r
+}
+
+/// Calculates the k-adicity of n, i.e., the number of trailing 0s in a base-k
+/// representation.
+pub fn k_adicity_big_int(k: BigUint, mut n: BigUint) -> u32 {
+    let mut r = 0;
+    while &n > &1_u8.into() {
+        if &n % &k == 0_u8.into() {
+            r += 1;
+            n /= &k;
         } else {
             return r;
         }
