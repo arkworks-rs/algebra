@@ -1,6 +1,8 @@
 use ark_std::ops::{Deref, DerefMut};
 
 #[cfg(feature = "serde")]
+use ::serde::{Deserializer, Serializer};
+#[cfg(feature = "serde")]
 use ark_std::string::ToString;
 
 use crate::*;
@@ -20,6 +22,78 @@ pub struct CompressedChecked<T>(pub T);
 /// A serde-compatible wrapper that skips compression and forces validation.
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default)]
 pub struct UncompressedChecked<T>(pub T);
+
+#[cfg(feature = "serde")]
+pub fn serialize<S: Serializer>(
+    value: &impl CanonicalSerialize,
+    compress: Compress,
+    s: S,
+) -> Result<S::Ok, S::Error> {
+    use ::serde::Serialize;
+    match compress {
+        Compress::Yes => CompressedUnchecked(value).serialize(s),
+        Compress::No => UncompressedUnchecked(value).serialize(s),
+    }
+}
+
+#[cfg(feature = "serde")]
+pub fn deserialize<'de, T: CanonicalDeserialize, D: Deserializer<'de>>(
+    d: D,
+    compress: Compress,
+    checked: Validate,
+) -> Result<T, D::Error> {
+    use ::serde::Deserialize;
+    match (checked, compress) {
+        (Validate::Yes, Compress::Yes) => CompressedChecked::<T>::deserialize(d).map(|val| val.0),
+        (Validate::No, Compress::Yes) => CompressedUnchecked::<T>::deserialize(d).map(|val| val.0),
+        (Validate::Yes, Compress::No) => UncompressedChecked::<T>::deserialize(d).map(|val| val.0),
+        (Validate::No, Compress::No) => UncompressedUnchecked::<T>::deserialize(d).map(|val| val.0),
+    }
+}
+
+#[cfg(feature = "serde")]
+pub fn serialize_compressed<S: Serializer>(
+    value: &impl CanonicalSerialize,
+    s: S,
+) -> Result<S::Ok, S::Error> {
+    serialize(value, Compress::Yes, s)
+}
+
+#[cfg(feature = "serde")]
+pub fn serialize_uncompressed<S: Serializer>(
+    value: &impl CanonicalSerialize,
+    s: S,
+) -> Result<S::Ok, S::Error> {
+    serialize(value, Compress::No, s)
+}
+
+#[cfg(feature = "serde")]
+pub fn deserialize_compressed_checked<'de, T: CanonicalDeserialize, D: Deserializer<'de>>(
+    d: D,
+) -> Result<T, D::Error> {
+    deserialize(d, Compress::Yes, Validate::Yes)
+}
+
+#[cfg(feature = "serde")]
+pub fn deserialize_uncompressed_checked<'de, T: CanonicalDeserialize, D: Deserializer<'de>>(
+    d: D,
+) -> Result<T, D::Error> {
+    deserialize(d, Compress::No, Validate::Yes)
+}
+
+#[cfg(feature = "serde")]
+pub fn deserialize_compressed_unchecked<'de, T: CanonicalDeserialize, D: Deserializer<'de>>(
+    d: D,
+) -> Result<T, D::Error> {
+    deserialize(d, Compress::Yes, Validate::No)
+}
+
+#[cfg(feature = "serde")]
+pub fn deserialize_uncompressed_unchecked<'de, T: CanonicalDeserialize, D: Deserializer<'de>>(
+    d: D,
+) -> Result<T, D::Error> {
+    deserialize(d, Compress::No, Validate::No)
+}
 
 macro_rules! impl_ops {
     ($type:ty, $cons:expr) => {

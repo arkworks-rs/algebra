@@ -337,6 +337,34 @@ impl<T: Send + Sync> CanonicalDeserialize for PhantomData<T> {
     }
 }
 
+impl<T: CanonicalSerialize> CanonicalSerialize for &T {
+    fn serialize_with_mode<W: Write>(
+        &self,
+        writer: W,
+        compress: Compress,
+    ) -> Result<(), SerializationError> {
+        (*self).serialize_with_mode(writer, compress)
+    }
+
+    fn serialized_size(&self, compress: Compress) -> usize {
+        (*self).serialized_size(compress)
+    }
+}
+
+impl<T: CanonicalSerialize> CanonicalSerialize for &mut T {
+    fn serialize_with_mode<W: Write>(
+        &self,
+        writer: W,
+        compress: Compress,
+    ) -> Result<(), SerializationError> {
+        (**self).serialize_with_mode(writer, compress)
+    }
+
+    fn serialized_size(&self, compress: Compress) -> usize {
+        (**self).serialized_size(compress)
+    }
+}
+
 impl<T: ?Sized + CanonicalSerialize + ToOwned> CanonicalSerialize for Rc<T> {
     #[inline]
     fn serialize_with_mode<W: Write>(
@@ -981,30 +1009,134 @@ where
     }
 }
 
-impl<T: CanonicalSerialize> CanonicalSerialize for &T {
+#[cfg(feature = "std")]
+impl<K, V> CanonicalSerialize for std::collections::HashMap<K, V>
+where
+    K: CanonicalSerialize,
+    V: CanonicalSerialize,
+{
+    /// Serializes a `HashMap` as `len(map) || key 1 || value 1 || ... || key n || value n`.
     fn serialize_with_mode<W: Write>(
         &self,
-        writer: W,
+        mut writer: W,
         compress: Compress,
     ) -> Result<(), SerializationError> {
-        (*self).serialize_with_mode(writer, compress)
+        let len = self.len() as u64;
+        len.serialize_with_mode(&mut writer, compress)?;
+        for (k, v) in self {
+            k.serialize_with_mode(&mut writer, compress)?;
+            v.serialize_with_mode(&mut writer, compress)?;
+        }
+        Ok(())
     }
 
     fn serialized_size(&self, compress: Compress) -> usize {
-        (*self).serialized_size(compress)
+        8 + self
+            .iter()
+            .map(|(k, v)| k.serialized_size(compress) + v.serialized_size(compress))
+            .sum::<usize>()
     }
 }
 
-impl<T: CanonicalSerialize> CanonicalSerialize for &mut T {
+#[cfg(feature = "std")]
+impl<K: Valid, V: Valid> Valid for std::collections::HashMap<K, V> {
+    #[inline]
+    fn check(&self) -> Result<(), SerializationError> {
+        K::batch_check(self.keys())?;
+        V::batch_check(self.values())
+    }
+
+    #[inline]
+    fn batch_check<'a>(batch: impl Iterator<Item = &'a Self>) -> Result<(), SerializationError>
+    where
+        Self: 'a,
+    {
+        let (keys, values): (Vec<_>, Vec<_>) = batch.map(|b| (b.keys(), b.values())).unzip();
+        K::batch_check(keys.into_iter().flatten())?;
+        V::batch_check(values.into_iter().flatten())
+    }
+}
+
+#[cfg(feature = "std")]
+impl<K, V> CanonicalDeserialize for std::collections::HashMap<K, V>
+where
+    K: core::hash::Hash + Eq + CanonicalDeserialize,
+    V: CanonicalDeserialize,
+{
+    /// Deserializes a `HashMap` from `len(map) || key 1 || value 1 || ... || key n || value n`.
+    fn deserialize_with_mode<R: Read>(
+        mut reader: R,
+        compress: Compress,
+        validate: Validate,
+    ) -> Result<Self, SerializationError> {
+        let len = u64::deserialize_with_mode(&mut reader, compress, validate)?;
+        (0..len)
+            .map(|_| {
+                Ok((
+                    K::deserialize_with_mode(&mut reader, compress, validate)?,
+                    V::deserialize_with_mode(&mut reader, compress, validate)?,
+                ))
+            })
+            .collect()
+    }
+}
+
+#[cfg(feature = "std")]
+impl<V: CanonicalSerialize> CanonicalSerialize for std::collections::HashSet<V> {
+    /// Serializes a `HashSet` as `len(set) || value 1 || value 2 || ... || value n`.
     fn serialize_with_mode<W: Write>(
         &self,
-        writer: W,
+        mut writer: W,
         compress: Compress,
     ) -> Result<(), SerializationError> {
-        (**self).serialize_with_mode(writer, compress)
+        let len = self.len() as u64;
+        len.serialize_with_mode(&mut writer, compress)?;
+        for v in self {
+            v.serialize_with_mode(&mut writer, compress)?;
+        }
+        Ok(())
     }
 
     fn serialized_size(&self, compress: Compress) -> usize {
-        (**self).serialized_size(compress)
+        8 + self
+            .iter()
+            .map(|v| v.serialized_size(compress))
+            .sum::<usize>()
+    }
+}
+
+#[cfg(feature = "std")]
+impl<V: Valid> Valid for std::collections::HashSet<V> {
+    #[inline]
+    fn check(&self) -> Result<(), SerializationError> {
+        V::batch_check(self.iter())
+    }
+
+    #[inline]
+    fn batch_check<'a>(
+        batch: impl Iterator<Item = &'a Self> + Send,
+    ) -> Result<(), SerializationError>
+    where
+        Self: 'a,
+    {
+        V::batch_check(batch.flat_map(|s| s.iter()))
+    }
+}
+
+#[cfg(feature = "std")]
+impl<V> CanonicalDeserialize for std::collections::HashSet<V>
+where
+    V: core::hash::Hash + Eq + CanonicalDeserialize,
+{
+    /// Deserializes a `HashSet` from `len(map) || value 1 || ... || value n`.
+    fn deserialize_with_mode<R: Read>(
+        mut reader: R,
+        compress: Compress,
+        validate: Validate,
+    ) -> Result<Self, SerializationError> {
+        let len = u64::deserialize_with_mode(&mut reader, compress, validate)?;
+        (0..len)
+            .map(|_| V::deserialize_with_mode(&mut reader, compress, validate))
+            .collect()
     }
 }

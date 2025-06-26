@@ -1,3 +1,5 @@
+use std::collections::{HashMap, HashSet};
+
 use super::*;
 use ark_std::{
     collections::{BTreeMap, BTreeSet, LinkedList, VecDeque},
@@ -8,7 +10,7 @@ use ark_std::{
 };
 use num_bigint::BigUint;
 
-#[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Debug)]
+#[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Debug, Hash)]
 struct Dummy;
 
 impl CanonicalSerialize for Dummy {
@@ -281,6 +283,31 @@ fn test_btreeset() {
     set.insert(Dummy);
     test_serialize(set);
     let mut set = BTreeSet::new();
+    set.insert(vec![1u8, 2u8, 3u8]);
+    set.insert(vec![4u8, 5u8, 6u8]);
+    test_serialize(set);
+}
+
+#[test]
+#[allow(clippy::zero_sized_map_values)]
+fn test_hashmap() {
+    let mut map = HashMap::new();
+    map.insert(0u64, Dummy);
+    map.insert(5u64, Dummy);
+    test_serialize(map);
+    let mut map = HashMap::new();
+    map.insert(10u64, vec![1u8, 2u8, 3u8]);
+    map.insert(50u64, vec![4u8, 5u8, 6u8]);
+    test_serialize(map);
+}
+
+#[test]
+fn test_hashset() {
+    let mut set = HashSet::new();
+    set.insert(Dummy);
+    set.insert(Dummy);
+    test_serialize(set);
+    let mut set = HashSet::new();
     set.insert(vec![1u8, 2u8, 3u8]);
     set.insert(vec![4u8, 5u8, 6u8]);
     test_serialize(set);
