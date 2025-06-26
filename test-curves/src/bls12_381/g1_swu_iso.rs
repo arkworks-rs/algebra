@@ -42,6 +42,7 @@ impl SWCurveConfig for SwuIsoConfig {
     const COEFF_B: Fq = MontFp!("2906670324641927570491258158026293881577086121416628140204402091718288198173574630967936031029026176254968826637280");
 
     const GENERATOR: G1Affine = G1Affine::new_unchecked(G1_GENERATOR_X, G1_GENERATOR_Y);
+    type ZeroFlag = ();
 }
 
 /// Lexicographically smallest, valid x-coordinate of a point P on the curve (with its corresponding y) multiplied by the cofactor.

@@ -86,6 +86,17 @@ macro_rules! ec_bench {
                         })
                     });
 
+                    arithmetic.bench_function("Is Zero", |b| {
+                        use ark_std::Zero;
+                        use ark_ec::AffineRepr;
+                        let mut i = 0;
+                        let zero = <$Group>::zero().into_affine();
+                        b.iter(|| {
+                            i = (i + 1) % SAMPLES;
+                            zero.is_zero() & group_elements_right_affine[i].is_zero()
+                        })
+                    });
+
                     arithmetic.bench_function(
                         "Scalar Multiplication",
                         |b| {
