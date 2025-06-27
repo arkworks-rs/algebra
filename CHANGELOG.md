@@ -2,10 +2,10 @@
 
 ## Pending
 
-
 - [\#971](https://github.com/arkworks-rs/algebra/pull/971) (`ark-ff`) Make serial_batch_inversion_and_mul public.
 - Consolidated logic into `bitreverse_permutation_in_place` and made it public.
 - Remove redundant type constraints from `Pairing::G1Prepared`.
+- SVDW map-to-curve for Bn254
 - (`ark-serialize`) Add serde-compatible wrapper types `CompressedChecked<T>`, `CompressedUnchecked<T>`, `UncompressedChecked<T>`, `UncompressedUnchecked<T>`.
 - [\#989](https://github.com/arkworks-rs/algebra/pull/989) (`ark-poly`) Replace bound `F: FftField` with `F: Field` on `GeneralEvaluationDomain`.
 
