@@ -588,7 +588,7 @@ impl<const N: usize> PartialOrd for BigInt<N> {
 
 impl<const N: usize> Distribution<BigInt<N>> for Standard {
     fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> BigInt<N> {
-        BigInt([(); N].map(|_| rng.gen()))
+        BigInt([(); N].map(|_| rng.r#gen()))
     }
 }
 

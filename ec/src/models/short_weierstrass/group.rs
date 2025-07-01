@@ -98,7 +98,7 @@ impl<P: SWCurveConfig> Distribution<Projective<P>> for Standard {
     fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> Projective<P> {
         loop {
             let x = P::BaseField::rand(rng);
-            let greatest = rng.gen();
+            let greatest = rng.r#gen();
 
             if let Some(p) = Affine::get_point_from_x_unchecked(x, greatest) {
                 return p.mul_by_cofactor_to_group();

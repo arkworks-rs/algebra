@@ -31,15 +31,10 @@ fn impl_valid(ast: &syn::DeriveInput) -> TokenStream {
     let name = &ast.ident;
 
     let (impl_generics, ty_generics, where_clause) = ast.generics.split_for_impl();
-
-    let len = if let Data::Struct(ref data_struct) = ast.data {
-        data_struct.fields.len()
-    } else {
-        panic!(
-            "`Valid` can only be derived for structs, {} is not a struct",
-            name
-        );
+    let Data::Struct(ref data_struct) = ast.data else {
+        panic!("`Valid` can only be derived for structs, {name} is not a struct")
     };
+    let len = data_struct.fields.len();
 
     let mut check_body = Vec::<TokenStream>::with_capacity(len);
     let mut batch_body = Vec::<TokenStream>::with_capacity(len);
@@ -64,13 +59,10 @@ fn impl_valid(ast: &syn::DeriveInput) -> TokenStream {
                 idents.clear();
             }
         },
-        _ => panic!(
-            "`Valid` can only be derived for structs, {} is not a struct",
-            name
-        ),
+        _ => panic!("`Valid` can only be derived for structs, {name} is not a struct"),
     };
 
-    let gen = quote! {
+    let codegen = quote! {
         impl #impl_generics ark_serialize::Valid for #name #ty_generics #where_clause {
             fn check(&self) -> Result<(), ark_serialize::SerializationError> {
                 #(#check_body)*
@@ -87,7 +79,7 @@ fn impl_valid(ast: &syn::DeriveInput) -> TokenStream {
             }
         }
     };
-    gen
+    codegen
 }
 
 /// Returns a `TokenStream` for `deserialize_with_mode`.
@@ -147,13 +139,12 @@ pub(super) fn impl_canonical_deserialize(ast: &syn::DeriveInput) -> TokenStream 
                 })
             };
         },
-        _ => panic!(
-            "`CanonicalDeserialize` can only be derived for structs, {} is not a Struct",
-            name
-        ),
+        _ => {
+            panic!("`CanonicalDeserialize` can only be derived for structs, {name} is not a Struct")
+        },
     };
 
-    let mut gen = quote! {
+    let mut codegen = quote! {
         impl #impl_generics CanonicalDeserialize for #name #ty_generics #where_clause {
             fn deserialize_with_mode<R: ark_serialize::Read>(
                 mut reader: R,
@@ -164,6 +155,6 @@ pub(super) fn impl_canonical_deserialize(ast: &syn::DeriveInput) -> TokenStream 
             }
         }
     };
-    gen.extend(valid_impl);
-    gen
+    codegen.extend(valid_impl);
+    codegen
 }
