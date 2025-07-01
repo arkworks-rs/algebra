@@ -46,7 +46,7 @@ cargo build --release
 This library comes with comprehensive unit and integration tests for each of the provided crates. Run the tests with:
 
 ```bash
-cargo test --all
+cargo test --all --features std
 ```
 
 ## Benchmarks
