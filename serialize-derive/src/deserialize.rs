@@ -6,6 +6,7 @@ use syn::{Data, Index, Type};
 fn impl_valid_field(
     check_body: &mut Vec<TokenStream>,
     batch_check_body: &mut Vec<TokenStream>,
+    trivial_check_body: &mut Vec<TokenStream>,
     idents: &mut Vec<IdentOrIndex>,
     ty: &Type,
 ) {
@@ -15,14 +16,30 @@ fn impl_valid_field(
             for (i, elem_ty) in tuple.elems.iter().enumerate() {
                 let index = Index::from(i);
                 idents.push(IdentOrIndex::Index(index));
-                impl_valid_field(check_body, batch_check_body, idents, elem_ty);
+                impl_valid_field(
+                    check_body,
+                    batch_check_body,
+                    trivial_check_body,
+                    idents,
+                    elem_ty,
+                );
                 idents.pop();
             }
         },
         _ => {
-            check_body.push(quote! { ark_serialize::Valid::check(&self.#(#idents).*)?; });
-            batch_check_body
-                .push(quote! { ark_serialize::Valid::batch_check(batch.iter().map(|v| &v.#(#idents).*))?; });
+            trivial_check_body.push(quote! {
+                <#ty as ark_serialize::Valid>::TRIVIAL_CHECK
+            });
+            check_body.push(quote! {
+                if !<#ty as ark_serialize::Valid>::TRIVIAL_CHECK {
+                    ark_serialize::Valid::check(&self.#(#idents).*)?;
+                }
+            });
+            batch_check_body.push(quote! {
+                if !<#ty as ark_serialize::Valid>::TRIVIAL_CHECK {
+                    ark_serialize::Valid::batch_check(batch.iter().map(|v| &v.#(#idents).*))?;
+                }
+            });
         },
     }
 }
@@ -43,6 +60,7 @@ fn impl_valid(ast: &syn::DeriveInput) -> TokenStream {
 
     let mut check_body = Vec::<TokenStream>::with_capacity(len);
     let mut batch_body = Vec::<TokenStream>::with_capacity(len);
+    let mut trivial_check_body = Vec::<TokenStream>::with_capacity(len);
 
     match ast.data {
         Data::Struct(ref data_struct) => {
@@ -59,7 +77,13 @@ fn impl_valid(ast: &syn::DeriveInput) -> TokenStream {
                     },
                 }
 
-                impl_valid_field(&mut check_body, &mut batch_body, &mut idents, &field.ty);
+                impl_valid_field(
+                    &mut check_body,
+                    &mut batch_body,
+                    &mut trivial_check_body,
+                    &mut idents,
+                    &field.ty,
+                );
 
                 idents.clear();
             }
@@ -70,19 +94,35 @@ fn impl_valid(ast: &syn::DeriveInput) -> TokenStream {
         ),
     };
 
+    let check_body = if check_body.len() == 1 {
+        quote! { #(#check_body)* }
+    } else {
+        quote! {
+            if Self::TRIVIAL_CHECK {
+                return Ok(());
+            }
+            #(#check_body)*
+        }
+    };
+
     let gen = quote! {
         impl #impl_generics ark_serialize::Valid for #name #ty_generics #where_clause {
+            const TRIVIAL_CHECK: bool = (
+                #(#trivial_check_body) && *
+            );
             fn check(&self) -> Result<(), ark_serialize::SerializationError> {
-                #(#check_body)*
+                #check_body
+
                 Ok(())
             }
             fn batch_check<'a>(batch: impl Iterator<Item = &'a Self> + Send) -> Result<(), ark_serialize::SerializationError>
                 where
             Self: 'a
             {
-
-                let batch: Vec<_> = batch.collect();
-                #(#batch_body)*
+                if !Self::TRIVIAL_CHECK {
+                    let batch: Vec<_> = batch.collect();
+                    #(#batch_body)*
+                }
                 Ok(())
             }
         }
