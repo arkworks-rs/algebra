@@ -40,6 +40,9 @@ pub trait FpConfig<const N: usize>: Send + Sync + 'static + Sized {
     /// such that, for all elements `f` of the field, `e * f = f`.
     const ONE: Fp<Self, N>;
 
+    /// Negation of `Self::ONE`.
+    const NEG_ONE: Fp<Self, N>;
+
     /// Let `N` be the size of the multiplicative group defined by the field.
     /// Then `TWO_ADICITY` is the two-adicity of `N`, i.e. the integer `s`
     /// such that `N = 2^s * t` for some odd integer `t`.
@@ -211,6 +214,7 @@ impl<P: FpConfig<N>, const N: usize> Field for Fp<P, N> {
 
     const SQRT_PRECOMP: Option<SqrtPrecomputation<Self>> = P::SQRT_PRECOMP;
     const ONE: Self = P::ONE;
+    const NEG_ONE: Self = P::NEG_ONE;
 
     fn extension_degree() -> u64 {
         1

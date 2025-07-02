@@ -215,11 +215,14 @@ macro_rules! __test_field {
             let mut rng = test_rng();
             let zero = <$field>::zero();
             let one = <$field>::one();
+            let minus_one = <$field>::NEG_ONE;
             assert_eq!(one.inverse().unwrap(), one, "One inverse failed");
             assert!(one.is_one(), "One is not one");
 
             assert!(<$field>::ONE.is_one(), "One constant is not one");
             assert_eq!(<$field>::ONE, one, "One constant is incorrect");
+            assert_eq!(<$field>::NEG_ONE, -one, "NEG_ONE constant is incorrect");
+            assert_eq!(<$field>::ONE + <$field>::NEG_ONE, zero, "1 + -1 neq 0");
 
             for _ in 0..ITERATIONS {
                 // Associativity
@@ -235,6 +238,7 @@ macro_rules! __test_field {
                 assert_eq!(one * a, a, "Identity mul failed");
                 assert_eq!(one * b, b, "Identity mul failed");
                 assert_eq!(one * c, c, "Identity mul failed");
+                assert_eq!(minus_one * c, -c, "NEG_ONE mul failed");
 
                 assert_eq!(zero * a, zero, "Mul by zero failed");
                 assert_eq!(zero * b, zero, "Mul by zero failed");
