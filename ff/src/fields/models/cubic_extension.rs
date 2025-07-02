@@ -5,7 +5,7 @@ use crate::{
 };
 use ark_serialize::{
     CanonicalDeserialize, CanonicalDeserializeWithFlags, CanonicalSerialize,
-    CanonicalSerializeWithFlags, Compress, EmptyFlags, Flags, SerializationError, Valid, Validate,
+    CanonicalSerializeWithFlags, Compress, EmptyFlags, Flags, SerializationError,
 };
 use ark_std::{
     cmp::*,
@@ -75,7 +75,7 @@ pub trait CubicExtConfig: 'static + Send + Sync + Sized {
 
 /// An element of a cubic extension field F_p\[X\]/(X^3 - P::NONRESIDUE) is
 /// represented as c0 + c1 * X + c2 * X^2, for c0, c1, c2 in `P::BaseField`.
-#[derive(educe::Educe)]
+#[derive(educe::Educe, CanonicalDeserialize)]
 #[educe(Default, Hash, Clone, Copy, Debug, PartialEq, Eq)]
 pub struct CubicExtField<P: CubicExtConfig> {
     pub c0: P::BaseField,
@@ -629,28 +629,6 @@ impl<P: CubicExtConfig> CanonicalDeserializeWithFlags for CubicExtField<P> {
         let c1 = CanonicalDeserialize::deserialize_compressed(&mut reader)?;
         let (c2, flags) = CanonicalDeserializeWithFlags::deserialize_with_flags(&mut reader)?;
         Ok((Self::new(c0, c1, c2), flags))
-    }
-}
-
-impl<P: CubicExtConfig> Valid for CubicExtField<P> {
-    fn check(&self) -> Result<(), SerializationError> {
-        self.c0.check()?;
-        self.c1.check()?;
-        self.c2.check()
-    }
-}
-
-impl<P: CubicExtConfig> CanonicalDeserialize for CubicExtField<P> {
-    #[inline]
-    fn deserialize_with_mode<R: Read>(
-        mut reader: R,
-        compress: Compress,
-        validate: Validate,
-    ) -> Result<Self, SerializationError> {
-        let c0 = CanonicalDeserialize::deserialize_with_mode(&mut reader, compress, validate)?;
-        let c1 = CanonicalDeserialize::deserialize_with_mode(&mut reader, compress, validate)?;
-        let c2 = CanonicalDeserialize::deserialize_with_mode(&mut reader, compress, validate)?;
-        Ok(Self::new(c0, c1, c2))
     }
 }
 
