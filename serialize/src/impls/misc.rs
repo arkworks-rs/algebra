@@ -51,7 +51,10 @@ impl<T: Valid> Valid for Option<T> {
     where
         Self: 'a,
     {
-        T::batch_check(batch.map(Self::as_ref).filter(Option::is_some).flatten())
+        match Self::TRIVIAL_CHECK {
+            true => Ok(()),
+            false => T::batch_check(batch.map(Self::as_ref).filter(Option::is_some).flatten()),
+        }
     }
 }
 
@@ -93,6 +96,14 @@ impl<T: Sync> Valid for PhantomData<T> {
 
     #[inline]
     fn check(&self) -> Result<(), SerializationError> {
+        Ok(())
+    }
+
+    #[inline]
+    fn batch_check<'a>(_: impl Iterator<Item = &'a Self> + Send) -> Result<(), SerializationError>
+    where
+        Self: 'a,
+    {
         Ok(())
     }
 }
@@ -185,7 +196,10 @@ impl<T: ?Sized + Valid + Sync + Send> Valid for ark_std::sync::Arc<T> {
     where
         Self: 'a,
     {
-        T::batch_check(batch.map(|v| v.as_ref()))
+        match T::TRIVIAL_CHECK {
+            true => Ok(()),
+            false => T::batch_check(batch.map(|v| v.as_ref())),
+        }
     }
 }
 
@@ -199,9 +213,7 @@ impl<T: CanonicalDeserialize + ToOwned + Sync + Send> CanonicalDeserialize
         compress: Compress,
         validate: Validate,
     ) -> Result<Self, SerializationError> {
-        Ok(Self::new(T::deserialize_with_mode(
-            reader, compress, validate,
-        )?))
+        T::deserialize_with_mode(reader, compress, validate).map(Self::new)
     }
 }
 
@@ -229,7 +241,10 @@ where
     const TRIVIAL_CHECK: bool = <<T as ToOwned>::Owned>::TRIVIAL_CHECK;
     #[inline]
     fn check(&self) -> Result<(), SerializationError> {
-        <<T as ToOwned>::Owned>::check(&self.as_ref().to_owned())
+        match Self::TRIVIAL_CHECK {
+            true => Ok(()),
+            false => <<T as ToOwned>::Owned>::check(&self.as_ref().to_owned()),
+        }
     }
 
     #[inline]
@@ -239,8 +254,13 @@ where
     where
         Self: 'a,
     {
-        let t: Vec<_> = batch.map(|v| v.as_ref().to_owned()).collect();
-        <<T as ToOwned>::Owned>::batch_check(t.iter())
+        match Self::TRIVIAL_CHECK {
+            true => return Ok(()),
+            false => {
+                let t: Vec<_> = batch.map(|v| v.as_ref().to_owned()).collect();
+                <<T as ToOwned>::Owned>::batch_check(t.iter())
+            },
+        }
     }
 }
 
