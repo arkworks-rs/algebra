@@ -244,11 +244,18 @@ where
 
 impl<K: Valid, V: Valid> Valid for BTreeMap<K, V> {
     const TRIVIAL_CHECK: bool = K::TRIVIAL_CHECK & V::TRIVIAL_CHECK;
-
     #[inline]
     fn check(&self) -> Result<(), SerializationError> {
-        K::batch_check(self.keys())?;
-        V::batch_check(self.values())
+        if Self::TRIVIAL_CHECK {
+            return Ok(());
+        }
+        if !K::TRIVIAL_CHECK {
+            K::batch_check(self.keys())?;
+        }
+        if !V::TRIVIAL_CHECK {
+            V::batch_check(self.values())?;
+        }
+        Ok(())
     }
 
     #[inline]
@@ -256,9 +263,17 @@ impl<K: Valid, V: Valid> Valid for BTreeMap<K, V> {
     where
         Self: 'a,
     {
+        if Self::TRIVIAL_CHECK {
+            return Ok(());
+        }
         let (keys, values): (Vec<_>, Vec<_>) = batch.map(|b| (b.keys(), b.values())).unzip();
-        K::batch_check(keys.into_iter().flatten())?;
-        V::batch_check(values.into_iter().flatten())
+        if !K::TRIVIAL_CHECK {
+            K::batch_check(keys.into_iter().flatten())?;
+        }
+        if !V::TRIVIAL_CHECK {
+            V::batch_check(values.into_iter().flatten())?;
+        }
+        Ok(())
     }
 }
 
@@ -316,10 +331,19 @@ where
 
 #[cfg(feature = "std")]
 impl<K: Valid, V: Valid> Valid for std::collections::HashMap<K, V> {
+    const TRIVIAL_CHECK: bool = K::TRIVIAL_CHECK & V::TRIVIAL_CHECK;
     #[inline]
     fn check(&self) -> Result<(), SerializationError> {
-        K::batch_check(self.keys())?;
-        V::batch_check(self.values())
+        if Self::TRIVIAL_CHECK {
+            return Ok(());
+        }
+        if !K::TRIVIAL_CHECK {
+            K::batch_check(self.keys())?;
+        }
+        if !V::TRIVIAL_CHECK {
+            V::batch_check(self.values())?;
+        }
+        Ok(())
     }
 
     #[inline]
@@ -327,9 +351,17 @@ impl<K: Valid, V: Valid> Valid for std::collections::HashMap<K, V> {
     where
         Self: 'a,
     {
+        if Self::TRIVIAL_CHECK {
+            return Ok(());
+        }
         let (keys, values): (Vec<_>, Vec<_>) = batch.map(|b| (b.keys(), b.values())).unzip();
-        K::batch_check(keys.into_iter().flatten())?;
-        V::batch_check(values.into_iter().flatten())
+        if !K::TRIVIAL_CHECK {
+            K::batch_check(keys.into_iter().flatten())?;
+        }
+        if !V::TRIVIAL_CHECK {
+            V::batch_check(values.into_iter().flatten())?;
+        }
+        Ok(())
     }
 }
 
