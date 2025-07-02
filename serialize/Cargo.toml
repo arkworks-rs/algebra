@@ -21,7 +21,6 @@ workspace = true
 [dependencies]
 ark-serialize-derive = { workspace = true, optional = true }
 ark-std.workspace = true
-arrayvec.workspace = true
 digest.workspace = true
 num-bigint.workspace = true
 rayon = { workspace = true, optional = true }
