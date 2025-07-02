@@ -620,7 +620,17 @@ impl<P: FpConfig<N>, const N: usize> CanonicalDeserializeWithFlags for Fp<P, N> 
 }
 
 impl<P: FpConfig<N>, const N: usize> Valid for Fp<P, N> {
+    const TRIVIAL_CHECK: bool = true;
+    #[inline]
     fn check(&self) -> Result<(), SerializationError> {
+        Ok(())
+    }
+
+    #[inline]
+    fn batch_check<'a>(_: impl Iterator<Item = &'a Self> + Send) -> Result<(), SerializationError>
+    where
+        Self: 'a,
+    {
         Ok(())
     }
 }
