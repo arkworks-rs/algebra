@@ -177,9 +177,7 @@ pub trait AffineRepr:
     fn zero() -> Self;
 
     /// Is `self` the point at infinity?
-    fn is_zero(&self) -> bool {
-        self.xy().is_none()
-    }
+    fn is_zero(&self) -> bool;
 
     /// Returns a fixed generator of unknown exponent.
     #[must_use]

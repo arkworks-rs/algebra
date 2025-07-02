@@ -630,6 +630,7 @@ impl<P: SWCurveConfig> CanonicalDeserialize for Projective<P> {
 impl<M: SWCurveConfig, ConstraintF: Field> ToConstraintField<ConstraintF> for Projective<M>
 where
     M::BaseField: ToConstraintField<ConstraintF>,
+    M::ZeroFlag: ToConstraintField<ConstraintF>,
 {
     #[inline]
     fn to_field_elements(&self) -> Option<Vec<ConstraintF>> {

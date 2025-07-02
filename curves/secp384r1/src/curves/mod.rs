@@ -34,6 +34,13 @@ impl SWCurveConfig for Config {
     const COEFF_B: Fq =
         MontFp!("27580193559959705877849011840389048093056905856361568521428707301988689241309860865136260764883745107765439761230575");
 
+    /// Correctness:
+    /// The curve equation is y^2 = x^3 + ax + b
+    /// Substituting (0, 0) gives 0^2 = 0^3 + a*0 + b which simplifies to 0 = b.
+    /// Since b is not zero, the point (0, 0) is not on the curve.
+    /// Therefore, we can safely use (0, 0) as a flag for the zero point.
+    type ZeroFlag = ();
+
     /// GENERATOR = (G_GENERATOR_X, G_GENERATOR_Y)
     const GENERATOR: Affine = Affine::new_unchecked(G_GENERATOR_X, G_GENERATOR_Y);
 }
