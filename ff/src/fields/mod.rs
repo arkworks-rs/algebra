@@ -207,7 +207,7 @@ pub trait Field:
     /// The multiplicative identity of the field.
     const ONE: Self;
 
-    /// The multiplicative identity of the field.
+    /// Negation of the multiplicative identity of the field.
     const NEG_ONE: Self;
 
     /// Returns the characteristic of the field,
