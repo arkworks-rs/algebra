@@ -214,7 +214,6 @@ impl CanonicalDeserialize for String {
     }
 }
 
-// Implement Serialization for tuples
 impl<K, V> CanonicalSerialize for BTreeMap<K, V>
 where
     K: CanonicalSerialize,
