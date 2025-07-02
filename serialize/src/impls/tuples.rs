@@ -62,6 +62,13 @@ impl Valid for () {
     fn check(&self) -> Result<(), SerializationError> {
         Ok(())
     }
+
+    fn batch_check<'a>(_: impl Iterator<Item = &'a Self> + Send) -> Result<(), SerializationError>
+    where
+        Self: 'a,
+    {
+        Ok(())
+    }
 }
 
 impl CanonicalSerialize for () {
