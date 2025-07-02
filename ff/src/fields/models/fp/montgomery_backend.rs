@@ -610,6 +610,9 @@ impl<T: MontConfig<N>, const N: usize> FpConfig<N> for MontBackend<T, N> {
     /// such that, for all elements `f` of the field, `e * f = f`.
     const ONE: Fp<Self, N> = Fp::new_unchecked(T::R);
 
+    /// Negation of `Self::ONE`.
+    const NEG_ONE: Fp<Self, N> = Fp::new_unchecked(Self::MODULUS.const_sub_with_borrow(&T::R).0);
+
     const TWO_ADICITY: u32 = Self::MODULUS.two_adic_valuation();
     const TWO_ADIC_ROOT_OF_UNITY: Fp<Self, N> = T::TWO_ADIC_ROOT_OF_UNITY;
     const SMALL_SUBGROUP_BASE: Option<u32> = T::SMALL_SUBGROUP_BASE;

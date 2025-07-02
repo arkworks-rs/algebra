@@ -212,6 +212,8 @@ impl<P: QuadExtConfig> Field for QuadExtField<P> {
 
     const ONE: Self = Self::new(P::BaseField::ONE, P::BaseField::ZERO);
 
+    const NEG_ONE: Self = Self::new(P::BaseField::NEG_ONE, P::BaseField::ZERO);
+
     fn extension_degree() -> u64 {
         2 * P::BaseField::extension_degree()
     }
@@ -270,7 +272,7 @@ impl<P: QuadExtConfig> Field for QuadExtField<P> {
         //            = (c0^2 + beta * c1^2, 2 c0 * c1)
         // Where beta is P::NONRESIDUE.
         // When beta = -1, we can re-use intermediate additions to improve performance.
-        if P::NONRESIDUE == -P::BaseField::ONE {
+        if P::NONRESIDUE == P::BaseField::NEG_ONE {
             // When the non-residue is -1, we save 2 intermediate additions,
             // and use one fewer intermediate variable
 

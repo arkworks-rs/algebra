@@ -186,6 +186,12 @@ impl<P: CubicExtConfig> Field for CubicExtField<P> {
 
     const ONE: Self = Self::new(P::BaseField::ONE, P::BaseField::ZERO, P::BaseField::ZERO);
 
+    const NEG_ONE: Self = Self::new(
+        P::BaseField::NEG_ONE,
+        P::BaseField::ZERO,
+        P::BaseField::ZERO,
+    );
+
     fn extension_degree() -> u64 {
         3 * P::BaseField::extension_degree()
     }
