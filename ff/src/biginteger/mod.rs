@@ -178,6 +178,13 @@ impl<const N: usize> BigInt<N> {
         (((self.0[0] << 62) >> 62) % 4) as u8
     }
 
+    #[doc(hidden)]
+    pub const fn mod_8(&self) -> u8 {
+        // To compute n % 8, we need to simply look at the
+        // 3 least significant bits of n, and check their value mod 8.
+        (((self.0[0] << 61) >> 61) % 8) as u8
+    }
+
     /// Compute a right shift of `self`
     /// This is equivalent to a (saturating) division by 2.
     #[doc(hidden)]
