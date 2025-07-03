@@ -380,23 +380,22 @@ macro_rules! __test_field {
         #[test]
         fn test_fft() {
             use ark_ff::FftField;
-            let two_pow_2_adicity = (<$field>::one() + <$field>::one()).pow([<$field>::TWO_ADICITY as u64]);
+            use $crate::num_bigint::BigUint;
+
+            let two_pow_2_adicity = BigUint::from(1_u8) << <$field>::TWO_ADICITY as u32;
             assert_eq!(
-                <$field>::TWO_ADIC_ROOT_OF_UNITY.pow(two_pow_2_adicity.into_bigint()),
+                <$field>::TWO_ADIC_ROOT_OF_UNITY.pow(two_pow_2_adicity.to_u64_digits()),
                 <$field>::one()
             );
-
-            // Note: Limited by u64, only tests 2-adicity up to 63
-            let two_adicity_test_limit: u64 = ark_std::cmp::min(63, <$field>::TWO_ADICITY as u64);
 
             if let Some(small_subgroup_base) = <$field>::SMALL_SUBGROUP_BASE {
                 let small_subgroup_base_adicity = <$field>::SMALL_SUBGROUP_BASE_ADICITY.unwrap();
                 let large_subgroup_root_of_unity = <$field>::LARGE_SUBGROUP_ROOT_OF_UNITY.unwrap();
                 let pow =
-                two_pow_2_adicity * <$field>::from(small_subgroup_base as u64).pow([small_subgroup_base_adicity as u64]);
+                <$field>::from(two_pow_2_adicity) * <$field>::from(small_subgroup_base as u64).pow([small_subgroup_base_adicity as u64]);
                 assert_eq!(large_subgroup_root_of_unity.pow(pow.into_bigint()), <$field>::one());
 
-                for i in 0..=two_adicity_test_limit {
+                for i in 0..=<$field>::TWO_ADICITY {
                     for j in 0..=small_subgroup_base_adicity {
                         let size = (1u64 << i) * (small_subgroup_base as u64).pow(j);
                         let root = <$field>::get_root_of_unity(size as u64).unwrap();
@@ -404,10 +403,10 @@ macro_rules! __test_field {
                     }
                 }
             } else {
-                for i in 0..=two_adicity_test_limit {
-                    let size = 1 << i;
-                    let root = <$field>::get_root_of_unity(size).unwrap();
-                    assert_eq!(root.pow([size as u64]), <$field>::one());
+                for i in 0..=<$field>::TWO_ADICITY {
+                    let size = BigUint::from(1_u8) << i;
+                    let root = <$field>::get_root_of_unity_big_int(size.clone()).unwrap();
+                    assert_eq!(root.pow(size.to_u64_digits()), <$field>::one());
                 }
             }
         }
