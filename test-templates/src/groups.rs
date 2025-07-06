@@ -316,6 +316,11 @@ macro_rules! __test_group {
                     }
                 }
             }
+            use core::any::TypeId;
+            if TypeId::of::<<Config as SWCurveConfig>::ZeroFlag>() == TypeId::of::<()>() {
+                let zero = BaseField::ZERO;
+                assert_ne!(zero.square() - zero.square() * zero - <Config as SWCurveConfig>::COEFF_A * zero - <Config as SWCurveConfig>::COEFF_B, zero);
+            }
 
             for _ in 0..ITERATIONS {
                 let f = BaseField::rand(rng);
