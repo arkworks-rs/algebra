@@ -5,7 +5,7 @@ use crate::{
 };
 use ark_serialize::{
     CanonicalDeserialize, CanonicalDeserializeWithFlags, CanonicalSerialize,
-    CanonicalSerializeWithFlags, Compress, EmptyFlags, Flags, SerializationError, Valid, Validate,
+    CanonicalSerializeWithFlags, Compress, EmptyFlags, Flags, SerializationError,
 };
 use ark_std::{
     cmp::*,
@@ -89,7 +89,7 @@ pub trait QuadExtConfig: 'static + Send + Sync + Sized {
 
 /// An element of a quadratic extension field F_p\[X\]/(X^2 - P::NONRESIDUE) is
 /// represented as c0 + c1 * X, for c0, c1 in `P::BaseField`.
-#[derive(educe::Educe)]
+#[derive(educe::Educe, CanonicalDeserialize)]
 #[educe(Default, Hash, Clone, Copy, Debug, PartialEq, Eq)]
 pub struct QuadExtField<P: QuadExtConfig> {
     /// Coefficient `c0` in the representation of the field element `c = c0 + c1 * X`
@@ -212,6 +212,8 @@ impl<P: QuadExtConfig> Field for QuadExtField<P> {
 
     const ONE: Self = Self::new(P::BaseField::ONE, P::BaseField::ZERO);
 
+    const NEG_ONE: Self = Self::new(P::BaseField::NEG_ONE, P::BaseField::ZERO);
+
     fn extension_degree() -> u64 {
         2 * P::BaseField::extension_degree()
     }
@@ -270,7 +272,7 @@ impl<P: QuadExtConfig> Field for QuadExtField<P> {
         //            = (c0^2 + beta * c1^2, 2 c0 * c1)
         // Where beta is P::NONRESIDUE.
         // When beta = -1, we can re-use intermediate additions to improve performance.
-        if P::NONRESIDUE == -P::BaseField::ONE {
+        if P::NONRESIDUE == P::BaseField::NEG_ONE {
             // When the non-residue is -1, we save 2 intermediate additions,
             // and use one fewer intermediate variable
 
@@ -722,28 +724,6 @@ impl<P: QuadExtConfig> CanonicalDeserializeWithFlags for QuadExtField<P> {
         let c0 = CanonicalDeserialize::deserialize_compressed(&mut reader)?;
         let (c1, flags) = CanonicalDeserializeWithFlags::deserialize_with_flags(&mut reader)?;
         Ok((QuadExtField::new(c0, c1), flags))
-    }
-}
-
-impl<P: QuadExtConfig> Valid for QuadExtField<P> {
-    fn check(&self) -> Result<(), SerializationError> {
-        self.c0.check()?;
-        self.c1.check()
-    }
-}
-
-impl<P: QuadExtConfig> CanonicalDeserialize for QuadExtField<P> {
-    #[inline]
-    fn deserialize_with_mode<R: Read>(
-        mut reader: R,
-        compress: Compress,
-        validate: Validate,
-    ) -> Result<Self, SerializationError> {
-        let c0: P::BaseField =
-            CanonicalDeserialize::deserialize_with_mode(&mut reader, compress, validate)?;
-        let c1: P::BaseField =
-            CanonicalDeserialize::deserialize_with_mode(&mut reader, compress, validate)?;
-        Ok(QuadExtField::new(c0, c1))
     }
 }
 

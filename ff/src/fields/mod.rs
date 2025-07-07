@@ -207,6 +207,9 @@ pub trait Field:
     /// The multiplicative identity of the field.
     const ONE: Self;
 
+    /// Negation of the multiplicative identity of the field.
+    const NEG_ONE: Self;
+
     /// Returns the characteristic of the field,
     /// in little-endian representation.
     fn characteristic() -> &'static [u64] {

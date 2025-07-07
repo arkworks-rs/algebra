@@ -117,6 +117,12 @@ impl SWCurveConfig for JubjubConfig {
 
     /// generators
     const GENERATOR: SWAffine = SWAffine::new_unchecked(SW_GENERATOR_X, SW_GENERATOR_Y);
+
+    /// Correctness:
+    /// Substituting (0, 0) into the curve equation gives 0^2 = b.
+    /// Since b is not zero, the point (0, 0) is not on the curve.
+    /// Therefore, we can safely use (0, 0) as a flag for the zero point.
+    type ZeroFlag = ();
 }
 
 /// x coordinate for SW curve generator

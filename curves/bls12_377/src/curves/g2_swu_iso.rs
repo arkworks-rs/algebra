@@ -66,6 +66,12 @@ impl SWCurveConfig for SwuIsoConfig {
     );
 
     const GENERATOR: G2Affine = G2Affine::new_unchecked(G2_GENERATOR_X, G2_GENERATOR_Y);
+
+    /// Correctness:
+    /// Substituting (0, 0) into the curve equation gives 0^2 = b.
+    /// Since b is not zero, the point (0, 0) is not on the curve.
+    /// Therefore, we can safely use (0, 0) as a flag for the zero point.
+    type ZeroFlag = ();
 }
 
 const G2_GENERATOR_X: Fq2 = Fq2::new(

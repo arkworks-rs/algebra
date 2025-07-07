@@ -72,9 +72,9 @@ impl<F: Field> SparseMultilinearExtension<F> {
         let mut map =
             HashMap::with_hasher(core::hash::BuildHasherDefault::<DefaultHasher>::default());
         for _ in 0..num_nonzero_entries {
-            let mut index = usize::rand(rng) & ((1 << num_vars) - 1);
+            let mut index = usize::rand(rng) & ((1usize << num_vars) - 1);
             while map.get(&index).is_some() {
-                index = usize::rand(rng) & ((1 << num_vars) - 1);
+                index = usize::rand(rng) & ((1usize << num_vars) - 1);
             }
             map.entry(index).or_insert(F::rand(rng));
         }
@@ -122,7 +122,7 @@ impl<F: Field> MultilinearExtension<F> for SparseMultilinearExtension<F> {
     /// `sqrt(2^num_vars)` and indices of those nonzero entries are distributed
     /// uniformly at random.
     fn rand<R: Rng>(num_vars: usize, rng: &mut R) -> Self {
-        Self::rand_with_config(num_vars, 1 << (num_vars / 2), rng)
+        Self::rand_with_config(num_vars, 1usize << (num_vars / 2), rng)
     }
 
     fn relabel(&self, mut a: usize, mut b: usize, k: usize) -> Self {
