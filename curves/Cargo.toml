@@ -40,8 +40,8 @@ members = [
 
     "curve25519",
     "ed25519",
-
     "jq255s",
+    "starkcurve",
 ]
 resolver = "2"
 
