@@ -14,7 +14,7 @@
 //! tests of implementations of this curve by Pornin.
 //!
 //! Curve information:
-//! * Base field: 
+//! * Base field:
 //!   q = 2^{255} - 3957
 //!   = 57896044618658097711785492504343953926634992332820282019728792003956564816011
 //! * Scalar field:
