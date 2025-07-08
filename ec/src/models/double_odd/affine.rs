@@ -157,6 +157,11 @@ impl<P: DOCurveConfig> AffineRepr for Affine<P> {
         }
     }
 
+    #[inline]
+    fn is_zero(&self) -> bool {
+        self.e == P::BaseField::ONE && self.u == P::BaseField::ZERO
+    }
+
     fn from_random_bytes(bytes: &[u8]) -> Option<Self> {
         P::BaseField::from_random_bytes(bytes)
             .and_then(|u| Self::get_point_from_u_unchecked(u, true))
