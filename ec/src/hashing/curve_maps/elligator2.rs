@@ -194,9 +194,8 @@ mod test {
     struct TestElligator2MapToCurveConfig;
 
     impl CurveConfig for TestElligator2MapToCurveConfig {
-        const COFACTOR: &'static [u64] = &[8];
+        const COFACTOR: &[u64] = &[8];
 
-	#[rustfmt::skip]
         const COFACTOR_INV: F11 = MontFp!("7");
 
         type BaseField = F101;
@@ -280,7 +279,7 @@ mod test {
     fn map_field_to_curve_elligator2() {
         Elligator2Map::<TestElligator2MapToCurveConfig>::check_parameters().unwrap();
 
-        let mut map_range: Vec<Affine<TestElligator2MapToCurveConfig>> = vec![];
+        let mut map_range: Vec<Affine<TestElligator2MapToCurveConfig>> = Vec::new();
         // We are mapping all elements of the field to the curve, verifying that
         // map is not constant on that set.
         for current_field_element in 0..101 {

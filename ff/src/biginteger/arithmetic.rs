@@ -1,19 +1,9 @@
-use ark_std::Zero;
-use ark_std::{vec, vec::*};
-
-macro_rules! adc {
-    ($a:expr, $b:expr, &mut $carry:expr$(,)?) => {{
-        let tmp = ($a as u128) + ($b as u128) + ($carry as u128);
-        $carry = (tmp >> 64) as u64;
-        tmp as u64
-    }};
-}
+use ark_std::{vec, vec::Vec};
 
 /// Sets a = a + b + carry, and returns the new carry.
 #[inline(always)]
-#[allow(unused_mut)]
 #[doc(hidden)]
-pub fn adc(a: &mut u64, b: u64, carry: u64) -> u64 {
+pub const fn adc(a: &mut u64, b: u64, carry: u64) -> u64 {
     let tmp = *a as u128 + b as u128 + carry as u128;
     *a = tmp as u64;
     (tmp >> 64) as u64
@@ -21,7 +11,6 @@ pub fn adc(a: &mut u64, b: u64, carry: u64) -> u64 {
 
 /// Sets a = a + b + carry, and returns the new carry.
 #[inline(always)]
-#[allow(unused_mut)]
 #[doc(hidden)]
 pub fn adc_for_add_with_carry(a: &mut u64, b: u64, carry: u8) -> u8 {
     #[cfg(all(target_arch = "x86_64", feature = "asm"))]
@@ -41,24 +30,14 @@ pub fn adc_for_add_with_carry(a: &mut u64, b: u64, carry: u8) -> u8 {
 /// Calculate a + b + carry, returning the sum
 #[inline(always)]
 #[doc(hidden)]
-pub fn adc_no_carry(a: u64, b: u64, carry: &u64) -> u64 {
+pub const fn adc_no_carry(a: u64, b: u64, carry: &u64) -> u64 {
     let tmp = a as u128 + b as u128 + *carry as u128;
     tmp as u64
 }
 
-#[macro_export]
-macro_rules! sbb {
-    ($a:expr, $b:expr, &mut $borrow:expr$(,)?) => {{
-        let tmp = (1u128 << 64) + ($a as u128) - ($b as u128) - ($borrow as u128);
-        $borrow = if tmp >> 64 == 0 { 1 } else { 0 };
-        tmp as u64
-    }};
-}
-
 /// Sets a = a - b - borrow, and returns the borrow.
 #[inline(always)]
-#[allow(unused_mut)]
-pub(crate) fn sbb(a: &mut u64, b: u64, borrow: u64) -> u64 {
+pub(crate) const fn sbb(a: &mut u64, b: u64, borrow: u64) -> u64 {
     let tmp = (1u128 << 64) + (*a as u128) - (b as u128) - (borrow as u128);
     *a = tmp as u64;
     (tmp >> 64 == 0) as u64
@@ -66,16 +45,15 @@ pub(crate) fn sbb(a: &mut u64, b: u64, borrow: u64) -> u64 {
 
 /// Sets a = a - b - borrow, and returns the borrow.
 #[inline(always)]
-#[allow(unused_mut)]
 #[doc(hidden)]
 pub fn sbb_for_sub_with_borrow(a: &mut u64, b: u64, borrow: u8) -> u8 {
-    #[cfg(all(target_arch = "x86_64", feature = "asm"))]
+    #[cfg(target_arch = "x86_64")]
     #[allow(unsafe_code)]
     unsafe {
         use core::arch::x86_64::_subborrow_u64;
         _subborrow_u64(borrow, *a, b, a)
     }
-    #[cfg(not(all(target_arch = "x86_64", feature = "asm")))]
+    #[cfg(not(target_arch = "x86_64"))]
     {
         let tmp = (1u128 << 64) + (*a as u128) - (b as u128) - (borrow as u128);
         *a = tmp as u64;
@@ -109,7 +87,7 @@ pub const fn widening_mul(a: u64, b: u64) -> u128 {
 /// `carry` to the upper 64 bits.
 #[inline(always)]
 #[doc(hidden)]
-pub fn mac(a: u64, b: u64, c: u64, carry: &mut u64) -> u64 {
+pub const fn mac(a: u64, b: u64, c: u64, carry: &mut u64) -> u64 {
     let tmp = (a as u128) + widening_mul(b, c);
     *carry = (tmp >> 64) as u64;
     tmp as u64
@@ -119,33 +97,16 @@ pub fn mac(a: u64, b: u64, c: u64, carry: &mut u64) -> u64 {
 /// `carry` to the upper 64 bits.
 #[inline(always)]
 #[doc(hidden)]
-pub fn mac_discard(a: u64, b: u64, c: u64, carry: &mut u64) {
+pub const fn mac_discard(a: u64, b: u64, c: u64, carry: &mut u64) {
     let tmp = (a as u128) + widening_mul(b, c);
     *carry = (tmp >> 64) as u64;
-}
-
-macro_rules! mac_with_carry {
-    ($a:expr, $b:expr, $c:expr, &mut $carry:expr$(,)?) => {{
-        let tmp =
-            ($a as u128) + $crate::biginteger::arithmetic::widening_mul($b, $c) + ($carry as u128);
-        $carry = (tmp >> 64) as u64;
-        tmp as u64
-    }};
-}
-
-macro_rules! mac {
-    ($a:expr, $b:expr, $c:expr, &mut $carry:expr$(,)?) => {{
-        let tmp = ($a as u128) + $crate::biginteger::arithmetic::widening_mul($b, $c);
-        $carry = (tmp >> 64) as u64;
-        tmp as u64
-    }};
 }
 
 /// Calculate a + (b * c) + carry, returning the least significant digit
 /// and setting carry to the most significant digit.
 #[inline(always)]
 #[doc(hidden)]
-pub fn mac_with_carry(a: u64, b: u64, c: u64, carry: &mut u64) -> u64 {
+pub const fn mac_with_carry(a: u64, b: u64, c: u64, carry: &mut u64) -> u64 {
     let tmp = (a as u128) + widening_mul(b, c) + (*carry as u128);
     *carry = (tmp >> 64) as u64;
     tmp as u64
@@ -153,52 +114,53 @@ pub fn mac_with_carry(a: u64, b: u64, c: u64, carry: &mut u64) -> u64 {
 
 /// Compute the NAF (non-adjacent form) of num
 pub fn find_naf(num: &[u64]) -> Vec<i8> {
-    let is_zero = |num: &[u64]| num.iter().all(Zero::is_zero);
-    let is_odd = |num: &[u64]| num[0] & 1 == 1;
-    let sub_noborrow = |num: &mut [u64], z: u64| {
-        let mut other = vec![0u64; num.len()];
-        other[0] = z;
-        let mut borrow = 0;
-
-        for (a, b) in num.iter_mut().zip(other) {
-            borrow = sbb(a, b, borrow);
-        }
-    };
-    let add_nocarry = |num: &mut [u64], z: u64| {
-        let mut other = vec![0u64; num.len()];
-        other[0] = z;
-        let mut carry = 0;
-
-        for (a, b) in num.iter_mut().zip(other) {
-            carry = adc(a, b, carry);
-        }
-    };
-    let div2 = |num: &mut [u64]| {
-        let mut t = 0;
-        for i in num.iter_mut().rev() {
-            let t2 = *i << 63;
-            *i >>= 1;
-            *i |= t;
-            t = t2;
-        }
-    };
-
     let mut num = num.to_vec();
     let mut res = vec![];
 
-    while !is_zero(&num) {
-        let z: i8;
-        if is_odd(&num) {
-            z = 2 - (num[0] % 4) as i8;
+    // Helper functions for arithmetic operations
+    // Check if the number is non-zero
+    let is_non_zero = |num: &[u64]| num.iter().any(|&x| x != 0);
+    // Check if the number is odd
+    let is_odd = |num: &[u64]| num[0] & 1 == 1;
+    // Subtract a value `z` without borrow propagation
+    let sub_noborrow = |num: &mut [u64], z: u64| {
+        num.iter_mut()
+            .zip(ark_std::iter::once(z).chain(ark_std::iter::repeat(0)))
+            .fold(0, |borrow, (a, b)| sbb(a, b, borrow));
+    };
+    // Add a value `z` without carry propagation
+    let add_nocarry = |num: &mut [u64], z: u64| {
+        num.iter_mut()
+            .zip(ark_std::iter::once(z).chain(ark_std::iter::repeat(0)))
+            .fold(0, |carry, (a, b)| adc(a, b, carry));
+    };
+    // Perform an in-place division of the number by 2
+    let div2 = |num: &mut [u64]| {
+        num.iter_mut().rev().fold(0, |carry, x| {
+            let next_carry = *x << 63;
+            *x = (*x >> 1) | carry;
+            next_carry
+        });
+    };
+
+    // Main loop for NAF computation
+    while is_non_zero(&num) {
+        // Determine the current digit of the NAF representation
+        let z = if is_odd(&num) {
+            let z = 2 - (num[0] % 4) as i8;
             if z >= 0 {
-                sub_noborrow(&mut num, z as u64)
+                sub_noborrow(&mut num, z as u64);
             } else {
-                add_nocarry(&mut num, (-z) as u64)
+                add_nocarry(&mut num, (-z) as u64);
             }
+            z
         } else {
-            z = 0;
-        }
+            0
+        };
+
+        // Append the digit to the result
         res.push(z);
+        // Divide the number by 2 for the next iteration
         div2(&mut num);
     }
 
@@ -453,5 +415,48 @@ mod tests {
 
             assert_eq!(test, test_expected);
         }
+    }
+
+    #[test]
+    fn test_find_naf_zero() {
+        // Test for zero input
+        let naf = find_naf(&[0]);
+        assert!(naf.is_empty());
+    }
+
+    #[test]
+    fn test_find_naf_single_digit() {
+        // Test for small numbers
+        assert_eq!(find_naf(&[1]), vec![1]);
+        assert_eq!(find_naf(&[2]), vec![0, 1]);
+        assert_eq!(find_naf(&[3]), vec![-1, 0, 1]);
+        assert_eq!(find_naf(&[4]), vec![0, 0, 1]);
+    }
+
+    #[test]
+    fn test_find_naf_large_number() {
+        // Test for a larger number
+        assert_eq!(find_naf(&[13]), vec![1, 0, -1, 0, 1]);
+    }
+
+    #[test]
+    fn test_find_naf_multiple_blocks() {
+        // Test multi-block number (simulate large numbers split across blocks)
+        let num = [0, 1];
+        assert_eq!(
+            find_naf(&num),
+            vec![
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 1
+            ]
+        );
+    }
+
+    #[test]
+    fn test_find_naf_edge_cases() {
+        // Test edge cases
+        let naf = find_naf(&[u64::MAX]);
+        assert!(!naf.is_empty());
     }
 }

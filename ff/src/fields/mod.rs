@@ -207,6 +207,9 @@ pub trait Field:
     /// The multiplicative identity of the field.
     const ONE: Self;
 
+    /// Negation of the multiplicative identity of the field.
+    const NEG_ONE: Self;
+
     /// Returns the characteristic of the field,
     /// in little-endian representation.
     fn characteristic() -> &'static [u64] {
@@ -378,7 +381,7 @@ pub fn batch_inversion_and_mul<F: Field>(v: &mut [F], coeff: &F) {
 
 /// Given a vector of field elements {v_i}, compute the vector {coeff * v_i^(-1)}.
 /// This method is explicitly single-threaded.
-fn serial_batch_inversion_and_mul<F: Field>(v: &mut [F], coeff: &F) {
+pub fn serial_batch_inversion_and_mul<F: Field>(v: &mut [F], coeff: &F) {
     // Montgomery’s Trick and Fast Implementation of Masked AES
     // Genelle, Prouff and Quisquater
     // Section 3.2
@@ -518,6 +521,7 @@ mod no_std_tests {
 
     #[test]
     fn test_from_be_bytes_mod_order() {
+        use ark_std::vec;
         // Each test vector is a byte array,
         // and its tested by parsing it with from_bytes_mod_order, and the num-bigint
         // library. The bytes are currently generated from scripts/test_vectors.py.

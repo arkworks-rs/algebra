@@ -11,6 +11,7 @@ use ark_ff::{AdditiveGroup, BigInteger, PrimeField, Zero};
 use ark_std::{
     cfg_iter, cfg_iter_mut,
     ops::{Add, AddAssign, Mul, Neg, Sub, SubAssign},
+    vec,
     vec::*,
 };
 

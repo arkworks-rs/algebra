@@ -42,7 +42,7 @@ mod pairing {
     pub struct Config;
 
     impl Bls12Config for Config {
-        const X: &'static [u64] = &[0xd201000000010000];
+        const X: &[u64] = &[0xd201000000010000];
         const X_IS_NEGATIVE: bool = true;
         const TWIST_TYPE: TwistType = TwistType::M;
         type Fp = Fq;

@@ -15,6 +15,7 @@ use ark_std::{
     string::*,
 };
 use core::iter;
+use itertools::Itertools;
 
 #[macro_use]
 mod montgomery_backend;
@@ -38,6 +39,9 @@ pub trait FpConfig<const N: usize>: Send + Sync + 'static + Sized {
     /// Multiplicative identity of the field, i.e. the element `e`
     /// such that, for all elements `f` of the field, `e * f = f`.
     const ONE: Fp<Self, N>;
+
+    /// Negation of `Self::ONE`.
+    const NEG_ONE: Fp<Self, N>;
 
     /// Let `N` be the size of the multiplicative group defined by the field.
     /// Then `TWO_ADICITY` is the two-adicity of `N`, i.e. the integer `s`
@@ -101,7 +105,7 @@ pub trait FpConfig<const N: usize>: Send + Sync + 'static + Sized {
 
 /// Represents an element of the prime field F_p, where `p == P::MODULUS`.
 /// This type can represent elements in any field of size at most N * 64 bits.
-#[derive(Educe)]
+#[derive(educe::Educe)]
 #[educe(Default, Hash, Clone, Copy, PartialEq, Eq)]
 pub struct Fp<P: FpConfig<N>, const N: usize>(
     /// Contains the element in Montgomery form for efficient multiplication.
@@ -146,7 +150,7 @@ impl<P: FpConfig<N>, const N: usize> Fp<P, N> {
         }
     }
 
-    fn num_bits_to_shave() -> usize {
+    const fn num_bits_to_shave() -> usize {
         64 * N - (Self::MODULUS_BIT_SIZE as usize)
     }
 }
@@ -210,6 +214,7 @@ impl<P: FpConfig<N>, const N: usize> Field for Fp<P, N> {
 
     const SQRT_PRECOMP: Option<SqrtPrecomputation<Self>> = P::SQRT_PRECOMP;
     const ONE: Self = P::ONE;
+    const NEG_ONE: Self = P::NEG_ONE;
 
     fn extension_degree() -> u64 {
         1
@@ -226,12 +231,7 @@ impl<P: FpConfig<N>, const N: usize> Field for Fp<P, N> {
     fn from_base_prime_field_elems(
         elems: impl IntoIterator<Item = Self::BasePrimeField>,
     ) -> Option<Self> {
-        let mut elems = elems.into_iter();
-        let elem = elems.next()?;
-        if elems.next().is_some() {
-            return None;
-        }
-        Some(elem)
+        elems.into_iter().exactly_one().ok()
     }
 
     #[inline]
@@ -320,16 +320,14 @@ impl<P: FpConfig<N>, const N: usize> Field for Fp<P, N> {
 
     #[inline]
     fn legendre(&self) -> LegendreSymbol {
-        use crate::fields::LegendreSymbol::*;
-
         // s = self^((MODULUS - 1) // 2)
         let s = self.pow(Self::MODULUS_MINUS_ONE_DIV_TWO);
         if s.is_zero() {
-            Zero
+            LegendreSymbol::Zero
         } else if s.is_one() {
-            QuadraticResidue
+            LegendreSymbol::QuadraticResidue
         } else {
-            QuadraticNonResidue
+            LegendreSymbol::QuadraticNonResidue
         }
     }
 
@@ -626,7 +624,17 @@ impl<P: FpConfig<N>, const N: usize> CanonicalDeserializeWithFlags for Fp<P, N> 
 }
 
 impl<P: FpConfig<N>, const N: usize> Valid for Fp<P, N> {
+    const TRIVIAL_CHECK: bool = true;
+    #[inline]
     fn check(&self) -> Result<(), SerializationError> {
+        Ok(())
+    }
+
+    #[inline]
+    fn batch_check<'a>(_: impl Iterator<Item = &'a Self> + Send) -> Result<(), SerializationError>
+    where
+        Self: 'a,
+    {
         Ok(())
     }
 }
@@ -677,7 +685,6 @@ impl<P: FpConfig<N>, const N: usize> Display for Fp<P, N> {
 impl<P: FpConfig<N>, const N: usize> Neg for Fp<P, N> {
     type Output = Self;
     #[inline]
-    #[must_use]
     fn neg(mut self) -> Self {
         P::neg_in_place(&mut self);
         self
@@ -785,7 +792,6 @@ impl<P: FpConfig<N>, const N: usize> SubAssign<&Self> for Fp<P, N> {
     }
 }
 
-#[allow(unused_qualifications)]
 impl<P: FpConfig<N>, const N: usize> core::ops::Add<Self> for Fp<P, N> {
     type Output = Self;
 
@@ -796,7 +802,6 @@ impl<P: FpConfig<N>, const N: usize> core::ops::Add<Self> for Fp<P, N> {
     }
 }
 
-#[allow(unused_qualifications)]
 impl<'a, P: FpConfig<N>, const N: usize> core::ops::Add<&'a mut Self> for Fp<P, N> {
     type Output = Self;
 
@@ -807,7 +812,6 @@ impl<'a, P: FpConfig<N>, const N: usize> core::ops::Add<&'a mut Self> for Fp<P, 
     }
 }
 
-#[allow(unused_qualifications)]
 impl<P: FpConfig<N>, const N: usize> core::ops::Sub<Self> for Fp<P, N> {
     type Output = Self;
 
@@ -818,7 +822,6 @@ impl<P: FpConfig<N>, const N: usize> core::ops::Sub<Self> for Fp<P, N> {
     }
 }
 
-#[allow(unused_qualifications)]
 impl<'a, P: FpConfig<N>, const N: usize> core::ops::Sub<&'a mut Self> for Fp<P, N> {
     type Output = Self;
 
@@ -829,21 +832,18 @@ impl<'a, P: FpConfig<N>, const N: usize> core::ops::Sub<&'a mut Self> for Fp<P, 
     }
 }
 
-#[allow(unused_qualifications)]
 impl<P: FpConfig<N>, const N: usize> core::iter::Sum<Self> for Fp<P, N> {
     fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
         iter.fold(Self::zero(), core::ops::Add::add)
     }
 }
 
-#[allow(unused_qualifications)]
 impl<'a, P: FpConfig<N>, const N: usize> core::iter::Sum<&'a Self> for Fp<P, N> {
     fn sum<I: Iterator<Item = &'a Self>>(iter: I) -> Self {
         iter.fold(Self::zero(), core::ops::Add::add)
     }
 }
 
-#[allow(unused_qualifications)]
 impl<P: FpConfig<N>, const N: usize> core::ops::AddAssign<Self> for Fp<P, N> {
     #[inline(always)]
     fn add_assign(&mut self, other: Self) {
@@ -851,7 +851,6 @@ impl<P: FpConfig<N>, const N: usize> core::ops::AddAssign<Self> for Fp<P, N> {
     }
 }
 
-#[allow(unused_qualifications)]
 impl<P: FpConfig<N>, const N: usize> core::ops::SubAssign<Self> for Fp<P, N> {
     #[inline(always)]
     fn sub_assign(&mut self, other: Self) {
@@ -859,7 +858,6 @@ impl<P: FpConfig<N>, const N: usize> core::ops::SubAssign<Self> for Fp<P, N> {
     }
 }
 
-#[allow(unused_qualifications)]
 impl<'a, P: FpConfig<N>, const N: usize> core::ops::AddAssign<&'a mut Self> for Fp<P, N> {
     #[inline(always)]
     fn add_assign(&mut self, other: &'a mut Self) {
@@ -867,7 +865,6 @@ impl<'a, P: FpConfig<N>, const N: usize> core::ops::AddAssign<&'a mut Self> for 
     }
 }
 
-#[allow(unused_qualifications)]
 impl<'a, P: FpConfig<N>, const N: usize> core::ops::SubAssign<&'a mut Self> for Fp<P, N> {
     #[inline(always)]
     fn sub_assign(&mut self, other: &'a mut Self) {
@@ -890,7 +887,6 @@ impl<P: FpConfig<N>, const N: usize> DivAssign<&Self> for Fp<P, N> {
     }
 }
 
-#[allow(unused_qualifications)]
 impl<P: FpConfig<N>, const N: usize> core::ops::Mul<Self> for Fp<P, N> {
     type Output = Self;
 
@@ -901,7 +897,6 @@ impl<P: FpConfig<N>, const N: usize> core::ops::Mul<Self> for Fp<P, N> {
     }
 }
 
-#[allow(unused_qualifications)]
 impl<P: FpConfig<N>, const N: usize> core::ops::Div<Self> for Fp<P, N> {
     type Output = Self;
 
@@ -912,7 +907,6 @@ impl<P: FpConfig<N>, const N: usize> core::ops::Div<Self> for Fp<P, N> {
     }
 }
 
-#[allow(unused_qualifications)]
 impl<'a, P: FpConfig<N>, const N: usize> core::ops::Mul<&'a mut Self> for Fp<P, N> {
     type Output = Self;
 
@@ -923,7 +917,6 @@ impl<'a, P: FpConfig<N>, const N: usize> core::ops::Mul<&'a mut Self> for Fp<P, 
     }
 }
 
-#[allow(unused_qualifications)]
 impl<'a, P: FpConfig<N>, const N: usize> core::ops::Div<&'a mut Self> for Fp<P, N> {
     type Output = Self;
 
@@ -934,21 +927,18 @@ impl<'a, P: FpConfig<N>, const N: usize> core::ops::Div<&'a mut Self> for Fp<P, 
     }
 }
 
-#[allow(unused_qualifications)]
 impl<P: FpConfig<N>, const N: usize> core::iter::Product<Self> for Fp<P, N> {
     fn product<I: Iterator<Item = Self>>(iter: I) -> Self {
         iter.fold(Self::one(), core::ops::Mul::mul)
     }
 }
 
-#[allow(unused_qualifications)]
 impl<'a, P: FpConfig<N>, const N: usize> core::iter::Product<&'a Self> for Fp<P, N> {
     fn product<I: Iterator<Item = &'a Self>>(iter: I) -> Self {
         iter.fold(Self::one(), Mul::mul)
     }
 }
 
-#[allow(unused_qualifications)]
 impl<P: FpConfig<N>, const N: usize> core::ops::MulAssign<Self> for Fp<P, N> {
     #[inline(always)]
     fn mul_assign(&mut self, other: Self) {
@@ -956,7 +946,6 @@ impl<P: FpConfig<N>, const N: usize> core::ops::MulAssign<Self> for Fp<P, N> {
     }
 }
 
-#[allow(unused_qualifications)]
 impl<'a, P: FpConfig<N>, const N: usize> core::ops::DivAssign<&'a mut Self> for Fp<P, N> {
     #[inline(always)]
     fn div_assign(&mut self, other: &'a mut Self) {
@@ -964,7 +953,6 @@ impl<'a, P: FpConfig<N>, const N: usize> core::ops::DivAssign<&'a mut Self> for 
     }
 }
 
-#[allow(unused_qualifications)]
 impl<'a, P: FpConfig<N>, const N: usize> core::ops::MulAssign<&'a mut Self> for Fp<P, N> {
     #[inline(always)]
     fn mul_assign(&mut self, other: &'a mut Self) {
@@ -972,7 +960,6 @@ impl<'a, P: FpConfig<N>, const N: usize> core::ops::MulAssign<&'a mut Self> for 
     }
 }
 
-#[allow(unused_qualifications)]
 impl<P: FpConfig<N>, const N: usize> core::ops::DivAssign<Self> for Fp<P, N> {
     #[inline(always)]
     fn div_assign(&mut self, other: Self) {

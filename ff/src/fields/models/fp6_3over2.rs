@@ -11,8 +11,8 @@ pub trait Fp6Config: 'static + Send + Sync + Copy {
     const SQRT_PRECOMP: Option<SqrtPrecomputation<Fp6<Self>>> = None;
 
     /// Coefficients for the Frobenius automorphism.
-    const FROBENIUS_COEFF_FP6_C1: &'static [Fp2<Self::Fp2Config>];
-    const FROBENIUS_COEFF_FP6_C2: &'static [Fp2<Self::Fp2Config>];
+    const FROBENIUS_COEFF_FP6_C1: &[Fp2<Self::Fp2Config>];
+    const FROBENIUS_COEFF_FP6_C2: &[Fp2<Self::Fp2Config>];
 
     #[inline(always)]
     fn mul_fp2_by_nonresidue_in_place(fe: &mut Fp2<Self::Fp2Config>) -> &mut Fp2<Self::Fp2Config> {
@@ -39,8 +39,8 @@ impl<P: Fp6Config> CubicExtConfig for Fp6ConfigWrapper<P> {
 
     const NONRESIDUE: Self::BaseField = P::NONRESIDUE;
 
-    const FROBENIUS_COEFF_C1: &'static [Self::FrobCoeff] = P::FROBENIUS_COEFF_FP6_C1;
-    const FROBENIUS_COEFF_C2: &'static [Self::FrobCoeff] = P::FROBENIUS_COEFF_FP6_C2;
+    const FROBENIUS_COEFF_C1: &[Self::FrobCoeff] = P::FROBENIUS_COEFF_FP6_C1;
+    const FROBENIUS_COEFF_C2: &[Self::FrobCoeff] = P::FROBENIUS_COEFF_FP6_C2;
 
     #[inline(always)]
     fn mul_base_field_by_nonresidue_in_place(fe: &mut Self::BaseField) -> &mut Self::BaseField {

@@ -7,11 +7,12 @@ use crate::{
 use ark_ff::{Field, Zero};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use ark_std::{
+    cfg_iter,
     collections::BTreeMap,
-    fmt,
-    fmt::{Debug, Formatter},
+    fmt::{self, Debug, Formatter},
     ops::{Add, AddAssign, Index, Neg, Sub, SubAssign},
     rand::Rng,
+    vec,
     vec::*,
     UniformRand,
 };
@@ -71,9 +72,9 @@ impl<F: Field> SparseMultilinearExtension<F> {
         let mut map =
             HashMap::with_hasher(core::hash::BuildHasherDefault::<DefaultHasher>::default());
         for _ in 0..num_nonzero_entries {
-            let mut index = usize::rand(rng) & ((1 << num_vars) - 1);
+            let mut index = usize::rand(rng) & ((1usize << num_vars) - 1);
             while map.get(&index).is_some() {
-                index = usize::rand(rng) & ((1 << num_vars) - 1);
+                index = usize::rand(rng) & ((1usize << num_vars) - 1);
             }
             map.entry(index).or_insert(F::rand(rng));
         }
@@ -121,7 +122,7 @@ impl<F: Field> MultilinearExtension<F> for SparseMultilinearExtension<F> {
     /// `sqrt(2^num_vars)` and indices of those nonzero entries are distributed
     /// uniformly at random.
     fn rand<R: Rng>(num_vars: usize, rng: &mut R) -> Self {
-        Self::rand_with_config(num_vars, 1 << (num_vars / 2), rng)
+        Self::rand_with_config(num_vars, 1usize << (num_vars / 2), rng)
     }
 
     fn relabel(&self, mut a: usize, mut b: usize, k: usize) -> Self {
@@ -194,7 +195,7 @@ impl<F: Field> MultilinearExtension<F> for SparseMultilinearExtension<F> {
         self.evaluations
             .iter()
             .map(|(&i, &v)| evaluations[i] = v)
-            .last();
+            .next_back();
         evaluations
     }
 }
@@ -406,7 +407,7 @@ mod tests {
     };
     use ark_ff::{One, Zero};
     use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
-    use ark_std::{ops::Neg, test_rng, vec::*, UniformRand};
+    use ark_std::{ops::Neg, test_rng, vec, vec::*, UniformRand};
     use ark_test_curves::bls12_381::Fr;
     /// Some sanity test to ensure random sparse polynomial make sense.
     #[test]
@@ -490,7 +491,7 @@ mod tests {
         points
             .into_iter()
             .map(|(i, v)| assert_eq!(poly[i], v))
-            .last();
+            .next_back();
         assert_eq!(poly[0], Fr::zero());
         assert_eq!(poly[1], Fr::zero());
     }

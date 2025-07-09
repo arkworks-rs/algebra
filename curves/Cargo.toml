@@ -41,6 +41,8 @@ members = [
 
     "curve25519",
     "ed25519",
+
+    "starkcurve",
 ]
 resolver = "2"
 
@@ -115,5 +117,6 @@ ark-serialize = { path = "../serialize" }
 ark-algebra-test-templates = { path = "../test-templates" }
 ark-algebra-bench-templates = { path = "../bench-templates" }
 ark-curve-constraint-tests = { path = "./curve-constraint-tests" }
-ark-r1cs-std = { git = "https://github.com/arkworks-rs/r1cs-std/" }
 ark-std = { git = "https://github.com/arkworks-rs/std/" }
+ark-r1cs-std = { git = "https://github.com/arkworks-rs/r1cs-std" }
+ark-relations = { git = "https://github.com/arkworks-rs/snark" }

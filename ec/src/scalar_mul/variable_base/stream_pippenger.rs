@@ -105,7 +105,7 @@ impl<G: VariableBaseMSM> HashMapPippenger<G> {
                 .values()
                 .map(|s| s.into_bigint())
                 .collect::<Vec<_>>();
-            self.result += G::msm_bigint(&bases, &scalars);
+            self.result += G::msm_bigint(&bases, scalars.as_slice());
             self.buffer.clear();
         }
     }
@@ -121,7 +121,7 @@ impl<G: VariableBaseMSM> HashMapPippenger<G> {
                 .map(|s| s.into_bigint())
                 .collect::<Vec<_>>();
 
-            self.result += G::msm_bigint(&bases, &scalars);
+            self.result += G::msm_bigint(&bases, scalars.as_slice());
         }
         self.result
     }

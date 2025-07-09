@@ -62,7 +62,7 @@ fn fft_setup_with_domain_size<F: FftField, D: EvaluationDomain<F>>(
 ) -> (D, Vec<F>) {
     let mut rng = &mut ark_std::test_rng();
     let domain = D::new(domain_size).unwrap();
-    let a = DensePolynomial::<F>::rand(degree - 1, &mut rng)
+    let a = DensePolynomial::rand(degree - 1, &mut rng)
         .coeffs()
         .to_vec();
     (domain, a)
