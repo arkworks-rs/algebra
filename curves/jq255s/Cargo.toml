@@ -1,0 +1,38 @@
+[package]
+name = "ark-jq255s"
+version.workspace = true
+authors.workspace = true
+description = "The do255s curve"
+homepage.workspace = true
+repository.workspace = true
+documentation = "https://docs.rs/ark-secp256r1/"
+keywords.workspace = true
+categories.workspace = true
+include.workspace = true
+license.workspace = true
+edition.workspace = true
+
+[dependencies]
+ark-ff = { workspace = true }
+ark-ec = { workspace = true }
+ark-r1cs-std = { workspace = true, optional = true }
+ark-std = { workspace = true }
+hex = "0.4.3"
+
+[dev-dependencies]
+ark-relations = { workspace = true }
+ark-serialize = { workspace = true }
+ark-algebra-test-templates = { workspace = true }
+ark-curve-constraint-tests = { path = "../curve-constraint-tests" }
+
+[features]
+default = []
+std = [ "ark-std/std", "ark-ff/std", "ark-ec/std" ]
+r1cs = [ "ark-r1cs-std" ]
+asm = [ "ark-ff/asm" ]
+
+#[patch.crates-io]
+#ark-ec = { path = "../../algebra/ec" }
+#ark-ff = { path = "../../algebra/ff" }
+#ark-poly = { path = "../../algebra/poly"  }
+#ark-serialize = {  path = "../../algebra/serialize" }
