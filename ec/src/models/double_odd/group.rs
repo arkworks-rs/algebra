@@ -371,7 +371,7 @@ impl<P: DOCurveConfig, T: Borrow<P::ScalarField>> Mul<T> for Projective<P> {
 
 impl<P: DOCurveConfig> From<Affine<P>> for Projective<P> {
     #[inline]
-    fn from(p: Affine<P>) -> Projective<P> {
+    fn from(p: Affine<P>) -> Self {
         let u = p.u;
         let e = p.e;
         let z = P::BaseField::ONE;
@@ -456,6 +456,6 @@ impl<P: DOCurveConfig> VariableBaseMSM for Projective<P> {
 
 impl<P: DOCurveConfig, T: Borrow<Affine<P>>> core::iter::Sum<T> for Projective<P> {
     fn sum<I: Iterator<Item = T>>(iter: I) -> Self {
-        iter.fold(Projective::zero(), |sum, x| sum + x.borrow())
+        iter.fold(Self::zero(), |sum, x| sum + x.borrow())
     }
 }
