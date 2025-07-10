@@ -58,7 +58,7 @@ pub trait DOCurveConfig: super::CurveConfig {
     ) -> Result<Projective<Self>, usize> {
         (bases.len() == scalars.len())
             .then(|| VariableBaseMSM::msm_unchecked(bases, scalars))
-            .ok_or(bases.len().min(scalars.len()))
+            .ok_or_else(|| bases.len().min(scalars.len()))
     }
 
     #[inline]
@@ -116,7 +116,7 @@ pub trait DOCurveConfig: super::CurveConfig {
         let e = if buffer[0] & 1u8 == 1u8 { -e } else { e };
 
         let point = Affine::new_unchecked(e, u);
-        if let Validate::Yes = validate {
+        if validate == Validate::Yes {
             point.check()?;
         }
         Ok(point)
