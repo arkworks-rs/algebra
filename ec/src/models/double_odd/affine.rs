@@ -199,7 +199,24 @@ impl<P: DOCurveConfig, T: Borrow<Self>> Add<T> for Affine<P> {
     type Output = Projective<P>;
     fn add(self, other: T) -> Projective<P> {
         let mut copy = self.into_group();
-        copy += other.borrow();
+        let other = other.borrow();
+        let othert = other.u.square();
+        let n1 = copy.e * other.e;
+        let n3 = copy.u * other.u;
+        let n4 = copy.t * othert;
+
+        let n5 = othert + copy.t;
+        let n6 = (copy.e + copy.u) * (other.e + other.u) - n1 - n3;
+        let cn4 = P::get_c() * n4;
+        let n7 = P::BaseField::ONE - cn4;
+
+        let n3d = n3.double();
+
+        copy.e = (P::BaseField::ONE + cn4) * (n1 - P::COEFF_A * n3d) + P::get_c() * n3d * n5;
+        copy.z = n7.square();
+        copy.t = n6.square();
+        copy.u = n7 * n6;
+
         copy
     }
 }
@@ -261,7 +278,7 @@ impl<P: DOCurveConfig, T: Borrow<P::ScalarField>> Mul<T> for Affine<P> {
 // coordinates as (e, u) by E/Z, U/Z
 impl<P: DOCurveConfig> From<Projective<P>> for Affine<P> {
     #[inline]
-    fn from(p: Projective<P>) -> Affine<P> {
+    fn from(p: Projective<P>) -> Self {
         use ark_std::Zero;
 
         if p.is_zero() {
@@ -274,7 +291,7 @@ impl<P: DOCurveConfig> From<Projective<P>> for Affine<P> {
             let u = p.u * &z_i;
             let e = p.e * &z_i;
 
-            Affine::new_unchecked(e, u)
+            Self::new_unchecked(e, u)
         }
     }
 }
