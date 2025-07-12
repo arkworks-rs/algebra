@@ -244,7 +244,7 @@ impl<P: SWCurveConfig> AffineRepr for Affine<P> {
     const ZERO: Self = Self::identity();
 
     fn xy(&self) -> Option<(Self::BaseField, Self::BaseField)> {
-        (!self.is_zero()).then(|| (self.x, self.y))
+        (!self.is_zero()).then_some((self.x, self.y))
     }
 
     #[inline]

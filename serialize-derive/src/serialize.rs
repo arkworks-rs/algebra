@@ -50,8 +50,7 @@ pub(super) fn impl_canonical_serialize(ast: &syn::DeriveInput) -> TokenStream {
         data_struct.fields.len()
     } else {
         panic!(
-            "`CanonicalSerialize` can only be derived for structs, {} is not a struct",
-            name
+            "`CanonicalSerialize` can only be derived for structs, {name} is not a struct",
         );
     };
 
@@ -84,8 +83,7 @@ pub(super) fn impl_canonical_serialize(ast: &syn::DeriveInput) -> TokenStream {
             }
         },
         _ => panic!(
-            "`CanonicalSerialize` can only be derived for structs, {} is not a struct",
-            name
+            "`CanonicalSerialize` can only be derived for structs, {name} is not a struct",
         ),
     };
 

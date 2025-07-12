@@ -140,7 +140,7 @@ fn construct_asm_mul(ctx: &Context<'_>, limbs: usize) -> Vec<String> {
     let comment = |comment: &str| {
         asm_instructions
             .borrow_mut()
-            .push(format!("// {}", comment));
+            .push(format!("// {comment}"));
     };
 
     macro_rules! mulxq {

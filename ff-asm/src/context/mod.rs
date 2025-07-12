@@ -38,7 +38,7 @@ impl<'a> Context<'a> {
     }
 
     fn append(&mut self, other: &str) {
-        self.assembly_instructions.push(format!("\"{}\",", other));
+        self.assembly_instructions.push(format!("\"{other}\","));
     }
 
     fn instructions_to_string(&self) -> String {
@@ -70,8 +70,7 @@ impl<'a> Context<'a> {
 
     pub(crate) fn add_buffer(&mut self, extra_reg: usize) {
         self.append(&format!(
-            "let mut spill_buffer = core::mem::MaybeUninit::<[u64; {}]>::uninit();",
-            extra_reg
+            "let mut spill_buffer = core::mem::MaybeUninit::<[u64; {extra_reg}]>::uninit();",
         ));
     }
 
@@ -101,7 +100,7 @@ impl<'a> Context<'a> {
         let clobbers = self
             .used_registers
             .iter()
-            .map(|l| format!("out({}) _,", l))
+            .map(|l| format!("out({l}) _,"))
             .collect::<Vec<String>>()
             .join("\n");
         let options = "options(att_syntax)".to_string();

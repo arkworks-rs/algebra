@@ -53,8 +53,7 @@ fn impl_valid(ast: &syn::DeriveInput) -> TokenStream {
         data_struct.fields.len()
     } else {
         panic!(
-            "`Valid` can only be derived for structs, {} is not a struct",
-            name
+            "`Valid` can only be derived for structs, {name} is not a struct",
         );
     };
 
@@ -89,8 +88,7 @@ fn impl_valid(ast: &syn::DeriveInput) -> TokenStream {
             }
         },
         _ => panic!(
-            "`Valid` can only be derived for structs, {} is not a struct",
-            name
+            "`Valid` can only be derived for structs, {name} is not a struct",
         ),
     };
 
@@ -188,8 +186,7 @@ pub(super) fn impl_canonical_deserialize(ast: &syn::DeriveInput) -> TokenStream 
             };
         },
         _ => panic!(
-            "`CanonicalDeserialize` can only be derived for structs, {} is not a Struct",
-            name
+            "`CanonicalDeserialize` can only be derived for structs, {name} is not a Struct",
         ),
     };
 

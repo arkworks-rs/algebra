@@ -10,7 +10,7 @@ pub(crate) enum AssemblyVar {
 impl AssemblyVar {
     pub(crate) fn memory_access(&self, offset: usize) -> Option<Self> {
         match self {
-            Self::Variable(a) | Self::Fixed(a) => Some(Self::Memory(format!("{}({})", offset, a))),
+            Self::Variable(a) | Self::Fixed(a) => Some(Self::Memory(format!("{offset}({a})"))),
             _ => None,
         }
     }
@@ -28,7 +28,7 @@ impl AssemblyVar {
 impl fmt::Display for AssemblyVar {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
         match self {
-            Self::Variable(a) | Self::Fixed(a) | Self::Memory(a) => write!(f, "{}", a),
+            Self::Variable(a) | Self::Fixed(a) | Self::Memory(a) => write!(f, "{a}"),
         }
     }
 }
