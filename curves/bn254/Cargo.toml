@@ -27,7 +27,7 @@ ark-relations = { workspace = true }
 
 [features]
 default = [ "curve" ]
-std = [ "ark-std/std", "ark-ff/std", "ark-ec/std", "ark-r1cs-std?/std" ]
+std = [ "ark-std/std", "ark-ff/std", "ark-ec/std" ]
 r1cs = [ "ark-r1cs-std" ]
 curve = [ "scalar_field" ]
 scalar_field = []
