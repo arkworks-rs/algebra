@@ -80,9 +80,7 @@ fn msm_bigint_wnaf_inner<V: VariableBaseMSM>(
             if i == len - 1 {
                 process_digit(i, digit_info, out);
             } else {
-                s.spawn(move |_| {
-                    process_digit(i, digit_info, out);
-                });
+                s.spawn(move |_| process_digit(i, digit_info, out));
             }
         }
     });

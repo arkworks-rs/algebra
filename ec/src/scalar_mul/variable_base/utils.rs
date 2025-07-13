@@ -8,12 +8,13 @@ pub(super) fn preamble<A, B>(bases: &mut &[A], scalars: &mut &[B]) -> Option<usi
     }
     #[cfg(feature = "parallel")]
     let chunk_size = {
-        let chunk_size = size / rayon::current_num_threads();
-        if chunk_size == 0 {
-            size
+        let num_threads = rayon::current_num_threads();
+        let num_chunks = if size < num_threads {
+            1
         } else {
-            chunk_size
-        }
+            num_threads
+        };
+        size.div_ceil(num_chunks)
     };
     #[cfg(not(feature = "parallel"))]
     let chunk_size = size;
@@ -34,7 +35,7 @@ pub(super) fn parallelization_helper<T: Sync + Send, V: VariableBaseMSM>(
     let (sender, receiver) = ark_std::sync::mpsc::sync_channel::<V>(num_chunks);
     let mut sum = V::zero();
 
-    rayon::scope(|s| {
+    ark_std::thread::scope(|s| {
         let bases = bases.chunks(chunk_size);
         let scalars = scalars.chunks(chunk_size);
         let sender = &sender;
@@ -42,7 +43,7 @@ pub(super) fn parallelization_helper<T: Sync + Send, V: VariableBaseMSM>(
             if i == num_chunks - 1 {
                 sender.send(msm_fn(bases, scalars)).unwrap();
             } else {
-                s.spawn(move |_| sender.send(msm_fn(bases, scalars)).unwrap());
+                s.spawn(move || sender.send(msm_fn(bases, scalars)).unwrap());
             }
         }
     });
