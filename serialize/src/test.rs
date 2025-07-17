@@ -1,5 +1,3 @@
-use std::collections::{HashMap, HashSet};
-
 use super::*;
 use ark_std::{
     collections::{BTreeMap, BTreeSet, LinkedList, VecDeque},
@@ -288,9 +286,11 @@ fn test_btreeset() {
     test_serialize(set);
 }
 
+#[cfg(feature = "std")]
 #[test]
 #[allow(clippy::zero_sized_map_values)]
 fn test_hashmap() {
+    use std::collections::HashMap;
     let mut map = HashMap::new();
     map.insert(0u64, Dummy);
     map.insert(5u64, Dummy);
@@ -301,8 +301,11 @@ fn test_hashmap() {
     test_serialize(map);
 }
 
+#[cfg(feature = "std")]
 #[test]
 fn test_hashset() {
+    use std::collections::HashSet;
+
     let mut set = HashSet::new();
     set.insert(Dummy);
     set.insert(Dummy);
