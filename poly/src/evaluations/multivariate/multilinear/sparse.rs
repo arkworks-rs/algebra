@@ -7,17 +7,20 @@ use crate::{
 use ark_ff::{Field, Zero};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use ark_std::{
+    cfg_iter,
     collections::BTreeMap,
-    fmt,
-    fmt::{Debug, Formatter},
+    fmt::{self, Debug, Formatter},
     ops::{Add, AddAssign, Index, Neg, Sub, SubAssign},
     rand::Rng,
+    vec,
     vec::*,
     UniformRand,
 };
 use hashbrown::HashMap;
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
+
+use super::DefaultHasher;
 
 /// Stores a multilinear polynomial in sparse evaluation form.
 #[derive(Clone, PartialEq, Eq, Hash, Default, CanonicalSerialize, CanonicalDeserialize)]
@@ -66,19 +69,14 @@ impl<F: Field> SparseMultilinearExtension<F> {
     ) -> Self {
         assert!(num_nonzero_entries <= (1 << num_vars));
 
-        let mut map = HashMap::new();
+        let mut map =
+            HashMap::with_hasher(core::hash::BuildHasherDefault::<DefaultHasher>::default());
         for _ in 0..num_nonzero_entries {
-            let mut index = usize::rand(rng) & ((1 << num_vars) - 1);
+            let mut index = usize::rand(rng) & ((1usize << num_vars) - 1);
             while map.get(&index).is_some() {
-                index = usize::rand(rng) & ((1 << num_vars) - 1);
+                index = usize::rand(rng) & ((1usize << num_vars) - 1);
             }
             map.entry(index).or_insert(F::rand(rng));
-        }
-        let mut buf = Vec::new();
-        for (arg, v) in map.iter() {
-            if *v != F::zero() {
-                buf.push((*arg, *v));
-            }
         }
         let evaluations = hashmap_to_treemap(&map);
         Self {
@@ -91,7 +89,7 @@ impl<F: Field> SparseMultilinearExtension<F> {
     /// Convert the sparse multilinear polynomial to dense form.
     pub fn to_dense_multilinear_extension(&self) -> DenseMultilinearExtension<F> {
         let mut evaluations: Vec<_> = (0..(1 << self.num_vars)).map(|_| F::zero()).collect();
-        for (&i, &v) in self.evaluations.iter() {
+        for (&i, &v) in &self.evaluations {
             evaluations[i] = v;
         }
         DenseMultilinearExtension::from_evaluations_vec(self.num_vars, evaluations)
@@ -124,7 +122,7 @@ impl<F: Field> MultilinearExtension<F> for SparseMultilinearExtension<F> {
     /// `sqrt(2^num_vars)` and indices of those nonzero entries are distributed
     /// uniformly at random.
     fn rand<R: Rng>(num_vars: usize, rng: &mut R) -> Self {
-        Self::rand_with_config(num_vars, 1 << (num_vars / 2), rng)
+        Self::rand_with_config(num_vars, 1usize << (num_vars / 2), rng)
     }
 
     fn relabel(&self, mut a: usize, mut b: usize, k: usize) -> Self {
@@ -173,8 +171,9 @@ impl<F: Field> MultilinearExtension<F> for SparseMultilinearExtension<F> {
             point = &point[focus_length..];
             let pre = precompute_eq(focus);
             let dim = focus.len();
-            let mut result = HashMap::new();
-            for src_entry in last.iter() {
+            let mut result =
+                HashMap::with_hasher(core::hash::BuildHasherDefault::<DefaultHasher>::default());
+            for src_entry in &last {
                 let old_idx = *src_entry.0;
                 let gz = pre[old_idx & ((1 << dim) - 1)];
                 let new_idx = old_idx >> dim;
@@ -196,7 +195,7 @@ impl<F: Field> MultilinearExtension<F> for SparseMultilinearExtension<F> {
         self.evaluations
             .iter()
             .map(|(&i, &v)| evaluations[i] = v)
-            .last();
+            .next_back();
         evaluations
     }
 }
@@ -235,16 +234,14 @@ impl<F: Field> Polynomial<F> for SparseMultilinearExtension<F> {
 }
 
 impl<F: Field> Add for SparseMultilinearExtension<F> {
-    type Output = SparseMultilinearExtension<F>;
+    type Output = Self;
 
-    fn add(self, other: SparseMultilinearExtension<F>) -> Self {
+    fn add(self, other: Self) -> Self {
         &self + &other
     }
 }
 
-impl<'a, 'b, F: Field> Add<&'a SparseMultilinearExtension<F>>
-    for &'b SparseMultilinearExtension<F>
-{
+impl<'a, F: Field> Add<&'a SparseMultilinearExtension<F>> for &SparseMultilinearExtension<F> {
     type Output = SparseMultilinearExtension<F>;
 
     fn add(self, rhs: &'a SparseMultilinearExtension<F>) -> Self::Output {
@@ -261,7 +258,8 @@ impl<'a, 'b, F: Field> Add<&'a SparseMultilinearExtension<F>>
             "trying to add non-zero polynomial with different number of variables"
         );
         // simply merge the evaluations
-        let mut evaluations = HashMap::new();
+        let mut evaluations =
+            HashMap::with_hasher(core::hash::BuildHasherDefault::<DefaultHasher>::default());
         for (&i, &v) in self.evaluations.iter().chain(rhs.evaluations.iter()) {
             *(evaluations.entry(i).or_insert(F::zero())) += v;
         }
@@ -284,16 +282,14 @@ impl<F: Field> AddAssign for SparseMultilinearExtension<F> {
     }
 }
 
-impl<'a, F: Field> AddAssign<&'a SparseMultilinearExtension<F>> for SparseMultilinearExtension<F> {
-    fn add_assign(&mut self, other: &'a SparseMultilinearExtension<F>) {
+impl<'a, F: Field> AddAssign<&'a Self> for SparseMultilinearExtension<F> {
+    fn add_assign(&mut self, other: &'a Self) {
         *self = &*self + other;
     }
 }
 
-impl<'a, F: Field> AddAssign<(F, &'a SparseMultilinearExtension<F>)>
-    for SparseMultilinearExtension<F>
-{
-    fn add_assign(&mut self, (f, other): (F, &'a SparseMultilinearExtension<F>)) {
+impl<'a, F: Field> AddAssign<(F, &'a Self)> for SparseMultilinearExtension<F> {
+    fn add_assign(&mut self, (f, other): (F, &'a Self)) {
         if !self.is_zero() && !other.is_zero() {
             assert_eq!(
                 other.num_vars, self.num_vars,
@@ -313,7 +309,7 @@ impl<'a, F: Field> AddAssign<(F, &'a SparseMultilinearExtension<F>)>
 }
 
 impl<F: Field> Neg for SparseMultilinearExtension<F> {
-    type Output = SparseMultilinearExtension<F>;
+    type Output = Self;
 
     fn neg(self) -> Self::Output {
         let ev: Vec<_> = cfg_iter!(self.evaluations)
@@ -328,16 +324,14 @@ impl<F: Field> Neg for SparseMultilinearExtension<F> {
 }
 
 impl<F: Field> Sub for SparseMultilinearExtension<F> {
-    type Output = SparseMultilinearExtension<F>;
+    type Output = Self;
 
-    fn sub(self, other: SparseMultilinearExtension<F>) -> Self {
+    fn sub(self, other: Self) -> Self {
         &self - &other
     }
 }
 
-impl<'a, 'b, F: Field> Sub<&'a SparseMultilinearExtension<F>>
-    for &'b SparseMultilinearExtension<F>
-{
+impl<'a, F: Field> Sub<&'a SparseMultilinearExtension<F>> for &SparseMultilinearExtension<F> {
     type Output = SparseMultilinearExtension<F>;
 
     fn sub(self, rhs: &'a SparseMultilinearExtension<F>) -> Self::Output {
@@ -351,8 +345,8 @@ impl<F: Field> SubAssign for SparseMultilinearExtension<F> {
     }
 }
 
-impl<'a, F: Field> SubAssign<&'a SparseMultilinearExtension<F>> for SparseMultilinearExtension<F> {
-    fn sub_assign(&mut self, other: &'a SparseMultilinearExtension<F>) {
+impl<'a, F: Field> SubAssign<&'a Self> for SparseMultilinearExtension<F> {
+    fn sub_assign(&mut self, other: &'a Self) {
         *self = &*self - other;
     }
 }
@@ -392,15 +386,17 @@ impl<F: Field> Debug for SparseMultilinearExtension<F> {
 
 /// Utility: Convert tuples to hashmap.
 fn tuples_to_treemap<F: Field>(tuples: &[(usize, F)]) -> BTreeMap<usize, F> {
-    BTreeMap::from_iter(tuples.iter().map(|(i, v)| (*i, *v)))
+    tuples.iter().map(|(i, v)| (*i, *v)).collect()
 }
 
-fn treemap_to_hashmap<F: Field>(map: &BTreeMap<usize, F>) -> HashMap<usize, F> {
-    HashMap::from_iter(map.iter().map(|(i, v)| (*i, *v)))
+fn treemap_to_hashmap<F: Field>(
+    map: &BTreeMap<usize, F>,
+) -> HashMap<usize, F, core::hash::BuildHasherDefault<DefaultHasher>> {
+    map.iter().map(|(i, v)| (*i, *v)).collect()
 }
 
-fn hashmap_to_treemap<F: Field>(map: &HashMap<usize, F>) -> BTreeMap<usize, F> {
-    BTreeMap::from_iter(map.iter().map(|(i, v)| (*i, *v)))
+fn hashmap_to_treemap<F: Field, S>(map: &HashMap<usize, F, S>) -> BTreeMap<usize, F> {
+    map.iter().map(|(i, v)| (*i, *v)).collect()
 }
 
 #[cfg(test)]
@@ -411,7 +407,7 @@ mod tests {
     };
     use ark_ff::{One, Zero};
     use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
-    use ark_std::{ops::Neg, test_rng, vec::*, UniformRand};
+    use ark_std::{ops::Neg, test_rng, vec, vec::*, UniformRand};
     use ark_test_curves::bls12_381::Fr;
     /// Some sanity test to ensure random sparse polynomial make sense.
     #[test]
@@ -445,8 +441,8 @@ mod tests {
             let dense = sparse.to_dense_multilinear_extension();
             let point: Vec<_> = (0..NV).map(|_| Fr::rand(&mut rng)).collect();
             assert_eq!(sparse.evaluate(&point), dense.evaluate(&point));
-            let sparse_partial = sparse.fix_variables(&point[..3].to_vec());
-            let dense_partial = dense.fix_variables(&point[..3].to_vec());
+            let sparse_partial = sparse.fix_variables(&point[..3]);
+            let dense_partial = dense.fix_variables(&point[..3]);
             let point2: Vec<_> = (0..(NV - 3)).map(|_| Fr::rand(&mut rng)).collect();
             assert_eq!(
                 sparse_partial.evaluate(&point2),
@@ -464,7 +460,7 @@ mod tests {
         assert_eq!(poly1.evaluate(&[].into()), ev1);
 
         // test single-variate polynomial
-        let ev2 = vec![Fr::rand(&mut rng), Fr::rand(&mut rng)];
+        let ev2 = [Fr::rand(&mut rng), Fr::rand(&mut rng)];
         let poly2 =
             SparseMultilinearExtension::from_evaluations(1, &vec![(0, ev2[0]), (1, ev2[1])]);
 
@@ -495,7 +491,7 @@ mod tests {
         points
             .into_iter()
             .map(|(i, v)| assert_eq!(poly[i], v))
-            .last();
+            .next_back();
         assert_eq!(poly[0], Fr::zero());
         assert_eq!(poly[1], Fr::zero());
     }

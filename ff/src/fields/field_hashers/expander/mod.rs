@@ -18,6 +18,7 @@ const LONG_DST_PREFIX: &[u8; 17] = b"H2C-OVERSIZE-DST-";
 /// Implements section [5.3.3](https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-hash-to-curve-16#section-5.3.3)
 /// "Using DSTs longer than 255 bytes" of the
 /// [IRTF CFRG hash-to-curve draft #16](https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-hash-to-curve-16#section-5.3.3).
+#[allow(clippy::upper_case_acronyms)]
 pub struct DST(arrayvec::ArrayVec<u8, MAX_DST_LENGTH>);
 
 impl DST {
@@ -25,7 +26,7 @@ impl DST {
         let array = if dst.len() > MAX_DST_LENGTH {
             let mut long = H::default();
             long.update(&LONG_DST_PREFIX[..]);
-            long.update(&dst);
+            long.update(dst);
             ArrayVec::try_from(long.finalize_fixed().as_ref()).unwrap()
         } else {
             ArrayVec::try_from(dst).unwrap()
@@ -38,7 +39,7 @@ impl DST {
         let array = if dst.len() > MAX_DST_LENGTH {
             let mut long = H::default();
             long.update(&LONG_DST_PREFIX[..]);
-            long.update(&dst);
+            long.update(dst);
 
             let mut new_dst = [0u8; MAX_DST_LENGTH];
             let new_dst = &mut new_dst[0..((2 * k + 7) >> 3)];
@@ -91,7 +92,7 @@ impl<H: FixedOutputReset + Default + Clone> Expander for ExpanderXmd<H> {
         use digest::typenum::Unsigned;
         // output size of the hash function, e.g. 32 bytes = 256 bits for sha2::Sha256
         let b_len = H::OutputSize::to_usize();
-        let ell = (n + (b_len - 1)) / b_len;
+        let ell = n.div_ceil(b_len);
         assert!(
             ell <= 255,
             "The ratio of desired output to the output size of hash function is too large!"

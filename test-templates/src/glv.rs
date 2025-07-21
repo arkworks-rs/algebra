@@ -28,7 +28,7 @@ pub fn glv_scalar_decomposition<P: GLVConfig>() {
         }
 
         // check if k1 and k2 are indeed small.
-        let expected_max_bits = (P::ScalarField::MODULUS_BIT_SIZE + 1) / 2;
+        let expected_max_bits = P::ScalarField::MODULUS_BIT_SIZE.div_ceil(2);
         assert!(
             k1.into_bigint().num_bits() <= expected_max_bits,
             "k1 has {} bits",
@@ -43,7 +43,7 @@ pub fn glv_scalar_decomposition<P: GLVConfig>() {
 }
 
 pub fn glv_endomorphism_eigenvalue<P: GLVConfig>() {
-    let g = Projective::<P>::generator();
+    let g = Projective::generator();
     let endo_g = <P as GLVConfig>::endomorphism(&g);
     assert_eq!(endo_g, g.mul(P::LAMBDA));
 }
@@ -52,12 +52,12 @@ pub fn glv_projective<P: GLVConfig>() {
     // check that glv_mul indeed computes the scalar multiplication
     let mut rng = ark_std::test_rng();
 
-    let g = Projective::<P>::generator();
+    let g = Projective::generator();
     for _i in 0..100 {
         let k = P::ScalarField::rand(&mut rng);
 
         let k_g = <P as GLVConfig>::glv_mul_projective(g, k);
-        let k_g_2 = sw_double_and_add_projective(&g, &k.into_bigint());
+        let k_g_2 = sw_double_and_add_projective(&g, k.into_bigint());
         assert_eq!(k_g, k_g_2);
     }
 }
@@ -66,12 +66,12 @@ pub fn glv_affine<P: GLVConfig>() {
     // check that glv_mul indeed computes the scalar multiplication
     let mut rng = ark_std::test_rng();
 
-    let g = Affine::<P>::generator();
+    let g = Affine::generator();
     for _i in 0..100 {
         let k = P::ScalarField::rand(&mut rng);
 
         let k_g = <P as GLVConfig>::glv_mul_affine(g, k);
-        let k_g_2 = sw_double_and_add_affine(&g, &k.into_bigint()).into_affine();
+        let k_g_2 = sw_double_and_add_affine(&g, k.into_bigint()).into_affine();
         assert_eq!(k_g, k_g_2);
     }
 }

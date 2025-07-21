@@ -3,18 +3,20 @@ use crate::{
     AdditiveGroup, CurveGroup,
 };
 use ark_ff::{PrimeField, Zero};
-use ark_std::ops::{AddAssign, Neg};
+use ark_std::ops::Neg;
 use num_bigint::{BigInt, BigUint, Sign};
 use num_integer::Integer;
 use num_traits::{One, Signed};
 
 /// The GLV parameters for computing the endomorphism and scalar decomposition.
 pub trait GLVConfig: Send + Sync + 'static + SWCurveConfig {
-    /// Constants that are used to calculate `phi(G) := lambda*G`.
-
+    /// Constant used to calculate `phi(G) := lambda*G`.
+    ///
     /// The coefficients of the endomorphism
-    const ENDO_COEFFS: &'static [Self::BaseField];
+    const ENDO_COEFFS: &[Self::BaseField];
 
+    /// Constant used to calculate `phi(G) := lambda*G`.
+    ///
     /// The eigenvalue corresponding to the endomorphism.
     const LAMBDA: Self::ScalarField;
 
@@ -29,11 +31,10 @@ pub trait GLVConfig: Send + Sync + 'static + SWCurveConfig {
     ) -> ((bool, Self::ScalarField), (bool, Self::ScalarField)) {
         let scalar: BigInt = k.into_bigint().into().into();
 
-        let coeff_bigints: [BigInt; 4] = Self::SCALAR_DECOMP_COEFFS.map(|x| {
-            BigInt::from_biguint(x.0.then_some(Sign::Plus).unwrap_or(Sign::Minus), x.1.into())
+        let [n11, n12, n21, n22] = Self::SCALAR_DECOMP_COEFFS.map(|x| {
+            let sign = if x.0 { Sign::Plus } else { Sign::Minus };
+            BigInt::from_biguint(sign, x.1.into())
         });
-
-        let [n11, n12, n21, n22] = coeff_bigints;
 
         let r = BigInt::from(Self::ScalarField::MODULUS.into());
 
@@ -44,14 +45,14 @@ pub trait GLVConfig: Send + Sync + 'static + SWCurveConfig {
         let beta_1 = {
             let (mut div, rem) = (&scalar * &n22).div_rem(&r);
             if (&rem + &rem) > r {
-                div.add_assign(BigInt::one());
+                div += BigInt::one();
             }
             div
         };
         let beta_2 = {
             let (mut div, rem) = (&scalar * &n12.clone().neg()).div_rem(&r);
             if (&rem + &rem) > r {
-                div.add_assign(BigInt::one());
+                div += BigInt::one();
             }
             div
         };
@@ -78,8 +79,8 @@ pub trait GLVConfig: Send + Sync + 'static + SWCurveConfig {
         let k2_abs = BigUint::try_from(k2.abs()).unwrap();
 
         (
-            (k1.sign() == Sign::Plus, Self::ScalarField::from(k1_abs)),
-            (k2.sign() == Sign::Plus, Self::ScalarField::from(k2_abs)),
+            (k1.sign() == Sign::Plus, k1_abs.into()),
+            (k2.sign() == Sign::Plus, k2_abs.into()),
         )
     }
 
@@ -105,7 +106,7 @@ pub trait GLVConfig: Send + Sync + 'static + SWCurveConfig {
         let iter_k1 = ark_ff::BitIteratorBE::new(k1.into_bigint());
         let iter_k2 = ark_ff::BitIteratorBE::new(k2.into_bigint());
 
-        let mut res = Projective::<Self>::zero();
+        let mut res = Projective::zero();
         let mut skip_zeros = true;
         for pair in iter_k1.zip(iter_k2) {
             if skip_zeros && pair == (false, false) {
@@ -141,7 +142,7 @@ pub trait GLVConfig: Send + Sync + 'static + SWCurveConfig {
         let iter_k1 = ark_ff::BitIteratorBE::new(k1.into_bigint());
         let iter_k2 = ark_ff::BitIteratorBE::new(k2.into_bigint());
 
-        let mut res = Projective::<Self>::zero();
+        let mut res = Projective::zero();
         let mut skip_zeros = true;
         for pair in iter_k1.zip(iter_k2) {
             if skip_zeros && pair == (false, false) {

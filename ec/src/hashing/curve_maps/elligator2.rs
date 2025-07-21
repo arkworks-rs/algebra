@@ -138,7 +138,7 @@ impl<P: Elligator2Config> MapToCurve<Projective<P>> for Elligator2Map<P> {
             (v, w)
         };
 
-        let point_on_curve = Affine::<P>::new_unchecked(v, w);
+        let point_on_curve = Affine::new_unchecked(v, w);
         debug_assert!(
             point_on_curve.is_on_curve(),
             "Elligator2 mapped to a point off the curve"
@@ -149,6 +149,24 @@ impl<P: Elligator2Config> MapToCurve<Projective<P>> for Elligator2Map<P> {
 
 #[cfg(test)]
 mod test {
+    #[cfg(all(
+        target_has_atomic = "8",
+        target_has_atomic = "16",
+        target_has_atomic = "32",
+        target_has_atomic = "64",
+        target_has_atomic = "ptr"
+    ))]
+    type DefaultHasher = ahash::AHasher;
+
+    #[cfg(not(all(
+        target_has_atomic = "8",
+        target_has_atomic = "16",
+        target_has_atomic = "32",
+        target_has_atomic = "64",
+        target_has_atomic = "ptr"
+    )))]
+    type DefaultHasher = fnv::FnvHasher;
+
     use crate::{
         hashing::{map_to_curve_hasher::MapToCurveBasedHasher, HashToCurve},
         CurveConfig,
@@ -164,21 +182,20 @@ mod test {
     #[derive(ark_ff::MontConfig)]
     #[modulus = "101"]
     #[generator = "2"]
-    pub struct F101Config;
-    pub type F101 = Fp64<MontBackend<F101Config, 1>>;
+    pub(crate) struct F101Config;
+    pub(crate) type F101 = Fp64<MontBackend<F101Config, 1>>;
 
     #[derive(ark_ff::MontConfig)]
     #[modulus = "11"]
     #[generator = "2"]
-    pub struct F11Config;
-    pub type F11 = Fp64<MontBackend<F11Config, 1>>;
+    pub(crate) struct F11Config;
+    pub(crate) type F11 = Fp64<MontBackend<F11Config, 1>>;
 
     struct TestElligator2MapToCurveConfig;
 
     impl CurveConfig for TestElligator2MapToCurveConfig {
-        const COFACTOR: &'static [u64] = &[8];
+        const COFACTOR: &[u64] = &[8];
 
-	#[rustfmt::skip]
         const COFACTOR_INV: F11 = MontFp!("7");
 
         type BaseField = F101;
@@ -207,10 +224,9 @@ mod test {
         /// COEFF_D = 12
         const COEFF_D: F101 = MontFp!("12");
 
-        const GENERATOR: Affine<TestElligator2MapToCurveConfig> =
-            Affine::<TestElligator2MapToCurveConfig>::new_unchecked(MontFp!("23"), MontFp!("24"));
+        const GENERATOR: Affine<Self> = Affine::new_unchecked(MontFp!("23"), MontFp!("24"));
 
-        type MontCurveConfig = TestElligator2MapToCurveConfig;
+        type MontCurveConfig = Self;
     }
 
     impl MontCurveConfig for TestElligator2MapToCurveConfig {
@@ -220,7 +236,7 @@ mod test {
         /// COEFF_B = 23
         const COEFF_B: F101 = MontFp!("23");
 
-        type TECurveConfig = TestElligator2MapToCurveConfig;
+        type TECurveConfig = Self;
     }
 
     /// sage: find_z_ell2(F101)
@@ -263,19 +279,17 @@ mod test {
     fn map_field_to_curve_elligator2() {
         Elligator2Map::<TestElligator2MapToCurveConfig>::check_parameters().unwrap();
 
-        let mut map_range: Vec<Affine<TestElligator2MapToCurveConfig>> = vec![];
+        let mut map_range: Vec<Affine<TestElligator2MapToCurveConfig>> = Vec::new();
         // We are mapping all elements of the field to the curve, verifying that
         // map is not constant on that set.
         for current_field_element in 0..101 {
             map_range.push(
-                Elligator2Map::<TestElligator2MapToCurveConfig>::map_to_curve(F101::from(
-                    current_field_element as u64,
-                ))
-                .unwrap(),
+                Elligator2Map::map_to_curve(F101::from(current_field_element as u64)).unwrap(),
             );
         }
 
-        let mut counts = HashMap::new();
+        let mut counts =
+            HashMap::with_hasher(core::hash::BuildHasherDefault::<DefaultHasher>::default());
 
         let mode = map_range
             .iter()

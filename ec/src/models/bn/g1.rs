@@ -5,23 +5,18 @@ use crate::{
 };
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use ark_std::vec::*;
-use derivative::Derivative;
+use educe::Educe;
 
 pub type G1Affine<P> = Affine<<P as BnConfig>::G1Config>;
 pub type G1Projective<P> = Projective<<P as BnConfig>::G1Config>;
 
-#[derive(Derivative, CanonicalSerialize, CanonicalDeserialize)]
-#[derivative(
-    Clone(bound = "P: BnConfig"),
-    Debug(bound = "P: BnConfig"),
-    PartialEq(bound = "P: BnConfig"),
-    Eq(bound = "P: BnConfig")
-)]
+#[derive(Educe, CanonicalSerialize, CanonicalDeserialize)]
+#[educe(Clone, Debug, PartialEq, Eq)]
 pub struct G1Prepared<P: BnConfig>(pub G1Affine<P>);
 
 impl<P: BnConfig> From<G1Affine<P>> for G1Prepared<P> {
     fn from(other: G1Affine<P>) -> Self {
-        G1Prepared(other)
+        Self(other)
     }
 }
 
@@ -33,7 +28,7 @@ impl<P: BnConfig> From<G1Projective<P>> for G1Prepared<P> {
 
 impl<'a, P: BnConfig> From<&'a G1Affine<P>> for G1Prepared<P> {
     fn from(other: &'a G1Affine<P>) -> Self {
-        G1Prepared(*other)
+        Self(*other)
     }
 }
 
@@ -45,12 +40,12 @@ impl<'a, P: BnConfig> From<&'a G1Projective<P>> for G1Prepared<P> {
 
 impl<P: BnConfig> G1Prepared<P> {
     pub fn is_zero(&self) -> bool {
-        self.0.infinity
+        self.0.is_zero()
     }
 }
 
 impl<P: BnConfig> Default for G1Prepared<P> {
     fn default() -> Self {
-        G1Prepared(G1Affine::<P>::generator())
+        Self(G1Affine::<P>::generator())
     }
 }

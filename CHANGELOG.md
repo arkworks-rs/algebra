@@ -2,9 +2,30 @@
 
 ## Pending
 
+- (`ark-starkcurve`) Add 252 bit [Stark curve](https://docs.starknet.io/architecture/cryptography/#the_stark_curve).
+- [\#971](https://github.com/arkworks-rs/algebra/pull/971) (`ark-ff`) Make serial_batch_inversion_and_mul public.
+- Consolidated logic into `bitreverse_permutation_in_place` and made it public.
+- Remove redundant type constraints from `Pairing::G1Prepared`.
+- (`ark-serialize`) Add serde-compatible wrapper types `CompressedChecked<T>`, `CompressedUnchecked<T>`, `UncompressedChecked<T>`, `UncompressedUnchecked<T>`.
+- [\#989](https://github.com/arkworks-rs/algebra/pull/989) (`ark-poly`) Replace bound `F: FftField` with `F: Field` on `GeneralEvaluationDomain`.
+- [\#804](https://github.com/arkworks-rs/algebra/pull/XXX) (`ark-curves`) Implement TE <-> SW map for  Bandersnatch.
+
+### Breaking changes
+
+### Features
+
+- (`ark-serialize`) Implementation of `CanonicalSerialize` and `CanonicalDeserialize` for signed integer types
+
+### Improvements
+
+### Bugfixes
+
+## v0.5.0
+
 - [\#772](https://github.com/arkworks-rs/algebra/pull/772) (`ark-ff`) Implementation of `mul` method for `BigInteger`.
 - [\#794](https://github.com/arkworks-rs/algebra/pull/794) (`ark-ff`) Fix `wasm` compilation.
-- [\#XXX](https://github.com/arkworks-rs/algebra/pull/XXX) (`ark-curves`) Implement TE <-> SW map for  Bandersnatch.
+- [\#837](https://github.com/arkworks-rs/algebra/pull/837) (`ark-serialize`) Fix array deserialization panic.
+- [\#845](https://github.com/arkworks-rs/algebra/pull/845) (`Algebra`) Implementation of `mul` method for `DenseMultilinearExtension<F> * F`.
 
 ### Breaking changes
 
@@ -32,13 +53,14 @@
 - [\#691](https://github.com/arkworks-rs/algebra/pull/691) (`ark-poly`) Implement `Polynomial` for `SparseMultilinearExtension` and `DenseMultilinearExtension`.
 - [\#693](https://github.com/arkworks-rs/algebra/pull/693) (`ark-serialize`) Add `serialize_to_vec!` convenience macro.
 - [\#713](https://github.com/arkworks-rs/algebra/pull/713) (`ark-ff`) Add support for bitwise operations AND, OR, and XOR between `BigInteger`.
+- [\#763](https://github.com/arkworks-rs/algebra/pull/763) (`ark-poly`) Add `concat` to concatenate evaluation tables of `DenseMultilinearPolynomial`s.
 - [\#811](https://github.com/arkworks-rs/algebra/pull/811) (`ark-serialize`) Implement `Valid` & `CanonicalDeserialize` for `Rc`.
 
 ### Improvements
 
 - [\#736](https://github.com/arkworks-rs/algebra/pull/736) (`ark-ff`) Deprecate `divn()`, and use `core::ops::{Shr, ShrAssign}` instead.
 - [\#739](https://github.com/arkworks-rs/algebra/pull/739) (`ark-ff`) Deprecate `muln()`, and use `core::ops::{Shl, ShlAssign}` instead.
-- [\#771](https://github.com/arkworks-rs/algebra/pull/771) (`ark-ec`) Omit expensive  scalar multiplication in `is_in_correct_subgroup_assuming_on_curve()` for short Weierstrass curves of cofactor one.  
+- [\#771](https://github.com/arkworks-rs/algebra/pull/771) (`ark-ec`) Omit expensive  scalar multiplication in `is_in_correct_subgroup_assuming_on_curve()` for short Weierstrass curves of cofactor one.
 - [\#817](https://github.com/arkworks-rs/algebra/pull/817) (`ark-ec`) Relax the visibility for G2 ell coeffs and related algorithms.
 
 ### Bugfixes

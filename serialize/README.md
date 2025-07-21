@@ -126,3 +126,64 @@ impl Valid for MyStruct {
     }
 }
 ```
+
+### `serde`-compatibility
+
+Four wrapper types (`CompressedChecked<T>`, `UncompressedChecked<T>`, `CompressedUnchecked<T>`, `UncompressedUnchecked<T>`) exist with two features: first, a type-level configuration of the de/serialization modes, and support for the [`serde`](https://serde.rs) framework. The easiest way to use these is with the `from` and `into` annotations on a container type already implementing `Canonical*`:
+
+```rust,ignore
+use ark_serialize::{CanonicalSerialize, CanonicalDeserialize, CompressedChecked};
+use ark_test_curves::bls12_381::{G1Affine, G2Affine, Fr};
+use serde::{Serialize, Deserialize};
+
+#[derive(Clone, Debug, PartialEq, Eq, CanonicalSerialize, CanonicalDeserialize)]
+pub struct Proof(pub G1Affine);
+
+#[derive(Clone, Debug, PartialEq, Eq, CanonicalSerialize, CanonicalDeserialize)]
+#[derive(Serialize, Deserialize)]
+#[serde(from = "CompressedChecked<Self>", into = "CompressedChecked<Self>")]
+pub struct Signature {
+    /// Aggregated BLS signature σ' = H(m)^aSK.
+    pub agg_sig_prime: G2Affine,
+    /// The threshold for the signature.
+    pub threshold: Fr,
+    /// The SNARK proof π.
+    pub proof: Proof,
+}
+
+impl From<CompressedChecked<Signature>> for Signature {
+    fn from(sig: CompressedChecked<Signature>) -> Self {
+        sig.0
+    }
+}
+```
+
+This type can now be used with either serialization framework.
+
+When the container type isn't suitable for `#[serde(from/into)]`, `serde_with` conversions can be used instead of pushing the wrapper types into the field values. This prevents the conversion structures from polluting the real datastructure (eg having to add dummy constructors and strip them out of collections), minimizing the impact of adding serde support.
+
+If `serde_with` is not desired, the less powerful `vec_*` mods provide support just for the common case of sequences. Without this converter, a `CompressedChecked<Vec<T>>` gets serialized as a single blob, as opposed to one blob per element, which is probably more intuitive. The alternative, trying to store `Vec<CompressedCheck<T>>`, causes invasive API pollution.
+
+```rust,ignore
+use ark_serialize::CompressedChecked;
+use serde::Serialize;
+use ark_test_curves::bls12_381::{G1Affine, G2Affine, Fr};
+
+#[serde_with::serde_as]
+#[derive(Clone, Debug, Serialize)]
+pub struct GlobalData {
+    #[serde_as(as = "CompressedChecked<UniversalParams<Curve>>")]
+    pub params: UniversalParams<Curve>,
+    pub degree_max: usize,
+    /// Used for domain separation in lockstitch
+    pub domain: String,
+    #[serde_as(as = "Vec<CompressedChecked<DensePolynomial<F>>>")]
+    pub(crate) lagrange_polynomials: Vec<DensePolynomial<F>>,
+    #[serde(with = "ark_serialize::vec_compressed_checked")]
+    pub(crate) lagrange_coms_g1: Vec<G1Affine>,
+    #[serde(with = "ark_serialize::vec_compressed_checked")]
+    pub(crate) lagrange_coms_g2: Vec<G2Affine>,
+    #[serde(skip)]
+    pub(crate) lockstitch: lockstitch::Protocol,
+}
+```

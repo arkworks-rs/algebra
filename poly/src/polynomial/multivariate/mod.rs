@@ -2,6 +2,7 @@
 use ark_ff::Field;
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use ark_std::{
+    cfg_into_iter,
     cmp::Ordering,
     fmt::{Debug, Error, Formatter},
     hash::Hash,
@@ -104,7 +105,7 @@ impl Term for SparseTerm {
 
     /// Returns whether `self` is a constant
     fn is_constant(&self) -> bool {
-        self.len() == 0 || self.degree() == 0
+        self.is_empty() || self.degree() == 0
     }
 
     /// Evaluates `self` at the given `point` in the field.
@@ -140,22 +141,25 @@ impl PartialOrd for SparseTerm {
     /// Sort by total degree. If total degree is equal then ordering
     /// is given by exponent weight in lower-numbered variables
     /// ie. `x_1 > x_2`, `x_1^2 > x_1 * x_2`, etc.
+    #[allow(clippy::non_canonical_partial_ord_impl)]
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        if self.degree() != other.degree() {
-            Some(self.degree().cmp(&other.degree()))
-        } else {
+        if self.degree() == other.degree() {
             // Iterate through all variables and return the corresponding ordering
             // if they differ in variable numbering or power
-            for (cur, other) in self.iter().zip(other.iter()) {
-                if other.0 == cur.0 {
-                    if cur.1 != other.1 {
-                        return Some((cur.1).cmp(&other.1));
+            for ((cur_variable, cur_power), (other_variable, other_power)) in
+                self.iter().zip(other.iter())
+            {
+                if other_variable == cur_variable {
+                    if cur_power != other_power {
+                        return Some(cur_power.cmp(other_power));
                     }
                 } else {
-                    return Some((other.0).cmp(&cur.0));
+                    return Some(other_variable.cmp(cur_variable));
                 }
             }
             Some(Ordering::Equal)
+        } else {
+            Some(self.degree().cmp(&other.degree()))
         }
     }
 }
@@ -163,5 +167,126 @@ impl PartialOrd for SparseTerm {
 impl Ord for SparseTerm {
     fn cmp(&self, other: &Self) -> Ordering {
         self.partial_cmp(other).unwrap()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use ark_ff::{Fp64, MontBackend, MontConfig};
+    use ark_std::vec;
+
+    #[derive(MontConfig)]
+    #[modulus = "5"]
+    #[generator = "2"]
+    pub(crate) struct F5Config;
+
+    pub(crate) type F5 = Fp64<MontBackend<F5Config, 1>>;
+
+    #[test]
+    fn test_sparse_term_combine() {
+        let term = vec![(1, 2), (1, 3), (2, 1)];
+        let combined = SparseTerm::combine(&term);
+        assert_eq!(combined, vec![(1, 5), (2, 1)]);
+    }
+
+    #[test]
+    fn test_sparse_term_new() {
+        let term = vec![(2, 1), (1, 2), (1, 3), (3, 0)];
+        let sparse_term = SparseTerm::new(term);
+        // We expect the terms:
+        // - To be sorted by variable
+        // - To have combined the powers of the same variable
+        // - To have removed any terms with power 0
+        assert_eq!(sparse_term, SparseTerm(vec![(1, 5), (2, 1)]));
+    }
+
+    #[test]
+    fn test_sparse_term_degree() {
+        let term = SparseTerm::new(vec![(1, 2), (2, 3)]);
+        assert_eq!(term.degree(), 5); // 2 + 3 = 5
+    }
+
+    #[test]
+    fn test_sparse_term_vars() {
+        let term = SparseTerm::new(vec![(1, 1), (1, 2), (2, 3)]);
+        assert_eq!(term.vars(), vec![1, 2]);
+    }
+
+    #[test]
+    fn test_sparse_term_powers() {
+        let term = SparseTerm::new(vec![(1, 2), (1, 3), (2, 3)]);
+        assert_eq!(term.powers(), vec![5, 3]);
+    }
+
+    #[test]
+    fn test_sparse_term_is_constant() {
+        let constant_term = SparseTerm::new(vec![]);
+        assert!(constant_term.is_constant());
+
+        let non_constant_term = SparseTerm::new(vec![(1, 2)]);
+        assert!(!non_constant_term.is_constant());
+    }
+
+    #[test]
+    fn test_evaluate() {
+        let term = SparseTerm::new(vec![(0, 2), (1, 3)]);
+        let point = vec![F5::from(1u64), F5::from(2u64)];
+        let result = term.evaluate::<F5>(&point);
+        assert_eq!(result, F5::from(8u64)); // (1^2 * 2^3) = 8 in F5
+    }
+
+    #[test]
+    fn test_partial_cmp() {
+        let term1 = SparseTerm::new(vec![(1, 2), (2, 3)]);
+        let term2 = SparseTerm::new(vec![(1, 2), (2, 2)]);
+        let term3 = SparseTerm::new(vec![(2, 3), (1, 2)]);
+        let term4 = SparseTerm::new(vec![(1, 2)]);
+        let term5 = SparseTerm::new(vec![(2, 2)]);
+        // Constant term (all exponents are zero)
+        let term6 = SparseTerm::new(vec![(1, 0), (2, 0)]);
+        // Empty term, should also be constant
+        let term7 = SparseTerm::new(vec![]);
+
+        // Comparing terms with different degrees
+        assert_eq!(term1.partial_cmp(&term2), Some(Ordering::Greater)); // term1 > term2
+        assert_eq!(term1.partial_cmp(&term3), Some(Ordering::Equal)); // term1 == term3
+        assert_eq!(term2.partial_cmp(&term3), Some(Ordering::Less)); // term2 < term3
+
+        // Comparing terms with equal degree but different exponents
+        assert_eq!(term1.partial_cmp(&term4), Some(Ordering::Greater)); // term1 > term4
+        assert_eq!(term4.partial_cmp(&term5), Some(Ordering::Greater)); // term4 > term5 (x_1 > x_2)
+        assert_eq!(term4.partial_cmp(&term6), Some(Ordering::Greater)); // term4 > term6 (degree 2 vs. degree 0)
+
+        // Comparing constant terms
+        assert_eq!(term6.partial_cmp(&term7), Some(Ordering::Equal)); // term6 == term7 (both constants)
+        assert_eq!(term7.partial_cmp(&term1), Some(Ordering::Less)); // term7 < term1 (constant < non-constant)
+    }
+
+    #[test]
+    fn test_cmp() {
+        let term1 = SparseTerm::new(vec![(1, 2), (2, 3)]);
+        let term2 = SparseTerm::new(vec![(1, 2), (2, 2)]);
+        let term3 = SparseTerm::new(vec![(2, 3), (1, 2)]);
+        let term4 = SparseTerm::new(vec![(1, 2)]);
+        let term5 = SparseTerm::new(vec![(2, 2)]);
+        // Constant term (all exponents are zero)
+        let term6 = SparseTerm::new(vec![(1, 0), (2, 0)]);
+        // Empty term, should also be constant
+        let term7 = SparseTerm::new(vec![]);
+
+        // Comparing terms with different degrees
+        assert_eq!(term1.cmp(&term2), Ordering::Greater); // term1 > term2
+        assert_eq!(term1.cmp(&term3), Ordering::Equal); // term1 == term3
+        assert_eq!(term2.cmp(&term3), Ordering::Less); // term2 < term3
+
+        // Comparing terms with equal degree but different exponents
+        assert_eq!(term1.cmp(&term4), Ordering::Greater); // term1 > term4
+        assert_eq!(term4.cmp(&term5), Ordering::Greater); // term4 > term5 (x_1 > x_2)
+        assert_eq!(term4.cmp(&term6), Ordering::Greater); // term4 > term6 (degree 2 vs. degree 0)
+
+        // Comparing constant terms
+        assert_eq!(term6.cmp(&term7), Ordering::Equal); // term6 == term7 (both constants)
+        assert_eq!(term7.cmp(&term1), Ordering::Less); // term7 < term1 (constant < non-constant)
     }
 }

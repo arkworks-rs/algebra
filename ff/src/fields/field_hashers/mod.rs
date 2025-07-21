@@ -24,6 +24,7 @@ pub trait HashToField<F: Field>: Sized {
 
 /// This field hasher constructs a Hash-To-Field based on a fixed-output hash function,
 /// like SHA2, SHA3 or Blake2.
+///
 /// The implementation aims to follow the specification in [Hashing to Elliptic Curves (draft)](https://tools.ietf.org/pdf/draft-irtf-cfrg-hash-to-curve-13.pdf).
 ///
 /// # Examples
@@ -80,7 +81,7 @@ impl<F: Field, H: FixedOutputReset + Default + Clone, const SEC_PARAM: usize> Ha
             };
             F::from_base_prime_field_elems((0..m).map(base_prime_field_elem)).unwrap()
         };
-        ark_std::array::from_fn::<F, N, _>(cb)
+        ark_std::array::from_fn(cb)
     }
 }
 
@@ -112,6 +113,6 @@ const fn get_len_per_elem<F: Field, const SEC_PARAM: usize>() -> usize {
     let base_field_size_with_security_padding_in_bits = base_field_size_in_bits + SEC_PARAM;
     // ceil( (ceil(log(p)) + security_parameter) / 8)
     let bytes_per_base_field_elem =
-        ((base_field_size_with_security_padding_in_bits + 7) / 8) as u64;
+        base_field_size_with_security_padding_in_bits.div_ceil(8) as u64;
     bytes_per_base_field_elem as usize
 }

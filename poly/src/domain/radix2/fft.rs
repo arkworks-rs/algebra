@@ -7,7 +7,7 @@ use crate::domain::{
     DomainCoeff,
 };
 use ark_ff::FftField;
-use ark_std::{cfg_chunks_mut, vec::*};
+use ark_std::{cfg_chunks_mut, cfg_into_iter, cfg_iter, cfg_iter_mut, vec, vec::*};
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
 
@@ -88,17 +88,15 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
     }
 
     fn fft_helper_in_place<T: DomainCoeff<F>>(&self, x_s: &mut [T], ord: FFTOrder) {
-        use FFTOrder::*;
-
         let log_len = ark_std::log2(x_s.len());
 
-        if ord == OI {
+        if ord == FFTOrder::OI {
             self.oi_helper(x_s, self.group_gen, 1);
         } else {
             self.io_helper(x_s, self.group_gen);
         }
 
-        if ord == II {
+        if ord == FFTOrder::II {
             derange(x_s, log_len);
         }
     }
@@ -107,15 +105,13 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
     // The results here must all be divided by |x_s|,
     // which is left up to the caller to do.
     fn ifft_helper_in_place<T: DomainCoeff<F>>(&self, x_s: &mut [T], ord: FFTOrder) {
-        use FFTOrder::*;
-
         let log_len = ark_std::log2(x_s.len());
 
-        if ord == II {
+        if ord == FFTOrder::II {
             derange(x_s, log_len);
         }
 
-        if ord == IO {
+        if ord == FFTOrder::IO {
             self.io_helper(x_s, self.group_gen_inv);
         } else {
             self.oi_helper(x_s, self.group_gen_inv, 1);
@@ -171,7 +167,7 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
 
         // recursive case:
         // 1. split log_powers in half
-        let (lr_lo, lr_hi) = log_powers.split_at((1 + log_powers.len()) / 2);
+        let (lr_lo, lr_hi) = log_powers.split_at(log_powers.len().div_ceil(2));
         let mut scr_lo = vec![F::default(); 1 << lr_lo.len()];
         let mut scr_hi = vec![F::default(); 1 << lr_hi.len()];
         // 2. compute each half individually
@@ -224,23 +220,33 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
         max_threads: usize,
         gap: usize,
     ) {
-        cfg_chunks_mut!(xi, chunk_size).for_each(|cxi| {
-            let (lo, hi) = cxi.split_at_mut(gap);
-            // If the chunk is sufficiently big that parallelism helps,
-            // we parallelize the butterfly operation within the chunk.
-
-            if gap > MIN_GAP_SIZE_FOR_PARALLELISATION && num_chunks < max_threads {
-                cfg_iter_mut!(lo)
-                    .zip(hi)
-                    .zip(cfg_iter!(roots).step_by(step))
-                    .for_each(g);
-            } else {
+        if xi.len() <= MIN_INPUT_SIZE_FOR_PARALLELIZATION {
+            xi.chunks_mut(chunk_size).for_each(|cxi| {
+                let (lo, hi) = cxi.split_at_mut(gap);
                 lo.iter_mut()
                     .zip(hi)
                     .zip(roots.iter().step_by(step))
                     .for_each(g);
-            }
-        });
+            });
+        } else {
+            cfg_chunks_mut!(xi, chunk_size).for_each(|cxi| {
+                let (lo, hi) = cxi.split_at_mut(gap);
+                // If the chunk is sufficiently big that parallelism helps,
+                // we parallelize the butterfly operation within the chunk.
+
+                if gap > MIN_GAP_SIZE_FOR_PARALLELIZATION && num_chunks < max_threads {
+                    cfg_iter_mut!(lo)
+                        .zip(hi)
+                        .zip(cfg_iter!(roots).step_by(step))
+                        .for_each(g);
+                } else {
+                    lo.iter_mut()
+                        .zip(hi)
+                        .zip(roots.iter().step_by(step))
+                        .for_each(g);
+                }
+            });
+        }
     }
 
     fn io_helper<T: DomainCoeff<F>>(&self, xi: &mut [T], root: F) {
@@ -349,14 +355,18 @@ const MIN_NUM_CHUNKS_FOR_COMPACTION: usize = 1 << 7;
 
 /// The minimum size of a chunk at which parallelization of `butterfly`s is
 /// beneficial. This value was chosen empirically.
-const MIN_GAP_SIZE_FOR_PARALLELISATION: usize = 1 << 10;
+const MIN_GAP_SIZE_FOR_PARALLELIZATION: usize = 1 << 10;
+
+/// The minimum size of a chunk at which parallelization of `butterfly`s is
+/// beneficial. This value was chosen empirically.
+const MIN_INPUT_SIZE_FOR_PARALLELIZATION: usize = 1 << 10;
 
 // minimum size at which to parallelize.
 #[cfg(feature = "parallel")]
 const LOG_ROOTS_OF_UNITY_PARALLEL_SIZE: u32 = 7;
 
 #[inline]
-fn bitrev(a: u64, log_len: u32) -> u64 {
+const fn bitrev(a: u64, log_len: u32) -> u64 {
     a.reverse_bits().wrapping_shr(64 - log_len)
 }
 

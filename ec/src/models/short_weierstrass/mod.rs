@@ -2,7 +2,10 @@ use ark_serialize::{
     CanonicalDeserialize, CanonicalDeserializeWithFlags, CanonicalSerialize,
     CanonicalSerializeWithFlags, Compress, SerializationError, Valid, Validate,
 };
-use ark_std::io::{Read, Write};
+use ark_std::{
+    hash::Hash,
+    io::{Read, Write},
+};
 
 use ark_ff::{fields::Field, AdditiveGroup};
 
@@ -20,12 +23,16 @@ pub use affine::*;
 mod group;
 pub use group::*;
 
+mod bucket;
+pub use bucket::Bucket;
+
 mod serialization_flags;
 pub use serialization_flags::*;
 
 /// Constants and convenience functions that collectively define the [Short Weierstrass model](https://www.hyperelliptic.org/EFD/g1p/auto-shortw.html)
-/// of the curve. In this model, the curve equation is `y² = x³ + a * x + b`,
-/// for constants `a` and `b`.
+/// of the curve.
+///
+/// In this model, the curve equation is `y² = x³ + a * x + b`, for constants `a` and `b`.
 pub trait SWCurveConfig: super::CurveConfig {
     /// Coefficient `a` of the curve equation.
     const COEFF_A: Self::BaseField;
@@ -33,6 +40,9 @@ pub trait SWCurveConfig: super::CurveConfig {
     const COEFF_B: Self::BaseField;
     /// Generator of the prime-order subgroup.
     const GENERATOR: Affine<Self>;
+
+    /// A type that is stored in `Affine<Self>` to indicate whether the point is at infinity.
+    type ZeroFlag: ZeroFlag<Self>;
 
     /// Helper method for computing `elem * Self::COEFF_A`.
     ///
@@ -105,7 +115,7 @@ pub trait SWCurveConfig: super::CurveConfig {
     ) -> Result<Projective<Self>, usize> {
         (bases.len() == scalars.len())
             .then(|| VariableBaseMSM::msm_unchecked(bases, scalars))
-            .ok_or(bases.len().min(scalars.len()))
+            .ok_or_else(|| bases.len().min(scalars.len()))
     }
 
     /// If uncompressed, serializes both x and y coordinates as well as a bit for whether it is
@@ -117,7 +127,7 @@ pub trait SWCurveConfig: super::CurveConfig {
         mut writer: W,
         compress: ark_serialize::Compress,
     ) -> Result<(), SerializationError> {
-        let (x, y, flags) = match item.infinity {
+        let (x, y, flags) = match item.is_zero() {
             true => (
                 Self::BaseField::zero(),
                 Self::BaseField::zero(),
@@ -172,10 +182,10 @@ pub trait SWCurveConfig: super::CurveConfig {
             },
         };
         if flags.is_infinity() {
-            Ok(Affine::<Self>::identity())
+            Ok(Affine::identity())
         } else {
-            let point = Affine::<Self>::new_unchecked(x, y);
-            if let Validate::Yes = validate {
+            let point = Affine::new_unchecked(x, y);
+            if validate == Validate::Yes {
                 point.check()?;
             }
             Ok(point)
@@ -189,5 +199,32 @@ pub trait SWCurveConfig: super::CurveConfig {
             Compress::Yes => zero.serialized_size_with_flags::<SWFlags>(),
             Compress::No => zero.compressed_size() + zero.serialized_size_with_flags::<SWFlags>(),
         }
+    }
+}
+
+pub trait ZeroFlag<C: SWCurveConfig>:
+    Hash + Ord + Eq + Copy + Sync + Send + Sized + 'static
+{
+    const IS_ZERO: Self;
+    const IS_NOT_ZERO: Self;
+    fn is_zero(point: &Affine<C>) -> bool;
+    fn zeroize(&mut self) {
+        *self = Self::IS_NOT_ZERO;
+    }
+}
+
+impl<C: SWCurveConfig<ZeroFlag = bool>> ZeroFlag<C> for bool {
+    const IS_ZERO: Self = true;
+    const IS_NOT_ZERO: Self = false;
+    fn is_zero(point: &Affine<C>) -> bool {
+        point.infinity
+    }
+}
+
+impl<C: SWCurveConfig> ZeroFlag<C> for () {
+    const IS_ZERO: Self = ();
+    const IS_NOT_ZERO: Self = ();
+    fn is_zero(point: &Affine<C>) -> bool {
+        point.x.is_zero() & point.y.is_zero()
     }
 }

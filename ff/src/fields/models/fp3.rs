@@ -1,5 +1,5 @@
 use super::cubic_extension::{CubicExtConfig, CubicExtField};
-use crate::fields::{CyclotomicMultSubgroup, MulAssign, PrimeField, SqrtPrecomputation};
+use crate::fields::{CyclotomicMultSubgroup, PrimeField, SqrtPrecomputation};
 use core::marker::PhantomData;
 
 /// Trait that specifies constants and methods for defining degree-three extension fields.
@@ -11,12 +11,12 @@ pub trait Fp3Config: 'static + Send + Sync + Sized {
     /// `f(X) = X^3 - Self::NONRESIDUE` in Fp\[X\] is irreducible in `Self::Fp`.
     const NONRESIDUE: Self::Fp;
 
-    const FROBENIUS_COEFF_FP3_C1: &'static [Self::Fp];
-    const FROBENIUS_COEFF_FP3_C2: &'static [Self::Fp];
+    const FROBENIUS_COEFF_FP3_C1: &[Self::Fp];
+    const FROBENIUS_COEFF_FP3_C2: &[Self::Fp];
 
     /// p^3 - 1 = 2^s * t, where t is odd.
     const TWO_ADICITY: u32;
-    const TRACE_MINUS_ONE_DIV_TWO: &'static [u64];
+    const TRACE_MINUS_ONE_DIV_TWO: &[u64];
     /// t-th power of a quadratic nonresidue in Fp3.
     const QUADRATIC_NONRESIDUE_TO_T: Fp3<Self>;
 
@@ -39,7 +39,6 @@ impl<P: Fp3Config> CubicExtConfig for Fp3ConfigWrapper<P> {
     type FrobCoeff = P::Fp;
 
     const DEGREE_OVER_BASE_PRIME_FIELD: usize = 3;
-
     const NONRESIDUE: Self::BaseField = P::NONRESIDUE;
 
     const SQRT_PRECOMP: Option<SqrtPrecomputation<CubicExtField<Self>>> =
@@ -49,8 +48,8 @@ impl<P: Fp3Config> CubicExtConfig for Fp3ConfigWrapper<P> {
             trace_of_modulus_minus_one_div_two: P::TRACE_MINUS_ONE_DIV_TWO,
         });
 
-    const FROBENIUS_COEFF_C1: &'static [Self::FrobCoeff] = P::FROBENIUS_COEFF_FP3_C1;
-    const FROBENIUS_COEFF_C2: &'static [Self::FrobCoeff] = P::FROBENIUS_COEFF_FP3_C2;
+    const FROBENIUS_COEFF_C1: &[Self::FrobCoeff] = P::FROBENIUS_COEFF_FP3_C1;
+    const FROBENIUS_COEFF_C2: &[Self::FrobCoeff] = P::FROBENIUS_COEFF_FP3_C2;
 
     #[inline(always)]
     fn mul_base_field_by_nonresidue_in_place(fe: &mut Self::BaseField) -> &mut Self::BaseField {
@@ -93,9 +92,9 @@ impl<P: Fp3Config> Fp3<P> {
     /// assert_eq!(ext_element.c2, c2 * base_field_element);
     /// ```
     pub fn mul_assign_by_fp(&mut self, value: &P::Fp) {
-        self.c0.mul_assign(value);
-        self.c1.mul_assign(value);
-        self.c2.mul_assign(value);
+        self.c0 *= value;
+        self.c1 *= value;
+        self.c2 *= value;
     }
 }
 

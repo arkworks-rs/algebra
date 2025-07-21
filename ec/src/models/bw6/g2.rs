@@ -1,7 +1,7 @@
 use ark_ff::{AdditiveGroup, BitIteratorBE, Field};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use ark_std::vec::*;
-use derivative::Derivative;
+use educe::Educe;
 use num_traits::One;
 
 use crate::{
@@ -14,13 +14,8 @@ use crate::{
 pub type G2Affine<P> = Affine<<P as BW6Config>::G2Config>;
 pub type G2Projective<P> = Projective<<P as BW6Config>::G2Config>;
 
-#[derive(Derivative, CanonicalSerialize, CanonicalDeserialize)]
-#[derivative(
-    Clone(bound = "P: BW6Config"),
-    Debug(bound = "P: BW6Config"),
-    PartialEq(bound = "P: BW6Config"),
-    Eq(bound = "P: BW6Config")
-)]
+#[derive(Educe, CanonicalSerialize, CanonicalDeserialize)]
+#[educe(Clone, Debug, PartialEq, Eq)]
 pub struct G2Prepared<P: BW6Config> {
     /// Stores the coefficients of the line evaluations as calculated in
     /// <https://eprint.iacr.org/2013/722.pdf>
@@ -29,12 +24,8 @@ pub struct G2Prepared<P: BW6Config> {
     pub infinity: bool,
 }
 
-#[derive(Derivative, CanonicalSerialize, CanonicalDeserialize)]
-#[derivative(
-    Clone(bound = "P: BW6Config"),
-    Copy(bound = "P: BW6Config"),
-    Debug(bound = "P: BW6Config")
-)]
+#[derive(Educe, CanonicalSerialize, CanonicalDeserialize)]
+#[educe(Clone, Copy, Debug)]
 pub struct G2HomProjective<P: BW6Config> {
     x: P::Fp,
     y: P::Fp,
@@ -53,22 +44,22 @@ impl<P: BW6Config> From<G2HomProjective<P>> for G2Affine<P> {
         let z_inv = q.z.inverse().unwrap();
         let x = q.x * &z_inv;
         let y = q.y * &z_inv;
-        G2Affine::<P>::new_unchecked(x, y)
+        Self::new_unchecked(x, y)
     }
 }
 
 impl<P: BW6Config> From<G2Affine<P>> for G2Prepared<P> {
     fn from(q: G2Affine<P>) -> Self {
-        if q.infinity {
+        if q.is_zero() {
             return Self {
-                ell_coeffs_1: vec![],
-                ell_coeffs_2: vec![],
+                ell_coeffs_1: Vec::new(),
+                ell_coeffs_2: Vec::new(),
                 infinity: true,
             };
         }
 
         // f_{u,Q}(P)
-        let mut ell_coeffs_1 = vec![];
+        let mut ell_coeffs_1 = Vec::new();
         let mut r = G2HomProjective::<P> {
             x: q.x,
             y: q.y,
@@ -101,7 +92,7 @@ impl<P: BW6Config> From<G2Affine<P>> for G2Prepared<P> {
         };
         ell_coeffs_1.push(r.clone().add_in_place(&q));
 
-        let mut ell_coeffs_2 = vec![];
+        let mut ell_coeffs_2 = Vec::new();
 
         // f_{u^2-u-1,[u]Q}(P)
         for bit in P::ATE_LOOP_COUNT_2.iter().rev().skip(1) {
@@ -110,7 +101,7 @@ impl<P: BW6Config> From<G2Affine<P>> for G2Prepared<P> {
             match bit {
                 1 => ell_coeffs_2.push(r.add_in_place(&qu)),
                 -1 => ell_coeffs_2.push(r.add_in_place(&neg_qu)),
-                _ => continue,
+                _ => {},
             }
         }
 
@@ -141,7 +132,7 @@ impl<P: BW6Config> From<G2Projective<P>> for G2Prepared<P> {
 }
 
 impl<P: BW6Config> G2Prepared<P> {
-    pub fn is_zero(&self) -> bool {
+    pub const fn is_zero(&self) -> bool {
         self.infinity
     }
 }
