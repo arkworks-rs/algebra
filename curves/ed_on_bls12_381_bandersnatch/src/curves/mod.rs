@@ -221,7 +221,7 @@ impl BandersnatchConfig {
         if point.is_zero() {
             return EdwardsAffine::zero()
         }
-        // First  we are mappyng the sw point to  montgamory point
+        // First we map the SW point to the Montgomery point
         //SW->Mont by (Bx−A/3,By)
         let mx = <BandersnatchConfig as MontCurveConfig>::COEFF_B * point.x - MONT_A_OVER_THREE;
         let my = <BandersnatchConfig as MontCurveConfig>::COEFF_B * point.y;
