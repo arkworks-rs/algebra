@@ -166,7 +166,7 @@ fn small_value_unzip<A: Send + Sync, B: Send + Sync>(
     f: impl Fn(usize, u16) -> (A, B) + Send + Sync,
 ) -> (Vec<A>, Vec<B>) {
     cfg_iter!(grouped)
-        .map(|&i| (f(i.index(), i.value())))
+        .map(|&i| f(i.index(), i.value()))
         .unzip::<_, _, Vec<_>, Vec<_>>()
 }
 
