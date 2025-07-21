@@ -2,8 +2,8 @@
 
 use crate::{DenseUVPolynomial, EvaluationDomain, Evaluations, Polynomial};
 use ark_ff::{FftField, Field, Zero};
-use ark_std::{borrow::Cow, convert::TryInto, vec::Vec};
-use DenseOrSparsePolynomial::*;
+use ark_std::{borrow::Cow, cfg_iter_mut, vec, vec::*};
+use DenseOrSparsePolynomial::{DPolynomial, SPolynomial};
 
 mod dense;
 mod sparse;
@@ -48,7 +48,7 @@ impl<'a, F: Field> From<&'a SparsePolynomial<F>> for DenseOrSparsePolynomial<'a,
 }
 
 impl<'a, F: Field> From<DenseOrSparsePolynomial<'a, F>> for DensePolynomial<F> {
-    fn from(other: DenseOrSparsePolynomial<'a, F>) -> DensePolynomial<F> {
+    fn from(other: DenseOrSparsePolynomial<'a, F>) -> Self {
         match other {
             DPolynomial(p) => p.into_owned(),
             SPolynomial(p) => p.into_owned().into(),
@@ -67,7 +67,7 @@ impl<'a, F: 'a + Field> TryInto<SparsePolynomial<F>> for DenseOrSparsePolynomial
     }
 }
 
-impl<'a, F: Field> DenseOrSparsePolynomial<'a, F> {
+impl<F: Field> DenseOrSparsePolynomial<'_, F> {
     /// Checks if the given polynomial is zero.
     pub fn is_zero(&self) -> bool {
         match self {
@@ -96,7 +96,7 @@ impl<'a, F: Field> DenseOrSparsePolynomial<'a, F> {
     fn iter_with_index(&self) -> Vec<(usize, F)> {
         match self {
             SPolynomial(p) => p.to_vec(),
-            DPolynomial(p) => p.iter().cloned().enumerate().collect(),
+            DPolynomial(p) => p.iter().copied().enumerate().collect(),
         }
     }
 
@@ -126,7 +126,7 @@ impl<'a, F: Field> DenseOrSparsePolynomial<'a, F> {
                 for (i, div_coeff) in divisor.iter_with_index() {
                     remainder[cur_q_degree + i] -= &(cur_q_coeff * div_coeff);
                 }
-                while let Some(true) = remainder.coeffs.last().map(|c| c.is_zero()) {
+                while remainder.coeffs.last().map(|c| c.is_zero()) == Some(true) {
                     remainder.coeffs.pop();
                 }
             }
@@ -166,7 +166,7 @@ impl<'a, F: 'a + FftField> DenseOrSparsePolynomial<'a, F> {
                         if offset.is_one() {
                             cfg_iter_mut!(first).zip(chunk).for_each(|(x, y)| *x += y);
                         } else {
-                            let offset_power = offset.pow(&[((i + 1) * domain.size()) as u64]);
+                            let offset_power = offset.pow([((i + 1) * domain.size()) as u64]);
                             cfg_iter_mut!(first)
                                 .zip(chunk)
                                 .for_each(|(x, y)| *x += offset_power * y);
@@ -188,7 +188,7 @@ impl<'a, F: 'a + FftField> DenseOrSparsePolynomial<'a, F> {
                         if offset.is_one() {
                             cfg_iter_mut!(first).zip(chunk).for_each(|(x, y)| *x += y);
                         } else {
-                            let offset_power = offset.pow(&[((i + 1) * domain.size()) as u64]);
+                            let offset_power = offset.pow([((i + 1) * domain.size()) as u64]);
                             cfg_iter_mut!(first)
                                 .zip(chunk)
                                 .for_each(|(x, y)| *x += offset_power * y);

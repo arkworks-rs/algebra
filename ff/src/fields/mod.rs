@@ -1,5 +1,3 @@
-use core::iter::Product;
-
 use crate::UniformRand;
 use ark_serialize::{
     CanonicalDeserialize, CanonicalDeserializeWithFlags, CanonicalSerialize,
@@ -8,9 +6,9 @@ use ark_serialize::{
 use ark_std::{
     fmt::{Debug, Display},
     hash::Hash,
-    iter::IntoIterator,
+    iter::*,
     ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign},
-    vec::Vec,
+    vec::*,
 };
 
 pub use ark_ff_macros;
@@ -98,7 +96,7 @@ pub trait AdditiveGroup:
     }
     /// Doubles `self` in place.
     fn double_in_place(&mut self) -> &mut Self {
-        self.add_assign(*self);
+        *self += *self;
         self
     }
 
@@ -203,13 +201,14 @@ pub trait Field:
 {
     type BasePrimeField: PrimeField;
 
-    type BasePrimeFieldIter: Iterator<Item = Self::BasePrimeField>;
-
     /// Determines the algorithm for computing square roots.
     const SQRT_PRECOMP: Option<SqrtPrecomputation<Self>>;
 
     /// The multiplicative identity of the field.
     const ONE: Self;
+
+    /// Negation of the multiplicative identity of the field.
+    const NEG_ONE: Self;
 
     /// Returns the characteristic of the field,
     /// in little-endian representation.
@@ -221,7 +220,7 @@ pub trait Field:
     /// to `Self::BasePrimeField`.
     fn extension_degree() -> u64;
 
-    fn to_base_prime_field_elements(&self) -> Self::BasePrimeFieldIter;
+    fn to_base_prime_field_elements(&self) -> impl Iterator<Item = Self::BasePrimeField>;
 
     /// Convert a slice of base prime field elements into a field element.
     /// If the slice length != Self::extension_degree(), must return None.
@@ -350,6 +349,8 @@ pub trait Field:
         }
         Some(res)
     }
+
+    fn mul_by_base_prime_field(&self, elem: &Self::BasePrimeField) -> Self;
 }
 
 // Given a vector of field elements {v_i}, compute the vector {v_i^(-1)}
@@ -373,14 +374,14 @@ pub fn batch_inversion_and_mul<F: Field>(v: &mut [F], coeff: &F) {
     let num_elem_per_thread = max(num_elems / num_cpus_available, min_elements_per_thread);
 
     // Batch invert in parallel, without copying the vector
-    v.par_chunks_mut(num_elem_per_thread).for_each(|mut chunk| {
-        serial_batch_inversion_and_mul(&mut chunk, coeff);
+    v.par_chunks_mut(num_elem_per_thread).for_each(|chunk| {
+        serial_batch_inversion_and_mul(chunk, coeff);
     });
 }
 
 /// Given a vector of field elements {v_i}, compute the vector {coeff * v_i^(-1)}.
 /// This method is explicitly single-threaded.
-fn serial_batch_inversion_and_mul<F: Field>(v: &mut [F], coeff: &F) {
+pub fn serial_batch_inversion_and_mul<F: Field>(v: &mut [F], coeff: &F) {
     // Montgomery’s Trick and Fast Implementation of Masked AES
     // Genelle, Prouff and Quisquater
     // Section 3.2
@@ -391,7 +392,7 @@ fn serial_batch_inversion_and_mul<F: Field>(v: &mut [F], coeff: &F) {
     let mut prod = Vec::with_capacity(v.len());
     let mut tmp = F::one();
     for f in v.iter().filter(|f| !f.is_zero()) {
-        tmp.mul_assign(f);
+        tmp *= f;
         prod.push(tmp);
     }
 
@@ -452,7 +453,7 @@ mod no_std_tests {
 
     #[test]
     fn test_batch_inversion() {
-        let mut random_coeffs = Vec::<Fr>::new();
+        let mut random_coeffs = Vec::new();
         let vec_size = 1000;
 
         for _ in 0..=vec_size {
@@ -460,7 +461,7 @@ mod no_std_tests {
         }
 
         let mut random_coeffs_inv = random_coeffs.clone();
-        batch_inversion::<Fr>(&mut random_coeffs_inv);
+        batch_inversion(&mut random_coeffs_inv);
         for i in 0..=vec_size {
             assert_eq!(random_coeffs_inv[i] * random_coeffs[i], Fr::one());
         }
@@ -520,6 +521,7 @@ mod no_std_tests {
 
     #[test]
     fn test_from_be_bytes_mod_order() {
+        use ark_std::vec;
         // Each test vector is a byte array,
         // and its tested by parsing it with from_bytes_mod_order, and the num-bigint
         // library. The bytes are currently generated from scripts/test_vectors.py.

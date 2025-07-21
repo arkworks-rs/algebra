@@ -15,6 +15,7 @@ type BaseField<MP> = <MP as CurveConfig>::BaseField;
 
 /// [`IsogenyMap`] defines an isogeny between curves of
 /// form `Phi(x, y) := (a(x), b(x)*y).
+///
 /// The `x` coordinate of the codomain point only depends on the
 /// `x`-coordinate of the domain point, and the
 /// `y`-coordinate of the codomain point is a multiple of the `y`-coordinate of the domain point.
@@ -39,7 +40,7 @@ pub struct IsogenyMap<
     pub y_map_denominator: &'a [BaseField<Codomain>],
 }
 
-impl<'a, Domain, Codomain> IsogenyMap<'a, Domain, Codomain>
+impl<Domain, Codomain> IsogenyMap<'_, Domain, Codomain>
 where
     Domain: SWCurveConfig,
     Codomain: SWCurveConfig<BaseField = BaseField<Domain>>,
@@ -57,17 +58,21 @@ where
                 batch_inversion(&mut v);
                 let img_x = x_num.evaluate(&x) * v[0];
                 let img_y = (y_num.evaluate(&x) * y) * v[1];
-                Ok(Affine::<Codomain>::new_unchecked(img_x, img_y))
+                Ok(Affine::new_unchecked(img_x, img_y))
             },
             None => Ok(Affine::identity()),
         }
     }
 }
 
-/// Trait defining the necessary parameters for the WB hash-to-curve method
-/// for the curves of Weierstrass form of:
-/// of y^2 = x^3 + a*x + b where b != 0 but `a` can be zero like BLS-381 curve.
-/// From [\[WB2019\]]
+/// Trait defining the necessary parameters for the WB hash-to-curve method.
+///
+/// This method is used for curves in Weierstrass form defined by:
+///
+/// `y^2 = x^3 + a*x + b` where `b != 0`, but `a` can be zero,
+/// as seen in curves like BLS-381.
+///
+/// For more information, refer to [WB2019].
 ///
 /// - [\[WB2019\]] <http://dx.doi.org/10.46586/tches.v2019.i4.154-179>
 pub trait WBConfig: SWCurveConfig + Sized {
@@ -105,7 +110,7 @@ impl<P: WBConfig> MapToCurve<Projective<P>> for WBMap<P> {
         element: <Affine<P> as AffineRepr>::BaseField,
     ) -> Result<Affine<P>, HashToCurveError> {
         // first we need to map the field point to the isogenous curve
-        let point_on_isogenious_curve = SWUMap::<P::IsogenousCurve>::map_to_curve(element).unwrap();
+        let point_on_isogenious_curve = SWUMap::map_to_curve(element).unwrap();
         P::ISOGENY_MAP.apply(point_on_isogenious_curve)
     }
 }
@@ -130,8 +135,8 @@ mod test {
     #[derive(ark_ff::MontConfig)]
     #[modulus = "127"]
     #[generator = "6"]
-    pub struct F127Config;
-    pub type F127 = Fp64<MontBackend<F127Config, 1>>;
+    pub(crate) struct F127Config;
+    pub(crate) type F127 = Fp64<MontBackend<F127Config, 1>>;
 
     const F127_ZERO: F127 = MontFp!("0");
     const F127_ONE: F127 = MontFp!("1");
@@ -140,9 +145,8 @@ mod test {
     struct TestWBF127MapToCurveConfig;
 
     impl CurveConfig for TestWBF127MapToCurveConfig {
-        const COFACTOR: &'static [u64] = &[1];
+        const COFACTOR: &[u64] = &[1];
 
-    #[rustfmt::skip]
         const COFACTOR_INV: F127 = F127_ONE;
 
         type BaseField = F127;
@@ -156,11 +160,13 @@ mod test {
         const COEFF_A: F127 = F127_ZERO;
 
         /// COEFF_B = 3
-    #[rustfmt::skip]
         const COEFF_B: F127 = MontFp!("3");
 
         /// AFFINE_GENERATOR_COEFFS = (G1_GENERATOR_X, G1_GENERATOR_Y)
         const GENERATOR: Affine<Self> = Affine::new_unchecked(MontFp!("62"), MontFp!("70"));
+
+        /// We use `()` because the point (0, 0) is not on the curve.
+        type ZeroFlag = ();
     }
 
     /// Testing WB19 hashing on a small curve
@@ -173,9 +179,8 @@ mod test {
     /// sage: E_isogenous.order()
     /// 127
     impl CurveConfig for TestSWU127MapToIsogenousCurveConfig {
-        const COFACTOR: &'static [u64] = &[1];
+        const COFACTOR: &[u64] = &[1];
 
-    #[rustfmt::skip]
         const COFACTOR_INV: F127 = F127_ONE;
 
         type BaseField = F127;
@@ -189,11 +194,13 @@ mod test {
         const COEFF_A: F127 = MontFp!("109");
 
         /// COEFF_B = 124
-    #[rustfmt::skip]
         const COEFF_B: F127 = MontFp!("124");
 
         /// AFFINE_GENERATOR_COEFFS = (G1_GENERATOR_X, G1_GENERATOR_Y)
         const GENERATOR: Affine<Self> = Affine::new_unchecked(MontFp!("84"), MontFp!("2"));
+
+        /// We use `bool because the point (0, 0) could be on the curve.
+        type ZeroFlag = bool;
     }
 
     /// SWU parameters for E_isogenous

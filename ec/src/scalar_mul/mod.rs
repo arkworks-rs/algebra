@@ -11,7 +11,8 @@ use ark_ff::{AdditiveGroup, BigInteger, PrimeField, Zero};
 use ark_std::{
     cfg_iter, cfg_iter_mut,
     ops::{Add, AddAssign, Mul, Neg, Sub, SubAssign},
-    vec::Vec,
+    vec,
+    vec::*,
 };
 
 #[cfg(feature = "parallel")]
@@ -21,7 +22,7 @@ use rayon::prelude::*;
 /// [`Explanation of usage`]
 ///
 /// [`Explanation of usage`]: https://github.com/scipr-lab/zexe/issues/79#issue-556220473
-fn ln_without_floats(a: usize) -> usize {
+const fn ln_without_floats(a: usize) -> usize {
     // log2(a) * ln(2)
     (ark_std::log2(a) * 69 / 100) as usize
 }
@@ -32,7 +33,7 @@ pub fn sw_double_and_add_affine<P: SWCurveConfig>(
     base: &Affine<P>,
     scalar: impl AsRef<[u64]>,
 ) -> Projective<P> {
-    let mut res = Projective::<P>::zero();
+    let mut res = Projective::zero();
     for b in ark_ff::BitIteratorBE::without_leading_zeros(scalar) {
         res.double_in_place();
         if b {
@@ -49,7 +50,7 @@ pub fn sw_double_and_add_projective<P: SWCurveConfig>(
     base: &Projective<P>,
     scalar: impl AsRef<[u64]>,
 ) -> Projective<P> {
-    let mut res = Projective::<P>::zero();
+    let mut res = Projective::zero();
     for b in ark_ff::BitIteratorBE::without_leading_zeros(scalar) {
         res.double_in_place();
         if b {
@@ -182,7 +183,7 @@ impl<T: ScalarMul> BatchMulPreprocessing<T> {
     ) -> Self {
         let window = Self::compute_window_size(num_scalars);
         let in_window = 1 << window;
-        let outerc = (max_scalar_size + window - 1) / window;
+        let outerc = max_scalar_size.div_ceil(window);
         let last_in_window = 1 << (max_scalar_size - (outerc - 1) * window);
 
         let mut multiples_of_g = vec![vec![T::zero(); in_window]; outerc];
@@ -222,7 +223,7 @@ impl<T: ScalarMul> BatchMulPreprocessing<T> {
         }
     }
 
-    pub fn compute_window_size(num_scalars: usize) -> usize {
+    pub const fn compute_window_size(num_scalars: usize) -> usize {
         if num_scalars < 32 {
             3
         } else {
@@ -236,7 +237,7 @@ impl<T: ScalarMul> BatchMulPreprocessing<T> {
     }
 
     fn windowed_mul(&self, scalar: &T::ScalarField) -> T {
-        let outerc = (self.max_scalar_size + self.window - 1) / self.window;
+        let outerc = self.max_scalar_size.div_ceil(self.window);
         let modulus_size = T::ScalarField::MODULUS_BIT_SIZE as usize;
         let scalar_val = scalar.into_bigint().to_bits_le();
 

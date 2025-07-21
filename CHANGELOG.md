@@ -2,7 +2,30 @@
 
 ## Pending
 
+- [\#778](https://github.com/arkworks-rs/algebra/pull/778) (`ark-bw6-767`, `ark-grumpkin`, `ark-secp256k1`, `ark-secq25k1`) Add the GLV implementation for BW6-767, Grumpkin, secp256k1, and secq256k1.
+- (`ark-starkcurve`) Add 252 bit [Stark curve](https://docs.starknet.io/architecture/cryptography/#the_stark_curve).
+- [\#971](https://github.com/arkworks-rs/algebra/pull/971) (`ark-ff`) Make serial_batch_inversion_and_mul public.
+- Consolidated logic into `bitreverse_permutation_in_place` and made it public.
+- Remove redundant type constraints from `Pairing::G1Prepared`.
+- (`ark-serialize`) Add serde-compatible wrapper types `CompressedChecked<T>`, `CompressedUnchecked<T>`, `UncompressedChecked<T>`, `UncompressedUnchecked<T>`.
+- [\#989](https://github.com/arkworks-rs/algebra/pull/989) (`ark-poly`) Replace bound `F: FftField` with `F: Field` on `GeneralEvaluationDomain`.
+
+### Breaking changes
+
+### Features
+
+- (`ark-serialize`) Implementation of `CanonicalSerialize` and `CanonicalDeserialize` for signed integer types
+
+### Improvements
+
+### Bugfixes
+
+## v0.5.0
+
 - [\#772](https://github.com/arkworks-rs/algebra/pull/772) (`ark-ff`) Implementation of `mul` method for `BigInteger`.
+- [\#794](https://github.com/arkworks-rs/algebra/pull/794) (`ark-ff`) Fix `wasm` compilation.
+- [\#837](https://github.com/arkworks-rs/algebra/pull/837) (`ark-serialize`) Fix array deserialization panic.
+- [\#845](https://github.com/arkworks-rs/algebra/pull/845) (`Algebra`) Implementation of `mul` method for `DenseMultilinearExtension<F> * F`.
 
 ### Breaking changes
 
@@ -20,6 +43,7 @@
 - [\#748](https://github.com/arkworks-rs/algebra/pull/748) (`ark-ff`) Add `FromStr` for `BigInteger`.
 - [\#756](https://github.com/arkworks-rs/algebra/pull/756) (`ark-ec`) Require `Neg`, `Sub`, `SubAssign` ops on `AffineRepr`.
 - [\#767](https://github.com/arkworks-rs/algebra/pull/767) (`ark-curve25519`) Change (negate) generator of curve25519 for inter-operability with curve25519-dalek.
+- [\#811](https://github.com/arkworks-rs/algebra/pull/811) (`ark-serialize`) Remove `Send` trait bound from `Valid`.
 
 ### Features
 
@@ -29,17 +53,22 @@
 - [\#691](https://github.com/arkworks-rs/algebra/pull/691) (`ark-poly`) Implement `Polynomial` for `SparseMultilinearExtension` and `DenseMultilinearExtension`.
 - [\#693](https://github.com/arkworks-rs/algebra/pull/693) (`ark-serialize`) Add `serialize_to_vec!` convenience macro.
 - [\#713](https://github.com/arkworks-rs/algebra/pull/713) (`ark-ff`) Add support for bitwise operations AND, OR, and XOR between `BigInteger`.
+- [\#763](https://github.com/arkworks-rs/algebra/pull/763) (`ark-poly`) Add `concat` to concatenate evaluation tables of `DenseMultilinearPolynomial`s.
+- [\#811](https://github.com/arkworks-rs/algebra/pull/811) (`ark-serialize`) Implement `Valid` & `CanonicalDeserialize` for `Rc`.
 
 ### Improvements
 
 - [\#736](https://github.com/arkworks-rs/algebra/pull/736) (`ark-ff`) Deprecate `divn()`, and use `core::ops::{Shr, ShrAssign}` instead.
 - [\#739](https://github.com/arkworks-rs/algebra/pull/739) (`ark-ff`) Deprecate `muln()`, and use `core::ops::{Shl, ShlAssign}` instead.
-- [\#771](https://github.com/arkworks-rs/algebra/pull/771) (`ark-ec`) Omit expensive  scalar multiplication in `is_in_correct_subgroup_assuming_on_curve()` for short Weierstrass curves of cofactor one.  
-- [\#778](https://github.com/arkworks-rs/algebra/pull/778) (`ark-bw6-767`, `ark-grumpkin`, `ark-secp256k1`, `ark-secq25k1`) Add the GLV implementation for BW6-767, Grumpkin, secp256k1, and secq256k1.
+- [\#771](https://github.com/arkworks-rs/algebra/pull/771) (`ark-ec`) Omit expensive  scalar multiplication in `is_in_correct_subgroup_assuming_on_curve()` for short Weierstrass curves of cofactor one.
+- [\#817](https://github.com/arkworks-rs/algebra/pull/817) (`ark-ec`) Relax the visibility for G2 ell coeffs and related algorithms.
 
 ### Bugfixes
 
-- [\#747](https://github.com/arkworks-rs/algebra/pull/747) (`ark-ff-macros`) Fix fetching attributes in `MontConfig` macro
+- [\#747](https://github.com/arkworks-rs/algebra/pull/747) (`ark-ff-macros`) Fix fetching attributes in `MontConfig` macro.
+- [\#803](https://github.com/arkworks-rs/algebra/pull/803) (`ark-ec`, `ark-test-template`) Fix incorrect decomposition in GLV.
+- [\#806](https://github.com/arkworks-rs/algebra/pull/806) (`ark-ff`) Fix the impl for `Display`ing zero element in Fp.
+- [\#822](https://github.com/arkworks-rs/algebra/pull/822) (`ark-ec`, `ark-test-template`) Fix the incorrect `Affine - Projective` implementation
 
 ## v0.4.2
 

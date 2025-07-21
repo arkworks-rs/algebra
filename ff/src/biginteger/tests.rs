@@ -1,13 +1,15 @@
+#![allow(clippy::bool_assert_comparison)]
 use crate::{biginteger::BigInteger, UniformRand};
 use num_bigint::BigUint;
 
 // Test elementary math operations for BigInteger.
+#[allow(clippy::eq_op)]
 fn biginteger_arithmetic_test<B: BigInteger>(a: B, b: B, zero: B, max: B) {
     // zero == zero
     assert_eq!(zero, zero);
 
     // zero.is_zero() == true
-    assert_eq!(zero.is_zero(), true);
+    assert!(zero.is_zero());
 
     // a == a
     assert_eq!(a, a);
@@ -173,7 +175,7 @@ fn biginteger_bitwise_ops_test<B: BigInteger>() {
     // Testing a and a and b.
     let a = B::rand(&mut rng);
     let b = B::rand(&mut rng);
-    let b_clone = b.clone();
+    let b_clone = b;
     let and_ab = a & b;
     assert_eq!(and_ab & b_clone, a & b);
 
@@ -206,6 +208,12 @@ fn biginteger_bits_test<B: BigInteger>() {
     assert!(!thirty_two.get_bit(4));
     // 5th bit of BigInteger representing 32 is 1
     assert!(thirty_two.get_bit(5), "{:?}", thirty_two);
+
+    // Generates a random BigInteger and tests bit construction methods.
+    let mut rng = ark_std::test_rng();
+    let a: B = UniformRand::rand(&mut rng);
+    assert_eq!(B::from_bits_be(&a.to_bits_be()), a);
+    assert_eq!(B::from_bits_le(&a.to_bits_le()), a);
 }
 
 // Test conversion from BigInteger to BigUint

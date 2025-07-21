@@ -11,8 +11,8 @@ use ark_ff::{
     },
     CyclotomicMultSubgroup,
 };
-use ark_std::{cfg_chunks_mut, marker::PhantomData, vec::Vec};
-use derivative::Derivative;
+use ark_std::{cfg_chunks_mut, marker::PhantomData, vec::*};
+use educe::Educe;
 use itertools::Itertools;
 use num_traits::One;
 
@@ -27,13 +27,13 @@ pub enum TwistType {
 pub trait BnConfig: 'static + Sized {
     /// The absolute value of the BN curve parameter `X`
     /// (as in `q = 36 X^4 + 36 X^3 + 24 X^2 + 6 X + 1`).
-    const X: &'static [u64];
+    const X: &[u64];
 
     /// Whether or not `X` is negative.
     const X_IS_NEGATIVE: bool;
 
     /// The absolute value of `6X + 2`.
-    const ATE_LOOP_COUNT: &'static [i8];
+    const ATE_LOOP_COUNT: &[i8];
 
     const TWIST_TYPE: TwistType;
     const TWIST_MUL_BY_Q_X: Fp2<Self::Fp2Config>;
@@ -102,7 +102,6 @@ pub trait BnConfig: 'static + Sized {
         MillerLoopOutput(f)
     }
 
-    #[allow(clippy::let_and_return)]
     fn final_exponentiation(f: MillerLoopOutput<Bn<Self>>) -> Option<PairingOutput<Bn<Self>>> {
         // Easy part: result = elt^((q^6-1)*(q^2+1)).
         // Follows, e.g., Beuchat et al page 9, by computing result as follows:
@@ -175,8 +174,8 @@ pub use self::{
     g2::{G2Affine, G2Prepared, G2Projective},
 };
 
-#[derive(Derivative)]
-#[derivative(Copy, Clone, PartialEq, Eq, Debug, Hash)]
+#[derive(Educe)]
+#[educe(Copy, Clone, PartialEq, Eq, Debug, Hash)]
 pub struct Bn<P: BnConfig>(PhantomData<fn() -> P>);
 
 impl<P: BnConfig> Bn<P> {

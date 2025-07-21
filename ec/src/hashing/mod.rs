@@ -1,5 +1,5 @@
 use crate::CurveGroup;
-use ark_std::string::String;
+use ark_std::string::*;
 use core::fmt;
 
 pub mod curve_maps;
@@ -31,8 +31,7 @@ impl ark_std::error::Error for HashToCurveError {}
 impl fmt::Display for HashToCurveError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
         match self {
-            HashToCurveError::UnsupportedCurveError(s) => write!(f, "{}", s),
-            HashToCurveError::MapToCurveError(s) => write!(f, "{}", s),
+            Self::UnsupportedCurveError(s) | Self::MapToCurveError(s) => write!(f, "{}", s),
         }
     }
 }

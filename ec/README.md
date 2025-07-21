@@ -7,7 +7,7 @@
 </p>
 
 `ark-ec` defines traits and algorithms for working with different kinds of additive groups, with a focus on groups arising from elliptic curves. It further provides concrete instantiations of these traits for various elliptic curve models, including popular families of pairing-friendly curves such as the BLS12 family of curves.
-Implementations of particular curves using these curve models can be found in [`arkworks-rs/curves`](https://github.com/arkworks-rs/curves/blob/master/README.md).
+Implementations of particular curves using these curve models can be found in [`arkworks-rs/curves`](https://github.com/arkworks-rs/algebra/blob/master/curves/README.md).
 
 ## Usage
 
@@ -134,8 +134,8 @@ assert!(new_a.is_in_correct_subgroup_assuming_on_curve());
 Besides the foregoing abstract interfaces for elliptic curve groups, `ark-ec` also provides
 the following concrete instantiations of common elliptic curve models:
 
-* [*Short Weierstrass*](https://github.com/arkworks-rs/algebra/blob/master/ec/src/models/short_weierstrass.rs) curves. The `AffineRepr` in this case is in typical Short Weierstrass point representation, and the `CurveGroup` is using points in [Jacobian Coordinates](https://en.wikibooks.org/wiki/Cryptography/Prime_Curve/Jacobian_Coordinates).
-* [*Twisted Edwards*](https://github.com/arkworks-rs/algebra/blob/master/ec/src/models/twisted_edwards.rs) curves. The `AffineRepr` in this case is in standard Twisted Edwards curve representation, whereas the `CurveGroup` uses points in [Extended Twisted Edwards Coordinates](https://eprint.iacr.org/2008/522.pdf).
+* [*Short Weierstrass*](https://github.com/arkworks-rs/algebra/blob/master/ec/src/models/short_weierstrass/mod.rs) curves. The `AffineRepr` in this case is in typical Short Weierstrass point representation, and the `CurveGroup` is using points in [Jacobian Coordinates](https://en.wikibooks.org/wiki/Cryptography/Prime_Curve/Jacobian_Coordinates).
+* [*Twisted Edwards*](https://github.com/arkworks-rs/algebra/blob/master/ec/src/models/twisted_edwards/mod.rs) curves. The `AffineRepr` in this case is in standard Twisted Edwards curve representation, whereas the `CurveGroup` uses points in [Extended Twisted Edwards Coordinates](https://eprint.iacr.org/2008/522.pdf).
 
 ### Pairings
 

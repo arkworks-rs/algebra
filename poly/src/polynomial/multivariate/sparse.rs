@@ -6,22 +6,26 @@ use crate::{
 use ark_ff::{Field, Zero};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use ark_std::{
+    cfg_into_iter,
     cmp::Ordering,
     fmt,
     ops::{Add, AddAssign, Neg, Sub, SubAssign},
     rand::Rng,
-    vec::Vec,
+    vec,
+    vec::*,
 };
+
+use educe::Educe;
 
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
 
 /// Stores a sparse multivariate polynomial in coefficient form.
-#[derive(Derivative, CanonicalSerialize, CanonicalDeserialize)]
-#[derivative(Clone, PartialEq, Eq, Hash, Default)]
+#[derive(Educe, CanonicalSerialize, CanonicalDeserialize)]
+#[educe(Clone, PartialEq, Eq, Hash, Default)]
 pub struct SparsePolynomial<F: Field, T: Term> {
     /// The number of variables the polynomial supports
-    #[derivative(PartialEq = "ignore")]
+    #[educe(PartialEq(ignore))]
     pub num_vars: usize,
     /// List of each term along with its coefficient
     pub terms: Vec<(F, T)>,
@@ -57,7 +61,7 @@ impl<F: Field> Polynomial<F> for SparsePolynomial<F, SparseTerm> {
             .iter()
             .map(|(_, term)| term.degree())
             .max()
-            .unwrap_or(0)
+            .unwrap_or_default()
     }
 
     /// Evaluates `self` at the given `point` in `Self::Point`.
@@ -136,19 +140,22 @@ impl<F: Field> DenseMVPolynomial<F> for SparsePolynomial<F, SparseTerm> {
         terms.sort_by(|(_, t1), (_, t2)| t1.cmp(t2));
         // If any terms are duplicated, add them together
         let mut terms_dedup: Vec<(F, SparseTerm)> = Vec::new();
-        for term in terms {
-            if let Some(prev) = terms_dedup.last_mut() {
-                if prev.1 == term.1 {
-                    *prev = (prev.0 + term.0, prev.1.clone());
-                    continue;
-                }
-            };
+        for (coeff, term) in terms {
             // Assert correct number of indeterminates
             assert!(
-                term.1.iter().all(|(var, _)| *var < num_vars),
+                term.iter().all(|(var, _)| *var < num_vars),
                 "Invalid number of indeterminates"
             );
-            terms_dedup.push(term);
+
+            if let Some((prev_coeff, prev_term)) = terms_dedup.last_mut() {
+                // If terms match, add the coefficients.
+                if prev_term == &term {
+                    *prev_coeff += coeff;
+                    continue;
+                }
+            }
+
+            terms_dedup.push((coeff, term));
         }
         let mut result = Self {
             num_vars,
@@ -166,14 +173,14 @@ impl<F: Field> DenseMVPolynomial<F> for SparsePolynomial<F, SparseTerm> {
 }
 
 impl<F: Field, T: Term> Add for SparsePolynomial<F, T> {
-    type Output = SparsePolynomial<F, T>;
+    type Output = Self;
 
-    fn add(self, other: SparsePolynomial<F, T>) -> Self {
+    fn add(self, other: Self) -> Self {
         &self + &other
     }
 }
 
-impl<'a, 'b, F: Field, T: Term> Add<&'a SparsePolynomial<F, T>> for &'b SparsePolynomial<F, T> {
+impl<'a, F: Field, T: Term> Add<&'a SparsePolynomial<F, T>> for &SparsePolynomial<F, T> {
     type Output = SparsePolynomial<F, T>;
 
     fn add(self, other: &'a SparsePolynomial<F, T>) -> SparsePolynomial<F, T> {
@@ -212,14 +219,14 @@ impl<'a, 'b, F: Field, T: Term> Add<&'a SparsePolynomial<F, T>> for &'b SparsePo
     }
 }
 
-impl<'a, F: Field, T: Term> AddAssign<&'a SparsePolynomial<F, T>> for SparsePolynomial<F, T> {
-    fn add_assign(&mut self, other: &'a SparsePolynomial<F, T>) {
+impl<'a, F: Field, T: Term> AddAssign<&'a Self> for SparsePolynomial<F, T> {
+    fn add_assign(&mut self, other: &'a Self) {
         *self = &*self + other;
     }
 }
 
-impl<'a, F: Field, T: Term> AddAssign<(F, &'a SparsePolynomial<F, T>)> for SparsePolynomial<F, T> {
-    fn add_assign(&mut self, (f, other): (F, &'a SparsePolynomial<F, T>)) {
+impl<'a, F: Field, T: Term> AddAssign<(F, &'a Self)> for SparsePolynomial<F, T> {
+    fn add_assign(&mut self, (f, other): (F, &'a Self)) {
         let other = Self {
             num_vars: other.num_vars,
             terms: other
@@ -234,10 +241,10 @@ impl<'a, F: Field, T: Term> AddAssign<(F, &'a SparsePolynomial<F, T>)> for Spars
 }
 
 impl<F: Field, T: Term> Neg for SparsePolynomial<F, T> {
-    type Output = SparsePolynomial<F, T>;
+    type Output = Self;
 
     #[inline]
-    fn neg(mut self) -> SparsePolynomial<F, T> {
+    fn neg(mut self) -> Self {
         for coeff in &mut self.terms {
             (coeff).0 = -coeff.0;
         }
@@ -245,7 +252,7 @@ impl<F: Field, T: Term> Neg for SparsePolynomial<F, T> {
     }
 }
 
-impl<'a, 'b, F: Field, T: Term> Sub<&'a SparsePolynomial<F, T>> for &'b SparsePolynomial<F, T> {
+impl<'a, F: Field, T: Term> Sub<&'a SparsePolynomial<F, T>> for &SparsePolynomial<F, T> {
     type Output = SparsePolynomial<F, T>;
 
     #[inline]
@@ -255,9 +262,9 @@ impl<'a, 'b, F: Field, T: Term> Sub<&'a SparsePolynomial<F, T>> for &'b SparsePo
     }
 }
 
-impl<'a, F: Field, T: Term> SubAssign<&'a SparsePolynomial<F, T>> for SparsePolynomial<F, T> {
+impl<'a, F: Field, T: Term> SubAssign<&'a Self> for SparsePolynomial<F, T> {
     #[inline]
-    fn sub_assign(&mut self, other: &'a SparsePolynomial<F, T>) {
+    fn sub_assign(&mut self, other: &'a Self) {
         *self = &*self - other;
     }
 }
@@ -278,10 +285,7 @@ impl<F: Field, T: Term> fmt::Debug for SparsePolynomial<F, T> {
 impl<F: Field, T: Term> Zero for SparsePolynomial<F, T> {
     /// Returns the zero polynomial.
     fn zero() -> Self {
-        Self {
-            num_vars: 0,
-            terms: Vec::new(),
-        }
+        Self::default()
     }
 
     /// Checks if the given polynomial is zero.
@@ -293,7 +297,7 @@ impl<F: Field, T: Term> Zero for SparsePolynomial<F, T> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ark_ff::{Field, UniformRand, Zero};
+    use ark_ff::UniformRand;
     use ark_std::test_rng;
     use ark_test_curves::bls12_381::Fr;
 
@@ -308,14 +312,7 @@ mod tests {
         random_terms.push((Fr::rand(rng), SparseTerm::new(vec![])));
         for _ in 1..num_terms {
             let term = (0..l)
-                .map(|i| {
-                    if rng.gen_bool(0.5) {
-                        Some((i, rng.gen_range(1..(d + 1))))
-                    } else {
-                        None
-                    }
-                })
-                .flatten()
+                .filter_map(|i| rng.gen_bool(0.5).then(|| (i, rng.gen_range(1..(d + 1)))))
                 .collect();
             let coeff = Fr::rand(rng);
             random_terms.push((coeff, SparseTerm::new(term)));
@@ -332,8 +329,8 @@ mod tests {
             SparsePolynomial::zero()
         } else {
             let mut result_terms = Vec::new();
-            for (cur_coeff, cur_term) in cur.terms.iter() {
-                for (other_coeff, other_term) in other.terms.iter() {
+            for (cur_coeff, cur_term) in &cur.terms {
+                for (other_coeff, other_term) in &other.terms {
                     let mut term = cur_term.0.clone();
                     term.extend(other_term.0.clone());
                     result_terms.push((*cur_coeff * *other_coeff, SparseTerm::new(term)));
@@ -385,11 +382,11 @@ mod tests {
                 point.push(Fr::rand(rng));
             }
             let mut total = Fr::zero();
-            for (coeff, term) in p.terms.iter() {
+            for (coeff, term) in &p.terms {
                 let mut summand = *coeff;
                 for var in term.iter() {
                     let eval = point.get(var.0).unwrap();
-                    summand *= eval.pow(&[var.1 as u64]);
+                    summand *= eval.pow([var.1 as u64]);
                 }
                 total += summand;
             }
@@ -463,5 +460,106 @@ mod tests {
             ],
         );
         assert_eq!(expected, result);
+    }
+
+    #[test]
+    fn test_polynomial_with_zero_coefficients() {
+        let rng = &mut test_rng();
+        let max_degree = 10;
+        let p1 = rand_poly(3, max_degree, rng);
+
+        let p2 = SparsePolynomial::from_coefficients_vec(
+            3,
+            vec![
+                (Fr::zero(), SparseTerm::new(vec![(0, 1)])), // A zero coefficient term
+                (Fr::from(2), SparseTerm::new(vec![(1, 1)])),
+            ],
+        );
+
+        let sum = &p1 + &p2;
+
+        // Ensure that the zero coefficient term is ignored in the evaluation.
+        let point = vec![Fr::from(1), Fr::from(2), Fr::from(3)];
+        let result = sum.evaluate(&point);
+
+        assert_eq!(result, p1.evaluate(&point) + p2.evaluate(&point)); // Should be the sum of the evaluations
+    }
+
+    #[test]
+    fn test_constant_polynomial() {
+        let constant_term = SparsePolynomial::from_coefficients_vec(
+            3,
+            vec![(Fr::from(5), SparseTerm::new(vec![]))],
+        );
+
+        let point = vec![Fr::from(1), Fr::from(2), Fr::from(3)];
+        assert_eq!(constant_term.evaluate(&point), Fr::from(5));
+    }
+
+    #[test]
+    fn test_polynomial_addition_with_overlapping_terms() {
+        let poly1 = SparsePolynomial::from_coefficients_vec(
+            3,
+            vec![
+                (Fr::from(2), SparseTerm::new(vec![(0, 1)])),
+                (Fr::from(3), SparseTerm::new(vec![(1, 1)])),
+            ],
+        );
+
+        let poly2 = SparsePolynomial::from_coefficients_vec(
+            3,
+            vec![
+                (Fr::from(4), SparseTerm::new(vec![(0, 1)])),
+                (Fr::from(1), SparseTerm::new(vec![(2, 1)])),
+            ],
+        );
+
+        let expected = SparsePolynomial::from_coefficients_vec(
+            3,
+            vec![
+                (Fr::from(6), SparseTerm::new(vec![(0, 1)])),
+                (Fr::from(3), SparseTerm::new(vec![(1, 1)])),
+                (Fr::from(1), SparseTerm::new(vec![(2, 1)])),
+            ],
+        );
+
+        let result = &poly1 + &poly2;
+
+        assert_eq!(expected, result);
+    }
+
+    #[test]
+    fn test_polynomial_degree() {
+        // Polynomial: 2*x_0^3 + x_1*x_2
+        let poly1 = SparsePolynomial::<Fr, SparseTerm>::from_coefficients_vec(
+            3,
+            vec![
+                (Fr::from(2), SparseTerm::new(vec![(0, 3)])), // term with degree 3
+                (Fr::from(1), SparseTerm::new(vec![(1, 1), (2, 1)])), // term with degree 2
+            ],
+        );
+
+        // Polynomial: x_0^2 + x_1^2 + 1
+        let poly2 = SparsePolynomial::<Fr, SparseTerm>::from_coefficients_vec(
+            3,
+            vec![
+                (Fr::from(1), SparseTerm::new(vec![(0, 2)])), // term with degree 2
+                (Fr::from(1), SparseTerm::new(vec![(1, 2)])), // term with degree 2
+                (Fr::from(1), SparseTerm::new(vec![])),       // constant term (degree 0)
+            ],
+        );
+
+        // Polynomial: 3
+        let poly3 = SparsePolynomial::<Fr, SparseTerm>::from_coefficients_vec(
+            3,
+            vec![
+                (Fr::from(3), SparseTerm::new(vec![])), // constant term (degree 0)
+            ],
+        );
+
+        // Test the degree method
+        assert_eq!(poly1.degree(), 3, "Degree of poly1 should be 3");
+        assert_eq!(poly2.degree(), 2, "Degree of poly2 should be 2");
+        assert_eq!(poly3.degree(), 0, "Degree of poly3 should be 0");
     }
 }

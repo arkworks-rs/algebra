@@ -1,9 +1,9 @@
 pub mod json;
-extern crate hex;
-extern crate serde_json;
-extern crate sha2;
+use hex;
 pub use hex::decode;
+use serde_json;
 pub use serde_json::from_reader;
+use sha2;
 pub use sha2::Sha256;
 
 #[macro_export]
@@ -24,7 +24,7 @@ macro_rules! test_h2c {
                 fields::Field,
                 One, UniformRand, Zero,
             };
-            use ark_std::{format, string::String, vec::Vec};
+            use ark_std::{format, string::String, vec::*};
             use std::{
                 fs::{read_dir, File},
                 io::BufReader,

@@ -5,7 +5,7 @@ use ark_ec::{
 };
 use ark_ff::MontFp;
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
-use ark_std::vec::Vec;
+use ark_std::vec::*;
 
 use crate::{Fq, Fr};
 
@@ -60,7 +60,6 @@ impl CurveConfig for Config {
 
     /// COFACTOR =
     /// 86482221941698704497288378992285180119495364068003923046442785886272123124361700722982503222189455144364945735564951561028
-    #[rustfmt::skip]
     const COFACTOR: &'static [u64] = &[
         0x5657b9b57b942344,
         0x84f9a65f3bd54eaf,
@@ -85,6 +84,12 @@ impl SWCurveConfig for Config {
 
     /// AFFINE_GENERATOR_COEFFS = (G1_GENERATOR_X, G1_GENERATOR_Y)
     const GENERATOR: G1Affine = G1Affine::new_unchecked(G1_GENERATOR_X, G1_GENERATOR_Y);
+
+    /// Correctness:
+    /// Substituting (0, 0) into the curve equation gives 0^2 = b.
+    /// Since b is not zero, the point (0, 0) is not on the curve.
+    /// Therefore, we can safely use (0, 0) as a flag for the zero point.
+    type ZeroFlag = ();
 }
 
 /// G1_GENERATOR_X =

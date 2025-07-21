@@ -67,6 +67,9 @@ macro_rules! __test_group {
 
                 assert_eq!(a - zero, a);
                 assert_eq!(b - zero, b);
+
+                // Affine - Projective
+                assert_eq!(a.into_affine() - b, a - b);
             }
         }
 
@@ -190,6 +193,16 @@ macro_rules! __test_group {
         }
 
         #[test]
+        fn test_var_base_msm_mixed_scalars() {
+            $crate::msm::test_var_base_msm_mixed_scalars::<$group>();
+        }
+
+        #[test]
+        fn test_var_base_msm_specialized() {
+            $crate::msm::test_var_base_msm_specialized::<$group>();
+        }
+
+        #[test]
         fn test_chunked_pippenger() {
             $crate::msm::test_chunked_pippenger::<$group>();
         }
@@ -275,6 +288,7 @@ macro_rules! __test_group {
 
         #[test]
         fn test_sw_properties() {
+            use ark_ec::models::short_weierstrass::Bucket;
             let mut rng = &mut ark_std::test_rng();
 
             let generator = <$group>::generator().into_affine();
@@ -302,6 +316,11 @@ macro_rules! __test_group {
                     }
                 }
             }
+            use core::any::TypeId;
+            if TypeId::of::<<Config as SWCurveConfig>::ZeroFlag>() == TypeId::of::<()>() {
+                let zero = BaseField::ZERO;
+                assert_ne!(zero.square() - zero.square() * zero - <Config as SWCurveConfig>::COEFF_A * zero - <Config as SWCurveConfig>::COEFF_B, zero);
+            }
 
             for _ in 0..ITERATIONS {
                 let f = BaseField::rand(rng);
@@ -324,6 +343,18 @@ macro_rules! __test_group {
                         assert_eq!(a, b);
                     }
 
+                }
+            }
+            {
+                for _ in 0..ITERATIONS {
+                    let a = Affine::rand(rng);
+                    let b = Affine::rand(rng);
+                    let mut a_bucket = Bucket::from(a);
+                    a_bucket += &b;
+                    assert_eq!(a + b, <$group>::from(a_bucket), "bucket + affine failed");
+                    let mut a_group = <$group>::from(a);
+                    a_group += &Bucket::from(b);
+                    assert_eq!(a + b, <$group>::from(a_group), "group + bucket failed");
                 }
             }
         }
@@ -411,7 +442,7 @@ macro_rules! test_group {
             use ark_ff::*;
             use ark_ec::{PrimeGroup, CurveGroup, ScalarMul, AffineRepr, CurveConfig, short_weierstrass::SWCurveConfig, twisted_edwards::TECurveConfig, scalar_mul::{*, wnaf::*}};
             use ark_serialize::*;
-            use ark_std::{io::Cursor, rand::Rng, vec::Vec, test_rng, vec, Zero, One, UniformRand};
+            use ark_std::{io::Cursor, rand::Rng, vec::*, test_rng, vec, Zero, One, UniformRand};
             const ITERATIONS: usize = 500;
 
             $crate::__test_group!($group $(; $tail)*);
@@ -424,7 +455,7 @@ macro_rules! test_group {
             use ark_ff::*;
             use ark_ec::{PrimeGroup, CurveGroup, ScalarMul, AffineRepr, CurveConfig, short_weierstrass::SWCurveConfig, twisted_edwards::TECurveConfig, scalar_mul::{*, wnaf::*}};
             use ark_serialize::*;
-            use ark_std::{io::Cursor, rand::Rng, vec::Vec, test_rng, vec, Zero, One, UniformRand};
+            use ark_std::{io::Cursor, rand::Rng, vec::*, test_rng, vec, Zero, One, UniformRand};
             const ITERATIONS: usize = $iters;
 
             $crate::__test_group!($group $(; $tail)*);

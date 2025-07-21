@@ -1,4 +1,3 @@
-extern crate criterion;
 mod common;
 
 use ark_ff::FftField;
@@ -12,7 +11,7 @@ use criterion::{criterion_group, criterion_main, Bencher, BenchmarkId, Criterion
 
 // degree bounds to benchmark on
 // e.g. degree bound of 2^{15}, means we do an FFT for a degree (2^{15} - 1) polynomial
-const BENCHMARK_MIN_DEGREE: usize = 1 << 15;
+const BENCHMARK_MIN_DEGREE: usize = 1 << 4;
 const BENCHMARK_MAX_DEGREE_BLS12_381: usize = 1 << 22;
 const BENCHMARK_MAX_DEGREE_MNT6_753: usize = 1 << 17;
 const BENCHMARK_LOG_INTERVAL_DEGREE: usize = 1;
@@ -43,11 +42,11 @@ fn default_size_range_mnt6_753() -> Vec<usize> {
 fn setup_bench(
     c: &mut Criterion,
     name: &str,
-    bench_fn: fn(&mut Bencher, &usize),
+    bench_fn: fn(&mut Bencher<'_>, &usize),
     size_range: &[usize],
 ) {
     let mut group = c.benchmark_group(name);
-    for degree in size_range.iter() {
+    for degree in size_range {
         group.bench_with_input(BenchmarkId::from_parameter(degree), degree, bench_fn);
     }
     group.finish();
@@ -63,13 +62,13 @@ fn fft_setup_with_domain_size<F: FftField, D: EvaluationDomain<F>>(
 ) -> (D, Vec<F>) {
     let mut rng = &mut ark_std::test_rng();
     let domain = D::new(domain_size).unwrap();
-    let a = DensePolynomial::<F>::rand(degree - 1, &mut rng)
+    let a = DensePolynomial::rand(degree - 1, &mut rng)
         .coeffs()
         .to_vec();
     (domain, a)
 }
 
-fn bench_fft_in_place<F: FftField, D: EvaluationDomain<F>>(b: &mut Bencher, degree: &usize) {
+fn bench_fft_in_place<F: FftField, D: EvaluationDomain<F>>(b: &mut Bencher<'_>, degree: &usize) {
     // Per benchmark setup
     let (domain, mut a) = fft_setup::<F, D>(*degree);
     b.iter(|| {
@@ -79,7 +78,7 @@ fn bench_fft_in_place<F: FftField, D: EvaluationDomain<F>>(b: &mut Bencher, degr
 }
 
 fn bench_large_domain_fft_in_place<F: FftField, D: EvaluationDomain<F>>(
-    b: &mut Bencher,
+    b: &mut Bencher<'_>,
     degree: &usize,
 ) {
     // Per benchmark setup
@@ -90,7 +89,7 @@ fn bench_large_domain_fft_in_place<F: FftField, D: EvaluationDomain<F>>(
     });
 }
 
-fn bench_ifft_in_place<F: FftField, D: EvaluationDomain<F>>(b: &mut Bencher, degree: &usize) {
+fn bench_ifft_in_place<F: FftField, D: EvaluationDomain<F>>(b: &mut Bencher<'_>, degree: &usize) {
     // Per benchmark setup
     let (domain, mut a) = fft_setup::<F, D>(*degree);
     b.iter(|| {
@@ -99,7 +98,10 @@ fn bench_ifft_in_place<F: FftField, D: EvaluationDomain<F>>(b: &mut Bencher, deg
     });
 }
 
-fn bench_coset_fft_in_place<F: FftField, D: EvaluationDomain<F>>(b: &mut Bencher, degree: &usize) {
+fn bench_coset_fft_in_place<F: FftField, D: EvaluationDomain<F>>(
+    b: &mut Bencher<'_>,
+    degree: &usize,
+) {
     // Per benchmark setup
     let (domain, mut a) = fft_setup::<F, D>(*degree);
     let coset_domain = domain.get_coset(F::GENERATOR).unwrap();
@@ -109,7 +111,10 @@ fn bench_coset_fft_in_place<F: FftField, D: EvaluationDomain<F>>(b: &mut Bencher
     });
 }
 
-fn bench_coset_ifft_in_place<F: FftField, D: EvaluationDomain<F>>(b: &mut Bencher, degree: &usize) {
+fn bench_coset_ifft_in_place<F: FftField, D: EvaluationDomain<F>>(
+    b: &mut Bencher<'_>,
+    degree: &usize,
+) {
     // Per benchmark setup
     let (domain, mut a) = fft_setup::<F, D>(*degree);
     let coset_domain = domain.get_coset(F::GENERATOR).unwrap();

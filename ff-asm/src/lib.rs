@@ -59,7 +59,7 @@ pub fn x86_64_asm_mul(input: TokenStream) -> TokenStream {
     } else {
         panic!("The number of limbs must be a literal");
     };
-    if num_limbs <= 6 && num_limbs <= 3 * MAX_REGS {
+    if num_limbs <= 6 {
         let impl_block = generate_impl(num_limbs, true);
 
         let inner_ts: Expr = syn::parse_str(&impl_block).unwrap();
@@ -110,7 +110,7 @@ pub fn x86_64_asm_square(input: TokenStream) -> TokenStream {
     } else {
         panic!("The number of limbs must be a literal");
     };
-    if num_limbs <= 6 && num_limbs <= 3 * MAX_REGS {
+    if num_limbs <= 6 {
         let impl_block = generate_impl(num_limbs, false);
 
         let inner_ts: Expr = syn::parse_str(&impl_block).unwrap();

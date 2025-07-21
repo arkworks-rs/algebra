@@ -16,14 +16,14 @@ This library is released under the MIT License and the Apache v2 License (see [L
 
 ## Directory structure
 
-This repository contains several Rust crates:  
+This repository contains several Rust crates:
 
 * [`ark-ff`](ff): Generic abstractions for, and implementations of various kinds of finite fields
 * [`ark-ec`](ec): Generic abstractions for prime-order groups, and implementations of various kinds of (pairing-friendly and standard) elliptic curves
 * [`ark-poly`](poly): Interfaces for univariate, multivariate, and multilinear polynomials, and FFTs over finite fields
 * [`ark-serialize`](serialize): Efficient interfaces for serialization and point compression for finite fields and elliptic curves
 
-In addition, the [`curves`](https://github.com/arkworks-rs/curves) repository contains concrete implementations of popular elliptic curves; see [here](https://github.com/arkworks-rs/curves/blob/master/README.md) for details.
+In addition, the [`curves`](https://github.com/arkworks-rs/algebra/tree/master/curves) repository contains concrete implementations of popular elliptic curves; see [here](https://github.com/arkworks-rs/algebra/blob/master/curves/README.md) for details.
 
 ## Build guide
 
