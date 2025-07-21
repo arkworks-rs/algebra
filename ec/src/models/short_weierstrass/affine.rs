@@ -33,7 +33,7 @@ pub struct Affine<P: SWCurveConfig> {
     #[doc(hidden)]
     pub y: P::BaseField,
     #[doc(hidden)]
-    pub infinity: P::ZeroFlag,
+    pub(super) infinity: P::ZeroFlag,
 }
 
 impl<P: SWCurveConfig> PartialEq<Projective<P>> for Affine<P> {
@@ -433,13 +433,12 @@ impl<P: SWCurveConfig> CanonicalDeserialize for Affine<P> {
 impl<M: SWCurveConfig, ConstraintF: Field> ToConstraintField<ConstraintF> for Affine<M>
 where
     M::BaseField: ToConstraintField<ConstraintF>,
-    M::ZeroFlag: ToConstraintField<ConstraintF>,
 {
     #[inline]
     fn to_field_elements(&self) -> Option<Vec<ConstraintF>> {
         let mut x = self.x.to_field_elements()?;
         let y = self.y.to_field_elements()?;
-        let infinity = self.infinity.to_field_elements()?;
+        let infinity = self.is_zero().to_field_elements()?;
         x.extend_from_slice(&y);
         x.extend_from_slice(&infinity);
         Some(x)
