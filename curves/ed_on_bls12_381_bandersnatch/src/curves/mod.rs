@@ -184,8 +184,11 @@ const MONT_B_INV: Fq =
     MontFp!("41180284393978236561320365279764246793818536543197771097409483252169927600582");
 
 impl BandersnatchConfig {
-    /// Map an point in TE form to its corresponding  point on SW curve
+    /// Map a point in TE form to its corresponding point on SW curve
     pub fn map_te_to_sw(point: EdwardsAffine) -> Option<SWAffine> {
+        if point.is_zero() {
+            return SWAffine::identity()
+        }
         //First we map the point from the TE to Montgamory
         //edward to mont  ((1+y)/(1-y), (1+y)/(x(1-y)))
         let v_denom = <<BandersnatchConfig as CurveConfig>::BaseField as One>::one() - point.y;
@@ -199,7 +202,7 @@ impl BandersnatchConfig {
         let v = v_w_num * v_denom_inv;
         let w = v_w_num * w_denom_inv;
 
-        //now  we are mappyng the montgamory point to SW.
+        //now we are mapping the montgomery point to SW.
         //Mont->SW ((x+A/3)/B,y/B)
 
         let x = MONT_B_INV * (v + MONT_A_OVER_THREE);
@@ -215,7 +218,10 @@ impl BandersnatchConfig {
     }
 
     pub fn map_sw_to_te(point: SWAffine) -> Option<EdwardsAffine> {
-        //first  we are mappyng the sw point to  montgamory point
+        if point.is_zero() {
+            return EdwardsAffine::zero()
+        }
+        // First  we are mappyng the sw point to  montgamory point
         //SW->Mont by (Bx−A/3,By)
         let mx = <BandersnatchConfig as MontCurveConfig>::COEFF_B * point.x - MONT_A_OVER_THREE;
         let my = <BandersnatchConfig as MontCurveConfig>::COEFF_B * point.y;
