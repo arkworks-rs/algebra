@@ -315,7 +315,7 @@ impl<F: Field> From<DensePolynomial<F>> for SparsePolynomial<F> {
                 .coeffs()
                 .iter()
                 .enumerate()
-                .filter(|&(_, coeff)| (!coeff.is_zero()))
+                .filter(|&(_, coeff)| !coeff.is_zero())
                 .map(|(i, coeff)| (i, *coeff))
                 .collect(),
         )
