@@ -219,7 +219,7 @@ macro_rules! ec_bench {
                     use ark_ec::{scalar_mul::variable_base::VariableBaseMSM, CurveGroup};
                     use ark_ff::PrimeField;
                     use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
-                    use ark_std::{UniformRand, rand::seq::SliceRandom};
+                    use ark_std::{UniformRand, rand::seq::SliceRandom, sync::LazyLock};
                     let mut c = c.benchmark_group("MSM");
                     c.sample_size(10);
 
@@ -227,17 +227,21 @@ macro_rules! ec_bench {
 
                     let name = format!("{}::{}", $curve_name, stringify!($Group));
                     let mut rng = ark_std::test_rng();
-
-                    let v: Vec<_> = (0..SAMPLES)
-                        .map(|_| <$Group>::rand(&mut rng))
-                        .collect();
-                    let v = <$Group>::normalize_batch(&v);
+                    
+                    static V: LazyLock<Vec<<$Group as CurveGroup>::Affine>> = LazyLock::new(|| {
+                        let mut rng = ark_std::test_rng();
+                        let v: Vec<_> = (0..SAMPLES)
+                            .map(|_| <$Group>::rand(&mut rng))
+                            .collect();
+                        <$Group>::normalize_batch(&v)
+                    });
+                    
 
                     c.bench_function(&format!("MSM-random for {name}"), |b| {
                         let s: Vec<_> = (0..SAMPLES)
                             .map(|_| Scalar::rand(&mut rng).into_bigint())
                             .collect();
-                        b.iter(|| <$Group as VariableBaseMSM>::msm_bigint(&v, &s))
+                        b.iter(|| <$Group as VariableBaseMSM>::msm_bigint(&*V, &s))
                     });
 
 
@@ -245,6 +249,7 @@ macro_rules! ec_bench {
                         let s: Vec<_> = (0..SAMPLES)
                             .map(|_| Scalar::from(bool::rand(&mut rng)).into_bigint())
                             .collect();
+                        let v = &*V;
                         b.iter(|| <$Group as VariableBaseMSM>::msm_bigint(&v, &s))
                     });
 
@@ -252,6 +257,7 @@ macro_rules! ec_bench {
                         let s: Vec<_> = (0..SAMPLES)
                             .map(|_| bool::rand(&mut rng))
                             .collect();
+                        let v = &*V;
                         b.iter(|| <$Group as VariableBaseMSM>::msm_u1(&v, &s))
                     });
 
@@ -259,6 +265,7 @@ macro_rules! ec_bench {
                         let s: Vec<_> = (0..SAMPLES)
                             .map(|_| Scalar::from(u8::rand(&mut rng)).into_bigint())
                             .collect();
+                        let v = &*V;
                         b.iter(|| <$Group as VariableBaseMSM>::msm_bigint(&v, &s))
                     });
 
@@ -266,6 +273,7 @@ macro_rules! ec_bench {
                         let s: Vec<_> = (0..SAMPLES)
                             .map(|_| u8::rand(&mut rng))
                             .collect();
+                        let v = &*V;
                         b.iter(|| <$Group as VariableBaseMSM>::msm_u8(&v, &s))
                     });
 
@@ -273,6 +281,7 @@ macro_rules! ec_bench {
                         let s: Vec<_> = (0..SAMPLES)
                             .map(|_| Scalar::from(i8::rand(&mut rng)).into_bigint())
                             .collect();
+                        let v = &*V;
                         b.iter(|| <$Group as VariableBaseMSM>::msm_bigint(&v, &s))
                     });
 
@@ -280,6 +289,7 @@ macro_rules! ec_bench {
                         let s: Vec<_> = (0..SAMPLES)
                             .map(|_| Scalar::from(u16::rand(&mut rng)).into_bigint())
                             .collect();
+                        let v = &*V;
                         b.iter(|| <$Group as VariableBaseMSM>::msm_bigint(&v, &s))
                     });
 
@@ -287,6 +297,7 @@ macro_rules! ec_bench {
                         let s: Vec<_> = (0..SAMPLES)
                             .map(|_| u16::rand(&mut rng))
                             .collect();
+                        let v = &*V;
                         b.iter(|| <$Group>::msm_u16(&v, &s))
                     });
 
@@ -294,6 +305,7 @@ macro_rules! ec_bench {
                         let s: Vec<_> = (0..SAMPLES)
                             .map(|_| Scalar::from(i16::rand(&mut rng)).into_bigint())
                             .collect();
+                        let v = &*V;
                         b.iter(|| <$Group as VariableBaseMSM>::msm_bigint(&v, &s))
                     });
 
@@ -301,6 +313,7 @@ macro_rules! ec_bench {
                         let s: Vec<_> = (0..SAMPLES)
                             .map(|_| Scalar::from(u32::rand(&mut rng)).into_bigint())
                             .collect();
+                        let v = &*V;
                         b.iter(|| <$Group as VariableBaseMSM>::msm_bigint(&v, &s))
                     });
 
@@ -308,6 +321,7 @@ macro_rules! ec_bench {
                         let s: Vec<_> = (0..SAMPLES)
                             .map(|_| u32::rand(&mut rng))
                             .collect();
+                        let v = &*V;
                         b.iter(|| <$Group>::msm_u32(&v, &s))
                     });
 
@@ -315,6 +329,7 @@ macro_rules! ec_bench {
                         let s: Vec<_> = (0..SAMPLES)
                             .map(|_| Scalar::from(i32::rand(&mut rng)).into_bigint())
                             .collect();
+                        let v = &*V;
                         b.iter(|| <$Group as VariableBaseMSM>::msm_bigint(&v, &s))
                     });
 
@@ -322,6 +337,7 @@ macro_rules! ec_bench {
                         let s: Vec<_> = (0..SAMPLES)
                             .map(|_| Scalar::from(u64::rand(&mut rng)).into_bigint())
                             .collect();
+                        let v = &*V;
                         b.iter(|| <$Group as VariableBaseMSM>::msm_bigint(&v, &s))
                     });
 
@@ -329,12 +345,14 @@ macro_rules! ec_bench {
                         let s: Vec<_> = (0..SAMPLES)
                             .map(|_| u64::rand(&mut rng))
                             .collect();
+                        let v = &*V;
                         b.iter(|| <$Group>::msm_u64(&v, &s))
                     });
                     c.bench_function(&format!("MSM-i64 for {name}"), |b| {
                         let s: Vec<_> = (0..SAMPLES)
                             .map(|_| Scalar::from(i64::rand(&mut rng)).into_bigint())
                             .collect();
+                        let v = &*V;
                         b.iter(|| <$Group as VariableBaseMSM>::msm_bigint(&v, &s))
                     });
 
@@ -368,6 +386,7 @@ macro_rules! ec_bench {
                             .into_iter()
                             .map(|s| s.into_bigint())
                             .collect::<Vec<_>>();
+                        let v = &*V;
                         b.iter(|| <$Group as VariableBaseMSM>::msm_bigint(&v, &s))
                     });
                 }
