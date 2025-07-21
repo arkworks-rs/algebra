@@ -109,11 +109,13 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
     /// Sets `a = a - b`.
     #[inline(always)]
     fn sub_assign(a: &mut Fp<MontBackend<Self, N>, N>, b: &Fp<MontBackend<Self, N>, N>) {
-        // If `other` is larger than `self`, add the modulus to self first.
-        if b.0 > a.0 {
+        // If `other` is larger than `self`. 
+        // To avoid a comparison, we use the fact that `other > self` only when
+        // `self - other` has a borrow.
+        // In that case, we add add the modulus to self.
+        if a.0.sub_with_borrow(&b.0) {
             a.0.add_with_carry(&Self::MODULUS);
         }
-        a.0.sub_with_borrow(&b.0);
     }
 
     /// Sets `a = 2 * a`.
