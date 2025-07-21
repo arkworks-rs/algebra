@@ -536,7 +536,7 @@ pub const fn sqrt_precomputation<const N: usize, T: MontConfig<N>>(
 ) -> Option<SqrtPrecomputation<Fp<MontBackend<T, N>, N>>> {
     match T::MODULUS.mod_4() {
         3 => match T::MODULUS_PLUS_ONE_DIV_FOUR.as_ref() {
-            Some(BigInt(modulus_plus_one_div_four)) => Some(SqrtPrecomputation::Case3Mod4 {
+            Some(BigInt(modulus_plus_one_div_four)) => Some(SqrtPrecomputation::PowerCase3Mod4 {
                 modulus_plus_one_div_four,
             }),
             None => None,
