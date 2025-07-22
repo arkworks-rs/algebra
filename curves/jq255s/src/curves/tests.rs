@@ -23,6 +23,8 @@ fn decode_encode() {
     assert_eq!(a_uncompressed, a);
 }
 
+/// These test vectors originate from Thomas Pornin's implementation of Jq255e and Jq255s:
+/// <https://github.com/doubleodd/c-jq255> (Thomas Pornin, 2022)
 #[test]
 fn valid_decode() {
     let encoded_points: Vec<&str> = vec![

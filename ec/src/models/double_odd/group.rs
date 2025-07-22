@@ -29,8 +29,13 @@ use crate::{
     AffineRepr, CurveGroup, PrimeGroup,
 };
 
-/// Fractional coordinates for a point on an elliptic curve in double odd
-/// form, over the base field `P::BaseField`.
+/// Fractional coordinates as utilised in <https://doubleodd.group/doubleodd-jq.pdf>,
+/// but first defined in <https://www.sciencedirect.com/science/article/pii/S0020019007001433>.
+/// Affine point (e,u) is represented as (E:Z:U:T) such that:
+/// - Z != 0
+/// - e = E/Z
+/// - u = U/Z
+/// - u**2 / T/Z
 #[derive(Educe)]
 #[educe(Copy, Clone)]
 #[must_use]
@@ -248,6 +253,9 @@ impl<P: DOCurveConfig> Neg for Projective<P> {
 }
 
 impl<P: DOCurveConfig, T: Borrow<Affine<P>>> AddAssign<T> for Projective<P> {
+    /// Using Algorithm 3 from <https://doubleodd.group/doubleodd-jq.pdf>,
+    /// simplified because the second point is affine
+    /// (n2 = Z1, n5 = Z1*T2 + T1).
     fn add_assign(&mut self, other: T) {
         let other = other.borrow();
         let othert = other.u.square();
@@ -307,6 +315,7 @@ impl<'a, P: DOCurveConfig> Add<&'a Self> for Projective<P> {
 }
 
 impl<'a, P: DOCurveConfig> AddAssign<&'a Self> for Projective<P> {
+    /// Using Algorithm 3 from <https://doubleodd.group/doubleodd-jq.pdf>.
     fn add_assign(&mut self, other: &'a Self) {
         if self.is_zero() {
             *self = *other;
