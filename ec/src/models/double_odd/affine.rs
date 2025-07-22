@@ -21,8 +21,15 @@ use zeroize::Zeroize;
 use super::{DOCurveConfig, Projective};
 use crate::{AffineRepr, CurveGroup};
 
-/// Affine coordinates for a point on an elliptic curve in double odd
-/// form, over the base field `P::BaseField`.
+/// Instead of using the (x,y)-coordinate system of the original paper (<https://doubleodd.group/doubleodd.pdf>),
+/// The (e,u)-coordinates from the follow-up (<https://doubleodd.group/doubleodd-jq.pdf>) was implemented.
+/// This coordinate system allows for the new curve equation `e**2 = (a-4*b)*u**4 - 2a*u**2 + 1',
+/// which is of the Jacobi quartic form, allowing for faster addition/doubling formulae.
+/// Additionally, these coordinates allow for more efficient en/decoding.
+/// Transformation from (x,y)-coords:
+/// - In general: (e,u) = (u**2*(x - b/x),x/y)
+/// - Point at infinity: (e,u) = (1,0)
+/// - N: (e,u) = (-1,0)
 #[derive(Educe)]
 #[educe(Copy, Clone, PartialEq, Eq, Hash)]
 #[must_use]
@@ -69,6 +76,10 @@ impl<P: DOCurveConfig> Affine<P> {
         }
     }
 
+    /// Returns N as defined in the original double-odd paper (<https://doubleodd.group/doubleodd.pdf>):
+    /// N is the only point of order 2, so that the representants of each group element are {P; P+N},
+    /// with P being a point on the r-torsion of the curve, and P+N not on said r-torsion..
+    /// In (x,y)-coordinates, N is (0,0).
     pub fn n() -> Self {
         Self {
             e: -P::BaseField::ONE,
@@ -88,7 +99,7 @@ impl<P: DOCurveConfig> Affine<P> {
     }
 
     pub fn get_es_from_u_unchecked(u: P::BaseField) -> Option<(P::BaseField, P::BaseField)> {
-        // Compute the curve equation x(x^2 + Ax + B).
+        // Compute e from the curve equation `e**2 = (a-4*b)*u**4 - 2a*u**2 + 1'
         let e = (P::get_c() * u.square().square() - (P::COEFF_A * u.square()).double()
             + P::BaseField::ONE)
             .sqrt()?;
@@ -99,7 +110,8 @@ impl<P: DOCurveConfig> Affine<P> {
         }
     }
 
-    /// Checks if `self` is a valid point on the curve.
+    /// Checks if `self` is a valid point on the curve,
+    /// using the curve equation `e**2 = (a-4*b)*u**4 - 2a*u**2 + 1'
     pub fn is_on_curve(&self) -> bool {
         let e_squared = P::get_c() * self.u.square().square()
             - (P::COEFF_A * self.u.square()).double()
@@ -197,6 +209,9 @@ impl<P: DOCurveConfig> Neg for Affine<P> {
 
 impl<P: DOCurveConfig, T: Borrow<Self>> Add<T> for Affine<P> {
     type Output = Projective<P>;
+    /// Using Algorithm 3 from <https://doubleodd.group/doubleodd-jq.pdf>,
+    /// simplified because both points are affine
+    /// (n2 = 1, n5 = T1 + T2).
     fn add(self, other: T) -> Projective<P> {
         let mut copy = self.into_group();
         let other = other.borrow();
