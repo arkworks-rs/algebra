@@ -93,12 +93,8 @@ pub trait DOCurveConfig: super::CurveConfig {
         let (e, u) = match compress {
             Compress::Yes => {
                 let u: Self::BaseField = CanonicalDeserialize::deserialize_uncompressed(reader)?;
-                let e: Self::BaseField = (Self::get_c() * u.square().square()
-                    - (Self::COEFF_A * u.square()).double()
-                    + Self::BaseField::ONE)
-                    .sqrt()
-                    .ok_or(SerializationError::InvalidData)
-                    .unwrap();
+                let e: Self::BaseField =
+                    Affine::<Self>::get_e_from_u(u).ok_or(SerializationError::InvalidData)?;
                 (e, u)
             },
             Compress::No => {

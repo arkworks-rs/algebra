@@ -1,8 +1,7 @@
 use crate::Affine;
-use ark_ec::double_odd::Projective;
-use ark_ec::AffineRepr;
-use ark_serialize::CanonicalDeserialize;
-use ark_serialize::CanonicalSerialize;
+use ark_ec::{double_odd::Projective, AffineRepr};
+use ark_ff::{vec, vec::Vec};
+use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use ark_std::UniformRand;
 
 #[test]
@@ -51,7 +50,6 @@ fn valid_decode() {
         "dcc3f03e68c699d5be18958e90d9efad3ffec41de365807633592ff89d306771",
     ];
     for encoded_point in encoded_points.iter() {
-        println!("{:?}", encoded_point);
         let point_serialized = hex::decode(encoded_point).unwrap();
         let point = Affine::deserialize_compressed(&*point_serialized).unwrap();
 
