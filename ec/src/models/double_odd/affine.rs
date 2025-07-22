@@ -98,11 +98,14 @@ impl<P: DOCurveConfig> Affine<P> {
         })
     }
 
-    pub fn get_es_from_u_unchecked(u: P::BaseField) -> Option<(P::BaseField, P::BaseField)> {
+    pub fn get_e_from_u(u: P::BaseField) -> Option<P::BaseField> {
         // Compute e from the curve equation `e**2 = (a-4*b)*u**4 - 2a*u**2 + 1'
-        let e = (P::get_c() * u.square().square() - (P::COEFF_A * u.square()).double()
-            + P::BaseField::ONE)
-            .sqrt()?;
+        (P::get_c() * u.square().square() - (P::COEFF_A * u.square()).double() + P::BaseField::ONE)
+            .sqrt()
+    }
+
+    pub fn get_es_from_u_unchecked(u: P::BaseField) -> Option<(P::BaseField, P::BaseField)> {
+        let e = Self::get_e_from_u(u)?;
         let neg_e = -e;
         match e < neg_e {
             true => Some((e, neg_e)),
