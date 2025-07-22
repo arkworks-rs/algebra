@@ -28,8 +28,7 @@ impl CurveConfig for Config {
 
 impl DOCurveConfig for Config {
     /// COEFF_A = -1
-    const COEFF_A: Fq =
-        MontFp!("57896044618658097711785492504343953926634992332820282019728792003956564816010");
+    const COEFF_A: Fq = MontFp!("-1");
 
     /// COEFF_B = 1/2
     const COEFF_B: Fq =
