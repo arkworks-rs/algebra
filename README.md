@@ -1,7 +1,7 @@
 <h1 align="center">arkworks::algebra</h1>
 
 <p align="center">
-    <a href="https://github.com/arkworks-rs/algebra/actions/workflows/ci.yml/badge.svg"><img src="https://github.com/arkworks-rs/algebra/actions/workflows/ci.yml/badge.svg"></a>
+    <a href="https://github.com/arkworks-rs/algebra/actions/workflows/ci.yml"><img src="https://github.com/arkworks-rs/algebra/actions/workflows/ci.yml/badge.svg"></a>
     <a href="https://github.com/arkworks-rs/algebra/blob/master/LICENSE-APACHE"><img src="https://img.shields.io/badge/license-APACHE-blue.svg"></a>
     <a href="https://github.com/arkworks-rs/algebra/blob/master/LICENSE-MIT"><img src="https://img.shields.io/badge/license-MIT-blue.svg"></a>
     <a href="https://deps.rs/repo/github/arkworks-rs/algebra"><img src="https://deps.rs/repo/github/arkworks-rs/algebra/status.svg"></a>
