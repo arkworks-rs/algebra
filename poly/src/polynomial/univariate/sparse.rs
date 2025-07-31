@@ -280,7 +280,6 @@ impl<F: Field> SparsePolynomial<F> {
         dividend.naive_div(&divisor).expect("division failed").0
     }
 
-
     // append append_coeffs to self.
     // Correctness relies on the lowest degree term in append_coeffs
     // being higher than self.degree()

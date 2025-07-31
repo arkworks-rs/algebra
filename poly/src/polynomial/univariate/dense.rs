@@ -902,20 +902,18 @@ mod tests {
                 let dividend = DensePolynomial::<Fr>::rand(a_degree, rng);
                 let divisor = DensePolynomial::<Fr>::rand(b_degree, rng);
                 // Test the nlogn division
-                if let Some(quotient) = DenseOrSparsePolynomial::hensel_div(
-                    &(&dividend).into(),
-                    &(&divisor).into(),
-                ) {
+                if let Some(quotient) =
+                    DenseOrSparsePolynomial::hensel_div(&(&dividend).into(), &(&divisor).into())
+                {
                     let remainder = &dividend - &(&divisor * &quotient);
                     // ark_poly assumes that the 0 polynomial has degree 0 so we need to workaround that case
                     assert!(remainder.degree() < divisor.degree() || remainder.is_zero());
                 }
 
                 // Test the naive division
-                if let Some((quotient, remainder)) = DenseOrSparsePolynomial::naive_div(
-                    &(&dividend).into(),
-                    &(&divisor).into()
-                ) {
+                if let Some((quotient, remainder)) =
+                    DenseOrSparsePolynomial::naive_div(&(&dividend).into(), &(&divisor).into())
+                {
                     assert!(remainder.degree() < divisor.degree() || remainder.is_zero());
                     assert_eq!(dividend, &(&divisor * &quotient) + &remainder);
                 }
