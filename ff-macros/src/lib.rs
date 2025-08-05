@@ -22,7 +22,7 @@ pub fn to_sign_and_limbs(input: TokenStream) -> TokenStream {
     let (is_positive, limbs) = utils::str_to_limbs(&num);
 
     let limbs: String = limbs.join(", ");
-    let limbs_and_sign = format!("({}", is_positive) + ", [" + &limbs + "])";
+    let limbs_and_sign = format!("({is_positive}") + ", [" + &limbs + "])";
     let tuple: Expr = syn::parse_str(&limbs_and_sign).unwrap();
     quote::quote!(#tuple).into()
 }
