@@ -82,7 +82,7 @@ The crates in this repository are licensed under either of the following license
 
 Unless you explicitly state otherwise, any contribution submitted for inclusion in this library by you shall be dual licensed as above (as defined in the Apache v2 License), without any additional terms or conditions.
 
-[zexe]: https://ia.cr/2018/962
+[zexe]: https://eprint.iacr.org/2018/962
 
 ## Acknowledgements
 
