@@ -135,8 +135,8 @@ mod test {
     #[derive(ark_ff::MontConfig)]
     #[modulus = "127"]
     #[generator = "6"]
-    pub struct F127Config;
-    pub type F127 = Fp64<MontBackend<F127Config, 1>>;
+    pub(crate) struct F127Config;
+    pub(crate) type F127 = Fp64<MontBackend<F127Config, 1>>;
 
     const F127_ZERO: F127 = MontFp!("0");
     const F127_ONE: F127 = MontFp!("1");
@@ -145,9 +145,8 @@ mod test {
     struct TestWBF127MapToCurveConfig;
 
     impl CurveConfig for TestWBF127MapToCurveConfig {
-        const COFACTOR: &'static [u64] = &[1];
+        const COFACTOR: &[u64] = &[1];
 
-    #[rustfmt::skip]
         const COFACTOR_INV: F127 = F127_ONE;
 
         type BaseField = F127;
@@ -161,11 +160,13 @@ mod test {
         const COEFF_A: F127 = F127_ZERO;
 
         /// COEFF_B = 3
-    #[rustfmt::skip]
         const COEFF_B: F127 = MontFp!("3");
 
         /// AFFINE_GENERATOR_COEFFS = (G1_GENERATOR_X, G1_GENERATOR_Y)
         const GENERATOR: Affine<Self> = Affine::new_unchecked(MontFp!("62"), MontFp!("70"));
+
+        /// We use `()` because the point (0, 0) is not on the curve.
+        type ZeroFlag = ();
     }
 
     /// Testing WB19 hashing on a small curve
@@ -178,9 +179,8 @@ mod test {
     /// sage: E_isogenous.order()
     /// 127
     impl CurveConfig for TestSWU127MapToIsogenousCurveConfig {
-        const COFACTOR: &'static [u64] = &[1];
+        const COFACTOR: &[u64] = &[1];
 
-    #[rustfmt::skip]
         const COFACTOR_INV: F127 = F127_ONE;
 
         type BaseField = F127;
@@ -194,11 +194,13 @@ mod test {
         const COEFF_A: F127 = MontFp!("109");
 
         /// COEFF_B = 124
-    #[rustfmt::skip]
         const COEFF_B: F127 = MontFp!("124");
 
         /// AFFINE_GENERATOR_COEFFS = (G1_GENERATOR_X, G1_GENERATOR_Y)
         const GENERATOR: Affine<Self> = Affine::new_unchecked(MontFp!("84"), MontFp!("2"));
+
+        /// We use `bool because the point (0, 0) could be on the curve.
+        type ZeroFlag = bool;
     }
 
     /// SWU parameters for E_isogenous

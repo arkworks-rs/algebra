@@ -7,10 +7,12 @@ use crate::{
 use ark_ff::{FftField, Field, Zero};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use ark_std::{
+    cfg_iter_mut,
     cmp::Ordering,
     collections::BTreeMap,
     fmt,
     ops::{Add, AddAssign, Deref, DerefMut, Mul, Neg, SubAssign},
+    vec,
     vec::*,
 };
 
@@ -63,7 +65,7 @@ impl<F: Field> Polynomial<F> for SparsePolynomial<F> {
         if self.is_zero() {
             0
         } else {
-            assert!(self.coeffs.last().map_or(false, |(_, c)| !c.is_zero()));
+            assert!(self.coeffs.last().is_some_and(|(_, c)| !c.is_zero()));
             self.coeffs.last().unwrap().0
         }
     }
@@ -102,9 +104,9 @@ impl<F: Field> Polynomial<F> for SparsePolynomial<F> {
 }
 
 impl<F: Field> Add for SparsePolynomial<F> {
-    type Output = SparsePolynomial<F>;
+    type Output = Self;
 
-    fn add(self, other: SparsePolynomial<F>) -> Self {
+    fn add(self, other: Self) -> Self {
         &self + &other
     }
 }
@@ -162,16 +164,16 @@ impl<'a, F: Field> Add<&'a SparsePolynomial<F>> for &SparsePolynomial<F> {
     }
 }
 
-impl<'a, F: Field> AddAssign<&'a SparsePolynomial<F>> for SparsePolynomial<F> {
+impl<'a, F: Field> AddAssign<&'a Self> for SparsePolynomial<F> {
     // TODO: Reduce number of clones
-    fn add_assign(&mut self, other: &'a SparsePolynomial<F>) {
+    fn add_assign(&mut self, other: &'a Self) {
         self.coeffs = (self.clone() + other.clone()).coeffs;
     }
 }
 
-impl<'a, F: Field> AddAssign<(F, &'a SparsePolynomial<F>)> for SparsePolynomial<F> {
+impl<'a, F: Field> AddAssign<(F, &'a Self)> for SparsePolynomial<F> {
     // TODO: Reduce number of clones
-    fn add_assign(&mut self, (f, other): (F, &'a SparsePolynomial<F>)) {
+    fn add_assign(&mut self, (f, other): (F, &'a Self)) {
         self.coeffs = (self.clone() + other.clone()).coeffs;
         for i in 0..self.coeffs.len() {
             self.coeffs[i].1 *= f;
@@ -180,10 +182,10 @@ impl<'a, F: Field> AddAssign<(F, &'a SparsePolynomial<F>)> for SparsePolynomial<
 }
 
 impl<F: Field> Neg for SparsePolynomial<F> {
-    type Output = SparsePolynomial<F>;
+    type Output = Self;
 
     #[inline]
-    fn neg(mut self) -> SparsePolynomial<F> {
+    fn neg(mut self) -> Self {
         for (_, coeff) in &mut self.coeffs {
             *coeff = -*coeff;
         }
@@ -191,10 +193,10 @@ impl<F: Field> Neg for SparsePolynomial<F> {
     }
 }
 
-impl<'a, F: Field> SubAssign<&'a SparsePolynomial<F>> for SparsePolynomial<F> {
+impl<'a, F: Field> SubAssign<&'a Self> for SparsePolynomial<F> {
     // TODO: Reduce number of clones
     #[inline]
-    fn sub_assign(&mut self, other: &'a SparsePolynomial<F>) {
+    fn sub_assign(&mut self, other: &'a Self) {
         let self_copy = -self.clone();
         self.coeffs = (self_copy + other.clone()).coeffs;
     }
@@ -240,7 +242,7 @@ impl<F: Field> SparsePolynomial<F> {
     /// of the same degree are ignored.
     pub fn from_coefficients_vec(mut coeffs: Vec<(usize, F)>) -> Self {
         // While there are zeros at the end of the coefficient vector, pop them off.
-        while coeffs.last().map_or(false, |(_, c)| c.is_zero()) {
+        while coeffs.last().is_some_and(|(_, c)| c.is_zero()) {
             coeffs.pop();
         }
         // Ensure that coeffs are in ascending order.
@@ -253,19 +255,20 @@ impl<F: Field> SparsePolynomial<F> {
     }
 
     /// Perform a naive n^2 multiplication of `self` by `other`.
-    #[allow(clippy::or_fun_call)]
     pub fn mul(&self, other: &Self) -> Self {
         if self.is_zero() || other.is_zero() {
-            SparsePolynomial::zero()
+            Self::zero()
         } else {
             let mut result = BTreeMap::new();
-            for (i, self_coeff) in self.coeffs.iter() {
-                for (j, other_coeff) in other.coeffs.iter() {
-                    let cur_coeff = result.entry(i + j).or_insert(F::zero());
-                    *cur_coeff += &(*self_coeff * other_coeff);
+            for (i, self_coeff) in &self.coeffs {
+                for (j, other_coeff) in &other.coeffs {
+                    result
+                        .entry(i + j)
+                        .and_modify(|cur_coeff| *cur_coeff += *self_coeff * other_coeff)
+                        .or_insert_with(|| *self_coeff * other_coeff);
                 }
             }
-            SparsePolynomial::from_coefficients_vec(result.into_iter().collect())
+            Self::from_coefficients_vec(result.into_iter().collect())
         }
     }
 
@@ -301,18 +304,19 @@ impl<F: Field> From<SparsePolynomial<F>> for DensePolynomial<F> {
         for (i, coeff) in other.coeffs {
             result[i] = coeff;
         }
-        DensePolynomial::from_coefficients_vec(result)
+        Self::from_coefficients_vec(result)
     }
 }
 
 impl<F: Field> From<DensePolynomial<F>> for SparsePolynomial<F> {
-    fn from(dense_poly: DensePolynomial<F>) -> SparsePolynomial<F> {
-        SparsePolynomial::from_coefficients_vec(
+    fn from(dense_poly: DensePolynomial<F>) -> Self {
+        Self::from_coefficients_vec(
             dense_poly
                 .coeffs()
                 .iter()
                 .enumerate()
-                .filter_map(|(i, coeff)| (!coeff.is_zero()).then(|| (i, *coeff)))
+                .filter(|&(_, coeff)| !coeff.is_zero())
+                .map(|(i, coeff)| (i, *coeff))
                 .collect(),
         )
     }
@@ -326,7 +330,7 @@ mod tests {
         EvaluationDomain, GeneralEvaluationDomain,
     };
     use ark_ff::{UniformRand, Zero};
-    use ark_std::{cmp::max, ops::Mul, rand::Rng, test_rng};
+    use ark_std::{cmp::max, ops::Mul, rand::Rng, test_rng, vec};
     use ark_test_curves::bls12_381::Fr;
 
     // probability of rand sparse polynomial having a particular coefficient be 0

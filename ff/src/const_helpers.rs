@@ -122,7 +122,7 @@ impl<const N: usize> SerBuffer<N> {
     }
 
     #[allow(unsafe_code)]
-    pub(super) fn as_slice(&self) -> &[u8] {
+    pub(super) const fn as_slice(&self) -> &[u8] {
         unsafe { ark_std::slice::from_raw_parts((self as *const Self) as *const u8, 8 * N + 1) }
     }
 
@@ -358,7 +358,7 @@ mod tests {
     fn test_ser_buffer_write_and_read() {
         type Ser = SerBuffer<2>;
         let buf = Ser::zeroed();
-        let mut data = vec![];
+        let mut data = ark_std::vec::Vec::new();
         buf.write_up_to(&mut data, 16)
             .expect("Failed to write buffer");
 

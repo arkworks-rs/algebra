@@ -1,0 +1,39 @@
+[package]
+name = "ark-starkcurve"
+version.workspace = true
+authors = [ "CPerezz", "arkworks contributors" ]
+description = "Stark friendly elliptic curve defined over 2^251 + 17 * 2^192 + 1"
+homepage.workspace = true
+repository.workspace = true
+documentation = "https://docs.rs/ark-starkcurve/"
+keywords.workspace = true
+categories.workspace = true
+include.workspace = true
+license.workspace = true
+edition.workspace = true
+
+[dependencies]
+ark-ff = { workspace = true }
+ark-ec = { workspace = true }
+ark-r1cs-std = { workspace = true, optional = true }
+ark-std = { workspace = true }
+ark-bn254 = { workspace = true, features = [ "scalar_field", "curve" ] }
+
+
+[dev-dependencies]
+ark-relations = { workspace = true }
+ark-serialize = { workspace = true }
+ark-algebra-test-templates = { workspace = true }
+ark-algebra-bench-templates = { workspace = true }
+ark-curve-constraint-tests = { path = "../curve-constraint-tests" }
+
+[features]
+default = []
+std = [ "ark-std/std", "ark-ff/std", "ark-ec/std" ]
+r1cs = [ "ark-r1cs-std" ]
+asm = [ "ark-ff/asm" ]
+
+[[bench]]
+name = "starkcurve"
+path = "benches/starkcurve.rs"
+harness = false

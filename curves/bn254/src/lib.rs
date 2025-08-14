@@ -13,7 +13,7 @@
 //! defined over a 254-bit (prime) field. The scalar field is highly 2-adic.
 //!
 //! This curve is also implemented in [libff](https://github.com/scipr-lab/libff/tree/master/libff/algebra/curves/alt_bn128) under the name `bn128`.
-//! It is the same as the `bn256` curve used in Ethereum (eg: [go-ethereum](https://github.com/ethereum/go-ethereum/tree/master/crypto/bn254/cloudflare)).
+//! It is the same as the `bn256` curve used in Ethereum (eg: [go-ethereum](https://github.com/ethereum/go-ethereum/tree/master/crypto/bn256/cloudflare)).
 //!
 //! #CAUTION
 //! **This curve does not satisfy the 128-bit security level anymore.**

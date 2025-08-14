@@ -5,7 +5,7 @@ use crate::{
 };
 use ark_serialize::{
     CanonicalDeserialize, CanonicalDeserializeWithFlags, CanonicalSerialize,
-    CanonicalSerializeWithFlags, Compress, EmptyFlags, Flags, SerializationError, Valid, Validate,
+    CanonicalSerializeWithFlags, Compress, EmptyFlags, Flags, SerializationError,
 };
 use ark_std::{
     cmp::*,
@@ -45,8 +45,8 @@ pub trait CubicExtConfig: 'static + Send + Sync + Sized {
     const NONRESIDUE: Self::BaseField;
 
     /// Coefficients for the Frobenius automorphism.
-    const FROBENIUS_COEFF_C1: &'static [Self::FrobCoeff];
-    const FROBENIUS_COEFF_C2: &'static [Self::FrobCoeff];
+    const FROBENIUS_COEFF_C1: &[Self::FrobCoeff];
+    const FROBENIUS_COEFF_C2: &[Self::FrobCoeff];
 
     /// A specializable method for multiplying an element of the base field by
     /// the quadratic non-residue. This is used in multiplication and squaring.
@@ -75,7 +75,7 @@ pub trait CubicExtConfig: 'static + Send + Sync + Sized {
 
 /// An element of a cubic extension field F_p\[X\]/(X^3 - P::NONRESIDUE) is
 /// represented as c0 + c1 * X + c2 * X^2, for c0, c1, c2 in `P::BaseField`.
-#[derive(Educe)]
+#[derive(educe::Educe, CanonicalDeserialize)]
 #[educe(Default, Hash, Clone, Copy, Debug, PartialEq, Eq)]
 pub struct CubicExtField<P: CubicExtConfig> {
     pub c0: P::BaseField,
@@ -186,6 +186,12 @@ impl<P: CubicExtConfig> Field for CubicExtField<P> {
 
     const ONE: Self = Self::new(P::BaseField::ONE, P::BaseField::ZERO, P::BaseField::ZERO);
 
+    const NEG_ONE: Self = Self::new(
+        P::BaseField::NEG_ONE,
+        P::BaseField::ZERO,
+        P::BaseField::ZERO,
+    );
+
     fn extension_degree() -> u64 {
         3 * P::BaseField::extension_degree()
     }
@@ -205,19 +211,14 @@ impl<P: CubicExtConfig> Field for CubicExtField<P> {
     fn from_base_prime_field_elems(
         elems: impl IntoIterator<Item = Self::BasePrimeField>,
     ) -> Option<Self> {
-        let mut elems = elems.into_iter();
-        let elems = elems.by_ref();
-        let base_ext_deg = P::BaseField::extension_degree() as usize;
-        let element = Some(Self::new(
-            P::BaseField::from_base_prime_field_elems(elems.take(base_ext_deg))?,
-            P::BaseField::from_base_prime_field_elems(elems.take(base_ext_deg))?,
-            P::BaseField::from_base_prime_field_elems(elems.take(base_ext_deg))?,
-        ));
-        if elems.next().is_some() {
-            None
-        } else {
-            element
-        }
+        let mut iter = elems.into_iter();
+        let d = P::BaseField::extension_degree() as usize;
+
+        let a = P::BaseField::from_base_prime_field_elems(iter.by_ref().take(d))?;
+        let b = P::BaseField::from_base_prime_field_elems(iter.by_ref().take(d))?;
+        let c = P::BaseField::from_base_prime_field_elems(iter.by_ref().take(d))?;
+
+        iter.next().is_none().then(|| Self::new(a, b, c))
     }
 
     #[inline]
@@ -457,6 +458,7 @@ impl<P: CubicExtConfig> From<i8> for CubicExtField<P> {
 }
 
 impl<P: CubicExtConfig> From<bool> for CubicExtField<P> {
+    #[allow(clippy::unconditional_recursion)]
     fn from(other: bool) -> Self {
         other.into()
     }
@@ -518,6 +520,7 @@ impl<P: CubicExtConfig> Div<&CubicExtField<P>> for CubicExtField<P> {
     type Output = Self;
 
     #[inline]
+    #[allow(clippy::suspicious_arithmetic_impl)]
     fn div(mut self, other: &Self) -> Self {
         self *= &other.inverse().unwrap();
         self
@@ -546,7 +549,6 @@ impl<P: CubicExtConfig> SubAssign<&Self> for CubicExtField<P> {
 
 impl<P: CubicExtConfig> MulAssign<&Self> for CubicExtField<P> {
     #[inline]
-    #[allow(clippy::many_single_char_names)]
     fn mul_assign(&mut self, other: &Self) {
         // Devegili OhEig Scott Dahab --- Multiplication and Squaring on
         // AbstractPairing-Friendly
@@ -636,28 +638,6 @@ impl<P: CubicExtConfig> CanonicalDeserializeWithFlags for CubicExtField<P> {
     }
 }
 
-impl<P: CubicExtConfig> Valid for CubicExtField<P> {
-    fn check(&self) -> Result<(), SerializationError> {
-        self.c0.check()?;
-        self.c1.check()?;
-        self.c2.check()
-    }
-}
-
-impl<P: CubicExtConfig> CanonicalDeserialize for CubicExtField<P> {
-    #[inline]
-    fn deserialize_with_mode<R: Read>(
-        mut reader: R,
-        compress: Compress,
-        validate: Validate,
-    ) -> Result<Self, SerializationError> {
-        let c0 = CanonicalDeserialize::deserialize_with_mode(&mut reader, compress, validate)?;
-        let c1 = CanonicalDeserialize::deserialize_with_mode(&mut reader, compress, validate)?;
-        let c2 = CanonicalDeserialize::deserialize_with_mode(&mut reader, compress, validate)?;
-        Ok(Self::new(c0, c1, c2))
-    }
-}
-
 impl<P: CubicExtConfig> ToConstraintField<P::BasePrimeField> for CubicExtField<P>
 where
     P::BaseField: ToConstraintField<P::BasePrimeField>,
@@ -698,7 +678,7 @@ where
 #[cfg(test)]
 mod cube_ext_tests {
     use super::*;
-    use ark_std::test_rng;
+    use ark_std::{test_rng, vec};
     use ark_test_curves::{
         ark_ff::Field,
         bls12_381::{Fq, Fq2, Fq6},

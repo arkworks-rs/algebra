@@ -14,7 +14,7 @@ impl ark_serialize::Flags for DummyFlags {
     }
 
     fn from_u8(_value: u8) -> Option<Self> {
-        Some(DummyFlags)
+        Some(Self)
     }
 }
 
@@ -215,11 +215,14 @@ macro_rules! __test_field {
             let mut rng = test_rng();
             let zero = <$field>::zero();
             let one = <$field>::one();
+            let minus_one = <$field>::NEG_ONE;
             assert_eq!(one.inverse().unwrap(), one, "One inverse failed");
             assert!(one.is_one(), "One is not one");
 
             assert!(<$field>::ONE.is_one(), "One constant is not one");
             assert_eq!(<$field>::ONE, one, "One constant is incorrect");
+            assert_eq!(<$field>::NEG_ONE, -one, "NEG_ONE constant is incorrect");
+            assert_eq!(<$field>::ONE + <$field>::NEG_ONE, zero, "1 + -1 neq 0");
 
             for _ in 0..ITERATIONS {
                 // Associativity
@@ -235,6 +238,7 @@ macro_rules! __test_field {
                 assert_eq!(one * a, a, "Identity mul failed");
                 assert_eq!(one * b, b, "Identity mul failed");
                 assert_eq!(one * c, c, "Identity mul failed");
+                assert_eq!(minus_one * c, -c, "NEG_ONE mul failed");
 
                 assert_eq!(zero * a, zero, "Mul by zero failed");
                 assert_eq!(zero * b, zero, "Mul by zero failed");
@@ -380,8 +384,11 @@ macro_rules! __test_field {
         #[test]
         fn test_fft() {
             use ark_ff::FftField;
+            use $crate::num_bigint::BigUint;
+
+            let two_pow_2_adicity = BigUint::from(1_u8) << <$field>::TWO_ADICITY as u32;
             assert_eq!(
-                <$field>::TWO_ADIC_ROOT_OF_UNITY.pow([1 << <$field>::TWO_ADICITY]),
+                <$field>::TWO_ADIC_ROOT_OF_UNITY.pow(two_pow_2_adicity.to_u64_digits()),
                 <$field>::one()
             );
 
@@ -389,8 +396,8 @@ macro_rules! __test_field {
                 let small_subgroup_base_adicity = <$field>::SMALL_SUBGROUP_BASE_ADICITY.unwrap();
                 let large_subgroup_root_of_unity = <$field>::LARGE_SUBGROUP_ROOT_OF_UNITY.unwrap();
                 let pow =
-                (1 << <$field>::TWO_ADICITY) * (small_subgroup_base as u64).pow(small_subgroup_base_adicity);
-                assert_eq!(large_subgroup_root_of_unity.pow([pow]), <$field>::one());
+                <$field>::from(two_pow_2_adicity) * <$field>::from(small_subgroup_base as u64).pow([small_subgroup_base_adicity as u64]);
+                assert_eq!(large_subgroup_root_of_unity.pow(pow.into_bigint()), <$field>::one());
 
                 for i in 0..=<$field>::TWO_ADICITY {
                     for j in 0..=small_subgroup_base_adicity {
@@ -401,9 +408,9 @@ macro_rules! __test_field {
                 }
             } else {
                 for i in 0..=<$field>::TWO_ADICITY {
-                    let size = 1 << i;
-                    let root = <$field>::get_root_of_unity(size).unwrap();
-                    assert_eq!(root.pow([size as u64]), <$field>::one());
+                    let size = BigUint::from(1_u8) << i;
+                    let root = <$field>::get_root_of_unity_big_int(size.clone()).unwrap();
+                    assert_eq!(root.pow(size.to_u64_digits()), <$field>::one());
                 }
             }
         }

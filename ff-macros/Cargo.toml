@@ -12,13 +12,16 @@ license.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 metadata.docs.rs.workspace = true
-package.metadata.release.workspace = true
-keywords = ["cryptography", "finite-fields", "assembly" ]
+metadata.release.workspace = true
+keywords = ["cryptography", "finite-fields", "assembly"]
+
+[lints]
+workspace = true
 
 [dependencies]
 quote.workspace = true
 proc-macro2.workspace = true
-syn = { workspace = true, features = ["full", "parsing", "extra-traits"]}
+syn = { workspace = true, features = ["extra-traits", "full"] }
 num-bigint.workspace = true
 num-traits.workspace = true
 
