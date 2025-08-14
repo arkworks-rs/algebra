@@ -31,7 +31,7 @@ impl fmt::Display for SerializationError {
             ),
             Self::InvalidData => write!(f, "the input buffer contained invalid data"),
             Self::UnexpectedFlags => write!(f, "the call expects empty flags"),
-            Self::IoError(err) => write!(f, "I/O error: {:?}", err),
+            Self::IoError(err) => write!(f, "I/O error: {err:?}"),
         }
     }
 }
