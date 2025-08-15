@@ -272,6 +272,14 @@ impl<F: Field> SparsePolynomial<F> {
         }
     }
 
+    /// Returns the quotient of the division of `self` of degree n by `other` of k values using an algorithm in O(nk)
+    pub fn div(&self, other: &Self) -> DensePolynomial<F> {
+        let dividend: DenseOrSparsePolynomial<'_, F> = self.into();
+        let divisor: DenseOrSparsePolynomial<'_, F> = other.into();
+
+        dividend.naive_div(&divisor).expect("division failed").0
+    }
+
     // append append_coeffs to self.
     // Correctness relies on the lowest degree term in append_coeffs
     // being higher than self.degree()
@@ -468,6 +476,43 @@ mod tests {
                 let poly_b_evals = sparse_poly_b.evaluate_over_domain_by_ref(domain);
                 let poly_prod_evals = sparse_prod.evaluate_over_domain_by_ref(domain);
                 assert_eq!(poly_a_evals.mul(&poly_b_evals), poly_prod_evals);
+            }
+        }
+    }
+
+    #[test]
+    fn div_polynomial() {
+        let mut rng = test_rng();
+        for degree_a in 0..10 {
+            let sparse_poly_a = rand_sparse_poly(degree_a, &mut rng);
+            let dense_poly_a: DensePolynomial<Fr> = sparse_poly_a.clone().into();
+            for degree_b in 0..degree_a {
+                let sparse_poly_b = rand_sparse_poly(degree_b, &mut rng);
+                let dense_poly_b: DensePolynomial<Fr> = sparse_poly_b.clone().into();
+
+                // Test dividing the polynomials over their native representation
+                let sparse_quotient = sparse_poly_a.div(&sparse_poly_b);
+                assert_eq!(
+                    sparse_quotient.degree(),
+                    degree_a - degree_b,
+                    "degree_a  = {}, degree_b = {}, degree_q = {}",
+                    degree_a - degree_b,
+                    degree_b,
+                    sparse_quotient.degree(),
+                );
+
+                // Test that both dense and sparse division will return the same value
+                // Since the FFT division is tested in the dense.rs, we then know this division is valid too
+                // (we are over FFT fields so dense div will be FFT)
+                let dense_quotient = &dense_poly_a / &dense_poly_b;
+                assert_eq!(sparse_quotient.degree(), dense_quotient.degree());
+                assert_eq!(
+                    sparse_quotient,
+                    dense_quotient,
+                    "sparse quotient different from dense quotient for the same division! sparse {:?}, dense {:?}",
+                    sparse_quotient,
+                    dense_quotient,
+                );
             }
         }
     }

@@ -232,6 +232,16 @@ impl<F: Field> DensePolynomial<F> {
             Self::from_coefficients_vec(result)
         }
     }
+
+    /// Returns the quotient of the division of `self` by `other`
+    /// using a naive O(nk) algorithm, with n, k the respective degrees of
+    /// the dividend and divisor
+    pub fn naive_div(&self, other: &Self) -> Self {
+        let dividend: DenseOrSparsePolynomial<'_, F> = self.into();
+        let divisor: DenseOrSparsePolynomial<'_, F> = other.into();
+
+        dividend.naive_div(&divisor).expect("division failed").0
+    }
 }
 
 impl<F: FftField> DensePolynomial<F> {
@@ -590,14 +600,14 @@ impl<'a, F: Field> SubAssign<&'a SparsePolynomial<F>> for DensePolynomial<F> {
     }
 }
 
-impl<'a, F: Field> Div<&'a DensePolynomial<F>> for &DensePolynomial<F> {
+impl<'a, F: FftField> Div<&'a DensePolynomial<F>> for &DensePolynomial<F> {
     type Output = DensePolynomial<F>;
 
     #[inline]
     fn div(self, divisor: &'a DensePolynomial<F>) -> DensePolynomial<F> {
         let a = DenseOrSparsePolynomial::from(self);
         let b = DenseOrSparsePolynomial::from(divisor);
-        a.divide_with_q_and_r(&b).expect("division failed").0
+        a.divide(&b).expect("division failed")
     }
 }
 
@@ -692,7 +702,7 @@ impl<F: Field> Zero for DensePolynomial<F> {
 impl_op!(Add, add, Field);
 impl_op!(Sub, sub, Field);
 impl_op!(Mul, mul, FftField);
-impl_op!(Div, div, Field);
+impl_op!(Div, div, FftField);
 
 #[cfg(test)]
 mod tests {
@@ -891,11 +901,21 @@ mod tests {
             for b_degree in 0..50 {
                 let dividend = DensePolynomial::<Fr>::rand(a_degree, rng);
                 let divisor = DensePolynomial::<Fr>::rand(b_degree, rng);
-                if let Some((quotient, remainder)) = DenseOrSparsePolynomial::divide_with_q_and_r(
-                    &(&dividend).into(),
-                    &(&divisor).into(),
-                ) {
-                    assert_eq!(dividend, &(&divisor * &quotient) + &remainder)
+                // Test the nlogn division
+                if let Some(quotient) =
+                    DenseOrSparsePolynomial::hensel_div(&(&dividend).into(), &(&divisor).into())
+                {
+                    let remainder = &dividend - &(&divisor * &quotient);
+                    // ark_poly assumes that the 0 polynomial has degree 0 so we need to workaround that case
+                    assert!(remainder.degree() < divisor.degree() || remainder.is_zero());
+                }
+
+                // Test the naive division
+                if let Some((quotient, remainder)) =
+                    DenseOrSparsePolynomial::naive_div(&(&dividend).into(), &(&divisor).into())
+                {
+                    assert!(remainder.degree() < divisor.degree() || remainder.is_zero());
+                    assert_eq!(dividend, &(&divisor * &quotient) + &remainder);
                 }
             }
         }
@@ -984,8 +1004,8 @@ mod tests {
         let mut negative_coefficients = coefficients;
         negative_coefficients[n] = negative_leading_coefficient;
 
-        let negative_poly = DensePolynomial::from_coefficients_vec(negative_coefficients);
-        let inverse_poly = DensePolynomial::from_coefficients_vec(inverse_coefficients);
+        let negative_poly = DensePolynomial::<Fr>::from_coefficients_vec(negative_coefficients);
+        let inverse_poly = DensePolynomial::<Fr>::from_coefficients_vec(inverse_coefficients);
 
         let x = &inverse_poly * &rand_poly;
         assert_eq!(x.degree(), 2 * n);
