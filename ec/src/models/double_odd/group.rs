@@ -40,9 +40,13 @@ use crate::{
 #[educe(Copy, Clone)]
 #[must_use]
 pub struct Projective<P: DOCurveConfig> {
+    /// `E / Z` projection of the affine `e`
     pub e: P::BaseField,
+    /// Projective multiplicative inverse.
     pub z: P::BaseField,
+    /// `U / Z` projection of the affine `u`
     pub u: P::BaseField,
+    /// Additional formula for faster addition: `T = U^2/Z`
     pub t: P::BaseField,
 }
 
@@ -127,15 +131,6 @@ impl<P: DOCurveConfig> Projective<P> {
         assert!(p.into_affine().is_on_curve(), "not_on_curve");
         p
     }
-
-    pub fn n() -> Self {
-        Self {
-            e: P::BaseField::from(-1),
-            z: P::BaseField::from(1),
-            u: P::BaseField::from(0),
-            t: P::BaseField::from(0),
-        }
-    }
 }
 
 impl<P: DOCurveConfig> Zeroize for Projective<P> {
@@ -148,6 +143,10 @@ impl<P: DOCurveConfig> Zeroize for Projective<P> {
 }
 
 impl<P: DOCurveConfig> Zero for Projective<P> {
+    /// Returns one of the representants for the identity, namely the point-at-infinity `(1,1,0,0)`.
+    ///
+    /// The other representant `N=(-1,1,0,0)` of the identity could also be returned, but the
+    /// implementation of formulas only requires one representant.
     #[inline]
     fn zero() -> Self {
         Self::new_unchecked(
@@ -159,8 +158,11 @@ impl<P: DOCurveConfig> Zero for Projective<P> {
     }
 
     #[inline]
+    // Zero has two representants: 'O = (X,X,0,0)`, and `O+N = (X,-X,0,0)`.
+    // These are the only two points with U=0, and is_zero assumes the point is correct,
+    // so E and Z don't need to be checked.
     fn is_zero(&self) -> bool {
-        (self.e == self.z) && self.u == P::BaseField::from(0)
+        self.u == P::BaseField::ZERO
     }
 }
 

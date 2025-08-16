@@ -1,8 +1,18 @@
-use crate::Affine;
-use ark_ec::{double_odd::Projective, AffineRepr};
-use ark_ff::{vec, vec::Vec};
+use crate::{Affine, Config, Projective};
+use ark_ec::{AdditiveGroup, AffineRepr, CurveConfig};
+use ark_ff::{vec, vec::Vec, Field};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use ark_std::UniformRand;
+
+/// The other representant of the identity (`N =(0 + N)`).
+fn n() -> Projective {
+    Projective {
+        e: <Config as CurveConfig>::BaseField::ONE,
+        z: <Config as CurveConfig>::BaseField::ONE,
+        u: <Config as CurveConfig>::BaseField::ZERO,
+        t: <Config as CurveConfig>::BaseField::ZERO,
+    }
+}
 
 #[test]
 fn decode_encode() {
@@ -24,6 +34,8 @@ fn decode_encode() {
 
 /// These test vectors originate from Thomas Pornin's implementation of Jq255e and Jq255s:
 /// <https://github.com/doubleodd/c-jq255> (Thomas Pornin, 2022)
+/// The Arkworks framework's implementation of field element (de)serialization follows
+/// the encoding specification of said paper, Appendix A.1.
 #[test]
 fn valid_decode() {
     let encoded_points: Vec<&str> = vec![
@@ -231,12 +243,12 @@ fn valid_point_addition() {
             Affine::deserialize_compressed_unchecked(&*hex::decode(encoded_points[1]).unwrap())
                 .unwrap();
 
-        let p1_p2 = p1 + (p2 + Projective::n());
+        let p1_p2 = p1 + (p2 + n());
         let p3 =
             Affine::deserialize_compressed_unchecked(&*hex::decode(encoded_points[2]).unwrap())
                 .unwrap()
                 .into_group();
-        assert!(p1_p2 == (p3 + Projective::n()));
+        assert!(p1_p2 == (p3 + n()));
 
         let p1_p1 = p1 + p1;
         let p4 =
