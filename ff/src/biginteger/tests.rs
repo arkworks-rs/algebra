@@ -172,7 +172,7 @@ fn biginteger_bitwise_ops_test<B: BigInteger>() {
     let a = B::rand(&mut rng);
     assert_eq!(a & (&a), a);
 
-    // Testing a and a and b.
+    // Testing a and b.
     let a = B::rand(&mut rng);
     let b = B::rand(&mut rng);
     let b_clone = b;
