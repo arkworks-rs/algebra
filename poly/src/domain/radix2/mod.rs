@@ -12,7 +12,7 @@ use ark_std::{fmt, vec::*};
 
 mod fft;
 
-/// Factor that determines if a the degree aware FFT should be called.
+/// Factor that determines if the degree aware FFT should be called.
 const DEGREE_AWARE_FFT_THRESHOLD_FACTOR: usize = 1 << 2;
 
 /// Defines a domain over which finite field (I)FFTs can be performed. Works
