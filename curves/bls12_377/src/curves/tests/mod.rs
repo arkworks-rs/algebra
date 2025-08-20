@@ -38,7 +38,7 @@ mod test {
         assert!(
             hash_result.x != WBCurve::BaseField::zero()
                 && hash_result.y != WBCurve::BaseField::zero(),
-            "we assume that not both a and b coefficienst are zero for the test curve"
+            "we assume that not both a and b coefficients are zero for the test curve"
         );
 
         assert!(
