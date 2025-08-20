@@ -191,11 +191,10 @@ impl<F: Field> MultilinearExtension<F> for SparseMultilinearExtension<F> {
     }
 
     fn to_evaluations(&self) -> Vec<F> {
-        let mut evaluations: Vec<_> = (0..1 << self.num_vars).map(|_| F::zero()).collect();
+        let mut evaluations = vec![F::zero(); 1 << self.num_vars];
         self.evaluations
             .iter()
-            .map(|(&i, &v)| evaluations[i] = v)
-            .next_back();
+            .for_each(|(&i, &v)| evaluations[i] = v);
         evaluations
     }
 }
