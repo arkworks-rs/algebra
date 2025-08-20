@@ -191,11 +191,10 @@ impl<F: Field> MultilinearExtension<F> for SparseMultilinearExtension<F> {
     }
 
     fn to_evaluations(&self) -> Vec<F> {
-        let mut evaluations: Vec<_> = (0..1 << self.num_vars).map(|_| F::zero()).collect();
+        let mut evaluations = vec![F::zero(); 1 << self.num_vars];
         self.evaluations
             .iter()
-            .map(|(&i, &v)| evaluations[i] = v)
-            .next_back();
+            .for_each(|(&i, &v)| evaluations[i] = v);
         evaluations
     }
 }
@@ -447,6 +446,23 @@ mod tests {
             assert_eq!(
                 sparse_partial.evaluate(&point2),
                 dense_partial.evaluate(&point2)
+            );
+        }
+    }
+
+    #[test]
+    fn sparse_to_evaluations_matches_to_dense() {
+        let mut rng = test_rng();
+        const NV: usize = 8; // 2^8 = 256, small and fast
+
+        for _ in 0..25 {
+            // Make a sparse poly with ~sqrt(2^NV) non-zeros at random indices.
+            let sparse = SparseMultilinearExtension::<Fr>::rand(NV, &mut rng);
+            let dense_via_sparse = sparse.to_dense_multilinear_extension().evaluations;
+            let dense_via_to_evals = sparse.to_evaluations();
+            assert_eq!(
+                dense_via_to_evals, dense_via_sparse,
+                "to_evaluations must reproduce the dense vector exactly"
             );
         }
     }
