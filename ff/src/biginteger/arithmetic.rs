@@ -176,7 +176,7 @@ pub fn find_naf(num: &[u64]) -> Vec<i8> {
 /// For example, NAF may generate a sequence (in little-endian) of the form ...0 -1 0 1.
 ///
 /// This can be rewritten as ...0 1 1 to avoid one doubling, at the cost that we are making an
-/// exception of non-adjacence for the most significant bit.
+/// exception of non-adjacency for the most significant bit.
 ///
 /// Since this representation is no longer a strict NAF, we call it "relaxed NAF".
 pub fn find_relaxed_naf(num: &[u64]) -> Vec<i8> {
