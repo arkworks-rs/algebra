@@ -174,7 +174,7 @@ macro_rules! __test_group {
                     }
 
                     // Test that deserializing from a buffer that is not big enough
-                    // will yield and error.
+                    // will yield an error.
                     // This test does not explicitly check that the error is due to
                     // a buffer that is not big enough.
                     {
