@@ -329,7 +329,7 @@ mod test {
 
         assert!(
             hash_result.x != F127_ZERO && hash_result.y != F127_ZERO,
-            "we assume that not both a and b coefficienst are zero for the test curve"
+            "we assume that not both a and b coefficients are zero for the test curve"
         );
 
         assert!(
