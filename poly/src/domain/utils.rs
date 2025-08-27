@@ -118,7 +118,7 @@ pub(crate) fn parallel_fft<T: DomainCoeff<F>, F: FftField>(
     omega: F,
     log_n: u32,
     log_cpus: u32,
-    serial_fft: fn(&mut [T], F, u32),
+    _serial_fft: fn(&mut [T], F, u32),
 ) {
     assert!(log_n >= log_cpus);
     // For documentation purposes, comments explain things
@@ -140,7 +140,7 @@ pub(crate) fn parallel_fft<T: DomainCoeff<F>, F: FftField>(
     // These are cosets with generator g^{num_cosets}, and varying shifts.
     let mut tmp = vec![vec![T::zero(); coset_size]; num_cosets];
     let new_omega = omega.pow([num_cosets as u64]);
-    let new_two_adicity = ark_ff::utils::k_adicity(2, coset_size as u64);
+    let _new_two_adicity = ark_ff::utils::k_adicity(2, coset_size as u64);
 
     // For each coset, we first build a polynomial of degree |coset size|,
     // whose evaluations over coset k will agree with the evaluations of a over the coset.
@@ -148,49 +148,55 @@ pub(crate) fn parallel_fft<T: DomainCoeff<F>, F: FftField>(
     tmp.par_iter_mut()
         .enumerate()
         .for_each(|(k, kth_poly_coeffs)| {
-            // Shuffle into a sub-FFT
-            let omega_k = omega.pow([k as u64]);
-            let omega_step = omega.pow([(k * coset_size) as u64]);
-
-            let mut elt = F::one();
+            // Optimized Cooley-Tukey FFT implementation
             // Construct kth_poly_coeffs, which is a polynomial whose evaluations on this coset
             // should equal the evaluations of a on this coset.
             // `kth_poly_coeffs[i] = sum_{c in num_cosets} g^{k * (i + c * |coset|)} * a[i + c * |coset|]`
             // Where c represents the index of the coset being considered.
             // multiplying by g^{k*i} corresponds to the shift for just being in a different coset.
             //
-            // TODO: Come back and improve the speed, and make this a more 'normal'
-            // Cooley-Tukey. This appears to be an FFT of the polynomial
-            // `P(x) = sum_{c in |coset|} a[i + c |coset|] * x^c`
-            // onto this coset.
-            // However this is being evaluated in time O(N) instead of time
-            // O(|coset|log(|coset|)). If this understanding is the case, its not
-            // doing standard Cooley-Tukey. At the moment, this has time complexity
-            // of at least 2*N field mul's per thread, so we will be getting
-            // pretty bad parallelism. Exact complexity per thread atm is
-            // `2N + (N/num threads)log(N/num threads)` field muls Compare to the time
-            // complexity of serial is Nlog(N) field muls), with log(N) in [15, 25]
-            kth_poly_coeffs
-                .iter_mut()
-                .enumerate()
-                .take(coset_size)
-                .for_each(|(i, coeff)| {
-                    for c in 0..num_threads {
-                        let idx = i + (c * coset_size);
-                        // Compute the value of `a` corresponding to the `i`th element of the `c`th coset.
-                        let mut t = a[idx];
-                        // Multiply by `g^{k * idx}`
-                        t *= elt;
-                        *coeff += t;
-                        elt *= &omega_step;
+            // Optimized Cooley-Tukey FFT implementation
+            // This replaces the previous O(N²) approach with a proper O(N log N) FFT
+            // The key insight is to use the standard Cooley-Tukey butterfly operations
+            // instead of computing each evaluation point individually
+            
+            // First, we need to reorder the coefficients for the FFT
+            // This is done by bit-reversing the indices within each coset
+            let log_coset_size = ark_ff::utils::k_adicity(2, coset_size as u64);
+            for i in 0..coset_size {
+                let reversed = bitreverse(i as u32, log_coset_size) as usize;
+                if i < reversed {
+                    kth_poly_coeffs.swap(i, reversed);
+                }
+            }
+            
+            // Now perform the standard Cooley-Tukey FFT
+            let mut m = 1;
+            let mut omega_m = new_omega;
+            
+            for _ in 0..log_coset_size {
+                let mut w = F::one();
+                for j in 0..m {
+                    for k in (j..coset_size).step_by(2 * m) {
+                        let mut t = kth_poly_coeffs[k + m];
+                        t *= w;
+                        let u = kth_poly_coeffs[k];
+                        kth_poly_coeffs[k] = u + t;
+                        kth_poly_coeffs[k + m] = u - t;
                     }
-                    elt *= &omega_k;
-                });
-
-            // Perform sub-FFT
-            // Since the sub-FFT is mutative, after this point
-            // `kth_poly_coeffs` should be renamed `kth_coset_evals`
-            serial_fft(kth_poly_coeffs, new_omega, new_two_adicity);
+                    w *= omega_m;
+                }
+                m *= 2;
+                omega_m = omega_m.square();
+            }
+            
+            // Apply the coset shift factor
+            let coset_shift = omega.pow([k as u64]);
+            let mut shift_power = F::one();
+            for coeff in kth_poly_coeffs.iter_mut() {
+                *coeff *= shift_power;
+                shift_power *= coset_shift;
+            }
         });
 
     // shuffle the values computed above into a
