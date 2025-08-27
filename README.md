@@ -8,7 +8,7 @@
     <a href="https://discord.gg/UNtS7QXyPk"><img src="https://img.shields.io/discord/908465643727253524?label=Discord&logo=discord"></a>
 </p>
 
-The arkworks ecosystem consist of Rust libraries for designing and working with *zero knowledge succinct non-interactive arguments (zkSNARKs)*. This repository contains efficient implementations of the key algebraic components underlying zkSNARKs: finite fields, elliptic curves, and polynomials.
+The arkworks ecosystem consists of Rust libraries for designing and working with *zero knowledge succinct non-interactive arguments (zkSNARKs)*. This repository contains efficient implementations of the key algebraic components underlying zkSNARKs: finite fields, elliptic curves, and polynomials.
 
 This library is released under the MIT License and the Apache v2 License (see [License](#license)).
 
@@ -23,11 +23,11 @@ This repository contains several Rust crates:
 * [`ark-poly`](poly): Interfaces for univariate, multivariate, and multilinear polynomials, and FFTs over finite fields
 * [`ark-serialize`](serialize): Efficient interfaces for serialization and point compression for finite fields and elliptic curves
 
-In addition, the [`curves`](https://github.com/arkworks-rs/algebra/tree/master/curves) repository contains concrete implementations of popular elliptic curves; see [here](https://github.com/arkworks-rs/algebra/blob/master/curves/README.md) for details.
+In addition, the [`curves`](curves) directory contains concrete implementations of popular elliptic curves; see its [README](curves/README.md) for details.
 
 ## Build guide
 
-The library compiles on the `stable` toolchain of the Rust compiler (v 1.51+). To install the latest version of Rust, first install `rustup` by following the instructions [here](https://rustup.rs/), or via your platform's package manager. Once `rustup` is installed, install the Rust toolchain by invoking:
+The library compiles on the `stable` toolchain of the Rust compiler (v 1.56+). To install the latest version of Rust, first install `rustup` by following the instructions [here](https://rustup.rs/), or via your platform's package manager. Once `rustup` is installed, install the Rust toolchain by invoking:
 
 ```bash
 rustup install stable

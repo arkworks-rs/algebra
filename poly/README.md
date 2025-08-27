@@ -141,4 +141,8 @@ assert_eq!(g_prime.evaluate(&random_point), g.evaluate(&random_point));
 
 ## Domains
 
-TODO
+The `domain` module provides traits and implementations for FFT-friendly subsets of finite fields. These domains are used to perform efficient polynomial operations such as multiplication and division through FFT-based algorithms.
+
+- [`EvaluationDomain`](./src/domain/mod.rs#L16): Trait defining the interface for evaluation domains
+- [`GeneralEvaluationDomain`](./src/domain/mod.rs#L31): Generic implementation for evaluation domains
+- [`Radix2EvaluationDomain`](./src/domain/radix2/mod.rs#L15): Efficient implementation for radix-2 domains
