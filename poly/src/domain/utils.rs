@@ -148,14 +148,22 @@ pub(crate) fn parallel_fft<T: DomainCoeff<F>, F: FftField>(
     tmp.par_iter_mut()
         .enumerate()
         .for_each(|(k, kth_poly_coeffs)| {
-            // Optimized Cooley-Tukey FFT implementation
-            // Construct kth_poly_coeffs, which is a polynomial whose evaluations on this coset
-            // should equal the evaluations of a on this coset.
-            // `kth_poly_coeffs[i] = sum_{c in num_cosets} g^{k * (i + c * |coset|)} * a[i + c * |coset|]`
-            // Where c represents the index of the coset being considered.
-            // multiplying by g^{k*i} corresponds to the shift for just being in a different coset.
-            //
-            // Optimized Cooley-Tukey FFT implementation
+            // First, populate kth_poly_coeffs with data from the original array
+            // This is the polynomial construction step that was in the original TODO
+            for i in 0..coset_size {
+                let mut sum = T::zero();
+                for c in 0..num_threads {
+                    let idx = i + (c * coset_size);
+                    let mut t = a[idx];
+                    // Apply the coset shift factor
+                    let shift = omega.pow([(k * idx) as u64]);
+                    t *= shift;
+                    sum += t;
+                }
+                kth_poly_coeffs[i] = sum;
+            }
+            
+            // Now perform the optimized Cooley-Tukey FFT
             // This replaces the previous O(N²) approach with a proper O(N log N) FFT
             // The key insight is to use the standard Cooley-Tukey butterfly operations
             // instead of computing each evaluation point individually
@@ -190,13 +198,7 @@ pub(crate) fn parallel_fft<T: DomainCoeff<F>, F: FftField>(
                 omega_m = omega_m.square();
             }
             
-            // Apply the coset shift factor
-            let coset_shift = omega.pow([k as u64]);
-            let mut shift_power = F::one();
-            for coeff in kth_poly_coeffs.iter_mut() {
-                *coeff *= shift_power;
-                shift_power *= coset_shift;
-            }
+            // The coset shift factor is already applied during polynomial construction
         });
 
     // shuffle the values computed above into a
