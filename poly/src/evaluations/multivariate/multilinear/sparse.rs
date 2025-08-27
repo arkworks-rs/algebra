@@ -88,7 +88,7 @@ impl<F: Field> SparseMultilinearExtension<F> {
 
     /// Convert the sparse multilinear polynomial to dense form.
     pub fn to_dense_multilinear_extension(&self) -> DenseMultilinearExtension<F> {
-        let mut evaluations: Vec<_> = (0..(1 << self.num_vars)).map(|_| F::zero()).collect();
+        let mut evaluations: Vec<_> = (0..(1usize << self.num_vars)).map(|_| F::zero()).collect();
         for (&i, &v) in &self.evaluations {
             evaluations[i] = v;
         }
