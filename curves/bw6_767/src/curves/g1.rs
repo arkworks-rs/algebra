@@ -1,8 +1,9 @@
 use ark_ec::{
     models::{short_weierstrass::SWCurveConfig, CurveConfig},
+    scalar_mul::glv::GLVConfig,
     short_weierstrass::{Affine, Projective},
 };
-use ark_ff::{AdditiveGroup, MontFp};
+use ark_ff::{AdditiveGroup, BigInt, MontFp, PrimeField};
 
 use crate::{Fq, Fr};
 
@@ -52,6 +53,43 @@ impl SWCurveConfig for Config {
     #[inline(always)]
     fn mul_by_a(_elem: Self::BaseField) -> Self::BaseField {
         Self::BaseField::ZERO
+    }
+}
+
+impl GLVConfig for Config {
+    const ENDO_COEFFS: &'static [Self::BaseField] = &[
+        MontFp!("451452499708746243421442696394275804592767119751118962106882058158528025766103643615697202253207413006991058800455542766924935899310685166148099708594514571753800103096705086912881023032622324847956780035251378028187894066092550170")
+    ];
+    const LAMBDA: Self::ScalarField = (MontFp!("4002409555221667392624310435006688643935503118305586438271171395842971157480381377015405980053539358417135540939436"));
+    const SCALAR_DECOMP_COEFFS: [(bool, <Self::ScalarField as PrimeField>::BigInt); 4] = [
+        (
+            false,
+            BigInt!("1155048275357884106335086113613464118768280431093290937003"),
+        ),
+        (
+            true,
+            BigInt!("1155048275357884106335086113613464118783412807316232579754"),
+        ),
+        (
+            false,
+            BigInt!("2310096550715768212670172227226928237551693238409523516757"),
+        ),
+        (
+            false,
+            BigInt!("1155048275357884106335086113613464118768280431093290937003"),
+        ),
+    ];
+
+    fn endomorphism(p: &Projective<Self>) -> Projective<Self> {
+        let mut res = (*p).clone();
+        res.x *= Self::ENDO_COEFFS[0];
+        res
+    }
+
+    fn endomorphism_affine(p: &Affine<Self>) -> Affine<Self> {
+        let mut res = (*p).clone();
+        res.x *= Self::ENDO_COEFFS[0];
+        res
     }
 }
 
