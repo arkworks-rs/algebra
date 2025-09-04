@@ -1,0 +1,1 @@
+// We can drop SmallFpConfig https://github.com/compsec-epfl/efficient-sumcheck/blob/pr-77/src/fields/small_fp_backend.rs#L16 here and try to mirror the current layout as much as makes sense.
