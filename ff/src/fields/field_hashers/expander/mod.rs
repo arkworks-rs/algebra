@@ -5,7 +5,6 @@ use core::marker::PhantomData;
 
 use ark_std::vec::*;
 
-use arrayvec::ArrayVec;
 use digest::{ExtendableOutput, FixedOutputReset, Update};
 
 pub trait Expander {
@@ -19,42 +18,55 @@ const LONG_DST_PREFIX: &[u8; 17] = b"H2C-OVERSIZE-DST-";
 /// "Using DSTs longer than 255 bytes" of the
 /// [IRTF CFRG hash-to-curve draft #16](https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-hash-to-curve-16#section-5.3.3).
 #[allow(clippy::upper_case_acronyms)]
-pub struct DST(arrayvec::ArrayVec<u8, MAX_DST_LENGTH>);
+pub struct DST {
+    len: usize,
+    data: [u8; MAX_DST_LENGTH],
+}
 
 impl DST {
     pub fn new_xmd<H: FixedOutputReset + Default>(dst: &[u8]) -> DST {
-        let array = if dst.len() > MAX_DST_LENGTH {
+        let mut new_dst = [0u8; MAX_DST_LENGTH];
+        let len = if dst.len() > MAX_DST_LENGTH {
             let mut long = H::default();
             long.update(&LONG_DST_PREFIX[..]);
             long.update(dst);
-            ArrayVec::try_from(long.finalize_fixed().as_ref()).unwrap()
+            Self::copy_bytes(&mut new_dst, long.finalize_fixed().as_ref())
         } else {
-            ArrayVec::try_from(dst).unwrap()
+            Self::copy_bytes(&mut new_dst, dst)
         };
-        DST(array)
+        Self { data: new_dst, len }
     }
 
     #[allow(dead_code)]
     pub fn new_xof<H: ExtendableOutput + Default>(dst: &[u8], k: usize) -> DST {
-        let array = if dst.len() > MAX_DST_LENGTH {
+        let mut new_dst = [0u8; MAX_DST_LENGTH];
+        let len = if dst.len() > MAX_DST_LENGTH {
             let mut long = H::default();
             long.update(&LONG_DST_PREFIX[..]);
             long.update(dst);
 
-            let mut new_dst = [0u8; MAX_DST_LENGTH];
             let new_dst = &mut new_dst[0..((2 * k + 7) >> 3)];
             long.finalize_xof_into(new_dst);
-            ArrayVec::try_from(&*new_dst).unwrap()
+            new_dst.len()
         } else {
-            ArrayVec::try_from(dst).unwrap()
+            Self::copy_bytes(&mut new_dst, dst)
         };
-        DST(array)
+        Self { data: new_dst, len }
     }
 
     pub fn update<H: Update>(&self, h: &mut H) {
-        h.update(self.0.as_ref());
+        h.update(self.slice());
         // I2OSP(len,1) https://www.rfc-editor.org/rfc/rfc8017.txt
-        h.update(&[self.0.len() as u8]);
+        h.update(&[self.len as u8]);
+    }
+
+    fn copy_bytes(new_dst: &mut [u8; MAX_DST_LENGTH], data: &[u8]) -> usize {
+        new_dst[..data.len()].copy_from_slice(data);
+        data.len()
+    }
+
+    fn slice(&self) -> &[u8] {
+        self.data.get(..self.len).unwrap_or_default()
     }
 }
 
