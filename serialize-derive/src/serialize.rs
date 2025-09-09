@@ -34,9 +34,9 @@ fn impl_serialize_field(
         },
         _ => {
             serialize_body
-                .push(quote! { CanonicalSerialize::serialize_with_mode(&self.#(#idents).*, &mut writer, compress)?; });
+                .push(quote! { ark_serialize::CanonicalSerialize::serialize_with_mode(&self.#(#idents).*, &mut writer, compress)?; });
             serialized_size_body
-                .push(quote! { size += CanonicalSerialize::serialized_size(&self.#(#idents).*, compress); });
+                .push(quote! { size += ark_serialize::CanonicalSerialize::serialized_size(&self.#(#idents).*, compress); });
         },
     }
 }

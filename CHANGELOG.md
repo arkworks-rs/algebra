@@ -8,6 +8,7 @@
 - Remove redundant type constraints from `Pairing::G1Prepared`.
 - (`ark-serialize`) Add serde-compatible wrapper types `CompressedChecked<T>`, `CompressedUnchecked<T>`, `UncompressedChecked<T>`, `UncompressedUnchecked<T>`.
 - [\#989](https://github.com/arkworks-rs/algebra/pull/989) (`ark-poly`) Replace bound `F: FftField` with `F: Field` on `GeneralEvaluationDomain`.
+- Improve GLV scalar multiplication performance by skipping leading zeroes.
 
 ### Breaking changes
 
