@@ -154,7 +154,7 @@ num-bigint = { version = "0.4", default-features = false }
 num-integer = { version = "0.1", default-features = false }
 
 arrayvec = { version = "0.7", default-features = false }
-criterion = "0.6.0"
+criterion = "0.7.0"
 educe = { version = "0.6.0", default-features = false, features = [ "Debug", "Clone", "Copy", "Hash", "PartialEq", "Eq", "PartialOrd", "Ord", "Default" ] }
 digest = { version = "0.10", default-features = false }
 hashbrown = { version = "0.15", default-features = false, features = [ "inline-more", "allocator-api2", ] }
