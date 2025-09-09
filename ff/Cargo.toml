@@ -20,14 +20,12 @@ ark-ff-asm.workspace = true
 ark-ff-macros.workspace = true
 ark-std.workspace = true
 ark-serialize = { features = ["derive"], workspace = true }
-arrayvec.workspace = true
 educe.workspace = true
 num-traits.workspace = true
 rayon = { workspace = true, optional = true }
 zeroize = { workspace = true }
 num-bigint.workspace = true
 digest = { workspace = true, features = ["alloc"] }
-itertools.workspace = true
 
 [dev-dependencies]
 ark-test-curves = { workspace = true, features = ["bls12_381_curve", "mnt6_753", "secp256k1"] }
@@ -42,6 +40,6 @@ hex.workspace = true
 
 [features]
 default = []
-std = [ "ark-std/std", "ark-serialize/std", "itertools/use_std" ]
+std = [ "ark-std/std", "ark-serialize/std" ]
 parallel = [ "std", "rayon", "ark-std/parallel", "ark-serialize/parallel" ]
 asm = []
