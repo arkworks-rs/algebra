@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
     - name: Install Rust
       uses: actions-rs/toolchain@v1
       with:
@@ -36,7 +36,7 @@ jobs:
     steps:
 
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
     - name: Install Rust
       uses: actions-rs/toolchain@v1
       with:
@@ -63,7 +63,7 @@ jobs:
           - nightly
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Install Rust (${{ matrix.rust }})
         uses: actions-rs/toolchain@v1
@@ -115,7 +115,7 @@ jobs:
           - nightly
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Install Rust (${{ matrix.rust }})
         uses: actions-rs/toolchain@v1
@@ -179,7 +179,7 @@ jobs:
     outputs:
       dir: ${{ steps.set-dirs.outputs.dir }} # generate output name dir by using inner step output
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - id: set-dirs # Give it an id to handle to get step outputs in the outputs key above
         run: |
           # shellcheck disable=SC2086
@@ -202,7 +202,7 @@ jobs:
           - dir: ./cp6_782
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: Run tests
         run: |
           cd ${{matrix.dir}}
@@ -215,7 +215,7 @@ jobs:
     timeout-minutes: 60
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Check if source code updated
         uses: dorny/paths-filter@v2.11.1
@@ -253,7 +253,7 @@ jobs:
     timeout-minutes: 60
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Check if source code updated
         uses: dorny/paths-filter@v2.11.1
@@ -290,7 +290,7 @@ jobs:
     timeout-minutes: 60
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Check if source code updated
         uses: dorny/paths-filter@v2.11.1
@@ -328,7 +328,7 @@ jobs:
       RUSTFLAGS: -Dwarnings
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Install Rust nightly
         uses: actions-rs/toolchain@v1
@@ -360,7 +360,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Install Rust
         uses: actions-rs/toolchain@v1
