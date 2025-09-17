@@ -6,12 +6,16 @@ use crate::{
 use ark_ff::{Field, Zero};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use ark_std::{
+    cfg_into_iter,
     cmp::Ordering,
     fmt,
     ops::{Add, AddAssign, Neg, Sub, SubAssign},
     rand::Rng,
+    vec,
     vec::*,
 };
+
+use educe::Educe;
 
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
@@ -269,7 +273,7 @@ impl<F: Field, T: Term> fmt::Debug for SparsePolynomial<F, T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
         for (coeff, term) in self.terms.iter().filter(|(c, _)| !c.is_zero()) {
             if term.is_constant() {
-                write!(f, "\n{:?}", coeff)?;
+                write!(f, "\n{coeff:?}")?;
             } else {
                 write!(f, "\n{:?} {:?}", coeff, term)?;
             }

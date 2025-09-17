@@ -6,9 +6,10 @@ use crate::{
 use ark_ff::{FftField, Field, Zero};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use ark_std::{
-    fmt,
+    cfg_iter_mut, fmt,
     ops::{Add, AddAssign, Deref, DerefMut, Div, Mul, Neg, Sub, SubAssign},
     rand::Rng,
+    vec,
     vec::*,
 };
 
@@ -40,11 +41,12 @@ impl<F: Field> Polynomial<F> for DensePolynomial<F> {
     /// Evaluates `self` at the given `point` in `Self::Point`.
     fn evaluate(&self, point: &F) -> F {
         if self.is_zero() {
-            return F::zero();
+            F::zero()
         } else if point.is_zero() {
-            return self.coeffs[0];
+            self.coeffs[0]
+        } else {
+            self.internal_evaluate(point)
         }
-        self.internal_evaluate(point)
     }
 }
 
@@ -230,6 +232,16 @@ impl<F: Field> DensePolynomial<F> {
             Self::from_coefficients_vec(result)
         }
     }
+
+    /// Returns the quotient of the division of `self` by `other`
+    /// using a naive O(nk) algorithm, with n, k the respective degrees of
+    /// the dividend and divisor
+    pub fn naive_div(&self, other: &Self) -> Self {
+        let dividend: DenseOrSparsePolynomial<'_, F> = self.into();
+        let divisor: DenseOrSparsePolynomial<'_, F> = other.into();
+
+        dividend.naive_div(&divisor).expect("division failed").0
+    }
 }
 
 impl<F: FftField> DensePolynomial<F> {
@@ -253,11 +265,11 @@ impl<F: Field> fmt::Debug for DensePolynomial<F> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
         for (i, coeff) in self.coeffs.iter().enumerate().filter(|(_, c)| !c.is_zero()) {
             if i == 0 {
-                write!(f, "\n{:?}", coeff)?;
+                write!(f, "\n{coeff:?}")?;
             } else if i == 1 {
-                write!(f, " + \n{:?} * x", coeff)?;
+                write!(f, " + \n{coeff:?} * x")?;
             } else {
-                write!(f, " + \n{:?} * x^{}", coeff, i)?;
+                write!(f, " + \n{coeff:?} * x^{i}")?;
             }
         }
         Ok(())
@@ -282,32 +294,35 @@ impl<'a, F: Field> Add<&'a DensePolynomial<F>> for &DensePolynomial<F> {
     type Output = DensePolynomial<F>;
 
     fn add(self, other: &'a DensePolynomial<F>) -> DensePolynomial<F> {
-        let mut result = if self.is_zero() {
-            other.clone()
-        } else if other.is_zero() {
-            self.clone()
-        } else if self.degree() >= other.degree() {
-            let mut result = self.clone();
-            result
-                .coeffs
-                .iter_mut()
-                .zip(&other.coeffs)
-                .for_each(|(a, b)| {
-                    *a += b;
-                });
-            result
+        // If the first polynomial is zero, the result is simply the second polynomial.
+        if self.is_zero() {
+            return other.clone();
+        }
+
+        // If the second polynomial is zero, the result is simply the first polynomial.
+        if other.is_zero() {
+            return self.clone();
+        }
+
+        // Determine which polynomial has the higher degree.
+        let (longer, shorter) = if self.degree() >= other.degree() {
+            (self, other)
         } else {
-            let mut result = other.clone();
-            result
-                .coeffs
-                .iter_mut()
-                .zip(&self.coeffs)
-                .for_each(|(a, b)| {
-                    *a += b;
-                });
-            result
+            (other, self)
         };
+
+        // Start with a copy of the longer polynomial as the base for the result.
+        let mut result = longer.clone();
+
+        // Iterate through the coefficients of the `shorter` polynomial.
+        // Add them to the corresponding coefficients in the `longer` polynomial.
+        cfg_iter_mut!(result)
+            .zip(&shorter.coeffs)
+            .for_each(|(a, b)| *a += b);
+
+        // Remove any trailing zeros from the resulting polynomial.
         result.truncate_leading_zeros();
+
         result
     }
 }
@@ -585,14 +600,14 @@ impl<'a, F: Field> SubAssign<&'a SparsePolynomial<F>> for DensePolynomial<F> {
     }
 }
 
-impl<'a, F: Field> Div<&'a DensePolynomial<F>> for &DensePolynomial<F> {
+impl<'a, F: FftField> Div<&'a DensePolynomial<F>> for &DensePolynomial<F> {
     type Output = DensePolynomial<F>;
 
     #[inline]
     fn div(self, divisor: &'a DensePolynomial<F>) -> DensePolynomial<F> {
         let a = DenseOrSparsePolynomial::from(self);
         let b = DenseOrSparsePolynomial::from(divisor);
-        a.divide_with_q_and_r(&b).expect("division failed").0
+        a.divide(&b).expect("division failed")
     }
 }
 
@@ -687,7 +702,7 @@ impl<F: Field> Zero for DensePolynomial<F> {
 impl_op!(Add, add, Field);
 impl_op!(Sub, sub, Field);
 impl_op!(Mul, mul, FftField);
-impl_op!(Div, div, Field);
+impl_op!(Div, div, FftField);
 
 #[cfg(test)]
 mod tests {
@@ -886,11 +901,21 @@ mod tests {
             for b_degree in 0..50 {
                 let dividend = DensePolynomial::<Fr>::rand(a_degree, rng);
                 let divisor = DensePolynomial::<Fr>::rand(b_degree, rng);
-                if let Some((quotient, remainder)) = DenseOrSparsePolynomial::divide_with_q_and_r(
-                    &(&dividend).into(),
-                    &(&divisor).into(),
-                ) {
-                    assert_eq!(dividend, &(&divisor * &quotient) + &remainder)
+                // Test the nlogn division
+                if let Some(quotient) =
+                    DenseOrSparsePolynomial::hensel_div(&(&dividend).into(), &(&divisor).into())
+                {
+                    let remainder = &dividend - &(&divisor * &quotient);
+                    // ark_poly assumes that the 0 polynomial has degree 0 so we need to workaround that case
+                    assert!(remainder.degree() < divisor.degree() || remainder.is_zero());
+                }
+
+                // Test the naive division
+                if let Some((quotient, remainder)) =
+                    DenseOrSparsePolynomial::naive_div(&(&dividend).into(), &(&divisor).into())
+                {
+                    assert!(remainder.degree() < divisor.degree() || remainder.is_zero());
+                    assert_eq!(dividend, &(&divisor * &quotient) + &remainder);
                 }
             }
         }
@@ -979,8 +1004,8 @@ mod tests {
         let mut negative_coefficients = coefficients;
         negative_coefficients[n] = negative_leading_coefficient;
 
-        let negative_poly = DensePolynomial::from_coefficients_vec(negative_coefficients);
-        let inverse_poly = DensePolynomial::from_coefficients_vec(inverse_coefficients);
+        let negative_poly = DensePolynomial::<Fr>::from_coefficients_vec(negative_coefficients);
+        let inverse_poly = DensePolynomial::<Fr>::from_coefficients_vec(inverse_coefficients);
 
         let x = &inverse_poly * &rand_poly;
         assert_eq!(x.degree(), 2 * n);

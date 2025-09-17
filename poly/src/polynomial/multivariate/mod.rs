@@ -2,6 +2,7 @@
 use ark_ff::Field;
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use ark_std::{
+    cfg_into_iter,
     cmp::Ordering,
     fmt::{Debug, Error, Formatter},
     hash::Hash,
@@ -173,6 +174,7 @@ impl Ord for SparseTerm {
 mod tests {
     use super::*;
     use ark_ff::{Fp64, MontBackend, MontConfig};
+    use ark_std::vec;
 
     #[derive(MontConfig)]
     #[modulus = "5"]

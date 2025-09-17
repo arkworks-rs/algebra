@@ -78,11 +78,6 @@ impl<P: TECurveConfig> Affine<P> {
         Self::new_unchecked(P::BaseField::ZERO, P::BaseField::ONE)
     }
 
-    /// Is this point the identity?
-    pub fn is_zero(&self) -> bool {
-        self.x.is_zero() && self.y.is_one()
-    }
-
     /// Attempts to construct an affine point given an y-coordinate. The
     /// point is not guaranteed to be in the prime order subgroup.
     ///
@@ -159,6 +154,8 @@ impl<P: TECurveConfig> AffineRepr for Affine<P> {
     type ScalarField = P::ScalarField;
     type Group = Projective<P>;
 
+    const ZERO: Self = Self::new_unchecked(P::BaseField::ZERO, P::BaseField::ONE);
+
     fn xy(&self) -> Option<(Self::BaseField, Self::BaseField)> {
         (!self.is_zero()).then_some((self.x, self.y))
     }
@@ -168,7 +165,12 @@ impl<P: TECurveConfig> AffineRepr for Affine<P> {
     }
 
     fn zero() -> Self {
-        Self::new_unchecked(P::BaseField::ZERO, P::BaseField::ONE)
+        Self::ZERO
+    }
+
+    /// Is this point the identity?
+    fn is_zero(&self) -> bool {
+        self.x.is_zero() && self.y.is_one()
     }
 
     fn from_random_bytes(bytes: &[u8]) -> Option<Self> {

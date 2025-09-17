@@ -7,11 +7,12 @@ use crate::{
 use ark_ff::{Field, Zero};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use ark_std::{
+    cfg_iter,
     collections::BTreeMap,
-    fmt,
-    fmt::{Debug, Formatter},
+    fmt::{self, Debug, Formatter},
     ops::{Add, AddAssign, Index, Neg, Sub, SubAssign},
     rand::Rng,
+    vec,
     vec::*,
     UniformRand,
 };
@@ -71,9 +72,9 @@ impl<F: Field> SparseMultilinearExtension<F> {
         let mut map =
             HashMap::with_hasher(core::hash::BuildHasherDefault::<DefaultHasher>::default());
         for _ in 0..num_nonzero_entries {
-            let mut index = usize::rand(rng) & ((1 << num_vars) - 1);
+            let mut index = usize::rand(rng) & ((1usize << num_vars) - 1);
             while map.get(&index).is_some() {
-                index = usize::rand(rng) & ((1 << num_vars) - 1);
+                index = usize::rand(rng) & ((1usize << num_vars) - 1);
             }
             map.entry(index).or_insert(F::rand(rng));
         }
@@ -87,7 +88,7 @@ impl<F: Field> SparseMultilinearExtension<F> {
 
     /// Convert the sparse multilinear polynomial to dense form.
     pub fn to_dense_multilinear_extension(&self) -> DenseMultilinearExtension<F> {
-        let mut evaluations: Vec<_> = (0..(1 << self.num_vars)).map(|_| F::zero()).collect();
+        let mut evaluations: Vec<_> = (0..(1usize << self.num_vars)).map(|_| F::zero()).collect();
         for (&i, &v) in &self.evaluations {
             evaluations[i] = v;
         }
@@ -121,7 +122,7 @@ impl<F: Field> MultilinearExtension<F> for SparseMultilinearExtension<F> {
     /// `sqrt(2^num_vars)` and indices of those nonzero entries are distributed
     /// uniformly at random.
     fn rand<R: Rng>(num_vars: usize, rng: &mut R) -> Self {
-        Self::rand_with_config(num_vars, 1 << (num_vars / 2), rng)
+        Self::rand_with_config(num_vars, 1usize << (num_vars / 2), rng)
     }
 
     fn relabel(&self, mut a: usize, mut b: usize, k: usize) -> Self {
@@ -190,11 +191,10 @@ impl<F: Field> MultilinearExtension<F> for SparseMultilinearExtension<F> {
     }
 
     fn to_evaluations(&self) -> Vec<F> {
-        let mut evaluations: Vec<_> = (0..1 << self.num_vars).map(|_| F::zero()).collect();
+        let mut evaluations = vec![F::zero(); 1 << self.num_vars];
         self.evaluations
             .iter()
-            .map(|(&i, &v)| evaluations[i] = v)
-            .next_back();
+            .for_each(|(&i, &v)| evaluations[i] = v);
         evaluations
     }
 }
@@ -406,7 +406,7 @@ mod tests {
     };
     use ark_ff::{One, Zero};
     use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
-    use ark_std::{ops::Neg, test_rng, vec::*, UniformRand};
+    use ark_std::{ops::Neg, test_rng, vec, vec::*, UniformRand};
     use ark_test_curves::bls12_381::Fr;
     /// Some sanity test to ensure random sparse polynomial make sense.
     #[test]
@@ -446,6 +446,23 @@ mod tests {
             assert_eq!(
                 sparse_partial.evaluate(&point2),
                 dense_partial.evaluate(&point2)
+            );
+        }
+    }
+
+    #[test]
+    fn sparse_to_evaluations_matches_to_dense() {
+        let mut rng = test_rng();
+        const NV: usize = 8; // 2^8 = 256, small and fast
+
+        for _ in 0..25 {
+            // Make a sparse poly with ~sqrt(2^NV) non-zeros at random indices.
+            let sparse = SparseMultilinearExtension::<Fr>::rand(NV, &mut rng);
+            let dense_via_sparse = sparse.to_dense_multilinear_extension().evaluations;
+            let dense_via_to_evals = sparse.to_evaluations();
+            assert_eq!(
+                dense_via_to_evals, dense_via_sparse,
+                "to_evaluations must reproduce the dense vector exactly"
             );
         }
     }

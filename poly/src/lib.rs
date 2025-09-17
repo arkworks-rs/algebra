@@ -4,12 +4,6 @@
 #![forbid(unsafe_code)]
 #![allow(clippy::suspicious_op_assign_impl, clippy::suspicious_arithmetic_impl)]
 
-#[macro_use]
-extern crate educe;
-
-#[macro_use]
-extern crate ark_std;
-
 pub mod domain;
 
 pub mod evaluations;
@@ -29,15 +23,14 @@ pub use polynomial::{multivariate, univariate, DenseMVPolynomial, DenseUVPolynom
 #[cfg(test)]
 mod test;
 
-#[rustfmt::skip]
 #[cfg(doctest)]
 mod test_readme {
-  macro_rules! external_doc_test {
-    ($x:expr) => {
-        #[doc = $x]
-        extern {}
-    };
-  }
+    macro_rules! external_doc_test {
+        ($x:expr) => {
+            #[doc = $x]
+            extern "C" {}
+        };
+    }
 
-  external_doc_test!(include_str!("../README.md"));
+    external_doc_test!(include_str!("../README.md"));
 }

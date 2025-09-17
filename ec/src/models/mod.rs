@@ -6,6 +6,7 @@ pub mod bw6;
 pub mod mnt4;
 pub mod mnt6;
 
+pub mod double_odd;
 pub mod short_weierstrass;
 pub mod twisted_edwards;
 
@@ -24,7 +25,7 @@ pub trait CurveConfig: Send + Sync + Sized + 'static {
     type ScalarField: PrimeField + Into<<Self::ScalarField as PrimeField>::BigInt>;
 
     /// The cofactor of this curve, represented as a sequence of little-endian limbs.
-    const COFACTOR: &'static [u64];
+    const COFACTOR: &[u64];
     const COFACTOR_INV: Self::ScalarField;
 
     fn cofactor_is_one() -> bool {

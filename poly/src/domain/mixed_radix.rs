@@ -15,9 +15,9 @@ use crate::domain::{
     utils::{best_fft, bitreverse_permutation_in_place},
     DomainCoeff, EvaluationDomain,
 };
-use ark_ff::{fields::utils::k_adicity, FftField};
+use ark_ff::{fields::utils::k_adicity, FftField, Field};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
-use ark_std::{cmp::min, fmt, vec::*};
+use ark_std::{cmp::min, fmt, vec, vec::*};
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
 
@@ -26,7 +26,7 @@ use rayon::prelude::*;
 /// Works only for fields that have a multiplicative subgroup of size that is
 /// a power-of-2 and another small subgroup over a different base defined.
 #[derive(Copy, Clone, Hash, Eq, PartialEq, CanonicalSerialize, CanonicalDeserialize)]
-pub struct MixedRadixEvaluationDomain<F: FftField> {
+pub struct MixedRadixEvaluationDomain<F: Field> {
     /// The size of the domain.
     pub size: u64,
     /// `log_2(self.size)`.
@@ -48,7 +48,7 @@ pub struct MixedRadixEvaluationDomain<F: FftField> {
     pub offset_pow_size: F,
 }
 
-impl<F: FftField> fmt::Debug for MixedRadixEvaluationDomain<F> {
+impl<F: Field> fmt::Debug for MixedRadixEvaluationDomain<F> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
@@ -522,7 +522,7 @@ mod tests {
         use super::serial_mixed_radix_fft;
         use crate::domain::utils::parallel_fft;
         use ark_ff::PrimeField;
-        use ark_std::{test_rng, vec::*};
+        use ark_std::{test_rng, vec::Vec};
         use ark_test_curves::bn384_small_two_adicity::Fq as Fr;
         use core::cmp::min;
 
@@ -587,7 +587,7 @@ mod tests {
     #[test]
     fn test_fft_ifft_identity() {
         let domain = MixedRadixEvaluationDomain::<Fr>::new(8).unwrap();
-        let mut coeffs = vec![
+        let mut coeffs = ark_std::vec![
             Fr::from(1),
             Fr::from(2),
             Fr::from(3),

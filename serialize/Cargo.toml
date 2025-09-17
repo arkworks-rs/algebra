@@ -12,7 +12,7 @@ license.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 metadata.docs.rs.workspace = true
-package.metadata.release.workspace = true
+metadata.release.workspace = true
 keywords = ["cryptography", "serialization"]
 
 [lints]
@@ -21,7 +21,6 @@ workspace = true
 [dependencies]
 ark-serialize-derive = { workspace = true, optional = true }
 ark-std.workspace = true
-arrayvec.workspace = true
 digest.workspace = true
 num-bigint.workspace = true
 rayon = { workspace = true, optional = true }

@@ -11,6 +11,7 @@ use ark_ff::{AdditiveGroup, BigInteger, PrimeField, Zero};
 use ark_std::{
     cfg_iter, cfg_iter_mut,
     ops::{Add, AddAssign, Mul, Neg, Sub, SubAssign},
+    vec,
     vec::*,
 };
 
@@ -86,7 +87,7 @@ pub trait ScalarMul:
 
     fn batch_convert_to_mul_base(bases: &[Self]) -> Vec<Self::MulBase>;
 
-    /// Compute the vector v[0].G, v[1].G, ..., v[n-1].G, given:
+    /// Compute the vector v\[0\].G, v\[1\].G, ..., v\[n-1\].G, given:
     /// - an element `g`
     /// - a list `v` of n scalars
     ///
@@ -118,7 +119,7 @@ pub trait ScalarMul:
         Self::batch_mul_with_preprocessing(&table, v)
     }
 
-    /// Compute the vector v[0].G, v[1].G, ..., v[n-1].G, given:
+    /// Compute the vector v\[0\].G, v\[1\].G, ..., v\[n-1\].G, given:
     /// - an element `g`
     /// - a list `v` of n scalars
     ///

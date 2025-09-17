@@ -13,7 +13,7 @@ pub trait GLVConfig: Send + Sync + 'static + SWCurveConfig {
     /// Constant used to calculate `phi(G) := lambda*G`.
     ///
     /// The coefficients of the endomorphism
-    const ENDO_COEFFS: &'static [Self::BaseField];
+    const ENDO_COEFFS: &[Self::BaseField];
 
     /// Constant used to calculate `phi(G) := lambda*G`.
     ///
@@ -109,9 +109,11 @@ pub trait GLVConfig: Send + Sync + 'static + SWCurveConfig {
         let mut res = Projective::zero();
         let mut skip_zeros = true;
         for pair in iter_k1.zip(iter_k2) {
-            if skip_zeros && pair == (false, false) {
+            if skip_zeros {
+                if pair == (false, false) {
+                    continue;
+                }
                 skip_zeros = false;
-                continue;
             }
             res.double_in_place();
             match pair {
@@ -145,9 +147,11 @@ pub trait GLVConfig: Send + Sync + 'static + SWCurveConfig {
         let mut res = Projective::zero();
         let mut skip_zeros = true;
         for pair in iter_k1.zip(iter_k2) {
-            if skip_zeros && pair == (false, false) {
+            if skip_zeros {
+                if pair == (false, false) {
+                    continue;
+                }
                 skip_zeros = false;
-                continue;
             }
             res.double_in_place();
             match pair {

@@ -1,5 +1,5 @@
 use crate::{biginteger::BigInteger, Field, PrimeField};
-use ark_std::vec::*;
+use ark_std::{vec, vec::Vec};
 
 /// Types that can be converted to a vector of `F` elements. Useful for
 /// specifying how public inputs to a constraint system should be represented
@@ -10,10 +10,9 @@ pub trait ToConstraintField<F: Field> {
 
 impl<F: Field> ToConstraintField<F> for bool {
     fn to_field_elements(&self) -> Option<Vec<F>> {
-        if *self {
-            Some(vec![F::one()])
-        } else {
-            Some(vec![F::zero()])
+        match self {
+            true => Some(vec![F::one()]),
+            false => Some(vec![F::zero()]),
         }
     }
 }

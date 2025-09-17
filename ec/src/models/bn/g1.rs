@@ -39,8 +39,8 @@ impl<'a, P: BnConfig> From<&'a G1Projective<P>> for G1Prepared<P> {
 }
 
 impl<P: BnConfig> G1Prepared<P> {
-    pub const fn is_zero(&self) -> bool {
-        self.0.infinity
+    pub fn is_zero(&self) -> bool {
+        self.0.is_zero()
     }
 }
 

@@ -19,7 +19,7 @@ use ark_ff::{fields::Field, AdditiveGroup, PrimeField, ToConstraintField, Unifor
 use educe::Educe;
 use zeroize::Zeroize;
 
-use super::{Projective, SWCurveConfig, SWFlags};
+use super::{bucket::Bucket, Projective, SWCurveConfig, SWFlags, ZeroFlag};
 use crate::AffineRepr;
 
 /// Affine coordinates for a point on an elliptic curve in short Weierstrass
@@ -33,7 +33,7 @@ pub struct Affine<P: SWCurveConfig> {
     #[doc(hidden)]
     pub y: P::BaseField,
     #[doc(hidden)]
-    pub infinity: bool,
+    pub(super) infinity: P::ZeroFlag,
 }
 
 impl<P: SWCurveConfig> PartialEq<Projective<P>> for Affine<P> {
@@ -44,7 +44,7 @@ impl<P: SWCurveConfig> PartialEq<Projective<P>> for Affine<P> {
 
 impl<P: SWCurveConfig> Display for Affine<P> {
     fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
-        match self.infinity {
+        match self.is_zero() {
             true => write!(f, "infinity"),
             false => write!(f, "({}, {})", self.x, self.y),
         }
@@ -53,7 +53,7 @@ impl<P: SWCurveConfig> Display for Affine<P> {
 
 impl<P: SWCurveConfig> Debug for Affine<P> {
     fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
-        match self.infinity {
+        match self.is_zero() {
             true => write!(f, "infinity"),
             false => write!(f, "({}, {})", self.x, self.y),
         }
@@ -67,7 +67,7 @@ impl<P: SWCurveConfig> Affine<P> {
         let point = Self {
             x,
             y,
-            infinity: false,
+            infinity: P::ZeroFlag::IS_NOT_ZERO,
         };
         assert!(point.is_on_curve());
         assert!(point.is_in_correct_subgroup_assuming_on_curve());
@@ -84,15 +84,22 @@ impl<P: SWCurveConfig> Affine<P> {
         Self {
             x,
             y,
-            infinity: false,
+            infinity: P::ZeroFlag::IS_NOT_ZERO,
         }
     }
 
     pub const fn identity() -> Self {
+        // Setting these to zero is *load-bearing* and important.
+        // These are the values that represent the identity element
+        // when `P::ZeroFlag` is `()`.
+        //
+        // We cannot ask `P::ZeroFlag` to provide the zero values
+        // via a `const fn` because constant functions in traits
+        // are not yet supported in Rust.
         Self {
             x: P::BaseField::ZERO,
             y: P::BaseField::ZERO,
-            infinity: true,
+            infinity: P::ZeroFlag::IS_ZERO,
         }
     }
 
@@ -137,7 +144,7 @@ impl<P: SWCurveConfig> Affine<P> {
 
     /// Checks if `self` is a valid point on the curve.
     pub fn is_on_curve(&self) -> bool {
-        if self.infinity {
+        if self.is_zero() {
             true
         } else {
             // Rust does not optimise away addition with zero
@@ -150,12 +157,46 @@ impl<P: SWCurveConfig> Affine<P> {
     }
 
     pub fn to_flags(&self) -> SWFlags {
-        if self.infinity {
+        if self.is_zero() {
             SWFlags::PointAtInfinity
         } else if self.y <= -self.y {
             SWFlags::YIsPositive
         } else {
             SWFlags::YIsNegative
+        }
+    }
+
+    pub fn double_to_bucket(&self) -> Bucket<P> {
+        if self.is_zero() {
+            Bucket::ZERO
+        } else {
+            // https://www.hyperelliptic.org/EFD/g1p/auto-shortw-xyzz.html#doubling-mdbl-2008-s-1
+            // U = 2*Y1
+            let u = self.y.double();
+            // V = U^2
+            let v = u.square();
+            // W = U*V
+            let w = u * &v;
+            // S = X1*V
+            let s = self.x * &v;
+            // M = 3*X1^2+a
+            let mut m = self.x.square();
+            m += m.double();
+            if !P::COEFF_A.is_zero() {
+                m += P::COEFF_A;
+            }
+            // X3 = M^2-2*S
+            let x = m.square() - s.double();
+            // Y3 = M*(S-X3)-W*Y1
+            let y = m * (s - x) - w * self.y;
+            Bucket {
+                x,
+                y,
+                // ZZ3 = V
+                zz: v,
+                // ZZZ3 = W
+                zzz: w,
+            }
         }
     }
 }
@@ -200,8 +241,10 @@ impl<P: SWCurveConfig> AffineRepr for Affine<P> {
     type ScalarField = P::ScalarField;
     type Group = Projective<P>;
 
+    const ZERO: Self = Self::identity();
+
     fn xy(&self) -> Option<(Self::BaseField, Self::BaseField)> {
-        (!self.infinity).then_some((self.x, self.y))
+        (!self.is_zero()).then(|| (self.x, self.y))
     }
 
     #[inline]
@@ -210,11 +253,11 @@ impl<P: SWCurveConfig> AffineRepr for Affine<P> {
     }
 
     fn zero() -> Self {
-        Self {
-            x: P::BaseField::ZERO,
-            y: P::BaseField::ZERO,
-            infinity: true,
-        }
+        Self::ZERO
+    }
+
+    fn is_zero(&self) -> bool {
+        P::ZeroFlag::is_zero(self)
     }
 
     fn from_random_bytes(bytes: &[u8]) -> Option<Self> {
@@ -395,7 +438,7 @@ where
     fn to_field_elements(&self) -> Option<Vec<ConstraintF>> {
         let mut x = self.x.to_field_elements()?;
         let y = self.y.to_field_elements()?;
-        let infinity = self.infinity.to_field_elements()?;
+        let infinity = self.is_zero().to_field_elements()?;
         x.extend_from_slice(&y);
         x.extend_from_slice(&infinity);
         Some(x)

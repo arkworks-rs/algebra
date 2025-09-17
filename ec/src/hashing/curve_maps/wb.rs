@@ -14,7 +14,7 @@ use super::swu::{SWUConfig, SWUMap};
 type BaseField<MP> = <MP as CurveConfig>::BaseField;
 
 /// [`IsogenyMap`] defines an isogeny between curves of
-/// form `Phi(x, y) := (a(x), b(x)*y).
+/// form `Phi(x, y) := (a(x), b(x)*y)`.
 ///
 /// The `x` coordinate of the codomain point only depends on the
 /// `x`-coordinate of the domain point, and the
@@ -72,7 +72,7 @@ where
 /// `y^2 = x^3 + a*x + b` where `b != 0`, but `a` can be zero,
 /// as seen in curves like BLS-381.
 ///
-/// For more information, refer to [WB2019].
+/// For more information, refer to \[WB2019\].
 ///
 /// - [\[WB2019\]] <http://dx.doi.org/10.46586/tches.v2019.i4.154-179>
 pub trait WBConfig: SWCurveConfig + Sized {
@@ -145,9 +145,8 @@ mod test {
     struct TestWBF127MapToCurveConfig;
 
     impl CurveConfig for TestWBF127MapToCurveConfig {
-        const COFACTOR: &'static [u64] = &[1];
+        const COFACTOR: &[u64] = &[1];
 
-    #[rustfmt::skip]
         const COFACTOR_INV: F127 = F127_ONE;
 
         type BaseField = F127;
@@ -161,11 +160,13 @@ mod test {
         const COEFF_A: F127 = F127_ZERO;
 
         /// COEFF_B = 3
-    #[rustfmt::skip]
         const COEFF_B: F127 = MontFp!("3");
 
         /// AFFINE_GENERATOR_COEFFS = (G1_GENERATOR_X, G1_GENERATOR_Y)
         const GENERATOR: Affine<Self> = Affine::new_unchecked(MontFp!("62"), MontFp!("70"));
+
+        /// We use `()` because the point (0, 0) is not on the curve.
+        type ZeroFlag = ();
     }
 
     /// Testing WB19 hashing on a small curve
@@ -178,9 +179,8 @@ mod test {
     /// sage: E_isogenous.order()
     /// 127
     impl CurveConfig for TestSWU127MapToIsogenousCurveConfig {
-        const COFACTOR: &'static [u64] = &[1];
+        const COFACTOR: &[u64] = &[1];
 
-    #[rustfmt::skip]
         const COFACTOR_INV: F127 = F127_ONE;
 
         type BaseField = F127;
@@ -194,11 +194,13 @@ mod test {
         const COEFF_A: F127 = MontFp!("109");
 
         /// COEFF_B = 124
-    #[rustfmt::skip]
         const COEFF_B: F127 = MontFp!("124");
 
         /// AFFINE_GENERATOR_COEFFS = (G1_GENERATOR_X, G1_GENERATOR_Y)
         const GENERATOR: Affine<Self> = Affine::new_unchecked(MontFp!("84"), MontFp!("2"));
+
+        /// We use `bool because the point (0, 0) could be on the curve.
+        type ZeroFlag = bool;
     }
 
     /// SWU parameters for E_isogenous
