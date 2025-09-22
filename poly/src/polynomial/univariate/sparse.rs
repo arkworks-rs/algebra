@@ -25,7 +25,7 @@ pub struct SparsePolynomial<F: Field> {
     /// The coefficient a_i of `x^i` is stored as (i, a_i) in `self.coeffs`.
     /// the entries in `self.coeffs` *must*  be sorted in increasing order of
     /// `i`.
-    coeffs: Vec<(usize, F)>,
+    pub coeffs: Vec<(usize, F)>,
 }
 
 impl<F: Field> fmt::Debug for SparsePolynomial<F> {
