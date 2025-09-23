@@ -108,7 +108,7 @@ impl<F: Field> DenseOrSparsePolynomial<'_, F> {
         if self.is_zero() {
             Some((DensePolynomial::zero(), DensePolynomial::zero()))
         } else if divisor.is_zero() {
-            panic!("Dividing by zero polynomial")
+            return None;
         } else if self.degree() < divisor.degree() {
             Some((DensePolynomial::zero(), self.clone().into()))
         } else {
@@ -171,7 +171,7 @@ impl<'a, F: FftField> DenseOrSparsePolynomial<'a, F> {
         if self.is_zero() {
             Some(DensePolynomial::zero())
         } else if divisor.is_zero() {
-            panic!("Dividing by zero polynomial")
+            return None;
         } else if self.degree() < divisor.degree() {
             Some(DensePolynomial::zero())
         } else {
