@@ -1,1 +1,7 @@
-// We can drop SmallFpConfig https://github.com/compsec-epfl/efficient-sumcheck/blob/pr-77/src/fields/small_fp_backend.rs#L16 here and try to mirror the current layout as much as makes sense.
+pub mod field;
+pub mod from;
+pub mod ops;
+pub mod serialize;
+pub mod small_fp_backend;
+
+pub use small_fp_backend::{SmallFp, SmallFpConfig};
