@@ -267,7 +267,7 @@ impl<P: SWCurveConfig> AffineRepr for Affine<P> {
             if x.is_zero() && flags.is_infinity() {
                 Some(Self::identity())
             } else if let Some(y_is_positive) = flags.is_positive() {
-                Self::get_point_from_x_unchecked(x, y_is_positive)
+                Self::get_point_from_x_unchecked(x, !y_is_positive)
                 // Unwrap is safe because it's not zero.
             } else {
                 None
@@ -442,5 +442,67 @@ where
         x.extend_from_slice(&y);
         x.extend_from_slice(&infinity);
         Some(x)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use ark_serialize::CanonicalSerialize;
+    use ark_std::test_rng;
+
+    // Use a concrete SW curve from ark-test-curves for interoperability tests.
+    use ark_test_curves::bls12_381::{g1::Config as G1Config, Fq};
+
+    type G1Affine = Affine<G1Config>;
+
+    #[test]
+    fn from_random_bytes_respects_swflags_semantics() {
+        let mut rng = test_rng();
+
+        // Pick random x that yields a valid point (non-None sqrt)
+        let x = loop {
+            let cand = Fq::rand(&mut rng);
+            if G1Affine::get_ys_from_x_unchecked(cand).is_some() {
+                break cand;
+            }
+        };
+
+        let (y_small, y_large) = G1Affine::get_ys_from_x_unchecked(x).unwrap();
+
+        // Serialize x with explicit flags
+        let mut bytes_pos = Vec::new();
+        let mut bytes_neg = Vec::new();
+        x.serialize_with_flags(&mut bytes_pos, SWFlags::YIsPositive)
+            .unwrap();
+        x.serialize_with_flags(&mut bytes_neg, SWFlags::YIsNegative)
+            .unwrap();
+
+        // Decode via from_random_bytes and assert mapping to smaller/larger y
+        let p_pos =
+            G1Affine::from_random_bytes(&bytes_pos).expect("valid point with positive flag");
+        let p_neg =
+            G1Affine::from_random_bytes(&bytes_neg).expect("valid point with negative flag");
+
+        assert_eq!(p_pos.x, x);
+        assert_eq!(p_neg.x, x);
+        assert_eq!(
+            p_pos.y, y_small,
+            "YIsPositive must map to smaller y (y <= -y)"
+        );
+        assert_eq!(p_neg.y, y_large, "YIsNegative must map to larger y");
+    }
+
+    #[test]
+    fn from_random_bytes_handles_infinity_flag() {
+        // x = 0 with infinity flag should decode to identity
+        let x0 = Fq::ZERO;
+        let mut bytes_inf = Vec::new();
+        x0.serialize_with_flags(&mut bytes_inf, SWFlags::PointAtInfinity)
+            .unwrap();
+
+        let p =
+            G1Affine::from_random_bytes(&bytes_inf).expect("infinity must deserialize to identity");
+        assert!(p.is_zero());
     }
 }
