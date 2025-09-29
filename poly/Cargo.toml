@@ -67,3 +67,8 @@ harness = false
 name = "sparse_multilinear"
 path = "benches/sparse_multilinear.rs"
 harness = false
+
+[[bench]]
+name = "take_optimization_benchmark"
+path = "benches/take_optimization_benchmark.rs"
+harness = false
