@@ -10,6 +10,7 @@
 - [\#989](https://github.com/arkworks-rs/algebra/pull/989) (`ark-poly`) Replace bound `F: FftField` with `F: Field` on `GeneralEvaluationDomain`.
 - (`ark-poly`) Add fast polynomial division
 - (`ark-ec`) Improve GLV scalar multiplication performance by skipping leading zeroes.
+- (`ark-poly`) Make `SparsePolynomial.coeffs` field public
 
 ### Breaking changes
 
