@@ -93,25 +93,25 @@ pub trait VariableBaseMSM: ScalarMul + for<'a> AddAssign<&'a Self::Bucket> {
     /// Performs multi-scalar multiplication when the scalars are known to be `u8`-sized.
     /// The default implementation is faster than [`Self::msm_bigint`].
     fn msm_u8(bases: &[Self::MulBase], scalars: &[u8]) -> Self {
-        msm_small_int_generic(bases, scalars)
+        msm_small_int(bases, scalars)
     }
 
     /// Performs multi-scalar multiplication when the scalars are known to be `u16`-sized.
     /// The default implementation is faster than [`Self::msm_bigint`].
     fn msm_u16(bases: &[Self::MulBase], scalars: &[u16]) -> Self {
-        msm_small_int_generic(bases, scalars)
+        msm_small_int(bases, scalars)
     }
 
     /// Performs multi-scalar multiplication when the scalars are known to be `u32`-sized.
     /// The default implementation is faster than [`Self::msm_bigint`].
     fn msm_u32(bases: &[Self::MulBase], scalars: &[u32]) -> Self {
-        msm_small_int_generic(bases, scalars)
+        msm_small_int(bases, scalars)
     }
 
     /// Performs multi-scalar multiplication when the scalars are known to be `u64`-sized.
     /// The default implementation is faster than [`Self::msm_bigint`].
     fn msm_u64(bases: &[Self::MulBase], scalars: &[u64]) -> Self {
-        msm_small_int_generic(bases, scalars)
+        msm_small_int(bases, scalars)
     }
 
     /// Streaming multi-scalar multiplication algorithm with hard-coded chunk
@@ -314,26 +314,26 @@ fn msm_signed<V: VariableBaseMSM>(
     // Handle positive and negative u8 scalars.
     let (ub, us) = small_value_unzip(u8s, |i, v| (bases[i], v as u8));
     let (ib, is) = small_value_unzip(i8s, |i, v| (bases[i], v as u8));
-    add_result += msm_small_int_generic::<V, _>(&ub, &us);
-    sub_result += msm_small_int_generic::<V, _>(&ib, &is);
+    add_result += V::msm_u8(&ub, &us);
+    sub_result += V::msm_u8(&ib, &is);
 
     // Handle positive and negative u16 scalars.
     let (ub, us) = small_value_unzip(u16s, |i, v| (bases[i], v as u16));
     let (ib, is) = small_value_unzip(i16s, |i, v| (bases[i], v as u16));
-    add_result += msm_small_int_generic::<V, _>(&ub, &us);
-    sub_result += msm_small_int_generic::<V, _>(&ib, &is);
+    add_result += V::msm_u16(&ub, &us);
+    sub_result += V::msm_u16(&ib, &is);
 
     // Handle positive and negative u32 scalars.
     let (ub, us) = large_value_unzip(u32s, |i| (bases[i], scalars[i].as_ref()[0] as u32));
     let (ib, is) = large_value_unzip(i32s, |i| (bases[i], sub(&m, &scalars[i]) as u32));
-    add_result += msm_small_int_generic::<V, _>(&ub, &us);
-    sub_result += msm_small_int_generic::<V, _>(&ib, &is);
+    add_result += V::msm_u32(&ub, &us);
+    sub_result += V::msm_u32(&ib, &is);
 
     // Handle positive and negative u64 scalars.
     let (ub, us) = large_value_unzip(u64s, |i| (bases[i], scalars[i].as_ref()[0]));
     let (ib, is) = large_value_unzip(i64s, |i| (bases[i], sub(&m, &scalars[i])));
-    add_result += msm_small_int_generic::<V, _>(&ub, &us);
-    sub_result += msm_small_int_generic::<V, _>(&ib, &is);
+    add_result += V::msm_u64(&ub, &us);
+    sub_result += V::msm_u64(&ib, &is);
 
     // Handle the rest of the scalars.
     let (bf, sf) = large_value_unzip(&bigints, |i| (bases[i], scalars[i]));
@@ -389,8 +389,8 @@ fn msm_binary<V: VariableBaseMSM>(mut bases: &[V::MulBase], mut scalars: &[bool]
         .sum()
 }
 
-/// Generic MSM for small integer scalars.
-fn msm_small_int_generic<V, S>(mut bases: &[V::MulBase], mut scalars: &[S]) -> V
+/// MSM for small integer scalars.
+fn msm_small_int<V, S>(mut bases: &[V::MulBase], mut scalars: &[S]) -> V
 where
     V: VariableBaseMSM,
     S: Into<u64> + Copy + Send + Sync,
