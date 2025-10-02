@@ -103,7 +103,7 @@ pub trait BW6Config: 'static + Eq + Sized {
         // compute f_u which we can later re-use for the 2nd loop
         let mut f_u = threshold_chunked_loop(&mut pairs_1, |pairs| {
             let mut f = <BW6<Self> as Pairing>::TargetField::one();
-            for i in BitIteratorBE::without_leading_zeros(Self::X).skip(1) {
+            for i in BitIteratorBE::without_leading_zeros(Self::ATE_LOOP_COUNT_1).skip(1) {
                 f.square_in_place();
                 for (p, coeffs) in pairs.iter_mut() {
                     BW6::<Self>::ell(&mut f, &coeffs.next().unwrap(), &p.0);
