@@ -1,5 +1,8 @@
 use crate::{
-    models::{short_weierstrass::SWCurveConfig, CurveConfig},
+    models::{
+        parallel_pairing_utils::threshold_chunked_loop, short_weierstrass::SWCurveConfig,
+        CurveConfig,
+    },
     pairing::{MillerLoopOutput, Pairing, PairingOutput},
 };
 use ark_ff::{
@@ -10,15 +13,11 @@ use ark_ff::{
     },
     BitIteratorBE, CyclotomicMultSubgroup,
 };
-use ark_std::cfg_chunks_mut;
 use educe::Educe;
 use itertools::Itertools;
 use num_traits::One;
 
 use ark_std::{marker::PhantomData, vec::*};
-
-#[cfg(feature = "parallel")]
-use rayon::prelude::*;
 
 pub enum TwistType {
     M,
@@ -102,23 +101,21 @@ pub trait BW6Config: 'static + Eq + Sized {
             .unzip::<_, _, Vec<_>, Vec<_>>();
 
         // compute f_u which we can later re-use for the 2nd loop
-        let mut f_u = cfg_chunks_mut!(pairs_1, 4)
-            .map(|pairs| {
-                let mut f = <BW6<Self> as Pairing>::TargetField::one();
-                for i in BitIteratorBE::without_leading_zeros(Self::ATE_LOOP_COUNT_1).skip(1) {
-                    f.square_in_place();
+        let mut f_u = threshold_chunked_loop(&mut pairs_1, |pairs| {
+            let mut f = <BW6<Self> as Pairing>::TargetField::one();
+            for i in BitIteratorBE::without_leading_zeros(Self::X).skip(1) {
+                f.square_in_place();
+                for (p, coeffs) in pairs.iter_mut() {
+                    BW6::<Self>::ell(&mut f, &coeffs.next().unwrap(), &p.0);
+                }
+                if i {
                     for (p, coeffs) in pairs.iter_mut() {
                         BW6::<Self>::ell(&mut f, &coeffs.next().unwrap(), &p.0);
                     }
-                    if i {
-                        for (p, coeffs) in pairs.iter_mut() {
-                            BW6::<Self>::ell(&mut f, &coeffs.next().unwrap(), &p.0);
-                        }
-                    }
                 }
-                f
-            })
-            .product::<<BW6<Self> as Pairing>::TargetField>();
+            }
+            f
+        });
 
         let f_u_inv;
 
@@ -130,40 +127,36 @@ pub trait BW6Config: 'static + Eq + Sized {
         }
 
         // f_1(P) = f_(u+1)(P) = f_u(P) * l([u]q, q)(P)
-        let mut f_1 = cfg_chunks_mut!(pairs_1, 4)
-            .map(|pairs| {
-                pairs.iter_mut().fold(f_u, |mut f, (p, coeffs)| {
-                    BW6::<Self>::ell(&mut f, &coeffs.next().unwrap(), &p.0);
-                    f
-                })
-            })
-            .product::<<BW6<Self> as Pairing>::TargetField>();
-
-        let mut f_2 = cfg_chunks_mut!(pairs_2, 4)
-            .map(|pairs| {
-                let mut f = f_u;
-                for i in (1..Self::ATE_LOOP_COUNT_2.len()).rev() {
-                    f.square_in_place();
-
-                    for (p, ref mut coeffs) in pairs.iter_mut() {
-                        BW6::<Self>::ell(&mut f, &coeffs.next().unwrap(), &p.0);
-                    }
-
-                    let bit = Self::ATE_LOOP_COUNT_2[i - 1];
-                    if bit == 1 {
-                        f *= &f_u;
-                    } else if bit == -1 {
-                        f *= &f_u_inv;
-                    } else {
-                        continue;
-                    }
-                    for &mut (p, ref mut coeffs) in pairs.iter_mut() {
-                        BW6::<Self>::ell(&mut f, &coeffs.next().unwrap(), &p.0);
-                    }
-                }
+        let mut f_1 = threshold_chunked_loop(&mut pairs_1, |pairs| {
+            pairs.iter_mut().fold(f_u, |mut f, (p, coeffs)| {
+                BW6::<Self>::ell(&mut f, &coeffs.next().unwrap(), &p.0);
                 f
             })
-            .product::<<BW6<Self> as Pairing>::TargetField>();
+        });
+
+        let mut f_2 = threshold_chunked_loop(&mut pairs_2, |pairs| {
+            let mut f = f_u;
+            for i in (1..Self::ATE_LOOP_COUNT_2.len()).rev() {
+                f.square_in_place();
+
+                for (p, ref mut coeffs) in pairs.iter_mut() {
+                    BW6::<Self>::ell(&mut f, &coeffs.next().unwrap(), &p.0);
+                }
+
+                let bit = Self::ATE_LOOP_COUNT_2[i - 1];
+                if bit == 1 {
+                    f *= &f_u;
+                } else if bit == -1 {
+                    f *= &f_u_inv;
+                } else {
+                    continue;
+                }
+                for &mut (p, ref mut coeffs) in pairs.iter_mut() {
+                    BW6::<Self>::ell(&mut f, &coeffs.next().unwrap(), &p.0);
+                }
+            }
+            f
+        });
 
         if Self::ATE_LOOP_COUNT_2_IS_NEGATIVE {
             f_2.cyclotomic_inverse_in_place();
