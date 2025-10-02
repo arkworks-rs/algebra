@@ -123,3 +123,45 @@ pub(crate) fn generate_montgomery_bigint_casts(
         },
     )
 }
+
+pub(crate) fn generate_sqrt_precomputation(
+    modulus: u128,
+    two_adicity: u32,
+) -> proc_macro2::TokenStream {
+    if modulus % 4 == 3 {
+        // Case3Mod4
+        let modulus_plus_one_div_four = (modulus + 1) / 4;
+        let lo = modulus_plus_one_div_four as u64;
+        let hi = (modulus_plus_one_div_four >> 64) as u64;
+
+        quote! {
+            const SQRT_PRECOMP: Option<SqrtPrecomputation<SmallFp<Self>>> = {
+                const MODULUS_PLUS_ONE_DIV_FOUR: [u64; 2] = [#lo, #hi];
+                Some(SqrtPrecomputation::Case3Mod4 {
+                    modulus_plus_one_div_four: &MODULUS_PLUS_ONE_DIV_FOUR,
+                })
+            };
+        }
+    } else {
+        // TonelliShanks
+        let trace = (modulus - 1) >> two_adicity;
+        // t is od integer division floors to (t-1)/2
+        let trace_minus_one_div_two = trace / 2;
+        let lo = trace_minus_one_div_two as u64;
+        let hi = (trace_minus_one_div_two >> 64) as u64;
+
+        quote! {
+            const SQRT_PRECOMP: Option<SqrtPrecomputation<SmallFp<Self>>> = {
+                const TRACE_MINUS_ONE_DIV_TWO: [u64; 2] = [#lo, #hi];
+                // TWO_ADIC_ROOT_OF_UNITY = g^{(p-1)/2^s} = g^t with odd t
+                // ord(g^t) = 2^s, while any square has order at most 2^{s-1}
+                // TWO_ADIC_ROOT_OF_UNITY not a square
+                Some(SqrtPrecomputation::TonelliShanks {
+                    two_adicity: #two_adicity,
+                    quadratic_nonresidue_to_trace: Self::TWO_ADIC_ROOT_OF_UNITY,
+                    trace_of_modulus_minus_one_div_two: &TRACE_MINUS_ONE_DIV_TWO,
+                })
+            };
+        }
+    }
+}

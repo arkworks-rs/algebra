@@ -1,6 +1,7 @@
 use super::*;
 use crate::small_fp::utils::{
     compute_two_adic_root_of_unity, compute_two_adicity, generate_montgomery_bigint_casts,
+    generate_sqrt_precomputation,
 };
 
 pub(crate) fn backend_impl(
@@ -23,6 +24,7 @@ pub(crate) fn backend_impl(
 
     let (from_bigint_impl, into_bigint_impl) =
         generate_montgomery_bigint_casts(modulus, k_bits, r_mod_n);
+    let sqrt_precomp_impl = generate_sqrt_precomputation(modulus, two_adicity);
 
     quote! {
         type T = #ty;
@@ -36,8 +38,7 @@ pub(crate) fn backend_impl(
 
         const TWO_ADICITY: u32 = #two_adicity;
         const TWO_ADIC_ROOT_OF_UNITY: SmallFp<Self> = SmallFp::new(#two_adic_root_mont as Self::T);
-
-        const SQRT_PRECOMP: Option<SqrtPrecomputation<SmallFp<Self>>> = None;
+        #sqrt_precomp_impl
 
         fn add_assign(a: &mut SmallFp<Self>, b: &SmallFp<Self>) {
             a.value = match a.value.overflowing_add(b.value) {
