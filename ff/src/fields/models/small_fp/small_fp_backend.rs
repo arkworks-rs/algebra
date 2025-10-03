@@ -263,39 +263,26 @@ impl<P: SmallFpConfig> ark_std::rand::distributions::Distribution<SmallFp<P>>
     for ark_std::rand::distributions::Standard
 {
     #[inline]
+    // samples non-zero element, loop avoids modulo bias
     fn sample<R: ark_std::rand::Rng + ?Sized>(&self, rng: &mut R) -> SmallFp<P> {
-        // loop avoids sampling bias
+        macro_rules! sample_loop {
+            ($ty:ty) => {
+                loop {
+                    let random_val: $ty = rng.sample(ark_std::rand::distributions::Standard);
+                    let val_u128 = random_val as u128;
+                    if val_u128 > 0 && val_u128 < P::MODULUS_128 {
+                        return SmallFp::from(random_val);
+                    }
+                }
+            };
+        }
+
         match P::MODULUS_128 {
-            modulus if modulus <= u8::MAX as u128 => loop {
-                let random_val: u8 = rng.sample(ark_std::rand::distributions::Standard);
-                if (random_val as u128) < P::MODULUS_128 {
-                    return SmallFp::from(random_val);
-                }
-            },
-            modulus if modulus <= u16::MAX as u128 => loop {
-                let random_val: u16 = rng.sample(ark_std::rand::distributions::Standard);
-                if (random_val as u128) < P::MODULUS_128 {
-                    return SmallFp::from(random_val);
-                }
-            },
-            modulus if modulus <= u32::MAX as u128 => loop {
-                let random_val: u32 = rng.sample(ark_std::rand::distributions::Standard);
-                if (random_val as u128) < P::MODULUS_128 {
-                    return SmallFp::from(random_val);
-                }
-            },
-            modulus if modulus <= u64::MAX as u128 => loop {
-                let random_val: u64 = rng.sample(ark_std::rand::distributions::Standard);
-                if (random_val as u128) < P::MODULUS_128 {
-                    return SmallFp::from(random_val);
-                }
-            },
-            _ => loop {
-                let random_val: u128 = rng.sample(ark_std::rand::distributions::Standard);
-                if random_val < P::MODULUS_128 {
-                    return SmallFp::from(random_val);
-                }
-            },
+            modulus if modulus <= u8::MAX as u128 => sample_loop!(u8),
+            modulus if modulus <= u16::MAX as u128 => sample_loop!(u16),
+            modulus if modulus <= u32::MAX as u128 => sample_loop!(u32),
+            modulus if modulus <= u64::MAX as u128 => sample_loop!(u64),
+            _ => sample_loop!(u128),
         }
     }
 }
