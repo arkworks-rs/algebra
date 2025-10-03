@@ -141,7 +141,7 @@ impl<P: SmallFpConfig> SmallFp<P> {
     }
 
     pub fn num_bits_to_shave() -> usize {
-        64 * P::NUM_BIG_INT_LIMBS - (Self::MODULUS_BIT_SIZE as usize)
+        primitive_type_bit_size(P::MODULUS_128) - (Self::MODULUS_BIT_SIZE as usize)
     }
 }
 
@@ -205,12 +205,30 @@ const fn const_to_bigint(value: u128) -> BigInt<2> {
     BigInt::<2>::new([low, high])
 }
 
+const fn const_num_bits_u128(value: u128) -> u32 {
+    if value == 0 {
+        0
+    } else {
+        128 - value.leading_zeros()
+    }
+}
+
+const fn primitive_type_bit_size(modulus_128: u128) -> usize {
+    match modulus_128 {
+        x if x <= u8::MAX as u128 => 8,
+        x if x <= u16::MAX as u128 => 16,
+        x if x <= u32::MAX as u128 => 32,
+        x if x <= u64::MAX as u128 => 64,
+        _ => 128,
+    }
+}
+
 impl<P: SmallFpConfig> PrimeField for SmallFp<P> {
     type BigInt = BigInt<2>;
 
     const MODULUS: Self::BigInt = const_to_bigint(P::MODULUS_128);
     const MODULUS_MINUS_ONE_DIV_TWO: Self::BigInt = Self::MODULUS.divide_by_2_round_down();
-    const MODULUS_BIT_SIZE: u32 = Self::MODULUS.const_num_bits();
+    const MODULUS_BIT_SIZE: u32 = const_num_bits_u128(P::MODULUS_128);
     const TRACE: Self::BigInt = Self::MODULUS.two_adic_coefficient();
     const TRACE_MINUS_ONE_DIV_TWO: Self::BigInt = Self::TRACE.divide_by_2_round_down();
 
