@@ -8,6 +8,7 @@ pub mod mnt6;
 
 mod parallel_pairing_utils;
 
+pub mod double_odd;
 pub mod short_weierstrass;
 pub mod twisted_edwards;
 

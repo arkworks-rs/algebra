@@ -105,21 +105,13 @@ impl<P: SWUConfig> MapToCurve<Projective<P>> for SWUMap<P> {
             }
         };
 
-        // This magic also comes from a generalization of [WB2019, section 4.2].
+        // This optimization also comes from a generalization of [WB2019, section 4.2].
         //
-        // The Sarkar square root algorithm with input s gives us a square root of
-        // h * s for free when s is not square, where h is a fixed nonsquare.
-        // In our implementation, h = ROOT_OF_UNITY.
-        // We know that Z / h is a square since both Z and h are
-        // nonsquares. Precompute theta as a square root of Z / ROOT_OF_UNITY.
-        //
-        // We have gx2 = g(Z * u^2 * x1) = Z^3 * u^6 * gx1
-        //                               = (Z * u^3)^2 * (Z/h * h * gx1)
-        //                               = (Z * theta * u^3)^2 * (h * gx1)
-        //
-        // When gx1 is not square, y1 is a square root of h * gx1, and so Z * theta *
-        // u^3 * y1 is a square root of gx2. Note that we don't actually need to
-        // compute gx2.
+        // We use the specialization with h = Z = ZETA (a fixed quadratic non-residue).
+        // Since gx2 = g(Z * u^2 * x1) = Z^3 * u^6 * gx1, when gx1 is not square we take
+        // y1 such that y1^2 = Z * gx1 (i.e., y1 = sqrt(Z * gx1)), and then set
+        // y2 = Z * u^3 * y1. This gives y2^2 = (Z * u^3)^2 * (Z * gx1) = Z^3 * u^6 * gx1 = gx2,
+        // so we avoid computing gx2 explicitly.
 
         let y2 = zeta_u2 * element * y1;
         let num_x = if gx1_square { num_x1 } else { num_x2 };

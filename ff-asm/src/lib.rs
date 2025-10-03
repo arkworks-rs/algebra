@@ -138,9 +138,7 @@ fn construct_asm_mul(ctx: &Context<'_>, limbs: usize) -> Vec<String> {
     let asm_instructions = RefCell::new(Vec::new());
 
     let comment = |comment: &str| {
-        asm_instructions
-            .borrow_mut()
-            .push(format!("// {}", comment));
+        asm_instructions.borrow_mut().push(format!("// {comment}"));
     };
 
     macro_rules! mulxq {
