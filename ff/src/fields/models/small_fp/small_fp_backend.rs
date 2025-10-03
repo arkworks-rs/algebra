@@ -266,6 +266,18 @@ impl<P: SmallFpConfig> ark_std::rand::distributions::Distribution<SmallFp<P>>
     fn sample<R: ark_std::rand::Rng + ?Sized>(&self, rng: &mut R) -> SmallFp<P> {
         // loop avoids sampling bias
         match P::MODULUS_128 {
+            modulus if modulus <= u8::MAX as u128 => loop {
+                let random_val: u8 = rng.sample(ark_std::rand::distributions::Standard);
+                if (random_val as u128) < P::MODULUS_128 {
+                    return SmallFp::from(random_val);
+                }
+            },
+            modulus if modulus <= u16::MAX as u128 => loop {
+                let random_val: u16 = rng.sample(ark_std::rand::distributions::Standard);
+                if (random_val as u128) < P::MODULUS_128 {
+                    return SmallFp::from(random_val);
+                }
+            },
             modulus if modulus <= u32::MAX as u128 => loop {
                 let random_val: u32 = rng.sample(ark_std::rand::distributions::Standard);
                 if (random_val as u128) < P::MODULUS_128 {

@@ -1,36 +1,87 @@
-// Simple example demonstrating field arithmetic with ark-ff using MontConfig
-// This is equivalent to fpconfig.rs but uses the stable MontConfig derive
-
+use ark_algebra_test_templates::*;
 use ark_ff::ark_ff_macros::SmallFpConfig;
-use ark_ff::{BigInt, Fp64, MontBackend, MontConfig, SmallFp, SmallFpConfig, SqrtPrecomputation};
+use ark_ff::{BigInt, SmallFp, SmallFpConfig, SqrtPrecomputation};
 
-// M31 prime field: 2^31 - 1 = 2147483647
-#[derive(MontConfig)]
-#[modulus = "2147483647"]
-#[generator = "3"]
-pub struct M31Config;
+#[derive(SmallFpConfig)]
+#[modulus = "251"]
+#[generator = "6"]
+#[backend = "standard"]
+pub struct SmallF8Config;
+pub type SmallF8 = SmallFp<SmallF8Config>;
 
-pub type M31Field = Fp64<MontBackend<M31Config, 1>>;
+#[derive(SmallFpConfig)]
+#[modulus = "251"]
+#[generator = "6"]
+#[backend = "montgomery"]
+pub struct SmallF8ConfigMont;
+pub type SmallF8Mont = SmallFp<SmallF8ConfigMont>;
 
-// BabyBear prime field: 2^31 - 2^27 + 1 = 2013265921
-#[derive(MontConfig)]
-#[modulus = "2013265921"]
-#[generator = "31"]
-pub struct BabyBearConfig;
+#[derive(SmallFpConfig)]
+#[modulus = "65521"]
+#[generator = "2"]
+#[backend = "standard"]
+pub struct SmallF16Config;
+pub type SmallF16 = SmallFp<SmallF16Config>;
 
-pub type BabyBearField = Fp64<MontBackend<BabyBearConfig, 1>>;
+#[derive(SmallFpConfig)]
+#[modulus = "65521"]
+#[generator = "2"]
+#[backend = "montgomery"]
+pub struct SmallF16ConfigMont;
+pub type SmallF16Mont = SmallFp<SmallF16ConfigMont>;
 
 #[derive(SmallFpConfig)]
 #[modulus = "2147483647"] // m31
 #[generator = "7"]
 #[backend = "standard"]
 pub struct SmallField;
+pub type SmallF32 = SmallFp<SmallField>;
 
 #[derive(SmallFpConfig)]
-#[modulus = "2013265921"] // BabyBear
-#[generator = "31"]
+#[modulus = "2147483647"] // m31
+#[generator = "7"]
 #[backend = "montgomery"]
 pub struct SmallFieldMont;
+pub type SmallF32Mont = SmallFp<SmallFieldMont>;
+
+#[derive(SmallFpConfig)]
+#[modulus = "18446744069414584321"] // Goldilock's prime 2^64 - 2^32 + 1
+#[generator = "2"]
+#[backend = "standard"]
+pub struct SmallF64Config;
+pub type SmallF64 = SmallFp<SmallF64Config>;
+
+#[derive(SmallFpConfig)]
+#[modulus = "18446744069414584321"] // Goldilock's prime 2^64 - 2^32 + 1
+#[generator = "2"]
+#[backend = "montgomery"]
+pub struct SmallF64ConfigMont;
+pub type SmallF64Mont = SmallFp<SmallF64ConfigMont>;
+
+#[derive(SmallFpConfig)]
+#[modulus = "143244528689204659050391023439224324689"]
+#[generator = "2"]
+#[backend = "standard"]
+pub struct SmallF128Config;
+pub type SmallF128 = SmallFp<SmallF128Config>;
+
+// #[derive(SmallFpConfig)]
+// #[modulus = "143244528689204659050391023439224324689"]
+// #[generator = "2"]
+// #[backend = "montgomery"]
+// pub struct SmallF128ConfigMont;
+// pub type SmallF128Mont = SmallFp<SmallF128ConfigMont>;
+
+test_small_field!(f8; SmallF8; small_prime_field);
+test_small_field!(f8_mont; SmallF8Mont; small_prime_field);
+test_small_field!(f16; SmallF16; small_prime_field);
+test_small_field!(f16_mont; SmallF16Mont; small_prime_field);
+test_small_field!(f32; SmallF32; small_prime_field);
+test_small_field!(f32_mont; SmallF32Mont; small_prime_field);
+test_small_field!(f64; SmallF64; small_prime_field);
+test_small_field!(f64_mont; SmallF64Mont; small_prime_field);
+test_small_field!(f128; SmallF128; small_prime_field);
+// test_small_field!(f128_mont; SmallF128Mont; small_prime_field);
 
 fn main() {
     let mut a = SmallFieldMont::new(20);
@@ -341,6 +392,35 @@ mod tests {
         assert_eq!(result.value, 33 % SmallField::MODULUS);
     }
 
+    #[test]
+    fn test_sqrt_standard_backend() {
+        use ark_ff::Field;
+
+        for i in [4, 16, 144, 169, 256, 400] {
+            let a = SmallField::new(i);
+            let sqrt = a.sqrt();
+            assert!(sqrt.is_some());
+            let sqrt_val = sqrt.unwrap();
+            let mut sqrt_squared = sqrt_val;
+            SmallField::square_in_place(&mut sqrt_squared);
+            assert_eq!(sqrt_squared.value, i);
+        }
+
+        let three = SmallField::new(3);
+        let sqrt_three = three.sqrt();
+        assert!(sqrt_three.is_none());
+
+        let one = SmallField::ONE;
+        let sqrt_one = one.sqrt();
+        assert!(sqrt_one.is_some());
+        assert_eq!(sqrt_one.unwrap(), SmallField::ONE);
+
+        let zero = SmallField::ZERO;
+        let sqrt_zero = zero.sqrt();
+        assert!(sqrt_zero.is_some());
+        assert_eq!(sqrt_zero.unwrap(), SmallField::ZERO);
+    }
+
     // ---------- Montgomery backend tests ----------
     #[test]
     fn add_assign_test_montgomery() {
@@ -574,7 +654,7 @@ mod tests {
 
     #[test]
     fn test_specific_inverse_montgomery() {
-        let mut val = SmallFieldMont::new(17);
+        let val = SmallFieldMont::new(17);
         let val_inv = SmallFieldMont::inverse(&val);
         let mut val_copy = val;
         SmallFieldMont::mul_assign(&mut val_copy, &val_inv.unwrap());
@@ -609,7 +689,7 @@ mod tests {
         }
 
         // inverse property: inv(inv(x)) = x
-        let mut test_val = SmallFieldMont::new(42 % SmallFieldMont::MODULUS);
+        let test_val = SmallFieldMont::new(42 % SmallFieldMont::MODULUS);
         {
             let mut tv_copy = test_val;
             SmallFieldMont::exit(&mut tv_copy);
@@ -727,5 +807,41 @@ mod tests {
         let mut result = SmallFieldMont::sum_of_products(&a, &b);
         SmallFieldMont::exit(&mut result);
         assert_eq!(result.value, 33 % SmallFieldMont::MODULUS);
+    }
+
+    #[test]
+    fn test_sqrt_montgomery_backend() {
+        use ark_ff::Field;
+
+        for i in [4, 16, 144, 169, 256, 400] {
+            let a = SmallFieldMont::new(i);
+            let sqrt = a.sqrt();
+            assert!(sqrt.is_some());
+            let sqrt_val = sqrt.unwrap();
+            let mut sqrt_squared = sqrt_val;
+            SmallFieldMont::square_in_place(&mut sqrt_squared);
+            let mut a_copy = a;
+            SmallFieldMont::exit(&mut sqrt_squared);
+            SmallFieldMont::exit(&mut a_copy);
+            assert_eq!(sqrt_squared.value, a_copy.value);
+        }
+
+        let three = SmallFieldMont::new(31);
+        let sqrt_three = three.sqrt();
+        assert!(sqrt_three.is_none());
+
+        let one = SmallFieldMont::ONE;
+        let sqrt_one = one.sqrt();
+        assert!(sqrt_one.is_some());
+        let mut sqrt_one_val = sqrt_one.unwrap();
+        SmallFieldMont::exit(&mut sqrt_one_val);
+        assert_eq!(sqrt_one_val.value, 1);
+
+        let zero = SmallFieldMont::ZERO;
+        let sqrt_zero = zero.sqrt();
+        assert!(sqrt_zero.is_some());
+        let mut sqrt_zero_val = sqrt_zero.unwrap();
+        SmallFieldMont::exit(&mut sqrt_zero_val);
+        assert_eq!(sqrt_zero_val.value, 0);
     }
 }
