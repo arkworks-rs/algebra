@@ -72,10 +72,13 @@ pub(crate) fn backend_impl(
 
             let t = a_u128.wrapping_mul(b_u128);
             let m = t.wrapping_mul(#n_prime) & #r_mask;
-            let mn = (m as u128).wrapping_mul(#modulus);
+            let mn = m.wrapping_mul(#modulus);
 
-            let t_plus_mn = t.wrapping_add(mn);
+            let (t_plus_mn, overflow) = t.overflowing_add(mn);
             let mut u = t_plus_mn >> #k_bits;
+            if overflow {
+                u += 1u128 << (128 - #k_bits);
+            }
 
             if u >= #modulus {
                 u -= #modulus;
