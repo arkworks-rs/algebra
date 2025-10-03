@@ -23,7 +23,7 @@ const fn mod_add(x: u128, y: u128, modulus: u128) -> u128 {
     }
 }
 
-const fn safe_mul_const(a: u128, b: u128, modulus: u128) -> u128 {
+pub(crate) const fn safe_mul_const(a: u128, b: u128, modulus: u128) -> u128 {
     match a.overflowing_mul(b) {
         (val, false) => val % modulus,
         (_, true) => {
@@ -95,7 +95,7 @@ pub(crate) fn generate_montgomery_bigint_casts(
     _k_bits: u32,
     r_mod_n: u128,
 ) -> (proc_macro2::TokenStream, proc_macro2::TokenStream) {
-    let r2 = (r_mod_n * r_mod_n) % modulus;
+    let r2 = safe_mul_const(r_mod_n, r_mod_n, modulus);
     (
         quote! {
             //* Convert from standard representation to Montgomery space
@@ -118,7 +118,10 @@ pub(crate) fn generate_montgomery_bigint_casts(
                 let mut tmp = a;
                 let one = SmallFp::new(1 as Self::T);
                 <Self as SmallFpConfig>::mul_assign(&mut tmp, &one);
-                ark_ff::BigInt([tmp.value as u64, 0])
+                let val = tmp.value as u128;
+                let lo = val as u64;
+                let hi = (val >> 64) as u64;
+                ark_ff::BigInt([lo, hi])
             }
         },
     )

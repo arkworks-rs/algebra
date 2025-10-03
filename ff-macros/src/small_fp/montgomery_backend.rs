@@ -1,7 +1,7 @@
 use super::*;
 use crate::small_fp::utils::{
     compute_two_adic_root_of_unity, compute_two_adicity, generate_montgomery_bigint_casts,
-    generate_sqrt_precomputation,
+    generate_sqrt_precomputation, safe_mul_const,
 };
 
 pub(crate) fn backend_impl(
@@ -140,7 +140,8 @@ fn mod_inverse_pow2(n: u128, bits: u32) -> u128 {
 pub(crate) fn new(modulus: u128, _ty: proc_macro2::TokenStream) -> proc_macro2::TokenStream {
     let k_bits = 128 - modulus.leading_zeros();
     let r: u128 = 1u128 << k_bits;
-    let r2 = (r * r) % modulus;
+    let r_mod_n = r % modulus;
+    let r2 = safe_mul_const(r_mod_n, r_mod_n, modulus);
 
     quote! {
         pub fn new(value: <Self as SmallFpConfig>::T) -> SmallFp<Self> {
