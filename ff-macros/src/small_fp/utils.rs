@@ -23,7 +23,7 @@ const fn mod_add(x: u128, y: u128, modulus: u128) -> u128 {
     }
 }
 
-const fn safe_mul_const(a: u128, b: u128, modulus: u128) -> u128 {
+pub(crate) const fn mod_mul_const(a: u128, b: u128, modulus: u128) -> u128 {
     match a.overflowing_mul(b) {
         (val, false) => val % modulus,
         (_, true) => {
@@ -43,25 +43,45 @@ const fn safe_mul_const(a: u128, b: u128, modulus: u128) -> u128 {
     }
 }
 
-// Two adicity root of unity `w` is defined as `w = g^((N-1)/2^s)` where `s` is two adidcity
-// Therefore `w^(2^s) = 1 mod N`
-pub(crate) const fn compute_two_adic_root_of_unity(
-    modulus: u128,
-    generator: u128,
-    two_adicity: u32,
-) -> u128 {
+pub(crate) const fn compute_two_adic_root_of_unity(modulus: u128, two_adicity: u32) -> u128 {
+    let qnr = find_quadratic_non_residue(modulus);
     let mut exp = (modulus - 1) >> two_adicity;
-    let mut base = generator % modulus;
+    let mut base = qnr % modulus;
     let mut result = 1u128;
 
     while exp > 0 {
         if exp & 1 == 1 {
-            result = safe_mul_const(result, base, modulus);
+            result = mod_mul_const(result, base, modulus);
         }
-        base = safe_mul_const(base, base, modulus);
+        base = mod_mul_const(base, base, modulus);
         exp /= 2;
     }
     result
+}
+
+const fn pow_mod(mut base: u128, mut exp: u128, modulus: u128) -> u128 {
+    let mut result = 1;
+    base %= modulus;
+    while exp > 0 {
+        if exp % 2 == 1 {
+            result = mod_mul_const(result, base, modulus);
+        }
+        base = mod_mul_const(base, base, modulus);
+        exp /= 2;
+    }
+    result
+}
+
+pub(crate) const fn find_quadratic_non_residue(modulus: u128) -> u128 {
+    let exponent = (modulus - 1) / 2;
+    let mut z = 2;
+    loop {
+        let legendre = pow_mod(z, exponent, modulus);
+        if legendre == modulus - 1 {
+            return z;
+        }
+        z += 1;
+    }
 }
 
 pub(crate) fn generate_bigint_casts(
@@ -95,7 +115,7 @@ pub(crate) fn generate_montgomery_bigint_casts(
     _k_bits: u32,
     r_mod_n: u128,
 ) -> (proc_macro2::TokenStream, proc_macro2::TokenStream) {
-    let r2 = (r_mod_n * r_mod_n) % modulus;
+    let r2 = mod_mul_const(r_mod_n, r_mod_n, modulus);
     (
         quote! {
             //* Convert from standard representation to Montgomery space
@@ -118,7 +138,10 @@ pub(crate) fn generate_montgomery_bigint_casts(
                 let mut tmp = a;
                 let one = SmallFp::new(1 as Self::T);
                 <Self as SmallFpConfig>::mul_assign(&mut tmp, &one);
-                ark_ff::BigInt([tmp.value as u64, 0])
+                let val = tmp.value as u128;
+                let lo = val as u64;
+                let hi = (val >> 64) as u64;
+                ark_ff::BigInt([lo, hi])
             }
         },
     )

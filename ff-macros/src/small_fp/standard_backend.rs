@@ -10,7 +10,7 @@ pub(crate) fn backend_impl(
     generator: u128,
 ) -> proc_macro2::TokenStream {
     let two_adicity = compute_two_adicity(modulus);
-    let two_adic_root_of_unity = compute_two_adic_root_of_unity(modulus, generator, two_adicity);
+    let two_adic_root_of_unity = compute_two_adic_root_of_unity(modulus, two_adicity);
 
     let (from_bigint_impl, into_bigint_impl) = generate_bigint_casts(modulus);
     let sqrt_precomp_impl = generate_sqrt_precomputation(modulus, two_adicity);

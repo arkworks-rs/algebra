@@ -1,7 +1,7 @@
 use super::*;
 use crate::small_fp::utils::{
     compute_two_adic_root_of_unity, compute_two_adicity, generate_montgomery_bigint_casts,
-    generate_sqrt_precomputation,
+    generate_sqrt_precomputation, mod_mul_const,
 };
 
 pub(crate) fn backend_impl(
@@ -16,11 +16,13 @@ pub(crate) fn backend_impl(
 
     let n_prime = mod_inverse_pow2(modulus, k_bits);
     let one_mont = r_mod_n;
-    let generator_mont = (generator % modulus) * (r_mod_n % modulus) % modulus;
+    let generator_mont = mod_mul_const(generator % modulus, r_mod_n % modulus, modulus);
 
     let two_adicity = compute_two_adicity(modulus);
-    let two_adic_root = compute_two_adic_root_of_unity(modulus, generator, two_adicity);
-    let two_adic_root_mont = (two_adic_root * r_mod_n) % modulus;
+    let two_adic_root = compute_two_adic_root_of_unity(modulus, two_adicity);
+    let two_adic_root_mont = mod_mul_const(two_adic_root, r_mod_n, modulus);
+    
+    let neg_one_mont = mod_mul_const(modulus - 1, r_mod_n, modulus);
 
     let (from_bigint_impl, into_bigint_impl) =
         generate_montgomery_bigint_casts(modulus, k_bits, r_mod_n);
@@ -33,7 +35,7 @@ pub(crate) fn backend_impl(
         const GENERATOR: SmallFp<Self> = SmallFp::new(#generator_mont as Self::T);
         const ZERO: SmallFp<Self> = SmallFp::new(0 as Self::T);
         const ONE: SmallFp<Self> = SmallFp::new(#one_mont as Self::T);
-        const NEG_ONE: SmallFp<Self> = SmallFp::new(((Self::MODULUS - 1) as u128 * #r_mod_n % #modulus) as Self::T);
+        const NEG_ONE: SmallFp<Self> = SmallFp::new(#neg_one_mont as Self::T);
 
 
         const TWO_ADICITY: u32 = #two_adicity;
@@ -72,10 +74,13 @@ pub(crate) fn backend_impl(
 
             let t = a_u128.wrapping_mul(b_u128);
             let m = t.wrapping_mul(#n_prime) & #r_mask;
-            let mn = (m as u128).wrapping_mul(#modulus);
+            let mn = m.wrapping_mul(#modulus);
 
-            let t_plus_mn = t.wrapping_add(mn);
+            let (t_plus_mn, overflow) = t.overflowing_add(mn);
             let mut u = t_plus_mn >> #k_bits;
+            if overflow {
+                u += 1u128 << (128 - #k_bits);
+            }
 
             if u >= #modulus {
                 u -= #modulus;
@@ -140,7 +145,8 @@ fn mod_inverse_pow2(n: u128, bits: u32) -> u128 {
 pub(crate) fn new(modulus: u128, _ty: proc_macro2::TokenStream) -> proc_macro2::TokenStream {
     let k_bits = 128 - modulus.leading_zeros();
     let r: u128 = 1u128 << k_bits;
-    let r2 = (r * r) % modulus;
+    let r_mod_n = r % modulus;
+    let r2 = mod_mul_const(r_mod_n, r_mod_n, modulus);
 
     quote! {
         pub fn new(value: <Self as SmallFpConfig>::T) -> SmallFp<Self> {

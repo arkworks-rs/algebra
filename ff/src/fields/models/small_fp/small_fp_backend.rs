@@ -141,7 +141,7 @@ impl<P: SmallFpConfig> SmallFp<P> {
     }
 
     pub fn num_bits_to_shave() -> usize {
-        64 * P::NUM_BIG_INT_LIMBS - (Self::MODULUS_BIT_SIZE as usize)
+        primitive_type_bit_size(P::MODULUS_128) - (Self::MODULUS_BIT_SIZE as usize)
     }
 }
 
@@ -205,12 +205,30 @@ const fn const_to_bigint(value: u128) -> BigInt<2> {
     BigInt::<2>::new([low, high])
 }
 
+const fn const_num_bits_u128(value: u128) -> u32 {
+    if value == 0 {
+        0
+    } else {
+        128 - value.leading_zeros()
+    }
+}
+
+const fn primitive_type_bit_size(modulus_128: u128) -> usize {
+    match modulus_128 {
+        x if x <= u8::MAX as u128 => 8,
+        x if x <= u16::MAX as u128 => 16,
+        x if x <= u32::MAX as u128 => 32,
+        x if x <= u64::MAX as u128 => 64,
+        _ => 128,
+    }
+}
+
 impl<P: SmallFpConfig> PrimeField for SmallFp<P> {
     type BigInt = BigInt<2>;
 
     const MODULUS: Self::BigInt = const_to_bigint(P::MODULUS_128);
     const MODULUS_MINUS_ONE_DIV_TWO: Self::BigInt = Self::MODULUS.divide_by_2_round_down();
-    const MODULUS_BIT_SIZE: u32 = Self::MODULUS.const_num_bits();
+    const MODULUS_BIT_SIZE: u32 = const_num_bits_u128(P::MODULUS_128);
     const TRACE: Self::BigInt = Self::MODULUS.two_adic_coefficient();
     const TRACE_MINUS_ONE_DIV_TWO: Self::BigInt = Self::TRACE.divide_by_2_round_down();
 
@@ -263,15 +281,26 @@ impl<P: SmallFpConfig> ark_std::rand::distributions::Distribution<SmallFp<P>>
     for ark_std::rand::distributions::Standard
 {
     #[inline]
+    // samples non-zero element, loop avoids modulo bias
     fn sample<R: ark_std::rand::Rng + ?Sized>(&self, rng: &mut R) -> SmallFp<P> {
-        //* note: loop to prevent modulus bias of distribution
-        loop {
-            let random_val: BigInt<2> = rng.sample(ark_std::rand::distributions::Standard);
-            let random_elem: SmallFp<P> = SmallFp::from(random_val);
+        macro_rules! sample_loop {
+            ($ty:ty) => {
+                loop {
+                    let random_val: $ty = rng.sample(ark_std::rand::distributions::Standard);
+                    let val_u128 = random_val as u128;
+                    if val_u128 > 0 && val_u128 < P::MODULUS_128 {
+                        return SmallFp::from(random_val);
+                    }
+                }
+            };
+        }
 
-            if !random_elem.is_geq_modulus() {
-                return random_elem;
-            }
+        match P::MODULUS_128 {
+            modulus if modulus <= u8::MAX as u128 => sample_loop!(u8),
+            modulus if modulus <= u16::MAX as u128 => sample_loop!(u16),
+            modulus if modulus <= u32::MAX as u128 => sample_loop!(u32),
+            modulus if modulus <= u64::MAX as u128 => sample_loop!(u64),
+            _ => sample_loop!(u128),
         }
     }
 }

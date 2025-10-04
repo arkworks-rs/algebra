@@ -35,6 +35,7 @@ ark-test-curves = { workspace = true, features = [
     "mnt6_753",
     "secp256k1",
 ] }
+ark-algebra-test-templates = { path = "../test-templates" }
 p3_field = { git = "https://github.com/succinctlabs/Plonky3", package = "p3-field" }
 p3_goldilocks = { git = "https://github.com/succinctlabs/Plonky3", package = "p3-goldilocks" }
 blake2.workspace = true
@@ -46,14 +47,6 @@ serde_json.workspace = true
 serde_derive.workspace = true
 hex.workspace = true
 criterion.workspace = true
-
-[[example]]
-name = "fpconfig"
-path = "../examples/fpconfig.rs"
-
-[[example]]
-name = "fpconfig_working"
-path = "../examples/fpconfig_working.rs"
 
 [[bench]]
 name = "cast_bench"
