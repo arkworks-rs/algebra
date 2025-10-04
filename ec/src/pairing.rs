@@ -283,9 +283,9 @@ impl<P: Pairing> PrimeGroup for PairingOutput<P> {
 
     fn generator() -> Self {
         // TODO: hardcode these values.
-        // Sample a random G1 element
+        // Use the canonical G1 generator
         let g1 = P::G1::generator();
-        // Sample a random G2 element
+        // Use the canonical G2 generator
         let g2 = P::G2::generator();
         P::pairing(g1.into(), g2.into())
     }
