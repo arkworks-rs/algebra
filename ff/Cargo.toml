@@ -48,14 +48,6 @@ serde_derive.workspace = true
 hex.workspace = true
 criterion.workspace = true
 
-[[example]]
-name = "fpconfig"
-path = "../examples/fpconfig.rs"
-
-[[example]]
-name = "smallfp_tests"
-path = "../examples/smallfp_tests.rs"
-
 [[bench]]
 name = "cast_bench"
 harness = false

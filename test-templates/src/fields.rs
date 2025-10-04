@@ -587,17 +587,6 @@ macro_rules! test_field {
     };
 }
 
-pub fn small_field_sum_of_products_test_helper<F, const N: usize>(rng: &mut impl Rng)
-where
-    F: ark_ff::Field + ark_std::UniformRand,
-{
-    let a = [(); N].map(|_| F::rand(rng));
-    let b = [(); N].map(|_| F::rand(rng));
-    let result_1 = F::sum_of_products(&a, &b);
-    let result_2 = a.into_iter().zip(b).map(|(a, b)| a * b).sum::<F>();
-    assert_eq!(result_1, result_2, "length: {N}");
-}
-
 #[macro_export]
 #[doc(hidden)]
 macro_rules! __test_small_field {
@@ -605,14 +594,13 @@ macro_rules! __test_small_field {
         #[test]
         pub fn test_frobenius() {
             use ark_ff::Field;
+            use ark_std::UniformRand;
+            let mut rng = ark_std::test_rng();
+            let characteristic = <$field>::characteristic();
+            let max_power = (<$field>::extension_degree() + 1) as usize;
 
-            // Test with specific values rather than random ones to avoid from_bigint issues
-            let test_values = [0, 1, 2, 42, 100];
-
-            for &val in &test_values {
-                let a = <$field>::from(val as u64);
-                let characteristic = <$field>::characteristic();
-                let max_power = (<$field>::extension_degree() + 1) as usize;
+            for _ in 0..ITERATIONS {
+                let a = <$field>::rand(&mut rng);
 
                 let mut a_0 = a;
                 a_0.frobenius_map_in_place(0);
@@ -625,11 +613,67 @@ macro_rules! __test_small_field {
 
                     let mut a_qi = a;
                     a_qi.frobenius_map_in_place(power);
-                    assert_eq!(a_q, a_qi);
+                    assert_eq!(a_qi, a_q, "failed on power {}", power);
 
                     a_q = a_q.pow(&characteristic);
                 }
             }
+        }
+
+        #[test]
+        fn test_serialization() {
+            use ark_serialize::*;
+            use ark_std::UniformRand;
+            for compress in [Compress::Yes, Compress::No] {
+                for validate in [Validate::Yes, Validate::No] {
+                    let buf_size = <$field>::zero().serialized_size(compress);
+
+                    let buffer_size =
+                        buffer_bit_byte_size(<$field as Field>::BasePrimeField::MODULUS_BIT_SIZE as usize).1 *
+                        (<$field>::extension_degree() as usize);
+                    assert_eq!(buffer_size, buf_size);
+
+                    let mut rng = ark_std::test_rng();
+
+                    for _ in 0..ITERATIONS {
+                        let a = <$field>::rand(&mut rng);
+                        {
+                            let mut serialized = vec![0u8; buf_size];
+                            let mut cursor = Cursor::new(&mut serialized[..]);
+                            a.serialize_with_mode(&mut cursor, compress).unwrap();
+
+                            let mut cursor = Cursor::new(&serialized[..]);
+                            let b = <$field>::deserialize_with_mode(&mut cursor, compress, validate).unwrap();
+                            assert_eq!(a, b);
+                        }
+
+                        {
+                            let mut serialized = vec![0; buf_size];
+                            let result = matches!(
+                                a.serialize_with_flags(&mut &mut serialized[..], $crate::fields::DummyFlags).unwrap_err(),
+                                SerializationError::NotEnoughSpace
+                            );
+                            assert!(result);
+
+                            let result = matches!(
+                                <$field>::deserialize_with_flags::<_, $crate::fields::DummyFlags>(&mut &serialized[..]).unwrap_err(),
+                                SerializationError::NotEnoughSpace,
+                            );
+                            assert!(result);
+
+                            {
+                                let mut serialized = vec![0; buf_size - 1];
+                                let mut cursor = Cursor::new(&mut serialized[..]);
+                                a.serialize_with_mode(&mut cursor, compress).unwrap_err();
+
+                                let mut cursor = Cursor::new(&serialized[..]);
+                                <$field>::deserialize_with_mode(&mut cursor, compress, validate).unwrap_err();
+                            }
+                        }
+                    }
+                }
+            }
+
         }
 
         #[test]
@@ -837,32 +881,32 @@ macro_rules! __test_small_field {
             }
         }
 
-        // #[test]
-        // fn test_sqrt() {
-        //     if <$field>::SQRT_PRECOMP.is_some() {
-        //         use ark_std::UniformRand;
-        //         let rng = &mut test_rng();
+        #[test]
+        fn test_sqrt() {
+            if <$field>::SQRT_PRECOMP.is_some() {
+                use ark_std::UniformRand;
+                let rng = &mut test_rng();
 
-        //         assert!(<$field>::zero().sqrt().unwrap().is_zero());
+                assert!(<$field>::zero().sqrt().unwrap().is_zero());
 
-        //         for _ in 0..ITERATIONS {
-        //             // Ensure sqrt(a^2) = a or -a
-        //             let a = <$field>::rand(rng);
-        //             let b = a.square();
-        //             let sqrt = b.sqrt().unwrap();
-        //             assert!(a == sqrt || -a == sqrt);
+                for _ in 0..ITERATIONS {
+                    // Ensure sqrt(a^2) = a or -a
+                    let a = <$field>::rand(rng);
+                    let b = a.square();
+                    let sqrt = b.sqrt().unwrap();
+                    assert!(a == sqrt || -a == sqrt);
 
-        //             if let Some(mut b) = a.sqrt() {
-        //                 b.square_in_place();
-        //                 assert_eq!(a, b);
-        //             }
+                    if let Some(mut b) = a.sqrt() {
+                        b.square_in_place();
+                        assert_eq!(a, b);
+                    }
 
-        //             let a = <$field>::rand(rng);
-        //             let b = a.square();
-        //             assert_eq!(b.legendre(), LegendreSymbol::QuadraticResidue);
-        //         }
-        //     }
-        // }
+                    let a = <$field>::rand(rng);
+                    let b = a.square();
+                    assert_eq!(b.legendre(), LegendreSymbol::QuadraticResidue);
+                }
+            }
+        }
 
         #[test]
         fn test_mul_by_base_field_elem() {
@@ -886,42 +930,128 @@ macro_rules! __test_small_field {
                 assert_eq!(computed, naive);
             }
         }
-    };
+        #[test]
+        fn test_fft() {
+            use ark_ff::FftField;
+            use $crate::num_bigint::BigUint;
 
-    ($field: ty; small_prime_field) => {
-        $crate::__test_small_field!($field);
+            let two_pow_2_adicity = BigUint::from(1_u8) << <$field>::TWO_ADICITY as u32;
+            assert_eq!(
+                <$field>::TWO_ADIC_ROOT_OF_UNITY.pow(two_pow_2_adicity.to_u64_digits()),
+                <$field>::one()
+            );
+
+            if let Some(small_subgroup_base) = <$field>::SMALL_SUBGROUP_BASE {
+                let small_subgroup_base_adicity = <$field>::SMALL_SUBGROUP_BASE_ADICITY.unwrap();
+                let large_subgroup_root_of_unity = <$field>::LARGE_SUBGROUP_ROOT_OF_UNITY.unwrap();
+                let pow = <$field>::from(two_pow_2_adicity)
+                    * <$field>::from(small_subgroup_base as u64)
+                        .pow([small_subgroup_base_adicity as u64]);
+                assert_eq!(
+                    large_subgroup_root_of_unity.pow(pow.into_bigint()),
+                    <$field>::one()
+                );
+
+                for i in 0..=<$field>::TWO_ADICITY {
+                    for j in 0..=small_subgroup_base_adicity {
+                        let size = (1u64 << i) * (small_subgroup_base as u64).pow(j);
+                        let root = <$field>::get_root_of_unity(size as u64).unwrap();
+                        assert_eq!(root.pow([size as u64]), <$field>::one());
+                    }
+                }
+            } else {
+                for i in 0..=<$field>::TWO_ADICITY {
+                    let size = BigUint::from(1_u8) << i;
+                    let root = <$field>::get_root_of_unity_big_int(size.clone()).unwrap();
+                    assert_eq!(root.pow(size.to_u64_digits()), <$field>::one());
+                }
+            }
+        }
+
+
+        #[test]
+        fn test_constants() {
+            use ark_ff::{FpConfig, BigInteger, SqrtPrecomputation};
+            use $crate::num_bigint::BigUint;
+            use $crate::num_integer::Integer;
+
+            let modulus: BigUint = <$field>::MODULUS.into();
+            let modulus_minus_one = &modulus - 1u8;
+            assert_eq!(BigUint::from(<$field>::MODULUS_MINUS_ONE_DIV_TWO), &modulus_minus_one / 2u32);
+            assert_eq!(<$field>::MODULUS_BIT_SIZE as u64, modulus.bits());
+            if let Some(SqrtPrecomputation::Case3Mod4 { modulus_plus_one_div_four }) = <$field>::SQRT_PRECOMP {
+                // Handle the case where `(MODULUS + 1) / 4`
+                // has fewer limbs than `MODULUS`.
+                let check = ((&modulus + 1u8) / 4u8).to_u64_digits();
+                let len = check.len();
+                assert_eq!(&modulus_plus_one_div_four[..len], &check);
+                assert!(modulus_plus_one_div_four[len..].iter().all(Zero::is_zero));
+            }
+
+            let mut two_adicity = 0;
+            let mut trace = modulus_minus_one;
+            while trace.is_even() {
+                trace /= 2u8;
+                two_adicity += 1;
+            }
+            assert_eq!(two_adicity, <$field>::TWO_ADICITY);
+            assert_eq!(BigUint::from(<$field>::TRACE), trace);
+            let trace_minus_one_div_two = (&trace - 1u8) / 2u8;
+            assert_eq!(BigUint::from(<$field>::TRACE_MINUS_ONE_DIV_TWO), trace_minus_one_div_two);
+
+            let two_adic_root_of_unity: BigUint = <$field>::TWO_ADIC_ROOT_OF_UNITY.into();
+            let generator: BigUint = <$field>::GENERATOR.into_bigint().into();
+            assert_eq!(two_adic_root_of_unity, generator.modpow(&trace, &modulus));
+            match (<$field>::SMALL_SUBGROUP_BASE, <$field>::SMALL_SUBGROUP_BASE_ADICITY) {
+                (Some(base), Some(adicity)) => {
+                    let mut e = generator;
+                    for _i in 0..adicity {
+                        e = e.modpow(&base.into(), &modulus)
+                    }
+                },
+                (None, None) => {},
+                (_, _) => {
+                    panic!("Should specify both `SMALL_SUBGROUP_BASE` and `SMALL_SUBGROUP_BASE_ADICITY`")
+                },
+            }
+        }
     };
 }
 
+/// This macro includes most tests from `test_field!` but excludes:
+// `test_montgomery_config`: small fields do not extend MontConfig
+// `test_sum_of_products_edge_case`: cases assume use of BigInts
 #[macro_export]
 macro_rules! test_small_field {
-    ($mod_name:ident; $field:ty $(; $tail:tt)*) => {
+    ($mod_name:ident; $field:ty) => {
         mod $mod_name {
             use super::*;
             use ark_ff::{
                 fields::{Field, LegendreSymbol},
-                SmallFp, SmallFpConfig,
+                FftField, PrimeField, SmallFp, SmallFpConfig,
             };
-            use ark_serialize::{CanonicalSerialize, CanonicalDeserialize};
-            use ark_std::{rand::Rng, rand::RngCore, test_rng, vec::Vec, Zero, One, UniformRand};
+            use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
+            use ark_std::{
+                io::Cursor, rand::Rng, rand::RngCore, test_rng, vec::Vec, One, UniformRand, Zero,
+            };
             const ITERATIONS: usize = 1000;
 
-            $crate::__test_small_field!($field $(; $tail)*);
+            $crate::__test_small_field!($field);
         }
     };
 
-    ($iters:expr; $mod_name:ident; $field:ty $(; $tail:tt)*) => {
+    ($iters:expr; $mod_name:ident; $field:ty) => {
         mod $mod_name {
             use super::*;
             use ark_ff::{
                 fields::{Field, LegendreSymbol},
-                SmallFp, SmallFpConfig,
+                FftField, SmallFp, SmallFpConfig,
             };
-            use ark_serialize::{CanonicalSerialize, CanonicalDeserialize};
-            use ark_std::{rand::Rng, rand::RngCore, test_rng, vec::Vec, Zero, One, UniformRand};
+            use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
+            use ark_std::{rand::Rng, rand::RngCore, test_rng, vec::Vec, One, UniformRand, Zero};
             const ITERATIONS: usize = $iters;
 
-            $crate::__test_small_field!($field $(; $tail)*);
+            $crate::__test_small_field!($field);
         }
     };
 }
