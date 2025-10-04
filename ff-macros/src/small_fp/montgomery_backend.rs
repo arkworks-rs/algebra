@@ -1,7 +1,7 @@
 use super::*;
 use crate::small_fp::utils::{
     compute_two_adic_root_of_unity, compute_two_adicity, generate_montgomery_bigint_casts,
-    generate_sqrt_precomputation, safe_mul_const,
+    generate_sqrt_precomputation, mod_mul_const,
 };
 
 pub(crate) fn backend_impl(
@@ -19,7 +19,7 @@ pub(crate) fn backend_impl(
     let generator_mont = (generator % modulus) * (r_mod_n % modulus) % modulus;
 
     let two_adicity = compute_two_adicity(modulus);
-    let two_adic_root = compute_two_adic_root_of_unity(modulus, generator, two_adicity);
+    let two_adic_root = compute_two_adic_root_of_unity(modulus, two_adicity);
     let two_adic_root_mont = (two_adic_root * r_mod_n) % modulus;
 
     let (from_bigint_impl, into_bigint_impl) =
@@ -144,7 +144,7 @@ pub(crate) fn new(modulus: u128, _ty: proc_macro2::TokenStream) -> proc_macro2::
     let k_bits = 128 - modulus.leading_zeros();
     let r: u128 = 1u128 << k_bits;
     let r_mod_n = r % modulus;
-    let r2 = safe_mul_const(r_mod_n, r_mod_n, modulus);
+    let r2 = mod_mul_const(r_mod_n, r_mod_n, modulus);
 
     quote! {
         pub fn new(value: <Self as SmallFpConfig>::T) -> SmallFp<Self> {
