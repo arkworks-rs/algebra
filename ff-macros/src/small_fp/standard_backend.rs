@@ -55,9 +55,6 @@ pub(crate) fn backend_impl(
             }
         }
 
-        // TODO: this could be done faster
-        // a = a1*C + a0, b = b1*C + b0
-        // a*b = a1*b1*C^2 + (a1*b0 + a0*b1)*C + a0*b0
         fn mul_assign(a: &mut SmallFp<Self>, b: &SmallFp<Self>) {
             let a_128 = (a.value as u128) % #modulus;
             let b_128 = (b.value as u128) % #modulus;

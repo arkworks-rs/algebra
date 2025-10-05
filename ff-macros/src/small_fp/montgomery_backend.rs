@@ -21,7 +21,7 @@ pub(crate) fn backend_impl(
     let two_adicity = compute_two_adicity(modulus);
     let two_adic_root = compute_two_adic_root_of_unity(modulus, two_adicity);
     let two_adic_root_mont = mod_mul_const(two_adic_root, r_mod_n, modulus);
-    
+
     let neg_one_mont = mod_mul_const(modulus - 1, r_mod_n, modulus);
 
     let (from_bigint_impl, into_bigint_impl) =
@@ -72,15 +72,50 @@ pub(crate) fn backend_impl(
             let a_u128 = a.value as u128;
             let b_u128 = b.value as u128;
 
-            let t = a_u128.wrapping_mul(b_u128);
-            let m = t.wrapping_mul(#n_prime) & #r_mask;
-            let mn = m.wrapping_mul(#modulus);
+            let a_lo = a_u128 as u64;
+            let a_hi = (a_u128 >> 64) as u64;
+            let b_lo = b_u128 as u64;
+            let b_hi = (b_u128 >> 64) as u64;
 
-            let (t_plus_mn, overflow) = t.overflowing_add(mn);
-            let mut u = t_plus_mn >> #k_bits;
-            if overflow {
-                u += 1u128 << (128 - #k_bits);
-            }
+            // t = a * b (256-bit result stored as t_lo, t_hi)
+            let lolo = (a_lo as u128) * (b_lo as u128);
+            let lohi = (a_lo as u128) * (b_hi as u128);
+            let hilo = (a_hi as u128) * (b_lo as u128);
+            let hihi = (a_hi as u128) * (b_hi as u128);
+
+            let (cross_sum, cross_carry) = lohi.overflowing_add(hilo);
+            let (mid, mid_carry) = lolo.overflowing_add(cross_sum << 64);
+            let t_lo = mid;
+            let t_hi = hihi + (cross_sum >> 64) + ((cross_carry as u128) << 64) + (mid_carry as u128);
+
+            // m = t_lo * n_prime & r_mask
+            let m = t_lo.wrapping_mul(#n_prime) & #r_mask;
+
+            // mn = m * modulus
+            let m_lo = m as u64;
+            let m_hi = (m >> 64) as u64;
+            let n_lo = #modulus as u64;
+            let n_hi = (#modulus >> 64) as u64;
+
+            let lolo = (m_lo as u128) * (n_lo as u128);
+            let lohi = (m_lo as u128) * (n_hi as u128);
+            let hilo = (m_hi as u128) * (n_lo as u128);
+            let hihi = (m_hi as u128) * (n_hi as u128);
+
+            let (cross_sum, cross_carry) = lohi.overflowing_add(hilo);
+            let (mid, mid_carry) = lolo.overflowing_add(cross_sum << 64);
+            let mn_lo = mid;
+            let mn_hi = hihi + (cross_sum >> 64) + ((cross_carry as u128) << 64) + (mid_carry as u128);
+
+            // (t + mn) / R
+            let (sum_lo, carry) = t_lo.overflowing_add(mn_lo);
+            let sum_hi = t_hi + mn_hi + (carry as u128);
+
+            let mut u = if #k_bits < 128 {
+                (sum_lo >> #k_bits) | (sum_hi << (128 - #k_bits))
+            } else {
+                sum_hi >> (#k_bits - 128)
+            };
 
             if u >= #modulus {
                 u -= #modulus;
