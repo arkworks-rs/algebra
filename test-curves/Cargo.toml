@@ -27,6 +27,9 @@ ark-ec = { workspace = true, default-features = false }
 ark-serialize = { workspace = true, default-features = false }
 ark-algebra-test-templates = { workspace = true, default-features = false }
 ark-algebra-bench-templates = { workspace = true, default-features = false }
+criterion.workspace = true
+p3_field = { git = "https://github.com/succinctlabs/Plonky3", package = "p3-field" }
+p3_goldilocks = { git = "https://github.com/succinctlabs/Plonky3", package = "p3-goldilocks" }
 
 [features]
 default = []
@@ -77,4 +80,9 @@ harness = false
 [[bench]]
 name = "mnt6_753"
 path = "benches/mnt6_753.rs"
+harness = false
+
+[[bench]]
+name = "smallfp_comparison"
+path = "benches/smallfp_comparison.rs"
 harness = false
