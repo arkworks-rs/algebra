@@ -9,8 +9,12 @@ use ark_std::{
 use educe::Educe;
 use num_traits::Unsigned;
 
-/// A trait that specifies the configuration of a prime field.
-/// Also specifies how to perform arithmetic on field elements.
+/// A trait that specifies the configuration of a prime field, including the
+/// modulus, generator, and arithmetic implementation.
+///
+/// This trait is intended to be implemented through the derive
+/// macro, which allows specifying different backends for field arithmetic,
+/// such as "standard" or "montgomery".
 pub trait SmallFpConfig: Send + Sync + 'static + Sized {
     type T: Copy
         + Default
@@ -35,7 +39,8 @@ pub trait SmallFpConfig: Send + Sync + 'static + Sized {
     const MODULUS: Self::T;
     const MODULUS_128: u128;
 
-    // ! this is fixed temporarily the value can be 1 or 2
+    // TODO: the value can be 1 or 2, it would be nice to have it generic.
+    /// Number of bigint libs used to represent the field elements.
     const NUM_BIG_INT_LIMBS: usize = 2;
 
     /// A multiplicative generator of the field.
@@ -118,7 +123,10 @@ pub trait SmallFpConfig: Send + Sync + 'static + Sized {
 }
 
 /// Represents an element of the prime field F_p, where `p == P::MODULUS`.
-/// This type can represent elements in any field of size at most N * 64 bits.
+///
+/// This type can represent elements in any field of size up to 128 bits.
+/// The arithmetic implementation is determined by the `P: SmallFpConfig`
+/// parameter, which can be configured to use different backends
 #[derive(Educe)]
 #[educe(Default, Hash, Clone, Copy, PartialEq, Eq)]
 pub struct SmallFp<P: SmallFpConfig> {

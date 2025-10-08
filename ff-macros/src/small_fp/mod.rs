@@ -4,6 +4,8 @@ mod utils;
 
 use quote::quote;
 
+/// This function is called by the `#[derive(SmallFp)]` macro and generates
+/// the implementation of the `SmallFpConfig`
 pub(crate) fn small_fp_config_helper(
     modulus: u128,
     generator: u128,
