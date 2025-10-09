@@ -48,6 +48,6 @@ criterion.workspace = true
 
 [features]
 default = []
-std = ["ark-std/std", "ark-serialize/std", "itertools/use_std"]
+std = ["ark-std/std", "ark-serialize/std"]
 parallel = ["std", "rayon", "ark-std/parallel", "ark-serialize/parallel"]
 asm = []
