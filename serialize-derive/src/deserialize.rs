@@ -141,7 +141,7 @@ fn impl_deserialize_field(ty: &Type) -> TokenStream {
             quote! { (#(#compressed_fields)*), }
         },
         _ => {
-            quote! { CanonicalDeserialize::deserialize_with_mode(&mut reader, compress, validate)?, }
+            quote! { ark_serialize::CanonicalDeserialize::deserialize_with_mode(&mut reader, compress, validate)?, }
         },
     }
 }
@@ -194,7 +194,7 @@ pub(super) fn impl_canonical_deserialize(ast: &syn::DeriveInput) -> TokenStream 
     };
 
     let mut gen = quote! {
-        impl #impl_generics CanonicalDeserialize for #name #ty_generics #where_clause {
+        impl #impl_generics ark_serialize::CanonicalDeserialize for #name #ty_generics #where_clause {
             fn deserialize_with_mode<R: ark_serialize::Read>(
                 mut reader: R,
                 compress: ark_serialize::Compress,

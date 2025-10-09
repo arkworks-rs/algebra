@@ -93,6 +93,37 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
         }
     };
 
+    /// (MODULUS + 3) / 8 when MODULUS % 8 == 5. Used for square root precomputations.
+    #[doc(hidden)]
+    const MODULUS_PLUS_THREE_DIV_EIGHT: Option<BigInt<N>> = {
+        match Self::MODULUS.mod_8() == 5 {
+            true => {
+                let (modulus_plus_three, carry) = Self::MODULUS.const_add_with_carry(&BigInt!("3"));
+                let mut result = modulus_plus_three.divide_by_2_round_down();
+                // Since modulus_plus_one is even, dividing by 2 results in a MSB of 0.
+                // Thus we can set MSB to `carry` to get the correct result of (MODULUS + 1) // 2:
+                result.0[N - 1] |= (carry as u64) << 63;
+                result = result.divide_by_2_round_down();
+
+                Some(result.divide_by_2_round_down())
+            },
+            false => None,
+        }
+    };
+
+    /// (MODULUS - 1) / 4 when MODULUS % 8 == 5. Used for square root precomputations.
+    #[doc(hidden)]
+    const MODULUS_MINUS_ONE_DIV_FOUR: Option<BigInt<N>> = {
+        match Self::MODULUS.mod_8() == 5 {
+            true => {
+                let (modulus_plus_three, _) = Self::MODULUS.const_sub_with_borrow(&BigInt::one());
+                let result = modulus_plus_three.divide_by_2_round_down();
+                Some(result.divide_by_2_round_down())
+            },
+            false => None,
+        }
+    };
+
     /// Sets `a = a + b`.
     #[inline(always)]
     fn add_assign(a: &mut Fp<MontBackend<Self, N>, N>, b: &Fp<MontBackend<Self, N>, N>) {
@@ -541,12 +572,27 @@ pub const fn sqrt_precomputation<const N: usize, T: MontConfig<N>>(
             }),
             None => None,
         },
-        _ => Some(SqrtPrecomputation::TonelliShanks {
-            two_adicity: <MontBackend<T, N>>::TWO_ADICITY,
-            quadratic_nonresidue_to_trace: T::TWO_ADIC_ROOT_OF_UNITY,
-            trace_of_modulus_minus_one_div_two:
-                &<Fp<MontBackend<T, N>, N>>::TRACE_MINUS_ONE_DIV_TWO.0,
-        }),
+        _ => match T::MODULUS.mod_8() {
+            5 => match (
+                T::MODULUS_PLUS_THREE_DIV_EIGHT.as_ref(),
+                T::MODULUS_MINUS_ONE_DIV_FOUR.as_ref(),
+            ) {
+                (
+                    Some(BigInt(modulus_plus_three_div_eight)),
+                    Some(BigInt(modulus_minus_one_div_four)),
+                ) => Some(SqrtPrecomputation::Case5Mod8 {
+                    modulus_plus_three_div_eight,
+                    modulus_minus_one_div_four,
+                }),
+                _ => None,
+            },
+            _ => Some(SqrtPrecomputation::TonelliShanks {
+                two_adicity: <MontBackend<T, N>>::TWO_ADICITY,
+                quadratic_nonresidue_to_trace: T::TWO_ADIC_ROOT_OF_UNITY,
+                trace_of_modulus_minus_one_div_two:
+                    &<Fp<MontBackend<T, N>, N>>::TRACE_MINUS_ONE_DIV_TWO.0,
+            }),
+        },
     }
 }
 
