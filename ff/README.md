@@ -65,7 +65,6 @@ pub type SmallF64Mont = SmallFp<SmallF64ConfigMont>;
 
 The standard field implementation can represent arbitrarily large fields, while the small field implementation supports native integer types from `u8` to `u128` for faster arithmetic. The small field implementation requires that the modulus fits into u128.
 
-
 ## Usage
 
 There are two important traits when working with finite fields: [`Field`],
