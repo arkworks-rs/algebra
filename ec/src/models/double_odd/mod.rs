@@ -11,7 +11,10 @@ pub use affine::*;
 mod group;
 pub use group::*;
 
-use crate::{scalar_mul::{double_and_add, double_and_add_affine}, VariableBaseMSM};
+use crate::{
+    scalar_mul::{double_and_add, double_and_add_affine},
+    VariableBaseMSM,
+};
 
 /// Constants and convenience functions that collectively define the [Double-Odd curve](https://doubleodd.group).
 /// In this model, the curve equation is `y² = x(x² + ax + b)`, (b and (a² - 4b) not squares in field)

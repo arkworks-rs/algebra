@@ -3,9 +3,7 @@ pub mod wnaf;
 
 pub mod variable_base;
 
-use crate::{
-    AffineRepr, PrimeGroup,
-};
+use crate::{AffineRepr, PrimeGroup};
 use ark_ff::{AdditiveGroup, BigInteger, PrimeField};
 use ark_std::{
     cfg_iter, cfg_iter_mut,

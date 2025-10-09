@@ -1,10 +1,10 @@
 use ark_ec::{
-    AffineRepr, CurveGroup, PrimeGroup,
     scalar_mul::{double_and_add, double_and_add_affine, glv::GLVConfig},
     short_weierstrass::{Affine, Projective},
+    AffineRepr, CurveGroup, PrimeGroup,
 };
 use ark_ff::{BigInteger, PrimeField};
-use ark_std::{UniformRand, ops::Mul};
+use ark_std::{ops::Mul, UniformRand};
 
 pub fn glv_scalar_decomposition<P: GLVConfig>() {
     let mut rng = ark_std::test_rng();

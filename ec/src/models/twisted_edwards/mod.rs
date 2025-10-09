@@ -4,7 +4,10 @@ use ark_serialize::{
 };
 use ark_std::io::{Read, Write};
 
-use crate::{scalar_mul::{double_and_add, double_and_add_affine, variable_base::VariableBaseMSM}, AffineRepr};
+use crate::{
+    scalar_mul::{double_and_add, double_and_add_affine, variable_base::VariableBaseMSM},
+    AffineRepr,
+};
 use num_traits::Zero;
 
 use ark_ff::fields::Field;

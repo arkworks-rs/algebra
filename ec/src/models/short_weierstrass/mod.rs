@@ -10,9 +10,7 @@ use ark_std::{
 use ark_ff::{fields::Field, AdditiveGroup};
 
 use crate::{
-    scalar_mul::{
-        double_and_add_affine, double_and_add, variable_base::VariableBaseMSM,
-    },
+    scalar_mul::{double_and_add, double_and_add_affine, variable_base::VariableBaseMSM},
     AffineRepr,
 };
 use num_traits::Zero;
