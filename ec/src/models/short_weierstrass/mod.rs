@@ -85,7 +85,9 @@ pub trait SWCurveConfig: super::CurveConfig {
         if Self::cofactor_is_one() {
             true
         } else {
-            Self::mul_affine(item, Self::ScalarField::characteristic()).is_zero()
+            // Directly use `double_and_add_affine` to avoid incorrect zero results from
+            // custom `mul_affine` implementations that reduce scalars modulo the group order.
+            double_and_add_affine(item, Self::ScalarField::characteristic()).is_zero()
         }
     }
 

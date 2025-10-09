@@ -47,7 +47,9 @@ pub trait TECurveConfig: super::CurveConfig {
     /// Checks that the current point is in the prime order subgroup given
     /// the point on the curve.
     fn is_in_correct_subgroup_assuming_on_curve(item: &Affine<Self>) -> bool {
-        Self::mul_affine(item, Self::ScalarField::characteristic()).is_zero()
+        // Directly use `double_and_add_affine` to avoid incorrect zero results from
+        // custom `mul_affine` implementations that reduce scalars modulo the group order.
+        double_and_add_affine(item, Self::ScalarField::characteristic()).is_zero()
     }
 
     /// Performs cofactor clearing.
