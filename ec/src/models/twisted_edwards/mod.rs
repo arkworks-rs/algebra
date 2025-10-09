@@ -4,10 +4,10 @@ use ark_serialize::{
 };
 use ark_std::io::{Read, Write};
 
-use crate::{scalar_mul::variable_base::VariableBaseMSM, AffineRepr};
+use crate::{scalar_mul::{double_and_add, double_and_add_affine, variable_base::VariableBaseMSM}, AffineRepr};
 use num_traits::Zero;
 
-use ark_ff::{fields::Field, AdditiveGroup};
+use ark_ff::fields::Field;
 
 mod affine;
 pub use affine::*;
@@ -58,32 +58,14 @@ pub trait TECurveConfig: super::CurveConfig {
         item.mul_by_cofactor()
     }
 
-    /// Default implementation of group multiplication for projective
-    /// coordinates
+    /// Default implementation of group multiplication for projective coordinates
     fn mul_projective(base: &Projective<Self>, scalar: &[u64]) -> Projective<Self> {
-        let mut res = Projective::zero();
-        for b in ark_ff::BitIteratorBE::without_leading_zeros(scalar) {
-            res.double_in_place();
-            if b {
-                res += base;
-            }
-        }
-
-        res
+        double_and_add(base, scalar)
     }
 
-    /// Default implementation of group multiplication for affine
-    /// coordinates
+    /// Default implementation of group multiplication for affine coordinates
     fn mul_affine(base: &Affine<Self>, scalar: &[u64]) -> Projective<Self> {
-        let mut res = Projective::zero();
-        for b in ark_ff::BitIteratorBE::without_leading_zeros(scalar) {
-            res.double_in_place();
-            if b {
-                res += base
-            }
-        }
-
-        res
+        double_and_add_affine(base, scalar)
     }
 
     /// Default implementation for multi scalar multiplication
