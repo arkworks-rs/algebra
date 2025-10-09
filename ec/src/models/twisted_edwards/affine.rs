@@ -154,14 +154,15 @@ impl<P: TECurveConfig> AffineRepr for Affine<P> {
     type ScalarField = P::ScalarField;
     type Group = Projective<P>;
 
-    const ZERO: Self = Self::new_unchecked(P::BaseField::ZERO, P::BaseField::ONE);
+    const GENERATOR: Self = P::GENERATOR;
+    const ZERO: Self = Self::zero();
 
     fn xy(&self) -> Option<(Self::BaseField, Self::BaseField)> {
         (!self.is_zero()).then_some((self.x, self.y))
     }
 
     fn generator() -> Self {
-        P::GENERATOR
+        Self::GENERATOR
     }
 
     fn zero() -> Self {

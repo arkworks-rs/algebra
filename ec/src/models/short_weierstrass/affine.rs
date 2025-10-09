@@ -241,6 +241,7 @@ impl<P: SWCurveConfig> AffineRepr for Affine<P> {
     type ScalarField = P::ScalarField;
     type Group = Projective<P>;
 
+    const GENERATOR: Self = P::GENERATOR;
     const ZERO: Self = Self::identity();
 
     fn xy(&self) -> Option<(Self::BaseField, Self::BaseField)> {
@@ -249,7 +250,7 @@ impl<P: SWCurveConfig> AffineRepr for Affine<P> {
 
     #[inline]
     fn generator() -> Self {
-        P::GENERATOR
+        Self::GENERATOR
     }
 
     fn zero() -> Self {
