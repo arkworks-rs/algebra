@@ -1,7 +1,7 @@
 [package]
 name = "ark-ff"
 description = "A library for finite fields"
-keywords = ["cryptography", "finite-fields" ]
+keywords = ["cryptography", "finite-fields"]
 documentation = "https://docs.rs/ark-ff/"
 version.workspace = true
 authors.workspace = true
@@ -28,8 +28,13 @@ num-bigint.workspace = true
 digest = { workspace = true, features = ["alloc"] }
 
 [dev-dependencies]
-ark-test-curves = { workspace = true, features = ["bls12_381_curve", "mnt6_753", "secp256k1"] }
-blake2.workspace = true
+ark-test-curves = { workspace = true, features = [
+    "bls12_381_curve",
+    "mnt6_753",
+    "secp256k1",
+] }
+ark-algebra-test-templates = { path = "../test-templates" }
+
 sha3.workspace = true
 sha2.workspace = true
 libtest-mimic.workspace = true
@@ -37,6 +42,7 @@ serde.workspace = true
 serde_json.workspace = true
 serde_derive.workspace = true
 hex.workspace = true
+criterion.workspace = true
 
 [features]
 default = []

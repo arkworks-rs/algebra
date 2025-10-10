@@ -12,6 +12,7 @@ use proc_macro::TokenStream;
 use syn::{Expr, ExprLit, Item, ItemFn, Lit, Meta};
 
 mod montgomery;
+mod small_fp;
 mod unroll;
 
 pub(crate) mod utils;
@@ -72,6 +73,34 @@ pub fn mont_config(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
         ast.ident,
     )
     .into()
+}
+
+/// Derive the `SmallFpConfig` trait for small prime fields.
+///
+/// The attributes available to this macro are:
+/// * `modulus`: Specify the prime modulus underlying this prime field.
+/// * `generator`: Specify the generator of the multiplicative subgroup.
+/// * `backend`: Specify either "standard" or "montgomery" backend.
+#[proc_macro_derive(SmallFpConfig, attributes(modulus, generator, backend))]
+pub fn small_fp_config(input: TokenStream) -> TokenStream {
+    let ast: syn::DeriveInput = syn::parse(input).unwrap();
+
+    let modulus: u128 = fetch_attr("modulus", &ast.attrs)
+        .expect("Please supply a modulus attribute")
+        .parse()
+        .expect("Modulus should be a number");
+
+    let generator: u128 = fetch_attr("generator", &ast.attrs)
+        .expect("Please supply a generator attribute")
+        .parse()
+        .expect("Generator should be a number");
+
+    let backend: String = fetch_attr("backend", &ast.attrs)
+        .expect("Please supply a backend attribute")
+        .parse()
+        .expect("Backend should be a string");
+
+    small_fp::small_fp_config_helper(modulus, generator, backend, ast.ident).into()
 }
 
 const ARG_MSG: &str = "Failed to parse unroll threshold; must be a positive integer";
