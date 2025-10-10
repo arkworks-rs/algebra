@@ -46,7 +46,7 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
         // so we handle this in initialization, and reduce the number of loops that are performing arithmetic.
         // The number of times we copy each initial non-zero element is as below:
 
-        let duplicity_of_initials = 1 << log_n.checked_sub(log_d).expect("domain is too small");
+        let duplication_factor = 1 << log_n.checked_sub(log_d).expect("domain is too small");
 
         coeffs.resize(n, T::zero());
 
@@ -59,14 +59,14 @@ impl<F: FftField> Radix2EvaluationDomain<F> {
         }
 
         // duplicate initial values
-        if duplicity_of_initials > 1 {
-            ark_std::cfg_chunks_mut!(coeffs, duplicity_of_initials).for_each(|chunk| {
+        if duplication_factor > 1 {
+            ark_std::cfg_chunks_mut!(coeffs, duplication_factor).for_each(|chunk| {
                 let v = chunk[0];
                 chunk[1..].fill(v);
             });
         }
 
-        let start_gap = duplicity_of_initials;
+        let start_gap = duplication_factor;
         self.oi_helper(&mut *coeffs, self.group_gen, start_gap);
     }
 
