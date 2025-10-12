@@ -1,3 +1,5 @@
+use std::u32;
+
 use super::*;
 use crate::small_fp::utils::{
     compute_two_adic_root_of_unity, compute_two_adicity, generate_montgomery_bigint_casts,
@@ -27,6 +29,9 @@ pub(crate) fn backend_impl(
     let (from_bigint_impl, into_bigint_impl) =
         generate_montgomery_bigint_casts(modulus, k_bits, r_mod_n);
     let sqrt_precomp_impl = generate_sqrt_precomputation(modulus, two_adicity);
+
+    // Generate multiplication implementation based on type
+    let mul_impl = generate_mul_impl(ty, modulus, k_bits, r_mask, n_prime);
 
     quote! {
         type T = #ty;
@@ -68,80 +73,7 @@ pub(crate) fn backend_impl(
             }
         }
 
-        fn mul_assign(a: &mut SmallFp<Self>, b: &SmallFp<Self>) {
-            let a_u128 = a.value as u128;
-            let b_u128 = b.value as u128;
-            let mut u;
-
-            if #modulus < (1u128 << 64) {
-                let t = a_u128 * b_u128;
-                let t_low = t & #r_mask;
-
-                // m = t_lo * n_prime & r_mask
-                let m = t_low.wrapping_mul(#n_prime) & (#r_mask);
-
-                // mn = m * modulus
-                let mn = m * #modulus;
-
-                // (t + mn) / R
-                let (sum, overflow) = t.overflowing_add(mn);
-                u = sum >> #k_bits;
-                if overflow {
-                    u += 1u128 << (128 - #k_bits);
-                }
-            }
-            else {
-                let a_lo = a_u128 as u64;
-                let a_hi = (a_u128 >> 64) as u64;
-                let b_lo = b_u128 as u64;
-                let b_hi = (b_u128 >> 64) as u64;
-
-                // t = a * b (256-bit result stored as t_lo, t_hi)
-                let lolo = (a_lo as u128) * (b_lo as u128);
-                let lohi = (a_lo as u128) * (b_hi as u128);
-                let hilo = (a_hi as u128) * (b_lo as u128);
-                let hihi = (a_hi as u128) * (b_hi as u128);
-
-                let (cross_sum, cross_carry) = lohi.overflowing_add(hilo);
-                let (mid, mid_carry) = lolo.overflowing_add(cross_sum << 64);
-                let t_lo = mid;
-                let t_hi = hihi + (cross_sum >> 64) + ((cross_carry as u128) << 64) + (mid_carry as u128);
-
-                // m = t_lo * n_prime & r_mask
-                let m = t_lo.wrapping_mul(#n_prime) & #r_mask;
-
-                // mn = m * modulus
-                let m_lo = m as u64;
-                let m_hi = (m >> 64) as u64;
-                let n_lo = #modulus as u64;
-                let n_hi = (#modulus >> 64) as u64;
-
-                let lolo = (m_lo as u128) * (n_lo as u128);
-                let lohi = (m_lo as u128) * (n_hi as u128);
-                let hilo = (m_hi as u128) * (n_lo as u128);
-                let hihi = (m_hi as u128) * (n_hi as u128);
-
-                let (cross_sum, cross_carry) = lohi.overflowing_add(hilo);
-                let (mid, mid_carry) = lolo.overflowing_add(cross_sum << 64);
-                let mn_lo = mid;
-                let mn_hi = hihi + (cross_sum >> 64) + ((cross_carry as u128) << 64) + (mid_carry as u128);
-
-                // (t + mn) / R
-                let (sum_lo, carry) = t_lo.overflowing_add(mn_lo);
-                let sum_hi = t_hi + mn_hi + (carry as u128);
-
-                u = if #k_bits < 128 {
-                    (sum_lo >> #k_bits) | (sum_hi << (128 - #k_bits))
-                } else {
-                    sum_hi >> (#k_bits - 128)
-                };
-
-            }
-            if u >= #modulus {
-                u -= #modulus;
-            }
-            a.value = u as Self::T;
-        }
+        #mul_impl
 
         fn sum_of_products<const T: usize>(
             a: &[SmallFp<Self>; T],
@@ -186,6 +118,101 @@ pub(crate) fn backend_impl(
         #from_bigint_impl
 
         #into_bigint_impl
+    }
+}
+
+fn generate_mul_impl(
+    ty: &proc_macro2::TokenStream,
+    modulus: u128,
+    k_bits: u32,
+    r_mask: u128,
+    n_prime: u128,
+) -> proc_macro2::TokenStream {
+    let ty_str = ty.to_string();
+
+    if ty_str == "u128" {
+        quote! {
+            #[inline(always)]
+            fn mul_assign(a: &mut SmallFp<Self>, b: &SmallFp<Self>) {
+                // 256-bit result stored as lo, hi
+                // t = a * b
+                let lolo = (a.value & 0xFFFFFFFFFFFFFFFF) * (b.value & 0xFFFFFFFFFFFFFFFF);
+                let lohi = (a.value & 0xFFFFFFFFFFFFFFFF) * (b.value >> 64);
+                let hilo = (a.value >> 64) * (b.value & 0xFFFFFFFFFFFFFFFF);
+                let hihi = (a.value >> 64) * (b.value >> 64);
+
+                let (cross_sum, cross_carry) = lohi.overflowing_add(hilo);
+                let (mid, mid_carry) = lolo.overflowing_add(cross_sum << 64);
+                let t_lo = mid;
+                let t_hi = hihi + (cross_sum >> 64) + ((cross_carry as u128) << 64) + (mid_carry as u128);
+
+                // m = t_lo * n_prime & r_mask
+                let m = t_lo.wrapping_mul(#n_prime) & #r_mask;
+
+                // mn = m * modulus
+                let lolo = (m & 0xFFFFFFFFFFFFFFFF) * (#modulus & 0xFFFFFFFFFFFFFFFF);
+                let lohi = (m & 0xFFFFFFFFFFFFFFFF) * (#modulus >> 64);
+                let hilo = (m >> 64) * (#modulus & 0xFFFFFFFFFFFFFFFF);
+                let hihi = (m >> 64) * (#modulus >> 64);
+
+                let (cross_sum, cross_carry) = lohi.overflowing_add(hilo);
+                let (mid, mid_carry) = lolo.overflowing_add(cross_sum << 64);
+                let mn_lo = mid;
+                let mn_hi = hihi + (cross_sum >> 64) + ((cross_carry as u128) << 64) + (mid_carry as u128);
+
+                // (t + mn) / R
+                let (sum_lo, carry) = t_lo.overflowing_add(mn_lo);
+                let sum_hi = t_hi + mn_hi + (carry as u128);
+
+                let u = if #k_bits < 128 {
+                    (sum_lo >> #k_bits) | (sum_hi << (128 - #k_bits))
+                } else {
+                    sum_hi >> (#k_bits - 128)
+                };
+
+                let u = if u >= #modulus { u - #modulus } else { u };
+                a.value = u as Self::T;
+            }
+        }
+    } else {
+        let (mul_ty, bits) = match ty_str.as_str() {
+            "u8" => (quote! {u16}, 16u32),
+            "u16" => (quote! {u32}, 32u32),
+            "u32" => (quote! {u64}, 64u32),
+            _ => (quote! {u128}, 128u32),
+        };
+
+        let r_mask_downcast = quote! { #r_mask as #mul_ty };
+        let n_prime_downcast = quote! { #n_prime as #mul_ty };
+        let modulus_downcast = quote! { #modulus as #mul_ty };
+        let one = quote! { 1 as #mul_ty };
+
+        quote! {
+            #[inline(always)]
+            fn mul_assign(a: &mut SmallFp<Self>, b: &SmallFp<Self>) {
+                let a_val = a.value as #mul_ty;
+                let b_val = b.value as #mul_ty;
+
+                let t = a_val * b_val;
+                let t_low = t & #r_mask_downcast;
+
+                // m = t_lo * n_prime & r_mask
+                let m = t_low.wrapping_mul(#n_prime_downcast) & #r_mask_downcast;
+
+                // mn = m * modulus
+                let mn = m * #modulus_downcast;
+
+                // (t + mn) / R
+                let (sum, overflow) = t.overflowing_add(mn);
+                let mut u = sum >> #k_bits;
+                if overflow {
+                    u += (#one) << (#bits - #k_bits);
+                }
+
+                let u = if u >= #modulus_downcast { u - #modulus_downcast } else { u };
+                a.value = u as Self::T;
+            }
+        }
     }
 }
 
