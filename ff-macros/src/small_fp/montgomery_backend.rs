@@ -47,6 +47,7 @@ pub(crate) fn backend_impl(
         const TWO_ADIC_ROOT_OF_UNITY: SmallFp<Self> = SmallFp::new(#two_adic_root_mont as Self::T);
         #sqrt_precomp_impl
 
+        #[inline(always)]
         fn add_assign(a: &mut SmallFp<Self>, b: &SmallFp<Self>) {
             a.value = match a.value.overflowing_add(b.value) {
                 (val, false) => val % Self::MODULUS,
@@ -54,6 +55,7 @@ pub(crate) fn backend_impl(
             };
         }
 
+        #[inline(always)]
         fn sub_assign(a: &mut SmallFp<Self>, b: &SmallFp<Self>) {
             if a.value >= b.value {
                 a.value -= b.value;
@@ -62,11 +64,13 @@ pub(crate) fn backend_impl(
             }
         }
 
+        #[inline(always)]
         fn double_in_place(a: &mut SmallFp<Self>) {
             let tmp = *a;
             Self::add_assign(a, &tmp);
         }
 
+        #[inline(always)]
         fn neg_in_place(a: &mut SmallFp<Self>) {
             if a.value != (0 as Self::T) {
                 a.value = Self::MODULUS - a.value;
@@ -75,6 +79,7 @@ pub(crate) fn backend_impl(
 
         #mul_impl
 
+        #[inline(always)]
         fn sum_of_products<const T: usize>(
             a: &[SmallFp<Self>; T],
             b: &[SmallFp<Self>; T],) -> SmallFp<Self> {
@@ -87,6 +92,7 @@ pub(crate) fn backend_impl(
             acc
         }
 
+        #[inline(always)]
         fn square_in_place(a: &mut SmallFp<Self>) {
             let tmp = *a;
             Self::mul_assign(a, &tmp);
@@ -107,7 +113,7 @@ pub(crate) fn backend_impl(
                 }
 
                 let mut sq = base;
-                Self::mul_assign(&mut sq, &base);
+                Self::square_in_place(&mut sq);
                 base = sq;
                 exp >>= 1;
             }
