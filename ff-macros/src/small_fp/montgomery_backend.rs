@@ -5,7 +5,7 @@ use crate::small_fp::utils::{
 };
 
 pub(crate) fn backend_impl(
-    ty: proc_macro2::TokenStream,
+    ty: &proc_macro2::TokenStream,
     modulus: u128,
     generator: u128,
 ) -> proc_macro2::TokenStream {
