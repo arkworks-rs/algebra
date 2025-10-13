@@ -29,7 +29,7 @@ mod test;
 #[doc(hidden)]
 pub use ark_serialize_derive::*;
 
-use digest::{generic_array::GenericArray, Digest, OutputSizeUser};
+use digest::{Digest, Output};
 
 /// Serializes the given `CanonicalSerialize` items in sequence. `serialize_to_vec![a, b, c, d, e]`
 /// is identical to the value of `buf` after `(a, b, c, d, e).serialize_compressed(&mut buf)`.
@@ -265,14 +265,14 @@ impl<H: Digest> ark_std::io::Write for HashMarshaller<'_, H> {
 ///
 /// This is a convenience trait that combines the two steps.
 pub trait CanonicalSerializeHashExt: CanonicalSerialize {
-    fn hash<H: Digest>(&self) -> GenericArray<u8, <H as OutputSizeUser>::OutputSize> {
+    fn hash<H: Digest>(&self) -> Output<H> {
         let mut hasher = H::new();
         self.serialize_compressed(HashMarshaller(&mut hasher))
             .expect("HashMarshaller::flush should be infaillible!");
         hasher.finalize()
     }
 
-    fn hash_uncompressed<H: Digest>(&self) -> GenericArray<u8, <H as OutputSizeUser>::OutputSize> {
+    fn hash_uncompressed<H: Digest>(&self) -> Output<H> {
         let mut hasher = H::new();
         self.serialize_uncompressed(HashMarshaller(&mut hasher))
             .expect("HashMarshaller::flush should be infaillible!");
