@@ -231,7 +231,34 @@ impl<F: Field> Zero for SparsePolynomial<F> {
     }
 }
 
+#[derive(Debug)]
+pub enum CoeffVecError {
+    ZeroCoefficient,
+    DuplicateDegree,
+}
+
 impl<F: Field> SparsePolynomial<F> {
+    // Function to validate that the input coefficient vector is simplified
+    pub fn is_valid_coefficients_vec(coeffs: &mut [(usize, F)]) -> Result<(), CoeffVecError> {
+        coeffs.sort_by(|a, b| a.0.cmp(&b.0));
+
+        let mut last_degree = None;
+        for &mut (degree, ref mut coeff) in coeffs {
+            if coeff.is_zero() {
+                // zero term has no effect
+                return Err(CoeffVecError::ZeroCoefficient);
+            }
+            if let Some(last) = last_degree {
+                if last == degree {
+                    // like terms should be combined
+                    return Err(CoeffVecError::DuplicateDegree);
+                }
+            }
+            last_degree = Some(degree);
+        }
+        Ok(())
+    }
+
     /// Constructs a new polynomial from a list of coefficients.
     pub fn from_coefficients_slice(coeffs: &[(usize, F)]) -> Self {
         Self::from_coefficients_vec(coeffs.to_vec())
@@ -334,7 +361,7 @@ impl<F: Field> From<DensePolynomial<F>> for SparsePolynomial<F> {
 mod tests {
     use crate::{
         polynomial::Polynomial,
-        univariate::{DensePolynomial, SparsePolynomial},
+        univariate::{sparse::CoeffVecError, DensePolynomial, SparsePolynomial},
         EvaluationDomain, GeneralEvaluationDomain,
     };
     use ark_ff::{UniformRand, Zero};
@@ -353,6 +380,30 @@ mod tests {
             }
         }
         SparsePolynomial::from_coefficients_vec(coeffs)
+    }
+
+    #[test]
+    fn test_valid_coefficients() {
+        let mut coeffs = vec![(1, Fr::from(2)), (2, Fr::from(3)), (3, Fr::from(4))];
+        let validation = SparsePolynomial::is_valid_coefficients_vec(&mut coeffs);
+        assert!(validation.is_ok());
+
+        let poly = SparsePolynomial::from_coefficients_vec(coeffs);
+        assert_eq!(poly.coeffs.len(), 3);
+    }
+
+    #[test]
+    fn test_invalid_zero_coefficient() {
+        let mut coeffs = vec![(1, Fr::from(0)), (2, Fr::from(3))];
+        let validation = SparsePolynomial::is_valid_coefficients_vec(&mut coeffs);
+        assert!(matches!(validation, Err(CoeffVecError::ZeroCoefficient)));
+    }
+
+    #[test]
+    fn test_invalid_duplicate_degrees() {
+        let mut coeffs = vec![(1, Fr::from(2)), (1, Fr::from(3))];
+        let validation = SparsePolynomial::is_valid_coefficients_vec(&mut coeffs);
+        assert!(matches!(validation, Err(CoeffVecError::DuplicateDegree)));
     }
 
     #[test]
