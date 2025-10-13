@@ -4,10 +4,13 @@ use ark_serialize::{
 };
 use ark_std::io::{Read, Write};
 
-use crate::{scalar_mul::variable_base::VariableBaseMSM, AffineRepr};
+use crate::{
+    scalar_mul::{double_and_add, double_and_add_affine, variable_base::VariableBaseMSM},
+    AffineRepr,
+};
 use num_traits::Zero;
 
-use ark_ff::{fields::Field, AdditiveGroup};
+use ark_ff::fields::Field;
 
 mod affine;
 pub use affine::*;
@@ -47,7 +50,9 @@ pub trait TECurveConfig: super::CurveConfig {
     /// Checks that the current point is in the prime order subgroup given
     /// the point on the curve.
     fn is_in_correct_subgroup_assuming_on_curve(item: &Affine<Self>) -> bool {
-        Self::mul_affine(item, Self::ScalarField::characteristic()).is_zero()
+        // Directly use `double_and_add_affine` to avoid incorrect zero results from
+        // custom `mul_affine` implementations that reduce scalars modulo the group order.
+        double_and_add_affine(item, Self::ScalarField::characteristic()).is_zero()
     }
 
     /// Performs cofactor clearing.
@@ -58,32 +63,14 @@ pub trait TECurveConfig: super::CurveConfig {
         item.mul_by_cofactor()
     }
 
-    /// Default implementation of group multiplication for projective
-    /// coordinates
+    /// Default implementation of group multiplication for projective coordinates
     fn mul_projective(base: &Projective<Self>, scalar: &[u64]) -> Projective<Self> {
-        let mut res = Projective::zero();
-        for b in ark_ff::BitIteratorBE::without_leading_zeros(scalar) {
-            res.double_in_place();
-            if b {
-                res += base;
-            }
-        }
-
-        res
+        double_and_add(base, scalar)
     }
 
-    /// Default implementation of group multiplication for affine
-    /// coordinates
+    /// Default implementation of group multiplication for affine coordinates
     fn mul_affine(base: &Affine<Self>, scalar: &[u64]) -> Projective<Self> {
-        let mut res = Projective::zero();
-        for b in ark_ff::BitIteratorBE::without_leading_zeros(scalar) {
-            res.double_in_place();
-            if b {
-                res += base
-            }
-        }
-
-        res
+        double_and_add_affine(base, scalar)
     }
 
     /// Default implementation for multi scalar multiplication

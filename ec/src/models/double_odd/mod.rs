@@ -11,7 +11,10 @@ pub use affine::*;
 mod group;
 pub use group::*;
 
-use crate::VariableBaseMSM;
+use crate::{
+    scalar_mul::{double_and_add, double_and_add_affine},
+    VariableBaseMSM,
+};
 
 /// Constants and convenience functions that collectively define the [Double-Odd curve](https://doubleodd.group).
 /// In this model, the curve equation is `y² = x(x² + ax + b)`, (b and (a² - 4b) not squares in field)
@@ -29,27 +32,11 @@ pub trait DOCurveConfig: super::CurveConfig {
     }
 
     fn mul_projective(base: &Projective<Self>, scalar: &[u64]) -> Projective<Self> {
-        let mut res = Projective::<Self>::zero();
-        for b in ark_ff::BitIteratorBE::without_leading_zeros(scalar) {
-            res.double_in_place();
-            if b {
-                res += base;
-            }
-        }
-
-        res
+        double_and_add(base, scalar)
     }
 
     fn mul_affine(base: &Affine<Self>, scalar: &[u64]) -> Projective<Self> {
-        let mut res = Projective::<Self>::zero();
-        for b in ark_ff::BitIteratorBE::without_leading_zeros(scalar) {
-            res.double_in_place();
-            if b {
-                res += base
-            }
-        }
-
-        res
+        double_and_add_affine(base, scalar)
     }
 
     fn msm(

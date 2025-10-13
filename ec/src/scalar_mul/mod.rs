@@ -3,11 +3,8 @@ pub mod wnaf;
 
 pub mod variable_base;
 
-use crate::{
-    short_weierstrass::{Affine, Projective, SWCurveConfig},
-    PrimeGroup,
-};
-use ark_ff::{AdditiveGroup, BigInteger, PrimeField, Zero};
+use crate::{AffineRepr, PrimeGroup};
+use ark_ff::{AdditiveGroup, BigInteger, PrimeField};
 use ark_std::{
     cfg_iter, cfg_iter_mut,
     ops::{Add, AddAssign, Mul, Neg, Sub, SubAssign},
@@ -27,37 +24,29 @@ const fn ln_without_floats(a: usize) -> usize {
     (ark_std::log2(a) * 69 / 100) as usize
 }
 
-/// Standard double-and-add method for multiplication by a scalar.
+/// Standard double-and-add method for multiplication by a scalar for generic additive groups.
 #[inline(always)]
-pub fn sw_double_and_add_affine<P: SWCurveConfig>(
-    base: &Affine<P>,
-    scalar: impl AsRef<[u64]>,
-) -> Projective<P> {
-    let mut res = Projective::zero();
+pub fn double_and_add<G: AdditiveGroup>(base: &G, scalar: impl AsRef<[u64]>) -> G {
+    let mut res = G::ZERO;
     for b in ark_ff::BitIteratorBE::without_leading_zeros(scalar) {
         res.double_in_place();
         if b {
             res += base
         }
     }
-
     res
 }
 
-/// Standard double-and-add method for multiplication by a scalar.
+/// Standard double-and-add method for multiplication by a scalar for generic affine points.
 #[inline(always)]
-pub fn sw_double_and_add_projective<P: SWCurveConfig>(
-    base: &Projective<P>,
-    scalar: impl AsRef<[u64]>,
-) -> Projective<P> {
-    let mut res = Projective::zero();
+pub fn double_and_add_affine<P: AffineRepr>(base: &P, scalar: impl AsRef<[u64]>) -> P::Group {
+    let mut res = P::Group::ZERO;
     for b in ark_ff::BitIteratorBE::without_leading_zeros(scalar) {
         res.double_in_place();
         if b {
             res += base
         }
     }
-
     res
 }
 
