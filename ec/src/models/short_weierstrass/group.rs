@@ -153,7 +153,8 @@ impl<P: SWCurveConfig> Zero for Projective<P> {
     /// Checks whether `self.z.is_zero()`.
     #[inline]
     fn is_zero(&self) -> bool {
-        self.z == P::BaseField::ZERO
+        // Prefer is_zero() over equality for clarity and potential constant-time behavior.
+        self.z.is_zero()
     }
 }
 
