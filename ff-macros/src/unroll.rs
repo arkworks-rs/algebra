@@ -101,6 +101,12 @@ fn unroll(expr: &Expr, unroll_by: usize) -> Expr {
             })
         };
 
+        // If the original loop has a label, skip unrolling to preserve
+        // the semantics of labeled control flow (especially `continue 'label`).
+        if label.is_some() {
+            return forloop_with_body(new_body);
+        }
+
         if let Pat::Ident(PatIdent {
             by_ref,
             mutability,
