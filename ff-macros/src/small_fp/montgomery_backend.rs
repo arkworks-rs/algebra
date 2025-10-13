@@ -133,6 +133,9 @@ pub(crate) fn backend_impl(
     }
 }
 
+// Selects the appropriate multiplication algorithm at compile time:
+// if modulus <= u64, multiply by casting to the next largest primitive
+// otherwise, multiply in parts to form a 256-bit product before reduction
 fn generate_mul_impl(
     ty: &proc_macro2::TokenStream,
     modulus: u128,
@@ -176,13 +179,8 @@ fn generate_mul_impl(
                 let (sum_lo, carry) = t_lo.overflowing_add(mn_lo);
                 let sum_hi = t_hi + mn_hi + (carry as u128);
 
-                let u = if #k_bits < 128 {
-                    (sum_lo >> #k_bits) | (sum_hi << (128 - #k_bits))
-                } else {
-                    sum_hi >> (#k_bits - 128)
-                };
-
-                let u = if u >= #modulus { u - #modulus } else { u };
+                let mut u = (sum_lo >> #k_bits) | (sum_hi << (128 - #k_bits));
+                u -= #modulus * (u >= #modulus) as u128;
                 a.value = u as Self::T;
             }
         }
@@ -217,11 +215,9 @@ fn generate_mul_impl(
                 // (t + mn) / R
                 let (sum, overflow) = t.overflowing_add(mn);
                 let mut u = sum >> #k_bits;
-                if overflow {
-                    u += (#one) << (#bits - #k_bits);
-                }
 
-                let u = if u >= #modulus_downcast { u - #modulus_downcast } else { u };
+                u += ((#one) << (#bits - #k_bits)) * (overflow as #mul_ty);
+                u -= #modulus_downcast * ((u >= #modulus_downcast) as #mul_ty);
                 a.value = u as Self::T;
             }
         }
