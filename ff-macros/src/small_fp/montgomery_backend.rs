@@ -21,14 +21,14 @@ pub(crate) fn backend_impl(
     let generator_mont = mod_mul_const(generator % modulus, r_mod_n % modulus, modulus);
 
     let two_adicity = compute_two_adicity(modulus);
-    let two_adic_root = compute_two_adic_root_of_unity(modulus, two_adicity);
+    let two_adic_root = compute_two_adic_root_of_unity(modulus, two_adicity, generator);
     let two_adic_root_mont = mod_mul_const(two_adic_root, r_mod_n, modulus);
 
     let neg_one_mont = mod_mul_const(modulus - 1, r_mod_n, modulus);
 
     let (from_bigint_impl, into_bigint_impl) =
         generate_montgomery_bigint_casts(modulus, k_bits, r_mod_n);
-    let sqrt_precomp_impl = generate_sqrt_precomputation(modulus, two_adicity);
+    let sqrt_precomp_impl = generate_sqrt_precomputation(modulus, two_adicity, Some(r_mod_n));
 
     // Generate multiplication implementation based on type
     let mul_impl = generate_mul_impl(ty, modulus, k_bits, r_mask, n_prime);

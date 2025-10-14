@@ -15,7 +15,7 @@ pub(crate) const fn compute_two_adicity(modulus: u128) -> u32 {
     two_adicity
 }
 
-const fn mod_add(x: u128, y: u128, modulus: u128) -> u128 {
+const fn mod_add_const(x: u128, y: u128, modulus: u128) -> u128 {
     if x >= modulus - y {
         x - (modulus - y)
     } else {
@@ -33,9 +33,9 @@ pub(crate) const fn mod_mul_const(a: u128, b: u128, modulus: u128) -> u128 {
 
             while exp > 0 {
                 if exp & 1 == 1 {
-                    result = mod_add(result, base, modulus);
+                    result = mod_add_const(result, base, modulus);
                 }
-                base = mod_add(base, base, modulus);
+                base = mod_add_const(base, base, modulus);
                 exp >>= 1;
             }
             result
@@ -43,23 +43,7 @@ pub(crate) const fn mod_mul_const(a: u128, b: u128, modulus: u128) -> u128 {
     }
 }
 
-pub(crate) const fn compute_two_adic_root_of_unity(modulus: u128, two_adicity: u32) -> u128 {
-    let qnr = find_quadratic_non_residue(modulus);
-    let mut exp = (modulus - 1) >> two_adicity;
-    let mut base = qnr % modulus;
-    let mut result = 1u128;
-
-    while exp > 0 {
-        if exp & 1 == 1 {
-            result = mod_mul_const(result, base, modulus);
-        }
-        base = mod_mul_const(base, base, modulus);
-        exp /= 2;
-    }
-    result
-}
-
-const fn pow_mod(mut base: u128, mut exp: u128, modulus: u128) -> u128 {
+const fn pow_mod_const(mut base: u128, mut exp: u128, modulus: u128) -> u128 {
     let mut result = 1;
     base %= modulus;
     while exp > 0 {
@@ -72,11 +56,22 @@ const fn pow_mod(mut base: u128, mut exp: u128, modulus: u128) -> u128 {
     result
 }
 
+pub(crate) const fn compute_two_adic_root_of_unity(
+    modulus: u128,
+    two_adicity: u32,
+    generator: u128,
+) -> u128 {
+    let exp = (modulus - 1) >> two_adicity;
+    let base = generator % modulus;
+    pow_mod_const(base, exp, modulus)
+}
+
+// Finds smallest quadratic non-residue by using Euler's criterion
 pub(crate) const fn find_quadratic_non_residue(modulus: u128) -> u128 {
     let exponent = (modulus - 1) / 2;
     let mut z = 2;
     loop {
-        let legendre = pow_mod(z, exponent, modulus);
+        let legendre = pow_mod_const(z, exponent, modulus);
         if legendre == modulus - 1 {
             return z;
         }
@@ -118,7 +113,6 @@ pub(crate) fn generate_montgomery_bigint_casts(
     let r2 = mod_mul_const(r_mod_n, r_mod_n, modulus);
     (
         quote! {
-            //* Convert from standard representation to Montgomery space
             fn from_bigint(a: BigInt<2>) -> Option<SmallFp<Self>> {
                 let val = (a.0[0] as u128) + ((a.0[1] as u128) << 64);
                 if val > Self::MODULUS_128 {
@@ -133,7 +127,6 @@ pub(crate) fn generate_montgomery_bigint_casts(
             }
         },
         quote! {
-            //* Convert from Montgomery space to standard representation
             fn into_bigint(a: SmallFp<Self>) -> BigInt<2> {
                 let mut tmp = a;
                 let one = SmallFp::new(1 as Self::T);
@@ -150,14 +143,15 @@ pub(crate) fn generate_montgomery_bigint_casts(
 pub(crate) fn generate_sqrt_precomputation(
     modulus: u128,
     two_adicity: u32,
+    r_mod_n: Option<u128>,
 ) -> proc_macro2::TokenStream {
     if modulus % 4 == 3 {
-        // Case3Mod4
         let modulus_plus_one_div_four = (modulus + 1) / 4;
         let lo = modulus_plus_one_div_four as u64;
         let hi = (modulus_plus_one_div_four >> 64) as u64;
 
         quote! {
+            // Case3Mod4 square root precomputation
             const SQRT_PRECOMP: Option<SqrtPrecomputation<SmallFp<Self>>> = {
                 const MODULUS_PLUS_ONE_DIV_FOUR: [u64; 2] = [#lo, #hi];
                 Some(SqrtPrecomputation::Case3Mod4 {
@@ -166,22 +160,24 @@ pub(crate) fn generate_sqrt_precomputation(
             };
         }
     } else {
-        // TonelliShanks
         let trace = (modulus - 1) >> two_adicity;
-        // t is od integer division floors to (t-1)/2
         let trace_minus_one_div_two = trace / 2;
         let lo = trace_minus_one_div_two as u64;
         let hi = (trace_minus_one_div_two >> 64) as u64;
+        let qnr = find_quadratic_non_residue(modulus);
+        let mut qnr_to_trace = pow_mod_const(qnr, trace, modulus);
+
+        if r_mod_n.is_some() {
+            qnr_to_trace = mod_mul_const(qnr_to_trace, r_mod_n.unwrap(), modulus);
+        }
 
         quote! {
+            // TonelliShanks square root precomputation
             const SQRT_PRECOMP: Option<SqrtPrecomputation<SmallFp<Self>>> = {
                 const TRACE_MINUS_ONE_DIV_TWO: [u64; 2] = [#lo, #hi];
-                // TWO_ADIC_ROOT_OF_UNITY = g^{(p-1)/2^s} = g^t with odd t
-                // ord(g^t) = 2^s, while any square has order at most 2^{s-1}
-                // TWO_ADIC_ROOT_OF_UNITY not a square
                 Some(SqrtPrecomputation::TonelliShanks {
                     two_adicity: #two_adicity,
-                    quadratic_nonresidue_to_trace: Self::TWO_ADIC_ROOT_OF_UNITY,
+                    quadratic_nonresidue_to_trace: SmallFp::new(#qnr_to_trace as Self::T),
                     trace_of_modulus_minus_one_div_two: &TRACE_MINUS_ONE_DIV_TWO,
                 })
             };
