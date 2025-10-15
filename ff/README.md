@@ -38,33 +38,6 @@ The above two models serve as abstractions for constructing the extension fields
 - [`Fp6_3over2`](https://github.com/arkworks-rs/algebra/blob/master/ff/src/fields/models/fp6_3over2.rs#L64) - Extension tower, similar to the above except that the towering order is reversed: it's a cubic extension on a quadratic extension field, i.e. `BaseField = Fp2`, but `BasePrimeField = Fp`. Only this latter one is exported by default as `Fp6`.
 - [`Fp12_2over3over2`](https://github.com/arkworks-rs/algebra/blob/master/ff/src/fields/models/fp12_2over3over2.rs#L66) - Extension tower: quadratic extension of `Fp6_3over2`, i.e. `BaseField = Fp6`.
 
-## Instantiation
-
-You can instantiate fields in two ways:
-
-```rust
-use ark_ff::ark_ff_macros::SmallFpConfig;
-use ark_ff::fields::{Fp64, MontBackend, MontConfig};
-use ark_ff::{BigInt, SmallFp, SmallFpConfig, SqrtPrecomputation};
-
-// Standard (big integer) field
-#[derive(MontConfig)]
-#[modulus = "18446744069414584321"]
-#[generator = "7"]
-pub struct F64Config;
-pub type F64 = Fp64<MontBackend<F64Config, 1>>;
-
-// Small field (native integer backend):
-#[derive(SmallFpConfig)]
-#[modulus = "18446744069414584321"]
-#[generator = "7"]
-#[backend = "montgomery"] // or "standard"
-pub struct SmallF64ConfigMont;
-pub type SmallF64Mont = SmallFp<SmallF64ConfigMont>;
-```
-
-The standard field implementation can represent arbitrarily large fields, while the small field implementation supports native integer types from `u8` to `u128` for faster arithmetic. The small field implementation requires that the modulus fits into u128.
-
 ## Usage
 
 There are two important traits when working with finite fields: [`Field`],

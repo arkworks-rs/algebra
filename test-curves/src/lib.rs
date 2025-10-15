@@ -31,9 +31,3 @@ pub mod bn384_small_two_adicity;
 pub mod secp256k1;
 
 pub mod fp128;
-
-pub mod smallfp128;
-pub mod smallfp16;
-pub mod smallfp32;
-pub mod smallfp64;
-pub mod smallfp8;
