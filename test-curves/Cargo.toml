@@ -78,8 +78,3 @@ harness = false
 name = "mnt6_753"
 path = "benches/mnt6_753.rs"
 harness = false
-
-[[bench]]
-name = "smallfp"
-path = "benches/smallfp.rs"
-harness = false
