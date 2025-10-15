@@ -42,3 +42,4 @@ hex.workspace = true
 default = []
 std = [ "ark-std/std", "ark-serialize/std" ]
 parallel = [ "std", "rayon", "ark-std/parallel", "ark-serialize/parallel" ]
+asm = []
