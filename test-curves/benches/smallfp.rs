@@ -13,7 +13,7 @@ pub type F64 = Fp64<MontBackend<F64Config, 1>>;
 
 #[derive(MontConfig)]
 #[modulus = "2147483647"]
-#[generator = "3"]
+#[generator = "7"]
 pub struct F32Config;
 pub type F32 = Fp64<MontBackend<F32Config, 1>>;
 
