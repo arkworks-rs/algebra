@@ -268,14 +268,14 @@ pub trait CanonicalSerializeHashExt: CanonicalSerialize {
     fn hash<H: Digest>(&self) -> Output<H> {
         let mut hasher = H::new();
         self.serialize_compressed(HashMarshaller(&mut hasher))
-            .expect("HashMarshaller::flush should be infaillible!");
+            .expect("HashMarshaller::flush should be infallible!");
         hasher.finalize()
     }
 
     fn hash_uncompressed<H: Digest>(&self) -> Output<H> {
         let mut hasher = H::new();
         self.serialize_uncompressed(HashMarshaller(&mut hasher))
-            .expect("HashMarshaller::flush should be infaillible!");
+            .expect("HashMarshaller::flush should be infallible!");
         hasher.finalize()
     }
 }
