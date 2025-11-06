@@ -210,8 +210,14 @@ impl CanonicalSerialize for BigUint {
     }
 
     #[inline]
-    fn serialized_size(&self, compress: Compress) -> usize {
-        self.to_bytes_le().serialized_size(compress)
+    fn serialized_size(&self, _compress: Compress) -> usize {
+        let bits = self.bits();
+        let byte_len = if bits == 0 {
+            1
+        } else {
+            ((bits + 7) / 8) as usize
+        };
+        8 + byte_len
     }
 }
 
