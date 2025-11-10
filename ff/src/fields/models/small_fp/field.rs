@@ -36,7 +36,7 @@ impl<P: SmallFpConfig> Field for SmallFp<P> {
 
     #[inline]
     fn characteristic() -> &'static [u64] {
-        &Self::MODULUS.as_ref()
+        Self::MODULUS.as_ref()
     }
 
     #[inline]

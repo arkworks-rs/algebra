@@ -21,7 +21,7 @@ impl<P: SmallFpConfig> From<i128> for SmallFp<P> {
 
 impl<P: SmallFpConfig> From<bool> for SmallFp<P> {
     fn from(other: bool) -> Self {
-        if other == true {
+        if other {
             P::ONE
         } else {
             P::ZERO

@@ -181,7 +181,7 @@ fn test_str_to_limbs() {
                 if sign == Minus {
                     string.insert(0, '-');
                 }
-                let (is_positive, limbs) = utils::str_to_limbs(&string.to_string());
+                let (is_positive, limbs) = utils::str_to_limbs(&string.clone());
                 assert_eq!(
                     limbs[0],
                     format!("{}u64", signed_number.unsigned_abs() as u64),

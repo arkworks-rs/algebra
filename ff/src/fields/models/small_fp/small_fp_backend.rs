@@ -37,7 +37,7 @@ pub trait SmallFpConfig: Send + Sync + 'static + Sized {
 
     /// The modulus of the field.
     const MODULUS: Self::T;
-    const MODULUS_128: u128;
+    const MODULUS_U128: u128;
 
     // TODO: the value can be 1 or 2, it would be nice to have it generic.
     /// Number of bigint limbs used to represent the field elements.
@@ -148,8 +148,8 @@ impl<P: SmallFpConfig> SmallFp<P> {
         }
     }
 
-    pub fn num_bits_to_shave() -> usize {
-        primitive_type_bit_size(P::MODULUS_128) - (Self::MODULUS_BIT_SIZE as usize)
+    pub const fn num_bits_to_shave() -> usize {
+        primitive_type_bit_size(P::MODULUS_U128) - (Self::MODULUS_BIT_SIZE as usize)
     }
 }
 
@@ -221,8 +221,8 @@ const fn const_num_bits_u128(value: u128) -> u32 {
     }
 }
 
-const fn primitive_type_bit_size(modulus_128: u128) -> usize {
-    match modulus_128 {
+const fn primitive_type_bit_size(modulus_u128: u128) -> usize {
+    match modulus_u128 {
         x if x <= u8::MAX as u128 => 8,
         x if x <= u16::MAX as u128 => 16,
         x if x <= u32::MAX as u128 => 32,
@@ -234,9 +234,9 @@ const fn primitive_type_bit_size(modulus_128: u128) -> usize {
 impl<P: SmallFpConfig> PrimeField for SmallFp<P> {
     type BigInt = BigInt<2>;
 
-    const MODULUS: Self::BigInt = const_to_bigint(P::MODULUS_128);
+    const MODULUS: Self::BigInt = const_to_bigint(P::MODULUS_U128);
     const MODULUS_MINUS_ONE_DIV_TWO: Self::BigInt = Self::MODULUS.divide_by_2_round_down();
-    const MODULUS_BIT_SIZE: u32 = const_num_bits_u128(P::MODULUS_128);
+    const MODULUS_BIT_SIZE: u32 = const_num_bits_u128(P::MODULUS_U128);
     const TRACE: Self::BigInt = Self::MODULUS.two_adic_coefficient();
     const TRACE_MINUS_ONE_DIV_TWO: Self::BigInt = Self::TRACE.divide_by_2_round_down();
 
@@ -296,14 +296,14 @@ impl<P: SmallFpConfig> ark_std::rand::distributions::Distribution<SmallFp<P>>
                 loop {
                     let random_val: $ty = rng.sample(ark_std::rand::distributions::Standard);
                     let val_u128 = random_val as u128;
-                    if val_u128 > 0 && val_u128 < P::MODULUS_128 {
+                    if val_u128 > 0 && val_u128 < P::MODULUS_U128 {
                         return SmallFp::from(random_val);
                     }
                 }
             };
         }
 
-        match P::MODULUS_128 {
+        match P::MODULUS_U128 {
             modulus if modulus <= u8::MAX as u128 => sample_loop!(u8),
             modulus if modulus <= u16::MAX as u128 => sample_loop!(u16),
             modulus if modulus <= u32::MAX as u128 => sample_loop!(u32),

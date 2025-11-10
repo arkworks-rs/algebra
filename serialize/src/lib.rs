@@ -90,9 +90,7 @@ pub trait Valid: Sync {
     where
         Self: 'a,
     {
-        if Self::TRIVIAL_CHECK {
-            Ok(())
-        } else {
+        if !Self::TRIVIAL_CHECK {
             #[cfg(feature = "parallel")]
             {
                 use rayon::{iter::ParallelBridge, prelude::ParallelIterator};
@@ -104,8 +102,8 @@ pub trait Valid: Sync {
                     item.check()?;
                 }
             }
-            Ok(())
         }
+                    Ok(())
     }
 }
 

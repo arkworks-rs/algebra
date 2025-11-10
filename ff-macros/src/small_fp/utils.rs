@@ -86,7 +86,7 @@ pub(crate) fn generate_bigint_casts(
         quote! {
             fn from_bigint(a: BigInt<2>) -> Option<SmallFp<Self>> {
                 let val = (a.0[0] as u128) + ((a.0[1] as u128) << 64);
-                if val > Self::MODULUS_128 {
+                if val > Self::MODULUS_U128 {
                     None
                 } else {
                     let reduced_val = val % #modulus;
@@ -115,7 +115,7 @@ pub(crate) fn generate_montgomery_bigint_casts(
         quote! {
             fn from_bigint(a: BigInt<2>) -> Option<SmallFp<Self>> {
                 let val = (a.0[0] as u128) + ((a.0[1] as u128) << 64);
-                if val > Self::MODULUS_128 {
+                if val > Self::MODULUS_U128 {
                     None
                 } else {
                     let reduced_val = val % #modulus;
@@ -165,11 +165,10 @@ pub(crate) fn generate_sqrt_precomputation(
         let lo = trace_minus_one_div_two as u64;
         let hi = (trace_minus_one_div_two >> 64) as u64;
         let qnr = find_quadratic_non_residue(modulus);
-        let mut qnr_to_trace = pow_mod_const(qnr, trace, modulus);
-
-        if r_mod_n.is_some() {
-            qnr_to_trace = mod_mul_const(qnr_to_trace, r_mod_n.unwrap(), modulus);
-        }
+        let qnr_to_trace = match r_mod_n {
+            None => pow_mod_const(qnr, trace, modulus),
+            Some(reduced) => mod_mul_const(pow_mod_const(qnr, trace, modulus), reduced, modulus)
+        };
 
         quote! {
             // TonelliShanks square root precomputation

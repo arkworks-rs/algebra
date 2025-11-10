@@ -1,5 +1,3 @@
-use std::u32;
-
 use super::*;
 use crate::small_fp::utils::{
     compute_two_adic_root_of_unity, compute_two_adicity, generate_montgomery_bigint_casts,
@@ -36,7 +34,7 @@ pub(crate) fn backend_impl(
     quote! {
         type T = #ty;
         const MODULUS: Self::T = #modulus as Self::T;
-        const MODULUS_128: u128 = #modulus;
+        const MODULUS_U128: u128 = #modulus;
         const GENERATOR: SmallFp<Self> = SmallFp::new(#generator_mont as Self::T);
         const ZERO: SmallFp<Self> = SmallFp::new(0 as Self::T);
         const ONE: SmallFp<Self> = SmallFp::new(#one_mont as Self::T);
