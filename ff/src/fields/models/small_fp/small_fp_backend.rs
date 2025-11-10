@@ -40,7 +40,7 @@ pub trait SmallFpConfig: Send + Sync + 'static + Sized {
     const MODULUS_128: u128;
 
     // TODO: the value can be 1 or 2, it would be nice to have it generic.
-    /// Number of bigint libs used to represent the field elements.
+    /// Number of bigint limbs used to represent the field elements.
     const NUM_BIG_INT_LIMBS: usize = 2;
 
     /// A multiplicative generator of the field.
