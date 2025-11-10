@@ -13,7 +13,7 @@ pub const fn adc(a: &mut u64, b: u64, carry: u64) -> u64 {
 #[doc(hidden)]
 #[cfg(all(target_arch = "x86_64", feature = "asm"))]
 #[allow(unsafe_code)]
-pub fn adc_for_add_with_carry(a: &mut u64, b: u64, carry: u8) -> u8 {
+pub unsafe fn adc_for_add_with_carry(a: &mut u64, b: u64, carry: u8) -> u8 {
     use core::arch::x86_64::_addcarry_u64;
     _addcarry_u64(carry, *a, b, a)
 }
@@ -48,7 +48,7 @@ pub(crate) const fn sbb(a: &mut u64, b: u64, borrow: u64) -> u64 {
 #[doc(hidden)]
 #[cfg(target_arch = "x86_64")]
 #[allow(unsafe_code)]
-pub fn sbb_for_sub_with_borrow(a: &mut u64, b: u64, borrow: u8) -> u8 {
+pub unsafe fn sbb_for_sub_with_borrow(a: &mut u64, b: u64, borrow: u8) -> u8 {
     use core::arch::x86_64::_subborrow_u64;
     _subborrow_u64(borrow, *a, b, a)
 }
