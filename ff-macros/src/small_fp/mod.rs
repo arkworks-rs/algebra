@@ -23,11 +23,9 @@ pub(crate) fn small_fp_config_helper(
     let backend_impl = match backend.as_str() {
         "standard" => standard_backend::backend_impl(&ty, modulus, generator),
         "montgomery" => {
-            if modulus >= 1u128 << 127 {
-                panic!(
-                    "SmallFpConfig montgomery backend supports only moduli < 2^127. Use MontConfig with BigInt instead of SmallFp."
-                )
-            }
+            assert!(modulus < 1u128 << 127,
+                "SmallFpConfig montgomery backend supports only moduli < 2^127. Use MontConfig with BigInt instead of SmallFp."
+            );
             montgomery_backend::backend_impl(&ty, modulus, generator)
         },
 
