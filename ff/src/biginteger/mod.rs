@@ -362,8 +362,10 @@ impl<const N: usize> BigInteger for BigInt<N> {
             let mut carry = 0;
 
             for i in 0..N {
-                use core::arch::x86_64::_addcarry_u64;
-                carry = _addcarry_u64(carry, self.0[i], self.0[i], &mut self.0[i]);
+                {
+                    use core::arch::x86_64::_addcarry_u64;
+                    carry = unsafe { _addcarry_u64(carry, self.0[i], self.0[i], &mut self.0[i]) }
+                };
             }
 
             carry != 0
