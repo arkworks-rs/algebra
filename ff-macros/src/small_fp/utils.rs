@@ -167,7 +167,7 @@ pub(crate) fn generate_sqrt_precomputation(
         let qnr = find_quadratic_non_residue(modulus);
         let qnr_to_trace = match r_mod_n {
             None => pow_mod_const(qnr, trace, modulus),
-            Some(reduced) => mod_mul_const(pow_mod_const(qnr, trace, modulus), reduced, modulus)
+            Some(reduced) => mod_mul_const(pow_mod_const(qnr, trace, modulus), reduced, modulus),
         };
 
         quote! {
