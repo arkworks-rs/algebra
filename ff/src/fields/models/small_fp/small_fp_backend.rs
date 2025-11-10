@@ -289,14 +289,23 @@ impl<P: SmallFpConfig> ark_std::rand::distributions::Distribution<SmallFp<P>>
     for ark_std::rand::distributions::Standard
 {
     #[inline]
-    // samples non-zero element, loop avoids modulo bias
     fn sample<R: ark_std::rand::Rng + ?Sized>(&self, rng: &mut R) -> SmallFp<P> {
         macro_rules! sample_loop {
             ($ty:ty) => {
                 loop {
-                    let random_val: $ty = rng.sample(ark_std::rand::distributions::Standard);
-                    let val_u128 = random_val as u128;
+                    let mut val_u128: u128 = rng.sample(ark_std::rand::distributions::Standard);
+
+                    let shave_bits = SmallFp::<P>::num_bits_to_shave();
+                    assert!(shave_bits <= 128);
+
+                    let mask = if shave_bits == 128 {
+                        0
+                    } else {
+                        u128::MAX >> shave_bits
+                    };
+                    val_u128 &= mask;
                     if val_u128 > 0 && val_u128 < P::MODULUS_U128 {
+                        let random_val = val_u128 as $ty;
                         return SmallFp::from(random_val);
                     }
                 }
