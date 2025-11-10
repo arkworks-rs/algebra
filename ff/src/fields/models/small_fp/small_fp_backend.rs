@@ -293,20 +293,12 @@ impl<P: SmallFpConfig> ark_std::rand::distributions::Distribution<SmallFp<P>>
         macro_rules! sample_loop {
             ($ty:ty) => {
                 loop {
-                    let mut val_u128: u128 = rng.sample(ark_std::rand::distributions::Standard);
-
+                    let mut val: $ty = rng.sample(ark_std::rand::distributions::Standard);
                     let shave_bits = SmallFp::<P>::num_bits_to_shave();
-                    assert!(shave_bits <= 128);
-
-                    let mask = if shave_bits == 128 {
-                        0
-                    } else {
-                        u128::MAX >> shave_bits
-                    };
-                    val_u128 &= mask;
-                    if val_u128 > 0 && val_u128 < P::MODULUS_U128 {
-                        let random_val = val_u128 as $ty;
-                        return SmallFp::from(random_val);
+                    let mask = <$ty>::MAX >> shave_bits;
+                    val &= mask;
+                    if val > 0 && u128::from(val) < P::MODULUS_U128 {
+                        return SmallFp::from(val);
                     }
                 }
             };
