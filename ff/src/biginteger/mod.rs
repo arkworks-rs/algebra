@@ -358,8 +358,7 @@ impl<const N: usize> BigInteger for BigInt<N> {
     #[inline]
     fn mul2(&mut self) -> bool {
         #[cfg(target_arch = "x86_64")]
-        #[allow(unused_unsafe)]
-        #[allow(unsafe_code)]
+        #[allow(unused_unsafe, unsafe_code)]
         {
             let mut carry = 0;
 
