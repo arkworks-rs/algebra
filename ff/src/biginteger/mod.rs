@@ -356,15 +356,17 @@ impl<const N: usize> BigInteger for BigInt<N> {
     }
 
     #[inline]
-    #[cfg_attr(target_arch = "x86_64", allow(unsafe_code))]
     fn mul2(&mut self) -> bool {
         #[cfg(target_arch = "x86_64")]
+        #[allow(unsafe_code)]
         {
             let mut carry = 0;
 
             for i in 0..N {
-                use core::arch::x86_64::_addcarry_u64;
-                carry = _addcarry_u64(carry, self.0[i], self.0[i], &mut self.0[i]);
+                unsafe {
+                    use core::arch::x86_64::_addcarry_u64;
+                    carry = _addcarry_u64(carry, self.0[i], self.0[i], &mut self.0[i])
+                };
             }
 
             carry != 0
