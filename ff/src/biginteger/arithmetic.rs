@@ -9,24 +9,22 @@ pub const fn adc(a: &mut u64, b: u64, carry: u64) -> u64 {
     (tmp >> 64) as u64
 }
 
-/// Sets a = a + b + carry, and returns the new carry.
 #[inline(always)]
 #[doc(hidden)]
+#[cfg(all(target_arch = "x86_64", feature = "asm"))]
+#[allow(unsafe_code)]
 pub fn adc_for_add_with_carry(a: &mut u64, b: u64, carry: u8) -> u8 {
-    #[cfg(all(target_arch = "x86_64", feature = "asm"))]
-    {
-        use core::arch::x86_64::_addcarry_u64;
-        #[allow(unsafe_code)]
-        unsafe {
-            _addcarry_u64(carry, *a, b, a)
-        }
-    }
-    #[cfg(not(all(target_arch = "x86_64", feature = "asm")))]
-    {
-        let tmp = *a as u128 + b as u128 + carry as u128;
-        *a = tmp as u64;
-        (tmp >> 64) as u8
-    }
+    use core::arch::x86_64::_addcarry_u64;
+    unsafe { _addcarry_u64(carry, *a, b, a) }
+}
+
+#[inline(always)]
+#[doc(hidden)]
+#[cfg(not(all(target_arch = "x86_64", feature = "asm")))]
+pub fn adc_for_add_with_carry(a: &mut u64, b: u64, carry: u8) -> u8 {
+    let tmp = *a as u128 + b as u128 + carry as u128;
+    *a = tmp as u64;
+    (tmp >> 64) as u8
 }
 
 /// Calculate a + b + carry, returning the sum
@@ -48,21 +46,20 @@ pub(crate) const fn sbb(a: &mut u64, b: u64, borrow: u64) -> u64 {
 /// Sets a = a - b - borrow, and returns the borrow.
 #[inline(always)]
 #[doc(hidden)]
+#[cfg(target_arch = "x86_64")]
+#[allow(unsafe_code)]
 pub fn sbb_for_sub_with_borrow(a: &mut u64, b: u64, borrow: u8) -> u8 {
-    #[cfg(target_arch = "x86_64")]
-    {
-        use core::arch::x86_64::_subborrow_u64;
-        #[allow(unsafe_code)]
-        unsafe {
-            _subborrow_u64(borrow, *a, b, a)
-        }
-    }
-    #[cfg(not(target_arch = "x86_64"))]
-    {
-        let tmp = (1u128 << 64) + (*a as u128) - (b as u128) - (borrow as u128);
-        *a = tmp as u64;
-        u8::from(tmp >> 64 == 0)
-    }
+    use core::arch::x86_64::_subborrow_u64;
+    unsafe { _subborrow_u64(borrow, *a, b, a) }
+}
+
+#[inline(always)]
+#[doc(hidden)]
+#[cfg(not(target_arch = "x86_64"))]
+pub fn sbb_for_sub_with_borrow(a: &mut u64, b: u64, borrow: u8) -> u8 {
+    let tmp = (1u128 << 64) + (*a as u128) - (b as u128) - (borrow as u128);
+    *a = tmp as u64;
+    u8::from(tmp >> 64 == 0)
 }
 
 #[inline(always)]
