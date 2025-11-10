@@ -364,8 +364,7 @@ impl<const N: usize> BigInteger for BigInt<N> {
 
             for i in 0..N {
                 use core::arch::x86_64::_addcarry_u64;
-                // SAFETY: self.0[i] is a valid u64 limb, and we’re only compiled on x86_64.
-                carry = unsafe { _addcarry_u64(carry, self.0[i], self.0[i], &mut self.0[i]) };
+                carry = _addcarry_u64(carry, self.0[i], self.0[i], &mut self.0[i]);
             }
 
             carry != 0
