@@ -84,6 +84,10 @@ pub fn unroll_for_loops(args: TokenStream, input: TokenStream) -> TokenStream {
         _ => panic!("{}", ARG_MSG),
     };
 
+    if unroll_by == 0 {
+        panic!("{}", ARG_MSG);
+    }
+
     let item: Item = syn::parse(input).expect("Failed to parse input.");
 
     if let Item::Fn(item_fn) = item {
