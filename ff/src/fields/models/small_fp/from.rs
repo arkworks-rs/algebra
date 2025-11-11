@@ -3,7 +3,8 @@ use crate::{BigInt, PrimeField};
 
 impl<P: SmallFpConfig> From<u128> for SmallFp<P> {
     fn from(other: u128) -> Self {
-        let bigint = BigInt::<2>::new([other as u64, (other >> 64) as u64]);
+        let reduced_other = other % P::MODULUS_U128;
+        let bigint = BigInt::<2>::new([reduced_other as u64, (reduced_other >> 64) as u64]);
         Self::from_bigint(bigint).unwrap()
     }
 }
