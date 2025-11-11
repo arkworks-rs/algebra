@@ -3,7 +3,8 @@ use crate::{BigInt, PrimeField};
 
 impl<P: SmallFpConfig> From<u128> for SmallFp<P> {
     fn from(other: u128) -> Self {
-        let bigint = BigInt::<2>::new([other as u64, (other >> 64) as u64]);
+        let reduced_other = other % P::MODULUS_U128;
+        let bigint = BigInt::<2>::new([reduced_other as u64, (reduced_other >> 64) as u64]);
         Self::from_bigint(bigint).unwrap()
     }
 }
@@ -65,16 +66,7 @@ impl<P: SmallFpConfig> From<i32> for SmallFp<P> {
 
 impl<P: SmallFpConfig> From<u16> for SmallFp<P> {
     fn from(other: u16) -> Self {
-        let other_as_t = match P::T::try_from(other.into()) {
-            Ok(val) => val,
-            Err(_) => {
-                let modulus_as_u128: u128 = P::MODULUS.into();
-                let reduced = (other as u128) % modulus_as_u128;
-                P::T::try_from(reduced).unwrap_or_else(|_| panic!("Reduced value should fit in T"))
-            },
-        };
-        let val = other_as_t % P::MODULUS;
-        SmallFp::new(val)
+        Self::from(other as u128)
     }
 }
 
@@ -91,16 +83,7 @@ impl<P: SmallFpConfig> From<i16> for SmallFp<P> {
 
 impl<P: SmallFpConfig> From<u8> for SmallFp<P> {
     fn from(other: u8) -> Self {
-        let other_as_t = match P::T::try_from(other.into()) {
-            Ok(val) => val,
-            Err(_) => {
-                let modulus_as_u128: u128 = P::MODULUS.into();
-                let reduced = (other as u128) % modulus_as_u128;
-                P::T::try_from(reduced).unwrap_or_else(|_| panic!("Reduced value should fit in T"))
-            },
-        };
-        let val = other_as_t % P::MODULUS;
-        SmallFp::new(val)
+        Self::from(other as u128)
     }
 }
 
