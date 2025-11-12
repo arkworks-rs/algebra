@@ -150,7 +150,7 @@ impl<F: Field> DenseMultilinearExtension<F> {
 
         evaluations.resize(next_pow_of_two, F::zero());
 
-        Self::from_evaluations_slice(num_vars as usize, &evaluations)
+        Self::from_evaluations_vec(num_vars as usize, evaluations)
     }
 }
 
@@ -236,7 +236,9 @@ impl<F: Field> MultilinearExtension<F> for DenseMultilinearExtension<F> {
                 poly[b] = left + r * (right - left);
             }
         }
-        Self::from_evaluations_slice(nv - dim, &poly[..(1 << (nv - dim))])
+        let new_len = 1 << (nv - dim);
+        poly.truncate(new_len);
+        Self::from_evaluations_vec(nv - dim, poly)
     }
 
     fn to_evaluations(&self) -> Vec<F> {
@@ -442,7 +444,17 @@ impl<F: Field> Polynomial<F> for DenseMultilinearExtension<F> {
     /// ```
     fn evaluate(&self, point: &Self::Point) -> F {
         assert!(point.len() == self.num_vars);
-        self.fix_variables(point)[0]
+        let nv = self.num_vars;
+        let mut a = self.evaluations.clone();
+        for i in 1..=nv {
+            let r = point[i - 1];
+            for b in 0..(1 << (nv - i)) {
+                let left = a[b << 1];
+                let right = a[(b << 1) + 1];
+                a[b] = left + r * (right - left);
+            }
+        }
+        a[0]
     }
 }
 
