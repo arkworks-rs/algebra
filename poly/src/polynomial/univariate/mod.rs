@@ -2,7 +2,7 @@
 
 use core::cmp::min;
 
-use crate::{DenseUVPolynomial, EvaluationDomain, Evaluations, Polynomial};
+use crate::{DenseUVPolynomial, EvaluationDomain, Evaluations, Polynomial, Radix2EvaluationDomain};
 use ark_ff::{FftField, Field, Zero};
 use ark_std::{borrow::Cow, cfg_iter_mut, vec, vec::*};
 use DenseOrSparsePolynomial::{DPolynomial, SPolynomial};
@@ -236,8 +236,8 @@ impl<'a, F: FftField> DenseOrSparsePolynomial<'a, F> {
         let poly_mod_x2deg = DensePolynomial::from_coefficients_slice(
             &poly.coeffs[..min(2 * base_degree, poly.coeffs.len())],
         ); // lowest degree guaranteeing >= base_degree coefficients of c
-        // TODO: let n = base_degree
-        // TODO: deg(inverse) = n, deg(poly_mod_x2deg) = 2n => 3FFT(4n)
+           // TODO: let n = base_degree
+           // TODO: deg(inverse) = n, deg(poly_mod_x2deg) = 2n => 3FFT(4n)
         let one_plus_cxdeg = &poly_mod_x2deg * inverse;
 
         if one_plus_cxdeg.degree() < base_degree {
@@ -248,6 +248,13 @@ impl<'a, F: FftField> DenseOrSparsePolynomial<'a, F> {
         let c = DensePolynomial::from_coefficients_slice(
             &one_plus_cxdeg.coeffs[base_degree..min(2 * base_degree, one_plus_cxdeg.coeffs.len())],
         ); // we keep c of degree <= deg
+
+        // 3 x FFT(2n)
+        let domain = Radix2EvaluationDomain::new(2 * base_degree).unwrap();
+        let inverse_evals = inverse.evaluate_over_domain_by_ref(domain); // FFT(2n)
+                                                                         // (p * p_inv_mod_n) div X^n
+        let poly_mul_inverse_high = Self::middle_product(&inverse_evals, &poly_mod_x2deg); // 2 x FFT(2n)
+        assert_eq!(c, poly_mul_inverse_high);
 
         let mut new_inverse_coeffs = vec![F::zero(); 2 * base_degree];
 
@@ -263,11 +270,43 @@ impl<'a, F: FftField> DenseOrSparsePolynomial<'a, F> {
             .map(|&x| -x)
             .collect();
 
+        // 2 x FFT(2n)
+        let mut poly_mul_inverse = vec![F::zero(); 2 * base_degree];
+        poly_mul_inverse[0] = F::one(); // p * p_inv_mod_n = 1 mod X^n
+        poly_mul_inverse[base_degree..base_degree + poly_mul_inverse_high.coeffs.len()]
+            .copy_from_slice(&poly_mul_inverse_high.coeffs);
+        // (p * p_inv_mod_n) mod X^2n
+        let poly_mul_inverse = DensePolynomial::from_coefficients_vec(poly_mul_inverse);
+        // p_inv_mod_n * (p * p_inv_mod_n)
+        let poly_mul_inverse_squared_high =
+            -Self::middle_product(&inverse_evals, &poly_mul_inverse); // 2 x FFT(2n)
+        assert_eq!(above_deg_coeffs, poly_mul_inverse_squared_high.coeffs);
+
         // Then fill the upper half
         new_inverse_coeffs[base_degree..min(2 * base_degree, base_degree + above_deg_coeffs.len())]
             .clone_from_slice(above_deg_coeffs.as_slice());
 
         DensePolynomial::from_coefficients_vec(new_inverse_coeffs)
+    }
+
+    // Let 2n = a_evals.domain.size.
+    // If deg(a) < n, and deg(b) < 2n,
+    // computes ((ab) mod X^2n) div X^n
+    // using 2FFT(2n)
+    fn middle_product(
+        a_evals: &Evaluations<F, Radix2EvaluationDomain<F>>,
+        b: &DensePolynomial<F>,
+    ) -> DensePolynomial<F> {
+        let domain = a_evals.domain();
+        let n = domain.size() / 2;
+        let mut b_evals = b.evaluate_over_domain_by_ref(domain);
+        b_evals *= a_evals;
+        let a_conv_b = b_evals.interpolate();
+        if a_conv_b.degree() >= n {
+            DensePolynomial::from_coefficients_slice(&a_conv_b[n..])
+        } else {
+            DensePolynomial::zero()
+        }
     }
 
     fn reverse_coeffs(poly: &DensePolynomial<F>, max_degree: usize) -> DensePolynomial<F> {
