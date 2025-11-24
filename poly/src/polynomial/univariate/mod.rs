@@ -236,12 +236,15 @@ impl<'a, F: FftField> DenseOrSparsePolynomial<'a, F> {
         let poly_mod_x2deg = DensePolynomial::from_coefficients_slice(
             &poly.coeffs[..min(2 * base_degree, poly.coeffs.len())],
         ); // lowest degree guaranteeing >= base_degree coefficients of c
+        // TODO: let n = base_degree
+        // TODO: deg(inverse) = n, deg(poly_mod_x2deg) = 2n => 3FFT(4n)
         let one_plus_cxdeg = &poly_mod_x2deg * inverse;
 
         if one_plus_cxdeg.degree() < base_degree {
             // c = 0 thus we can simply return the inverse immediately
             return inverse.clone();
         }
+        //TODO: deg(c) >= n
         let c = DensePolynomial::from_coefficients_slice(
             &one_plus_cxdeg.coeffs[base_degree..min(2 * base_degree, one_plus_cxdeg.coeffs.len())],
         ); // we keep c of degree <= deg
@@ -253,7 +256,7 @@ impl<'a, F: FftField> DenseOrSparsePolynomial<'a, F> {
             .clone_from_slice(&inverse.coeffs);
 
         // Compute -inverse * c mod X^base_degree
-        let above_deg_coeffs: Vec<F> = (inverse * &c)
+        let above_deg_coeffs: Vec<F> = (inverse * &c) // TODO: 3FFT(2n)
             .coeffs
             .iter()
             .take(min(base_degree, inverse.degree() + &c.degree() + 1))
