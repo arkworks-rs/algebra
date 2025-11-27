@@ -68,13 +68,6 @@ impl<'a> Context<'a> {
         self.declarations.push(declaration);
     }
 
-    pub(crate) fn add_buffer(&mut self, extra_reg: usize) {
-        self.append(&format!(
-            "let mut spill_buffer = core::mem::MaybeUninit::<[u64; {}]>::uninit();",
-            extra_reg
-        ));
-    }
-
     pub(crate) fn add_asm(&mut self, asm_instructions: &[String]) {
         for instruction in asm_instructions {
             self.append(instruction)
