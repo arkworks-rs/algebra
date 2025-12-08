@@ -61,9 +61,32 @@ pub trait PrimeField:
     /// If the integer represented by `bytes` is larger than the modulus `p`, this method
     /// performs the appropriate reduction.
     fn from_be_bytes_mod_order(bytes: &[u8]) -> Self {
-        let mut bytes_copy = bytes.to_vec();
-        bytes_copy.reverse();
-        Self::from_le_bytes_mod_order(&bytes_copy)
+        // Process big-endian input without allocating by accumulating in base 2^64.
+        let pow256 = Self::from(256u64);
+        let window64 = pow256.pow(&[8]);
+
+        let mut res = Self::from(0u64);
+
+        // Handle a possible leading partial chunk (most-significant bytes).
+        let rem_len = bytes.len() % 8;
+        if rem_len != 0 {
+            let mut acc: u64 = 0;
+            for &b in &bytes[..rem_len] {
+                acc = (acc << 8) | (b as u64);
+            }
+            // Multiply by 256^rem_len and add the partial limb.
+            let window_small = pow256.pow(&[rem_len as u64]);
+            res *= window_small;
+            res += Self::from(acc);
+        }
+
+        // Process remaining bytes in 8-byte big-endian chunks.
+        for chunk in bytes[rem_len..].chunks(8) {
+            let limb = u64::from_be_bytes(chunk.try_into().expect("chunk size is 8"));
+            res *= window64;
+            res += Self::from(limb);
+        }
+        res
     }
 
     /// Reads bytes in little-endian, and converts them to a field element.
@@ -82,14 +105,28 @@ pub trait PrimeField:
         // Guaranteed to not be None, as the input is less than the modulus size.
         let mut res = Self::from_random_bytes(bytes_to_directly_convert).unwrap();
 
-        // Update the result, byte by byte.
+        // Update the result using 8-byte chunks for better performance.
         // We go through existing field arithmetic, which handles the reduction.
-        // TODO: If we need higher speeds, parse more bytes at once, or implement
-        // modular multiplication by a u64
-        let window_size = Self::from(256u64);
-        for byte in bytes.iter().rev() {
-            res *= window_size;
-            res += Self::from(*byte);
+        // TODO: Already parsing in 8-byte chunks; consider specialized mul-by-u64
+        // or even wider chunk sizes if profiling shows further benefit.
+        let pow256 = Self::from(256u64);
+        let window64 = pow256.pow(&[8]);
+
+        let mut iter = bytes.rchunks_exact(8);
+        for chunk in &mut iter {
+            let limb = u64::from_le_bytes(chunk.try_into().expect("chunk size is 8"));
+            res *= window64;
+            res += Self::from(limb);
+        }
+        let rem = iter.remainder();
+        if !rem.is_empty() {
+            let window_small = pow256.pow(&[rem.len() as u64]);
+            res *= window_small;
+            let mut acc: u64 = 0;
+            for (i, b) in rem.iter().enumerate() {
+                acc |= (*b as u64) << (8 * i);
+            }
+            res += Self::from(acc);
         }
         res
     }
