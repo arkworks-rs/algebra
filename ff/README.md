@@ -43,9 +43,8 @@ The above two models serve as abstractions for constructing the extension fields
 You can instantiate fields in two ways:
 
 ```rust
-use ark_ff::ark_ff_macros::SmallFpConfig;
 use ark_ff::fields::{Fp64, MontBackend, MontConfig};
-use ark_ff::{BigInt, SmallFp, SmallFpConfig, SqrtPrecomputation};
+use ark_ff::{SmallFp, SmallFpConfig};
 
 // Standard (big integer) field
 #[derive(MontConfig)]

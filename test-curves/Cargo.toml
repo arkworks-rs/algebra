@@ -83,3 +83,8 @@ harness = false
 name = "smallfp"
 path = "benches/smallfp.rs"
 harness = false
+
+[[bench]]
+name = "smallfp_compare"
+path = "benches/smallfp_compare.rs"
+harness = false

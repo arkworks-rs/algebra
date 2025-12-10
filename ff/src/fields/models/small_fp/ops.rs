@@ -198,6 +198,7 @@ impl<'a, P: SmallFpConfig> core::ops::SubAssign<&'a mut Self> for SmallFp<P> {
 }
 
 impl<P: SmallFpConfig> MulAssign<&Self> for SmallFp<P> {
+    #[inline(always)]
     fn mul_assign(&mut self, other: &Self) {
         P::mul_assign(self, other)
     }

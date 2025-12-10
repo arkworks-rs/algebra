@@ -1,5 +1,4 @@
-use ark_ff::ark_ff_macros::SmallFpConfig;
-use ark_ff::{BigInt, SmallFp, SmallFpConfig, SqrtPrecomputation};
+use ark_ff::{SmallFp, SmallFpConfig};
 
 #[derive(SmallFpConfig)]
 #[modulus = "143244528689204659050391023439224324689"]

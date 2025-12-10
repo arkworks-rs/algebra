@@ -34,17 +34,21 @@ pub(crate) fn small_fp_config_helper(
 
     let new_impl = match backend.as_str() {
         "standard" => standard_backend::new(),
-        "montgomery" => montgomery_backend::new(modulus, ty),
+        "montgomery" => montgomery_backend::new(modulus, ty.clone()),
         _ => panic!("Unknown backend type: {}", backend),
     };
 
     quote! {
-        impl SmallFpConfig for #config_name {
-            #backend_impl
-        }
+        const _: () = {
+            use ark_ff::{SmallFp, SmallFpConfig};
 
-        impl #config_name {
-            #new_impl
-        }
+            impl SmallFpConfig for #config_name {
+                #backend_impl
+            }
+
+            impl #config_name {
+                #new_impl
+            }
+        };
     }
 }
