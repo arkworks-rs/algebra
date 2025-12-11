@@ -158,18 +158,21 @@ impl<const N: usize> BigInt<N> {
         one
     }
 
+    /// Returns `true` if `self` is even (i.e., the least significant bit is 0).
     #[doc(hidden)]
     #[inline]
     pub const fn const_is_even(&self) -> bool {
         self.0[0] % 2 == 0
     }
 
+    /// Returns `true` if `self` is odd (i.e., the least significant bit is 1).
     #[doc(hidden)]
     #[inline]
     pub const fn const_is_odd(&self) -> bool {
         self.0[0] % 2 == 1
     }
 
+    /// Computes `self % 4` by examining the 2 least significant bits.
     #[doc(hidden)]
     #[inline]
     pub const fn mod_4(&self) -> u8 {
@@ -178,6 +181,7 @@ impl<const N: usize> BigInt<N> {
         (((self.0[0] << 62) >> 62) % 4) as u8
     }
 
+    /// Computes `self % 8` by examining the 3 least significant bits.
     #[doc(hidden)]
     pub const fn mod_8(&self) -> u8 {
         // To compute n % 8, we need to simply look at the
