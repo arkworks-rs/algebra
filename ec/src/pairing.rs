@@ -282,10 +282,7 @@ impl<P: Pairing> PrimeGroup for PairingOutput<P> {
     type ScalarField = P::ScalarField;
 
     fn generator() -> Self {
-        // TODO: hardcode these values.
-        // Sample a random G1 element
         let g1 = P::G1::generator();
-        // Sample a random G2 element
         let g2 = P::G2::generator();
         P::pairing(g1.into(), g2.into())
     }
