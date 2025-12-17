@@ -353,8 +353,68 @@ impl<'a, P: SWCurveConfig> AddAssign<&'a Bucket<P>> for Projective<P> {
             return;
         }
 
-        // TODO: optimize using an explicit formula.
-        *self += Self::from(*other);
+        let z1z1 = self.z.square();
+
+        let z2z2 = other.zz;
+
+        let mut u1 = self.x;
+        u1 *= &z1z1;
+        u1 *= &z2z2;
+
+        let mut u2 = other.x;
+        u2 *= &z2z2;
+        u2 *= &z1z1;
+
+        let mut s1 = self.y;
+        s1 *= &self.z;
+        s1 *= &z1z1;
+        s1 *= &other.zzz;
+
+        let mut s2 = other.y;
+        s2 *= &other.zzz;
+        s2 *= &self.z;
+        s2 *= &z1z1;
+
+        if u1 == u2 {
+            if s1 == s2 {
+                self.double_in_place();
+            } else {
+                *self = Self::zero();
+            }
+        } else {
+            let mut h = u2;
+            h -= &u1;
+
+            let mut i = h;
+            i.double_in_place().square_in_place();
+
+            let mut j = h;
+            j.neg_in_place();
+            j *= &i;
+
+            let mut r = s2;
+            r -= &s1;
+            r.double_in_place();
+
+            let mut v = u1;
+            v *= &i;
+
+            self.x = r;
+            self.x.square_in_place();
+            self.x += &j;
+            self.x -= &v.double();
+
+            v -= &self.x;
+            self.y = s1;
+            self.y.double_in_place();
+            self.y = P::BaseField::sum_of_products(&[r, self.y], &[v, j]);
+
+            self.z *= &other.zzz;
+            self.z.double_in_place();
+            self.z *= &h;
+            let z2z2_inv = z2z2.inverse().unwrap();
+            self.z *= &z2z2_inv;
+        }
     }
 }
 
