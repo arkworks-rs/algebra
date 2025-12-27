@@ -90,6 +90,12 @@ impl<F: Field> DensePolynomial<F> {
             })
             .sum()
     }
+    
+    /// Returns true if the polynomial is identically zero.
+    #[inline]
+    pub fn is_zero(&self) -> bool {
+        self.coeffs.iter().all(|c| c.is_zero())
+    }
 }
 
 impl<F: Field> DenseUVPolynomial<F> for DensePolynomial<F> {
