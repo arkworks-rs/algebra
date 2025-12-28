@@ -266,12 +266,12 @@ impl<K: Valid, V: Valid> Valid for BTreeMap<K, V> {
         if Self::TRIVIAL_CHECK {
             return Ok(());
         }
-        let (keys, values): (Vec<_>, Vec<_>) = batch.map(|b| (b.keys(), b.values())).unzip();
+        let batch_vec: Vec<_> = batch.collect();
         if !K::TRIVIAL_CHECK {
-            K::batch_check(keys.into_iter().flatten())?;
+            K::batch_check(batch_vec.iter().flat_map(|b| b.keys()))?;
         }
         if !V::TRIVIAL_CHECK {
-            V::batch_check(values.into_iter().flatten())?;
+            V::batch_check(batch_vec.iter().flat_map(|b| b.values()))?;
         }
         Ok(())
     }
@@ -354,12 +354,12 @@ impl<K: Valid, V: Valid> Valid for std::collections::HashMap<K, V> {
         if Self::TRIVIAL_CHECK {
             return Ok(());
         }
-        let (keys, values): (Vec<_>, Vec<_>) = batch.map(|b| (b.keys(), b.values())).unzip();
+        let batch_vec: Vec<_> = batch.collect();
         if !K::TRIVIAL_CHECK {
-            K::batch_check(keys.into_iter().flatten())?;
+            K::batch_check(batch_vec.iter().flat_map(|b| b.keys()))?;
         }
         if !V::TRIVIAL_CHECK {
-            V::batch_check(values.into_iter().flatten())?;
+            V::batch_check(batch_vec.iter().flat_map(|b| b.values()))?;
         }
         Ok(())
     }
