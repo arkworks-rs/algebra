@@ -301,6 +301,7 @@ macro_rules! __test_field {
                 let e1: [u64; 10] = rng.gen();
                 let e2: [u64; 10] = rng.gen();
                 assert_eq!(a.pow(&e1).pow(&e2), a.pow(&e2).pow(&e1));
+                assert_eq!(a.pow(&e1).pow(&e2), a.pow(&e2).pow(&e1));
 
                 // Distributivity
                 let e3: [u64; 10] = rng.gen();
@@ -496,6 +497,34 @@ macro_rules! __test_field {
                 (_, _) => {
                     panic!("Should specify both `SMALL_SUBGROUP_BASE` and `SMALL_SUBGROUP_BASE_ADICITY`")
                 },
+            }
+        }
+
+        #[test]
+        fn test_from_bytes_mod_order_matches_biguint() {
+            use $crate::num_bigint::BigUint;
+            use ark_std::rand::Rng;
+
+            let mut rng = test_rng();
+            let modulus: BigUint = <$field>::MODULUS.into();
+
+            let max_len = (2 * <$field>::MODULUS_BIT_SIZE / 8 + 2) as usize;
+
+            for _ in 0..ITERATIONS {
+                let len = rng.gen_range(0..=max_len);
+                let data: Vec<u8> = (0..len).map(|_| rng.gen()).collect();
+
+                let int_be = BigUint::from_bytes_be(&data) % &modulus;
+                let int_le = BigUint::from_bytes_le(&data) % &modulus;
+
+                let expected_be = <$field>::from(int_be);
+                let expected_le = <$field>::from(int_le);
+
+                let actual_be = <$field>::from_be_bytes_mod_order(&data);
+                let actual_le = <$field>::from_le_bytes_mod_order(&data);
+
+                assert_eq!(expected_be, actual_be);
+                assert_eq!(expected_le, actual_le);
             }
         }
     };
