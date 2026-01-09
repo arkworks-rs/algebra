@@ -24,6 +24,8 @@
 
 ### Bugfixes
 
+- [\#915](https://github.com/arkworks-rs/algebra/pull/915) (`ark-poly`) Added `is_valid_coefficients_vec` to `SparsePolynomial` to remove duplicates and zero coefficients before polynomial creation.
+
 ## v0.5.0
 
 - [\#772](https://github.com/arkworks-rs/algebra/pull/772) (`ark-ff`) Implementation of `mul` method for `BigInteger`.
