@@ -93,25 +93,25 @@ pub trait VariableBaseMSM: ScalarMul + for<'a> AddAssign<&'a Self::Bucket> {
     /// Performs multi-scalar multiplication when the scalars are known to be `u8`-sized.
     /// The default implementation is faster than [`Self::msm_bigint`].
     fn msm_u8(bases: &[Self::MulBase], scalars: &[u8]) -> Self {
-        msm_u8(bases, scalars)
+        msm_small_int(bases, scalars)
     }
 
     /// Performs multi-scalar multiplication when the scalars are known to be `u16`-sized.
     /// The default implementation is faster than [`Self::msm_bigint`].
     fn msm_u16(bases: &[Self::MulBase], scalars: &[u16]) -> Self {
-        msm_u16(bases, scalars)
+        msm_small_int(bases, scalars)
     }
 
     /// Performs multi-scalar multiplication when the scalars are known to be `u32`-sized.
     /// The default implementation is faster than [`Self::msm_bigint`].
     fn msm_u32(bases: &[Self::MulBase], scalars: &[u32]) -> Self {
-        msm_u32(bases, scalars)
+        msm_small_int(bases, scalars)
     }
 
     /// Performs multi-scalar multiplication when the scalars are known to be `u64`-sized.
     /// The default implementation is faster than [`Self::msm_bigint`].
     fn msm_u64(bases: &[Self::MulBase], scalars: &[u64]) -> Self {
-        msm_u64(bases, scalars)
+        msm_small_int(bases, scalars)
     }
 
     /// Streaming multi-scalar multiplication algorithm with hard-coded chunk
@@ -314,26 +314,26 @@ fn msm_signed<V: VariableBaseMSM>(
     // Handle positive and negative u8 scalars.
     let (ub, us) = small_value_unzip(u8s, |i, v| (bases[i], v as u8));
     let (ib, is) = small_value_unzip(i8s, |i, v| (bases[i], v as u8));
-    add_result += msm_u8::<V>(&ub, &us);
-    sub_result += msm_u8::<V>(&ib, &is);
+    add_result += V::msm_u8(&ub, &us);
+    sub_result += V::msm_u8(&ib, &is);
 
     // Handle positive and negative u16 scalars.
     let (ub, us) = small_value_unzip(u16s, |i, v| (bases[i], v as u16));
     let (ib, is) = small_value_unzip(i16s, |i, v| (bases[i], v as u16));
-    add_result += msm_u16::<V>(&ub, &us);
-    sub_result += msm_u16::<V>(&ib, &is);
+    add_result += V::msm_u16(&ub, &us);
+    sub_result += V::msm_u16(&ib, &is);
 
     // Handle positive and negative u32 scalars.
     let (ub, us) = large_value_unzip(u32s, |i| (bases[i], scalars[i].as_ref()[0] as u32));
     let (ib, is) = large_value_unzip(i32s, |i| (bases[i], sub(&m, &scalars[i]) as u32));
-    add_result += msm_u32::<V>(&ub, &us);
-    sub_result += msm_u32::<V>(&ib, &is);
+    add_result += V::msm_u32(&ub, &us);
+    sub_result += V::msm_u32(&ib, &is);
 
     // Handle positive and negative u64 scalars.
     let (ub, us) = large_value_unzip(u64s, |i| (bases[i], scalars[i].as_ref()[0]));
     let (ib, is) = large_value_unzip(i64s, |i| (bases[i], sub(&m, &scalars[i])));
-    add_result += msm_u64::<V>(&ub, &us);
-    sub_result += msm_u64::<V>(&ib, &is);
+    add_result += V::msm_u64(&ub, &us);
+    sub_result += V::msm_u64(&ib, &is);
 
     // Handle the rest of the scalars.
     let (bf, sf) = large_value_unzip(&bigints, |i| (bases[i], scalars[i]));
@@ -369,7 +369,7 @@ fn preamble<A, B>(bases: &mut &[A], scalars: &mut &[B]) -> Option<usize> {
 }
 
 /// Computes multi-scalar multiplication where the scalars
-/// lie in the range {-1, 0, 1}.
+/// lie in the range {0, 1}.
 fn msm_binary<V: VariableBaseMSM>(mut bases: &[V::MulBase], mut scalars: &[bool]) -> V {
     let chunk_size = match preamble(&mut bases, &mut scalars) {
         Some(chunk_size) => chunk_size,
@@ -389,47 +389,20 @@ fn msm_binary<V: VariableBaseMSM>(mut bases: &[V::MulBase], mut scalars: &[bool]
         .sum()
 }
 
-fn msm_u8<V: VariableBaseMSM>(mut bases: &[V::MulBase], mut scalars: &[u8]) -> V {
+/// MSM for small integer scalars.
+fn msm_small_int<V, S>(mut bases: &[V::MulBase], mut scalars: &[S]) -> V
+where
+    V: VariableBaseMSM,
+    S: Into<u64> + Copy + Send + Sync,
+{
     let chunk_size = match preamble(&mut bases, &mut scalars) {
         Some(chunk_size) => chunk_size,
         None => return V::zero(),
     };
-    cfg_chunks!(bases, chunk_size)
-        .zip(cfg_chunks!(scalars, chunk_size))
-        .map(|(bases, scalars)| msm_serial::<V>(bases, scalars))
-        .sum()
-}
 
-fn msm_u16<V: VariableBaseMSM>(mut bases: &[V::MulBase], mut scalars: &[u16]) -> V {
-    let chunk_size = match preamble(&mut bases, &mut scalars) {
-        Some(chunk_size) => chunk_size,
-        None => return V::zero(),
-    };
     cfg_chunks!(bases, chunk_size)
         .zip(cfg_chunks!(scalars, chunk_size))
-        .map(|(bases, scalars)| msm_serial::<V>(bases, scalars))
-        .sum()
-}
-
-fn msm_u32<V: VariableBaseMSM>(mut bases: &[V::MulBase], mut scalars: &[u32]) -> V {
-    let chunk_size = match preamble(&mut bases, &mut scalars) {
-        Some(chunk_size) => chunk_size,
-        None => return V::zero(),
-    };
-    cfg_chunks!(bases, chunk_size)
-        .zip(cfg_chunks!(scalars, chunk_size))
-        .map(|(bases, scalars)| msm_serial::<V>(bases, scalars))
-        .sum()
-}
-
-fn msm_u64<V: VariableBaseMSM>(mut bases: &[V::MulBase], mut scalars: &[u64]) -> V {
-    let chunk_size = match preamble(&mut bases, &mut scalars) {
-        Some(chunk_size) => chunk_size,
-        None => return V::zero(),
-    };
-    cfg_chunks!(bases, chunk_size)
-        .zip(cfg_chunks!(scalars, chunk_size))
-        .map(|(bases, scalars)| msm_serial::<V>(bases, scalars))
+        .map(|(bases, scalars)| msm_serial::<V, _>(bases, scalars))
         .sum()
 }
 
@@ -654,10 +627,11 @@ fn msm_bigint<V: VariableBaseMSM>(
             })
 }
 
-fn msm_serial<V: VariableBaseMSM>(
-    bases: &[V::MulBase],
-    scalars: &[impl Into<u64> + Copy + Send + Sync],
-) -> V {
+fn msm_serial<V, S>(bases: &[V::MulBase], scalars: &[S]) -> V
+where
+    V: VariableBaseMSM,
+    S: Into<u64> + Copy + Send + Sync,
+{
     let c = if bases.len() < 32 {
         3
     } else {
@@ -665,12 +639,14 @@ fn msm_serial<V: VariableBaseMSM>(
     };
 
     let zero = V::ZERO_BUCKET;
+    let two_to_c = 1 << c;
+
+    let num_bits = core::mem::size_of::<S>() * 8;
 
     // Each window is of size `c`.
     // We divide up the bits 0..num_bits into windows of size `c`, and
     // in parallel process each such window.
-    let two_to_c = 1 << c;
-    let window_sums: Vec<_> = (0..(core::mem::size_of::<u64>() * 8))
+    let window_sums: Vec<_> = (0..num_bits)
         .step_by(c)
         .map(|w_start| {
             let mut res = zero;
