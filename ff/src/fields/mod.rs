@@ -26,6 +26,8 @@ pub use self::models::*;
 
 pub mod field_hashers;
 
+pub mod binary;
+
 mod prime;
 pub use prime::*;
 
