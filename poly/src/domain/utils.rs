@@ -173,7 +173,6 @@ pub(crate) fn parallel_fft<T: DomainCoeff<F>, F: FftField>(
             kth_poly_coeffs
                 .iter_mut()
                 .enumerate()
-                .take(coset_size)
                 .for_each(|(i, coeff)| {
                     for c in 0..num_threads {
                         let idx = i + (c * coset_size);

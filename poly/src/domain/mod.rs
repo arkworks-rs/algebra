@@ -179,7 +179,7 @@ pub trait EvaluationDomain<F: FftField>:
             // Thus we find i by brute force.
             let mut u = vec![F::zero(); size];
             let mut omega_i = offset;
-            for u_i in u.iter_mut().take(size) {
+            for u_i in u.iter_mut() {
                 if omega_i == tau {
                     *u_i = F::one();
                     break;
