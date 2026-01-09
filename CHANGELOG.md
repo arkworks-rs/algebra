@@ -11,6 +11,7 @@
 - (`ark-poly`) Add fast polynomial division
 - (`ark-ec`) Improve GLV scalar multiplication performance by skipping leading zeroes.
 - (`ark-poly`) Make `SparsePolynomial.coeffs` field public
+- [\#1044](https://github.com/arkworks-rs/algebra/pull/1044) Add implementation for small field with native integer types
 
 ### Breaking changes
 
