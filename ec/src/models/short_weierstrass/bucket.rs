@@ -344,25 +344,25 @@ impl<'a, P: SWCurveConfig> SubAssign<&'a Self> for Bucket<P> {
 
 impl<'a, P: SWCurveConfig> AddAssign<&'a Bucket<P>> for Projective<P> {
     /// Optimized addition formula for Jacobian + Extended Jacobian coordinates.
-    /// 
+    ///
     /// This formula is derived from the standard Jacobian addition formula
     /// (http://www.hyperelliptic.org/EFD/g1p/auto-shortw-jacobian-0.html#addition-add-2007-bl)
     /// by optimizing for the case where the second point is in Extended Jacobian
     /// (XYZZ) coordinates, which stores 1/Z^2 and 1/Z^3 separately to avoid redundant
     /// computations.
-    /// 
+    ///
     /// In Extended Jacobian (Bucket) coordinates:
     /// - x = X/ZZ, where ZZ = 1/Z^2, so x = X * Z^2
     /// - y = Y/ZZZ, where ZZZ = 1/Z^3, so y = Y * Z^3
     /// - zz = 1/Z^2
     /// - zzz = 1/Z^3
-    /// 
+    ///
     /// The key optimization is that we can compute:
     /// - U1 = X1 * Z2^2 = x1 * z1^2 / zz2 (since Z2^2 = 1/zz2)
     /// - U2 = X2 * Z1^2 = x2 * zz2 * z1^2 (since X2 = x2 * zz2)
     /// - S1 = Y1 * Z2^3 = y1 * z1^3 / zzz2 (since Z2^3 = 1/zzz2)
     /// - S2 = Y2 * Z1^3 = y2 * zzz2 * z1^3 (since Y2 = y2 * zzz2)
-    /// 
+    ///
     /// This avoids computing Z2^2 and Z2^3 from Z2, since their inverses are already
     /// stored in the Bucket representation.
     fn add_assign(&mut self, other: &'a Bucket<P>) {
