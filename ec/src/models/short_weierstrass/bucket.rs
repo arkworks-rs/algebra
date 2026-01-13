@@ -343,6 +343,28 @@ impl<'a, P: SWCurveConfig> SubAssign<&'a Self> for Bucket<P> {
 }
 
 impl<'a, P: SWCurveConfig> AddAssign<&'a Bucket<P>> for Projective<P> {
+    /// Optimized addition formula for Jacobian + Extended Jacobian coordinates.
+    /// 
+    /// This formula is derived from the standard Jacobian addition formula
+    /// (http://www.hyperelliptic.org/EFD/g1p/auto-shortw-jacobian-0.html#addition-add-2007-bl)
+    /// by optimizing for the case where the second point is in Extended Jacobian
+    /// (XYZZ) coordinates, which stores 1/Z^2 and 1/Z^3 separately to avoid redundant
+    /// computations.
+    /// 
+    /// In Extended Jacobian (Bucket) coordinates:
+    /// - x = X/ZZ, where ZZ = 1/Z^2, so x = X * Z^2
+    /// - y = Y/ZZZ, where ZZZ = 1/Z^3, so y = Y * Z^3
+    /// - zz = 1/Z^2
+    /// - zzz = 1/Z^3
+    /// 
+    /// The key optimization is that we can compute:
+    /// - U1 = X1 * Z2^2 = x1 * z1^2 / zz2 (since Z2^2 = 1/zz2)
+    /// - U2 = X2 * Z1^2 = x2 * zz2 * z1^2 (since X2 = x2 * zz2)
+    /// - S1 = Y1 * Z2^3 = y1 * z1^3 / zzz2 (since Z2^3 = 1/zzz2)
+    /// - S2 = Y2 * Z1^3 = y2 * zzz2 * z1^3 (since Y2 = y2 * zzz2)
+    /// 
+    /// This avoids computing Z2^2 and Z2^3 from Z2, since their inverses are already
+    /// stored in the Bucket representation.
     fn add_assign(&mut self, other: &'a Bucket<P>) {
         if self.is_zero() {
             *self = (*other).into();
@@ -353,23 +375,42 @@ impl<'a, P: SWCurveConfig> AddAssign<&'a Bucket<P>> for Projective<P> {
             return;
         }
 
+        // Z1Z1 = Z1^2
         let z1z1 = self.z.square();
 
-        let z2z2 = other.zz;
+        // Z2Z2 = Z2^2
+        // In Bucket coordinates, zz = 1/Z^2, so Z2^2 = 1/zz2
+        let z2z2 = other.zz.inverse().unwrap();
 
+        // U1 = X1 * Z2^2
+        // Since x1 = X1/z1^2, we have X1 = x1 * z1^2
+        // So U1 = x1 * z1^2 * Z2^2 = x1 * z1^2 / zz2
         let mut u1 = self.x;
         u1 *= &z1z1;
         u1 *= &z2z2;
 
+        // U2 = X2 * Z1^2
+        // In Bucket coordinates, x2 = X2/zz2 = X2 * Z2^2, so X2 = x2 / Z2^2 = x2 * zz2
+        // So U2 = (x2 * zz2) * z1^2 = x2 * zz2 * z1^2
         let mut u2 = other.x;
-        u2 *= &z2z2;
+        u2 *= &other.zz;
         u2 *= &z1z1;
 
+        // Z2Z2Z2 = Z2^3
+        // In Bucket coordinates, zzz = 1/Z^3, so Z2^3 = 1/zzz2
+        let z2z2z2 = other.zzz.inverse().unwrap();
+
+        // S1 = Y1 * Z2^3
+        // Since y1 = Y1/z1^3, we have Y1 = y1 * z1^3
+        // So S1 = y1 * z1^3 * Z2^3 = y1 * z1^3 / zzz2
         let mut s1 = self.y;
         s1 *= &self.z;
         s1 *= &z1z1;
-        s1 *= &other.zzz;
+        s1 *= &z2z2z2;
 
+        // S2 = Y2 * Z1^3
+        // In Bucket coordinates, y2 = Y2/zzz2 = Y2 * Z2^3, so Y2 = y2 / Z2^3 = y2 * zzz2
+        // So S2 = (y2 * zzz2) * z1^3 = y2 * zzz2 * z1^3
         let mut s2 = other.y;
         s2 *= &other.zzz;
         s2 *= &self.z;
@@ -382,38 +423,48 @@ impl<'a, P: SWCurveConfig> AddAssign<&'a Bucket<P>> for Projective<P> {
                 *self = Self::zero();
             }
         } else {
+            // H = U2 - U1
             let mut h = u2;
             h -= &u1;
 
+            // I = (2*H)^2
             let mut i = h;
             i.double_in_place().square_in_place();
 
+            // J = -H*I
             let mut j = h;
             j.neg_in_place();
             j *= &i;
 
+            // r = 2*(S2 - S1)
             let mut r = s2;
             r -= &s1;
             r.double_in_place();
 
+            // V = U1*I
             let mut v = u1;
             v *= &i;
 
+            // X3 = r^2 + J - 2*V
             self.x = r;
             self.x.square_in_place();
             self.x += &j;
             self.x -= &v.double();
 
+            // Y3 = r*(V - X3) + 2*S1*J
             v -= &self.x;
             self.y = s1;
             self.y.double_in_place();
             self.y = P::BaseField::sum_of_products(&[r, self.y], &[v, j]);
 
+            // Z3 = 2 * Z1 * Z2 * H
+            // We compute this as: Z3 = (2 * Z1 * Z2) * H
+            // Since zzz2 = 1/Z2^3 and zz2 = 1/Z2^2, we have Z2 = zzz2/zz2
+            // So: Z3 = 2 * z1 * (zzz2/zz2) * H = 2 * z1 * zzz2 * H / zz2
             self.z *= &other.zzz;
             self.z.double_in_place();
             self.z *= &h;
-            let z2z2_inv = z2z2.inverse().unwrap();
-            self.z *= &z2z2_inv;
+            self.z *= &other.zz;
         }
     }
 }
