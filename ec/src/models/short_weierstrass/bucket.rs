@@ -389,8 +389,8 @@ impl<'a, P: SWCurveConfig> AddAssign<&'a Bucket<P>> for Projective<P> {
         u1 *= &z2z2;
 
         // U2 = X2 * Z1^2
-        // In Bucket coordinates, x2 = X2/zz2, so X2 = x2 * zz2
-        // So U2 = (x2 * zz2) * z1^2 = x2 * zz2 * z1^2
+        // In Bucket coordinates, x2 = X2/zz2, so X2 = x2 * zz2 = x2 * Z2^2
+        // So U2 = (x2 * Z2^2) * Z1^2 = x2 * zz2 * z1^2
         let mut u2 = other.x;
         u2 *= &other.zz;
         u2 *= &z1z1;
