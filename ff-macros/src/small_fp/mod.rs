@@ -1,5 +1,4 @@
 mod montgomery_backend;
-mod standard_backend;
 mod utils;
 
 use quote::quote;
@@ -9,7 +8,6 @@ use quote::quote;
 pub(crate) fn small_fp_config_helper(
     modulus: u128,
     generator: u128,
-    backend: String,
     config_name: proc_macro2::Ident,
 ) -> proc_macro2::TokenStream {
     let ty = match modulus {
@@ -20,23 +18,12 @@ pub(crate) fn small_fp_config_helper(
         _ => quote! { u128 },
     };
 
-    let backend_impl = match backend.as_str() {
-        "standard" => standard_backend::backend_impl(&ty, modulus, generator),
-        "montgomery" => {
-            assert!(modulus < 1u128 << 127,
-                "SmallFpConfig montgomery backend supports only moduli < 2^127. Use MontConfig with BigInt instead of SmallFp."
-            );
-            montgomery_backend::backend_impl(&ty, modulus, generator)
-        },
+    assert!(modulus < 1u128 << 127,
+        "SmallFpConfig montgomery backend supports only moduli < 2^127. Use MontConfig with BigInt instead of SmallFp."
+    );
 
-        _ => panic!("Unknown backend type: {}", backend),
-    };
-
-    let new_impl = match backend.as_str() {
-        "standard" => standard_backend::new(),
-        "montgomery" => montgomery_backend::new(modulus, ty.clone()),
-        _ => panic!("Unknown backend type: {}", backend),
-    };
+    let backend_impl = montgomery_backend::backend_impl(&ty, modulus, generator);
+    let new_impl = montgomery_backend::new(modulus, ty.clone());
 
     quote! {
         const _: () = {

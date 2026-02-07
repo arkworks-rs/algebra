@@ -3,23 +3,14 @@ use ark_ff::{SmallFp, SmallFpConfig};
 #[derive(SmallFpConfig)]
 #[modulus = "65521"]
 #[generator = "17"]
-#[backend = "standard"]
-pub struct SmallF16Config;
-pub type SmallF16 = SmallFp<SmallF16Config>;
-
-#[derive(SmallFpConfig)]
-#[modulus = "65521"]
-#[generator = "17"]
-#[backend = "montgomery"]
-pub struct SmallF16ConfigMont;
-pub type SmallF16Mont = SmallFp<SmallF16ConfigMont>;
+pub struct SmallFp16Config;
+pub type SmallFp16 = SmallFp<SmallFp16Config>;
 
 #[derive(SmallFpConfig)]
 #[modulus = "8191"]
 #[generator = "17"]
-#[backend = "montgomery"]
-pub struct SmallF16ConfigMontM13;
-pub type SmallF16MontM13 = SmallFp<SmallF16ConfigMontM13>;
+pub struct SmallFp16ConfigM13;
+pub type SmallFp16M13 = SmallFp<SmallFp16ConfigM13>;
 
 #[cfg(test)]
 mod tests {
@@ -27,7 +18,6 @@ mod tests {
     use ark_algebra_test_templates::*;
     use ark_std::vec;
 
-    test_small_field!(f16; SmallF16);
-    test_small_field!(f16_mont; SmallF16Mont);
-    test_small_field!(f16_mont_m13; SmallF16MontM13);
+    test_small_field!(f16; SmallFp16);
+    test_small_field!(f16_mont_m13; SmallFp16M13);
 }

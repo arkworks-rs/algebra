@@ -1,8 +1,8 @@
 use ark_algebra_bench_templates::*;
 use ark_ff::fields::{Fp64, MontBackend, MontConfig, SmallFp, SmallFpConfig};
 use ark_test_curves::{
-    smallfp32::{SmallF32MontM31},
-    smallfp64::{SmallF64MontGoldilock},
+    smallfp32::{SmallFp32M31},
+    smallfp64::{SmallFp64Goldilock},
 };
 
 
@@ -27,9 +27,8 @@ pub type F16 = Fp64<MontBackend<F16Config, 1>>;
 #[derive(SmallFpConfig)]
 #[modulus = "65521"]
 #[generator = "17"]
-#[backend = "montgomery"]
-pub struct F16ConfigMont;
-pub type SmallF16Mont = SmallFp<F16ConfigMont>;
+pub struct SmallFp16Config;
+pub type SmallFp16 = SmallFp<SmallFp16Config>;
 
 #[derive(MontConfig)]
 #[modulus = "251"]
@@ -40,31 +39,30 @@ pub type F8 = Fp64<MontBackend<F8Config, 1>>;
 #[derive(SmallFpConfig)]
 #[modulus = "251"]
 #[generator = "6"]
-#[backend = "montgomery"]
-pub struct SmallF8ConfigMont;
-pub type SmallF8Mont = SmallFp<SmallF8ConfigMont>;
+pub struct SmallFp8Config;
+pub type SmallFp8 = SmallFp<SmallFp8Config>;
 
 
 
 f_bench!(prime, "F8", F8);
-f_bench!(prime, "SmallF8Mont", SmallF8Mont);
+f_bench!(prime, "SmallF8Mont", SmallFp8);
 
 f_bench!(prime, "F16", F16);
-f_bench!(prime, "SmallF16Mont", SmallF16Mont);
+f_bench!(prime, "SmallF16Mont", SmallFp16);
 
 f_bench!(prime, "F32", F32);
-f_bench!(prime, "SmallF32Mont", SmallF32MontM31);
+f_bench!(prime, "SmallF32Mont", SmallFp32M31);
 
 f_bench!(prime, "F64", F64);
-f_bench!(prime, "SmallF64Mont", SmallF64MontGoldilock);
+f_bench!(prime, "SmallF64Mont", SmallFp64Goldilock);
 
 criterion_main!(
     f8::benches,
-    smallf8mont::benches,
+    smallfp8::benches,
     f16::benches,
-    smallf16mont::benches,
+    smallfp16::benches,
     f32::benches,
-    smallf32montm31::benches,
+    smallfp32m31::benches,
     f64::benches,
-    smallf64montgoldilock::benches,
+    smallfp64goldilock::benches,
 );

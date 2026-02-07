@@ -57,12 +57,11 @@ pub type F64 = Fp64<MontBackend<F64Config, 1>>;
 #[derive(SmallFpConfig)]
 #[modulus = "18446744069414584321"]
 #[generator = "7"]
-#[backend = "montgomery"] // or "standard"
 pub struct SmallF64ConfigMont;
 pub type SmallF64Mont = SmallFp<SmallF64ConfigMont>;
 ```
 
-The standard field implementation can represent arbitrarily large fields, while the small field implementation supports native integer types from `u8` to `u128` for faster arithmetic. The small field implementation requires that the modulus fits into u128.
+The standard field implementation can represent arbitrarily large fields, while the small field implementation supports native integer types from `u8` to `u128` for faster arithmetic. The both implementations use Montgomery arithmetic. The small field implementation requires that the modulus fits into u128.
 
 ## Usage
 
