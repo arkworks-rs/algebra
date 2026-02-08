@@ -1,4 +1,3 @@
-use std::u32;
 use super::*;
 use crate::small_fp::utils::{
     compute_two_adic_root_of_unity, compute_two_adicity, generate_montgomery_bigint_casts,
@@ -26,8 +25,9 @@ pub(crate) fn backend_impl(
     let neg_one_mont = mod_mul_const(modulus - 1, r_mod_n, modulus);
 
     let (from_bigint_impl, into_bigint_impl) =
-        generate_montgomery_bigint_casts(modulus, k_bits, r_mod_n);
+        generate_montgomery_bigint_casts();
     let sqrt_precomp_impl = generate_sqrt_precomputation(modulus, two_adicity, Some(r_mod_n));
+    let r2 = mod_mul_const(r_mod_n, r_mod_n, modulus);
 
     // Generate multiplication implementation based on type
     let mul_impl = generate_mul_impl(ty, modulus, k_bits, r_mask, n_prime);
@@ -36,14 +36,14 @@ pub(crate) fn backend_impl(
         type T = #ty;
         const MODULUS: Self::T = #modulus as Self::T;
         const MODULUS_U128: u128 = #modulus;
-        const GENERATOR: SmallFp<Self> = SmallFp::new(#generator_mont as Self::T);
-        const ZERO: SmallFp<Self> = SmallFp::new(0 as Self::T);
-        const ONE: SmallFp<Self> = SmallFp::new(#one_mont as Self::T);
-        const NEG_ONE: SmallFp<Self> = SmallFp::new(#neg_one_mont as Self::T);
+        const GENERATOR: SmallFp<Self> = SmallFp::from_raw(#generator_mont as Self::T);
+        const ZERO: SmallFp<Self> = SmallFp::from_raw(0 as Self::T);
+        const ONE: SmallFp<Self> = SmallFp::from_raw(#one_mont as Self::T);
+        const NEG_ONE: SmallFp<Self> = SmallFp::from_raw(#neg_one_mont as Self::T);
 
 
         const TWO_ADICITY: u32 = #two_adicity;
-        const TWO_ADIC_ROOT_OF_UNITY: SmallFp<Self> = SmallFp::new(#two_adic_root_mont as Self::T);
+        const TWO_ADIC_ROOT_OF_UNITY: SmallFp<Self> = SmallFp::from_raw(#two_adic_root_mont as Self::T);
         #sqrt_precomp_impl
 
         #[inline(always)]
@@ -77,7 +77,7 @@ pub(crate) fn backend_impl(
 
         #[inline(always)]
         fn neg_in_place(a: &mut SmallFp<Self>) {
-            if a.value != (0 as Self::T) {
+            if a.value != Self::ZERO.value {
                 a.value = Self::MODULUS - a.value;
             }
         }
@@ -103,7 +103,7 @@ pub(crate) fn backend_impl(
                     prod1
                 },
                 _ => {
-                    let mut acc = SmallFp::new(0 as Self::T);
+                    let mut acc = Self::ZERO;
                     for (x, y) in a.iter().zip(b.iter()) {
                         let mut prod = *x;
                         Self::mul_assign(&mut prod, y);
@@ -141,6 +141,15 @@ pub(crate) fn backend_impl(
             }
 
             Some(result)
+        }
+
+        #[inline]
+        fn new(value: Self::T) -> SmallFp<Self> {
+            let reduced_value = value % Self::MODULUS;
+            let mut tmp = SmallFp::from_raw(reduced_value);
+            let r2_elem = SmallFp::from_raw(#r2 as Self::T);
+            Self::mul_assign(&mut tmp, &r2_elem);
+            tmp
         }
 
         #from_bigint_impl
@@ -394,26 +403,11 @@ fn mod_inverse_pow2(n: u128, k_bits: u32) -> u128 {
     inv.wrapping_neg() & mask
 }
 
-pub(crate) fn new(modulus: u128, _ty: proc_macro2::TokenStream) -> proc_macro2::TokenStream {
-    let k_bits = 128 - modulus.leading_zeros();
-    let r: u128 = 1u128 << k_bits;
-    let r_mod_n = r % modulus;
-    let r2 = mod_mul_const(r_mod_n, r_mod_n, modulus);
-
+pub(crate) fn exit_impl() -> proc_macro2::TokenStream {
     quote! {
-        pub fn new(value: <Self as SmallFpConfig>::T) -> SmallFp<Self> {
-            let reduced_value = value % <Self as SmallFpConfig>::MODULUS;
-            let mut tmp = SmallFp::new(reduced_value);
-            let r2_elem = SmallFp::new(#r2 as <Self as SmallFpConfig>::T);
-            <Self as SmallFpConfig>::mul_assign(&mut tmp, &r2_elem);
-            tmp
-        }
-
         pub fn exit(a: &mut SmallFp<Self>) {
-            let mut tmp = *a;
-            let one = SmallFp::new(1 as <Self as SmallFpConfig>::T);
-            <Self as SmallFpConfig>::mul_assign(&mut tmp, &one);
-            a.value = tmp.value;
+            let one = SmallFp::from_raw(1 as <Self as SmallFpConfig>::T);
+            <Self as SmallFpConfig>::mul_assign(a, &one);
         }
     }
 }

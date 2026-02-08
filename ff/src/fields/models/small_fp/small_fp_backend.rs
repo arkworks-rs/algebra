@@ -114,6 +114,9 @@ pub trait SmallFpConfig: Send + Sync + 'static + Sized {
     /// Compute a^{-1} if `a` is not zero.
     fn inverse(a: &SmallFp<Self>) -> Option<SmallFp<Self>>;
 
+    /// Construct a field element from a standard integer value
+    fn new(value: Self::T) -> SmallFp<Self>;
+
     /// Construct a field element from an integer in the range
     /// `0..(Self::MODULUS - 1)`. Returns `None` if the integer is outside
     /// this range.
@@ -143,11 +146,18 @@ impl<P: SmallFpConfig> SmallFp<P> {
         self.value >= P::MODULUS
     }
 
-    pub const fn new(value: P::T) -> Self {
+    // Does NOT perform Montgomery conversion or modular reduction
+    pub const fn from_raw(value: P::T) -> Self {
         Self {
             value,
             _phantom: PhantomData,
         }
+    }
+
+    // Creates a new field element in Montgomery form
+    #[inline]
+    pub fn new(value: P::T) -> Self {
+        P::new(value)
     }
 
     pub const fn num_bits_to_shave() -> usize {

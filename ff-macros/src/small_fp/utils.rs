@@ -79,38 +79,8 @@ pub(crate) const fn find_quadratic_non_residue(modulus: u128) -> u128 {
     }
 }
 
-pub(crate) fn generate_bigint_casts(
-    modulus: u128,
-) -> (proc_macro2::TokenStream, proc_macro2::TokenStream) {
-    (
-        quote! {
-            fn from_bigint(a: ark_ff::BigInt<2>) -> Option<SmallFp<Self>> {
-                let val = (a.0[0] as u128) + ((a.0[1] as u128) << 64);
-                if val > Self::MODULUS_U128 {
-                    None
-                } else {
-                    let reduced_val = val % #modulus;
-                    Some(SmallFp::new(reduced_val as Self::T))
-                }
-            }
-        },
-        quote! {
-            fn into_bigint(a: SmallFp<Self>) -> ark_ff::BigInt<2> {
-                let val = a.value as u128;
-                let lo = val as u64;
-                let hi = (val >> 64) as u64;
-                ark_ff::BigInt([lo, hi])
-            }
-        },
-    )
-}
-
 pub(crate) fn generate_montgomery_bigint_casts(
-    modulus: u128,
-    _k_bits: u32,
-    r_mod_n: u128,
 ) -> (proc_macro2::TokenStream, proc_macro2::TokenStream) {
-    let r2 = mod_mul_const(r_mod_n, r_mod_n, modulus);
     (
         quote! {
             fn from_bigint(a: ark_ff::BigInt<2>) -> Option<SmallFp<Self>> {
@@ -118,19 +88,17 @@ pub(crate) fn generate_montgomery_bigint_casts(
                 if val > Self::MODULUS_U128 {
                     None
                 } else {
-                    let reduced_val = val % #modulus;
-                    let mut tmp = SmallFp::new(reduced_val as Self::T);
-                    let r2_elem = SmallFp::new(#r2 as Self::T);
-                    <Self as SmallFpConfig>::mul_assign(&mut tmp, &r2_elem);
-                    Some(tmp)
+                    let reduced_val = val % Self::MODULUS_U128;
+                    let val_t = Self::T::try_from(reduced_val).ok().unwrap();
+                    Some(Self::new(val_t))
                 }
             }
         },
         quote! {
             fn into_bigint(a: SmallFp<Self>) -> ark_ff::BigInt<2> {
                 let mut tmp = a;
-                let one = SmallFp::new(1 as Self::T);
-                <Self as SmallFpConfig>::mul_assign(&mut tmp, &one);
+                let one = SmallFp::from_raw(1 as Self::T);
+                Self::mul_assign(&mut tmp, &one);
                 let val = tmp.value as u128;
                 let lo = val as u64;
                 let hi = (val >> 64) as u64;
@@ -176,7 +144,7 @@ pub(crate) fn generate_sqrt_precomputation(
                 const TRACE_MINUS_ONE_DIV_TWO: [u64; 2] = [#lo, #hi];
                 Some(ark_ff::SqrtPrecomputation::TonelliShanks {
                     two_adicity: #two_adicity,
-                    quadratic_nonresidue_to_trace: SmallFp::new(#qnr_to_trace as Self::T),
+                    quadratic_nonresidue_to_trace: SmallFp::from_raw(#qnr_to_trace as Self::T),
                     trace_of_modulus_minus_one_div_two: &TRACE_MINUS_ONE_DIV_TWO,
                 })
             };

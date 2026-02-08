@@ -23,7 +23,7 @@ pub(crate) fn small_fp_config_helper(
     );
 
     let backend_impl = montgomery_backend::backend_impl(&ty, modulus, generator);
-    let new_impl = montgomery_backend::new(modulus, ty.clone());
+    let exit_impl = montgomery_backend::exit_impl();
 
     quote! {
         const _: () = {
@@ -34,7 +34,7 @@ pub(crate) fn small_fp_config_helper(
             }
 
             impl #config_name {
-                #new_impl
+                #exit_impl
             }
         };
     }
