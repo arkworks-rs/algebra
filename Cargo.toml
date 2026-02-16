@@ -156,7 +156,7 @@ num-integer = { version = "0.1", default-features = false }
 arrayvec = { version = "0.7", default-features = false }
 criterion = "0.7.0"
 educe = { version = "0.6.0", default-features = false, features = [ "Debug", "Clone", "Copy", "Hash", "PartialEq", "Eq", "PartialOrd", "Ord", "Default" ] }
-digest = { version = "0.10", default-features = false }
+digest = { version = "0.11", default-features = false }
 hashbrown = { version = "0.16", default-features = false, features = [ "inline-more", "allocator-api2", ] }
 hex = "0.4"
 itertools = { version = "0.14", default-features = false }
