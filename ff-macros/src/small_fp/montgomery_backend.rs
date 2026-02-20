@@ -63,7 +63,7 @@ pub(crate) fn backend_impl(
             #[inline(always)]
             fn add_assign(a: &mut SmallFp<Self>, b: &SmallFp<Self>) {
                 let val = a.value.wrapping_add(b.value);
-                a.value = if val >= <Self as SmallFpConfig>::MODULUS { val - <Self as SmallFpConfig>::MODULUS } else { val };
+                a.value = if val >= Self::MODULUS { val - Self::MODULUS } else { val };
             }
         }
     } else {
@@ -72,10 +72,10 @@ pub(crate) fn backend_impl(
             fn add_assign(a: &mut SmallFp<Self>, b: &SmallFp<Self>) {
                 let (mut val, overflow) = a.value.overflowing_add(b.value);
                 if overflow {
-                    val = <Self as SmallFpConfig>::T::MAX - <Self as SmallFpConfig>::MODULUS + 1 + val
+                    val = Self::T::MAX - Self::MODULUS + 1 + val
                 }
-                if val >= <Self as SmallFpConfig>::MODULUS {
-                    val -= <Self as SmallFpConfig>::MODULUS;
+                if val >= Self::MODULUS {
+                    val -= Self::MODULUS;
                 }
                 a.value = val;
             }
@@ -103,20 +103,20 @@ pub(crate) fn backend_impl(
             if a.value >= b.value {
                 a.value -= b.value;
             } else {
-                a.value = <Self as SmallFpConfig>::MODULUS - (b.value - a.value);
+                a.value = Self::MODULUS - (b.value - a.value);
             }
         }
 
         #[inline(always)]
         fn double_in_place(a: &mut SmallFp<Self>) {
             let tmp = *a;
-            <Self as SmallFpConfig>::add_assign(a, &tmp);
+            Self::add_assign(a, &tmp);
         }
 
         #[inline(always)]
         fn neg_in_place(a: &mut SmallFp<Self>) {
-            if a.value != <Self as SmallFpConfig>::ZERO.value {
-                a.value = <Self as SmallFpConfig>::MODULUS - a.value;
+            if a.value != Self::ZERO.value {
+                a.value = Self::MODULUS - a.value;
             }
         }
 
@@ -129,23 +129,23 @@ pub(crate) fn backend_impl(
             match T {
                 1 => {
                     let mut prod = a[0];
-                    <Self as SmallFpConfig>::mul_assign(&mut prod, &b[0]);
+                    Self::mul_assign(&mut prod, &b[0]);
                     prod
                 },
                 2 => {
                     let mut prod1 = a[0];
-                    <Self as SmallFpConfig>::mul_assign(&mut prod1, &b[0]);
+                    Self::mul_assign(&mut prod1, &b[0]);
                     let mut prod2 = a[1];
-                    <Self as SmallFpConfig>::mul_assign(&mut prod2, &b[1]);
-                    <Self as SmallFpConfig>::add_assign(&mut prod1, &prod2);
+                    Self::mul_assign(&mut prod2, &b[1]);
+                    Self::add_assign(&mut prod1, &prod2);
                     prod1
                 },
                 _ => {
-                    let mut acc = <Self as SmallFpConfig>::ZERO;
+                    let mut acc = Self::ZERO;
                     for (x, y) in a.iter().zip(b.iter()) {
                         let mut prod = *x;
-                        <Self as SmallFpConfig>::mul_assign(&mut prod, y);
-                        <Self as SmallFpConfig>::add_assign(&mut acc, &prod);
+                        Self::mul_assign(&mut prod, y);
+                        Self::add_assign(&mut acc, &prod);
                     }
                     acc
                 }
@@ -155,7 +155,7 @@ pub(crate) fn backend_impl(
         #[inline(always)]
         fn square_in_place(a: &mut SmallFp<Self>) {
             let tmp = *a;
-            <Self as SmallFpConfig>::mul_assign(a, &tmp);
+            Self::mul_assign(a, &tmp);
         }
 
         fn inverse(a: &SmallFp<Self>) -> Option<SmallFp<Self>> {
@@ -163,17 +163,17 @@ pub(crate) fn backend_impl(
                 return None;
             }
 
-            let mut result = <Self as SmallFpConfig>::ONE;
+            let mut result = Self::ONE;
             let mut base = *a;
-            let mut exp = <Self as SmallFpConfig>::MODULUS - 2;
+            let mut exp = Self::MODULUS - 2;
 
             while exp > 0 {
                 if exp & 1 == 1 {
-                    <Self as SmallFpConfig>::mul_assign(&mut result, &base);
+                    Self::mul_assign(&mut result, &base);
                 }
 
                 let mut sq = base;
-                <Self as SmallFpConfig>::square_in_place(&mut sq);
+                Self::square_in_place(&mut sq);
                 base = sq;
                 exp >>= 1;
             }
@@ -183,10 +183,10 @@ pub(crate) fn backend_impl(
 
         #[inline]
         fn new(value: Self::T) -> SmallFp<Self> {
-            let reduced_value = value % <Self as SmallFpConfig>::MODULUS;
+            let reduced_value = value % Self::MODULUS;
             let mut tmp = SmallFp::from_raw(reduced_value);
             let r2_elem = SmallFp::from_raw(#r2 as Self::T);
-            <Self as SmallFpConfig>::mul_assign(&mut tmp, &r2_elem);
+            Self::mul_assign(&mut tmp, &r2_elem);
             tmp
         }
 
@@ -243,6 +243,7 @@ fn generate_u128_mul(
                 (full as u64, (full >> 64) as u64)
             }
 
+            // r accumulator: 3 words (r[0], r[1], r[2]) to hold intermediate
             let mut r0: u64 = 0;
             let mut r1: u64 = 0;
             let mut r2: u64 = 0;
@@ -262,7 +263,7 @@ fn generate_u128_mul(
             let m = r0.wrapping_mul(INV);
 
             let (lo, hi) = umul(m, MODULUS[0]);
-            let (_, c) = r0.overflowing_add(lo);
+            let (_, c) = r0.overflowing_add(lo);   // r0 + lo should be 0 mod 2^64
             let carry = hi.wrapping_add(c as u64);
 
             let (lo, hi) = umul(m, MODULUS[1]);

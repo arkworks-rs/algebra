@@ -9,6 +9,8 @@ use ark_std::{
 use educe::Educe;
 use num_traits::Unsigned;
 
+pub use ark_ff_macros::SmallFpConfig;
+
 /// A trait that specifies the configuration of a prime field, including the
 /// modulus, generator, and arithmetic implementation.
 ///

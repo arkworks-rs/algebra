@@ -73,7 +73,7 @@ pub(super) fn sum_of_products_impl(num_limbs: usize, modulus: &[u64]) -> proc_ma
             } else {
                 a.chunks(#chunk_size).zip(b.chunks(#chunk_size)).map(|(a, b)| {
                     if a.len() == #chunk_size {
-                        <Self as MontConfig<#num_limbs>>::sum_of_products::<#chunk_size>(a.try_into().unwrap(), b.try_into().unwrap())
+                        Self::sum_of_products::<#chunk_size>(a.try_into().unwrap(), b.try_into().unwrap())
                     } else {
                         a.iter().zip(b).map(|(a, b)| *a * b).sum()
                     }
