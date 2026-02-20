@@ -1,6 +1,6 @@
 use ark_algebra_bench_templates::*;
-use ark_ff::fields::{Fp64, MontBackend, MontConfig, SmallFp, SmallFpConfig};
-use ark_test_curves::{smallfp32::SmallFp32M31, smallfp64::SmallFp64Goldilock};
+use ark_ff::fields::{Fp64, MontBackend, MontConfig};
+use ark_test_curves::smallfp::{SmallFp16, SmallFp32M31, SmallFp64Goldilock, SmallFp8};
 
 #[derive(MontConfig)]
 #[modulus = "18446744069414584321"]
@@ -20,23 +20,11 @@ pub type F32 = Fp64<MontBackend<F32Config, 1>>;
 pub struct F16Config;
 pub type F16 = Fp64<MontBackend<F16Config, 1>>;
 
-#[derive(SmallFpConfig)]
-#[modulus = "65521"]
-#[generator = "17"]
-pub struct SmallFp16Config;
-pub type SmallFp16 = SmallFp<SmallFp16Config>;
-
 #[derive(MontConfig)]
 #[modulus = "251"]
 #[generator = "6"]
 pub struct F8Config;
 pub type F8 = Fp64<MontBackend<F8Config, 1>>;
-
-#[derive(SmallFpConfig)]
-#[modulus = "251"]
-#[generator = "6"]
-pub struct SmallFp8Config;
-pub type SmallFp8 = SmallFp<SmallFp8Config>;
 
 f_bench!(prime, "F8", F8);
 f_bench!(prime, "SmallF8Mont", SmallFp8);

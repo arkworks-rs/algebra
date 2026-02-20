@@ -9,6 +9,7 @@
 
 use num_bigint::BigUint;
 use proc_macro::TokenStream;
+use quote::format_ident;
 use syn::{Expr, ExprLit, Item, ItemFn, Lit, Meta};
 
 mod montgomery;
@@ -26,6 +27,50 @@ pub fn to_sign_and_limbs(input: TokenStream) -> TokenStream {
     let limbs_and_sign = format!("({is_positive}") + ", [" + &limbs + "])";
     let tuple: Expr = syn::parse_str(&limbs_and_sign).unwrap();
     quote::quote!(#tuple).into()
+}
+
+/// Define optimal field type and its corresponding config
+///  
+/// If modulus fits into a native datatype, the resulting type is SmallFp<<name>Config>
+/// Otherwise, it is the appropriately sized Fp*<MontBackend<<name>Config, N>>
+#[proc_macro]
+pub fn define_field(input: TokenStream) -> TokenStream {
+    let args = syn::parse_macro_input!(input as utils::FieldArgs);
+
+    let modulus_big = args
+        .modulus
+        .parse::<BigUint>()
+        .expect("modulus should be a decimal integer string");
+
+    let limbs = utils::str_to_limbs_u64(&args.modulus).1.len();
+
+    let name = args.name;
+    let config_name = format_ident!("{}Config", name);
+    let modulus = syn::LitStr::new(&args.modulus, proc_macro2::Span::call_site());
+    let generator = syn::LitStr::new(&args.generator, proc_macro2::Span::call_site());
+
+    let is_small_modulus = modulus_big < (BigUint::from(1u128) << 127);
+    let derives = if is_small_modulus {
+        quote::quote! { #[derive(ark_ff::SmallFpConfig)] }
+    } else {
+        quote::quote! { #[derive(ark_ff::MontConfig)] }
+    };
+
+    let field_ty = if is_small_modulus {
+        quote::quote! { ark_ff::SmallFp<#config_name> }
+    } else {
+        let fp_alias = utils::fp_alias_for_limbs(limbs);
+        quote::quote! { #fp_alias<ark_ff::MontBackend<#config_name, #limbs>> }
+    };
+
+    quote::quote! {
+        #derives
+        #[modulus = #modulus]
+        #[generator = #generator]
+        pub struct #config_name;
+        pub type #name = #field_ty;
+    }
+    .into()
 }
 
 /// Derive the `MontConfig` trait.

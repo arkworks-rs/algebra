@@ -12,6 +12,7 @@ use ark_std::{
 };
 
 pub use ark_ff_macros;
+pub use ark_ff_macros::define_field;
 pub use num_traits::{One, Zero};
 use zeroize::Zeroize;
 
