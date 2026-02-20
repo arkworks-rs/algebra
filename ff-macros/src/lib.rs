@@ -65,38 +65,29 @@ pub fn mont_config(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let small_subgroup_power: Option<u32> = fetch_attr("small_subgroup_power", &ast.attrs)
         .map(|s| s.parse().expect("small_subgroup_power should be a number"));
 
-    montgomery::mont_config_helper(
-        modulus,
-        generator,
+    // TODO: Both macros are being generated at the same time. Create unified type
+    let mont_impl = montgomery::mont_config_helper(
+        modulus.clone(),
+        generator.clone(),
         small_subgroup_base,
         small_subgroup_power,
-        ast.ident,
-    )
+        ast.ident.clone(),
+    );
+
+    let small_fp_impl = if modulus < (BigUint::from(1u128) << 127) {
+        use num_traits::ToPrimitive;
+        let modulus_u128 = modulus.to_u128().unwrap();
+        let generator_u128 = generator.to_u128().unwrap();
+        small_fp::small_fp_config_helper(modulus_u128, generator_u128, ast.ident)
+    } else {
+        quote::quote! {}
+    };
+
+    quote::quote! {
+        #mont_impl
+        #small_fp_impl
+    }
     .into()
-}
-
-/// Derive the `SmallFpConfig` trait for small prime fields.
-///
-/// The attributes available to this macro are:
-/// * `modulus`: Specify the prime modulus underlying this prime field.
-/// * `generator`: Specify the generator of the multiplicative subgroup.
-/// 
-/// Note: Only Montgomery backend is supported.
-#[proc_macro_derive(SmallFpConfig, attributes(modulus, generator))]
-pub fn small_fp_config(input: TokenStream) -> TokenStream {
-    let ast: syn::DeriveInput = syn::parse(input).unwrap();
-
-    let modulus: u128 = fetch_attr("modulus", &ast.attrs)
-        .expect("Please supply a modulus attribute")
-        .parse()
-        .expect("Modulus should be a number");
-
-    let generator: u128 = fetch_attr("generator", &ast.attrs)
-        .expect("Please supply a generator attribute")
-        .parse()
-        .expect("Generator should be a number");
-
-    small_fp::small_fp_config_helper(modulus, generator, ast.ident).into()
 }
 
 const ARG_MSG: &str = "Failed to parse unroll threshold; must be a positive integer";

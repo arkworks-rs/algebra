@@ -13,8 +13,16 @@ pub(crate) fn backend_impl(
     let is_u128 = ty_str == "u128";
 
     // For u128, we use R = 2^128 for smaller types, R = 2^k_bits
-    let k_bits = if is_u128 { 128u32 } else { 128 - modulus.leading_zeros() };
-    let r: u128 = if k_bits == 128 { 0u128 } else { 1u128 << k_bits };
+    let k_bits = if is_u128 {
+        128u32
+    } else {
+        128 - modulus.leading_zeros()
+    };
+    let r: u128 = if k_bits == 128 {
+        0u128
+    } else {
+        1u128 << k_bits
+    };
     let r_mod_n = if k_bits == 128 {
         (((1u128 << 127) % modulus) + ((1u128 << 127) % modulus)) % modulus
     } else {
@@ -32,8 +40,7 @@ pub(crate) fn backend_impl(
 
     let neg_one_mont = mod_mul_const(modulus - 1, r_mod_n, modulus);
 
-    let (from_bigint_impl, into_bigint_impl) =
-        generate_montgomery_bigint_casts();
+    let (from_bigint_impl, into_bigint_impl) = generate_montgomery_bigint_casts();
     let sqrt_precomp_impl = generate_sqrt_precomputation(modulus, two_adicity, Some(r_mod_n));
     let r2 = mod_mul_const(r_mod_n, r_mod_n, modulus);
 
@@ -48,7 +55,7 @@ pub(crate) fn backend_impl(
         "u128" => 128u32,
         _ => panic!("unsupported type"),
     };
-    
+
     // If there is a spare bit skip the overflow branch
     let has_spare_bit = modulus.leading_zeros() >= (128 - type_bits + 1);
     let add_assign_impl = if has_spare_bit {
@@ -56,7 +63,7 @@ pub(crate) fn backend_impl(
             #[inline(always)]
             fn add_assign(a: &mut SmallFp<Self>, b: &SmallFp<Self>) {
                 let val = a.value.wrapping_add(b.value);
-                a.value = if val >= Self::MODULUS { val - Self::MODULUS } else { val };
+                a.value = if val >= <Self as SmallFpConfig>::MODULUS { val - <Self as SmallFpConfig>::MODULUS } else { val };
             }
         }
     } else {
@@ -65,10 +72,10 @@ pub(crate) fn backend_impl(
             fn add_assign(a: &mut SmallFp<Self>, b: &SmallFp<Self>) {
                 let (mut val, overflow) = a.value.overflowing_add(b.value);
                 if overflow {
-                    val = Self::T::MAX - Self::MODULUS + 1 + val
+                    val = <Self as SmallFpConfig>::T::MAX - <Self as SmallFpConfig>::MODULUS + 1 + val
                 }
-                if val >= Self::MODULUS {
-                    val -= Self::MODULUS;
+                if val >= <Self as SmallFpConfig>::MODULUS {
+                    val -= <Self as SmallFpConfig>::MODULUS;
                 }
                 a.value = val;
             }
@@ -86,7 +93,7 @@ pub(crate) fn backend_impl(
 
         const TWO_ADICITY: u32 = #two_adicity;
         const TWO_ADIC_ROOT_OF_UNITY: SmallFp<Self> = SmallFp::from_raw(#two_adic_root_mont as Self::T);
-        
+
         #sqrt_precomp_impl
 
         #add_assign_impl
@@ -96,20 +103,20 @@ pub(crate) fn backend_impl(
             if a.value >= b.value {
                 a.value -= b.value;
             } else {
-                a.value = Self::MODULUS - (b.value - a.value);
+                a.value = <Self as SmallFpConfig>::MODULUS - (b.value - a.value);
             }
         }
 
         #[inline(always)]
         fn double_in_place(a: &mut SmallFp<Self>) {
             let tmp = *a;
-            Self::add_assign(a, &tmp);
+            <Self as SmallFpConfig>::add_assign(a, &tmp);
         }
 
         #[inline(always)]
         fn neg_in_place(a: &mut SmallFp<Self>) {
-            if a.value != Self::ZERO.value {
-                a.value = Self::MODULUS - a.value;
+            if a.value != <Self as SmallFpConfig>::ZERO.value {
+                a.value = <Self as SmallFpConfig>::MODULUS - a.value;
             }
         }
 
@@ -122,23 +129,23 @@ pub(crate) fn backend_impl(
             match T {
                 1 => {
                     let mut prod = a[0];
-                    Self::mul_assign(&mut prod, &b[0]);
+                    <Self as SmallFpConfig>::mul_assign(&mut prod, &b[0]);
                     prod
                 },
                 2 => {
                     let mut prod1 = a[0];
-                    Self::mul_assign(&mut prod1, &b[0]);
+                    <Self as SmallFpConfig>::mul_assign(&mut prod1, &b[0]);
                     let mut prod2 = a[1];
-                    Self::mul_assign(&mut prod2, &b[1]);
-                    Self::add_assign(&mut prod1, &prod2);
+                    <Self as SmallFpConfig>::mul_assign(&mut prod2, &b[1]);
+                    <Self as SmallFpConfig>::add_assign(&mut prod1, &prod2);
                     prod1
                 },
                 _ => {
-                    let mut acc = Self::ZERO;
+                    let mut acc = <Self as SmallFpConfig>::ZERO;
                     for (x, y) in a.iter().zip(b.iter()) {
                         let mut prod = *x;
-                        Self::mul_assign(&mut prod, y);
-                        Self::add_assign(&mut acc, &prod);
+                        <Self as SmallFpConfig>::mul_assign(&mut prod, y);
+                        <Self as SmallFpConfig>::add_assign(&mut acc, &prod);
                     }
                     acc
                 }
@@ -148,7 +155,7 @@ pub(crate) fn backend_impl(
         #[inline(always)]
         fn square_in_place(a: &mut SmallFp<Self>) {
             let tmp = *a;
-            Self::mul_assign(a, &tmp);
+            <Self as SmallFpConfig>::mul_assign(a, &tmp);
         }
 
         fn inverse(a: &SmallFp<Self>) -> Option<SmallFp<Self>> {
@@ -156,17 +163,17 @@ pub(crate) fn backend_impl(
                 return None;
             }
 
-            let mut result = Self::ONE;
+            let mut result = <Self as SmallFpConfig>::ONE;
             let mut base = *a;
-            let mut exp = Self::MODULUS - 2;
+            let mut exp = <Self as SmallFpConfig>::MODULUS - 2;
 
             while exp > 0 {
                 if exp & 1 == 1 {
-                    Self::mul_assign(&mut result, &base);
+                    <Self as SmallFpConfig>::mul_assign(&mut result, &base);
                 }
 
                 let mut sq = base;
-                Self::square_in_place(&mut sq);
+                <Self as SmallFpConfig>::square_in_place(&mut sq);
                 base = sq;
                 exp >>= 1;
             }
@@ -176,10 +183,10 @@ pub(crate) fn backend_impl(
 
         #[inline]
         fn new(value: Self::T) -> SmallFp<Self> {
-            let reduced_value = value % Self::MODULUS;
+            let reduced_value = value % <Self as SmallFpConfig>::MODULUS;
             let mut tmp = SmallFp::from_raw(reduced_value);
             let r2_elem = SmallFp::from_raw(#r2 as Self::T);
-            Self::mul_assign(&mut tmp, &r2_elem);
+            <Self as SmallFpConfig>::mul_assign(&mut tmp, &r2_elem);
             tmp
         }
 
@@ -226,22 +233,21 @@ fn generate_u128_mul(
         fn mul_assign(a: &mut SmallFp<Self>, b: &SmallFp<Self>) {
             const MODULUS: [u64; 2] = [#modulus_lo, #modulus_hi];
             const INV: u64 = #inv;
-            
+
             let a_limbs = [a.value as u64, (a.value >> 64) as u64];
             let b_limbs = [b.value as u64, (b.value >> 64) as u64];
-            
+
             #[inline(always)]
             fn umul(a: u64, b: u64) -> (u64, u64) {
                 let full = (a as u128) * (b as u128);
                 (full as u64, (full >> 64) as u64)
             }
 
-            // r accumulator: 3 words (r[0], r[1], r[2]) to hold intermediate
             let mut r0: u64 = 0;
             let mut r1: u64 = 0;
             let mut r2: u64 = 0;
 
-            
+
             let (lo, hi) = umul(a_limbs[0], b_limbs[0]);
             let (r0_new, c) = r0.overflowing_add(lo);
             r0 = r0_new;
@@ -256,7 +262,7 @@ fn generate_u128_mul(
             let m = r0.wrapping_mul(INV);
 
             let (lo, hi) = umul(m, MODULUS[0]);
-            let (_, c) = r0.overflowing_add(lo);   // r0 + lo should be 0 mod 2^64
+            let (_, c) = r0.overflowing_add(lo);
             let carry = hi.wrapping_add(c as u64);
 
             let (lo, hi) = umul(m, MODULUS[1]);
@@ -433,18 +439,18 @@ fn generate_small_mul(
                 const N_PRIME: #ty = #n_prime as #ty;
                 const MASK: #mul_ty = #r_mask as #mul_ty;
                 const K_BITS: u32 = #k_bits;
-    
+
                 let a_val = a.value as #mul_ty;
                 let b_val = b.value as #mul_ty;
-    
+
                 let tmp = a_val * b_val;
                 let carry1 = (tmp >> K_BITS) as #ty;
                 let r = (tmp & MASK) as #ty;
                 let m = r.wrapping_mul(N_PRIME);
-    
+
                 let tmp = (r as #mul_ty) + ((m as #mul_ty) * MODULUS_MUL_TY);
                 let carry2 = (tmp >> K_BITS) as #ty;
-    
+
                 let mut r = (carry1 as #mul_ty) + (carry2 as #mul_ty);
                 if r >= MODULUS_MUL_TY {
                     r -= MODULUS_MUL_TY;
@@ -460,7 +466,11 @@ fn mod_inverse_pow2(n: u128, k_bits: u32) -> u128 {
     for _ in 0..k_bits {
         inv = inv.wrapping_mul(2u128.wrapping_sub(n.wrapping_mul(inv)));
     }
-    let mask = if k_bits == 128 { u128::MAX } else { (1u128 << k_bits) - 1 };
+    let mask = if k_bits == 128 {
+        u128::MAX
+    } else {
+        (1u128 << k_bits) - 1
+    };
     inv.wrapping_neg() & mask
 }
 
