@@ -1,10 +1,9 @@
 use crate::fields::models::small_fp::small_fp_backend::{SmallFp, SmallFpConfig};
-use crate::{BigInt, PrimeField, Zero};
+use crate::{PrimeField, Zero};
 use ark_serialize::{
     buffer_byte_size, CanonicalDeserialize, CanonicalDeserializeWithFlags, CanonicalSerialize,
     CanonicalSerializeWithFlags, Compress, EmptyFlags, Flags, SerializationError, Valid, Validate,
 };
-use ark_std::vec;
 
 impl<P: SmallFpConfig> CanonicalSerializeWithFlags for SmallFp<P> {
     fn serialize_with_flags<W: ark_std::io::Write, F: Flags>(
@@ -24,27 +23,12 @@ impl<P: SmallFpConfig> CanonicalSerializeWithFlags for SmallFp<P> {
         let output_byte_size = buffer_byte_size(Self::MODULUS_BIT_SIZE as usize + F::BIT_SIZE);
         let mut w = writer;
 
-        // Write out `self` to a temporary buffer.
-        // The size of the buffer is $byte_size + 1 because `F::BIT_SIZE`
-        // is at most 8 bits.
-
-        if output_byte_size <= 8 {
-            // Fields with type smaller than u64
-            // Writes exactly the minimal required number of bytes
-            let bigint = self.into_bigint();
-            let value = bigint.0[0];
-            let mut bytes = [0u8; 8];
-            bytes.copy_from_slice(&value.to_le_bytes());
-            bytes[output_byte_size - 1] |= flags.u8_bitmask();
-            w.write_all(&bytes[..output_byte_size])?;
-        } else {
-            // For larger fields, use the approach from `FpConfig`
-            let mut bytes = crate::const_helpers::SerBuffer::zeroed();
-            bytes.copy_from_u64_slice(&self.into_bigint().0);
-            // Mask out the bits of the last byte that correspond to the flag.
-            bytes[output_byte_size - 1] |= flags.u8_bitmask();
-            bytes.write_up_to(&mut w, output_byte_size)?;
-        }
+        // Serialize the Montgomery representation directly
+        let raw: u128 = self.value.into();
+        let mut bytes = [0u8; 17];
+        bytes[..16].copy_from_slice(&raw.to_le_bytes());
+        bytes[output_byte_size - 1] |= flags.u8_bitmask();
+        w.write_all(&bytes[..output_byte_size])?;
         Ok(())
     }
 
@@ -87,34 +71,24 @@ impl<P: SmallFpConfig> CanonicalDeserializeWithFlags for SmallFp<P> {
         let output_byte_size = Self::zero().serialized_size_with_flags::<F>();
         let mut r = reader;
 
-        if output_byte_size <= 8 {
-            // Fields with type smaller than u64
-            let mut bytes = vec![0u8; output_byte_size];
-            r.read_exact(&mut bytes)?;
-            let flags = F::from_u8_remove_flags(&mut bytes[output_byte_size - 1])
-                .ok_or(SerializationError::UnexpectedFlags)?;
+        // Deserialize directly into the Montgomery representation,
+        let mut bytes = [0u8; 17];
+        r.read_exact(&mut bytes[..output_byte_size])?;
+        let flags = F::from_u8_remove_flags(&mut bytes[output_byte_size - 1])
+            .ok_or(SerializationError::UnexpectedFlags)?;
 
-            let mut limb_bytes = [0u8; 8];
-            limb_bytes[..output_byte_size.min(8)]
-                .copy_from_slice(&bytes[..output_byte_size.min(8)]);
-            let limb = u64::from_le_bytes(limb_bytes);
-            let bigint = BigInt::<2>::new([limb, 0]);
+        let mut le_bytes = [0u8; 16];
+        le_bytes[..output_byte_size.min(16)].copy_from_slice(&bytes[..output_byte_size.min(16)]);
+        let raw = u128::from_le_bytes(le_bytes);
 
-            Self::from_bigint(bigint)
-                .map(|v| (v, flags))
-                .ok_or(SerializationError::InvalidData)
-        } else {
-            // For larger fields, use the approach from `FpConfig`
-            let mut masked_bytes = crate::const_helpers::SerBuffer::zeroed();
-            masked_bytes.read_exact_up_to(&mut r, output_byte_size)?;
-            let flags = F::from_u8_remove_flags(&mut masked_bytes[output_byte_size - 1])
-                .ok_or(SerializationError::UnexpectedFlags)?;
-
-            let self_integer = masked_bytes.to_bigint();
-            Self::from_bigint(self_integer)
-                .map(|v| (v, flags))
-                .ok_or(SerializationError::InvalidData)
+        if raw >= P::MODULUS_U128 {
+            return Err(SerializationError::InvalidData);
         }
+
+        let value = P::T::try_from(raw)
+            .ok()
+            .ok_or(SerializationError::InvalidData)?;
+        Ok((SmallFp::from_raw(value), flags))
     }
 }
 
