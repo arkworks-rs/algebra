@@ -11,6 +11,7 @@
 - (`ark-poly`) Add fast polynomial division
 - (`ark-ec`) Improve GLV scalar multiplication performance by skipping leading zeroes.
 - (`ark-poly`) Make `SparsePolynomial.coeffs` field public
+- [\#1065](https://github.com/arkworks-rs/algebra/pull/1065) (`ark-ff-asm`) Remove unused dead spill buffer path and invalid asm injection.
 
 ### Breaking changes
 
