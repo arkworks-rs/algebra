@@ -19,8 +19,6 @@ use context::{AssemblyVar, Context};
 
 use std::cell::RefCell;
 
-const MAX_REGS: usize = 6;
-
 struct AsmMulInput {
     num_limbs: Box<Expr>,
     a: Expr,
@@ -276,11 +274,6 @@ fn generate_impl(num_limbs: usize, is_mul: bool) -> String {
     }
     ctx.add_declaration("modulus", "&Self::MODULUS.0");
     ctx.add_declaration("mod_inv", "Self::INV");
-
-    if num_limbs > MAX_REGS {
-        ctx.add_buffer(2 * num_limbs);
-        ctx.add_declaration("buf", "&mut spill_buffer");
-    }
 
     let asm_instructions = construct_asm_mul(&ctx, num_limbs);
 
