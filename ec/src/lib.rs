@@ -158,6 +158,7 @@ pub trait AffineRepr:
         + Into<Self>
         + MulAssign<Self::ScalarField>; // needed due to https://github.com/rust-lang/rust/issues/69640
 
+    const GENERATOR: Self;
     const ZERO: Self;
 
     /// Returns the x and y coordinates of this affine point.
