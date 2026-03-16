@@ -19,8 +19,6 @@ use context::{AssemblyVar, Context};
 
 use std::cell::RefCell;
 
-const MAX_REGS: usize = 6;
-
 struct AsmMulInput {
     num_limbs: Box<Expr>,
     a: Expr,
