@@ -15,7 +15,6 @@ use ark_std::{
     string::*,
 };
 use core::iter;
-use itertools::Itertools;
 
 #[macro_use]
 mod montgomery_backend;
@@ -231,7 +230,12 @@ impl<P: FpConfig<N>, const N: usize> Field for Fp<P, N> {
     fn from_base_prime_field_elems(
         elems: impl IntoIterator<Item = Self::BasePrimeField>,
     ) -> Option<Self> {
-        elems.into_iter().exactly_one().ok()
+        let mut iter = elems.into_iter();
+        let first = iter.next()?;
+        if iter.next().is_some() {
+            return None;
+        }
+        Some(first)
     }
 
     #[inline]
@@ -678,7 +682,7 @@ impl<P: FpConfig<N>, const N: usize> Display for Fp<P, N> {
     #[inline]
     fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
         let string = self.into_bigint().to_string();
-        write!(f, "{}", string)
+        write!(f, "{string}")
     }
 }
 

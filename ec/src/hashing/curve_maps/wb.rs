@@ -14,7 +14,7 @@ use super::swu::{SWUConfig, SWUMap};
 type BaseField<MP> = <MP as CurveConfig>::BaseField;
 
 /// [`IsogenyMap`] defines an isogeny between curves of
-/// form `Phi(x, y) := (a(x), b(x)*y).
+/// form `Phi(x, y) := (a(x), b(x)*y)`.
 ///
 /// The `x` coordinate of the codomain point only depends on the
 /// `x`-coordinate of the domain point, and the
@@ -72,7 +72,7 @@ where
 /// `y^2 = x^3 + a*x + b` where `b != 0`, but `a` can be zero,
 /// as seen in curves like BLS-381.
 ///
-/// For more information, refer to [WB2019].
+/// For more information, refer to \[WB2019\].
 ///
 /// - [\[WB2019\]] <http://dx.doi.org/10.46586/tches.v2019.i4.154-179>
 pub trait WBConfig: SWCurveConfig + Sized {

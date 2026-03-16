@@ -109,9 +109,11 @@ pub trait GLVConfig: Send + Sync + 'static + SWCurveConfig {
         let mut res = Projective::zero();
         let mut skip_zeros = true;
         for pair in iter_k1.zip(iter_k2) {
-            if skip_zeros && pair == (false, false) {
+            if skip_zeros {
+                if pair == (false, false) {
+                    continue;
+                }
                 skip_zeros = false;
-                continue;
             }
             res.double_in_place();
             match pair {
@@ -145,9 +147,11 @@ pub trait GLVConfig: Send + Sync + 'static + SWCurveConfig {
         let mut res = Projective::zero();
         let mut skip_zeros = true;
         for pair in iter_k1.zip(iter_k2) {
-            if skip_zeros && pair == (false, false) {
+            if skip_zeros {
+                if pair == (false, false) {
+                    continue;
+                }
                 skip_zeros = false;
-                continue;
             }
             res.double_in_place();
             match pair {

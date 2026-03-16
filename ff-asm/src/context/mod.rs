@@ -101,7 +101,7 @@ impl<'a> Context<'a> {
         let clobbers = self
             .used_registers
             .iter()
-            .map(|l| format!("out({}) _,", l))
+            .map(|l| format!("out({l}) _,"))
             .collect::<Vec<String>>()
             .join("\n");
         let options = "options(att_syntax)".to_string();

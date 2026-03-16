@@ -178,6 +178,13 @@ impl<const N: usize> BigInt<N> {
         (((self.0[0] << 62) >> 62) % 4) as u8
     }
 
+    #[doc(hidden)]
+    pub const fn mod_8(&self) -> u8 {
+        // To compute n % 8, we need to simply look at the
+        // 3 least significant bits of n, and check their value mod 8.
+        (((self.0[0] << 61) >> 61) % 8) as u8
+    }
+
     /// Compute a right shift of `self`
     /// This is equivalent to a (saturating) division by 2.
     #[doc(hidden)]
@@ -351,7 +358,7 @@ impl<const N: usize> BigInteger for BigInt<N> {
     #[inline]
     fn mul2(&mut self) -> bool {
         #[cfg(target_arch = "x86_64")]
-        #[allow(unsafe_code)]
+        #[allow(unused_unsafe, unsafe_code)]
         {
             let mut carry = 0;
 
