@@ -491,6 +491,7 @@ macro_rules! __test_field {
                     for _i in 0..adicity {
                         e = e.modpow(&base.into(), &modulus)
                     }
+                    assert_eq!(e, two_adic_root_of_unity);
                 },
                 (None, None) => {},
                 (_, _) => {
@@ -634,6 +635,7 @@ macro_rules! __test_small_field {
                     for _i in 0..adicity {
                         e = e.modpow(&base.into(), &modulus)
                     }
+                    assert_eq!(e, two_adic_root_of_unity);
                 },
                 (None, None) => {},
                 (_, _) => {
