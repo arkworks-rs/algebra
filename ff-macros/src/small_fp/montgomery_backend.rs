@@ -9,6 +9,13 @@ pub(crate) fn backend_impl(
     modulus: u128,
     generator: u128,
 ) -> proc_macro2::TokenStream {
+    assert!(modulus > 1, "modulus must be greater than 1");
+    assert!(modulus % 2 == 1, "modulus must be odd for Montgomery multiplication");
+    assert!(
+        modulus < (1u128 << 127),
+        "modulus must be < 2^127 for u128-backed SmallFp"
+    );
+
     let ty_str = ty.to_string();
     let is_u128 = ty_str == "u128";
 
@@ -23,8 +30,14 @@ pub(crate) fn backend_impl(
     } else {
         1u128 << k_bits
     };
+    // When R = 2^128 this doesn't fit in u128 but:
+    // (2^128 - n) mod n  =  2^128 mod n
+    // and in u128 wrapping arithmetic:
+    // 0 - n wraps to 2^128 - n
+    // so:
+    // 2^128 mod n = (0 - n) mod n
     let r_mod_n = if k_bits == 128 {
-        (((1u128 << 127) % modulus) + ((1u128 << 127) % modulus)) % modulus
+        0u128.wrapping_sub(modulus) % modulus
     } else {
         r % modulus
     };
