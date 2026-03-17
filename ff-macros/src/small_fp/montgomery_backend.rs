@@ -10,7 +10,10 @@ pub(crate) fn backend_impl(
     generator: u128,
 ) -> proc_macro2::TokenStream {
     assert!(modulus > 1, "modulus must be greater than 1");
-    assert!(modulus % 2 == 1, "modulus must be odd for Montgomery multiplication");
+    assert!(
+        modulus % 2 == 1,
+        "modulus must be odd for Montgomery multiplication"
+    );
     assert!(
         modulus < (1u128 << 127),
         "modulus must be < 2^127 for u128-backed SmallFp"
@@ -222,7 +225,7 @@ fn generate_mul_impl(
     let ty_str = ty.to_string();
 
     match ty_str.as_str() {
-        "u128" => generate_u128_mul(modulus, k_bits, r_mask, n_prime),
+        "u128" => generate_u128_mul(modulus, n_prime),
         "u64" => generate_u64_mul(modulus, k_bits, r_mask, n_prime),
         "u32" => generate_u32_mul(modulus, k_bits, r_mask, n_prime),
         "u8" | "u16" => generate_small_mul(ty, ty_str.as_str(), modulus, k_bits, r_mask, n_prime),
@@ -231,21 +234,15 @@ fn generate_mul_impl(
 }
 
 // Montgomery multiplication for 2 limbs (similar to ff-asm/src/lib.rs)
-fn generate_u128_mul(
-    modulus: u128,
-    _k_bits: u32,
-    _r_mask: u128,
-    _n_prime: u128,
-) -> proc_macro2::TokenStream {
+fn generate_u128_mul(modulus: u128, n_prime: u128) -> proc_macro2::TokenStream {
     let modulus_lo = (modulus & 0xFFFFFFFFFFFFFFFF) as u64;
     let modulus_hi = (modulus >> 64) as u64;
-    let inv = mod_inverse_pow2(modulus_lo as u128, 64) as u64;
 
     quote! {
         #[inline(always)]
         fn mul_assign(a: &mut SmallFp<Self>, b: &SmallFp<Self>) {
             const MODULUS: [u64; 2] = [#modulus_lo, #modulus_hi];
-            const INV: u64 = #inv;
+            const INV: u64 = #n_prime as u64;
 
             let a_limbs = [a.value as u64, (a.value >> 64) as u64];
             let b_limbs = [b.value as u64, (b.value >> 64) as u64];
@@ -475,9 +472,13 @@ fn generate_small_mul(
     }
 }
 
+// Computes -n^-1 mod R by the Newton-Raphson iteration
+// This is a special case for inverse modulo power of 2
 fn mod_inverse_pow2(n: u128, k_bits: u32) -> u128 {
+    const ITER: usize = 7; // log2(128)
     let mut inv = 1u128;
-    for _ in 0..k_bits {
+
+    for _ in 0..ITER {
         inv = inv.wrapping_mul(2u128.wrapping_sub(n.wrapping_mul(inv)));
     }
     let mask = if k_bits == 128 {
