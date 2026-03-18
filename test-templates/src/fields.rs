@@ -487,7 +487,9 @@ macro_rules! __test_field {
             assert_eq!(two_adic_root_of_unity, generator.modpow(&trace, &modulus));
             match (<$field>::SMALL_SUBGROUP_BASE, <$field>::SMALL_SUBGROUP_BASE_ADICITY) {
                 (Some(base), Some(adicity)) => {
-                    let mut e = generator;
+                    let large_subgroup_root_of_unity: BigUint =
+                        <$field>::LARGE_SUBGROUP_ROOT_OF_UNITY.unwrap().into();
+                    let mut e = large_subgroup_root_of_unity;
                     for _i in 0..adicity {
                         e = e.modpow(&base.into(), &modulus)
                     }
@@ -631,7 +633,9 @@ macro_rules! __test_small_field {
             assert_eq!(two_adic_root_of_unity, generator.modpow(&trace, &modulus));
             match (<$field>::SMALL_SUBGROUP_BASE, <$field>::SMALL_SUBGROUP_BASE_ADICITY) {
                 (Some(base), Some(adicity)) => {
-                    let mut e = generator;
+                    let large_subgroup_root_of_unity: BigUint =
+                        <$field>::LARGE_SUBGROUP_ROOT_OF_UNITY.unwrap().into();
+                    let mut e = large_subgroup_root_of_unity;
                     for _i in 0..adicity {
                         e = e.modpow(&base.into(), &modulus)
                     }
