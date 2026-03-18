@@ -3,7 +3,88 @@ use std::str::FromStr;
 use num_bigint::{BigInt, Sign};
 use num_traits::Num;
 use proc_macro::TokenStream;
-use syn::{Expr, Lit};
+use proc_macro2::{Ident, Span, TokenStream as TokenStream2};
+use syn::parse::{Parse, ParseStream};
+use syn::{Expr, Lit, Token};
+
+pub(crate) struct FieldArgs {
+    pub modulus: String,
+    pub generator: String,
+    pub name: Ident,
+}
+
+impl Parse for FieldArgs {
+    fn parse(input: ParseStream<'_>) -> syn::Result<Self> {
+        let mut modulus: Option<String> = None;
+        let mut generator: Option<String> = None;
+        let mut name: Option<Ident> = None;
+
+        while !input.is_empty() {
+            let key: Ident = input.parse()?;
+            input.parse::<Token![=]>()?;
+
+            match key.to_string().as_str() {
+                "modulus" => {
+                    let lit: syn::LitStr = input.parse()?;
+                    modulus = Some(lit.value());
+                },
+                "generator" => {
+                    let lit: syn::LitStr = input.parse()?;
+                    generator = Some(lit.value());
+                },
+                "name" => {
+                    if input.peek(syn::LitStr) {
+                        let lit: syn::LitStr = input.parse()?;
+                        name = Some(Ident::new(&lit.value(), Span::call_site()));
+                    } else {
+                        name = Some(input.parse()?);
+                    }
+                },
+                _ => {
+                    return Err(syn::Error::new(
+                        key.span(),
+                        "unknown argument; expected one of: modulus, generator, name",
+                    ))
+                },
+            }
+
+            if input.peek(Token![,]) {
+                input.parse::<Token![,]>()?;
+            }
+        }
+
+        Ok(Self {
+            modulus: modulus.ok_or_else(|| {
+                syn::Error::new(Span::call_site(), "missing required argument: modulus")
+            })?,
+            generator: generator.ok_or_else(|| {
+                syn::Error::new(Span::call_site(), "missing required argument: generator")
+            })?,
+            name: name.ok_or_else(|| {
+                syn::Error::new(Span::call_site(), "missing required argument: name")
+            })?,
+        })
+    }
+}
+
+pub(crate) fn fp_alias_for_limbs(limbs: usize) -> TokenStream2 {
+    match limbs {
+        1 => quote::quote!(ark_ff::Fp64),
+        2 => quote::quote!(ark_ff::Fp128),
+        3 => quote::quote!(ark_ff::Fp192),
+        4 => quote::quote!(ark_ff::Fp256),
+        5 => quote::quote!(ark_ff::Fp320),
+        6 => quote::quote!(ark_ff::Fp384),
+        7 => quote::quote!(ark_ff::Fp448),
+        8 => quote::quote!(ark_ff::Fp512),
+        9 => quote::quote!(ark_ff::Fp576),
+        10 => quote::quote!(ark_ff::Fp640),
+        11 => quote::quote!(ark_ff::Fp704),
+        12 => quote::quote!(ark_ff::Fp768),
+        13 => quote::quote!(ark_ff::Fp832),
+        _ => panic!("unsupported field size: {limbs} limbs (supported range is 1..=13)"),
+    }
+}
 
 pub(crate) fn parse_string(input: TokenStream) -> Option<String> {
     let input: Expr = syn::parse(input).unwrap();

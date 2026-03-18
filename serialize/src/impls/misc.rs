@@ -255,7 +255,7 @@ where
         Self: 'a,
     {
         match Self::TRIVIAL_CHECK {
-            true => return Ok(()),
+            true => Ok(()),
             false => {
                 let t: Vec<_> = batch.map(|v| v.as_ref().to_owned()).collect();
                 <<T as ToOwned>::Owned>::batch_check(t.iter())
