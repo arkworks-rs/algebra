@@ -647,6 +647,41 @@ macro_rules! __test_small_field {
                 },
             }
         }
+
+        #[test]
+        fn test_from_be_bytes_mod_order() {
+            use ark_ff::BigInteger;
+            use ark_std::str::FromStr;
+            use $crate::num_bigint::BigUint;
+            use ark_std::{rand::Rng, string::ToString, vec};
+
+            let ref_modulus = BigUint::from_bytes_be(&<$field>::MODULUS.to_bytes_be());
+
+            let mut test_vectors = vec![
+                vec![0u8],
+                vec![1u8],
+                vec![255u8],
+                vec![1u8, 0u8],
+                vec![1u8, 0u8, 255u8],
+            ];
+
+            // Add random bytestrings of various lengths
+            for i in 1..64 {
+                let mut rng = ark_std::test_rng();
+                let data: Vec<u8> = (0..i).map(|_| rng.gen()).collect();
+                test_vectors.push(data);
+            }
+
+            for bytes in test_vectors {
+                let mut expected_biguint = BigUint::from_bytes_be(&bytes);
+                expected_biguint =
+                    expected_biguint.modpow(&BigUint::from_bytes_be(&[1u8]), &ref_modulus);
+                let expected_string = expected_biguint.to_string();
+                let expected = <$field>::from_str(&expected_string).unwrap();
+                let actual = <$field>::from_be_bytes_mod_order(&bytes);
+                assert_eq!(expected, actual, "from_be_bytes_mod_order failed on {:?}", bytes);
+            }
+        }
     };
 }
 
