@@ -26,6 +26,8 @@
 
 ### Bugfixes
 
+- (`ark-ff`) Fix `SmallFp::from_random_bytes` / `from_be_bytes_mod_order` silently producing incorrect field elements by treating plaintext bytes as Montgomery-encoded.
+
 ## v0.5.0
 
 - [\#772](https://github.com/arkworks-rs/algebra/pull/772) (`ark-ff`) Implementation of `mul` method for `BigInteger`.

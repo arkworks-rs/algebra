@@ -86,11 +86,7 @@ impl<P: SmallFpConfig> Field for SmallFp<P> {
                 }
                 *b &= m;
             }
-            // Convert the masked bytes to a BigInt and then to a field element
-            // via from_bigint (which properly enters Montgomery form).
-            // We must NOT use deserialize_compressed here because SmallFp's
-            // serialization format uses raw Montgomery representation, but these
-            // bytes are plaintext integers.
+            // Use from_bigint (not deserialize_compressed) since these are plaintext bytes, not Montgomery-encoded.
             let bigint = result_bytes.to_bigint();
             Self::from_bigint(bigint)
                 .and_then(|f| F::from_u8(flags).map(|flag| (f, flag)))
