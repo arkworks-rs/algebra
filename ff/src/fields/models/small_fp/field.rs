@@ -1,6 +1,6 @@
 use crate::fields::models::small_fp::small_fp_backend::{SmallFp, SmallFpConfig};
 use crate::{Field, LegendreSymbol, One, PrimeField, SqrtPrecomputation, Zero};
-use ark_serialize::{buffer_byte_size, CanonicalDeserialize, EmptyFlags, Flags};
+use ark_serialize::{buffer_byte_size, EmptyFlags, Flags};
 use core::iter;
 
 impl<P: SmallFpConfig> Field for SmallFp<P> {
@@ -86,8 +86,13 @@ impl<P: SmallFpConfig> Field for SmallFp<P> {
                 }
                 *b &= m;
             }
-            Self::deserialize_compressed(&result_bytes.as_slice()[..(P::NUM_BIG_INT_LIMBS * 8)])
-                .ok()
+            // Convert the masked bytes to a BigInt and then to a field element
+            // via from_bigint (which properly enters Montgomery form).
+            // We must NOT use deserialize_compressed here because SmallFp's
+            // serialization format uses raw Montgomery representation, but these
+            // bytes are plaintext integers.
+            let bigint = result_bytes.to_bigint();
+            Self::from_bigint(bigint)
                 .and_then(|f| F::from_u8(flags).map(|flag| (f, flag)))
         }
     }

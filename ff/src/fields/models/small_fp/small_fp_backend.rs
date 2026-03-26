@@ -326,6 +326,7 @@ impl<P: SmallFpConfig> ark_std::rand::distributions::Distribution<SmallFp<P>>
     }
 }
 
+#[derive(Debug)]
 pub enum ParseSmallFpError {
     Empty,
     InvalidFormat,
