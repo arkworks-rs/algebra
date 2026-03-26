@@ -88,8 +88,7 @@ impl<P: SmallFpConfig> Field for SmallFp<P> {
             }
             // Use from_bigint (not deserialize_compressed) since these are plaintext bytes, not Montgomery-encoded.
             let bigint = result_bytes.to_bigint();
-            Self::from_bigint(bigint)
-                .and_then(|f| F::from_u8(flags).map(|flag| (f, flag)))
+            Self::from_bigint(bigint).and_then(|f| F::from_u8(flags).map(|flag| (f, flag)))
         }
     }
 
