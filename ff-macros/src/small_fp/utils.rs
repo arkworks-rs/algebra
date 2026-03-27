@@ -43,7 +43,7 @@ pub(crate) const fn mod_mul_const(a: u128, b: u128, modulus: u128) -> u128 {
     }
 }
 
-const fn pow_mod_const(mut base: u128, mut exp: u128, modulus: u128) -> u128 {
+pub(crate) const fn pow_mod_const(mut base: u128, mut exp: u128, modulus: u128) -> u128 {
     let mut result = 1;
     base %= modulus;
     while exp > 0 {

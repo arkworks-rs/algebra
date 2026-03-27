@@ -1,7 +1,7 @@
 use super::*;
 use crate::small_fp::utils::{
     compute_two_adic_root_of_unity, compute_two_adicity, generate_montgomery_bigint_casts,
-    generate_sqrt_precomputation, mod_mul_const,
+    generate_sqrt_precomputation, mod_mul_const, pow_mod_const,
 };
 
 pub(crate) fn backend_impl(
@@ -62,6 +62,7 @@ pub(crate) fn backend_impl(
 
     // Generate multiplication implementation based on type
     let mul_impl = generate_mul_impl(ty, modulus, k_bits, r_mask, n_prime);
+    let inverse_impl = generate_inverse_impl(ty, modulus, r_mod_n, r2);
 
     let type_bits = match ty_str.as_str() {
         "u8" => 8u32,
@@ -138,6 +139,8 @@ pub(crate) fn backend_impl(
 
         #mul_impl
 
+        #inverse_impl
+
         #[inline(always)]
         fn sum_of_products<const T: usize>(
             a: &[SmallFp<Self>; T],
@@ -174,29 +177,6 @@ pub(crate) fn backend_impl(
             Self::mul_assign(a, &tmp);
         }
 
-        fn inverse(a: &SmallFp<Self>) -> Option<SmallFp<Self>> {
-            if a.value == 0 {
-                return None;
-            }
-
-            let mut result = Self::ONE;
-            let mut base = *a;
-            let mut exp = Self::MODULUS - 2;
-
-            while exp > 0 {
-                if exp & 1 == 1 {
-                    Self::mul_assign(&mut result, &base);
-                }
-
-                let mut sq = base;
-                Self::square_in_place(&mut sq);
-                base = sq;
-                exp >>= 1;
-            }
-
-            Some(result)
-        }
-
         #[inline]
         fn new(value: Self::T) -> SmallFp<Self> {
             let reduced_value = value % Self::MODULUS;
@@ -209,6 +189,131 @@ pub(crate) fn backend_impl(
         #from_bigint_impl
 
         #into_bigint_impl
+    }
+}
+
+// Generates the inverse function using the binary extended GCD algorithm for u8/u16/u32/u64
+// fields, falling back to Fermat's little theorem for u128 fields.
+//
+// The GCD algorithm runs for NUM_ITERS = 2*FIELD_BITS - 2 iterations of cheap integer ops
+// (no modular reduction), returning v ≡ 2^NUM_ITERS · (a·R)^{-1} (mod P). A single
+// Montgomery multiplication by the precomputed constant C = R^3 · 2^{-NUM_ITERS} mod P
+// then corrects the result to a^{-1}·R mod P (the Montgomery form of the inverse).
+fn generate_inverse_impl(
+    ty: &proc_macro2::TokenStream,
+    modulus: u128,
+    r_mod_n: u128,
+    r2: u128,
+) -> proc_macro2::TokenStream {
+    let ty_str = ty.to_string();
+
+    if ty_str == "u128" {
+        // GCD coefficients would require 256-bit signed integers; use Fermat's little theorem.
+        return quote! {
+            fn inverse(a: &SmallFp<Self>) -> Option<SmallFp<Self>> {
+                if a.value == 0 {
+                    return None;
+                }
+                let mut result = Self::ONE;
+                let mut base = *a;
+                let mut exp = Self::MODULUS - 2;
+                while exp > 0 {
+                    if exp & 1 == 1 {
+                        Self::mul_assign(&mut result, &base);
+                    }
+                    let mut sq = base;
+                    Self::square_in_place(&mut sq);
+                    base = sq;
+                    exp >>= 1;
+                }
+                Some(result)
+            }
+        };
+    }
+
+    // FIELD_BITS = bit-length of modulus; NUM_ITERS = 2*FIELD_BITS - 2 ensures convergence.
+    let field_bits = 128 - modulus.leading_zeros();
+    let num_iters = 2 * field_bits - 2;
+
+    // Correction constant: C = R^3 · 2^{-NUM_ITERS} mod P
+    //   2^{-1} mod P = (P+1)/2  (P is odd)
+    //   2^{-NUM_ITERS} mod P = ((P+1)/2)^NUM_ITERS mod P
+    let half = (modulus + 1) / 2;
+    let two_neg_iters = pow_mod_const(half, num_iters as u128, modulus);
+    let r3 = mod_mul_const(r2, r_mod_n, modulus);
+    let corr = mod_mul_const(r3, two_neg_iters, modulus);
+
+    if ty_str == "u64" {
+        quote! {
+            #[inline]
+            fn inverse(a: &SmallFp<Self>) -> Option<SmallFp<Self>> {
+                if a.value == 0 {
+                    return None;
+                }
+                // Binary extended GCD: v = 2^NUM_ITERS · (a·R)^{-1} mod P
+                let mut aa: u128 = a.value as u128;
+                let mut bb: u128 = Self::MODULUS as u128;
+                let mut u: i128 = 1;
+                let mut v: i128 = 0;
+                let mut i = 0u32;
+                while i < #num_iters {
+                    if aa & 1 != 0 {
+                        if aa < bb {
+                            let tmp_a = aa; aa = bb; bb = tmp_a;
+                            let tmp_u = u;  u = v;  v = tmp_u;
+                        }
+                        aa -= bb;
+                        u -= v;
+                    }
+                    aa >>= 1;
+                    v <<= 1;
+                    i += 1;
+                }
+                let p = Self::MODULUS as i128;
+                let v_reduced = ((v % p) + p) as u128 % Self::MODULUS as u128;
+                // Multiply by C = R^3 · 2^{-NUM_ITERS} mod P to get a^{-1}·R mod P
+                let mut result = SmallFp::from_raw(v_reduced as Self::T);
+                let corr = SmallFp::from_raw(#corr as Self::T);
+                Self::mul_assign(&mut result, &corr);
+                Some(result)
+            }
+        }
+    } else {
+        // u8, u16, u32: GCD coefficients fit in i64 (|v| ≤ 2^{2*32-2} = 2^62 < 2^63)
+        quote! {
+            #[inline]
+            fn inverse(a: &SmallFp<Self>) -> Option<SmallFp<Self>> {
+                if a.value == 0 {
+                    return None;
+                }
+                // Binary extended GCD: v = 2^NUM_ITERS · (a·R)^{-1} mod P
+                let mut aa: u64 = a.value as u64;
+                let mut bb: u64 = Self::MODULUS as u64;
+                let mut u: i64 = 1;
+                let mut v: i64 = 0;
+                let mut i = 0u32;
+                while i < #num_iters {
+                    if aa & 1 != 0 {
+                        if aa < bb {
+                            let tmp_a = aa; aa = bb; bb = tmp_a;
+                            let tmp_u = u;  u = v;  v = tmp_u;
+                        }
+                        aa -= bb;
+                        u -= v;
+                    }
+                    aa >>= 1;
+                    v <<= 1;
+                    i += 1;
+                }
+                let p = Self::MODULUS as i64;
+                let v_reduced = ((v % p) + p) as u64 % Self::MODULUS as u64;
+                // Multiply by C = R^3 · 2^{-NUM_ITERS} mod P to get a^{-1}·R mod P
+                let mut result = SmallFp::from_raw(v_reduced as Self::T);
+                let corr = SmallFp::from_raw(#corr as Self::T);
+                Self::mul_assign(&mut result, &corr);
+                Some(result)
+            }
+        }
     }
 }
 
