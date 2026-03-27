@@ -81,22 +81,15 @@ pub(crate) fn backend_impl(
             }
         }
     } else {
-        // When overflow occurs: 2^type_bits ≡ (2^type_bits - modulus) (mod p).
-        // Adding this correction always yields a result in [0, p), so no second check needed.
-        // The non-overflow path uses a branchless conditional subtract (compiles to CMOV),
-        // avoiding a hard-to-predict branch when inputs are uniform in [0, p).
-        let correction = (1u128 << type_bits).wrapping_sub(modulus) as u64;
         quote! {
             #[inline(always)]
             fn add_assign(a: &mut SmallFp<Self>, b: &SmallFp<Self>) {
                 let (mut val, overflow) = a.value.overflowing_add(b.value);
                 if overflow {
-                    // 2^N ≡ #correction (mod p); result guaranteed in [0, p)
-                    val = val.wrapping_add(#correction as Self::T);
-                } else {
-                    // Branchless: subtract p if val >= p, otherwise keep val
-                    let (sub, borrow) = val.overflowing_sub(Self::MODULUS);
-                    val = if borrow { val } else { sub };
+                    val = Self::T::MAX - Self::MODULUS + 1 + val
+                }
+                if val >= Self::MODULUS {
+                    val -= Self::MODULUS;
                 }
                 a.value = val;
             }
