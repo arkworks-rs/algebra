@@ -81,15 +81,22 @@ pub(crate) fn backend_impl(
             }
         }
     } else {
+        // When overflow occurs: 2^type_bits ≡ (2^type_bits - modulus) (mod p).
+        // Adding this correction always yields a result in [0, p), so no second check needed.
+        // The non-overflow path uses a branchless conditional subtract (compiles to CMOV),
+        // avoiding a hard-to-predict branch when inputs are uniform in [0, p).
+        let correction = (1u128 << type_bits).wrapping_sub(modulus) as u64;
         quote! {
             #[inline(always)]
             fn add_assign(a: &mut SmallFp<Self>, b: &SmallFp<Self>) {
                 let (mut val, overflow) = a.value.overflowing_add(b.value);
                 if overflow {
-                    val += Self::T::MAX - Self::MODULUS + 1
-                }
-                if val >= Self::MODULUS {
-                    val -= Self::MODULUS;
+                    // 2^N ≡ #correction (mod p); result guaranteed in [0, p)
+                    val = val.wrapping_add(#correction as Self::T);
+                } else {
+                    // Branchless: subtract p if val >= p, otherwise keep val
+                    let (sub, borrow) = val.overflowing_sub(Self::MODULUS);
+                    val = if borrow { val } else { sub };
                 }
                 a.value = val;
             }
@@ -426,13 +433,16 @@ fn generate_u32_mul(
     r_mask: u128,
     n_prime: u128,
 ) -> proc_macro2::TokenStream {
-    const M31_PRIME: u128 = 2147483647; // 2^31 - 1
+    let field_bits = 128 - modulus.leading_zeros();
+    let is_mersenne = field_bits >= 2 && modulus == (1u128 << field_bits) - 1;
 
-    if modulus == M31_PRIME {
+    if is_mersenne {
+        // Mersenne prime: p = 2^K - 1, R = 2^K ≡ 1 (mod p), so values are canonical.
+        // Direct reduction: x mod p = (x & p) + (x >> K), no Montgomery needed.
         quote! {
-           #[inline(always)]
+            #[inline(always)]
             fn mul_assign(a: &mut SmallFp<Self>, b: &SmallFp<Self>) {
-                const K: u64 = 31;
+                const K: u64 = #field_bits as u64;
                 const MODULUS: u64 = (1u64 << K) - 1;
 
                 let prod = (a.value as u64) * (b.value as u64);
@@ -440,6 +450,26 @@ fn generate_u32_mul(
 
                 if r >= MODULUS {
                     r -= MODULUS;
+                }
+                a.value = r as u32;
+            }
+        }
+    } else if k_bits == 32 {
+        // R = 2^32: k is the low 32 bits of t * n_prime (natural u32 truncation, no AND mask).
+        // t + k*p < 2^62 + 2^63 < 2^64: no overflow check needed.
+        quote! {
+            #[inline(always)]
+            fn mul_assign(a: &mut SmallFp<Self>, b: &SmallFp<Self>) {
+                const MODULUS_MUL_TY: u64 = #modulus as u64;
+                const N_PRIME: u32 = #n_prime as u32;
+
+                let t = (a.value as u64) * (b.value as u64);
+                // Natural u32 truncation replaces the & R_MASK operation
+                let k = (t.wrapping_mul(N_PRIME as u64) as u32) as u64;
+
+                let mut r = (t + k * MODULUS_MUL_TY) >> 32;
+                if r >= MODULUS_MUL_TY {
+                    r -= MODULUS_MUL_TY;
                 }
                 a.value = r as u32;
             }
