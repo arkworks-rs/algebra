@@ -220,35 +220,114 @@ fn generate_inverse_impl(
     let corr = mod_mul_const(r3, two_neg_iters, modulus);
 
     if ty_str == "u64" {
+        // Two-round binary extended GCD for 64-bit fields (Plonky3 approach).
+        //
+        // Split NUM_ITERS into two rounds of half_iters each. (a, b) stay u64 since
+        // they're always in [0, P). The first (half_iters − 1) iterations per round
+        // use i64 matrix entries (|entry| ≤ 2^{HALF_ITERS−1} ≤ 2^62, no overflow).
+        // The final iteration of each round is promoted to i128 to safely handle the
+        // subtraction/shift that would otherwise produce ±2^63, which is out of i64
+        // range. Recombination: sum = f11*f00 + g11*f10 in i128 (≤ 2^126 < 2^127).
+        // Note: the final modular reduction uses u128 to handle P ≈ 2^64 where
+        // (sum % p) + p can reach ~2P ≈ 2^65, overflowing u64.
+
+        let half_iters = num_iters / 2;
+        let half_iters_i64 = half_iters - 1; // iterations using i64, one fewer per round
+
         quote! {
             #[inline]
             fn inverse(a: &SmallFp<Self>) -> Option<SmallFp<Self>> {
                 if a.value == 0 {
                     return None;
                 }
-                // Binary extended GCD: v = 2^NUM_ITERS · (a·R)^{-1} mod P
-                let mut aa: u128 = a.value as u128;
-                let mut bb: u128 = Self::MODULUS as u128;
-                let mut u: i128 = 1;
-                let mut v: i128 = 0;
-                let mut i = 0u32;
-                while i < #num_iters {
+                // Invariant per round after k iters: f0·a0 ≡ aa·2^k  (mod P)
+                //                                   f1·a0 ≡ bb·2^k  (mod P)
+                let mut aa: u64 = a.value;
+                let mut bb: u64 = Self::MODULUS;
+
+                // ---- Round 1: produces (f00, f10) in i128 ----
+                let (f00, f10): (i128, i128);
+                {
+                    let (mut f0, mut g0, mut f1, mut g1): (i64, i64, i64, i64) = (1, 0, 0, 1);
+                    // First (half_iters − 1) iterations in i64: |entry| ≤ 2^{half_iters−1} ≤ 2^62
+                    let mut i = 0u32;
+                    while i < #half_iters_i64 {
+                        if aa & 1 != 0 {
+                            if aa < bb {
+                                let t = aa; aa = bb; bb = t;
+                                let t = f0; f0 = f1; f1 = t;
+                                let t = g0; g0 = g1; g1 = t;
+                            }
+                            aa -= bb; aa >>= 1;
+                            f0 -= f1; g0 -= g1;
+                        } else {
+                            aa >>= 1;
+                        }
+                        f1 <<= 1; g1 <<= 1;
+                        i += 1;
+                    }
+                    // Final iteration in i128 to avoid ±2^63 overflow
+                    let (mut f0, mut g0, mut f1, mut g1) =
+                        (f0 as i128, g0 as i128, f1 as i128, g1 as i128);
                     if aa & 1 != 0 {
                         if aa < bb {
-                            let tmp_a = aa; aa = bb; bb = tmp_a;
-                            let tmp_u = u;  u = v;  v = tmp_u;
+                            let t = aa; aa = bb; bb = t;
+                            let t = f0; f0 = f1; f1 = t;
+                            let t = g0; g0 = g1; g1 = t;
                         }
-                        aa -= bb;
-                        u -= v;
+                        aa -= bb; aa >>= 1; f0 -= f1; g0 -= g1;
+                    } else {
+                        aa >>= 1;
                     }
-                    aa >>= 1;
-                    v <<= 1;
-                    i += 1;
+                    f1 <<= 1; g1 <<= 1;
+                    f00 = f0; f10 = f1;
                 }
+
+                // ---- Round 2: identical structure, produces (f11, g11) ----
+                let (f11, g11): (i128, i128);
+                {
+                    let (mut f0, mut g0, mut f1, mut g1): (i64, i64, i64, i64) = (1, 0, 0, 1);
+                    let mut i = 0u32;
+                    while i < #half_iters_i64 {
+                        if aa & 1 != 0 {
+                            if aa < bb {
+                                let t = aa; aa = bb; bb = t;
+                                let t = f0; f0 = f1; f1 = t;
+                                let t = g0; g0 = g1; g1 = t;
+                            }
+                            aa -= bb; aa >>= 1;
+                            f0 -= f1; g0 -= g1;
+                        } else {
+                            aa >>= 1;
+                        }
+                        f1 <<= 1; g1 <<= 1;
+                        i += 1;
+                    }
+                    let (mut f0, mut g0, mut f1, mut g1) =
+                        (f0 as i128, g0 as i128, f1 as i128, g1 as i128);
+                    if aa & 1 != 0 {
+                        if aa < bb {
+                            let t = aa; aa = bb; bb = t;
+                            let t = f0; f0 = f1; f1 = t;
+                            let t = g0; g0 = g1; g1 = t;
+                        }
+                        aa -= bb; aa >>= 1; f0 -= f1; g0 -= g1;
+                    } else {
+                        aa >>= 1;
+                    }
+                    f1 <<= 1; g1 <<= 1;
+                    f11 = f1; g11 = g1;
+                }
+
+                // sum = f11*f00 + g11*f10 ≡ (a·R)^{-1} · 2^{NUM_ITERS} (mod P)
+                // Each factor ≤ 2^63 in magnitude ⇒ product ≤ 2^126 < i128::MAX.
+                let sum_raw = f11 * f00 + g11 * f10;
                 let p = Self::MODULUS as i128;
-                let v_reduced = ((v % p) + p) as u128 % Self::MODULUS as u128;
+                // Use u128 for intermediate: (sum % p) + p can reach ~2P ≈ 2^65 for
+                // 64-bit moduli, which overflows u64.
+                let sum_reduced = ((sum_raw % p) + p) as u128 % Self::MODULUS as u128;
                 // Multiply by C = R^3 · 2^{-NUM_ITERS} mod P to get a^{-1}·R mod P
-                let mut result = SmallFp::from_raw(v_reduced as Self::T);
+                let mut result = SmallFp::from_raw(sum_reduced as Self::T);
                 let corr = SmallFp::from_raw(#corr as Self::T);
                 Self::mul_assign(&mut result, &corr);
                 Some(result)
