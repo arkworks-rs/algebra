@@ -8,6 +8,7 @@
 #![forbid(unsafe_code)]
 
 use num_bigint::BigUint;
+use num_traits::Zero;
 use proc_macro::TokenStream;
 use quote::format_ident;
 use syn::{Expr, ExprLit, Item, ItemFn, Lit, Meta};
@@ -75,11 +76,28 @@ pub fn define_field(input: TokenStream) -> TokenStream {
             .parse::<BigUint>()
             .expect("generator should be a decimal integer string");
 
+        // Auto-detect small subgroup params (base 3)
+        let mut trace = &modulus_big - BigUint::from(1u32);
+        while trace.bit(0) == false {
+            trace >>= 1u32;
+        }
+        let base = BigUint::from(3u32);
+        let mut power = 0u32;
+        while (&trace % &base).is_zero() {
+            trace /= &base;
+            power += 1;
+        }
+        let (small_subgroup_base, small_subgroup_power) = if power > 0 {
+            (Some(3u32), Some(power))
+        } else {
+            (None, None)
+        };
+
         let config_impl = montgomery::mont_config_helper(
             modulus_big,
             generator_big,
-            None,
-            None,
+            small_subgroup_base,
+            small_subgroup_power,
             config_name.clone(),
         );
 
