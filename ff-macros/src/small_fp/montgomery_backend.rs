@@ -499,10 +499,7 @@ pub(crate) fn exit_impl(modulus: u128, r_mod_p: u128) -> proc_macro2::TokenStrea
         }
 
         /// Const-compatible Montgomery modular multiplication using u128 arithmetic.
-        /// Computes `a * b mod MODULUS` at compile time via double-and-add.
         const fn const_mod_mul(a: u128, b: u128, modulus: u128) -> u128 {
-            // If the product fits in u128, just use the remainder operator.
-            // Otherwise fall back to double-and-add.
             match a.overflowing_mul(b) {
                 (val, false) => val % modulus,
                 (_, true) => {
@@ -511,14 +508,12 @@ pub(crate) fn exit_impl(modulus: u128, r_mod_p: u128) -> proc_macro2::TokenStrea
                     let mut exp = b;
                     while exp > 0 {
                         if exp & 1 == 1 {
-                            // result = (result + base) mod modulus
                             result = if result >= modulus - base {
                                 result - (modulus - base)
                             } else {
                                 result + base
                             };
                         }
-                        // base = (base + base) mod modulus
                         base = if base >= modulus - base {
                             base - (modulus - base)
                         } else {
@@ -549,13 +544,9 @@ pub(crate) fn exit_impl(modulus: u128, r_mod_p: u128) -> proc_macro2::TokenStrea
                 i += 1;
             }
 
-            // Reduce mod P
             val %= MODULUS;
-
-            // Enter Montgomery form: val_mont = val * R mod P  (via const mul)
             let mont = Self::const_mod_mul(val, R_MOD_P, MODULUS);
 
-            // Handle sign
             let mont = if is_positive {
                 mont
             } else if mont == 0 {
