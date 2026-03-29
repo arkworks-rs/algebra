@@ -21,7 +21,7 @@
 ### Features
 
 - (`ark-serialize`) Implementation of `CanonicalSerialize` and `CanonicalDeserialize` for signed integer types
-- (`ark-ff`) Add `from_u128` const constructor for `SmallFp` fields
+- [\#1084](https://github.com/arkworks-rs/algebra/pull/1084) (`ark-ff`) Add `from_u128` const constructor for `SmallFp` fields
 
 ### Improvements
 
