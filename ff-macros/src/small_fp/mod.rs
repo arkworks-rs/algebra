@@ -22,8 +22,17 @@ pub(crate) fn small_fp_config_helper(
         "SmallFpConfig montgomery backend supports only moduli < 2^127. Use MontConfig with BigInt instead of SmallFp."
     );
 
+    // Compute R mod P for const Montgomery conversion
+    let is_u128 = ty.to_string() == "u128";
+    let k_bits: u32 = if is_u128 { 128 } else { 128 - modulus.leading_zeros() };
+    let r_mod_p = if k_bits == 128 {
+        0u128.wrapping_sub(modulus) % modulus
+    } else {
+        (1u128 << k_bits) % modulus
+    };
+
     let backend_impl = montgomery_backend::backend_impl(&ty, modulus, generator);
-    let exit_impl = montgomery_backend::exit_impl();
+    let exit_impl = montgomery_backend::exit_impl(modulus, r_mod_p);
 
     quote! {
         const _: () = {
