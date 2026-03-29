@@ -12,7 +12,7 @@ use proc_macro::TokenStream;
 use quote::format_ident;
 use syn::{Expr, ExprLit, Item, ItemFn, Lit, Meta};
 
-mod montgomery;
+pub(crate) mod montgomery;
 mod small_fp;
 mod unroll;
 
@@ -46,9 +46,6 @@ pub fn define_field(input: TokenStream) -> TokenStream {
 
     let name = args.name;
     let config_name = format_ident!("{}Config", name);
-    let modulus = syn::LitStr::new(&args.modulus, proc_macro2::Span::call_site());
-    let generator = syn::LitStr::new(&args.generator, proc_macro2::Span::call_site());
-
     let is_small_modulus = modulus_big < (BigUint::from(1u128) << 127);
 
     if is_small_modulus {
@@ -73,12 +70,23 @@ pub fn define_field(input: TokenStream) -> TokenStream {
     } else {
         let fp_alias = utils::fp_alias_for_limbs(limbs);
 
+        let generator_big = args
+            .generator
+            .parse::<BigUint>()
+            .expect("generator should be a decimal integer string");
+
+        let config_impl = montgomery::mont_config_helper(
+            modulus_big,
+            generator_big,
+            None,
+            None,
+            config_name.clone(),
+        );
+
         quote::quote! {
-            #[derive(ark_ff::MontConfig)]
-            #[modulus = #modulus]
-            #[generator = #generator]
             pub struct #config_name;
             pub type #name = #fp_alias<ark_ff::MontBackend<#config_name, #limbs>>;
+            #config_impl
         }
         .into()
     }
