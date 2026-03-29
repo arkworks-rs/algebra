@@ -43,4 +43,83 @@ mod tests {
     test_small_field!(f32_mont_babybear; SmallFp32Babybear);
     test_small_field!(f64; SmallFp64Goldilock);
     test_small_field!(f128; SmallFp128);
+
+    mod const_constructors {
+        use super::*;
+        use ark_ff::{One, Zero};
+
+        #[test]
+        fn test_from_u128_zero() {
+            let a: SmallFp64Goldilock = SmallFp64GoldilockConfig::from_u128(0);
+            assert!(a.is_zero(), "from_u128(0) should be zero");
+        }
+
+        #[test]
+        fn test_from_u128_one() {
+            let a: SmallFp64Goldilock = SmallFp64GoldilockConfig::from_u128(1);
+            assert!(a.is_one(), "from_u128(1) should be one");
+        }
+
+        #[test]
+        fn test_from_u128_matches_runtime() {
+            for val in [
+                0u128,
+                1,
+                2,
+                7,
+                42,
+                255,
+                65521,
+                2013265921,
+                18446744069414584320,
+            ] {
+                let const_elem: SmallFp64Goldilock = SmallFp64GoldilockConfig::from_u128(val);
+                let runtime_elem = SmallFp64Goldilock::from(val);
+                assert_eq!(const_elem, runtime_elem, "from_u128({val}) mismatch");
+            }
+        }
+
+        #[test]
+        fn test_from_u128_all_backing_types() {
+            // u8 field
+            for val in [0u128, 1, 7, 42, 250] {
+                assert_eq!(SmallFp8Config::from_u128(val), SmallFp8::from(val));
+            }
+            // u32 field (M31)
+            for val in [0u128, 1, 7, 1000000, 2147483646] {
+                assert_eq!(SmallFp32M31Config::from_u128(val), SmallFp32M31::from(val));
+            }
+            // u128 field
+            for val in [
+                0u128,
+                1,
+                7,
+                u64::MAX as u128,
+                143244528689204659050391023439224324688,
+            ] {
+                assert_eq!(SmallFp128Config::from_u128(val), SmallFp128::from(val));
+            }
+        }
+
+        #[test]
+        fn test_from_u128_reduction() {
+            let modulus = 18446744069414584321u128; // Goldilocks
+            let val = modulus + 7;
+            let const_elem: SmallFp64Goldilock = SmallFp64GoldilockConfig::from_u128(val);
+            let seven: SmallFp64Goldilock = SmallFp64GoldilockConfig::from_u128(7);
+            assert_eq!(
+                const_elem, seven,
+                "from_u128(P+7) should equal from_u128(7)"
+            );
+        }
+
+        #[test]
+        fn test_const_context() {
+            const SEVEN: SmallFp64Goldilock = SmallFp64GoldilockConfig::from_u128(7);
+            const FORTY_TWO: SmallFp128 = SmallFp128Config::from_u128(42);
+
+            assert_eq!(SEVEN, SmallFp64Goldilock::from(7u128));
+            assert_eq!(FORTY_TWO, SmallFp128::from(42u128));
+        }
+    }
 }

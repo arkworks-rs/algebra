@@ -8,7 +8,7 @@ pub(crate) fn backend_impl(
     ty: &proc_macro2::TokenStream,
     modulus: u128,
     generator: u128,
-) -> proc_macro2::TokenStream {
+) -> (proc_macro2::TokenStream, u128) {
     assert!(modulus > 1, "modulus must be greater than 1");
     assert!(
         modulus % 2 == 1,
@@ -88,7 +88,7 @@ pub(crate) fn backend_impl(
             fn add_assign(a: &mut SmallFp<Self>, b: &SmallFp<Self>) {
                 let (mut val, overflow) = a.value.overflowing_add(b.value);
                 if overflow {
-                    val = Self::T::MAX - Self::MODULUS + 1 + val
+                    val += Self::T::MAX - Self::MODULUS + 1
                 }
                 if val >= Self::MODULUS {
                     val -= Self::MODULUS;
@@ -98,7 +98,7 @@ pub(crate) fn backend_impl(
         }
     };
 
-    quote! {
+    let ts = quote! {
         type T = #ty;
         const MODULUS: Self::T = #modulus as Self::T;
         const MODULUS_U128: u128 = #modulus;
@@ -209,7 +209,9 @@ pub(crate) fn backend_impl(
         #from_bigint_impl
 
         #into_bigint_impl
-    }
+    };
+
+    (ts, r_mod_n)
 }
 
 // Selects the appropriate multiplication algorithm at compile time:
@@ -489,11 +491,36 @@ fn mod_inverse_pow2(n: u128, k_bits: u32) -> u128 {
     inv.wrapping_neg() & mask
 }
 
-pub(crate) fn exit_impl() -> proc_macro2::TokenStream {
+pub(crate) fn exit_impl(modulus: u128, r_mod_p: u128) -> proc_macro2::TokenStream {
     quote! {
         pub fn exit(a: &mut SmallFp<Self>) {
             let one = SmallFp::from_raw(1 as <Self as SmallFpConfig>::T);
             <Self as SmallFpConfig>::mul_assign(a, &one);
+        }
+
+        // This is the `SmallFp` analogue of [`MontFp!`] to support const initialization
+        pub const fn from_u128(value: u128) -> SmallFp<Self> {
+            const MODULUS: u128 = #modulus;
+            const R_MOD_P: u128 = #r_mod_p;
+
+            // const-compatible modular multiplication via double-and-add
+            // Safe from overflow: modulus < 2^127 so a,result < 2^127 and all additions fit u128
+            const fn mod_mul(mut a: u128, mut b: u128, m: u128) -> u128 {
+                a %= m;
+                let mut result = 0u128;
+                while b > 0 {
+                    if b & 1 == 1 {
+                        result = (result + a) % m;
+                    }
+                    a = (a + a) % m;
+                    b >>= 1;
+                }
+                result
+            }
+
+            let val = value % MODULUS;
+            let mont = mod_mul(val, R_MOD_P, MODULUS);
+            SmallFp::from_raw(mont as <Self as SmallFpConfig>::T)
         }
     }
 }

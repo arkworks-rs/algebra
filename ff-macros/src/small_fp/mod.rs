@@ -22,8 +22,8 @@ pub(crate) fn small_fp_config_helper(
         "SmallFpConfig montgomery backend supports only moduli < 2^127. Use MontConfig with BigInt instead of SmallFp."
     );
 
-    let backend_impl = montgomery_backend::backend_impl(&ty, modulus, generator);
-    let exit_impl = montgomery_backend::exit_impl();
+    let (backend_impl, r_mod_p) = montgomery_backend::backend_impl(&ty, modulus, generator);
+    let exit_impl = montgomery_backend::exit_impl(modulus, r_mod_p);
 
     quote! {
         const _: () = {
