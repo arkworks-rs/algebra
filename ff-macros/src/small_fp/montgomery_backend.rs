@@ -8,7 +8,7 @@ pub(crate) fn backend_impl(
     ty: &proc_macro2::TokenStream,
     modulus: u128,
     generator: u128,
-) -> proc_macro2::TokenStream {
+) -> (proc_macro2::TokenStream, u128) {
     assert!(modulus > 1, "modulus must be greater than 1");
     assert!(
         modulus % 2 == 1,
@@ -98,7 +98,7 @@ pub(crate) fn backend_impl(
         }
     };
 
-    quote! {
+    let ts = quote! {
         type T = #ty;
         const MODULUS: Self::T = #modulus as Self::T;
         const MODULUS_U128: u128 = #modulus;
@@ -209,7 +209,9 @@ pub(crate) fn backend_impl(
         #from_bigint_impl
 
         #into_bigint_impl
-    }
+    };
+
+    (ts, r_mod_n)
 }
 
 // Selects the appropriate multiplication algorithm at compile time:
