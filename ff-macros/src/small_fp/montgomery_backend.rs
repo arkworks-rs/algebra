@@ -88,7 +88,7 @@ pub(crate) fn backend_impl(
             fn add_assign(a: &mut SmallFp<Self>, b: &SmallFp<Self>) {
                 let (mut val, overflow) = a.value.overflowing_add(b.value);
                 if overflow {
-                    val = Self::T::MAX - Self::MODULUS + 1 + val
+                    val += Self::T::MAX - Self::MODULUS + 1
                 }
                 if val >= Self::MODULUS {
                     val -= Self::MODULUS;

@@ -85,7 +85,7 @@ pub(crate) fn generate_montgomery_bigint_casts(
         quote! {
             fn from_bigint(a: ark_ff::BigInt<2>) -> Option<SmallFp<Self>> {
                 let val = (a.0[0] as u128) + ((a.0[1] as u128) << 64);
-                if val > Self::MODULUS_U128 {
+                if val >= Self::MODULUS_U128 {
                     None
                 } else {
                     let reduced_val = val % Self::MODULUS_U128;
