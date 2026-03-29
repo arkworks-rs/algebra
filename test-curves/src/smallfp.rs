@@ -46,7 +46,7 @@ mod tests {
 
     mod const_constructors {
         use super::*;
-        use ark_ff::{One, Zero};
+        use ark_ff::{One, PrimeField, Zero};
 
         #[test]
         fn test_from_u128_zero() {
@@ -114,12 +114,45 @@ mod tests {
         }
 
         #[test]
+        fn test_from_sign_and_limbs_positive() {
+            let a: SmallFp64Goldilock = SmallFp64GoldilockConfig::from_sign_and_limbs(true, &[7]);
+            let expected: SmallFp64Goldilock = SmallFp64GoldilockConfig::from_u128(7);
+            assert_eq!(a, expected);
+        }
+
+        #[test]
+        fn test_from_sign_and_limbs_negative() {
+            let a: SmallFp64Goldilock = SmallFp64GoldilockConfig::from_sign_and_limbs(false, &[1]);
+            let one: SmallFp64Goldilock = SmallFp64GoldilockConfig::from_u128(1);
+            assert_eq!(a, -one, "from_sign_and_limbs(false, [1]) should be -1");
+        }
+
+        #[test]
+        fn test_from_sign_and_limbs_negative_zero() {
+            let a: SmallFp64Goldilock = SmallFp64GoldilockConfig::from_sign_and_limbs(false, &[0]);
+            assert!(a.is_zero(), "-0 should be 0");
+        }
+
+        #[test]
+        fn test_from_sign_and_limbs_two_limbs() {
+            let val: u128 = (1u128 << 64) + 42;
+            let lo = val as u64;
+            let hi = (val >> 64) as u64;
+            let const_elem: SmallFp128 = SmallFp128Config::from_sign_and_limbs(true, &[lo, hi]);
+            let runtime_elem = SmallFp128::from(val);
+            assert_eq!(const_elem, runtime_elem, "two-limb from_sign_and_limbs mismatch");
+        }
+
+        #[test]
         fn test_const_context() {
             const SEVEN: SmallFp64Goldilock = SmallFp64GoldilockConfig::from_u128(7);
             const FORTY_TWO: SmallFp128 = SmallFp128Config::from_u128(42);
+            const NEG_ONE: SmallFp64Goldilock =
+                SmallFp64GoldilockConfig::from_sign_and_limbs(false, &[1]);
 
             assert_eq!(SEVEN, SmallFp64Goldilock::from(7u128));
             assert_eq!(FORTY_TWO, SmallFp128::from(42u128));
+            assert_eq!(NEG_ONE, -SmallFp64Goldilock::from(1u128));
         }
     }
 }

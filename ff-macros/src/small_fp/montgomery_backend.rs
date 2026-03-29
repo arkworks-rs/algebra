@@ -498,28 +498,82 @@ pub(crate) fn exit_impl(modulus: u128, r_mod_p: u128) -> proc_macro2::TokenStrea
             <Self as SmallFpConfig>::mul_assign(a, &one);
         }
 
-        // This is the `SmallFp` analogue of [`MontFp!`] to support const initialization
+        /// Const-compatible Montgomery modular multiplication using u128 arithmetic.
+        /// Computes `a * b mod MODULUS` at compile time via double-and-add.
+        const fn const_mod_mul(a: u128, b: u128, modulus: u128) -> u128 {
+            // If the product fits in u128, just use the remainder operator.
+            // Otherwise fall back to double-and-add.
+            match a.overflowing_mul(b) {
+                (val, false) => val % modulus,
+                (_, true) => {
+                    let mut result = 0u128;
+                    let mut base = a % modulus;
+                    let mut exp = b;
+                    while exp > 0 {
+                        if exp & 1 == 1 {
+                            // result = (result + base) mod modulus
+                            result = if result >= modulus - base {
+                                result - (modulus - base)
+                            } else {
+                                result + base
+                            };
+                        }
+                        // base = (base + base) mod modulus
+                        base = if base >= modulus - base {
+                            base - (modulus - base)
+                        } else {
+                            base + base
+                        };
+                        exp >>= 1;
+                    }
+                    result
+                }
+            }
+        }
+
+        /// Construct a [`SmallFp<Self>`] field element from a sign and a slice of u64 limbs.
+        ///
+        /// This is the `SmallFp` analogue of [`Fp::from_sign_and_limbs`] and is usable
+        /// in `const` contexts. The limbs are interpreted as a little-endian
+        /// integer which is then reduced modulo `MODULUS` and converted to
+        /// Montgomery form.
+        pub const fn from_sign_and_limbs(is_positive: bool, limbs: &[u64]) -> SmallFp<Self> {
+            const MODULUS: u128 = #modulus;
+            const R_MOD_P: u128 = #r_mod_p;
+
+            // Build u128 from limbs (little-endian)
+            let mut val: u128 = 0;
+            let mut i = 0;
+            while i < limbs.len() && i < 2 {
+                val |= (limbs[i] as u128) << (64 * i);
+                i += 1;
+            }
+
+            // Reduce mod P
+            val %= MODULUS;
+
+            // Enter Montgomery form: val_mont = val * R mod P  (via const mul)
+            let mont = Self::const_mod_mul(val, R_MOD_P, MODULUS);
+
+            // Handle sign
+            let mont = if is_positive {
+                mont
+            } else if mont == 0 {
+                0
+            } else {
+                MODULUS - mont
+            };
+
+            SmallFp::from_raw(mont as <Self as SmallFpConfig>::T)
+        }
+
+        /// Construct a [`SmallFp<Self>`] from a `u128` value in a const context.
         pub const fn from_u128(value: u128) -> SmallFp<Self> {
             const MODULUS: u128 = #modulus;
             const R_MOD_P: u128 = #r_mod_p;
 
-            // const-compatible modular multiplication via double-and-add
-            // Safe from overflow: modulus < 2^127 so a,result < 2^127 and all additions fit u128
-            const fn mod_mul(mut a: u128, mut b: u128, m: u128) -> u128 {
-                a %= m;
-                let mut result = 0u128;
-                while b > 0 {
-                    if b & 1 == 1 {
-                        result = (result + a) % m;
-                    }
-                    a = (a + a) % m;
-                    b >>= 1;
-                }
-                result
-            }
-
             let val = value % MODULUS;
-            let mont = mod_mul(val, R_MOD_P, MODULUS);
+            let mont = Self::const_mod_mul(val, R_MOD_P, MODULUS);
             SmallFp::from_raw(mont as <Self as SmallFpConfig>::T)
         }
     }
