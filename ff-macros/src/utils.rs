@@ -87,13 +87,13 @@ pub(crate) fn fp_alias_for_limbs(limbs: usize) -> TokenStream2 {
 }
 
 pub(crate) fn parse_string(input: TokenStream) -> Option<String> {
-    let input: Expr = syn::parse(input).unwrap();
-    let input = if let Expr::Group(syn::ExprGroup { expr, .. }) = input {
-        expr
-    } else {
-        panic!("could not parse");
-    };
-    match *input {
+    let mut input: Expr = syn::parse(input).unwrap();
+    // Unwrap invisible group delimiters that the compiler may (or may not)
+    // insert around tokens forwarded from other proc macros.
+    if let Expr::Group(syn::ExprGroup { expr, .. }) = input {
+        input = *expr;
+    }
+    match input {
         Expr::Lit(expr_lit) => match expr_lit.lit {
             Lit::Str(s) => Some(s.value()),
             _ => None,
