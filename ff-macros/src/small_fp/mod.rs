@@ -24,7 +24,11 @@ pub(crate) fn small_fp_config_helper(
 
     // Compute R mod P for const Montgomery conversion
     let is_u128 = ty.to_string() == "u128";
-    let k_bits: u32 = if is_u128 { 128 } else { 128 - modulus.leading_zeros() };
+    let k_bits: u32 = if is_u128 {
+        128
+    } else {
+        128 - modulus.leading_zeros()
+    };
     let r_mod_p = if k_bits == 128 {
         0u128.wrapping_sub(modulus) % modulus
     } else {
