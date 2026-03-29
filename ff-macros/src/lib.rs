@@ -50,27 +50,38 @@ pub fn define_field(input: TokenStream) -> TokenStream {
     let generator = syn::LitStr::new(&args.generator, proc_macro2::Span::call_site());
 
     let is_small_modulus = modulus_big < (BigUint::from(1u128) << 127);
-    let derives = if is_small_modulus {
-        quote::quote! { #[derive(ark_ff::SmallFpConfig)] }
-    } else {
-        quote::quote! { #[derive(ark_ff::MontConfig)] }
-    };
 
-    let field_ty = if is_small_modulus {
-        quote::quote! { ark_ff::SmallFp<#config_name> }
+    if is_small_modulus {
+        let modulus_u128: u128 = args
+            .modulus
+            .parse()
+            .expect("modulus should fit in u128 for small field");
+        let generator_u128: u128 = args
+            .generator
+            .parse()
+            .expect("generator should fit in u128 for small field");
+
+        let config_impl =
+            small_fp::small_fp_config_helper(modulus_u128, generator_u128, config_name.clone());
+
+        quote::quote! {
+            pub struct #config_name;
+            pub type #name = ark_ff::SmallFp<#config_name>;
+            #config_impl
+        }
+        .into()
     } else {
         let fp_alias = utils::fp_alias_for_limbs(limbs);
-        quote::quote! { #fp_alias<ark_ff::MontBackend<#config_name, #limbs>> }
-    };
 
-    quote::quote! {
-        #derives
-        #[modulus = #modulus]
-        #[generator = #generator]
-        pub struct #config_name;
-        pub type #name = #field_ty;
+        quote::quote! {
+            #[derive(ark_ff::MontConfig)]
+            #[modulus = #modulus]
+            #[generator = #generator]
+            pub struct #config_name;
+            pub type #name = #fp_alias<ark_ff::MontBackend<#config_name, #limbs>>;
+        }
+        .into()
     }
-    .into()
 }
 
 /// Derive the `MontConfig` trait.
