@@ -504,31 +504,18 @@ pub(crate) fn exit_impl(modulus: u128, r_mod_p: u128) -> proc_macro2::TokenStrea
             const R_MOD_P: u128 = #r_mod_p;
 
             // const-compatible modular multiplication via double-and-add
-            const fn mod_mul(a: u128, b: u128, m: u128) -> u128 {
-                match a.overflowing_mul(b) {
-                    (val, false) => val % m,
-                    (_, true) => {
-                        let mut result = 0u128;
-                        let mut base = a % m;
-                        let mut exp = b;
-                        while exp > 0 {
-                            if exp & 1 == 1 {
-                                result = if result >= m - base {
-                                    result - (m - base)
-                                } else {
-                                    result + base
-                                };
-                            }
-                            base = if base >= m - base {
-                                base - (m - base)
-                            } else {
-                                base + base
-                            };
-                            exp >>= 1;
-                        }
-                        result
+            // Safe from overflow: modulus < 2^127 so a,result < 2^127 and all additions fit u128
+            const fn mod_mul(mut a: u128, mut b: u128, m: u128) -> u128 {
+                a %= m;
+                let mut result = 0u128;
+                while b > 0 {
+                    if b & 1 == 1 {
+                        result = (result + a) % m;
                     }
+                    a = (a + a) % m;
+                    b >>= 1;
                 }
+                result
             }
 
             let val = value % MODULUS;
