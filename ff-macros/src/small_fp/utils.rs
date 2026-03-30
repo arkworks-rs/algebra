@@ -79,25 +79,27 @@ pub(crate) const fn find_quadratic_non_residue(modulus: u128) -> u128 {
     }
 }
 
-/// Auto-detect small subgroup parameters from the modulus.
-/// Checks if a small prime base (currently 3) divides the odd part of p-1.
-/// Returns `(base, adicity)` if found.
-pub(crate) fn detect_small_subgroup(modulus: u128, two_adicity: u32) -> Option<(u32, u32)> {
-    let mut trace = (modulus - 1) >> two_adicity; // odd part of p-1
+/// Detect a small prime subgroup of the multiplicative group.
+///
+/// Checks whether any small prime base in {3, 5, 7} divides the odd part of
+/// p-1 at least once. Returns the smallest such `(base, adicity)` if found,
+/// or `None` if the odd part has no factors ≤ 7.
+pub(crate) fn detect_small_prime_subgroup(modulus: u128, two_adicity: u32) -> Option<(u32, u32)> {
+    let trace = (modulus - 1) >> two_adicity; // odd part of p-1
 
-    // Check base 3
-    let base: u128 = 3;
-    let mut adicity = 0u32;
-    while trace % base == 0 {
-        trace /= base;
-        adicity += 1;
+    for base in [3u128, 5, 7] {
+        let mut t = trace;
+        let mut adicity = 0u32;
+        while t % base == 0 {
+            t /= base;
+            adicity += 1;
+        }
+        if adicity > 0 {
+            return Some((base as u32, adicity));
+        }
     }
 
-    if adicity > 0 {
-        Some((base as u32, adicity))
-    } else {
-        None
-    }
+    None
 }
 
 /// Compute the large subgroup root of unity:

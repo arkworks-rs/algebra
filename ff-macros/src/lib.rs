@@ -76,22 +76,24 @@ pub fn define_field(input: TokenStream) -> TokenStream {
             .parse::<BigUint>()
             .expect("generator should be a decimal integer string");
 
-        // Auto-detect small subgroup params (base 3)
+        // Detect small prime subgroup: check bases {3, 5, 7}
         let mut trace = &modulus_big - BigUint::from(1u32);
         while trace.bit(0) == false {
             trace >>= 1u32;
         }
-        let base = BigUint::from(3u32);
-        let mut power = 0u32;
-        while (&trace % &base).is_zero() {
-            trace /= &base;
-            power += 1;
-        }
-        let (small_subgroup_base, small_subgroup_power) = if power > 0 {
-            (Some(3u32), Some(power))
-        } else {
-            (None, None)
-        };
+        let (small_subgroup_base, small_subgroup_power) = [3u32, 5, 7]
+            .iter()
+            .find_map(|&b| {
+                let base = BigUint::from(b);
+                let mut t = trace.clone();
+                let mut power = 0u32;
+                while (&t % &base).is_zero() {
+                    t /= &base;
+                    power += 1;
+                }
+                (power > 0).then_some((Some(b), Some(power)))
+            })
+            .unwrap_or((None, None));
 
         let config_impl = montgomery::mont_config_helper(
             modulus_big,
