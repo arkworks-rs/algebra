@@ -58,7 +58,8 @@ pub(crate) fn backend_impl(
     let neg_one_mont = mod_mul_const(modulus - 1, r_mod_n, modulus);
 
     let modulus_big = num_bigint::BigUint::from(modulus);
-    let mixed_radix_impl = if let Some((base, power)) = find_conservative_subgroup_base(&modulus_big)
+    let mixed_radix_impl = if let Some((base, power)) =
+        find_conservative_subgroup_base(&modulus_big)
     {
         let large_root = compute_large_subgroup_root(modulus, generator, two_adicity, base, power);
         let large_root_mont = mod_mul_const(large_root, r_mod_n, modulus);
