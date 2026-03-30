@@ -76,7 +76,7 @@ pub fn define_field(input: TokenStream) -> TokenStream {
             .expect("generator should be a decimal integer string");
 
         let (small_subgroup_base, small_subgroup_power) =
-            match utils::detect_small_prime_subgroup(&modulus_big) {
+            match utils::find_conservative_subgroup_base(&modulus_big) {
                 Some((base, power)) => (Some(base), Some(power)),
                 None => (None, None),
             };

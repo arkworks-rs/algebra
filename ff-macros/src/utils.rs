@@ -107,7 +107,7 @@ pub(crate) fn parse_string(input: TokenStream) -> Option<String> {
 /// Checks whether any small prime base in {3, 5, 7} divides the odd part of
 /// p-1 at least once. Returns the smallest such `(base, adicity)` if found,
 /// or `None` if the odd part has no factors ≤ 7.
-pub(crate) fn detect_small_prime_subgroup(modulus: &BigUint) -> Option<(u32, u32)> {
+pub(crate) fn find_conservative_subgroup_base(modulus: &BigUint) -> Option<(u32, u32)> {
     let mut trace = modulus - BigUint::from(1u32);
     while trace.bit(0) == false {
         trace >>= 1u32;
