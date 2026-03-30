@@ -112,14 +112,14 @@ impl<P: SmallFpConfig> From<SmallFp<P>> for num_bigint::BigUint {
     }
 }
 
-impl<P: SmallFpConfig> From<SmallFp<P>> for BigInt<2> {
+impl<P: SmallFpConfig> From<SmallFp<P>> for BigInt<1> {
     fn from(fp: SmallFp<P>) -> Self {
         fp.into_bigint()
     }
 }
 
-impl<P: SmallFpConfig> From<BigInt<2>> for SmallFp<P> {
-    fn from(int: BigInt<2>) -> Self {
+impl<P: SmallFpConfig> From<BigInt<1>> for SmallFp<P> {
+    fn from(int: BigInt<1>) -> Self {
         Self::from_bigint(int).unwrap()
     }
 }

@@ -50,7 +50,7 @@ impl<P: SmallFpConfig> Field for SmallFp<P> {
             None
         } else {
             let shave_bits = Self::num_bits_to_shave();
-            let mut result_bytes: crate::const_helpers::SerBuffer<2> =
+            let mut result_bytes: crate::const_helpers::SerBuffer<1> =
                 crate::const_helpers::SerBuffer::zeroed();
             // Copy the input into a temporary buffer.
             result_bytes.copy_from_u8_slice(bytes);

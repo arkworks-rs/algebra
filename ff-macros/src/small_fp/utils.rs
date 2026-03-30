@@ -99,26 +99,23 @@ pub(crate) fn generate_montgomery_bigint_casts(
 ) -> (proc_macro2::TokenStream, proc_macro2::TokenStream) {
     (
         quote! {
-            fn from_bigint(a: ark_ff::BigInt<2>) -> Option<SmallFp<Self>> {
-                let val = (a.0[0] as u128) + ((a.0[1] as u128) << 64);
+            fn from_bigint(a: ark_ff::BigInt<1>) -> Option<SmallFp<Self>> {
+                let val = a.0[0] as u128;
                 if val >= Self::MODULUS_U128 {
                     None
                 } else {
-                    let reduced_val = val % Self::MODULUS_U128;
-                    let val_t = Self::T::try_from(reduced_val).ok().unwrap();
+                    let val_t = Self::T::try_from(val).ok().unwrap();
                     Some(Self::new(val_t))
                 }
             }
         },
         quote! {
-            fn into_bigint(a: SmallFp<Self>) -> ark_ff::BigInt<2> {
+            fn into_bigint(a: SmallFp<Self>) -> ark_ff::BigInt<1> {
                 let mut tmp = a;
                 let one = SmallFp::from_raw(1 as Self::T);
                 Self::mul_assign(&mut tmp, &one);
                 let val = tmp.value as u128;
-                let lo = val as u64;
-                let hi = (val >> 64) as u64;
-                ark_ff::BigInt([lo, hi])
+                ark_ff::BigInt([val as u64])
             }
         },
     )
@@ -132,12 +129,11 @@ pub(crate) fn generate_sqrt_precomputation(
     if modulus % 4 == 3 {
         let modulus_plus_one_div_four = (modulus + 1) / 4;
         let lo = modulus_plus_one_div_four as u64;
-        let hi = (modulus_plus_one_div_four >> 64) as u64;
 
         quote! {
             // Case3Mod4 square root precomputation
             const SQRT_PRECOMP: Option<ark_ff::SqrtPrecomputation<SmallFp<Self>>> = {
-                const MODULUS_PLUS_ONE_DIV_FOUR: [u64; 2] = [#lo, #hi];
+                const MODULUS_PLUS_ONE_DIV_FOUR: [u64; 1] = [#lo];
                 Some(ark_ff::SqrtPrecomputation::Case3Mod4 {
                     modulus_plus_one_div_four: &MODULUS_PLUS_ONE_DIV_FOUR,
                 })
@@ -147,7 +143,6 @@ pub(crate) fn generate_sqrt_precomputation(
         let trace = (modulus - 1) >> two_adicity;
         let trace_minus_one_div_two = trace / 2;
         let lo = trace_minus_one_div_two as u64;
-        let hi = (trace_minus_one_div_two >> 64) as u64;
         let qnr = find_quadratic_non_residue(modulus);
         let qnr_to_trace = match r_mod_n {
             None => pow_mod_const(qnr, trace, modulus),
@@ -157,7 +152,7 @@ pub(crate) fn generate_sqrt_precomputation(
         quote! {
             // TonelliShanks square root precomputation
             const SQRT_PRECOMP: Option<ark_ff::SqrtPrecomputation<SmallFp<Self>>> = {
-                const TRACE_MINUS_ONE_DIV_TWO: [u64; 2] = [#lo, #hi];
+                const TRACE_MINUS_ONE_DIV_TWO: [u64; 1] = [#lo];
                 Some(ark_ff::SqrtPrecomputation::TonelliShanks {
                     two_adicity: #two_adicity,
                     quadratic_nonresidue_to_trace: SmallFp::from_raw(#qnr_to_trace as Self::T),
