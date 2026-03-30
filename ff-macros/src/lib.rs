@@ -8,7 +8,6 @@
 #![forbid(unsafe_code)]
 
 use num_bigint::BigUint;
-use num_traits::Zero;
 use proc_macro::TokenStream;
 use quote::format_ident;
 use syn::{Expr, ExprLit, Item, ItemFn, Lit, Meta};
@@ -76,24 +75,11 @@ pub fn define_field(input: TokenStream) -> TokenStream {
             .parse::<BigUint>()
             .expect("generator should be a decimal integer string");
 
-        // Detect small prime subgroup: check bases {3, 5, 7}
-        let mut trace = &modulus_big - BigUint::from(1u32);
-        while trace.bit(0) == false {
-            trace >>= 1u32;
-        }
-        let (small_subgroup_base, small_subgroup_power) = [3u32, 5, 7]
-            .iter()
-            .find_map(|&b| {
-                let base = BigUint::from(b);
-                let mut t = trace.clone();
-                let mut power = 0u32;
-                while (&t % &base).is_zero() {
-                    t /= &base;
-                    power += 1;
-                }
-                (power > 0).then_some((Some(b), Some(power)))
-            })
-            .unwrap_or((None, None));
+        let (small_subgroup_base, small_subgroup_power) =
+            match utils::detect_small_prime_subgroup(&modulus_big) {
+                Some((base, power)) => (Some(base), Some(power)),
+                None => (None, None),
+            };
 
         let config_impl = montgomery::mont_config_helper(
             modulus_big,

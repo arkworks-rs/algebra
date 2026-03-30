@@ -1,9 +1,9 @@
 use super::*;
 use crate::small_fp::utils::{
     compute_large_subgroup_root, compute_two_adic_root_of_unity, compute_two_adicity,
-    detect_small_prime_subgroup, generate_montgomery_bigint_casts, generate_sqrt_precomputation,
-    mod_mul_const,
+    generate_montgomery_bigint_casts, generate_sqrt_precomputation, mod_mul_const,
 };
+use crate::utils::detect_small_prime_subgroup;
 
 pub(crate) fn backend_impl(
     ty: &proc_macro2::TokenStream,
@@ -57,7 +57,8 @@ pub(crate) fn backend_impl(
 
     let neg_one_mont = mod_mul_const(modulus - 1, r_mod_n, modulus);
 
-    let mixed_radix_impl = if let Some((base, power)) = detect_small_prime_subgroup(modulus, two_adicity)
+    let modulus_big = num_bigint::BigUint::from(modulus);
+    let mixed_radix_impl = if let Some((base, power)) = detect_small_prime_subgroup(&modulus_big)
     {
         let large_root = compute_large_subgroup_root(modulus, generator, two_adicity, base, power);
         let large_root_mont = mod_mul_const(large_root, r_mod_n, modulus);

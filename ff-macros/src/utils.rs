@@ -1,7 +1,7 @@
 use std::str::FromStr;
 
-use num_bigint::{BigInt, Sign};
-use num_traits::Num;
+use num_bigint::{BigInt, BigUint, Sign};
+use num_traits::{Num, Zero};
 use proc_macro::TokenStream;
 use proc_macro2::{Ident, Span, TokenStream as TokenStream2};
 use syn::parse::{Parse, ParseStream};
@@ -100,6 +100,33 @@ pub(crate) fn parse_string(input: TokenStream) -> Option<String> {
         },
         _ => None,
     }
+}
+
+/// Detect a small prime subgroup of the multiplicative group.
+///
+/// Checks whether any small prime base in {3, 5, 7} divides the odd part of
+/// p-1 at least once. Returns the smallest such `(base, adicity)` if found,
+/// or `None` if the odd part has no factors ≤ 7.
+pub(crate) fn detect_small_prime_subgroup(modulus: &BigUint) -> Option<(u32, u32)> {
+    let mut trace = modulus - BigUint::from(1u32);
+    while trace.bit(0) == false {
+        trace >>= 1u32;
+    }
+
+    for b in [3u32, 5, 7] {
+        let base = BigUint::from(b);
+        let mut t = trace.clone();
+        let mut adicity = 0u32;
+        while (&t % &base).is_zero() {
+            t /= &base;
+            adicity += 1;
+        }
+        if adicity > 0 {
+            return Some((b, adicity));
+        }
+    }
+
+    None
 }
 
 pub(crate) fn str_to_limbs(num: &str) -> (bool, Vec<String>) {
