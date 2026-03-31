@@ -195,7 +195,7 @@ pub(crate) fn backend_impl(
 
 // Generate inverse using the binary extended GCD algorithm:
 //
-// TL;DR: This reduces modular reductions needed to a single modular correction at the loop end
+// TL;DR: This reduces modular reductions needed to a single modular correction
 // It's based on Pornin (2020): https://eprint.iacr.org/2020/1340
 //
 // But with adaptations for single limb arithmetic made by Plonky3:
@@ -226,9 +226,10 @@ fn generate_inverse_impl(
     // C = R³ · 2^{-N} mod P
     let corr = mod_mul_const(r3, two_neg_iters, modulus);
 
-    if repr_type_str == "u64" {
-        // Two-round binary extended GCD for 64-bit fields (Plonky3 approach).
-        //
+    if repr_type_str == "u64" { // Goldilocks branch
+
+        // num_iters = 126, which doesn't fit into anything useful, so we must split this into two rounds
+
         // Split NUM_ITERS into two rounds of half_iters each. The GCD remainders
         // (rem_a, rem_b) stay u64 since they're always in [0, P). Each round
         // tracks a 2×2 transition matrix [[m00, m01], [m10, m11]]. The first
@@ -241,8 +242,10 @@ fn generate_inverse_impl(
         // The final modular reduction uses u128 since P ≈ 2^64 means
         // (bezout % p) + p can reach ~2P ≈ 2^65, overflowing u64.
 
+        // num_iters = 126, which doesn't fit into anything useful, so we must split this into two rounds
         let half_iters = num_iters / 2;
-        let half_iters_i64 = half_iters - 1; // iterations using i64, one fewer per round
+        // we can do 62 iterations in i64 but we need 63 so we promote the last round to i128
+        let half_iters_i64 = half_iters - 1;
 
         quote! {
             #[inline]
@@ -250,100 +253,72 @@ fn generate_inverse_impl(
                 if a.value == 0 {
                     return None;
                 }
-                // GCD remainders being reduced: rem_a starts as the input, rem_b as the modulus.
-                // Invariant after k iters: m00·a₀ ≡ rem_a·2^k (mod P)
-                //                          m10·a₀ ≡ rem_b·2^k (mod P)
+
+                // One half-round of the binary extended GCD.
+                // Same loop as the 31-bit branch, but tracks two extra coefficients
+                // (mod_a, mod_b) so two half-rounds can be composed via matrix multiply.
+                #[inline(always)]
+                fn gcd_half_round(
+                    rem_a: &mut u64, rem_b: &mut u64, iters: u32,
+                ) -> (i128, i128, i128) {
+                    // bezout_a/bezout_b = coefficients of input (same as 31-bit branch)
+                    // mod_a/mod_b       = coefficients of P (needed for round composition)
+                    let (mut bezout_a, mut mod_a, mut bezout_b, mut mod_b): (i64, i64, i64, i64) = (1, 0, 0, 1);
+                    let mut i = 0u32;
+                    while i < iters {
+                        if *rem_a & 1 != 0 {
+                            if *rem_a < *rem_b {
+                                (*rem_a, *rem_b) = (*rem_b, *rem_a);
+                                (bezout_a, bezout_b) = (bezout_b, bezout_a);
+                                (mod_a, mod_b) = (mod_b, mod_a);
+                            }
+                            *rem_a -= *rem_b;
+                            bezout_a -= bezout_b;
+                            mod_a -= mod_b;
+                        }
+                        *rem_a >>= 1;
+                        bezout_b <<= 1;
+                        mod_b <<= 1;
+                        i += 1;
+                    }
+                    // final iteration promoted to i128
+                    let (mut bezout_a, mut mod_a, mut bezout_b, mut mod_b) =
+                        (bezout_a as i128, mod_a as i128, bezout_b as i128, mod_b as i128);
+                    if *rem_a & 1 != 0 {
+                        if *rem_a < *rem_b {
+                            (*rem_a, *rem_b) = (*rem_b, *rem_a);
+                            (bezout_a, bezout_b) = (bezout_b, bezout_a);
+                            (mod_a, mod_b) = (mod_b, mod_a);
+                        }
+                        *rem_a -= *rem_b;
+                        bezout_a -= bezout_b;
+                        mod_a -= mod_b;
+                    }
+                    *rem_a >>= 1;
+                    bezout_b <<= 1;
+                    mod_b <<= 1;
+                    (bezout_a, bezout_b, mod_b)
+                }
+
                 let mut rem_a: u64 = a.value;
                 let mut rem_b: u64 = Self::MODULUS;
 
-                // ---- Round 1: produces saved matrix entries (r1_m00, r1_m10) in i128 ----
-                let (r1_m00, r1_m10): (i128, i128);
-                {
-                    // Transition matrix [[m00, m01], [m10, m11]], initialized to identity
-                    let (mut m00, mut m01, mut m10, mut m11): (i64, i64, i64, i64) = (1, 0, 0, 1);
-                    // First (half_iters − 1) iterations in i64: |entry| ≤ 2^{half_iters−1} ≤ 2^62
-                    let mut i = 0u32;
-                    while i < #half_iters_i64 {
-                        if rem_a & 1 != 0 {
-                            if rem_a < rem_b {
-                                (rem_a, rem_b) = (rem_b, rem_a);
-                                (m00, m10) = (m10, m00);
-                                (m01, m11) = (m11, m01);
-                            }
-                            rem_a -= rem_b; rem_a >>= 1;
-                            m00 -= m10; m01 -= m11;
-                        } else {
-                            rem_a >>= 1;
-                        }
-                        m10 <<= 1; m11 <<= 1;
-                        i += 1;
-                    }
-                    // Final iteration promoted to i128 to avoid ±2^63 overflow
-                    let (mut m00, mut m01, mut m10, mut m11) =
-                        (m00 as i128, m01 as i128, m10 as i128, m11 as i128);
-                    if rem_a & 1 != 0 {
-                        if rem_a < rem_b {
-                            (rem_a, rem_b) = (rem_b, rem_a);
-                            (m00, m10) = (m10, m00);
-                            (m01, m11) = (m11, m01);
-                        }
-                        rem_a -= rem_b; rem_a >>= 1; m00 -= m10; m01 -= m11;
-                    } else {
-                        rem_a >>= 1;
-                    }
-                    m10 <<= 1; m11 <<= 1;
-                    r1_m00 = m00; r1_m10 = m10;
-                }
+                // Run two half-rounds, saving the entries needed for composition
+                let (r1_bezout_a, r1_bezout_b, _) = gcd_half_round(&mut rem_a, &mut rem_b, #half_iters_i64);
+                let (_, r2_bezout_b, r2_mod_b) = gcd_half_round(&mut rem_a, &mut rem_b, #half_iters_i64);
 
-                // ---- Round 2: identical structure, produces (r2_m10, r2_m11) ----
-                let (r2_m10, r2_m11): (i128, i128);
-                {
-                    let (mut m00, mut m01, mut m10, mut m11): (i64, i64, i64, i64) = (1, 0, 0, 1);
-                    let mut i = 0u32;
-                    while i < #half_iters_i64 {
-                        if rem_a & 1 != 0 {
-                            if rem_a < rem_b {
-                                let tmp = rem_a; rem_a = rem_b; rem_b = tmp;
-                                let tmp = m00; m00 = m10; m10 = tmp;
-                                let tmp = m01; m01 = m11; m11 = tmp;
-                            }
-                            rem_a -= rem_b; rem_a >>= 1;
-                            m00 -= m10; m01 -= m11;
-                        } else {
-                            rem_a >>= 1;
-                        }
-                        m10 <<= 1; m11 <<= 1;
-                        i += 1;
-                    }
-                    let (mut m00, mut m01, mut m10, mut m11) =
-                        (m00 as i128, m01 as i128, m10 as i128, m11 as i128);
-                    if rem_a & 1 != 0 {
-                        if rem_a < rem_b {
-                            let tmp = rem_a; rem_a = rem_b; rem_b = tmp;
-                            let tmp = m00; m00 = m10; m10 = tmp;
-                            let tmp = m01; m01 = m11; m11 = tmp;
-                        }
-                        rem_a -= rem_b; rem_a >>= 1; m00 -= m10; m01 -= m11;
-                    } else {
-                        rem_a >>= 1;
-                    }
-                    m10 <<= 1; m11 <<= 1;
-                    r2_m10 = m10; r2_m11 = m11;
-                }
+                // Compose: total bezout_b = r2_bezout_b * r1_bezout_a + r2_mod_b * r1_bezout_b
+                let bezout_raw = r2_bezout_b * r1_bezout_a + r2_mod_b * r1_bezout_b;
 
-                // Compose the two rounds' matrices to recover the Bézout coefficient:
-                // bezout = r2_m10*r1_m00 + r2_m11*r1_m10 ≡ (a·R)^{-1} · 2^{NUM_ITERS} (mod P)
-                // Each factor ≤ 2^63 in magnitude ⇒ product ≤ 2^126 < i128::MAX.
-                let bezout_raw = r2_m10 * r1_m00 + r2_m11 * r1_m10;
+                // convert signed bezout to a field element in [0, P)
                 let p = Self::MODULUS as i128;
-                // Use u128 for reduction: (bezout % p) + p can reach ~2P ≈ 2^65 for
-                // 64-bit moduli, which overflows u64.
-                let bezout_reduced = ((bezout_raw % p) + p) as u128 % Self::MODULUS as u128;
-                // Multiply by C = R^3 · 2^{-NUM_ITERS} mod P to get a^{-1}·R mod P
-                let mut result = SmallFp::from_raw(bezout_reduced as Self::T);
-                let correction = SmallFp::from_raw(#corr as Self::T);
-                Self::mul_assign(&mut result, &correction);
-                Some(result)
+                let bezout_canonical = ((bezout_raw % p) + p) as u128 % Self::MODULUS as u128;
+                let mut bezout_field = SmallFp::from_raw(bezout_canonical as Self::T);
+
+                // perform one correction to get a⁻¹·R mod P
+                let corr_field = SmallFp::from_raw(#corr as Self::T);
+                Self::mul_assign(&mut bezout_field, &corr_field);
+                Some(bezout_field)
             }
         }
     } else { // 31-bit branch
