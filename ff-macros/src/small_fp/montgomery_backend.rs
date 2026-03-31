@@ -6,7 +6,7 @@ use crate::small_fp::utils::{
 use crate::utils::find_conservative_subgroup_base;
 
 pub(crate) fn backend_impl(
-    ty: &proc_macro2::TokenStream,
+    repr_type: &proc_macro2::TokenStream,
     modulus: u128,
     generator: u128,
 ) -> (proc_macro2::TokenStream, u128) {
@@ -20,7 +20,7 @@ pub(crate) fn backend_impl(
         "modulus must be < 2^64 for SmallFp"
     );
 
-    let ty_str = ty.to_string();
+    let repr_type_str = repr_type.to_string();
 
     // R = 2^k_bits where k_bits = ceil(log2(modulus))
     // Since modulus < 2^64, k_bits <= 64 and R always fits in u128
@@ -59,10 +59,10 @@ pub(crate) fn backend_impl(
     let r2 = mod_mul_const(r_mod_n, r_mod_n, modulus);
 
     // Generate multiplication implementation based on type
-    let mul_impl = generate_mul_impl(ty, modulus, k_bits, r_mask, n_prime);
-    let inverse_impl = generate_inverse_impl(ty, modulus, r_mod_n, r2);
+    let mul_impl = generate_mul_impl(repr_type, modulus, k_bits, r_mask, n_prime);
+    let inverse_impl = generate_inverse_impl(repr_type, modulus, r_mod_n, r2);
 
-    let type_bits = match ty_str.as_str() {
+    let type_bits = match repr_type_str.as_str() {
         "u8" => 8u32,
         "u16" => 16u32,
         "u32" => 32u32,
@@ -97,7 +97,7 @@ pub(crate) fn backend_impl(
     };
 
     let ts = quote! {
-        type T = #ty;
+        type T = #repr_type;
         const MODULUS: Self::T = #modulus as Self::T;
         const MODULUS_U128: u128 = #modulus;
         const GENERATOR: SmallFp<Self> = SmallFp::from_raw(#generator_mont as Self::T);
@@ -193,43 +193,53 @@ pub(crate) fn backend_impl(
     (ts, r_mod_n)
 }
 
-// Generates the inverse function using the binary extended GCD algorithm.
+// Generate inverse using the binary extended GCD algorithm:
 //
-// The GCD algorithm runs for NUM_ITERS = 2*FIELD_BITS - 2 iterations of cheap integer ops
-// (no modular reduction), returning v ≡ 2^NUM_ITERS · (a·R)^{-1} (mod P). A single
-// Montgomery multiplication by the precomputed constant C = R^3 · 2^{-NUM_ITERS} mod P
-// then corrects the result to a^{-1}·R mod P (the Montgomery form of the inverse).
+// TL;DR: This reduces modular reductions needed to a single modular correction at the loop end
+// It's based on Pornin (2020): https://eprint.iacr.org/2020/1340
+//
+// But with adaptations for single limb arithmetic made by Plonky3:
+// 31-bit fields here: https://github.com/Plonky3/Plonky3/pull/921/changes
+// Goldilocks here: https://github.com/Plonky3/Plonky3/pull/925
 fn generate_inverse_impl(
-    ty: &proc_macro2::TokenStream,
+    repr_type: &proc_macro2::TokenStream,
     modulus: u128,
     r_mod_n: u128,
     r2: u128,
 ) -> proc_macro2::TokenStream {
-    let ty_str = ty.to_string();
+    let repr_type_str = repr_type.to_string();
 
-    // FIELD_BITS = bit-length of modulus; NUM_ITERS = 2*FIELD_BITS - 2 ensures convergence.
     let field_bits = 128 - modulus.leading_zeros();
+    // num of iterations need to guarantee that rem_1 converges on 1 (meaning GCD is found)
+    // Note: only len(a) + len(modulus) iterations are needed but keep this way for constant-time execution
     let num_iters = 2 * field_bits - 2;
 
-    // Correction constant: C = R^3 · 2^{-NUM_ITERS} mod P
-    //   2^{-1} mod P = (P+1)/2  (P is odd)
-    //   2^{-NUM_ITERS} mod P = ((P+1)/2)^NUM_ITERS mod P
+    // 2⁻¹ mod P = (P+1)/2  (works because P is odd)
     let half = (modulus + 1) / 2;
+
+    // 2^{-N} mod P = ((P+1)/2)^N mod P
     let two_neg_iters = pow_mod_const(half, num_iters as u128, modulus);
+
+    // R³ = R² · R
     let r3 = mod_mul_const(r2, r_mod_n, modulus);
+
+    // C = R³ · 2^{-N} mod P
     let corr = mod_mul_const(r3, two_neg_iters, modulus);
 
-    if ty_str == "u64" {
+    if repr_type_str == "u64" {
         // Two-round binary extended GCD for 64-bit fields (Plonky3 approach).
         //
-        // Split NUM_ITERS into two rounds of half_iters each. (a, b) stay u64 since
-        // they're always in [0, P). The first (half_iters − 1) iterations per round
-        // use i64 matrix entries (|entry| ≤ 2^{HALF_ITERS−1} ≤ 2^62, no overflow).
-        // The final iteration of each round is promoted to i128 to safely handle the
-        // subtraction/shift that would otherwise produce ±2^63, which is out of i64
-        // range. Recombination: sum = f11*f00 + g11*f10 in i128 (≤ 2^126 < 2^127).
-        // Note: the final modular reduction uses u128 to handle P ≈ 2^64 where
-        // (sum % p) + p can reach ~2P ≈ 2^65, overflowing u64.
+        // Split NUM_ITERS into two rounds of half_iters each. The GCD remainders
+        // (rem_a, rem_b) stay u64 since they're always in [0, P). Each round
+        // tracks a 2×2 transition matrix [[m00, m01], [m10, m11]]. The first
+        // (half_iters − 1) iterations per round use i64 matrix entries
+        // (|entry| ≤ 2^{half_iters−1} ≤ 2^62, no overflow). The final iteration
+        // of each round is promoted to i128 to safely handle the subtraction/shift
+        // that would otherwise produce ±2^63 (out of i64 range).
+        //
+        // Recombination: bezout = r2_m10*r1_m00 + r2_m11*r1_m10 in i128 (≤ 2^126).
+        // The final modular reduction uses u128 since P ≈ 2^64 means
+        // (bezout % p) + p can reach ~2P ≈ 2^65, overflowing u64.
 
         let half_iters = num_iters / 2;
         let half_iters_i64 = half_iters - 1; // iterations using i64, one fewer per round
@@ -240,133 +250,144 @@ fn generate_inverse_impl(
                 if a.value == 0 {
                     return None;
                 }
-                // Invariant per round after k iters: f0·a0 ≡ aa·2^k  (mod P)
-                //                                   f1·a0 ≡ bb·2^k  (mod P)
-                let mut aa: u64 = a.value;
-                let mut bb: u64 = Self::MODULUS;
+                // GCD remainders being reduced: rem_a starts as the input, rem_b as the modulus.
+                // Invariant after k iters: m00·a₀ ≡ rem_a·2^k (mod P)
+                //                          m10·a₀ ≡ rem_b·2^k (mod P)
+                let mut rem_a: u64 = a.value;
+                let mut rem_b: u64 = Self::MODULUS;
 
-                // ---- Round 1: produces (f00, f10) in i128 ----
-                let (f00, f10): (i128, i128);
+                // ---- Round 1: produces saved matrix entries (r1_m00, r1_m10) in i128 ----
+                let (r1_m00, r1_m10): (i128, i128);
                 {
-                    let (mut f0, mut g0, mut f1, mut g1): (i64, i64, i64, i64) = (1, 0, 0, 1);
+                    // Transition matrix [[m00, m01], [m10, m11]], initialized to identity
+                    let (mut m00, mut m01, mut m10, mut m11): (i64, i64, i64, i64) = (1, 0, 0, 1);
                     // First (half_iters − 1) iterations in i64: |entry| ≤ 2^{half_iters−1} ≤ 2^62
                     let mut i = 0u32;
                     while i < #half_iters_i64 {
-                        if aa & 1 != 0 {
-                            if aa < bb {
-                                let t = aa; aa = bb; bb = t;
-                                let t = f0; f0 = f1; f1 = t;
-                                let t = g0; g0 = g1; g1 = t;
+                        if rem_a & 1 != 0 {
+                            if rem_a < rem_b {
+                                (rem_a, rem_b) = (rem_b, rem_a);
+                                (m00, m10) = (m10, m00);
+                                (m01, m11) = (m11, m01);
                             }
-                            aa -= bb; aa >>= 1;
-                            f0 -= f1; g0 -= g1;
+                            rem_a -= rem_b; rem_a >>= 1;
+                            m00 -= m10; m01 -= m11;
                         } else {
-                            aa >>= 1;
+                            rem_a >>= 1;
                         }
-                        f1 <<= 1; g1 <<= 1;
+                        m10 <<= 1; m11 <<= 1;
                         i += 1;
                     }
-                    // Final iteration in i128 to avoid ±2^63 overflow
-                    let (mut f0, mut g0, mut f1, mut g1) =
-                        (f0 as i128, g0 as i128, f1 as i128, g1 as i128);
-                    if aa & 1 != 0 {
-                        if aa < bb {
-                            let t = aa; aa = bb; bb = t;
-                            let t = f0; f0 = f1; f1 = t;
-                            let t = g0; g0 = g1; g1 = t;
+                    // Final iteration promoted to i128 to avoid ±2^63 overflow
+                    let (mut m00, mut m01, mut m10, mut m11) =
+                        (m00 as i128, m01 as i128, m10 as i128, m11 as i128);
+                    if rem_a & 1 != 0 {
+                        if rem_a < rem_b {
+                            (rem_a, rem_b) = (rem_b, rem_a);
+                            (m00, m10) = (m10, m00);
+                            (m01, m11) = (m11, m01);
                         }
-                        aa -= bb; aa >>= 1; f0 -= f1; g0 -= g1;
+                        rem_a -= rem_b; rem_a >>= 1; m00 -= m10; m01 -= m11;
                     } else {
-                        aa >>= 1;
+                        rem_a >>= 1;
                     }
-                    f1 <<= 1; g1 <<= 1;
-                    f00 = f0; f10 = f1;
+                    m10 <<= 1; m11 <<= 1;
+                    r1_m00 = m00; r1_m10 = m10;
                 }
 
-                // ---- Round 2: identical structure, produces (f11, g11) ----
-                let (f11, g11): (i128, i128);
+                // ---- Round 2: identical structure, produces (r2_m10, r2_m11) ----
+                let (r2_m10, r2_m11): (i128, i128);
                 {
-                    let (mut f0, mut g0, mut f1, mut g1): (i64, i64, i64, i64) = (1, 0, 0, 1);
+                    let (mut m00, mut m01, mut m10, mut m11): (i64, i64, i64, i64) = (1, 0, 0, 1);
                     let mut i = 0u32;
                     while i < #half_iters_i64 {
-                        if aa & 1 != 0 {
-                            if aa < bb {
-                                let t = aa; aa = bb; bb = t;
-                                let t = f0; f0 = f1; f1 = t;
-                                let t = g0; g0 = g1; g1 = t;
+                        if rem_a & 1 != 0 {
+                            if rem_a < rem_b {
+                                let tmp = rem_a; rem_a = rem_b; rem_b = tmp;
+                                let tmp = m00; m00 = m10; m10 = tmp;
+                                let tmp = m01; m01 = m11; m11 = tmp;
                             }
-                            aa -= bb; aa >>= 1;
-                            f0 -= f1; g0 -= g1;
+                            rem_a -= rem_b; rem_a >>= 1;
+                            m00 -= m10; m01 -= m11;
                         } else {
-                            aa >>= 1;
+                            rem_a >>= 1;
                         }
-                        f1 <<= 1; g1 <<= 1;
+                        m10 <<= 1; m11 <<= 1;
                         i += 1;
                     }
-                    let (mut f0, mut g0, mut f1, mut g1) =
-                        (f0 as i128, g0 as i128, f1 as i128, g1 as i128);
-                    if aa & 1 != 0 {
-                        if aa < bb {
-                            let t = aa; aa = bb; bb = t;
-                            let t = f0; f0 = f1; f1 = t;
-                            let t = g0; g0 = g1; g1 = t;
+                    let (mut m00, mut m01, mut m10, mut m11) =
+                        (m00 as i128, m01 as i128, m10 as i128, m11 as i128);
+                    if rem_a & 1 != 0 {
+                        if rem_a < rem_b {
+                            let tmp = rem_a; rem_a = rem_b; rem_b = tmp;
+                            let tmp = m00; m00 = m10; m10 = tmp;
+                            let tmp = m01; m01 = m11; m11 = tmp;
                         }
-                        aa -= bb; aa >>= 1; f0 -= f1; g0 -= g1;
+                        rem_a -= rem_b; rem_a >>= 1; m00 -= m10; m01 -= m11;
                     } else {
-                        aa >>= 1;
+                        rem_a >>= 1;
                     }
-                    f1 <<= 1; g1 <<= 1;
-                    f11 = f1; g11 = g1;
+                    m10 <<= 1; m11 <<= 1;
+                    r2_m10 = m10; r2_m11 = m11;
                 }
 
-                // sum = f11*f00 + g11*f10 ≡ (a·R)^{-1} · 2^{NUM_ITERS} (mod P)
+                // Compose the two rounds' matrices to recover the Bézout coefficient:
+                // bezout = r2_m10*r1_m00 + r2_m11*r1_m10 ≡ (a·R)^{-1} · 2^{NUM_ITERS} (mod P)
                 // Each factor ≤ 2^63 in magnitude ⇒ product ≤ 2^126 < i128::MAX.
-                let sum_raw = f11 * f00 + g11 * f10;
+                let bezout_raw = r2_m10 * r1_m00 + r2_m11 * r1_m10;
                 let p = Self::MODULUS as i128;
-                // Use u128 for intermediate: (sum % p) + p can reach ~2P ≈ 2^65 for
+                // Use u128 for reduction: (bezout % p) + p can reach ~2P ≈ 2^65 for
                 // 64-bit moduli, which overflows u64.
-                let sum_reduced = ((sum_raw % p) + p) as u128 % Self::MODULUS as u128;
+                let bezout_reduced = ((bezout_raw % p) + p) as u128 % Self::MODULUS as u128;
                 // Multiply by C = R^3 · 2^{-NUM_ITERS} mod P to get a^{-1}·R mod P
-                let mut result = SmallFp::from_raw(sum_reduced as Self::T);
-                let corr = SmallFp::from_raw(#corr as Self::T);
-                Self::mul_assign(&mut result, &corr);
+                let mut result = SmallFp::from_raw(bezout_reduced as Self::T);
+                let correction = SmallFp::from_raw(#corr as Self::T);
+                Self::mul_assign(&mut result, &correction);
                 Some(result)
             }
         }
-    } else {
-        // u8, u16, u32: GCD coefficients fit in i64 (|v| ≤ 2^{2*32-2} = 2^62 < 2^63)
+    } else { // 31-bit branch
         quote! {
             #[inline]
             fn inverse(a: &SmallFp<Self>) -> Option<SmallFp<Self>> {
                 if a.value == 0 {
                     return None;
                 }
-                // Binary extended GCD: v = 2^NUM_ITERS · (a·R)^{-1} mod P
-                let mut aa: u64 = a.value as u64;
-                let mut bb: u64 = Self::MODULUS as u64;
-                let mut u: i64 = 1;
-                let mut v: i64 = 0;
+                // every round the invariant must hold:
+                //   bezout_a · input ≡ rem_a · 2^i  (mod P)
+                //   bezout_b · input ≡ rem_b · 2^i  (mod P)
+                let mut rem_a: u64 = a.value as u64;
+                let mut rem_b: u64 = Self::MODULUS as u64;
+                let mut bezout_a: i64 = 1;
+                let mut bezout_b: i64 = 0;
                 let mut i = 0u32;
+                // everything in this loop is add, sub, or bitwise
                 while i < #num_iters {
-                    if aa & 1 != 0 {
-                        if aa < bb {
-                            let tmp_a = aa; aa = bb; bb = tmp_a;
-                            let tmp_u = u;  u = v;  v = tmp_u;
+                    // if rem_a is odd
+                    if rem_a & 1 != 0 {
+                        // if a < b, swap them
+                        if rem_a < rem_b {
+                            (rem_a, rem_b) = (rem_b, rem_a);
+                            (bezout_a, bezout_b) = (bezout_b, bezout_a);
                         }
-                        aa -= bb;
-                        u -= v;
+                        // subtract b from a
+                        rem_a -= rem_b;
+                        bezout_a -= bezout_b;
                     }
-                    aa >>= 1;
-                    v <<= 1;
+                    // always divide a by 2
+                    rem_a >>= 1;
+                    // always multiply b by 2
+                    bezout_b <<= 1;
                     i += 1;
                 }
-                let p = Self::MODULUS as i64;
-                let v_reduced = ((v % p) + p) as u64 % Self::MODULUS as u64;
-                // Multiply by C = R^3 · 2^{-NUM_ITERS} mod P to get a^{-1}·R mod P
-                let mut result = SmallFp::from_raw(v_reduced as Self::T);
-                let corr = SmallFp::from_raw(#corr as Self::T);
-                Self::mul_assign(&mut result, &corr);
-                Some(result)
+                // convert signed bezout_b to a field element in [0, P)
+                let bezout_canonical = bezout_b.rem_euclid(Self::MODULUS as i64) as u64;
+                let mut bezout_b_field = SmallFp::from_raw(bezout_canonical as Self::T);
+
+                // perfom one correction to get a⁻¹·R mod P
+                let corr_field = SmallFp::from_raw(#corr as Self::T);
+                Self::mul_assign(&mut bezout_b_field, &corr_field);
+                Some(bezout_b_field)
             }
         }
     }
@@ -375,19 +396,26 @@ fn generate_inverse_impl(
 // Selects the appropriate multiplication algorithm at compile time
 // by widening to the next-largest primitive type for the product
 fn generate_mul_impl(
-    ty: &proc_macro2::TokenStream,
+    repr_type: &proc_macro2::TokenStream,
     modulus: u128,
     k_bits: u32,
     r_mask: u128,
     n_prime: u128,
 ) -> proc_macro2::TokenStream {
-    let ty_str = ty.to_string();
+    let repr_type_str = repr_type.to_string();
 
-    match ty_str.as_str() {
+    match repr_type_str.as_str() {
         "u64" => generate_u64_mul(modulus, k_bits, r_mask, n_prime),
         "u32" => generate_u32_mul(modulus, k_bits, r_mask, n_prime),
-        "u8" | "u16" => generate_small_mul(ty, ty_str.as_str(), modulus, k_bits, r_mask, n_prime),
-        _ => panic!("Unsupported type: {}", ty_str),
+        "u8" | "u16" => generate_small_mul(
+            repr_type,
+            repr_type_str.as_str(),
+            modulus,
+            k_bits,
+            r_mask,
+            n_prime,
+        ),
+        _ => panic!("Unsupported type: {}", repr_type_str),
     }
 }
 
@@ -489,8 +517,8 @@ fn generate_u32_mul(
 }
 
 fn generate_small_mul(
-    ty: &proc_macro2::TokenStream,
-    ty_str: &str,
+    repr_type: &proc_macro2::TokenStream,
+    repr_type_str: &str,
     modulus: u128,
     k_bits: u32,
     r_mask: u128,
@@ -532,7 +560,7 @@ fn generate_small_mul(
             }
         }
     } else {
-        let mul_ty = match ty_str {
+        let mul_ty = match repr_type_str {
             "u8" => quote! { u16 },
             "u16" => quote! { u32 },
             _ => unreachable!(),
@@ -542,8 +570,8 @@ fn generate_small_mul(
             #[inline(always)]
             fn mul_assign(a: &mut SmallFp<Self>, b: &SmallFp<Self>) {
                 const MODULUS_MUL_TY: #mul_ty = #modulus as #mul_ty;
-                const MODULUS_TY: #ty = #modulus as #ty;
-                const N_PRIME: #ty = #n_prime as #ty;
+                const MODULUS_TY: #repr_type = #modulus as #repr_type;
+                const N_PRIME: #repr_type = #n_prime as #repr_type;
                 const MASK: #mul_ty = #r_mask as #mul_ty;
                 const K_BITS: u32 = #k_bits;
 
@@ -551,18 +579,18 @@ fn generate_small_mul(
                 let b_val = b.value as #mul_ty;
 
                 let tmp = a_val * b_val;
-                let carry1 = (tmp >> K_BITS) as #ty;
-                let r = (tmp & MASK) as #ty;
+                let carry1 = (tmp >> K_BITS) as #repr_type;
+                let r = (tmp & MASK) as #repr_type;
                 let m = r.wrapping_mul(N_PRIME);
 
                 let tmp = (r as #mul_ty) + ((m as #mul_ty) * MODULUS_MUL_TY);
-                let carry2 = (tmp >> K_BITS) as #ty;
+                let carry2 = (tmp >> K_BITS) as #repr_type;
 
                 let mut r = (carry1 as #mul_ty) + (carry2 as #mul_ty);
                 if r >= MODULUS_MUL_TY {
                     r -= MODULUS_MUL_TY;
                 }
-                a.value = r as #ty;
+                a.value = r as #repr_type;
             }
         }
     }
