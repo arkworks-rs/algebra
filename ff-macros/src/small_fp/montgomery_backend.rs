@@ -226,90 +226,8 @@ fn generate_inverse_impl(
     // C = R³ · 2^{-N} mod P
     let corr = mod_mul_const(r3, two_neg_iters, modulus);
 
-    if repr_type_str == "u64" {
-        // Goldilocks branch
-
-        // num_iters = 126, which doesn't fit into anything useful, so we must split this into two rounds
-        let half_iters = num_iters / 2;
-        // we can do 62 iterations in i64 but we need 63 so we promote the last round to i128
-        let half_iters_i64 = half_iters - 1;
-
-        quote! {
-            #[inline]
-            fn inverse(a: &SmallFp<Self>) -> Option<SmallFp<Self>> {
-                if a.value == 0 {
-                    return None;
-                }
-
-                // One half-round of the binary extended GCD.
-                // Same loop as the 31-bit branch, but tracks two extra coefficients
-                // so that two half-rounds can be composed via matrix multiply.
-                #[inline(always)]
-                fn gcd_half_round(
-                    rem_a: &mut u64, rem_b: &mut u64, iters: u32,
-                ) -> (i128, i128, i128) {
-                    // bezout_a/bezout_b = coefficients of input (same as 31-bit branch)
-                    // mod_a/mod_b       = coefficients of P (needed for round composition)
-                    let (mut bezout_a, mut mod_a, mut bezout_b, mut mod_b): (i64, i64, i64, i64) = (1, 0, 0, 1);
-                    let mut i = 0u32;
-                    while i < iters {
-                        if *rem_a & 1 != 0 {
-                            if *rem_a < *rem_b {
-                                (*rem_a, *rem_b) = (*rem_b, *rem_a);
-                                (bezout_a, bezout_b) = (bezout_b, bezout_a);
-                                (mod_a, mod_b) = (mod_b, mod_a);
-                            }
-                            *rem_a -= *rem_b;
-                            bezout_a -= bezout_b;
-                            mod_a -= mod_b;
-                        }
-                        *rem_a >>= 1;
-                        bezout_b <<= 1;
-                        mod_b <<= 1;
-                        i += 1;
-                    }
-                    // final iteration promoted to i128
-                    let (mut bezout_a, mut mod_a, mut bezout_b, mut mod_b) =
-                        (bezout_a as i128, mod_a as i128, bezout_b as i128, mod_b as i128);
-                    if *rem_a & 1 != 0 {
-                        if *rem_a < *rem_b {
-                            (*rem_a, *rem_b) = (*rem_b, *rem_a);
-                            (bezout_a, bezout_b) = (bezout_b, bezout_a);
-                            (mod_a, mod_b) = (mod_b, mod_a);
-                        }
-                        *rem_a -= *rem_b;
-                        bezout_a -= bezout_b;
-                        mod_a -= mod_b;
-                    }
-                    *rem_a >>= 1;
-                    bezout_b <<= 1;
-                    mod_b <<= 1;
-                    (bezout_a, bezout_b, mod_b)
-                }
-
-                let mut rem_a: u64 = a.value;
-                let mut rem_b: u64 = Self::MODULUS;
-
-                // Run two half-rounds, saving the entries needed for composition
-                let (r1_bezout_a, r1_bezout_b, _) = gcd_half_round(&mut rem_a, &mut rem_b, #half_iters_i64);
-                let (_, r2_bezout_b, r2_mod_b) = gcd_half_round(&mut rem_a, &mut rem_b, #half_iters_i64);
-
-                // Compose: total bezout_b = r2_bezout_b * r1_bezout_a + r2_mod_b * r1_bezout_b
-                let bezout_raw = r2_bezout_b * r1_bezout_a + r2_mod_b * r1_bezout_b;
-
-                // convert signed bezout to a field element in [0, P)
-                let p = Self::MODULUS as i128;
-                let bezout_canonical = ((bezout_raw % p) + p) as u128 % Self::MODULUS as u128;
-                let mut bezout_field = SmallFp::from_raw(bezout_canonical as Self::T);
-
-                // perform one correction to get a⁻¹·R mod P
-                let corr_field = SmallFp::from_raw(#corr as Self::T);
-                Self::mul_assign(&mut bezout_field, &corr_field);
-                Some(bezout_field)
-            }
-        }
-    } else {
-        // 31-bit branch
+    if repr_type_str != "u64" {
+        // all primes <= u32 branch: bezout coefficients fit in i64, single loop
         quote! {
             #[inline]
             fn inverse(a: &SmallFp<Self>) -> Option<SmallFp<Self>> {
@@ -351,6 +269,86 @@ fn generate_inverse_impl(
                 let corr_field = SmallFp::from_raw(#corr as Self::T);
                 Self::mul_assign(&mut bezout_b_field, &corr_field);
                 Some(bezout_b_field)
+            }
+        }
+    } else {
+        // all larger primes: bezout coefficients overflow i64, so we split
+        // into two half-rounds and compose the results via matrix multiply.
+
+        // num_iters = 126, which doesn't fit into anything useful, so we must split this into two rounds
+        let half_iters = num_iters / 2;
+        // we can do 62 iterations in i64 but we need 63 so we promote the last round to i128
+        let half_iters_i64 = half_iters - 1;
+
+        quote! {
+            #[inline]
+            fn inverse(a: &SmallFp<Self>) -> Option<SmallFp<Self>> {
+                if a.value == 0 {
+                    return None;
+                }
+
+                // One step of the binary extended GCD.
+                // made this generic because we do 62 iterations as i64 and 1 as i128
+                #[inline(always)]
+                fn gcd_step<T: Copy + core::ops::SubAssign + core::ops::ShlAssign<u32>>(
+                    rem_a: &mut u64, rem_b: &mut u64,
+                    bezout_a: &mut T, mod_a: &mut T,
+                    bezout_b: &mut T, mod_b: &mut T,
+                ) {
+                    if *rem_a & 1 != 0 {
+                        if *rem_a < *rem_b {
+                            (*rem_a, *rem_b) = (*rem_b, *rem_a);
+                            (*bezout_a, *bezout_b) = (*bezout_b, *bezout_a);
+                            (*mod_a, *mod_b) = (*mod_b, *mod_a);
+                        }
+                        *rem_a -= *rem_b;
+                        *bezout_a -= *bezout_b;
+                        *mod_a -= *mod_b;
+                    }
+                    *rem_a >>= 1;
+                    *bezout_b <<= 1u32;
+                    *mod_b <<= 1u32;
+                }
+
+                // One half-round of the binary extended GCD.
+                // Same loop as the 31-bit branch, but tracks two extra coefficients
+                // so that two half-rounds can be composed via matrix multiply.
+                #[inline(always)]
+                fn gcd_half_round(
+                    rem_a: &mut u64, rem_b: &mut u64, iters: u32,
+                ) -> (i128, i128, i128) {
+                    let (mut bezout_a, mut mod_a, mut bezout_b, mut mod_b): (i64, i64, i64, i64) = (1, 0, 0, 1);
+                    let mut i = 0u32;
+                    while i < iters {
+                        gcd_step(rem_a, rem_b, &mut bezout_a, &mut mod_a, &mut bezout_b, &mut mod_b);
+                        i += 1;
+                    }
+                    // final iteration promoted to i128 to avoid ±2^63 overflow
+                    let (mut bezout_a, mut mod_a, mut bezout_b, mut mod_b) =
+                        (bezout_a as i128, mod_a as i128, bezout_b as i128, mod_b as i128);
+                    gcd_step(rem_a, rem_b, &mut bezout_a, &mut mod_a, &mut bezout_b, &mut mod_b);
+                    (bezout_a, bezout_b, mod_b)
+                }
+
+                let mut rem_a: u64 = a.value;
+                let mut rem_b: u64 = Self::MODULUS;
+
+                // Run two half-rounds, saving the entries needed for composition
+                let (r1_bezout_a, r1_bezout_b, _) = gcd_half_round(&mut rem_a, &mut rem_b, #half_iters_i64);
+                let (_, r2_bezout_b, r2_mod_b) = gcd_half_round(&mut rem_a, &mut rem_b, #half_iters_i64);
+
+                // Compose: total bezout_b = r2_bezout_b * r1_bezout_a + r2_mod_b * r1_bezout_b
+                let bezout_raw = r2_bezout_b * r1_bezout_a + r2_mod_b * r1_bezout_b;
+
+                // convert signed bezout to a field element in [0, P)
+                let p = Self::MODULUS as i128;
+                let bezout_canonical = ((bezout_raw % p) + p) as u128 % Self::MODULUS as u128;
+                let mut bezout_field = SmallFp::from_raw(bezout_canonical as Self::T);
+
+                // perform one correction to get a⁻¹·R mod P
+                let corr_field = SmallFp::from_raw(#corr as Self::T);
+                Self::mul_assign(&mut bezout_field, &corr_field);
+                Some(bezout_field)
             }
         }
     }
