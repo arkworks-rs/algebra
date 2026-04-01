@@ -86,7 +86,7 @@ pub(crate) fn backend_impl(
             fn add_assign(a: &mut SmallFp<Self>, b: &SmallFp<Self>) {
                 let (mut val, overflow) = a.value.overflowing_add(b.value);
                 if overflow {
-                    val = Self::T::MAX - Self::MODULUS + 1 + val
+                    val += Self::T::MAX - Self::MODULUS + 1
                 }
                 if val >= Self::MODULUS {
                     val -= Self::MODULUS;
@@ -226,21 +226,8 @@ fn generate_inverse_impl(
     // C = R³ · 2^{-N} mod P
     let corr = mod_mul_const(r3, two_neg_iters, modulus);
 
-    if repr_type_str == "u64" { // Goldilocks branch
-
-        // num_iters = 126, which doesn't fit into anything useful, so we must split this into two rounds
-
-        // Split NUM_ITERS into two rounds of half_iters each. The GCD remainders
-        // (rem_a, rem_b) stay u64 since they're always in [0, P). Each round
-        // tracks a 2×2 transition matrix [[m00, m01], [m10, m11]]. The first
-        // (half_iters − 1) iterations per round use i64 matrix entries
-        // (|entry| ≤ 2^{half_iters−1} ≤ 2^62, no overflow). The final iteration
-        // of each round is promoted to i128 to safely handle the subtraction/shift
-        // that would otherwise produce ±2^63 (out of i64 range).
-        //
-        // Recombination: bezout = r2_m10*r1_m00 + r2_m11*r1_m10 in i128 (≤ 2^126).
-        // The final modular reduction uses u128 since P ≈ 2^64 means
-        // (bezout % p) + p can reach ~2P ≈ 2^65, overflowing u64.
+    if repr_type_str == "u64" {
+        // Goldilocks branch
 
         // num_iters = 126, which doesn't fit into anything useful, so we must split this into two rounds
         let half_iters = num_iters / 2;
@@ -256,7 +243,7 @@ fn generate_inverse_impl(
 
                 // One half-round of the binary extended GCD.
                 // Same loop as the 31-bit branch, but tracks two extra coefficients
-                // (mod_a, mod_b) so two half-rounds can be composed via matrix multiply.
+                // so that two half-rounds can be composed via matrix multiply.
                 #[inline(always)]
                 fn gcd_half_round(
                     rem_a: &mut u64, rem_b: &mut u64, iters: u32,
@@ -321,7 +308,8 @@ fn generate_inverse_impl(
                 Some(bezout_field)
             }
         }
-    } else { // 31-bit branch
+    } else {
+        // 31-bit branch
         quote! {
             #[inline]
             fn inverse(a: &SmallFp<Self>) -> Option<SmallFp<Self>> {
@@ -430,10 +418,11 @@ fn generate_u32_mul(
     n_prime: u128,
 ) -> proc_macro2::TokenStream {
     let field_bits = 128 - modulus.leading_zeros();
-    let is_mersenne = field_bits >= 2 && modulus == (1u128 << field_bits) - 1;
+    let is_mersenne_u32 = field_bits >= 2 && modulus == (1u128 << field_bits) - 1;
 
-    if is_mersenne {
-        // Mersenne prime: p = 2^K - 1, R = 2^K ≡ 1 (mod p), so values are canonical.
+    if is_mersenne_u32 {
+        // Mersenne primes that fit in u32: M17 (2^17-1), M19 (2^19-1), M31 (2^31-1)
+        // p = 2^K - 1 means R = 2^K ≡ 1 (mod p), so values are already canonical.
         // Direct reduction: x mod p = (x & p) + (x >> K), no Montgomery needed.
         quote! {
             #[inline(always)]
@@ -499,10 +488,11 @@ fn generate_small_mul(
     r_mask: u128,
     n_prime: u128,
 ) -> proc_macro2::TokenStream {
-    const M7_PRIME: u128 = 127; // 2^7 - 1
-    const M13_PRIME: u128 = 8191; // 2^13 - 1
+    const M7: u128 = (1 << 7) - 1;  // 127
+    const M13: u128 = (1 << 13) - 1; // 8191
 
-    if modulus == M7_PRIME {
+    if modulus == M7 {
+        // M7 = 2^7 - 1 = 127 (Mersenne prime, fits in u8)
         quote! {
             #[inline(always)]
             fn mul_assign(a: &mut SmallFp<Self>, b: &SmallFp<Self>) {
@@ -518,7 +508,8 @@ fn generate_small_mul(
                 a.value = r as u8;
             }
         }
-    } else if modulus == M13_PRIME {
+    } else if modulus == M13 {
+        // M13 = 2^13 - 1 = 8191 (Mersenne prime, fits in u16)
         quote! {
             #[inline(always)]
             fn mul_assign(a: &mut SmallFp<Self>, b: &SmallFp<Self>) {
