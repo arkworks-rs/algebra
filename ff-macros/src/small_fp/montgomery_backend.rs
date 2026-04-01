@@ -226,6 +226,7 @@ fn generate_inverse_impl(
     // C = R³ · 2^{-N} mod P
     let corr = mod_mul_const(r3, two_neg_iters, modulus);
 
+    #[allow(clippy::if_not_else)]
     if repr_type_str != "u64" {
         // all primes <= u32 branch: bezout coefficients fit in i64, single loop
         quote! {
@@ -287,55 +288,88 @@ fn generate_inverse_impl(
                     return None;
                 }
 
-                // One step of the binary extended GCD.
-                // made this generic because we do 62 iterations as i64 and 1 as i128
-                #[inline(always)]
-                fn gcd_step<T: Copy + core::ops::SubAssign + core::ops::ShlAssign<u32>>(
-                    rem_a: &mut u64, rem_b: &mut u64,
-                    bezout_a: &mut T, mod_a: &mut T,
-                    bezout_b: &mut T, mod_b: &mut T,
-                ) {
-                    if *rem_a & 1 != 0 {
-                        if *rem_a < *rem_b {
-                            (*rem_a, *rem_b) = (*rem_b, *rem_a);
-                            (*bezout_a, *bezout_b) = (*bezout_b, *bezout_a);
-                            (*mod_a, *mod_b) = (*mod_b, *mod_a);
-                        }
-                        *rem_a -= *rem_b;
-                        *bezout_a -= *bezout_b;
-                        *mod_a -= *mod_b;
-                    }
-                    *rem_a >>= 1;
-                    *bezout_b <<= 1u32;
-                    *mod_b <<= 1u32;
-                }
+                let mut rem_a: u64 = a.value;
+                let mut rem_b: u64 = Self::MODULUS;
 
-                // One half-round of the binary extended GCD.
-                // Same loop as the 31-bit branch, but tracks two extra coefficients
-                // so that two half-rounds can be composed via matrix multiply.
-                #[inline(always)]
-                fn gcd_half_round(
-                    rem_a: &mut u64, rem_b: &mut u64, iters: u32,
-                ) -> (i128, i128, i128) {
+                // Run two half-rounds, saving the entries needed for composition.
+                // Each half-round tracks a 2x2 transition matrix but we only save
+                // the entries we actually need for the final composition.
+
+                // ---- half-round 1: save (r1_bezout_a, r1_bezout_b) ----
+                let (r1_bezout_a, r1_bezout_b): (i128, i128);
+                {
                     let (mut bezout_a, mut mod_a, mut bezout_b, mut mod_b): (i64, i64, i64, i64) = (1, 0, 0, 1);
                     let mut i = 0u32;
-                    while i < iters {
-                        gcd_step(rem_a, rem_b, &mut bezout_a, &mut mod_a, &mut bezout_b, &mut mod_b);
+                    while i < #half_iters_i64 {
+                        if rem_a & 1 != 0 {
+                            if rem_a < rem_b {
+                                (rem_a, rem_b) = (rem_b, rem_a);
+                                (bezout_a, bezout_b) = (bezout_b, bezout_a);
+                                (mod_a, mod_b) = (mod_b, mod_a);
+                            }
+                            rem_a -= rem_b; rem_a >>= 1;
+                            bezout_a -= bezout_b; mod_a -= mod_b;
+                        } else {
+                            rem_a >>= 1;
+                        }
+                        bezout_b <<= 1; mod_b <<= 1;
                         i += 1;
                     }
                     // final iteration promoted to i128 to avoid ±2^63 overflow
                     let (mut bezout_a, mut mod_a, mut bezout_b, mut mod_b) =
                         (bezout_a as i128, mod_a as i128, bezout_b as i128, mod_b as i128);
-                    gcd_step(rem_a, rem_b, &mut bezout_a, &mut mod_a, &mut bezout_b, &mut mod_b);
-                    (bezout_a, bezout_b, mod_b)
+                    if rem_a & 1 != 0 {
+                        if rem_a < rem_b {
+                            (rem_a, rem_b) = (rem_b, rem_a);
+                            (bezout_a, bezout_b) = (bezout_b, bezout_a);
+                            (mod_a, mod_b) = (mod_b, mod_a);
+                        }
+                        rem_a -= rem_b; rem_a >>= 1;
+                        bezout_a -= bezout_b; mod_a -= mod_b;
+                    } else {
+                        rem_a >>= 1;
+                    }
+                    bezout_b <<= 1; mod_b <<= 1;
+                    r1_bezout_a = bezout_a; r1_bezout_b = bezout_b;
                 }
 
-                let mut rem_a: u64 = a.value;
-                let mut rem_b: u64 = Self::MODULUS;
-
-                // Run two half-rounds, saving the entries needed for composition
-                let (r1_bezout_a, r1_bezout_b, _) = gcd_half_round(&mut rem_a, &mut rem_b, #half_iters_i64);
-                let (_, r2_bezout_b, r2_mod_b) = gcd_half_round(&mut rem_a, &mut rem_b, #half_iters_i64);
+                // ---- half-round 2: save (r2_bezout_b, r2_mod_b) ----
+                let (r2_bezout_b, r2_mod_b): (i128, i128);
+                {
+                    let (mut bezout_a, mut mod_a, mut bezout_b, mut mod_b): (i64, i64, i64, i64) = (1, 0, 0, 1);
+                    let mut i = 0u32;
+                    while i < #half_iters_i64 {
+                        if rem_a & 1 != 0 {
+                            if rem_a < rem_b {
+                                (rem_a, rem_b) = (rem_b, rem_a);
+                                (bezout_a, bezout_b) = (bezout_b, bezout_a);
+                                (mod_a, mod_b) = (mod_b, mod_a);
+                            }
+                            rem_a -= rem_b; rem_a >>= 1;
+                            bezout_a -= bezout_b; mod_a -= mod_b;
+                        } else {
+                            rem_a >>= 1;
+                        }
+                        bezout_b <<= 1; mod_b <<= 1;
+                        i += 1;
+                    }
+                    // final iteration promoted to i128 to avoid ±2^63 overflow
+                    let (mut bezout_a, mut mod_a, mut bezout_b, mut mod_b) =
+                        (bezout_a as i128, mod_a as i128, bezout_b as i128, mod_b as i128);
+                    if rem_a & 1 != 0 {
+                        if rem_a < rem_b {
+                            (rem_a, rem_b) = (rem_b, rem_a);
+                            (bezout_a, bezout_b) = (bezout_b, bezout_a);
+                            (mod_a, mod_b) = (mod_b, mod_a);
+                        }
+                        rem_a -= rem_b; rem_a >>= 1;
+                        bezout_a -= bezout_b; mod_a -= mod_b;
+                    } else {
+                        rem_a >>= 1;
+                    }
+                    bezout_b <<= 1; mod_b <<= 1;
+                    r2_bezout_b = bezout_b; r2_mod_b = mod_b;
+                }
 
                 // Compose: total bezout_b = r2_bezout_b * r1_bezout_a + r2_mod_b * r1_bezout_b
                 let bezout_raw = r2_bezout_b * r1_bezout_a + r2_mod_b * r1_bezout_b;
