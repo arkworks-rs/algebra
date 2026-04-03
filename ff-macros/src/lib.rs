@@ -46,7 +46,7 @@ pub fn define_field(input: TokenStream) -> TokenStream {
 
     let name = args.name;
     let config_name = format_ident!("{}Config", name);
-    let is_small_modulus = modulus_big < (BigUint::from(1u128) << 127);
+    let is_small_modulus = modulus_big < (BigUint::from(1u128) << 64);
 
     if is_small_modulus {
         let modulus_u128: u128 = args

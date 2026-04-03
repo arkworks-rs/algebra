@@ -14,12 +14,12 @@ pub(crate) fn small_fp_config_helper(
         m if m < 1u128 << 8 => quote! { u8 },
         m if m < 1u128 << 16 => quote! { u16 },
         m if m < 1u128 << 32 => quote! { u32 },
-        m if m < 1u128 << 64 => quote! { u64 },
-        _ => quote! { u128 },
+        _ => quote! { u64 },
     };
 
-    assert!(modulus < 1u128 << 127,
-        "SmallFpConfig montgomery backend supports only moduli < 2^127. Use MontConfig with BigInt instead of SmallFp."
+    assert!(
+        modulus < 1u128 << 64,
+        "SmallFpConfig supports only moduli < 2^64. Use MontConfig with BigInt instead of SmallFp."
     );
 
     let (backend_impl, r_mod_p) = montgomery_backend::backend_impl(&ty, modulus, generator);

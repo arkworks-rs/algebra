@@ -43,7 +43,7 @@ pub trait SmallFpConfig: Send + Sync + 'static + Sized {
 
     // TODO: the value can be 1 or 2, it would be nice to have it generic.
     /// Number of bigint limbs used to represent the field elements.
-    const NUM_BIG_INT_LIMBS: usize = 2;
+    const NUM_BIG_INT_LIMBS: usize = 1;
 
     /// A multiplicative generator of the field.
     /// `Self::GENERATOR` is an element having multiplicative order
@@ -120,11 +120,11 @@ pub trait SmallFpConfig: Send + Sync + 'static + Sized {
     /// Construct a field element from an integer in the range
     /// `0..(Self::MODULUS - 1)`. Returns `None` if the integer is outside
     /// this range.
-    fn from_bigint(other: BigInt<2>) -> Option<SmallFp<Self>>;
+    fn from_bigint(other: BigInt<1>) -> Option<SmallFp<Self>>;
 
     /// Convert a field element to an integer in the range `0..(Self::MODULUS -
     /// 1)`.
-    fn into_bigint(other: SmallFp<Self>) -> BigInt<2>;
+    fn into_bigint(other: SmallFp<Self>) -> BigInt<1>;
 }
 
 /// Represents an element of the prime field F_p, where `p == P::MODULUS`.
@@ -219,10 +219,8 @@ impl<P: SmallFpConfig> AdditiveGroup for SmallFp<P> {
     }
 }
 
-const fn const_to_bigint(value: u128) -> BigInt<2> {
-    let low = (value & 0xFFFFFFFFFFFFFFFF) as u64;
-    let high = (value >> 64) as u64;
-    BigInt::<2>::new([low, high])
+const fn const_to_bigint(value: u128) -> BigInt<1> {
+    BigInt::<1>::new([value as u64])
 }
 
 const fn const_num_bits_u128(value: u128) -> u32 {
@@ -238,13 +236,12 @@ const fn primitive_type_bit_size(modulus_u128: u128) -> usize {
         x if x <= u8::MAX as u128 => 8,
         x if x <= u16::MAX as u128 => 16,
         x if x <= u32::MAX as u128 => 32,
-        x if x <= u64::MAX as u128 => 64,
-        _ => 128,
+        _ => 64,
     }
 }
 
 impl<P: SmallFpConfig> PrimeField for SmallFp<P> {
-    type BigInt = BigInt<2>;
+    type BigInt = BigInt<1>;
 
     const MODULUS: Self::BigInt = const_to_bigint(P::MODULUS_U128);
     const MODULUS_MINUS_ONE_DIV_TWO: Self::BigInt = Self::MODULUS.divide_by_2_round_down();
@@ -253,11 +250,11 @@ impl<P: SmallFpConfig> PrimeField for SmallFp<P> {
     const TRACE_MINUS_ONE_DIV_TWO: Self::BigInt = Self::TRACE.divide_by_2_round_down();
 
     #[inline]
-    fn from_bigint(r: BigInt<2>) -> Option<Self> {
+    fn from_bigint(r: BigInt<1>) -> Option<Self> {
         P::from_bigint(r)
     }
 
-    fn into_bigint(self) -> BigInt<2> {
+    fn into_bigint(self) -> BigInt<1> {
         P::into_bigint(self)
     }
 }
@@ -320,8 +317,7 @@ impl<P: SmallFpConfig> ark_std::rand::distributions::Distribution<SmallFp<P>>
             modulus if modulus <= u8::MAX as u128 => sample_loop!(u8),
             modulus if modulus <= u16::MAX as u128 => sample_loop!(u16),
             modulus if modulus <= u32::MAX as u128 => sample_loop!(u32),
-            modulus if modulus <= u64::MAX as u128 => sample_loop!(u64),
-            _ => sample_loop!(u128),
+            _ => sample_loop!(u64),
         }
     }
 }

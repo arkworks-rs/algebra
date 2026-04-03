@@ -24,12 +24,6 @@ define_field!(
     name = SmallFp64Goldilock,
 );
 
-define_field!(
-    modulus = "143244528689204659050391023439224324689",
-    generator = "3",
-    name = SmallFp128,
-);
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -42,7 +36,6 @@ mod tests {
     test_small_field!(f32; SmallFp32M31);
     test_small_field!(f32_mont_babybear; SmallFp32Babybear);
     test_small_field!(f64; SmallFp64Goldilock);
-    test_small_field!(f128; SmallFp128);
 
     mod const_constructors {
         use super::*;
@@ -89,16 +82,6 @@ mod tests {
             for val in [0u128, 1, 7, 1000000, 2147483646] {
                 assert_eq!(SmallFp32M31Config::from_u128(val), SmallFp32M31::from(val));
             }
-            // u128 field
-            for val in [
-                0u128,
-                1,
-                7,
-                u64::MAX as u128,
-                143244528689204659050391023439224324688,
-            ] {
-                assert_eq!(SmallFp128Config::from_u128(val), SmallFp128::from(val));
-            }
         }
 
         #[test]
@@ -116,10 +99,8 @@ mod tests {
         #[test]
         fn test_const_context() {
             const SEVEN: SmallFp64Goldilock = SmallFp64GoldilockConfig::from_u128(7);
-            const FORTY_TWO: SmallFp128 = SmallFp128Config::from_u128(42);
 
             assert_eq!(SEVEN, SmallFp64Goldilock::from(7u128));
-            assert_eq!(FORTY_TWO, SmallFp128::from(42u128));
         }
     }
 }
