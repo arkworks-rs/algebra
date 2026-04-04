@@ -16,36 +16,18 @@ pub(crate) fn backend_impl(
         "modulus must be odd for Montgomery multiplication"
     );
     assert!(
-        modulus < (1u128 << 127),
-        "modulus must be < 2^127 for u128-backed SmallFp"
+        modulus < (1u128 << 64),
+        "modulus must be < 2^64 for SmallFp"
     );
 
     let ty_str = ty.to_string();
-    let is_u128 = ty_str == "u128";
 
-    // For u128, we use R = 2^128 for smaller types, R = 2^k_bits
-    let k_bits = if is_u128 {
-        128u32
-    } else {
-        128 - modulus.leading_zeros()
-    };
-    let r: u128 = if k_bits == 128 {
-        0u128
-    } else {
-        1u128 << k_bits
-    };
-    // When R = 2^128 this doesn't fit in u128 but:
-    // (2^128 - n) mod n  =  2^128 mod n
-    // and in u128 wrapping arithmetic:
-    // 0 - n wraps to 2^128 - n
-    // so:
-    // 2^128 mod n = (0 - n) mod n
-    let r_mod_n = if k_bits == 128 {
-        0u128.wrapping_sub(modulus) % modulus
-    } else {
-        r % modulus
-    };
-    let r_mask = if k_bits == 128 { u128::MAX } else { r - 1 };
+    // R = 2^k_bits where k_bits = ceil(log2(modulus))
+    // Since modulus < 2^64, k_bits <= 64 and R always fits in u128
+    let k_bits = 128 - modulus.leading_zeros();
+    let r: u128 = 1u128 << k_bits;
+    let r_mod_n = r % modulus;
+    let r_mask = r - 1;
 
     let n_prime = mod_inverse_pow2(modulus, k_bits);
     let one_mont = r_mod_n;
@@ -84,7 +66,6 @@ pub(crate) fn backend_impl(
         "u16" => 16u32,
         "u32" => 32u32,
         "u64" => 64u32,
-        "u128" => 128u32,
         _ => panic!("unsupported type"),
     };
 
@@ -232,9 +213,8 @@ pub(crate) fn backend_impl(
     (ts, r_mod_n)
 }
 
-// Selects the appropriate multiplication algorithm at compile time:
-// if modulus <= u64, multiply by casting to the next largest primitive
-// otherwise, multiply in parts to form a 256-bit product
+// Selects the appropriate multiplication algorithm at compile time
+// by widening to the next-largest primitive type for the product
 fn generate_mul_impl(
     ty: &proc_macro2::TokenStream,
     modulus: u128,
@@ -245,96 +225,10 @@ fn generate_mul_impl(
     let ty_str = ty.to_string();
 
     match ty_str.as_str() {
-        "u128" => generate_u128_mul(modulus, n_prime),
         "u64" => generate_u64_mul(modulus, k_bits, r_mask, n_prime),
         "u32" => generate_u32_mul(modulus, k_bits, r_mask, n_prime),
         "u8" | "u16" => generate_small_mul(ty, ty_str.as_str(), modulus, k_bits, r_mask, n_prime),
         _ => panic!("Unsupported type: {}", ty_str),
-    }
-}
-
-// Montgomery multiplication for 2 limbs (similar to ff-asm/src/lib.rs)
-fn generate_u128_mul(modulus: u128, n_prime: u128) -> proc_macro2::TokenStream {
-    let modulus_lo = (modulus & 0xFFFFFFFFFFFFFFFF) as u64;
-    let modulus_hi = (modulus >> 64) as u64;
-
-    quote! {
-        #[inline(always)]
-        fn mul_assign(a: &mut SmallFp<Self>, b: &SmallFp<Self>) {
-            const MODULUS: [u64; 2] = [#modulus_lo, #modulus_hi];
-            const INV: u64 = #n_prime as u64;
-
-            let a_limbs = [a.value as u64, (a.value >> 64) as u64];
-            let b_limbs = [b.value as u64, (b.value >> 64) as u64];
-
-            #[inline(always)]
-            fn umul(a: u64, b: u64) -> (u64, u64) {
-                let full = (a as u128) * (b as u128);
-                (full as u64, (full >> 64) as u64)
-            }
-
-            // r accumulator: 3 words (r[0], r[1], r[2]) to hold intermediate
-            let mut r0: u64 = 0;
-            let mut r1: u64 = 0;
-            let mut r2: u64 = 0;
-
-
-            let (lo, hi) = umul(a_limbs[0], b_limbs[0]);
-            let (r0_new, c) = r0.overflowing_add(lo);
-            r0 = r0_new;
-            let carry1 = c as u64;
-
-            let (lo, hi2) = umul(a_limbs[1], b_limbs[0]);
-            let (r1_new, c1) = r1.overflowing_add(lo);
-            let (r1_new, c2) = r1_new.overflowing_add(hi + carry1);
-            r1 = r1_new;
-            r2 = r2.wrapping_add(hi2).wrapping_add(c1 as u64 + c2 as u64);
-
-            let m = r0.wrapping_mul(INV);
-
-            let (lo, hi) = umul(m, MODULUS[0]);
-            let (_, c) = r0.overflowing_add(lo);   // r0 + lo should be 0 mod 2^64
-            let carry = hi.wrapping_add(c as u64);
-
-            let (lo, hi) = umul(m, MODULUS[1]);
-            let (new_r0, c1) = r1.overflowing_add(lo);
-            let (new_r0, c2) = new_r0.overflowing_add(carry);
-            r0 = new_r0;
-            r1 = r2.wrapping_add(hi).wrapping_add(c1 as u64 + c2 as u64);
-            r2 = 0;
-
-
-            let (lo, hi) = umul(a_limbs[0], b_limbs[1]);
-            let (r0_new, c) = r0.overflowing_add(lo);
-            r0 = r0_new;
-            let carry1 = c as u64;
-
-            let (lo, hi2) = umul(a_limbs[1], b_limbs[1]);
-            let (r1_new, c1) = r1.overflowing_add(lo);
-            let (r1_new, c2) = r1_new.overflowing_add(hi + carry1);
-            r1 = r1_new;
-            r2 = r2.wrapping_add(hi2).wrapping_add(c1 as u64 + c2 as u64);
-
-            let m = r0.wrapping_mul(INV);
-
-            let (lo, hi) = umul(m, MODULUS[0]);
-            let (_, c) = r0.overflowing_add(lo);
-            let carry = hi.wrapping_add(c as u64);
-
-            let (lo, hi) = umul(m, MODULUS[1]);
-            let (new_r0, c1) = r1.overflowing_add(lo);
-            let (new_r0, c2) = new_r0.overflowing_add(carry);
-            r0 = new_r0;
-            r1 = r2.wrapping_add(hi).wrapping_add(c1 as u64 + c2 as u64);
-
-
-            let mut result = (r0 as u128) | ((r1 as u128) << 64);
-            let modulus_val = (#modulus_lo as u128) | ((#modulus_hi as u128) << 64);
-            if result >= modulus_val {
-                result -= modulus_val;
-            }
-            a.value = result;
-        }
     }
 }
 
@@ -501,11 +395,8 @@ fn mod_inverse_pow2(n: u128, k_bits: u32) -> u128 {
     for _ in 0..ITER {
         inv = inv.wrapping_mul(2u128.wrapping_sub(n.wrapping_mul(inv)));
     }
-    let mask = if k_bits == 128 {
-        u128::MAX
-    } else {
-        (1u128 << k_bits) - 1
-    };
+    // k_bits <= 64 since modulus < 2^64
+    let mask = (1u128 << k_bits) - 1;
     inv.wrapping_neg() & mask
 }
 
@@ -522,7 +413,7 @@ pub(crate) fn exit_impl(modulus: u128, r_mod_p: u128) -> proc_macro2::TokenStrea
             const R_MOD_P: u128 = #r_mod_p;
 
             // const-compatible modular multiplication via double-and-add
-            // Safe from overflow: modulus < 2^127 so a,result < 2^127 and all additions fit u128
+            // Safe from overflow: modulus < 2^64 so a,result < 2^64 and all additions fit u128
             const fn mod_mul(mut a: u128, mut b: u128, m: u128) -> u128 {
                 a %= m;
                 let mut result = 0u128;

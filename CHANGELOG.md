@@ -12,7 +12,7 @@
 - (`ark-ec`) Improve GLV scalar multiplication performance by skipping leading zeroes.
 - (`ark-poly`) Make `SparsePolynomial.coeffs` field public
 - [\#1039](https://github.com/arkworks-rs/algebra/pull/1039) (`ark-ff-asm`) Remove unused dead spill buffer path.
-- [\#1044](https://github.com/arkworks-rs/algebra/pull/1044) Add implementation for small field with native integer types
+- [\#1044](https://github.com/arkworks-rs/algebra/pull/1044), [\#1084](https://github.com/arkworks-rs/algebra/pull/1084), [\#1088](https://github.com/arkworks-rs/algebra/pull/1088) Add implementation for small field with native integer types
 
 ### Breaking changes
 
