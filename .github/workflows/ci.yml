@@ -159,7 +159,8 @@ jobs:
             args: "--workspace \
                     --all-features \
                     --exclude ark-poly-benches \
-                    --exclude ark-algebra-test-templates"
+                    --exclude ark-algebra-test-templates \
+                    --exclude ark-ec-test-templates"
 
       - name: Test assembly on nightly
         env:
@@ -384,6 +385,8 @@ jobs:
             args: "--examples --workspace \
                   --exclude ark-algebra-test-templates \
                   --exclude ark-algebra-bench-templates \
+                  --exclude ark-ec-test-templates \
+                  --exclude ark-ec-bench-templates \
                   --exclude ark-poly-benches \
                   --target aarch64-unknown-none"
 
@@ -394,5 +397,7 @@ jobs:
             args: "--workspace \
                   --exclude ark-algebra-test-templates \
                   --exclude ark-algebra-bench-templates \
+                  --exclude ark-ec-test-templates \
+                  --exclude ark-ec-bench-templates \
                   --exclude ark-poly-benches \
                   --target aarch64-unknown-none"

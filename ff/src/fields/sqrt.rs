@@ -4,7 +4,7 @@
 /// ```
 /// # use ark_std::test_rng;
 /// # use ark_std::UniformRand;
-/// # use ark_test_curves::{LegendreSymbol, Field, bls12_381::Fq as Fp};
+/// # use ark_test_fields::{LegendreSymbol, Field, bls12_381::Fq as Fp};
 /// let a: Fp = Fp::rand(&mut test_rng());
 /// let b = a.square();
 /// assert_eq!(b.legendre(), LegendreSymbol::QuadraticResidue);
@@ -23,7 +23,7 @@ impl LegendreSymbol {
     /// ```
     /// # use ark_std::test_rng;
     /// # use ark_std::UniformRand;
-    /// # use ark_test_curves::{LegendreSymbol, Field, bls12_381::Fq as Fp};
+    /// # use ark_test_fields::{LegendreSymbol, Field, bls12_381::Fq as Fp};
     /// let a: Fp = Fp::rand(&mut test_rng());
     /// let b: Fp = a.square();
     /// assert!(!b.legendre().is_zero());
@@ -36,7 +36,7 @@ impl LegendreSymbol {
     ///
     /// # Examples
     /// ```
-    /// # use ark_test_curves::{Fp2Config, Field, LegendreSymbol, bls12_381::{Fq, Fq2Config}};
+    /// # use ark_test_fields::{Fp2Config, Field, LegendreSymbol, bls12_381::{Fq, Fq2Config}};
     /// let a: Fq = Fq2Config::NONRESIDUE;
     /// assert!(a.legendre().is_qnr());
     /// ```
@@ -48,7 +48,7 @@ impl LegendreSymbol {
     /// # Examples
     /// ```
     /// # use ark_std::test_rng;
-    /// # use ark_test_curves::bls12_381::Fq as Fp;
+    /// # use ark_test_fields::bls12_381::Fq as Fp;
     /// # use ark_std::UniformRand;
     /// # use ark_ff::{LegendreSymbol, Field};
     /// let a: Fp = Fp::rand(&mut test_rng());

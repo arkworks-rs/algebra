@@ -1,8 +1,8 @@
 use ark_algebra_bench_templates::*;
-use ark_ec_bench_templates::*;
 use ark_cp6_782::{
     fq::Fq, fq3::Fq3, fq6::Fq6, fr::Fr, g1::G1Projective as G1, g2::G2Projective as G2, CP6_782,
 };
+use ark_ec_bench_templates::*;
 
 bench!(
     Name = "CP6_782",

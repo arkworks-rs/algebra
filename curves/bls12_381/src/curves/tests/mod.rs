@@ -1,5 +1,5 @@
-use ark_ec_test_templates::*;
 use ark_ec::{AffineRepr, CurveGroup, PrimeGroup};
+use ark_ec_test_templates::*;
 use ark_ff::{fields::Field, One, UniformRand, Zero};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, Compress, Validate};
 use ark_std::{rand::Rng, test_rng, vec};

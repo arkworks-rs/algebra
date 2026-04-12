@@ -106,7 +106,7 @@ impl<P: QuadExtConfig> QuadExtField<P> {
     ///
     /// ```
     /// # use ark_std::test_rng;
-    /// # use ark_test_curves::bls12_381::{Fq as Fp, Fq2 as Fp2};
+    /// # use ark_test_fields::bls12_381::{Fq as Fp, Fq2 as Fp2};
     /// # use ark_std::UniformRand;
     /// let c0: Fp = Fp::rand(&mut test_rng());
     /// let c1: Fp = Fp::rand(&mut test_rng());
@@ -132,7 +132,7 @@ impl<P: QuadExtConfig> QuadExtField<P> {
     /// ```
     /// # use ark_std::test_rng;
     /// # use ark_std::{UniformRand, Zero};
-    /// # use ark_test_curves::{Field, bls12_381::Fq2 as Fp2};
+    /// # use ark_test_fields::{Field, bls12_381::Fq2 as Fp2};
     /// let c: Fp2 = Fp2::rand(&mut test_rng());
     /// let norm = c.norm();
     /// // We now compute the norm using the `a * a.conjugate()` approach.
@@ -765,7 +765,7 @@ where
 mod quad_ext_tests {
     use super::*;
     use ark_std::test_rng;
-    use ark_test_curves::{
+    use ark_test_fields::{
         ark_ff::Field,
         bls12_381::{Fq, Fq2},
     };

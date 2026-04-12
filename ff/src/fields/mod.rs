@@ -141,7 +141,7 @@ pub trait AdditiveGroup:
 /// In the following example, we’ll use the field associated with the BLS12-381 pairing-friendly group.
 /// ```rust
 /// use ark_ff::{AdditiveGroup, Field};
-/// use ark_test_curves::bls12_381::Fq as F;
+/// use ark_test_fields::bls12_381::Fq as F;
 /// use ark_std::{One, UniformRand, test_rng};
 ///
 /// let mut rng = test_rng();
@@ -232,8 +232,8 @@ pub trait Field:
     /// Constructs a field element from a single base prime field elements.
     /// ```
     /// # use ark_ff::Field;
-    /// # use ark_test_curves::bls12_381::Fq as F;
-    /// # use ark_test_curves::bls12_381::Fq2 as F2;
+    /// # use ark_test_fields::bls12_381::Fq as F;
+    /// # use ark_test_fields::bls12_381::Fq2 as F2;
     /// # use ark_std::One;
     /// assert_eq!(F2::from_base_prime_field(F::one()), F2::one());
     /// ```
@@ -446,8 +446,8 @@ mod no_std_tests {
 
     // TODO: only Fr & FrConfig should need to be imported.
     // The rest of imports are caused by cargo not resolving the deps properly
-    // from this crate and from ark_test_curves
-    use ark_test_curves::{
+    // from this crate and from ark_test_fields
+    use ark_test_fields::{
         ark_ff::{batch_inversion, batch_inversion_and_mul, PrimeField},
         bls12_381::Fr,
     };
@@ -529,7 +529,7 @@ mod no_std_tests {
         // TODO: Eventually generate all the test vector bytes via computation with the
         // modulus
         use ark_std::{rand::Rng, string::ToString};
-        use ark_test_curves::ark_ff::BigInteger;
+        use ark_test_fields::ark_ff::BigInteger;
         use num_bigint::BigUint;
 
         let ref_modulus = BigUint::from_bytes_be(&Fr::MODULUS.to_bytes_be());

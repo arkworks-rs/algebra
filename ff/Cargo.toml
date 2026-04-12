@@ -28,7 +28,7 @@ num-bigint.workspace = true
 digest = { workspace = true, features = ["alloc"] }
 
 [dev-dependencies]
-ark-test-curves = { workspace = true, features = ["bls12_381_curve", "mnt6_753", "secp256k1"] }
+ark-test-fields = { workspace = true }
 blake2.workspace = true
 sha3.workspace = true
 sha2.workspace = true

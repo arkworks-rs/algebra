@@ -14,11 +14,9 @@
 //!    * a = -1
 //!    * d = -(10240/10241)
 
-mod fq;
-mod fr;
+pub use ark_test_fields::ed_on_bls12_381::*;
+
 mod g;
-pub use fq::*;
-pub use fr::*;
 pub use g::*;
 
 #[cfg(test)]

@@ -76,7 +76,7 @@ The [`AdditiveGroup`][additive_group] trait provides a generic interface for add
 use ark_ff::AdditiveGroup;
 // We'll use a field associated with the BLS12-381 pairing-friendly
 // group for this example.
-use ark_test_curves::bls12_381::Fq2 as F;
+use ark_test_fields::bls12_381::Fq2 as F;
 // `ark-std` is a utility crate that enables `arkworks` libraries
 // to easily support `std` and `no_std` workloads, and also re-exports
 // useful crates that should be common across the entire ecosystem, such as `rand`.
@@ -112,7 +112,7 @@ to be [`AdditiveGroup`][additive_group]s too.
 use ark_ff::{AdditiveGroup, Field};
 // We'll use a field associated with the BLS12-381 pairing-friendly
 // group for this example.
-use ark_test_curves::bls12_381::Fq2 as F;
+use ark_test_fields::bls12_381::Fq2 as F;
 // `ark-std` is a utility crate that enables `arkworks` libraries
 // to easily support `std` and `no_std` workloads, and also re-exports
 // useful crates that should be common across the entire ecosystem, such as `rand`.
@@ -151,7 +151,7 @@ The `sqrt`-related methods can be used as follows:
 use ark_ff::Field;
 // As before, we'll use a field associated with the BLS12-381 pairing-friendly
 // group for this example.
-use ark_test_curves::bls12_381::Fq2 as F;
+use ark_test_fields::bls12_381::Fq2 as F;
 use ark_std::{One, UniformRand};
 
 let mut rng = ark_std::test_rng();
@@ -177,7 +177,7 @@ additional APIs:
 ```rust
 use ark_ff::{Field, PrimeField, FpConfig, BigInteger, Zero};
 // Now we'll use the prime field underlying the BLS12-381 G1 curve.
-use ark_test_curves::bls12_381::Fq as F;
+use ark_test_fields::bls12_381::Fq as F;
 use ark_std::{One, UniformRand};
 
 let mut rng = ark_std::test_rng();
