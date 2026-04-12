@@ -31,7 +31,7 @@ pub trait HashToField<F: Field>: Sized {
 ///
 /// ```
 /// use ark_ff::fields::field_hashers::{DefaultFieldHasher, HashToField};
-/// use ark_test_fields::bls12_381::Fq;
+/// use ark_ff::test_helpers::bls12_381::Fq;
 /// use sha2::Sha256;
 ///
 /// let hasher = <DefaultFieldHasher<Sha256> as HashToField<Fq>>::new(&[1, 2, 3]);

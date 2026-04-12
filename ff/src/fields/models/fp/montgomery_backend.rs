@@ -612,8 +612,8 @@ pub const fn sqrt_precomputation<const N: usize, T: MontConfig<N>>(
 /// # Usage
 ///
 /// ```rust
-/// # use ark_test_fields::MontFp;
-/// # use ark_test_fields::bls12_381 as ark_bls12_381;
+/// # use ark_ff::MontFp;
+/// # use ark_ff::test_helpers::bls12_381 as ark_bls12_381;
 /// # use ark_std::{One, str::FromStr};
 /// use ark_bls12_381::Fq;
 /// const ONE: Fq = MontFp!("1");
@@ -860,8 +860,8 @@ impl<T: MontConfig<N>, const N: usize> Fp<MontBackend<T, N>, N> {
 
 #[cfg(test)]
 mod test {
+    use ark_ff::test_helpers::secp256k1::Fr;
     use ark_std::{str::FromStr, vec::*};
-    use ark_test_fields::secp256k1::Fr;
     use num_bigint::{BigInt, BigUint, Sign};
 
     #[test]

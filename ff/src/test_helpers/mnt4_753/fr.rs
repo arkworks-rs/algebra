@@ -1,4 +1,4 @@
-use ark_ff::fields::{Fp768, MontBackend};
+use crate::fields::{Fp768, MontBackend};
 
 pub type Fr = Fp768<MontBackend<FrConfig, 12>>;
 #[derive(ark_ff::MontConfig)]

@@ -11,6 +11,12 @@
 #![deny(unsafe_code)]
 #![doc = include_str!("../README.md")]
 
+// Let proc-macros (MontConfig, SmallFpConfig, define_field, MontFp) that expand
+// to `ark_ff::...` resolve when those expansions occur inside ark_ff itself,
+// e.g. in the `test_helpers` module.
+#[cfg(feature = "test_helpers")]
+extern crate self as ark_ff;
+
 #[macro_use]
 pub mod biginteger;
 pub use biginteger::{
@@ -36,6 +42,10 @@ pub use to_field_vec::ToConstraintField;
 pub use ark_ff_asm::*;
 #[doc(hidden)]
 pub use ark_std::vec;
+
+#[cfg(feature = "test_helpers")]
+#[doc(hidden)]
+pub mod test_helpers;
 
 pub mod prelude {
     pub use crate::{

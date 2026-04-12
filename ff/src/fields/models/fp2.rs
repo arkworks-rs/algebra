@@ -102,7 +102,7 @@ impl<P: Fp2Config> Fp2<P> {
     ///
     /// ```
     /// # use ark_std::test_rng;
-    /// # use ark_test_fields::bls12_381::{Fq as Fp, Fq2 as Fp2};
+    /// # use ark_ff::test_helpers::bls12_381::{Fq as Fp, Fq2 as Fp2};
     /// # use ark_std::UniformRand;
     /// let c0: Fp = Fp::rand(&mut test_rng());
     /// let c1: Fp = Fp::rand(&mut test_rng());

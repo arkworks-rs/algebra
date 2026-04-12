@@ -125,7 +125,7 @@ impl<F: Field> DenseOrSparsePolynomial<'_, F> {
                 for (i, div_coeff) in divisor.iter_with_index() {
                     remainder[cur_q_degree + i] -= &(cur_q_coeff * div_coeff);
                 }
-                while remainder.coeffs.last().map(|c| c.is_zero()) == Some(true) {
+                while remainder.coeffs.last().is_some_and(|c| c.is_zero()) {
                     remainder.coeffs.pop();
                 }
             }
@@ -191,7 +191,7 @@ impl<'a, F: FftField> DenseOrSparsePolynomial<'a, F> {
                 &(&reverted_divisor_inverse * &reverted_dividend).coeffs[..inversion_degree],
             );
             let q = DensePolynomial::from_coefficients_slice(
-                &Self::reverse_coeffs(&reverted_q, inversion_degree)
+                Self::reverse_coeffs(&reverted_q, inversion_degree)
                     .coeffs
                     .as_slice(),
             );
@@ -201,9 +201,7 @@ impl<'a, F: FftField> DenseOrSparsePolynomial<'a, F> {
     }
 
     fn inverse_mod(poly: &DensePolynomial<F>, degree: usize) -> DensePolynomial<F> {
-        if poly.coeffs[0].is_zero() {
-            panic!("Cannot compute inverse of 0");
-        }
+        assert!(!poly.coeffs[0].is_zero(), "Cannot compute inverse of 0");
 
         // Inverse mod X
         let mut l = 1;
@@ -256,7 +254,7 @@ impl<'a, F: FftField> DenseOrSparsePolynomial<'a, F> {
         let above_deg_coeffs: Vec<F> = (inverse * &c)
             .coeffs
             .iter()
-            .take(min(base_degree, inverse.degree() + &c.degree() + 1))
+            .take(min(base_degree, inverse.degree() + c.degree() + 1))
             .map(|&x| -x)
             .collect();
 
@@ -268,18 +266,16 @@ impl<'a, F: FftField> DenseOrSparsePolynomial<'a, F> {
     }
 
     fn reverse_coeffs(poly: &DensePolynomial<F>, max_degree: usize) -> DensePolynomial<F> {
-        if poly.coeffs.len() > max_degree {
-            panic!(
-                "Polynomial too big (size {}) to be reverted in size {}",
-                poly.coeffs.len(),
-                max_degree
-            );
-        }
+        assert!(
+            poly.coeffs.len() <= max_degree,
+            "Polynomial too big (size {}) to be reverted in size {}",
+            poly.coeffs.len(),
+            max_degree
+        );
 
         let mut rev_coeffs = vec![F::zero(); max_degree];
         rev_coeffs[..poly.coeffs.len()].clone_from_slice(
-            &poly
-                .coeffs
+            poly.coeffs
                 .clone()
                 .into_iter()
                 .rev()

@@ -1,6 +1,6 @@
 use ark_algebra_bench_templates::*;
 use ark_ff::fields::{Fp64, MontBackend, MontConfig};
-use ark_test_fields::smallfp::{
+use ark_ff::test_helpers::smallfp::{
     SmallFp16, SmallFp32Babybear, SmallFp32Koalabear, SmallFp32M31, SmallFp64Goldilock, SmallFp8,
 };
 

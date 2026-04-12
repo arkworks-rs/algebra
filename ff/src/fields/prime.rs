@@ -8,7 +8,7 @@ use num_bigint::BigUint;
 /// ```rust
 /// use ark_ff::{BigInteger, Field, PrimeField, Zero};
 /// use ark_std::{test_rng, One, UniformRand};
-/// use ark_test_fields::bls12_381::Fq as F;
+/// use ark_ff::test_helpers::bls12_381::Fq as F;
 ///
 /// let mut rng = test_rng();
 /// let a = F::rand(&mut rng);

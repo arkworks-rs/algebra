@@ -1,4 +1,4 @@
-use ark_ff::fields::{Fp384, MontBackend};
+use crate::fields::{Fp384, MontBackend};
 
 #[derive(ark_ff::MontConfig)]
 #[modulus = "4002409555221667393417789825735904156556882819939007885332058136124031650490837864442687629129015664037894272559787"]
@@ -14,11 +14,11 @@ mod tests {
     use core::marker::PhantomData;
 
     use super::*;
-    use ark_ff::{BigInt, FpConfig, One};
+    use crate::{BigInt, FpConfig, One};
 
     #[test]
     fn test_constants() {
-        use ark_ff::{MontConfig, PrimeField};
+        use crate::{MontConfig, PrimeField};
         assert_eq!(Fq::MODULUS_BIT_SIZE, 381);
 
         assert_eq!(FqConfig::INV, 0x89f3fffcfffcfffd);

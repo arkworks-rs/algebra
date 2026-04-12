@@ -28,7 +28,8 @@ num-bigint.workspace = true
 digest = { workspace = true, features = ["alloc"] }
 
 [dev-dependencies]
-ark-test-fields = { workspace = true }
+ark-algebra-test-templates = { workspace = true }
+ark-algebra-bench-templates = { workspace = true }
 blake2.workspace = true
 sha3.workspace = true
 sha2.workspace = true
@@ -43,3 +44,14 @@ default = []
 std = [ "ark-std/std", "ark-serialize/std" ]
 parallel = [ "std", "rayon", "ark-std/parallel", "ark-serialize/parallel" ]
 asm = []
+
+# Exposes the `ark_ff::test_helpers` module with concrete field fixtures used by
+# ark-ff's own tests and by downstream test-only consumers (e.g. ark-test-curves).
+# Not stable API; do not enable from production code.
+test_helpers = []
+
+[[bench]]
+name = "smallfp_fixtures"
+path = "benches/smallfp_fixtures.rs"
+harness = false
+required-features = ["test_helpers"]

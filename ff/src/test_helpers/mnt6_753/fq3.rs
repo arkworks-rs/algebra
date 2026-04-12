@@ -1,5 +1,5 @@
-use crate::mnt6_753::fq::Fq;
-use ark_ff::{
+use crate::test_helpers::mnt6_753::fq::Fq;
+use crate::{
     fields::fp3::{Fp3, Fp3Config},
     MontFp,
 };

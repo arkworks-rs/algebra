@@ -1,7 +1,7 @@
-pub use ark_test_fields::bls12_381::fr::*;
+pub use ark_ff::test_helpers::bls12_381::fr::*;
 
 #[cfg(feature = "bls12_381_curve")]
-pub use ark_test_fields::bls12_381::{fq::*, fq12::*, fq2::*, fq6::*};
+pub use ark_ff::test_helpers::bls12_381::{fq::*, fq12::*, fq2::*, fq6::*};
 
 #[cfg(feature = "bls12_381_curve")]
 pub mod g1;

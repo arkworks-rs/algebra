@@ -91,8 +91,8 @@ impl<P: CubicExtConfig> CubicExtField<P> {
     ///
     /// ```
     /// # use ark_std::test_rng;
-    /// # use ark_test_fields::bls12_381::{Fq2 as Fp2, Fq6 as Fp6};
-    /// # use ark_test_fields::bls12_381::Fq6Config;
+    /// # use ark_ff::test_helpers::bls12_381::{Fq2 as Fp2, Fq6 as Fp6};
+    /// # use ark_ff::test_helpers::bls12_381::Fq6Config;
     /// # use ark_std::UniformRand;
     /// # use ark_ff::models::fp6_3over2::Fp6ConfigWrapper;
     /// use ark_ff::models::cubic_extension::CubicExtField;
@@ -678,12 +678,14 @@ where
 #[cfg(test)]
 mod cube_ext_tests {
     use super::*;
-    use ark_std::{test_rng, vec};
-    use ark_test_fields::{
-        ark_ff::Field,
-        bls12_381::{Fq, Fq2, Fq6},
-        mnt6_753::Fq3,
+    use crate::{
+        test_helpers::{
+            bls12_381::{Fq, Fq2, Fq6},
+            mnt6_753::Fq3,
+        },
+        Field,
     };
+    use ark_std::{test_rng, vec};
 
     #[test]
     fn test_norm_for_towers() {

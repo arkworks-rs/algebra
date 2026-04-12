@@ -14,7 +14,7 @@
 //!    * a = -1
 //!    * d = -(10240/10241)
 
-pub use ark_test_fields::ed_on_bls12_381::*;
+pub use ark_ff::test_helpers::ed_on_bls12_381::*;
 
 mod g;
 pub use g::*;

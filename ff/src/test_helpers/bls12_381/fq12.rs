@@ -1,5 +1,5 @@
-use crate::bls12_381::{Fq2, Fq6, Fq6Config, FQ2_ONE, FQ2_ZERO};
-use ark_ff::{
+use crate::test_helpers::bls12_381::{Fq2, Fq6, Fq6Config, FQ2_ONE, FQ2_ZERO};
+use crate::{
     fields::{Fp12, Fp12Config, Fp2},
     MontFp,
 };

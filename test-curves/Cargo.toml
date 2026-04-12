@@ -20,9 +20,8 @@ workspace = true
 
 [dependencies]
 ark-std = { workspace = true, default-features = false }
-ark-ff = { workspace = true, default-features = false }
+ark-ff = { workspace = true, default-features = false, features = ["test_helpers"] }
 ark-ec = { workspace = true, default-features = false }
-ark-test-fields = { workspace = true, default-features = false }
 
 [dev-dependencies]
 ark-serialize = { workspace = true, default-features = false }

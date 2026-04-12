@@ -13,7 +13,6 @@ members = [
 
     "poly",
     "test-curves",
-    "test-fields",
     "test-templates",
     "ec-test-templates",
 ]
@@ -153,7 +152,6 @@ ark-algebra-test-templates = { version = "0.5.0", path = "./test-templates", def
 ark-ec-bench-templates = { version = "0.5.0", path = "./ec-bench-templates", default-features = false }
 ark-ec-test-templates = { version = "0.5.0", path = "./ec-test-templates", default-features = false }
 ark-test-curves = { version = "0.5.0", path = "./test-curves", default-features = false }
-ark-test-fields = { version = "0.5.0", path = "./test-fields", default-features = false }
 
 num-traits = { version = "0.2", default-features = false }
 num-bigint = { version = "0.4", default-features = false }

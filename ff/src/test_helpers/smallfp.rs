@@ -1,4 +1,4 @@
-use ark_ff::define_field;
+use crate::define_field;
 
 define_field!(modulus = "251", generator = "6", name = SmallFp8,);
 
@@ -31,23 +31,16 @@ define_field!(
     name = SmallFp64Goldilock,
 );
 
+// NOTE: the property-based `test_small_field!` invocations live in
+// `ff/tests/test_helpers_fixtures.rs` — see the comment in `fp128.rs` for why.
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ark_algebra_test_templates::*;
-    use ark_std::vec;
-
-    test_small_field!(f8; SmallFp8);
-    test_small_field!(f16; SmallFp16);
-    test_small_field!(f16_mont_m13; SmallFp16M13);
-    test_small_field!(f32; SmallFp32M31);
-    test_small_field!(f32_mont_babybear; SmallFp32Babybear);
-    test_small_field!(f32_mont_koalabear; SmallFp32Koalabear);
-    test_small_field!(f64; SmallFp64Goldilock);
 
     mod const_constructors {
         use super::*;
-        use ark_ff::{One, Zero};
+        use crate::{One, Zero};
 
         #[test]
         fn test_from_u128_zero() {

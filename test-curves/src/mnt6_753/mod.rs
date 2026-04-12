@@ -1,4 +1,4 @@
-pub use ark_test_fields::mnt6_753::*;
+pub use ark_ff::test_helpers::mnt6_753::*;
 
 #[cfg(test)]
 mod tests;

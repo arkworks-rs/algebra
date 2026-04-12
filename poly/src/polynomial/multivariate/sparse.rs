@@ -311,6 +311,10 @@ mod tests {
         // in [1,d] and random coefficient
         random_terms.push((Fr::rand(rng), SparseTerm::new(vec![])));
         for _ in 1..num_terms {
+            // The two clippy lints `filter_map_bool_then` and `if_then_some_else_none`
+            // contradict each other on this shape; `rng` prevents splitting into
+            // separate `filter` + `map` closures because it would be borrowed twice.
+            #[allow(clippy::filter_map_bool_then)]
             let term = (0..l)
                 .filter_map(|i| rng.gen_bool(0.5).then(|| (i, rng.gen_range(1..(d + 1)))))
                 .collect();
