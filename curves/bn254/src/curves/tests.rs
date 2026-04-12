@@ -1,4 +1,4 @@
-use ark_algebra_test_templates::*;
+use ark_ec_test_templates::*;
 use ark_ff::fields::Field;
 
 use crate::{Bn254, G1Projective, G2Projective};

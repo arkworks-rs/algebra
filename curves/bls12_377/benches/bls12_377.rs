@@ -1,4 +1,5 @@
 use ark_algebra_bench_templates::*;
+use ark_ec_bench_templates::*;
 
 use ark_bls12_377::{
     fq::Fq, fq2::Fq2, fr::Fr, Bls12_377, Fq12, G1Projective as G1, G2Projective as G2,

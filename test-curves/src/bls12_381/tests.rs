@@ -1,6 +1,8 @@
 #![allow(clippy::ptr_arg)]
 use crate::bls12_381::*;
 use ark_algebra_test_templates::*;
+#[cfg(feature = "bls12_381_curve")]
+use ark_ec_test_templates::*;
 
 test_field!(fr; Fr; mont_prime_field);
 #[cfg(feature = "bls12_381_curve")]

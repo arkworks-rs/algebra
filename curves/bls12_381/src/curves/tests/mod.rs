@@ -1,4 +1,4 @@
-use ark_algebra_test_templates::*;
+use ark_ec_test_templates::*;
 use ark_ec::{AffineRepr, CurveGroup, PrimeGroup};
 use ark_ff::{fields::Field, One, UniformRand, Zero};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, Compress, Validate};

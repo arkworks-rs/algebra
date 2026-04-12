@@ -23,6 +23,7 @@ ark-curve25519 = { workspace = true }
 ark-relations = { workspace = true }
 ark-serialize = { workspace = true }
 ark-algebra-test-templates = { workspace = true }
+ark-ec-test-templates = { workspace = true }
 ark-curve-constraint-tests = { path = "../curve-constraint-tests" }
 
 [features]

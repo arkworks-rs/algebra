@@ -1,0 +1,37 @@
+[package]
+name = "ark-ec-bench-templates"
+description = "A benchmark library for elliptic curves and pairings"
+keywords = ["cryptography", "elliptic-curves", "pairing"]
+documentation = "https://docs.rs/ark-ec-bench-templates/"
+version.workspace = true
+authors.workspace = true
+homepage.workspace = true
+repository.workspace = true
+categories.workspace = true
+include.workspace = true
+license.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+metadata.docs.rs.workspace = true
+metadata.release.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+criterion.workspace = true
+ark-std.workspace = true
+ark-ec.workspace = true
+ark-ff.workspace = true
+ark-serialize.workspace = true
+ark-algebra-bench-templates.workspace = true
+paste.workspace = true
+
+[features]
+asm = ["ark-ff/asm"]
+parallel = [
+    "ark-std/parallel",
+    "ark-ff/parallel",
+    "ark-ec/parallel",
+    "ark-serialize/parallel",
+]

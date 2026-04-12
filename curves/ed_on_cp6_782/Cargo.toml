@@ -23,6 +23,7 @@ ark-bls12-377 = { workspace = true, features = [ "base_field" ] }
 ark-relations = { workspace = true }
 ark-serialize = { workspace = true }
 ark-algebra-test-templates = { workspace = true }
+ark-ec-test-templates = { workspace = true }
 ark-curve-constraint-tests = { path = "../curve-constraint-tests" }
 
 [features]

@@ -1,0 +1,38 @@
+[package]
+name = "ark-ec-test-templates"
+description = "A library of test templates for elliptic curves and pairings"
+keywords = ["cryptography", "elliptic-curves", "pairing"]
+documentation = "https://docs.rs/ark-ec-test-templates/"
+version.workspace = true
+authors.workspace = true
+homepage.workspace = true
+repository.workspace = true
+categories.workspace = true
+include.workspace = true
+license.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+metadata.docs.rs.workspace = true
+metadata.release.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+ark-std.workspace = true
+ark-serialize.workspace = true
+ark-ff.workspace = true
+ark-ec.workspace = true
+ark-algebra-test-templates.workspace = true
+num-bigint.workspace = true
+num-integer.workspace = true
+num-traits.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+serde_derive.workspace = true
+hex.workspace = true
+sha2.workspace = true
+
+[features]
+default = []
+std = ["ark-std/std", "ark-ff/std", "ark-serialize/std", "ark-ec/std"]

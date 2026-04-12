@@ -66,6 +66,8 @@ ark-poly = { version = "0.5.0", path = "../poly", default-features = false }
 ark-serialize = { version = "0.5.0", path = "../serialize", default-features = false }
 ark-algebra-test-templates = { version = "0.5.0", path = "../test-templates", default-features = false }
 ark-algebra-bench-templates =  { version = "0.5.0", path = "../bench-templates", default-features = false }
+ark-ec-test-templates = { version = "0.5.0", path = "../ec-test-templates", default-features = false }
+ark-ec-bench-templates =  { version = "0.5.0", path = "../ec-bench-templates", default-features = false }
 
 ark-bls12-377 = { version = "0.5.0", path = "./bls12_377", default-features = false }
 ark-bls12-381 = { version = "0.5.0", path = "./bls12_381", default-features = false }
@@ -116,6 +118,8 @@ ark-poly = { path = "../poly" }
 ark-serialize = { path = "../serialize" }
 ark-algebra-test-templates = { path = "../test-templates" }
 ark-algebra-bench-templates = { path = "../bench-templates" }
+ark-ec-test-templates = { path = "../ec-test-templates" }
+ark-ec-bench-templates = { path = "../ec-bench-templates" }
 ark-curve-constraint-tests = { path = "./curve-constraint-tests" }
 ark-std = { git = "https://github.com/arkworks-rs/std/" }
 ark-r1cs-std = { git = "https://github.com/arkworks-rs/r1cs-std" }

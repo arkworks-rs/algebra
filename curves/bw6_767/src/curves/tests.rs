@@ -1,5 +1,5 @@
 use crate::*;
-use ark_algebra_test_templates::*;
+use ark_ec_test_templates::*;
 use ark_ff::Field;
 
 test_group!(g1; G1Projective; sw);

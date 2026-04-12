@@ -1,0 +1,38 @@
+[package]
+name = "ark-test-fields"
+description = "A library for testing finite-field implementations"
+keywords = ["cryptography", "finite-fields"]
+documentation = "https://docs.rs/ark-test-fields/"
+version.workspace = true
+authors.workspace = true
+homepage.workspace = true
+repository.workspace = true
+categories.workspace = true
+include.workspace = true
+license.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+metadata.docs.rs.workspace = true
+metadata.release.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+ark-std = { workspace = true, default-features = false }
+ark-ff = { workspace = true, default-features = false }
+
+[dev-dependencies]
+ark-serialize = { workspace = true, default-features = false }
+ark-algebra-test-templates = { workspace = true, default-features = false }
+ark-algebra-bench-templates = { workspace = true, default-features = false }
+
+[features]
+default = []
+asm = ["ark-ff/asm"]
+parallel = ["ark-ff/parallel", "ark-std/parallel"]
+
+[[bench]]
+name = "smallfp"
+path = "benches/smallfp.rs"
+harness = false
