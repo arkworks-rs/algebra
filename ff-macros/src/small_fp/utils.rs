@@ -79,6 +79,22 @@ pub(crate) const fn find_quadratic_non_residue(modulus: u128) -> u128 {
     }
 }
 
+/// Compute the large subgroup root of unity:
+/// generator^((p-1) / (2^two_adicity * base^power))
+pub(crate) fn compute_large_subgroup_root(
+    modulus: u128,
+    generator: u128,
+    two_adicity: u32,
+    base: u32,
+    power: u32,
+) -> u128 {
+    let mut remaining = (modulus - 1) >> two_adicity;
+    for _ in 0..power {
+        remaining /= base as u128;
+    }
+    pow_mod_const(generator, remaining, modulus)
+}
+
 pub(crate) fn generate_montgomery_bigint_casts(
 ) -> (proc_macro2::TokenStream, proc_macro2::TokenStream) {
     (

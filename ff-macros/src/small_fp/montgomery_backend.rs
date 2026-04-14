@@ -1,8 +1,9 @@
 use super::*;
 use crate::small_fp::utils::{
-    compute_two_adic_root_of_unity, compute_two_adicity, generate_montgomery_bigint_casts,
-    generate_sqrt_precomputation, mod_mul_const,
+    compute_large_subgroup_root, compute_two_adic_root_of_unity, compute_two_adicity,
+    generate_montgomery_bigint_casts, generate_sqrt_precomputation, mod_mul_const,
 };
+use crate::utils::find_conservative_subgroup_base;
 
 pub(crate) fn backend_impl(
     ty: &proc_macro2::TokenStream,
@@ -37,6 +38,21 @@ pub(crate) fn backend_impl(
     let two_adic_root_mont = mod_mul_const(two_adic_root, r_mod_n, modulus);
 
     let neg_one_mont = mod_mul_const(modulus - 1, r_mod_n, modulus);
+
+    let modulus_big = num_bigint::BigUint::from(modulus);
+    let mixed_radix_impl = if let Some((base, power)) =
+        find_conservative_subgroup_base(&modulus_big)
+    {
+        let large_root = compute_large_subgroup_root(modulus, generator, two_adicity, base, power);
+        let large_root_mont = mod_mul_const(large_root, r_mod_n, modulus);
+        quote! {
+            const SMALL_SUBGROUP_BASE: Option<u32> = Some(#base);
+            const SMALL_SUBGROUP_BASE_ADICITY: Option<u32> = Some(#power);
+            const LARGE_SUBGROUP_ROOT_OF_UNITY: Option<SmallFp<Self>> = Some(SmallFp::from_raw(#large_root_mont as Self::T));
+        }
+    } else {
+        quote! {}
+    };
 
     let (from_bigint_impl, into_bigint_impl) = generate_montgomery_bigint_casts();
     let sqrt_precomp_impl = generate_sqrt_precomputation(modulus, two_adicity, Some(r_mod_n));
@@ -90,6 +106,8 @@ pub(crate) fn backend_impl(
 
         const TWO_ADICITY: u32 = #two_adicity;
         const TWO_ADIC_ROOT_OF_UNITY: SmallFp<Self> = SmallFp::from_raw(#two_adic_root_mont as Self::T);
+
+        #mixed_radix_impl
 
         #sqrt_precomp_impl
 
