@@ -1,6 +1,8 @@
 use ark_algebra_bench_templates::*;
 use ark_ff::fields::{Fp64, MontBackend, MontConfig};
-use ark_test_curves::smallfp::{SmallFp16, SmallFp32M31, SmallFp64Goldilock, SmallFp8};
+use ark_test_curves::smallfp::{
+    SmallFp16, SmallFp32Babybear, SmallFp32Koalabear, SmallFp32M31, SmallFp64Goldilock, SmallFp8,
+};
 
 #[derive(MontConfig)]
 #[modulus = "18446744069414584321"]
@@ -34,6 +36,8 @@ f_bench!(prime, "SmallF16Mont", SmallFp16);
 
 f_bench!(prime, "F32", F32);
 f_bench!(prime, "SmallF32Mont", SmallFp32M31);
+f_bench!(prime, "SmallF32MontBabybear", SmallFp32Babybear);
+f_bench!(prime, "SmallF32MontKoalabear", SmallFp32Koalabear);
 
 f_bench!(prime, "F64", F64);
 f_bench!(prime, "SmallF64Mont", SmallFp64Goldilock);
@@ -45,6 +49,8 @@ criterion_main!(
     smallfp16::benches,
     f32::benches,
     smallfp32m31::benches,
+    smallfp32babybear::benches,
+    smallfp32koalabear::benches,
     f64::benches,
     smallfp64goldilock::benches,
 );

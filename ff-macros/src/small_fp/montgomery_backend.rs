@@ -1,12 +1,12 @@
 use super::*;
 use crate::small_fp::utils::{
     compute_large_subgroup_root, compute_two_adic_root_of_unity, compute_two_adicity,
-    generate_montgomery_bigint_casts, generate_sqrt_precomputation, mod_mul_const,
+    generate_montgomery_bigint_casts, generate_sqrt_precomputation, mod_mul_const, pow_mod_const,
 };
 use crate::utils::find_conservative_subgroup_base;
 
 pub(crate) fn backend_impl(
-    ty: &proc_macro2::TokenStream,
+    repr_type: &proc_macro2::TokenStream,
     modulus: u128,
     generator: u128,
 ) -> (proc_macro2::TokenStream, u128) {
@@ -20,7 +20,7 @@ pub(crate) fn backend_impl(
         "modulus must be < 2^64 for SmallFp"
     );
 
-    let ty_str = ty.to_string();
+    let repr_type_str = repr_type.to_string();
 
     // R = 2^k_bits where k_bits = ceil(log2(modulus))
     // Since modulus < 2^64, k_bits <= 64 and R always fits in u128
@@ -59,9 +59,10 @@ pub(crate) fn backend_impl(
     let r2 = mod_mul_const(r_mod_n, r_mod_n, modulus);
 
     // Generate multiplication implementation based on type
-    let mul_impl = generate_mul_impl(ty, modulus, k_bits, r_mask, n_prime);
+    let mul_impl = generate_mul_impl(repr_type, modulus, k_bits, r_mask, n_prime);
+    let inverse_impl = generate_inverse_impl(repr_type, modulus, r_mod_n, r2);
 
-    let type_bits = match ty_str.as_str() {
+    let type_bits = match repr_type_str.as_str() {
         "u8" => 8u32,
         "u16" => 16u32,
         "u32" => 32u32,
@@ -96,7 +97,7 @@ pub(crate) fn backend_impl(
     };
 
     let ts = quote! {
-        type T = #ty;
+        type T = #repr_type;
         const MODULUS: Self::T = #modulus as Self::T;
         const MODULUS_U128: u128 = #modulus;
         const GENERATOR: SmallFp<Self> = SmallFp::from_raw(#generator_mont as Self::T);
@@ -137,6 +138,8 @@ pub(crate) fn backend_impl(
 
         #mul_impl
 
+        #inverse_impl
+
         #[inline(always)]
         fn sum_of_products<const T: usize>(
             a: &[SmallFp<Self>; T],
@@ -173,29 +176,6 @@ pub(crate) fn backend_impl(
             Self::mul_assign(a, &tmp);
         }
 
-        fn inverse(a: &SmallFp<Self>) -> Option<SmallFp<Self>> {
-            if a.value == 0 {
-                return None;
-            }
-
-            let mut result = Self::ONE;
-            let mut base = *a;
-            let mut exp = Self::MODULUS - 2;
-
-            while exp > 0 {
-                if exp & 1 == 1 {
-                    Self::mul_assign(&mut result, &base);
-                }
-
-                let mut sq = base;
-                Self::square_in_place(&mut sq);
-                base = sq;
-                exp >>= 1;
-            }
-
-            Some(result)
-        }
-
         #[inline]
         fn new(value: Self::T) -> SmallFp<Self> {
             let reduced_value = value % Self::MODULUS;
@@ -213,176 +193,296 @@ pub(crate) fn backend_impl(
     (ts, r_mod_n)
 }
 
-// Selects the appropriate multiplication algorithm at compile time
-// by widening to the next-largest primitive type for the product
+// Generate inverse using the binary extended GCD algorithm:
+//
+// TL;DR: This reduces modular reductions needed to a single modular correction
+// It's based on Pornin (2020): https://eprint.iacr.org/2020/1340
+//
+// But with adaptations for single limb arithmetic made by Plonky3:
+// 31-bit fields here: https://github.com/Plonky3/Plonky3/pull/921/changes
+// Goldilocks here: https://github.com/Plonky3/Plonky3/pull/925
+fn generate_inverse_impl(
+    repr_type: &proc_macro2::TokenStream,
+    modulus: u128,
+    r_mod_n: u128,
+    r2: u128,
+) -> proc_macro2::TokenStream {
+    let repr_type_str = repr_type.to_string();
+
+    let field_bits = 128 - modulus.leading_zeros();
+    // num of iterations need to guarantee that rem_1 converges on 1 (meaning GCD is found)
+    // Note: only len(a) + len(modulus) iterations are needed but keep this way for constant-time execution
+    let num_iters = 2 * field_bits - 2;
+
+    // 2⁻¹ mod P = (P+1)/2  (works because P is odd)
+    let half = (modulus + 1) / 2;
+
+    // 2^{-N} mod P = ((P+1)/2)^N mod P
+    let two_neg_iters = pow_mod_const(half, num_iters as u128, modulus);
+
+    // R³ = R² · R
+    let r3 = mod_mul_const(r2, r_mod_n, modulus);
+
+    // C = R³ · 2^{-N} mod P
+    let corr = mod_mul_const(r3, two_neg_iters, modulus);
+
+    #[allow(clippy::if_not_else)]
+    if repr_type_str != "u64" {
+        // all primes <= u32 branch: bezout coefficients fit in i64, single loop
+        quote! {
+            #[inline]
+            fn inverse(a: &SmallFp<Self>) -> Option<SmallFp<Self>> {
+                if a.value == 0 {
+                    return None;
+                }
+                // every round the invariant must hold:
+                //   bezout_a · input ≡ rem_a · 2^i  (mod P)
+                //   bezout_b · input ≡ rem_b · 2^i  (mod P)
+                let mut rem_a: u64 = a.value as u64;
+                let mut rem_b: u64 = Self::MODULUS as u64;
+                let mut bezout_a: i64 = 1;
+                let mut bezout_b: i64 = 0;
+                let mut i = 0u32;
+                // everything in this loop is add, sub, or bitwise
+                while i < #num_iters {
+                    // if rem_a is odd
+                    if rem_a & 1 != 0 {
+                        // if a < b, swap them
+                        if rem_a < rem_b {
+                            (rem_a, rem_b) = (rem_b, rem_a);
+                            (bezout_a, bezout_b) = (bezout_b, bezout_a);
+                        }
+                        // subtract b from a
+                        rem_a -= rem_b;
+                        bezout_a -= bezout_b;
+                    }
+                    // always divide a by 2
+                    rem_a >>= 1;
+                    // always multiply b by 2
+                    bezout_b <<= 1;
+                    i += 1;
+                }
+                // convert signed bezout_b to a field element in [0, P)
+                let bezout_canonical = bezout_b.rem_euclid(Self::MODULUS as i64) as u64;
+                let mut bezout_b_field = SmallFp::from_raw(bezout_canonical as Self::T);
+
+                // perfom one correction to get a⁻¹·R mod P
+                let corr_field = SmallFp::from_raw(#corr as Self::T);
+                Self::mul_assign(&mut bezout_b_field, &corr_field);
+                Some(bezout_b_field)
+            }
+        }
+    } else {
+        // all larger primes: bezout coefficients overflow i64, so we split
+        // into two half-rounds and compose the results via matrix multiply.
+
+        // num_iters = 126, which doesn't fit into anything useful, so we must split this into two rounds
+        let half_iters = num_iters / 2;
+        // we can do 62 iterations in i64 but we need 63 so we promote the last round to i128
+        let half_iters_i64 = half_iters - 1;
+
+        quote! {
+            #[inline]
+            fn inverse(a: &SmallFp<Self>) -> Option<SmallFp<Self>> {
+                if a.value == 0 {
+                    return None;
+                }
+
+                let mut rem_a: u64 = a.value;
+                let mut rem_b: u64 = Self::MODULUS;
+
+                // Run two half-rounds, saving the entries needed for composition.
+                // Each half-round tracks a 2x2 transition matrix but we only save
+                // the entries we actually need for the final composition.
+
+                // ---- half-round 1: save (r1_bezout_a, r1_bezout_b) ----
+                let (r1_bezout_a, r1_bezout_b): (i128, i128);
+                {
+                    let (mut bezout_a, mut mod_a, mut bezout_b, mut mod_b): (i64, i64, i64, i64) = (1, 0, 0, 1);
+                    let mut i = 0u32;
+                    while i < #half_iters_i64 {
+                        if rem_a & 1 != 0 {
+                            if rem_a < rem_b {
+                                (rem_a, rem_b) = (rem_b, rem_a);
+                                (bezout_a, bezout_b) = (bezout_b, bezout_a);
+                                (mod_a, mod_b) = (mod_b, mod_a);
+                            }
+                            rem_a -= rem_b; rem_a >>= 1;
+                            bezout_a -= bezout_b; mod_a -= mod_b;
+                        } else {
+                            rem_a >>= 1;
+                        }
+                        bezout_b <<= 1; mod_b <<= 1;
+                        i += 1;
+                    }
+                    // final iteration promoted to i128 to avoid ±2^63 overflow
+                    let (mut bezout_a, mut mod_a, mut bezout_b, mut mod_b) =
+                        (bezout_a as i128, mod_a as i128, bezout_b as i128, mod_b as i128);
+                    if rem_a & 1 != 0 {
+                        if rem_a < rem_b {
+                            (rem_a, rem_b) = (rem_b, rem_a);
+                            (bezout_a, bezout_b) = (bezout_b, bezout_a);
+                            (mod_a, mod_b) = (mod_b, mod_a);
+                        }
+                        rem_a -= rem_b; rem_a >>= 1;
+                        bezout_a -= bezout_b; mod_a -= mod_b;
+                    } else {
+                        rem_a >>= 1;
+                    }
+                    bezout_b <<= 1; mod_b <<= 1;
+                    r1_bezout_a = bezout_a; r1_bezout_b = bezout_b;
+                }
+
+                // ---- half-round 2: save (r2_bezout_b, r2_mod_b) ----
+                let (r2_bezout_b, r2_mod_b): (i128, i128);
+                {
+                    let (mut bezout_a, mut mod_a, mut bezout_b, mut mod_b): (i64, i64, i64, i64) = (1, 0, 0, 1);
+                    let mut i = 0u32;
+                    while i < #half_iters_i64 {
+                        if rem_a & 1 != 0 {
+                            if rem_a < rem_b {
+                                (rem_a, rem_b) = (rem_b, rem_a);
+                                (bezout_a, bezout_b) = (bezout_b, bezout_a);
+                                (mod_a, mod_b) = (mod_b, mod_a);
+                            }
+                            rem_a -= rem_b; rem_a >>= 1;
+                            bezout_a -= bezout_b; mod_a -= mod_b;
+                        } else {
+                            rem_a >>= 1;
+                        }
+                        bezout_b <<= 1; mod_b <<= 1;
+                        i += 1;
+                    }
+                    // final iteration promoted to i128 to avoid ±2^63 overflow
+                    let (mut bezout_a, mut mod_a, mut bezout_b, mut mod_b) =
+                        (bezout_a as i128, mod_a as i128, bezout_b as i128, mod_b as i128);
+                    if rem_a & 1 != 0 {
+                        if rem_a < rem_b {
+                            (rem_a, rem_b) = (rem_b, rem_a);
+                            (bezout_a, bezout_b) = (bezout_b, bezout_a);
+                            (mod_a, mod_b) = (mod_b, mod_a);
+                        }
+                        rem_a -= rem_b; rem_a >>= 1;
+                        bezout_a -= bezout_b; mod_a -= mod_b;
+                    } else {
+                        rem_a >>= 1;
+                    }
+                    bezout_b <<= 1; mod_b <<= 1;
+                    r2_bezout_b = bezout_b; r2_mod_b = mod_b;
+                }
+
+                // Compose: total bezout_b = r2_bezout_b * r1_bezout_a + r2_mod_b * r1_bezout_b
+                let bezout_raw = r2_bezout_b * r1_bezout_a + r2_mod_b * r1_bezout_b;
+
+                // convert signed bezout to a field element in [0, P)
+                let p = Self::MODULUS as i128;
+                let bezout_canonical = ((bezout_raw % p) + p) as u128 % Self::MODULUS as u128;
+                let mut bezout_field = SmallFp::from_raw(bezout_canonical as Self::T);
+
+                // perform one correction to get a⁻¹·R mod P
+                let corr_field = SmallFp::from_raw(#corr as Self::T);
+                Self::mul_assign(&mut bezout_field, &corr_field);
+                Some(bezout_field)
+            }
+        }
+    }
+}
+
+// Generates the mul_assign implementation at compile time including a few
+// optimized paths
 fn generate_mul_impl(
-    ty: &proc_macro2::TokenStream,
+    repr_type: &proc_macro2::TokenStream,
     modulus: u128,
     k_bits: u32,
     r_mask: u128,
     n_prime: u128,
 ) -> proc_macro2::TokenStream {
-    let ty_str = ty.to_string();
+    let repr_type_str = repr_type.to_string();
+    let field_bits = 128 - modulus.leading_zeros();
+    let is_mersenne = field_bits >= 2 && modulus == (1u128 << field_bits) - 1;
 
-    match ty_str.as_str() {
-        "u64" => generate_u64_mul(modulus, k_bits, r_mask, n_prime),
-        "u32" => generate_u32_mul(modulus, k_bits, r_mask, n_prime),
-        "u8" | "u16" => generate_small_mul(ty, ty_str.as_str(), modulus, k_bits, r_mask, n_prime),
-        _ => panic!("Unsupported type: {}", ty_str),
-    }
-}
+    // Wider type for the product: u8→u16, u16→u32, u32→u64
+    let mul_ty = match repr_type_str.as_str() {
+        "u8" => quote! { u16 },
+        "u16" => quote! { u32 },
+        "u32" => quote! { u64 },
+        _ => quote! { u128 },
+    };
 
-fn generate_u64_mul(
-    modulus: u128,
-    k_bits: u32,
-    r_mask: u128,
-    n_prime: u128,
-) -> proc_macro2::TokenStream {
-    // Use u128 for multiplication to avoid overflow when multiplying u64 values
-    let shift_bits = 128 - k_bits;
+    match (repr_type_str.as_str(), is_mersenne) {
+        ("u8" | "u16", false) => {
+            // All (non-mersenne) primes < 2^16
+            quote! {
+                #[inline(always)]
+                fn mul_assign(a: &mut SmallFp<Self>, b: &SmallFp<Self>) {
+                    const MODULUS_MUL_TY: #mul_ty = #modulus as #mul_ty;
+                    const N_PRIME: #repr_type = #n_prime as #repr_type;
+                    const MASK: #mul_ty = #r_mask as #mul_ty;
+                    const K_BITS: u32 = #k_bits;
 
-    quote! {
-        #[inline(always)]
-        fn mul_assign(a: &mut SmallFp<Self>, b: &SmallFp<Self>) {
-            const MODULUS_MUL_TY: u128 = #modulus as u128;
-            const N_PRIME: u128 = #n_prime as u128;
-            const R_MASK: u128 = #r_mask as u128;
-
-            let mut t = (a.value as u128) * (b.value as u128);
-            let k = t.wrapping_mul(N_PRIME) & R_MASK;
-            let (t, overflow) = t.overflowing_add(k * MODULUS_MUL_TY);
-
-            let mut r = (t >> #k_bits) + ((overflow as u128) << #shift_bits);
-            if r >= MODULUS_MUL_TY {
-                r -= MODULUS_MUL_TY;
-            }
-            a.value = r as u64;
-        }
-    }
-}
-
-fn generate_u32_mul(
-    modulus: u128,
-    k_bits: u32,
-    r_mask: u128,
-    n_prime: u128,
-) -> proc_macro2::TokenStream {
-    const M31_PRIME: u128 = 2147483647; // 2^31 - 1
-
-    if modulus == M31_PRIME {
-        quote! {
-           #[inline(always)]
-            fn mul_assign(a: &mut SmallFp<Self>, b: &SmallFp<Self>) {
-                const K: u64 = 31;
-                const MODULUS: u64 = (1u64 << K) - 1;
-
-                let prod = (a.value as u64) * (b.value as u64);
-                let mut r = (prod & MODULUS) + (prod >> K);
-
-                if r >= MODULUS {
-                    r -= MODULUS;
+                    let tmp = (a.value as #mul_ty) * (b.value as #mul_ty);
+                    let carry1 = (tmp >> K_BITS) as #repr_type;
+                    let r = (tmp & MASK) as #repr_type;
+                    let m = r.wrapping_mul(N_PRIME);
+                    let tmp = (r as #mul_ty) + ((m as #mul_ty) * MODULUS_MUL_TY);
+                    let carry2 = (tmp >> K_BITS) as #repr_type;
+                    let mut r = (carry1 as #mul_ty) + (carry2 as #mul_ty);
+                    if r >= MODULUS_MUL_TY { r -= MODULUS_MUL_TY; }
+                    a.value = r as #repr_type;
                 }
-                a.value = r as u32;
             }
-        }
-    } else {
-        quote! {
-            #[inline(always)]
-            fn mul_assign(a: &mut SmallFp<Self>, b: &SmallFp<Self>) {
-                const MODULUS_MUL_TY: u64 = #modulus as u64;
-                const N_PRIME: u64 = #n_prime as u64;
-                const R_MASK: u64 = #r_mask as u64;
-
-                let t = (a.value as u64) * (b.value as u64);
-                let k = t.wrapping_mul(N_PRIME) & R_MASK;
-
-                let mut r = (t + (k * MODULUS_MUL_TY)) >> #k_bits;
-                if r >= MODULUS_MUL_TY {
-                   r -= MODULUS_MUL_TY;
+        },
+        ("u8" | "u16" | "u32", true) => {
+            // All mersenne primes < 2^32
+            // skips montgomery, uses direct reduction
+            quote! {
+                #[inline(always)]
+                fn mul_assign(a: &mut SmallFp<Self>, b: &SmallFp<Self>) {
+                    const K: u32 = #field_bits;
+                    const MODULUS: #mul_ty = #modulus as #mul_ty;
+                    let prod = (a.value as #mul_ty) * (b.value as #mul_ty);
+                    let mut r = (prod & MODULUS) + (prod >> K);
+                    if r >= MODULUS { r -= MODULUS; }
+                    a.value = r as #repr_type;
                 }
-                a.value = r as u32;
             }
-        }
-    }
-}
+        },
+        ("u32", false) => {
+            // BabyBear, KoalaBear, others where 2^16 < p < 2^32
+            quote! {
+                #[inline(always)]
+                fn mul_assign(a: &mut SmallFp<Self>, b: &SmallFp<Self>) {
+                    const MODULUS_MUL_TY: u64 = #modulus as u64;
+                    const N_PRIME: u64 = #n_prime as u64;
+                    const R_MASK: u64 = #r_mask as u64;
 
-fn generate_small_mul(
-    ty: &proc_macro2::TokenStream,
-    ty_str: &str,
-    modulus: u128,
-    k_bits: u32,
-    r_mask: u128,
-    n_prime: u128,
-) -> proc_macro2::TokenStream {
-    const M7_PRIME: u128 = 127; // 2^7 - 1
-    const M13_PRIME: u128 = 8191; // 2^13 - 1
-
-    if modulus == M7_PRIME {
-        quote! {
-            #[inline(always)]
-            fn mul_assign(a: &mut SmallFp<Self>, b: &SmallFp<Self>) {
-                const K: u16 = 7;
-                const MODULUS: u16 = (1u16 << K) - 1;
-
-                let prod = (a.value as u16) * (b.value as u16);
-                let mut r = (prod & MODULUS) + (prod >> K);
-
-                if r >= MODULUS {
-                    r -= MODULUS;
+                    let t = (a.value as u64) * (b.value as u64);
+                    let k = t.wrapping_mul(N_PRIME) & R_MASK;
+                    let mut r = (t + (k * MODULUS_MUL_TY)) >> #k_bits;
+                    if r >= MODULUS_MUL_TY { r -= MODULUS_MUL_TY; }
+                    a.value = r as u32;
                 }
-                a.value = r as u8;
             }
-        }
-    } else if modulus == M13_PRIME {
-        quote! {
-            #[inline(always)]
-            fn mul_assign(a: &mut SmallFp<Self>, b: &SmallFp<Self>) {
-                const K: u32 = 13;
-                const MODULUS: u32 = (1u32 << K) - 1;
+        },
+        _ => {
+            // Goldilocks, others < 2^64
+            let shift_bits = 128 - k_bits;
+            quote! {
+                #[inline(always)]
+                fn mul_assign(a: &mut SmallFp<Self>, b: &SmallFp<Self>) {
+                    const MODULUS_MUL_TY: u128 = #modulus as u128;
+                    const N_PRIME: u128 = #n_prime as u128;
+                    const R_MASK: u128 = #r_mask as u128;
 
-                let prod = (a.value as u32) * (b.value as u32);
-                let mut r = (prod & MODULUS) + (prod >> K);
-
-                if r >= MODULUS {
-                    r -= MODULUS;
+                    let mut t = (a.value as u128) * (b.value as u128);
+                    let k = t.wrapping_mul(N_PRIME) & R_MASK;
+                    let (t, overflow) = t.overflowing_add(k * MODULUS_MUL_TY);
+                    let mut r = (t >> #k_bits) + ((overflow as u128) << #shift_bits);
+                    if r >= MODULUS_MUL_TY { r -= MODULUS_MUL_TY; }
+                    a.value = r as u64;
                 }
-                a.value = r as u16;
             }
-        }
-    } else {
-        let mul_ty = match ty_str {
-            "u8" => quote! { u16 },
-            "u16" => quote! { u32 },
-            _ => unreachable!(),
-        };
-
-        quote! {
-            #[inline(always)]
-            fn mul_assign(a: &mut SmallFp<Self>, b: &SmallFp<Self>) {
-                const MODULUS_MUL_TY: #mul_ty = #modulus as #mul_ty;
-                const MODULUS_TY: #ty = #modulus as #ty;
-                const N_PRIME: #ty = #n_prime as #ty;
-                const MASK: #mul_ty = #r_mask as #mul_ty;
-                const K_BITS: u32 = #k_bits;
-
-                let a_val = a.value as #mul_ty;
-                let b_val = b.value as #mul_ty;
-
-                let tmp = a_val * b_val;
-                let carry1 = (tmp >> K_BITS) as #ty;
-                let r = (tmp & MASK) as #ty;
-                let m = r.wrapping_mul(N_PRIME);
-
-                let tmp = (r as #mul_ty) + ((m as #mul_ty) * MODULUS_MUL_TY);
-                let carry2 = (tmp >> K_BITS) as #ty;
-
-                let mut r = (carry1 as #mul_ty) + (carry2 as #mul_ty);
-                if r >= MODULUS_MUL_TY {
-                    r -= MODULUS_MUL_TY;
-                }
-                a.value = r as #ty;
-            }
-        }
+        },
     }
 }
 

@@ -26,6 +26,9 @@
 
 ### Improvements
 
+- [\#1091](https://github.com/arkworks-rs/algebra/pull/1091)(`ark-ff-macros`) Replace Fermat-based (`a^{p-2}`) modular inversion for `SmallFp` fields with a constant-time binary extended GCD (based on [Pornin 2020](https://eprint.iacr.org/2020/1340)).
+- [\#1091](https://github.com/arkworks-rs/algebra/pull/1091)(`ark-ff-macros`) Consolidate `SmallFp` multiplication dispatch into a single `match` with Mersenne fast-paths (M7, M13, M31) and generic Montgomery backends for u8/u16/u32/u64 fields.
+
 ### Bugfixes
 
 - [\#1082](https://github.com/arkworks-rs/algebra/pull/1082) (`ark-ff`) Fix `SmallFp::from_random_bytes` / `from_be_bytes_mod_order` silently producing incorrect field elements by treating plaintext bytes as Montgomery-encoded.
