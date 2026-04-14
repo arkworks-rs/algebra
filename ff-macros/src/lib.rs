@@ -75,11 +75,17 @@ pub fn define_field(input: TokenStream) -> TokenStream {
             .parse::<BigUint>()
             .expect("generator should be a decimal integer string");
 
+        let (small_subgroup_base, small_subgroup_power) =
+            match utils::find_conservative_subgroup_base(&modulus_big) {
+                Some((base, power)) => (Some(base), Some(power)),
+                None => (None, None),
+            };
+
         let config_impl = montgomery::mont_config_helper(
             modulus_big,
             generator_big,
-            None,
-            None,
+            small_subgroup_base,
+            small_subgroup_power,
             config_name.clone(),
         );
 
