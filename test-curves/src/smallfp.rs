@@ -113,14 +113,14 @@ mod tests {
     }
 
     mod raw_layout {
-        //! `SmallFp<P>` is `#[repr(transparent)]` around `P::T`, so `&[SmallFp]`
-        //! can be reinterpreted as `&[P::T]` without copying. These tests pin
-        //! that contract down so a future refactor can't silently break it.
+        //! `SmallFp<P>` is `#[repr(transparent)]` around `P::T` and derives
+        //! `zerocopy::IntoBytes` / `Immutable` / `KnownLayout`. These tests
+        //! pin the size/alignment contract and confirm `as_bytes()` works.
 
         use super::*;
-        use ark_ff::SmallFp;
         use ark_std::vec::Vec;
         use core::mem::{align_of, size_of};
+        use zerocopy::IntoBytes;
 
         #[test]
         fn layout_matches_backing_integer() {
@@ -138,28 +138,14 @@ mod tests {
         }
 
         #[test]
-        fn as_raw_slice_roundtrips_goldilocks() {
-            let elems: Vec<SmallFp64Goldilock> = (0..8u64).map(SmallFp64Goldilock::from).collect();
-            let raw = SmallFp::<SmallFp64GoldilockConfig>::as_raw_slice(&elems);
-            assert_eq!(raw.len(), elems.len());
-            for (elem, &limb) in elems.iter().zip(raw) {
-                assert_eq!(elem.value, limb);
-            }
-        }
-
-        #[test]
-        fn as_raw_slice_mut_writes_through() {
-            let mut elems: Vec<SmallFp64Goldilock> =
-                (0..4u64).map(SmallFp64Goldilock::from).collect();
-            let originals = elems.clone();
-
-            {
-                let raw = SmallFp::<SmallFp64GoldilockConfig>::as_raw_slice_mut(&mut elems);
-                raw.reverse();
-            }
-
+        fn as_bytes_exposes_montgomery_limb_goldilocks() {
+            let elems: Vec<SmallFp64Goldilock> =
+                (0..8u64).map(SmallFp64Goldilock::from).collect();
+            let bytes = elems.as_bytes();
+            assert_eq!(bytes.len(), elems.len() * 8);
             for (i, elem) in elems.iter().enumerate() {
-                assert_eq!(*elem, originals[originals.len() - 1 - i]);
+                let chunk: [u8; 8] = bytes[i * 8..(i + 1) * 8].try_into().unwrap();
+                assert_eq!(u64::from_le_bytes(chunk), elem.value);
             }
         }
     }

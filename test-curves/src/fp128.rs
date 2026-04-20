@@ -14,12 +14,14 @@ mod tests {
     test_field!(fq; Fq; mont_prime_field);
 
     mod raw_layout {
-        //! `Fp<P, N>` is `#[repr(transparent)]` around `BigInt<N>`, which is
-        //! `#[repr(transparent)]` around `[u64; N]`. These tests pin that down.
+        //! `Fp<P, N>` is `#[repr(transparent)]` around `BigInt<N>(pub [u64; N])`
+        //! and derives `zerocopy::IntoBytes` / `Immutable` / `KnownLayout`.
+        //! These tests pin the size/alignment contract and the raw-limb helpers.
 
         use super::*;
         use ark_std::vec::Vec;
         use core::mem::{align_of, size_of};
+        use zerocopy::IntoBytes;
 
         #[test]
         fn layout_matches_u64_array() {
@@ -28,16 +30,17 @@ mod tests {
         }
 
         #[test]
-        fn as_u64_slice_roundtrips() {
+        fn as_bytes_is_le_montgomery_limbs() {
             let elems: Vec<Fq> = (0..4u64).map(Fq::from).collect();
-            let raw = Fq::as_u64_slice(&elems);
-            assert_eq!(raw.len(), elems.len() * 2);
+            let bytes = elems.as_bytes();
+            assert_eq!(bytes.len(), elems.len() * 16);
 
-            // Each element's BigInt limbs must appear at the expected offset.
             for (i, elem) in elems.iter().enumerate() {
                 let limbs: [u64; 2] = Fq::to_raw_u64_array(*elem);
-                assert_eq!(raw[2 * i], limbs[0]);
-                assert_eq!(raw[2 * i + 1], limbs[1]);
+                let lo: [u8; 8] = bytes[i * 16..i * 16 + 8].try_into().unwrap();
+                let hi: [u8; 8] = bytes[i * 16 + 8..(i + 1) * 16].try_into().unwrap();
+                assert_eq!(u64::from_le_bytes(lo), limbs[0]);
+                assert_eq!(u64::from_le_bytes(hi), limbs[1]);
             }
         }
 

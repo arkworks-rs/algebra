@@ -49,14 +49,13 @@ pub const FQ2_ONE: Fq2 = Fq2::new(FQ_ONE, FQ_ZERO);
 
 #[cfg(test)]
 mod raw_layout {
-    //! `QuadExtField` is `#[repr(C)]`, so an `Fp2` of a `#[repr(transparent)]`
-    //! base field lays out as `[BaseField; 2]` with no padding. The downstream
-    //! `efficient-sumcheck` relies on this to reinterpret `&[Fp2]` as
-    //! `&[u64]` for the Goldilocks SIMD kernels.
+    //! `QuadExtField` is `#[repr(C)]` and derives `zerocopy::IntoBytes`, so
+    //! `Fp2` over a zerocopy-compatible base field lays out as two adjacent
+    //! base-field elements with no padding.
     use super::*;
-    use ark_ff::RawU64Repr;
     use ark_std::vec::Vec;
     use core::mem::{align_of, size_of};
+    use zerocopy::IntoBytes;
 
     #[test]
     fn fq2_is_two_adjacent_fqs() {
@@ -65,19 +64,20 @@ mod raw_layout {
     }
 
     #[test]
-    fn raw_u64_repr_n_u64_composes() {
-        // Fq is Fp384 over BigInt<6> → 6 u64 limbs per element.
-        assert_eq!(<Fq as RawU64Repr>::N_U64, 6);
-        // Fq2 is a QuadExt over Fq → 2 * 6 = 12 limbs per element.
-        assert_eq!(<Fq2 as RawU64Repr>::N_U64, 12);
-    }
-
-    #[test]
-    fn raw_u64_repr_slice_round_trip() {
+    fn fq2_as_bytes_is_c0_then_c1() {
         let elems: Vec<Fq2> = (0..3u64)
             .map(|v| Fq2::new(Fq::from(v), Fq::from(v + 100)))
             .collect();
-        let limbs = Fq2::as_u64_slice(&elems);
-        assert_eq!(limbs.len(), elems.len() * 12);
+        let bytes = elems.as_bytes();
+        assert_eq!(bytes.len(), elems.len() * 2 * size_of::<Fq>());
+
+        // c0 must appear before c1 for each element.
+        for (i, elem) in elems.iter().enumerate() {
+            let start = i * 2 * size_of::<Fq>();
+            let c0_bytes = &bytes[start..start + size_of::<Fq>()];
+            let c1_bytes = &bytes[start + size_of::<Fq>()..start + 2 * size_of::<Fq>()];
+            assert_eq!(c0_bytes, elem.c0.as_bytes());
+            assert_eq!(c1_bytes, elem.c1.as_bytes());
+        }
     }
 }
