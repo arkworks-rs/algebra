@@ -134,6 +134,7 @@ pub trait SmallFpConfig: Send + Sync + 'static + Sized {
 /// parameter, which can be configured to use different backends
 #[derive(Educe)]
 #[educe(Default, Hash, Clone, Copy, PartialEq, Eq)]
+#[repr(transparent)]
 pub struct SmallFp<P: SmallFpConfig> {
     pub value: P::T,
     _phantom: PhantomData<P>,
@@ -162,6 +163,33 @@ impl<P: SmallFpConfig> SmallFp<P> {
 
     pub const fn num_bits_to_shave() -> usize {
         primitive_type_bit_size(P::MODULUS_U128) - (Self::MODULUS_BIT_SIZE as usize)
+    }
+
+    /// Reinterpret a slice of field elements as a slice of their raw
+    /// Montgomery-form values.
+    ///
+    /// This is a zero-copy reinterpretation that relies on the
+    /// `#[repr(transparent)]` layout of `SmallFp<P>` around `P::T`.
+    #[inline]
+    #[allow(unsafe_code)]
+    pub fn as_raw_slice(slice: &[Self]) -> &[P::T] {
+        // SAFETY: `SmallFp<P>` is `#[repr(transparent)]` around `P::T`
+        // (the `PhantomData<P>` field is zero-sized), so `&[Self]` and
+        // `&[P::T]` have identical layout for the same length.
+        unsafe { core::slice::from_raw_parts(slice.as_ptr().cast::<P::T>(), slice.len()) }
+    }
+
+    /// Mutable counterpart to [`as_raw_slice`](Self::as_raw_slice).
+    ///
+    /// Writing through the returned slice bypasses all invariant checks: the
+    /// caller must ensure every value stays a valid Montgomery representation
+    /// of some integer in `[0, MODULUS)`.
+    #[inline]
+    #[allow(unsafe_code)]
+    pub fn as_raw_slice_mut(slice: &mut [Self]) -> &mut [P::T] {
+        // SAFETY: Same layout argument as `as_raw_slice`; mutable access is
+        // exclusive because we hold `&mut [Self]`.
+        unsafe { core::slice::from_raw_parts_mut(slice.as_mut_ptr().cast::<P::T>(), slice.len()) }
     }
 }
 

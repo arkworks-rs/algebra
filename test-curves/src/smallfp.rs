@@ -111,4 +111,56 @@ mod tests {
             assert_eq!(SEVEN, SmallFp64Goldilock::from(7u128));
         }
     }
+
+    mod raw_layout {
+        //! `SmallFp<P>` is `#[repr(transparent)]` around `P::T`, so `&[SmallFp]`
+        //! can be reinterpreted as `&[P::T]` without copying. These tests pin
+        //! that contract down so a future refactor can't silently break it.
+
+        use super::*;
+        use ark_ff::SmallFp;
+        use ark_std::vec::Vec;
+        use core::mem::{align_of, size_of};
+
+        #[test]
+        fn layout_matches_backing_integer() {
+            assert_eq!(size_of::<SmallFp8>(), size_of::<u8>());
+            assert_eq!(align_of::<SmallFp8>(), align_of::<u8>());
+
+            assert_eq!(size_of::<SmallFp16>(), size_of::<u16>());
+            assert_eq!(align_of::<SmallFp16>(), align_of::<u16>());
+
+            assert_eq!(size_of::<SmallFp32M31>(), size_of::<u32>());
+            assert_eq!(align_of::<SmallFp32M31>(), align_of::<u32>());
+
+            assert_eq!(size_of::<SmallFp64Goldilock>(), size_of::<u64>());
+            assert_eq!(align_of::<SmallFp64Goldilock>(), align_of::<u64>());
+        }
+
+        #[test]
+        fn as_raw_slice_roundtrips_goldilocks() {
+            let elems: Vec<SmallFp64Goldilock> = (0..8u64).map(SmallFp64Goldilock::from).collect();
+            let raw = SmallFp::<SmallFp64GoldilockConfig>::as_raw_slice(&elems);
+            assert_eq!(raw.len(), elems.len());
+            for (elem, &limb) in elems.iter().zip(raw) {
+                assert_eq!(elem.value, limb);
+            }
+        }
+
+        #[test]
+        fn as_raw_slice_mut_writes_through() {
+            let mut elems: Vec<SmallFp64Goldilock> =
+                (0..4u64).map(SmallFp64Goldilock::from).collect();
+            let originals = elems.clone();
+
+            {
+                let raw = SmallFp::<SmallFp64GoldilockConfig>::as_raw_slice_mut(&mut elems);
+                raw.reverse();
+            }
+
+            for (i, elem) in elems.iter().enumerate() {
+                assert_eq!(*elem, originals[originals.len() - 1 - i]);
+            }
+        }
+    }
 }

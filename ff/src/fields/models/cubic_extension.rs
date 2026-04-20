@@ -77,6 +77,7 @@ pub trait CubicExtConfig: 'static + Send + Sync + Sized {
 /// represented as c0 + c1 * X + c2 * X^2, for c0, c1, c2 in `P::BaseField`.
 #[derive(educe::Educe, CanonicalDeserialize)]
 #[educe(Default, Hash, Clone, Copy, Debug, PartialEq, Eq)]
+#[repr(C)]
 pub struct CubicExtField<P: CubicExtConfig> {
     pub c0: P::BaseField,
     pub c1: P::BaseField,

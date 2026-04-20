@@ -46,3 +46,38 @@ impl Fp2Config for Fq2Config {
 
 pub const FQ2_ZERO: Fq2 = Fq2::new(FQ_ZERO, FQ_ZERO);
 pub const FQ2_ONE: Fq2 = Fq2::new(FQ_ONE, FQ_ZERO);
+
+#[cfg(test)]
+mod raw_layout {
+    //! `QuadExtField` is `#[repr(C)]`, so an `Fp2` of a `#[repr(transparent)]`
+    //! base field lays out as `[BaseField; 2]` with no padding. The downstream
+    //! `efficient-sumcheck` relies on this to reinterpret `&[Fp2]` as
+    //! `&[u64]` for the Goldilocks SIMD kernels.
+    use super::*;
+    use ark_ff::RawU64Repr;
+    use ark_std::vec::Vec;
+    use core::mem::{align_of, size_of};
+
+    #[test]
+    fn fq2_is_two_adjacent_fqs() {
+        assert_eq!(size_of::<Fq2>(), 2 * size_of::<Fq>());
+        assert_eq!(align_of::<Fq2>(), align_of::<Fq>());
+    }
+
+    #[test]
+    fn raw_u64_repr_n_u64_composes() {
+        // Fq is Fp384 over BigInt<6> → 6 u64 limbs per element.
+        assert_eq!(<Fq as RawU64Repr>::N_U64, 6);
+        // Fq2 is a QuadExt over Fq → 2 * 6 = 12 limbs per element.
+        assert_eq!(<Fq2 as RawU64Repr>::N_U64, 12);
+    }
+
+    #[test]
+    fn raw_u64_repr_slice_round_trip() {
+        let elems: Vec<Fq2> = (0..3u64)
+            .map(|v| Fq2::new(Fq::from(v), Fq::from(v + 100)))
+            .collect();
+        let limbs = Fq2::as_u64_slice(&elems);
+        assert_eq!(limbs.len(), elems.len() * 12);
+    }
+}

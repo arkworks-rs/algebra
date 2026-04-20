@@ -31,6 +31,7 @@ pub mod arithmetic;
 
 #[derive(Copy, Clone, PartialEq, Eq, Hash)]
 #[must_use]
+#[repr(transparent)]
 pub struct BigInt<const N: usize>(pub [u64; N]);
 
 impl<const N: usize> Zeroize for BigInt<N> {

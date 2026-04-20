@@ -106,6 +106,7 @@ pub trait FpConfig<const N: usize>: Send + Sync + 'static + Sized {
 /// This type can represent elements in any field of size at most N * 64 bits.
 #[derive(educe::Educe)]
 #[educe(Default, Hash, Clone, Copy, PartialEq, Eq)]
+#[repr(transparent)]
 pub struct Fp<P: FpConfig<N>, const N: usize>(
     /// Contains the element in Montgomery form for efficient multiplication.
     /// To convert an element to a [`BigInt`](struct@BigInt), use `into_bigint` or `into`.
@@ -133,6 +134,55 @@ impl<P: FpConfig<N>, const N: usize> Fp<P, N> {
     #[inline]
     pub fn is_geq_modulus(&self) -> bool {
         self.0 >= P::MODULUS
+    }
+
+    /// Construct a field element directly from its raw Montgomery-form
+    /// limbs, bypassing the Montgomery conversion.
+    ///
+    /// The input is written verbatim into the underlying `BigInt<N>`; no
+    /// modular reduction is performed. The caller is responsible for passing
+    /// limbs that are a valid Montgomery representation of some integer in
+    /// `[0, MODULUS)`.
+    #[inline]
+    pub const fn from_raw_u64_array(limbs: [u64; N]) -> Self {
+        Self(BigInt::<N>::new(limbs), PhantomData)
+    }
+
+    /// Return the raw Montgomery-form limbs of this field element.
+    #[inline]
+    pub const fn to_raw_u64_array(self) -> [u64; N] {
+        self.0 .0
+    }
+
+    /// Reinterpret a slice of field elements as a flat slice of Montgomery-form
+    /// `u64` limbs. Each element contributes `N` consecutive limbs, so the
+    /// returned slice has length `slice.len() * N`.
+    ///
+    /// This is a zero-copy reinterpretation that relies on the
+    /// `#[repr(transparent)]` layout of `Fp<P, N>` around `BigInt<N>` around
+    /// `[u64; N]`.
+    #[inline]
+    #[allow(unsafe_code)]
+    pub fn as_u64_slice(slice: &[Self]) -> &[u64] {
+        // SAFETY: `Fp<P, N>` is `#[repr(transparent)]` around `BigInt<N>`, which
+        // is `#[repr(transparent)]` around `[u64; N]`. So `N` consecutive `u64`s
+        // have the same layout (size, alignment, validity) as one `Fp<P, N>`.
+        unsafe { core::slice::from_raw_parts(slice.as_ptr().cast::<u64>(), slice.len() * N) }
+    }
+
+    /// Mutable counterpart to [`as_u64_slice`](Self::as_u64_slice).
+    ///
+    /// Writing through the returned slice bypasses all invariant checks: the
+    /// caller must ensure that every `N`-limb window remains a valid
+    /// Montgomery representation of some integer in `[0, MODULUS)`.
+    #[inline]
+    #[allow(unsafe_code)]
+    pub fn as_u64_slice_mut(slice: &mut [Self]) -> &mut [u64] {
+        // SAFETY: Same layout argument as `as_u64_slice`; mutable access is
+        // exclusive because we hold `&mut [Self]`.
+        unsafe {
+            core::slice::from_raw_parts_mut(slice.as_mut_ptr().cast::<u64>(), slice.len() * N)
+        }
     }
 
     #[inline]

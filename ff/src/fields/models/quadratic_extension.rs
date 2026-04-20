@@ -91,6 +91,7 @@ pub trait QuadExtConfig: 'static + Send + Sync + Sized {
 /// represented as c0 + c1 * X, for c0, c1 in `P::BaseField`.
 #[derive(educe::Educe, CanonicalDeserialize)]
 #[educe(Default, Hash, Clone, Copy, Debug, PartialEq, Eq)]
+#[repr(C)]
 pub struct QuadExtField<P: QuadExtConfig> {
     /// Coefficient `c0` in the representation of the field element `c = c0 + c1 * X`
     pub c0: P::BaseField,

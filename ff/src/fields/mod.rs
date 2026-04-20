@@ -39,6 +39,9 @@ pub use cyclotomic::*;
 mod sqrt;
 pub use sqrt::*;
 
+mod raw_u64_repr;
+pub use raw_u64_repr::*;
+
 #[cfg(feature = "parallel")]
 use ark_std::cmp::max;
 #[cfg(feature = "parallel")]
