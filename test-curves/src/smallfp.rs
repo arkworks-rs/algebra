@@ -139,8 +139,7 @@ mod tests {
 
         #[test]
         fn as_bytes_exposes_montgomery_limb_goldilocks() {
-            let elems: Vec<SmallFp64Goldilock> =
-                (0..8u64).map(SmallFp64Goldilock::from).collect();
+            let elems: Vec<SmallFp64Goldilock> = (0..8u64).map(SmallFp64Goldilock::from).collect();
             let bytes = elems.as_bytes();
             assert_eq!(bytes.len(), elems.len() * 8);
             for (i, elem) in elems.iter().enumerate() {

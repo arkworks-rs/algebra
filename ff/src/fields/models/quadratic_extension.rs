@@ -92,6 +92,7 @@ pub trait QuadExtConfig: 'static + Send + Sync + Sized {
 #[derive(
     educe::Educe,
     CanonicalDeserialize,
+    zerocopy::IntoBytes,
     zerocopy::Immutable,
     zerocopy::KnownLayout,
 )]
@@ -102,23 +103,6 @@ pub struct QuadExtField<P: QuadExtConfig> {
     pub c0: P::BaseField,
     /// Coefficient `c1` in the representation of the field element `c = c0 + c1 * X`
     pub c1: P::BaseField,
-}
-
-// SAFETY: `QuadExtField` is `#[repr(C)]` with two fields of the same type
-// `P::BaseField`. Same-type fields have matching size and alignment, so
-// `#[repr(C)]` places them back-to-back with no inter-field padding. The
-// total size is `2 * size_of::<BaseField>()`, which is a multiple of the
-// alignment (`align_of::<BaseField>()`), so there is no trailing padding
-// either. If `BaseField: IntoBytes` then every bit pattern of the struct
-// is just two valid `BaseField` encodings concatenated — safe to expose as
-// `&[u8]`. `zerocopy`'s own derive rejects this shape because it demands
-// `Unaligned`, a stricter condition than we need.
-#[allow(unsafe_code)]
-unsafe impl<P: QuadExtConfig> zerocopy::IntoBytes for QuadExtField<P>
-where
-    P::BaseField: zerocopy::IntoBytes,
-{
-    fn only_derive_is_allowed_to_implement_this_trait() {}
 }
 
 impl<P: QuadExtConfig> QuadExtField<P> {

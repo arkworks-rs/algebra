@@ -24,7 +24,7 @@ educe.workspace = true
 num-traits.workspace = true
 rayon = { workspace = true, optional = true }
 zeroize = { workspace = true }
-zerocopy = { version = "0.8", features = ["derive"] }
+zerocopy = { git = "https://github.com/z-tech/zerocopy", branch = "z-tech/support-structs-with-same-type", features = ["derive"] }
 num-bigint.workspace = true
 digest = { workspace = true, features = ["alloc"] }
 

@@ -78,6 +78,7 @@ pub trait CubicExtConfig: 'static + Send + Sync + Sized {
 #[derive(
     educe::Educe,
     CanonicalDeserialize,
+    zerocopy::IntoBytes,
     zerocopy::Immutable,
     zerocopy::KnownLayout,
 )]
@@ -87,18 +88,6 @@ pub struct CubicExtField<P: CubicExtConfig> {
     pub c0: P::BaseField,
     pub c1: P::BaseField,
     pub c2: P::BaseField,
-}
-
-// SAFETY: `CubicExtField` is `#[repr(C)]` with three fields of the same type
-// `P::BaseField`. See the analogous comment on `QuadExtField::IntoBytes` for
-// the no-padding argument; it applies identically with three fields instead
-// of two.
-#[allow(unsafe_code)]
-unsafe impl<P: CubicExtConfig> zerocopy::IntoBytes for CubicExtField<P>
-where
-    P::BaseField: zerocopy::IntoBytes,
-{
-    fn only_derive_is_allowed_to_implement_this_trait() {}
 }
 
 impl<P: CubicExtConfig> CubicExtField<P> {
