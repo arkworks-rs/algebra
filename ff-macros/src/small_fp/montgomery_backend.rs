@@ -215,7 +215,7 @@ fn generate_inverse_impl(
     let num_iters = 2 * field_bits - 2;
 
     // 2⁻¹ mod P = (P+1)/2  (works because P is odd)
-    let half = modulus.div_ceil(2);
+    let half = (modulus + 1) / 2;
 
     // 2^{-N} mod P = ((P+1)/2)^N mod P
     let two_neg_iters = pow_mod_const(half, num_iters as u128, modulus);

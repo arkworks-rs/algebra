@@ -109,7 +109,7 @@ pub(crate) fn parse_string(input: TokenStream) -> Option<String> {
 /// or `None` if the odd part has no factors ≤ 7.
 pub(crate) fn find_conservative_subgroup_base(modulus: &BigUint) -> Option<(u32, u32)> {
     let mut trace = modulus - BigUint::from(1u32);
-    while !trace.bit(0) {
+    while trace.bit(0) == false {
         trace >>= 1u32;
     }
 
