@@ -16,7 +16,7 @@ mod tests {
     mod raw_layout {
         //! `Fp<P, N>` is `#[repr(transparent)]` around `BigInt<N>(pub [u64; N])`
         //! and derives `zerocopy::IntoBytes` / `Immutable` / `KnownLayout`.
-        //! These tests pin the size/alignment contract and the raw-limb helpers.
+        //! These tests pin the size/alignment contract down.
 
         use super::*;
         use ark_std::vec::Vec;
@@ -36,20 +36,12 @@ mod tests {
             assert_eq!(bytes.len(), elems.len() * 16);
 
             for (i, elem) in elems.iter().enumerate() {
-                let limbs: [u64; 2] = Fq::to_raw_u64_array(*elem);
+                let limbs: [u64; 2] = elem.0 .0;
                 let lo: [u8; 8] = bytes[i * 16..i * 16 + 8].try_into().unwrap();
                 let hi: [u8; 8] = bytes[i * 16 + 8..(i + 1) * 16].try_into().unwrap();
                 assert_eq!(u64::from_le_bytes(lo), limbs[0]);
                 assert_eq!(u64::from_le_bytes(hi), limbs[1]);
             }
-        }
-
-        #[test]
-        fn from_raw_u64_array_roundtrip() {
-            let original = Fq::from(12345u64);
-            let limbs: [u64; 2] = Fq::to_raw_u64_array(original);
-            let rebuilt: Fq = Fq::from_raw_u64_array(limbs);
-            assert_eq!(original, rebuilt);
         }
     }
 }

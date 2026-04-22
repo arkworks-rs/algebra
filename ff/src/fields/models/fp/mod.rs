@@ -136,24 +136,6 @@ impl<P: FpConfig<N>, const N: usize> Fp<P, N> {
         self.0 >= P::MODULUS
     }
 
-    /// Construct a field element directly from its raw Montgomery-form
-    /// limbs, bypassing the Montgomery conversion.
-    ///
-    /// The input is written verbatim into the underlying `BigInt<N>`; no
-    /// modular reduction is performed. The caller is responsible for passing
-    /// limbs that are a valid Montgomery representation of some integer in
-    /// `[0, MODULUS)`.
-    #[inline]
-    pub const fn from_raw_u64_array(limbs: [u64; N]) -> Self {
-        Self(BigInt::<N>::new(limbs), PhantomData)
-    }
-
-    /// Return the raw Montgomery-form limbs of this field element.
-    #[inline]
-    pub const fn to_raw_u64_array(self) -> [u64; N] {
-        self.0 .0
-    }
-
     #[inline]
     fn subtract_modulus(&mut self) {
         if self.is_geq_modulus() {
