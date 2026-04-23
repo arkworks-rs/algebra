@@ -21,7 +21,7 @@ mod tests {
         use super::*;
         use ark_std::vec::Vec;
         use core::mem::{align_of, size_of};
-        use zerocopy::IntoBytes;
+        use zerocopy::{FromBytes, IntoBytes};
 
         #[test]
         fn layout_matches_u64_array() {
@@ -41,6 +41,25 @@ mod tests {
                 let hi: [u8; 8] = bytes[i * 16 + 8..(i + 1) * 16].try_into().unwrap();
                 assert_eq!(u64::from_le_bytes(lo), limbs[0]);
                 assert_eq!(u64::from_le_bytes(hi), limbs[1]);
+            }
+        }
+
+        /// `FromBytes` lets a `&mut [Fq]` be reinterpreted as a `&mut [u64]`
+        /// without any `unsafe` at the call site — enabling safe in-place
+        /// SIMD-style writes to the underlying Montgomery limbs.
+        #[test]
+        fn mut_from_bytes_gives_safe_u64_view() {
+            let mut elems: Vec<Fq> = (0..4u64).map(Fq::from).collect();
+            let expected: Vec<[u64; 2]> = elems.iter().map(|e| e.0 .0).collect();
+
+            let bytes = elems.as_mut_bytes();
+            let raw: &mut [u64] = <[u64]>::mut_from_bytes(bytes).unwrap();
+
+            // 2 limbs per Fq element, so `raw.len() == elems.len() * 2`.
+            assert_eq!(raw.len(), 4 * 2);
+            for (i, chunk) in expected.iter().enumerate() {
+                assert_eq!(raw[2 * i], chunk[0]);
+                assert_eq!(raw[2 * i + 1], chunk[1]);
             }
         }
     }

@@ -120,7 +120,7 @@ mod tests {
         use super::*;
         use ark_std::vec::Vec;
         use core::mem::{align_of, size_of};
-        use zerocopy::IntoBytes;
+        use zerocopy::{FromBytes, IntoBytes};
 
         #[test]
         fn layout_matches_backing_integer() {
@@ -145,6 +145,31 @@ mod tests {
             for (i, elem) in elems.iter().enumerate() {
                 let chunk: [u8; 8] = bytes[i * 8..(i + 1) * 8].try_into().unwrap();
                 assert_eq!(u64::from_le_bytes(chunk), elem.value);
+            }
+        }
+
+        /// `FromBytes` lets us reinterpret a mutable byte view as a mutable
+        /// `&mut [u64]`, do SIMD-style arithmetic on the limbs in place,
+        /// and let the field elements observe the new Montgomery values
+        /// directly — no `unsafe` at the call site.
+        #[test]
+        fn mut_from_bytes_enables_in_place_simd_style() {
+            let mut elems: Vec<SmallFp64Goldilock> =
+                (1..=4u64).map(SmallFp64Goldilock::from).collect();
+            let originals: Vec<u64> = elems.iter().map(|e| e.value).collect();
+
+            {
+                let bytes = elems.as_mut_bytes();
+                let raw: &mut [u64] = <[u64]>::mut_from_bytes(bytes).unwrap();
+                for limb in raw.iter_mut() {
+                    // Add a constant in Montgomery space — valid because
+                    // `MODULUS - 1 > existing + const` for these tiny inputs.
+                    *limb = limb.wrapping_add(7);
+                }
+            }
+
+            for (elem, original) in elems.iter().zip(originals) {
+                assert_eq!(elem.value, original.wrapping_add(7));
             }
         }
     }
