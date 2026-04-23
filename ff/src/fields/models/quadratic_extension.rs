@@ -92,6 +92,7 @@ pub trait QuadExtConfig: 'static + Send + Sync + Sized {
 #[derive(
     educe::Educe,
     CanonicalDeserialize,
+    zerocopy::FromBytes,
     zerocopy::IntoBytes,
     zerocopy::Immutable,
     zerocopy::KnownLayout,

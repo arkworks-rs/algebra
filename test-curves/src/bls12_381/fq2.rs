@@ -55,7 +55,7 @@ mod raw_layout {
     use super::*;
     use ark_std::vec::Vec;
     use core::mem::{align_of, size_of};
-    use zerocopy::IntoBytes;
+    use zerocopy::{FromBytes, IntoBytes};
 
     #[test]
     fn fq2_is_two_adjacent_fqs() {
@@ -79,5 +79,20 @@ mod raw_layout {
             assert_eq!(c0_bytes, elem.c0.as_bytes());
             assert_eq!(c1_bytes, elem.c1.as_bytes());
         }
+    }
+
+    /// `FromBytes` on `Fp2` = `QuadExtField`, combined with `IntoBytes`,
+    /// gives the downstream a safe `&mut [u64]` view over `&mut [Fp2]`.
+    /// This is what the efficient-sumcheck SIMD kernels need.
+    #[test]
+    fn fq2_mut_from_bytes_gives_safe_u64_view() {
+        let mut elems: Vec<Fq2> = (0..3u64)
+            .map(|v| Fq2::new(Fq::from(v), Fq::from(v + 100)))
+            .collect();
+        let bytes = elems.as_mut_bytes();
+        let raw: &mut [u64] = <[u64]>::mut_from_bytes(bytes).unwrap();
+
+        // 2 base-field elements × 6 u64 limbs each per Fq2.
+        assert_eq!(raw.len(), 3 * 2 * 6);
     }
 }
