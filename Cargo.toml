@@ -145,8 +145,8 @@ ark-serialize = { version = "0.6.0", path = "./serialize", default-features = fa
 ark-serialize-derive = { version = "0.6.0", path = "./serialize-derive" }
 ark-std = { version = "0.6.0", default-features = false }
 
-ark-algebra-bench-templates = { version = "0.6.0", path = "./bench-templates", default-features = false }
-ark-algebra-test-templates = { version = "0.6.0", path = "./test-templates", default-features = false }
+ark-algebra-bench-templates = { path = "./bench-templates", default-features = false }
+ark-algebra-test-templates = { path = "./test-templates", default-features = false }
 ark-test-curves = { path = "./test-curves", default-features = false }
 
 num-traits = { version = "0.2", default-features = false }
