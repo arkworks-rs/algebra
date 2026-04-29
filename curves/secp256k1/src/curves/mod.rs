@@ -70,7 +70,7 @@ impl SWCurveConfig for ConfigIsogenous {
 impl SWUConfig for ConfigIsogenous {
     const ZETA: Self::BaseField = MontFp!("-11");
 }
-// Parameters from the [IETF draft v16, section E.3](https://www.ietf.org/archive/id/draft-irtf-cfrg-hash-to-curve-16.html#name-suites-for-secp256k1).
+// The parameters from [the IETF draft v16, section 'E.3'](https://www.ietf.org/archive/id/draft-irtf-cfrg-hash-to-curve-16.html#name-suites-for-secp256k1). The patch to reproduce is at <https://paragraph.com/@skaunov/the-generator-of-rfc-9380-iso-curve-for-secp256k1> (also copied into the commit).
 impl WBConfig for Config {
     type IsogenousCurve = ConfigIsogenous;
 
