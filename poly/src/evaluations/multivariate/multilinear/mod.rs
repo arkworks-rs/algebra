@@ -38,6 +38,7 @@ type DefaultHasher = fnv::FnvHasher;
 
 /// This trait describes an interface for the multilinear extension
 /// of an array.
+///
 /// The latter is a multilinear polynomial represented in terms of its
 /// evaluations over the domain {0,1}^`num_vars` (i.e. the Boolean hypercube).
 ///
@@ -86,7 +87,7 @@ pub trait MultilinearExtension<F: Field>:
 }
 
 /// swap the bits of `x` from position `a..a+n` to `b..b+n` and from `b..b+n` to `a..a+n` in little endian order
-pub(crate) fn swap_bits(x: usize, a: usize, b: usize, n: usize) -> usize {
+pub(crate) const fn swap_bits(x: usize, a: usize, b: usize, n: usize) -> usize {
     let a_bits = (x >> a) & ((1usize << n) - 1);
     let b_bits = (x >> b) & ((1usize << n) - 1);
     let local_xor_mask = a_bits ^ b_bits;

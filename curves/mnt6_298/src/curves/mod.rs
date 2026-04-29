@@ -22,9 +22,8 @@ pub type MNT6_298 = MNT6<Config>;
 pub struct Config;
 
 impl MNT6Config for Config {
-    const TWIST: Fp3<Self::Fp3Config> = Fp3::<Self::Fp3Config>::new(Fq::ZERO, Fq::ONE, Fq::ZERO);
-    const TWIST_COEFF_A: Fp3<Self::Fp3Config> =
-        Fp3::<Self::Fp3Config>::new(Fq::ZERO, Fq::ZERO, g1::Config::COEFF_A);
+    const TWIST: Fp3<Self::Fp3Config> = Fp3::new(Fq::ZERO, Fq::ONE, Fq::ZERO);
+    const TWIST_COEFF_A: Fp3<Self::Fp3Config> = Fp3::new(Fq::ZERO, Fq::ZERO, g1::Config::COEFF_A);
 
     // https://github.com/o1-labs/snarky/blob/9c21ab2bb23874604640740d646a932e813432c3/snarkette/mnt6_80.ml#L118
     const ATE_LOOP_COUNT: &'static [i8] = &[

@@ -75,6 +75,11 @@ pub enum SqrtPrecomputation<F: crate::Field> {
     Case3Mod4 {
         modulus_plus_one_div_four: &'static [u64],
     },
+    /// To be used when the modulus is 5 mod 8.
+    Case5Mod8 {
+        modulus_plus_three_div_eight: &'static [u64],
+        modulus_minus_one_div_four: &'static [u64],
+    },
 }
 
 impl<F: crate::Field> SqrtPrecomputation<F> {
@@ -138,10 +143,73 @@ impl<F: crate::Field> SqrtPrecomputation<F> {
                     None
                 }
             },
+            // Let `x ^ 2 = a mod p` is our quadratic equation where we need
+            // to find `x` if one exists. Note that solutions modullo p
+            // exists if `a` is quadratic residue modullo `p`. Recall that `a` in
+            // `F_p` is quadratic residue if `a ^ ((p - 1) / 2) = 1 (mod p)`
+            // by Euler criterion (https://en.wikipedia.org/wiki/Euler%27s_criterion)
+            // or equivalently Legendre symbol `(a/p) = 1` so that solutions
+            // to the equation `x ^ 2 = a (mod p)` exist.
             Self::Case3Mod4 {
                 modulus_plus_one_div_four,
             } => {
+                // if `p = 4k + 3` then `a ^ (2k + 1) = 1 (mod p)`. After multiplying by
+                // `a` both sides of conjugation we obtain `a ^ (2k + 2) = a (mod p)` so
+                // that `a ^ (2k + 2) = x ^ 2 (mod p)`. Now we can easily take square root
+                // of both sides as every exponent is even: `x = +- a ^ (k + 1) (mod p)`.
                 let result = elem.pow(modulus_plus_one_div_four.as_ref());
+                (result.square() == *elem).then_some(result)
+            },
+            Self::Case5Mod8 {
+                modulus_plus_three_div_eight,
+                modulus_minus_one_div_four,
+            } => {
+                // When `p = 8k + 5`, we have `a ^ (4k + 2) = 1 (mod p)`.
+                // Multiplying each side by `a` will not help since the exponent
+                // will be odd. But instead, since `a ^ (4k + 2) = 1 ^ 2 = 1 (mod p)`
+                // taking square root of `1` gives us either `a ^ (2k + 1) = 1 (mod p)`
+                // or `a ^ (2k + 1) = -1 (mod p)`.
+
+                if elem.is_zero() {
+                    return Some(F::zero());
+                }
+
+                let result;
+
+                // We have different solutions, if `a ^ (2k + 1)` is `1` or `-1`.
+                let check_value = elem.pow(modulus_minus_one_div_four.as_ref());
+                if check_value.is_one() {
+                    // In this case, we can use the same technique as in `p = 4k + 3` case.
+                    // After multiplying both sides by `a` we get
+                    // `a ^ (2k + 2) = a = x ^ 2 (mod p)`
+                    // so that `x = +- a ^ (k + 1) (mod p)`.
+                    result = elem.pow(modulus_plus_three_div_eight.as_ref());
+                } else if check_value.neg().is_one() {
+                    // In this case we can not use the same technique, but recalling
+                    // Tonneli-Shanks trick of multiplying each side by some non-residue
+                    // we could obtain the square root. Firstly, `2` in `F_p` is always
+                    // quadratic non-residue modullo `p` as by Legendre symbol properties
+                    // (https://en.wikipedia.org/wiki/Legendre_symbol):
+                    //      `(2/p) = (-1) ^ ((p ^ 2 - 1) / 8 )
+                    //             = (-1) ^ (8k ^ 2 + 10 k + 3)
+                    //             = -1`.
+                    // By Euler criterion:
+                    //      `2 ^ ((p - 1) / 2) = 2 ^ (4k + 2)
+                    //                         = -1 (mod p)`.
+                    // After multiplying both sides of `a ^ (2k + 1) = -1 (mod p)` by
+                    // `2 ^ (4k + 2)` we get the following conjugation:
+                    //      `a ^ (2k + 1) 2 ^ (4k + 2) = 1 (mod p)`.
+                    // Multiplying both sides by `a` we get
+                    //      `a ^ (2k + 2) 2 ^ (4k + 2) = a = x ^ 2 (mod p)`
+                    // so that `x = +- a ^ (k+1) 2 ^ (2k + 1) (mod p)`.
+                    let two: F = 2.into();
+                    result = elem
+                        .pow(modulus_plus_three_div_eight.as_ref())
+                        .mul(two.pow(modulus_minus_one_div_four.as_ref()))
+                } else {
+                    return None;
+                }
+
                 (result.square() == *elem).then_some(result)
             },
         }

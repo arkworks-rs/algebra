@@ -75,19 +75,49 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
     /// Precomputed material for use when computing square roots.
     /// The default is to use the standard Tonelli-Shanks algorithm.
     const SQRT_PRECOMP: Option<SqrtPrecomputation<Fp<MontBackend<Self, N>, N>>> =
-        sqrt_precomputation::<N, Self>();
+        sqrt_precomputation();
 
     /// (MODULUS + 1) / 4 when MODULUS % 4 == 3. Used for square root precomputations.
     #[doc(hidden)]
     const MODULUS_PLUS_ONE_DIV_FOUR: Option<BigInt<N>> = {
         match Self::MODULUS.mod_4() == 3 {
             true => {
-                let (modulus_plus_one, carry) =
-                    Self::MODULUS.const_add_with_carry(&BigInt::<N>::one());
+                let (modulus_plus_one, carry) = Self::MODULUS.const_add_with_carry(&BigInt::one());
                 let mut result = modulus_plus_one.divide_by_2_round_down();
                 // Since modulus_plus_one is even, dividing by 2 results in a MSB of 0.
                 // Thus we can set MSB to `carry` to get the correct result of (MODULUS + 1) // 2:
                 result.0[N - 1] |= (carry as u64) << 63;
+                Some(result.divide_by_2_round_down())
+            },
+            false => None,
+        }
+    };
+
+    /// (MODULUS + 3) / 8 when MODULUS % 8 == 5. Used for square root precomputations.
+    #[doc(hidden)]
+    const MODULUS_PLUS_THREE_DIV_EIGHT: Option<BigInt<N>> = {
+        match Self::MODULUS.mod_8() == 5 {
+            true => {
+                let (modulus_plus_three, carry) = Self::MODULUS.const_add_with_carry(&BigInt!("3"));
+                let mut result = modulus_plus_three.divide_by_2_round_down();
+                // Since modulus_plus_one is even, dividing by 2 results in a MSB of 0.
+                // Thus we can set MSB to `carry` to get the correct result of (MODULUS + 1) // 2:
+                result.0[N - 1] |= (carry as u64) << 63;
+                result = result.divide_by_2_round_down();
+
+                Some(result.divide_by_2_round_down())
+            },
+            false => None,
+        }
+    };
+
+    /// (MODULUS - 1) / 4 when MODULUS % 8 == 5. Used for square root precomputations.
+    #[doc(hidden)]
+    const MODULUS_MINUS_ONE_DIV_FOUR: Option<BigInt<N>> = {
+        match Self::MODULUS.mod_8() == 5 {
+            true => {
+                let (modulus_plus_three, _) = Self::MODULUS.const_sub_with_borrow(&BigInt::one());
+                let result = modulus_plus_three.divide_by_2_round_down();
                 Some(result.divide_by_2_round_down())
             },
             false => None,
@@ -168,7 +198,7 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
                         target_arch = "x86_64"
                     )
                 )]
-                #[allow(unsafe_code, unused_mut)]
+                #[allow(unsafe_code)]
                 #[rustfmt::skip]
 
                 // Tentatively avoid using assembly for `N == 1`.
@@ -224,29 +254,22 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
             *a *= *a;
             return;
         }
-        if Self::CAN_USE_NO_CARRY_SQUARE_OPT
-            && (2..=6).contains(&N)
-            && cfg!(all(
-                feature = "asm",
-                target_feature = "bmi2",
-                target_feature = "adx",
-                target_arch = "x86_64"
-            ))
-        {
-            #[cfg(all(
-                feature = "asm",
-                target_feature = "bmi2",
-                target_feature = "adx",
-                target_arch = "x86_64"
-            ))]
-            #[allow(unsafe_code, unused_mut)]
+        #[cfg(all(
+            feature = "asm",
+            target_feature = "bmi2",
+            target_feature = "adx",
+            target_arch = "x86_64"
+        ))]
+        #[allow(unsafe_code)]
+        if Self::CAN_USE_NO_CARRY_SQUARE_OPT && (2..=6).contains(&N) {
+            use ark_ff_asm::x86_64_asm_square;
             #[rustfmt::skip]
             match N {
-                2 => { ark_ff_asm::x86_64_asm_square!(2, (a.0).0); },
-                3 => { ark_ff_asm::x86_64_asm_square!(3, (a.0).0); },
-                4 => { ark_ff_asm::x86_64_asm_square!(4, (a.0).0); },
-                5 => { ark_ff_asm::x86_64_asm_square!(5, (a.0).0); },
-                6 => { ark_ff_asm::x86_64_asm_square!(6, (a.0).0); },
+                2 => { x86_64_asm_square!(2, (a.0).0); },
+                3 => { x86_64_asm_square!(3, (a.0).0); },
+                4 => { x86_64_asm_square!(4, (a.0).0); },
+                5 => { x86_64_asm_square!(5, (a.0).0); },
+                6 => { x86_64_asm_square!(6, (a.0).0); },
                 _ => unsafe { ark_std::hint::unreachable_unchecked() },
             };
             a.subtract_modulus();
@@ -382,7 +405,7 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
                 r[(j + i) % N] =
                     fa::mac_with_carry(r[(j + i) % N], k, Self::MODULUS.0[j], &mut carry);
             }
-            r[i % N] = carry;
+            r[i] = carry;
         }
 
         BigInt::new(r)
@@ -437,7 +460,7 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
                     result.0[i - 1] =
                         fa::mac_with_carry(result.0[i], k, Self::MODULUS.0[i], &mut carry2);
                 }
-                result.0[N - 1] = fa::adc_no_carry(carry_a, carry_b, &mut carry2);
+                result.0[N - 1] = fa::adc_no_carry(carry_a, carry_b, &carry2);
                 result
             });
             let mut result = Fp::new_unchecked(result);
@@ -465,7 +488,7 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
                                     temp.0[k] =
                                         fa::mac_with_carry(temp.0[k], a.0[j], b.0[k], &mut carry2);
                                 }
-                                carry = fa::adc_no_carry(carry, 0, &mut carry2);
+                                carry = fa::adc_no_carry(carry, 0, &carry2);
                                 (temp, carry)
                             },
                         );
@@ -477,7 +500,7 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
                             result.0[i - 1] =
                                 fa::mac_with_carry(temp.0[i], k, Self::MODULUS.0[i], &mut carry2);
                         }
-                        result.0[N - 1] = fa::adc_no_carry(carry, 0, &mut carry2);
+                        result.0[N - 1] = fa::adc_no_carry(carry, 0, &carry2);
                         result
                     });
                     let mut result = Fp::new_unchecked(result);
@@ -549,17 +572,33 @@ pub const fn sqrt_precomputation<const N: usize, T: MontConfig<N>>(
             }),
             None => None,
         },
-        _ => Some(SqrtPrecomputation::TonelliShanks {
-            two_adicity: <MontBackend<T, N>>::TWO_ADICITY,
-            quadratic_nonresidue_to_trace: T::TWO_ADIC_ROOT_OF_UNITY,
-            trace_of_modulus_minus_one_div_two:
-                &<Fp<MontBackend<T, N>, N>>::TRACE_MINUS_ONE_DIV_TWO.0,
-        }),
+        _ => match T::MODULUS.mod_8() {
+            5 => match (
+                T::MODULUS_PLUS_THREE_DIV_EIGHT.as_ref(),
+                T::MODULUS_MINUS_ONE_DIV_FOUR.as_ref(),
+            ) {
+                (
+                    Some(BigInt(modulus_plus_three_div_eight)),
+                    Some(BigInt(modulus_minus_one_div_four)),
+                ) => Some(SqrtPrecomputation::Case5Mod8 {
+                    modulus_plus_three_div_eight,
+                    modulus_minus_one_div_four,
+                }),
+                _ => None,
+            },
+            _ => Some(SqrtPrecomputation::TonelliShanks {
+                two_adicity: <MontBackend<T, N>>::TWO_ADICITY,
+                quadratic_nonresidue_to_trace: T::TWO_ADIC_ROOT_OF_UNITY,
+                trace_of_modulus_minus_one_div_two:
+                    &<Fp<MontBackend<T, N>, N>>::TRACE_MINUS_ONE_DIV_TWO.0,
+            }),
+        },
     }
 }
 
-/// Construct a [`Fp<MontBackend<T, N>, N>`] element from a literal string. This
-/// should be used primarily for constructing constant field elements; in a
+/// Construct a [`Fp<MontBackend<T, N>, N>`] element from a literal string.
+///
+/// This should be used primarily for constructing constant field elements; in a
 /// non-const context, [`Fp::from_str`](`ark_std::str::FromStr::from_str`) is
 /// preferable.
 ///
@@ -617,6 +656,9 @@ impl<T: MontConfig<N>, const N: usize> FpConfig<N> for MontBackend<T, N> {
     /// such that, for all elements `f` of the field, `e * f = f`.
     const ONE: Fp<Self, N> = Fp::new_unchecked(T::R);
 
+    /// Negation of `Self::ONE`.
+    const NEG_ONE: Fp<Self, N> = Fp::new_unchecked(Self::MODULUS.const_sub_with_borrow(&T::R).0);
+
     const TWO_ADICITY: u32 = Self::MODULUS.two_adic_valuation();
     const TWO_ADIC_ROOT_OF_UNITY: Fp<Self, N> = T::TWO_ADIC_ROOT_OF_UNITY;
     const SMALL_SUBGROUP_BASE: Option<u32> = T::SMALL_SUBGROUP_BASE;
@@ -656,7 +698,6 @@ impl<T: MontConfig<N>, const N: usize> FpConfig<N> for MontBackend<T, N> {
     }
 
     #[inline]
-    #[allow(unused_braces, clippy::absurd_extreme_comparisons)]
     fn square_in_place(a: &mut Fp<Self, N>) {
         T::square_in_place(a)
     }
@@ -670,7 +711,6 @@ impl<T: MontConfig<N>, const N: usize> FpConfig<N> for MontBackend<T, N> {
     }
 
     #[inline]
-    #[allow(clippy::modulo_one)]
     fn into_bigint(a: Fp<Self, N>) -> BigInt<N> {
         T::into_bigint(a)
     }
@@ -727,7 +767,7 @@ impl<T: MontConfig<N>, const N: usize> Fp<MontBackend<T, N>, N> {
     /// of this method
     #[doc(hidden)]
     pub const fn from_sign_and_limbs(is_positive: bool, limbs: &[u64]) -> Self {
-        let mut repr = BigInt::<N>([0; N]);
+        let mut repr = BigInt([0; N]);
         assert!(limbs.len() <= N);
         crate::const_for!((i in 0..(limbs.len())) {
             repr.0[i] = limbs[i];
@@ -747,9 +787,9 @@ impl<T: MontConfig<N>, const N: usize> Fp<MontBackend<T, N>, N> {
             crate::const_for!((j in 0..N) {
                 let k = i + j;
                 if k >= N {
-                    hi[k - N] = mac_with_carry!(hi[k - N], (self.0).0[i], (other.0).0[j], &mut carry);
+                    hi[k - N] = fa::mac_with_carry(hi[k - N], (self.0).0[i], (other.0).0[j], &mut carry);
                 } else {
-                    lo[k] = mac_with_carry!(lo[k], (self.0).0[i], (other.0).0[j], &mut carry);
+                    lo[k] = fa::mac_with_carry(lo[k], (self.0).0[i], (other.0).0[j], &mut carry);
                 }
             });
             hi[i] = carry;
@@ -758,17 +798,17 @@ impl<T: MontConfig<N>, const N: usize> Fp<MontBackend<T, N>, N> {
         let mut carry2 = 0;
         crate::const_for!((i in 0..N) {
             let tmp = lo[i].wrapping_mul(T::INV);
-            let mut carry;
-            mac!(lo[i], tmp, T::MODULUS.0[0], &mut carry);
+            let mut carry = 0;
+            fa::mac(lo[i], tmp, T::MODULUS.0[0], &mut carry);
             crate::const_for!((j in 1..N) {
                 let k = i + j;
                 if k >= N {
-                    hi[k - N] = mac_with_carry!(hi[k - N], tmp, T::MODULUS.0[j], &mut carry);
+                    hi[k - N] = fa::mac_with_carry(hi[k - N], tmp, T::MODULUS.0[j], &mut carry);
                 }  else {
-                    lo[k] = mac_with_carry!(lo[k], tmp, T::MODULUS.0[j], &mut carry);
+                    lo[k] = fa::mac_with_carry(lo[k], tmp, T::MODULUS.0[j], &mut carry);
                 }
             });
-            hi[i] = adc!(hi[i], carry, &mut carry2);
+            carry2 = fa::adc(&mut hi[i], carry, carry2);
         });
 
         crate::const_for!((i in 0..N) {

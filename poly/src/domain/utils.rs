@@ -19,6 +19,18 @@ pub(crate) fn bitreverse(mut n: u32, l: u32) -> u32 {
     r
 }
 
+#[inline]
+pub fn bitreverse_permutation_in_place<T>(a: &mut [T], width: u32) {
+    // swapping in place (from Storer's book)
+    let n = a.len();
+    for k in 0..n {
+        let rk = bitreverse(k as u32, width) as usize;
+        if k < rk {
+            a.swap(k, rk);
+        }
+    }
+}
+
 pub(crate) fn compute_powers_serial<F: Field>(size: usize, root: F) -> Vec<F> {
     compute_powers_and_mul_by_const_serial(size, root, F::one())
 }
@@ -54,19 +66,18 @@ pub(crate) fn compute_powers<F: Field>(size: usize, g: F) -> Vec<F> {
     let res: Vec<F> = (0..num_cpus_used)
         .into_par_iter()
         .flat_map(|i| {
-            let offset = g.pow(&[(i * num_elem_per_thread) as u64]);
+            let offset = g.pow([(i * num_elem_per_thread) as u64]);
             // Compute the size that this chunks' output should be
             // (num_elem_per_thread, unless there are less than num_elem_per_thread elements remaining)
             let num_elements_to_compute = min(size - i * num_elem_per_thread, num_elem_per_thread);
-            let res = compute_powers_and_mul_by_const_serial(num_elements_to_compute, g, offset);
-            res
+            compute_powers_and_mul_by_const_serial(num_elements_to_compute, g, offset)
         })
         .collect();
     res
 }
 
 #[cfg(feature = "parallel")]
-fn log2_floor(num: usize) -> u32 {
+const fn log2_floor(num: usize) -> u32 {
     if num == 0 {
         0
     } else {
@@ -128,7 +139,7 @@ pub(crate) fn parallel_fft<T: DomainCoeff<F>, F: FftField>(
     // the second coset is (g, g^{1 + num_cosets}, g^{1 + 2*num_cosets}, etc.)
     // These are cosets with generator g^{num_cosets}, and varying shifts.
     let mut tmp = vec![vec![T::zero(); coset_size]; num_cosets];
-    let new_omega = omega.pow(&[num_cosets as u64]);
+    let new_omega = omega.pow([num_cosets as u64]);
     let new_two_adicity = ark_ff::utils::k_adicity(2, coset_size as u64);
 
     // For each coset, we first build a polynomial of degree |coset size|,
@@ -138,8 +149,8 @@ pub(crate) fn parallel_fft<T: DomainCoeff<F>, F: FftField>(
         .enumerate()
         .for_each(|(k, kth_poly_coeffs)| {
             // Shuffle into a sub-FFT
-            let omega_k = omega.pow(&[k as u64]);
-            let omega_step = omega.pow(&[(k * coset_size) as u64]);
+            let omega_k = omega.pow([k as u64]);
+            let omega_step = omega.pow([(k * coset_size) as u64]);
 
             let mut elt = F::one();
             // Construct kth_poly_coeffs, which is a polynomial whose evaluations on this coset
@@ -159,18 +170,22 @@ pub(crate) fn parallel_fft<T: DomainCoeff<F>, F: FftField>(
             // pretty bad parallelism. Exact complexity per thread atm is
             // `2N + (N/num threads)log(N/num threads)` field muls Compare to the time
             // complexity of serial is Nlog(N) field muls), with log(N) in [15, 25]
-            for i in 0..coset_size {
-                for c in 0..num_threads {
-                    let idx = i + (c * coset_size);
-                    // t = the value of a corresponding to the ith element of the sth coset.
-                    let mut t = a[idx];
-                    // elt = g^{k * idx}
-                    t *= elt;
-                    kth_poly_coeffs[i] += t;
-                    elt *= &omega_step;
-                }
-                elt *= &omega_k;
-            }
+            kth_poly_coeffs
+                .iter_mut()
+                .enumerate()
+                .take(coset_size)
+                .for_each(|(i, coeff)| {
+                    for c in 0..num_threads {
+                        let idx = i + (c * coset_size);
+                        // Compute the value of `a` corresponding to the `i`th element of the `c`th coset.
+                        let mut t = a[idx];
+                        // Multiply by `g^{k * idx}`
+                        t *= elt;
+                        *coeff += t;
+                        elt *= &omega_step;
+                    }
+                    elt *= &omega_k;
+                });
 
             // Perform sub-FFT
             // Since the sub-FFT is mutative, after this point

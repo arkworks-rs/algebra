@@ -17,7 +17,6 @@ impl Fp3Config for Fq3Config {
 
     const TWO_ADICITY: u32 = 3;
 
-    #[rustfmt::skip]
     const TRACE_MINUS_ONE_DIV_TWO: &'static [u64] = &[
         0x62730e2cd2029617,
         0x660647f735cb88cf,

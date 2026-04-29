@@ -1,10 +1,7 @@
-#![macro_use]
-extern crate ark_relations;
-
 pub mod fields {
     use ark_ff::{BitIteratorLE, Field, PrimeField, UniformRand};
     use ark_r1cs_std::prelude::*;
-    use ark_relations::r1cs::{ConstraintSystem, SynthesisError};
+    use ark_relations::gr1cs::{ConstraintSystem, SynthesisError};
     use ark_std::{test_rng, vec::*};
 
     pub fn field_test<F, ConstraintF, AF>() -> Result<(), SynthesisError>
@@ -21,7 +18,7 @@ pub mod fields {
             AllocationMode::Constant,
         ];
         for &mode in &modes {
-            let cs = ConstraintSystem::<ConstraintF>::new_ref();
+            let cs = ConstraintSystem::new_ref();
 
             let mut rng = test_rng();
             let a_native = F::rand(&mut rng);
@@ -152,10 +149,7 @@ pub mod fields {
             for c in &mut constants {
                 *c = UniformRand::rand(&mut test_rng());
             }
-            let bits = [
-                Boolean::<ConstraintF>::constant(false),
-                Boolean::constant(true),
-            ];
+            let bits = [Boolean::constant(false), Boolean::constant(true)];
             let lookup_result = AF::two_bit_lookup(&bits, constants.as_ref())?;
             assert_eq!(lookup_result.value()?, constants[2]);
             assert!(cs.is_satisfied().unwrap());
@@ -205,7 +199,7 @@ pub mod fields {
             AllocationMode::Constant,
         ];
         for &mode in &modes {
-            let cs = ConstraintSystem::<ConstraintF>::new_ref();
+            let cs = ConstraintSystem::new_ref();
             let mut rng = test_rng();
             for i in 0..=maxpower {
                 let mut a = F::rand(&mut rng);
@@ -228,7 +222,7 @@ pub mod curves {
         AdditiveGroup, CurveGroup,
     };
     use ark_ff::{BitIteratorLE, Field, One, PrimeField};
-    use ark_relations::r1cs::{ConstraintSystem, SynthesisError};
+    use ark_relations::gr1cs::{ConstraintSystem, SynthesisError};
     use ark_std::{test_rng, vec::*, UniformRand};
 
     use ark_r1cs_std::{fields::emulated_fp::EmulatedFpVar, prelude::*};
@@ -246,7 +240,7 @@ pub mod curves {
             AllocationMode::Constant,
         ];
         for &mode in &modes {
-            let cs = ConstraintSystem::<ConstraintF>::new_ref();
+            let cs = ConstraintSystem::new_ref();
 
             let mut rng = test_rng();
             let a_native = C::rand(&mut rng);
@@ -406,8 +400,8 @@ pub mod curves {
 
             let cs = ConstraintSystem::<<P::BaseField as Field>::BasePrimeField>::new_ref();
 
-            let a = SWProjective::<P>::rand(&mut rng);
-            let b = SWProjective::<P>::rand(&mut rng);
+            let a = SWProjective::rand(&mut rng);
+            let b = SWProjective::rand(&mut rng);
             let a_affine = a.into_affine();
             let b_affine = b.into_affine();
 
@@ -477,8 +471,8 @@ pub mod curves {
 
             let cs = ConstraintSystem::<<P::BaseField as Field>::BasePrimeField>::new_ref();
 
-            let a = TEProjective::<P>::rand(&mut rng);
-            let b = TEProjective::<P>::rand(&mut rng);
+            let a = TEProjective::rand(&mut rng);
+            let b = TEProjective::rand(&mut rng);
             let a_affine = a.into_affine();
             let b_affine = b.into_affine();
 
@@ -536,10 +530,8 @@ pub mod pairing {
     };
     use ark_ff::{BitIteratorLE, Field, PrimeField};
     use ark_r1cs_std::prelude::*;
-    use ark_relations::r1cs::{ConstraintSystem, SynthesisError};
+    use ark_relations::gr1cs::{ConstraintSystem, SynthesisError};
     use ark_std::{test_rng, vec::*, UniformRand};
-
-    type BasePrimeField<P> = <<P as Pairing>::BaseField as Field>::BasePrimeField;
 
     #[allow(dead_code)]
     pub fn bilinearity_test<E: Pairing, P: PairingVar<E>>() -> Result<(), SynthesisError>
@@ -554,7 +546,7 @@ pub mod pairing {
             AllocationMode::Constant,
         ];
         for &mode in &modes {
-            let cs = ConstraintSystem::<BasePrimeField<E>>::new_ref();
+            let cs = ConstraintSystem::new_ref();
 
             let mut rng = test_rng();
             let a = E::G1::rand(&mut rng);

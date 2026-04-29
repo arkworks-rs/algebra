@@ -28,7 +28,7 @@ pub enum TwistType {
 
 pub trait Bls12Config: 'static + Sized {
     /// Parameterizes the BLS12 family.
-    const X: &'static [u64];
+    const X: &[u64];
     /// Is `Self::X` negative?
     const X_IS_NEGATIVE: bool;
     /// What kind of twist is this?

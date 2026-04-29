@@ -6,7 +6,7 @@ use crate::{
 };
 use ark_ff::fields::{Field, Fp3};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
-use ark_std::{ops::Neg, vec::*};
+use ark_std::vec::*;
 use educe::Educe;
 use num_traits::One;
 
@@ -34,13 +34,13 @@ impl<P: MNT6Config> From<G2Affine<P>> for G2Prepared<P> {
     fn from(g: G2Affine<P>) -> Self {
         let twist_inv = P::TWIST.inverse().unwrap();
 
-        let mut g_prep = G2Prepared {
+        let mut g_prep = Self {
             x: g.x,
             y: g.y,
             x_over_twist: g.x * &twist_inv,
             y_over_twist: g.y * &twist_inv,
-            double_coefficients: vec![],
-            addition_coefficients: vec![],
+            double_coefficients: Vec::new(),
+            addition_coefficients: Vec::new(),
         };
 
         let mut r = G2ProjectiveExtended {
@@ -50,15 +50,15 @@ impl<P: MNT6Config> From<G2Affine<P>> for G2Prepared<P> {
             t: <Fp3<P::Fp3Config>>::one(),
         };
 
-        let neg_g = g.neg();
+        let neg_g = -g;
         for bit in P::ATE_LOOP_COUNT.iter().skip(1) {
-            let (r2, coeff) = MNT6::<P>::doubling_for_flipped_miller_loop(&r);
+            let (r2, coeff) = MNT6::doubling_for_flipped_miller_loop(&r);
             g_prep.double_coefficients.push(coeff);
             r = r2;
 
             let (r_temp, add_coeff) = match bit {
-                1 => MNT6::<P>::mixed_addition_for_flipper_miller_loop(&g.x, &g.y, &r),
-                -1 => MNT6::<P>::mixed_addition_for_flipper_miller_loop(&neg_g.x, &neg_g.y, &r),
+                1 => MNT6::mixed_addition_for_flipper_miller_loop(&g.x, &g.y, &r),
+                -1 => MNT6::mixed_addition_for_flipper_miller_loop(&neg_g.x, &neg_g.y, &r),
                 0 => continue,
                 _ => unreachable!(),
             };
@@ -75,7 +75,7 @@ impl<P: MNT6Config> From<G2Affine<P>> for G2Prepared<P> {
             let minus_r_y = -r.y * &rz3_inv;
 
             let add_result =
-                MNT6::<P>::mixed_addition_for_flipper_miller_loop(&minus_r_x, &minus_r_y, &r);
+                MNT6::mixed_addition_for_flipper_miller_loop(&minus_r_x, &minus_r_y, &r);
             g_prep.addition_coefficients.push(add_result.1);
         }
 

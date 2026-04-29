@@ -16,11 +16,10 @@ impl CurveConfig for Config {
     type ScalarField = Fr;
 
     /// COFACTOR = 1
-    const COFACTOR: &'static [u64] = &[0x1];
+    const COFACTOR: &[u64] = &[0x1];
 
     /// COFACTOR_INV = COFACTOR^{-1} mod r = 1
-    #[rustfmt::skip]
-    const COFACTOR_INV: Fr =  Fr::ONE;
+    const COFACTOR_INV: Fr = Fr::ONE;
 }
 
 impl SWCurveConfig for Config {
@@ -37,6 +36,9 @@ impl SWCurveConfig for Config {
     fn mul_by_a(_: Self::BaseField) -> Self::BaseField {
         Self::BaseField::zero()
     }
+
+    /// We use `()` because `(0, 0)` cannot be on the curve.
+    type ZeroFlag = ();
 }
 
 /// G_GENERATOR_X = 55066263022277343669578718895168534326250603453777594175500187360389116729240

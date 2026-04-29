@@ -60,12 +60,12 @@ use syn::{
 
 /// Routine to unroll for loops within a block
 pub(crate) fn unroll_in_block(block: &Block, unroll_by: usize) -> Block {
-    let &Block {
+    let Block {
         ref brace_token,
         ref stmts,
     } = block;
     let mut new_stmts = Vec::new();
-    for stmt in stmts.iter() {
+    for stmt in stmts {
         if let Stmt::Expr(expr, semi) = stmt {
             new_stmts.push(Stmt::Expr(unroll(expr, unroll_by), *semi));
         } else {
@@ -110,7 +110,7 @@ fn unroll(expr: &Expr, unroll_by: usize) -> Expr {
         }) = *pat.clone()
         {
             // Don't know how to deal with these so skip and return the original.
-            if !by_ref.is_none() || !mutability.is_none() || !subpat.is_none() {
+            if by_ref.is_some() || mutability.is_some() || subpat.is_some() {
                 return forloop_with_body(new_body);
             }
             let idx = ident; // got the index variable name

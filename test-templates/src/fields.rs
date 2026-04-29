@@ -14,7 +14,7 @@ impl ark_serialize::Flags for DummyFlags {
     }
 
     fn from_u8(_value: u8) -> Option<Self> {
-        Some(DummyFlags)
+        Some(Self)
     }
 }
 
@@ -215,11 +215,14 @@ macro_rules! __test_field {
             let mut rng = test_rng();
             let zero = <$field>::zero();
             let one = <$field>::one();
+            let minus_one = <$field>::NEG_ONE;
             assert_eq!(one.inverse().unwrap(), one, "One inverse failed");
             assert!(one.is_one(), "One is not one");
 
             assert!(<$field>::ONE.is_one(), "One constant is not one");
             assert_eq!(<$field>::ONE, one, "One constant is incorrect");
+            assert_eq!(<$field>::NEG_ONE, -one, "NEG_ONE constant is incorrect");
+            assert_eq!(<$field>::ONE + <$field>::NEG_ONE, zero, "1 + -1 neq 0");
 
             for _ in 0..ITERATIONS {
                 // Associativity
@@ -235,6 +238,7 @@ macro_rules! __test_field {
                 assert_eq!(one * a, a, "Identity mul failed");
                 assert_eq!(one * b, b, "Identity mul failed");
                 assert_eq!(one * c, c, "Identity mul failed");
+                assert_eq!(minus_one * c, -c, "NEG_ONE mul failed");
 
                 assert_eq!(zero * a, zero, "Mul by zero failed");
                 assert_eq!(zero * b, zero, "Mul by zero failed");
@@ -380,8 +384,11 @@ macro_rules! __test_field {
         #[test]
         fn test_fft() {
             use ark_ff::FftField;
+            use $crate::num_bigint::BigUint;
+
+            let two_pow_2_adicity = BigUint::from(1_u8) << <$field>::TWO_ADICITY as u32;
             assert_eq!(
-                <$field>::TWO_ADIC_ROOT_OF_UNITY.pow([1 << <$field>::TWO_ADICITY]),
+                <$field>::TWO_ADIC_ROOT_OF_UNITY.pow(two_pow_2_adicity.to_u64_digits()),
                 <$field>::one()
             );
 
@@ -389,8 +396,8 @@ macro_rules! __test_field {
                 let small_subgroup_base_adicity = <$field>::SMALL_SUBGROUP_BASE_ADICITY.unwrap();
                 let large_subgroup_root_of_unity = <$field>::LARGE_SUBGROUP_ROOT_OF_UNITY.unwrap();
                 let pow =
-                (1 << <$field>::TWO_ADICITY) * (small_subgroup_base as u64).pow(small_subgroup_base_adicity);
-                assert_eq!(large_subgroup_root_of_unity.pow([pow]), <$field>::one());
+                <$field>::from(two_pow_2_adicity) * <$field>::from(small_subgroup_base as u64).pow([small_subgroup_base_adicity as u64]);
+                assert_eq!(large_subgroup_root_of_unity.pow(pow.into_bigint()), <$field>::one());
 
                 for i in 0..=<$field>::TWO_ADICITY {
                     for j in 0..=small_subgroup_base_adicity {
@@ -401,9 +408,9 @@ macro_rules! __test_field {
                 }
             } else {
                 for i in 0..=<$field>::TWO_ADICITY {
-                    let size = 1 << i;
-                    let root = <$field>::get_root_of_unity(size).unwrap();
-                    assert_eq!(root.pow([size as u64]), <$field>::one());
+                    let size = BigUint::from(1_u8) << i;
+                    let root = <$field>::get_root_of_unity_big_int(size.clone()).unwrap();
+                    assert_eq!(root.pow(size.to_u64_digits()), <$field>::one());
                 }
             }
         }
@@ -461,7 +468,7 @@ macro_rules! __test_field {
                 let check = ((&modulus + 1u8) / 4u8).to_u64_digits();
                 let len = check.len();
                 assert_eq!(&modulus_plus_one_div_four[..len], &check);
-                assert!(modulus_plus_one_div_four[len..].iter().all(|l| *l == 0));
+                assert!(modulus_plus_one_div_four[len..].iter().all(Zero::is_zero));
             }
 
             let mut two_adicity = 0;
@@ -480,10 +487,13 @@ macro_rules! __test_field {
             assert_eq!(two_adic_root_of_unity, generator.modpow(&trace, &modulus));
             match (<$field>::SMALL_SUBGROUP_BASE, <$field>::SMALL_SUBGROUP_BASE_ADICITY) {
                 (Some(base), Some(adicity)) => {
-                    let mut e = generator;
+                    let large_subgroup_root_of_unity: BigUint =
+                        <$field>::LARGE_SUBGROUP_ROOT_OF_UNITY.unwrap().into();
+                    let mut e = large_subgroup_root_of_unity;
                     for _i in 0..adicity {
                         e = e.modpow(&base.into(), &modulus)
                     }
+                    assert_eq!(e, two_adic_root_of_unity);
                 },
                 (None, None) => {},
                 (_, _) => {
@@ -576,6 +586,139 @@ macro_rules! test_field {
             const ITERATIONS: usize = $iters;
 
             $crate::__test_field!($field $(; $tail)*);
+        }
+    };
+}
+
+#[macro_export]
+#[doc(hidden)]
+macro_rules! __test_small_field {
+    ($field: ty) => {
+        // Common field tests plus FFT tests
+        $crate::__test_field!($field; fft);
+
+        // Constants test for prime field as above
+        #[test]
+        fn test_constants() {
+            use ark_ff::{FpConfig, BigInteger, SqrtPrecomputation};
+            use $crate::num_bigint::BigUint;
+            use $crate::num_integer::Integer;
+
+            let modulus: BigUint = <$field>::MODULUS.into();
+            let modulus_minus_one = &modulus - 1u8;
+            assert_eq!(BigUint::from(<$field>::MODULUS_MINUS_ONE_DIV_TWO), &modulus_minus_one / 2u32);
+            assert_eq!(<$field>::MODULUS_BIT_SIZE as u64, modulus.bits());
+            if let Some(SqrtPrecomputation::Case3Mod4 { modulus_plus_one_div_four }) = <$field>::SQRT_PRECOMP {
+                // Handle the case where `(MODULUS + 1) / 4`
+                // has fewer limbs than `MODULUS`.
+                let check = ((&modulus + 1u8) / 4u8).to_u64_digits();
+                let len = check.len();
+                assert_eq!(&modulus_plus_one_div_four[..len], &check);
+                assert!(modulus_plus_one_div_four[len..].iter().all(Zero::is_zero));
+            }
+
+            let mut two_adicity = 0;
+            let mut trace = modulus_minus_one;
+            while trace.is_even() {
+                trace /= 2u8;
+                two_adicity += 1;
+            }
+            assert_eq!(two_adicity, <$field>::TWO_ADICITY);
+            assert_eq!(BigUint::from(<$field>::TRACE), trace);
+            let trace_minus_one_div_two = (&trace - 1u8) / 2u8;
+            assert_eq!(BigUint::from(<$field>::TRACE_MINUS_ONE_DIV_TWO), trace_minus_one_div_two);
+
+            let two_adic_root_of_unity: BigUint = <$field>::TWO_ADIC_ROOT_OF_UNITY.into();
+            let generator: BigUint = <$field>::GENERATOR.into_bigint().into();
+            assert_eq!(two_adic_root_of_unity, generator.modpow(&trace, &modulus));
+            match (<$field>::SMALL_SUBGROUP_BASE, <$field>::SMALL_SUBGROUP_BASE_ADICITY) {
+                (Some(base), Some(adicity)) => {
+                    let large_subgroup_root_of_unity: BigUint =
+                        <$field>::LARGE_SUBGROUP_ROOT_OF_UNITY.unwrap().into();
+                    let mut e = large_subgroup_root_of_unity;
+                    for _i in 0..adicity {
+                        e = e.modpow(&base.into(), &modulus)
+                    }
+                    assert_eq!(e, two_adic_root_of_unity);
+                },
+                (None, None) => {},
+                (_, _) => {
+                    panic!("Should specify both `SMALL_SUBGROUP_BASE` and `SMALL_SUBGROUP_BASE_ADICITY`")
+                },
+            }
+        }
+
+        #[test]
+        fn test_from_be_bytes_mod_order() {
+            use ark_ff::BigInteger;
+            use ark_std::str::FromStr;
+            use $crate::num_bigint::BigUint;
+            use ark_std::{rand::Rng, string::ToString, vec};
+
+            let ref_modulus = BigUint::from_bytes_be(&<$field>::MODULUS.to_bytes_be());
+
+            let mut test_vectors = vec![
+                vec![0u8],
+                vec![1u8],
+                vec![255u8],
+                vec![1u8, 0u8],
+                vec![1u8, 0u8, 255u8],
+            ];
+
+            // Add random bytestrings of various lengths
+            for i in 1..64 {
+                let mut rng = ark_std::test_rng();
+                let data: Vec<u8> = (0..i).map(|_| rng.gen()).collect();
+                test_vectors.push(data);
+            }
+
+            for bytes in test_vectors {
+                let mut expected_biguint = BigUint::from_bytes_be(&bytes);
+                expected_biguint =
+                    expected_biguint.modpow(&BigUint::from_bytes_be(&[1u8]), &ref_modulus);
+                let expected_string = expected_biguint.to_string();
+                let expected = <$field>::from_str(&expected_string).unwrap();
+                let actual = <$field>::from_be_bytes_mod_order(&bytes);
+                assert_eq!(expected, actual, "from_be_bytes_mod_order failed on {:?}", bytes);
+            }
+        }
+    };
+}
+
+/// This macro includes most tests from `test_field!` but excludes:
+// `test_montgomery_config`: small fields do not extend MontConfig
+// `test_sum_of_products_edge_case`: cases assume use of BigInts
+#[macro_export]
+macro_rules! test_small_field {
+    ($mod_name:ident; $field:ty) => {
+        mod $mod_name {
+            use super::*;
+            use ark_ff::{
+                fields::{Field, LegendreSymbol},
+                FftField, PrimeField, SmallFp, SmallFpConfig,
+            };
+            use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
+            use ark_std::{
+                io::Cursor, rand::Rng, rand::RngCore, test_rng, vec::Vec, One, UniformRand, Zero,
+            };
+            const ITERATIONS: usize = 1000;
+
+            $crate::__test_small_field!($field);
+        }
+    };
+
+    ($iters:expr; $mod_name:ident; $field:ty) => {
+        mod $mod_name {
+            use super::*;
+            use ark_ff::{
+                fields::{Field, LegendreSymbol},
+                FftField, SmallFp, SmallFpConfig,
+            };
+            use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
+            use ark_std::{rand::Rng, rand::RngCore, test_rng, vec::Vec, One, UniformRand, Zero};
+            const ITERATIONS: usize = $iters;
+
+            $crate::__test_small_field!($field);
         }
     };
 }

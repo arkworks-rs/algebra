@@ -8,7 +8,6 @@ use ark_ec::{
 };
 
 use ark_ff::{AdditiveGroup, BigInt, Field, MontFp, PrimeField, Zero};
-use ark_std::ops::Neg;
 
 use crate::*;
 
@@ -26,8 +25,7 @@ impl CurveConfig for Config {
 
     /// COFACTOR =
     /// 7923214915284317143930293550643874566881017850177945424769256759165301436616933228209277966774092486467289478618404761412630691835764674559376407658497
-    #[rustfmt::skip]
-    const COFACTOR: &'static [u64] = &[
+    const COFACTOR: &[u64] = &[
         0x0000000000000001,
         0x452217cc90000000,
         0xa0f3622fba094800,
@@ -61,6 +59,12 @@ impl SWCurveConfig for Config {
 
     /// AFFINE_GENERATOR_COEFFS = (G2_GENERATOR_X, G2_GENERATOR_Y)
     const GENERATOR: G2Affine = G2Affine::new_unchecked(G2_GENERATOR_X, G2_GENERATOR_Y);
+
+    /// Correctness:
+    /// Substituting (0, 0) into the curve equation gives 0^2 = b.
+    /// Since b is not zero, the point (0, 0) is not on the curve.
+    /// Therefore, we can safely use (0, 0) as a flag for the zero point.
+    type ZeroFlag = ();
 
     #[inline(always)]
     fn mul_by_a(_: Self::BaseField) -> Self::BaseField {
@@ -201,7 +205,7 @@ fn double_p_power_endomorphism(p: &Projective<Config>) -> Projective<Config> {
 
     res.x *= DOUBLE_P_POWER_ENDOMORPHISM_COEFF_0;
     // u^((p^2 - 1)/2) == -1
-    res.y = res.y.neg();
+    res.y = -res.y;
 
     res
 }

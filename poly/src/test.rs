@@ -1,6 +1,6 @@
 use crate::domain::*;
 use ark_ff::{PrimeField, UniformRand};
-use ark_std::test_rng;
+use ark_std::{test_rng, vec};
 use ark_test_curves::{
     bls12_381::{Fr, G1Projective},
     bn384_small_two_adicity::Fr as BNFr,

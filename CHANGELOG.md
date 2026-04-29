@@ -2,6 +2,39 @@
 
 ## Pending
 
+- (`ark-starkcurve`) Add 252 bit [Stark curve](https://docs.starknet.io/architecture/cryptography/#the_stark_curve).
+- [\#971](https://github.com/arkworks-rs/algebra/pull/971) (`ark-ff`) Make serial_batch_inversion_and_mul public.
+- Consolidated logic into `bitreverse_permutation_in_place` and made it public.
+- Remove redundant type constraints from `Pairing::G1Prepared`.
+- (`ark-serialize`) Add serde-compatible wrapper types `CompressedChecked<T>`, `CompressedUnchecked<T>`, `UncompressedChecked<T>`, `UncompressedUnchecked<T>`.
+- [\#989](https://github.com/arkworks-rs/algebra/pull/989) (`ark-poly`) Replace bound `F: FftField` with `F: Field` on `GeneralEvaluationDomain`.
+- (`ark-poly`) Add fast polynomial division
+- (`ark-ec`) Improve GLV scalar multiplication performance by skipping leading zeroes.
+- (`ark-poly`) Make `SparsePolynomial.coeffs` field public
+- [\#1039](https://github.com/arkworks-rs/algebra/pull/1039) (`ark-ff-asm`) Remove unused dead spill buffer path.
+- [\#1044](https://github.com/arkworks-rs/algebra/pull/1044), [\#1084](https://github.com/arkworks-rs/algebra/pull/1084), [\#1088](https://github.com/arkworks-rs/algebra/pull/1088) Add implementation for small field with native integer types
+
+### Breaking changes
+
+- (`ark-poly`) the `Div` implementation is now restricted to polynomials defined over `FftField`. Non-`FftField` polys can instead use the `naive_div` method.
+
+### Features
+
+- (`ark-serialize`) Implementation of `CanonicalSerialize` and `CanonicalDeserialize` for signed integer types
+- [\#1084](https://github.com/arkworks-rs/algebra/pull/1084) (`ark-ff`) Add `from_u128` const constructor for `SmallFp` fields
+- [\#1086](https://github.com/arkworks-rs/algebra/pull/1086) (`ark-ff-macros`) Auto-detect small prime subgroup (bases 3, 5, 7) in `define_field!` for both `SmallFp` and `Fp` fields
+
+### Improvements
+
+- [\#1091](https://github.com/arkworks-rs/algebra/pull/1091)(`ark-ff-macros`) Replace Fermat-based (`a^{p-2}`) modular inversion for `SmallFp` fields with a constant-time binary extended GCD (based on [Pornin 2020](https://eprint.iacr.org/2020/1340)).
+- [\#1091](https://github.com/arkworks-rs/algebra/pull/1091)(`ark-ff-macros`) Consolidate `SmallFp` multiplication dispatch into a single `match` with Mersenne fast-paths (M7, M13, M31) and generic Montgomery backends for u8/u16/u32/u64 fields.
+
+### Bugfixes
+
+- [\#1082](https://github.com/arkworks-rs/algebra/pull/1082) (`ark-ff`) Fix `SmallFp::from_random_bytes` / `from_be_bytes_mod_order` silently producing incorrect field elements by treating plaintext bytes as Montgomery-encoded.
+
+## v0.5.0
+
 - [\#772](https://github.com/arkworks-rs/algebra/pull/772) (`ark-ff`) Implementation of `mul` method for `BigInteger`.
 - [\#794](https://github.com/arkworks-rs/algebra/pull/794) (`ark-ff`) Fix `wasm` compilation.
 - [\#837](https://github.com/arkworks-rs/algebra/pull/837) (`ark-serialize`) Fix array deserialization panic.
@@ -40,7 +73,7 @@
 
 - [\#736](https://github.com/arkworks-rs/algebra/pull/736) (`ark-ff`) Deprecate `divn()`, and use `core::ops::{Shr, ShrAssign}` instead.
 - [\#739](https://github.com/arkworks-rs/algebra/pull/739) (`ark-ff`) Deprecate `muln()`, and use `core::ops::{Shl, ShlAssign}` instead.
-- [\#771](https://github.com/arkworks-rs/algebra/pull/771) (`ark-ec`) Omit expensive  scalar multiplication in `is_in_correct_subgroup_assuming_on_curve()` for short Weierstrass curves of cofactor one.  
+- [\#771](https://github.com/arkworks-rs/algebra/pull/771) (`ark-ec`) Omit expensive  scalar multiplication in `is_in_correct_subgroup_assuming_on_curve()` for short Weierstrass curves of cofactor one.
 - [\#817](https://github.com/arkworks-rs/algebra/pull/817) (`ark-ec`) Relax the visibility for G2 ell coeffs and related algorithms.
 
 ### Bugfixes

@@ -33,12 +33,21 @@ impl SWCurveConfig for Config {
 
     /// AFFINE_GENERATOR_COEFFS = (G1_GENERATOR_X, G1_GENERATOR_Y)
     const GENERATOR: G1Affine = G1Affine::new_unchecked(G1_GENERATOR_X, G1_GENERATOR_Y);
+
+    /// Correctness:
+    /// Substituting (0, 0) into the curve equation gives 0^2 = b.
+    /// Since b is not zero, the point (0, 0) is not on the curve.
+    /// Therefore, we can safely use (0, 0) as a flag for the zero point.
+    type ZeroFlag = ();
 }
 
 /// G1_GENERATOR_X =
-#[rustfmt::skip]
-pub const G1_GENERATOR_X: Fq = MontFp!("336685752883082228109289846353937104185698209371404178342968838739115829740084426881123453");
+pub const G1_GENERATOR_X: Fq = MontFp!(
+    "336685752883082228109289846353937104185698209371404178342968838739115829740084426881123453"
+);
 
 /// G1_GENERATOR_Y =
-#[rustfmt::skip]
-pub const G1_GENERATOR_Y: Fq = MontFp!("402596290139780989709332707716568920777622032073762749862342374583908837063963736098549800");
+
+pub const G1_GENERATOR_Y: Fq = MontFp!(
+    "402596290139780989709332707716568920777622032073762749862342374583908837063963736098549800"
+);

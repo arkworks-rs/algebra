@@ -18,7 +18,6 @@ impl CurveConfig for Config {
 
     /// COFACTOR =
     /// 124074696211871689196744963988542244365937182994917792082847997279938522233341057826255097957635256182243502012934833
-    #[rustfmt::skip]
     const COFACTOR: &'static [u64] = &[
         0x9fed0006fffaaab1,
         0xfae29bffb34d7c0d,
@@ -44,10 +43,15 @@ impl SWCurveConfig for Config {
     /// AFFINE_GENERATOR_COEFFS = (G2_GENERATOR_X, G2_GENERATOR_Y)
     const GENERATOR: G2Affine = G2Affine::new_unchecked(G2_GENERATOR_X, G2_GENERATOR_Y);
 
+    /// Correctness:
+    /// Substituting (0, 0) into the curve equation gives 0^2 = b.
+    /// Since b is not zero, the point (0, 0) is not on the curve.
+    /// Therefore, we can safely use (0, 0) as a flag for the zero point.
+    type ZeroFlag = ();
+
     #[inline(always)]
     fn mul_by_a(_elem: Self::BaseField) -> Self::BaseField {
-        use ark_ff::Zero;
-        Self::BaseField::zero()
+        Self::BaseField::ZERO
     }
 }
 

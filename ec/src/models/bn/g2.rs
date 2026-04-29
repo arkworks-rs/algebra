@@ -98,14 +98,14 @@ impl<P: BnConfig> Default for G2Prepared<P> {
 
 impl<P: BnConfig> From<G2Affine<P>> for G2Prepared<P> {
     fn from(q: G2Affine<P>) -> Self {
-        if q.infinity {
+        if q.is_zero() {
             G2Prepared {
-                ell_coeffs: vec![],
+                ell_coeffs: Vec::new(),
                 infinity: true,
             }
         } else {
             let two_inv = P::Fp::one().double().inverse().unwrap();
-            let mut ell_coeffs = vec![];
+            let mut ell_coeffs = Vec::new();
             let mut r = G2HomProjective::<P> {
                 x: q.x,
                 y: q.y,
@@ -120,7 +120,7 @@ impl<P: BnConfig> From<G2Affine<P>> for G2Prepared<P> {
                 match bit {
                     1 => ell_coeffs.push(r.add_in_place(&q)),
                     -1 => ell_coeffs.push(r.add_in_place(&neg_q)),
-                    _ => continue,
+                    _ => {},
                 }
             }
 
@@ -163,7 +163,7 @@ impl<'a, P: BnConfig> From<&'a G2Projective<P>> for G2Prepared<P> {
 }
 
 impl<P: BnConfig> G2Prepared<P> {
-    pub fn is_zero(&self) -> bool {
+    pub const fn is_zero(&self) -> bool {
         self.infinity
     }
 }

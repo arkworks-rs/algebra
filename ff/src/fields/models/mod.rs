@@ -1,6 +1,9 @@
 pub mod fp;
 pub use self::fp::*;
 
+pub mod small_fp;
+pub use self::small_fp::*;
+
 pub mod fp2;
 pub use self::fp2::*;
 

@@ -4,10 +4,13 @@ use ark_serialize::{
 };
 use ark_std::io::{Read, Write};
 
-use crate::{scalar_mul::variable_base::VariableBaseMSM, AffineRepr};
+use crate::{
+    scalar_mul::{double_and_add, double_and_add_affine, variable_base::VariableBaseMSM},
+    AffineRepr,
+};
 use num_traits::Zero;
 
-use ark_ff::{fields::Field, AdditiveGroup};
+use ark_ff::fields::Field;
 
 mod affine;
 pub use affine::*;
@@ -19,8 +22,9 @@ mod serialization_flags;
 pub use serialization_flags::*;
 
 /// Constants and convenience functions that collectively define the [Twisted Edwards model](https://www.hyperelliptic.org/EFD/g1p/auto-twisted.html)
-/// of the curve. In this model, the curve equation is
-/// `a * x² + y² = 1 + d * x² * y²`, for constants `a` and `d`.
+/// of the curve.
+///
+/// In this model, the curve equation is `a * x² + y² = 1 + d * x² * y²`, for constants `a` and `d`.
 pub trait TECurveConfig: super::CurveConfig {
     /// Coefficient `a` of the curve equation.
     const COEFF_A: Self::BaseField;
@@ -46,7 +50,9 @@ pub trait TECurveConfig: super::CurveConfig {
     /// Checks that the current point is in the prime order subgroup given
     /// the point on the curve.
     fn is_in_correct_subgroup_assuming_on_curve(item: &Affine<Self>) -> bool {
-        Self::mul_affine(item, Self::ScalarField::characteristic()).is_zero()
+        // Directly use `double_and_add_affine` to avoid incorrect zero results from
+        // custom `mul_affine` implementations that reduce scalars modulo the group order.
+        double_and_add_affine(item, Self::ScalarField::characteristic()).is_zero()
     }
 
     /// Performs cofactor clearing.
@@ -57,32 +63,14 @@ pub trait TECurveConfig: super::CurveConfig {
         item.mul_by_cofactor()
     }
 
-    /// Default implementation of group multiplication for projective
-    /// coordinates
+    /// Default implementation of group multiplication for projective coordinates
     fn mul_projective(base: &Projective<Self>, scalar: &[u64]) -> Projective<Self> {
-        let mut res = Projective::<Self>::zero();
-        for b in ark_ff::BitIteratorBE::without_leading_zeros(scalar) {
-            res.double_in_place();
-            if b {
-                res += base;
-            }
-        }
-
-        res
+        double_and_add(base, scalar)
     }
 
-    /// Default implementation of group multiplication for affine
-    /// coordinates
+    /// Default implementation of group multiplication for affine coordinates
     fn mul_affine(base: &Affine<Self>, scalar: &[u64]) -> Projective<Self> {
-        let mut res = Projective::<Self>::zero();
-        for b in ark_ff::BitIteratorBE::without_leading_zeros(scalar) {
-            res.double_in_place();
-            if b {
-                res += base
-            }
-        }
-
-        res
+        double_and_add_affine(base, scalar)
     }
 
     /// Default implementation for multi scalar multiplication
@@ -92,7 +80,7 @@ pub trait TECurveConfig: super::CurveConfig {
     ) -> Result<Projective<Self>, usize> {
         (bases.len() == scalars.len())
             .then(|| VariableBaseMSM::msm_unchecked(bases, scalars))
-            .ok_or(bases.len().min(scalars.len()))
+            .ok_or_else(|| bases.len().min(scalars.len()))
     }
 
     /// If uncompressed, serializes both x and y coordinates.
@@ -141,8 +129,8 @@ pub trait TECurveConfig: super::CurveConfig {
                 (x, y)
             },
         };
-        let point = Affine::<Self>::new_unchecked(x, y);
-        if let Validate::Yes = validate {
+        let point = Affine::new_unchecked(x, y);
+        if validate == Validate::Yes {
             point.check()?;
         }
         Ok(point)
@@ -159,8 +147,9 @@ pub trait TECurveConfig: super::CurveConfig {
 }
 
 /// Constants and convenience functions that collectively define the [Montgomery model](https://www.hyperelliptic.org/EFD/g1p/auto-montgom.html)
-/// of the curve. In this model, the curve equation is
-/// `b * y² = x³ + a * x² + x`, for constants `a` and `b`.
+/// of the curve.
+///
+/// In this model, the curve equation is `b * y² = x³ + a * x² + x`, for constants `a` and `b`.
 pub trait MontCurveConfig: super::CurveConfig {
     /// Coefficient `a` of the curve equation.
     const COEFF_A: Self::BaseField;

@@ -19,7 +19,6 @@ impl CurveConfig for Config {
 
     /// COFACTOR = (36 * X^4) + (36 * X^3) + (30 * X^2) + 6*X + 1
     /// 21888242871839275222246405745257275088844257914179612981679871602714643921549
-    #[rustfmt::skip]
     const COFACTOR: &'static [u64] = &[
         0x345f2299c0f9fa8d,
         0x06ceecda572a2489,
@@ -42,6 +41,13 @@ impl SWCurveConfig for Config {
         MontFp!("19485874751759354771024239261021720505790618469301721065564631296452457478373"),
         MontFp!("266929791119991161246907387137283842545076965332900288569378510910307636690"),
     );
+
+    /// Correctness:
+    /// The curve equation is y^2 = x^3  + b
+    /// Substituting (0, 0) gives 0^2 = 0^3 + b which simplifies to 0 = b.
+    /// Since b is not zero, the point (0, 0) is not on the curve.
+    /// Therefore, we can safely use (0, 0) as a flag for the zero point.
+    type ZeroFlag = ();
 
     /// AFFINE_GENERATOR_COEFFS = (G2_GENERATOR_X, G2_GENERATOR_Y)
     const GENERATOR: G2Affine = G2Affine::new_unchecked(G2_GENERATOR_X, G2_GENERATOR_Y);

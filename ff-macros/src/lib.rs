@@ -9,9 +9,11 @@
 
 use num_bigint::BigUint;
 use proc_macro::TokenStream;
+use quote::format_ident;
 use syn::{Expr, ExprLit, Item, ItemFn, Lit, Meta};
 
-mod montgomery;
+pub(crate) mod montgomery;
+mod small_fp;
 mod unroll;
 
 pub(crate) mod utils;
@@ -22,9 +24,78 @@ pub fn to_sign_and_limbs(input: TokenStream) -> TokenStream {
     let (is_positive, limbs) = utils::str_to_limbs(&num);
 
     let limbs: String = limbs.join(", ");
-    let limbs_and_sign = format!("({}", is_positive) + ", [" + &limbs + "])";
+    let limbs_and_sign = format!("({is_positive}") + ", [" + &limbs + "])";
     let tuple: Expr = syn::parse_str(&limbs_and_sign).unwrap();
     quote::quote!(#tuple).into()
+}
+
+/// Define optimal field type and its corresponding config
+///  
+/// If modulus fits into a native datatype, the resulting type is SmallFp<<name>Config>
+/// Otherwise, it is the appropriately sized Fp*<MontBackend<<name>Config, N>>
+#[proc_macro]
+pub fn define_field(input: TokenStream) -> TokenStream {
+    let args = syn::parse_macro_input!(input as utils::FieldArgs);
+
+    let modulus_big = args
+        .modulus
+        .parse::<BigUint>()
+        .expect("modulus should be a decimal integer string");
+
+    let limbs = utils::str_to_limbs_u64(&args.modulus).1.len();
+
+    let name = args.name;
+    let config_name = format_ident!("{}Config", name);
+    let is_small_modulus = modulus_big < (BigUint::from(1u128) << 64);
+
+    if is_small_modulus {
+        let modulus_u128: u128 = args
+            .modulus
+            .parse()
+            .expect("modulus should fit in u128 for small field");
+        let generator_u128: u128 = args
+            .generator
+            .parse()
+            .expect("generator should fit in u128 for small field");
+
+        let config_impl =
+            small_fp::small_fp_config_helper(modulus_u128, generator_u128, config_name.clone());
+
+        quote::quote! {
+            pub struct #config_name;
+            pub type #name = ark_ff::SmallFp<#config_name>;
+            #config_impl
+        }
+        .into()
+    } else {
+        let fp_alias = utils::fp_alias_for_limbs(limbs);
+
+        let generator_big = args
+            .generator
+            .parse::<BigUint>()
+            .expect("generator should be a decimal integer string");
+
+        let (small_subgroup_base, small_subgroup_power) =
+            match utils::find_conservative_subgroup_base(&modulus_big) {
+                Some((base, power)) => (Some(base), Some(power)),
+                None => (None, None),
+            };
+
+        let config_impl = montgomery::mont_config_helper(
+            modulus_big,
+            generator_big,
+            small_subgroup_base,
+            small_subgroup_power,
+            config_name.clone(),
+        );
+
+        quote::quote! {
+            pub struct #config_name;
+            pub type #name = #fp_alias<ark_ff::MontBackend<#config_name, #limbs>>;
+            #config_impl
+        }
+        .into()
+    }
 }
 
 /// Derive the `MontConfig` trait.
@@ -74,6 +145,30 @@ pub fn mont_config(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     .into()
 }
 
+/// Derive the `SmallFpConfig` trait for small prime fields.
+///
+/// The attributes available to this macro are:
+/// * `modulus`: Specify the prime modulus underlying this prime field.
+/// * `generator`: Specify the generator of the multiplicative subgroup.
+///
+/// Note: Only Montgomery backend is supported.
+#[proc_macro_derive(SmallFpConfig, attributes(modulus, generator))]
+pub fn small_fp_config(input: TokenStream) -> TokenStream {
+    let ast: syn::DeriveInput = syn::parse(input).unwrap();
+
+    let modulus: u128 = fetch_attr("modulus", &ast.attrs)
+        .expect("Please supply a modulus attribute")
+        .parse()
+        .expect("Modulus should be a number");
+
+    let generator: u128 = fetch_attr("generator", &ast.attrs)
+        .expect("Please supply a generator attribute")
+        .parse()
+        .expect("Generator should be a number");
+
+    small_fp::small_fp_config_helper(modulus, generator, ast.ident).into()
+}
+
 const ARG_MSG: &str = "Failed to parse unroll threshold; must be a positive integer";
 
 /// Attribute used to unroll for loops found inside a function block.
@@ -88,10 +183,10 @@ pub fn unroll_for_loops(args: TokenStream, input: TokenStream) -> TokenStream {
 
     if let Item::Fn(item_fn) = item {
         let new_block = {
-            let &ItemFn {
+            let ItemFn {
                 block: ref box_block,
                 ..
-            } = &item_fn;
+            } = item_fn;
             unroll::unroll_in_block(box_block, unroll_by)
         };
         let new_item = Item::Fn(ItemFn {
@@ -120,17 +215,17 @@ fn fetch_attr(name: &str, attrs: &[syn::Attribute]) -> Option<String> {
                 }) = nv.value
                 {
                     return Some(s.value());
-                } else {
-                    panic!("attribute {name} should be a string")
                 }
+                panic!("attribute {name} should be a string")
             },
-            _ => continue,
+            _ => {},
         }
     }
     None
 }
 
 #[test]
+#[allow(clippy::match_same_arms)]
 fn test_str_to_limbs() {
     use num_bigint::Sign::*;
     for i in 0..100 {
@@ -138,7 +233,8 @@ fn test_str_to_limbs() {
             let number = 1i128 << i;
             let signed_number = match sign {
                 Minus => -number,
-                Plus | _ => number,
+                Plus => number,
+                _ => number,
             };
             for base in [2, 8, 16, 10] {
                 let mut string = match base {
@@ -151,10 +247,10 @@ fn test_str_to_limbs() {
                 if sign == Minus {
                     string.insert(0, '-');
                 }
-                let (is_positive, limbs) = utils::str_to_limbs(&format!("{}", string));
+                let (is_positive, limbs) = utils::str_to_limbs(&string.clone());
                 assert_eq!(
                     limbs[0],
-                    format!("{}u64", signed_number.abs() as u64),
+                    format!("{}u64", signed_number.unsigned_abs() as u64),
                     "{signed_number}, {i}"
                 );
                 if i > 63 {

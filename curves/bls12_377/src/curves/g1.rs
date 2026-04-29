@@ -12,7 +12,7 @@ use ark_ec::{
     CurveConfig,
 };
 use ark_ff::{AdditiveGroup, BigInt, Field, MontFp, PrimeField, Zero};
-use ark_std::{ops::Neg, One};
+use ark_std::One;
 
 use super::g1_swu_iso::{SwuIsoConfig, ISOGENY_MAP_TO_G1};
 use crate::{Fq, Fr};
@@ -28,7 +28,7 @@ impl CurveConfig for Config {
     type ScalarField = Fr;
 
     /// COFACTOR = (x - 1)^2 / 3  = 30631250834960419227450344600217059328
-    const COFACTOR: &'static [u64] = &[0x0, 0x170b5d4430000000];
+    const COFACTOR: &[u64] = &[0x0, 0x170b5d4430000000];
 
     /// COFACTOR_INV = COFACTOR^{-1} mod r
     /// = 5285428838741532253824584287042945485047145357130994810877
@@ -44,6 +44,12 @@ impl SWCurveConfig for Config {
 
     /// AFFINE_GENERATOR_COEFFS = (G1_GENERATOR_X, G1_GENERATOR_Y)
     const GENERATOR: G1SWAffine = G1SWAffine::new_unchecked(G1_GENERATOR_X, G1_GENERATOR_Y);
+
+    /// Correctness:
+    /// Substituting (0, 0) into the curve equation gives 0^2 = b.
+    /// Since b is not zero, the point (0, 0) is not on the curve.
+    /// Therefore, we can safely use (0, 0) as a flag for the zero point.
+    type ZeroFlag = ();
 
     #[inline(always)]
     fn mul_by_a(_: Self::BaseField) -> Self::BaseField {
@@ -67,7 +73,7 @@ impl SWCurveConfig for Config {
 }
 
 impl GLVConfig for Config {
-    const ENDO_COEFFS: &'static[Self::BaseField] = &[
+    const ENDO_COEFFS: &[Self::BaseField] = &[
         MontFp!("258664426012969093929703085429980814127835149614277183275038967946009968870203535512256352201271898244626862047231")
     ];
 
@@ -165,7 +171,7 @@ impl TECurveConfig for Config {
     /// Multiplication by `a` is multiply by `-1`.
     #[inline(always)]
     fn mul_by_a(elem: Self::BaseField) -> Self::BaseField {
-        elem.neg()
+        -elem
     }
 }
 

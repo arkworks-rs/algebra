@@ -7,9 +7,12 @@ use crate::{
 use ark_ff::{FftField, Field, Zero};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use ark_std::{
+    cfg_iter_mut,
+    cmp::Ordering,
     collections::BTreeMap,
     fmt,
     ops::{Add, AddAssign, Deref, DerefMut, Mul, Neg, SubAssign},
+    vec,
     vec::*,
 };
 
@@ -22,18 +25,18 @@ pub struct SparsePolynomial<F: Field> {
     /// The coefficient a_i of `x^i` is stored as (i, a_i) in `self.coeffs`.
     /// the entries in `self.coeffs` *must*  be sorted in increasing order of
     /// `i`.
-    coeffs: Vec<(usize, F)>,
+    pub coeffs: Vec<(usize, F)>,
 }
 
 impl<F: Field> fmt::Debug for SparsePolynomial<F> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
         for (i, coeff) in self.coeffs.iter().filter(|(_, c)| !c.is_zero()) {
             if *i == 0 {
-                write!(f, "\n{:?}", coeff)?;
+                write!(f, "\n{coeff:?}")?;
             } else if *i == 1 {
-                write!(f, " + \n{:?} * x", coeff)?;
+                write!(f, " + \n{coeff:?} * x")?;
             } else {
-                write!(f, " + \n{:?} * x^{}", coeff, i)?;
+                write!(f, " + \n{coeff:?} * x^{i}")?;
             }
         }
         Ok(())
@@ -62,7 +65,7 @@ impl<F: Field> Polynomial<F> for SparsePolynomial<F> {
         if self.is_zero() {
             0
         } else {
-            assert!(self.coeffs.last().map_or(false, |(_, c)| !c.is_zero()));
+            assert!(self.coeffs.last().is_some_and(|(_, c)| !c.is_zero()));
             self.coeffs.last().unwrap().0
         }
     }
@@ -101,14 +104,14 @@ impl<F: Field> Polynomial<F> for SparsePolynomial<F> {
 }
 
 impl<F: Field> Add for SparsePolynomial<F> {
-    type Output = SparsePolynomial<F>;
+    type Output = Self;
 
-    fn add(self, other: SparsePolynomial<F>) -> Self {
+    fn add(self, other: Self) -> Self {
         &self + &other
     }
 }
 
-impl<'a, 'b, F: Field> Add<&'a SparsePolynomial<F>> for &'b SparsePolynomial<F> {
+impl<'a, F: Field> Add<&'a SparsePolynomial<F>> for &SparsePolynomial<F> {
     type Output = SparsePolynomial<F>;
 
     fn add(self, other: &'a SparsePolynomial<F>) -> SparsePolynomial<F> {
@@ -139,36 +142,38 @@ impl<'a, 'b, F: Field> Add<&'a SparsePolynomial<F>> for &'b SparsePolynomial<F> 
             let (self_term_degree, self_term_coeff) = self.coeffs[self_index];
             let (other_term_degree, other_term_coeff) = other.coeffs[other_index];
             // add the lower degree term to our sorted set.
-            if self_term_degree < other_term_degree {
-                result.coeffs.push((self_term_degree, self_term_coeff));
-                self_index += 1;
-            } else if self_term_degree == other_term_degree {
-                let term_sum = self_term_coeff + other_term_coeff;
-                if !term_sum.is_zero() {
-                    result
-                        .coeffs
-                        .push((self_term_degree, self_term_coeff + other_term_coeff));
-                }
-                self_index += 1;
-                other_index += 1;
-            } else {
-                result.coeffs.push((other_term_degree, other_term_coeff));
-                other_index += 1;
+            match self_term_degree.cmp(&other_term_degree) {
+                Ordering::Less => {
+                    result.coeffs.push((self_term_degree, self_term_coeff));
+                    self_index += 1;
+                },
+                Ordering::Equal => {
+                    let term_sum = self_term_coeff + other_term_coeff;
+                    if !term_sum.is_zero() {
+                        result.coeffs.push((self_term_degree, term_sum));
+                    }
+                    self_index += 1;
+                    other_index += 1;
+                },
+                Ordering::Greater => {
+                    result.coeffs.push((other_term_degree, other_term_coeff));
+                    other_index += 1;
+                },
             }
         }
     }
 }
 
-impl<'a, F: Field> AddAssign<&'a SparsePolynomial<F>> for SparsePolynomial<F> {
+impl<'a, F: Field> AddAssign<&'a Self> for SparsePolynomial<F> {
     // TODO: Reduce number of clones
-    fn add_assign(&mut self, other: &'a SparsePolynomial<F>) {
+    fn add_assign(&mut self, other: &'a Self) {
         self.coeffs = (self.clone() + other.clone()).coeffs;
     }
 }
 
-impl<'a, F: Field> AddAssign<(F, &'a SparsePolynomial<F>)> for SparsePolynomial<F> {
+impl<'a, F: Field> AddAssign<(F, &'a Self)> for SparsePolynomial<F> {
     // TODO: Reduce number of clones
-    fn add_assign(&mut self, (f, other): (F, &'a SparsePolynomial<F>)) {
+    fn add_assign(&mut self, (f, other): (F, &'a Self)) {
         self.coeffs = (self.clone() + other.clone()).coeffs;
         for i in 0..self.coeffs.len() {
             self.coeffs[i].1 *= f;
@@ -177,10 +182,10 @@ impl<'a, F: Field> AddAssign<(F, &'a SparsePolynomial<F>)> for SparsePolynomial<
 }
 
 impl<F: Field> Neg for SparsePolynomial<F> {
-    type Output = SparsePolynomial<F>;
+    type Output = Self;
 
     #[inline]
-    fn neg(mut self) -> SparsePolynomial<F> {
+    fn neg(mut self) -> Self {
         for (_, coeff) in &mut self.coeffs {
             *coeff = -*coeff;
         }
@@ -188,16 +193,16 @@ impl<F: Field> Neg for SparsePolynomial<F> {
     }
 }
 
-impl<'a, F: Field> SubAssign<&'a SparsePolynomial<F>> for SparsePolynomial<F> {
+impl<'a, F: Field> SubAssign<&'a Self> for SparsePolynomial<F> {
     // TODO: Reduce number of clones
     #[inline]
-    fn sub_assign(&mut self, other: &'a SparsePolynomial<F>) {
+    fn sub_assign(&mut self, other: &'a Self) {
         let self_copy = -self.clone();
         self.coeffs = (self_copy + other.clone()).coeffs;
     }
 }
 
-impl<'b, F: Field> Mul<F> for &'b SparsePolynomial<F> {
+impl<F: Field> Mul<F> for &SparsePolynomial<F> {
     type Output = SparsePolynomial<F>;
 
     #[inline]
@@ -237,7 +242,7 @@ impl<F: Field> SparsePolynomial<F> {
     /// of the same degree are ignored.
     pub fn from_coefficients_vec(mut coeffs: Vec<(usize, F)>) -> Self {
         // While there are zeros at the end of the coefficient vector, pop them off.
-        while coeffs.last().map_or(false, |(_, c)| c.is_zero()) {
+        while coeffs.last().is_some_and(|(_, c)| c.is_zero()) {
             coeffs.pop();
         }
         // Ensure that coeffs are in ascending order.
@@ -250,21 +255,29 @@ impl<F: Field> SparsePolynomial<F> {
     }
 
     /// Perform a naive n^2 multiplication of `self` by `other`.
-    #[allow(clippy::or_fun_call)]
     pub fn mul(&self, other: &Self) -> Self {
         if self.is_zero() || other.is_zero() {
-            SparsePolynomial::zero()
+            Self::zero()
         } else {
             let mut result = BTreeMap::new();
-            for (i, self_coeff) in self.coeffs.iter() {
-                for (j, other_coeff) in other.coeffs.iter() {
-                    let cur_coeff = result.entry(i + j).or_insert(F::zero());
-                    *cur_coeff += &(*self_coeff * other_coeff);
+            for (i, self_coeff) in &self.coeffs {
+                for (j, other_coeff) in &other.coeffs {
+                    result
+                        .entry(i + j)
+                        .and_modify(|cur_coeff| *cur_coeff += *self_coeff * other_coeff)
+                        .or_insert_with(|| *self_coeff * other_coeff);
                 }
             }
-            let result = result.into_iter().collect::<Vec<_>>();
-            SparsePolynomial::from_coefficients_vec(result)
+            Self::from_coefficients_vec(result.into_iter().collect())
         }
+    }
+
+    /// Returns the quotient of the division of `self` of degree n by `other` of k values using an algorithm in O(nk)
+    pub fn div(&self, other: &Self) -> DensePolynomial<F> {
+        let dividend: DenseOrSparsePolynomial<'_, F> = self.into();
+        let divisor: DenseOrSparsePolynomial<'_, F> = other.into();
+
+        dividend.naive_div(&divisor).expect("division failed").0
     }
 
     // append append_coeffs to self.
@@ -272,9 +285,7 @@ impl<F: Field> SparsePolynomial<F> {
     // being higher than self.degree()
     fn append_coeffs(&mut self, append_coeffs: &[(usize, F)]) {
         assert!(append_coeffs.is_empty() || self.degree() < append_coeffs[0].0);
-        for (i, elem) in append_coeffs.iter() {
-            self.coeffs.push((*i, *elem));
-        }
+        self.coeffs.extend_from_slice(append_coeffs);
     }
 }
 
@@ -285,13 +296,13 @@ impl<F: FftField> SparsePolynomial<F> {
         domain: D,
     ) -> Evaluations<F, D> {
         let poly: DenseOrSparsePolynomial<'_, F> = self.into();
-        DenseOrSparsePolynomial::<F>::evaluate_over_domain(poly, domain)
+        DenseOrSparsePolynomial::evaluate_over_domain(poly, domain)
     }
 
     /// Evaluate `self` over `domain`.
     pub fn evaluate_over_domain<D: EvaluationDomain<F>>(self, domain: D) -> Evaluations<F, D> {
         let poly: DenseOrSparsePolynomial<'_, F> = self.into();
-        DenseOrSparsePolynomial::<F>::evaluate_over_domain(poly, domain)
+        DenseOrSparsePolynomial::evaluate_over_domain(poly, domain)
     }
 }
 
@@ -301,20 +312,21 @@ impl<F: Field> From<SparsePolynomial<F>> for DensePolynomial<F> {
         for (i, coeff) in other.coeffs {
             result[i] = coeff;
         }
-        DensePolynomial::from_coefficients_vec(result)
+        Self::from_coefficients_vec(result)
     }
 }
 
 impl<F: Field> From<DensePolynomial<F>> for SparsePolynomial<F> {
-    fn from(dense_poly: DensePolynomial<F>) -> SparsePolynomial<F> {
-        let coeffs = dense_poly.coeffs();
-        let mut sparse_coeffs = Vec::<(usize, F)>::new();
-        for (i, coeff) in coeffs.iter().enumerate() {
-            if !coeff.is_zero() {
-                sparse_coeffs.push((i, *coeff));
-            }
-        }
-        SparsePolynomial::from_coefficients_vec(sparse_coeffs)
+    fn from(dense_poly: DensePolynomial<F>) -> Self {
+        Self::from_coefficients_vec(
+            dense_poly
+                .coeffs()
+                .iter()
+                .enumerate()
+                .filter(|&(_, coeff)| !coeff.is_zero())
+                .map(|(i, coeff)| (i, *coeff))
+                .collect(),
+        )
     }
 }
 
@@ -326,7 +338,7 @@ mod tests {
         EvaluationDomain, GeneralEvaluationDomain,
     };
     use ark_ff::{UniformRand, Zero};
-    use ark_std::{cmp::max, ops::Mul, rand::Rng, test_rng};
+    use ark_std::{cmp::max, ops::Mul, rand::Rng, test_rng, vec};
     use ark_test_curves::bls12_381::Fr;
 
     // probability of rand sparse polynomial having a particular coefficient be 0
@@ -464,6 +476,43 @@ mod tests {
                 let poly_b_evals = sparse_poly_b.evaluate_over_domain_by_ref(domain);
                 let poly_prod_evals = sparse_prod.evaluate_over_domain_by_ref(domain);
                 assert_eq!(poly_a_evals.mul(&poly_b_evals), poly_prod_evals);
+            }
+        }
+    }
+
+    #[test]
+    fn div_polynomial() {
+        let mut rng = test_rng();
+        for degree_a in 0..10 {
+            let sparse_poly_a = rand_sparse_poly(degree_a, &mut rng);
+            let dense_poly_a: DensePolynomial<Fr> = sparse_poly_a.clone().into();
+            for degree_b in 0..degree_a {
+                let sparse_poly_b = rand_sparse_poly(degree_b, &mut rng);
+                let dense_poly_b: DensePolynomial<Fr> = sparse_poly_b.clone().into();
+
+                // Test dividing the polynomials over their native representation
+                let sparse_quotient = sparse_poly_a.div(&sparse_poly_b);
+                assert_eq!(
+                    sparse_quotient.degree(),
+                    degree_a - degree_b,
+                    "degree_a  = {}, degree_b = {}, degree_q = {}",
+                    degree_a - degree_b,
+                    degree_b,
+                    sparse_quotient.degree(),
+                );
+
+                // Test that both dense and sparse division will return the same value
+                // Since the FFT division is tested in the dense.rs, we then know this division is valid too
+                // (we are over FFT fields so dense div will be FFT)
+                let dense_quotient = &dense_poly_a / &dense_poly_b;
+                assert_eq!(sparse_quotient.degree(), dense_quotient.degree());
+                assert_eq!(
+                    sparse_quotient,
+                    dense_quotient,
+                    "sparse quotient different from dense quotient for the same division! sparse {:?}, dense {:?}",
+                    sparse_quotient,
+                    dense_quotient,
+                );
             }
         }
     }

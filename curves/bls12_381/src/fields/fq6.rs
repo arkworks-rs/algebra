@@ -46,7 +46,6 @@ impl Fp6Config for Fq6Config {
         ),
 ];
 
-    #[rustfmt::skip]
     const FROBENIUS_COEFF_FP6_C2: &'static [Fq2] = &[
         // Fq2(u + 1)**(((2q^0) - 2) / 3)
         Fq2::new(

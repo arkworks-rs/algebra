@@ -4,10 +4,7 @@ use ark_ff::{
     fields::{FftField, Field, Fp6Config, PrimeField},
     One, UniformRand, Zero,
 };
-use ark_std::{
-    cmp::Ordering,
-    ops::{AddAssign, MulAssign},
-};
+use ark_std::{cmp::Ordering, ops::MulAssign};
 
 use crate::{Fq, Fq12, Fq2, Fq6, Fq6Config, Fr};
 
@@ -108,17 +105,17 @@ fn test_fq2_ordering() {
     let mut b = a.clone();
 
     assert!(a.cmp(&b) == Ordering::Equal);
-    b.c0.add_assign(&Fq::one());
+    b.c0 += &Fq::one();
     assert!(a.cmp(&b) == Ordering::Less);
-    a.c0.add_assign(&Fq::one());
+    a.c0 += &Fq::one();
     assert!(a.cmp(&b) == Ordering::Equal);
-    b.c1.add_assign(&Fq::one());
+    b.c1 += &Fq::one();
     assert!(a.cmp(&b) == Ordering::Less);
-    a.c0.add_assign(&Fq::one());
+    a.c0 += &Fq::one();
     assert!(a.cmp(&b) == Ordering::Less);
-    a.c1.add_assign(&Fq::one());
+    a.c1 += &Fq::one();
     assert!(a.cmp(&b) == Ordering::Greater);
-    b.c0.add_assign(&Fq::one());
+    b.c0 += &Fq::one();
     assert!(a.cmp(&b) == Ordering::Equal);
 }
 
@@ -153,7 +150,7 @@ fn test_fq6_mul_by_1() {
         let mut b = a;
 
         a.mul_by_1(&c1);
-        b.mul_assign(&Fq6::new(Fq2::zero(), c1, Fq2::zero()));
+        b *= &Fq6::new(Fq2::zero(), c1, Fq2::zero());
 
         assert_eq!(a, b);
     }
@@ -170,7 +167,7 @@ fn test_fq6_mul_by_01() {
         let mut b = a;
 
         a.mul_by_01(&c0, &c1);
-        b.mul_assign(&Fq6::new(c0, c1, Fq2::zero()));
+        b *= &Fq6::new(c0, c1, Fq2::zero());
 
         assert_eq!(a, b);
     }

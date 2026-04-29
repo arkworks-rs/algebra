@@ -12,12 +12,10 @@ impl Fp2Config for Fq2Config {
     type Fp = Fq;
 
     /// NONRESIDUE = -1
-    #[rustfmt::skip]
     const NONRESIDUE: Fq = MontFp!("-1");
 
     /// Coefficients for the Frobenius automorphism.
-    #[rustfmt::skip]
-    const FROBENIUS_COEFF_FP2_C1: &'static [Fq] = &[
+    const FROBENIUS_COEFF_FP2_C1: &[Fq] = &[
         // Fq(-1)**(((q^0) - 1) / 2)
         MontFp!("1"),
         // Fq(-1)**(((q^1) - 1) / 2)

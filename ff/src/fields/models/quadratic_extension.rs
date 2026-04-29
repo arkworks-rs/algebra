@@ -5,7 +5,7 @@ use crate::{
 };
 use ark_serialize::{
     CanonicalDeserialize, CanonicalDeserializeWithFlags, CanonicalSerialize,
-    CanonicalSerializeWithFlags, Compress, EmptyFlags, Flags, SerializationError, Valid, Validate,
+    CanonicalSerializeWithFlags, Compress, EmptyFlags, Flags, SerializationError,
 };
 use ark_std::{
     cmp::*,
@@ -42,7 +42,7 @@ pub trait QuadExtConfig: 'static + Send + Sync + Sized {
     const NONRESIDUE: Self::BaseField;
 
     /// Coefficients for the Frobenius automorphism.
-    const FROBENIUS_COEFF_C1: &'static [Self::FrobCoeff];
+    const FROBENIUS_COEFF_C1: &[Self::FrobCoeff];
 
     /// A specializable method for multiplying an element of the base field by
     /// the quadratic non-residue. This is used in Karatsuba multiplication
@@ -89,7 +89,7 @@ pub trait QuadExtConfig: 'static + Send + Sync + Sized {
 
 /// An element of a quadratic extension field F_p\[X\]/(X^2 - P::NONRESIDUE) is
 /// represented as c0 + c1 * X, for c0, c1 in `P::BaseField`.
-#[derive(Educe)]
+#[derive(educe::Educe, CanonicalDeserialize)]
 #[educe(Default, Hash, Clone, Copy, Debug, PartialEq, Eq)]
 pub struct QuadExtField<P: QuadExtConfig> {
     /// Coefficient `c0` in the representation of the field element `c = c0 + c1 * X`
@@ -212,6 +212,8 @@ impl<P: QuadExtConfig> Field for QuadExtField<P> {
 
     const ONE: Self = Self::new(P::BaseField::ONE, P::BaseField::ZERO);
 
+    const NEG_ONE: Self = Self::new(P::BaseField::NEG_ONE, P::BaseField::ZERO);
+
     fn extension_degree() -> u64 {
         2 * P::BaseField::extension_degree()
     }
@@ -230,18 +232,13 @@ impl<P: QuadExtConfig> Field for QuadExtField<P> {
     fn from_base_prime_field_elems(
         elems: impl IntoIterator<Item = Self::BasePrimeField>,
     ) -> Option<Self> {
-        let mut elems = elems.into_iter();
-        let elems = elems.by_ref();
-        let base_ext_deg = P::BaseField::extension_degree() as usize;
-        let element = Some(Self::new(
-            P::BaseField::from_base_prime_field_elems(elems.take(base_ext_deg))?,
-            P::BaseField::from_base_prime_field_elems(elems.take(base_ext_deg))?,
-        ));
-        if elems.next().is_some() {
-            None
-        } else {
-            element
-        }
+        let mut iter = elems.into_iter();
+        let d = P::BaseField::extension_degree() as usize;
+
+        let a = P::BaseField::from_base_prime_field_elems(iter.by_ref().take(d))?;
+        let b = P::BaseField::from_base_prime_field_elems(iter.by_ref().take(d))?;
+
+        iter.next().is_none().then(|| Self::new(a, b))
     }
 
     fn square(&self) -> Self {
@@ -275,7 +272,7 @@ impl<P: QuadExtConfig> Field for QuadExtField<P> {
         //            = (c0^2 + beta * c1^2, 2 c0 * c1)
         // Where beta is P::NONRESIDUE.
         // When beta = -1, we can re-use intermediate additions to improve performance.
-        if P::NONRESIDUE == -P::BaseField::ONE {
+        if P::NONRESIDUE == P::BaseField::NEG_ONE {
             // When the non-residue is -1, we save 2 intermediate additions,
             // and use one fewer intermediate variable
 
@@ -342,12 +339,10 @@ impl<P: QuadExtConfig> Field for QuadExtField<P> {
     }
 
     fn inverse_in_place(&mut self) -> Option<&mut Self> {
-        if let Some(inverse) = self.inverse() {
+        self.inverse().map(|inverse| {
             *self = inverse;
-            Some(self)
-        } else {
-            None
-        }
+            self
+        })
     }
 
     fn frobenius_map_in_place(&mut self, power: usize) {
@@ -572,7 +567,6 @@ impl<P: QuadExtConfig> From<bool> for QuadExtField<P> {
 impl<P: QuadExtConfig> Neg for QuadExtField<P> {
     type Output = Self;
     #[inline]
-    #[must_use]
     fn neg(mut self) -> Self {
         self.c0.neg_in_place();
         self.c1.neg_in_place();
@@ -587,7 +581,7 @@ impl<P: QuadExtConfig> Distribution<QuadExtField<P>> for Standard {
     }
 }
 
-impl<'a, P: QuadExtConfig> Add<&'a QuadExtField<P>> for QuadExtField<P> {
+impl<P: QuadExtConfig> Add<&QuadExtField<P>> for QuadExtField<P> {
     type Output = Self;
 
     #[inline]
@@ -597,7 +591,7 @@ impl<'a, P: QuadExtConfig> Add<&'a QuadExtField<P>> for QuadExtField<P> {
     }
 }
 
-impl<'a, P: QuadExtConfig> Sub<&'a QuadExtField<P>> for QuadExtField<P> {
+impl<P: QuadExtConfig> Sub<&QuadExtField<P>> for QuadExtField<P> {
     type Output = Self;
 
     #[inline(always)]
@@ -607,7 +601,7 @@ impl<'a, P: QuadExtConfig> Sub<&'a QuadExtField<P>> for QuadExtField<P> {
     }
 }
 
-impl<'a, P: QuadExtConfig> Mul<&'a QuadExtField<P>> for QuadExtField<P> {
+impl<P: QuadExtConfig> Mul<&QuadExtField<P>> for QuadExtField<P> {
     type Output = Self;
 
     #[inline(always)]
@@ -617,17 +611,18 @@ impl<'a, P: QuadExtConfig> Mul<&'a QuadExtField<P>> for QuadExtField<P> {
     }
 }
 
-impl<'a, P: QuadExtConfig> Div<&'a QuadExtField<P>> for QuadExtField<P> {
+impl<P: QuadExtConfig> Div<&QuadExtField<P>> for QuadExtField<P> {
     type Output = Self;
 
     #[inline]
+    #[allow(clippy::suspicious_arithmetic_impl)]
     fn div(mut self, other: &Self) -> Self {
-        self.mul_assign(&other.inverse().unwrap());
+        self *= &other.inverse().unwrap();
         self
     }
 }
 
-impl<'a, P: QuadExtConfig> AddAssign<&'a Self> for QuadExtField<P> {
+impl<P: QuadExtConfig> AddAssign<&Self> for QuadExtField<P> {
     #[inline]
     fn add_assign(&mut self, other: &Self) {
         self.c0 += &other.c0;
@@ -635,7 +630,7 @@ impl<'a, P: QuadExtConfig> AddAssign<&'a Self> for QuadExtField<P> {
     }
 }
 
-impl<'a, P: QuadExtConfig> SubAssign<&'a Self> for QuadExtField<P> {
+impl<P: QuadExtConfig> SubAssign<&Self> for QuadExtField<P> {
     #[inline]
     fn sub_assign(&mut self, other: &Self) {
         self.c0 -= &other.c0;
@@ -646,7 +641,7 @@ impl<'a, P: QuadExtConfig> SubAssign<&'a Self> for QuadExtField<P> {
 impl_additive_ops_from_ref!(QuadExtField, QuadExtConfig);
 impl_multiplicative_ops_from_ref!(QuadExtField, QuadExtConfig);
 
-impl<'a, P: QuadExtConfig> MulAssign<&'a Self> for QuadExtField<P> {
+impl<P: QuadExtConfig> MulAssign<&Self> for QuadExtField<P> {
     #[inline]
     fn mul_assign(&mut self, other: &Self) {
         if Self::extension_degree() == 2 {
@@ -674,10 +669,10 @@ impl<'a, P: QuadExtConfig> MulAssign<&'a Self> for QuadExtField<P> {
     }
 }
 
-impl<'a, P: QuadExtConfig> DivAssign<&'a Self> for QuadExtField<P> {
+impl<P: QuadExtConfig> DivAssign<&Self> for QuadExtField<P> {
     #[inline]
     fn div_assign(&mut self, other: &Self) {
-        self.mul_assign(&other.inverse().unwrap());
+        *self *= &other.inverse().unwrap();
     }
 }
 
@@ -732,28 +727,6 @@ impl<P: QuadExtConfig> CanonicalDeserializeWithFlags for QuadExtField<P> {
     }
 }
 
-impl<P: QuadExtConfig> Valid for QuadExtField<P> {
-    fn check(&self) -> Result<(), SerializationError> {
-        self.c0.check()?;
-        self.c1.check()
-    }
-}
-
-impl<P: QuadExtConfig> CanonicalDeserialize for QuadExtField<P> {
-    #[inline]
-    fn deserialize_with_mode<R: Read>(
-        mut reader: R,
-        compress: Compress,
-        validate: Validate,
-    ) -> Result<Self, SerializationError> {
-        let c0: P::BaseField =
-            CanonicalDeserialize::deserialize_with_mode(&mut reader, compress, validate)?;
-        let c1: P::BaseField =
-            CanonicalDeserialize::deserialize_with_mode(&mut reader, compress, validate)?;
-        Ok(QuadExtField::new(c0, c1))
-    }
-}
-
 impl<P: QuadExtConfig> ToConstraintField<P::BasePrimeField> for QuadExtField<P>
 where
     P::BaseField: ToConstraintField<P::BasePrimeField>,
@@ -768,6 +741,24 @@ where
 
         Some(res)
     }
+}
+
+impl<P: QuadExtConfig> FftField for QuadExtField<P>
+where
+    P::BaseField: FftField,
+{
+    const GENERATOR: Self = Self::new(P::BaseField::GENERATOR, P::BaseField::ZERO);
+    const TWO_ADICITY: u32 = P::BaseField::TWO_ADICITY;
+    const TWO_ADIC_ROOT_OF_UNITY: Self =
+        Self::new(P::BaseField::TWO_ADIC_ROOT_OF_UNITY, P::BaseField::ZERO);
+    const SMALL_SUBGROUP_BASE: Option<u32> = P::BaseField::SMALL_SUBGROUP_BASE;
+    const SMALL_SUBGROUP_BASE_ADICITY: Option<u32> = P::BaseField::SMALL_SUBGROUP_BASE_ADICITY;
+    const LARGE_SUBGROUP_ROOT_OF_UNITY: Option<Self> =
+        if let Some(x) = P::BaseField::LARGE_SUBGROUP_ROOT_OF_UNITY {
+            Some(Self::new(x, P::BaseField::ZERO))
+        } else {
+            None
+        };
 }
 
 #[cfg(test)]
@@ -788,7 +779,7 @@ mod quad_ext_tests {
             if d == ext_degree {
                 continue;
             }
-            let mut random_coeffs = Vec::<Fq>::new();
+            let mut random_coeffs = Vec::new();
             for _ in 0..d {
                 random_coeffs.push(Fq::rand(&mut test_rng()));
             }
@@ -799,7 +790,7 @@ mod quad_ext_tests {
         // We test consistency against Fq2::new
         let number_of_tests = 10;
         for _ in 0..number_of_tests {
-            let mut random_coeffs = Vec::<Fq>::new();
+            let mut random_coeffs = Vec::new();
             for _ in 0..ext_degree {
                 random_coeffs.push(Fq::rand(&mut test_rng()));
             }
@@ -811,10 +802,9 @@ mod quad_ext_tests {
 
     #[test]
     fn test_from_base_prime_field_element() {
-        let ext_degree = Fq2::extension_degree() as usize;
         let max_num_elems_to_test = 10;
         for _ in 0..max_num_elems_to_test {
-            let mut random_coeffs = vec![Fq::zero(); ext_degree];
+            let mut random_coeffs = [Fq::zero(); 2];
             let random_coeff = Fq::rand(&mut test_rng());
             let res = Fq2::from_base_prime_field(random_coeff);
             random_coeffs[0] = random_coeff;
@@ -824,22 +814,4 @@ mod quad_ext_tests {
             );
         }
     }
-}
-
-impl<P: QuadExtConfig> FftField for QuadExtField<P>
-where
-    P::BaseField: FftField,
-{
-    const GENERATOR: Self = Self::new(P::BaseField::GENERATOR, P::BaseField::ZERO);
-    const TWO_ADICITY: u32 = P::BaseField::TWO_ADICITY;
-    const TWO_ADIC_ROOT_OF_UNITY: Self =
-        Self::new(P::BaseField::TWO_ADIC_ROOT_OF_UNITY, P::BaseField::ZERO);
-    const SMALL_SUBGROUP_BASE: Option<u32> = P::BaseField::SMALL_SUBGROUP_BASE;
-    const SMALL_SUBGROUP_BASE_ADICITY: Option<u32> = P::BaseField::SMALL_SUBGROUP_BASE_ADICITY;
-    const LARGE_SUBGROUP_ROOT_OF_UNITY: Option<Self> =
-        if let Some(x) = P::BaseField::LARGE_SUBGROUP_ROOT_OF_UNITY {
-            Some(Self::new(x, P::BaseField::ZERO))
-        } else {
-            None
-        };
 }

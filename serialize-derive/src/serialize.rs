@@ -34,9 +34,9 @@ fn impl_serialize_field(
         },
         _ => {
             serialize_body
-                .push(quote! { CanonicalSerialize::serialize_with_mode(&self.#(#idents).*, &mut writer, compress)?; });
+                .push(quote! { ark_serialize::CanonicalSerialize::serialize_with_mode(&self.#(#idents).*, &mut writer, compress)?; });
             serialized_size_body
-                .push(quote! { size += CanonicalSerialize::serialized_size(&self.#(#idents).*, compress); });
+                .push(quote! { size += ark_serialize::CanonicalSerialize::serialized_size(&self.#(#idents).*, compress); });
         },
     }
 }
@@ -91,12 +91,10 @@ pub(super) fn impl_canonical_serialize(ast: &syn::DeriveInput) -> TokenStream {
 
     let gen = quote! {
         impl #impl_generics ark_serialize::CanonicalSerialize for #name #ty_generics #where_clause {
-            #[allow(unused_mut, unused_variables)]
             fn serialize_with_mode<W: ark_serialize::Write>(&self, mut writer: W, compress: ark_serialize::Compress) -> Result<(), ark_serialize::SerializationError> {
                 #(#serialize_body)*
                 Ok(())
             }
-            #[allow(unused_mut, unused_variables)]
             fn serialized_size(&self, compress: ark_serialize::Compress) -> usize {
                 let mut size = 0;
                 #(#serialized_size_body)*

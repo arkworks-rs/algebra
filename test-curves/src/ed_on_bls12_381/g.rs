@@ -37,12 +37,12 @@ impl CurveConfig for EdwardsConfig {
     type ScalarField = Fr;
 
     /// COFACTOR = 8
-    const COFACTOR: &'static [u64] = &[8];
+    const COFACTOR: &[u64] = &[8];
 
     /// COFACTOR^(-1) mod r =
     /// 819310549611346726241370945440405716213240158234039660170669895299022906775
-    #[rustfmt::skip]
-    const COFACTOR_INV: Fr = MontFp!("819310549611346726241370945440405716213240158234039660170669895299022906775");
+    const COFACTOR_INV: Fr =
+        MontFp!("819310549611346726241370945440405716213240158234039660170669895299022906775");
 }
 
 impl TECurveConfig for EdwardsConfig {
@@ -55,7 +55,7 @@ impl TECurveConfig for EdwardsConfig {
     const GENERATOR: twisted_edwards::Affine<Self> =
         twisted_edwards::Affine::new_unchecked(GENERATOR_X, GENERATOR_Y);
 
-    type MontCurveConfig = EdwardsConfig;
+    type MontCurveConfig = Self;
 
     /// Multiplication by `a` is simply negation here.
     #[inline(always)]
@@ -68,7 +68,7 @@ impl MontCurveConfig for EdwardsConfig {
     const COEFF_A: Fq = MontFp!("40962");
     const COEFF_B: Fq = MontFp!("-40964");
 
-    type TECurveConfig = EdwardsConfig;
+    type TECurveConfig = Self;
 }
 
 const GENERATOR_X: Fq =

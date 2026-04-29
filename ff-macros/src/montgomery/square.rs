@@ -81,7 +81,6 @@ pub(super) fn square_in_place_impl(
                         target_arch = "x86_64"
                     )
                 )]
-                #[allow(unsafe_code, unused_mut)]
                 {
                     ark_ff::x86_64_asm_square!(#num_limbs, (a.0).0);
                 }

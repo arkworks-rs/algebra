@@ -14,7 +14,7 @@ impl Fp12Config for Fq12Config {
 
     const NONRESIDUE: Fq6 = Fq6::new(FQ2_ZERO, FQ2_ONE, FQ2_ZERO);
 
-    const FROBENIUS_COEFF_FP12_C1: &'static [Fq2] = &[
+    const FROBENIUS_COEFF_FP12_C1: &[Fq2] = &[
         // Fp2::NONRESIDUE^(((q^0) - 1) / 6)
         Fp2::new(MontFp!("1"), MontFp!("0")),
         // Fp2::NONRESIDUE^(((q^1) - 1) / 6)
