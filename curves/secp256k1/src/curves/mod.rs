@@ -65,6 +65,7 @@ impl CurveConfig for ConfigIsogenous {
 }
 type TheIsoCurveAffine = sw::Affine<ConfigIsogenous>;
 impl SWCurveConfig for ConfigIsogenous {
+	type ZeroFlag = Config::ZeroFlag;
     const COEFF_A: Self::BaseField =
         MontFp!("0x3f8731abdd661adca08a5558f0f5d272e953d363cb6f0e5d405447c01a444533");
     const COEFF_B: Self::BaseField = MontFp!("1771");
