@@ -7,6 +7,7 @@ use ark_std::{
     vec,
     vec::Vec,
 };
+use zeroize::Zeroize;
 
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
@@ -451,12 +452,12 @@ fn msm_bigint_wnaf_parallel<V: VariableBaseMSM>(
     let num_bits = V::ScalarField::MODULUS_BIT_SIZE as usize;
     let digits_count = num_bits.div_ceil(c);
     #[cfg(feature = "parallel")]
-    let scalar_digits = scalars
+    let mut scalar_digits = scalars
         .into_par_iter()
         .flat_map_iter(|s| make_digits(s, c, num_bits))
         .collect::<Vec<_>>();
     #[cfg(not(feature = "parallel"))]
-    let scalar_digits = scalars
+    let mut scalar_digits = scalars
         .iter()
         .flat_map(|s| make_digits(s, c, num_bits))
         .collect::<Vec<_>>();
@@ -484,6 +485,7 @@ fn msm_bigint_wnaf_parallel<V: VariableBaseMSM>(
             res
         })
         .collect();
+    scalar_digits.zeroize();
 
     // We store the sum for the lowest window.
     let lowest: V = (*window_sums.first().unwrap()).into();
