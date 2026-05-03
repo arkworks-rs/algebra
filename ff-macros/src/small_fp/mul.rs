@@ -11,14 +11,12 @@ pub(crate) fn generate_mul_impl(
 ) -> proc_macro2::TokenStream {
     const BABYBEAR_PRIME: u128 = 2013265921; // 2^31 - 2^27 + 1
     const KOALABEAR_PRIME: u128 = 2130706433; // 2^31 - 2^24 + 1
-    const GOLDILOCKS_PRIME: u128 = 18446744069414584321; // 2^64 - 2^32 + 1
 
     let repr_type_str = repr_type.to_string();
     let field_bits = 128 - modulus.leading_zeros();
     let is_mersenne = field_bits >= 2 && modulus == (1u128 << field_bits) - 1;
     let is_babybear = modulus == BABYBEAR_PRIME;
     let is_koalabear = modulus == KOALABEAR_PRIME;
-    let is_goldilocks = modulus == GOLDILOCKS_PRIME;
     
     // Wider type for the product: u8→u16, u16→u32, u32→u64
     let mul_ty = match repr_type_str.as_str() {
