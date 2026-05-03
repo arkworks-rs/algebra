@@ -1,7 +1,5 @@
 //! Work with sparse and dense polynomials.
 
-use core::cmp::min;
-
 use crate::{DenseUVPolynomial, EvaluationDomain, Evaluations, Polynomial};
 use ark_ff::{FftField, Field, Zero};
 use ark_std::{borrow::Cow, cfg_iter_mut, vec, vec::*};
@@ -179,111 +177,28 @@ impl<'a, F: FftField> DenseOrSparsePolynomial<'a, F> {
             let dividend_poly: DensePolynomial<F> = self.clone().into();
             let divisor_poly: DensePolynomial<F> = divisor.clone().into();
 
-            let reverted_dividend = Self::reverse_coeffs(&dividend_poly, self.degree() + 1);
-            let reverted_divisor = Self::reverse_coeffs(&divisor_poly, divisor.degree() + 1);
+            let reverted_dividend = dividend_poly.reverse();
+            let reverted_divisor = divisor_poly.reverse();
 
             // compute rev(divisor)^-1 mod X^(deg q + 1), with deg q = deg dividend - deg divisor
             let inversion_degree = self.degree() - divisor.degree() + 1;
-            let reverted_divisor_inverse = Self::inverse_mod(&reverted_divisor, inversion_degree);
+            let reverted_divisor_inverse = reverted_divisor.inverse_mod_xk(inversion_degree);
 
             // rev(q) = rev(divisor)^-1 * rev(dividend) mod X^(deg q + 1)
-            let reverted_q = DensePolynomial::from_coefficients_slice(
-                &(&reverted_divisor_inverse * &reverted_dividend).coeffs[..inversion_degree],
-            );
-            let q = DensePolynomial::from_coefficients_slice(
-                Self::reverse_coeffs(&reverted_q, inversion_degree)
-                    .coeffs
-                    .as_slice(),
-            );
+            let reverted_q = reverted_divisor_inverse.mul_low(&reverted_dividend, inversion_degree);
+
+            // q = rev_{inversion_degree - 1}(reverted_q). Reverse the padded
+            // coefficient vector directly: routing through `DensePolynomial::reverse`
+            // would strip high-index zeros of `reverted_q`, which correspond to
+            // low-order zeros of the true quotient (e.g. dividing `x^d` by `x`
+            // produces `x^{d-1}`, whose coefficient vector is `[0,...,0,1]`).
+            let mut padded = reverted_q.coeffs;
+            padded.resize(inversion_degree, F::zero());
+            padded.reverse();
+            let q = DensePolynomial::from_coefficients_vec(padded);
 
             Some(q)
         }
-    }
-
-    fn inverse_mod(poly: &DensePolynomial<F>, degree: usize) -> DensePolynomial<F> {
-        assert!(!poly.coeffs[0].is_zero(), "Cannot compute inverse of 0");
-
-        // Inverse mod X
-        let mut l = 1;
-        let mut current_inverse =
-            DensePolynomial::from_coefficients_slice(&[F::one() / poly.coeffs[0]]);
-
-        while l < degree {
-            // Lift inverse of poly mod X^l to inverse of poly mod X^2l
-            // (Also called Newton iteration in the reference book)
-            current_inverse = Self::hensel_lift(poly, &current_inverse, l);
-            l *= 2;
-        }
-        let max_coeff = min(current_inverse.coeffs.len(), degree + 1);
-
-        DensePolynomial::from_coefficients_slice(&current_inverse.coeffs[..max_coeff])
-    }
-
-    // Given inverse such that inverse * poly = 1 mod X^base_degree, return
-    // new_inverse such that new_inverse * poly = 1 mod X^(2*base_degree)
-    // More precisely, decomposing inverse * poly as 1 + c * X^base_degree (c is
-    // easily extracted from the coefficient list), then
-    // new_inverse = inverse - X^base_degree (c * inverse mod X^base_degree)
-    // For performance, poly is reduced mod X^2base_degree, and c mod X^base_degree
-    #[inline]
-    fn hensel_lift(
-        poly: &DensePolynomial<F>,
-        inverse: &DensePolynomial<F>,
-        base_degree: usize,
-    ) -> DensePolynomial<F> {
-        let poly_mod_x2deg = DensePolynomial::from_coefficients_slice(
-            &poly.coeffs[..min(2 * base_degree, poly.coeffs.len())],
-        ); // lowest degree guaranteeing >= base_degree coefficients of c
-        let one_plus_cxdeg = &poly_mod_x2deg * inverse;
-
-        if one_plus_cxdeg.degree() < base_degree {
-            // c = 0 thus we can simply return the inverse immediately
-            return inverse.clone();
-        }
-        let c = DensePolynomial::from_coefficients_slice(
-            &one_plus_cxdeg.coeffs[base_degree..min(2 * base_degree, one_plus_cxdeg.coeffs.len())],
-        ); // we keep c of degree <= deg
-
-        let mut new_inverse_coeffs = vec![F::zero(); 2 * base_degree];
-
-        // First fill the lower half
-        new_inverse_coeffs[..min(base_degree, inverse.coeffs.len())]
-            .clone_from_slice(&inverse.coeffs);
-
-        // Compute -inverse * c mod X^base_degree
-        let above_deg_coeffs: Vec<F> = (inverse * &c)
-            .coeffs
-            .iter()
-            .take(min(base_degree, inverse.degree() + c.degree() + 1))
-            .map(|&x| -x)
-            .collect();
-
-        // Then fill the upper half
-        new_inverse_coeffs[base_degree..min(2 * base_degree, base_degree + above_deg_coeffs.len())]
-            .clone_from_slice(above_deg_coeffs.as_slice());
-
-        DensePolynomial::from_coefficients_vec(new_inverse_coeffs)
-    }
-
-    fn reverse_coeffs(poly: &DensePolynomial<F>, max_degree: usize) -> DensePolynomial<F> {
-        assert!(
-            poly.coeffs.len() <= max_degree,
-            "Polynomial too big (size {}) to be reverted in size {}",
-            poly.coeffs.len(),
-            max_degree
-        );
-
-        let mut rev_coeffs = vec![F::zero(); max_degree];
-        rev_coeffs[..poly.coeffs.len()].clone_from_slice(
-            poly.coeffs
-                .clone()
-                .into_iter()
-                .rev()
-                .collect::<Vec<_>>()
-                .as_slice(),
-        );
-
-        DensePolynomial::from_coefficients_vec(rev_coeffs)
     }
 }
 

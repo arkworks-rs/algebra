@@ -242,6 +242,35 @@ impl<F: Field> DensePolynomial<F> {
 
         dividend.naive_div(&divisor).expect("division failed").0
     }
+
+    /// Formal derivative of `self`.
+    pub fn derivative(&self) -> Self {
+        if self.coeffs.len() <= 1 {
+            return Self::zero();
+        }
+        let coeffs: Vec<F> = self
+            .coeffs
+            .iter()
+            .enumerate()
+            .skip(1)
+            .map(|(k, c)| F::from(k as u64) * c)
+            .collect();
+        Self::from_coefficients_vec(coeffs)
+    }
+
+    /// Returns the coefficient reversal `x^d * self(1/x)`, where `d` is the
+    /// length of `self`'s coefficient vector minus one. Concretely, the output's
+    /// coefficient of `x^i` is `self[d - i]`. On a zero polynomial, returns zero.
+    ///
+    /// This is a building block for fast Euclidean division and formal power
+    /// series inversion.
+    pub fn reverse(&self) -> Self {
+        if self.coeffs.is_empty() {
+            return Self::zero();
+        }
+        let reversed: Vec<F> = self.coeffs.iter().rev().copied().collect();
+        Self::from_coefficients_vec(reversed)
+    }
 }
 
 impl<F: FftField> DensePolynomial<F> {
@@ -258,6 +287,65 @@ impl<F: FftField> DensePolynomial<F> {
     pub fn evaluate_over_domain<D: EvaluationDomain<F>>(self, domain: D) -> Evaluations<F, D> {
         let poly: DenseOrSparsePolynomial<'_, F> = self.into();
         DenseOrSparsePolynomial::<F>::evaluate_over_domain(poly, domain)
+    }
+
+    /// Returns `(self * other) mod x^k`, i.e. the product truncated to its
+    /// low `k` coefficients. Contributions from input coefficients at index
+    /// `>= k` are skipped, since they cannot affect the low part.
+    pub fn mul_low(&self, other: &Self, k: usize) -> Self {
+        if k == 0 || self.is_zero() || other.is_zero() {
+            return Self::zero();
+        }
+        let ka = self.coeffs.len().min(k);
+        let kb = other.coeffs.len().min(k);
+        let a_trunc = Self::from_coefficients_slice(&self.coeffs[..ka]);
+        let b_trunc = Self::from_coefficients_slice(&other.coeffs[..kb]);
+        let prod = &a_trunc * &b_trunc;
+        let take = prod.coeffs.len().min(k);
+        Self::from_coefficients_slice(&prod.coeffs[..take])
+    }
+
+    /// Computes the formal power series inverse of `self` modulo `x^k`,
+    /// returning `g` such that `g * self ≡ 1 (mod x^k)`.
+    ///
+    /// Uses Newton iteration, which doubles the precision each step and runs
+    /// in `O(M(k))` field operations. Requires `k >= 1` and a nonzero constant
+    /// term — panics otherwise.
+    pub fn inverse_mod_xk(&self, k: usize) -> Self {
+        assert!(k >= 1, "inverse_mod_xk: k must be positive");
+        let c0 = self
+            .coeffs
+            .first()
+            .copied()
+            .expect("inverse_mod_xk: polynomial has no constant term");
+        assert!(
+            !c0.is_zero(),
+            "inverse_mod_xk: constant term must be invertible"
+        );
+
+        let two = F::one() + F::one();
+        let mut g = Self::from_coefficients_vec(vec![c0.inverse().unwrap()]);
+        let mut precision = 1;
+        while precision < k {
+            let next_precision = (precision << 1).min(k);
+
+            // tmp = (self * g) mod x^{next_precision}
+            let rg_low = self.mul_low(&g, next_precision);
+
+            // (2 - self*g) mod x^{next_precision}
+            let mut two_minus_rg = rg_low.coeffs;
+            two_minus_rg.resize(next_precision, F::zero());
+            two_minus_rg[0] = two - two_minus_rg[0];
+            for c in &mut two_minus_rg[1..] {
+                *c = -*c;
+            }
+            let two_minus_rg_poly = Self::from_coefficients_vec(two_minus_rg);
+
+            // g <- g * (2 - self*g) mod x^{next_precision}
+            g = g.mul_low(&two_minus_rg_poly, next_precision);
+            precision = next_precision;
+        }
+        g
     }
 }
 
@@ -1445,5 +1533,100 @@ mod tests {
 
         // Ensure the polynomial is not zero (as it has non-zero coefficients)
         assert!(!poly1.is_zero());
+    }
+
+    #[test]
+    fn derivative_correctness() {
+        // (3 + 2x + x^2 + 5x^3)' = 2 + 2x + 15x^2
+        let p = DensePolynomial::from_coefficients_vec(vec![
+            Fr::from(3u64),
+            Fr::from(2u64),
+            Fr::from(1u64),
+            Fr::from(5u64),
+        ]);
+        let dp = p.derivative();
+        assert_eq!(
+            dp.coeffs,
+            vec![Fr::from(2u64), Fr::from(2u64), Fr::from(15u64)]
+        );
+
+        // constant and zero polynomials have zero derivative
+        assert!(DensePolynomial::from_coefficients_vec(vec![Fr::from(7u64)])
+            .derivative()
+            .is_zero());
+        assert!(DensePolynomial::<Fr>::zero().derivative().is_zero());
+    }
+
+    #[test]
+    fn reverse_round_trip() {
+        let rng = &mut test_rng();
+        for deg in [0usize, 1, 5, 32, 127] {
+            let p = DensePolynomial::<Fr>::rand(deg, rng);
+            let r = p.reverse();
+            // Random polys have a nonzero constant term with overwhelming
+            // probability, so reverse is involutive.
+            assert_eq!(r.reverse(), p);
+        }
+    }
+
+    #[test]
+    fn mul_low_matches_truncated_full_product() {
+        let rng = &mut test_rng();
+        for (da, db, k) in [(10usize, 10, 5), (20, 15, 20), (50, 30, 17), (64, 64, 128)] {
+            let a = DensePolynomial::<Fr>::rand(da, rng);
+            let b = DensePolynomial::<Fr>::rand(db, rng);
+            let low = a.mul_low(&b, k);
+            let full = &a * &b;
+            let take = full.coeffs.len().min(k);
+            let expected = DensePolynomial::from_coefficients_slice(&full.coeffs[..take]);
+            assert_eq!(low, expected);
+        }
+    }
+
+    #[test]
+    fn inverse_mod_xk_correctness() {
+        let rng = &mut test_rng();
+        for (deg, k) in [(0usize, 1), (3, 8), (7, 9), (31, 64), (100, 50)] {
+            let mut f = DensePolynomial::<Fr>::rand(deg, rng);
+            // Ensure nonzero constant term.
+            if f.coeffs.is_empty() || f.coeffs[0].is_zero() {
+                if f.coeffs.is_empty() {
+                    f.coeffs.push(Fr::from(1u64));
+                } else {
+                    f.coeffs[0] = Fr::from(1u64);
+                }
+            }
+            let g = f.inverse_mod_xk(k);
+            let prod = &f * &g;
+            for i in 0..k {
+                let c = prod.coeffs.get(i).copied().unwrap_or_else(Fr::zero);
+                if i == 0 {
+                    assert_eq!(c, Fr::from(1u64), "constant term must be 1");
+                } else {
+                    assert!(c.is_zero(), "coefficient {} should be zero", i);
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn divide_quotient_with_low_order_zeros() {
+        // Regression: dividing x^d by x produces x^{d-1}, whose coefficient
+        // vector is `[0,...,0,1]`. An earlier draft of the hensel_div refactor
+        // stripped those low-order zeros via `from_coefficients_vec` before
+        // reversing and produced the wrong quotient.
+        let d = 300usize; // above SWITCH_TO_HENSEL_DIV so we exercise the fast path
+        let mut dividend = vec![Fr::from(0u64); d + 1];
+        dividend[d] = Fr::from(1u64);
+        let dividend = DensePolynomial::from_coefficients_vec(dividend);
+        let divisor = DensePolynomial::from_coefficients_vec(vec![Fr::from(0u64), Fr::from(1u64)]);
+
+        let dos: DenseOrSparsePolynomial<'_, Fr> = (&dividend).into();
+        let dis: DenseOrSparsePolynomial<'_, Fr> = (&divisor).into();
+        let (q, r) = dos.divide_with_q_and_r(&dis).unwrap();
+        let mut expected = vec![Fr::from(0u64); d];
+        expected[d - 1] = Fr::from(1u64);
+        assert_eq!(q.coeffs, expected);
+        assert!(r.is_zero());
     }
 }

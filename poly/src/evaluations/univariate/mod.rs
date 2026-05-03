@@ -1,5 +1,9 @@
 //! A univariate polynomial represented in evaluations form.
 
+pub mod subproduct_tree;
+
+pub use subproduct_tree::{interpolate, multipoint_evaluate, SubproductTree};
+
 use crate::{
     univariate::DensePolynomial, DenseUVPolynomial, EvaluationDomain, GeneralEvaluationDomain,
 };
