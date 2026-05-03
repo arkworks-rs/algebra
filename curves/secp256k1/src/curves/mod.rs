@@ -1,3 +1,6 @@
+#[cfg(test)]
+mod tests;
+
 use ark_ec::{
     hashing::curve_maps::{
         swu::SWUConfig,
@@ -9,9 +12,6 @@ use ark_ec::{
 use ark_ff::{AdditiveGroup, Field, MontFp, Zero};
 
 use crate::{fq::Fq, fr::Fr};
-
-#[cfg(test)]
-mod tests;
 
 pub type Affine = sw::Affine<Config>;
 pub type Projective = sw::Projective<Config>;
@@ -65,7 +65,7 @@ impl CurveConfig for ConfigIsogenous {
 }
 type TheIsoCurveAffine = sw::Affine<ConfigIsogenous>;
 impl SWCurveConfig for ConfigIsogenous {
-	type ZeroFlag = Config::ZeroFlag;
+    type ZeroFlag = <Config as SWCurveConfig>::ZeroFlag;
     const COEFF_A: Self::BaseField =
         MontFp!("0x3f8731abdd661adca08a5558f0f5d272e953d363cb6f0e5d405447c01a444533");
     const COEFF_B: Self::BaseField = MontFp!("1771");

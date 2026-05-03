@@ -1,13 +1,20 @@
 use crate::Projective;
-use ark_algebra_test_templates::*;
+use ark_algebra_test_templates::{num_bigint::BigUint, *};
+use ark_ec::hashing::HashToCurve;
+use ark_ff::{BigInt, field_hashers::DefaultFieldHasher};
+use crate as secp256k1;
 
 test_group!(g1; Projective; sw);
 
-/// this will be failing until [the hasher is fixed](https://github.com/arkworks-rs/algebra/issues/849) \
-/// though the test can be improved with a fixed hasher until then
 #[test]
+/// this will be failing until [the hasher is fixed](https://github.com/arkworks-rs/algebra/issues/849) 
+/// 
+/// see how it passes at <https://github.com/plume-sig/zk-nullifier-sig/blob/48656fab1ff2e403d07e8b66da7057ef32993add/rust-arkworks/src/secp256k1/tests.rs#L88>
+/// with the patched hasher
+#[should_panic]
 fn test_h2c() {
-    /* suite   = secp256k1_XMD:SHA-256_SSWU_RO_
+    /* https://www.rfc-editor.org/rfc/rfc9380.html#name-secp256k1_xmdsha-256_sswu_r
+    suite   = secp256k1_XMD:SHA-256_SSWU_RO_
     dst     = QUUX-V01-CS02-with-secp256k1_XMD:SHA-256_SSWU_RO_
 
     msg     =
@@ -27,36 +34,32 @@ fn test_h2c() {
             a4db87ae63
     Q1.y    = 96eb8e2faf05e368efe5957c6167001760233e6dd2487516b46ae7
             25c4cce0c6 */
-    use std::str::FromStr;
-    
-    // assert_eq!(
-    //     ExpanderXmd::expand([]),
-    //     hex::decode("68a985b87eb6b46952128911f2a4412bbc302a9d759667f87f7a21d803f07235")
-    // );
     
     let dst = b"QUUX-V01-CS02-with-secp256k1_XMD:SHA-256_SSWU_RO_";
 
-    let defhasher: FixedFieldHasher<Sha256> = <FixedFieldHasher::<Sha256> as HashToField<secp256k1::fq::Fq>>::new(dst);
-    let u: [secp256k1::fq::Fq; 2] = defhasher.hash_to_field::<2>(&[]);
-    println!("{}", u[0]);
+    let defhasher: DefaultFieldHasher<Sha256> = 
+        <DefaultFieldHasher::<Sha256> as ark_ff::field_hashers::HashToField<secp256k1::Fq>>::new(dst);
     assert_eq!(
-        u[0],
-        crate::Fq::new(BigInt::from_str(//_radix(
-            "48425033926223359121679389614872723077618800904285921194876400224709273202611"
-            // 4424703167977793061848381150098601127251783968775290647828255579651460940578
-            // "6b0f9910dd2ba71c78f2ee9f04d73b5f4c5f7fc773a701abea1e573cab002fb3"
-        ).unwrap()), 
+        ark_ff::field_hashers::HashToField::<secp256k1::fq::Fq>::hash_to_field::<2>(&defhasher, &[]),
+        [
+            secp256k1::fq::Fq::new(BigInt::try_from(BigUint::parse_bytes(b"6b0f9910dd2ba71c78f2ee9f04d73b5f4c5f7fc773a701abea1e573cab002fb3", 16).unwrap()).unwrap()),
+            secp256k1::fq::Fq::new(BigInt::try_from(BigUint::parse_bytes(b"1ae6c212e08fe1a5937f6202f929a2cc8ef4ee5b9782db68b0d5799fd8f09e16", 16).unwrap()).unwrap())
+        ]
     );
     
     assert_eq!(
         ark_ec::hashing::map_to_curve_hasher::MapToCurveBasedHasher::<
-            ark_ec::short_weierstrass::Projective<secp256k1::Config>, 
-            FixedFieldHasher<Sha256>, 
-            ark_ec::hashing::curve_maps::wb::WBMap<secp256k1::Config>
+            ark_ec::short_weierstrass::Projective<secp256k1::Config>,
+            DefaultFieldHasher<Sha256>,
+            ark_ec::hashing::curve_maps::wb::WBMap<secp256k1::Config> 
         >::new(dst).unwrap().hash(&[]).unwrap(),
         secp256k1::Affine::new(
-            secp256k1::fq::Fq::new(BigInt::from_str("87654846584422849836571930156466438379984710599888121545025567473301233275718").unwrap()), 
-            secp256k1::fq::Fq::new(BigInt::from_str("45673711333516174500892987253036094404176536844955599116957274814081860440167").unwrap()), 
+            secp256k1::fq::Fq::new(
+                BigInt::try_from(BigUint::parse_bytes(b"c1cae290e291aee617ebaef1be6d73861479c48b841eaba9b7b5852ddfeb1346", 16).unwrap()).unwrap()
+            ),
+            secp256k1::fq::Fq::new(
+                BigInt::try_from(BigUint::parse_bytes(b"64fa678e07ae116126f08b022a94af6de15985c996c3a91b64c406a960e51067", 16).unwrap()).unwrap()
+            ),
         )
     );
 }
