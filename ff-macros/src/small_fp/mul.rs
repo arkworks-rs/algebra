@@ -138,7 +138,9 @@ pub(crate) fn generate_mul_impl(
                         let l = k.wrapping_sub(k >> 32).wrapping_sub(overflow as u64);
 
                         let (r, overflow) = th.overflowing_sub(l);
-                        a.value = r.wrapping_sub(0u32.wrapping_sub(overflow as u32) as u64);
+                        let mut r = r.wrapping_sub(0u32.wrapping_sub(overflow as u32) as u64);
+                        if r >= Self::MODULUS { r -= Self::MODULUS; }
+                        a.value = r;
                     }
                 }
             }
