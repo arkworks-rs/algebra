@@ -14,6 +14,7 @@ pub(crate) fn generate_mul_impl(
     let is_mersenne = field_bits >= 2 && modulus == (1u128 << field_bits) - 1;
     let is_babybear = modulus == (1u128 << 31) - (1u128 << 27) + 1;
     let is_koalabear = modulus == (1u128 << 31) - (1u128 << 24) + 1;
+    let is_goldilocks = modulus == (1u128 << 64) - (1u128 << 32) + 1;
 
     // Wider type for the product: u8→u16, u16→u32, u32→u64
     let mul_ty = match repr_type_str.as_str() {
@@ -122,19 +123,40 @@ pub(crate) fn generate_mul_impl(
         _ => {
             // Goldilocks, others < 2^64
             let shift_bits = 128 - k_bits;
-            quote! {
-                #[inline(always)]
-                fn mul_assign(a: &mut SmallFp<Self>, b: &SmallFp<Self>) {
-                    const MODULUS_MUL_TY: u128 = #modulus as u128;
-                    const N_PRIME: u128 = #n_prime as u128;
-                    const R_MASK: u128 = #r_mask as u128;
+            if is_goldilocks {
+                quote! {
+                    #[inline(always)]
+                    fn mul_assign(a: &mut SmallFp<Self>, b: &SmallFp<Self>) {
+                        // Pornin's reduction copied from winterfell: 
+                        // https://github.com/facebook/winterfell/blob/main/math/src/field/f64/mod.rs#L714
+                        // The referenced paper is https://eprint.iacr.org/2022/274.pdf section 5.1
+                        let t  = (a.value as u128) * (b.value as u128);
+                        let tl = t as u64;
+                        let th = (t >> 64) as u64;
 
-                    let mut t = (a.value as u128) * (b.value as u128);
-                    let k = t.wrapping_mul(N_PRIME) & R_MASK;
-                    let (t, overflow) = t.overflowing_add(k * MODULUS_MUL_TY);
-                    let mut r = (t >> #k_bits) + ((overflow as u128) << #shift_bits);
-                    if r >= MODULUS_MUL_TY { r -= MODULUS_MUL_TY; }
-                    a.value = r as u64;
+                        let (k, overflow) = tl.overflowing_add(tl << 32);
+                        let l = k.wrapping_sub(k >> 32).wrapping_sub(overflow as u64);
+
+                        let (r, overflow) = th.overflowing_sub(l);
+                        a.value = r.wrapping_sub(0u32.wrapping_sub(overflow as u32) as u64);
+                    }
+                }
+            }
+            else {
+                quote! {
+                    #[inline(always)]
+                    fn mul_assign(a: &mut SmallFp<Self>, b: &SmallFp<Self>) {
+                        const MODULUS_MUL_TY: u128 = #modulus as u128;
+                        const N_PRIME: u128 = #n_prime as u128;
+                        const R_MASK: u128 = #r_mask as u128;
+                        
+                        let mut t = (a.value as u128) * (b.value as u128);
+                        let k = t.wrapping_mul(N_PRIME) & R_MASK;
+                        let (t, overflow) = t.overflowing_add(k * MODULUS_MUL_TY);
+                        let mut r = (t >> #k_bits) + ((overflow as u128) << #shift_bits);
+                        if r >= MODULUS_MUL_TY { r -= MODULUS_MUL_TY; }
+                        a.value = r as u64;
+                    }
                 }
             }
         },
