@@ -1,8 +1,6 @@
-mod fq;
-mod fr;
+pub use ark_ff::test_helpers::secp256k1::*;
+
 mod g1;
-pub use fq::*;
-pub use fr::*;
 pub use g1::*;
 
 #[cfg(test)]

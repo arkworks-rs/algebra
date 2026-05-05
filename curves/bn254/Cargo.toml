@@ -21,7 +21,9 @@ ark-r1cs-std = { workspace = true, optional = true }
 [dev-dependencies]
 ark-serialize = { workspace = true }
 ark-algebra-test-templates = { workspace = true }
+ark-ec-test-templates = { workspace = true }
 ark-algebra-bench-templates = { workspace = true }
+ark-ec-bench-templates = { workspace = true }
 ark-curve-constraint-tests = { path = "../curve-constraint-tests" }
 ark-relations = { workspace = true }
 

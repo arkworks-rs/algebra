@@ -9,10 +9,12 @@ members = [
 
     "ec",
     "bench-templates",
+    "ec-bench-templates",
 
     "poly",
     "test-curves",
     "test-templates",
+    "ec-test-templates",
 ]
 exclude = ["curves/**"]
 resolver = "2"
@@ -147,6 +149,8 @@ ark-std = { version = "0.5.0", default-features = false }
 
 ark-algebra-bench-templates = { version = "0.5.0", path = "./bench-templates", default-features = false }
 ark-algebra-test-templates = { version = "0.5.0", path = "./test-templates", default-features = false }
+ark-ec-bench-templates = { version = "0.5.0", path = "./ec-bench-templates", default-features = false }
+ark-ec-test-templates = { version = "0.5.0", path = "./ec-test-templates", default-features = false }
 ark-test-curves = { version = "0.5.0", path = "./test-curves", default-features = false }
 
 num-traits = { version = "0.2", default-features = false }

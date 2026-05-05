@@ -77,7 +77,7 @@ impl<P: Fp3Config> Fp3<P> {
     /// ```
     /// # use ark_std::test_rng;
     /// # use ark_std::UniformRand;
-    /// # use ark_test_curves::mnt6_753 as ark_mnt6_753;
+    /// # use ark_ff::test_helpers::mnt6_753 as ark_mnt6_753;
     /// use ark_mnt6_753::{Fq as Fp, Fq3 as Fp3};
     /// let c0: Fp = Fp::rand(&mut test_rng());
     /// let c1: Fp = Fp::rand(&mut test_rng());

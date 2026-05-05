@@ -26,8 +26,8 @@
 
 ### Improvements
 
-- [\#1091](https://github.com/arkworks-rs/algebra/pull/1091)(`ark-ff-macros`) Replace Fermat-based (`a^{p-2}`) modular inversion for `SmallFp` fields with a constant-time binary extended GCD (based on [Pornin 2020](https://eprint.iacr.org/2020/1340)).
-- [\#1091](https://github.com/arkworks-rs/algebra/pull/1091)(`ark-ff-macros`) Consolidate `SmallFp` multiplication dispatch into a single `match` with Mersenne fast-paths (M7, M13, M31) and generic Montgomery backends for u8/u16/u32/u64 fields.
+- [\#1091](https://github.com/arkworks-rs/algebra/pull/1091) (`ark-ff-macros`) Replace Fermat-based (`a^{p-2}`) modular inversion for `SmallFp` fields with a constant-time binary extended GCD (based on [Pornin 2020](https://eprint.iacr.org/2020/1340)). For u64 fields (e.g. Goldilocks), uses a two-round approach with matrix composition to avoid i64 overflow.
+- [\#1091](https://github.com/arkworks-rs/algebra/pull/1091) (`ark-ff-macros`) Consolidate `SmallFp` multiplication dispatch into a single `match` with Mersenne fast-paths (M7, M13, M31) and generic Montgomery backends for u8/u16/u32/u64 fields.
 
 ### Bugfixes
 

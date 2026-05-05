@@ -1,12 +1,8 @@
 #[cfg(feature = "mnt4_753_base_field")]
-pub mod fq;
-#[cfg(feature = "mnt4_753_base_field")]
-pub use fq::*;
+pub use ark_ff::test_helpers::mnt4_753::fq::*;
 
 #[cfg(feature = "mnt4_753_scalar_field")]
-pub mod fr;
-#[cfg(feature = "mnt4_753_scalar_field")]
-pub use fr::*;
+pub use ark_ff::test_helpers::mnt4_753::fr::*;
 
 #[cfg(feature = "mnt4_753_curve")]
 pub mod g1;

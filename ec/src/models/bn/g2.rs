@@ -99,7 +99,7 @@ impl<P: BnConfig> Default for G2Prepared<P> {
 impl<P: BnConfig> From<G2Affine<P>> for G2Prepared<P> {
     fn from(q: G2Affine<P>) -> Self {
         if q.is_zero() {
-            G2Prepared {
+            Self {
                 ell_coeffs: Vec::new(),
                 infinity: true,
             }

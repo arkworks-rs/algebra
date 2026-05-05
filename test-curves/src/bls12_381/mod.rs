@@ -1,14 +1,8 @@
-pub mod fr;
-pub use fr::*;
+pub use ark_ff::test_helpers::bls12_381::fr::*;
 
 #[cfg(feature = "bls12_381_curve")]
-pub mod fq;
-#[cfg(feature = "bls12_381_curve")]
-pub mod fq12;
-#[cfg(feature = "bls12_381_curve")]
-pub mod fq2;
-#[cfg(feature = "bls12_381_curve")]
-pub mod fq6;
+pub use ark_ff::test_helpers::bls12_381::{fq::*, fq12::*, fq2::*, fq6::*};
+
 #[cfg(feature = "bls12_381_curve")]
 pub mod g1;
 #[cfg(feature = "bls12_381_curve")]
@@ -19,10 +13,6 @@ pub mod g2;
 pub mod g2_swu_iso;
 #[cfg(feature = "bls12_381_curve")]
 pub use {
-    fq::*,
-    fq12::*,
-    fq2::*,
-    fq6::*,
     g1::{G1Affine, G1Projective},
     g2::{G2Affine, G2Projective},
 };

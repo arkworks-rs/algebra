@@ -20,13 +20,15 @@ workspace = true
 
 [dependencies]
 ark-std = { workspace = true, default-features = false }
-ark-ff = { workspace = true, default-features = false }
+ark-ff = { workspace = true, default-features = false, features = ["test_helpers"] }
 ark-ec = { workspace = true, default-features = false }
 
 [dev-dependencies]
 ark-serialize = { workspace = true, default-features = false }
 ark-algebra-test-templates = { workspace = true, default-features = false }
 ark-algebra-bench-templates = { workspace = true, default-features = false }
+ark-ec-test-templates = { workspace = true, default-features = false }
+ark-ec-bench-templates = { workspace = true, default-features = false }
 
 [features]
 default = []
@@ -77,9 +79,4 @@ harness = false
 [[bench]]
 name = "mnt6_753"
 path = "benches/mnt6_753.rs"
-harness = false
-
-[[bench]]
-name = "smallfp"
-path = "benches/smallfp.rs"
 harness = false

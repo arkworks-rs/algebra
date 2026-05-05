@@ -1,4 +1,5 @@
 use ark_algebra_bench_templates::*;
+use ark_ec_bench_templates::*;
 use ark_mnt4_753::{
     fq::Fq, fq2::Fq2, fr::Fr, Fq4, G1Projective as G1, G2Projective as G2, MNT4_753,
 };

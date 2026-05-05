@@ -209,28 +209,28 @@ pub struct PackedIndex(pub u64);
 
 impl PackedIndex {
     #[inline(always)]
-    fn new(index: usize, group: ScalarSize, value: u16) -> Self {
+    const fn new(index: usize, group: ScalarSize, value: u16) -> Self {
         // Pack the index, group, and value into a single u64.
         let index_bits = ((index as u64) << 20) >> 20;
         let group_bits = (group as u64) << 60;
         let value_bits = (value as u64) << 44;
 
-        PackedIndex(index_bits | value_bits | group_bits)
+        Self(index_bits | value_bits | group_bits)
     }
     /// Extracts the index from the packed value.
     #[inline(always)]
-    fn index(self) -> usize {
+    const fn index(self) -> usize {
         ((self.0 << 20) >> 20) as usize
     }
 
     /// Extracts the group from the packed value.
     #[inline(always)]
-    fn group(self) -> u8 {
+    const fn group(self) -> u8 {
         (self.0 >> 60) as u8
     }
 
     #[inline(always)]
-    fn value(self) -> u16 {
+    const fn value(self) -> u16 {
         ((self.0 & VALUE_MASK) >> 44) as u16
     }
 }
@@ -252,7 +252,7 @@ fn msm_signed<V: VariableBaseMSM>(
         .enumerate()
         .filter(|(_, scalar)| !scalar.is_zero())
         .map(|(i, scalar)| {
-            use ScalarSize::*;
+            use ScalarSize::{NegU1, NegU16, NegU32, NegU64, NegU8, U1, U16, U32, U64, U8};
             let mut value = 0;
             let group = match scalar.num_bits() {
                 0..=1 => U1,
@@ -306,8 +306,8 @@ fn msm_signed<V: VariableBaseMSM>(
     let mut sub_result: V;
 
     // Handle the scalars in the range {-1, 0, 1}.
-    let (ub, us) = small_value_unzip(&u1s, |i, v| (bases[i], v == 1));
-    let (ib, is) = small_value_unzip(&i1s, |i, v| (bases[i], v == 1));
+    let (ub, us) = small_value_unzip(u1s, |i, v| (bases[i], v == 1));
+    let (ib, is) = small_value_unzip(i1s, |i, v| (bases[i], v == 1));
     add_result = msm_binary::<V>(&ub, &us);
     sub_result = msm_binary::<V>(&ib, &is);
 
@@ -318,8 +318,8 @@ fn msm_signed<V: VariableBaseMSM>(
     sub_result += msm_u8::<V>(&ib, &is);
 
     // Handle positive and negative u16 scalars.
-    let (ub, us) = small_value_unzip(u16s, |i, v| (bases[i], v as u16));
-    let (ib, is) = small_value_unzip(i16s, |i, v| (bases[i], v as u16));
+    let (ub, us) = small_value_unzip(u16s, |i, v| (bases[i], v));
+    let (ib, is) = small_value_unzip(i16s, |i, v| (bases[i], v));
     add_result += msm_u16::<V>(&ub, &us);
     sub_result += msm_u16::<V>(&ib, &is);
 
@@ -336,14 +336,14 @@ fn msm_signed<V: VariableBaseMSM>(
     sub_result += msm_u64::<V>(&ib, &is);
 
     // Handle the rest of the scalars.
-    let (bf, sf) = large_value_unzip(&bigints, |i| (bases[i], scalars[i]));
+    let (bf, sf) = large_value_unzip(bigints, |i| (bases[i], scalars[i]));
     if V::NEGATION_IS_CHEAP {
         add_result += msm_bigint_wnaf::<V>(&bf, &sf);
     } else {
         add_result += msm_bigint::<V>(&bf, &sf);
     }
 
-    (add_result - sub_result).into()
+    add_result - sub_result
 }
 
 fn preamble<A, B>(bases: &mut &[A], scalars: &mut &[B]) -> Option<usize> {
@@ -490,7 +490,7 @@ fn msm_bigint_wnaf_parallel<V: VariableBaseMSM>(
 
     // We're traversing windows from high to low.
     lowest
-        + (&window_sums[1..])
+        + window_sums[1..]
             .iter()
             .rev()
             .fold(V::zero(), |mut total, sum_i| {

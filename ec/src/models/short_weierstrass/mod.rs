@@ -213,7 +213,7 @@ pub trait ZeroFlag<C: SWCurveConfig>:
     }
 }
 
-impl<C: SWCurveConfig<ZeroFlag = bool>> ZeroFlag<C> for bool {
+impl<C: SWCurveConfig<ZeroFlag = Self>> ZeroFlag<C> for bool {
     const IS_ZERO: Self = true;
     const IS_NOT_ZERO: Self = false;
     fn is_zero(point: &Affine<C>) -> bool {
