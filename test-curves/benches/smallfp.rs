@@ -1,7 +1,7 @@
 use ark_algebra_bench_templates::*;
 use ark_ff::fields::{Fp64, MontBackend, MontConfig};
 use ark_test_curves::smallfp::{
-    SmallFp16, SmallFp32Babybear, SmallFp32Koalabear, SmallFp32M31, SmallFp64Goldilock, SmallFp8,
+    SmallFp16, SmallFp32Babybear, SmallFp32Koalabear, SmallFp32M31, SmallFp64Goldilocks, SmallFp8,
 };
 
 #[derive(MontConfig)]
@@ -29,18 +29,18 @@ pub struct F8Config;
 pub type F8 = Fp64<MontBackend<F8Config, 1>>;
 
 f_bench!(prime, "F8", F8);
-f_bench!(prime, "SmallF8Mont", SmallFp8);
+f_bench!(prime, "SmallF8", SmallFp8);
 
 f_bench!(prime, "F16", F16);
-f_bench!(prime, "SmallF16Mont", SmallFp16);
+f_bench!(prime, "SmallF16", SmallFp16);
 
 f_bench!(prime, "F32", F32);
-f_bench!(prime, "SmallF32Mont", SmallFp32M31);
-f_bench!(prime, "SmallF32MontBabybear", SmallFp32Babybear);
-f_bench!(prime, "SmallF32MontKoalabear", SmallFp32Koalabear);
+f_bench!(prime, "SmallF32Montgomery31", SmallFp32M31);
+f_bench!(prime, "SmallF32MontgomeryBabybear", SmallFp32Babybear);
+f_bench!(prime, "SmallF32MontgomeryKoalabear", SmallFp32Koalabear);
 
 f_bench!(prime, "F64", F64);
-f_bench!(prime, "SmallF64Mont", SmallFp64Goldilock);
+f_bench!(prime, "SmallF64Goldilocks", SmallFp64Goldilocks);
 
 criterion_main!(
     f8::benches,
@@ -52,5 +52,5 @@ criterion_main!(
     smallfp32babybear::benches,
     smallfp32koalabear::benches,
     f64::benches,
-    smallfp64goldilock::benches,
+    smallfp64goldilocks::benches,
 );

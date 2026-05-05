@@ -28,7 +28,19 @@ define_field!(
 define_field!(
     modulus = "18446744069414584321",
     generator = "7",
-    name = SmallFp64Goldilock,
+    name = SmallFp64Goldilocks,
+);
+
+define_field!(
+    modulus = "1000000007",
+    generator = "5",
+    name = SmallFp32,
+);
+
+define_field!(
+    modulus = "18446744073709551557",
+    generator = "3",
+    name = SmallFp64,
 );
 
 #[cfg(test)]
@@ -39,11 +51,13 @@ mod tests {
 
     test_small_field!(f8; SmallFp8);
     test_small_field!(f16; SmallFp16);
-    test_small_field!(f16_mont_m13; SmallFp16M13);
-    test_small_field!(f32; SmallFp32M31);
-    test_small_field!(f32_mont_babybear; SmallFp32Babybear);
-    test_small_field!(f32_mont_koalabear; SmallFp32Koalabear);
-    test_small_field!(f64; SmallFp64Goldilock);
+    test_small_field!(f16_montgomery13; SmallFp16M13);
+    test_small_field!(f32_montgomery31; SmallFp32M31);
+    test_small_field!(f32_babybear; SmallFp32Babybear);
+    test_small_field!(f32_koalabear; SmallFp32Koalabear);
+    test_small_field!(f32; SmallFp32);
+    test_small_field!(f64_goldilocks; SmallFp64Goldilocks);
+    test_small_field!(f64; SmallFp64);
 
     mod const_constructors {
         use super::*;
@@ -51,13 +65,13 @@ mod tests {
 
         #[test]
         fn test_from_u128_zero() {
-            let a: SmallFp64Goldilock = SmallFp64GoldilockConfig::from_u128(0);
+            let a: SmallFp64Goldilocks = SmallFp64GoldilocksConfig::from_u128(0);
             assert!(a.is_zero(), "from_u128(0) should be zero");
         }
 
         #[test]
         fn test_from_u128_one() {
-            let a: SmallFp64Goldilock = SmallFp64GoldilockConfig::from_u128(1);
+            let a: SmallFp64Goldilocks = SmallFp64GoldilocksConfig::from_u128(1);
             assert!(a.is_one(), "from_u128(1) should be one");
         }
 
@@ -74,8 +88,8 @@ mod tests {
                 2013265921,
                 18446744069414584320,
             ] {
-                let const_elem: SmallFp64Goldilock = SmallFp64GoldilockConfig::from_u128(val);
-                let runtime_elem = SmallFp64Goldilock::from(val);
+                let const_elem: SmallFp64Goldilocks = SmallFp64GoldilocksConfig::from_u128(val);
+                let runtime_elem = SmallFp64Goldilocks::from(val);
                 assert_eq!(const_elem, runtime_elem, "from_u128({val}) mismatch");
             }
         }
@@ -96,8 +110,8 @@ mod tests {
         fn test_from_u128_reduction() {
             let modulus = 18446744069414584321u128; // Goldilocks
             let val = modulus + 7;
-            let const_elem: SmallFp64Goldilock = SmallFp64GoldilockConfig::from_u128(val);
-            let seven: SmallFp64Goldilock = SmallFp64GoldilockConfig::from_u128(7);
+            let const_elem: SmallFp64Goldilocks = SmallFp64GoldilocksConfig::from_u128(val);
+            let seven: SmallFp64Goldilocks = SmallFp64GoldilocksConfig::from_u128(7);
             assert_eq!(
                 const_elem, seven,
                 "from_u128(P+7) should equal from_u128(7)"
@@ -106,9 +120,9 @@ mod tests {
 
         #[test]
         fn test_const_context() {
-            const SEVEN: SmallFp64Goldilock = SmallFp64GoldilockConfig::from_u128(7);
+            const SEVEN: SmallFp64Goldilocks = SmallFp64GoldilocksConfig::from_u128(7);
 
-            assert_eq!(SEVEN, SmallFp64Goldilock::from(7u128));
+            assert_eq!(SEVEN, SmallFp64Goldilocks::from(7u128));
         }
     }
 }
