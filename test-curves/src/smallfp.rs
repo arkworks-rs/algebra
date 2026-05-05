@@ -31,11 +31,7 @@ define_field!(
     name = SmallFp64Goldilocks,
 );
 
-define_field!(
-    modulus = "1000000007",
-    generator = "5",
-    name = SmallFp32,
-);
+define_field!(modulus = "1000000007", generator = "5", name = SmallFp32,);
 
 define_field!(
     modulus = "18446744073709551557",

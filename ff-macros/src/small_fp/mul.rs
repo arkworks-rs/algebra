@@ -127,7 +127,7 @@ pub(crate) fn generate_mul_impl(
                 quote! {
                     #[inline(always)]
                     fn mul_assign(a: &mut SmallFp<Self>, b: &SmallFp<Self>) {
-                        // Pornin's reduction copied from winterfell: 
+                        // Pornin's reduction copied from winterfell:
                         // https://github.com/facebook/winterfell/blob/main/math/src/field/f64/mod.rs#L714
                         // The referenced paper is https://eprint.iacr.org/2022/274.pdf section 5.1
                         let t  = (a.value as u128) * (b.value as u128);
@@ -143,15 +143,14 @@ pub(crate) fn generate_mul_impl(
                         a.value = r;
                     }
                 }
-            }
-            else {
+            } else {
                 quote! {
                     #[inline(always)]
                     fn mul_assign(a: &mut SmallFp<Self>, b: &SmallFp<Self>) {
                         const MODULUS_MUL_TY: u128 = #modulus as u128;
                         const N_PRIME: u128 = #n_prime as u128;
                         const R_MASK: u128 = #r_mask as u128;
-                        
+
                         let mut t = (a.value as u128) * (b.value as u128);
                         let k = t.wrapping_mul(N_PRIME) & R_MASK;
                         let (t, overflow) = t.overflowing_add(k * MODULUS_MUL_TY);
