@@ -9,14 +9,11 @@ pub(crate) fn generate_mul_impl(
     r_mask: u128,
     n_prime: u128,
 ) -> proc_macro2::TokenStream {
-    const BABYBEAR_PRIME: u128 = 2013265921; // 2^31 - 2^27 + 1
-    const KOALABEAR_PRIME: u128 = 2130706433; // 2^31 - 2^24 + 1
-
     let repr_type_str = repr_type.to_string();
     let field_bits = 128 - modulus.leading_zeros();
     let is_mersenne = field_bits >= 2 && modulus == (1u128 << field_bits) - 1;
-    let is_babybear = modulus == BABYBEAR_PRIME;
-    let is_koalabear = modulus == KOALABEAR_PRIME;
+    let is_babybear = modulus == (1u128 << 31) - (1u128 << 27) + 1;
+    let is_koalabear = modulus == (1u128 << 31) - (1u128 << 24) + 1;
     
     // Wider type for the product: u8→u16, u16→u32, u32→u64
     let mul_ty = match repr_type_str.as_str() {
@@ -71,11 +68,13 @@ pub(crate) fn generate_mul_impl(
                     #[inline(always)]
                     fn mul_assign(a: &mut SmallFp<Self>, b: &SmallFp<Self>) {
                         const MODULUS_MUL_TY: u64 = #modulus as u64;
-                        const N_PRIME: u64 = #n_prime as u64;
                         const R_MASK: u64 = #r_mask as u64;
-    
+
                         let t = (a.value as u64) * (b.value as u64);
-                        let k = t.wrapping_mul(N_PRIME) & R_MASK;
+                        // k = t * N' can be rewritten using shift
+                        //   = t * (2^31 - 2^27 - 1)
+                        //   = (t << 31) - (t << 27) - t
+                        let k = (t << 31).wrapping_sub(t << 27).wrapping_sub(t) & R_MASK;
 
                         let kp = (k << 31).wrapping_sub(k << 27).wrapping_add(k);
                         let mut r = t.wrapping_add(kp) >> #k_bits;
@@ -90,18 +89,18 @@ pub(crate) fn generate_mul_impl(
                     #[inline(always)]
                     fn mul_assign(a: &mut SmallFp<Self>, b: &SmallFp<Self>) {
                         const MODULUS_MUL_TY: u64 = #modulus as u64;
-                        const N_PRIME: u64 = #n_prime as u64;
                         const R_MASK: u64 = #r_mask as u64;
-    
+
                         let t = (a.value as u64) * (b.value as u64);
-                        let k = t.wrapping_mul(N_PRIME) & R_MASK;
+                        // use same trick as babybear above
+                        let k = (t << 31).wrapping_sub(t << 24).wrapping_sub(t) & R_MASK;
 
                         let kp = (k << 31).wrapping_sub(k << 24).wrapping_add(k);
                         let mut r = t.wrapping_add(kp) >> #k_bits;
                         if r >= MODULUS_MUL_TY { r -= MODULUS_MUL_TY; }
                         a.value = r as u32;
                     }
-                } 
+                }
             }
             else {
                 // Primes where 2^16 < p < 2^32
