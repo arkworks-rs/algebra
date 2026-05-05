@@ -23,9 +23,17 @@ pub(crate) fn backend_impl(
 
     let repr_type_str = repr_type.to_string();
 
+    let is_babybear = modulus == (1u128 << 31) - (1u128 << 27) + 1;
+    let is_koalabear = modulus == (1u128 << 31) - (1u128 << 24) + 1;
+
     // R = 2^k_bits where k_bits = ceil(log2(modulus))
     // Since modulus < 2^64, k_bits <= 64 and R always fits in u128
-    let k_bits = 128 - modulus.leading_zeros();
+    let k_bits = if is_babybear || is_koalabear {
+        // this is a special case that allows faster mul_assign
+        32
+    } else {
+        128 - modulus.leading_zeros()
+    };
     let r: u128 = 1u128 << k_bits;
     let r_mod_n = r % modulus;
     let r_mask = r - 1;

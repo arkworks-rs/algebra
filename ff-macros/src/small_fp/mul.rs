@@ -14,7 +14,7 @@ pub(crate) fn generate_mul_impl(
     let is_mersenne = field_bits >= 2 && modulus == (1u128 << field_bits) - 1;
     let is_babybear = modulus == (1u128 << 31) - (1u128 << 27) + 1;
     let is_koalabear = modulus == (1u128 << 31) - (1u128 << 24) + 1;
-    
+
     // Wider type for the product: u8→u16, u16→u32, u32→u64
     let mul_ty = match repr_type_str.as_str() {
         "u8" => quote! { u16 },
@@ -68,13 +68,14 @@ pub(crate) fn generate_mul_impl(
                     #[inline(always)]
                     fn mul_assign(a: &mut SmallFp<Self>, b: &SmallFp<Self>) {
                         const MODULUS_MUL_TY: u64 = #modulus as u64;
-                        const R_MASK: u64 = #r_mask as u64;
 
                         let t = (a.value as u64) * (b.value as u64);
                         // k = t * N' can be rewritten using shift
                         //   = t * (2^31 - 2^27 - 1)
                         //   = (t << 31) - (t << 27) - t
-                        let k = (t << 31).wrapping_sub(t << 27).wrapping_sub(t) & R_MASK;
+                        // mask not needed, montgomery_backend hardcodes R = 2^32 for babybear and koalabear
+                        let t_32 = t as u32;
+                        let k = (t_32 << 31).wrapping_sub(t_32 << 27).wrapping_sub(t_32) as u64;
 
                         let kp = (k << 31).wrapping_sub(k << 27).wrapping_add(k);
                         let mut r = t.wrapping_add(kp) >> #k_bits;
@@ -82,18 +83,17 @@ pub(crate) fn generate_mul_impl(
                         a.value = r as u32;
                     }
                 }
-            }
-            else if is_koalabear {
+            } else if is_koalabear {
                 // KoalaBear prime
                 quote! {
                     #[inline(always)]
                     fn mul_assign(a: &mut SmallFp<Self>, b: &SmallFp<Self>) {
                         const MODULUS_MUL_TY: u64 = #modulus as u64;
-                        const R_MASK: u64 = #r_mask as u64;
 
                         let t = (a.value as u64) * (b.value as u64);
                         // use same trick as babybear above
-                        let k = (t << 31).wrapping_sub(t << 24).wrapping_sub(t) & R_MASK;
+                        let t_32 = t as u32;
+                        let k = (t_32 << 31).wrapping_sub(t_32 << 24).wrapping_sub(t_32) as u64;
 
                         let kp = (k << 31).wrapping_sub(k << 24).wrapping_add(k);
                         let mut r = t.wrapping_add(kp) >> #k_bits;
@@ -101,8 +101,7 @@ pub(crate) fn generate_mul_impl(
                         a.value = r as u32;
                     }
                 }
-            }
-            else {
+            } else {
                 // Primes where 2^16 < p < 2^32
                 quote! {
                     #[inline(always)]
@@ -110,7 +109,7 @@ pub(crate) fn generate_mul_impl(
                         const MODULUS_MUL_TY: u64 = #modulus as u64;
                         const N_PRIME: u64 = #n_prime as u64;
                         const R_MASK: u64 = #r_mask as u64;
-    
+
                         let t = (a.value as u64) * (b.value as u64);
                         let k = t.wrapping_mul(N_PRIME) & R_MASK;
                         let mut r = (t + (k * MODULUS_MUL_TY)) >> #k_bits;
