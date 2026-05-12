@@ -132,8 +132,15 @@ pub trait SmallFpConfig: Send + Sync + 'static + Sized {
 /// This type can represent elements in any field of size up to 128 bits.
 /// The arithmetic implementation is determined by the `P: SmallFpConfig`
 /// parameter, which can be configured to use different backends
-#[derive(Educe)]
+#[derive(
+    Educe,
+    zerocopy::FromBytes,
+    zerocopy::IntoBytes,
+    zerocopy::Immutable,
+    zerocopy::KnownLayout,
+)]
 #[educe(Default, Hash, Clone, Copy, PartialEq, Eq)]
+#[repr(transparent)]
 pub struct SmallFp<P: SmallFpConfig> {
     pub value: P::T,
     _phantom: PhantomData<P>,

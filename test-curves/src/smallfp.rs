@@ -111,4 +111,66 @@ mod tests {
             assert_eq!(SEVEN, SmallFp64Goldilock::from(7u128));
         }
     }
+
+    mod raw_layout {
+        //! `SmallFp<P>` is `#[repr(transparent)]` around `P::T` and derives
+        //! `zerocopy::IntoBytes` / `Immutable` / `KnownLayout`. These tests
+        //! pin the size/alignment contract and confirm `as_bytes()` works.
+
+        use super::*;
+        use ark_std::vec::Vec;
+        use core::mem::{align_of, size_of};
+        use zerocopy::{FromBytes, IntoBytes};
+
+        #[test]
+        fn layout_matches_backing_integer() {
+            assert_eq!(size_of::<SmallFp8>(), size_of::<u8>());
+            assert_eq!(align_of::<SmallFp8>(), align_of::<u8>());
+
+            assert_eq!(size_of::<SmallFp16>(), size_of::<u16>());
+            assert_eq!(align_of::<SmallFp16>(), align_of::<u16>());
+
+            assert_eq!(size_of::<SmallFp32M31>(), size_of::<u32>());
+            assert_eq!(align_of::<SmallFp32M31>(), align_of::<u32>());
+
+            assert_eq!(size_of::<SmallFp64Goldilock>(), size_of::<u64>());
+            assert_eq!(align_of::<SmallFp64Goldilock>(), align_of::<u64>());
+        }
+
+        #[test]
+        fn as_bytes_exposes_montgomery_limb_goldilocks() {
+            let elems: Vec<SmallFp64Goldilock> = (0..8u64).map(SmallFp64Goldilock::from).collect();
+            let bytes = elems.as_bytes();
+            assert_eq!(bytes.len(), elems.len() * 8);
+            for (i, elem) in elems.iter().enumerate() {
+                let chunk: [u8; 8] = bytes[i * 8..(i + 1) * 8].try_into().unwrap();
+                assert_eq!(u64::from_le_bytes(chunk), elem.value);
+            }
+        }
+
+        /// `FromBytes` lets us reinterpret a mutable byte view as a mutable
+        /// `&mut [u64]`, do SIMD-style arithmetic on the limbs in place,
+        /// and let the field elements observe the new Montgomery values
+        /// directly — no `unsafe` at the call site.
+        #[test]
+        fn mut_from_bytes_enables_in_place_simd_style() {
+            let mut elems: Vec<SmallFp64Goldilock> =
+                (1..=4u64).map(SmallFp64Goldilock::from).collect();
+            let originals: Vec<u64> = elems.iter().map(|e| e.value).collect();
+
+            {
+                let bytes = elems.as_mut_bytes();
+                let raw: &mut [u64] = <[u64]>::mut_from_bytes(bytes).unwrap();
+                for limb in raw.iter_mut() {
+                    // Add a constant in Montgomery space — valid because
+                    // `MODULUS - 1 > existing + const` for these tiny inputs.
+                    *limb = limb.wrapping_add(7);
+                }
+            }
+
+            for (elem, original) in elems.iter().zip(originals) {
+                assert_eq!(elem.value, original.wrapping_add(7));
+            }
+        }
+    }
 }

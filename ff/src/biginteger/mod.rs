@@ -29,8 +29,19 @@ use zeroize::Zeroize;
 #[macro_use]
 pub mod arithmetic;
 
-#[derive(Copy, Clone, PartialEq, Eq, Hash)]
+#[derive(
+    Copy,
+    Clone,
+    PartialEq,
+    Eq,
+    Hash,
+    zerocopy::FromBytes,
+    zerocopy::IntoBytes,
+    zerocopy::Immutable,
+    zerocopy::KnownLayout,
+)]
 #[must_use]
+#[repr(transparent)]
 pub struct BigInt<const N: usize>(pub [u64; N]);
 
 impl<const N: usize> Zeroize for BigInt<N> {
