@@ -155,11 +155,32 @@ impl<F: FftField> DensePolynomial<F> {
     /// Multiply `self` by the vanishing polynomial for the domain `domain`.
     /// Returns the result of the multiplication.
     pub fn mul_by_vanishing_poly<D: EvaluationDomain<F>>(&self, domain: D) -> Self {
-        let mut shifted = vec![F::zero(); domain.size()];
+        if self.is_zero() {
+            return Self::zero();
+        }
+
+        let domain_size = domain.size();
+        let mut shifted = Vec::with_capacity(domain_size + self.coeffs.len());
+        shifted.resize(domain_size, F::zero());
         shifted.extend_from_slice(&self.coeffs);
-        cfg_iter_mut!(shifted)
-            .zip(&self.coeffs)
-            .for_each(|(s, c)| *s -= c);
+
+        // The domain vanishing polynomial is x^n - k for
+        // k = domain.coset_offset_pow_size(). At this point `shifted` already
+        // contains x^n * self: `domain_size` leading zero coefficients followed
+        // by the coefficients of `self`. Finishing the multiplication therefore
+        // only requires subtracting k * self from the low coefficients. This
+        // keeps the helper as a specialized binomial multiply rather than
+        // falling back to general polynomial multiplication.
+        let offset_pow_size = domain.coset_offset_pow_size();
+        if offset_pow_size == F::ONE {
+            cfg_iter_mut!(shifted)
+                .zip(&self.coeffs)
+                .for_each(|(s, c)| *s -= c);
+        } else {
+            cfg_iter_mut!(shifted).zip(&self.coeffs).for_each(|(s, c)| {
+                *s -= *c * offset_pow_size;
+            });
+        }
         Self::from_coefficients_vec(shifted)
     }
 
@@ -708,7 +729,7 @@ impl_op!(Div, div, FftField);
 mod tests {
     use crate::{polynomial::univariate::*, GeneralEvaluationDomain};
     use ark_ff::{Fp64, MontBackend, MontConfig};
-    use ark_ff::{One, UniformRand};
+    use ark_ff::{One, UniformRand, Zero};
     use ark_std::{rand::Rng, test_rng};
     use ark_test_curves::bls12_381::Fr;
 
@@ -965,13 +986,45 @@ mod tests {
         let rng = &mut test_rng();
         for size in 1..10 {
             let domain = GeneralEvaluationDomain::new(1 << size).unwrap();
-            for degree in 0..70 {
-                let p = DensePolynomial::<Fr>::rand(degree, rng);
-                let ans1 = p.mul_by_vanishing_poly(domain);
-                let ans2 = &p * &domain.vanishing_polynomial().into();
-                assert_eq!(ans1, ans2);
+            let coset = domain.get_coset(Fr::from(5u64)).unwrap();
+            for domain in [domain, coset] {
+                for degree in 0..70 {
+                    let p = DensePolynomial::<Fr>::rand(degree, rng);
+                    let ans1 = p.mul_by_vanishing_poly(domain);
+                    let ans2 = &p * &domain.vanishing_polynomial().into();
+                    assert_eq!(ans1, ans2);
+                }
             }
         }
+    }
+
+    #[test]
+    fn mul_by_vanishing_poly_uses_coset_offset() {
+        let domain = GeneralEvaluationDomain::<Fr>::new(8).unwrap();
+        let coset = domain.get_coset(Fr::from(5u64)).unwrap();
+        let offset_pow_size = coset.coset_offset_pow_size();
+        assert_ne!(offset_pow_size, Fr::one());
+
+        let a = Fr::from(3u64);
+        let b = Fr::from(7u64);
+        let p = DensePolynomial::from_coefficients_vec(vec![a, b]);
+
+        let actual = p.mul_by_vanishing_poly(coset);
+
+        // For p(x) = a + bx, multiplying by the coset vanishing polynomial
+        // x^8 - offset^8 gives low coefficients -offset^8 * [a, b] and high
+        // coefficients [a, b]. This avoids using polynomial multiplication as
+        // the oracle for this regression.
+        let mut expected_coeffs = vec![Fr::zero(); coset.size() + p.coeffs.len()];
+        expected_coeffs[0] = -(offset_pow_size * a);
+        expected_coeffs[1] = -(offset_pow_size * b);
+        expected_coeffs[coset.size()] = a;
+        expected_coeffs[coset.size() + 1] = b;
+        assert_ne!(expected_coeffs[0], -a);
+        assert_ne!(expected_coeffs[1], -b);
+        let expected = DensePolynomial::from_coefficients_vec(expected_coeffs);
+
+        assert_eq!(actual, expected);
     }
 
     #[test]
