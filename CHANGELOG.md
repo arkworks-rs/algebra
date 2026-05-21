@@ -1,6 +1,7 @@
 # CHANGELOG
 
 ## Pending
+-   [\#926](https://github.com/arkworks-rs/algebra/pull/926) Add the circom compatible Baby Jubjub curve
 
 - (`ark-starkcurve`) Add 252 bit [Stark curve](https://docs.starknet.io/architecture/cryptography/#the_stark_curve).
 - [\#971](https://github.com/arkworks-rs/algebra/pull/971) (`ark-ff`) Make serial_batch_inversion_and_mul public.
