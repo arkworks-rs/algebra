@@ -2,7 +2,7 @@
 
 ## Pending
 
-- [\#1108](https://github.com/arkworks-rs/algebra/pull/1108) (`ark-curves`) Improve scalar multiplation speed for curves using GLV.
+- [\#1108](https://github.com/arkworks-rs/algebra/pull/1108) (`ark-curves`) Improve scalar multiplication speed for curves using GLV.
 
 ## v0.6.0
 
@@ -12,6 +12,7 @@ Breaking bump across the arkworks stack — first release since 0.5.0 (2024-10-2
 ## Changes since v0.5.0
 
 **New features**
+
 - SmallFp: dedicated small-prime field implementation (#1044, #1082, #1084, #1088, #1091)
 - Stark curve + tests for large 2-adicity fields (#1001)
 - Double-odd curve support in `ec` (#986)
@@ -26,17 +27,20 @@ Breaking bump across the arkworks stack — first release since 0.5.0 (2024-10-2
 - Conditional `infinity` flag on `short_weierstrass::Affine` (#639)
 
 **Breaking trait-surface changes** (the reason this is 0.6.0)
+
 - `AffineRepr: Neg<Output = Self>` tightened (#927)
 - New required const `MINUS_ONE` on `Field`/`FpConfig` (#1004)
 - R1CS → GR1CS migration (#949)
 
 **Performance**
+
 - Fix GLV scalar-multiplication perf bug (#1025)
 - `VariableBaseMSM` improvements for small scalars (#995, #996)
 - Extended Jacobian coordinates for SW MSM (#961)
 - Generalized Mersenne mul path (#1091)
 
-**Bug fixes**
+**Bugfixes**
+
 - `ToConstraintField` bound for `Affine` (#1005)
 - `to_dense_multilinear_extension` for nv > 30 (#1022)
 - `to_evaluations` for sparse multilinear extension (#1019)
@@ -46,6 +50,7 @@ Breaking bump across the arkworks stack — first release since 0.5.0 (2024-10-2
 - Build of `ark-ff` (#1028)
 
 **Refactors / housekeeping**
+
 - Polynomial refactors across `DensePolynomial`, `SparsePolynomial`, `GeneralEvaluationDomain`
 - `find_naf`, biginteger, cubic-extension simplifications in `ff`
 - Clippy rule rollout across all member crates
@@ -59,10 +64,10 @@ Full list: `git log v0.5.0..v0.6.0`.
 Step 2 of the 0.6.0 cascade: std → **algebra** → snark → r1cs-std → crypto-primitives → poly-commit → groth16 → circom-compat.
 
 ## Verification
+
 - [x] `cargo test --workspace --all-features` green
 - [x] `cargo publish --workspace --dry-run` clean (root + `curves/`)
 - [x] CI green on master
-
 
 ## v0.5.0
 
