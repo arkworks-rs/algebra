@@ -2,36 +2,72 @@
 
 ## Pending
 
-- (`ark-starkcurve`) Add 252 bit [Stark curve](https://docs.starknet.io/architecture/cryptography/#the_stark_curve).
-- [\#971](https://github.com/arkworks-rs/algebra/pull/971) (`ark-ff`) Make serial_batch_inversion_and_mul public.
-- Consolidated logic into `bitreverse_permutation_in_place` and made it public.
-- Remove redundant type constraints from `Pairing::G1Prepared`.
-- (`ark-serialize`) Add serde-compatible wrapper types `CompressedChecked<T>`, `CompressedUnchecked<T>`, `UncompressedChecked<T>`, `UncompressedUnchecked<T>`.
-- [\#989](https://github.com/arkworks-rs/algebra/pull/989) (`ark-poly`) Replace bound `F: FftField` with `F: Field` on `GeneralEvaluationDomain`.
-- (`ark-poly`) Add fast polynomial division
-- (`ark-ec`) Improve GLV scalar multiplication performance by skipping leading zeroes.
-- (`ark-poly`) Make `SparsePolynomial.coeffs` field public
-- [\#1039](https://github.com/arkworks-rs/algebra/pull/1039) (`ark-ff-asm`) Remove unused dead spill buffer path.
-- [\#1044](https://github.com/arkworks-rs/algebra/pull/1044), [\#1084](https://github.com/arkworks-rs/algebra/pull/1084), [\#1088](https://github.com/arkworks-rs/algebra/pull/1088) Add implementation for small field with native integer types
+- [\#1108](https://github.com/arkworks-rs/algebra/pull/1108) (`ark-curves`) Improve scalar multiplication speed for curves using GLV.
 
-### Breaking changes
+## v0.6.0
 
-- (`ark-poly`) the `Div` implementation is now restricted to polynomials defined over `FftField`. Non-`FftField` polys can instead use the `naive_div` method.
+Breaking bump across the arkworks stack — first release since 0.5.0 (2024-10-28).
+104 commits of fixes, performance work, new APIs, and one trait-surface change that forces the major-version cut.
 
-### Features
+## Changes since v0.5.0
 
-- (`ark-serialize`) Implementation of `CanonicalSerialize` and `CanonicalDeserialize` for signed integer types
-- [\#1084](https://github.com/arkworks-rs/algebra/pull/1084) (`ark-ff`) Add `from_u128` const constructor for `SmallFp` fields
-- [\#1086](https://github.com/arkworks-rs/algebra/pull/1086) (`ark-ff-macros`) Auto-detect small prime subgroup (bases 3, 5, 7) in `define_field!` for both `SmallFp` and `Fp` fields
+**New features**
 
-### Improvements
+- SmallFp: dedicated small-prime field implementation (#1044, #1082, #1084, #1088, #1091)
+- Stark curve + tests for large 2-adicity fields (#1001)
+- Double-odd curve support in `ec` (#986)
+- O(n log n) polynomial division (#1010)
+- Serde-compatible adapters (#967)
+- `CanonicalSerialize`/`Deserialize` for `HashMap`/`HashSet` (#999) and signed integers (#953)
+- `MINUS_ONE` const on `Field` / `FpConfig` (#1004)
+- Expose `GENERATOR` on `AffineRepr` (#1045)
+- `serial_batch_inversion_and_mul` made public (#971)
+- `Cargo.toml` `asm` feature (#928)
+- `define_field` macro now sets plausible FFT params (#1086)
+- Conditional `infinity` flag on `short_weierstrass::Affine` (#639)
 
-- [\#1091](https://github.com/arkworks-rs/algebra/pull/1091)(`ark-ff-macros`) Replace Fermat-based (`a^{p-2}`) modular inversion for `SmallFp` fields with a constant-time binary extended GCD (based on [Pornin 2020](https://eprint.iacr.org/2020/1340)).
-- [\#1091](https://github.com/arkworks-rs/algebra/pull/1091)(`ark-ff-macros`) Consolidate `SmallFp` multiplication dispatch into a single `match` with Mersenne fast-paths (M7, M13, M31) and generic Montgomery backends for u8/u16/u32/u64 fields.
+**Breaking trait-surface changes** (the reason this is 0.6.0)
 
-### Bugfixes
+- `AffineRepr: Neg<Output = Self>` tightened (#927)
+- New required const `MINUS_ONE` on `Field`/`FpConfig` (#1004)
+- R1CS → GR1CS migration (#949)
 
-- [\#1082](https://github.com/arkworks-rs/algebra/pull/1082) (`ark-ff`) Fix `SmallFp::from_random_bytes` / `from_be_bytes_mod_order` silently producing incorrect field elements by treating plaintext bytes as Montgomery-encoded.
+**Performance**
+
+- Fix GLV scalar-multiplication perf bug (#1025)
+- `VariableBaseMSM` improvements for small scalars (#995, #996)
+- Extended Jacobian coordinates for SW MSM (#961)
+- Generalized Mersenne mul path (#1091)
+
+**Bugfixes**
+
+- `ToConstraintField` bound for `Affine` (#1005)
+- `to_dense_multilinear_extension` for nv > 30 (#1022)
+- `to_evaluations` for sparse multilinear extension (#1019)
+- Multilinear extension `rand` (#998)
+- Support 5 mod 8 case in `SqrtPrecomputation` (#968)
+- `from_random_bytes` consistency between `SmallFp` and `Fp` (#1082)
+- Build of `ark-ff` (#1028)
+
+**Refactors / housekeeping**
+
+- Polynomial refactors across `DensePolynomial`, `SparsePolynomial`, `GeneralEvaluationDomain`
+- `find_naf`, biginteger, cubic-extension simplifications in `ff`
+- Clippy rule rollout across all member crates
+- Dep bumps: hashbrown 0.15 → 0.17, criterion 0.6 → 0.8, itertools 0.13 → 0.14
+- Removed soft dependencies (#1027)
+
+Full list: `git log v0.5.0..v0.6.0`.
+
+## Release position
+
+Step 2 of the 0.6.0 cascade: std → **algebra** → snark → r1cs-std → crypto-primitives → poly-commit → groth16 → circom-compat.
+
+## Verification
+
+- [x] `cargo test --workspace --all-features` green
+- [x] `cargo publish --workspace --dry-run` clean (root + `curves/`)
+- [x] CI green on master
 
 ## v0.5.0
 
