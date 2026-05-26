@@ -155,22 +155,10 @@ impl<F: FftField> DensePolynomial<F> {
     /// Multiply `self` by the vanishing polynomial for the domain `domain`.
     /// Returns the result of the multiplication.
     pub fn mul_by_vanishing_poly<D: EvaluationDomain<F>>(&self, domain: D) -> Self {
-        if self.is_zero() {
-            return Self::zero();
-        }
-
-        let domain_size = domain.size();
-        let mut shifted = Vec::with_capacity(domain_size + self.coeffs.len());
-        shifted.resize(domain_size, F::zero());
+        let mut shifted = vec![F::zero(); domain.size()];
         shifted.extend_from_slice(&self.coeffs);
 
-        // The domain vanishing polynomial is x^n - k for
-        // k = domain.coset_offset_pow_size(). At this point `shifted` already
-        // contains x^n * self: `domain_size` leading zero coefficients followed
-        // by the coefficients of `self`. Finishing the multiplication therefore
-        // only requires subtracting k * self from the low coefficients. This
-        // keeps the helper as a specialized binomial multiply rather than
-        // falling back to general polynomial multiplication.
+        // Coset domains vanish on x^n - offset^n, not x^n - 1.
         let offset_pow_size = domain.coset_offset_pow_size();
         if offset_pow_size == F::ONE {
             cfg_iter_mut!(shifted)
