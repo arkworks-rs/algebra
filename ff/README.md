@@ -38,6 +38,34 @@ The above two models serve as abstractions for constructing the extension fields
 - [`Fp6_3over2`](https://github.com/arkworks-rs/algebra/blob/master/ff/src/fields/models/fp6_3over2.rs#L64) - Extension tower, similar to the above except that the towering order is reversed: it's a cubic extension on a quadratic extension field, i.e. `BaseField = Fp2`, but `BasePrimeField = Fp`. Only this latter one is exported by default as `Fp6`.
 - [`Fp12_2over3over2`](https://github.com/arkworks-rs/algebra/blob/master/ff/src/fields/models/fp12_2over3over2.rs#L66) - Extension tower: quadratic extension of `Fp6_3over2`, i.e. `BaseField = Fp6`.
 
+## Instantiation
+
+Instantiate fields manually, or use `define_field!`. The macro picks the best available implementation based on the modulus.
+
+```rust
+use ark_ff::fields::{Fp64, MontBackend, MontConfig};
+use ark_ff::{define_field, SmallFp, SmallFpConfig};
+
+// Standard (big integer) field
+#[derive(MontConfig)]
+#[modulus = "18446744069414584321"]
+#[generator = "7"]
+pub struct F64Config;
+pub type F64 = Fp64<MontBackend<F64Config, 1>>;
+
+// Small field (native integer backend, up to u64):
+#[derive(SmallFpConfig)]
+#[modulus = "18446744069414584321"]
+#[generator = "7"]
+pub struct SmallF64Config;
+pub type SmallF64 = SmallFp<SmallF64Config>;
+
+// Or let the macro choose:
+define_field!(modulus = "18446744069414584321", generator = "7", name = BestF64);
+```
+
+The standard field implementation can represent arbitrarily large fields, while the small field implementation supports native integer types from `u8` to `u64` for faster arithmetic. Both implementations use Montgomery arithmetic.
+
 ## Usage
 
 There are two important traits when working with finite fields: [`Field`],

@@ -18,7 +18,7 @@ exclude = ["curves/**"]
 resolver = "2"
 
 [workspace.package]
-version = "0.5.0"
+version = "0.6.0"
 authors = ["arkworks contributors"]
 homepage = "https://arkworks.rs"
 repository = "https://github.com/arkworks-rs/algebra"
@@ -136,28 +136,28 @@ significant_drop_tightening = "allow"
 too_long_first_doc_paragraph = "allow"
 
 [workspace.dependencies]
-ark-ec = { version = "0.5.0", path = "./ec", default-features = false }
-ark-ff = { version = "0.5.0", path = "./ff", default-features = false }
-ark-ff-asm = { version = "0.5.0", path = "./ff-asm" }
-ark-ff-macros = { version = "0.5.0", path = "./ff-macros" }
-ark-poly = { version = "0.5.0", path = "./poly", default-features = false }
-ark-serialize = { version = "0.5.0", path = "./serialize", default-features = false }
-ark-serialize-derive = { version = "0.5.0", path = "./serialize-derive" }
-ark-std = { version = "0.5.0", default-features = false }
+ark-ec = { version = "0.6.0", path = "./ec", default-features = false }
+ark-ff = { version = "0.6.0", path = "./ff", default-features = false }
+ark-ff-asm = { version = "0.6.0", path = "./ff-asm" }
+ark-ff-macros = { version = "0.6.0", path = "./ff-macros" }
+ark-poly = { version = "0.6.0", path = "./poly", default-features = false }
+ark-serialize = { version = "0.6.0", path = "./serialize", default-features = false }
+ark-serialize-derive = { version = "0.6.0", path = "./serialize-derive" }
+ark-std = { version = "0.6.0", default-features = false }
 
-ark-algebra-bench-templates = { version = "0.5.0", path = "./bench-templates", default-features = false }
-ark-algebra-test-templates = { version = "0.5.0", path = "./test-templates", default-features = false }
-ark-test-curves = { version = "0.5.0", path = "./test-curves", default-features = false }
+ark-algebra-bench-templates = { path = "./bench-templates", default-features = false }
+ark-algebra-test-templates = { path = "./test-templates", default-features = false }
+ark-test-curves = { path = "./test-curves", default-features = false }
 
 num-traits = { version = "0.2", default-features = false }
 num-bigint = { version = "0.4", default-features = false }
 num-integer = { version = "0.1", default-features = false }
 
 arrayvec = { version = "0.7", default-features = false }
-criterion = "0.7.0"
+criterion = "0.8.2"
 educe = { version = "0.6.0", default-features = false, features = [ "Debug", "Clone", "Copy", "Hash", "PartialEq", "Eq", "PartialOrd", "Ord", "Default" ] }
 digest = { version = "0.10", default-features = false }
-hashbrown = { version = "0.16", default-features = false, features = [ "inline-more", "allocator-api2", ] }
+hashbrown = { version = "0.17", default-features = false, features = [ "inline-more", "allocator-api2", ] }
 hex = "0.4"
 itertools = { version = "0.14", default-features = false }
 libtest-mimic = "0.8.1"

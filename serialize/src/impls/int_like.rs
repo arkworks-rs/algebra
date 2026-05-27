@@ -8,7 +8,7 @@ use ark_std::{
 use num_bigint::BigUint;
 
 impl Valid for bool {
-    const TRIVIAL_CHECK: bool = true;
+    const TRIVIAL_CHECK: Self = true;
     fn check(&self) -> Result<(), SerializationError> {
         Ok(())
     }
