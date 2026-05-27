@@ -150,6 +150,8 @@ impl<F: Field> DenseMultilinearExtension<F> {
 
         evaluations.resize(next_pow_of_two, F::zero());
 
+        // The buffer is already owned and exactly `next_pow_of_two` long, so move
+        // it into the result rather than cloning via `from_evaluations_slice`.
         Self::from_evaluations_vec(num_vars as usize, evaluations)
     }
 }
@@ -224,11 +226,25 @@ impl<F: Field> MultilinearExtension<F> for DenseMultilinearExtension<F> {
             partial_point.len() <= self.num_vars,
             "invalid size of partial point"
         );
-        let mut poly = self.evaluations.clone();
         let nv = self.num_vars;
         let dim = partial_point.len();
-        // evaluate single variable of partial point from left to right
-        for i in 1..dim + 1 {
+        // Binding no variables just returns a copy of `self`.
+        if dim == 0 {
+            return Self::from_evaluations_vec(nv, self.evaluations.clone());
+        }
+        // Bind the first variable while reading directly from `self`, writing into
+        // a buffer of half the size. This avoids cloning the full evaluation table
+        // (peak memory is `2^(nv-1)` rather than `2^nv`).
+        let r = partial_point[0];
+        let mut poly: Vec<F> = (0..(1 << (nv - 1)))
+            .map(|b| {
+                let left = self.evaluations[b << 1];
+                let right = self.evaluations[(b << 1) + 1];
+                left + r * (right - left)
+            })
+            .collect();
+        // Bind the remaining variables in place, from left to right.
+        for i in 2..=dim {
             let r = partial_point[i - 1];
             for b in 0..(1 << (nv - i)) {
                 let left = poly[b << 1];
@@ -236,8 +252,7 @@ impl<F: Field> MultilinearExtension<F> for DenseMultilinearExtension<F> {
                 poly[b] = left + r * (right - left);
             }
         }
-        let new_len = 1 << (nv - dim);
-        poly.truncate(new_len);
+        poly.truncate(1 << (nv - dim));
         Self::from_evaluations_vec(nv - dim, poly)
     }
 
@@ -444,17 +459,9 @@ impl<F: Field> Polynomial<F> for DenseMultilinearExtension<F> {
     /// ```
     fn evaluate(&self, point: &Self::Point) -> F {
         assert!(point.len() == self.num_vars);
-        let nv = self.num_vars;
-        let mut a = self.evaluations.clone();
-        for i in 1..=nv {
-            let r = point[i - 1];
-            for b in 0..(1 << (nv - i)) {
-                let left = a[b << 1];
-                let right = a[(b << 1) + 1];
-                a[b] = left + r * (right - left);
-            }
-        }
-        a[0]
+        // Binding all variables yields a 0-variate MLE; its single evaluation is
+        // the value at `point`. `fix_variables` folds into a half-size buffer.
+        self.fix_variables(point)[0]
     }
 }
 
