@@ -1,5 +1,4 @@
 mod montgomery_backend;
-mod mul;
 mod utils;
 
 use quote::quote;
