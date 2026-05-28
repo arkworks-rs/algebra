@@ -22,9 +22,17 @@ pub(crate) fn backend_impl(
 
     let repr_type_str = repr_type.to_string();
 
+    let is_babybear = modulus == (1u128 << 31) - (1u128 << 27) + 1;
+    let is_koalabear = modulus == (1u128 << 31) - (1u128 << 24) + 1;
+
     // R = 2^k_bits where k_bits = ceil(log2(modulus))
     // Since modulus < 2^64, k_bits <= 64 and R always fits in u128
-    let k_bits = 128 - modulus.leading_zeros();
+    let k_bits = if is_babybear || is_koalabear {
+        // this is a special case that allows faster mul_assign
+        32
+    } else {
+        128 - modulus.leading_zeros()
+    };
     let r: u128 = 1u128 << k_bits;
     let r_mod_n = r % modulus;
     let r_mask = r - 1;
@@ -400,6 +408,9 @@ fn generate_mul_impl(
     let repr_type_str = repr_type.to_string();
     let field_bits = 128 - modulus.leading_zeros();
     let is_mersenne = field_bits >= 2 && modulus == (1u128 << field_bits) - 1;
+    let is_babybear = modulus == (1u128 << 31) - (1u128 << 27) + 1;
+    let is_koalabear = modulus == (1u128 << 31) - (1u128 << 24) + 1;
+    let is_goldilocks = modulus == (1u128 << 64) - (1u128 << 32) + 1;
 
     // Wider type for the product: u8→u16, u16→u32, u32→u64
     let mul_ty = match repr_type_str.as_str() {
@@ -448,38 +459,101 @@ fn generate_mul_impl(
             }
         },
         ("u32", false) => {
-            // BabyBear, KoalaBear, others where 2^16 < p < 2^32
-            quote! {
-                #[inline(always)]
-                fn mul_assign(a: &mut SmallFp<Self>, b: &SmallFp<Self>) {
-                    const MODULUS_MUL_TY: u64 = #modulus as u64;
-                    const N_PRIME: u64 = #n_prime as u64;
-                    const R_MASK: u64 = #r_mask as u64;
+            if is_babybear {
+                // BabyBear prime
+                quote! {
+                    #[inline(always)]
+                    fn mul_assign(a: &mut SmallFp<Self>, b: &SmallFp<Self>) {
+                        const MODULUS_MUL_TY: u64 = #modulus as u64;
 
-                    let t = (a.value as u64) * (b.value as u64);
-                    let k = t.wrapping_mul(N_PRIME) & R_MASK;
-                    let mut r = (t + (k * MODULUS_MUL_TY)) >> #k_bits;
-                    if r >= MODULUS_MUL_TY { r -= MODULUS_MUL_TY; }
-                    a.value = r as u32;
+                        let t = (a.value as u64) * (b.value as u64);
+                        // k = t * N' can be rewritten using shift
+                        //   = t * (2^31 - 2^27 - 1)
+                        //   = (t << 31) - (t << 27) - t
+                        // mask not needed, montgomery_backend hardcodes R = 2^32 for babybear and koalabear
+                        let t_32 = t as u32;
+                        let k = (t_32 << 31).wrapping_sub(t_32 << 27).wrapping_sub(t_32) as u64;
+
+                        let kp = (k << 31).wrapping_sub(k << 27).wrapping_add(k);
+                        let mut r = t.wrapping_add(kp) >> #k_bits;
+                        if r >= MODULUS_MUL_TY { r -= MODULUS_MUL_TY; }
+                        a.value = r as u32;
+                    }
+                }
+            } else if is_koalabear {
+                // KoalaBear prime
+                quote! {
+                    #[inline(always)]
+                    fn mul_assign(a: &mut SmallFp<Self>, b: &SmallFp<Self>) {
+                        const MODULUS_MUL_TY: u64 = #modulus as u64;
+
+                        let t = (a.value as u64) * (b.value as u64);
+                        // use same trick as babybear above
+                        let t_32 = t as u32;
+                        let k = (t_32 << 31).wrapping_sub(t_32 << 24).wrapping_sub(t_32) as u64;
+
+                        let kp = (k << 31).wrapping_sub(k << 24).wrapping_add(k);
+                        let mut r = t.wrapping_add(kp) >> #k_bits;
+                        if r >= MODULUS_MUL_TY { r -= MODULUS_MUL_TY; }
+                        a.value = r as u32;
+                    }
+                }
+            } else {
+                // Primes where 2^16 < p < 2^32
+                quote! {
+                    #[inline(always)]
+                    fn mul_assign(a: &mut SmallFp<Self>, b: &SmallFp<Self>) {
+                        const MODULUS_MUL_TY: u64 = #modulus as u64;
+                        const N_PRIME: u64 = #n_prime as u64;
+                        const R_MASK: u64 = #r_mask as u64;
+
+                        let t = (a.value as u64) * (b.value as u64);
+                        let k = t.wrapping_mul(N_PRIME) & R_MASK;
+                        let mut r = (t + (k * MODULUS_MUL_TY)) >> #k_bits;
+                        if r >= MODULUS_MUL_TY { r -= MODULUS_MUL_TY; }
+                        a.value = r as u32;
+                    }
                 }
             }
         },
         _ => {
             // Goldilocks, others < 2^64
             let shift_bits = 128 - k_bits;
-            quote! {
-                #[inline(always)]
-                fn mul_assign(a: &mut SmallFp<Self>, b: &SmallFp<Self>) {
-                    const MODULUS_MUL_TY: u128 = #modulus as u128;
-                    const N_PRIME: u128 = #n_prime as u128;
-                    const R_MASK: u128 = #r_mask as u128;
+            if is_goldilocks {
+                quote! {
+                    #[inline(always)]
+                    fn mul_assign(a: &mut SmallFp<Self>, b: &SmallFp<Self>) {
+                        // Pornin's reduction copied from winterfell:
+                        // https://github.com/facebook/winterfell/blob/main/math/src/field/f64/mod.rs#L714
+                        // The referenced paper is https://eprint.iacr.org/2022/274.pdf section 5.1
+                        let t  = (a.value as u128) * (b.value as u128);
+                        let tl = t as u64;
+                        let th = (t >> 64) as u64;
 
-                    let mut t = (a.value as u128) * (b.value as u128);
-                    let k = t.wrapping_mul(N_PRIME) & R_MASK;
-                    let (t, overflow) = t.overflowing_add(k * MODULUS_MUL_TY);
-                    let mut r = (t >> #k_bits) + ((overflow as u128) << #shift_bits);
-                    if r >= MODULUS_MUL_TY { r -= MODULUS_MUL_TY; }
-                    a.value = r as u64;
+                        let (k, overflow) = tl.overflowing_add(tl << 32);
+                        let l = k.wrapping_sub(k >> 32).wrapping_sub(overflow as u64);
+
+                        let (r, overflow) = th.overflowing_sub(l);
+                        let mut r = r.wrapping_sub(0u32.wrapping_sub(overflow as u32) as u64);
+                        if r >= Self::MODULUS { r -= Self::MODULUS; }
+                        a.value = r;
+                    }
+                }
+            } else {
+                quote! {
+                    #[inline(always)]
+                    fn mul_assign(a: &mut SmallFp<Self>, b: &SmallFp<Self>) {
+                        const MODULUS_MUL_TY: u128 = #modulus as u128;
+                        const N_PRIME: u128 = #n_prime as u128;
+                        const R_MASK: u128 = #r_mask as u128;
+
+                        let mut t = (a.value as u128) * (b.value as u128);
+                        let k = t.wrapping_mul(N_PRIME) & R_MASK;
+                        let (t, overflow) = t.overflowing_add(k * MODULUS_MUL_TY);
+                        let mut r = (t >> #k_bits) + ((overflow as u128) << #shift_bits);
+                        if r >= MODULUS_MUL_TY { r -= MODULUS_MUL_TY; }
+                        a.value = r as u64;
+                    }
                 }
             }
         },
