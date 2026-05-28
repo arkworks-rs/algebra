@@ -14,6 +14,7 @@
 - [\#1039](https://github.com/arkworks-rs/algebra/pull/1039) (`ark-ff-asm`) Remove unused dead spill buffer path.
 - [\#1044](https://github.com/arkworks-rs/algebra/pull/1044), [\#1084](https://github.com/arkworks-rs/algebra/pull/1084), [\#1088](https://github.com/arkworks-rs/algebra/pull/1088) Add implementation for small field with native integer types
 - [\#1061](https://github.com/arkworks-rs/algebra/pull/1061) (`ark-poly`) Reduce allocations in `DenseMultilinearExtension::{concat, fix_variables, evaluate}`.
+- [\#1109](https://github.com/arkworks-rs/algebra/pull/1109) (`ark-poly`) Reduce allocations in `DenseMultilinearExtension::Sub` and parallelize scalar `Mul`.
 
 ### Breaking changes
 
