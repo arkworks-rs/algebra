@@ -183,7 +183,8 @@ pub fn find_relaxed_naf(num: &[u64]) -> Vec<i8> {
     let mut res = find_naf(num);
 
     let len = res.len();
-    if res[len - 2] == 0 && res[len - 3] == -1 {
+    // Only apply optimization if we have at least 3 elements
+    if len >= 3 && res[len - 2] == 0 && res[len - 3] == -1 {
         res[len - 3] = 1;
         res[len - 2] = 1;
         res.resize(len - 1, 0);
@@ -375,6 +376,24 @@ mod tests {
 
         let vec = find_relaxed_naf(&[12u64]);
         assert_eq!(vec.len(), 4);
+    }
+
+    #[test]
+    fn test_find_relaxed_naf_edge_cases() {
+        // Test with empty result (zero input)
+        let relaxed_naf = find_relaxed_naf(&[0u64]);
+        assert!(relaxed_naf.is_empty());
+
+        // Test with short sequences (length < 3)
+        let relaxed_naf = find_relaxed_naf(&[1u64]);
+        assert_eq!(relaxed_naf, vec![1]);
+
+        let relaxed_naf = find_relaxed_naf(&[2u64]);
+        assert_eq!(relaxed_naf, vec![0, 1]);
+
+        // Test with length exactly 3 - relaxed NAF applies optimization
+        let relaxed_naf = find_relaxed_naf(&[3u64]);
+        assert_eq!(relaxed_naf, vec![1, 1]);
     }
 
     #[test]
