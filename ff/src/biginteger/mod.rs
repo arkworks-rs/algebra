@@ -1130,6 +1130,73 @@ pub trait BigInteger:
     /// ```
     fn mul(&self, other: &Self) -> (Self, Self);
 
+    /// Divides this [`BigInteger`] by `divisor`, returning the quotient and the
+    /// remainder, i.e. the unique pair `(q, r)` such that
+    /// `self = q * divisor + r` with `r < divisor`.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `divisor` is zero.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use ark_ff::{biginteger::BigInteger64 as B, BigInteger as _};
+    ///
+    /// // Basic
+    /// let a = B::from(100u64);
+    /// let b = B::from(7u64);
+    /// let (q, r) = a.div_rem(&b);
+    /// assert_eq!(q, B::from(14u64));
+    /// assert_eq!(r, B::from(2u64));
+    ///
+    /// // Edge-Case: divisor larger than dividend
+    /// let a = B::from(3u64);
+    /// let b = B::from(5u64);
+    /// let (q, r) = a.div_rem(&b);
+    /// assert_eq!(q, B::from(0u64));
+    /// assert_eq!(r, B::from(3u64));
+    /// ```
+    ///
+    /// Provided in terms of the other trait methods, so adding it does not
+    /// require existing implementors to supply a body.
+    fn div_rem(&self, divisor: &Self) -> (Self, Self) {
+        assert!(!divisor.is_zero(), "attempt to divide by zero");
+
+        // Base-2 long division: the same algorithm as the `const_modulo!`
+        // helper, extended to also accumulate the quotient. We scan the bits of
+        // `self` from the most significant down to the least, shifting each into
+        // a running remainder; whenever the remainder reaches `divisor` we
+        // subtract it and set the corresponding bit of the quotient.
+        let mut quotient = Self::from(0u64);
+        let mut remainder = Self::from(0u64);
+
+        for i in (0..self.num_bits() as usize).rev() {
+            // Make room for this iteration's quotient bit. `quotient` never
+            // exceeds `self`, so the discarded carry is always zero.
+            quotient.mul2();
+
+            // Shift the next bit of `self` into the remainder. `remainder` is
+            // always `< divisor` at the top of the loop, so doubling it can
+            // overflow `Self` by at most one bit, which `carry` captures.
+            let carry = remainder.mul2();
+            // After `mul2` the low bit is zero, so setting it is equivalent to
+            // OR-ing the next dividend bit in. Use the guaranteed `AsMut<[u64]>`
+            // view rather than a concrete field so this stays a default method.
+            if self.get_bit(i) {
+                remainder.as_mut()[0] |= 1;
+            }
+
+            if carry || remainder >= *divisor {
+                let borrow = remainder.sub_with_borrow(divisor);
+                debug_assert_eq!(borrow, carry);
+                quotient.as_mut()[0] |= 1;
+            }
+        }
+
+        (quotient, remainder)
+    }
+
     /// Performs a rightwise bitshift of this number, effectively dividing
     /// it by 2.
     /// # Example

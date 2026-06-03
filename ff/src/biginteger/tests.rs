@@ -227,6 +227,49 @@ fn biginteger_conversion_test<B: BigInteger>() {
     assert_eq!(x, x_recovered);
 }
 
+// Test `div_rem` against `num_bigint` as an oracle, plus hand-picked edge cases.
+fn biginteger_div_rem_test<B: BigInteger>() {
+    let mut rng = ark_std::test_rng();
+
+    let zero = B::from(0u64);
+    let one = B::from(1u64);
+
+    for _ in 0..1000 {
+        let a: B = UniformRand::rand(&mut rng);
+        let mut b: B = UniformRand::rand(&mut rng);
+        if b.is_zero() {
+            b = one;
+        }
+
+        let (q, r) = a.div_rem(&b);
+
+        // The remainder is always strictly smaller than the divisor. Checked
+        // before the `BigUint` conversions below so the test does not rely on
+        // `B: Copy` to reuse `r` and `b`.
+        assert!(r < b);
+
+        let a_big: BigUint = a.into();
+        let b_big: BigUint = b.into();
+        assert_eq!(Into::<BigUint>::into(q), &a_big / &b_big);
+        assert_eq!(Into::<BigUint>::into(r), &a_big % &b_big);
+    }
+
+    // 0 / d == (0, 0)
+    assert_eq!(zero.div_rem(&one), (zero, zero));
+    // n / n == (1, 0)
+    let five = B::from(5u64);
+    assert_eq!(five.div_rem(&five), (one, zero));
+    // dividend < divisor == (0, dividend)
+    assert_eq!(B::from(3u64).div_rem(&five), (zero, B::from(3u64)));
+    // exact division by one
+    assert_eq!(B::from(42u64).div_rem(&one), (B::from(42u64), zero));
+    // basic case with a non-zero remainder
+    assert_eq!(
+        B::from(100u64).div_rem(&B::from(7u64)),
+        (B::from(14u64), B::from(2u64))
+    );
+}
+
 // Wrapper test function for BigInteger
 fn test_biginteger<B: BigInteger>(max: B, zero: B) {
     let mut rng = ark_std::test_rng();
@@ -238,6 +281,7 @@ fn test_biginteger<B: BigInteger>(max: B, zero: B) {
     biginteger_bitwise_ops_test::<B>();
     biginteger_shr::<B>();
     biginteger_shl::<B>();
+    biginteger_div_rem_test::<B>();
 }
 
 #[test]
