@@ -335,9 +335,9 @@ pub trait Field:
 
     /// Exponentiates a field element `f` by a number represented with `u64`
     /// limbs, using a precomputed table containing as many powers of 2 of
-    /// `f` as the 1 + the floor of log2 of the exponent `exp`, starting
+    /// `f` as 1 + the floor of log2 of the exponent `exp`, starting
     /// from the 1st power. That is, `powers_of_2` should equal `&[p, p^2,
-    /// p^4, ..., p^(2^n)]` when `exp` has at most `n` bits.
+    /// p^4, ..., p^(2^n)]` when `exp` has at most `n + 1` bits.
     ///
     /// This returns `None` when a power is missing from the table.
     #[inline]
