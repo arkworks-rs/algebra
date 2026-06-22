@@ -1,5 +1,6 @@
 use super::*;
 use ark_std::{
+    boxed::Box,
     collections::{BTreeMap, BTreeSet, LinkedList, VecDeque},
     rand::RngCore,
     string::*,
@@ -259,6 +260,32 @@ fn test_rc_arc() {
     use ark_std::sync::Arc;
     test_serialize(Arc::new(Dummy));
     test_serialize(Arc::new(10u64));
+}
+
+#[test]
+fn test_box() {
+    // Generic `Box<T>` (added here) round-trips like the inner `T`.
+    test_serialize(Box::new(Dummy));
+    test_serialize(Box::new(10u64));
+    test_serialize(Box::new(vec![1u64, 2, 3, 4, 5]));
+
+    // `Box<[T]>` (sequence impl) still round-trips and coexists with `Box<T>`.
+    test_serialize(vec![1u64, 2, 3, 4, 5].into_boxed_slice());
+
+    // `Box<T>` serializes byte-identically to `T`, in both compression modes.
+    for compress in [Compress::Yes, Compress::No] {
+        let val = 192830918u64;
+        let boxed = Box::new(val);
+        let mut direct = Vec::new();
+        val.serialize_with_mode(&mut direct, compress).unwrap();
+        let mut via_box = Vec::new();
+        boxed.serialize_with_mode(&mut via_box, compress).unwrap();
+        assert_eq!(direct, via_box);
+        assert_eq!(
+            val.serialized_size(compress),
+            boxed.serialized_size(compress)
+        );
+    }
 }
 
 #[test]
