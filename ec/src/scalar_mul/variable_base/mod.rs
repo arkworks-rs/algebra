@@ -542,14 +542,15 @@ fn msm_bigint_wnaf<V: VariableBaseMSM>(
     cfg_chunks!(bases, chunk_size)
         .zip(cfg_chunks!(scalars, chunk_size))
         .map(|(bases, scalars)| {
-            #[cfg(feature = "parallel")]
+            // wasm32 can't spawn OS threads
+            #[cfg(all(feature = "parallel", not(target_arch = "wasm32")))]
             let result = rayon::ThreadPoolBuilder::new()
                 .num_threads(THREADS_PER_CHUNK.min(rayon::current_num_threads()))
                 .build()
                 .unwrap()
                 .install(|| msm_bigint_wnaf_parallel::<V>(bases, scalars));
 
-            #[cfg(not(feature = "parallel"))]
+            #[cfg(any(not(feature = "parallel"), target_arch = "wasm32"))]
             let result = msm_bigint_wnaf_parallel::<V>(bases, scalars);
 
             result

@@ -14,6 +14,7 @@
 - [\#1039](https://github.com/arkworks-rs/algebra/pull/1039) (`ark-ff-asm`) Remove unused dead spill buffer path.
 - [\#1044](https://github.com/arkworks-rs/algebra/pull/1044), [\#1084](https://github.com/arkworks-rs/algebra/pull/1084), [\#1088](https://github.com/arkworks-rs/algebra/pull/1088) Add implementation for small field with native integer types
 - [\#1061](https://github.com/arkworks-rs/algebra/pull/1061) (`ark-poly`) Reduce allocations in `DenseMultilinearExtension::{concat, fix_variables, evaluate}`.
+- [\#1112](https://github.com/arkworks-rs/algebra/pull/1112) (`ark-ec`) Fix rayon::ThreadPoolBuilder panicking in wasm32 when parallel feature is enabled
 
 ### Breaking changes
 
@@ -22,6 +23,7 @@
 ### Features
 
 - (`ark-serialize`) Implementation of `CanonicalSerialize` and `CanonicalDeserialize` for signed integer types
+- [\#1115](https://github.com/arkworks-rs/algebra/pull/1115) (`ark-serialize`) Implement `CanonicalSerialize`, `Valid`, and `CanonicalDeserialize` for `Box<T>`.
 - [\#1084](https://github.com/arkworks-rs/algebra/pull/1084) (`ark-ff`) Add `from_u128` const constructor for `SmallFp` fields
 - [\#1086](https://github.com/arkworks-rs/algebra/pull/1086) (`ark-ff-macros`) Auto-detect small prime subgroup (bases 3, 5, 7) in `define_field!` for both `SmallFp` and `Fp` fields
 - [\#1110](https://github.com/arkworks-rs/algebra/pull/1110) (`ark-ff`) Add `div_rem` method for `BigInteger`, returning the quotient and remainder of division by another `BigInteger`.
