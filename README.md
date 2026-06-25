@@ -27,7 +27,7 @@ In addition, the [`curves`](https://github.com/arkworks-rs/algebra/tree/master/c
 
 ## Build guide
 
-The library compiles on the `stable` toolchain of the Rust compiler (v 1.51+). For the optimized assembly backend, Rust 1.59+ is required. To install the latest version of Rust, first install `rustup` by following the instructions [here](https://rustup.rs/), or via your platform's package manager. Once `rustup` is installed, install the Rust toolchain by invoking:
+The library compiles on the `stable` toolchain of the Rust compiler (v 1.75+). To install the latest version of Rust, first install `rustup` by following the instructions [here](https://rustup.rs/), or via your platform's package manager. Once `rustup` is installed, install the Rust toolchain by invoking:
 
 ```bash
 rustup install stable
@@ -68,10 +68,10 @@ RUSTFLAGS="-C target-feature=+bmi2,+adx" cargo [test/build/bench] --features asm
 To enable this in the `Cargo.toml` of your own projects, enable the `asm` feature flag:
 
 ```toml
-ark-ff = { version = "0.4", features = [ "asm" ] }
+ark-ff = { version = "0.6", features = [ "asm" ] }
 ```
 
-Note that using this backend requires Rust 1.59+ for stable inline assembly support.
+Note that using this backend requires Rust 1.75+.
 
 ## License
 
