@@ -24,7 +24,7 @@
 - (`ark-serialize`) Implementation of `CanonicalSerialize` and `CanonicalDeserialize` for signed integer types
 - [\#1084](https://github.com/arkworks-rs/algebra/pull/1084) (`ark-ff`) Add `from_u128` const constructor for `SmallFp` fields
 - [\#1086](https://github.com/arkworks-rs/algebra/pull/1086) (`ark-ff-macros`) Auto-detect small prime subgroup (bases 3, 5, 7) in `define_field!` for both `SmallFp` and `Fp` fields
-- (`ark-ff`) Add `div_rem` method for `BigInteger`, returning the quotient and remainder of division by another `BigInteger`.
+- [\#1110](https://github.com/arkworks-rs/algebra/pull/1110) (`ark-ff`) Add `div_rem` method for `BigInteger`, returning the quotient and remainder of division by another `BigInteger`.
 
 ### Improvements
 

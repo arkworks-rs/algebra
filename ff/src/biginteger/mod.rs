@@ -1134,6 +1134,9 @@ pub trait BigInteger:
     /// remainder, i.e. the unique pair `(q, r)` such that
     /// `self = q * divisor + r` with `r < divisor`.
     ///
+    /// Provided in terms of the other trait methods, so adding it does not
+    /// require existing implementors to supply a body.
+    ///
     /// # Panics
     ///
     /// Panics if `divisor` is zero.
@@ -1157,9 +1160,6 @@ pub trait BigInteger:
     /// assert_eq!(q, B::from(0u64));
     /// assert_eq!(r, B::from(3u64));
     /// ```
-    ///
-    /// Provided in terms of the other trait methods, so adding it does not
-    /// require existing implementors to supply a body.
     fn div_rem(&self, divisor: &Self) -> (Self, Self) {
         assert!(!divisor.is_zero(), "attempt to divide by zero");
 

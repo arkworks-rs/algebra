@@ -270,6 +270,13 @@ fn biginteger_div_rem_test<B: BigInteger>() {
     );
 }
 
+#[test]
+#[should_panic(expected = "attempt to divide by zero")]
+fn test_biginteger_div_rem_by_zero_panics() {
+    let _ = crate::biginteger::BigInteger64::from(1u64)
+        .div_rem(&crate::biginteger::BigInteger64::from(0u64));
+}
+
 // Wrapper test function for BigInteger
 fn test_biginteger<B: BigInteger>(max: B, zero: B) {
     let mut rng = ark_std::test_rng();
