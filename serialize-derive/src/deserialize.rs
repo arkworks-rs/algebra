@@ -52,10 +52,7 @@ fn impl_valid(ast: &syn::DeriveInput) -> TokenStream {
     let len = if let Data::Struct(ref data_struct) = ast.data {
         data_struct.fields.len()
     } else {
-        panic!(
-            "`Valid` can only be derived for structs, {} is not a struct",
-            name
-        );
+        panic!("`Valid` can only be derived for structs, {name} is not a struct");
     };
 
     let mut check_body = Vec::<TokenStream>::with_capacity(len);
@@ -88,10 +85,7 @@ fn impl_valid(ast: &syn::DeriveInput) -> TokenStream {
                 idents.clear();
             }
         },
-        _ => panic!(
-            "`Valid` can only be derived for structs, {} is not a struct",
-            name
-        ),
+        _ => panic!("`Valid` can only be derived for structs, {name} is not a struct"),
     };
 
     let check_body = if check_body.len() == 1 {
@@ -187,10 +181,9 @@ pub(super) fn impl_canonical_deserialize(ast: &syn::DeriveInput) -> TokenStream 
                 })
             };
         },
-        _ => panic!(
-            "`CanonicalDeserialize` can only be derived for structs, {} is not a Struct",
-            name
-        ),
+        _ => {
+            panic!("`CanonicalDeserialize` can only be derived for structs, {name} is not a Struct")
+        },
     };
 
     let mut gen = quote! {
