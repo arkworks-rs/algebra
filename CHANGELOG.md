@@ -16,6 +16,7 @@
 - [\#1061](https://github.com/arkworks-rs/algebra/pull/1061) (`ark-poly`) Reduce allocations in `DenseMultilinearExtension::{concat, fix_variables, evaluate}`.
 - [\#1112](https://github.com/arkworks-rs/algebra/pull/1112) (`ark-ec`) Fix rayon::ThreadPoolBuilder panicking in wasm32 when parallel feature is enabled
 - [\#1122](https://github.com/arkworks-rs/algebra/pull/1122) (`ark-pallas`, `ark-vesta`) Use GLV for `mul_projective`/`mul_affine`. Pallas and Vesta had GLV constants but were not using them.
+- [\#1118](https://github.com/arkworks-rs/algebra/pull/1118) (`ark-ec`, `ark-pallas`, `ark-vesta`) Speed up GLV scalar decomposition using Barrett reduction (similar to gnark).
 
 ### Breaking changes
 
