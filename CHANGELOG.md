@@ -15,6 +15,7 @@
 - [\#1044](https://github.com/arkworks-rs/algebra/pull/1044), [\#1084](https://github.com/arkworks-rs/algebra/pull/1084), [\#1088](https://github.com/arkworks-rs/algebra/pull/1088) Add implementation for small field with native integer types
 - [\#1061](https://github.com/arkworks-rs/algebra/pull/1061) (`ark-poly`) Reduce allocations in `DenseMultilinearExtension::{concat, fix_variables, evaluate}`.
 - [\#1112](https://github.com/arkworks-rs/algebra/pull/1112) (`ark-ec`) Fix rayon::ThreadPoolBuilder panicking in wasm32 when parallel feature is enabled
+- [\#1119](https://github.com/arkworks-rs/algebra/pull/1119) (`ark-ff`, `ark-pallas`) Add Sarkar2020 square root - useful for pasta
 
 ### Breaking changes
 

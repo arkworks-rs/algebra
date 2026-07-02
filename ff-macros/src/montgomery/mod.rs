@@ -26,6 +26,7 @@ pub(crate) fn mont_config_helper(
     generator: BigUint,
     small_subgroup_base: Option<u32>,
     small_subgroup_power: Option<u32>,
+    sqrt_precomp: Option<String>,
     config_name: proc_macro2::Ident,
 ) -> proc_macro2::TokenStream {
     let mut limbs = 1usize;
@@ -99,6 +100,17 @@ pub(crate) fn mont_config_helper(
         quote::quote! {}
     };
 
+    let sqrt_precomp = if let Some(path) = sqrt_precomp {
+        let path: proc_macro2::TokenStream = path
+            .parse()
+            .expect("`sqrt_precomp` should be a path to a `const`");
+        quote::quote! {
+            const SQRT_PRECOMP: Option<ark_ff::SqrtPrecomputation<F>> = #path;
+        }
+    } else {
+        quote::quote! {}
+    };
+
     quote::quote! {
         const _: () = {
             use ark_ff::{fields::Fp, BigInt, BigInteger, biginteger::arithmetic as fa, fields::*};
@@ -114,6 +126,8 @@ pub(crate) fn mont_config_helper(
                 const TWO_ADIC_ROOT_OF_UNITY: F = ark_ff::MontFp!(#two_adic_root_of_unity);
 
                 #mixed_radix
+
+                #sqrt_precomp
 
                 #[inline(always)]
                 fn add_assign(a: &mut F, b: &F) {

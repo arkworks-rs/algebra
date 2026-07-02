@@ -86,6 +86,7 @@ pub fn define_field(input: TokenStream) -> TokenStream {
             generator_big,
             small_subgroup_base,
             small_subgroup_power,
+            None,
             config_name.clone(),
         );
 
@@ -110,7 +111,13 @@ pub fn define_field(input: TokenStream) -> TokenStream {
 // This code was adapted from the `PrimeField` Derive Macro in ff-derive.
 #[proc_macro_derive(
     MontConfig,
-    attributes(modulus, generator, small_subgroup_base, small_subgroup_power)
+    attributes(
+        modulus,
+        generator,
+        small_subgroup_base,
+        small_subgroup_power,
+        sqrt_precomp
+    )
 )]
 pub fn mont_config(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     // Parse the type definition
@@ -135,11 +142,17 @@ pub fn mont_config(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let small_subgroup_power: Option<u32> = fetch_attr("small_subgroup_power", &ast.attrs)
         .map(|s| s.parse().expect("small_subgroup_power should be a number"));
 
+    // Optional path to a `const SQRT_PRECOMP: Option<SqrtPrecomputation<F>>` that
+    // overrides the default (Tonelli-Shanks / Case3Mod4 / Case5Mod8) precomputation.
+    // Used to plug in a table-based square root for high-2-adicity fields.
+    let sqrt_precomp: Option<String> = fetch_attr("sqrt_precomp", &ast.attrs);
+
     montgomery::mont_config_helper(
         modulus,
         generator,
         small_subgroup_base,
         small_subgroup_power,
+        sqrt_precomp,
         ast.ident,
     )
     .into()
