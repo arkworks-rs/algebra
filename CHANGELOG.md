@@ -18,6 +18,7 @@
 
 ### Breaking changes
 
+- [\#1121](https://github.com/arkworks-rs/algebra/pull/1121) (all) Bump the minimum supported Rust version to 1.89.
 - (`ark-poly`) the `Div` implementation is now restricted to polynomials defined over `FftField`. Non-`FftField` polys can instead use the `naive_div` method.
 
 ### Features

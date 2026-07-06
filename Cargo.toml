@@ -33,7 +33,7 @@ include = [
 ]
 license = "MIT OR Apache-2.0"
 edition = "2021"
-rust-version = "1.75"
+rust-version = "1.89"
 
 [workspace.metadata.docs.rs]
 rustdoc-args = ["--html-in-header katex-header.html"]
