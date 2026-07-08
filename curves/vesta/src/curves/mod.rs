@@ -3,6 +3,7 @@ use ark_ec::{
     models::CurveConfig,
     scalar_mul::glv::GLVConfig,
     short_weierstrass::{self as sw, SWCurveConfig},
+    AffineRepr,
 };
 use ark_ff::{AdditiveGroup, BigInt, Field, MontFp, PrimeField, Zero};
 
@@ -45,6 +46,18 @@ impl SWCurveConfig for VestaConfig {
     #[inline(always)]
     fn mul_by_a(_: Self::BaseField) -> Self::BaseField {
         Self::BaseField::zero()
+    }
+
+    #[inline]
+    fn mul_projective(base: &sw::Projective<Self>, scalar: &[u64]) -> sw::Projective<Self> {
+        let s = Self::ScalarField::from_sign_and_limbs(true, scalar);
+        GLVConfig::glv_mul_projective(*base, s)
+    }
+
+    #[inline]
+    fn mul_affine(base: &sw::Affine<Self>, scalar: &[u64]) -> sw::Projective<Self> {
+        let s = Self::ScalarField::from_sign_and_limbs(true, scalar);
+        <Self as GLVConfig>::glv_mul_projective(base.into_group(), s)
     }
 }
 

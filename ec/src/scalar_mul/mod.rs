@@ -225,7 +225,7 @@ impl<T: ScalarMul> BatchMulPreprocessing<T> {
         T::batch_convert_to_mul_base(&result)
     }
 
-    fn windowed_mul(&self, scalar: &T::ScalarField) -> T {
+    pub fn windowed_mul(&self, scalar: &T::ScalarField) -> T {
         let outerc = self.max_scalar_size.div_ceil(self.window);
         let modulus_size = T::ScalarField::MODULUS_BIT_SIZE as usize;
         let scalar_val = scalar.into_bigint().to_bits_le();

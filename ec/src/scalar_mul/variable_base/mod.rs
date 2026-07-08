@@ -237,8 +237,9 @@ impl PackedIndex {
 
 /// Computes multi-scalar multiplication where the scalars
 /// can be negative, zero, or positive.
-/// Should be used when the negation is cheap, i.e. when
-/// `V::NEGATION_IS_CHEAP` is `true`.
+/// Tries to convert large scalars to negative (modulus - scalar) so that their bit size is small.
+/// Partitions the scalars based on size and uses different algorithms based on the size
+/// Uses wNAF when `V::NEGATION_IS_CHEAP` is `true`.
 fn msm_signed<V: VariableBaseMSM>(
     bases: &[V::MulBase],
     scalars: &[<V::ScalarField as PrimeField>::BigInt],
