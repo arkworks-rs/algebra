@@ -15,6 +15,8 @@
 - [\#1044](https://github.com/arkworks-rs/algebra/pull/1044), [\#1084](https://github.com/arkworks-rs/algebra/pull/1084), [\#1088](https://github.com/arkworks-rs/algebra/pull/1088) Add implementation for small field with native integer types
 - [\#1061](https://github.com/arkworks-rs/algebra/pull/1061) (`ark-poly`) Reduce allocations in `DenseMultilinearExtension::{concat, fix_variables, evaluate}`.
 - [\#1112](https://github.com/arkworks-rs/algebra/pull/1112) (`ark-ec`) Fix rayon::ThreadPoolBuilder panicking in wasm32 when parallel feature is enabled
+- [\#1122](https://github.com/arkworks-rs/algebra/pull/1122) (`ark-pallas`, `ark-vesta`) Use GLV for `mul_projective`/`mul_affine`. Pallas and Vesta had GLV constants but were not using them.
+- [\#1118](https://github.com/arkworks-rs/algebra/pull/1118) (`ark-ec`, `ark-pallas`, `ark-vesta`) Speed up GLV scalar decomposition using Barrett reduction (similar to gnark).
 
 ### Breaking changes
 
@@ -37,6 +39,7 @@
 ### Bugfixes
 
 - [\#1082](https://github.com/arkworks-rs/algebra/pull/1082) (`ark-ff`) Fix `SmallFp::from_random_bytes` / `from_be_bytes_mod_order` silently producing incorrect field elements by treating plaintext bytes as Montgomery-encoded.
+- [\#1122](https://github.com/arkworks-rs/algebra/pull/1122) (`ark-ec`) Fix `From<Bucket> for Affine` computing the affine `x` as `X * ZZ^2` instead of `X / ZZ`.
 
 ## v0.5.0
 

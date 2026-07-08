@@ -372,15 +372,14 @@ impl<P: SWCurveConfig> From<Affine<P>> for Bucket<P> {
     }
 }
 
-// The affine point X, Y is represented in the Jacobian
-// coordinates with Z = 1.
 impl<P: SWCurveConfig> From<Bucket<P>> for Affine<P> {
     #[inline]
     fn from(p: Bucket<P>) -> Self {
+        // Extended Jacobian (xyzz): affine `x = X / ZZ`, `y = Y / ZZZ`
         p.zzz.inverse().map_or_else(Self::zero, |zzz_inv| {
-            let b = p.zz.square();
-            let x = p.x * &b;
-            let y = p.y * zzz_inv;
+            let z_inv = p.zz * zzz_inv; // 1/Z
+            let x = p.x * z_inv.square(); // X / ZZ
+            let y = p.y * zzz_inv; // Y / ZZZ
             Self::new_unchecked(x, y)
         })
     }

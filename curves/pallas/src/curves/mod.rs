@@ -1,7 +1,8 @@
 use ark_ec::{
     models::CurveConfig,
-    scalar_mul::glv::GLVConfig,
+    scalar_mul::glv::{GLVConfig, GLVFastDecomp},
     short_weierstrass::{self as sw, SWCurveConfig},
+    AffineRepr,
 };
 use ark_ff::{AdditiveGroup, BigInt, Field, MontFp, PrimeField, Zero};
 
@@ -48,6 +49,18 @@ impl SWCurveConfig for PallasConfig {
     fn mul_by_a(_: Self::BaseField) -> Self::BaseField {
         Self::BaseField::zero()
     }
+
+    #[inline]
+    fn mul_projective(base: &Projective, scalar: &[u64]) -> Projective {
+        let s = Self::ScalarField::from_sign_and_limbs(true, scalar);
+        GLVConfig::glv_mul_projective(*base, s)
+    }
+
+    #[inline]
+    fn mul_affine(base: &Affine, scalar: &[u64]) -> Projective {
+        let s = Self::ScalarField::from_sign_and_limbs(true, scalar);
+        <Self as GLVConfig>::glv_mul_projective(base.into_group(), s)
+    }
 }
 
 impl GLVConfig for PallasConfig {
@@ -64,6 +77,30 @@ impl GLVConfig for PallasConfig {
         (false, BigInt!("196462116142286827589391630752301449217")),
         (false, BigInt!("98231058071100081932162823354453065728")),
     ];
+
+    // Constants for the allocation-free decomposition, derived from
+    // `SCALAR_DECOMP_COEFFS` by `scripts/glv_fast_decomp.py`. `g1`/`g2` are
+    // `round(2^384 * |n22|/r)` and `round(2^384 * |n12|/r)`; `a22`/`a12` are
+    // `|n22|`/`|n12|`; and `negate_k2` holds since `sign(n12)*sign(n22) = -1`.
+    const FAST_DECOMP: Option<GLVFastDecomp<Self::ScalarField>> = Some(GLVFastDecomp {
+        g1: &[
+            0x4a95a2d972171db4,
+            0x61afdea68480fa55,
+            0x32c49e4bffffffff,
+            0x279a745902a2654e,
+            0x0000000000000001,
+        ],
+        g2: &[
+            0xc689c5879f98a4df,
+            0x61afdea683e7688a,
+            0xff2b871c00000003,
+            0x279a745903c12455,
+            0x0000000000000001,
+        ],
+        a12: MontFp!("98231058071186745657228807397848383489"),
+        a22: MontFp!("98231058071100081932162823354453065728"),
+        negate_k2: true,
+    });
 
     fn endomorphism(p: &Projective) -> Projective {
         // Endomorphism of the points on the curve.
