@@ -27,6 +27,7 @@ This repository contains implementations of some popular elliptic curves. The cu
 * [`ark-grumpkin`](grumpkin): Implements the Grumpkin curve. A curve that forms a cycle with bn254.
 
 `ark-ed-on-bn254` and `ark-babyjubjub` are two representations of the *same* Twisted Edwards curve over the scalar field of BN254, related by an isomorphism (a rescaling of the `x` coordinate). They differ in their curve parameters and generator, and are therefore **not** interchangeable at the byte/coordinate level:
+
 * `ark-ed-on-bn254` uses the arkworks-canonical normalized form with `a = 1` (and `d = 168696/168700 mod q`), which is slightly more efficient for in-arkworks arithmetic, together with an arkworks-specific generator.
 * `ark-babyjubjub` uses the exact ERC-2494 parameters (`A = 168700`, `D = 168696`) and the standard base point defined in that spec. Prefer this crate when you need coordinates, serialized points, or test vectors that are compatible with the wider Baby Jubjub ecosystem (e.g. circomlib / iden3).
 
