@@ -44,7 +44,7 @@ impl TECurveConfig for EdwardsConfig {
     /// COEFF_D = 168696
     const COEFF_D: Fq = MontFp!("168696");
 
-    /// Standard base points from https://eips.ethereum.org/EIPS/eip-2494.
+    /// Standard base points from <https://eips.ethereum.org/EIPS/eip-2494>.
     /// Note: A base point B is used instead of a generator G satisfying B = 8 * G.
     /// The Montgomery form is
     ///     x = 7,
