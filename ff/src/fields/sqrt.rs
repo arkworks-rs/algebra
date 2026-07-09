@@ -80,6 +80,36 @@ pub enum SqrtPrecomputation<F: crate::Field> {
         modulus_plus_three_div_eight: &'static [u64],
         modulus_minus_one_div_four: &'static [u64],
     },
+    /// Table-based square root for fields with high 2-adicity.
+    ///
+    /// Adapted from the `SqrtTables` implementation in `zcash/pasta_curves`
+    /// (the `sqrt_alt` / `sqrt_common` / `SqrtHasher::hash` functions),
+    /// It in turn implements Sarkar 2020 and BDLSY 2012:
+    /// - <https://github.com/zcash/pasta_curves/blob/main/src/arithmetic/fields.rs>
+    /// - Sarkar 2020: <https://eprint.iacr.org/2020/1407>
+    ///
+    /// Write `p - 1 = T * 2^S` with `T` odd, and let `g` be a generator of the
+    /// order-`2^S` subgroup (i.e. `TWO_ADIC_ROOT_OF_UNITY`). The tables are:
+    /// - `g0[i] = g^i`, `g1[i] = g^(2^8 * i)`, `g2[i] = g^(2^16 * i)` for
+    ///   `i in 0..256`, and `g3[i] = g^(2^24 * i)` for `i in 0..129`.
+    /// - `inv` is a perfect-hash lookup of length `hash_mod` mapping an element
+    ///   `g^(2^24 * j)` of the order-256 subgroup back to `(256 - j) & 0xFF`,
+    ///   keyed by `((canonical_low_32_bits ^ hash_xor) % hash_mod)`.
+    ///
+    /// This variant is currently only constructed for fields with `S == 32`
+    /// (it splits `S` into four 8-bit windows). The tables and `hash_*`
+    /// parameters are produced by `curves/pallas/tests/gen_sqrt_tables.rs`
+    Sarkar2020 {
+        /// `(T - 1) / 2` in little-endian limbs.
+        trace_minus_one_div_two: &'static [u64],
+        g0: &'static [F],
+        g1: &'static [F],
+        g2: &'static [F],
+        g3: &'static [F],
+        inv: &'static [u8],
+        hash_xor: u32,
+        hash_mod: u32,
+    },
 }
 
 impl<F: crate::Field> SqrtPrecomputation<F> {
@@ -211,6 +241,80 @@ impl<F: crate::Field> SqrtPrecomputation<F> {
                 }
 
                 (result.square() == *elem).then_some(result)
+            },
+            Self::Sarkar2020 {
+                trace_minus_one_div_two,
+                g0,
+                g1,
+                g2,
+                g3,
+                inv,
+                hash_xor,
+                hash_mod,
+            } => {
+                // Ported from `zcash/pasta_curves`, `SqrtTables::sqrt_alt` and
+                // `SqrtTables::sqrt_common` (plus `SqrtHasher::hash`):
+                // <https://github.com/zcash/pasta_curves/blob/main/src/arithmetic/fields.rs>
+                if elem.is_zero() {
+                    return Some(F::zero());
+                }
+
+                // Canonical low 32 bits of a prime-field element. This variant is
+                // only ever constructed for prime fields, so the (single) base
+                // prime field element is `x` itself.
+                let low32 = |x: &F| -> usize {
+                    let c = x
+                        .to_base_prime_field_elements()
+                        .next()
+                        .expect("a prime field element has exactly one base element");
+                    <F::BasePrimeField as super::PrimeField>::into_bigint(c).as_ref()[0] as u32
+                        as usize
+                };
+                let inv_lookup = |x: &F| -> usize {
+                    let h = (low32(x) ^ (*hash_xor as usize)) % (*hash_mod as usize);
+                    inv[h] as usize
+                };
+                let sqr = |mut x: F, i: u32| {
+                    for _ in 0..i {
+                        x.square_in_place();
+                    }
+                    x
+                };
+
+                // v = elem^((T-1)/2), uv = elem * v. This single exponentiation is
+                // the dominant cost and is shared with Tonelli-Shanks; the rest of
+                // the algorithm replaces the data-dependent discrete-log search
+                // with four windowed table lookups.
+                let v = elem.pow(trace_minus_one_div_two);
+                let uv = *elem * v;
+
+                // Project `uv * v` (which lies in the order-2^32 subgroup) down to
+                // the order-256 subgroup by successive 8-bit squarings, then peel
+                // off the discrete log one 8-bit window at a time using `inv`/`g*`.
+                let x3 = uv * v;
+                let x2 = sqr(x3, 8);
+                let x1 = sqr(x2, 8);
+                let x0 = sqr(x1, 8);
+
+                let mut t = inv_lookup(&x0);
+                let alpha = x1 * g2[t];
+
+                t += inv_lookup(&alpha) << 8;
+                let alpha = x2 * g1[t & 0xFF] * g2[t >> 8];
+
+                t += inv_lookup(&alpha) << 16;
+                let alpha = x3 * g0[t & 0xFF] * g1[(t >> 8) & 0xFF] * g2[t >> 16];
+
+                t += inv_lookup(&alpha) << 24;
+                t = (((t as u64) + 1) >> 1) as usize;
+                assert!(t <= 0x80000000);
+
+                let res =
+                    uv * g0[t & 0xFF] * g1[(t >> 8) & 0xFF] * g2[(t >> 16) & 0xFF] * g3[t >> 24];
+
+                // The algorithm returns the correct root iff `elem` is a square;
+                // otherwise the squared candidate disagrees, signalling no root.
+                (res.square() == *elem).then_some(res)
             },
         }
     }
