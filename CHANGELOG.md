@@ -9,6 +9,7 @@
 - (`ark-serialize`) Add serde-compatible wrapper types `CompressedChecked<T>`, `CompressedUnchecked<T>`, `UncompressedChecked<T>`, `UncompressedUnchecked<T>`.
 - [\#989](https://github.com/arkworks-rs/algebra/pull/989) (`ark-poly`) Replace bound `F: FftField` with `F: Field` on `GeneralEvaluationDomain`.
 - (`ark-poly`) Add fast polynomial division
+- [\#1124](https://github.com/arkworks-rs/algebra/pull/1124) (`ark-poly`) Fix `DensePolynomial::divide_by_vanishing_poly` and `mul_by_vanishing_poly` to handle coset domains, whose vanishing polynomial is `x^n - offset^n` rather than `x^n - 1`.
 - (`ark-ec`) Improve GLV scalar multiplication performance by skipping leading zeroes.
 - (`ark-poly`) Make `SparsePolynomial.coeffs` field public
 - [\#1039](https://github.com/arkworks-rs/algebra/pull/1039) (`ark-ff-asm`) Remove unused dead spill buffer path.
