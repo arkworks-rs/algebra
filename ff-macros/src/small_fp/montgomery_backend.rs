@@ -500,6 +500,7 @@ fn generate_mul_impl(
                 }
             } else {
                 // Primes where 2^16 < p < 2^32
+                let shift_bits = 64 - k_bits;
                 quote! {
                     #[inline(always)]
                     fn mul_assign(a: &mut SmallFp<Self>, b: &SmallFp<Self>) {
@@ -507,9 +508,11 @@ fn generate_mul_impl(
                         const N_PRIME: u64 = #n_prime as u64;
                         const R_MASK: u64 = #r_mask as u64;
 
-                        let t = (a.value as u64) * (b.value as u64);
+                        let mut t = (a.value as u64) * (b.value as u64);
                         let k = t.wrapping_mul(N_PRIME) & R_MASK;
-                        let mut r = (t + (k * MODULUS_MUL_TY)) >> #k_bits;
+                        
+                        let (t, overflow) = t.overflowing_add(k * MODULUS_MUL_TY);
+                        let mut r = (t >> #k_bits) + ((overflow as u64) << #shift_bits);
                         if r >= MODULUS_MUL_TY { r -= MODULUS_MUL_TY; }
                         a.value = r as u32;
                     }
