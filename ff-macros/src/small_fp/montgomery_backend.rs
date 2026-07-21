@@ -510,7 +510,7 @@ fn generate_mul_impl(
 
                         let mut t = (a.value as u64) * (b.value as u64);
                         let k = t.wrapping_mul(N_PRIME) & R_MASK;
-                        
+
                         let (t, overflow) = t.overflowing_add(k * MODULUS_MUL_TY);
                         let mut r = (t >> #k_bits) + ((overflow as u64) << #shift_bits);
                         if r >= MODULUS_MUL_TY { r -= MODULUS_MUL_TY; }
