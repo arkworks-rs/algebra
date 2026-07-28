@@ -695,15 +695,23 @@ mod tests {
         const NV: usize = 10;
         let mut rng = test_rng();
         for _ in 0..20 {
-            let poly = DenseMultilinearExtension::<Fr>::rand(NV, &mut rng);
+            let point: Vec<_> = (0..NV).map(|_| Fr::rand(&mut rng)).collect();
+            let poly = DenseMultilinearExtension::rand(NV, &mut rng);
+            let v = poly.evaluate(&point);
             let zero = DenseMultilinearExtension::zero();
 
+            // `poly - 0` returns `poly` unchanged
             assert_eq!(&poly - &zero, poly);
-            assert_eq!(&zero - &poly, -poly.clone());
+            // `0 - poly` returns `-poly`
+            let neg = &zero - &poly;
+            assert_eq!(neg, poly.clone().neg());
+            assert_eq!(neg.evaluate(&point), -v);
+            // `poly - poly` evaluates to zero everywhere
+            assert_eq!((&poly - &poly).evaluate(&point), Fr::zero());
 
             let mut difference = zero.clone();
             difference -= &poly;
-            assert_eq!(difference, -poly.clone());
+            assert_eq!(difference, neg);
 
             let mut unchanged = poly.clone();
             unchanged -= &zero;

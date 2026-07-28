@@ -39,7 +39,6 @@ fn arithmetic_op_bench<F: Field>(c: &mut Criterion) {
         });
     }
     group.finish();
-
     let mut group = c.benchmark_group("DenseMultilinear::Assign");
     for nv in NUM_VARIABLES_RANGE {
         let poly1 = DenseMultilinearExtension::<F>::rand(nv, &mut rng);
