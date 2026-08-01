@@ -349,7 +349,20 @@ impl<'a, F: Field> Sub<&'a DenseMultilinearExtension<F>> for &DenseMultilinearEx
     type Output = DenseMultilinearExtension<F>;
 
     fn sub(self, rhs: &'a DenseMultilinearExtension<F>) -> Self::Output {
-        self + &rhs.clone().neg()
+        // handle constant zero case
+        if rhs.is_zero() {
+            return self.clone();
+        }
+        if self.is_zero() {
+            return -rhs.clone();
+        }
+        assert_eq!(self.num_vars, rhs.num_vars);
+        let result: Vec<F> = cfg_iter!(self.evaluations)
+            .zip(&rhs.evaluations)
+            .map(|(a, b)| *a - *b)
+            .collect();
+
+        Self::Output::from_evaluations_vec(self.num_vars, result)
     }
 }
 
@@ -382,7 +395,7 @@ impl<'a, F: Field> Mul<&'a F> for &DenseMultilinearExtension<F> {
         } else if scalar.is_one() {
             return self.clone();
         }
-        let result: Vec<F> = self.evaluations.iter().map(|&x| x * scalar).collect();
+        let result: Vec<F> = cfg_iter!(self.evaluations).map(|&x| x * scalar).collect();
 
         DenseMultilinearExtension {
             num_vars: self.num_vars,
@@ -603,6 +616,27 @@ mod tests {
                 poly1_cloned *= Fr::zero();
                 assert_eq!(poly1_cloned, DenseMultilinearExtension::zero());
             }
+        }
+    }
+
+    #[test]
+    fn sub_with_zero() {
+        const NV: usize = 10;
+        let mut rng = test_rng();
+        for _ in 0..20 {
+            let point: Vec<_> = (0..NV).map(|_| Fr::rand(&mut rng)).collect();
+            let poly = DenseMultilinearExtension::rand(NV, &mut rng);
+            let v = poly.evaluate(&point);
+            let zero = DenseMultilinearExtension::zero();
+
+            // `poly - 0` returns `poly` unchanged
+            assert_eq!(&poly - &zero, poly);
+            // `0 - poly` returns `-poly`
+            let neg = &zero - &poly;
+            assert_eq!(neg, poly.clone().neg());
+            assert_eq!(neg.evaluate(&point), -v);
+            // `poly - poly` evaluates to zero everywhere
+            assert_eq!((&poly - &poly).evaluate(&point), Fr::zero());
         }
     }
 

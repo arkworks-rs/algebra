@@ -14,10 +14,12 @@
 - [\#1039](https://github.com/arkworks-rs/algebra/pull/1039) (`ark-ff-asm`) Remove unused dead spill buffer path.
 - [\#1044](https://github.com/arkworks-rs/algebra/pull/1044), [\#1084](https://github.com/arkworks-rs/algebra/pull/1084), [\#1088](https://github.com/arkworks-rs/algebra/pull/1088) Add implementation for small field with native integer types
 - [\#1061](https://github.com/arkworks-rs/algebra/pull/1061) (`ark-poly`) Reduce allocations in `DenseMultilinearExtension::{concat, fix_variables, evaluate}`.
+- [\#1109](https://github.com/arkworks-rs/algebra/pull/1109) (`ark-poly`) Reduce allocations in `DenseMultilinearExtension::Sub` and parallelize scalar `Mul`.
 - [\#1112](https://github.com/arkworks-rs/algebra/pull/1112) (`ark-ec`) Fix rayon::ThreadPoolBuilder panicking in wasm32 when parallel feature is enabled
 
 ### Breaking changes
 
+- [\#1121](https://github.com/arkworks-rs/algebra/pull/1121) (all) Bump the minimum supported Rust version to 1.89.
 - (`ark-poly`) the `Div` implementation is now restricted to polynomials defined over `FftField`. Non-`FftField` polys can instead use the `naive_div` method.
 
 ### Features
