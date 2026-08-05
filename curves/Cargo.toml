@@ -56,7 +56,7 @@ keywords = ["cryptography", "finite-fields", "elliptic-curves" ]
 include = ["Cargo.toml", "src", "README.md", "LICENSE-APACHE", "LICENSE-MIT"]
 license = "MIT OR Apache-2.0"
 edition = "2021"
-rust-version = "1.75"
+rust-version = "1.89"
 
 [workspace.dependencies]
 ark-ec = { version = "0.6.0", path = "../ec", default-features = false }

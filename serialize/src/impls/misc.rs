@@ -3,6 +3,7 @@ use crate::{
 };
 use ark_std::{
     borrow::*,
+    boxed::Box,
     io::{Read, Write},
     marker::PhantomData,
     rc::Rc,
@@ -207,6 +208,58 @@ impl<T: ?Sized + Valid + Sync + Send> Valid for ark_std::sync::Arc<T> {
 impl<T: CanonicalDeserialize + ToOwned + Sync + Send> CanonicalDeserialize
     for ark_std::sync::Arc<T>
 {
+    #[inline]
+    fn deserialize_with_mode<R: Read>(
+        reader: R,
+        compress: Compress,
+        validate: Validate,
+    ) -> Result<Self, SerializationError> {
+        T::deserialize_with_mode(reader, compress, validate).map(Self::new)
+    }
+}
+
+// NOTE: bounded to `T: Sized`. The unsized slice case `Box<[T]>` is already
+// covered by the sequence impls in `collections.rs`; using `?Sized` here would
+// conflict with those.
+impl<T: CanonicalSerialize> CanonicalSerialize for Box<T> {
+    #[inline]
+    fn serialize_with_mode<W: Write>(
+        &self,
+        mut writer: W,
+        compress: Compress,
+    ) -> Result<(), SerializationError> {
+        self.as_ref().serialize_with_mode(&mut writer, compress)
+    }
+
+    #[inline]
+    fn serialized_size(&self, compress: Compress) -> usize {
+        self.as_ref().serialized_size(compress)
+    }
+}
+
+impl<T: Valid> Valid for Box<T> {
+    const TRIVIAL_CHECK: bool = T::TRIVIAL_CHECK;
+
+    #[inline]
+    fn check(&self) -> Result<(), SerializationError> {
+        self.as_ref().check()
+    }
+
+    #[inline]
+    fn batch_check<'a>(
+        batch: impl Iterator<Item = &'a Self> + Send,
+    ) -> Result<(), SerializationError>
+    where
+        Self: 'a,
+    {
+        match T::TRIVIAL_CHECK {
+            true => Ok(()),
+            false => T::batch_check(batch.map(|v| v.as_ref())),
+        }
+    }
+}
+
+impl<T: CanonicalDeserialize> CanonicalDeserialize for Box<T> {
     #[inline]
     fn deserialize_with_mode<R: Read>(
         reader: R,

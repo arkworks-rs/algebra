@@ -40,11 +40,11 @@ The above two models serve as abstractions for constructing the extension fields
 
 ## Instantiation
 
-You can instantiate fields in two ways:
+Instantiate fields manually, or use `define_field!`. The macro picks the best available implementation based on the modulus.
 
 ```rust
 use ark_ff::fields::{Fp64, MontBackend, MontConfig};
-use ark_ff::{SmallFp, SmallFpConfig};
+use ark_ff::{define_field, SmallFp, SmallFpConfig};
 
 // Standard (big integer) field
 #[derive(MontConfig)]
@@ -53,15 +53,18 @@ use ark_ff::{SmallFp, SmallFpConfig};
 pub struct F64Config;
 pub type F64 = Fp64<MontBackend<F64Config, 1>>;
 
-// Small field (native integer backend):
+// Small field (native integer backend, up to u64):
 #[derive(SmallFpConfig)]
 #[modulus = "18446744069414584321"]
 #[generator = "7"]
-pub struct SmallF64ConfigMont;
-pub type SmallF64Mont = SmallFp<SmallF64ConfigMont>;
+pub struct SmallF64Config;
+pub type SmallF64 = SmallFp<SmallF64Config>;
+
+// Or let the macro choose:
+define_field!(modulus = "18446744069414584321", generator = "7", name = BestF64);
 ```
 
-The standard field implementation can represent arbitrarily large fields, while the small field implementation supports native integer types from `u8` to `u128` for faster arithmetic. The both implementations use Montgomery arithmetic. The small field implementation requires that the modulus fits into u128.
+The standard field implementation can represent arbitrarily large fields, while the small field implementation supports native integer types from `u8` to `u64` for faster arithmetic. Both implementations use Montgomery arithmetic.
 
 ## Usage
 

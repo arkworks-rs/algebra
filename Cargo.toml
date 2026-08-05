@@ -33,7 +33,7 @@ include = [
 ]
 license = "MIT OR Apache-2.0"
 edition = "2021"
-rust-version = "1.75"
+rust-version = "1.89"
 
 [workspace.metadata.docs.rs]
 rustdoc-args = ["--html-in-header katex-header.html"]
@@ -150,12 +150,12 @@ ark-algebra-test-templates = { path = "./test-templates", default-features = fal
 ark-test-curves = { path = "./test-curves", default-features = false }
 
 num-traits = { version = "0.2", default-features = false }
-num-bigint = { version = "0.4", default-features = false }
+num-bigint = { version = "0.5", default-features = false }
 num-integer = { version = "0.1", default-features = false }
 
 arrayvec = { version = "0.7", default-features = false }
 criterion = "0.8.2"
-educe = { version = "0.6.0", default-features = false, features = [ "Debug", "Clone", "Copy", "Hash", "PartialEq", "Eq", "PartialOrd", "Ord", "Default" ] }
+educe = { version = "0.7.1", default-features = false, features = [ "Debug", "Clone", "Copy", "Hash", "PartialEq", "Eq", "PartialOrd", "Ord", "Default" ] }
 digest = { version = "0.10", default-features = false }
 hashbrown = { version = "0.17", default-features = false, features = [ "inline-more", "allocator-api2", ] }
 hex = "0.4"
