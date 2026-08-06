@@ -2,8 +2,8 @@ use crate::{
     short_weierstrass::{Affine, Projective, SWCurveConfig},
     AdditiveGroup, CurveGroup,
 };
-use ark_ff::{BitIteratorBE, PrimeField, Zero};
-use ark_std::{cmp::max, ops::Neg, vec::Vec};
+use ark_ff::{PrimeField, Zero};
+use ark_std::ops::Neg;
 use num_bigint::{BigInt, BigUint, Sign};
 use num_integer::Integer;
 use num_traits::{One, Signed};
@@ -90,6 +90,10 @@ pub trait GLVConfig: Send + Sync + 'static + SWCurveConfig {
 
     /// Precompute the 15-point table for 2-bit windowed GLV.
     ///
+    /// Adapted from gnark-crypto's `mulGLV` (Apache-2.0, Copyright Consensys Software Inc.):
+    /// <https://github.com/ConsenSys/gnark-crypto/blob/v0.19.0/ecc/bls12-381/g1.go#L620>
+    /// implementing the GLV method (<https://www.iacr.org/archive/crypto2001/21390189.pdf>).
+    ///
     /// After scalar decomposition, multiplication is `k1*b1 + k2*b2`. Each loop step reads two bits
     /// from each half-length scalar, giving digits `c1`, `c2` in `0..=3`. The point to add is
     /// `c1*b1 + c2*b2`; the two preceding doublings account for advancing two bits on each leg.
@@ -124,7 +128,6 @@ pub trait GLVConfig: Send + Sync + 'static + SWCurveConfig {
     }
 
     /// 2-bit windowed scan for `k1*b1 + k2*b2` (bases must already include sign fixes).
-    #[inline]
     fn glv_windowed_mul(
         b1: Projective<Self>,
         b2: Projective<Self>,
@@ -133,29 +136,30 @@ pub trait GLVConfig: Send + Sync + 'static + SWCurveConfig {
     ) -> Projective<Self> {
         let table = Self::glv_precompute_table(b1, b2);
 
-        let bits1: Vec<bool> = BitIteratorBE::new(k1.into_bigint()).collect();
-        let bits2: Vec<bool> = BitIteratorBE::new(k2.into_bigint()).collect();
-        let len = max(bits1.len(), bits2.len());
-        let len = if len % 2 != 0 { len + 1 } else { len };
+        let k1_bi = k1.into_bigint();
+        let k2_bi = k2.into_bigint();
+        let limbs1 = k1_bi.as_ref();
+        let limbs2 = k2_bi.as_ref();
+        // `BitIteratorBE::new` / `into_bigint` always yield exactly `64 * NUM_LIMBS` bits for a
+        // given `ScalarField`, so both scalars share the same (even) bit length.
+        debug_assert_eq!(limbs1.len(), limbs2.len());
+        let nbits = limbs1.len() * 64;
 
         let mut res = Projective::zero();
         let mut started = false;
-        for chunk_idx in 0..(len / 2) {
-            let c1 = glv_two_bit_digit(&bits1, chunk_idx);
-            let c2 = glv_two_bit_digit(&bits2, chunk_idx);
+        for chunk_idx in 0..(nbits / 2) {
+            let c1 = glv_two_bit_digit(limbs1, chunk_idx);
+            let c2 = glv_two_bit_digit(limbs2, chunk_idx);
             let idx = (c2 as usize) * 4 + (c1 as usize);
-            if !started {
-                if idx == 0 {
-                    continue;
-                }
-                started = true;
-                res = table[idx - 1];
-            } else {
+            if started {
                 res.double_in_place();
                 res.double_in_place();
                 if idx != 0 {
                     res += table[idx - 1];
                 }
+            } else if idx != 0 {
+                started = true;
+                res = table[idx - 1];
             }
         }
         res
@@ -172,25 +176,22 @@ pub trait GLVConfig: Send + Sync + 'static + SWCurveConfig {
         Self::glv_windowed_mul(b1, b2, k1, k2)
     }
 
+    /// GLV scalar multiplication starting from an affine point.
+    ///
+    /// Note: this converts to projective and uses the 2-bit windowed table (projective additions),
+    /// rather than mixed additions against affine table entries.
     fn glv_mul_affine(p: Affine<Self>, k: Self::ScalarField) -> Affine<Self> {
-        let ((sgn_k1, k1), (sgn_k2, k2)) = Self::scalar_decomposition(k);
-        let b1: Projective<Self> = p.into();
-        let b2 = Self::endomorphism(&b1);
-        let b1 = if sgn_k1 { b1 } else { -b1 };
-        let b2 = if sgn_k2 { b2 } else { -b2 };
-        Self::glv_windowed_mul(b1, b2, k1, k2).into_affine()
+        Self::glv_mul_projective(p.into(), k).into_affine()
     }
 }
 
-/// Two-bit window read from a big-endian bit slice (pads missing low bits with zero).
+/// Extract the `chunk_idx`-th 2-bit window from a big-endian limb encoding.
+///
+/// `chunk_idx = 0` is the most-significant pair of bits across `limbs`. The total bit length
+/// `64 * limbs.len()` is always even, so every window is fully contained in a single limb.
 #[inline]
-fn glv_two_bit_digit(bits: &[bool], chunk_idx: usize) -> u8 {
-    let i = chunk_idx * 2;
-    if i + 1 < bits.len() {
-        (bits[i] as u8) * 2 + (bits[i + 1] as u8)
-    } else if i < bits.len() {
-        bits[i] as u8
-    } else {
-        0
-    }
+fn glv_two_bit_digit(limbs: &[u64], chunk_idx: usize) -> u8 {
+    let bit_from_msb = chunk_idx * 2;
+    let limb = limbs[limbs.len() - 1 - bit_from_msb / 64];
+    ((limb >> (62 - (bit_from_msb % 64))) & 3) as u8
 }
