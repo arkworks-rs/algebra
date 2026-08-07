@@ -28,6 +28,62 @@ pub struct SparsePolynomial<F: Field> {
     pub coeffs: Vec<(usize, F)>,
 }
 
+fn merge_coefficients<F: Field>(
+    lhs: &[(usize, F)],
+    rhs: &[(usize, F)],
+    map_rhs: impl Fn(F) -> F,
+) -> Vec<(usize, F)> {
+    let mut result = Vec::with_capacity(lhs.len() + rhs.len());
+    let mut lhs_index = 0;
+    let mut rhs_index = 0;
+
+    while lhs_index < lhs.len() || rhs_index < rhs.len() {
+        match (lhs.get(lhs_index), rhs.get(rhs_index)) {
+            (Some(&(lhs_degree, lhs_coeff)), Some(&(rhs_degree, rhs_coeff))) => {
+                match lhs_degree.cmp(&rhs_degree) {
+                    Ordering::Less => {
+                        if !lhs_coeff.is_zero() {
+                            result.push((lhs_degree, lhs_coeff));
+                        }
+                        lhs_index += 1;
+                    },
+                    Ordering::Equal => {
+                        let coeff = lhs_coeff + map_rhs(rhs_coeff);
+                        if !coeff.is_zero() {
+                            result.push((lhs_degree, coeff));
+                        }
+                        lhs_index += 1;
+                        rhs_index += 1;
+                    },
+                    Ordering::Greater => {
+                        let coeff = map_rhs(rhs_coeff);
+                        if !coeff.is_zero() {
+                            result.push((rhs_degree, coeff));
+                        }
+                        rhs_index += 1;
+                    },
+                }
+            },
+            (Some(&(degree, coeff)), None) => {
+                if !coeff.is_zero() {
+                    result.push((degree, coeff));
+                }
+                lhs_index += 1;
+            },
+            (None, Some(&(degree, coeff))) => {
+                let coeff = map_rhs(coeff);
+                if !coeff.is_zero() {
+                    result.push((degree, coeff));
+                }
+                rhs_index += 1;
+            },
+            (None, None) => break,
+        }
+    }
+
+    result
+}
+
 impl<F: Field> fmt::Debug for SparsePolynomial<F> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
         for (i, coeff) in self.coeffs.iter().filter(|(_, c)| !c.is_zero()) {
@@ -115,69 +171,26 @@ impl<'a, F: Field> Add<&'a SparsePolynomial<F>> for &SparsePolynomial<F> {
     type Output = SparsePolynomial<F>;
 
     fn add(self, other: &'a SparsePolynomial<F>) -> SparsePolynomial<F> {
-        if self.is_zero() {
-            return other.clone();
-        } else if other.is_zero() {
-            return self.clone();
-        }
-        // Single pass add algorithm (merging two sorted sets)
-        let mut result = SparsePolynomial::<F>::zero();
-        // our current index in each vector
-        let mut self_index = 0;
-        let mut other_index = 0;
-        loop {
-            // if we've reached the end of one vector, just append the other vector to our
-            // result.
-            if self_index == self.coeffs.len() && other_index == other.coeffs.len() {
-                return result;
-            } else if self_index == self.coeffs.len() {
-                result.append_coeffs(&other.coeffs[other_index..]);
-                return result;
-            } else if other_index == other.coeffs.len() {
-                result.append_coeffs(&self.coeffs[self_index..]);
-                return result;
-            }
-
-            // Get the current degree / coeff for each
-            let (self_term_degree, self_term_coeff) = self.coeffs[self_index];
-            let (other_term_degree, other_term_coeff) = other.coeffs[other_index];
-            // add the lower degree term to our sorted set.
-            match self_term_degree.cmp(&other_term_degree) {
-                Ordering::Less => {
-                    result.coeffs.push((self_term_degree, self_term_coeff));
-                    self_index += 1;
-                },
-                Ordering::Equal => {
-                    let term_sum = self_term_coeff + other_term_coeff;
-                    if !term_sum.is_zero() {
-                        result.coeffs.push((self_term_degree, term_sum));
-                    }
-                    self_index += 1;
-                    other_index += 1;
-                },
-                Ordering::Greater => {
-                    result.coeffs.push((other_term_degree, other_term_coeff));
-                    other_index += 1;
-                },
-            }
+        SparsePolynomial {
+            coeffs: merge_coefficients(&self.coeffs, &other.coeffs, |coeff| coeff),
         }
     }
 }
 
 impl<'a, F: Field> AddAssign<&'a Self> for SparsePolynomial<F> {
-    // TODO: Reduce number of clones
     fn add_assign(&mut self, other: &'a Self) {
-        self.coeffs = (self.clone() + other.clone()).coeffs;
+        let lhs = core::mem::take(&mut self.coeffs);
+        self.coeffs = merge_coefficients(&lhs, &other.coeffs, |coeff| coeff);
     }
 }
 
 impl<'a, F: Field> AddAssign<(F, &'a Self)> for SparsePolynomial<F> {
-    // TODO: Reduce number of clones
     fn add_assign(&mut self, (f, other): (F, &'a Self)) {
-        self.coeffs = (self.clone() + other.clone()).coeffs;
-        for i in 0..self.coeffs.len() {
-            self.coeffs[i].1 *= f;
+        if f.is_zero() || other.is_zero() {
+            return;
         }
+        let lhs = core::mem::take(&mut self.coeffs);
+        self.coeffs = merge_coefficients(&lhs, &other.coeffs, |coeff| f * coeff);
     }
 }
 
@@ -194,11 +207,10 @@ impl<F: Field> Neg for SparsePolynomial<F> {
 }
 
 impl<'a, F: Field> SubAssign<&'a Self> for SparsePolynomial<F> {
-    // TODO: Reduce number of clones
     #[inline]
     fn sub_assign(&mut self, other: &'a Self) {
-        let self_copy = -self.clone();
-        self.coeffs = (self_copy + other.clone()).coeffs;
+        let lhs = core::mem::take(&mut self.coeffs);
+        self.coeffs = merge_coefficients(&lhs, &other.coeffs, |coeff| -coeff);
     }
 }
 
@@ -278,14 +290,6 @@ impl<F: Field> SparsePolynomial<F> {
         let divisor: DenseOrSparsePolynomial<'_, F> = other.into();
 
         dividend.naive_div(&divisor).expect("division failed").0
-    }
-
-    // append append_coeffs to self.
-    // Correctness relies on the lowest degree term in append_coeffs
-    // being higher than self.degree()
-    fn append_coeffs(&mut self, append_coeffs: &[(usize, F)]) {
-        assert!(append_coeffs.is_empty() || self.degree() < append_coeffs[0].0);
-        self.coeffs.extend_from_slice(append_coeffs);
     }
 }
 
@@ -422,6 +426,32 @@ mod tests {
             let mut result = sparse_poly.clone();
             result -= &sparse_poly;
             assert!(result.is_zero());
+        }
+    }
+
+    #[test]
+    fn add_scaled_and_sub_assign_match_dense() {
+        let mut rng = test_rng();
+        for degree_a in 0..20 {
+            let sparse_a = rand_sparse_poly(degree_a, &mut rng);
+            let dense_a: DensePolynomial<Fr> = sparse_a.clone().into();
+            for degree_b in 0..20 {
+                let sparse_b = rand_sparse_poly(degree_b, &mut rng);
+                let dense_b: DensePolynomial<Fr> = sparse_b.clone().into();
+
+                let mut sparse_difference = sparse_a.clone();
+                sparse_difference -= &sparse_b;
+                let mut dense_difference = dense_a.clone();
+                dense_difference -= &dense_b;
+                assert_eq!(DensePolynomial::from(sparse_difference), dense_difference);
+
+                let scalar = Fr::rand(&mut rng);
+                let mut sparse_scaled_sum = sparse_a.clone();
+                sparse_scaled_sum += (scalar, &sparse_b);
+                let mut dense_scaled_sum = dense_a.clone();
+                dense_scaled_sum += (scalar, &dense_b);
+                assert_eq!(DensePolynomial::from(sparse_scaled_sum), dense_scaled_sum);
+            }
         }
     }
 

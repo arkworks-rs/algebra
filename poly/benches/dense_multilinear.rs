@@ -2,7 +2,7 @@ use ark_ff::Field;
 use ark_poly::{DenseMultilinearExtension, MultilinearExtension, Polynomial};
 use ark_std::{ops::Range, test_rng};
 use ark_test_curves::bls12_381;
-use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
+use criterion::{criterion_group, criterion_main, BatchSize, BenchmarkId, Criterion};
 use std::hint::black_box;
 
 const NUM_VARIABLES_RANGE: Range<usize> = 10..21;
@@ -36,6 +36,44 @@ fn arithmetic_op_bench<F: Field>(c: &mut Criterion) {
             let poly = DenseMultilinearExtension::<F>::rand(nv, &mut rng);
             let scalar = F::rand(&mut rng);
             b.iter(|| black_box(&poly * &scalar))
+        });
+    }
+    group.finish();
+    let mut group = c.benchmark_group("DenseMultilinear::Assign");
+    for nv in NUM_VARIABLES_RANGE {
+        let poly1 = DenseMultilinearExtension::<F>::rand(nv, &mut rng);
+        let poly2 = DenseMultilinearExtension::<F>::rand(nv, &mut rng);
+        let scalar = F::rand(&mut rng);
+
+        group.bench_with_input(BenchmarkId::new("Add", nv), &nv, |b, _| {
+            b.iter_batched(
+                || poly1.clone(),
+                |mut lhs| {
+                    lhs += &poly2;
+                    black_box(lhs)
+                },
+                BatchSize::LargeInput,
+            )
+        });
+        group.bench_with_input(BenchmarkId::new("Sub", nv), &nv, |b, _| {
+            b.iter_batched(
+                || poly1.clone(),
+                |mut lhs| {
+                    lhs -= &poly2;
+                    black_box(lhs)
+                },
+                BatchSize::LargeInput,
+            )
+        });
+        group.bench_with_input(BenchmarkId::new("ScaledAdd", nv), &nv, |b, _| {
+            b.iter_batched(
+                || poly1.clone(),
+                |mut lhs| {
+                    lhs += (scalar, &poly2);
+                    black_box(lhs)
+                },
+                BatchSize::LargeInput,
+            )
         });
     }
     group.finish();

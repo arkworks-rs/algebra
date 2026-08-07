@@ -7,7 +7,7 @@ use crate::{
 use ark_ff::{Field, Zero};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use ark_std::{
-    cfg_iter,
+    cfg_iter, cfg_iter_mut,
     fmt::{self, Formatter},
     iter::IntoIterator,
     log2,
@@ -278,8 +278,9 @@ impl<F: Field> Index<usize> for DenseMultilinearExtension<F> {
 impl<F: Field> Add for DenseMultilinearExtension<F> {
     type Output = Self;
 
-    fn add(self, other: Self) -> Self {
-        &self + &other
+    fn add(mut self, other: Self) -> Self {
+        self += other;
+        self
     }
 }
 
@@ -306,42 +307,66 @@ impl<'a, F: Field> Add<&'a DenseMultilinearExtension<F>> for &DenseMultilinearEx
 
 impl<F: Field> AddAssign for DenseMultilinearExtension<F> {
     fn add_assign(&mut self, other: Self) {
-        *self = &*self + &other;
+        if self.is_zero() {
+            *self = other;
+        } else {
+            *self += &other;
+        }
     }
 }
 
 impl<'a, F: Field> AddAssign<&'a Self> for DenseMultilinearExtension<F> {
     fn add_assign(&mut self, other: &'a Self) {
-        *self = &*self + other;
+        if other.is_zero() {
+            return;
+        }
+        if self.is_zero() {
+            *self = other.clone();
+            return;
+        }
+        assert_eq!(self.num_vars, other.num_vars);
+        cfg_iter_mut!(self.evaluations)
+            .zip(&other.evaluations)
+            .for_each(|(a, b)| *a += b);
     }
 }
 
 impl<'a, F: Field> AddAssign<(F, &'a Self)> for DenseMultilinearExtension<F> {
     fn add_assign(&mut self, (f, other): (F, &'a Self)) {
-        let other = Self {
-            num_vars: other.num_vars,
-            evaluations: cfg_iter!(other.evaluations).map(|x| f * x).collect(),
-        };
-        *self = &*self + &other;
+        if f.is_zero() || other.is_zero() {
+            return;
+        }
+        if f.is_one() {
+            *self += other;
+            return;
+        }
+        if self.is_zero() {
+            *self = other.clone();
+            cfg_iter_mut!(self.evaluations).for_each(|value| *value *= f);
+            return;
+        }
+        assert_eq!(self.num_vars, other.num_vars);
+        cfg_iter_mut!(self.evaluations)
+            .zip(&other.evaluations)
+            .for_each(|(a, b)| *a += f * b);
     }
 }
 
 impl<F: Field> Neg for DenseMultilinearExtension<F> {
     type Output = Self;
 
-    fn neg(self) -> Self::Output {
-        Self::Output {
-            num_vars: self.num_vars,
-            evaluations: cfg_iter!(self.evaluations).map(|x| -*x).collect(),
-        }
+    fn neg(mut self) -> Self::Output {
+        cfg_iter_mut!(self.evaluations).for_each(|value| *value = -*value);
+        self
     }
 }
 
 impl<F: Field> Sub for DenseMultilinearExtension<F> {
     type Output = Self;
 
-    fn sub(self, other: Self) -> Self {
-        &self - &other
+    fn sub(mut self, other: Self) -> Self {
+        self -= other;
+        self
     }
 }
 
@@ -368,21 +393,36 @@ impl<'a, F: Field> Sub<&'a DenseMultilinearExtension<F>> for &DenseMultilinearEx
 
 impl<F: Field> SubAssign for DenseMultilinearExtension<F> {
     fn sub_assign(&mut self, other: Self) {
-        *self = &*self - &other;
+        if self.is_zero() {
+            *self = -other;
+        } else {
+            *self -= &other;
+        }
     }
 }
 
 impl<'a, F: Field> SubAssign<&'a Self> for DenseMultilinearExtension<F> {
     fn sub_assign(&mut self, other: &'a Self) {
-        *self = &*self - other;
+        if other.is_zero() {
+            return;
+        }
+        if self.is_zero() {
+            *self = -other.clone();
+            return;
+        }
+        assert_eq!(self.num_vars, other.num_vars);
+        cfg_iter_mut!(self.evaluations)
+            .zip(&other.evaluations)
+            .for_each(|(a, b)| *a -= b);
     }
 }
 
 impl<F: Field> Mul<F> for DenseMultilinearExtension<F> {
     type Output = Self;
 
-    fn mul(self, scalar: F) -> Self::Output {
-        &self * &scalar
+    fn mul(mut self, scalar: F) -> Self::Output {
+        self *= scalar;
+        self
     }
 }
 
@@ -406,13 +446,17 @@ impl<'a, F: Field> Mul<&'a F> for &DenseMultilinearExtension<F> {
 
 impl<F: Field> MulAssign<F> for DenseMultilinearExtension<F> {
     fn mul_assign(&mut self, scalar: F) {
-        *self = &*self * &scalar
+        if scalar.is_zero() {
+            *self = Self::zero();
+        } else if !scalar.is_one() {
+            cfg_iter_mut!(self.evaluations).for_each(|value| *value *= scalar);
+        }
     }
 }
 
 impl<'a, F: Field> MulAssign<&'a F> for DenseMultilinearExtension<F> {
     fn mul_assign(&mut self, scalar: &'a F) {
-        *self = &*self * scalar
+        *self *= *scalar
     }
 }
 
@@ -620,6 +664,33 @@ mod tests {
     }
 
     #[test]
+    fn arithmetic_assign_matches_binary_ops() {
+        const NV: usize = 10;
+        let mut rng = test_rng();
+        for _ in 0..20 {
+            let scalar = Fr::rand(&mut rng);
+            let poly1 = DenseMultilinearExtension::rand(NV, &mut rng);
+            let poly2 = DenseMultilinearExtension::rand(NV, &mut rng);
+
+            let mut sum = poly1.clone();
+            sum += &poly2;
+            assert_eq!(sum, &poly1 + &poly2);
+
+            let mut difference = poly1.clone();
+            difference -= &poly2;
+            assert_eq!(difference, &poly1 - &poly2);
+
+            let mut scaled_sum = poly1.clone();
+            scaled_sum += (scalar, &poly2);
+            assert_eq!(scaled_sum, &poly1 + &(&poly2 * &scalar));
+
+            let mut product = poly1.clone();
+            product *= scalar;
+            assert_eq!(product, &poly1 * &scalar);
+        }
+    }
+
+    #[test]
     fn sub_with_zero() {
         const NV: usize = 10;
         let mut rng = test_rng();
@@ -637,6 +708,14 @@ mod tests {
             assert_eq!(neg.evaluate(&point), -v);
             // `poly - poly` evaluates to zero everywhere
             assert_eq!((&poly - &poly).evaluate(&point), Fr::zero());
+
+            let mut difference = zero.clone();
+            difference -= &poly;
+            assert_eq!(difference, neg);
+
+            let mut unchanged = poly.clone();
+            unchanged -= &zero;
+            assert_eq!(unchanged, poly);
         }
     }
 

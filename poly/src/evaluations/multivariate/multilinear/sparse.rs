@@ -7,7 +7,7 @@ use crate::{
 use ark_ff::{Field, Zero};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use ark_std::{
-    cfg_iter,
+    cfg_iter, cfg_iter_mut,
     collections::BTreeMap,
     fmt::{self, Debug, Formatter},
     ops::{Add, AddAssign, Index, Neg, Sub, SubAssign},
@@ -93,6 +93,35 @@ impl<F: Field> SparseMultilinearExtension<F> {
             evaluations[i] = v;
         }
         DenseMultilinearExtension::from_evaluations_vec(self.num_vars, evaluations)
+    }
+
+    fn add_assign_with(&mut self, other: &Self, map_other: impl Fn(F) -> F) {
+        if other.is_zero() {
+            return;
+        }
+        if self.is_zero() {
+            self.num_vars = other.num_vars;
+        } else {
+            assert_eq!(
+                other.num_vars, self.num_vars,
+                "trying to add non-zero polynomial with different number of variables"
+            );
+        }
+
+        for (&index, &value) in &other.evaluations {
+            let value = map_other(value);
+            if value.is_zero() {
+                continue;
+            }
+            let remove_entry = {
+                let result = self.evaluations.entry(index).or_insert_with(F::zero);
+                *result += value;
+                result.is_zero()
+            };
+            if remove_entry {
+                self.evaluations.remove(&index);
+            }
+        }
     }
 }
 
@@ -244,81 +273,42 @@ impl<'a, F: Field> Add<&'a SparseMultilinearExtension<F>> for &SparseMultilinear
     type Output = SparseMultilinearExtension<F>;
 
     fn add(self, rhs: &'a SparseMultilinearExtension<F>) -> Self::Output {
-        // handle zero case
-        if self.is_zero() {
-            return rhs.clone();
-        }
-        if rhs.is_zero() {
-            return self.clone();
-        }
-
-        assert_eq!(
-            rhs.num_vars, self.num_vars,
-            "trying to add non-zero polynomial with different number of variables"
-        );
-        // simply merge the evaluations
-        let mut evaluations =
-            HashMap::with_hasher(core::hash::BuildHasherDefault::<DefaultHasher>::default());
-        for (&i, &v) in self.evaluations.iter().chain(rhs.evaluations.iter()) {
-            *(evaluations.entry(i).or_insert(F::zero())) += v;
-        }
-        let evaluations: Vec<_> = evaluations
-            .into_iter()
-            .filter(|(_, v)| !v.is_zero())
-            .collect();
-
-        Self::Output {
-            evaluations: tuples_to_treemap(&evaluations),
-            num_vars: self.num_vars,
-            zero: F::zero(),
-        }
+        let mut result = self.clone();
+        result.add_assign_with(rhs, |value| value);
+        result
     }
 }
 
 impl<F: Field> AddAssign for SparseMultilinearExtension<F> {
     fn add_assign(&mut self, other: Self) {
-        *self = &*self + &other;
+        if self.is_zero() {
+            *self = other;
+        } else {
+            self.add_assign_with(&other, |value| value);
+        }
     }
 }
 
 impl<'a, F: Field> AddAssign<&'a Self> for SparseMultilinearExtension<F> {
     fn add_assign(&mut self, other: &'a Self) {
-        *self = &*self + other;
+        self.add_assign_with(other, |value| value);
     }
 }
 
 impl<'a, F: Field> AddAssign<(F, &'a Self)> for SparseMultilinearExtension<F> {
     fn add_assign(&mut self, (f, other): (F, &'a Self)) {
-        if !self.is_zero() && !other.is_zero() {
-            assert_eq!(
-                other.num_vars, self.num_vars,
-                "trying to add non-zero polynomial with different number of variables"
-            );
+        if !f.is_zero() {
+            self.add_assign_with(other, |value| f * value);
         }
-        let ev: Vec<_> = cfg_iter!(other.evaluations)
-            .map(|(i, v)| (*i, f * v))
-            .collect();
-        let other = Self {
-            num_vars: other.num_vars,
-            evaluations: tuples_to_treemap(&ev),
-            zero: F::zero(),
-        };
-        *self += &other;
     }
 }
 
 impl<F: Field> Neg for SparseMultilinearExtension<F> {
     type Output = Self;
 
-    fn neg(self) -> Self::Output {
-        let ev: Vec<_> = cfg_iter!(self.evaluations)
-            .map(|(i, v)| (*i, -*v))
-            .collect();
-        Self::Output {
-            num_vars: self.num_vars,
-            evaluations: tuples_to_treemap(&ev),
-            zero: F::zero(),
-        }
+    fn neg(mut self) -> Self::Output {
+        cfg_iter_mut!(self.evaluations).for_each(|(_, value)| *value = -*value);
+        self
     }
 }
 
@@ -334,19 +324,32 @@ impl<'a, F: Field> Sub<&'a SparseMultilinearExtension<F>> for &SparseMultilinear
     type Output = SparseMultilinearExtension<F>;
 
     fn sub(self, rhs: &'a SparseMultilinearExtension<F>) -> Self::Output {
-        self + &rhs.clone().neg()
+        if self.is_zero() {
+            return -rhs.clone();
+        }
+        let mut result = self.clone();
+        result.add_assign_with(rhs, |value| -value);
+        result
     }
 }
 
 impl<F: Field> SubAssign for SparseMultilinearExtension<F> {
     fn sub_assign(&mut self, other: Self) {
-        *self = &*self - &other;
+        if self.is_zero() {
+            *self = -other;
+        } else {
+            self.add_assign_with(&other, |value| -value);
+        }
     }
 }
 
 impl<'a, F: Field> SubAssign<&'a Self> for SparseMultilinearExtension<F> {
     fn sub_assign(&mut self, other: &'a Self) {
-        *self = &*self - other;
+        if self.is_zero() {
+            *self = -other.clone();
+        } else {
+            self.add_assign_with(other, |value| -value);
+        }
     }
 }
 
@@ -562,6 +565,54 @@ mod tests {
                 }
             }
         }
+    }
+
+    #[test]
+    fn arithmetic_assign_matches_binary_ops() {
+        const NV: usize = 10;
+        let mut rng = test_rng();
+        for _ in 0..20 {
+            let scalar = Fr::rand(&mut rng);
+            let poly1 = SparseMultilinearExtension::rand(NV, &mut rng);
+            let poly2 = SparseMultilinearExtension::rand(NV, &mut rng);
+
+            let mut sum = poly1.clone();
+            sum += &poly2;
+            assert_eq!(sum, &poly1 + &poly2);
+
+            let mut difference = poly1.clone();
+            difference -= &poly2;
+            assert_eq!(difference, &poly1 - &poly2);
+
+            let mut scaled_sum = poly1.clone();
+            scaled_sum += (scalar, &poly2);
+            let mut expected = poly1.clone();
+            for (&index, &value) in &poly2.evaluations {
+                let entry = expected.evaluations.entry(index).or_insert_with(Fr::zero);
+                *entry += scalar * value;
+                if entry.is_zero() {
+                    expected.evaluations.remove(&index);
+                }
+            }
+            assert_eq!(scaled_sum, expected);
+        }
+    }
+
+    #[test]
+    fn arithmetic_removes_cancelled_entries() {
+        let poly1 =
+            SparseMultilinearExtension::from_evaluations(3, &[(1, Fr::from(2)), (3, Fr::from(5))]);
+        let poly2 =
+            SparseMultilinearExtension::from_evaluations(3, &[(1, Fr::from(2)), (2, Fr::from(7))]);
+
+        let difference = &poly1 - &poly2;
+        assert!(!difference.evaluations.contains_key(&1));
+        assert_eq!(difference[2], -Fr::from(7));
+        assert_eq!(difference[3], Fr::from(5));
+
+        let mut assigned = poly1;
+        assigned -= &poly2;
+        assert_eq!(assigned, difference);
     }
 
     #[test]

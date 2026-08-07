@@ -35,6 +35,47 @@ impl<F: Field, T: Term> SparsePolynomial<F, T> {
     fn remove_zeros(&mut self) {
         self.terms.retain(|(c, _)| !c.is_zero());
     }
+
+    fn combine_with(&self, other: &Self, map_other: impl Fn(F) -> F) -> Self {
+        let mut result = Vec::with_capacity(self.terms.len() + other.terms.len());
+        let mut self_iter = self.terms.iter().peekable();
+        let mut other_iter = other.terms.iter().peekable();
+
+        loop {
+            let ordering = match (self_iter.peek(), other_iter.peek()) {
+                (Some(current), Some(other)) => Some((current.1).cmp(&other.1)),
+                (Some(_), None) => Some(Ordering::Less),
+                (None, Some(_)) => Some(Ordering::Greater),
+                (None, None) => None,
+            };
+            let term = match ordering {
+                Some(Ordering::Less) => self_iter.next().cloned(),
+                Some(Ordering::Equal) => {
+                    let (other_coeff, _) = other_iter.next().unwrap();
+                    let (current_coeff, current_term) = self_iter.next().unwrap();
+                    Some((
+                        *current_coeff + map_other(*other_coeff),
+                        current_term.clone(),
+                    ))
+                },
+                Some(Ordering::Greater) => {
+                    let (other_coeff, other_term) = other_iter.next().unwrap();
+                    Some((map_other(*other_coeff), other_term.clone()))
+                },
+                None => None,
+            };
+            match term {
+                Some((coeff, term)) if !coeff.is_zero() => result.push((coeff, term)),
+                Some(_) => {},
+                None => break,
+            }
+        }
+
+        Self {
+            num_vars: core::cmp::max(self.num_vars, other.num_vars),
+            terms: result,
+        }
+    }
 }
 
 impl<F: Field> Polynomial<F> for SparsePolynomial<F, SparseTerm> {
@@ -184,59 +225,19 @@ impl<'a, F: Field, T: Term> Add<&'a SparsePolynomial<F, T>> for &SparsePolynomia
     type Output = SparsePolynomial<F, T>;
 
     fn add(self, other: &'a SparsePolynomial<F, T>) -> SparsePolynomial<F, T> {
-        let mut result = Vec::new();
-        let mut cur_iter = self.terms.iter().peekable();
-        let mut other_iter = other.terms.iter().peekable();
-        // Since both polynomials are sorted, iterate over them in ascending order,
-        // combining any common terms
-        loop {
-            // Peek at iterators to decide which to take from
-            let which = match (cur_iter.peek(), other_iter.peek()) {
-                (Some(cur), Some(other)) => Some((cur.1).cmp(&other.1)),
-                (Some(_), None) => Some(Ordering::Less),
-                (None, Some(_)) => Some(Ordering::Greater),
-                (None, None) => None,
-            };
-            // Push the smallest element to the `result` coefficient vec
-            let smallest = match which {
-                Some(Ordering::Less) => cur_iter.next().unwrap().clone(),
-                Some(Ordering::Equal) => {
-                    let other = other_iter.next().unwrap();
-                    let cur = cur_iter.next().unwrap();
-                    (cur.0 + other.0, cur.1.clone())
-                },
-                Some(Ordering::Greater) => other_iter.next().unwrap().clone(),
-                None => break,
-            };
-            result.push(smallest);
-        }
-        // Remove any zero terms
-        result.retain(|(c, _)| !c.is_zero());
-        SparsePolynomial {
-            num_vars: core::cmp::max(self.num_vars, other.num_vars),
-            terms: result,
-        }
+        self.combine_with(other, |coeff| coeff)
     }
 }
 
 impl<'a, F: Field, T: Term> AddAssign<&'a Self> for SparsePolynomial<F, T> {
     fn add_assign(&mut self, other: &'a Self) {
-        *self = &*self + other;
+        *self = self.combine_with(other, |coeff| coeff);
     }
 }
 
 impl<'a, F: Field, T: Term> AddAssign<(F, &'a Self)> for SparsePolynomial<F, T> {
     fn add_assign(&mut self, (f, other): (F, &'a Self)) {
-        let other = Self {
-            num_vars: other.num_vars,
-            terms: other
-                .terms
-                .iter()
-                .map(|(coeff, term)| (*coeff * f, term.clone()))
-                .collect(),
-        };
-        // Note the call to `Add` will remove also any duplicates
-        *self = &*self + &other;
+        *self = self.combine_with(other, |coeff| f * coeff);
     }
 }
 
@@ -257,15 +258,14 @@ impl<'a, F: Field, T: Term> Sub<&'a SparsePolynomial<F, T>> for &SparsePolynomia
 
     #[inline]
     fn sub(self, other: &'a SparsePolynomial<F, T>) -> SparsePolynomial<F, T> {
-        let neg_other = other.clone().neg();
-        self + &neg_other
+        self.combine_with(other, |coeff| -coeff)
     }
 }
 
 impl<'a, F: Field, T: Term> SubAssign<&'a Self> for SparsePolynomial<F, T> {
     #[inline]
     fn sub_assign(&mut self, other: &'a Self) {
-        *self = &*self - other;
+        *self = self.combine_with(other, |coeff| -coeff);
     }
 }
 
@@ -351,6 +351,23 @@ mod tests {
                 let res1 = &p1 + &p2;
                 let res2 = &p2 + &p1;
                 assert_eq!(res1, res2);
+
+                let mut assigned = p1.clone();
+                assigned += &p2;
+                assert_eq!(assigned, res1);
+
+                let scalar = Fr::rand(rng);
+                let scaled_p2 = SparsePolynomial {
+                    num_vars: p2.num_vars,
+                    terms: p2
+                        .terms
+                        .iter()
+                        .map(|(coeff, term)| (scalar * coeff, term.clone()))
+                        .collect(),
+                };
+                let mut scaled_assigned = p1.clone();
+                scaled_assigned += (scalar, &p2);
+                assert_eq!(scaled_assigned, &p1 + &scaled_p2);
             }
         }
     }
@@ -367,6 +384,10 @@ mod tests {
                 let res2 = &p2 - &p1;
                 assert_eq!(&res1 + &p2, p1);
                 assert_eq!(res1, -res2);
+
+                let mut assigned = p1.clone();
+                assigned -= &p2;
+                assert_eq!(assigned, res1);
             }
         }
     }
