@@ -59,7 +59,15 @@ impl<P: BW6Config> From<G2Affine<P>> for G2Prepared<P> {
         }
 
         // f_{u,Q}(P)
-        let mut ell_coeffs_1 = Vec::new();
+        // One doubling coefficient per bit, plus one addition coefficient per set bit,
+        // plus the final addition below. Mirrors the loop so the vector never
+        // reallocates.
+        let num_coeffs_1 = BitIteratorBE::new(P::ATE_LOOP_COUNT_1)
+            .skip(1)
+            .map(|i| 1 + usize::from(i))
+            .sum::<usize>()
+            + 1;
+        let mut ell_coeffs_1 = Vec::with_capacity(num_coeffs_1);
         let mut r = G2HomProjective::<P> {
             x: q.x,
             y: q.y,
@@ -91,8 +99,17 @@ impl<P: BW6Config> From<G2Affine<P>> for G2Prepared<P> {
             z: P::Fp::one(),
         };
         ell_coeffs_1.push(r.clone().add_in_place(&q));
+        debug_assert_eq!(ell_coeffs_1.len(), num_coeffs_1);
 
-        let mut ell_coeffs_2 = Vec::new();
+        // One doubling coefficient per digit of the second ate loop count, plus one
+        // addition coefficient per non-zero digit. Mirrors the loop below.
+        let num_coeffs_2 = P::ATE_LOOP_COUNT_2
+            .iter()
+            .rev()
+            .skip(1)
+            .map(|bit| 1 + usize::from(matches!(bit, 1 | -1)))
+            .sum();
+        let mut ell_coeffs_2 = Vec::with_capacity(num_coeffs_2);
 
         // f_{u^2-u-1,[u]Q}(P)
         for bit in P::ATE_LOOP_COUNT_2.iter().rev().skip(1) {
@@ -104,6 +121,7 @@ impl<P: BW6Config> From<G2Affine<P>> for G2Prepared<P> {
                 _ => {},
             }
         }
+        debug_assert_eq!(ell_coeffs_2.len(), num_coeffs_2);
 
         Self {
             ell_coeffs_1,

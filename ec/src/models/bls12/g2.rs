@@ -50,7 +50,13 @@ impl<P: Bls12Config> From<G2Affine<P>> for G2Prepared<P> {
             infinity: true,
         };
         q.xy().map_or(zero, |(q_x, q_y)| {
-            let mut ell_coeffs = Vec::new();
+            // One doubling coefficient per bit, plus one addition coefficient per set
+            // bit. Mirrors the loop below so the vector never reallocates.
+            let num_coeffs = BitIteratorBE::new(P::X)
+                .skip(1)
+                .map(|i| 1 + usize::from(i))
+                .sum();
+            let mut ell_coeffs = Vec::with_capacity(num_coeffs);
             let mut r = G2HomProjective::<P> {
                 x: q_x,
                 y: q_y,
@@ -64,6 +70,7 @@ impl<P: Bls12Config> From<G2Affine<P>> for G2Prepared<P> {
                     ell_coeffs.push(r.add_in_place(&q));
                 }
             }
+            debug_assert_eq!(ell_coeffs.len(), num_coeffs);
 
             Self {
                 ell_coeffs,

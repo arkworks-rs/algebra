@@ -105,7 +105,17 @@ impl<P: BnConfig> From<G2Affine<P>> for G2Prepared<P> {
             }
         } else {
             let two_inv = P::Fp::one().double().inverse().unwrap();
-            let mut ell_coeffs = Vec::new();
+            // One doubling coefficient per digit of the ate loop count, plus one
+            // addition coefficient per non-zero digit, plus the two final additions.
+            // Mirrors the loop below so the vector never reallocates.
+            let num_coeffs = P::ATE_LOOP_COUNT
+                .iter()
+                .rev()
+                .skip(1)
+                .map(|bit| 1 + usize::from(matches!(bit, 1 | -1)))
+                .sum::<usize>()
+                + 2;
+            let mut ell_coeffs = Vec::with_capacity(num_coeffs);
             let mut r = G2HomProjective::<P> {
                 x: q.x,
                 y: q.y,
@@ -135,6 +145,7 @@ impl<P: BnConfig> From<G2Affine<P>> for G2Prepared<P> {
 
             ell_coeffs.push(r.add_in_place(&q1));
             ell_coeffs.push(r.add_in_place(&q2));
+            debug_assert_eq!(ell_coeffs.len(), num_coeffs);
 
             Self {
                 ell_coeffs,

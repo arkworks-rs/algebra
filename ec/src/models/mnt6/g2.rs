@@ -34,13 +34,24 @@ impl<P: MNT6Config> From<G2Affine<P>> for G2Prepared<P> {
     fn from(g: G2Affine<P>) -> Self {
         let twist_inv = P::TWIST.inverse().unwrap();
 
+        // One doubling coefficient per digit of the ate loop count, and one addition
+        // coefficient per non-zero digit plus the final negative-loop addition. Mirrors
+        // the loop below so neither vector reallocates.
+        let num_doubles = P::ATE_LOOP_COUNT.len().saturating_sub(1);
+        let num_additions = P::ATE_LOOP_COUNT
+            .iter()
+            .skip(1)
+            .filter(|bit| matches!(bit, 1 | -1))
+            .count()
+            + usize::from(P::ATE_IS_LOOP_COUNT_NEG);
+
         let mut g_prep = Self {
             x: g.x,
             y: g.y,
             x_over_twist: g.x * &twist_inv,
             y_over_twist: g.y * &twist_inv,
-            double_coefficients: Vec::new(),
-            addition_coefficients: Vec::new(),
+            double_coefficients: Vec::with_capacity(num_doubles),
+            addition_coefficients: Vec::with_capacity(num_additions),
         };
 
         let mut r = G2ProjectiveExtended {
@@ -78,6 +89,8 @@ impl<P: MNT6Config> From<G2Affine<P>> for G2Prepared<P> {
                 MNT6::mixed_addition_for_flipper_miller_loop(&minus_r_x, &minus_r_y, &r);
             g_prep.addition_coefficients.push(add_result.1);
         }
+        debug_assert_eq!(g_prep.double_coefficients.len(), num_doubles);
+        debug_assert_eq!(g_prep.addition_coefficients.len(), num_additions);
 
         g_prep
     }
