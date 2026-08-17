@@ -5,6 +5,7 @@ test_group!(g1; G1Projective; sw);
 test_group!(g2; G2Projective; sw);
 test_group!(pairing_output; ark_ec::pairing::PairingOutput<Bls12_377>; msm);
 test_pairing!(pairing; crate::Bls12_377);
+test_g2_prepared!(g2_prepared; crate::Bls12_377; ell_coeffs; infinity);
 test_group!(g1_glv; G1Projective; glv);
 test_group!(g2_glv; G2Projective; glv);
 test_h2c!(g1_h2c; "./src/curves/tests"; "BLS12377G1"; crate::g1::Config; crate::Fq; crate::Fq; 1);

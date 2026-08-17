@@ -5,3 +5,4 @@ test_group!(g1; G1Projective; sw);
 test_group!(g2; G2Projective; sw);
 test_group!(pairing_output; ark_ec::pairing::PairingOutput<MNT6_298>; msm);
 test_pairing!(pairing; crate::MNT6_298);
+test_g2_prepared!(g2_prepared; crate::MNT6_298; double_coefficients, addition_coefficients);

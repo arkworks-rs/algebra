@@ -12,6 +12,7 @@ test_group!(g1_glv; G1Projective; glv);
 test_group!(g2_glv; G2Projective; glv);
 test_group!(pairing_output; ark_ec::pairing::PairingOutput<Bls12_381>; msm);
 test_pairing!(pairing; crate::Bls12_381);
+test_g2_prepared!(g2_prepared; crate::Bls12_381; ell_coeffs; infinity);
 test_h2c!(g1_h2c; "./src/curves/tests"; "BLS12381G1"; crate::g1::Config; crate::Fq; crate::Fq; 1);
 test_h2c!(g2_hc2; "./src/curves/tests"; "BLS12381G2"; crate::g2::Config; crate::Fq2; crate::Fq; 2);
 
