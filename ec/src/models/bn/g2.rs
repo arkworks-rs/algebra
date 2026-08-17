@@ -108,6 +108,10 @@ impl<P: BnConfig> From<G2Affine<P>> for G2Prepared<P> {
             // One doubling coefficient per digit of the ate loop count, plus one
             // addition coefficient per non-zero digit, plus the two final additions.
             // Mirrors the loop below so the vector never reallocates.
+            //
+            // Counting walks `ATE_LOOP_COUNT` a second time; it cannot be hoisted into a
+            // `const` without generic const expressions. One bool add per digit, against
+            // a full Fp2 doubling per digit in the loop below.
             let num_coeffs = P::ATE_LOOP_COUNT
                 .iter()
                 .rev()

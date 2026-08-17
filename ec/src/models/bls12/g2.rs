@@ -52,6 +52,10 @@ impl<P: Bls12Config> From<G2Affine<P>> for G2Prepared<P> {
         q.xy().map_or(zero, |(q_x, q_y)| {
             // One doubling coefficient per bit, plus one addition coefficient per set
             // bit. Mirrors the loop below so the vector never reallocates.
+            //
+            // Counting walks `X` a second time; it cannot be hoisted into a `const`
+            // without generic const expressions. One bool add per bit, against a full
+            // Fp2 doubling per bit in the loop below.
             let num_coeffs = BitIteratorBE::new(P::X)
                 .skip(1)
                 .map(|i| 1 + usize::from(i))

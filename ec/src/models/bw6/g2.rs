@@ -62,6 +62,10 @@ impl<P: BW6Config> From<G2Affine<P>> for G2Prepared<P> {
         // One doubling coefficient per bit, plus one addition coefficient per set bit,
         // plus the final addition below. Mirrors the loop so the vector never
         // reallocates.
+        //
+        // Counting walks each loop count a second time; neither can be hoisted into a
+        // `const` without generic const expressions. One bool add per digit, against a
+        // full Fp doubling per digit in the loops below.
         let num_coeffs_1 = BitIteratorBE::new(P::ATE_LOOP_COUNT_1)
             .skip(1)
             .map(|i| 1 + usize::from(i))

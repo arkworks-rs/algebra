@@ -37,6 +37,10 @@ impl<P: MNT4Config> From<G2Affine<P>> for G2Prepared<P> {
         // One doubling coefficient per digit of the ate loop count, and one addition
         // coefficient per non-zero digit plus the final negative-loop addition. Mirrors
         // the loop below so neither vector reallocates.
+        //
+        // Counting walks `ATE_LOOP_COUNT` a second time; it cannot be hoisted into a
+        // `const` without generic const expressions. One bool add per digit, against a
+        // full Fp2 doubling per digit in the loop below.
         let num_doubles = P::ATE_LOOP_COUNT.len().saturating_sub(1);
         let num_additions = P::ATE_LOOP_COUNT
             .iter()
