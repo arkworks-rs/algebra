@@ -7,8 +7,12 @@ use ark_std::ops::Neg;
 use num_bigint::{BigInt, BigUint, Sign};
 use num_integer::Integer;
 use num_traits::{One, Signed};
+use zeroize::Zeroize;
 
 /// The GLV parameters for computing the endomorphism and scalar decomposition.
+///
+/// The scalar multiplications this trait provides are variable time in the scalar; see
+/// [`GLVConfig::glv_mul_projective`].
 pub trait GLVConfig: Send + Sync + 'static + SWCurveConfig {
     /// Constant used to calculate `phi(G) := lambda*G`.
     ///
@@ -88,6 +92,29 @@ pub trait GLVConfig: Send + Sync + 'static + SWCurveConfig {
 
     fn endomorphism_affine(p: &Affine<Self>) -> Affine<Self>;
 
+    /// GLV scalar multiplication `k * p`.
+    ///
+    /// # Timing
+    ///
+    /// This is not constant time: its running time, its memory access pattern and the number of
+    /// group operations it performs all depend on `k`. The implementation recodes the two
+    /// half-scalars into signed digits, then indexes a precomputed table by those digits, runs
+    /// for as many iterations as the longer half-scalar has bits, and adds once per non-zero
+    /// digit. An attacker who can observe the cache lines touched by one call, or time enough
+    /// calls, learns the recoding, and the recoding determines `k`.
+    ///
+    /// Recovering a secret from exactly these signals is a well studied attack rather than a
+    /// theoretical one: Percival, *Cache Missing for Fun and Profit* (2005) against
+    /// sliding-window exponentiation, and against wNAF specifically, Brumley and Hakala,
+    /// *Cache-Timing Template Attacks* (ASIACRYPT 2009) and Benger, van de Pol, Smart and Yarom,
+    /// *"Just a Little Bit More"* (CT-RSA 2014), both of which turn partial knowledge of the
+    /// recoded digits into full ECDSA key recovery by lattice methods.
+    ///
+    /// No part of `ark-ec` is constant time, so this is a property of the library rather than of
+    /// this function alone. It is called out here because it is easy to reach without asking for
+    /// it: several curves in this workspace override `mul_projective` for G1 to route into GLV,
+    /// so an ordinary `Projective::mul` runs this code without GLV ever being named. Prefer an
+    /// implementation written for the purpose when multiplying by a long-lived secret key.
     fn glv_mul_projective(p: Projective<Self>, k: Self::ScalarField) -> Projective<Self> {
         let ((sgn_k1, k1), (sgn_k2, k2)) = Self::scalar_decomposition(k);
         let b1 = if sgn_k1 { p } else { -p };
@@ -101,6 +128,8 @@ pub trait GLVConfig: Send + Sync + 'static + SWCurveConfig {
     ///
     /// Note: this converts to projective and uses projective additions against the wNAF tables,
     /// rather than mixed additions against affine table entries.
+    ///
+    /// This inherits the timing behaviour of [`GLVConfig::glv_mul_projective`].
     fn glv_mul_affine(p: Affine<Self>, k: Self::ScalarField) -> Affine<Self> {
         Self::glv_mul_projective(p.into(), k).into_affine()
     }
@@ -238,6 +267,11 @@ fn glv_wnaf_digits<F: PrimeField>(k: F, digits: &mut [i8; GLV_WNAF_MAX_DIGITS]) 
 /// recoded independently, then scanned together from the most significant digit: one doubling
 /// per position, and one table addition per non-zero digit on either leg.
 ///
+/// Each of those three properties is secret dependent, and together they are what makes
+/// `GLVConfig::glv_mul_projective` variable time in the scalar: the table index is a memory
+/// access derived from a digit, the trip count is the longer half-scalar's bit length, and the
+/// number of additions is the non-zero digit count. See the `# Timing` section there.
+///
 /// This is the scheme gnark-crypto's `mulGLV` uses (Apache-2.0, Copyright Consensys Software
 /// Inc.): <https://github.com/Consensys/gnark-crypto/blob/v0.21.0/ecc/bls12-381/g1.go#L777>,
 /// implementing the GLV method (<https://www.iacr.org/archive/crypto2001/21390189.pdf>).
@@ -269,5 +303,20 @@ fn glv_wnaf_mul<P: GLVConfig>(
             }
         }
     }
+
+    // The recodings are an invertible encoding of the two half-scalars, and so of `k` itself, so
+    // leaving 2 KiB of them as garbage in a released stack frame is worth avoiding: `ark-ec`
+    // already implements `Zeroize` for `Affine`, `Projective` and `PairingOutput` on the same
+    // reasoning. Only `..len` was written, into buffers this function freshly zeroed, so clearing
+    // the prefixes clears everything either recoding touched. That is ~`n` volatile bytes per
+    // leg rather than the full 1024, e.g. 129 on BLS12-381 G1, against the ~1700 base-field
+    // multiplications the scan above costs.
+    //
+    // This is hygiene, not a countermeasure. It does not make the routine constant time, and it
+    // does not reach the `num-bigint` temporaries in `scalar_decomposition`, which hold `k` and
+    // both half-scalars on the heap and are freed without being cleared.
+    digits1[..len1].zeroize();
+    digits2[..len2].zeroize();
+
     res
 }
