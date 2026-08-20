@@ -91,12 +91,10 @@ pub trait GLVConfig: Send + Sync + 'static + SWCurveConfig {
     fn glv_mul_projective(p: Projective<Self>, k: Self::ScalarField) -> Projective<Self> {
         let ((sgn_k1, k1), (sgn_k2, k2)) = Self::scalar_decomposition(k);
         let b1 = if sgn_k1 { p } else { -p };
-        let b2 = if sgn_k2 {
-            Self::endomorphism(&p)
-        } else {
-            -Self::endomorphism(&p)
-        };
-        glv_wnaf_mul(b1, b2, k1, k2)
+        // The second base is `sgn_k2 * endomorphism(p)`, so it is `endomorphism(b1)` up to the
+        // sign the two halves disagree on. `glv_wnaf_mul` derives it, and its whole table, from
+        // `b1`; see `glv_endo_odd_multiples`.
+        glv_wnaf_mul(b1, sgn_k1 == sgn_k2, k1, k2)
     }
 
     /// GLV scalar multiplication starting from an affine point.
@@ -115,8 +113,13 @@ pub trait GLVConfig: Send + Sync + 'static + SWCurveConfig {
 /// `n / (W + 1)` non-zero digits, against `n * (1 - 4^-2) / 2` for the 2-bit joint window this
 /// replaces. Counting table plus scan over real decompositions on BLS12-381, BN254 and
 /// BLS12-377 G1, the saving against that window in base-field multiplications is -2.1% at
-/// `W = 3`, -9.5% at `W = 4`, -10.0% at `W = 5` and -1.9% at `W = 6`. `W = 5` is the optimum,
-/// though `W = 4` comes within half a percent of it using half the table.
+/// `W = 3`, -9.5% at `W = 4`, -10.0% at `W = 5` and -1.9% at `W = 6`.
+///
+/// Those four figures predate `glv_endo_odd_multiples`, which builds only one of the two tables
+/// by group arithmetic. That makes every width cheaper, and the wider ones cheapest, since the
+/// build it removes grows with `2^(W-2)`. Re-counting on BLS12-381 G1 with the derived table,
+/// `W = 5` is still the optimum, but its margin has moved either side: `W = 4` now costs 4.2%
+/// more rather than 0.5%, and `W = 6` 2.3% more rather than 8.9%.
 const GLV_WNAF_WIDTH: u32 = 5;
 
 /// `GLV_WNAF_WIDTH` is bounded by the `i8` that [`glv_wnaf_digits`] packs its digits into. The
@@ -154,6 +157,37 @@ fn glv_odd_multiples<P: GLVConfig>(b: Projective<P>) -> [Projective<P>; GLV_WNAF
         table[i] = table[i - 1] + b_2;
     }
     table
+}
+
+/// Map the first base's odd multiples through the endomorphism to get the second's.
+///
+/// `glv_mul_projective` folds the decomposition signs into the bases, giving `b1 = s1*p` and
+/// `b2 = s2*phi(p)`, so `b2 = s1*s2*phi(b1)`. `phi` is a group homomorphism, hence
+/// `(2i+1)*b2 = s1*s2*phi((2i+1)*b1)` and the whole second table follows from the first: one
+/// endomorphism application per entry, negated when the signs disagree (`signs_agree` is
+/// `s1 == s2`). On every `GLVConfig` in this tree `endomorphism` is a single base-field
+/// multiplication, so this replaces a doubling and `2^(W-2) - 1` projective additions with
+/// `2^(W-2)` multiplications and at most as many negations.
+///
+/// This asks less of `phi` than the surrounding GLV method already does: only that it is a
+/// homomorphism, which holds on the whole curve, whereas `phi(p) = lambda*p` holds only on the
+/// prime-order subgroup. It does rely on `endomorphism` being correct for an arbitrary
+/// projective representative rather than just `z = 1`, since table entries carry accumulated
+/// `z` values, but `glv_mul_projective` already hands it an arbitrary `p`. The point at
+/// infinity survives, as scaling `x` leaves `z` zero.
+#[inline]
+fn glv_endo_odd_multiples<P: GLVConfig>(
+    table: &[Projective<P>; GLV_WNAF_TABLE_SIZE],
+    signs_agree: bool,
+) -> [Projective<P>; GLV_WNAF_TABLE_SIZE] {
+    let mut endo_table = *table;
+    for t in &mut endo_table {
+        *t = P::endomorphism(t);
+        if !signs_agree {
+            *t = -*t;
+        }
+    }
+    endo_table
 }
 
 /// Recode `k` into width-`GLV_WNAF_WIDTH` non-adjacent form, writing digits into `digits`
@@ -197,17 +231,19 @@ fn glv_wnaf_digits<F: PrimeField>(k: F, digits: &mut [i8; GLV_WNAF_MAX_DIGITS]) 
 
 /// Interleaved width-`GLV_WNAF_WIDTH` wNAF evaluation of `k1*b1 + k2*b2`.
 ///
-/// The bases must already carry the sign fixes from `scalar_decomposition`, so `k1` and `k2` are
-/// the non-negative half-scalars. Both are recoded independently, then scanned together from the
-/// most significant digit: one doubling per position, and one table addition per non-zero digit
-/// on either leg.
+/// `b1` must already carry the sign fix from `scalar_decomposition`, and `signs_agree` records
+/// whether the second half-scalar took the same sign, so `k1` and `k2` are the non-negative
+/// half-scalars. The second base is left implicit: only `b1`'s odd multiples are built by group
+/// arithmetic, and `glv_endo_odd_multiples` derives the second table from them. Both scalars are
+/// recoded independently, then scanned together from the most significant digit: one doubling
+/// per position, and one table addition per non-zero digit on either leg.
 ///
 /// This is the scheme gnark-crypto's `mulGLV` uses (Apache-2.0, Copyright Consensys Software
 /// Inc.): <https://github.com/Consensys/gnark-crypto/blob/v0.21.0/ecc/bls12-381/g1.go#L777>,
 /// implementing the GLV method (<https://www.iacr.org/archive/crypto2001/21390189.pdf>).
 fn glv_wnaf_mul<P: GLVConfig>(
     b1: Projective<P>,
-    b2: Projective<P>,
+    signs_agree: bool,
     k1: P::ScalarField,
     k2: P::ScalarField,
 ) -> Projective<P> {
@@ -217,7 +253,7 @@ fn glv_wnaf_mul<P: GLVConfig>(
     let len2 = glv_wnaf_digits(k2, &mut digits2);
 
     let table1 = glv_odd_multiples(b1);
-    let table2 = glv_odd_multiples(b2);
+    let table2 = glv_endo_odd_multiples(&table1, signs_agree);
 
     let mut res = Projective::zero();
     // The two recodings generally differ in length; the shorter one reads as zero above its own

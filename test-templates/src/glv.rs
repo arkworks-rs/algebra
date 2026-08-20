@@ -4,7 +4,7 @@ use ark_ec::{
     AffineRepr, CurveGroup, PrimeGroup,
 };
 use ark_ff::{AdditiveGroup, BigInteger, Field, PrimeField};
-use ark_std::{ops::Mul, vec, UniformRand, Zero};
+use ark_std::{ops::Mul, vec, One, UniformRand, Zero};
 
 pub fn glv_scalar_decomposition<P: GLVConfig>() {
     let mut rng = ark_std::test_rng();
@@ -46,6 +46,24 @@ pub fn glv_endomorphism_eigenvalue<P: GLVConfig>() {
     let g = Projective::generator();
     let endo_g = <P as GLVConfig>::endomorphism(&g);
     assert_eq!(endo_g, g.mul(P::LAMBDA));
+}
+
+/// `endomorphism` must act as multiplication by `LAMBDA` on any projective representative, not
+/// only on the `z = 1` ones. `glv_mul_projective` maps a whole wNAF table through it to derive
+/// the second base's table, and those entries carry accumulated `z` values.
+pub fn glv_endomorphism_projective<P: GLVConfig>() {
+    let mut rng = ark_std::test_rng();
+    let g = Projective::<P>::generator();
+    for _i in 0..20 {
+        // Both sides go through `double_and_add` rather than `Mul`, which on the configs under
+        // test routes back into GLV and so into the endomorphism being checked.
+        let p = double_and_add(&g, P::ScalarField::rand(&mut rng).into_bigint());
+        assert!(!p.z.is_one(), "test point has a trivial z");
+        assert_eq!(
+            <P as GLVConfig>::endomorphism(&p),
+            double_and_add(&p, P::LAMBDA.into_bigint()),
+        );
+    }
 }
 
 pub fn glv_projective<P: GLVConfig>() {
