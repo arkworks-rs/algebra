@@ -430,6 +430,7 @@ macro_rules! __test_group {
         fn test_glv_mul() {
             $crate::glv::glv_projective::<Config>();
             $crate::glv::glv_affine::<Config>();
+            $crate::glv::glv_edge_cases::<Config>();
         }
     }
 }
