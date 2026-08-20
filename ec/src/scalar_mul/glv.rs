@@ -119,6 +119,17 @@ pub trait GLVConfig: Send + Sync + 'static + SWCurveConfig {
 /// though `W = 4` comes within half a percent of it using half the table.
 const GLV_WNAF_WIDTH: u32 = 5;
 
+/// `GLV_WNAF_WIDTH` is bounded by the `i8` that [`glv_wnaf_digits`] packs its digits into. The
+/// binding constraint is the sign correction there: at `W = 7`, `1i8 << 7` is `-128`, so
+/// `low - (1 << W)` overflows. Release builds happen to survive it, because the wrap is
+/// congruent mod 256 and lands on the right residue, but any debug or test build panics on
+/// the overflow. Six is the widest window this recoding can express, and nothing above five
+/// is competitive anyway.
+const _: () = assert!(
+    GLV_WNAF_WIDTH >= 2 && (1i64 << GLV_WNAF_WIDTH) <= i8::MAX as i64,
+    "GLV_WNAF_WIDTH must lie in 2..=6 so the width-sized constants fit in `i8`"
+);
+
 /// Number of odd multiples precomputed per base: `1, 3, 5, ..., 2^(W-1) - 1`.
 const GLV_WNAF_TABLE_SIZE: usize = 1 << (GLV_WNAF_WIDTH - 2);
 
