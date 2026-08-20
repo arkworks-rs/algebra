@@ -192,7 +192,7 @@ fn glv_wnaf_digits<F: PrimeField>(k: F, digits: &mut [i8; GLV_WNAF_MAX_DIGITS]) 
 /// on either leg.
 ///
 /// This is the scheme gnark-crypto's `mulGLV` uses (Apache-2.0, Copyright Consensys Software
-/// Inc.): <https://github.com/ConsenSys/gnark-crypto/blob/master/ecc/bls12-381/g1.go#L774>,
+/// Inc.): <https://github.com/Consensys/gnark-crypto/blob/v0.21.0/ecc/bls12-381/g1.go#L777>,
 /// implementing the GLV method (<https://www.iacr.org/archive/crypto2001/21390189.pdf>).
 fn glv_wnaf_mul<P: GLVConfig>(
     b1: Projective<P>,

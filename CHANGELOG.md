@@ -17,7 +17,7 @@
 - [\#1109](https://github.com/arkworks-rs/algebra/pull/1109) (`ark-poly`) Reduce allocations in `DenseMultilinearExtension::Sub` and parallelize scalar `Mul`.
 - [\#1112](https://github.com/arkworks-rs/algebra/pull/1112) (`ark-ec`) Fix rayon::ThreadPoolBuilder panicking in wasm32 when parallel feature is enabled
 - [\#1108](https://github.com/arkworks-rs/algebra/pull/1108) (`ark-ec`) Improve scalar multiplication speed for curves using GLV.
-- [\#N](https://github.com/arkworks-rs/algebra/pull/N) (`ark-ec`) Replace the 2-bit joint window in GLV scalar multiplication with interleaved width-5 wNAF.
+- [\#1133](https://github.com/arkworks-rs/algebra/pull/1133) (`ark-ec`) Replace the 2-bit joint window in GLV scalar multiplication with interleaved width-5 wNAF.
 
 ### Breaking changes
 
