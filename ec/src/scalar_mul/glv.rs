@@ -225,7 +225,19 @@ fn glv_endo_odd_multiples<P: GLVConfig>(
 /// Every digit is either zero or odd with absolute value below `2^(W-1)`, and any two non-zero
 /// digits are at least `W` positions apart. A non-zero digit `d` selects table entry
 /// `|d| / 2`, added when `d > 0` and subtracted when `d < 0`.
+///
+/// `digits` must be zeroed on entry, and only `digits[..len]` is written. [`glv_wnaf_mul`]
+/// leans on both halves of that: it scans the two recodings in lockstep and reads each one
+/// past its own length, taking the untouched entries as the leading zeroes of the shorter
+/// recoding. A buffer that already held digits would make those reads return the earlier
+/// recoding's tail and produce a wrong point rather than any kind of error, so the
+/// precondition is checked in debug builds.
 fn glv_wnaf_digits<F: PrimeField>(k: F, digits: &mut [i8; GLV_WNAF_MAX_DIGITS]) -> usize {
+    debug_assert!(
+        digits.iter().all(|&d| d == 0),
+        "`glv_wnaf_digits` requires a zeroed buffer: entries above the returned length are \
+         read as the leading zeroes of the shorter recoding",
+    );
     // The recoding consumes `k` from the bottom up: at each odd residue it subtracts the signed
     // remainder mod `2^W`, which clears the low `W` bits and forces the next `W - 1` digits to
     // zero, then shifts right by one.
@@ -241,7 +253,18 @@ fn glv_wnaf_digits<F: PrimeField>(k: F, digits: &mut [i8; GLV_WNAF_MAX_DIGITS]) 
             } else {
                 low
             };
-            // `e -= digit`, which cannot wrap: `e` is at least 1, and a negative digit only adds.
+            // `e -= digit`. Both calls discard the borrow/carry they return, which is sound
+            // in each direction:
+            //
+            // * Subtracting cannot borrow: a non-negative `digit` is exactly `e mod 2^W`,
+            //   hence at most `e`.
+            // * Adding cannot carry out of the top limb. A negative digit means
+            //   `low >= 2^(W-1)`, so the sum is `(e - low) + 2^W` and the next `e` is
+            //   `2^(W-1) * (e / 2^W + 1)`, which is at most `e`: the recoding never lets `e`
+            //   grow. Every value the buffer holds is therefore bounded by the initial `e`
+            //   plus the one-iteration overshoot `|digit| <= 2^(W-1) - 1`. That initial `e`
+            //   is a half-scalar, so it occupies about `F::MODULUS_BIT_SIZE / 2` bits and the
+            //   sum has the whole upper half of `F::BigInt` to spare.
             if digit >= 0 {
                 e.sub_with_borrow(&F::BigInt::from(digit as u64));
             } else {
@@ -291,15 +314,21 @@ fn glv_wnaf_mul<P: GLVConfig>(
 
     let mut res = Projective::zero();
     // The two recodings generally differ in length; the shorter one reads as zero above its own
-    // top digit, which `digits` already holds. Doubling `res` while it is still zero is a no-op,
-    // so no separate "first non-zero digit" flag is needed.
+    // top digit, which holds because `glv_wnaf_digits` leaves everything past its returned
+    // length untouched in a buffer that started zeroed. Doubling `res` while it is still zero
+    // is a no-op, so no separate "first non-zero digit" flag is needed.
     for i in (0..len1.max(len2)).rev() {
         res.double_in_place();
         for (digit, table) in [(digits1[i], &table1), (digits2[i], &table2)] {
+            // `unsigned_abs` on both sides rather than `digit >> 1` on the positive one. That
+            // shift is correct only while it stays under the `digit > 0` guard: an arithmetic
+            // shift of a negative `i8` keeps the sign bit, and `as usize` then widens it into
+            // an enormous index.
+            let entry = (digit.unsigned_abs() >> 1) as usize;
             if digit > 0 {
-                res += table[(digit >> 1) as usize];
+                res += table[entry];
             } else if digit < 0 {
-                res -= table[(digit.unsigned_abs() >> 1) as usize];
+                res -= table[entry];
             }
         }
     }
