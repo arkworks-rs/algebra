@@ -2,6 +2,7 @@
 
 ## Pending
 
+- [\#778](https://github.com/arkworks-rs/algebra/pull/778) (`ark-bw6-767`, `ark-grumpkin`, `ark-secp256k1`, `ark-secq25k1`) Add the GLV implementation for BW6-767, Grumpkin, secp256k1, and secq256k1.
 - (`ark-starkcurve`) Add 252 bit [Stark curve](https://docs.starknet.io/architecture/cryptography/#the_stark_curve).
 - [\#971](https://github.com/arkworks-rs/algebra/pull/971) (`ark-ff`) Make serial_batch_inversion_and_mul public.
 - Consolidated logic into `bitreverse_permutation_in_place` and made it public.
