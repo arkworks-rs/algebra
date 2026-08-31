@@ -424,12 +424,14 @@ macro_rules! __test_group {
         #[test]
         fn test_endomorphism_eigenvalue() {
             $crate::glv::glv_endomorphism_eigenvalue::<Config>();
+            $crate::glv::glv_endomorphism_projective::<Config>();
         }
 
         #[test]
         fn test_glv_mul() {
             $crate::glv::glv_projective::<Config>();
             $crate::glv::glv_affine::<Config>();
+            $crate::glv::glv_edge_cases::<Config>();
         }
     }
 }

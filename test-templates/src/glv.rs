@@ -3,8 +3,8 @@ use ark_ec::{
     short_weierstrass::{Affine, Projective},
     AffineRepr, CurveGroup, PrimeGroup,
 };
-use ark_ff::{BigInteger, PrimeField};
-use ark_std::{ops::Mul, UniformRand};
+use ark_ff::{AdditiveGroup, BigInteger, Field, PrimeField};
+use ark_std::{ops::Mul, vec, One, UniformRand, Zero};
 
 pub fn glv_scalar_decomposition<P: GLVConfig>() {
     let mut rng = ark_std::test_rng();
@@ -48,6 +48,24 @@ pub fn glv_endomorphism_eigenvalue<P: GLVConfig>() {
     assert_eq!(endo_g, g.mul(P::LAMBDA));
 }
 
+/// `endomorphism` must act as multiplication by `LAMBDA` on any projective representative, not
+/// only on the `z = 1` ones. `glv_mul_projective` maps a whole wNAF table through it to derive
+/// the second base's table, and those entries carry accumulated `z` values.
+pub fn glv_endomorphism_projective<P: GLVConfig>() {
+    let mut rng = ark_std::test_rng();
+    let g = Projective::<P>::generator();
+    for _i in 0..20 {
+        // Both sides go through `double_and_add` rather than `Mul`, which on the configs under
+        // test routes back into GLV and so into the endomorphism being checked.
+        let p = double_and_add(&g, P::ScalarField::rand(&mut rng).into_bigint());
+        assert!(!p.z.is_one(), "test point has a trivial z");
+        assert_eq!(
+            <P as GLVConfig>::endomorphism(&p),
+            double_and_add(&p, P::LAMBDA.into_bigint()),
+        );
+    }
+}
+
 pub fn glv_projective<P: GLVConfig>() {
     // check that glv_mul indeed computes the scalar multiplication
     let mut rng = ark_std::test_rng();
@@ -73,5 +91,56 @@ pub fn glv_affine<P: GLVConfig>() {
         let k_g = <P as GLVConfig>::glv_mul_affine(g, k);
         let k_g_2 = double_and_add_affine(&g, k.into_bigint()).into_affine();
         assert_eq!(k_g, k_g_2);
+    }
+}
+
+/// Structured inputs that random scalars are unlikely to reach: the identity base, a zero
+/// scalar, and scalars whose half-scalars land on a wNAF window boundary.
+pub fn glv_edge_cases<P: GLVConfig>() {
+    let g = Projective::<P>::generator();
+
+    // The identity absorbs every scalar, including ones that decompose to non-zero halves.
+    let mut rng = ark_std::test_rng();
+    for _ in 0..10 {
+        let k = P::ScalarField::rand(&mut rng);
+        assert!(<P as GLVConfig>::glv_mul_projective(Projective::<P>::zero(), k).is_zero());
+        assert!(<P as GLVConfig>::glv_mul_affine(Affine::<P>::zero(), k).is_zero());
+    }
+
+    // `k = 0` decomposes to two zero half-scalars, so the scan produces no digits at all.
+    assert!(<P as GLVConfig>::glv_mul_projective(g, P::ScalarField::ZERO).is_zero());
+
+    let mut scalars = vec![
+        P::ScalarField::ZERO,
+        P::ScalarField::ONE,
+        -P::ScalarField::ONE,
+    ];
+
+    // Around each of the first few powers of two. Recoding `2^n` and its neighbours exercises
+    // the carry that makes a half-scalar one digit longer than its bit length, and the small
+    // values force one half-scalar to zero while the other is non-zero.
+    for n in 0..8u32 {
+        let p = P::ScalarField::from(1u64 << n);
+        scalars.extend([p - P::ScalarField::ONE, p, p + P::ScalarField::ONE]);
+    }
+
+    // All-ones runs, which recode to a single positive digit far above a long carry chain.
+    for n in 1..=16u32 {
+        scalars.push(P::ScalarField::from((1u64 << n) - 1));
+    }
+
+    // Scalars straddling the half-scalar boundary, where `k1` and `k2` differ most in length.
+    let half = P::ScalarField::MODULUS_BIT_SIZE / 2;
+    for shift in [half.saturating_sub(1), half, half + 1] {
+        let p = P::ScalarField::from(2u64).pow([shift as u64]);
+        scalars.extend([p - P::ScalarField::ONE, p, p + P::ScalarField::ONE]);
+    }
+
+    for k in scalars {
+        assert_eq!(
+            <P as GLVConfig>::glv_mul_projective(g, k),
+            double_and_add(&g, k.into_bigint()),
+            "glv_mul_projective disagrees at k = {k}",
+        );
     }
 }
