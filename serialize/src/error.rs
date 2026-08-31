@@ -35,3 +35,19 @@ impl fmt::Display for SerializationError {
         }
     }
 }
+
+
+// Work around current wasm-bindgen limitation:
+// https://github.com/wasm-bindgen/wasm-bindgen/issues/5025
+#[cfg(all(feature="wasm", not(feature = "std")))]
+mod wasm {
+    use super::SerializationError;
+    use wasm_bindgen::JsError;
+    impl From<SerializationError> for JsError {
+        fn from(err: SerializationError) -> JsError {
+            use ark_std::string::ToString;
+            JsError::new(&err.to_string())
+        }
+    }
+}
+
