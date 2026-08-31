@@ -24,7 +24,7 @@ ark-std.workspace = true
 ark-ec.workspace = true
 ark-ff.workspace = true
 ark-serialize.workspace = true
-paste.workspace = true
+pastey.workspace = true
 
 [features]
 asm = ["ark-ff/asm"]
