@@ -155,11 +155,22 @@ impl<F: FftField> DensePolynomial<F> {
     /// Multiply `self` by the vanishing polynomial for the domain `domain`.
     /// Returns the result of the multiplication.
     pub fn mul_by_vanishing_poly<D: EvaluationDomain<F>>(&self, domain: D) -> Self {
+        // The vanishing polynomial of `domain` is `x^domain_size - offset^domain_size`,
+        // where `offset` is the coset offset; `offset^domain_size == 1` iff `domain` is a
+        // multiplicative subgroup. Writing `c` for this constant term, multiplying by the
+        // vanishing polynomial sends `self` to `self * x^domain_size - c * self`.
+        let c = domain.coset_offset_pow_size();
         let mut shifted = vec![F::zero(); domain.size()];
         shifted.extend_from_slice(&self.coeffs);
-        cfg_iter_mut!(shifted)
-            .zip(&self.coeffs)
-            .for_each(|(s, c)| *s -= c);
+        if c.is_one() {
+            cfg_iter_mut!(shifted)
+                .zip(&self.coeffs)
+                .for_each(|(s, b)| *s -= b);
+        } else {
+            cfg_iter_mut!(shifted)
+                .zip(&self.coeffs)
+                .for_each(|(s, b)| *s -= c * b);
+        }
         Self::from_coefficients_vec(shifted)
     }
 
@@ -172,37 +183,56 @@ impl<F: FftField> DensePolynomial<F> {
             // If degree(self) < len(Domain), then the quotient is zero, and the entire polynomial is the remainder
             (Self::zero(), self.clone())
         } else {
-            // Compute the quotient
+            // The vanishing polynomial of `domain` is `x^domain_size - offset^domain_size`,
+            // where `offset` is the coset offset; `offset^domain_size == 1` iff `domain` is a
+            // multiplicative subgroup. Write `c` for this constant term `offset^domain_size`.
+            let c = domain.coset_offset_pow_size();
+
+            // Compute the quotient.
             //
-            // If `self.len() <= 2 * domain_size`
-            //    then quotient is simply `self.coeffs[domain_size..]`
-            // Otherwise
-            //    during the division by `x^domain_size - 1`, some of `self.coeffs[domain_size..]` will be updated as well
-            //    which can be computed using the following algorithm.
+            // Grouping `self` into `domain_size`-wide coefficient blocks `B_0, B_1, ...`
+            // makes it a polynomial in `y = x^domain_size`, and the division becomes synthetic
+            // division of `sum_i B_i y^i` by `y - c`, which yields
+            // `quotient[j] = sum_{i >= 1} c^{i - 1} * self.coeffs[j + i * domain_size]`.
             //
+            // If `self.len() <= 2 * domain_size` the quotient is simply `self.coeffs[domain_size..]`.
+            // For a multiplicative subgroup (`c == 1`) the powers of `c` drop out, so we keep the
+            // original allocation-light summation as a fast path.
             let mut quotient_vec = self.coeffs[domain_size..].to_vec();
-            for i in 1..(self.len() / domain_size) {
-                cfg_iter_mut!(quotient_vec)
-                    .zip(&self.coeffs[domain_size * (i + 1)..])
-                    .for_each(|(s, c)| *s += c);
+            let num_blocks = self.len() / domain_size;
+            if c.is_one() {
+                (1..num_blocks).for_each(|i| {
+                    cfg_iter_mut!(quotient_vec)
+                        .zip(&self.coeffs[domain_size * (i + 1)..])
+                        .for_each(|(s, b)| *s += b);
+                });
+            } else {
+                // `c_pow` carries `c^i` across blocks as a running product; the final
+                // accumulator value is unused.
+                (1..num_blocks).fold(c, |c_pow, i| {
+                    cfg_iter_mut!(quotient_vec)
+                        .zip(&self.coeffs[domain_size * (i + 1)..])
+                        .for_each(|(s, b)| *s += c_pow * b);
+                    c_pow * c
+                });
             }
 
-            // Compute the remainder
+            // Compute the remainder.
             //
-            // `remainder = self - quotient_vec * (x^domain_size - 1)`
-            //
-            // Note that remainder must be smaller than `domain_size`.
-            // So we can look at only the first `domain_size` terms.
-            //
-            // Therefore,
-            // `remainder = self.coeffs[0..domain_size] - quotient_vec * (-1)`
-            // i.e.,
-            // `remainder = self.coeffs[0..domain_size] + quotient_vec`
-            //
+            // `remainder = self - quotient * (x^domain_size - c)` has degree `< domain_size`,
+            // so only the lowest `domain_size` coefficients survive:
+            // `remainder = self.coeffs[0..domain_size] + c * quotient`.
+            // For a subgroup (`c == 1`) this is just `self.coeffs[0..domain_size] + quotient`.
             let mut remainder_vec = self.coeffs[0..domain_size].to_vec();
-            cfg_iter_mut!(remainder_vec)
-                .zip(&quotient_vec)
-                .for_each(|(s, c)| *s += c);
+            if c.is_one() {
+                cfg_iter_mut!(remainder_vec)
+                    .zip(&quotient_vec)
+                    .for_each(|(s, q)| *s += q);
+            } else {
+                cfg_iter_mut!(remainder_vec)
+                    .zip(&quotient_vec)
+                    .for_each(|(s, q)| *s += c * q);
+            }
 
             let quotient = Self::from_coefficients_vec(quotient_vec);
             let remainder = Self::from_coefficients_vec(remainder_vec);
@@ -986,6 +1016,41 @@ mod tests {
                 assert_eq!(p, p_recovered);
             }
         }
+    }
+
+    #[test]
+    fn divide_by_vanishing_poly_on_coset() {
+        use crate::EvaluationDomain;
+        use ark_ff::FftField;
+        let rng = &mut test_rng();
+        // A genuine coset (offset != 1) has vanishing polynomial `x^n - offset^n`, exercising
+        // the general path that the multiplicative-subgroup fast path (offset == 1) skips.
+        // `size == 0` covers the degenerate `n == 1` domain (vanishing polynomial `x - offset`).
+        (0..10).for_each(|size| {
+            let domain = GeneralEvaluationDomain::<Fr>::new(1usize << size)
+                .unwrap()
+                .get_coset(Fr::GENERATOR)
+                .unwrap();
+            // `vanishing_polynomial` is defined independently of mul/divide, so it is a
+            // trustworthy oracle for both directions.
+            let vanishing: DensePolynomial<Fr> = domain.vanishing_polynomial().into();
+            (0..12).for_each(|degree| {
+                let p = DensePolynomial::<Fr>::rand(degree * 100, rng);
+                let (quotient, remainder) = p.divide_by_vanishing_poly(domain);
+                // The remainder of division by a degree-`n` polynomial has degree `< n`.
+                assert!(remainder.degree() < domain.size());
+                // `p == quotient * (x^n - offset^n) + remainder`.
+                let p_recovered = &(&quotient * &vanishing) + &remainder;
+                assert_eq!(p, p_recovered);
+                // `mul_by_vanishing_poly` must agree with the oracle on an independent input.
+                assert_eq!(p.mul_by_vanishing_poly(domain), &p * &vanishing);
+                // ... and on the division quotient, closing the round trip.
+                assert_eq!(
+                    quotient.mul_by_vanishing_poly(domain),
+                    &quotient * &vanishing
+                );
+            });
+        });
     }
 
     #[test]
