@@ -1,5 +1,8 @@
 use crate::{
-    models::{short_weierstrass::SWCurveConfig, CurveConfig},
+    models::{
+        parallel_pairing_utils::threshold_chunked_loop, short_weierstrass::SWCurveConfig,
+        CurveConfig,
+    },
     pairing::{MillerLoopOutput, Pairing, PairingOutput},
     AffineRepr,
 };
@@ -12,12 +15,9 @@ use ark_ff::{
     },
     BitIteratorBE, CyclotomicMultSubgroup, Field, PrimeField,
 };
-use ark_std::{cfg_chunks_mut, marker::PhantomData, vec::*};
+use ark_std::{marker::PhantomData, vec::*};
 use educe::Educe;
 use num_traits::{One, Zero};
-
-#[cfg(feature = "parallel")]
-use rayon::prelude::*;
 
 /// A particular BLS12 group can have G2 being either a multiplicative or a
 /// divisive twist.
@@ -62,23 +62,21 @@ pub trait Bls12Config: 'static + Sized {
             })
             .collect::<Vec<_>>();
 
-        let mut f = cfg_chunks_mut!(pairs, 4)
-            .map(|pairs| {
-                let mut f = <Bls12<Self> as Pairing>::TargetField::one();
-                for i in BitIteratorBE::without_leading_zeros(Self::X).skip(1) {
-                    f.square_in_place();
+        let mut f = threshold_chunked_loop(&mut pairs, |pairs| {
+            let mut f = <Bls12<Self> as Pairing>::TargetField::one();
+            for i in BitIteratorBE::without_leading_zeros(Self::X).skip(1) {
+                f.square_in_place();
+                for (p, coeffs) in pairs.iter_mut() {
+                    Bls12::<Self>::ell(&mut f, &coeffs.next().unwrap(), &p.0);
+                }
+                if i {
                     for (p, coeffs) in pairs.iter_mut() {
                         Bls12::<Self>::ell(&mut f, &coeffs.next().unwrap(), &p.0);
                     }
-                    if i {
-                        for (p, coeffs) in pairs.iter_mut() {
-                            Bls12::<Self>::ell(&mut f, &coeffs.next().unwrap(), &p.0);
-                        }
-                    }
                 }
-                f
-            })
-            .product::<<Bls12<Self> as Pairing>::TargetField>();
+            }
+            f
+        });
 
         if Self::X_IS_NEGATIVE {
             f.cyclotomic_inverse_in_place();
