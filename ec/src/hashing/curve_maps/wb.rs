@@ -1,8 +1,7 @@
 use core::marker::PhantomData;
 
 use crate::{models::short_weierstrass::SWCurveConfig, CurveConfig};
-use ark_ff::batch_inversion;
-use ark_poly::{univariate::DensePolynomial, DenseUVPolynomial, Polynomial};
+use ark_ff::{batch_inversion, Field};
 
 use crate::{
     hashing::{map_to_curve_hasher::MapToCurve, HashToCurveError},
@@ -48,16 +47,13 @@ where
     fn apply(&self, domain_point: Affine<Domain>) -> Result<Affine<Codomain>, HashToCurveError> {
         match domain_point.xy() {
             Some((x, y)) => {
-                let x_num = DensePolynomial::from_coefficients_slice(self.x_map_numerator);
-                let x_den = DensePolynomial::from_coefficients_slice(self.x_map_denominator);
-
-                let y_num = DensePolynomial::from_coefficients_slice(self.y_map_numerator);
-                let y_den = DensePolynomial::from_coefficients_slice(self.y_map_denominator);
-
-                let mut v: [BaseField<Domain>; 2] = [x_den.evaluate(&x), y_den.evaluate(&x)];
+                let mut v: [BaseField<Domain>; 2] = [
+                    horner(self.x_map_denominator, &x),
+                    horner(self.y_map_denominator, &x),
+                ];
                 batch_inversion(&mut v);
-                let img_x = x_num.evaluate(&x) * v[0];
-                let img_y = (y_num.evaluate(&x) * y) * v[1];
+                let img_x = horner(self.x_map_numerator, &x) * v[0];
+                let img_y = (horner(self.y_map_numerator, &x) * y) * v[1];
                 Ok(Affine::new_unchecked(img_x, img_y))
             },
             None => Ok(Affine::identity()),
@@ -65,16 +61,21 @@ where
     }
 }
 
-/// Trait defining the necessary parameters for the WB hash-to-curve method.
-///
-/// This method is used for curves in Weierstrass form defined by:
-///
-/// `y^2 = x^3 + a*x + b` where `b != 0`, but `a` can be zero,
-/// as seen in curves like BLS-381.
-///
-/// For more information, refer to \[WB2019\].
-///
-/// - [\[WB2019\]] <http://dx.doi.org/10.46586/tches.v2019.i4.154-179>
+/// Evaluates the polynomial with the given coefficients (lowest degree first)
+/// at `x` by Horner's rule, without allocating.
+fn horner<F: Field>(coeffs: &[F], x: &F) -> F {
+    let mut iter = coeffs.iter().rev();
+    let mut acc = match iter.next() {
+        Some(c) => *c,
+        None => return F::zero(),
+    };
+    for c in iter {
+        acc *= x;
+        acc += c;
+    }
+    acc
+}
+
 pub trait WBConfig: SWCurveConfig + Sized {
     // The isogenous curve should be defined over the same base field but it can have
     // different scalar field type IsogenousCurveScalarField :
