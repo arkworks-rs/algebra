@@ -2,7 +2,7 @@
 
 ## Pending
 
-- (`ark-ec`, `ark-bls12-381`) Add `WBConfig::isogeny_map` so a curve can specialise its isogeny evaluation, and evaluate the BLS12-381 G1 11-isogeny with 30 field multiplications instead of 49 using preprocessed coefficients.
+- (`ark-ec`, `ark-bls12-381`) Add `WBConfig::isogeny_map` so a curve can specialise its isogeny evaluation, and evaluate the BLS12-381 G1 11-isogeny with 30 field multiplications instead of 49, and the BLS12-377 G2 isogeny with 60 `Fq2` multiplications instead of 109, using preprocessed coefficients.
 - (`ark-starkcurve`) Add 252 bit [Stark curve](https://docs.starknet.io/architecture/cryptography/#the_stark_curve).
 - [\#971](https://github.com/arkworks-rs/algebra/pull/971) (`ark-ff`) Make serial_batch_inversion_and_mul public.
 - Consolidated logic into `bitreverse_permutation_in_place` and made it public.
