@@ -45,7 +45,12 @@ where
     Domain: SWCurveConfig,
     Codomain: SWCurveConfig<BaseField = BaseField<Domain>>,
 {
-    fn apply(&self, domain_point: Affine<Domain>) -> Result<Affine<Codomain>, HashToCurveError> {
+    /// Applies the isogeny to `domain_point`, evaluating the four
+    /// polynomials with Horner's rule.
+    pub fn apply(
+        &self,
+        domain_point: Affine<Domain>,
+    ) -> Result<Affine<Codomain>, HashToCurveError> {
         match domain_point.xy() {
             Some((x, y)) => {
                 let x_num = DensePolynomial::from_coefficients_slice(self.x_map_numerator);
@@ -81,6 +86,17 @@ pub trait WBConfig: SWCurveConfig + Sized {
     type IsogenousCurve: SWUConfig<BaseField = BaseField<Self>>;
 
     const ISOGENY_MAP: IsogenyMap<'static, Self::IsogenousCurve, Self>;
+
+    /// Applies the isogeny from `IsogenousCurve` to `Self`.
+    ///
+    /// The default evaluates the polynomials of `ISOGENY_MAP` with Horner's
+    /// rule. A curve may override this with an evaluation specialised to its
+    /// isogeny (for instance a straight-line program with fewer
+    /// multiplications); the override must agree with the default on every
+    /// point.
+    fn isogeny_map(point: Affine<Self::IsogenousCurve>) -> Result<Affine<Self>, HashToCurveError> {
+        Self::ISOGENY_MAP.apply(point)
+    }
 }
 
 pub struct WBMap<P: WBConfig> {
@@ -95,6 +111,11 @@ impl<P: WBConfig> MapToCurve<Projective<P>> for WBMap<P> {
             Ok(point_on_curve) => {
                 debug_assert!(point_on_curve.is_on_curve(),
 			      "the isogeny maps the generator of its domain: {} into {} which does not belong to its codomain.",P::IsogenousCurve::GENERATOR, point_on_curve);
+                debug_assert_eq!(
+                    P::isogeny_map(P::IsogenousCurve::GENERATOR).ok(),
+                    Some(point_on_curve),
+                    "the specialised isogeny map disagrees with the generic one"
+                );
             },
             Err(e) => return Err(e),
         }
@@ -111,7 +132,7 @@ impl<P: WBConfig> MapToCurve<Projective<P>> for WBMap<P> {
     ) -> Result<Affine<P>, HashToCurveError> {
         // first we need to map the field point to the isogenous curve
         let point_on_isogenious_curve = SWUMap::map_to_curve(element).unwrap();
-        P::ISOGENY_MAP.apply(point_on_isogenious_curve)
+        P::isogeny_map(point_on_isogenious_curve)
     }
 }
 
