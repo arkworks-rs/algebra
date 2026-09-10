@@ -74,5 +74,10 @@ fn bench_hash_to_g1(c: &mut Criterion) {
     });
 }
 
-criterion_group!(benches, bench_isogeny_map, bench_inversion, bench_hash_to_g1);
+criterion_group!(
+    benches,
+    bench_isogeny_map,
+    bench_inversion,
+    bench_hash_to_g1
+);
 criterion_main!(benches);
