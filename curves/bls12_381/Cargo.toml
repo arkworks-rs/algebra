@@ -22,6 +22,8 @@ ark-serialize = { workspace = true }
 ark-algebra-test-templates = { workspace = true }
 ark-algebra-bench-templates = { workspace = true }
 hex = "^0.4.0"
+criterion = { workspace = true }
+sha2 = { workspace = true }
 
 [features]
 default = [ "curve" ]
@@ -34,4 +36,9 @@ asm = [ "ark-ff/asm" ]
 [[bench]]
 name = "bls12_381"
 path = "benches/bls12_381.rs"
+harness = false
+
+[[bench]]
+name = "hash_to_curve"
+path = "benches/hash_to_curve.rs"
 harness = false

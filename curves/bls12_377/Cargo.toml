@@ -19,6 +19,7 @@ ark-r1cs-std = { workspace = true, optional = true }
 ark-std = { workspace = true }
 
 [dev-dependencies]
+criterion = { workspace = true }
 ark-relations = { workspace = true }
 ark-serialize = { workspace = true }
 ark-algebra-test-templates = { workspace = true }
@@ -39,4 +40,9 @@ asm = [ "ark-ff/asm" ]
 [[bench]]
 name = "bls12_377"
 path = "benches/bls12_377.rs"
+harness = false
+
+[[bench]]
+name = "hash_to_curve"
+path = "benches/hash_to_curve.rs"
 harness = false

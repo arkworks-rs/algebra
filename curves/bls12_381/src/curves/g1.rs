@@ -1,7 +1,10 @@
 use ark_ec::{
     bls12,
     bls12::Bls12Config,
-    hashing::curve_maps::wb::{IsogenyMap, WBConfig},
+    hashing::{
+        curve_maps::wb::{IsogenyMap, WBConfig},
+        HashToCurveError,
+    },
     models::CurveConfig,
     scalar_mul::glv::GLVConfig,
     short_weierstrass::{Affine, SWCurveConfig},
@@ -194,6 +197,10 @@ impl WBConfig for Config {
 
     const ISOGENY_MAP: IsogenyMap<'static, Self::IsogenousCurve, Self> =
         g1_swu_iso::ISOGENY_MAP_TO_G1;
+
+    fn isogeny_map(point: Affine<Self::IsogenousCurve>) -> Result<Affine<Self>, HashToCurveError> {
+        Ok(g1_swu_iso::isogeny_map_to_g1(point))
+    }
 }
 
 /// G1_GENERATOR_X =
