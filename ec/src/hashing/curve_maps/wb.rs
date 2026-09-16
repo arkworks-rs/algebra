@@ -76,6 +76,16 @@ fn horner<F: Field>(coeffs: &[F], x: &F) -> F {
     acc
 }
 
+/// Trait defining the necessary parameters for the WB hash-to-curve method.
+///
+/// This method is used for curves in Weierstrass form defined by:
+///
+/// `y^2 = x^3 + a*x + b` where `b != 0`, but `a` can be zero,
+/// as seen in curves like BLS-381.
+///
+/// For more information, refer to \[WB2019\].
+///
+/// - [\[WB2019\]] <http://dx.doi.org/10.46586/tches.v2019.i4.154-179>
 pub trait WBConfig: SWCurveConfig + Sized {
     // The isogenous curve should be defined over the same base field but it can have
     // different scalar field type IsogenousCurveScalarField :
