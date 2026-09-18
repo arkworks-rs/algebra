@@ -1,5 +1,8 @@
 use crate::{
-    models::{short_weierstrass::SWCurveConfig, CurveConfig},
+    models::{
+        parallel_pairing_utils::threshold_chunked_loop, short_weierstrass::SWCurveConfig,
+        CurveConfig,
+    },
     pairing::{MillerLoopOutput, Pairing, PairingOutput},
 };
 use ark_ff::{
@@ -11,13 +14,10 @@ use ark_ff::{
     },
     CyclotomicMultSubgroup,
 };
-use ark_std::{cfg_chunks_mut, marker::PhantomData, vec::*};
+use ark_std::{marker::PhantomData, vec::*};
 use educe::Educe;
 use itertools::Itertools;
 use num_traits::One;
-
-#[cfg(feature = "parallel")]
-use rayon::prelude::*;
 
 pub enum TwistType {
     M,
@@ -64,28 +64,26 @@ pub trait BnConfig: 'static + Sized {
             })
             .collect::<Vec<_>>();
 
-        let mut f = cfg_chunks_mut!(pairs, 4)
-            .map(|pairs| {
-                let mut f = <Bn<Self> as Pairing>::TargetField::one();
-                for i in (1..Self::ATE_LOOP_COUNT.len()).rev() {
-                    if i != Self::ATE_LOOP_COUNT.len() - 1 {
-                        f.square_in_place();
-                    }
+        let mut f = threshold_chunked_loop(&mut pairs, |pairs| {
+            let mut f = <Bn<Self> as Pairing>::TargetField::one();
+            for i in (1..Self::ATE_LOOP_COUNT.len()).rev() {
+                if i != Self::ATE_LOOP_COUNT.len() - 1 {
+                    f.square_in_place();
+                }
 
+                for (p, coeffs) in pairs.iter_mut() {
+                    Bn::<Self>::ell(&mut f, &coeffs.next().unwrap(), &p.0);
+                }
+
+                let bit = Self::ATE_LOOP_COUNT[i - 1];
+                if bit == 1 || bit == -1 {
                     for (p, coeffs) in pairs.iter_mut() {
                         Bn::<Self>::ell(&mut f, &coeffs.next().unwrap(), &p.0);
                     }
-
-                    let bit = Self::ATE_LOOP_COUNT[i - 1];
-                    if bit == 1 || bit == -1 {
-                        for (p, coeffs) in pairs.iter_mut() {
-                            Bn::<Self>::ell(&mut f, &coeffs.next().unwrap(), &p.0);
-                        }
-                    }
                 }
-                f
-            })
-            .product::<<Bn<Self> as Pairing>::TargetField>();
+            }
+            f
+        });
 
         if Self::X_IS_NEGATIVE {
             f.cyclotomic_inverse_in_place();

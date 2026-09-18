@@ -54,7 +54,7 @@ pub trait MNT6Config: 'static + Sized {
             .zip_eq(b)
             .map(|(a, b)| (a.into(), b.into()))
             .collect::<Vec<_>>();
-        let result = ark_std::cfg_into_iter!(pairs)
+        let result = ark_std::cfg_into_iter!(pairs, 1000)
             .map(|(a, b)| MNT6::ate_miller_loop(&a, &b))
             .product();
         MillerLoopOutput(result)
