@@ -24,6 +24,7 @@
 
 - [\#1121](https://github.com/arkworks-rs/algebra/pull/1121) (all) Bump the minimum supported Rust version to 1.89.
 - (`ark-poly`) the `Div` implementation is now restricted to polynomials defined over `FftField`. Non-`FftField` polys can instead use the `naive_div` method.
+- (`ark-ff`) `DefaultFieldHasher` now pads `expand_message_xmd` with the input block size of the hash function, as RFC 9380 requires, instead of the field element length. The output of `hash_to_field`, and of every hash-to-curve built on it, changes for fields where the two lengths differ, such as every 255-bit or 256-bit field. `H` now requires `digest::crypto_common::BlockSizeUser`.
 
 ### Features
 
