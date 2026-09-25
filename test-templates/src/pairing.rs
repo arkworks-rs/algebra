@@ -62,6 +62,53 @@ macro_rules! test_pairing {
                     assert!(gt.cyclotomic_exp(r).is_one());
                 }
             }
+
+            #[test]
+            fn test_mul_bits_be() {
+                use ark_ff::BigInteger;
+                let rng = &mut test_rng();
+                let a = <$Pairing>::pairing(
+                    <$Pairing as Pairing>::G1::rand(rng),
+                    <$Pairing as Pairing>::G2::rand(rng),
+                );
+
+                // `mul_bits_be` consumes a *big-endian* bit representation, so e.g.
+                // `[true, false]` is 2, not 1.
+                let small_cases: [(&[bool], u64); 7] = [
+                    (&[], 0),
+                    (&[false, false], 0),
+                    (&[true], 1),
+                    (&[true, false], 2),
+                    (&[true, true, false], 6),
+                    (&[true, false, true, false], 10),
+                    (&[false, true, false, true], 5),
+                ];
+                for (bits, scalar) in small_cases {
+                    assert_eq!(
+                        a.mul_bits_be(bits.iter().copied()),
+                        a.mul_bigint([scalar]),
+                        "mul_bits_be is inconsistent with mul_bigint for {scalar}"
+                    );
+                }
+
+                // `2^64 + 1`, which pins down the ordering of the limbs, and not just
+                // the ordering of the bits inside each limb.
+                let mut bits = [false; 65];
+                bits[0] = true;
+                bits[64] = true;
+                assert_eq!(
+                    a.mul_bits_be(bits.iter().copied()),
+                    a.mul_bigint([1u64, 1u64]),
+                    "mul_bits_be is inconsistent with mul_bigint for 2^64 + 1"
+                );
+
+                // Full-width scalars, including their leading zero bits.
+                for _ in 0..ITERATIONS {
+                    let s = <$Pairing as Pairing>::ScalarField::rand(rng);
+                    let bits = s.into_bigint().to_bits_be();
+                    assert_eq!(a.mul_bits_be(bits.into_iter()), a * s);
+                }
+            }
         }
     };
 }
