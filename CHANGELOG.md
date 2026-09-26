@@ -19,6 +19,7 @@
 - [\#1109](https://github.com/arkworks-rs/algebra/pull/1109) (`ark-poly`) Reduce allocations in `DenseMultilinearExtension::Sub` and parallelize scalar `Mul`.
 - [\#1112](https://github.com/arkworks-rs/algebra/pull/1112) (`ark-ec`) Fix rayon::ThreadPoolBuilder panicking in wasm32 when parallel feature is enabled
 - [\#1108](https://github.com/arkworks-rs/algebra/pull/1108) (`ark-ec`) Improve scalar multiplication speed for curves using GLV.
+- [\#1144](https://github.com/arkworks-rs/algebra/pull/1144) (`ark-bls12-381`) Check that points are on the curve when deserializing uncompressed G1 and G2 points with `Validate::Yes`.
 
 ### Breaking changes
 
