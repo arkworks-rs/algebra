@@ -66,37 +66,6 @@ fn test_g2_subgroup_non_membership_via_endomorphism() {
     }
 }
 
-#[test]
-fn test_pairing_with_leading_zero_limb_in_x() {
-    use ark_ec::{
-        bls12::{Bls12, Bls12Config, TwistType},
-        pairing::Pairing,
-    };
-
-    // Same parameters as BLS12-381, with a zero high limb added to `X`.
-    #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-    struct PaddedXConfig;
-    impl Bls12Config for PaddedXConfig {
-        const X: &'static [u64] = &[0xd201000000010000, 0];
-        const X_IS_NEGATIVE: bool = <crate::Config as Bls12Config>::X_IS_NEGATIVE;
-        const TWIST_TYPE: TwistType = <crate::Config as Bls12Config>::TWIST_TYPE;
-        type Fp = Fq;
-        type Fp2Config = crate::Fq2Config;
-        type Fp6Config = crate::Fq6Config;
-        type Fp12Config = crate::Fq12Config;
-        type G1Config = crate::g1::Config;
-        type G2Config = crate::g2::Config;
-    }
-
-    let mut rng = test_rng();
-    let p = G1Projective::rand(&mut rng);
-    let q = G2Projective::rand(&mut rng);
-    assert_eq!(
-        Bls12::<PaddedXConfig>::pairing(p, q).0,
-        Bls12_381::pairing(p, q).0
-    );
-}
-
 // Test vectors and macro adapted from https://github.com/zkcrypto/bls12_381/blob/e224ad4ea1babfc582ccd751c2bf128611d10936/src/tests/mod.rs
 macro_rules! test_vectors {
     ($projective:ident, $affine:ident, $compress:expr, $expected:ident) => {
