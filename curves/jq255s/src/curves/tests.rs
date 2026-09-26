@@ -32,6 +32,27 @@ fn decode_encode() {
     assert_eq!(a_uncompressed, a);
 }
 
+#[test]
+fn decode_encode_many() {
+    // Roughly half of all points are stored with an odd `e`, so a single
+    // random point is not enough to cover both cases.
+    let mut rng = ark_std::test_rng();
+    for _ in 0..64 {
+        let a = Projective::rand(&mut rng);
+
+        let mut compressed_bytes = Vec::new();
+        a.serialize_compressed(&mut compressed_bytes).unwrap();
+        let mut uncompressed_bytes = Vec::new();
+        a.serialize_uncompressed(&mut uncompressed_bytes).unwrap();
+
+        let a_compressed = Projective::deserialize_compressed(&*compressed_bytes).unwrap();
+        let a_uncompressed = Projective::deserialize_uncompressed(&*uncompressed_bytes).unwrap();
+
+        assert_eq!(a_compressed, a);
+        assert_eq!(a_uncompressed, a);
+    }
+}
+
 /// These test vectors originate from Thomas Pornin's implementation of Jq255e and Jq255s:
 /// <https://github.com/doubleodd/c-jq255> (Thomas Pornin, 2022)
 /// The Arkworks framework's implementation of field element (de)serialization follows

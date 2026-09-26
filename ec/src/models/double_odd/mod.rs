@@ -82,6 +82,10 @@ pub trait DOCurveConfig: super::CurveConfig {
                 let u: Self::BaseField = CanonicalDeserialize::deserialize_uncompressed(reader)?;
                 let e: Self::BaseField =
                     Affine::<Self>::get_e_from_u(u).ok_or(SerializationError::InvalidData)?;
+                // The encoding always uses the representative with even `e`.
+                let mut buffer = ark_std::vec::Vec::new();
+                e.serialize_uncompressed(&mut buffer)?;
+                let e = if buffer[0] & 1u8 == 1u8 { -e } else { e };
                 (e, u)
             },
             Compress::No => {
@@ -92,11 +96,6 @@ pub trait DOCurveConfig: super::CurveConfig {
                 (e, u)
             },
         };
-
-        let mut buffer = ark_std::vec::Vec::new();
-        e.serialize_uncompressed(&mut buffer)?;
-
-        let e = if buffer[0] & 1u8 == 1u8 { -e } else { e };
 
         let point = Affine::new_unchecked(e, u);
         if validate == Validate::Yes {
