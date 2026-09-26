@@ -17,6 +17,7 @@
 - [\#1044](https://github.com/arkworks-rs/algebra/pull/1044), [\#1084](https://github.com/arkworks-rs/algebra/pull/1084), [\#1088](https://github.com/arkworks-rs/algebra/pull/1088) Add implementation for small field with native integer types
 - [\#1061](https://github.com/arkworks-rs/algebra/pull/1061) (`ark-poly`) Reduce allocations in `DenseMultilinearExtension::{concat, fix_variables, evaluate}`.
 - [\#1109](https://github.com/arkworks-rs/algebra/pull/1109) (`ark-poly`) Reduce allocations in `DenseMultilinearExtension::Sub` and parallelize scalar `Mul`.
+- [\#1148](https://github.com/arkworks-rs/algebra/pull/1148) (`ark-ec`) Skip leading zero bits of the loop count when preparing BLS12 and BW6 G2 points, matching the Miller loop.
 - [\#1112](https://github.com/arkworks-rs/algebra/pull/1112) (`ark-ec`) Fix rayon::ThreadPoolBuilder panicking in wasm32 when parallel feature is enabled
 - [\#1108](https://github.com/arkworks-rs/algebra/pull/1108) (`ark-ec`) Improve scalar multiplication speed for curves using GLV.
 
