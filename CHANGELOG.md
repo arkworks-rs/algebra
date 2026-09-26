@@ -8,6 +8,7 @@
 - [\#971](https://github.com/arkworks-rs/algebra/pull/971) (`ark-ff`) Make serial_batch_inversion_and_mul public.
 - Consolidated logic into `bitreverse_permutation_in_place` and made it public.
 - Remove redundant type constraints from `Pairing::G1Prepared`.
+- [\#1158](https://github.com/arkworks-rs/algebra/pull/1158) (`ark-ec`) Fix BW6 `multi_miller_loop` for more than 4 pairs.
 - (`ark-serialize`) Add serde-compatible wrapper types `CompressedChecked<T>`, `CompressedUnchecked<T>`, `UncompressedChecked<T>`, `UncompressedUnchecked<T>`.
 - [\#989](https://github.com/arkworks-rs/algebra/pull/989) (`ark-poly`) Replace bound `F: FftField` with `F: Field` on `GeneralEvaluationDomain`.
 - (`ark-poly`) Add fast polynomial division

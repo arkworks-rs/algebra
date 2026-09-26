@@ -51,6 +51,25 @@ macro_rules! test_pairing {
             }
 
             #[test]
+            fn test_multi_pairing_many_pairs() {
+                // Implementations may process the pairs in chunks, so check
+                // inputs longer than a single chunk too.
+                let rng = &mut test_rng();
+                let g1s: ark_std::vec::Vec<_> = (0..9)
+                    .map(|_| <$Pairing as Pairing>::G1::rand(rng).into_affine())
+                    .collect();
+                let g2s: ark_std::vec::Vec<_> = (0..9)
+                    .map(|_| <$Pairing as Pairing>::G2::rand(rng).into_affine())
+                    .collect();
+                let mut expected = PairingOutput::<$Pairing>::zero();
+                for n in 1..=9 {
+                    expected += <$Pairing>::pairing(g1s[n - 1], g2s[n - 1]);
+                    let ans = <$Pairing>::multi_pairing(&g1s[..n], &g2s[..n]);
+                    assert_eq!(ans, expected, "multi_pairing with {} pairs", n);
+                }
+            }
+
+            #[test]
             fn test_final_exp() {
                 for _ in 0..ITERATIONS {
                     let rng = &mut test_rng();
