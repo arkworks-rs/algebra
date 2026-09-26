@@ -6,6 +6,7 @@
 - [\#1135](https://github.com/arkworks-rs/algebra/pull/1135) (`ark-ec`) Evaluate the isogeny polynomials of `WBMap` in place with Horner's rule instead of allocating temporary polynomials, and drop the now-unused `ark-poly` dependency of `ark-ec`.
 - (`ark-starkcurve`) Add 252 bit [Stark curve](https://docs.starknet.io/architecture/cryptography/#the_stark_curve).
 - [\#971](https://github.com/arkworks-rs/algebra/pull/971) (`ark-ff`) Make serial_batch_inversion_and_mul public.
+- [\#1150](https://github.com/arkworks-rs/algebra/pull/1150) (`ark-ff`) Reject non-zero unused bits in the extra flags byte when deserializing `Fp` with flags, so that each value has a single encoding.
 - Consolidated logic into `bitreverse_permutation_in_place` and made it public.
 - Remove redundant type constraints from `Pairing::G1Prepared`.
 - (`ark-serialize`) Add serde-compatible wrapper types `CompressedChecked<T>`, `CompressedUnchecked<T>`, `UncompressedChecked<T>`, `UncompressedUnchecked<T>`.
