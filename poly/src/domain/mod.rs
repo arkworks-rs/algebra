@@ -246,7 +246,8 @@ pub trait EvaluationDomain<F: FftField>:
         let self_vanishing_poly = DenseOrSparsePolynomial::from(
             &self.vanishing_polynomial()
                 * (subdomain.size_as_field_element()
-                    * subdomain.coset_offset().pow([subdomain.size() as u64])),
+                    * subdomain.coset_offset_pow_size()
+                    * self.coset_offset_pow_size().inverse().unwrap()),
         );
         let subdomain_vanishing_poly = DenseOrSparsePolynomial::from(
             &subdomain.vanishing_polynomial() * self.size_as_field_element(),
@@ -265,8 +266,10 @@ pub trait EvaluationDomain<F: FftField>:
         if v_subdomain_of_tau.is_zero() {
             F::one()
         } else {
-            subdomain.size_as_field_element() * self.evaluate_vanishing_polynomial(tau)
-                / (self.size_as_field_element() * v_subdomain_of_tau)
+            subdomain.size_as_field_element()
+                * subdomain.coset_offset_pow_size()
+                * self.evaluate_vanishing_polynomial(tau)
+                / (self.size_as_field_element() * self.coset_offset_pow_size() * v_subdomain_of_tau)
         }
     }
 
