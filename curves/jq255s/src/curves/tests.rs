@@ -356,3 +356,108 @@ fn valid_scalar_multiplication() {
         assert!(pn == p2)
     }
 }
+
+/// `DOCurveConfig::e_is_odd` must be exactly the predicate the codec
+/// historically used: the low bit of byte 0 of `e`'s canonical serialization.
+#[test]
+fn parity_predicate_equivalence() {
+    type Fq = <Config as CurveConfig>::BaseField;
+    use ark_ff::{BigInteger, PrimeField, UniformRand};
+
+    fn serialized_lsb(e: &Fq) -> bool {
+        let mut buffer = Vec::new();
+        e.serialize_uncompressed(&mut buffer).unwrap();
+        buffer[0] & 1u8 == 1u8
+    }
+    fn canonical_is_odd(e: &Fq) -> bool {
+        e.to_base_prime_field_elements()
+            .next()
+            .unwrap()
+            .into_bigint()
+            .is_odd()
+    }
+
+    let mut rng = ark_std::test_rng();
+    let two = Fq::from(2u64);
+    let half = two.inverse().unwrap();
+    let mut cases = vec![
+        Fq::ZERO,
+        Fq::ONE,
+        -Fq::ONE,
+        two,
+        -two,
+        half,
+        -half,
+        Fq::from(u64::MAX),
+        Fq::from(u128::MAX),
+    ];
+    // Every single-bit element, covering each byte boundary of the encoding.
+    for i in 0..Fq::MODULUS_BIT_SIZE {
+        cases.push(two.pow([i as u64]));
+    }
+    for e in &cases {
+        assert_eq!(serialized_lsb(e), canonical_is_odd(e), "mismatch at {e}");
+    }
+    for _ in 0..10_000 {
+        let e = Fq::rand(&mut rng);
+        assert_eq!(serialized_lsb(&e), canonical_is_odd(&e), "mismatch at {e}");
+    }
+}
+
+/// The codec must produce byte-identical output to the historical
+/// implementation, which determined the sign of `e` by serializing it and
+/// inspecting the low bit of byte 0.
+#[test]
+fn codec_bytes_match_historical_predicate() {
+    type Fq = <Config as CurveConfig>::BaseField;
+    use ark_serialize::Compress;
+
+    // The serializer as it was before `e_is_odd` was introduced.
+    fn historical_serialize(p: &Affine, compress: Compress) -> Vec<u8> {
+        let mut out = Vec::new();
+        match compress {
+            Compress::Yes => {
+                let mut buffer = Vec::new();
+                p.e.serialize_uncompressed(&mut buffer).unwrap();
+                if buffer[0] & 1u8 == 1u8 { -p.u } else { p.u }
+                    .serialize_uncompressed(&mut out)
+                    .unwrap();
+            },
+            Compress::No => {
+                p.e.serialize_uncompressed(&mut out).unwrap();
+                p.u.serialize_uncompressed(&mut out).unwrap();
+            },
+        }
+        out
+    }
+    // The compressed decoder's historical post-sqrt normalization of `e`.
+    fn historical_normalize(e: Fq) -> Fq {
+        let mut buffer = Vec::new();
+        e.serialize_uncompressed(&mut buffer).unwrap();
+        if buffer[0] & 1u8 == 1u8 { -e } else { e }
+    }
+
+    let mut rng = ark_std::test_rng();
+    for i in 0..10_000 {
+        let p = Affine::rand(&mut rng);
+        let mut compressed = Vec::new();
+        p.serialize_compressed(&mut compressed).unwrap();
+        assert_eq!(
+            compressed,
+            historical_serialize(&p, Compress::Yes),
+            "compressed bytes differ at iteration {i}"
+        );
+        let mut uncompressed = Vec::new();
+        p.serialize_uncompressed(&mut uncompressed).unwrap();
+        assert_eq!(
+            uncompressed,
+            historical_serialize(&p, Compress::No),
+            "uncompressed bytes differ at iteration {i}"
+        );
+        let q = Affine::deserialize_compressed(compressed.as_slice()).unwrap();
+        assert_eq!(q.e, historical_normalize(q.e), "decoded e is not the even representative at iteration {i}");
+        assert_eq!(q, p, "compressed round-trip failed at iteration {i}");
+        let r = Affine::deserialize_uncompressed(uncompressed.as_slice()).unwrap();
+        assert_eq!((r.e, r.u), (p.e, p.u), "uncompressed coordinates changed at iteration {i}");
+    }
+}
