@@ -31,6 +31,19 @@ pub trait DOCurveConfig: super::CurveConfig {
         Self::COEFF_A.square() - Self::COEFF_B.double().double()
     }
 
+    /// Whether the canonical representative of `e` is odd, i.e. the low bit
+    /// of its canonical little-endian encoding. The codec always uses the
+    /// representative of `(e, u) ~ (-e, -u)` whose `e` is even.
+    #[inline]
+    fn e_is_odd(e: &Self::BaseField) -> bool {
+        use ark_ff::{BigInteger, PrimeField};
+        e.to_base_prime_field_elements()
+            .next()
+            .unwrap()
+            .into_bigint()
+            .is_odd()
+    }
+
     fn mul_projective(base: &Projective<Self>, scalar: &[u64]) -> Projective<Self> {
         double_and_add(base, scalar)
     }
@@ -56,9 +69,7 @@ pub trait DOCurveConfig: super::CurveConfig {
     ) -> Result<(), SerializationError> {
         match compress {
             Compress::Yes => {
-                let mut buffer = ark_std::vec::Vec::new();
-                item.e.serialize_uncompressed(&mut buffer)?;
-                if buffer[0] & 1u8 == 1u8 {
+                if Self::e_is_odd(&item.e) {
                     -item.u
                 } else {
                     item.u
@@ -82,6 +93,8 @@ pub trait DOCurveConfig: super::CurveConfig {
                 let u: Self::BaseField = CanonicalDeserialize::deserialize_uncompressed(reader)?;
                 let e: Self::BaseField =
                     Affine::<Self>::get_e_from_u(u).ok_or(SerializationError::InvalidData)?;
+                // The encoding always uses the representative with even `e`.
+                let e = if Self::e_is_odd(&e) { -e } else { e };
                 (e, u)
             },
             Compress::No => {
@@ -92,11 +105,6 @@ pub trait DOCurveConfig: super::CurveConfig {
                 (e, u)
             },
         };
-
-        let mut buffer = ark_std::vec::Vec::new();
-        e.serialize_uncompressed(&mut buffer)?;
-
-        let e = if buffer[0] & 1u8 == 1u8 { -e } else { e };
 
         let point = Affine::new_unchecked(e, u);
         if validate == Validate::Yes {
