@@ -27,6 +27,7 @@ ark-ec = { workspace = true, default-features = false }
 ark-serialize = { workspace = true, default-features = false }
 ark-algebra-test-templates = { workspace = true, default-features = false }
 ark-algebra-bench-templates = { workspace = true, default-features = false }
+zerocopy = { git = "https://github.com/z-tech/zerocopy", branch = "z-tech/support-structs-with-same-type", features = ["derive"] }
 
 [features]
 default = []
