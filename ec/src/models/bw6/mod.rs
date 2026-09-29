@@ -73,7 +73,7 @@ pub trait BW6Config: 'static + Eq + Sized {
     }
 
     fn final_exponentiation(f: MillerLoopOutput<BW6<Self>>) -> Option<PairingOutput<BW6<Self>>> {
-        let easy_part = BW6::<Self>::final_exponentiation_easy_part(f.0);
+        let easy_part = BW6::<Self>::final_exponentiation_easy_part(f.0)?;
         Some(PairingOutput(Self::final_exponentiation_hard_part(
             &easy_part,
         )))
@@ -225,9 +225,9 @@ impl<P: BW6Config> BW6<P> {
     }
 
     // f^[(p^3-1)(p+1)]
-    fn final_exponentiation_easy_part(f: Fp6<P::Fp6Config>) -> Fp6<P::Fp6Config> {
+    fn final_exponentiation_easy_part(f: Fp6<P::Fp6Config>) -> Option<Fp6<P::Fp6Config>> {
         // f^(-1)
-        let f_inv = f.inverse().unwrap();
+        let f_inv = f.inverse()?;
         // f^(p^3)
         let f_p3 = {
             let mut f = f;
@@ -243,7 +243,7 @@ impl<P: BW6Config> BW6<P> {
             g
         };
         // g^(p+1) = g^p * g
-        g_p * &g
+        Some(g_p * &g)
     }
 
     fn final_exponentiation_hard_part(f: &Fp6<P::Fp6Config>) -> Fp6<P::Fp6Config> {
