@@ -9,7 +9,6 @@
 - [\#971](https://github.com/arkworks-rs/algebra/pull/971) (`ark-ff`) Make serial_batch_inversion_and_mul public.
 - Consolidated logic into `bitreverse_permutation_in_place` and made it public.
 - Remove redundant type constraints from `Pairing::G1Prepared`.
-- [\#1158](https://github.com/arkworks-rs/algebra/pull/1158) (`ark-ec`) Fix BW6 `multi_miller_loop` for more than 4 pairs.
 - (`ark-serialize`) Add serde-compatible wrapper types `CompressedChecked<T>`, `CompressedUnchecked<T>`, `UncompressedChecked<T>`, `UncompressedUnchecked<T>`.
 - [\#1162](https://github.com/arkworks-rs/algebra/pull/1162) (`ark-serialize`) Make the `serde::vec_*` modules use the compression and validation mode in their name. Previously all of them used compressed, checked mode, so `vec_uncompressed_*` output changes.
 - [\#989](https://github.com/arkworks-rs/algebra/pull/989) (`ark-poly`) Replace bound `F: FftField` with `F: Field` on `GeneralEvaluationDomain`.
@@ -43,6 +42,7 @@
 
 ### Bugfixes
 
+- [\#1158](https://github.com/arkworks-rs/algebra/pull/1158) (`ark-ec`) Fix BW6 `multi_miller_loop` for more than 4 pairs.
 - [\#1129](https://github.com/arkworks-rs/algebra/pull/1129) (`ark-serialize`) Fix `[T; N]` deserialization leaking constructed elements if a later element fails.
 - [\#1082](https://github.com/arkworks-rs/algebra/pull/1082) (`ark-ff`) Fix `SmallFp::from_random_bytes` / `from_be_bytes_mod_order` silently producing incorrect field elements by treating plaintext bytes as Montgomery-encoded.
 
