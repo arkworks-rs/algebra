@@ -8,6 +8,10 @@ on:
 env:
   RUST_BACKTRACE: 1
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
 jobs:
   style:
     name: Check Style
@@ -16,11 +20,8 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v5
     - name: Install Rust
-      uses: actions-rs/toolchain@v1
+      uses: dtolnay/rust-toolchain@stable
       with:
-        profile: minimal
-        toolchain: stable
-        override: true
         components: rustfmt
 
     - name: Algebra - format
@@ -38,11 +39,8 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v5
     - name: Install Rust
-      uses: actions-rs/toolchain@v1
+      uses: dtolnay/rust-toolchain@stable
       with:
-        profile: minimal
-        toolchain: stable
-        override: true
         components: rustfmt
 
     - name: Algebra - doc
@@ -66,19 +64,11 @@ jobs:
         uses: actions/checkout@v5
 
       - name: Install Rust (${{ matrix.rust }})
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@master
         with:
-          profile: minimal
           toolchain: ${{ matrix.rust }}
-          override: true
 
-      - uses: actions/cache@v3
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - uses: Swatinem/rust-cache@v2
 
       - name: Algebra - Check examples
         run: cargo check --examples --all
@@ -108,70 +98,22 @@ jobs:
     runs-on: ubuntu-latest
     env:
       RUSTFLAGS: -Dwarnings
-    strategy:
-      matrix:
-        rust:
-          - stable
-          - nightly
     steps:
       - name: Checkout
         uses: actions/checkout@v5
 
-      - name: Install Rust (${{ matrix.rust }})
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: ${{ matrix.rust }}
-          override: true
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
 
-      - uses: actions/cache@v3
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - uses: Swatinem/rust-cache@v2
 
-      - name: Check examples
-        uses: actions-rs/cargo@v1
-        with:
-            command: check
-            args: --examples --all
-
-      - name: Check examples with all features on stable
-        uses: actions-rs/cargo@v1
-        with:
-            command: check
-            args: --examples --all-features --all
-        if: matrix.rust == 'stable'
-
-      - name: Check benchmarks on nightly
-        uses: actions-rs/cargo@v1
-        with:
-            command: check
-            args: --all-features --examples --workspace --benches
-        if: matrix.rust == 'nightly'
-
+      # `check` and `test_assembly` already cover the example/bench checks and
+      # the nightly native-assembly test run; do not repeat them here.
       - name: Test
-        uses: actions-rs/cargo@v1
-        with:
-            command: test
-            args: "--workspace \
-                    --all-features \
-                    --exclude ark-poly-benches \
-                    --exclude ark-algebra-test-templates"
-
-      - name: Test assembly on nightly
-        env:
-          RUSTFLAGS: -C target-cpu=native -Z macro-backtrace
-        uses: actions-rs/cargo@v1
-        with:
-            command: test
-            args: "--workspace \
-                    --package ark-test-curves \
-                    --all-features
-                    "
-        if: matrix.rust == 'nightly'
+        run: |
+          cargo test --profile ci --workspace --all-features \
+            --exclude ark-poly-benches \
+            --exclude ark-algebra-test-templates
 
   directories: # Job that list subdirectories
     name: List directories for parallelizing tests
@@ -203,10 +145,14 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v5
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: "./curves"
+          key: ${{ matrix.dir }}
       - name: Run tests
         run: |
           cd ${{matrix.dir}}
-          cargo test --all-features
+          cargo test --profile ci --all-features
         working-directory: ./curves
 
   test-mnt4-753:
@@ -331,29 +277,16 @@ jobs:
         uses: actions/checkout@v5
 
       - name: Install Rust nightly
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: nightly
-          override: true
+        uses: dtolnay/rust-toolchain@nightly
 
-      - uses: actions/cache@v3
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - uses: Swatinem/rust-cache@v2
 
       - name: Test assembly on nightly
         env:
           RUSTFLAGS: -C target-cpu=native
-        uses: actions-rs/cargo@v1
-        with:
-            command: test
-            args: "--workspace \
-                   --package ark-test-curves \
-                   --all-features"
+        run: |
+          cargo test --profile ci --workspace \
+            --package ark-test-curves --all-features
 
   check_no_std:
     name: Check no_std
@@ -363,36 +296,24 @@ jobs:
         uses: actions/checkout@v5
 
       - name: Install Rust
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: stable
-          target: aarch64-unknown-none
-          override: true
+          targets: aarch64-unknown-none
 
-      - uses: actions/cache@v3
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - uses: Swatinem/rust-cache@v2
 
       - name: check
-        uses: actions-rs/cargo@v1
-        with:
-            command: check
-            args: "--examples --workspace \
-                  --exclude ark-algebra-test-templates \
-                  --exclude ark-algebra-bench-templates \
-                  --exclude ark-poly-benches \
-                  --target aarch64-unknown-none"
+        run: |
+          cargo check --examples --workspace \
+            --exclude ark-algebra-test-templates \
+            --exclude ark-algebra-bench-templates \
+            --exclude ark-poly-benches \
+            --target aarch64-unknown-none
 
       - name: build
-        uses: actions-rs/cargo@v1
-        with:
-            command: build
-            args: "--workspace \
-                  --exclude ark-algebra-test-templates \
-                  --exclude ark-algebra-bench-templates \
-                  --exclude ark-poly-benches \
-                  --target aarch64-unknown-none"
+        run: |
+          cargo build --workspace \
+            --exclude ark-algebra-test-templates \
+            --exclude ark-algebra-bench-templates \
+            --exclude ark-poly-benches \
+            --target aarch64-unknown-none
