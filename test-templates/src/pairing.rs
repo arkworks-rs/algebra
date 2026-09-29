@@ -152,17 +152,22 @@ macro_rules! test_pairing {
                     );
                 }
 
-                // Random bit strings across limb boundaries. Lengths that are a
-                // multiple of 64 get a cleared top bit: exponents occupying every
-                // bit of the top limb can trip a pre-existing `find_naf` carry
-                // bug in `cyclotomic_exp` that is unrelated to the bit-to-limb
-                // conversion under test here.
+                // All-ones exponents filling one and two limbs exactly: the NAF
+                // of these needs one digit more than the limbs hold, exercising
+                // the find_naf carry into the spare limb.
+                for len in [64usize, 128] {
+                    let bits: Vec<bool> = (0..len).map(|_| true).collect();
+                    assert_eq!(
+                        a.mul_bits_be(bits.iter().copied()),
+                        double_and_add(&bits),
+                        "mul_bits_be disagrees with double-and-add for 2^{len} - 1"
+                    );
+                }
+
+                // Random bit strings across limb boundaries.
                 for len in [1usize, 2, 63, 64, 65, 127, 128, 129, 190, 255] {
                     for _ in 0..ITERATIONS {
-                        let mut bits: Vec<bool> = (0..len).map(|_| bool::rand(rng)).collect();
-                        if len % 64 == 0 {
-                            bits[0] = false;
-                        }
+                        let bits: Vec<bool> = (0..len).map(|_| bool::rand(rng)).collect();
                         assert_eq!(
                             a.mul_bits_be(bits.iter().copied()),
                             double_and_add(&bits),
