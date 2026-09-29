@@ -157,7 +157,7 @@ jobs:
 
   test-mnt4-753:
     name: Test (mnt4_753/)
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
       - name: Checkout
@@ -183,7 +183,7 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
             target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/curves/Cargo.lock') }}
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/curves/Cargo.lock') }}-mnt4-753
 
       - name: Conditionally run the tests
         # if source code updated OR dependencies updated
@@ -195,7 +195,7 @@ jobs:
 
   test-mnt6-753:
     name: Test (mnt6_753/)
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
       - name: Checkout
@@ -221,7 +221,7 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
             target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/curves/Cargo.lock') }}
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/curves/Cargo.lock') }}-mnt6-753
 
       - name: Conditionally run the tests
         # if source code updated OR dependencies updated
@@ -259,7 +259,7 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
             target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/curves/Cargo.lock') }}
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/curves/Cargo.lock') }}-cp6-782
 
       - name: Conditionally run the tests
         # if source code updated OR dependencies updated
