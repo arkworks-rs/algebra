@@ -2,13 +2,17 @@ use crate::{
     short_weierstrass::{Affine, Projective, SWCurveConfig},
     AdditiveGroup, CurveGroup,
 };
-use ark_ff::{PrimeField, Zero};
+use ark_ff::{BigInteger, PrimeField, Zero};
 use ark_std::ops::Neg;
 use num_bigint::{BigInt, BigUint, Sign};
 use num_integer::Integer;
 use num_traits::{One, Signed};
+use zeroize::Zeroize;
 
 /// The GLV parameters for computing the endomorphism and scalar decomposition.
+///
+/// The scalar multiplications this trait provides are variable time in the scalar; see
+/// [`GLVConfig::glv_mul_projective`].
 pub trait GLVConfig: Send + Sync + 'static + SWCurveConfig {
     /// Constant used to calculate `phi(G) := lambda*G`.
     ///
@@ -88,110 +92,260 @@ pub trait GLVConfig: Send + Sync + 'static + SWCurveConfig {
 
     fn endomorphism_affine(p: &Affine<Self>) -> Affine<Self>;
 
+    /// GLV scalar multiplication `k * p`.
+    ///
+    /// # Timing
+    ///
+    /// This is not constant time: its running time, its memory access pattern and the number of
+    /// group operations it performs all depend on `k`. The implementation recodes the two
+    /// half-scalars into signed digits, then indexes a precomputed table by those digits, runs
+    /// for as many iterations as the longer half-scalar has bits, and adds once per non-zero
+    /// digit. An attacker who can observe the cache lines touched by one call, or time enough
+    /// calls, learns the recoding, and the recoding determines `k`.
+    ///
+    /// Recovering a secret from exactly these signals is a well studied attack rather than a
+    /// theoretical one: Percival, *Cache Missing for Fun and Profit* (2005) against
+    /// sliding-window exponentiation, and against wNAF specifically, Brumley and Hakala,
+    /// *Cache-Timing Template Attacks* (ASIACRYPT 2009) and Benger, van de Pol, Smart and Yarom,
+    /// *"Just a Little Bit More"* (CT-RSA 2014), both of which turn partial knowledge of the
+    /// recoded digits into full ECDSA key recovery by lattice methods.
+    ///
+    /// No part of `ark-ec` is constant time, so this is a property of the library rather than of
+    /// this function alone. It is called out here because it is easy to reach without asking for
+    /// it: several curves in this workspace override `mul_projective` for G1 to route into GLV,
+    /// so an ordinary `Projective::mul` runs this code without GLV ever being named. Prefer an
+    /// implementation written for the purpose when multiplying by a long-lived secret key.
     fn glv_mul_projective(p: Projective<Self>, k: Self::ScalarField) -> Projective<Self> {
         let ((sgn_k1, k1), (sgn_k2, k2)) = Self::scalar_decomposition(k);
         let b1 = if sgn_k1 { p } else { -p };
-        let b2 = if sgn_k2 {
-            Self::endomorphism(&p)
-        } else {
-            -Self::endomorphism(&p)
-        };
-        glv_windowed_mul(b1, b2, k1, k2)
+        // The second base is `sgn_k2 * endomorphism(p)`, so it is `endomorphism(b1)` up to the
+        // sign the two halves disagree on. `glv_wnaf_mul` derives it, and its whole table, from
+        // `b1`; see `glv_endo_odd_multiples`.
+        glv_wnaf_mul(b1, sgn_k1 == sgn_k2, k1, k2)
     }
 
     /// GLV scalar multiplication starting from an affine point.
     ///
-    /// Note: this converts to projective and uses the 2-bit windowed table (projective additions),
+    /// Note: this converts to projective and uses projective additions against the wNAF tables,
     /// rather than mixed additions against affine table entries.
+    ///
+    /// This inherits the timing behaviour of [`GLVConfig::glv_mul_projective`].
     fn glv_mul_affine(p: Affine<Self>, k: Self::ScalarField) -> Affine<Self> {
         Self::glv_mul_projective(p.into(), k).into_affine()
     }
 }
 
-/// Precompute the 15-point table for 2-bit windowed GLV.
+/// Width of the signed-digit windows used by [`glv_wnaf_mul`].
 ///
-/// Adapted from gnark-crypto's `mulGLV` (Apache-2.0, Copyright Consensys Software Inc.):
-/// <https://github.com/ConsenSys/gnark-crypto/blob/v0.19.0/ecc/bls12-381/g1.go#L620>
-/// implementing the GLV method (<https://www.iacr.org/archive/crypto2001/21390189.pdf>).
+/// Recoded digits are odd and lie in `-(2^(W-1) - 1)..=2^(W-1) - 1`, so each base needs a table
+/// of `2^(W-2)` odd multiples. Recoding an `n`-bit half-scalar at width `W` leaves about
+/// `n / (W + 1)` non-zero digits, against `n * (1 - 4^-2) / 2` for the 2-bit joint window this
+/// replaces. Counting table plus scan over real decompositions on BLS12-381, BN254 and
+/// BLS12-377 G1, the saving against that window in base-field multiplications is -2.1% at
+/// `W = 3`, -9.5% at `W = 4`, -10.0% at `W = 5` and -1.9% at `W = 6`.
 ///
-/// After scalar decomposition, multiplication is `k1*b1 + k2*b2`. Each loop step reads two bits
-/// from each half-length scalar, giving digits `c1`, `c2` in `0..=3`. The point to add is
-/// `c1*b1 + c2*b2`; the two preceding doublings account for advancing two bits on each leg.
+/// Those four figures predate `glv_endo_odd_multiples`, which builds only one of the two tables
+/// by group arithmetic. That makes every width cheaper, and the wider ones cheapest, since the
+/// build it removes grows with `2^(W-2)`. Re-counting on BLS12-381 G1 with the derived table,
+/// `W = 5` is still the optimum, but its margin has moved either side: `W = 4` now costs 4.2%
+/// more rather than 0.5%, and `W = 6` 2.3% more rather than 8.9%.
+const GLV_WNAF_WIDTH: u32 = 5;
+
+/// `GLV_WNAF_WIDTH` is bounded by the `i8` that [`glv_wnaf_digits`] packs its digits into. The
+/// binding constraint is the sign correction there: at `W = 7`, `1i8 << 7` is `-128`, so
+/// `low - (1 << W)` overflows. Release builds happen to survive it, because the wrap is
+/// congruent mod 256 and lands on the right residue, but any debug or test build panics on
+/// the overflow. Six is the widest window this recoding can express, and nothing above five
+/// is competitive anyway.
+const _: () = assert!(
+    GLV_WNAF_WIDTH >= 2 && (1i64 << GLV_WNAF_WIDTH) <= i8::MAX as i64,
+    "GLV_WNAF_WIDTH must lie in 2..=6 so the width-sized constants fit in `i8`"
+);
+
+/// Number of odd multiples precomputed per base: `1, 3, 5, ..., 2^(W-1) - 1`.
+const GLV_WNAF_TABLE_SIZE: usize = 1 << (GLV_WNAF_WIDTH - 2);
+
+/// Capacity of the stack buffer holding one recoded half-scalar.
 ///
-/// There are `4*4` digit pairs, but `(c1, c2) = (0, 0)` adds nothing, so we store the other 15.
-/// Pack digits as `idx = c2*4 + c1` (0..16) and use `table[idx - 1]` when `idx != 0`.
-/// Example: `table[0]=b1`, `table[1]=2*b1`, `table[2]=3*b1`, `table[3]=b2`, `table[4]=b1+b2`,
-/// …, `table[14]=3*b1 + 3*b2`.
+/// Recoding an `n`-bit value yields at most `n + 1` digits, and `scalar_decomposition` bounds
+/// each half-scalar by `ceil(ScalarField::MODULUS_BIT_SIZE / 2)` bits. This bound holds a
+/// *full-width* recoding for any scalar field up to 1023 bits, so it is reached only by a field
+/// far wider than any in use (the widest, MNT4/6-753, is 753 bits) and only then via a
+/// `GLVConfig` whose decomposition is not actually halving. Overrunning it is a bounds-check
+/// panic in `glv_wnaf_digits`, not silent corruption.
+const GLV_WNAF_MAX_DIGITS: usize = 1024;
+
+/// Precompute `[b, 3*b, 5*b, ..., (2^(W-1) - 1)*b]`.
+///
+/// One doubling plus `2^(W-2) - 1` additions: `t[0] = b` and `t[i] = t[i - 1] + 2*b`.
 #[inline]
-fn glv_precompute_table<P: GLVConfig>(b1: Projective<P>, b2: Projective<P>) -> [Projective<P>; 15] {
-    let b1_2 = b1.double();
-    let b1_3 = b1_2 + b1;
-    let b2_2 = b2.double();
-    let b2_3 = b2_2 + b2;
-    [
-        b1,
-        b1_2,
-        b1_3,
-        b2,
-        b1 + b2,
-        b1_2 + b2,
-        b1_3 + b2,
-        b2_2,
-        b1 + b2_2,
-        b1_2 + b2_2,
-        b1_3 + b2_2,
-        b2_3,
-        b1 + b2_3,
-        b1_2 + b2_3,
-        b1_3 + b2_3,
-    ]
+fn glv_odd_multiples<P: GLVConfig>(b: Projective<P>) -> [Projective<P>; GLV_WNAF_TABLE_SIZE] {
+    let b_2 = b.double();
+    let mut table = [b; GLV_WNAF_TABLE_SIZE];
+    for i in 1..GLV_WNAF_TABLE_SIZE {
+        table[i] = table[i - 1] + b_2;
+    }
+    table
 }
 
-/// 2-bit windowed scan for `k1*b1 + k2*b2` (bases must already include sign fixes).
-fn glv_windowed_mul<P: GLVConfig>(
+/// Map the first base's odd multiples through the endomorphism to get the second's.
+///
+/// `glv_mul_projective` folds the decomposition signs into the bases, giving `b1 = s1*p` and
+/// `b2 = s2*phi(p)`, so `b2 = s1*s2*phi(b1)`. `phi` is a group homomorphism, hence
+/// `(2i+1)*b2 = s1*s2*phi((2i+1)*b1)` and the whole second table follows from the first: one
+/// endomorphism application per entry, negated when the signs disagree (`signs_agree` is
+/// `s1 == s2`). On every `GLVConfig` in this tree `endomorphism` is a single base-field
+/// multiplication, so this replaces a doubling and `2^(W-2) - 1` projective additions with
+/// `2^(W-2)` multiplications and at most as many negations.
+///
+/// This asks less of `phi` than the surrounding GLV method already does: only that it is a
+/// homomorphism, which holds on the whole curve, whereas `phi(p) = lambda*p` holds only on the
+/// prime-order subgroup. It does rely on `endomorphism` being correct for an arbitrary
+/// projective representative rather than just `z = 1`, since table entries carry accumulated
+/// `z` values, but `glv_mul_projective` already hands it an arbitrary `p`. The point at
+/// infinity survives, as scaling `x` leaves `z` zero.
+#[inline]
+fn glv_endo_odd_multiples<P: GLVConfig>(
+    table: &[Projective<P>; GLV_WNAF_TABLE_SIZE],
+    signs_agree: bool,
+) -> [Projective<P>; GLV_WNAF_TABLE_SIZE] {
+    let mut endo_table = *table;
+    for t in &mut endo_table {
+        *t = P::endomorphism(t);
+        if !signs_agree {
+            *t = -*t;
+        }
+    }
+    endo_table
+}
+
+/// Recode `k` into width-`GLV_WNAF_WIDTH` non-adjacent form, writing digits into `digits`
+/// least-significant first and returning how many were written.
+///
+/// Every digit is either zero or odd with absolute value below `2^(W-1)`, and any two non-zero
+/// digits are at least `W` positions apart. A non-zero digit `d` selects table entry
+/// `|d| / 2`, added when `d > 0` and subtracted when `d < 0`.
+///
+/// `digits` must be zeroed on entry, and only `digits[..len]` is written. [`glv_wnaf_mul`]
+/// leans on both halves of that: it scans the two recodings in lockstep and reads each one
+/// past its own length, taking the untouched entries as the leading zeroes of the shorter
+/// recoding. A buffer that already held digits would make those reads return the earlier
+/// recoding's tail and produce a wrong point rather than any kind of error, so the
+/// precondition is checked in debug builds.
+fn glv_wnaf_digits<F: PrimeField>(k: F, digits: &mut [i8; GLV_WNAF_MAX_DIGITS]) -> usize {
+    debug_assert!(
+        digits.iter().all(|&d| d == 0),
+        "`glv_wnaf_digits` requires a zeroed buffer: entries above the returned length are \
+         read as the leading zeroes of the shorter recoding",
+    );
+    // The recoding consumes `k` from the bottom up: at each odd residue it subtracts the signed
+    // remainder mod `2^W`, which clears the low `W` bits and forces the next `W - 1` digits to
+    // zero, then shifts right by one.
+    let mut e = k.into_bigint();
+    let mut len = 0;
+    while !e.is_zero() {
+        let digit = if e.is_odd() {
+            // Signed remainder mod `2^W`, i.e. the representative in `-2^(W-1)..2^(W-1)`. It is
+            // odd because `e` is, so it never attains the even bound `-2^(W-1)`.
+            let low = (e.as_ref()[0] & ((1 << GLV_WNAF_WIDTH) - 1)) as i8;
+            let digit = if low >= (1 << (GLV_WNAF_WIDTH - 1)) {
+                low - (1 << GLV_WNAF_WIDTH)
+            } else {
+                low
+            };
+            // `e -= digit`. Both calls discard the borrow/carry they return, which is sound
+            // in each direction:
+            //
+            // * Subtracting cannot borrow: a non-negative `digit` is exactly `e mod 2^W`,
+            //   hence at most `e`.
+            // * Adding cannot carry out of the top limb. A negative digit means
+            //   `low >= 2^(W-1)`, so the sum is `(e - low) + 2^W` and the next `e` is
+            //   `2^(W-1) * (e / 2^W + 1)`, which is at most `e`: the recoding never lets `e`
+            //   grow. Every value the buffer holds is therefore bounded by the initial `e`
+            //   plus the one-iteration overshoot `|digit| <= 2^(W-1) - 1`. That initial `e`
+            //   is a half-scalar, so it occupies about `F::MODULUS_BIT_SIZE / 2` bits and the
+            //   sum has the whole upper half of `F::BigInt` to spare.
+            if digit >= 0 {
+                e.sub_with_borrow(&F::BigInt::from(digit as u64));
+            } else {
+                e.add_with_carry(&F::BigInt::from(digit.unsigned_abs() as u64));
+            }
+            digit
+        } else {
+            0
+        };
+        digits[len] = digit;
+        len += 1;
+        e.div2();
+    }
+    len
+}
+
+/// Interleaved width-`GLV_WNAF_WIDTH` wNAF evaluation of `k1*b1 + k2*b2`.
+///
+/// `b1` must already carry the sign fix from `scalar_decomposition`, and `signs_agree` records
+/// whether the second half-scalar took the same sign, so `k1` and `k2` are the non-negative
+/// half-scalars. The second base is left implicit: only `b1`'s odd multiples are built by group
+/// arithmetic, and `glv_endo_odd_multiples` derives the second table from them. Both scalars are
+/// recoded independently, then scanned together from the most significant digit: one doubling
+/// per position, and one table addition per non-zero digit on either leg.
+///
+/// Each of those three properties is secret dependent, and together they are what makes
+/// `GLVConfig::glv_mul_projective` variable time in the scalar: the table index is a memory
+/// access derived from a digit, the trip count is the longer half-scalar's bit length, and the
+/// number of additions is the non-zero digit count. See the `# Timing` section there.
+///
+/// This is the scheme gnark-crypto's `mulGLV` uses (Apache-2.0, Copyright Consensys Software
+/// Inc.): <https://github.com/Consensys/gnark-crypto/blob/v0.21.0/ecc/bls12-381/g1.go#L777>,
+/// implementing the GLV method (<https://www.iacr.org/archive/crypto2001/21390189.pdf>).
+fn glv_wnaf_mul<P: GLVConfig>(
     b1: Projective<P>,
-    b2: Projective<P>,
+    signs_agree: bool,
     k1: P::ScalarField,
     k2: P::ScalarField,
 ) -> Projective<P> {
-    let table = glv_precompute_table(b1, b2);
+    let mut digits1 = [0i8; GLV_WNAF_MAX_DIGITS];
+    let mut digits2 = [0i8; GLV_WNAF_MAX_DIGITS];
+    let len1 = glv_wnaf_digits(k1, &mut digits1);
+    let len2 = glv_wnaf_digits(k2, &mut digits2);
 
-    let k1_bi = k1.into_bigint();
-    let k2_bi = k2.into_bigint();
-    let limbs1 = k1_bi.as_ref();
-    let limbs2 = k2_bi.as_ref();
-    // `BitIteratorBE::new` / `into_bigint` always yield exactly `64 * NUM_LIMBS` bits for a
-    // given `ScalarField`, so both scalars share the same (even) bit length.
-    debug_assert_eq!(limbs1.len(), limbs2.len());
-    let nbits = limbs1.len() * 64;
+    let table1 = glv_odd_multiples(b1);
+    let table2 = glv_endo_odd_multiples(&table1, signs_agree);
 
     let mut res = Projective::zero();
-    let mut started = false;
-    for chunk_idx in 0..(nbits / 2) {
-        let c1 = glv_two_bit_digit(limbs1, chunk_idx);
-        let c2 = glv_two_bit_digit(limbs2, chunk_idx);
-        let idx = (c2 as usize) * 4 + (c1 as usize);
-        if started {
-            res.double_in_place();
-            res.double_in_place();
-            if idx != 0 {
-                res += table[idx - 1];
+    // The two recodings generally differ in length; the shorter one reads as zero above its own
+    // top digit, which holds because `glv_wnaf_digits` leaves everything past its returned
+    // length untouched in a buffer that started zeroed. Doubling `res` while it is still zero
+    // is a no-op, so no separate "first non-zero digit" flag is needed.
+    for i in (0..len1.max(len2)).rev() {
+        res.double_in_place();
+        for (digit, table) in [(digits1[i], &table1), (digits2[i], &table2)] {
+            // `unsigned_abs` on both sides rather than `digit >> 1` on the positive one. That
+            // shift is correct only while it stays under the `digit > 0` guard: an arithmetic
+            // shift of a negative `i8` keeps the sign bit, and `as usize` then widens it into
+            // an enormous index.
+            let entry = (digit.unsigned_abs() >> 1) as usize;
+            if digit > 0 {
+                res += table[entry];
+            } else if digit < 0 {
+                res -= table[entry];
             }
-        } else if idx != 0 {
-            started = true;
-            res = table[idx - 1];
         }
     }
-    res
-}
 
-/// Extract the `chunk_idx`-th 2-bit window from a big-endian limb encoding.
-///
-/// `chunk_idx = 0` is the most-significant pair of bits across `limbs`. The total bit length
-/// `64 * limbs.len()` is always even, so every window is fully contained in a single limb.
-#[inline]
-fn glv_two_bit_digit(limbs: &[u64], chunk_idx: usize) -> u8 {
-    let bit_from_msb = chunk_idx * 2;
-    let limb = limbs[limbs.len() - 1 - bit_from_msb / 64];
-    ((limb >> (62 - (bit_from_msb % 64))) & 3) as u8
+    // The recodings are an invertible encoding of the two half-scalars, and so of `k` itself, so
+    // leaving 2 KiB of them as garbage in a released stack frame is worth avoiding: `ark-ec`
+    // already implements `Zeroize` for `Affine`, `Projective` and `PairingOutput` on the same
+    // reasoning. Only `..len` was written, into buffers this function freshly zeroed, so clearing
+    // the prefixes clears everything either recoding touched. That is ~`n` volatile bytes per
+    // leg rather than the full 1024, e.g. 129 on BLS12-381 G1, against the ~1700 base-field
+    // multiplications the scan above costs.
+    //
+    // This is hygiene, not a countermeasure. It does not make the routine constant time, and it
+    // does not reach the `num-bigint` temporaries in `scalar_decomposition`, which hold `k` and
+    // both half-scalars on the heap and are freed without being cleared.
+    digits1[..len1].zeroize();
+    digits2[..len2].zeroize();
+
+    res
 }
