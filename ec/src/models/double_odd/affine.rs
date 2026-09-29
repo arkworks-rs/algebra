@@ -4,6 +4,7 @@ use ark_serialize::{
 use ark_std::{
     borrow::Borrow,
     fmt::{Debug, Display, Formatter, Result as FmtResult},
+    hash::{Hash, Hasher},
     io::{Read, Write},
     ops::{Add, Mul, Neg, Sub},
     rand::{
@@ -34,7 +35,7 @@ use crate::{AffineRepr, CurveGroup};
 /// - `P+N = (-e,-u)`, `-P = (e,-u)`, and `-P+N = (-e,u)`
 /// - The group neutral is represented by the point at infinity `O = (1,0)` and `N = O+N = (-1,0)`
 #[derive(Educe)]
-#[educe(Copy, Clone, Hash)]
+#[educe(Copy, Clone)]
 #[must_use]
 pub struct Affine<P: DOCurveConfig> {
     #[doc(hidden)]
@@ -44,6 +45,19 @@ pub struct Affine<P: DOCurveConfig> {
 }
 
 impl<P: DOCurveConfig> Eq for Affine<P> {}
+
+impl<P: DOCurveConfig> Hash for Affine<P> {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        let negated = (-self.e, -self.u);
+        let representative = if negated < (self.e, self.u) {
+            negated
+        } else {
+            (self.e, self.u)
+        };
+        representative.hash(state);
+    }
+}
+
 impl<P: DOCurveConfig> PartialEq for Affine<P> {
     fn eq(&self, other: &Self) -> bool {
         if self.is_zero() {
