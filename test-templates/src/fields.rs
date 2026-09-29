@@ -439,7 +439,10 @@ macro_rules! __test_field {
             use ark_serialize::*;
             use $crate::fields::TwoBitFlags;
 
-            // Only fields whose flags need an extra byte have unused bits in it.
+            // Only fields whose flags need an extra byte have unused bits in
+            // it; for other fields this test intentionally passes vacuously,
+            // since tampered bits there push the value past the modulus and
+            // are already rejected by `from_bigint`.
             let size = <$field>::zero().serialized_size_with_flags::<TwoBitFlags>();
             if size == buffer_byte_size(<$field>::MODULUS_BIT_SIZE as usize) {
                 return;
