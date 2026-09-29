@@ -27,6 +27,7 @@ rayon = { workspace = true, optional = true }
 serde = { workspace = true, optional = true }
 serde-encoded-bytes = { workspace = true, optional = true, features = ["base64"] }
 serde_with = { workspace = true, optional = true, default-features = false }
+wasm-bindgen = { version = "0.2.100", default-features = false, optional = true }
 
 [dev-dependencies]
 sha2.workspace = true
@@ -41,7 +42,9 @@ ark-test-curves = { workspace = true, default-features = false, features = [
 [features]
 default = []
 parallel = ["rayon"]
-std = ["ark-std/std", "serde_with?/std"]
+std = ["ark-std/std", "serde_with?/std", "wasm-bindgen?/std"]
 derive = ["ark-serialize-derive"]
 serde = ["dep:serde", "dep:serde-encoded-bytes", "dep:serde_with"]
 serde_with = ["serde", "dep:serde_with"]
+wasm = ["dep:wasm-bindgen"]
+
