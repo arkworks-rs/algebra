@@ -434,7 +434,11 @@ fn codec_bytes_match_historical_predicate() {
     fn historical_normalize(e: Fq) -> Fq {
         let mut buffer = Vec::new();
         e.serialize_uncompressed(&mut buffer).unwrap();
-        if buffer[0] & 1u8 == 1u8 { -e } else { e }
+        if buffer[0] & 1u8 == 1u8 {
+            -e
+        } else {
+            e
+        }
     }
 
     let mut rng = ark_std::test_rng();
@@ -455,9 +459,17 @@ fn codec_bytes_match_historical_predicate() {
             "uncompressed bytes differ at iteration {i}"
         );
         let q = Affine::deserialize_compressed(compressed.as_slice()).unwrap();
-        assert_eq!(q.e, historical_normalize(q.e), "decoded e is not the even representative at iteration {i}");
+        assert_eq!(
+            q.e,
+            historical_normalize(q.e),
+            "decoded e is not the even representative at iteration {i}"
+        );
         assert_eq!(q, p, "compressed round-trip failed at iteration {i}");
         let r = Affine::deserialize_uncompressed(uncompressed.as_slice()).unwrap();
-        assert_eq!((r.e, r.u), (p.e, p.u), "uncompressed coordinates changed at iteration {i}");
+        assert_eq!(
+            (r.e, r.u),
+            (p.e, p.u),
+            "uncompressed coordinates changed at iteration {i}"
+        );
     }
 }
