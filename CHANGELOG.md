@@ -11,7 +11,6 @@
 - (`ark-serialize`) Add serde-compatible wrapper types `CompressedChecked<T>`, `CompressedUnchecked<T>`, `UncompressedChecked<T>`, `UncompressedUnchecked<T>`.
 - [\#989](https://github.com/arkworks-rs/algebra/pull/989) (`ark-poly`) Replace bound `F: FftField` with `F: Field` on `GeneralEvaluationDomain`.
 - (`ark-poly`) Add fast polynomial division
-- [\#1149](https://github.com/arkworks-rs/algebra/pull/1149) (`ark-poly`) Fix the fast polynomial division returning a wrong quotient or panicking when the quotient has zero low-order coefficients.
 - (`ark-ec`) Improve GLV scalar multiplication performance by skipping leading zeroes.
 - (`ark-poly`) Make `SparsePolynomial.coeffs` field public
 - [\#1039](https://github.com/arkworks-rs/algebra/pull/1039) (`ark-ff-asm`) Remove unused dead spill buffer path.
@@ -41,6 +40,7 @@
 
 ### Bugfixes
 
+- [\#1149](https://github.com/arkworks-rs/algebra/pull/1149) (`ark-poly`) Fix the fast polynomial division returning a wrong quotient or panicking when the quotient has zero low-order coefficients.
 - [\#1129](https://github.com/arkworks-rs/algebra/pull/1129) (`ark-serialize`) Fix `[T; N]` deserialization leaking constructed elements if a later element fails.
 - [\#1082](https://github.com/arkworks-rs/algebra/pull/1082) (`ark-ff`) Fix `SmallFp::from_random_bytes` / `from_be_bytes_mod_order` silently producing incorrect field elements by treating plaintext bytes as Montgomery-encoded.
 
