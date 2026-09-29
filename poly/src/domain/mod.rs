@@ -245,12 +245,11 @@ pub trait EvaluationDomain<F: FftField>:
         use crate::univariate::DenseOrSparsePolynomial;
         let self_vanishing_poly = DenseOrSparsePolynomial::from(
             &self.vanishing_polynomial()
-                * (subdomain.size_as_field_element()
-                    * subdomain.coset_offset_pow_size()
-                    * self.coset_offset_pow_size().inverse().unwrap()),
+                * (subdomain.size_as_field_element() * subdomain.coset_offset_pow_size()),
         );
         let subdomain_vanishing_poly = DenseOrSparsePolynomial::from(
-            &subdomain.vanishing_polynomial() * self.size_as_field_element(),
+            &subdomain.vanishing_polynomial()
+                * (self.size_as_field_element() * self.coset_offset_pow_size()),
         );
         let (quotient, remainder) = self_vanishing_poly
             .divide_with_q_and_r(&subdomain_vanishing_poly)
