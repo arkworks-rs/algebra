@@ -16,7 +16,6 @@
 - [\#1039](https://github.com/arkworks-rs/algebra/pull/1039) (`ark-ff-asm`) Remove unused dead spill buffer path.
 - [\#1044](https://github.com/arkworks-rs/algebra/pull/1044), [\#1084](https://github.com/arkworks-rs/algebra/pull/1084), [\#1088](https://github.com/arkworks-rs/algebra/pull/1088) Add implementation for small field with native integer types
 - [\#1061](https://github.com/arkworks-rs/algebra/pull/1061) (`ark-poly`) Reduce allocations in `DenseMultilinearExtension::{concat, fix_variables, evaluate}`.
-- [\#1147](https://github.com/arkworks-rs/algebra/pull/1147) (`ark-poly`) Truncate leading zeros after subtracting a `SparsePolynomial` from a `DensePolynomial`.
 - [\#1109](https://github.com/arkworks-rs/algebra/pull/1109) (`ark-poly`) Reduce allocations in `DenseMultilinearExtension::Sub` and parallelize scalar `Mul`.
 - [\#1112](https://github.com/arkworks-rs/algebra/pull/1112) (`ark-ec`) Fix rayon::ThreadPoolBuilder panicking in wasm32 when parallel feature is enabled
 - [\#1108](https://github.com/arkworks-rs/algebra/pull/1108) (`ark-ec`) Improve scalar multiplication speed for curves using GLV.
@@ -41,6 +40,7 @@
 
 ### Bugfixes
 
+- [\#1147](https://github.com/arkworks-rs/algebra/pull/1147) (`ark-poly`) Truncate leading zeros after subtracting a `SparsePolynomial` from a `DensePolynomial`.
 - [\#1129](https://github.com/arkworks-rs/algebra/pull/1129) (`ark-serialize`) Fix `[T; N]` deserialization leaking constructed elements if a later element fails.
 - [\#1082](https://github.com/arkworks-rs/algebra/pull/1082) (`ark-ff`) Fix `SmallFp::from_random_bytes` / `from_be_bytes_mod_order` silently producing incorrect field elements by treating plaintext bytes as Montgomery-encoded.
 
