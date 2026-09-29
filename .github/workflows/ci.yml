@@ -182,7 +182,7 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-            target
+            curves/target
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/curves/Cargo.lock') }}-mnt4-753
 
       - name: Conditionally run the tests
@@ -220,7 +220,7 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-            target
+            curves/target
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/curves/Cargo.lock') }}-mnt6-753
 
       - name: Conditionally run the tests
@@ -258,7 +258,7 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-            target
+            curves/target
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/curves/Cargo.lock') }}-cp6-782
 
       - name: Conditionally run the tests
