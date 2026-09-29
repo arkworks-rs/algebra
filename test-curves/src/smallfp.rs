@@ -73,6 +73,14 @@ mod tests {
                 assert_eq!(c.into_bigint().0[0], a * b % 97, "{a} * {b}");
             }
         }
+
+        // Same sweep for the u16 narrow path.
+        for a in 0..3329u64 {
+            for b in 0..3329u64 {
+                let c = SmallFp16Kyber::from(a) * SmallFp16Kyber::from(b);
+                assert_eq!(c.into_bigint().0[0], a * b % 3329, "{a} * {b}");
+            }
+        }
     }
 
     mod const_constructors {
