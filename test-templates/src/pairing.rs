@@ -109,6 +109,77 @@ macro_rules! test_pairing {
                     assert_eq!(a.mul_bits_be(bits.into_iter()), a * s);
                 }
             }
+
+            #[test]
+            fn test_mul_bits_be_against_double_and_add() {
+                use ark_ec::AdditiveGroup;
+                use ark_ff::BigInteger;
+                use ark_std::vec::Vec;
+                let rng = &mut test_rng();
+                let a = <$Pairing>::pairing(
+                    <$Pairing as Pairing>::G1::rand(rng),
+                    <$Pairing as Pairing>::G2::rand(rng),
+                );
+
+                // Independent oracle: plain left-to-right double-and-add using
+                // only group doubling and addition. Unlike `mul_bigint`, this
+                // shares no code with the `cyclotomic_exp` fast path that
+                // `PairingOutput::mul_bits_be` is implemented with.
+                let double_and_add = |bits: &[bool]| {
+                    let mut acc: PairingOutput<$Pairing> = Default::default();
+                    for bit in bits {
+                        acc.double_in_place();
+                        if *bit {
+                            acc += a;
+                        }
+                    }
+                    acc
+                };
+
+                let fixed_cases: [&[bool]; 6] = [
+                    &[],
+                    &[false, false],
+                    &[true],
+                    &[true, false],
+                    &[true, true, false],
+                    &[false, true, false, true],
+                ];
+                for bits in fixed_cases {
+                    assert_eq!(
+                        a.mul_bits_be(bits.iter().copied()),
+                        double_and_add(bits),
+                        "mul_bits_be disagrees with double-and-add for {bits:?}"
+                    );
+                }
+
+                // Random bit strings across limb boundaries. Lengths that are a
+                // multiple of 64 get a cleared top bit: exponents occupying every
+                // bit of the top limb can trip a pre-existing `find_naf` carry
+                // bug in `cyclotomic_exp` that is unrelated to the bit-to-limb
+                // conversion under test here.
+                for len in [1usize, 2, 63, 64, 65, 127, 128, 129, 190, 255] {
+                    for _ in 0..ITERATIONS {
+                        let mut bits: Vec<bool> = (0..len).map(|_| bool::rand(rng)).collect();
+                        if len % 64 == 0 {
+                            bits[0] = false;
+                        }
+                        assert_eq!(
+                            a.mul_bits_be(bits.iter().copied()),
+                            double_and_add(&bits),
+                            "mul_bits_be disagrees with double-and-add for a random {len}-bit input"
+                        );
+                    }
+                }
+
+                // Full-width scalars, cross-checked against both oracles.
+                for _ in 0..ITERATIONS {
+                    let s = <$Pairing as Pairing>::ScalarField::rand(rng);
+                    let bits = s.into_bigint().to_bits_be();
+                    let expected = double_and_add(&bits);
+                    assert_eq!(a.mul_bits_be(bits.into_iter()), expected);
+                    assert_eq!(a * s, expected);
+                }
+            }
         }
     };
 }
