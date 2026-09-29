@@ -190,7 +190,7 @@ jobs:
         if: ${{ steps.check-diff.outputs.mnt4_753_is_updated == 'true' || steps.deps-updated.outputs.cache-hit != 'true' }}
         run: |
           cd mnt4_753/
-          cargo test --all-features
+          cargo test --profile ci --all-features
         working-directory: ./curves
 
   test-mnt6-753:
@@ -207,10 +207,11 @@ jobs:
         with:
           filters: |
             mnt6_753_is_updated:
-              - 'mnt6_753/**'
+              - 'curves/mnt6_753/**'
 
       - name: Generate lockfile
         run: cargo generate-lockfile
+        working-directory: ./curves
 
       - name: Check if deps updated
         id: deps-updated
@@ -227,7 +228,7 @@ jobs:
         if: ${{ steps.check-diff.outputs.mnt6_753_is_updated == 'true' || steps.deps-updated.outputs.cache-hit != 'true' }}
         run: |
           cd mnt6_753/
-          cargo test --all-features
+          cargo test --profile ci --all-features
         working-directory: ./curves
 
   test-cp6_782:
@@ -244,10 +245,11 @@ jobs:
         with:
           filters: |
             cp6_782_is_updated:
-              - 'cp6_782/**'
+              - 'curves/cp6_782/**'
 
       - name: Generate lockfile
         run: cargo generate-lockfile
+        working-directory: ./curves
 
       - name: Check if deps updated
         id: deps-updated
@@ -264,7 +266,7 @@ jobs:
         if: ${{ steps.check-diff.outputs.cp6_782_is_updated == 'true' || steps.deps-updated.outputs.cache-hit != 'true' }}
         run: |
           cd cp6_782/
-          cargo test --all-features
+          cargo test --profile ci --all-features
         working-directory: ./curves
 
   test_assembly:
@@ -283,7 +285,10 @@ jobs:
 
       - name: Test assembly on nightly
         env:
-          RUSTFLAGS: -C target-cpu=native
+          # The asm backend is gated on bmi2+adx; enable exactly those instead
+          # of target-cpu=native so builds are identical across runner CPUs
+          # and restored caches cannot contain illegal instructions.
+          RUSTFLAGS: -C target-feature=+bmi2,+adx
         run: |
           cargo test --profile ci --workspace \
             --package ark-test-curves --all-features
