@@ -1,14 +1,17 @@
 #[macro_export]
 macro_rules! test_pairing {
     ($mod_name: ident; $Pairing: ty) => {
+        $crate::test_pairing!(100; $mod_name; $Pairing);
+    };
+    ($iters: expr; $mod_name: ident; $Pairing: ty) => {
         mod $mod_name {
-            pub const ITERATIONS: usize = 100;
+            pub const ITERATIONS: usize = $iters;
             use ark_ec::{pairing::*, CurveGroup, PrimeGroup};
             use ark_ff::{CyclotomicMultSubgroup, Field, PrimeField};
             use ark_std::{test_rng, One, UniformRand, Zero};
             #[test]
             fn test_bilinearity() {
-                for _ in 0..100 {
+                for _ in 0..ITERATIONS {
                     let mut rng = test_rng();
                     let a: <$Pairing as Pairing>::G1 = UniformRand::rand(&mut rng);
                     let b: <$Pairing as Pairing>::G2 = UniformRand::rand(&mut rng);
