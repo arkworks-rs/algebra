@@ -65,6 +65,129 @@ macro_rules! test_pairing {
                     assert!(gt.cyclotomic_exp(r).is_one());
                 }
             }
+
+            #[test]
+            fn test_mul_bits_be() {
+                use ark_ff::BigInteger;
+                let rng = &mut test_rng();
+                let a = <$Pairing>::pairing(
+                    <$Pairing as Pairing>::G1::rand(rng),
+                    <$Pairing as Pairing>::G2::rand(rng),
+                );
+
+                // `mul_bits_be` consumes a *big-endian* bit representation, so e.g.
+                // `[true, false]` is 2, not 1.
+                let small_cases: [(&[bool], u64); 7] = [
+                    (&[], 0),
+                    (&[false, false], 0),
+                    (&[true], 1),
+                    (&[true, false], 2),
+                    (&[true, true, false], 6),
+                    (&[true, false, true, false], 10),
+                    (&[false, true, false, true], 5),
+                ];
+                for (bits, scalar) in small_cases {
+                    assert_eq!(
+                        a.mul_bits_be(bits.iter().copied()),
+                        a.mul_bigint([scalar]),
+                        "mul_bits_be is inconsistent with mul_bigint for {scalar}"
+                    );
+                }
+
+                // `2^64 + 1`, which pins down the ordering of the limbs, and not just
+                // the ordering of the bits inside each limb.
+                let mut bits = [false; 65];
+                bits[0] = true;
+                bits[64] = true;
+                assert_eq!(
+                    a.mul_bits_be(bits.iter().copied()),
+                    a.mul_bigint([1u64, 1u64]),
+                    "mul_bits_be is inconsistent with mul_bigint for 2^64 + 1"
+                );
+
+                // Full-width scalars, including their leading zero bits.
+                for _ in 0..ITERATIONS {
+                    let s = <$Pairing as Pairing>::ScalarField::rand(rng);
+                    let bits = s.into_bigint().to_bits_be();
+                    assert_eq!(a.mul_bits_be(bits.into_iter()), a * s);
+                }
+            }
+
+            #[test]
+            fn test_mul_bits_be_against_double_and_add() {
+                use ark_ec::AdditiveGroup;
+                use ark_ff::BigInteger;
+                use ark_std::vec::Vec;
+                let rng = &mut test_rng();
+                let a = <$Pairing>::pairing(
+                    <$Pairing as Pairing>::G1::rand(rng),
+                    <$Pairing as Pairing>::G2::rand(rng),
+                );
+
+                // Independent oracle: plain left-to-right double-and-add using
+                // only group doubling and addition. Unlike `mul_bigint`, this
+                // shares no code with the `cyclotomic_exp` fast path that
+                // `PairingOutput::mul_bits_be` is implemented with.
+                let double_and_add = |bits: &[bool]| {
+                    let mut acc: PairingOutput<$Pairing> = Default::default();
+                    for bit in bits {
+                        acc.double_in_place();
+                        if *bit {
+                            acc += a;
+                        }
+                    }
+                    acc
+                };
+
+                let fixed_cases: [&[bool]; 6] = [
+                    &[],
+                    &[false, false],
+                    &[true],
+                    &[true, false],
+                    &[true, true, false],
+                    &[false, true, false, true],
+                ];
+                for bits in fixed_cases {
+                    assert_eq!(
+                        a.mul_bits_be(bits.iter().copied()),
+                        double_and_add(bits),
+                        "mul_bits_be disagrees with double-and-add for {bits:?}"
+                    );
+                }
+
+                // All-ones exponents filling one and two limbs exactly: the NAF
+                // of these needs one digit more than the limbs hold, exercising
+                // the find_naf carry into the spare limb.
+                for len in [64usize, 128] {
+                    let bits: Vec<bool> = (0..len).map(|_| true).collect();
+                    assert_eq!(
+                        a.mul_bits_be(bits.iter().copied()),
+                        double_and_add(&bits),
+                        "mul_bits_be disagrees with double-and-add for 2^{len} - 1"
+                    );
+                }
+
+                // Random bit strings across limb boundaries.
+                for len in [1usize, 2, 63, 64, 65, 127, 128, 129, 190, 255] {
+                    for _ in 0..ITERATIONS {
+                        let bits: Vec<bool> = (0..len).map(|_| bool::rand(rng)).collect();
+                        assert_eq!(
+                            a.mul_bits_be(bits.iter().copied()),
+                            double_and_add(&bits),
+                            "mul_bits_be disagrees with double-and-add for a random {len}-bit input"
+                        );
+                    }
+                }
+
+                // Full-width scalars, cross-checked against both oracles.
+                for _ in 0..ITERATIONS {
+                    let s = <$Pairing as Pairing>::ScalarField::rand(rng);
+                    let bits = s.into_bigint().to_bits_be();
+                    let expected = double_and_add(&bits);
+                    assert_eq!(a.mul_bits_be(bits.into_iter()), expected);
+                    assert_eq!(a * s, expected);
+                }
+            }
         }
     };
 }
