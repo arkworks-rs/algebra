@@ -66,6 +66,34 @@ fn test_g2_subgroup_non_membership_via_endomorphism() {
     }
 }
 
+#[test]
+fn test_g1_uncompressed_rejects_off_curve_point() {
+    // (u^2 x, u^3 y) lies on y^2 = x^3 + u^6 b, not on the BLS12-381 curve,
+    // but it still passes the endomorphism-based subgroup check.
+    let g = G1Affine::generator();
+    let u = Fq::from(2u64);
+    let p = G1Affine::new_unchecked(g.x * u.square(), g.y * u.square() * u);
+    assert!(!p.is_on_curve());
+    assert!(p.is_in_correct_subgroup_assuming_on_curve());
+
+    let mut bytes = vec![];
+    p.serialize_uncompressed(&mut bytes).unwrap();
+    assert!(G1Affine::deserialize_uncompressed(&bytes[..]).is_err());
+}
+
+#[test]
+fn test_g2_uncompressed_rejects_off_curve_point() {
+    let g = G2Affine::generator();
+    let u = Fq2::from(2u64);
+    let p = G2Affine::new_unchecked(g.x * u.square(), g.y * u.square() * u);
+    assert!(!p.is_on_curve());
+    assert!(p.is_in_correct_subgroup_assuming_on_curve());
+
+    let mut bytes = vec![];
+    p.serialize_uncompressed(&mut bytes).unwrap();
+    assert!(G2Affine::deserialize_uncompressed(&bytes[..]).is_err());
+}
+
 // Test vectors and macro adapted from https://github.com/zkcrypto/bls12_381/blob/e224ad4ea1babfc582ccd751c2bf128611d10936/src/tests/mod.rs
 macro_rules! test_vectors {
     ($projective:ident, $affine:ident, $compress:expr, $expected:ident) => {
