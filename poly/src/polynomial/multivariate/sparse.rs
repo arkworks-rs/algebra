@@ -24,8 +24,9 @@ use rayon::prelude::*;
 #[derive(Educe, CanonicalSerialize, CanonicalDeserialize)]
 #[educe(Clone, PartialEq, Eq, Hash, Default)]
 pub struct SparsePolynomial<F: Field, T: Term> {
-    /// The number of variables the polynomial supports
-    #[educe(PartialEq(ignore))]
+    /// The number of variables the polynomial supports.
+    /// This does not affect equality or hashing.
+    #[educe(PartialEq(ignore), Hash(ignore))]
     pub num_vars: usize,
     /// List of each term along with its coefficient
     pub terms: Vec<(F, T)>,
@@ -296,12 +297,46 @@ impl<F: Field, T: Term> Zero for SparsePolynomial<F, T> {
 
 #[cfg(test)]
 mod tests {
+    #[cfg(not(feature = "std"))]
+    extern crate std;
+
     use super::*;
     use ark_ff::UniformRand;
     use ark_std::test_rng;
     use ark_test_curves::bls12_381::Fr;
+    use std::{
+        collections::{hash_map::DefaultHasher, HashSet},
+        hash::{Hash, Hasher},
+    };
 
     // TODO: Make tests generic over term type
+
+    #[test]
+    fn equal_polynomials_with_different_num_vars_have_equal_hashes() {
+        let hash = |poly: &SparsePolynomial<Fr, SparseTerm>| {
+            let mut hasher = DefaultHasher::new();
+            poly.hash(&mut hasher);
+            hasher.finish()
+        };
+
+        for terms in [
+            vec![],
+            vec![(Fr::from(5), SparseTerm::new(vec![]))],
+            vec![(Fr::from(2), SparseTerm::new(vec![(0, 1), (1, 2)]))],
+        ] {
+            let p1 = SparsePolynomial::from_coefficients_slice(2, &terms);
+            let p2 = SparsePolynomial::from_coefficients_slice(3, &terms);
+
+            assert_eq!(p1, p2);
+            assert_eq!(hash(&p1), hash(&p2));
+
+            let mut set = HashSet::new();
+            assert!(set.insert(p1));
+            assert!(set.contains(&p2));
+            assert!(!set.insert(p2));
+            assert_eq!(set.len(), 1);
+        }
+    }
 
     /// Generate random `l`-variate polynomial of maximum individual degree `d`
     fn rand_poly<R: Rng>(l: usize, d: usize, rng: &mut R) -> SparsePolynomial<Fr, SparseTerm> {
