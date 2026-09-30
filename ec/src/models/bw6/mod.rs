@@ -130,18 +130,37 @@ pub trait BW6Config: 'static + Eq + Sized {
         }
 
         // f_1(P) = f_(u+1)(P) = f_u(P) * l([u]q, q)(P)
+        // `f_u` already accounts for every pair, so each chunk starts from one and `f_u` is
+        // multiplied in exactly once.
         let mut f_1 = cfg_chunks_mut!(pairs_1, 4)
             .map(|pairs| {
-                pairs.iter_mut().fold(f_u, |mut f, (p, coeffs)| {
-                    BW6::<Self>::ell(&mut f, &coeffs.next().unwrap(), &p.0);
-                    f
-                })
+                pairs.iter_mut().fold(
+                    <BW6<Self> as Pairing>::TargetField::one(),
+                    |mut f, (p, coeffs)| {
+                        BW6::<Self>::ell(&mut f, &coeffs.next().unwrap(), &p.0);
+                        f
+                    },
+                )
             })
-            .product::<<BW6<Self> as Pairing>::TargetField>();
+            .product::<<BW6<Self> as Pairing>::TargetField>()
+            * &f_u;
+
+        // The `f_u` factors are shared by all pairs, so they are accumulated once in
+        // `f_u_pow` rather than once per chunk.
+        let mut f_u_pow = f_u;
+        for i in (1..Self::ATE_LOOP_COUNT_2.len()).rev() {
+            f_u_pow.square_in_place();
+            let bit = Self::ATE_LOOP_COUNT_2[i - 1];
+            if bit == 1 {
+                f_u_pow *= &f_u;
+            } else if bit == -1 {
+                f_u_pow *= &f_u_inv;
+            }
+        }
 
         let mut f_2 = cfg_chunks_mut!(pairs_2, 4)
             .map(|pairs| {
-                let mut f = f_u;
+                let mut f = <BW6<Self> as Pairing>::TargetField::one();
                 for i in (1..Self::ATE_LOOP_COUNT_2.len()).rev() {
                     f.square_in_place();
 
@@ -150,11 +169,7 @@ pub trait BW6Config: 'static + Eq + Sized {
                     }
 
                     let bit = Self::ATE_LOOP_COUNT_2[i - 1];
-                    if bit == 1 {
-                        f *= &f_u;
-                    } else if bit == -1 {
-                        f *= &f_u_inv;
-                    } else {
+                    if bit != 1 && bit != -1 {
                         continue;
                     }
                     for &mut (p, ref mut coeffs) in pairs.iter_mut() {
@@ -163,7 +178,8 @@ pub trait BW6Config: 'static + Eq + Sized {
                 }
                 f
             })
-            .product::<<BW6<Self> as Pairing>::TargetField>();
+            .product::<<BW6<Self> as Pairing>::TargetField>()
+            * &f_u_pow;
 
         if Self::ATE_LOOP_COUNT_2_IS_NEGATIVE {
             f_2.cyclotomic_inverse_in_place();
