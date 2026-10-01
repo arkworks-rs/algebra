@@ -7,7 +7,7 @@ use ark_std::vec::*;
 
 use digest::{ExtendableOutput, FixedOutputReset, Update};
 
-pub trait Expander {
+pub(super) trait Expander {
     fn expand(&self, msg: &[u8], length: usize) -> Vec<u8>;
 }
 const MAX_DST_LENGTH: usize = 255;
@@ -18,13 +18,13 @@ const LONG_DST_PREFIX: &[u8; 17] = b"H2C-OVERSIZE-DST-";
 /// "Using DSTs longer than 255 bytes" of the
 /// [IRTF CFRG hash-to-curve draft #16](https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-hash-to-curve-16#section-5.3.3).
 #[allow(clippy::upper_case_acronyms)]
-pub struct DST {
+pub(super) struct DST {
     len: usize,
     data: [u8; MAX_DST_LENGTH],
 }
 
 impl DST {
-    pub fn new_xmd<H: FixedOutputReset + Default>(dst: &[u8]) -> DST {
+    pub(super) fn new_xmd<H: FixedOutputReset + Default>(dst: &[u8]) -> DST {
         let mut new_dst = [0u8; MAX_DST_LENGTH];
         let len = if dst.len() > MAX_DST_LENGTH {
             let mut long = H::default();
@@ -38,7 +38,7 @@ impl DST {
     }
 
     #[allow(dead_code)]
-    pub fn new_xof<H: ExtendableOutput + Default>(dst: &[u8], k: usize) -> DST {
+    pub(super) fn new_xof<H: ExtendableOutput + Default>(dst: &[u8], k: usize) -> DST {
         let mut new_dst = [0u8; MAX_DST_LENGTH];
         let len = if dst.len() > MAX_DST_LENGTH {
             let mut long = H::default();
@@ -54,7 +54,7 @@ impl DST {
         Self { data: new_dst, len }
     }
 
-    pub fn update<H: Update>(&self, h: &mut H) {
+    pub(super) fn update<H: Update>(&self, h: &mut H) {
         h.update(self.slice());
         // I2OSP(len,1) https://www.rfc-editor.org/rfc/rfc8017.txt
         h.update(&[self.len as u8]);
