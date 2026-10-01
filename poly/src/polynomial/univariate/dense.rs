@@ -540,6 +540,9 @@ impl<'a, F: Field> Sub<&'a SparsePolynomial<F>> for &DensePolynomial<F> {
                 }
             }
             result.coeffs.extend(upper_coeffs);
+            // Remove any leading zeros.
+            // For example: `1 + x - x` should be represented as `1`.
+            result.truncate_leading_zeros();
             result
         }
     }
@@ -596,6 +599,9 @@ impl<'a, F: Field> SubAssign<&'a SparsePolynomial<F>> for DensePolynomial<F> {
                 }
             }
             self.coeffs.extend(upper_coeffs);
+            // Remove any leading zeros.
+            // For example: `1 + x -= x` should be represented as `1`.
+            self.truncate_leading_zeros();
         }
     }
 }
@@ -1334,6 +1340,32 @@ mod tests {
         // Assert that the resulting polynomial is zero.
         assert!(result.is_zero(), "The resulting polynomial should be zero.");
         assert_eq!(result.coeffs, vec![], "Leading zeros were not truncated.");
+    }
+
+    #[test]
+    fn test_truncate_leading_zeros_after_sparse_subtraction() {
+        // `1 + x`, represented densely as [1, 1].
+        let dense = DensePolynomial {
+            coeffs: vec![Fr::from(1), Fr::from(1)],
+        };
+        // `x`, whose leading term cancels the leading term of `dense`.
+        let sparse = SparsePolynomial::from_coefficients_slice(&[(1, Fr::from(1))]);
+        let expected = DensePolynomial {
+            coeffs: vec![Fr::from(1)],
+        };
+
+        // `&dense - &sparse` must leave a canonical coefficient vector.
+        let result = &dense - &sparse;
+        assert_eq!(result.coeffs, vec![Fr::from(1)]);
+        assert_eq!(result, expected);
+        assert_eq!(result.degree(), 0);
+
+        // `dense -= &sparse` must truncate as well.
+        let mut result = dense.clone();
+        result -= &sparse;
+        assert_eq!(result.coeffs, vec![Fr::from(1)]);
+        assert_eq!(result, expected);
+        assert_eq!(result.degree(), 0);
     }
 
     #[test]
