@@ -107,9 +107,7 @@ fn impl_valid(ast: &syn::DeriveInput) -> TokenStream {
 
     let gen = quote! {
         impl #impl_generics ark_serialize::Valid for #name #ty_generics #where_clause {
-            const TRIVIAL_CHECK: bool = (
-                #(#trivial_check_body) && *
-            );
+            const TRIVIAL_CHECK: bool = true #(&& #trivial_check_body)*;
             fn check(&self) -> Result<(), ark_serialize::SerializationError> {
                 #check_body
 
