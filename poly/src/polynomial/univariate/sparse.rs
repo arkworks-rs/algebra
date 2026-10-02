@@ -268,7 +268,7 @@ impl<F: Field> SparsePolynomial<F> {
                         .or_insert_with(|| *self_coeff * other_coeff);
                 }
             }
-            Self::from_coefficients_vec(result.into_iter().collect())
+            Self::from_coefficients_vec(result.into_iter().filter(|(_, c)| !c.is_zero()).collect())
         }
     }
 
@@ -337,7 +337,7 @@ mod tests {
         univariate::{DensePolynomial, SparsePolynomial},
         EvaluationDomain, GeneralEvaluationDomain,
     };
-    use ark_ff::{UniformRand, Zero};
+    use ark_ff::{One, UniformRand, Zero};
     use ark_std::{cmp::max, ops::Mul, rand::Rng, test_rng, vec};
     use ark_test_curves::bls12_381::Fr;
 
@@ -436,6 +436,19 @@ mod tests {
                 a.mul(&SparsePolynomial::from_coefficients_slice(&[(0, e)]))
             )
         }
+    }
+
+    #[test]
+    fn mul_drops_cancelled_terms() {
+        // (1 + x)(1 - x) = 1 - x^2, the x terms cancel
+        let a = SparsePolynomial::from_coefficients_slice(&[(0, Fr::one()), (1, Fr::one())]);
+        let b = SparsePolynomial::from_coefficients_slice(&[(0, Fr::one()), (1, -Fr::one())]);
+        let prod = a.mul(&b);
+        assert_eq!(
+            prod,
+            SparsePolynomial::from_coefficients_slice(&[(0, Fr::one()), (2, -Fr::one())])
+        );
+        assert!(prod.coeffs.iter().all(|(_, c)| !c.is_zero()));
     }
 
     #[test]
