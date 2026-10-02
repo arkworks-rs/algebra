@@ -259,6 +259,47 @@ mod tests {
     }
 
     #[test]
+    fn filter_polynomial_coset_domain_test() {
+        let rng = &mut test_rng();
+        for log_domain_size in 1..=4 {
+            let domain_size = 1 << log_domain_size;
+            // A coset of the subgroup of size `domain_size`.
+            let domain = Radix2EvaluationDomain::<Fr>::new(domain_size)
+                .unwrap()
+                .get_coset(Fr::GENERATOR)
+                .unwrap();
+            let domain_elements = domain.elements().collect::<ark_std::vec::Vec<_>>();
+            for log_subdomain_size in 1..=log_domain_size {
+                let subdomain_size = 1 << log_subdomain_size;
+                let subdomain = Radix2EvaluationDomain::<Fr>::new(subdomain_size).unwrap();
+
+                // Each element of `domain` is the offset of a coset of `subdomain`
+                // contained in `domain`.
+                for offset in &domain_elements[..domain_size / subdomain_size] {
+                    let coset = subdomain.get_coset(*offset).unwrap();
+                    let coset_elements = coset.elements().collect::<BTreeSet<_>>();
+                    let filter_poly = domain.filter_polynomial(&coset);
+                    for element in &domain_elements {
+                        let expected = if coset_elements.contains(element) {
+                            Fr::one()
+                        } else {
+                            Fr::zero()
+                        };
+                        assert_eq!(filter_poly.evaluate(element), expected);
+                    }
+                    for _ in 0..10 {
+                        let point = Fr::rand(rng);
+                        assert_eq!(
+                            domain.evaluate_filter_polynomial(&coset, point),
+                            filter_poly.evaluate(&point)
+                        );
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
     fn size_of_elements() {
         for coeffs in 1..10 {
             let size = 1 << coeffs;
