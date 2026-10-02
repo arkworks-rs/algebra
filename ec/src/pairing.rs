@@ -295,18 +295,21 @@ impl<P: Pairing> PrimeGroup for PairingOutput<P> {
     }
 
     fn mul_bits_be(&self, other: impl Iterator<Item = bool>) -> Self {
-        // Convert back from bits to [u64] limbs
-        let other = other
-            .collect::<Vec<_>>()
-            .chunks(64)
+        // Convert back from big-endian bits to little-endian [u64] limbs:
+        // the *last* 64 bits of `other` form the least significant limb, and inside
+        // each limb the last bit is the least significant one.
+        let bits = other.collect::<Vec<_>>();
+        let limbs = bits
+            .rchunks(64)
             .map(|chunk| {
                 chunk
                     .iter()
+                    .rev()
                     .enumerate()
-                    .fold(0, |r, (i, bit)| r | u64::from(*bit) << i)
+                    .fold(0u64, |limb, (i, bit)| limb | u64::from(*bit) << i)
             })
             .collect::<Vec<_>>();
-        Self(self.0.cyclotomic_exp(&other))
+        Self(self.0.cyclotomic_exp(&limbs))
     }
 }
 
