@@ -42,6 +42,7 @@
 
 ### Bugfixes
 
+- [\#XXXX](https://github.com/arkworks-rs/algebra/pull/XXXX) (`ark-poly`) Fix `AddAssign<(F, &DensePolynomial<F>)>` leaving a run of zero coefficients behind when the scalar is zero and the left operand is the zero polynomial, so the result is now the canonical zero polynomial.
 - [\#1163](https://github.com/arkworks-rs/algebra/pull/1163) (`ark-ff`) Fix `find_naf` (and hence `find_relaxed_naf` and `cyclotomic_exp`) dropping the top-limb carry for exponents just below a 64·k-bit boundary, e.g. `2^64 - 1`.
 - [\#1129](https://github.com/arkworks-rs/algebra/pull/1129) (`ark-serialize`) Fix `[T; N]` deserialization leaking constructed elements if a later element fails.
 - [\#1082](https://github.com/arkworks-rs/algebra/pull/1082) (`ark-ff`) Fix `SmallFp::from_random_bytes` / `from_be_bytes_mod_order` silently producing incorrect field elements by treating plaintext bytes as Montgomery-encoded.
