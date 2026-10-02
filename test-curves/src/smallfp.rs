@@ -4,6 +4,12 @@ define_field!(modulus = "251", generator = "6", name = SmallFp8,);
 
 define_field!(modulus = "65521", generator = "17", name = SmallFp16,);
 
+// Primes with fewer bits than their u8 / u16 backing type
+define_field!(modulus = "97", generator = "5", name = SmallFp8P97,);
+
+// Kyber prime
+define_field!(modulus = "3329", generator = "3", name = SmallFp16Kyber,);
+
 // Mersenne13 prime 2^13 - 1
 define_field!(modulus = "8191", generator = "17", name = SmallFp16M13,);
 
@@ -47,6 +53,8 @@ mod tests {
 
     test_small_field!(f8; SmallFp8);
     test_small_field!(f16; SmallFp16);
+    test_small_field!(f8_p97; SmallFp8P97);
+    test_small_field!(f16_kyber; SmallFp16Kyber);
     test_small_field!(f16_montgomery13; SmallFp16M13);
     test_small_field!(f32_montgomery31; SmallFp32M31);
     test_small_field!(f32_babybear; SmallFp32Babybear);
@@ -54,6 +62,26 @@ mod tests {
     test_small_field!(f32; SmallFp32);
     test_small_field!(f64_goldilocks; SmallFp64Goldilocks);
     test_small_field!(f64; SmallFp64);
+
+    #[test]
+    fn test_mul_for_prime_narrower_than_backing_type() {
+        use ark_ff::PrimeField;
+
+        for a in 0..97u64 {
+            for b in 0..97u64 {
+                let c = SmallFp8P97::from(a) * SmallFp8P97::from(b);
+                assert_eq!(c.into_bigint().0[0], a * b % 97, "{a} * {b}");
+            }
+        }
+
+        // Same sweep for the u16 narrow path.
+        for a in 0..3329u64 {
+            for b in 0..3329u64 {
+                let c = SmallFp16Kyber::from(a) * SmallFp16Kyber::from(b);
+                assert_eq!(c.into_bigint().0[0], a * b % 3329, "{a} * {b}");
+            }
+        }
+    }
 
     mod const_constructors {
         use super::*;

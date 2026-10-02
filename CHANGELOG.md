@@ -46,6 +46,7 @@
 - [\#1129](https://github.com/arkworks-rs/algebra/pull/1129) (`ark-serialize`) Fix `[T; N]` deserialization leaking constructed elements if a later element fails.
 - [\#1082](https://github.com/arkworks-rs/algebra/pull/1082) (`ark-ff`) Fix `SmallFp::from_random_bytes` / `from_be_bytes_mod_order` silently producing incorrect field elements by treating plaintext bytes as Montgomery-encoded.
 - [\#1141](https://github.com/arkworks-rs/algebra/pull/1141) (`ark-ec`) Fix `PairingOutput::mul_bits_be` interpreting its input as a little-endian instead of a big-endian bit representation, which made it return the wrong group element.
+- [\#1152](https://github.com/arkworks-rs/algebra/pull/1152) (`ark-ff-macros`) Fix `SmallFp` multiplication for `u8`/`u16` primes whose bit length is not exactly 8 or 16.
 
 ## v0.5.0
 
