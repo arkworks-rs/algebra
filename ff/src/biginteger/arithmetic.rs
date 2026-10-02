@@ -115,6 +115,10 @@ pub const fn mac_with_carry(a: u64, b: u64, c: u64, carry: &mut u64) -> u64 {
 /// Compute the NAF (non-adjacent form) of num
 pub fn find_naf(num: &[u64]) -> Vec<i8> {
     let mut num = num.to_vec();
+    // The NAF of an n-bit number can need n + 1 digits, and the `2 - (num % 4)`
+    // step below adds 1 to a number of the form 4k + 3, which carries past the
+    // top limb when every remaining bit is set. A spare limb absorbs that carry.
+    num.push(0);
     let mut res = vec![];
 
     // Helper functions for arithmetic operations
@@ -455,8 +459,60 @@ mod tests {
 
     #[test]
     fn test_find_naf_edge_cases() {
-        // Test edge cases
+        // The NAF of an n-bit value can need n + 1 digits: these values all
+        // carry past their top limb during the NAF computation.
+        assert_eq!(find_naf(&[3]).last(), Some(&1));
         let naf = find_naf(&[u64::MAX]);
-        assert!(!naf.is_empty());
+        assert_eq!(naf.len(), 65);
+        assert_eq!((naf[0], naf[64]), (-1, 1));
+        check_naf_properties(&[u64::MAX]);
+        check_naf_properties(&[u64::MAX - 2]);
+        check_naf_properties(&[u64::MAX, u64::MAX]);
+        check_naf_properties(&[u64::MAX - 2, u64::MAX]);
+        check_naf_properties(&[u64::MAX, 0]);
+        check_naf_properties(&[3]);
+        check_naf_properties(&[1]);
+        check_naf_properties(&[0]);
+    }
+
+    #[test]
+    fn test_find_naf_random() {
+        let mut rng = ark_std::test_rng();
+        use ark_std::rand::Rng;
+        for _ in 0..1000 {
+            let num: [u64; 2] = rng.gen();
+            check_naf_properties(&num);
+        }
+    }
+
+    /// Check that `find_naf(num)` reconstructs to `num` and is in fact
+    /// non-adjacent. Reconstruction is checked as `pos == num + neg`, where
+    /// `pos` and `neg` are the (non-negative) sums of the 1 and -1 digits.
+    fn check_naf_properties(num: &[u64]) {
+        use crate::biginteger::{BigInt, BigInteger};
+        assert!(num.len() <= 2, "test helper supports up to two limbs");
+        let naf = find_naf(num);
+        let mut pos = BigInt::<4>::zero();
+        let mut neg = BigInt::<4>::zero();
+        for (i, digit) in naf.iter().enumerate() {
+            let power = BigInt::<4>::from(1u64) << (i as u32);
+            match digit {
+                1 => assert!(!pos.add_with_carry(&power)),
+                -1 => assert!(!neg.add_with_carry(&power)),
+                0 => (),
+                d => panic!("invalid NAF digit {d}"),
+            }
+            if i > 0 {
+                assert!(
+                    naf[i - 1] == 0 || *digit == 0,
+                    "adjacent non-zero digits at positions {} and {i}",
+                    i - 1
+                );
+            }
+        }
+        let mut expected = BigInt::<4>::zero();
+        expected.0[..num.len()].copy_from_slice(num);
+        assert!(!expected.add_with_carry(&neg));
+        assert_eq!(pos, expected, "NAF of {num:?} does not reconstruct");
     }
 }
