@@ -682,6 +682,20 @@ macro_rules! __test_small_field {
                 assert_eq!(expected, actual, "from_be_bytes_mod_order failed on {:?}", bytes);
             }
         }
+
+        #[test]
+        fn test_from_random_bytes_masks_high_bits() {
+            use ark_ff::{Field, PrimeField};
+
+            // Bits at or above `MODULUS_BIT_SIZE` must be ignored, as for `Fp`.
+            let bits = <$field>::MODULUS_BIT_SIZE;
+            let high = if bits >= 64 { 0 } else { u64::MAX << bits };
+            let bytes = (high | 5).to_le_bytes();
+            assert_eq!(
+                <$field>::from_random_bytes(&bytes),
+                Some(<$field>::from(5u8))
+            );
+        }
     };
 }
 
