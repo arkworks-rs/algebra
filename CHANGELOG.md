@@ -2,6 +2,8 @@
 
 ## Pending
 
+- (`ark-ff`) Reject a `#[derive(MontConfig)]` generator that is not a quadratic non-residue. It silently produced a root of unity of smaller order than `2^TWO_ADICITY`, which can make `Field::sqrt` loop forever.
+
 - [\#1135](https://github.com/arkworks-rs/algebra/pull/1135) (`ark-ff`) With the `parallel` feature, `batch_inversion` and `batch_inversion_and_mul` now run serially for batches below 2048 elements instead of dispatching to rayon, which cost more than the inversion itself for small batches.
 - [\#1135](https://github.com/arkworks-rs/algebra/pull/1135) (`ark-ec`) Evaluate the isogeny polynomials of `WBMap` in place with Horner's rule instead of allocating temporary polynomials, and drop the now-unused `ark-poly` dependency of `ark-ec`.
 - (`ark-starkcurve`) Add 252 bit [Stark curve](https://docs.starknet.io/architecture/cryptography/#the_stark_curve).

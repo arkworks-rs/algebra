@@ -49,6 +49,15 @@ pub(crate) fn mont_config_helper(
         (None, None) => None,
         (..) => panic!("Must specify both `small_subgroup_base` and `small_subgroup_power`"),
     };
+    // A generator of the full 2^s subgroup order must be a quadratic non-residue.
+    // When it is not, the root of unity below silently has a smaller order and
+    // Field::sqrt can loop forever, so reject it here instead.
+    let half = (&modulus - BigUint::from_str("1").unwrap()) / 2u8;
+    assert_ne!(
+        generator.modpow(&half, &modulus),
+        BigUint::from_str("1").unwrap(),
+        "The generator must be a quadratic non-residue"
+    );
     let two_adic_root_of_unity = generator.modpow(&trace, &modulus);
     let large_subgroup_generator = remaining_subgroup_size
         .as_ref()
