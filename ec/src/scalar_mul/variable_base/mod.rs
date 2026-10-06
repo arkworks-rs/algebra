@@ -509,6 +509,9 @@ const THREADS_PER_CHUNK: usize = 2;
 /// To improve parallelism, when number of threads is at least 2, this
 /// function will split the input into enough chunks so that each chunk
 /// can be processed with 2 threads.
+///
+/// The chunks run as tasks of the caller's rayon pool, so the MSM uses at
+/// most that pool's threads, and concurrent MSMs share them.
 fn msm_bigint_wnaf<V: VariableBaseMSM>(
     mut bases: &[V::MulBase],
     mut scalars: &[<V::ScalarField as PrimeField>::BigInt],
@@ -541,19 +544,7 @@ fn msm_bigint_wnaf<V: VariableBaseMSM>(
 
     cfg_chunks!(bases, chunk_size)
         .zip(cfg_chunks!(scalars, chunk_size))
-        .map(|(bases, scalars)| {
-            #[cfg(feature = "parallel")]
-            let result = rayon::ThreadPoolBuilder::new()
-                .num_threads(THREADS_PER_CHUNK.min(rayon::current_num_threads()))
-                .build()
-                .unwrap()
-                .install(|| msm_bigint_wnaf_parallel::<V>(bases, scalars));
-
-            #[cfg(not(feature = "parallel"))]
-            let result = msm_bigint_wnaf_parallel::<V>(bases, scalars);
-
-            result
-        })
+        .map(|(bases, scalars)| msm_bigint_wnaf_parallel::<V>(bases, scalars))
         .sum()
 }
 
