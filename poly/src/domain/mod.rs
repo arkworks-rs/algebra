@@ -245,11 +245,11 @@ pub trait EvaluationDomain<F: FftField>:
         use crate::univariate::DenseOrSparsePolynomial;
         let self_vanishing_poly = DenseOrSparsePolynomial::from(
             &self.vanishing_polynomial()
-                * (subdomain.size_as_field_element()
-                    * subdomain.coset_offset().pow([subdomain.size() as u64])),
+                * (subdomain.size_as_field_element() * subdomain.coset_offset_pow_size()),
         );
         let subdomain_vanishing_poly = DenseOrSparsePolynomial::from(
-            &subdomain.vanishing_polynomial() * self.size_as_field_element(),
+            &subdomain.vanishing_polynomial()
+                * (self.size_as_field_element() * self.coset_offset_pow_size()),
         );
         let (quotient, remainder) = self_vanishing_poly
             .divide_with_q_and_r(&subdomain_vanishing_poly)
@@ -265,8 +265,10 @@ pub trait EvaluationDomain<F: FftField>:
         if v_subdomain_of_tau.is_zero() {
             F::one()
         } else {
-            subdomain.size_as_field_element() * self.evaluate_vanishing_polynomial(tau)
-                / (self.size_as_field_element() * v_subdomain_of_tau)
+            subdomain.size_as_field_element()
+                * subdomain.coset_offset_pow_size()
+                * self.evaluate_vanishing_polynomial(tau)
+                / (self.size_as_field_element() * self.coset_offset_pow_size() * v_subdomain_of_tau)
         }
     }
 
