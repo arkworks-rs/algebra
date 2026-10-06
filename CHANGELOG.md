@@ -42,6 +42,7 @@
 
 ### Bugfixes
 
+- [\#1170](https://github.com/arkworks-rs/algebra/pull/1170) (`ark-cp6-782`) Fix `CP6_782::pairing` and `multi_pairing` panicking when a G2 point is the identity.
 - [\#1149](https://github.com/arkworks-rs/algebra/pull/1149) (`ark-poly`) Fix division by a `DensePolynomial` of degree >= 256 (`Div`, `divide`, `divide_with_q_and_r`) returning a wrong quotient or panicking when the quotient has zero low-order coefficients, e.g. `(x * b) / b` returned `1` for `b` of degree 300, and `x^300 / x^256` panicked.
 - [\#1163](https://github.com/arkworks-rs/algebra/pull/1163) (`ark-ff`) Fix `find_naf` (and hence `find_relaxed_naf` and `cyclotomic_exp`) dropping the top-limb carry for exponents just below a 64·k-bit boundary, e.g. `2^64 - 1`.
 - [\#1129](https://github.com/arkworks-rs/algebra/pull/1129) (`ark-serialize`) Fix `[T; N]` deserialization leaking constructed elements if a later element fails.
