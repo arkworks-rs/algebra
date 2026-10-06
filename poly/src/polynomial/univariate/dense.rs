@@ -924,6 +924,43 @@ mod tests {
     }
 
     #[test]
+    fn divide_polynomials_quotient_with_zero_low_coeffs() {
+        let rng = &mut test_rng();
+        let x_pow = |k: usize| {
+            let mut coeffs = vec![Fr::zero(); k + 1];
+            coeffs[k] = Fr::one();
+            DensePolynomial::from_coefficients_vec(coeffs)
+        };
+
+        // Divisors of degree >= 256 go through the Hensel division.
+        let divisor = DensePolynomial::<Fr>::rand(300, rng);
+        for shift in 1..4 {
+            // quotient = x^shift * q, remainder of degree < 300
+            let quotient = &x_pow(shift) * &DensePolynomial::rand(20, rng);
+            let remainder = DensePolynomial::rand(100, rng);
+            let dividend = &(&divisor * &quotient) + &remainder;
+            assert_eq!(&dividend / &divisor, quotient);
+            assert_eq!(&(&divisor * &x_pow(shift)) / &divisor, x_pow(shift));
+        }
+
+        // x^300 / x^256 and x^300 / (x^256 - 1) both have quotient x^44.
+        assert_eq!(&x_pow(300) / &x_pow(256), x_pow(44));
+        assert_eq!(&x_pow(300) / &(&x_pow(256) - &x_pow(0)), x_pow(44));
+
+        // Same construction on both sides of the schoolbook/Hensel switch
+        // (divisor degree 256), pinning the two paths to the same ground truth.
+        for divisor_degree in [255, 256, 257] {
+            let divisor = DensePolynomial::<Fr>::rand(divisor_degree, rng);
+            for shift in 1..4 {
+                let quotient = &x_pow(shift) * &DensePolynomial::rand(20, rng);
+                let remainder = DensePolynomial::rand(divisor_degree - 1, rng);
+                let dividend = &(&divisor * &quotient) + &remainder;
+                assert_eq!(&dividend / &divisor, quotient);
+            }
+        }
+    }
+
+    #[test]
     fn evaluate_polynomials() {
         let rng = &mut test_rng();
         for a_degree in 0..70 {
