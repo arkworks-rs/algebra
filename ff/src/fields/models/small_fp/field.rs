@@ -49,7 +49,9 @@ impl<P: SmallFpConfig> Field for SmallFp<P> {
         if F::BIT_SIZE > 8 {
             None
         } else {
-            let shave_bits = Self::num_bits_to_shave();
+            // The mask is applied to a 64-bit limb, so shave relative to the limb
+            // width rather than the width of the backing integer type.
+            let shave_bits = 64 * P::NUM_BIG_INT_LIMBS - Self::MODULUS_BIT_SIZE as usize;
             let mut result_bytes: crate::const_helpers::SerBuffer<1> =
                 crate::const_helpers::SerBuffer::zeroed();
             // Copy the input into a temporary buffer.
