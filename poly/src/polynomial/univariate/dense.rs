@@ -540,6 +540,7 @@ impl<'a, F: Field> Sub<&'a SparsePolynomial<F>> for &DensePolynomial<F> {
                 }
             }
             result.coeffs.extend(upper_coeffs);
+            result.truncate_leading_zeros();
             result
         }
     }
@@ -596,6 +597,7 @@ impl<'a, F: Field> SubAssign<&'a SparsePolynomial<F>> for DensePolynomial<F> {
                 }
             }
             self.coeffs.extend(upper_coeffs);
+            self.truncate_leading_zeros();
         }
     }
 }
@@ -1371,6 +1373,28 @@ mod tests {
         // Assert that the resulting polynomial is zero.
         assert!(result.is_zero(), "The resulting polynomial should be zero.");
         assert_eq!(result.coeffs, vec![], "Leading zeros were not truncated.");
+    }
+
+    #[test]
+    fn test_truncate_leading_zeros_after_sparse_subtraction() {
+        // 1 + x^2
+        let poly1 = DensePolynomial {
+            coeffs: vec![Fr::from(1), Fr::from(0), Fr::from(1)],
+        };
+        // x^2
+        let poly2 = SparsePolynomial::from_coefficients_slice(&[(2, Fr::from(1))]);
+        let expected = DensePolynomial {
+            coeffs: vec![Fr::from(1)],
+        };
+
+        let result = &poly1 - &poly2;
+        assert_eq!(result, expected);
+        assert_eq!(result.degree(), 0);
+
+        let mut result = poly1.clone();
+        result -= &poly2;
+        assert_eq!(result, expected);
+        assert_eq!(result.degree(), 0);
     }
 
     #[test]
