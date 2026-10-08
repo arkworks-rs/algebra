@@ -5,11 +5,13 @@
 - [\#1135](https://github.com/arkworks-rs/algebra/pull/1135) (`ark-ff`) With the `parallel` feature, `batch_inversion` and `batch_inversion_and_mul` now run serially for batches below 2048 elements instead of dispatching to rayon, which cost more than the inversion itself for small batches.
 - [\#1135](https://github.com/arkworks-rs/algebra/pull/1135) (`ark-ec`) Evaluate the isogeny polynomials of `WBMap` in place with Horner's rule instead of allocating temporary polynomials, and drop the now-unused `ark-poly` dependency of `ark-ec`.
 - (`ark-starkcurve`) Add 252 bit [Stark curve](https://docs.starknet.io/architecture/cryptography/#the_stark_curve).
+- [\#1160](https://github.com/arkworks-rs/algebra/pull/1160) (`ark-ec`) Fix uncompressed deserialization of double-odd curve points returning the negated point for points with odd `e`.
 - [\#971](https://github.com/arkworks-rs/algebra/pull/971) (`ark-ff`) Make serial_batch_inversion_and_mul public.
 - [\#1150](https://github.com/arkworks-rs/algebra/pull/1150) (`ark-ff`) Reject non-zero unused bits in the extra flags byte when deserializing `Fp` with flags, so that each value has a single encoding.
 - Consolidated logic into `bitreverse_permutation_in_place` and made it public.
 - Remove redundant type constraints from `Pairing::G1Prepared`.
 - (`ark-serialize`) Add serde-compatible wrapper types `CompressedChecked<T>`, `CompressedUnchecked<T>`, `UncompressedChecked<T>`, `UncompressedUnchecked<T>`.
+- [\#1162](https://github.com/arkworks-rs/algebra/pull/1162) (`ark-serialize`) Make the `serde::vec_*` modules use the compression and validation mode in their name. Previously all of them used compressed, checked mode, so `vec_uncompressed_*` output changes.
 - [\#989](https://github.com/arkworks-rs/algebra/pull/989) (`ark-poly`) Replace bound `F: FftField` with `F: Field` on `GeneralEvaluationDomain`.
 - (`ark-poly`) Add fast polynomial division
 - (`ark-ec`) Improve GLV scalar multiplication performance by skipping leading zeroes.
@@ -41,8 +43,11 @@
 
 ### Bugfixes
 
+- [\#1149](https://github.com/arkworks-rs/algebra/pull/1149) (`ark-poly`) Fix division by a `DensePolynomial` of degree >= 256 (`Div`, `divide`, `divide_with_q_and_r`) returning a wrong quotient or panicking when the quotient has zero low-order coefficients, e.g. `(x * b) / b` returned `1` for `b` of degree 300, and `x^300 / x^256` panicked.
+- [\#1163](https://github.com/arkworks-rs/algebra/pull/1163) (`ark-ff`) Fix `find_naf` (and hence `find_relaxed_naf` and `cyclotomic_exp`) dropping the top-limb carry for exponents just below a 64·k-bit boundary, e.g. `2^64 - 1`.
 - [\#1129](https://github.com/arkworks-rs/algebra/pull/1129) (`ark-serialize`) Fix `[T; N]` deserialization leaking constructed elements if a later element fails.
 - [\#1082](https://github.com/arkworks-rs/algebra/pull/1082) (`ark-ff`) Fix `SmallFp::from_random_bytes` / `from_be_bytes_mod_order` silently producing incorrect field elements by treating plaintext bytes as Montgomery-encoded.
+- [\#1141](https://github.com/arkworks-rs/algebra/pull/1141) (`ark-ec`) Fix `PairingOutput::mul_bits_be` interpreting its input as a little-endian instead of a big-endian bit representation, which made it return the wrong group element.
 
 ## v0.5.0
 

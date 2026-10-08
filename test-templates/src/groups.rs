@@ -187,29 +187,34 @@ macro_rules! __test_group {
         }
     };
     ($group:ty; msm) => {
+        // MSM sample counts scale with ITERATIONS so that curves with reduced
+        // iteration counts (the 753/782-bit ones) also get smaller MSM
+        // instances; each fast MSM is checked against a naive one, whose cost
+        // is `samples` full scalar multiplications. At the default
+        // ITERATIONS = 500 these match the former fixed sizes (~2^10).
         #[test]
         fn test_var_base_msm() {
-            $crate::msm::test_var_base_msm::<$group>();
+            $crate::msm::test_var_base_msm::<$group>(2 * ITERATIONS);
         }
 
         #[test]
         fn test_var_base_msm_mixed_scalars() {
-            $crate::msm::test_var_base_msm_mixed_scalars::<$group>();
+            $crate::msm::test_var_base_msm_mixed_scalars::<$group>(2 * ITERATIONS);
         }
 
         #[test]
         fn test_var_base_msm_specialized() {
-            $crate::msm::test_var_base_msm_specialized::<$group>();
+            $crate::msm::test_var_base_msm_specialized::<$group>(10 * ITERATIONS);
         }
 
         #[test]
         fn test_chunked_pippenger() {
-            $crate::msm::test_chunked_pippenger::<$group>();
+            $crate::msm::test_chunked_pippenger::<$group>(2 * ITERATIONS);
         }
 
         #[test]
         fn test_hashmap_pippenger() {
-            $crate::msm::test_hashmap_pippenger::<$group>();
+            $crate::msm::test_hashmap_pippenger::<$group>(2 * ITERATIONS);
         }
     };
     ($group:ty; curve) => {
