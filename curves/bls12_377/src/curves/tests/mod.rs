@@ -1,8 +1,9 @@
-use crate::{Bls12_377, G1Projective, G2Projective};
+use crate::{Bls12_377, G1Projective, G1TEProjective, G2Projective};
 use ark_algebra_test_templates::*;
 
 test_group!(g1; G1Projective; sw);
 test_group!(g2; G2Projective; sw);
+test_group!(g1_te; G1TEProjective; te);
 test_group!(pairing_output; ark_ec::pairing::PairingOutput<Bls12_377>; msm);
 test_pairing!(pairing; crate::Bls12_377);
 test_group!(g1_glv; G1Projective; glv);
