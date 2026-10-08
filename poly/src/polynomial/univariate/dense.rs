@@ -405,6 +405,10 @@ impl<'a, F: Field> AddAssign<(F, &'a Self)> for DensePolynomial<F> {
             self.coeffs.clear();
             self.coeffs.extend_from_slice(&other.coeffs);
             self.coeffs.iter_mut().for_each(|c| *c *= &f);
+            // A zero `f` zeroes out every coefficient, and `other` may itself carry
+            // leading zeros, so canonicalize here instead of falling through to the
+            // truncate at the end of the function.
+            self.truncate_leading_zeros();
             return;
         }
 
@@ -1129,6 +1133,26 @@ mod tests {
 
         // After addition, poly1 should be equal to poly2
         assert_eq!(poly1.coeffs, vec![Fr::from(2), Fr::from(3)]);
+    }
+
+    #[test]
+    fn test_add_assign_with_zero_self_and_zero_scalar_truncates_leading_zeros() {
+        // Create a polynomial poly1 which is a zero polynomial
+        let mut poly1 = DensePolynomial::<Fr> { coeffs: Vec::new() };
+
+        // Create another polynomial poly2, which is: 1 + 2x (coefficients [1, 2])
+        let poly2 = DensePolynomial {
+            coeffs: vec![Fr::from(1), Fr::from(2)],
+        };
+
+        // Add poly2 scaled by zero. Every coefficient of the result is zero, so the
+        // result has to be the canonical zero polynomial rather than a run of zero
+        // coefficients that only `is_zero()` reports as zero.
+        poly1 += (Fr::zero(), &poly2);
+
+        assert!(poly1.is_zero());
+        assert_eq!(poly1.coeffs, vec![]);
+        assert_eq!(poly1, DensePolynomial::zero());
     }
 
     #[test]
