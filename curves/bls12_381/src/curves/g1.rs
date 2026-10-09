@@ -105,9 +105,14 @@ impl SWCurveConfig for Config {
             read_g1_uncompressed(&mut reader)?
         };
 
-        if validate == ark_serialize::Validate::Yes && !p.is_in_correct_subgroup_assuming_on_curve()
-        {
-            return Err(SerializationError::InvalidData);
+        if validate == ark_serialize::Validate::Yes {
+            // Compressed points are decompressed from the curve equation and so are
+            // always on the curve. The fast subgroup check does not depend on the
+            // curve coefficient `b`, so uncompressed points must also be checked.
+            let on_curve = compress == ark_serialize::Compress::Yes || p.is_on_curve();
+            if !(on_curve && p.is_in_correct_subgroup_assuming_on_curve()) {
+                return Err(SerializationError::InvalidData);
+            }
         }
         Ok(p)
     }
