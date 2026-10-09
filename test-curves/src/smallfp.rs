@@ -4,6 +4,12 @@ define_field!(modulus = "251", generator = "6", name = SmallFp8,);
 
 define_field!(modulus = "65521", generator = "17", name = SmallFp16,);
 
+// Primes with fewer bits than their u8 / u16 backing type
+define_field!(modulus = "97", generator = "5", name = SmallFp8P97,);
+
+// Kyber prime
+define_field!(modulus = "3329", generator = "3", name = SmallFp16Kyber,);
+
 // Mersenne13 prime 2^13 - 1
 define_field!(modulus = "8191", generator = "17", name = SmallFp16M13,);
 
@@ -47,6 +53,8 @@ mod tests {
 
     test_small_field!(f8; SmallFp8);
     test_small_field!(f16; SmallFp16);
+    test_small_field!(f8_p97; SmallFp8P97);
+    test_small_field!(f16_kyber; SmallFp16Kyber);
     test_small_field!(f16_montgomery13; SmallFp16M13);
     test_small_field!(f32_montgomery31; SmallFp32M31);
     test_small_field!(f32_babybear; SmallFp32Babybear);
