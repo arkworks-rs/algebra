@@ -63,26 +63,6 @@ mod tests {
     test_small_field!(f64_goldilocks; SmallFp64Goldilocks);
     test_small_field!(f64; SmallFp64);
 
-    #[test]
-    fn test_mul_for_prime_narrower_than_backing_type() {
-        use ark_ff::PrimeField;
-
-        for a in 0..97u64 {
-            for b in 0..97u64 {
-                let c = SmallFp8P97::from(a) * SmallFp8P97::from(b);
-                assert_eq!(c.into_bigint().0[0], a * b % 97, "{a} * {b}");
-            }
-        }
-
-        // Same sweep for the u16 narrow path.
-        for a in 0..3329u64 {
-            for b in 0..3329u64 {
-                let c = SmallFp16Kyber::from(a) * SmallFp16Kyber::from(b);
-                assert_eq!(c.into_bigint().0[0], a * b % 3329, "{a} * {b}");
-            }
-        }
-    }
-
     mod const_constructors {
         use super::*;
         use ark_ff::{One, Zero};

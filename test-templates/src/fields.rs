@@ -648,6 +648,38 @@ macro_rules! __test_small_field {
             }
         }
 
+        // Multiplication must match the integer reference, including for
+        // primes narrower than their backing type.
+        #[test]
+        fn test_mul_matches_biguint() {
+            use ark_ff::BigInteger;
+            use $crate::num_bigint::BigUint;
+
+            let modulus = BigUint::from_bytes_be(&<$field>::MODULUS.to_bytes_be());
+            let check = |a: &BigUint, b: &BigUint| {
+                let c = <$field>::from(a.clone()) * <$field>::from(b.clone());
+                let c: BigUint = c.into_bigint().into();
+                assert_eq!(c, (a * b) % &modulus, "{a} * {b}");
+            };
+
+            // Exhaustive for tiny moduli, random sampling otherwise.
+            if modulus.bits() <= 12 {
+                let p: u64 = modulus.iter_u64_digits().next().unwrap();
+                for a in 0..p {
+                    for b in 0..p {
+                        check(&BigUint::from(a), &BigUint::from(b));
+                    }
+                }
+            } else {
+                let mut rng = ark_std::test_rng();
+                for _ in 0..ITERATIONS {
+                    let a: BigUint = <$field>::rand(&mut rng).into_bigint().into();
+                    let b: BigUint = <$field>::rand(&mut rng).into_bigint().into();
+                    check(&a, &b);
+                }
+            }
+        }
+
         #[test]
         fn test_from_be_bytes_mod_order() {
             use ark_ff::BigInteger;
