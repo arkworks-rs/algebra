@@ -189,7 +189,8 @@ macro_rules! impl_serde {
 
         #[cfg(feature = "serde")]
         pub mod $vecmod {
-            use crate::{CanonicalDeserialize, CanonicalSerialize, CompressedChecked};
+            use super::$constr;
+            use crate::{CanonicalDeserialize, CanonicalSerialize};
             use ::serde::ser::SerializeSeq;
             use ::serde::{Deserializer, Serializer};
             use ark_std::fmt;
@@ -206,7 +207,7 @@ macro_rules! impl_serde {
                 let values = value.as_ref();
                 let mut seq = serializer.serialize_seq(Some(values.len()))?;
                 for val in values {
-                    seq.serialize_element(&CompressedChecked(val))?;
+                    seq.serialize_element(&$constr(val))?;
                 }
                 seq.end()
             }
@@ -228,7 +229,8 @@ macro_rules! impl_serde {
                     fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
                         write!(
                             formatter,
-                            "a sequence of CompressedChecked<{}>",
+                            "a sequence of {}<{}>",
+                            stringify!($constr),
                             ark_std::any::type_name::<T>()
                         )
                     }
@@ -237,7 +239,7 @@ macro_rules! impl_serde {
                     where
                         A: serde::de::SeqAccess<'de>,
                     {
-                        while let Some(elt) = seq.next_element::<CompressedChecked<T>>()? {
+                        while let Some(elt) = seq.next_element::<$constr<T>>()? {
                             self.accum.push(elt.0);
                         }
                         Ok(self.accum)

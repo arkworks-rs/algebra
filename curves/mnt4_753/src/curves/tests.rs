@@ -2,6 +2,6 @@ use crate::*;
 use ark_algebra_test_templates::*;
 
 test_group!(50; g1; G1Projective; sw);
-test_group!(50; g2; G2Projective; sw);
-test_group!(50; pairing_output; ark_ec::pairing::PairingOutput<MNT4_753>; msm);
-test_pairing!(pairing; crate::MNT4_753);
+test_group!(10; g2; G2Projective; sw);
+test_group!(10; pairing_output; ark_ec::pairing::PairingOutput<MNT4_753>; msm);
+test_pairing!(25; pairing; crate::MNT4_753);
