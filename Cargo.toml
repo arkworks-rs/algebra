@@ -201,3 +201,14 @@ lto = "thin"
 incremental = true
 debug-assertions = true
 debug = true
+
+# Profile for CI test runs: optimized like release (dependencies included,
+# unlike `profile.test`, which builds dependencies under `profile.dev` at
+# opt-level 0), but with debug assertions and overflow checks kept on, and
+# without LTO to keep link times short.
+[profile.ci]
+inherits = "release"
+debug-assertions = true
+overflow-checks = true
+lto = "off"
+incremental = false

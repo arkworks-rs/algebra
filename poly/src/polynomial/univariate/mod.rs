@@ -187,8 +187,9 @@ impl<'a, F: FftField> DenseOrSparsePolynomial<'a, F> {
             let reverted_divisor_inverse = Self::inverse_mod(&reverted_divisor, inversion_degree);
 
             // rev(q) = rev(divisor)^-1 * rev(dividend) mod X^(deg q + 1)
+            let product = &reverted_divisor_inverse * &reverted_dividend;
             let reverted_q = DensePolynomial::from_coefficients_slice(
-                &(&reverted_divisor_inverse * &reverted_dividend).coeffs[..inversion_degree],
+                &product.coeffs[..min(product.coeffs.len(), inversion_degree)],
             );
             let q = DensePolynomial::from_coefficients_slice(
                 &Self::reverse_coeffs(&reverted_q, inversion_degree)
@@ -277,7 +278,7 @@ impl<'a, F: FftField> DenseOrSparsePolynomial<'a, F> {
         }
 
         let mut rev_coeffs = vec![F::zero(); max_degree];
-        rev_coeffs[..poly.coeffs.len()].clone_from_slice(
+        rev_coeffs[max_degree - poly.coeffs.len()..].clone_from_slice(
             &poly
                 .coeffs
                 .clone()
