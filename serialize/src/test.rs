@@ -313,6 +313,33 @@ fn test_btreeset() {
     test_serialize(set);
 }
 
+#[test]
+fn test_sets_and_maps_reject_repeated_keys() {
+    let mut set_bytes = 2u64.to_le_bytes().to_vec();
+    set_bytes.extend_from_slice(&[7, 7]);
+    assert!(BTreeSet::<u8>::deserialize_compressed(&set_bytes[..]).is_err());
+    assert!(BTreeSet::<u8>::deserialize_compressed_unchecked(&set_bytes[..]).is_err());
+
+    let mut map_bytes = 2u64.to_le_bytes().to_vec();
+    map_bytes.extend_from_slice(&[7, 1, 7, 2]);
+    assert!(BTreeMap::<u8, u8>::deserialize_compressed(&map_bytes[..]).is_err());
+
+    #[cfg(feature = "std")]
+    {
+        use std::collections::{HashMap, HashSet};
+        assert!(HashSet::<u8>::deserialize_compressed(&set_bytes[..]).is_err());
+        assert!(HashMap::<u8, u8>::deserialize_compressed(&map_bytes[..]).is_err());
+    }
+
+    // distinct keys still decode
+    let mut ok_bytes = 2u64.to_le_bytes().to_vec();
+    ok_bytes.extend_from_slice(&[7, 8]);
+    assert_eq!(
+        BTreeSet::<u8>::deserialize_compressed(&ok_bytes[..]).unwrap(),
+        BTreeSet::from([7u8, 8u8])
+    );
+}
+
 #[cfg(feature = "std")]
 #[test]
 #[allow(clippy::zero_sized_map_values)]

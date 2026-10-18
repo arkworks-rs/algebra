@@ -85,6 +85,11 @@ macro_rules! impl_canonical_deserialize_seq {
                     .map(|_| T::deserialize_with_mode(&mut reader, compress, Validate::No))
                     .collect::<Result<Self, SerializationError>>()?;
 
+                // a set that read fewer items than its length prefix had duplicates
+                if values.len() != len {
+                    return Err(SerializationError::InvalidData);
+                }
+
                 if validate == Validate::Yes {
                     T::batch_check(values.iter())?;
                 }
@@ -287,14 +292,19 @@ where
         validate: Validate,
     ) -> Result<Self, SerializationError> {
         let len = u64::deserialize_with_mode(&mut reader, compress, validate)?;
-        (0..len)
+        let map = (0..len)
             .map(|_| {
                 Ok((
                     K::deserialize_with_mode(&mut reader, compress, validate)?,
                     V::deserialize_with_mode(&mut reader, compress, validate)?,
                 ))
             })
-            .collect()
+            .collect::<Result<Self, SerializationError>>()?;
+        // fewer entries than the length prefix means a key was repeated
+        if map.len() as u64 != len {
+            return Err(SerializationError::InvalidData);
+        }
+        Ok(map)
     }
 }
 
@@ -376,13 +386,18 @@ where
         validate: Validate,
     ) -> Result<Self, SerializationError> {
         let len = u64::deserialize_with_mode(&mut reader, compress, validate)?;
-        (0..len)
+        let map = (0..len)
             .map(|_| {
                 Ok((
                     K::deserialize_with_mode(&mut reader, compress, validate)?,
                     V::deserialize_with_mode(&mut reader, compress, validate)?,
                 ))
             })
-            .collect()
+            .collect::<Result<Self, SerializationError>>()?;
+        // fewer entries than the length prefix means a key was repeated
+        if map.len() as u64 != len {
+            return Err(SerializationError::InvalidData);
+        }
+        Ok(map)
     }
 }
