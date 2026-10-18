@@ -1,5 +1,7 @@
 use ark_ff::{AdditiveGroup, BitIteratorBE, Field, Fp2};
-use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
+use ark_serialize::{
+    CanonicalDeserialize, CanonicalSerialize, Compress, Read, SerializationError, Valid, Validate,
+};
 use ark_std::{vec::*, One};
 use educe::Educe;
 
@@ -13,7 +15,7 @@ use crate::{
 pub type G2Affine<P> = Affine<<P as Bls12Config>::G2Config>;
 pub type G2Projective<P> = Projective<<P as Bls12Config>::G2Config>;
 
-#[derive(Educe, CanonicalSerialize, CanonicalDeserialize)]
+#[derive(Educe, CanonicalSerialize)]
 #[educe(Clone, Debug, PartialEq, Eq)]
 pub struct G2Prepared<P: Bls12Config> {
     /// Stores the coefficients of the line evaluations as calculated in
@@ -94,6 +96,50 @@ impl<'a, P: Bls12Config> From<&'a G2Projective<P>> for G2Prepared<P> {
 impl<P: Bls12Config> G2Prepared<P> {
     pub const fn is_zero(&self) -> bool {
         self.infinity
+    }
+}
+
+impl<P: Bls12Config> G2Prepared<P> {
+    /// Number of line coefficients that `From<G2Affine<P>>` produces for a
+    /// point that is not at infinity.
+    fn num_ell_coeffs() -> usize {
+        BitIteratorBE::new(P::X)
+            .skip(1)
+            .map(|bit| 1 + usize::from(bit))
+            .sum()
+    }
+}
+
+impl<P: Bls12Config> Valid for G2Prepared<P> {
+    fn check(&self) -> Result<(), SerializationError> {
+        let expected = if self.infinity {
+            0
+        } else {
+            Self::num_ell_coeffs()
+        };
+        if self.ell_coeffs.len() != expected {
+            return Err(SerializationError::InvalidData);
+        }
+        self.ell_coeffs.check()
+    }
+}
+
+impl<P: Bls12Config> CanonicalDeserialize for G2Prepared<P> {
+    fn deserialize_with_mode<R: Read>(
+        mut reader: R,
+        compress: Compress,
+        validate: Validate,
+    ) -> Result<Self, SerializationError> {
+        let ell_coeffs = Vec::deserialize_with_mode(&mut reader, compress, validate)?;
+        let infinity = bool::deserialize_with_mode(&mut reader, compress, validate)?;
+        let prepared = Self {
+            ell_coeffs,
+            infinity,
+        };
+        if validate == Validate::Yes {
+            prepared.check()?;
+        }
+        Ok(prepared)
     }
 }
 
