@@ -357,10 +357,42 @@ macro_rules! __test_group {
                     let mut a_bucket = Bucket::from(a);
                     a_bucket += &b;
                     assert_eq!(a + b, <$group>::from(a_bucket), "bucket + affine failed");
+                    assert_eq!(a + b, Affine::from(a_bucket), "Affine::from(Bucket) failed");
+
+                    {
+                        struct TestHasher(u64);
+                        impl core::hash::Hasher for TestHasher {
+                            fn finish(&self) -> u64 {
+                                self.0
+                            }
+                            fn write(&mut self, bytes: &[u8]) {
+                                for &b in bytes {
+                                    self.0 = self.0.wrapping_mul(31).wrapping_add(b as u64);
+                                }
+                            }
+                        }
+                        use core::hash::{Hash, Hasher};
+                        let mut h1 = TestHasher(0);
+                        let mut h2 = TestHasher(0);
+                        a_bucket.hash(&mut h1);
+                        Bucket::from((a + b).into_affine()).hash(&mut h2);
+                        assert_eq!(h1.finish(), h2.finish(), "Bucket hash inconsistency between representations");
+                    }
+
+                    let mut a_bucket_dbl = Bucket::from(a);
+                    a_bucket_dbl.double_in_place();
+                    assert_eq!(a.into_group().double(), <$group>::from(a_bucket_dbl), "bucket double failed");
+                    assert_eq!(a.into_group().double(), Affine::from(a_bucket_dbl), "Affine::from(Bucket doubling) failed");
+
                     let mut a_group = <$group>::from(a);
                     a_group += &Bucket::from(b);
                     assert_eq!(a + b, <$group>::from(a_group), "group + bucket failed");
                 }
+
+                let mut zero_bucket = Bucket::ZERO;
+                zero_bucket.double_in_place();
+                assert!(zero_bucket.is_zero(), "doubling zero bucket failed");
+                assert_eq!(Affine::from(zero_bucket), Affine::zero(), "zero bucket into affine failed");
             }
         }
     };
