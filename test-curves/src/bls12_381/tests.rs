@@ -31,7 +31,7 @@ test_h2c!(g2_hc2; "./src/testdata"; "BLS12381G2"; crate::bls12_381::g2::Config; 
 fn test_g2_prepared_rejects_wrong_number_of_coefficients() {
     use ark_ec::{AffineRepr, CurveGroup};
     use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
-    use ark_std::{test_rng, vec, UniformRand, Zero};
+    use ark_std::{test_rng, vec, UniformRand};
 
     let mut rng = test_rng();
     let q = G2Projective::rand(&mut rng).into_affine();
