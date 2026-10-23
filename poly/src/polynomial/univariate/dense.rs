@@ -528,15 +528,16 @@ impl<'a, F: Field> Sub<&'a SparsePolynomial<F>> for &DensePolynomial<F> {
             let mut result = self.clone();
             // If `other` has higher degree than `self`, create a dense vector
             // storing the upper coefficients of the subtraction
-            let mut upper_coeffs = match other.degree() > result.degree() {
-                true => vec![F::zero(); other.degree() - result.degree()],
+            let degree = result.degree();
+            let mut upper_coeffs = match other.degree() > degree {
+                true => vec![F::zero(); other.degree() - degree],
                 false => Vec::new(),
             };
             for (pow, coeff) in other.iter() {
-                if *pow <= result.degree() {
+                if *pow <= degree {
                     result.coeffs[*pow] -= coeff;
                 } else {
-                    upper_coeffs[*pow - result.degree() - 1] = -*coeff;
+                    upper_coeffs[*pow - degree - 1] = -*coeff;
                 }
             }
             result.coeffs.extend(upper_coeffs);
@@ -584,15 +585,16 @@ impl<'a, F: Field> SubAssign<&'a SparsePolynomial<F>> for DensePolynomial<F> {
         } else {
             // If `other` has higher degree than `self`, create a dense vector
             // storing the upper coefficients of the subtraction
-            let mut upper_coeffs = match other.degree() > self.degree() {
-                true => vec![F::zero(); other.degree() - self.degree()],
+            let degree = self.degree();
+            let mut upper_coeffs = match other.degree() > degree {
+                true => vec![F::zero(); other.degree() - degree],
                 false => Vec::new(),
             };
             for (pow, coeff) in other.iter() {
-                if *pow <= self.degree() {
+                if *pow <= degree {
                     self.coeffs[*pow] -= coeff;
                 } else {
-                    upper_coeffs[*pow - self.degree() - 1] = -*coeff;
+                    upper_coeffs[*pow - degree - 1] = -*coeff;
                 }
             }
             self.coeffs.extend(upper_coeffs);
@@ -711,6 +713,22 @@ mod tests {
     use ark_ff::{One, UniformRand};
     use ark_std::{rand::Rng, test_rng};
     use ark_test_curves::bls12_381::Fr;
+
+    #[test]
+    fn sparse_subtraction_handles_intermediate_leading_cancellation() {
+        let dense = DensePolynomial::from_coefficients_vec(vec![Fr::one(), Fr::from(2u64)]);
+        let sparse =
+            SparsePolynomial::from_coefficients_vec(vec![(1, Fr::from(2u64)), (2, Fr::from(3u64))]);
+        let expected =
+            DensePolynomial::from_coefficients_vec(vec![Fr::one(), Fr::zero(), -Fr::from(3u64)]);
+        let result = &dense - &sparse;
+        assert_eq!(result, expected);
+        assert_eq!(result.degree(), 2);
+        let mut result = dense;
+        result -= &sparse;
+        assert_eq!(result, expected);
+        assert_eq!(result.degree(), 2);
+    }
 
     fn rand_sparse_poly<R: Rng>(degree: usize, rng: &mut R) -> SparsePolynomial<Fr> {
         // Initialize coeffs so that its guaranteed to have a x^{degree} term
