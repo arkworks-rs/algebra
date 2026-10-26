@@ -195,17 +195,19 @@ debug-assertions = false
 opt-level = 0
 panic = 'abort'
 
+# Profile for local `cargo test` runs (it also applies to path dependencies):
+# no thin LTO, which made every test binary run its own LTO link, and line
+# tables instead of full debuginfo, so backtraces keep file:line at a fraction
+# of the size. For a debugger session: CARGO_PROFILE_TEST_DEBUG=true.
 [profile.test]
 opt-level = 3
-lto = "thin"
 incremental = true
 debug-assertions = true
-debug = true
+debug = "line-tables-only"
 
-# Profile for CI test runs: optimized like release (dependencies included,
-# unlike `profile.test`, which builds dependencies under `profile.dev` at
-# opt-level 0), but with debug assertions and overflow checks kept on, and
-# without LTO to keep link times short.
+# Profile for CI test runs: optimized like release, with debug assertions and
+# overflow checks kept on, and without LTO, debuginfo, or incremental
+# compilation to keep CI builds short.
 [profile.ci]
 inherits = "release"
 debug-assertions = true
