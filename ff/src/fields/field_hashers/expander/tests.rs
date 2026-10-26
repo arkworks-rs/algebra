@@ -11,7 +11,7 @@ use std::{
 use super::{Expander, ExpanderXmd, ExpanderXof};
 
 #[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
-pub struct ExpanderVector {
+struct ExpanderVector {
     #[serde(rename = "DST")]
     pub dst: String,
     pub k: usize,
@@ -22,7 +22,7 @@ pub struct ExpanderVector {
 }
 
 #[derive(Debug, serde_derive::Serialize, serde_derive:: Deserialize)]
-pub struct TestExpander {
+struct TestExpander {
     #[serde(rename = "DST_prime")]
     pub dst_prime: String,
     pub len_in_bytes: String,
@@ -52,20 +52,20 @@ fn expander() {
 
 #[derive(Copy, Clone)]
 #[allow(clippy::upper_case_acronyms)]
-pub enum ExpID {
+enum ExpID {
     XMD(HashID),
     XOF(XofID),
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
-pub enum HashID {
+enum HashID {
     SHA256,
     SHA384,
     SHA512,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
-pub enum XofID {
+enum XofID {
     SHAKE128,
     SHAKE256,
 }

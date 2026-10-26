@@ -61,8 +61,6 @@ rust-version = "1.89"
 [workspace.dependencies]
 ark-ec = { version = "0.6.0", path = "../ec", default-features = false }
 ark-ff = { version = "0.6.0", path = "../ff", default-features = false }
-ark-ff-asm = { version = "0.6.0", path = "../ff-asm" }
-ark-poly = { version = "0.6.0", path = "../poly", default-features = false }
 ark-serialize = { version = "0.6.0", path = "../serialize", default-features = false }
 ark-algebra-test-templates = { version = "0.6.0", path = "../test-templates", default-features = false }
 ark-algebra-bench-templates =  { version = "0.6.0", path = "../bench-templates", default-features = false }
