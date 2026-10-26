@@ -434,7 +434,7 @@ fn generate_mul_impl(
                     let tmp = (a.value as #mul_ty) * (b.value as #mul_ty);
                     let carry1 = (tmp >> K_BITS) as #repr_type;
                     let r = (tmp & MASK) as #repr_type;
-                    let m = r.wrapping_mul(N_PRIME);
+                    let m = r.wrapping_mul(N_PRIME) & (MASK as #repr_type);
                     let tmp = (r as #mul_ty) + ((m as #mul_ty) * MODULUS_MUL_TY);
                     let carry2 = (tmp >> K_BITS) as #repr_type;
                     let mut r = (carry1 as #mul_ty) + (carry2 as #mul_ty);
