@@ -15,6 +15,9 @@ rust-version.workspace = true
 metadata.docs.rs.workspace = true
 metadata.release.workspace = true
 
+[lints]
+workspace = true
+
 [dependencies]
 ark-ff-asm.workspace = true
 ark-ff-macros.workspace = true

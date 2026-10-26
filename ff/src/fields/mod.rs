@@ -488,7 +488,7 @@ mod no_std_tests {
     }
 
     #[test]
-    pub fn test_from_ints() {
+    fn test_from_ints() {
         let felt2 = Fr::one() + Fr::one();
         let felt16 = felt2 * felt2 * felt2 * felt2;
 
