@@ -407,6 +407,9 @@ macro_rules! __test_field {
                     }
                 }
             } else {
+                // n = 0 has no meaningful root of unity and must not panic.
+                assert!(<$field>::get_root_of_unity_big_int(BigUint::from(0_u8)).is_none());
+
                 for i in 0..=<$field>::TWO_ADICITY {
                     let size = BigUint::from(1_u8) << i;
                     let root = <$field>::get_root_of_unity_big_int(size.clone()).unwrap();
