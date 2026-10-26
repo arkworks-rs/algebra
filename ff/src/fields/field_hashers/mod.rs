@@ -1,10 +1,12 @@
 mod expander;
+#[cfg(all(test, feature = "std"))]
+mod tests;
 
 use core::marker::PhantomData;
 
 use crate::{Field, PrimeField};
 
-use digest::{FixedOutputReset, XofReader};
+use digest::{crypto_common::BlockSizeUser, FixedOutputReset, XofReader};
 use expander::Expander;
 
 use self::expander::ExpanderXmd;
@@ -39,13 +41,16 @@ pub trait HashToField<F: Field>: Sized {
 ///
 /// assert_eq!(field_elements.len(), 2);
 /// ```
-pub struct DefaultFieldHasher<H: FixedOutputReset + Default + Clone, const SEC_PARAM: usize = 128> {
+pub struct DefaultFieldHasher<
+    H: FixedOutputReset + BlockSizeUser + Default + Clone,
+    const SEC_PARAM: usize = 128,
+> {
     expander: ExpanderXmd<H>,
     len_per_base_elem: usize,
 }
 
-impl<F: Field, H: FixedOutputReset + Default + Clone, const SEC_PARAM: usize> HashToField<F>
-    for DefaultFieldHasher<H, SEC_PARAM>
+impl<F: Field, H: FixedOutputReset + BlockSizeUser + Default + Clone, const SEC_PARAM: usize>
+    HashToField<F> for DefaultFieldHasher<H, SEC_PARAM>
 {
     fn new(dst: &[u8]) -> Self {
         // The final output of `hash_to_field` will be an array of field
@@ -55,7 +60,7 @@ impl<F: Field, H: FixedOutputReset + Default + Clone, const SEC_PARAM: usize> Ha
         let expander = ExpanderXmd {
             hasher: PhantomData,
             dst: dst.to_vec(),
-            block_size: len_per_base_elem,
+            block_size: H::block_size(),
         };
 
         DefaultFieldHasher {
