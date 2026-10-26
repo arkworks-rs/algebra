@@ -68,14 +68,12 @@ pub trait DOCurveConfig: super::CurveConfig {
         compress: ark_serialize::Compress,
     ) -> Result<(), SerializationError> {
         match compress {
-            Compress::Yes => {
-                if Self::e_is_odd(&item.e) {
-                    -item.u
-                } else {
-                    item.u
-                }
-                .serialize_uncompressed(writer)
-            },
+            Compress::Yes => if Self::e_is_odd(&item.e) {
+                -item.u
+            } else {
+                item.u
+            }
+            .serialize_uncompressed(writer),
             Compress::No => {
                 item.e.serialize_with_mode(&mut writer, compress)?;
                 item.u.serialize_with_mode(&mut writer, compress)
