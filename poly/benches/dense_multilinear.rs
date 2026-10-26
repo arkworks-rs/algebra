@@ -29,6 +29,16 @@ fn arithmetic_op_bench<F: Field>(c: &mut Criterion) {
         });
     }
     group.finish();
+
+    let mut group = c.benchmark_group("DenseMultilinear::ScalarMul");
+    for nv in NUM_VARIABLES_RANGE {
+        group.bench_with_input(BenchmarkId::from_parameter(nv), &nv, |b, &nv| {
+            let poly = DenseMultilinearExtension::<F>::rand(nv, &mut rng);
+            let scalar = F::rand(&mut rng);
+            b.iter(|| black_box(&poly * &scalar))
+        });
+    }
+    group.finish();
 }
 
 fn evaluation_op_bench<F: Field>(c: &mut Criterion) {

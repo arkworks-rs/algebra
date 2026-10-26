@@ -542,20 +542,35 @@ fn msm_bigint_wnaf<V: VariableBaseMSM>(
     cfg_chunks!(bases, chunk_size)
         .zip(cfg_chunks!(scalars, chunk_size))
         .map(|(bases, scalars)| {
-            // wasm32 can't spawn OS threads
-            #[cfg(all(feature = "parallel", not(target_arch = "wasm32")))]
-            let result = rayon::ThreadPoolBuilder::new()
-                .num_threads(THREADS_PER_CHUNK.min(rayon::current_num_threads()))
-                .build()
-                .unwrap()
-                .install(|| msm_bigint_wnaf_parallel::<V>(bases, scalars));
+            #[cfg(feature = "parallel")]
+            let result = msm_bigint_wnaf_with_pool::<V>(
+                bases,
+                scalars,
+                rayon::ThreadPoolBuilder::new()
+                    .num_threads(THREADS_PER_CHUNK.min(rayon::current_num_threads()))
+                    .build(),
+            );
 
-            #[cfg(any(not(feature = "parallel"), target_arch = "wasm32"))]
+            #[cfg(not(feature = "parallel"))]
             let result = msm_bigint_wnaf_parallel::<V>(bases, scalars);
 
             result
         })
         .sum()
+}
+
+#[cfg(feature = "parallel")]
+fn msm_bigint_wnaf_with_pool<V: VariableBaseMSM>(
+    bases: &[V::MulBase],
+    scalars: &[<V::ScalarField as PrimeField>::BigInt],
+    pool: Result<rayon::ThreadPool, rayon::ThreadPoolBuildError>,
+) -> V {
+    let compute = || msm_bigint_wnaf_parallel::<V>(bases, scalars);
+    match pool {
+        Ok(pool) => pool.install(compute),
+        // An additional pool is optional; keep using the current Rayon context on failure.
+        Err(_) => compute(),
+    }
 }
 
 /// Optimized implementation of multi-scalar multiplication.
@@ -792,4 +807,74 @@ fn make_digits(a: &impl BigInteger, w: usize, num_bits: usize) -> impl Iterator<
         }
         digit
     })
+}
+
+#[cfg(all(test, feature = "parallel"))]
+mod tests {
+    use super::*;
+    use crate::{short_weierstrass, AffineRepr, CurveConfig, CurveGroup};
+    use ark_test_curves::bls12_381::{g1, Fq, Fr};
+
+    struct Config;
+
+    impl CurveConfig for Config {
+        type BaseField = Fq;
+        type ScalarField = Fr;
+
+        const COFACTOR: &[u64] = <g1::Config as ark_test_curves::CurveConfig>::COFACTOR;
+        const COFACTOR_INV: Fr = <g1::Config as ark_test_curves::CurveConfig>::COFACTOR_INV;
+    }
+
+    impl short_weierstrass::SWCurveConfig for Config {
+        const COEFF_A: Fq = ark_ff::MontFp!("0");
+        const COEFF_B: Fq = ark_ff::MontFp!("4");
+        const GENERATOR: short_weierstrass::Affine<Self> =
+            short_weierstrass::Affine::new_unchecked(g1::G1_GENERATOR_X, g1::G1_GENERATOR_Y);
+
+        type ZeroFlag = ();
+    }
+
+    type G1Affine = short_weierstrass::Affine<Config>;
+    type G1Projective = short_weierstrass::Projective<Config>;
+
+    fn inputs() -> (Vec<G1Affine>, Vec<<Fr as PrimeField>::BigInt>, G1Projective) {
+        let mut rng = ark_std::test_rng();
+        let bases: Vec<_> = (0..32)
+            .map(|_| G1Projective::rand(&mut rng).into_affine())
+            .collect();
+        let scalars: Vec<_> = (0..32).map(|_| Fr::rand(&mut rng).into_bigint()).collect();
+        let expected = bases
+            .iter()
+            .zip(&scalars)
+            .map(|(base, scalar)| base.mul_bigint(scalar))
+            .sum();
+        (bases, scalars, expected)
+    }
+
+    #[test]
+    fn msm_falls_back_when_thread_creation_is_unsupported() {
+        let (bases, scalars, expected) = inputs();
+        let pool = rayon::ThreadPoolBuilder::new()
+            .num_threads(2)
+            .spawn_handler(|_| Err(std::io::ErrorKind::Unsupported.into()))
+            .build();
+        assert!(pool.is_err());
+        assert_eq!(
+            msm_bigint_wnaf_with_pool::<G1Projective>(&bases, &scalars, pool),
+            expected,
+        );
+    }
+
+    #[test]
+    fn msm_uses_successfully_created_thread_pools() {
+        let (bases, scalars, expected) = inputs();
+        for threads in [1, 2] {
+            let pool = rayon::ThreadPoolBuilder::new().num_threads(threads).build();
+            assert!(pool.is_ok());
+            assert_eq!(
+                msm_bigint_wnaf_with_pool::<G1Projective>(&bases, &scalars, pool),
+                expected,
+            );
+        }
+    }
 }

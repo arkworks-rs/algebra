@@ -118,18 +118,16 @@ impl_valid_seq!([T; N]; const N: usize);
 
 impl<T: CanonicalDeserialize, const N: usize> CanonicalDeserialize for [T; N] {
     #[inline]
-    #[allow(unsafe_code)]
     fn deserialize_with_mode<R: Read>(
         mut reader: R,
         compress: Compress,
         validate: Validate,
     ) -> Result<Self, SerializationError> {
-        use core::mem::MaybeUninit;
-        let mut data: [MaybeUninit<T>; N] = [const { MaybeUninit::uninit() }; N];
-        for elem in &mut data[..] {
-            elem.write(T::deserialize_with_mode(&mut reader, compress, validate)?);
-        }
-        Ok(data.map(|x| unsafe { x.assume_init() }))
+        (0..N)
+            .map(|_| T::deserialize_with_mode(&mut reader, compress, validate))
+            .collect::<Result<Vec<_>, _>>()?
+            .try_into()
+            .map_err(|_| SerializationError::InvalidData)
     }
 }
 

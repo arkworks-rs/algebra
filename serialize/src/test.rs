@@ -407,3 +407,105 @@ fn test_serialize_macro() {
 
     assert_eq!(tuple_bytes, macro_bytes);
 }
+
+#[cfg(feature = "serde")]
+#[test]
+fn test_serde_vec_modules() {
+    use crate::serde::*;
+
+    // Compressed and uncompressed encodings differ, and `check` always fails.
+    #[derive(Debug)]
+    struct Invalid;
+
+    impl CanonicalSerialize for Invalid {
+        fn serialize_with_mode<W: Write>(
+            &self,
+            writer: W,
+            compress: Compress,
+        ) -> Result<(), SerializationError> {
+            Dummy.serialize_with_mode(writer, compress)
+        }
+
+        fn serialized_size(&self, compress: Compress) -> usize {
+            Dummy.serialized_size(compress)
+        }
+    }
+
+    impl Valid for Invalid {
+        fn check(&self) -> Result<(), SerializationError> {
+            Err(SerializationError::InvalidData)
+        }
+    }
+
+    impl CanonicalDeserialize for Invalid {
+        fn deserialize_with_mode<R: Read>(
+            reader: R,
+            compress: Compress,
+            validate: Validate,
+        ) -> Result<Self, SerializationError> {
+            Dummy::deserialize_with_mode(reader, compress, Validate::No)?;
+            if validate == Validate::Yes {
+                Invalid.check()?;
+            }
+            Ok(Self)
+        }
+    }
+
+    let values = vec![Invalid, Invalid];
+    macro_rules! to_json {
+        ($module:ident) => {{
+            let mut out = Vec::new();
+            $module::serialize(&values, &mut serde_json::Serializer::new(&mut out)).unwrap();
+            String::from_utf8(out).unwrap()
+        }};
+    }
+    macro_rules! from_json {
+        ($module:ident, $json:expr) => {{
+            let result: Result<Vec<Invalid>, _> =
+                $module::deserialize(&mut serde_json::Deserializer::from_str($json));
+            result
+        }};
+    }
+
+    // Each module encodes the elements the same way as its wrapper type.
+    assert_eq!(
+        to_json!(vec_compressed_checked),
+        serde_json::to_string(&[CompressedChecked(&Invalid), CompressedChecked(&Invalid)]).unwrap()
+    );
+    assert_eq!(
+        to_json!(vec_compressed_unchecked),
+        serde_json::to_string(&[CompressedUnchecked(&Invalid), CompressedUnchecked(&Invalid)])
+            .unwrap()
+    );
+    assert_eq!(
+        to_json!(vec_uncompressed_checked),
+        serde_json::to_string(&[UncompressedChecked(&Invalid), UncompressedChecked(&Invalid)])
+            .unwrap()
+    );
+    assert_eq!(
+        to_json!(vec_uncompressed_unchecked),
+        serde_json::to_string(&[
+            UncompressedUnchecked(&Invalid),
+            UncompressedUnchecked(&Invalid)
+        ])
+        .unwrap()
+    );
+
+    // Only the checked modules validate the elements.
+    let compressed = to_json!(vec_compressed_unchecked);
+    let uncompressed = to_json!(vec_uncompressed_unchecked);
+    assert!(from_json!(vec_compressed_checked, &compressed).is_err());
+    assert!(from_json!(vec_uncompressed_checked, &uncompressed).is_err());
+    assert_eq!(
+        from_json!(vec_compressed_unchecked, &compressed)
+            .unwrap()
+            .len(),
+        2
+    );
+    assert_eq!(
+        from_json!(vec_uncompressed_unchecked, &uncompressed)
+            .unwrap()
+            .len(),
+        2
+    );
+}

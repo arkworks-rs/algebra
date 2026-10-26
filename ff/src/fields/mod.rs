@@ -368,11 +368,21 @@ pub fn batch_inversion_and_mul<F: Field>(v: &mut [F], coeff: &F) {
 #[cfg(feature = "parallel")]
 // Given a vector of field elements {v_i}, compute the vector {coeff * v_i^(-1)}
 pub fn batch_inversion_and_mul<F: Field>(v: &mut [F], coeff: &F) {
-    // Divide the vector v evenly between all available cores
-    let min_elements_per_thread = 1;
-    let num_cpus_available = rayon::current_num_threads();
+    // Dispatching to the rayon pool costs tens of microseconds when the caller is
+    // outside the pool, and every chunk pays for one extra field inversion. Below
+    // this batch size the serial algorithm is faster.
+    const MIN_PARALLEL_BATCH_SIZE: usize = 2048;
+    // Keep chunks large enough that the extra inversion per chunk stays amortized.
+    const MIN_ELEMENTS_PER_THREAD: usize = 128;
+
     let num_elems = v.len();
-    let num_elem_per_thread = max(num_elems / num_cpus_available, min_elements_per_thread);
+    if num_elems < MIN_PARALLEL_BATCH_SIZE {
+        return serial_batch_inversion_and_mul(v, coeff);
+    }
+
+    // Divide the vector v evenly between all available cores
+    let num_cpus_available = rayon::current_num_threads();
+    let num_elem_per_thread = max(num_elems / num_cpus_available, MIN_ELEMENTS_PER_THREAD);
 
     // Batch invert in parallel, without copying the vector
     v.par_chunks_mut(num_elem_per_thread).for_each(|chunk| {
@@ -454,26 +464,26 @@ mod no_std_tests {
 
     #[test]
     fn test_batch_inversion() {
-        let mut random_coeffs = Vec::new();
-        let vec_size = 1000;
+        let mut rng = test_rng();
+        // Sizes on both sides of the serial/parallel threshold used with the
+        // `parallel` feature, including the empty batch.
+        for vec_size in [0, 1, 2, 3, 1000, 2047, 2048, 2049, 5000] {
+            let random_coeffs: Vec<Fr> = (0..vec_size).map(|_| Fr::rand(&mut rng)).collect();
 
-        for _ in 0..=vec_size {
-            random_coeffs.push(Fr::rand(&mut test_rng()));
-        }
-
-        let mut random_coeffs_inv = random_coeffs.clone();
-        batch_inversion(&mut random_coeffs_inv);
-        for i in 0..=vec_size {
-            assert_eq!(random_coeffs_inv[i] * random_coeffs[i], Fr::one());
-        }
-        let rand_multiplier = Fr::rand(&mut test_rng());
-        let mut random_coeffs_inv_shifted = random_coeffs.clone();
-        batch_inversion_and_mul(&mut random_coeffs_inv_shifted, &rand_multiplier);
-        for i in 0..=vec_size {
-            assert_eq!(
-                random_coeffs_inv_shifted[i] * random_coeffs[i],
-                rand_multiplier
-            );
+            let mut random_coeffs_inv = random_coeffs.clone();
+            batch_inversion(&mut random_coeffs_inv);
+            for i in 0..vec_size {
+                assert_eq!(random_coeffs_inv[i] * random_coeffs[i], Fr::one());
+            }
+            let rand_multiplier = Fr::rand(&mut rng);
+            let mut random_coeffs_inv_shifted = random_coeffs.clone();
+            batch_inversion_and_mul(&mut random_coeffs_inv_shifted, &rand_multiplier);
+            for i in 0..vec_size {
+                assert_eq!(
+                    random_coeffs_inv_shifted[i] * random_coeffs[i],
+                    rand_multiplier
+                );
+            }
         }
     }
 

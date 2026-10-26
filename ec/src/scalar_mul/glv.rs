@@ -90,77 +90,108 @@ pub trait GLVConfig: Send + Sync + 'static + SWCurveConfig {
 
     fn glv_mul_projective(p: Projective<Self>, k: Self::ScalarField) -> Projective<Self> {
         let ((sgn_k1, k1), (sgn_k2, k2)) = Self::scalar_decomposition(k);
-
-        let mut b1 = p;
-        let mut b2 = Self::endomorphism(&p);
-
-        if !sgn_k1 {
-            b1 = -b1;
-        }
-        if !sgn_k2 {
-            b2 = -b2;
-        }
-
-        let b1b2 = b1 + b2;
-
-        let iter_k1 = ark_ff::BitIteratorBE::new(k1.into_bigint());
-        let iter_k2 = ark_ff::BitIteratorBE::new(k2.into_bigint());
-
-        let mut res = Projective::zero();
-        let mut skip_zeros = true;
-        for pair in iter_k1.zip(iter_k2) {
-            if skip_zeros {
-                if pair == (false, false) {
-                    continue;
-                }
-                skip_zeros = false;
-            }
-            res.double_in_place();
-            match pair {
-                (true, false) => res += b1,
-                (false, true) => res += b2,
-                (true, true) => res += b1b2,
-                (false, false) => {},
-            }
-        }
-        res
+        let b1 = if sgn_k1 { p } else { -p };
+        let b2 = if sgn_k2 {
+            Self::endomorphism(&p)
+        } else {
+            -Self::endomorphism(&p)
+        };
+        glv_windowed_mul(b1, b2, k1, k2)
     }
 
+    /// GLV scalar multiplication starting from an affine point.
+    ///
+    /// Note: this converts to projective and uses the 2-bit windowed table (projective additions),
+    /// rather than mixed additions against affine table entries.
     fn glv_mul_affine(p: Affine<Self>, k: Self::ScalarField) -> Affine<Self> {
-        let ((sgn_k1, k1), (sgn_k2, k2)) = Self::scalar_decomposition(k);
-
-        let mut b1 = p;
-        let mut b2 = Self::endomorphism_affine(&p);
-
-        if !sgn_k1 {
-            b1 = -b1;
-        }
-        if !sgn_k2 {
-            b2 = -b2;
-        }
-
-        let b1b2 = b1 + b2;
-
-        let iter_k1 = ark_ff::BitIteratorBE::new(k1.into_bigint());
-        let iter_k2 = ark_ff::BitIteratorBE::new(k2.into_bigint());
-
-        let mut res = Projective::zero();
-        let mut skip_zeros = true;
-        for pair in iter_k1.zip(iter_k2) {
-            if skip_zeros {
-                if pair == (false, false) {
-                    continue;
-                }
-                skip_zeros = false;
-            }
-            res.double_in_place();
-            match pair {
-                (true, false) => res += b1,
-                (false, true) => res += b2,
-                (true, true) => res += b1b2,
-                (false, false) => {},
-            }
-        }
-        res.into_affine()
+        Self::glv_mul_projective(p.into(), k).into_affine()
     }
+}
+
+/// Precompute the 15-point table for 2-bit windowed GLV.
+///
+/// Adapted from gnark-crypto's `mulGLV` (Apache-2.0, Copyright Consensys Software Inc.):
+/// <https://github.com/ConsenSys/gnark-crypto/blob/v0.19.0/ecc/bls12-381/g1.go#L620>
+/// implementing the GLV method (<https://www.iacr.org/archive/crypto2001/21390189.pdf>).
+///
+/// After scalar decomposition, multiplication is `k1*b1 + k2*b2`. Each loop step reads two bits
+/// from each half-length scalar, giving digits `c1`, `c2` in `0..=3`. The point to add is
+/// `c1*b1 + c2*b2`; the two preceding doublings account for advancing two bits on each leg.
+///
+/// There are `4*4` digit pairs, but `(c1, c2) = (0, 0)` adds nothing, so we store the other 15.
+/// Pack digits as `idx = c2*4 + c1` (0..16) and use `table[idx - 1]` when `idx != 0`.
+/// Example: `table[0]=b1`, `table[1]=2*b1`, `table[2]=3*b1`, `table[3]=b2`, `table[4]=b1+b2`,
+/// …, `table[14]=3*b1 + 3*b2`.
+#[inline]
+fn glv_precompute_table<P: GLVConfig>(b1: Projective<P>, b2: Projective<P>) -> [Projective<P>; 15] {
+    let b1_2 = b1.double();
+    let b1_3 = b1_2 + b1;
+    let b2_2 = b2.double();
+    let b2_3 = b2_2 + b2;
+    [
+        b1,
+        b1_2,
+        b1_3,
+        b2,
+        b1 + b2,
+        b1_2 + b2,
+        b1_3 + b2,
+        b2_2,
+        b1 + b2_2,
+        b1_2 + b2_2,
+        b1_3 + b2_2,
+        b2_3,
+        b1 + b2_3,
+        b1_2 + b2_3,
+        b1_3 + b2_3,
+    ]
+}
+
+/// 2-bit windowed scan for `k1*b1 + k2*b2` (bases must already include sign fixes).
+fn glv_windowed_mul<P: GLVConfig>(
+    b1: Projective<P>,
+    b2: Projective<P>,
+    k1: P::ScalarField,
+    k2: P::ScalarField,
+) -> Projective<P> {
+    let table = glv_precompute_table(b1, b2);
+
+    let k1_bi = k1.into_bigint();
+    let k2_bi = k2.into_bigint();
+    let limbs1 = k1_bi.as_ref();
+    let limbs2 = k2_bi.as_ref();
+    // `BitIteratorBE::new` / `into_bigint` always yield exactly `64 * NUM_LIMBS` bits for a
+    // given `ScalarField`, so both scalars share the same (even) bit length.
+    debug_assert_eq!(limbs1.len(), limbs2.len());
+    let nbits = limbs1.len() * 64;
+
+    let mut res = Projective::zero();
+    let mut started = false;
+    for chunk_idx in 0..(nbits / 2) {
+        let c1 = glv_two_bit_digit(limbs1, chunk_idx);
+        let c2 = glv_two_bit_digit(limbs2, chunk_idx);
+        let idx = (c2 as usize) * 4 + (c1 as usize);
+        if started {
+            res.double_in_place();
+            res.double_in_place();
+            if idx != 0 {
+                res += table[idx - 1];
+            }
+        } else if idx != 0 {
+            started = true;
+            res = table[idx - 1];
+        }
+    }
+    res
+}
+
+/// Extract the `chunk_idx`-th 2-bit window from a big-endian limb encoding.
+///
+/// `chunk_idx = 0` is the most-significant pair of bits across `limbs`. The total bit length
+/// `64 * limbs.len()` is always even, so every window is fully contained in a single limb.
+#[inline]
+fn glv_two_bit_digit(limbs: &[u64], chunk_idx: usize) -> u8 {
+    let bit_from_msb = chunk_idx * 2;
+    let limb = limbs[limbs.len() - 1 - bit_from_msb / 64];
+    ((limb >> (62 - (bit_from_msb % 64))) & 3) as u8
 }
