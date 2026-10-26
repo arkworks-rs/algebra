@@ -2,7 +2,6 @@
 
 ## Pending
 
-- (`ark-ec`) Fall back to the current Rayon context when creating an MSM thread pool fails, without requiring a platform-specific guard.
 - [\#1135](https://github.com/arkworks-rs/algebra/pull/1135) (`ark-ff`) With the `parallel` feature, `batch_inversion` and `batch_inversion_and_mul` now run serially for batches below 2048 elements instead of dispatching to rayon, which cost more than the inversion itself for small batches.
 - [\#1135](https://github.com/arkworks-rs/algebra/pull/1135) (`ark-ec`) Evaluate the isogeny polynomials of `WBMap` in place with Horner's rule instead of allocating temporary polynomials, and drop the now-unused `ark-poly` dependency of `ark-ec`.
 - (`ark-starkcurve`) Add 252 bit [Stark curve](https://docs.starknet.io/architecture/cryptography/#the_stark_curve).
@@ -43,6 +42,7 @@
 
 ### Bugfixes
 
+- [\#1187](https://github.com/arkworks-rs/algebra/pull/1187) (`ark-ec`) Fix MSM panicking when a rayon thread pool cannot be created: with the `parallel` feature, `VariableBaseMSM::msm_bigint` now falls back to the current rayon context instead of unwrapping `ThreadPoolBuilder::build()`, replacing the `wasm32`-only guard from [\#1112](https://github.com/arkworks-rs/algebra/pull/1112).
 - [\#1149](https://github.com/arkworks-rs/algebra/pull/1149) (`ark-poly`) Fix division by a `DensePolynomial` of degree >= 256 (`Div`, `divide`, `divide_with_q_and_r`) returning a wrong quotient or panicking when the quotient has zero low-order coefficients, e.g. `(x * b) / b` returned `1` for `b` of degree 300, and `x^300 / x^256` panicked.
 - [\#1163](https://github.com/arkworks-rs/algebra/pull/1163) (`ark-ff`) Fix `find_naf` (and hence `find_relaxed_naf` and `cyclotomic_exp`) dropping the top-limb carry for exponents just below a 64·k-bit boundary, e.g. `2^64 - 1`.
 - [\#1129](https://github.com/arkworks-rs/algebra/pull/1129) (`ark-serialize`) Fix `[T; N]` deserialization leaking constructed elements if a later element fails.
