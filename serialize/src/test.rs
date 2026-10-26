@@ -509,3 +509,73 @@ fn test_serde_vec_modules() {
         2
     );
 }
+
+#[derive(Debug, PartialEq, Eq)]
+struct NonZero(u8);
+
+impl Valid for NonZero {
+    fn check(&self) -> Result<(), SerializationError> {
+        if self.0 == 0 {
+            Err(SerializationError::InvalidData)
+        } else {
+            Ok(())
+        }
+    }
+}
+
+impl CanonicalSerialize for NonZero {
+    fn serialize_with_mode<W: Write>(
+        &self,
+        writer: W,
+        compress: Compress,
+    ) -> Result<(), SerializationError> {
+        self.0.serialize_with_mode(writer, compress)
+    }
+
+    fn serialized_size(&self, compress: Compress) -> usize {
+        self.0.serialized_size(compress)
+    }
+}
+
+impl CanonicalDeserialize for NonZero {
+    fn deserialize_with_mode<R: Read>(
+        reader: R,
+        compress: Compress,
+        _validate: Validate,
+    ) -> Result<Self, SerializationError> {
+        Ok(Self(u8::deserialize_with_mode(
+            reader,
+            compress,
+            Validate::No,
+        )?))
+    }
+}
+
+#[test]
+fn test_unchecked_wrappers_skip_validation_inside_collections() {
+    use crate::{CompressedChecked, CompressedUnchecked, UncompressedUnchecked};
+
+    let invalid = vec![
+        UncompressedUnchecked(NonZero(1)),
+        UncompressedUnchecked(NonZero(0)),
+    ];
+    let mut bytes = vec![];
+    invalid.serialize_uncompressed(&mut bytes).unwrap();
+    let decoded = Vec::<UncompressedUnchecked<NonZero>>::deserialize_uncompressed(&bytes[..])
+        .expect("unchecked elements must not be validated");
+    assert_eq!(decoded, invalid);
+
+    let invalid = vec![CompressedUnchecked(NonZero(0))];
+    bytes.clear();
+    invalid.serialize_compressed(&mut bytes).unwrap();
+    assert!(Vec::<CompressedUnchecked<NonZero>>::deserialize_compressed(&bytes[..]).is_ok());
+
+    // the checked wrapper and the bare type still validate
+    let invalid = vec![CompressedChecked(NonZero(0))];
+    bytes.clear();
+    invalid.serialize_compressed(&mut bytes).unwrap();
+    assert!(Vec::<CompressedChecked<NonZero>>::deserialize_compressed(&bytes[..]).is_err());
+    bytes.clear();
+    vec![NonZero(0)].serialize_compressed(&mut bytes).unwrap();
+    assert!(Vec::<NonZero>::deserialize_compressed(&bytes[..]).is_err());
+}

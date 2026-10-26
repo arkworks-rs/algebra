@@ -271,8 +271,15 @@ macro_rules! impl_canonical {
         }
 
         impl<T: Valid> Valid for $type {
+            // the unchecked wrappers must stay unchecked when they sit in a `Vec` or other
+            // container, whose deserializer validates its elements after reading them
+            const TRIVIAL_CHECK: bool = matches!($validate, Validate::No);
+
             fn check(&self) -> Result<(), SerializationError> {
-                self.0.check()
+                match $validate {
+                    Validate::Yes => self.0.check(),
+                    Validate::No => Ok(()),
+                }
             }
         }
 
