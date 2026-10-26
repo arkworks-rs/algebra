@@ -24,6 +24,13 @@ define_field!(
     name = SmallFp32Koalabear,
 );
 
+// TeddyBear prime 2^32 - 2^30 + 1
+define_field!(
+    modulus = "3221225473",
+    generator = "5",
+    name = SmallFp32TeddyBear,
+);
+
 // Goldilocks prime 2^64 - 2^32 + 1
 define_field!(
     modulus = "18446744069414584321",
@@ -51,6 +58,7 @@ mod tests {
     test_small_field!(f32_montgomery31; SmallFp32M31);
     test_small_field!(f32_babybear; SmallFp32Babybear);
     test_small_field!(f32_koalabear; SmallFp32Koalabear);
+    test_small_field!(f32_teddybear; SmallFp32TeddyBear);
     test_small_field!(f32; SmallFp32);
     test_small_field!(f64_goldilocks; SmallFp64Goldilocks);
     test_small_field!(f64; SmallFp64);
