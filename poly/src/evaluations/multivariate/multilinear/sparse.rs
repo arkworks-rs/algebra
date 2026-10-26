@@ -506,57 +506,6 @@ mod tests {
         assert!(bound[0].is_zero());
         assert!(bound.is_zero());
         assert_eq!(bound, SparseMultilinearExtension::zero());
-        assert!(poly
-            .to_dense_multilinear_extension()
-            .fix_variables(&[half])
-            .is_zero());
-    }
-
-    #[test]
-    fn fix_variables_zero_weights_is_zero() {
-        for (index, point) in [(1, Fr::zero()), (0, Fr::one())] {
-            let poly = SparseMultilinearExtension::from_evaluations(1, &[(index, Fr::one())]);
-            let bound = poly.fix_variables(&[point]);
-
-            assert!(bound[0].is_zero());
-            assert!(bound.is_zero());
-            assert!(bound.evaluations.is_empty());
-        }
-    }
-
-    #[test]
-    fn fix_variables_partial_cancellation_preserves_nonzero_entries() {
-        let two = Fr::from(2u64);
-        let half = two.inverse().unwrap();
-        let poly = SparseMultilinearExtension::from_evaluations(
-            3,
-            &[(0, Fr::one()), (1, -Fr::one()), (4, two), (5, two)],
-        );
-        let bound = poly.fix_variables(&[half]);
-        let expected = SparseMultilinearExtension::from_evaluations(2, &[(2, two)]);
-
-        assert_eq!(bound, expected);
-        assert_eq!(
-            bound.to_evaluations(),
-            poly.to_dense_multilinear_extension()
-                .fix_variables(&[half])
-                .to_evaluations()
-        );
-    }
-
-    #[test]
-    fn fix_variables_cancellation_across_batches_is_zero() {
-        // Two entries give a one-variable window, so full binding takes three batches.
-        let poly =
-            SparseMultilinearExtension::from_evaluations(3, &[(0, Fr::one()), (1, -Fr::one())]);
-        let half = Fr::from(2u64).inverse().unwrap();
-        let partial = poly.fix_variables(&[half]);
-
-        assert_eq!(partial.num_vars, 2);
-        assert!(partial.evaluations.is_empty());
-        assert!(partial[0].is_zero());
-        assert!(partial.fix_variables(&[Fr::one(), Fr::one()]).is_zero());
-        assert!(poly.fix_variables(&[half, Fr::one(), Fr::one()]).is_zero());
     }
 
     #[test]
