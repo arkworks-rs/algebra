@@ -16,6 +16,7 @@
 - (`ark-ec`) Improve GLV scalar multiplication performance by skipping leading zeroes.
 - (`ark-poly`) Make `SparsePolynomial.coeffs` field public
 - [\#1039](https://github.com/arkworks-rs/algebra/pull/1039) (`ark-ff-asm`) Remove unused dead spill buffer path.
+- [\#1146](https://github.com/arkworks-rs/algebra/pull/1146) (`ark-ff`) Fix the default `MontConfig::mul_assign` dropping the carry for moduli without a spare bit.
 - [\#1044](https://github.com/arkworks-rs/algebra/pull/1044), [\#1084](https://github.com/arkworks-rs/algebra/pull/1084), [\#1088](https://github.com/arkworks-rs/algebra/pull/1088) Add implementation for small field with native integer types
 - [\#1061](https://github.com/arkworks-rs/algebra/pull/1061) (`ark-poly`) Reduce allocations in `DenseMultilinearExtension::{concat, fix_variables, evaluate}`.
 - [\#1109](https://github.com/arkworks-rs/algebra/pull/1109) (`ark-poly`) Reduce allocations in `DenseMultilinearExtension::Sub` and parallelize scalar `Mul`.
