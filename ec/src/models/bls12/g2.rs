@@ -57,7 +57,7 @@ impl<P: Bls12Config> From<G2Affine<P>> for G2Prepared<P> {
                 z: Fp2::one(),
             };
 
-            for i in BitIteratorBE::new(P::X).skip(1) {
+            for i in BitIteratorBE::without_leading_zeros(P::X).skip(1) {
                 ell_coeffs.push(r.double_in_place(&two_inv));
 
                 if i {

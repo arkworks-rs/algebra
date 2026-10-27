@@ -66,7 +66,7 @@ impl<P: BW6Config> From<G2Affine<P>> for G2Prepared<P> {
             z: P::Fp::one(),
         };
 
-        for i in BitIteratorBE::new(P::ATE_LOOP_COUNT_1).skip(1) {
+        for i in BitIteratorBE::without_leading_zeros(P::ATE_LOOP_COUNT_1).skip(1) {
             ell_coeffs_1.push(r.double_in_place());
 
             if i {
