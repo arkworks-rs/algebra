@@ -619,6 +619,11 @@ impl<P: FpConfig<N>, const N: usize> CanonicalDeserializeWithFlags for Fp<P, N> 
         masked_bytes.read_exact_up_to(reader, output_byte_size)?;
         let flags = F::from_u8_remove_flags(&mut masked_bytes[output_byte_size - 1])
             .ok_or(SerializationError::UnexpectedFlags)?;
+        // If the flags needed an extra byte, the rest of that byte is unused and
+        // must be zero, since `to_bigint` ignores it.
+        if output_byte_size > 8 * N && masked_bytes[output_byte_size - 1] != 0 {
+            return Err(SerializationError::InvalidData);
+        }
 
         let self_integer = masked_bytes.to_bigint();
         Self::from_bigint(self_integer)

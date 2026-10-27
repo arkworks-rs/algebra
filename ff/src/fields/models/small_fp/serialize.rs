@@ -77,6 +77,15 @@ impl<P: SmallFpConfig> CanonicalDeserializeWithFlags for SmallFp<P> {
         let flags = F::from_u8_remove_flags(&mut bytes[output_byte_size - 1])
             .ok_or(SerializationError::UnexpectedFlags)?;
 
+        // If the flags needed a 17th byte, its non-flag bits are not part of
+        // the value read below: require them to be zero so every element keeps
+        // a unique encoding. Mirrors the check in `Fp::deserialize_with_flags`;
+        // unreachable with the moduli `SmallFp` currently supports, but kept
+        // so a wider backing type cannot silently reintroduce malleability.
+        if output_byte_size > 16 && bytes[16] != 0 {
+            return Err(SerializationError::InvalidData);
+        }
+
         let mut le_bytes = [0u8; 16];
         le_bytes[..output_byte_size.min(16)].copy_from_slice(&bytes[..output_byte_size.min(16)]);
         let raw = u128::from_le_bytes(le_bytes);

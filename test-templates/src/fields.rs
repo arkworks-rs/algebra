@@ -18,6 +18,22 @@ impl ark_serialize::Flags for DummyFlags {
     }
 }
 
+/// Two-bit flags stored in the top bits of the last byte, as `SWFlags` does.
+#[derive(Default, Clone, Copy, Debug, PartialEq, Eq)]
+pub struct TwoBitFlags(pub u8);
+
+impl ark_serialize::Flags for TwoBitFlags {
+    const BIT_SIZE: usize = 2;
+
+    fn u8_bitmask(&self) -> u8 {
+        self.0 << 6
+    }
+
+    fn from_u8(value: u8) -> Option<Self> {
+        Some(Self(value >> 6))
+    }
+}
+
 pub fn sum_of_products_test_helper<F: ark_ff::Field, const N: usize>(rng: &mut impl Rng) {
     let a: [_; N] = core::array::from_fn(|_| F::rand(rng));
     let b: [_; N] = core::array::from_fn(|_| F::rand(rng));
@@ -417,6 +433,35 @@ macro_rules! __test_field {
     };
     ($field: ty; prime) => {
         $crate::__test_field!($field; fft);
+
+        #[test]
+        fn test_deserialize_with_flags_rejects_unused_bits() {
+            use ark_serialize::*;
+            use $crate::fields::TwoBitFlags;
+
+            // Only fields whose flags need an extra byte have unused bits in
+            // it; for other fields this test intentionally passes vacuously,
+            // since tampered bits there push the value past the modulus and
+            // are already rejected by `from_bigint`.
+            let size = <$field>::zero().serialized_size_with_flags::<TwoBitFlags>();
+            if size == buffer_byte_size(<$field>::MODULUS_BIT_SIZE as usize) {
+                return;
+            }
+
+            let mut bytes = vec![];
+            <$field>::from(5u8)
+                .serialize_with_flags(&mut bytes, TwoBitFlags(1))
+                .unwrap();
+            let (value, flags) =
+                <$field>::deserialize_with_flags::<_, TwoBitFlags>(&bytes[..]).unwrap();
+            assert_eq!((value, flags), (<$field>::from(5u8), TwoBitFlags(1)));
+
+            for bit in 0..6 {
+                let mut tampered = bytes.clone();
+                *tampered.last_mut().unwrap() |= 1 << bit;
+                assert!(<$field>::deserialize_with_flags::<_, TwoBitFlags>(&tampered[..]).is_err());
+            }
+        }
 
         #[test]
         fn test_sum_of_products_edge_case() {
