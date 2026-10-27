@@ -132,7 +132,7 @@ impl<F: Field> MultilinearExtension<F> for SparseMultilinearExtension<F> {
         }
         // sanity check
         assert!(
-            a + k < self.num_vars && b + k < self.num_vars,
+            a + k <= self.num_vars && b + k <= self.num_vars,
             "invalid relabel argument"
         );
         if a == b || k == 0 {
@@ -595,6 +595,27 @@ mod tests {
             point.swap(1, 8);
             assert_eq!(expected, poly.evaluate(&point));
         }
+    }
+
+    #[test]
+    fn relabel_last_variable() {
+        let mut rng = test_rng();
+        let poly = SparseMultilinearExtension::rand(10, &mut rng);
+        let mut point: Vec<_> = (0..10).map(|_| Fr::rand(&mut rng)).collect();
+        let expected = poly.evaluate(&point);
+
+        // swap the first and the last variable
+        let relabeled = poly.relabel(0, 9, 1);
+        point.swap(0, 9);
+        assert_eq!(expected, relabeled.evaluate(&point));
+
+        // windows that end at the last variable
+        let relabeled = relabeled.relabel(9, 0, 1).relabel(1, 7, 3);
+        point.swap(0, 9);
+        point.swap(1, 7);
+        point.swap(2, 8);
+        point.swap(3, 9);
+        assert_eq!(expected, relabeled.evaluate(&point));
     }
 
     #[test]
