@@ -55,6 +55,26 @@ mod tests {
     test_small_field!(f64_goldilocks; SmallFp64Goldilocks);
     test_small_field!(f64; SmallFp64);
 
+    mod to_field_elements {
+        use super::*;
+        use ark_ff::ToConstraintField;
+
+        #[test]
+        fn test_bytes_to_field_elements_small_modulus() {
+            // A modulus of at most 8 bits cannot hold a whole byte per element:
+            // this must be `None`, not a panic in `chunks(0)`.
+            let bytes = [1u8, 2, 3];
+            let res: Option<ark_std::vec::Vec<SmallFp8>> = bytes.as_slice().to_field_elements();
+            assert!(res.is_none());
+            let res: Option<ark_std::vec::Vec<SmallFp8>> = [0u8; 32].to_field_elements();
+            assert!(res.is_none());
+
+            // A 16-bit modulus holds one byte per element.
+            let res: Option<ark_std::vec::Vec<SmallFp16>> = bytes.as_slice().to_field_elements();
+            assert_eq!(res.unwrap().len(), bytes.len());
+        }
+    }
+
     mod const_constructors {
         use super::*;
         use ark_ff::{One, Zero};
