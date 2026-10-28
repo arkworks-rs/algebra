@@ -23,9 +23,9 @@ pub struct Bucket<P: SWCurveConfig> {
     pub x: P::BaseField,
     /// `Y / ZZZ` projection of the affine `Y`
     pub y: P::BaseField,
-    /// Bucket multiplicative inverse. Will be `0` only at infinity.
+    /// `ZZ` coordinate (`Z^2`), where `X / ZZ` is the affine `X`. Will be `0` only at infinity.
     pub zz: P::BaseField,
-    /// Bucket multiplicative inverse. Will be `0` only at infinity.
+    /// `ZZZ` coordinate (`Z^3`), where `Y / ZZZ` is the affine `Y`. Will be `0` only at infinity.
     pub zzz: P::BaseField,
 }
 
@@ -110,6 +110,9 @@ impl<P: SWCurveConfig> Bucket<P> {
     }
 
     pub fn double_in_place(&mut self) {
+        if self.is_zero() {
+            return;
+        }
         // From https://www.hyperelliptic.org/EFD/g1p/auto-shortw-xyzz.html#doubling-dbl-2008-s-1
         // U = 2*Y1
         let mut u = self.y;
@@ -372,14 +375,12 @@ impl<P: SWCurveConfig> From<Affine<P>> for Bucket<P> {
     }
 }
 
-// The affine point X, Y is represented in the Jacobian
-// coordinates with Z = 1.
 impl<P: SWCurveConfig> From<Bucket<P>> for Affine<P> {
     #[inline]
     fn from(p: Bucket<P>) -> Self {
         p.zzz.inverse().map_or_else(Self::zero, |zzz_inv| {
-            let b = p.zz.square();
-            let x = p.x * &b;
+            let z_inv = p.zz * zzz_inv;
+            let x = p.x * z_inv.square();
             let y = p.y * zzz_inv;
             Self::new_unchecked(x, y)
         })
