@@ -133,7 +133,7 @@ fn unroll(expr: &Expr, unroll_by: usize) -> Expr {
                 } else {
                     0
                 };
-                let end: Expr = parse_quote!(#end + #end_is_closed);
+                let end: Expr = parse_quote!((#end) + #end_is_closed);
 
                 let preamble: Vec<Stmt> = parse_quote! {
                     let total_iters: usize = (#end).checked_sub(#begin).unwrap_or(0);
