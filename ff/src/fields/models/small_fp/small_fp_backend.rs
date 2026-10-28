@@ -306,7 +306,7 @@ impl<P: SmallFpConfig> ark_std::rand::distributions::Distribution<SmallFp<P>>
                     let shave_bits = SmallFp::<P>::num_bits_to_shave();
                     let mask = <$ty>::MAX >> shave_bits;
                     val &= mask;
-                    if val > 0 && u128::from(val) < P::MODULUS_U128 {
+                    if u128::from(val) < P::MODULUS_U128 {
                         return SmallFp::from(val);
                     }
                 }

@@ -55,6 +55,17 @@ mod tests {
     test_small_field!(f64_goldilocks; SmallFp64Goldilocks);
     test_small_field!(f64; SmallFp64);
 
+    #[test]
+    fn test_rand_can_be_zero() {
+        use ark_ff::{UniformRand, Zero};
+        let mut rng = ark_std::test_rng();
+        // 251 values: the chance of never drawing zero in 20000 samples is below e^-79.
+        let zeros = (0..20_000)
+            .filter(|_| SmallFp8::rand(&mut rng).is_zero())
+            .count();
+        assert!(zeros > 0, "UniformRand never sampled zero");
+    }
+
     mod const_constructors {
         use super::*;
         use ark_ff::{One, Zero};
