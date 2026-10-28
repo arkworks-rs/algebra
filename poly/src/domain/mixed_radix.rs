@@ -65,7 +65,7 @@ impl<F: FftField> EvaluationDomain<F> for MixedRadixEvaluationDomain<F> {
     /// having `num_coeffs` coefficients.
     fn new(num_coeffs: usize) -> Option<Self> {
         // Compute the best size of our evaluation domain.
-        let size = best_mixed_domain_size::<F>(num_coeffs) as u64;
+        let size = best_mixed_domain_size::<F>(num_coeffs)? as u64;
         let small_subgroup_base = F::SMALL_SUBGROUP_BASE?;
 
         // Compute the size of our evaluation domain
@@ -115,7 +115,7 @@ impl<F: FftField> EvaluationDomain<F> for MixedRadixEvaluationDomain<F> {
         let small_subgroup_base = F::SMALL_SUBGROUP_BASE?;
 
         // Compute the best size of our evaluation domain.
-        let num_coeffs = best_mixed_domain_size::<F>(num_coeffs) as u64;
+        let num_coeffs = best_mixed_domain_size::<F>(num_coeffs)? as u64;
 
         let q = u64::from(small_subgroup_base);
         let q_adicity = k_adicity(q, num_coeffs);
@@ -241,22 +241,33 @@ fn mixed_radix_fft_permute(
     res
 }
 
-fn best_mixed_domain_size<F: FftField>(min_size: usize) -> usize {
-    let mut best = usize::MAX;
-    let small_subgroup_base_adicity = F::SMALL_SUBGROUP_BASE_ADICITY.unwrap();
-    let small_subgroup_base = usize::try_from(F::SMALL_SUBGROUP_BASE.unwrap()).unwrap();
+/// Returns the smallest `q^b * 2^a >= min_size` supported by `F`, or `None` if
+/// there is none (including when it would not fit in a `usize`).
+fn best_mixed_domain_size<F: FftField>(min_size: usize) -> Option<usize> {
+    let mut best: Option<usize> = None;
+    let small_subgroup_base_adicity = F::SMALL_SUBGROUP_BASE_ADICITY?;
+    let small_subgroup_base = usize::try_from(F::SMALL_SUBGROUP_BASE?).ok()?;
 
     for b in 0..=small_subgroup_base_adicity {
-        let mut r = small_subgroup_base.pow(b);
+        let Some(mut r) = small_subgroup_base.checked_pow(b) else {
+            break;
+        };
 
         let mut two_adicity = 0;
+        let mut fits = true;
         while r < min_size {
-            r *= 2;
+            match r.checked_mul(2) {
+                Some(next) => r = next,
+                None => {
+                    fits = false;
+                    break;
+                },
+            }
             two_adicity += 1;
         }
 
-        if two_adicity <= F::TWO_ADICITY {
-            best = min(best, r);
+        if fits && two_adicity <= F::TWO_ADICITY {
+            best = Some(best.map_or(r, |best| min(best, r)));
         }
     }
 
@@ -628,5 +639,18 @@ mod tests {
     fn test_compute_size_of_domain() {
         assert!(MixedRadixEvaluationDomain::<Fr>::compute_size_of_domain(7).is_some());
         assert!(MixedRadixEvaluationDomain::<Fr>::compute_size_of_domain(16).is_some());
+    }
+
+    #[test]
+    fn test_unsupported_huge_domain_size_returns_none() {
+        use ark_test_curves::bls12_381::Fr as BlsFr;
+
+        // Doubling up to `min_size` would overflow `usize`.
+        let huge = usize::MAX / 2 + 2;
+        assert!(MixedRadixEvaluationDomain::<BlsFr>::new(huge).is_none());
+        assert!(MixedRadixEvaluationDomain::<BlsFr>::new(usize::MAX).is_none());
+        assert!(MixedRadixEvaluationDomain::<BlsFr>::compute_size_of_domain(huge).is_none());
+        // Ordinary sizes still work.
+        assert!(MixedRadixEvaluationDomain::<BlsFr>::new(1000).is_some());
     }
 }
