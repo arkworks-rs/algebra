@@ -38,10 +38,16 @@ impl<ConstraintF: Field> ToConstraintField<ConstraintF> for () {
     }
 }
 
+/// Packs the bytes into field elements, `(MODULUS_BIT_SIZE - 1) / 8` bytes per
+/// element. Returns `None` if the field is too small to hold even a single
+/// byte per element (modulus of at most 8 bits).
 impl<ConstraintF: PrimeField> ToConstraintField<ConstraintF> for [u8] {
     #[inline]
     fn to_field_elements(&self) -> Option<Vec<ConstraintF>> {
         let max_size = ((ConstraintF::MODULUS_BIT_SIZE - 1) / 8) as usize;
+        if max_size == 0 {
+            return None;
+        }
         let bigint_size = <ConstraintF as PrimeField>::BigInt::NUM_LIMBS * 8;
         self.chunks(max_size)
             .map(|chunk| {

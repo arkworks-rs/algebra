@@ -42,6 +42,7 @@
 
 ### Bugfixes
 
+- [\#XXXX](https://github.com/arkworks-rs/algebra/pull/XXXX) (`ark-ff`) Fix `<[u8] as ToConstraintField>::to_field_elements` panicking in `chunks(0)` for fields whose modulus has at most 8 bits; it now returns `None`, since a byte cannot be packed into such a field element.
 - [\#1187](https://github.com/arkworks-rs/algebra/pull/1187) (`ark-ec`) Fix MSM panicking when a rayon thread pool cannot be created: with the `parallel` feature, `VariableBaseMSM::msm_bigint` now falls back to the current rayon context instead of unwrapping `ThreadPoolBuilder::build()`, replacing the `wasm32`-only guard from [\#1112](https://github.com/arkworks-rs/algebra/pull/1112).
 - [\#1149](https://github.com/arkworks-rs/algebra/pull/1149) (`ark-poly`) Fix division by a `DensePolynomial` of degree >= 256 (`Div`, `divide`, `divide_with_q_and_r`) returning a wrong quotient or panicking when the quotient has zero low-order coefficients, e.g. `(x * b) / b` returned `1` for `b` of degree 300, and `x^300 / x^256` panicked.
 - [\#1163](https://github.com/arkworks-rs/algebra/pull/1163) (`ark-ff`) Fix `find_naf` (and hence `find_relaxed_naf` and `cyclotomic_exp`) dropping the top-limb carry for exponents just below a 64·k-bit boundary, e.g. `2^64 - 1`.
