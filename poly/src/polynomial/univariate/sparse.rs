@@ -241,12 +241,12 @@ impl<F: Field> SparsePolynomial<F> {
     /// The function does not combine like terms and so multiple monomials
     /// of the same degree are ignored.
     pub fn from_coefficients_vec(mut coeffs: Vec<(usize, F)>) -> Self {
+        // Ensure that coeffs are in ascending order.
+        coeffs.sort_by(|(c1, _), (c2, _)| c1.cmp(c2));
         // While there are zeros at the end of the coefficient vector, pop them off.
         while coeffs.last().is_some_and(|(_, c)| c.is_zero()) {
             coeffs.pop();
         }
-        // Ensure that coeffs are in ascending order.
-        coeffs.sort_by(|(c1, _), (c2, _)| c1.cmp(c2));
         // Check that either the coefficients vec is empty or that the last coeff is
         // non-zero.
         assert!(coeffs.last().map_or(true, |(_, c)| !c.is_zero()));
@@ -353,6 +353,15 @@ mod tests {
             }
         }
         SparsePolynomial::from_coefficients_vec(coeffs)
+    }
+
+    #[test]
+    fn from_coefficients_vec_unsorted_with_zero_leading_term() {
+        // The highest-degree term has a zero coefficient but is not last in the input.
+        let poly =
+            SparsePolynomial::from_coefficients_vec(vec![(5, Fr::zero()), (1, Fr::from(3u64))]);
+        assert_eq!(poly.coeffs, vec![(1, Fr::from(3u64))]);
+        assert_eq!(poly.degree(), 1);
     }
 
     #[test]
