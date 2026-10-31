@@ -99,7 +99,7 @@ fn impl_valid(ast: &syn::DeriveInput) -> TokenStream {
     } else {
         quote! {
             if Self::TRIVIAL_CHECK {
-                return Ok(());
+                return ::core::result::Result::Ok(());
             }
             #(#check_body)*
         }
@@ -110,12 +110,12 @@ fn impl_valid(ast: &syn::DeriveInput) -> TokenStream {
             const TRIVIAL_CHECK: bool = (
                 #(#trivial_check_body) && *
             );
-            fn check(&self) -> Result<(), ark_serialize::SerializationError> {
+            fn check(&self) -> ::core::result::Result<(), ark_serialize::SerializationError> {
                 #check_body
 
-                Ok(())
+                ::core::result::Result::Ok(())
             }
-            fn batch_check<'a>(batch: impl Iterator<Item = &'a Self> + Send) -> Result<(), ark_serialize::SerializationError>
+            fn batch_check<'a>(batch: impl Iterator<Item = &'a Self> + Send) -> ::core::result::Result<(), ark_serialize::SerializationError>
                 where
             Self: 'a
             {
@@ -123,7 +123,7 @@ fn impl_valid(ast: &syn::DeriveInput) -> TokenStream {
                     let batch: Vec<_> = batch.collect();
                     #(#batch_body)*
                 }
-                Ok(())
+                ::core::result::Result::Ok(())
             }
         }
     };
@@ -175,13 +175,13 @@ pub(super) fn impl_canonical_deserialize(ast: &syn::DeriveInput) -> TokenStream 
 
             deserialize_body = if tuple {
                 quote!({
-                    Ok(#name (
+                    ::core::result::Result::Ok(#name (
                         #(#field_cases)*
                      ))
                 })
             } else {
                 quote!({
-                    Ok(#name {
+                    ::core::result::Result::Ok(#name {
                         #(#field_cases)*
                     })
                 })
@@ -199,7 +199,7 @@ pub(super) fn impl_canonical_deserialize(ast: &syn::DeriveInput) -> TokenStream 
                 mut reader: R,
                 compress: ark_serialize::Compress,
                 validate: ark_serialize::Validate,
-            ) -> Result<Self, ark_serialize::SerializationError> {
+            ) -> ::core::result::Result<Self, ark_serialize::SerializationError> {
                 #deserialize_body
             }
         }
