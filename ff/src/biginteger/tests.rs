@@ -1,5 +1,6 @@
 #![allow(clippy::bool_assert_comparison)]
 use crate::{biginteger::BigInteger, UniformRand};
+use ark_std::vec;
 use num_bigint::BigUint;
 
 // Test elementary math operations for BigInteger.
@@ -227,6 +228,48 @@ fn biginteger_conversion_test<B: BigInteger>() {
     assert_eq!(x, x_recovered);
 }
 
+// Test construction of BigInteger from u64 limbs
+fn biginteger_from_limbs_test<B: BigInteger>() {
+    let mut rng = ark_std::test_rng();
+    let n = B::NUM_LIMBS;
+
+    // round trip through the limbs
+    let x: B = UniformRand::rand(&mut rng);
+    assert_eq!(B::from_limbs(x.as_ref()), Some(x));
+
+    // no limbs is zero, one limb is the u64
+    assert_eq!(B::from_limbs(&[]), Some(B::from(0u64)));
+    assert_eq!(B::from_limbs(&[u64::MAX]), Some(B::from(u64::MAX)));
+
+    // fewer limbs are padded with zeros
+    let mut low = x.as_ref().to_vec();
+    low[n - 1] = 0;
+    let mut expected = x;
+    expected.as_mut()[n - 1] = 0;
+    assert_eq!(B::from_limbs(&low[..n - 1]), Some(expected));
+
+    // the highest limb lands in the highest position
+    let mut top = vec![0u64; n];
+    top[n - 1] = 1;
+    assert_eq!(
+        B::from_limbs(&top),
+        Some(B::from(1u64) << (64 * (n as u32 - 1)))
+    );
+
+    // extra zero limbs are accepted, any non-zero extra limb is not
+    let mut longer = x.as_ref().to_vec();
+    longer.extend([0, 0]);
+    assert_eq!(B::from_limbs(&longer), Some(x));
+    *longer.last_mut().unwrap() = 1;
+    assert_eq!(B::from_limbs(&longer), None);
+    longer[n] = u64::MAX;
+    assert_eq!(B::from_limbs(&longer), None);
+
+    // agrees with the BigUint conversion
+    let value: BigUint = x.into();
+    assert_eq!(B::from_limbs(&value.to_u64_digits()), Some(x));
+}
+
 // Wrapper test function for BigInteger
 fn test_biginteger<B: BigInteger>(max: B, zero: B) {
     let mut rng = ark_std::test_rng();
@@ -235,6 +278,7 @@ fn test_biginteger<B: BigInteger>(max: B, zero: B) {
     biginteger_arithmetic_test(a, b, zero, max);
     biginteger_bits_test::<B>();
     biginteger_conversion_test::<B>();
+    biginteger_from_limbs_test::<B>();
     biginteger_bitwise_ops_test::<B>();
     biginteger_shr::<B>();
     biginteger_shl::<B>();

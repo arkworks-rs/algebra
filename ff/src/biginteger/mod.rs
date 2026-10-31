@@ -1263,6 +1263,38 @@ pub trait BigInteger:
     /// ```
     fn from_bits_le(bits: &[bool]) -> Self;
 
+    /// Returns the big integer with the given `u64` limbs, least-significant limb first,
+    /// or `None` if the value does not fit in [`Self::NUM_LIMBS`] limbs.
+    ///
+    /// Fewer limbs than [`Self::NUM_LIMBS`] are padded with zeros, so code that is
+    /// generic over [`BigInteger`] can build any constant that fits, for example `2^64`
+    /// with `from_limbs(&[0, 1])`. Extra limbs are accepted as long as they are zero.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use ark_ff::{biginteger::BigInteger128 as B, BigInteger as _};
+    ///
+    /// assert_eq!(B::from_limbs(&[1, 2]), Some(B::new([1, 2])));
+    ///
+    /// // Fewer limbs are padded with zeros
+    /// assert_eq!(B::from_limbs(&[7]), Some(B::from(7u64)));
+    /// assert_eq!(B::from_limbs(&[]), Some(B::from(0u64)));
+    ///
+    /// // Extra limbs must be zero
+    /// assert_eq!(B::from_limbs(&[1, 2, 0]), Some(B::new([1, 2])));
+    /// assert_eq!(B::from_limbs(&[1, 2, 3]), None);
+    /// ```
+    fn from_limbs(limbs: &[u64]) -> Option<Self> {
+        let (low, high) = limbs.split_at(limbs.len().min(Self::NUM_LIMBS));
+        if high.iter().any(|&limb| limb != 0) {
+            return None;
+        }
+        let mut result = Self::default();
+        result.as_mut()[..low.len()].copy_from_slice(low);
+        Some(result)
+    }
+
     /// Returns the bit representation in a big endian boolean array,
     /// with leading zeroes.
     /// # Example

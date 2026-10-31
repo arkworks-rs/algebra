@@ -29,6 +29,7 @@
 
 ### Features
 
+- [\#351](https://github.com/arkworks-rs/algebra/issues/351) (`ark-ff`) Add `BigInteger::from_limbs`, which builds a big integer from `u64` limbs (least significant first) in code that is generic over `BigInteger`, returning `None` if the value does not fit.
 - (`ark-serialize`) Implementation of `CanonicalSerialize` and `CanonicalDeserialize` for signed integer types
 - [\#1115](https://github.com/arkworks-rs/algebra/pull/1115) (`ark-serialize`) Implement `CanonicalSerialize`, `Valid`, and `CanonicalDeserialize` for `Box<T>`.
 - [\#1084](https://github.com/arkworks-rs/algebra/pull/1084) (`ark-ff`) Add `from_u128` const constructor for `SmallFp` fields
