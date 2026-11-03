@@ -8,3 +8,11 @@ test_group!(pairing_output; ark_ec::pairing::PairingOutput<BW6_761>; msm);
 test_pairing!(pairing; crate::BW6_761);
 test_group!(g1_glv; G1Projective; glv);
 test_group!(g2_glv; G2Projective; glv);
+
+#[test]
+fn test_final_exponentiation_of_zero() {
+    use ark_ec::pairing::{MillerLoopOutput, Pairing};
+    use ark_ff::Zero;
+
+    assert!(BW6_761::final_exponentiation(MillerLoopOutput(Fq6::zero())).is_none());
+}
