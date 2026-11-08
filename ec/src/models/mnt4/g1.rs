@@ -59,3 +59,9 @@ impl<P: MNT4Config> Default for G1Prepared<P> {
         Self::from(G1Affine::<P>::generator())
     }
 }
+
+impl<P: MNT4Config> G1Prepared<P> {
+    pub fn is_zero(&self) -> bool {
+        num_traits::Zero::is_zero(&self.x) && num_traits::Zero::is_zero(&self.y)
+    }
+}

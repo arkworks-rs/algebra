@@ -52,7 +52,13 @@ pub trait MNT6Config: 'static + Sized {
         let pairs = a
             .into_iter()
             .zip_eq(b)
-            .map(|(a, b)| (a.into(), b.into()))
+            .filter_map(|(a, b)| {
+                let (a, b) = (a.into(), b.into());
+                match !a.is_zero() && !b.is_zero() {
+                    true => Some((a, b)),
+                    false => None,
+                }
+            })
             .collect::<Vec<_>>();
         let result = ark_std::cfg_into_iter!(pairs)
             .map(|(a, b)| MNT6::ate_miller_loop(&a, &b))

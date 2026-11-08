@@ -30,8 +30,25 @@ impl<P: MNT4Config> Default for G2Prepared<P> {
     }
 }
 
+impl<P: MNT4Config> G2Prepared<P> {
+    pub fn is_zero(&self) -> bool {
+        self.double_coefficients.is_empty()
+    }
+}
+
 impl<P: MNT4Config> From<G2Affine<P>> for G2Prepared<P> {
     fn from(g: G2Affine<P>) -> Self {
+        if g.is_zero() {
+            return Self {
+                x: num_traits::Zero::zero(),
+                y: num_traits::Zero::zero(),
+                x_over_twist: num_traits::Zero::zero(),
+                y_over_twist: num_traits::Zero::zero(),
+                double_coefficients: vec![],
+                addition_coefficients: vec![],
+            };
+        }
+
         let twist_inv = P::TWIST.inverse().unwrap();
 
         let mut g_prep = Self {
