@@ -156,11 +156,8 @@ pub trait SWCurveConfig: super::CurveConfig {
                 let (x, flags): (_, SWFlags) =
                     CanonicalDeserializeWithFlags::deserialize_with_flags(reader)?;
                 match flags {
-                    SWFlags::PointAtInfinity => (
-                        Affine::<Self>::identity().x,
-                        Affine::<Self>::identity().y,
-                        flags,
-                    ),
+                    // Keep the parsed `x` so that the check below can reject a non-zero one.
+                    SWFlags::PointAtInfinity => (x, Self::BaseField::zero(), flags),
                     _ => {
                         let is_positive = flags.is_positive().unwrap();
                         let (y, neg_y) = Affine::<Self>::get_ys_from_x_unchecked(x)
@@ -181,10 +178,20 @@ pub trait SWCurveConfig: super::CurveConfig {
                 (x, y, flags)
             },
         };
+        // `serialize_with_mode` writes the identity as zero coordinates with the infinity flag
+        // set. Reject every other encoding of it.
         if flags.is_infinity() {
+            if !x.is_zero() || !y.is_zero() {
+                return Err(SerializationError::InvalidData);
+            }
             Ok(Affine::identity())
         } else {
             let point = Affine::new_unchecked(x, y);
+            // With `ZeroFlag = ()` the identity is represented as `(0, 0)`, so zero coordinates
+            // without the infinity flag would otherwise decode to the identity as well.
+            if point.is_zero() {
+                return Err(SerializationError::InvalidData);
+            }
             if validate == Validate::Yes {
                 point.check()?;
             }

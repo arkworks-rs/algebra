@@ -363,6 +363,56 @@ macro_rules! __test_group {
                 }
             }
         }
+
+        // The identity must have exactly one accepted encoding: the one `serialize_with_mode`
+        // writes (zero coordinates, infinity flag set).
+        #[test]
+        fn test_sw_canonical_identity_encoding() {
+            use ark_ec::models::short_weierstrass::SWFlags;
+            type BaseField = <$group as CurveGroup>::BaseField;
+
+            let id = <$group>::zero();
+            for compress in [Compress::Yes, Compress::No] {
+                let mut canonical = Vec::new();
+                id.serialize_with_mode(&mut canonical, compress).unwrap();
+                let mode = if compress == Compress::Yes { "compressed" } else { "uncompressed" };
+                for validate in [Validate::Yes, Validate::No] {
+                    let canonical_back =
+                        <$group>::deserialize_with_mode(&canonical[..], compress, validate)
+                            .unwrap();
+                    assert_eq!(canonical_back, id);
+
+                    // Infinity flag set, but a non-zero coordinate: byte 0 is in x and, for
+                    // the uncompressed encoding, the middle byte is in y.
+                    for i in [0, canonical.len() / 2] {
+                        let mut bytes = canonical.clone();
+                        bytes[i] ^= 1;
+                        assert!(
+                            <$group>::deserialize_with_mode(&bytes[..], compress, validate)
+                                .is_err(),
+                            "accepted the infinity flag with a non-zero coordinate \
+                             (byte {i}, {mode})"
+                        );
+                    }
+
+                    // Zero coordinates, but without the infinity flag.
+                    for flags in [SWFlags::YIsPositive, SWFlags::YIsNegative] {
+                        let mut bytes = Vec::new();
+                        if compress == Compress::No {
+                            BaseField::zero().serialize_uncompressed(&mut bytes).unwrap();
+                        }
+                        BaseField::zero().serialize_with_flags(&mut bytes, flags).unwrap();
+                        let decoded =
+                            <$group>::deserialize_with_mode(&bytes[..], compress, validate);
+                        assert!(
+                            !matches!(decoded, Ok(p) if p.is_zero()),
+                            "decoded zero coordinates without the infinity flag as the \
+                             identity ({mode})"
+                        );
+                    }
+                }
+            }
+        }
     };
     ($group:ty; te) => {
         $crate::__test_group!($group; curve);
