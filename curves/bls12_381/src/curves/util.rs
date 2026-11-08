@@ -167,6 +167,11 @@ pub(crate) fn read_g1_uncompressed<R: ark_serialize::Read>(
     // Attempt to obtain the y-coordinate
     let y = deserialize_fq(y_bytes).ok_or(SerializationError::InvalidData)?;
     let p = G1Affine::new_unchecked(x, y);
+    // `(0, 0)` is how the identity is represented, but its only valid encoding has the
+    // infinity flag set (handled above).
+    if p.is_zero() {
+        return Err(SerializationError::InvalidData);
+    }
 
     Ok(p)
 }
@@ -253,6 +258,11 @@ pub(crate) fn read_g2_uncompressed<R: ark_serialize::Read>(
     let y = Fq2::new(yc0, yc1);
 
     let p = G2Affine::new_unchecked(x, y);
+    // `(0, 0)` is how the identity is represented, but its only valid encoding has the
+    // infinity flag set (handled above).
+    if p.is_zero() {
+        return Err(SerializationError::InvalidData);
+    }
 
     Ok(p)
 }
