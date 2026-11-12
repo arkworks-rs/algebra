@@ -240,7 +240,19 @@ mod tests {
     use crate::{polynomial::Polynomial, EvaluationDomain, GeneralEvaluationDomain};
     use ark_ff::Zero;
     use ark_std::{rand::Rng, test_rng};
-    use ark_test_curves::{bls12_381::Fr, bn384_small_two_adicity::Fr as BNFr};
+    use ark_test_curves::{
+        bls12_381::{Fq, Fr},
+        bn384_small_two_adicity::Fr as BNFr,
+    };
+
+    #[test]
+    fn test_domain_size_overflow_returns_none() {
+        // Fq has no configured mixed-radix subgroup, so no fallback is attempted.
+        for num_coeffs in [usize::MAX / 2 + 2, usize::MAX] {
+            assert!(GeneralEvaluationDomain::<Fq>::compute_size_of_domain(num_coeffs).is_none());
+            assert!(GeneralEvaluationDomain::<Fq>::new(num_coeffs).is_none());
+        }
+    }
 
     #[test]
     fn vanishing_polynomial_evaluation() {
