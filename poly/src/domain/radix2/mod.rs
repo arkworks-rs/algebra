@@ -52,8 +52,10 @@ impl<F: FftField> EvaluationDomain<F> for Radix2EvaluationDomain<F> {
 
     /// Construct a domain that is large enough for evaluations of a polynomial
     /// having `num_coeffs` coefficients.
+    /// Returns `None` if rounding up to a power of two overflows `usize` or
+    /// the resulting size exceeds the field's two-adicity.
     fn new(num_coeffs: usize) -> Option<Self> {
-        let size = num_coeffs.next_power_of_two() as u64;
+        let size = num_coeffs.checked_next_power_of_two()? as u64;
 
         let log_size_of_group = size.trailing_zeros();
 
@@ -545,6 +547,14 @@ mod tests {
         // Test rounding to next power of 2
         let domain_7 = Radix2EvaluationDomain::<Fr>::new(7).unwrap();
         assert_eq!(domain_7.size(), 8);
+    }
+
+    #[test]
+    fn test_domain_size_overflow_returns_none() {
+        for num_coeffs in [usize::MAX / 2 + 2, usize::MAX] {
+            assert!(Radix2EvaluationDomain::<Fr>::compute_size_of_domain(num_coeffs).is_none());
+            assert!(Radix2EvaluationDomain::<Fr>::new(num_coeffs).is_none());
+        }
     }
 
     #[test]
