@@ -7,6 +7,7 @@ use ark_ff::Fp2;
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use ark_std::vec::*;
 use educe::Educe;
+use num_traits::Zero;
 
 pub type G1Affine<P> = Affine<<P as MNT4Config>::G1Config>;
 pub type G1Projective<P> = Projective<<P as MNT4Config>::G1Config>;
@@ -51,6 +52,12 @@ impl<P: MNT4Config> From<G1Projective<P>> for G1Prepared<P> {
 impl<'a, P: MNT4Config> From<&'a G1Projective<P>> for G1Prepared<P> {
     fn from(g1: &'a G1Projective<P>) -> Self {
         (*g1).into()
+    }
+}
+
+impl<P: MNT4Config> G1Prepared<P> {
+    pub fn is_zero(&self) -> bool {
+        self.x.is_zero() && self.y.is_zero()
     }
 }
 

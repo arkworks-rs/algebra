@@ -41,8 +41,10 @@ impl Pairing for CP6_782 {
     ) -> MillerLoopOutput<Self> {
         let mut result = Self::TargetField::one();
         a.into_iter().zip_eq(b).for_each(|(p, q)| {
-            let (p, q) = (p.into(), q.into());
-            result *= &CP6_782::ate_miller_loop(&p, &q);
+            let (p, q): (G1Prepared, G2Prepared) = (p.into(), q.into());
+            if !p.is_zero() && !q.is_zero() {
+                result *= &CP6_782::ate_miller_loop(&p, &q);
+            }
         });
 
         MillerLoopOutput(result)

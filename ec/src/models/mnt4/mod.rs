@@ -51,7 +51,10 @@ pub trait MNT4Config: 'static + Sized {
         let pairs = a
             .into_iter()
             .zip_eq(b)
-            .map(|(a, b)| (a.into(), b.into()))
+            .filter_map(|(a, b)| {
+                let (a, b): (G1Prepared<Self>, G2Prepared<Self>) = (a.into(), b.into());
+                (!a.is_zero() && !b.is_zero()).then_some((a, b))
+            })
             .collect::<Vec<_>>();
         let result = ark_std::cfg_into_iter!(pairs)
             .map(|(a, b)| MNT4::ate_miller_loop(&a, &b))
