@@ -105,7 +105,10 @@ impl Term for SparseTerm {
 
     /// Returns whether `self` is a constant
     fn is_constant(&self) -> bool {
-        self.is_empty() || self.degree() == 0
+        if self.is_empty() {
+            return true;
+        }
+        self.degree() == 0
     }
 
     /// Evaluates `self` at the given `point` in the field.
@@ -143,7 +146,9 @@ impl PartialOrd for SparseTerm {
     /// ie. `x_1 > x_2`, `x_1^2 > x_1 * x_2`, etc.
     #[allow(clippy::non_canonical_partial_ord_impl)]
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        if self.degree() == other.degree() {
+        let sd = self.degree();
+        let od = other.degree();
+        if sd == od {
             // Iterate through all variables and return the corresponding ordering
             // if they differ in variable numbering or power
             for ((cur_variable, cur_power), (other_variable, other_power)) in
@@ -159,7 +164,7 @@ impl PartialOrd for SparseTerm {
             }
             Some(Ordering::Equal)
         } else {
-            Some(self.degree().cmp(&other.degree()))
+            Some(sd.cmp(&od))
         }
     }
 }
