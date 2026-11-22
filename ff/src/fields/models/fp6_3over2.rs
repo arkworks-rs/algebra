@@ -1,5 +1,8 @@
 use super::cubic_extension::{CubicExtConfig, CubicExtField};
-use crate::fields::{CyclotomicMultSubgroup, Fp2, Fp2Config, SqrtPrecomputation};
+use crate::{
+    fields::{CyclotomicMultSubgroup, Fp2, Fp2Config, SqrtPrecomputation},
+    Zero,
+};
 use core::marker::PhantomData;
 
 pub trait Fp6Config: 'static + Send + Sync + Copy {
@@ -52,8 +55,19 @@ impl<P: Fp6Config> CubicExtConfig for Fp6ConfigWrapper<P> {
         c2: &mut Self::BaseField,
         power: usize,
     ) {
-        *c1 *= &Self::FROBENIUS_COEFF_C1[power % Self::DEGREE_OVER_BASE_PRIME_FIELD];
-        *c2 *= &Self::FROBENIUS_COEFF_C2[power % Self::DEGREE_OVER_BASE_PRIME_FIELD];
+        let idx = power % Self::DEGREE_OVER_BASE_PRIME_FIELD;
+        let coeff1 = &Self::FROBENIUS_COEFF_C1[idx];
+        if coeff1.c1.is_zero() {
+            c1.mul_assign_by_fp(&coeff1.c0);
+        } else {
+            *c1 *= coeff1;
+        }
+        let coeff2 = &Self::FROBENIUS_COEFF_C2[idx];
+        if coeff2.c1.is_zero() {
+            c2.mul_assign_by_fp(&coeff2.c0);
+        } else {
+            *c2 *= coeff2;
+        }
     }
 }
 
@@ -61,9 +75,13 @@ pub type Fp6<P> = CubicExtField<Fp6ConfigWrapper<P>>;
 
 impl<P: Fp6Config> Fp6<P> {
     pub fn mul_assign_by_fp2(&mut self, other: Fp2<P::Fp2Config>) {
-        self.c0 *= &other;
-        self.c1 *= &other;
-        self.c2 *= &other;
+        if other.c1.is_zero() {
+            self.mul_by_fp(&other.c0);
+        } else {
+            self.c0 *= &other;
+            self.c1 *= &other;
+            self.c2 *= &other;
+        }
     }
 
     pub fn mul_by_fp(&mut self, element: &<P::Fp2Config as Fp2Config>::Fp) {
@@ -73,33 +91,25 @@ impl<P: Fp6Config> Fp6<P> {
     }
 
     pub fn mul_by_fp2(&mut self, element: &Fp2<P::Fp2Config>) {
-        self.c0 *= element;
-        self.c1 *= element;
-        self.c2 *= element;
+        if element.c1.is_zero() {
+            self.mul_by_fp(&element.c0);
+        } else {
+            self.c0 *= element;
+            self.c1 *= element;
+            self.c2 *= element;
+        }
     }
 
     pub fn mul_by_1(&mut self, c1: &Fp2<P::Fp2Config>) {
         let mut b_b = self.c1;
         b_b *= c1;
 
-        let mut t1 = *c1;
-        {
-            let mut tmp = self.c1;
-            tmp += &self.c2;
+        let mut t1 = self.c2;
+        t1 *= c1;
+        P::mul_fp2_by_nonresidue_in_place(&mut t1);
 
-            t1 *= &tmp;
-            t1 -= &b_b;
-            P::mul_fp2_by_nonresidue_in_place(&mut t1);
-        }
-
-        let mut t2 = *c1;
-        {
-            let mut tmp = self.c0;
-            tmp += &self.c1;
-
-            t2 *= &tmp;
-            t2 -= &b_b;
-        }
+        let mut t2 = self.c0;
+        t2 *= c1;
 
         self.c0 = t1;
         self.c1 = t2;

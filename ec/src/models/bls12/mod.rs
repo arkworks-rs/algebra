@@ -7,7 +7,7 @@ use ark_ff::{
     fields::{
         fp12_2over3over2::{Fp12, Fp12Config},
         fp2::Fp2Config,
-        fp6_3over2::Fp6Config,
+        fp6_3over2::{Fp6, Fp6Config},
         Fp2,
     },
     BitIteratorBE, CyclotomicMultSubgroup, Field, PrimeField,
@@ -65,10 +65,22 @@ pub trait Bls12Config: 'static + Sized {
         let mut f = cfg_chunks_mut!(pairs, 4)
             .map(|pairs| {
                 let mut f = <Bls12<Self> as Pairing>::TargetField::one();
+                let mut is_first_bit = true;
                 for i in BitIteratorBE::without_leading_zeros(Self::X).skip(1) {
-                    f.square_in_place();
-                    for (p, coeffs) in pairs.iter_mut() {
-                        Bls12::<Self>::ell(&mut f, &coeffs.next().unwrap(), &p.0);
+                    if is_first_bit {
+                        is_first_bit = false;
+                        let mut iter = pairs.iter_mut();
+                        if let Some((p, coeffs)) = iter.next() {
+                            Bls12::<Self>::ell_on_one(&mut f, &coeffs.next().unwrap(), &p.0);
+                            for (p, coeffs) in iter {
+                                Bls12::<Self>::ell(&mut f, &coeffs.next().unwrap(), &p.0);
+                            }
+                        }
+                    } else {
+                        f.square_in_place();
+                        for (p, coeffs) in pairs.iter_mut() {
+                            Bls12::<Self>::ell(&mut f, &coeffs.next().unwrap(), &p.0);
+                        }
                     }
                     if i {
                         for (p, coeffs) in pairs.iter_mut() {
@@ -170,6 +182,34 @@ pub use self::{
 pub struct Bls12<P: Bls12Config>(PhantomData<fn() -> P>);
 
 impl<P: Bls12Config> Bls12<P> {
+    // Evaluate the line function at point p when the accumulator `f` is `1`.
+    #[inline]
+    fn ell_on_one(f: &mut Fp12<P::Fp12Config>, coeffs: &g2::EllCoeff<P>, p: &G1Affine<P>) {
+        let mut c0 = coeffs.0;
+        let mut c1 = coeffs.1;
+        let mut c2 = coeffs.2;
+        let (px, py) = p.xy().unwrap();
+
+        match P::TWIST_TYPE {
+            TwistType::M => {
+                c2.mul_assign_by_fp(&py);
+                c1.mul_assign_by_fp(&px);
+                *f = Fp12::new(
+                    Fp6::new(c0, c1, Fp2::zero()),
+                    Fp6::new(Fp2::zero(), c2, Fp2::zero()),
+                );
+            },
+            TwistType::D => {
+                c0.mul_assign_by_fp(&py);
+                c1.mul_assign_by_fp(&px);
+                *f = Fp12::new(
+                    Fp6::new(c0, Fp2::zero(), Fp2::zero()),
+                    Fp6::new(c1, c2, Fp2::zero()),
+                );
+            },
+        }
+    }
+
     // Evaluate the line function at point p.
     fn ell(f: &mut Fp12<P::Fp12Config>, coeffs: &g2::EllCoeff<P>, p: &G1Affine<P>) {
         let mut c0 = coeffs.0;

@@ -24,4 +24,20 @@ impl Fp2Config for Fq2Config {
     fn mul_fp_by_nonresidue_in_place(fe: &mut Self::Fp) -> &mut Self::Fp {
         fe.neg_in_place()
     }
+
+    #[inline(always)]
+    fn sub_and_mul_fp_by_nonresidue(y: &mut Self::Fp, x: &Self::Fp) {
+        *y += x;
+    }
+
+    #[inline(always)]
+    fn mul_fp_by_nonresidue_plus_one_and_add(y: &mut Self::Fp, x: &Self::Fp) {
+        *y = *x;
+    }
+
+    #[inline(always)]
+    fn mul_fp_by_nonresidue_and_add(y: &mut Self::Fp, x: &Self::Fp) {
+        y.neg_in_place();
+        *y += x;
+    }
 }
