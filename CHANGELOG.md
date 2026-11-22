@@ -36,6 +36,8 @@
 
 ### Improvements
 
+- (`ark-ff`) Accelerate `Fp12::cyclotomic_exp` via Karabina (2013) compressed squaring (`2` `Fp4` squarings/bit vs `3`), streaming NAF, and 16-slot fixed-stack Montgomery batch decompression (`0` heap allocations), and replace EEA in `MontConfig::inverse` with a 60-step Bernstein–Yang `divsteps` inverter + unrolled `M == 2` `sum_of_products`.
+- (`ark-ec`, `ark-ff`) Specialize initial `f == 1` line placement (`ell_on_one`) in `Bls12` and `Bn` Miller loops, reduce `Fp6::mul_by_1` to `3` `Fp2` multiplications, and add dedicated pairing Criterion benchmarks for `BLS12-377`, `BLS12-381`, and `BN254`.
 - [\#1091](https://github.com/arkworks-rs/algebra/pull/1091)(`ark-ff-macros`) Replace Fermat-based (`a^{p-2}`) modular inversion for `SmallFp` fields with a constant-time binary extended GCD (based on [Pornin 2020](https://eprint.iacr.org/2020/1340)).
 - [\#1091](https://github.com/arkworks-rs/algebra/pull/1091)(`ark-ff-macros`) Consolidate `SmallFp` multiplication dispatch into a single `match` with Mersenne fast-paths (M7, M13, M31) and generic Montgomery backends for u8/u16/u32/u64 fields.
 - [\#1102](https://github.com/arkworks-rs/algebra/pull/1102) (`ark-ff-macros`) Add specialized `SmallFp` multiplication paths for the BabyBear, KoalaBear, and Goldilocks primes (shift-based Montgomery for BabyBear/KoalaBear, Pornin's reduction for Goldilocks).

@@ -74,6 +74,31 @@ macro_rules! pairing_bench {
                     },
                 );
 
+                {
+                    use ark_ff::{CyclotomicMultSubgroup, PrimeField};
+                    const CYCLO_SAMPLES: usize = 64;
+                    let cyclo_elems: Vec<_> = miller_loop_outputs[..CYCLO_SAMPLES]
+                        .iter()
+                        .map(|&m| <$curve as Pairing>::final_exponentiation(m).unwrap().0)
+                        .collect();
+                    let scalars: Vec<_> = (0..CYCLO_SAMPLES)
+                        .map(|_| {
+                            <<$curve as Pairing>::ScalarField as UniformRand>::rand(&mut rng)
+                                .into_bigint()
+                        })
+                        .collect();
+                    let mut j = 0;
+                    pairing.bench_function(
+                        &format!("Cyclotomic Exp (ScalarField) for {}", stringify!($curve)),
+                        |b| {
+                            b.iter(|| {
+                                j = (j + 1) % CYCLO_SAMPLES;
+                                cyclo_elems[j].cyclotomic_exp(scalars[j])
+                            })
+                        },
+                    );
+                }
+
                 const NUM_PAIRS: usize = 10;
 
                 for pairs in 1..=NUM_PAIRS {

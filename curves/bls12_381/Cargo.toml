@@ -35,3 +35,8 @@ asm = [ "ark-ff/asm" ]
 name = "bls12_381"
 path = "benches/bls12_381.rs"
 harness = false
+
+[[bench]]
+name = "pairing"
+path = "benches/pairing.rs"
+harness = false
