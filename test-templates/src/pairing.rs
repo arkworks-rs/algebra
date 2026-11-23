@@ -54,6 +54,27 @@ macro_rules! test_pairing {
             }
 
             #[test]
+            fn test_pairing_with_identity() {
+                let rng = &mut test_rng();
+                let g1 = <$Pairing as Pairing>::G1::rand(rng).into_affine();
+                let g2 = <$Pairing as Pairing>::G2::rand(rng).into_affine();
+                let g1_zero = <$Pairing as Pairing>::G1::zero().into_affine();
+                let g2_zero = <$Pairing as Pairing>::G2::zero().into_affine();
+
+                assert!(<$Pairing>::pairing(g1, g2_zero).is_zero());
+                assert!(<$Pairing>::pairing(g1_zero, g2).is_zero());
+                assert!(<$Pairing>::pairing(g1_zero, g2_zero).is_zero());
+
+                let c = <$Pairing as Pairing>::G1::rand(rng).into_affine();
+                let d = <$Pairing as Pairing>::G2::rand(rng).into_affine();
+                let expected = <$Pairing>::pairing(c, d);
+                assert_eq!(
+                    <$Pairing>::multi_pairing(&[g1, c, g1_zero], &[g2_zero, d, g2]),
+                    expected
+                );
+            }
+
+            #[test]
             fn test_final_exp() {
                 for _ in 0..ITERATIONS {
                     let rng = &mut test_rng();

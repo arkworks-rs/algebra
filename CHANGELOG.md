@@ -2,6 +2,7 @@
 
 ## Pending
 
+- [\#1131](https://github.com/arkworks-rs/algebra/issues/1131) (`ark-ec`, `ark-cp6-782`) Fix `Pairing::pairing` and `multi_pairing` panicking on MNT4, MNT6 and CP6-782 curves when a pair contains the identity; such pairs are now skipped, as in BLS12, BN and BW6. Add `is_zero` to the MNT4 and MNT6 `G1Prepared` and `G2Prepared`.
 - [\#1135](https://github.com/arkworks-rs/algebra/pull/1135) (`ark-ff`) With the `parallel` feature, `batch_inversion` and `batch_inversion_and_mul` now run serially for batches below 2048 elements instead of dispatching to rayon, which cost more than the inversion itself for small batches.
 - [\#1135](https://github.com/arkworks-rs/algebra/pull/1135) (`ark-ec`) Evaluate the isogeny polynomials of `WBMap` in place with Horner's rule instead of allocating temporary polynomials, and drop the now-unused `ark-poly` dependency of `ark-ec`.
 - (`ark-starkcurve`) Add 252 bit [Stark curve](https://docs.starknet.io/architecture/cryptography/#the_stark_curve).

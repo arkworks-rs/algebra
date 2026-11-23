@@ -8,7 +8,7 @@ use ark_ff::fields::{Field, Fp3};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use ark_std::vec::*;
 use educe::Educe;
-use num_traits::One;
+use num_traits::{One, Zero};
 
 pub type G2Affine<P> = Affine<<P as MNT6Config>::G2Config>;
 pub type G2Projective<P> = Projective<<P as MNT6Config>::G2Config>;
@@ -30,8 +30,25 @@ impl<P: MNT6Config> Default for G2Prepared<P> {
     }
 }
 
+impl<P: MNT6Config> G2Prepared<P> {
+    pub fn is_zero(&self) -> bool {
+        self.x.is_zero() && self.y.is_zero()
+    }
+}
+
 impl<P: MNT6Config> From<G2Affine<P>> for G2Prepared<P> {
     fn from(g: G2Affine<P>) -> Self {
+        if g.is_zero() {
+            return Self {
+                x: Default::default(),
+                y: Default::default(),
+                x_over_twist: Default::default(),
+                y_over_twist: Default::default(),
+                double_coefficients: Vec::new(),
+                addition_coefficients: Vec::new(),
+            };
+        }
+
         let twist_inv = P::TWIST.inverse().unwrap();
 
         let mut g_prep = Self {
